@@ -65,6 +65,12 @@ export interface IEditorClip {
 
   // Volume for audio/video
   volume?: number; // 0-100
+
+  /**
+   * A still image on a video track, shown with a slow push-in. The export
+   * re-derives it from the asset, so a client value never changes the render.
+   */
+  mediaType?: 'image';
 }
 
 export interface IEditorTrack {

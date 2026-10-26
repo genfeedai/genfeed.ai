@@ -511,6 +511,7 @@ function readClip(
     transitionIn,
     transitionOut,
     volume: isFiniteNumber(value.volume) ? value.volume : undefined,
+    mediaType: value.mediaType === 'image' ? 'image' : undefined,
   };
 }
 

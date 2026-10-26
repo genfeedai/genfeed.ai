@@ -2,7 +2,10 @@
 
 import { EditorTrackType } from '@genfeedai/contracts';
 import type { IEditorClip } from '@genfeedai/contracts/interfaces';
-import { buildEditorRenderStyle } from '@genfeedai/utils/media/editor-render-style.util';
+import {
+  buildEditorRenderStyle,
+  editorStillScale,
+} from '@genfeedai/utils/media/editor-render-style.util';
 import type {
   EditorCompositionProps,
   EditorPreviewPlayerProps,
@@ -22,6 +25,7 @@ import {
 import {
   AbsoluteFill,
   Audio,
+  Img,
   OffthreadVideo,
   Sequence,
   useCurrentFrame,
@@ -63,6 +67,23 @@ function VisualLayer({
     <AbsoluteFill style={buildEditorRenderStyle(frame, clip)}>
       {children}
     </AbsoluteFill>
+  );
+}
+
+/** A still on a video track: a slow push-in so it never reads as frozen. */
+function StillLayer({ clip }: { clip: IEditorClip }) {
+  const frame = useCurrentFrame();
+
+  return (
+    <Img
+      src={clip.ingredientUrl}
+      style={{
+        height: '100%',
+        objectFit: 'cover',
+        transform: `scale(${editorStillScale(frame, clip.durationFrames)})`,
+        width: '100%',
+      }}
+    />
   );
 }
 
@@ -113,17 +134,21 @@ function EditorComposition({
               durationInFrames={clip.durationFrames}
             >
               <VisualLayer clip={clip}>
-                <OffthreadVideo
-                  src={clip.ingredientUrl}
-                  style={{
-                    height: '100%',
-                    objectFit: 'contain',
-                    width: '100%',
-                  }}
-                  trimAfter={clip.sourceEndFrame}
-                  trimBefore={clip.sourceStartFrame}
-                  volume={(track.volume / 100) * ((clip.volume ?? 100) / 100)}
-                />
+                {clip.mediaType === 'image' ? (
+                  <StillLayer clip={clip} />
+                ) : (
+                  <OffthreadVideo
+                    src={clip.ingredientUrl}
+                    style={{
+                      height: '100%',
+                      objectFit: 'contain',
+                      width: '100%',
+                    }}
+                    trimAfter={clip.sourceEndFrame}
+                    trimBefore={clip.sourceStartFrame}
+                    volume={(track.volume / 100) * ((clip.volume ?? 100) / 100)}
+                  />
+                )}
               </VisualLayer>
             </Sequence>
           );

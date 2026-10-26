@@ -109,3 +109,15 @@ export function buildEditorRenderStyle(
       : {}),
   };
 }
+
+/** How far a still pushes in over its clip: 1 at the first frame. */
+export const EDITOR_STILL_PUSH_IN = 0.08;
+
+/** Scale of a still at `frame` of a clip `durationFrames` long (Ken Burns). */
+export function editorStillScale(
+  frame: number,
+  durationFrames: number,
+): number {
+  const progress = durationFrames > 1 ? clamp(frame / (durationFrames - 1)) : 0;
+  return 1 + EDITOR_STILL_PUSH_IN * progress;
+}

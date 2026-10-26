@@ -353,6 +353,46 @@ describe('EditorRenderService', () => {
     );
   });
 
+  it('marks an image on a video track as a still from the asset alone', async () => {
+    ingredientsService.findAll.mockResolvedValue({
+      docs: [
+        {
+          brandId: 'brand-123',
+          category: IngredientCategory.IMAGE,
+          id: videoIngredientId,
+        },
+      ],
+    });
+
+    await service.render(projectId, organizationId, user);
+
+    const job = fileQueueService.processVideo.mock.calls[0]?.[0] as {
+      params: {
+        snapshot: { tracks: { clips: { mediaType?: string }[] }[] };
+      };
+    };
+    expect(job.params.snapshot.tracks[0]?.clips[0]?.mediaType).toBe('image');
+  });
+
+  it('ignores a still flag the asset does not back', async () => {
+    editorProjectsService.findForRender.mockResolvedValue(
+      makeProject([
+        makeTrack(EditorTrackType.VIDEO, [
+          makeClip('video-clip', videoIngredientId, { mediaType: 'image' }),
+        ]),
+      ]),
+    );
+
+    await service.render(projectId, organizationId, user);
+
+    const job = fileQueueService.processVideo.mock.calls[0]?.[0] as {
+      params: {
+        snapshot: { tracks: { clips: { mediaType?: string }[] }[] };
+      };
+    };
+    expect(job.params.snapshot.tracks[0]?.clips[0]?.mediaType).toBeUndefined();
+  });
+
   it('rejects malformed export settings before render side effects', async () => {
     editorProjectsService.findForRender.mockResolvedValue(
       makeProject([makeTrack(EditorTrackType.VIDEO)], {

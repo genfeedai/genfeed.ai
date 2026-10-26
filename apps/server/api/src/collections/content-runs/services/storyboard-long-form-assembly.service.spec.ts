@@ -96,7 +96,11 @@ function setup(initial: StoryboardNativeRunConfig) {
       findMany: vi.fn(async ({ where }: { where: { id: { in: string[] } } }) =>
         where.id.in.map((id) => ({
           id,
-          category: id.startsWith('presenter') ? 'AVATAR' : 'VIDEO',
+          category: id.startsWith('presenter')
+            ? 'AVATAR'
+            : id.startsWith('still')
+              ? 'IMAGE'
+              : 'VIDEO',
           status: 'GENERATED',
           metadata: { duration: id === 'short-clip' ? 2 : 60 },
         })),
@@ -206,5 +210,27 @@ describe('StoryboardLongFormAssemblyService', () => {
       tracks: { clips: { durationFrames: number }[] }[];
     };
     expect(created.tracks[1]?.clips[0]?.durationFrames).toBe(60);
+  });
+
+  it('shows a still cutaway with a push-in for its whole slot', async () => {
+    const ctx = setup(
+      config([
+        {
+          id: 'cutaway-1',
+          kind: 'still',
+          brief: 'Chart',
+          assetId: 'still-1',
+          startSeconds: 20,
+          durationSeconds: 8,
+        },
+      ]),
+    );
+
+    await ctx.service.assemble(user as never, 'brand-1', 'run-1');
+    const created = ctx.editorProjects.create.mock.calls[0]?.[0] as {
+      tracks: { clips: { durationFrames: number; mediaType?: string }[] }[];
+    };
+    expect(created.tracks[1]?.clips[0]?.mediaType).toBe('image');
+    expect(created.tracks[1]?.clips[0]?.durationFrames).toBeGreaterThan(60);
   });
 });

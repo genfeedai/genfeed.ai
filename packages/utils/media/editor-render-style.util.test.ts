@@ -3,6 +3,8 @@ import type { IEditorClip } from '@genfeedai/contracts/interfaces';
 import {
   buildEditorCssFilter,
   buildEditorRenderStyle,
+  EDITOR_STILL_PUSH_IN,
+  editorStillScale,
 } from '@genfeedai/utils/media/editor-render-style.util';
 
 function makeClip(overrides: Partial<IEditorClip> = {}): IEditorClip {
@@ -42,5 +44,11 @@ describe('editor render styles', () => {
       clipPath: 'inset(0 0% 0 37.5%)',
       transform: 'translateX(37.5%)',
     });
+  });
+
+  it('pushes a still in from full frame to its last frame', () => {
+    expect(editorStillScale(0, 90)).toBe(1);
+    expect(editorStillScale(89, 90)).toBeCloseTo(1 + EDITOR_STILL_PUSH_IN);
+    expect(editorStillScale(0, 1)).toBe(1);
   });
 });

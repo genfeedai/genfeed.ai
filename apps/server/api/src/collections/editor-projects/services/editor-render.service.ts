@@ -72,6 +72,7 @@ const ALLOWED_ASSET_CATEGORIES: Record<
   ]),
   [EditorTrackType.VIDEO]: new Set([
     IngredientCategory.AVATAR,
+    IngredientCategory.IMAGE,
     IngredientCategory.VIDEO,
     IngredientCategory.VIDEO_EDIT,
   ]),
@@ -364,6 +365,7 @@ export class EditorRenderService {
     }
     const sourceStorageKeys: Record<string, string> = {};
     const trustedUrlByClipId = new Map<string, string>();
+    const imageClipIds = new Set<string>();
     let brandId: string | undefined;
 
     for (const asset of validatedContract.assetManifest) {
@@ -381,6 +383,8 @@ export class EditorRenderService {
           `Asset ${asset.ingredientId} is not valid for a ${asset.type} track.`,
         );
       }
+
+      if (category === IngredientCategory.IMAGE) imageClipIds.add(asset.clipId);
 
       if (this.configService.isAuthorizedMediaDeliveryEnabled) {
         const key = storedKeysById.get(asset.ingredientId);
@@ -436,9 +440,13 @@ export class EditorRenderService {
                     ingredientId: '',
                     ingredientUrl: '',
                   }))
-                : track.clips.map((clip) => ({
+                : track.clips.map(({ mediaType: _mediaType, ...clip }) => ({
                     ...clip,
                     ingredientUrl: trustedUrl(clip.id),
+                    // Only the asset decides whether a clip is a still.
+                    ...(imageClipIds.has(clip.id)
+                      ? { mediaType: 'image' as const }
+                      : {}),
                   })),
           })),
         },

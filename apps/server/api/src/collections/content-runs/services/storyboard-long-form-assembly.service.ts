@@ -30,7 +30,8 @@ import { ConflictException, Injectable } from '@nestjs/common';
 
 export const LONG_FORM_EDIT_FPS = 30;
 
-const VIDEO_CATEGORIES = ['VIDEO', 'AVATAR', 'VIDEO_EDIT'] as const;
+/** A cutaway may be a still; the presenter is always a video. */
+const FOOTAGE_CATEGORIES = ['VIDEO', 'AVATAR', 'VIDEO_EDIT', 'IMAGE'] as const;
 const READY_STATUSES = new Set(['GENERATED', 'VALIDATED', 'UPLOADED']);
 
 const SETTINGS: Record<
@@ -100,6 +101,12 @@ export class StoryboardLongFormAssemblyService {
         item.assetId ? [item.assetId] : [],
       ),
     ]);
+    if (
+      timeline.aRoll.some(
+        (item) => footage.get(item.assetId)?.category === 'IMAGE',
+      )
+    )
+      throw new ConflictException('The presenter track must be video.');
     const tracks = this.buildTracks(timeline, footage);
     const totalDurationFrames = frames(timeline.totalSeconds);
     const project = await this.editorProjects.create({
@@ -155,7 +162,7 @@ export class StoryboardLongFormAssemblyService {
       where: scopedWhere(organizationId, {
         brandId,
         id: { in: ids },
-        category: { in: [...VIDEO_CATEGORIES] },
+        category: { in: [...FOOTAGE_CATEGORIES] },
       }),
       select: {
         id: true,
@@ -178,7 +185,7 @@ export class StoryboardLongFormAssemblyService {
     const unusable = ids.filter((id) => !footage.has(id));
     if (unusable.length)
       throw new ConflictException(
-        'Some footage is not a finished video of this brand. Replace it and try again.',
+        'Some footage is not a finished image or video of this brand. Replace it and try again.',
       );
     return footage;
   }
@@ -190,12 +197,14 @@ export class StoryboardLongFormAssemblyService {
     durationSeconds: number,
     volume: number,
   ): IEditorClip {
-    // A clip shorter than its slot holds the slot only as long as it runs.
+    const isStill = asset.category === 'IMAGE';
+    // A clip shorter than its slot holds the slot only as long as it runs; a
+    // still holds it for as long as it is needed.
     const durationFrames = Math.max(
       1,
       Math.min(
         frames(durationSeconds),
-        asset.durationSeconds !== undefined
+        !isStill && asset.durationSeconds !== undefined
           ? frames(asset.durationSeconds)
           : Number.POSITIVE_INFINITY,
       ),
@@ -210,6 +219,7 @@ export class StoryboardLongFormAssemblyService {
       sourceEndFrame: durationFrames,
       effects: [],
       volume,
+      ...(isStill ? { mediaType: 'image' as const } : {}),
     };
   }
 
