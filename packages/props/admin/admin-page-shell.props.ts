@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 /**
  * Admin page chrome. Every admin page puts its title in the shell breadcrumb
  * and its controls in the subbar, in one fixed order: refresh, download, the
- * dropdowns (org filter first), then the primary CTA last. Slots instead of a
+ * dropdowns (org filter first), the view toggle, then the primary CTA last. Slots instead of a
  * free-form `right` node, so a page cannot reorder them.
  */
 export interface AdminPageShellProps {
@@ -23,6 +23,8 @@ export interface AdminPageShellProps {
   download?: ReactNode;
   /** Dropdown filters such as the organization picker. */
   dropdowns?: ReactNode;
+  /** List/grid view toggle, after the dropdowns and before the primary action. */
+  views?: ReactNode;
   /** The page's single primary action; always the last control. */
   primaryAction?: ReactNode;
   children: ReactNode;

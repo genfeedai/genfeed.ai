@@ -2528,14 +2528,20 @@
     "selectedApp": "{app}, selected",
     "status": {
       "label": "App status",
-      "all": "ALL",
+      "all": "All",
       "installed": "Installed",
       "available": "Available",
       "restricted": "Restricted"
     },
     "search": "Search plugins",
     "installedTitle": "Installed",
-    "catalogTitle": "Plugins",
+    "availableTitle": "Available to add",
+    "whatYouCanDo": "What you can do",
+    "badges": {
+      "organizationDisabled": "Hidden",
+      "subscriptionRequired": "Paid plan",
+      "unavailable": "Unavailable"
+    },
     "pinned": "Pinned",
     "filterAll": "All",
     "filters": {
@@ -2553,6 +2559,71 @@
       "create": "Generate, plan and edit images, video and sequences.",
       "publish": "Research what works and keep up with your audience.",
       "automate": "Run workflows and programs on your content."
+    },
+    "apps": {
+      "playground": {
+        "description": "Generate images, video, audio and text from a prompt.",
+        "summary": "Your open canvas for one-off generation. Write a prompt, pick a model and refine the result until it fits. Everything you make is saved to your Library.",
+        "highlightOne": "Generate images, videos, audio and text",
+        "highlightTwo": "Iterate on a result with follow-up prompts",
+        "highlightThree": "Every asset is saved to your Library"
+      },
+      "storyboard": {
+        "description": "Plan a story scene by scene, then generate it.",
+        "summary": "Break an idea into scenes and shots, review the plan, then generate the frames and clips for each one. Good for ads, explainers and short stories.",
+        "highlightOne": "Turn a brief into scenes and shots",
+        "highlightTwo": "Edit the plan before you spend credits",
+        "highlightThree": "Generate each scene from the plan"
+      },
+      "turbo": {
+        "description": "Create content in bulk from one brief.",
+        "summary": "Queue a batch of images and videos at once instead of generating them one by one. Built for filling a content calendar quickly.",
+        "highlightOne": "Run many generations from one brief",
+        "highlightTwo": "Review the batch and keep what works",
+        "highlightThree": "Send the winners to your Library"
+      },
+      "motion": {
+        "description": "Build animated visuals and render them to video.",
+        "summary": "Create motion projects such as animated titles, captions and branded graphics, then render them to video you can publish.",
+        "highlightOne": "Compose animated visuals",
+        "highlightTwo": "Preview before you render",
+        "highlightThree": "Render to video"
+      },
+      "clipper": {
+        "description": "Turn long videos and audio into short clips.",
+        "summary": "Bring in a long video or recording and cut the best moments into short clips that are ready for social.",
+        "highlightOne": "Import a long video or audio file",
+        "highlightTwo": "Pick the highlights to cut",
+        "highlightThree": "Export clips ready to publish"
+      },
+      "editor": {
+        "description": "Assemble and finish video on a timeline.",
+        "summary": "Combine clips, images and audio on a timeline, trim and arrange them, then export the finished video.",
+        "highlightOne": "Arrange clips on a timeline",
+        "highlightTwo": "Trim and layer audio",
+        "highlightThree": "Export the finished video"
+      },
+      "messages": {
+        "description": "Read and reply to your audience in one inbox.",
+        "summary": "See comments and messages from your connected channels in one place and reply without leaving Genfeed.",
+        "highlightOne": "One inbox across your channels",
+        "highlightTwo": "Reply in place",
+        "highlightThree": "Keep up with your audience"
+      },
+      "discovery": {
+        "description": "Find trends and content opportunities in your niche.",
+        "summary": "Research what is trending on social platforms for your brand’s niche and turn it into content ideas.",
+        "highlightOne": "Trending topics ranked by niche match",
+        "highlightTwo": "Spot what is working on each platform",
+        "highlightThree": "Turn a trend into a post idea"
+      },
+      "automation": {
+        "description": "Run workflows and recurring tasks.",
+        "summary": "Build or install workflows that generate, schedule and publish content on their own, so recurring work happens without you starting it.",
+        "highlightOne": "Browse and install ready-made workflows",
+        "highlightTwo": "Run on a schedule",
+        "highlightThree": "Combine generation and publishing steps"
+      }
     },
     "noMatches": "No plugins match your search.",
     "workflowsTitle": "Workflows",

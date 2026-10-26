@@ -19,7 +19,7 @@ vi.mock('next-intl', async () => {
 });
 
 describe('AdminPageShell', () => {
-  it('orders the subbar controls refresh, download, dropdown, primary action', () => {
+  it('orders the subbar controls refresh, download, dropdown, view toggle, primary action', () => {
     render(
       <AdminPageShell
         title="Models"
@@ -27,6 +27,7 @@ describe('AdminPageShell', () => {
         onRefresh={vi.fn()}
         download={<button type="button">Download</button>}
         dropdowns={<button type="button">All organizations</button>}
+        views={<button type="button">Grid view</button>}
         primaryAction={<button type="button">Create</button>}
       >
         <p>body</p>
@@ -42,6 +43,7 @@ describe('AdminPageShell', () => {
       'Refresh',
       'Download',
       'All organizations',
+      'Grid view',
       'Create',
     ]);
   });

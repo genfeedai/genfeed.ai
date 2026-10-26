@@ -7,14 +7,20 @@ test('organization Plugins browser keeps scope, filters and previews usable on d
   authenticatedPage: page,
 }, testInfo) => {
   await page.goto(orgPath('/plugins'), { waitUntil: 'domcontentloaded' });
-  const chooser = page.getByTestId('plugins-apps');
+  const apps = page.locator(
+    '[data-testid^="plugins-app-"]:not([data-testid="plugins-app-detail"])',
+  );
   const detail = page.getByTestId('plugins-app-detail');
-  await expect(chooser.getByRole('button')).toHaveCount(9);
+  await expect(apps).toHaveCount(9);
+  await expect(detail).toHaveCount(0);
+  await expect(
+    page.getByText('Plan a story scene by scene, then generate it.'),
+  ).toBeVisible();
   await expect(page.getByRole('tablist', { name: 'App status' })).toHaveCount(
     1,
   );
   await expect(
-    page.getByRole('tab', { name: 'ALL', exact: true }),
+    page.getByRole('tab', { name: 'All', exact: true }),
   ).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByRole('combobox', { name: 'Category' })).toBeVisible();
   await expect(page.getByTestId('organization-switcher-trigger')).toBeVisible();
@@ -25,12 +31,14 @@ test('organization Plugins browser keeps scope, filters and previews usable on d
     page.getByRole('button', { name: /select brand|brand 1/i }),
   ).toHaveCount(0);
 
-  await chooser
+  await page
     .getByRole('button', { name: 'Select Storyboard', exact: true })
     .click();
+  await expect(detail).toContainText('Break an idea into scenes and shots');
+  // The detail used to push its title and Open action below the fold.
   await expect(
-    detail.getByRole('heading', { name: 'Storyboard' }),
-  ).toBeVisible();
+    detail.getByRole('link', { name: 'Open Storyboard' }),
+  ).toBeInViewport();
   await expect(
     detail.getByRole('link', { name: 'Open Storyboard' }),
   ).toHaveAttribute('href', /\/storyboard$/);
@@ -49,35 +57,33 @@ test('organization Plugins browser keeps scope, filters and previews usable on d
 
   await page.getByRole('combobox', { name: 'Category' }).click();
   await page.getByRole('option', { name: 'Publish & grow' }).click();
-  await expect(chooser.getByRole('button')).toHaveCount(2);
-  await expect(detail.getByRole('heading', { name: 'Messages' })).toBeVisible();
+  await expect(apps).toHaveCount(2);
+  await expect(detail).toHaveCount(0);
   await page
     .getByRole('textbox', { name: 'Search plugins' })
     .fill('nothing-matches');
   await expect(page.getByTestId('plugins-empty')).toBeVisible();
   await page.getByRole('button', { name: 'Clear filters' }).click();
-  await expect(chooser.getByRole('button')).toHaveCount(9);
+  await expect(apps).toHaveCount(9);
 
   await page.getByRole('tab', { name: 'Available' }).click();
   await expect(page.getByTestId('plugins-empty')).toBeVisible();
-  await page.getByRole('tab', { name: 'ALL', exact: true }).click();
-  await page.getByRole('tab', { name: 'ALL', exact: true }).focus();
+  await page.getByRole('tab', { name: 'All', exact: true }).click();
+  await page.getByRole('tab', { name: 'All', exact: true }).focus();
   await page.keyboard.press('ArrowRight');
   await expect(
     page.getByRole('tab', { name: 'Installed', exact: true }),
   ).toHaveAttribute('aria-selected', 'true');
-  await page.getByRole('tab', { name: 'ALL', exact: true }).click();
+  await page.getByRole('tab', { name: 'All', exact: true }).click();
   await page.screenshot({
     path: testInfo.outputPath('plugins-desktop.png'),
     fullPage: true,
   });
   await page.setViewportSize({ width: 390, height: 844 });
-  await chooser
+  await page
     .getByRole('button', { name: 'Select Discovery', exact: true })
     .click();
-  await expect(
-    detail.getByRole('heading', { name: 'Discovery' }),
-  ).toBeVisible();
+  await expect(detail).toContainText('Research what is trending');
   await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toHaveText(
     'Plugins',
   );
@@ -113,7 +119,9 @@ test('app installation and removal update the real member-app provider', async (
     await route.fulfill({ json: { installedAppIds } });
   });
   await page.goto(orgPath('/plugins'), { waitUntil: 'domcontentloaded' });
-  await page.getByTestId('plugins-app-storyboard').click();
+  await page
+    .getByRole('button', { name: 'Select Storyboard', exact: true })
+    .click();
   const detail = page.getByTestId('plugins-app-detail');
   await detail.getByRole('button', { name: 'Add Storyboard' }).click();
   await expect(

@@ -13,6 +13,7 @@ export type ContextSidebarSelectionKind =
   | 'model'
   | 'organization'
   | 'outlier'
+  | 'plugin'
   | 'post'
   | 'record'
   | 'run'

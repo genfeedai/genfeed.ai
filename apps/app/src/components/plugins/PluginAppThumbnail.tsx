@@ -31,12 +31,14 @@ const TONE_FILL_CLASSES: Record<PluginThumbnailTone, string> = {
 };
 
 const SIZE_CLASSES: Record<PluginThumbnailSize, string> = {
+  card: 'aspect-video w-full rounded-t-card',
   compact: 'size-10 rounded-md',
   preview: 'aspect-video w-full rounded-t-card',
   standard: 'h-28 w-full rounded-t-card',
 };
 
 const ICON_SIZE_CLASSES: Record<PluginThumbnailSize, string> = {
+  card: 'size-6',
   compact: 'size-5',
   preview: 'size-6',
   standard: 'size-6',
@@ -46,6 +48,7 @@ const ICON_WRAPPER_CLASSES: Record<
   Exclude<PluginThumbnailSize, 'compact'>,
   string
 > = {
+  card: 'size-12 rounded-lg',
   standard: 'size-12 rounded-lg',
   preview: 'size-12 rounded-lg',
 };
@@ -263,7 +266,9 @@ export default function PluginAppThumbnail({
               ? '2.5rem'
               : size === 'preview'
                 ? '(min-width: 1024px) 70vw, 95vw'
-                : '(min-width: 768px) 26rem, 85vw'
+                : size === 'card'
+                  ? '(min-width: 1024px) 24rem, 85vw'
+                  : '(min-width: 768px) 26rem, 85vw'
           }
           src={thumbnailSrc}
           unoptimized={!canOptimizeImageSource(thumbnailSrc)}

@@ -10,7 +10,7 @@ import Container from '@ui/layout/container/Container';
  * - The breadcrumb is the page title, so the title is screen-reader only and
  *   no header is drawn inside the content.
  * - Filters live in the subbar, never in the content.
- * - Controls keep one order: refresh, download, dropdowns, primary CTA.
+ * - Controls keep one order: refresh, download, dropdowns, views, primary CTA.
  */
 export default function AdminPageShell({
   title,
@@ -22,11 +22,13 @@ export default function AdminPageShell({
   isRefreshing = false,
   download,
   dropdowns,
+  views,
   primaryAction,
   children,
 }: AdminPageShellProps) {
   const hasLeading = Boolean(search) || Boolean(filters);
-  const hasRight = Boolean(dropdowns) || Boolean(primaryAction);
+  const hasRight =
+    Boolean(dropdowns) || Boolean(views) || Boolean(primaryAction);
 
   return (
     <Container
@@ -54,6 +56,7 @@ export default function AdminPageShell({
         hasRight ? (
           <>
             {dropdowns}
+            {views}
             {primaryAction}
           </>
         ) : undefined

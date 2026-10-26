@@ -1,7 +1,12 @@
 'use client';
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  ComponentSize,
+  ViewType,
+} from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -14,19 +19,16 @@ import {
 } from '@genfeedai/contracts/constants';
 import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
 import type {
-  PluginAppAccessNoteProps,
-  PluginAppActionsProps,
   PluginAppEntry,
-  PluginAppStateProps,
   PluginFilterId,
   PluginStatusFilter,
 } from '@genfeedai/props/plugins/organization-plugins-page.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import Card from '@ui/card/Card';
-import CollectionItemActions from '@ui/collection/CollectionItemActions';
-import { SkeletonCard } from '@ui/display/skeleton/skeleton';
+import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
+import CollectionSection from '@ui/collection/CollectionSection';
+import CollectionToolbar from '@ui/collection/CollectionToolbar';
+import CollectionView from '@ui/collection/CollectionView';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
-import ListRow from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
 import {
@@ -41,23 +43,24 @@ import {
   getAppRailHref,
   isAppRailItemEnabled,
 } from '@ui/shell/app-rail/app-rail.registry';
-import { Check, ChevronRight, LockKeyhole, Puzzle } from 'lucide-react';
+import { Puzzle } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
-import PluginAppThumbnail from '@/components/plugins/PluginAppThumbnail';
+import PluginAppAccessNote from '@/components/plugins/PluginAppAccessNote';
+import PluginAppActions from '@/components/plugins/PluginAppActions';
+import PluginAppCard from '@/components/plugins/PluginAppCard';
+import PluginAppDetailsPanel from '@/components/plugins/PluginAppDetailsPanel';
+import PluginAppRow from '@/components/plugins/PluginAppRow';
 import {
   PLUGIN_APP_CATALOG,
   PLUGIN_CATEGORY_IDS,
 } from '@/components/plugins/plugin-app-catalog';
+import { isPluginAppOpenable } from '@/components/plugins/plugin-app-state';
 import { useInstalledApps } from '@/components/shell/installed-apps.provider';
 import { useRailPreferencesContext } from '@/components/shell/rail-preferences.provider';
 
 const ALL_FILTER = 'all';
-
-function isAppOpenable(app: PluginAppEntry): boolean {
-  return app.state === 'installed' || app.state === 'pinned';
-}
 
 /**
  * Plugins at `/:orgSlug/~/plugins` (#5502): the native apps a member installs
@@ -85,6 +88,10 @@ function OrganizationPluginsCatalog() {
   const [filter, setFilter] = useState<PluginFilterId>(ALL_FILTER);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<PluginStatusFilter>('all');
+  const { setView, view } = useCollectionViewPreference({
+    defaultView: ViewType.GRID,
+    surface: 'plugins',
+  });
   const [selectedAppId, setSelectedAppId] =
     useState<NativeSecondaryAppId | null>(null);
   const brandSlug = selectedBrand?.slug?.trim() || undefined;
@@ -117,7 +124,12 @@ function OrganizationPluginsCatalog() {
         return [
           {
             appId,
-            description: translateRail(app.description),
+            description: translate(`apps.${appId}.description`),
+            highlights: [
+              translate(`apps.${appId}.highlightOne`),
+              translate(`apps.${appId}.highlightTwo`),
+              translate(`apps.${appId}.highlightThree`),
+            ],
             icon: app.icon,
             isInstalled: installedApps.installedAppIds.includes(appId),
             label: translateRail(app.label),
@@ -126,6 +138,7 @@ function OrganizationPluginsCatalog() {
               orgSlug,
             }),
             state,
+            summary: translate(`apps.${appId}.summary`),
           },
         ];
       }),
@@ -138,6 +151,7 @@ function OrganizationPluginsCatalog() {
       pinnedAppIds,
       settings,
       settingsLoading,
+      translate,
       translateRail,
     ],
   );
@@ -165,13 +179,14 @@ function OrganizationPluginsCatalog() {
           PLUGIN_APP_CATALOG[app.appId].category === activeFilter) &&
         (statusFilter === 'all' ||
           (statusFilter === 'installed'
-            ? app.isInstalled && isAppOpenable(app)
+            ? app.isInstalled && isPluginAppOpenable(app)
             : statusFilter === 'available'
               ? app.state === 'not-installed'
-              : !isAppOpenable(app) && app.state !== 'not-installed')) &&
+              : !isPluginAppOpenable(app) && app.state !== 'not-installed')) &&
         (term === '' ||
           app.label.toLowerCase().includes(term) ||
-          app.description.toLowerCase().includes(term)),
+          app.description.toLowerCase().includes(term) ||
+          app.summary.toLowerCase().includes(term)),
     );
   }, [activeFilter, apps, searchQuery, statusFilter]);
 
@@ -186,7 +201,7 @@ function OrganizationPluginsCatalog() {
         : pinnedAppIds.length + installedApps.installedAppIds.indexOf(appId);
     };
     return visibleApps
-      .filter((app) => app.isInstalled && isAppOpenable(app))
+      .filter((app) => app.isInstalled && isPluginAppOpenable(app))
       .sort((left, right) => rank(left.appId) - rank(right.appId));
   }, [installedApps.installedAppIds, pinnedAppIds, visibleApps]);
   // The catalog lists what is left to add, plus apps the member installed but
@@ -216,12 +231,10 @@ function OrganizationPluginsCatalog() {
     }
   };
 
-  const orderedApps = [...installedRows, ...catalogApps];
   const selectedApp =
-    orderedApps.find((app) => app.appId === selectedAppId) ?? orderedApps[0];
-  const selectedCategory = selectedApp
-    ? PLUGIN_APP_CATALOG[selectedApp.appId].category
-    : undefined;
+    visibleApps.find((app) => app.appId === selectedAppId) ?? null;
+  const getCategoryLabel = (app: PluginAppEntry): string =>
+    translate(`categories.${PLUGIN_APP_CATALOG[app.appId].category}`);
   const renderActions = (app: PluginAppEntry) => (
     <PluginAppActions
       app={app}
@@ -232,6 +245,26 @@ function OrganizationPluginsCatalog() {
       onUninstall={(appId) => void runAction(appId, 'uninstall')}
     />
   );
+  const getItemProps = (app: PluginAppEntry) => ({
+    actions: renderActions(app),
+    app,
+    categoryLabel: getCategoryLabel(app),
+    isSelected: app.appId === selectedApp?.appId,
+    onSelect: setSelectedAppId,
+  });
+  const failedApps = apps.filter((app) => failedActions[app.appId]);
+  const sections = [
+    {
+      apps: installedRows,
+      id: 'installed',
+      title: translate('installedTitle'),
+    },
+    {
+      apps: catalogApps,
+      id: 'available',
+      title: translate('availableTitle'),
+    },
+  ];
 
   return (
     <AdminPageShell
@@ -292,6 +325,7 @@ function OrganizationPluginsCatalog() {
             setStatusFilter(value);
         },
       }}
+      views={<CollectionToolbar onViewChange={setView} view={view} />}
     >
       {installedApps.status === 'error' ? (
         <p className="text-sm text-destructive" role="alert">
@@ -299,136 +333,58 @@ function OrganizationPluginsCatalog() {
         </p>
       ) : isLoading ? (
         <div
-          className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]"
           role="status"
           aria-busy="true"
           aria-label={translate('loadingApp')}
         >
-          <SkeletonCard label={translate('loadingApp')} showImage={false} />
-          <SkeletonCard label={translate('loadingApp')} />
+          <CollectionView<PluginAppEntry>
+            getItemKey={(app) => app.appId}
+            isLoading
+            items={[]}
+            maxColumns={3}
+            renderGridItem={() => null}
+            renderListItem={() => null}
+            view={view}
+          />
         </div>
-      ) : selectedApp ? (
-        <div
-          className="grid items-start gap-6 lg:grid-cols-[280px_minmax(0,1fr)]"
-          data-testid="plugins-browser"
-        >
-          <nav
-            className="max-h-60 overflow-y-auto rounded-card border border-border lg:sticky lg:top-4 lg:max-h-none"
-            aria-label={translate('catalogTitle')}
-            data-testid="plugins-apps"
-          >
-            {orderedApps.map((app) => (
-              <ListRow
-                key={app.appId}
-                density="compact"
-                ariaLabel={translate(
-                  app.appId === selectedApp.appId ? 'selectedApp' : 'selectApp',
-                  { app: app.label },
+      ) : visibleApps.length > 0 ? (
+        <div className="flex flex-col gap-8" data-testid="plugins-browser">
+          {failedApps.map((app) => (
+            <p
+              className="text-sm text-destructive"
+              key={app.appId}
+              role="alert"
+            >
+              {translate(
+                failedActions[app.appId] === 'install'
+                  ? 'installFailed'
+                  : 'uninstallFailed',
+                { app: app.label },
+              )}
+            </p>
+          ))}
+          {sections.map((section) => (
+            <CollectionSection
+              data-testid={`plugins-section-${section.id}`}
+              isCountVisible
+              itemCount={section.apps.length}
+              key={section.id}
+              title={section.title}
+            >
+              <CollectionView<PluginAppEntry>
+                getItemKey={(app) => app.appId}
+                items={section.apps}
+                maxColumns={3}
+                renderGridItem={(app) => (
+                  <PluginAppCard {...getItemProps(app)} />
                 )}
-                onClick={() => setSelectedAppId(app.appId)}
-                leading={
-                  <app.icon
-                    className="mt-0.5 size-4 shrink-0 text-muted-foreground"
-                    aria-hidden
-                  />
-                }
-                title={app.label}
-                meta={<PluginAppState app={app} />}
-                trailing={
-                  app.appId === selectedApp.appId ? (
-                    <Check className="size-4 text-foreground" aria-hidden />
-                  ) : (
-                    <ChevronRight
-                      className="size-4 text-muted-foreground"
-                      aria-hidden
-                    />
-                  )
-                }
-                className={
-                  app.appId === selectedApp.appId ? 'bg-accent' : undefined
-                }
-                data-testid={`plugins-app-${app.appId}`}
+                renderListItem={(app) => (
+                  <PluginAppRow {...getItemProps(app)} />
+                )}
+                view={view}
               />
-            ))}
-          </nav>
-          <Card
-            className="min-w-0"
-            bodyClassName="gap-0 p-0"
-            data-testid="plugins-app-detail"
-          >
-            <PluginAppThumbnail
-              appId={selectedApp.appId}
-              icon={selectedApp.icon}
-              label={selectedApp.label}
-              size="preview"
-            />
-            <div className="flex flex-col gap-4 p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="mb-1 text-xs text-muted-foreground">
-                    {selectedCategory
-                      ? translate(`categories.${selectedCategory}`)
-                      : null}
-                  </p>
-                  <h2 className="text-xl font-semibold">{selectedApp.label}</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {selectedApp.description}
-                  </p>
-                </div>
-                {renderActions(selectedApp)}
-              </div>
-              <div className="border-t border-border pt-4">
-                <PluginAppState app={selectedApp} />
-                <PluginAppAccessNote
-                  manageModulesHref={createOrganizationAppRoute(
-                    orgSlug,
-                    APP_ROUTES.SETTINGS.MODULES,
-                  )}
-                  state={selectedApp.state}
-                  subscriptionHref={createOrganizationAppRoute(
-                    orgSlug,
-                    APP_ROUTES.SETTINGS.SUBSCRIPTION,
-                  )}
-                />
-              </div>
-              {selectedApp.appId === 'automation' && isWorkflowLibraryShown ? (
-                <div data-testid="plugins-workflows">
-                  <Button
-                    asChild
-                    size={ButtonSize.SM}
-                    variant={ButtonVariant.SECONDARY}
-                  >
-                    <Link
-                      href={
-                        brandSlug
-                          ? createBrandAppRoute(
-                              orgSlug,
-                              brandSlug,
-                              APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES,
-                            )
-                          : createOrganizationAppRoute(
-                              orgSlug,
-                              APP_ROUTES.AUTOMATION.ROOT,
-                            )
-                      }
-                    >
-                      {translate('openWorkflows')}
-                    </Link>
-                  </Button>
-                </div>
-              ) : null}
-              {failedActions[selectedApp.appId] ? (
-                <p className="text-sm text-destructive" role="alert">
-                  {translate(
-                    failedActions[selectedApp.appId] === 'install'
-                      ? 'installFailed'
-                      : 'uninstallFailed',
-                    { app: selectedApp.label },
-                  )}
-                </p>
-              ) : null}
-            </div>
-          </Card>
+            </CollectionSection>
+          ))}
         </div>
       ) : (
         <div
@@ -451,144 +407,54 @@ function OrganizationPluginsCatalog() {
           </Button>
         </div>
       )}
+      <PluginAppDetailsPanel
+        accessNote={
+          selectedApp ? (
+            <PluginAppAccessNote
+              manageModulesHref={createOrganizationAppRoute(
+                orgSlug,
+                APP_ROUTES.SETTINGS.MODULES,
+              )}
+              state={selectedApp.state}
+              subscriptionHref={createOrganizationAppRoute(
+                orgSlug,
+                APP_ROUTES.SETTINGS.SUBSCRIPTION,
+              )}
+            />
+          ) : null
+        }
+        actions={selectedApp ? renderActions(selectedApp) : null}
+        app={selectedApp}
+        categoryLabel={selectedApp ? getCategoryLabel(selectedApp) : ''}
+        onClose={() => setSelectedAppId(null)}
+      >
+        {selectedApp?.appId === 'automation' && isWorkflowLibraryShown ? (
+          <div data-testid="plugins-workflows">
+            <Button
+              asChild
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+            >
+              <Link
+                href={
+                  brandSlug
+                    ? createBrandAppRoute(
+                        orgSlug,
+                        brandSlug,
+                        APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES,
+                      )
+                    : createOrganizationAppRoute(
+                        orgSlug,
+                        APP_ROUTES.AUTOMATION.ROOT,
+                      )
+                }
+              >
+                {translate('openWorkflows')}
+              </Link>
+            </Button>
+          </div>
+        ) : null}
+      </PluginAppDetailsPanel>
     </AdminPageShell>
   );
-}
-
-function PluginAppActions({
-  app,
-  isPending,
-  isPinned,
-  onInstall,
-  onTogglePin,
-  onUninstall,
-}: PluginAppActionsProps) {
-  const translate = useTranslations('common.plugins');
-  const translateRail = useTranslations('common.appRail');
-  const isOpenable = isAppOpenable(app);
-  const isLocked = !isOpenable && app.state !== 'not-installed';
-
-  return (
-    <CollectionItemActions
-      primary={
-        isOpenable ? (
-          <Button
-            asChild
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
-          >
-            <Link
-              aria-label={`${translate('open')} ${app.label}`}
-              href={app.openHref}
-            >
-              {translate('open')}
-            </Link>
-          </Button>
-        ) : (
-          <Button
-            ariaLabel={`${translate('install')} ${app.label}`}
-            isDisabled={isPending || isLocked}
-            onClick={() => onInstall(app.appId)}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
-          >
-            {translate('install')}
-          </Button>
-        )
-      }
-      overflow={
-        app.isInstalled
-          ? [
-              ...(isOpenable
-                ? [
-                    {
-                      id: 'pin',
-                      isDisabled: isPending,
-                      label: translateRail(isPinned ? 'unpin' : 'pin', {
-                        app: app.label,
-                      }),
-                      onSelect: () => onTogglePin(app.appId),
-                    },
-                  ]
-                : []),
-              {
-                id: 'uninstall',
-                isDisabled: isPending,
-                label: translate('uninstall'),
-                onSelect: () => onUninstall(app.appId),
-              },
-            ]
-          : undefined
-      }
-      overflowLabel={app.label}
-    />
-  );
-}
-
-function PluginAppState({ app }: PluginAppStateProps) {
-  const translate = useTranslations('common.plugins');
-  const Icon = isAppOpenable(app)
-    ? Check
-    : app.state === 'not-installed'
-      ? app.icon
-      : LockKeyhole;
-  const label =
-    app.state === 'pinned'
-      ? translate('pinned')
-      : app.state === 'installed'
-        ? translate('status.installed')
-        : app.state === 'not-installed'
-          ? translate('status.available')
-          : app.state === 'organization-disabled'
-            ? translate('organizationDisabled')
-            : app.state === 'subscription-required'
-              ? translate('subscriptionRequired')
-              : translate('unavailable');
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
-      data-app-state={app.state}
-    >
-      <Icon className="size-3 shrink-0" aria-hidden />
-      {label}
-    </span>
-  );
-}
-
-function PluginAppAccessNote({
-  manageModulesHref,
-  state,
-  subscriptionHref,
-}: PluginAppAccessNoteProps) {
-  const translate = useTranslations('common.plugins');
-  const linkClassName = 'ml-1 underline underline-offset-2';
-
-  switch (state) {
-    case 'organization-disabled':
-      return (
-        <p className="mt-1 text-xs text-muted-foreground">
-          {translate('organizationDisabled')}
-          <Link className={linkClassName} href={manageModulesHref}>
-            {translate('manageModules')}
-          </Link>
-        </p>
-      );
-    case 'subscription-required':
-      return (
-        <p className="mt-1 text-xs text-muted-foreground">
-          {translate('subscriptionRequired')}
-          <Link className={linkClassName} href={subscriptionHref}>
-            {translate('viewPlans')}
-          </Link>
-        </p>
-      );
-    case 'unavailable':
-      return (
-        <p className="mt-1 text-xs text-muted-foreground">
-          {translate('unavailable')}
-        </p>
-      );
-    default:
-      return null;
-  }
 }

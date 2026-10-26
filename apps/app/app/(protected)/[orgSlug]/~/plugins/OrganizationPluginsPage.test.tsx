@@ -1,5 +1,9 @@
 // @vitest-environment jsdom
 
+import {
+  ContextSidebarOutlet,
+  ContextSidebarProvider,
+} from '@contexts/ui/context-sidebar-context';
 import '@testing-library/jest-dom/vitest';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -75,9 +79,17 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-const { default: OrganizationPluginsPage } = await import(
-  './OrganizationPluginsPage'
-);
+const { default: PluginsPage } = await import('./OrganizationPluginsPage');
+
+/** The page puts a selected plugin's details in the shell's context sidebar. */
+function OrganizationPluginsPage() {
+  return (
+    <ContextSidebarProvider>
+      <PluginsPage />
+      <ContextSidebarOutlet />
+    </ContextSidebarProvider>
+  );
+}
 
 /** Admin → Flags as the release migration leaves it. */
 const RELEASED_FLAGS = {
@@ -89,6 +101,21 @@ const RELEASED_FLAGS = {
 
 function card(appId: string): HTMLElement {
   return screen.getByTestId(`plugins-app-${appId}`);
+}
+
+function detail(): HTMLElement {
+  return screen.getByTestId('plugins-app-detail');
+}
+
+/** Picks a plugin the way a member does: the overlay button on its card. */
+async function selectApp(
+  user: ReturnType<typeof userEvent.setup>,
+  appId: string,
+): Promise<void> {
+  const label = `${appId.charAt(0).toUpperCase()}${appId.slice(1)}`;
+  await user.click(
+    within(card(appId)).getByRole('button', { name: `Select ${label}` }),
+  );
 }
 
 function appState(appId: string): string | null {
@@ -138,10 +165,10 @@ describe('OrganizationPluginsPage (#7842)', () => {
     ]);
   });
 
-  it('shows one status tablist with ALL and a category dropdown', () => {
+  it('shows one status tablist with All, a category dropdown and a view toggle', () => {
     render(<OrganizationPluginsPage />);
     expect(screen.getAllByRole('tablist')).toHaveLength(1);
-    expect(screen.getByRole('tab', { name: 'ALL' })).toHaveAttribute(
+    expect(screen.getByRole('tab', { name: 'All' })).toHaveAttribute(
       'aria-selected',
       'true',
     );
@@ -149,25 +176,74 @@ describe('OrganizationPluginsPage (#7842)', () => {
       screen.getByRole('combobox', { name: 'Category' }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /All apps/i })).toBeNull();
-    expect(
-      screen.getByRole('heading', { name: 'Playground' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Grid' })).toBeInTheDocument();
     expect(
       screen.getByTestId('plugins-thumbnail-playground'),
     ).toBeInTheDocument();
   });
 
-  it('changes the preview when an app is selected', async () => {
+  it('groups installed plugins above the ones left to add, each with its description', () => {
+    render(<OrganizationPluginsPage />);
+
+    expect(
+      within(screen.getByTestId('plugins-section-installed')).getAllByTestId(
+        /^plugins-app-/,
+      ),
+    ).toHaveLength(1);
+    expect(
+      within(screen.getByTestId('plugins-section-installed')).getByText(
+        'Generate images, video, audio and text from a prompt.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('plugins-section-available')).getByText(
+        'Plan a story scene by scene, then generate it.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('plugins-app-detail')).toBeNull();
+  });
+
+  it('opens the selected plugin in the right sidebar and closes it again', async () => {
     const user = userEvent.setup();
     render(<OrganizationPluginsPage />);
-    await user.click(card('storyboard'));
+    await selectApp(user, 'storyboard');
+
+    expect(detail()).toHaveTextContent(
+      'Break an idea into scenes and shots, review the plan',
+    );
+    expect(detail()).toHaveTextContent('Turn a brief into scenes and shots');
     expect(
-      screen.getByRole('heading', { name: 'Storyboard' }),
-    ).toBeInTheDocument();
+      within(card('storyboard')).getByRole('button', {
+        name: 'Storyboard, selected',
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
     expect(
-      screen.getByTestId('plugins-thumbnail-storyboard'),
+      within(card('playground')).getByRole('button', {
+        name: 'Select Playground',
+      }),
+    ).toHaveAttribute('aria-pressed', 'false');
+
+    await selectApp(user, 'playground');
+    expect(detail()).toHaveTextContent('Your open canvas');
+    expect(within(detail()).queryByText(/Break an idea/)).toBeNull();
+  });
+
+  it('switches between the grid and the list without losing the selection', async () => {
+    const user = userEvent.setup();
+    render(<OrganizationPluginsPage />);
+    await selectApp(user, 'storyboard');
+
+    await user.click(screen.getByRole('radio', { name: 'List' }));
+
+    expect(card('storyboard')).toHaveTextContent(
+      'Plan a story scene by scene, then generate it.',
+    );
+    expect(
+      within(card('storyboard')).getByRole('button', {
+        name: 'Storyboard, selected',
+      }),
     ).toBeInTheDocument();
-    expect(screen.queryByTestId('plugins-thumbnail-playground')).toBeNull();
+    expect(detail()).toHaveTextContent('Break an idea into scenes');
   });
 
   it('narrows the list with the search box', async () => {
@@ -230,13 +306,13 @@ describe('OrganizationPluginsPage (#7842)', () => {
     render(<OrganizationPluginsPage />);
 
     expect(
-      within(screen.getByTestId('plugins-app-detail')).getByRole('link', {
+      within(card('playground')).getByRole('link', {
         name: 'Open Playground',
       }),
     ).toHaveAttribute('href', '/acme/moonrise/playground');
-    await user.click(card('storyboard'));
+    await selectApp(user, 'storyboard');
     await user.click(
-      within(screen.getByTestId('plugins-app-detail')).getByRole('button', {
+      within(detail()).getByRole('button', {
         name: 'Add Storyboard',
       }),
     );
@@ -256,16 +332,16 @@ describe('OrganizationPluginsPage (#7842)', () => {
     const user = userEvent.setup();
     render(<OrganizationPluginsPage />);
 
-    await user.click(card('storyboard'));
+    await selectApp(user, 'storyboard');
     await user.click(
-      within(screen.getByTestId('plugins-app-detail')).getByRole('button', {
+      within(detail()).getByRole('button', {
         name: 'Add Storyboard',
       }),
     );
     await waitFor(() =>
-      expect(
-        within(screen.getByTestId('plugins-app-detail')).getByRole('alert'),
-      ).toHaveTextContent("Couldn't add Storyboard. Try again."),
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        "Couldn't add Storyboard. Try again.",
+      ),
     );
     expect(appState('storyboard')).toBe('not-installed');
   });
@@ -279,22 +355,22 @@ describe('OrganizationPluginsPage (#7842)', () => {
     };
     render(<OrganizationPluginsPage />);
 
-    await user.click(card('turbo'));
+    await selectApp(user, 'turbo');
     expect(appState('turbo')).toBe('organization-disabled');
     expect(
-      within(screen.getByTestId('plugins-app-detail')).getByRole('button', {
+      within(detail()).getByRole('button', {
         name: 'Add Turbo',
       }),
     ).toBeDisabled();
     expect(
-      within(screen.getByTestId('plugins-app-detail')).getByRole('link', {
+      within(detail()).getByRole('link', {
         name: 'Organization settings',
       }),
     ).toHaveAttribute('href', '/acme/~/settings/modules');
-    await user.click(card('discovery'));
+    await selectApp(user, 'discovery');
     expect(appState('discovery')).toBe('subscription-required');
     expect(
-      within(screen.getByTestId('plugins-app-detail')).getByRole('link', {
+      within(detail()).getByRole('link', {
         name: 'View plans',
       }),
     ).toHaveAttribute('href', '/acme/~/settings/subscription');
@@ -330,7 +406,7 @@ describe('OrganizationPluginsPage (#7842)', () => {
     mocks.installed.installedAppIds = ['playground', 'automation'];
     rerender(<OrganizationPluginsPage />);
     expect(screen.queryByTestId('plugins-workflows')).toBeNull();
-    await user.click(card('automation'));
+    await selectApp(user, 'automation');
     expect(
       within(screen.getByTestId('plugins-workflows')).getByRole('link', {
         name: 'Open workflow library',
@@ -360,20 +436,17 @@ describe('OrganizationPluginsPage (#7842)', () => {
     expect(screen.queryByTestId('plugins-browser')).toBeNull();
     expect(screen.queryByRole('button', { name: /^Add / })).toBeNull();
   });
-  it('filters by installation state and falls back when selection leaves the results', async () => {
+  it('filters by installation state and closes details when the selection leaves the results', async () => {
     const user = userEvent.setup();
     render(<OrganizationPluginsPage />);
-    await user.click(card('storyboard'));
+    await selectApp(user, 'storyboard');
+    expect(detail()).toBeInTheDocument();
     await user.click(screen.getByRole('tab', { name: 'Installed' }));
     expect(screen.getAllByTestId(/^plugins-app-(?!detail)/)).toHaveLength(1);
-    expect(
-      screen.getByRole('heading', { name: 'Playground' }),
-    ).toBeInTheDocument();
+    expect(screen.queryByTestId('plugins-app-detail')).toBeNull();
     await user.click(screen.getByRole('tab', { name: 'Available' }));
     expect(screen.queryByTestId('plugins-app-playground')).toBeNull();
-    expect(
-      screen.getByRole('heading', { name: 'Storyboard' }),
-    ).toBeInTheDocument();
+    expect(card('storyboard')).toBeInTheDocument();
     await user.click(screen.getByRole('tab', { name: 'Restricted' }));
     expect(appState('turbo')).toBe('organization-disabled');
     expect(screen.queryByTestId('plugins-app-storyboard')).toBeNull();
@@ -389,10 +462,12 @@ describe('OrganizationPluginsPage (#7842)', () => {
       'true',
     );
     await user.keyboard('{Escape}');
-    await user.click(card('storyboard'));
-    expect(
-      screen.getByRole('button', { name: 'Add Storyboard' }),
-    ).toBeDisabled();
+    await selectApp(user, 'storyboard');
+    for (const button of screen.getAllByRole('button', {
+      name: 'Add Storyboard',
+    })) {
+      expect(button).toBeDisabled();
+    }
     expect(mocks.install).not.toHaveBeenCalled();
   });
 
@@ -433,19 +508,19 @@ describe('OrganizationPluginsPage (#7842)', () => {
         }),
     );
     const { rerender } = render(<OrganizationPluginsPage />);
-    await user.click(card('storyboard'));
-    await user.click(screen.getByRole('button', { name: 'Add Storyboard' }));
+    await selectApp(user, 'storyboard');
+    await user.click(
+      within(detail()).getByRole('button', { name: 'Add Storyboard' }),
+    );
     mocks.orgSlug = 'other';
     rerender(<OrganizationPluginsPage />);
     await act(async () => finishInstall(false));
-    expect(
-      screen.getByRole('heading', { name: 'Playground' }),
-    ).toBeInTheDocument();
-    await user.click(card('storyboard'));
+    expect(screen.queryByTestId('plugins-app-detail')).toBeNull();
+    await selectApp(user, 'storyboard');
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
-  it('provides the approved large preview for every offered app', async () => {
+  it('shows the approved artwork in the sidebar for every offered app', async () => {
     const user = userEvent.setup();
     mocks.brand.settings = {
       hasOrganizationBilling: true,
@@ -457,11 +532,10 @@ describe('OrganizationPluginsPage (#7842)', () => {
     const rows = screen.getAllByTestId(/^plugins-app-(?!detail)/);
     expect(rows).toHaveLength(9);
     for (const row of rows) {
-      await user.click(row);
-      const detail = screen.getByTestId('plugins-app-detail');
+      await user.click(within(row).getByRole('button', { name: /^Select / }));
       expect(
         decodeURIComponent(
-          within(detail).getByRole('img').getAttribute('src') ?? '',
+          within(detail()).getByRole('img').getAttribute('src') ?? '',
         ),
       ).toContain('/plugins/');
     }
