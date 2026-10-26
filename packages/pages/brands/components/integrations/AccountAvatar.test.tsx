@@ -1,7 +1,7 @@
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
 import AccountAvatar from '@pages/brands/components/integrations/AccountAvatar';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-intl', async () => {
@@ -44,5 +44,26 @@ describe('AccountAvatar', () => {
 
     expect(screen.getByText('GA')).toBeInTheDocument();
     expect(screen.getByText('Instagram')).toBeInTheDocument();
+  });
+
+  it('drops back to initials when the profile picture fails to load', () => {
+    const { container } = render(
+      <AccountAvatar
+        connection={buildConnection({
+          avatarUrl: 'https://cdn.example.com/expired.jpg',
+          name: 'Genfeed AI',
+          platform: CredentialPlatform.TIKTOK,
+        })}
+      />,
+    );
+
+    const image = container.querySelector('img');
+    if (image) {
+      fireEvent.error(image);
+    }
+
+    expect(container.querySelector('img')).toBeNull();
+    expect(screen.getByText('GA')).toBeInTheDocument();
+    expect(screen.getByText('TikTok')).toBeInTheDocument();
   });
 });
