@@ -12,7 +12,10 @@ import {
   executeStoryboardRunSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run-quote.contract';
 import { listStoryboardRunsSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-run-summary.contract';
-import { storyboardIdSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
+import {
+  STORYBOARD_LONG_BRIEF_MAX_CHARACTERS,
+  storyboardIdSchema,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
 import { storyboardCutawayIdsSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-still.contract';
 import { z } from 'zod';
 
@@ -29,6 +32,15 @@ export const STORYBOARD_LONG_FORM_STAGES = [
 const longFormStage = z.enum(STORYBOARD_LONG_FORM_STAGES);
 
 const storyboardLongFormSchema = z.discriminatedUnion('action', [
+  z
+    .object({
+      ...scope,
+      action: z.literal('create'),
+      clientRequestId: z.string().uuid(),
+      /** The voice-note transcript or written idea dump. */
+      brief: z.string().trim().min(1).max(STORYBOARD_LONG_BRIEF_MAX_CHARACTERS),
+    })
+    .strict(),
   z.object({ ...run, action: z.literal('get') }).strict(),
   draftStoryboardPlanSchema
     .extend({ ...run, action: z.literal('draft_plan') })

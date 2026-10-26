@@ -122,6 +122,10 @@ describe('MCP catalog presentation through the public registry', () => {
         ].includes(tool.name)
       )
         args.brandId = 'input-private';
+      if (tool.name === 'storyboard_long_form') {
+        args.action = 'get';
+        args.runId = 'input-private';
+      }
       if (tool.name === 'start_storyboard_long_form') {
         args.stage = 'presenter';
         args.inputHash = 'a'.repeat(64);

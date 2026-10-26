@@ -203,7 +203,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     method: 'Post',
     sub: '',
     controller: 'storyboardRuns',
-    tools: ['create_storyboard_remix'],
+    tools: ['create_storyboard_remix', 'storyboard_long_form'],
   },
   {
     method: 'Post',

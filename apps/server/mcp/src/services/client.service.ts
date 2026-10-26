@@ -416,11 +416,26 @@ export class ClientService {
   /** Reads, edits, quotes and assembles a long-form storyboard (#8225). */
   storyboardLongForm(input: StoryboardToolInput<'storyboard_long_form'>) {
     const parsed = storyboardToolSchemas.storyboard_long_form.parse(input);
-    const runPath = `/brands/${encodeURIComponent(parsed.brandId)}/storyboard-runs/${encodeURIComponent(parsed.runId)}`;
+    const runsPath = `/brands/${encodeURIComponent(parsed.brandId)}/storyboard-runs`;
+    const runPath =
+      parsed.action === 'create'
+        ? runsPath
+        : `${runsPath}/${encodeURIComponent(parsed.runId)}`;
     return this.base.request(
       'working on a long-form storyboard',
       async (http) => {
         switch (parsed.action) {
+          case 'create':
+            return this.parseStoryboardRun(
+              await http.post(runsPath, {
+                clientRequestId: parsed.clientRequestId,
+                source: {
+                  kind: 'brief',
+                  brief: parsed.brief,
+                  length: 'long_form',
+                },
+              }),
+            );
           case 'get':
             return this.parseStoryboardRun(await http.get(runPath));
           case 'draft_plan':

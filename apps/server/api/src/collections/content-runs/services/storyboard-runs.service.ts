@@ -153,9 +153,13 @@ export class StoryboardRunsService {
               brandId,
               input.source,
             );
+            const isLongForm =
+              input.source.kind === 'brief' &&
+              input.source.length === 'long_form';
+            // A long-form talking-head video is landscape; short ones are vertical.
             const settings = input.planSettings ?? {
               videoModelKey: null,
-              format: '9:16' as const,
+              format: isLongForm ? ('16:9' as const) : ('9:16' as const),
               runtimeBudgetSeconds:
                 'durationSeconds' in sourceSnapshot
                   ? sourceSnapshot.durationSeconds
@@ -171,9 +175,6 @@ export class StoryboardRunsService {
               input.source.kind === 'brief'
                 ? input.source.seedImageAssetId
                 : undefined;
-            const isLongForm =
-              input.source.kind === 'brief' &&
-              input.source.length === 'long_form';
             const plan = storyboardPlanSchema.parse({
               ...settings,
               title: '',

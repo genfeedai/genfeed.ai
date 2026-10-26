@@ -85,6 +85,17 @@ describe('Durable storyboard creation', () => {
       isolationLevel: 'Serializable',
     });
   });
+  it('lays a long-form brief out landscape with an empty segment plan', async () => {
+    const { service } = setup();
+    const run = await service.create('org-1', 'brand-1', 'user-1', {
+      clientRequestId: '5f0c9a8e-1d2b-4c3d-9e4f-0a1b2c3d4e5f',
+      source: { kind: 'brief', brief: 'A voice note.', length: 'long_form' },
+    });
+    if (run.config.origin !== 'native')
+      throw new Error('Expected native draft');
+    expect(run.config.plan.format).toBe('16:9');
+    expect(run.config.plan.longForm?.segments).toEqual([]);
+  });
   it('replays identical intent without re-resolving source or changed defaults', async () => {
     const { service, planning, source, create } = setup();
     const first = await service.create('org-1', 'brand-1', 'user-1', input);

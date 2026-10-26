@@ -121,6 +121,23 @@ describe('ClientService (MCP) domain clients', () => {
       { expectedRevision: 3 },
     );
 
+    mockAxiosInstance.post.mockRejectedValueOnce(new Error('stop'));
+    await expect(
+      service.storyboardLongForm({
+        action: 'create',
+        brandId: 'brand-1',
+        clientRequestId: 'd160833e-d602-4617-a21b-721eb9aa7da8',
+        brief: 'My voice note.',
+      }),
+    ).rejects.toThrow();
+    expect(mockAxiosInstance.post).toHaveBeenLastCalledWith(
+      '/brands/brand-1/storyboard-runs',
+      {
+        clientRequestId: 'd160833e-d602-4617-a21b-721eb9aa7da8',
+        source: { kind: 'brief', brief: 'My voice note.', length: 'long_form' },
+      },
+    );
+
     const assembled = { editorProjectId: 'project-1', timeline: {} };
     mockAxiosInstance.post.mockResolvedValueOnce({ data: assembled });
     expect(

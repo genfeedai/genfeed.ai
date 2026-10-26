@@ -39,7 +39,7 @@ export const MCP_STORYBOARD_CAPABILITY_TOOLS: SourceTool[] = [
   {
     name: 'storyboard_long_form',
     description:
-      'Work on a long-form storyboard (voice note to presenter video). get reads the run and plan; draft_plan drafts or revises the plan from the brief (instruction); update_plan saves an edited plan; approve_plan locks it; quote prices one paid stage and returns its inputHash; reconcile picks up finished renders; assemble opens the animatic or final edit as an Editor project. Never charges credits.',
+      'Work on a long-form storyboard (voice note to presenter video). create starts one from a transcript or idea dump (brief); get reads the run and plan; draft_plan drafts or revises the plan from the brief (instruction); update_plan saves an edited plan; approve_plan locks it; quote prices one paid stage and returns its inputHash; reconcile picks up finished renders; assemble opens the animatic or final edit as an Editor project. Never charges credits.',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -47,6 +47,7 @@ export const MCP_STORYBOARD_CAPABILITY_TOOLS: SourceTool[] = [
         action: {
           type: 'string',
           enum: [
+            'create',
             'get',
             'draft_plan',
             'update_plan',
@@ -57,7 +58,19 @@ export const MCP_STORYBOARD_CAPABILITY_TOOLS: SourceTool[] = [
           ],
         },
         brandId: id,
-        runId: id,
+        runId: { ...id, description: 'Every action except create.' },
+        clientRequestId: {
+          type: 'string',
+          format: 'uuid',
+          description: 'create only: a new UUID for this video.',
+        },
+        brief: {
+          type: 'string',
+          minLength: 1,
+          maxLength: 20000,
+          description:
+            'create only: the voice-note transcript or idea dump to script.',
+        },
         expectedRevision: {
           ...revision,
           description:
@@ -85,7 +98,7 @@ export const MCP_STORYBOARD_CAPABILITY_TOOLS: SourceTool[] = [
           description: 'assemble only: the draft or the finished video.',
         },
       },
-      required: ['action', 'brandId', 'runId'],
+      required: ['action', 'brandId'],
     },
     creditCost: 0,
     requiredRole: 'user',
