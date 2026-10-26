@@ -189,20 +189,17 @@ vi.mock('@ui/display/table/Table', () => ({
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
-    description,
     label,
     refresh,
     right,
   }: {
     children: ReactNode;
-    description?: ReactNode;
     label?: ReactNode;
     refresh?: ReactNode;
     right?: ReactNode;
   }) => (
     <section>
       <h1>{label}</h1>
-      <p>{description}</p>
       <div data-testid="container-refresh">{refresh}</div>
       <div>{right}</div>
       {children}
