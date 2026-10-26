@@ -7,6 +7,7 @@ import {
   ButtonSize,
   ButtonVariant,
   IngredientStatus,
+  isLibraryReferenceOrigin,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
@@ -34,6 +35,7 @@ import { ImagesService } from '@services/ingredients/images.service';
 import { VideosService } from '@services/ingredients/videos.service';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
+import { useIngredientGenerationCost } from '@ui/ingredients/inspector/use-ingredient-generation-cost';
 import GenerationHarnessReceipt from '@ui/ingredients/tabs/prompts/GenerationHarnessReceipt';
 import { useIngredientDownloadHandler } from '@ui/masonry/shared/useMasonryHover';
 import { PanelTabs } from '@ui/navigation/tabs/Tabs';
@@ -68,6 +70,10 @@ import {
 type InspectorTab = 'history' | 'recipe' | 'used-in';
 
 const AUDIO_TYPES = new Set(['music', 'voice']);
+
+const CREDITS_FORMAT = new Intl.NumberFormat('en-US', {
+  maximumFractionDigits: 2,
+});
 
 function isInspectorTab(value: string): value is InspectorTab {
   return value === 'history' || value === 'recipe' || value === 'used-in';
@@ -123,6 +129,12 @@ export default function StudioPlaygroundInspector({
       ? job.ingredient
       : null;
   const isSourceUnavailable = Boolean(job.ingredient && !ingredient);
+  // Uploads and imports were never charged; a job's ingredient may not carry
+  // its origin yet, so only a known reference origin skips the read.
+  const generationCost = useIngredientGenerationCost(
+    ingredient?.id ?? '',
+    Boolean(ingredient) && !isLibraryReferenceOrigin(ingredient?.origin),
+  );
   const previewScope = [
     job.id,
     ingredientId,
@@ -389,6 +401,20 @@ export default function StudioPlaygroundInspector({
           },
         ]
       : []),
+    ...(generationCost?.credits == null
+      ? []
+      : [
+          {
+            key: 'credits',
+            label: translate('inspector.facts.credits'),
+            value:
+              generationCost.status === 'reserved'
+                ? translate('inspector.facts.creditsReserved', {
+                    count: CREDITS_FORMAT.format(generationCost.credits),
+                  })
+                : CREDITS_FORMAT.format(generationCost.credits),
+          },
+        ]),
     ...(facts.createdAt
       ? [
           {

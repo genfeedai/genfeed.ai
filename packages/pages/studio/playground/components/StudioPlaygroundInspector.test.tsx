@@ -1,4 +1,8 @@
-import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import {
+  IngredientCategory,
+  IngredientOrigin,
+  IngredientStatus,
+} from '@genfeedai/contracts';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import { Metadata } from '@genfeedai/models/content/metadata.model';
 import { Image } from '@genfeedai/models/ingredients/image.model';
@@ -18,8 +22,10 @@ const mocks = vi.hoisted(() => {
   const getPosts = vi.fn();
   const findOne = vi.fn();
   const ingredientsFindOne = vi.fn();
+  const findGenerationCost = vi.fn();
   const ingredientsService = {
     findChildren,
+    findGenerationCost,
     findOne: ingredientsFindOne,
     getPosts,
   };
@@ -33,6 +39,7 @@ const mocks = vi.hoisted(() => {
     categoryService,
     download: vi.fn(async () => undefined),
     findChildren,
+    findGenerationCost,
     findOne,
     getPosts,
     href: vi.fn((path: string) => `/acme/northstar${path}`),
@@ -163,6 +170,7 @@ describe('StudioPlaygroundInspector', () => {
     mocks.findOne.mockResolvedValue({ id: 'ing-1', brandId: 'brand-1' });
     mocks.getPosts.mockResolvedValue([]);
     mocks.findChildren.mockResolvedValue([]);
+    mocks.findGenerationCost.mockResolvedValue(null);
   });
   afterEach(() => vi.unstubAllGlobals());
 
@@ -721,7 +729,7 @@ describe('StudioPlaygroundInspector', () => {
     expect(screen.queryByRole('button', { name: /close/i })).toBeNull();
   });
 
-  it('lists the asset facts it knows and omits credits', () => {
+  it('lists the asset facts it knows and omits credits when no hold paid for the asset', async () => {
     const ingredient = {
       brand: { label: 'Northstar' },
       brandId: 'brand-1',
@@ -766,7 +774,87 @@ describe('StudioPlaygroundInspector', () => {
     expect(
       screen.queryByRole('button', { name: 'Create variation' }),
     ).toBeNull();
+    await waitFor(() => expect(mocks.findGenerationCost).toHaveBeenCalled());
     expect(facts.textContent ?? '').not.toMatch(/credit/i);
+  });
+
+  it.each([
+    ['settled', 'Credits64'],
+    ['reserved', 'Credits64 (running)'],
+  ] as const)(
+    'shows what a %s generation cost beside the other facts',
+    async (status, expected) => {
+      mocks.findGenerationCost.mockResolvedValue({
+        credits: 64,
+        id: 'ing-8',
+        status,
+      });
+      const ingredient = {
+        brandId: 'brand-1',
+        category: IngredientCategory.VIDEO,
+        id: 'ing-8',
+        origin: IngredientOrigin.GENERATED,
+      } as IIngredient;
+
+      render(
+        <StudioPlaygroundInspector
+          job={{
+            createdAt: 1,
+            id: 'ing-8',
+            ingredient,
+            ingredientId: 'ing-8',
+            prompt: 'Drone over the coast',
+            status: IngredientStatus.GENERATED,
+            type: 'video',
+          }}
+          onRemix={vi.fn()}
+          onUseInPost={vi.fn()}
+          onSelect={vi.fn()}
+          onVary={vi.fn()}
+          runJobs={[]}
+        />,
+      );
+
+      await waitFor(() =>
+        expect(
+          screen.getByTestId('studio-playground-inspector'),
+        ).toHaveTextContent(expected),
+      );
+      expect(mocks.findGenerationCost).toHaveBeenCalledWith(
+        'ing-8',
+        expect.any(AbortSignal),
+      );
+    },
+  );
+
+  it('does not read a cost for an uploaded reference', () => {
+    const ingredient = {
+      brandId: 'brand-1',
+      category: IngredientCategory.IMAGE,
+      id: 'ing-9',
+      origin: IngredientOrigin.UPLOADED,
+    } as IIngredient;
+
+    render(
+      <StudioPlaygroundInspector
+        job={{
+          createdAt: 1,
+          id: 'ing-9',
+          ingredient,
+          ingredientId: 'ing-9',
+          prompt: 'Uploaded product shot',
+          status: IngredientStatus.UPLOADED,
+          type: 'image',
+        }}
+        onRemix={vi.fn()}
+        onUseInPost={vi.fn()}
+        onSelect={vi.fn()}
+        onVary={vi.fn()}
+        runJobs={[]}
+      />,
+    );
+
+    expect(mocks.findGenerationCost).not.toHaveBeenCalled();
   });
 
   it('pins download, use in post, remix and Ask Agent for a finished asset', async () => {
