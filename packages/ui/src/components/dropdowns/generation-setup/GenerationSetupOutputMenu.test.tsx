@@ -86,12 +86,20 @@ function renderMenu(
   return { onResetField, onSetField };
 }
 
+/** The labelled tiles of a ratio grid. */
 function optionLabels(group: string): string[] {
   return Array.from(
     screen
       .getByRole('group', { name: group })
-      .querySelectorAll('[role=menuitem]'),
+      .querySelectorAll('[role=menuitemradio]'),
   ).map((item) => item.textContent?.trim() ?? '');
+}
+
+/** The value labels under a step slider's stops, in order. */
+function stepLabels(group: string): string[] {
+  return Array.from(
+    screen.getByRole('group', { name: group }).querySelectorAll('[data-step]'),
+  ).map((step) => step.textContent?.trim() ?? '');
 }
 
 describe('GenerationSetupOutputMenu — aspect ratio', () => {
@@ -157,7 +165,7 @@ describe('GenerationSetupOutputMenu — music controls', () => {
       setup: buildSetup({ modelKey: MODEL_KEYS.FAL_ELEVENLABS_MUSIC }),
     });
 
-    expect(optionLabels('Duration')).toEqual([
+    expect(stepLabels('Duration')).toEqual([
       '10s',
       '15s',
       '20s',
@@ -174,7 +182,21 @@ describe('GenerationSetupOutputMenu — music controls', () => {
       setup: buildSetup({ modelKey: MODEL_KEYS.REPLICATE_META_MUSICGEN }),
     });
 
-    expect(optionLabels('Duration')).toEqual(['5s', '10s', '15s', '30s']);
+    expect(stepLabels('Duration')).toEqual(['5s', '10s', '15s', '30s']);
+  });
+
+  it('moves duration along the steps with the keyboard, one stop at a time', () => {
+    const { onSetField } = renderMenu({
+      section: 'duration',
+      setup: buildSetup({
+        duration: 10,
+        modelKey: MODEL_KEYS.REPLICATE_META_MUSICGEN,
+      }),
+    });
+
+    const slider = screen.getByRole('slider', { name: 'Duration' });
+    fireEvent.keyDown(slider, { key: 'ArrowRight' });
+    expect(onSetField).toHaveBeenCalledWith('duration', 15);
   });
 
   it('hides the Duration chip for a model with no duration parameter (Lyria 3 Pro)', () => {
@@ -206,6 +228,17 @@ describe('GenerationSetupOutputMenu — music controls', () => {
     expect(onSetField).not.toHaveBeenCalled();
   });
 
+  it('sets outputs from a step slider with no nested list', () => {
+    const { onSetField } = renderMenu();
+
+    expect(stepLabels('Outputs')).toEqual(['x1', 'x2', 'x3', 'x4']);
+    expect(screen.queryByRole('menuitem', { name: /Outputs/ })).toBeNull();
+    fireEvent.keyDown(screen.getByRole('slider', { name: 'Outputs' }), {
+      key: 'ArrowRight',
+    });
+    expect(onSetField).toHaveBeenCalledWith('outputs', 2);
+  });
+
   it('keeps typing in Style out of the menu typeahead', () => {
     const { onSetField } = renderMenu();
     const style = screen.getByLabelText('Style');
@@ -218,7 +251,7 @@ describe('GenerationSetupOutputMenu — music controls', () => {
 describe('GenerationSetupOutputMenu — aspect ratio', () => {
   const imageCapabilities = { hasAspectRatio: true, hasDuration: false };
 
-  it('offers Auto first, with a shape for each ratio', () => {
+  it('offers Auto first, with a drawn frame for each ratio', () => {
     renderMenu({
       capabilities: imageCapabilities,
       section: 'aspectRatio',
@@ -231,8 +264,8 @@ describe('GenerationSetupOutputMenu — aspect ratio', () => {
     expect(
       screen
         .getByRole('group', { name: 'Aspect ratio' })
-        .querySelectorAll('svg').length,
-    ).toBeGreaterThanOrEqual(labels.length);
+        .querySelectorAll('[role=menuitemradio] [aria-hidden] > span').length,
+    ).toBe(labels.length);
   });
 
   it('hands Auto back to the agent when the model has no auto value', () => {
@@ -242,7 +275,7 @@ describe('GenerationSetupOutputMenu — aspect ratio', () => {
       setup: buildSetup({ type: 'image' }, { aspectRatio: 'user' }),
     });
 
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Auto' }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Auto' }));
     expect(onResetField).toHaveBeenCalledWith('aspectRatio');
     expect(onSetField).not.toHaveBeenCalled();
   });
@@ -255,8 +288,7 @@ describe('GenerationSetupOutputMenu — aspect ratio', () => {
     });
 
     const checkedLabels = screen
-      .getAllByRole('menuitem')
-      .filter((item) => item.querySelector('svg.lucide-check'))
+      .getAllByRole('menuitemradio', { checked: true })
       .map((item) => item.textContent);
     expect(checkedLabels).toEqual(['1:1']);
   });
@@ -268,7 +300,7 @@ describe('GenerationSetupOutputMenu — aspect ratio', () => {
       setup: buildSetup({ type: 'image' }),
     });
 
-    fireEvent.click(screen.getByRole('menuitem', { name: '16:9' }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: '16:9' }));
     expect(onSetField).toHaveBeenCalledWith('aspectRatio', '16:9');
   });
 });

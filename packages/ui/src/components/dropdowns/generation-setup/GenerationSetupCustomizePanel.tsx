@@ -13,7 +13,8 @@ import { useTranslations } from 'next-intl';
 
 /**
  * One chip's panel (Model, Brand or Presets). The chip that opened it is the
- * only way in, so there is no back button: the header names the section.
+ * only way in, so there is no back button. Only the Model panel has a header (its reset and
+ * the type); Brand and Presets start with their content.
  */
 export default function GenerationSetupCustomizePanel({
   typeOptions,
@@ -60,19 +61,17 @@ export default function GenerationSetupCustomizePanel({
 
   return (
     <div className="flex min-h-0 flex-col">
-      {resolvedSection === 'brand' ? null : (
+      {resolvedSection === 'model' ? (
         <div className="flex shrink-0 items-center gap-1.5 border-b border-border px-3 py-1.5">
-          {resolvedSection === 'model' ? (
-            <GenerationSetupFieldIcon
-              fieldKey="modelKey"
-              reason={reasons.modelKey ?? reasons.prioritize}
-              source={setup.sources.modelKey ?? 'agent'}
-            />
-          ) : null}
+          <GenerationSetupFieldIcon
+            fieldKey="modelKey"
+            reason={reasons.modelKey ?? reasons.prioritize}
+            source={setup.sources.modelKey ?? 'agent'}
+          />
           <span className="text-xs font-medium">
             {translate(resolvedSection)}
           </span>
-          {resolvedSection === 'model' && isModelOverridden ? (
+          {isModelOverridden ? (
             <Button
               ariaLabel={translate('resetModel')}
               className="size-6 p-0 text-muted-foreground"
@@ -92,7 +91,7 @@ export default function GenerationSetupCustomizePanel({
               ?.label ?? setup.values.type}
           </span>
         </div>
-      )}
+      ) : null}
 
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {resolvedSection === 'model' ? (

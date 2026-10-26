@@ -110,16 +110,11 @@ export interface ModelSelectorModelItemProps {
    * that already names its type once in its header turns this off.
    */
   isCategoryVisible?: boolean;
-}
-
-export interface ModelSelectorFamilyRowProps {
-  familyKey: string;
-  familyLabel: string;
-  isExpanded: boolean;
-  /** The selected model is one of this family's variants. */
-  isSelected: boolean;
-  onToggle: (familyKey: string) => void;
-  options: readonly ModelSelectorOption[];
+  /**
+   * Draw the Legacy badge on a deprecated model's row. The Legacy flyout turns
+   * it off: being inside it already says so.
+   */
+  isLegacyBadgeVisible?: boolean;
 }
 
 export interface ModelSelectorModelSpecProps {

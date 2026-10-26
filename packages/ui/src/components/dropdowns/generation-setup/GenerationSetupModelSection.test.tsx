@@ -142,7 +142,7 @@ describe('GenerationSetupModelSection', () => {
       buildModel('google/imagen-4', 'Imagen 4', ModelLifecycle.AVAILABLE),
     ];
 
-    it('folds sibling models into one collapsed family row with a count', () => {
+    it('folds sibling models into one family row with a count and no inline variants', () => {
       renderSection(vi.fn(), FAMILY_MODELS, 'google/imagen-4');
 
       const family = screen.getByRole('option', { name: /GPT Image/ });
@@ -152,33 +152,55 @@ describe('GenerationSetupModelSection', () => {
       expect(screen.getByText('Imagen 4')).toBeInTheDocument();
     });
 
-    it('opens the family that holds the selected model', () => {
-      renderSection(vi.fn(), FAMILY_MODELS, 'openai/gpt-image-2-flare');
-
-      expect(screen.getByText('GPT Image 2.5 Flare')).toBeInTheDocument();
-      expect(screen.getByRole('option', { name: /GPT Image 2$/ })).toBeTruthy();
-    });
-
-    it('expands and collapses a family on click and picks a variant', async () => {
+    it('opens the variants in a flyout and picks one', async () => {
       const onSetField = vi.fn();
       renderSection(onSetField, FAMILY_MODELS, 'google/imagen-4');
 
       await userEvent.click(screen.getByRole('option', { name: /GPT Image/ }));
-      expect(await screen.findByText('GPT Image 2.5 Flare')).toBeVisible();
+      const flyout = await screen.findByRole('dialog', { name: 'GPT Image' });
+      expect(within(flyout).getByText('GPT Image 2')).toBeInTheDocument();
 
-      await userEvent.click(screen.getByText('GPT Image 2.5 Flare'));
+      await userEvent.click(within(flyout).getByText('GPT Image 2.5 Flare'));
       expect(onSetField).toHaveBeenCalledWith(
         'modelKey',
         'openai/gpt-image-2-flare',
       );
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
-    it('opens every family while a search is typed', async () => {
+    it('opens the family flyout with the right arrow and closes it with the left', async () => {
+      renderSection(vi.fn(), FAMILY_MODELS, 'google/imagen-4');
+
+      await userEvent.click(screen.getByRole('combobox'));
+      await userEvent.keyboard('{ArrowDown}');
+      const family = screen.getByRole('option', { name: /GPT Image/ });
+      await userEvent.hover(family);
+      await userEvent.keyboard('{ArrowRight}');
+      expect(await screen.findByRole('dialog')).toBeInTheDocument();
+
+      await userEvent.keyboard('{ArrowLeft}');
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('lists matches flat while a search is typed', async () => {
       renderSection(vi.fn(), FAMILY_MODELS, 'google/imagen-4');
 
       await userEvent.type(screen.getByRole('combobox'), 'Flare');
 
       expect(screen.getByText('GPT Image 2.5 Flare')).toBeInTheDocument();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('does not badge models inside the Legacy flyout', async () => {
+      renderSection();
+
+      await userEvent.click(screen.getByText('Legacy'));
+      const flyout = await screen.findByRole('dialog', { name: 'Legacy' });
+
+      expect(within(flyout).getByText('Old Model')).toBeInTheDocument();
+      expect(
+        within(flyout).queryByText('Legacy', { selector: 'span' }),
+      ).not.toBeInTheDocument();
     });
   });
 });

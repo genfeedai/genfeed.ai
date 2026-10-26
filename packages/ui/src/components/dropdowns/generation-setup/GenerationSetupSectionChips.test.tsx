@@ -76,9 +76,7 @@ describe('GenerationSetupSectionChips', () => {
     // Opening another chip closes the one that was open.
     fireEvent.keyDown(outputChip, { key: 'Enter' });
     expect(screen.queryByRole('dialog', { name: 'Presets' })).toBeNull();
-    expect(
-      screen.getByRole('menuitem', { name: /Outputs/ }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('slider', { name: 'Outputs' })).toBeInTheDocument();
   });
 
   it('opens the aspect ratio options straight from their own chip', () => {
@@ -89,7 +87,7 @@ describe('GenerationSetupSectionChips', () => {
       screen.getByRole('button', { name: 'Configure Aspect ratio' }),
       { key: 'Enter' },
     );
-    fireEvent.click(screen.getByRole('menuitem', { name: '16:9' }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: '16:9' }));
 
     expect(onSetField).toHaveBeenCalledWith('aspectRatio', '16:9');
   });
@@ -116,7 +114,9 @@ describe('GenerationSetupSectionChips', () => {
     expect(durationChip).toHaveTextContent('5s');
 
     fireEvent.keyDown(durationChip, { key: 'Enter' });
-    expect(screen.getByRole('menuitem', { name: '5s' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('slider', { name: 'Duration' }),
+    ).toBeInTheDocument();
   });
 
   it('keeps the labels in the tooltip, and folds the chips into a More setup menu', () => {

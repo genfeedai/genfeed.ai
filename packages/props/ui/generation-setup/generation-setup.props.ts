@@ -164,6 +164,37 @@ export interface GenerationSetupMenuOption {
 }
 
 /** The body of one nested submenu: an optional search box and a preview pane. */
+/** One stop on a step slider. */
+export interface GenerationSetupStepOption {
+  label: string;
+  value: number;
+}
+
+export interface GenerationSetupStepSliderProps {
+  fieldKey: GenerationSetupFieldKey;
+  label: string;
+  onReset?: (key: GenerationSetupFieldKey) => void;
+  onValueChange: (value: number) => void;
+  source: GenerationSetupSource;
+  steps: readonly GenerationSetupStepOption[];
+  value: number;
+}
+
+export interface GenerationSetupRatioGridOption {
+  label: string;
+  /** `auto`, or a `W:H` ratio the tile draws to scale. */
+  ratio: string;
+  value: string;
+}
+
+export interface GenerationSetupRatioGridProps {
+  label: string;
+  note?: string;
+  onValueChange: (value: string) => void;
+  options: readonly GenerationSetupRatioGridOption[];
+  value: string;
+}
+
 export interface GenerationSetupSubmenuListProps {
   /**
    * Keeps the menu open after a pick, for a list nested under another menu so

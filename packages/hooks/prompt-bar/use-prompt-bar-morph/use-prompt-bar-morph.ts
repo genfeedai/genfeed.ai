@@ -16,8 +16,8 @@ function prefersReducedMotion(): boolean {
 /**
  * Softens the switch between the full prompt bar and its resting pill. The
  * two layouts differ in structure, so the bar cannot tween between them; it
- * glides the shell's height from the old layout's height to the new one and
- * fades the new layout in. Attach the returned ref to the bar's shell element.
+ * glides the shell's height from the old layout's height to the new one, with
+ * no fade: only the height animates. Attach the returned ref to the bar's shell element.
  * A user who prefers reduced motion gets the instant switch.
  */
 export function usePromptBarMorph(
@@ -48,6 +48,7 @@ export function usePromptBarMorph(
           window.clearTimeout(timeoutId);
           shell.removeEventListener('transitionend', handleTransitionEnd);
           shell.style.height = '';
+          shell.style.overflow = '';
           shell.style.transition = '';
           settleRef.current = null;
         };
@@ -56,6 +57,9 @@ export function usePromptBarMorph(
             settle();
         };
 
+        // The new layout is in place at once; the shell's height does the
+        // moving, and clips it while it grows or shrinks.
+        shell.style.overflow = 'hidden';
         shell.style.transition = 'none';
         shell.style.height = `${previousHeight}px`;
         // Commit the starting height before the transition is switched on.
@@ -65,15 +69,6 @@ export function usePromptBarMorph(
         shell.addEventListener('transitionend', handleTransitionEnd);
         timeoutId = window.setTimeout(settle, PROMPT_BAR_MORPH_MS + 80);
         settleRef.current = settle;
-
-        if (typeof shell.animate === 'function') {
-          for (const child of Array.from(shell.children)) {
-            child.animate([{ opacity: 0 }, { opacity: 1 }], {
-              duration: PROMPT_BAR_MORPH_MS,
-              easing: 'ease-out',
-            });
-          }
-        }
       }
     }
 

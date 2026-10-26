@@ -3,7 +3,7 @@ import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolba
 import { describe, expect, it } from 'vitest';
 
 describe('PromptBarToolbar', () => {
-  it('lays the tools out as mode, setup, enhance, then references', () => {
+  it('lays the tools out as mode and setup, with enhance and references clustered at the right edge', () => {
     render(
       <PromptBarToolbar
         enhance={<span>enhance</span>}
@@ -18,7 +18,12 @@ describe('PromptBarToolbar', () => {
     const tools = screen.getByRole('group', { name: 'Prompt tools' });
     expect(
       Array.from(tools.children).map((child) => child.textContent),
-    ).toEqual(['mode', 'setup', 'enhance', 'reference']);
+    ).toEqual(['mode', 'setup', 'enhancereference']);
+    const cluster = tools.lastElementChild;
+    expect(cluster).toHaveClass('ml-auto');
+    expect(
+      Array.from(cluster?.children ?? []).map((child) => child.textContent),
+    ).toEqual(['enhance', 'reference']);
   });
 
   it('keeps submission out of the tools group', () => {

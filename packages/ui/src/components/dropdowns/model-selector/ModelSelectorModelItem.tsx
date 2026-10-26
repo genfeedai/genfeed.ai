@@ -34,6 +34,7 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
   isLocked = false,
   lockReason,
   isCategoryVisible = true,
+  isLegacyBadgeVisible = true,
 }: ModelSelectorModelItemProps) {
   const { model, brandLabel, costTier, isFavorite } = option;
   const isSingleSelect = selectionMode === 'single';
@@ -142,7 +143,7 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
             </span>
           ) : null}
 
-          {option.isDeprecated ? (
+          {option.isDeprecated && isLegacyBadgeVisible ? (
             <span className="shrink-0 rounded-full border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-[0.12em] text-amber-300">
               Legacy
             </span>
