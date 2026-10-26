@@ -6,6 +6,7 @@ import { ReplicatePromptBuilder } from '@api/services/prompt-builder/builders/re
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';
 import { ModelCategory } from '@genfeedai/contracts';
+import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
 import {
   mapReplicateBillingTiers,
   setRuntimeMarginMultiplier,
@@ -234,4 +235,41 @@ describe('image variant estimate / quote / admission parity', () => {
       expect(request.creditsConfig).toMatchObject({ amount: expected.credits });
     },
   );
+  it('quotes a GPT Image 2.5 request that names no quality at the catalog tier it dispatches at (#8195)', async () => {
+    const modelKey = 'openai/gpt-image-2.5-sunburst';
+    // The stored contract is a reviewed JSON schema; the builder only reads
+    // `quality` from it when the schema is a typed object.
+    row = {
+      ...reviewedRow(modelKey, ModelCategory.IMAGE),
+      providerInputSchema: {
+        type: 'object',
+        properties: REPLICATE_VARIANT_FIXTURES[modelKey]?.inputProperties,
+      },
+    };
+    const dto = { height: 1024, width: 1024, outputs: 1 };
+    const dispatchedQuality = MODEL_OUTPUT_CAPABILITIES[modelKey]
+      ?.defaultQuality as string;
+    const priced = async (quality?: string) =>
+      (
+        await estimate.estimate({
+          ...dto,
+          category: 'image',
+          modelKey,
+          organizationId: 'org-1',
+          ...(quality ? { quality } : {}),
+        })
+      ).credits;
+    const unnamed = await priced();
+    // The provider schema's own default is `auto`, a different tier from the
+    // one the dispatch runs; quoting it is how a quote of 84 charged 167.
+    expect(dispatchedQuality).not.toBe('auto');
+    expect(unnamed).toBe(await priced(dispatchedQuality));
+    expect(unnamed).not.toBe(await priced('auto'));
+    const quoted = await admission.quoteCredits(
+      dto as never,
+      modelKey,
+      'org-1',
+    );
+    expect(quoted.unitCredits).toBe(unnamed);
+  });
 });
