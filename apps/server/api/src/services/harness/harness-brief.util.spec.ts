@@ -74,6 +74,40 @@ describe('formatHarnessBrief', () => {
     );
   });
 
+  it('keeps rejected drafts in the brief when brand examples fill the signal cap', () => {
+    const good = Array.from({ length: 6 }, (_, index) => ({
+      content: `Approved ${index}`,
+      id: `good-${index}`,
+      kind: 'brand_example' as const,
+      source: 'Brand harness',
+    }));
+    const avoid = Array.from({ length: 10 }, (_, index) => ({
+      content: `Rejected ${index}`,
+      id: `avoid-${index}`,
+      kind: 'anti_example' as const,
+      source: 'Brand harness',
+    }));
+
+    const text = formatHarnessBrief(brief([...good, ...avoid]));
+
+    expect(text).toContain('AVOID (drafts reviewers rejected');
+    // Newest eight of the ten, oldest dropped.
+    expect(text).toContain('Rejected 9');
+    expect(text).toContain('Rejected 2');
+    expect(text).not.toContain('Rejected 1 ');
+    expect(text).not.toContain('Rejected 0 ');
+    // Brand examples stay under the shared cap of five.
+    expect(text).toContain('Approved 4');
+    expect(text).not.toContain('Approved 5');
+    expect(text.indexOf('AVOID')).toBeLessThan(
+      text.indexOf('REFERENCE SIGNALS'),
+    );
+  });
+
+  it('omits the avoid section when nothing was rejected', () => {
+    expect(formatHarnessBrief(brief([]))).not.toContain('AVOID');
+  });
+
   it('omits every Knowledge section when nothing is cited', () => {
     const text = formatHarnessBrief(brief([]));
     expect(text).not.toContain('BRAND FACTS');

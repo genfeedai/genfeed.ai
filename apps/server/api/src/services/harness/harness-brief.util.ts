@@ -364,8 +364,15 @@ export const buildPromptBuilderBrandContext = (params: {
 };
 
 const MAX_PROMPT_KNOWLEDGE_SOURCES = 8;
+/**
+ * Anti-examples get their own budget. They share a source list with the brand
+ * examples and every other uncited signal, so under the shared cap a brand
+ * with five good examples never showed the model a single rejected draft.
+ */
+const MAX_PROMPT_AVOID_SOURCES = 8;
 
 type GroupedBriefSources = {
+  avoid: HarnessSourceRecord[];
   brandTruth: HarnessSourceRecord[];
   inspiration: HarnessSourceRecord[];
   research: HarnessSourceRecord[];
@@ -390,6 +397,7 @@ function groupBriefSources(
   sources: readonly HarnessSourceRecord[],
 ): GroupedBriefSources {
   const grouped: GroupedBriefSources = {
+    avoid: [],
     brandTruth: [],
     inspiration: [],
     research: [],
@@ -407,10 +415,16 @@ function groupBriefSources(
         grouped.research.push(source);
         break;
       default:
-        grouped.signals.push(source);
+        if (source.kind === 'anti_example') {
+          grouped.avoid.push(source);
+        } else {
+          grouped.signals.push(source);
+        }
     }
   }
   return {
+    // Review feedback is appended oldest first, so the newest rejections win.
+    avoid: grouped.avoid.slice(-MAX_PROMPT_AVOID_SOURCES),
     brandTruth: grouped.brandTruth.slice(0, MAX_PROMPT_KNOWLEDGE_SOURCES),
     inspiration: grouped.inspiration.slice(0, MAX_PROMPT_KNOWLEDGE_SOURCES),
     research: grouped.research.slice(0, MAX_PROMPT_KNOWLEDGE_SOURCES),
@@ -474,6 +488,11 @@ export const formatHarnessBrief = (
   if (grouped.research.length > 0) {
     sections.push(
       `RESEARCH NOTES (saved Research; use for context, attribute claims to the source):\n${formatSourceLines(grouped.research)}`,
+    );
+  }
+  if (grouped.avoid.length > 0) {
+    sections.push(
+      `AVOID (drafts reviewers rejected; do not repeat these patterns):\n${formatSourceLines(grouped.avoid)}`,
     );
   }
   if (grouped.signals.length > 0) {
