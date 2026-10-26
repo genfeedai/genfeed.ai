@@ -77,6 +77,30 @@ async function mockInbox(page: Page, label: string, slug: string) {
               },
             },
           },
+          {
+            type: 'notification-inbox',
+            id: 'approval',
+            attributes: {
+              topic: 'approval.requests',
+              occurredAt: '2026-09-05T09:00:00Z',
+              readAt: '2026-09-05T09:30:00Z',
+              outcome: 'failed',
+              severity: 'warning',
+              sourceHref: `/${slug}/~/publishing/approvals?approval=mcp_approval%3Aapr-1`,
+              sourceLabel: 'Generate · Type: image',
+              failure: null,
+              activity: {
+                id: 'activity-approval',
+                key: 'activity.approval.requested',
+                value: 'Generate · Type: image',
+                source: 'mcp-approval',
+                brandId: null,
+                entityId: 'apr-1',
+                entityModel: 'McpApproval',
+                createdAt: '2026-09-05T09:00:00Z',
+              },
+            },
+          },
         ],
         links: {
           cursor: {
@@ -192,6 +216,16 @@ for (const fixture of [
         .filter({ hasText: fixture.label }),
     ).toBeVisible();
     await expect(page.getByText('Unread', { exact: true })).toHaveCount(0);
+    // A tool approval alert opens the approvals queue on that approval, not
+    // the Activity page, and says what the tool would do.
+    const approvalLink = page
+      .getByRole('link')
+      .filter({ hasText: 'Tool approval needed' });
+    await expect(approvalLink).toContainText('Generate · Type: image');
+    await expect(approvalLink).toHaveAttribute(
+      'href',
+      `/${fixture.slug}/~/publishing/approvals?approval=mcp_approval%3Aapr-1`,
+    );
     await page
       .getByRole('button', { name: 'Load older notifications' })
       .click();

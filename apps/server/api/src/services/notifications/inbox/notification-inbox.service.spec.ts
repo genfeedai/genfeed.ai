@@ -34,6 +34,7 @@ async function setup() {
     agentThreadEvent: { findMany: vi.fn().mockResolvedValue([]) },
     agentStrategy: { findMany: vi.fn().mockResolvedValue([]) },
     brand: { findMany: vi.fn().mockResolvedValue([]) },
+    mcpApproval: { findMany: vi.fn().mockResolvedValue([]) },
   };
   const module = await Test.createTestingModule({
     providers: [
@@ -660,5 +661,149 @@ describe('NotificationInboxService', () => {
     await expect(service.markRead('org', 'recipient', null)).rejects.toThrow(
       'database unavailable',
     );
+  });
+
+  describe('tool approval alerts', () => {
+    const approvalItem = (id: string, readAt: Date | null = null) =>
+      fixture(1, {
+        id,
+        topic: 'approval.requests',
+        readAt,
+        activity: {
+          action: null,
+          brandId: null,
+          createdAt: new Date('2026-09-05T10:00:00.000Z'),
+          data: { key: 'activity.approval.requested', value: 'generate' },
+          entityId: 'apr-1',
+          entityModel: 'McpApproval',
+          id: 'activity-1',
+          isDeleted: false,
+          organizationId: 'org',
+        },
+        event: {
+          sourceId: 'apr-1',
+          sourceType: 'mcp_approval',
+          eventKey: 'activity.approval.requested',
+          payload: {},
+        },
+      });
+    const approval = (overrides = {}) => ({
+      arguments: { type: 'image', brandId: 'brand-1' },
+      id: 'apr-1',
+      status: 'PENDING',
+      toolName: 'generate',
+      ...overrides,
+    });
+
+    it('opens the pending approval in its brand approvals queue', async () => {
+      const { service, prisma } = await setup();
+      prisma.notificationInboxItem.findMany.mockResolvedValue([
+        approvalItem('item-1'),
+      ]);
+      prisma.mcpApproval.findMany.mockResolvedValue([approval()]);
+      prisma.brand.findMany.mockResolvedValue([
+        { id: 'brand-1', slug: 'main' },
+      ]);
+      const [doc] = (await service.list('org', 'recipient')).docs;
+      expect(doc.sourceHref).toBe(
+        '/acme/main/publishing/approvals?approval=mcp_approval%3Aapr-1',
+      );
+      expect(doc.activity?.value).toMatch(/Type: image/);
+      expect(doc.activity?.value).not.toBe('generate');
+      expect(prisma.mcpApproval.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            organizationId: 'org',
+            isDeleted: false,
+            userId: 'recipient',
+          }),
+        }),
+      );
+    });
+
+    it('opens a brandless approval in the organization approvals queue', async () => {
+      const { service, prisma } = await setup();
+      prisma.notificationInboxItem.findMany.mockResolvedValue([
+        approvalItem('item-1'),
+      ]);
+      prisma.mcpApproval.findMany.mockResolvedValue([
+        approval({ arguments: { type: 'video' } }),
+      ]);
+      expect((await service.list('org', 'recipient')).docs[0].sourceHref).toBe(
+        '/acme/~/publishing/approvals?approval=mcp_approval%3Aapr-1',
+      );
+    });
+
+    it('leaves no link for a brand the member cannot open or a decided approval', async () => {
+      const { service, prisma } = await setup();
+      prisma.notificationInboxItem.findMany.mockResolvedValue([
+        approvalItem('item-1'),
+      ]);
+      prisma.mcpApproval.findMany.mockResolvedValue([approval()]);
+      expect((await service.list('org', 'recipient')).docs[0].sourceHref).toBe(
+        null,
+      );
+      prisma.brand.findMany.mockResolvedValue([
+        { id: 'brand-1', slug: 'main' },
+      ]);
+      prisma.mcpApproval.findMany.mockResolvedValue([
+        approval({ status: 'APPROVED' }),
+      ]);
+      expect((await service.list('org', 'recipient')).docs[0].sourceHref).toBe(
+        null,
+      );
+    });
+
+    it('marks alerts read once their approval is decided or gone', async () => {
+      const { service, prisma } = await setup();
+      prisma.notificationInboxItem.findMany.mockResolvedValue([
+        {
+          id: 'pending-alert',
+          event: { sourceId: 'apr-pending', sourceType: 'mcp_approval' },
+        },
+        {
+          id: 'decided-alert',
+          event: { sourceId: 'apr-decided', sourceType: 'mcp_approval' },
+        },
+        {
+          id: 'gone-alert',
+          event: { sourceId: 'apr-gone', sourceType: 'mcp_approval' },
+        },
+      ]);
+      prisma.mcpApproval.findMany.mockResolvedValue([{ id: 'apr-pending' }]);
+      await service.count('org', 'recipient');
+      expect(prisma.mcpApproval.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            organizationId: 'org',
+            isDeleted: false,
+            status: 'PENDING',
+            id: { in: ['apr-pending', 'apr-decided', 'apr-gone'] },
+          }),
+        }),
+      );
+      expect(prisma.notificationInboxItem.updateMany).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          organizationId: 'org',
+          userId: 'recipient',
+          readAt: null,
+          id: { in: ['decided-alert', 'gone-alert'] },
+        }),
+        data: { readAt: expect.any(Date) },
+      });
+    });
+
+    it('keeps alerts unread while their approval still waits', async () => {
+      const { service, prisma } = await setup();
+      prisma.notificationInboxItem.findMany.mockResolvedValue([
+        {
+          id: 'pending-alert',
+          event: { sourceId: 'apr-pending', sourceType: 'mcp_approval' },
+        },
+      ]);
+      prisma.mcpApproval.findMany.mockResolvedValue([{ id: 'apr-pending' }]);
+      await service.count('org', 'recipient');
+      expect(prisma.notificationInboxItem.updateMany).not.toHaveBeenCalled();
+    });
   });
 });

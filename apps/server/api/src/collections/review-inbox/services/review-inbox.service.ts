@@ -1,6 +1,10 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { approvalGenerationQuote } from '@api/collections/mcp-approvals/schemas/mcp-approval-pricing.schema';
+import {
+  MCP_APPROVAL_CAPTION_ARGUMENT_KEYS,
+  summarizeMcpApproval,
+} from '@api/collections/mcp-approvals/utils/mcp-approval-summary.util';
 import type {
   ReviewInboxListInput,
   ReviewInboxMemberInput,
@@ -41,17 +45,6 @@ const REVIEW_GATE_ROLES: MemberRole[] = [
   MemberRole.CREATOR,
 ];
 const DEFAULT_REVIEW_GATE_TIMEOUT_HOURS = 24;
-const PRIVATE_ARGUMENT = /secret|password|token|authorization|credential|key/i;
-/** Opaque ids say nothing to a reviewer; the brand gets its own column. */
-const OPAQUE_ID_ARGUMENT = /(?:Id|Ids|_id)$/;
-const CAPTION_ARGUMENT_KEYS = [
-  'caption',
-  'text',
-  'description',
-  'content',
-  'prompt',
-  'title',
-] as const;
 const MEDIA_ARGUMENT_KEYS = ['mediaUrl', 'imageUrl', 'videoUrl'] as const;
 
 function excerpt(value: string | null): string | null {
@@ -65,29 +58,6 @@ function excerpt(value: string | null): string | null {
 function readHttpUrl(value: unknown): string | null {
   const url = readString(value);
   return url && /^https?:\/\//i.test(url) ? url : null;
-}
-
-function humanize(value: string): string {
-  const text = value.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ');
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
-
-function describeArguments(args: Record<string, unknown>): string {
-  return Object.entries(args)
-    .filter(
-      ([key, value]) =>
-        !PRIVATE_ARGUMENT.test(key) &&
-        !OPAQUE_ID_ARGUMENT.test(key) &&
-        !(CAPTION_ARGUMENT_KEYS as readonly string[]).includes(key) &&
-        (typeof value === 'string' ||
-          typeof value === 'number' ||
-          typeof value === 'boolean') &&
-        String(value).trim().length > 0 &&
-        String(value).length <= 60,
-    )
-    .slice(0, 3)
-    .map(([key, value]) => `${humanize(key)}: ${String(value)}`)
-    .join(' · ');
 }
 
 /**
@@ -325,9 +295,7 @@ export class ReviewInboxService {
         return [];
       }
       const definition = getToolByName(approval.toolName);
-      const title = definition?.title ?? humanize(approval.toolName);
-      const details = describeArguments(args);
-      const caption = CAPTION_ARGUMENT_KEYS.map((key) =>
+      const caption = MCP_APPROVAL_CAPTION_ARGUMENT_KEYS.map((key) =>
         readString(args[key]),
       ).find((value): value is string => value !== null);
       const mediaUrl = MEDIA_ARGUMENT_KEYS.map((key) =>
@@ -346,7 +314,7 @@ export class ReviewInboxService {
 
       return [
         {
-          actionSummary: details ? `${title} · ${details}` : title,
+          actionSummary: summarizeMcpApproval(approval.toolName, args),
           approvalId: approval.id,
           brandId,
           brandLabel: null,
