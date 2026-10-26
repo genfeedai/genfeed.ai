@@ -29,10 +29,10 @@ const STILLS = [
 ] as const;
 
 const APP_WINDOWS = [
-  `${STILL_PATH}/app-playground.webp`,
   `${STILL_PATH}/app-storyboard.webp`,
   `${STILL_PATH}/app-motion.webp`,
   `${STILL_PATH}/app-discovery.webp`,
+  `${STILL_PATH}/app-playground.webp`,
   `${STILL_PATH}/app-automation.webp`,
 ] as const;
 
@@ -157,7 +157,7 @@ function ToolRotator(props: Omit<AuthShowcaseProps, 'variant'>) {
       <div className="pointer-events-none absolute -bottom-32 left-1/2 size-[32rem] -translate-x-1/2 rounded-full bg-primary/15 blur-3xl" />
       <ShowcaseCopy {...props} />
       <div className="relative space-y-6">
-        <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl border border-border bg-background shadow-2xl">
+        <div className="relative aspect-[3/2] w-full overflow-hidden rounded-xl border border-border bg-background shadow-2xl">
           {APP_WINDOWS.map((src, index) => (
             <Image
               key={src}
@@ -196,15 +196,16 @@ function ContentBento(props: Omit<AuthShowcaseProps, 'variant'>) {
     { className: 'col-span-2 row-span-2', src: STILLS[1] },
     { className: '', src: STILLS[0] },
     { className: '', src: STILLS[3] },
-    { className: 'col-span-2', src: APP_WINDOWS[0] },
+    { className: 'col-span-2', src: APP_WINDOWS[3] },
     { className: '', src: STILLS[4] },
     { className: '', src: STILLS[2] },
+    { className: 'col-span-2', src: STILLS[5] },
   ];
 
   return (
     <ShowcaseFrame className="flex flex-col justify-between gap-8 p-10">
       <ShowcaseCopy {...props} />
-      <div className="grid min-h-0 flex-1 grid-cols-4 grid-rows-4 gap-3">
+      <div className="grid min-h-0 flex-1 grid-cols-4 grid-rows-3 gap-3">
         {bentoCells.map((cell) => (
           <div
             key={cell.src}
