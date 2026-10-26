@@ -1,16 +1,11 @@
 'use client';
 
-import {
-  ButtonSize,
-  ButtonVariant,
-  IngredientCategory,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers';
-import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import IngredientThumbnail from '@ui/ingredients/ingredient-thumbnail/IngredientThumbnail';
 import type { PostCardFooterProps } from '@ui/posts/card-footer/PostCardFooter.props';
 import { Button } from '@ui/primitives/button';
 import { ImageIcon, Sparkles, Trash2 } from 'lucide-react';
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 
 const EMPTY_ARRAY: never[] = [];
@@ -68,18 +63,11 @@ export default function PostCardFooter({
             icon={
               hasMedia && firstMedia ? (
                 <div className="relative size-5 shrink-0 overflow-hidden rounded-sm">
-                  <Image
-                    src={
-                      firstMedia.category === IngredientCategory.VIDEO
-                        ? firstMedia.thumbnailUrl ||
-                          `${EnvironmentService.ingredientsEndpoint}/videos/${firstMedia.id}`
-                        : `${EnvironmentService.ingredientsEndpoint}/images/${firstMedia.id}`
-                    }
+                  <IngredientThumbnail
                     alt=""
                     className="size-full object-cover outline-media"
-                    width={20}
-                    height={20}
-                    sizes="20px"
+                    ingredient={firstMedia}
+                    size={20}
                   />
                 </div>
               ) : (

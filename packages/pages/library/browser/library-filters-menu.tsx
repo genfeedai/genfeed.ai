@@ -9,20 +9,28 @@ import {
   LIBRARY_MAX_CHARACTER_FILTERS,
   LIBRARY_MAX_TAG_FILTERS,
 } from '@genfeedai/contracts/constants';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
+import { useIngredientsById } from '@hooks/media/use-ingredients-by-id';
 import type {
   LibraryCharacterOption,
   LibraryFiltersMenuProps,
 } from '@props/pages/library-browser.props';
-import { EnvironmentService } from '@services/core/environment.service';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
+import IngredientThumbnail from '@ui/ingredients/ingredient-thumbnail/IngredientThumbnail';
 import { UserRound } from 'lucide-react';
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
+import { useMemo } from 'react';
 
 import { useLibraryFilters } from './use-library-filters';
 
-function CharacterAvatar({ character }: { character: LibraryCharacterOption }) {
+function CharacterAvatar({
+  character,
+  ingredient,
+}: {
+  character: LibraryCharacterOption;
+  ingredient: IIngredient | undefined;
+}) {
   if (!character.avatarIngredientId) {
     return (
       <span className="flex size-4 items-center justify-center rounded-full bg-background-tertiary text-muted-foreground">
@@ -32,12 +40,11 @@ function CharacterAvatar({ character }: { character: LibraryCharacterOption }) {
   }
 
   return (
-    <Image
+    <IngredientThumbnail
       alt=""
       className="size-4 rounded-full object-cover outline-media"
-      height={16}
-      src={`${EnvironmentService.ingredientsEndpoint}/images/${character.avatarIngredientId}`}
-      width={16}
+      ingredient={ingredient}
+      size={16}
     />
   );
 }
@@ -61,6 +68,15 @@ export default function LibraryFiltersMenu({
   const translate = useTranslations('pages.library.browser.toolbar');
   const { characterOptions, characters, tagMatch, tagOptions, tags } =
     filterProps;
+  const avatarIngredients = useIngredientsById(
+    useMemo(
+      () =>
+        characterOptions.flatMap((character) =>
+          character.avatarIngredientId ? [character.avatarIngredientId] : [],
+        ),
+      [characterOptions],
+    ),
+  );
   const model = useLibraryFilters({
     ...filterProps,
     onCharactersChange,
@@ -121,7 +137,16 @@ export default function LibraryFiltersMenu({
       }),
       onChange: onCharactersChange,
       options: characterOptions.map((character) => ({
-        icon: <CharacterAvatar character={character} />,
+        icon: (
+          <CharacterAvatar
+            character={character}
+            ingredient={
+              character.avatarIngredientId
+                ? avatarIngredients.get(character.avatarIngredientId)
+                : undefined
+            }
+          />
+        ),
         isLiteral: true,
         label: character.label,
         value: character.id,

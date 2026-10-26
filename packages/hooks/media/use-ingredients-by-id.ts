@@ -1,17 +1,17 @@
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
+import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { IngredientsService } from '@services/content/ingredients.service';
-import { logger } from '@services/core/logger.service';
 import { useEffect, useMemo, useState } from 'react';
 
 const BATCH_SIZE = 50;
 
 /**
- * Character avatars and references are stored as ingredient ids. A raw CDN path
- * is not readable on Cloud, so the ingredients are read once to get the URLs
- * and media grants the API issues for them.
+ * Reads ingredients by id for surfaces that only hold ids (character avatars and
+ * references, filter options). A raw CDN path is not readable on Cloud, so the
+ * ingredients are read once to get the URLs and media grants the API issues.
  */
-export function useCharacterIngredients(
+export function useIngredientsById(
   ingredientIds: readonly string[],
 ): Map<string, IIngredient> {
   const getService = useAuthedService((token) =>

@@ -387,3 +387,12 @@ export interface SelectionActionsBarProps {
   /** The bulk tag control, rendered beside the other constructive actions. */
   tagAction?: ReactNode;
 }
+
+export interface IngredientThumbnailProps {
+  alt: string;
+  className?: string;
+  ingredient: IIngredient | undefined;
+  size: number;
+  testId?: string;
+  title?: string;
+}

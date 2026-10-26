@@ -2,7 +2,9 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { MAX_CHARACTER_REFERENCES } from '@genfeedai/contracts/constants';
+import { useIngredientsById } from '@hooks/media/use-ingredients-by-id';
 import type { CharacterReferencesDialogProps } from '@props/characters/characters-page.props';
+import IngredientThumbnail from '@ui/ingredients/ingredient-thumbnail/IngredientThumbnail';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
@@ -16,8 +18,6 @@ import {
 import { ArrowDown, ArrowUp, ImagePlus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import CharacterImage from './character-image';
-import { useCharacterIngredients } from './use-character-ingredients';
 import { useCharacterReferences } from './use-character-references';
 
 export default function CharacterReferencesDialog({
@@ -28,7 +28,7 @@ export default function CharacterReferencesDialog({
   const translate = useTranslations('common.settings.characters');
   const { add, isBusy, isFull, move, referenceIds, remove } =
     useCharacterReferences({ character, onChanged });
-  const ingredients = useCharacterIngredients(referenceIds);
+  const ingredients = useIngredientsById(referenceIds);
 
   return (
     <Dialog
@@ -57,7 +57,7 @@ export default function CharacterReferencesDialog({
                 className="flex items-center gap-3 rounded border border-border p-2"
                 key={ingredientId}
               >
-                <CharacterImage
+                <IngredientThumbnail
                   alt={translate('references.imageAlt', {
                     name: character.label,
                     position,

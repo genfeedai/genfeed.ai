@@ -1,7 +1,9 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { useIngredientsById } from '@hooks/media/use-ingredients-by-id';
 import type { CharacterCreateDialogProps } from '@props/characters/characters-page.props';
+import IngredientThumbnail from '@ui/ingredients/ingredient-thumbnail/IngredientThumbnail';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import {
@@ -13,8 +15,8 @@ import {
 } from '@ui/primitives/dialog';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
+import { useMemo } from 'react';
 
 import CharacterAvailabilityFields from './character-availability-fields';
 
@@ -36,6 +38,12 @@ export default function CharacterCreateDialog({
   step,
 }: CharacterCreateDialogProps) {
   const translate = useTranslations('common.settings.characters');
+  const candidateIngredients = useIngredientsById(
+    useMemo(() => (candidate ? [candidate.id] : []), [candidate]),
+  );
+  const candidateIngredient = candidate
+    ? candidateIngredients.get(candidate.id)
+    : undefined;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -98,13 +106,12 @@ export default function CharacterCreateDialog({
 
         {step === 'candidate' && candidate ? (
           <div className="flex flex-col gap-3">
-            <Image
+            <IngredientThumbnail
               alt={translate('candidate.alt')}
               className="w-full rounded object-cover outline-media"
-              data-testid="candidate-image"
-              height={512}
-              src={candidate.url}
-              width={512}
+              ingredient={candidateIngredient}
+              size={512}
+              testId="candidate-image"
             />
             <div className="flex flex-wrap gap-2">
               <Button
@@ -137,12 +144,11 @@ export default function CharacterCreateDialog({
 
         {step === 'approve' && candidate ? (
           <div className="flex flex-col gap-3">
-            <Image
+            <IngredientThumbnail
               alt={translate('candidate.alt')}
               className="w-full rounded object-cover outline-media"
-              height={512}
-              src={candidate.url}
-              width={512}
+              ingredient={candidateIngredient}
+              size={512}
             />
             <Input
               aria-label={translate('fields.name')}

@@ -6,21 +6,20 @@ import {
   createLibraryBrowserRoute,
 } from '@genfeedai/contracts/constants';
 import type { BrandCharacterListItem } from '@genfeedai/contracts/interfaces';
+import { useIngredientsById } from '@hooks/media/use-ingredients-by-id';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { CharactersTableProps } from '@props/characters/characters-page.props';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
+import IngredientThumbnail from '@ui/ingredients/ingredient-thumbnail/IngredientThumbnail';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { FolderOpen, Images, Plus, Share2, UserRound } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
-
-import CharacterImage from './character-image';
-import { useCharacterIngredients } from './use-character-ingredients';
 
 const VISIBLE_REFERENCE_THUMBNAILS = 4;
 
@@ -34,7 +33,7 @@ export default function CharactersTable({
 }: CharactersTableProps) {
   const translate = useTranslations('common.settings.characters');
   const { href } = useOrgUrl();
-  const ingredients = useCharacterIngredients(
+  const ingredients = useIngredientsById(
     useMemo(
       () =>
         characters.flatMap((character) => [
@@ -58,7 +57,7 @@ export default function CharactersTable({
         render: (character) => (
           <div className="flex items-center gap-3">
             {character.avatarIngredientId ? (
-              <CharacterImage
+              <IngredientThumbnail
                 alt={character.label}
                 className="size-10 rounded object-cover outline-media"
                 ingredient={ingredients.get(character.avatarIngredientId)}
@@ -99,7 +98,7 @@ export default function CharactersTable({
               {referenceIds
                 .slice(0, VISIBLE_REFERENCE_THUMBNAILS)
                 .map((ingredientId, index) => (
-                  <CharacterImage
+                  <IngredientThumbnail
                     alt={translate('references.imageAlt', {
                       name: character.label,
                       position: index + 1,

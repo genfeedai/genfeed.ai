@@ -2,23 +2,24 @@
 
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthorizedMediaPreview } from '@genfeedai/hooks/media/use-authorized-media-preview';
+import type { IngredientThumbnailProps } from '@genfeedai/props/content/ingredient.props';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import {
   getIngredientPreviewUrl,
   isRasterPreviewUrl,
 } from '@genfeedai/utils/media/ingredient-preview.util';
-import type { CharacterImageProps } from '@props/characters/characters-page.props';
 import { ImageOff } from 'lucide-react';
 import Image from 'next/image';
 
-/** A character avatar or reference, shown through the media grant the API issues. */
-export default function CharacterImage({
+/** An image shown through the media grant the API issues, with a placeholder instead of a broken image. */
+export default function IngredientThumbnail({
   alt,
   className,
   ingredient,
   size,
+  testId,
   title,
-}: CharacterImageProps) {
+}: IngredientThumbnailProps) {
   const grant = useAuthorizedMediaPreview(ingredient ?? null);
   const src = grant
     ? isRasterPreviewUrl(grant.url)
@@ -31,14 +32,14 @@ export default function CharacterImage({
       <span
         aria-label={alt}
         className={cn(
-          'flex shrink-0 items-center justify-center bg-background-tertiary text-muted-foreground',
+          'flex aspect-square shrink-0 items-center justify-center bg-background-tertiary text-muted-foreground',
           className,
         )}
+        data-testid={testId}
         role="img"
-        style={{ height: size, width: size }}
         title={title}
       >
-        <ImageOff aria-hidden="true" className="size-4" />
+        <ImageOff aria-hidden="true" className="size-2/3 min-h-3 min-w-3" />
       </span>
     );
   }
@@ -47,6 +48,7 @@ export default function CharacterImage({
     <Image
       alt={alt}
       className={className}
+      data-testid={testId}
       height={size}
       src={src}
       title={title}

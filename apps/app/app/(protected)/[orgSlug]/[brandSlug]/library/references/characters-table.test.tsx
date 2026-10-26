@@ -31,8 +31,8 @@ const mocks = vi.hoisted(() => ({
   ingredients: new Map<string, unknown>(),
 }));
 
-vi.mock('./use-character-ingredients', () => ({
-  useCharacterIngredients: () => mocks.ingredients,
+vi.mock('@hooks/media/use-ingredients-by-id', () => ({
+  useIngredientsById: () => mocks.ingredients,
 }));
 
 vi.mock('@genfeedai/hooks/media/use-authorized-media-preview', () => ({
