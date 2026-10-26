@@ -439,7 +439,7 @@ export default function StudioPlaygroundCard({
         </p>
 
         {hasDetailActions ? (
-          <div className="flex items-center gap-1 border-t border-border pt-2">
+          <div className="flex flex-wrap items-center gap-1 border-t border-border pt-2">
             {referenceAction}
             {renderSourceAction(ACTION_CLASS)}
             {renderMakeClipsAction()}
@@ -727,7 +727,9 @@ export default function StudioPlaygroundCard({
         ) : null}
       </div>
 
-      {isListView ? renderDetails(true) : renderHoverDetails(true)}
+      {/* A failed card carries its reason and a details link in the media area, so
+          its actions sit in a footer instead of a hover bar that would cover them. */}
+      {isListView || isFailed ? renderDetails(true) : renderHoverDetails(true)}
 
       {isFailed ? (
         <StudioPlaygroundFailureDetailsDialog

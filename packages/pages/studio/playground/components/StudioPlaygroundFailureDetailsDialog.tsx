@@ -56,7 +56,7 @@ export default function StudioPlaygroundFailureDetailsDialog({
         className="max-h-[calc(100dvh-2rem)] max-w-xl overflow-y-auto"
         data-testid="studio-failure-details"
       >
-        <DialogHeader>
+        <DialogHeader className="text-left">
           <DialogTitle>{translate('failure.dialog.title')}</DialogTitle>
           <div className="flex flex-wrap items-center gap-2">
             <Badge
@@ -94,7 +94,7 @@ export default function StudioPlaygroundFailureDetailsDialog({
             </h3>
             <Pre
               aria-label={translate('failure.detailsLabel')}
-              className="max-h-72 w-full select-text overflow-auto break-all text-left"
+              className="max-h-72 w-full select-text overflow-auto text-left [overflow-wrap:anywhere]"
               size="sm"
             >
               {detail}

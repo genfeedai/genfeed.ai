@@ -591,7 +591,7 @@ describe('StudioPlaygroundCard', () => {
       isRecovering: false,
       retriedIds: [],
     };
-    render(
+    const { container } = render(
       <StudioPlaygroundCard
         assetActions={actions}
         job={{
@@ -606,6 +606,10 @@ describe('StudioPlaygroundCard', () => {
         view={ViewType.GRID}
       />,
     );
+
+    // The actions sit in a footer, not a hover bar over the failure message.
+    expect(container.querySelector('[data-asset-hover-details]')).toBeNull();
+    expect(container.querySelector('[data-asset-details]')).not.toBeNull();
 
     const buttons = [
       screen.getByRole('button', { name: 'Inspect' }),
