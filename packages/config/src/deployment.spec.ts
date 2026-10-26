@@ -261,7 +261,9 @@ describe('getDeploymentFromReader', () => {
 });
 
 describe('production deployment', () => {
-  const production = (env: Record<string, string | undefined>) => ({
+  const production = (
+    env: Record<string, string | undefined>,
+  ): Record<string, string | undefined> => ({
     NODE_ENV: 'production',
     ...env,
   });
