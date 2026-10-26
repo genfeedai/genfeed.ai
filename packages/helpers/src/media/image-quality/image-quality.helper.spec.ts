@@ -15,7 +15,7 @@ describe('image-quality.helper', () => {
     expect(values).toEqual(['low', 'medium', 'high', 'xhigh', 'max', 'auto']);
     expect(
       getDefaultImageQuality(MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_FLARE),
-    ).toBe('max');
+    ).toBe('high');
   });
 
   it('keeps GPT Image 1.5 and 2 on the older high-top enum', () => {
