@@ -59,7 +59,7 @@ export function QuickAnalyticsPreview({
   if (isLoading) {
     return (
       <div className={cardClassName}>
-        <div className="animate-pulse">
+        <div>
           <Skeleton className="mb-6 h-6 w-1/3" />
           <div className="mb-6 grid grid-cols-3 gap-4">
             <Skeleton className="h-20" />

@@ -58,7 +58,7 @@ export function GrowthTrendsCard({
   if (isLoading) {
     return (
       <div className={cardClassName}>
-        <div className="animate-pulse">
+        <div>
           <Skeleton className="mb-4 h-6 w-1/3" />
           <div className="space-y-4">
             <Skeleton className="h-20" />
