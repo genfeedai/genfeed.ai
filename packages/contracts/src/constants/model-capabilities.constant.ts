@@ -52,7 +52,8 @@ export interface VideoModelCapability extends BaseModelCapability {
   /**
    * The provider takes no aspect-ratio control and sizes the clip from the
    * first frame, so the selected aspect ratio is not a guaranteed output.
-   * Set only where the dispatch mapper sends no aspect field.
+   * Set only where the dispatch mapper sends no aspect field, or where a
+   * paid run showed the provider ignoring the field it was sent.
    */
   hasSourceDerivedAspect?: boolean;
   aspectRatios?: readonly string[];
@@ -749,6 +750,9 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       hasEndFrame: true,
       hasInterpolation: true,
       hasResolutionOptions: true,
+      // The mapper sends aspect_ratio, yet a paid v0.2.15 run (#7946) with
+      // 9:16 selected rendered 1:1: the clip follows the source image.
+      hasSourceDerivedAspect: true,
       isBatchSupported: false,
       maxOutputs: 4,
       maxReferences: 2,

@@ -119,6 +119,12 @@ describe('model-helpers.constant', () => {
   });
 
   describe('hasSourceDerivedAspect', () => {
+    it('flags models whose clip follows the source image, not the picked ratio', () => {
+      expect(
+        hasSourceDerivedAspect(MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST),
+      ).toBe(true);
+    });
+
     it('flags only models whose dispatch sends no aspect ratio', () => {
       expect(
         hasSourceDerivedAspect(MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST),
