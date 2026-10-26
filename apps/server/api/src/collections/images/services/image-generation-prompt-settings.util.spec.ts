@@ -14,8 +14,8 @@ describe('resolveImageDispatchQuality', () => {
   });
 
   it('falls back to the catalog default when none or an unknown one is asked for', () => {
-    expect(resolveImageDispatchQuality(SUNBURST, undefined)).toBe('max');
-    expect(resolveImageDispatchQuality(SUNBURST, 'standard')).toBe('max');
+    expect(resolveImageDispatchQuality(SUNBURST, undefined)).toBe('high');
+    expect(resolveImageDispatchQuality(SUNBURST, 'standard')).toBe('high');
   });
 
   it('passes the request through for a model without quality tiers', () => {
@@ -44,7 +44,7 @@ describe('buildImageQuoteProviderInput', () => {
 
     expect(buildPrompt).toHaveBeenCalledWith(
       SUNBURST,
-      expect.objectContaining({ quality: 'max' }),
+      expect.objectContaining({ quality: 'high' }),
     );
   });
 

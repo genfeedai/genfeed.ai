@@ -84,7 +84,7 @@ describe('compileRemainingImageGenerationBrief', () => {
     });
 
     expect(result.dispatch.aspect_ratio).toBe('16:9');
-    expect(result.dispatch.quality).toBe('max');
+    expect(result.dispatch.quality).toBe('high');
     expect(result.evidence.compilerId).toBe(GPT_IMAGE_IMAGE_COMPILER_ID);
   });
 
