@@ -249,10 +249,19 @@ export function resolveTrustProxyFromReader(
 }
 
 export function getDeployment(): Deployment {
-  // The browser hostname always wins: `*.genfeed.ai` is Cloud on the client
-  // exactly as the URL keys make it Cloud on the server.
+  // `*.genfeed.ai` is Cloud on the client exactly as the URL keys make it Cloud
+  // on the server. Outside production an explicit flag still wins.
   if (isHostedGenfeedFromBrowser()) {
-    return 'cloud';
+    const hasExplicitFlag = Boolean(
+      readDeploymentEnv('GENFEED_CLOUD')?.trim() ||
+        readDeploymentEnv('NEXT_PUBLIC_GENFEED_CLOUD')?.trim(),
+    );
+    if (
+      readDeploymentEnv('NODE_ENV')?.trim() === 'production' ||
+      !hasExplicitFlag
+    ) {
+      return 'cloud';
+    }
   }
 
   return getDeploymentFromReader(readDeploymentEnv);

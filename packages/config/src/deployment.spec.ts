@@ -108,6 +108,21 @@ describe('isHostedGenfeedCloud', () => {
     expect(getDeployment()).toBe('cloud');
   });
 
+  it('keeps an explicit false flag authoritative on a hosted browser hostname outside production', () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('GENFEED_CLOUD', 'false');
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', '');
+    vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', '');
+    vi.stubEnv('NEXT_PUBLIC_APPS_APP_ENDPOINT', '');
+    Object.defineProperty(globalThis, 'location', {
+      configurable: true,
+      value: { hostname: 'app.genfeed.ai' },
+      writable: true,
+    });
+
+    expect(getDeployment()).toBe('self-hosted');
+  });
+
   it('is true from the browser hostname on app.genfeed.ai', () => {
     vi.stubEnv('GENFEED_CLOUD', '');
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', '');
