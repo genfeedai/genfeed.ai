@@ -15,6 +15,7 @@ import {
   type PlatformConfig,
 } from '~platforms/config';
 import { buildMenuGroups } from '~platforms/menu-actions';
+import { readPagePost } from '~platforms/page-post';
 import { extractPostContext } from '~platforms/post-context';
 import {
   attachSourceButton,
@@ -40,9 +41,12 @@ import {
 import { initializeErrorTracking } from '~services/error-tracking.service';
 import { publicationCapturePlatform } from '~services/publication-capture-validation';
 import { watchContentTheme } from '~theme/content-theme';
+import type { PagePost } from '~types/extension';
 
 const DEBOUNCE_DELAY_MS = 300;
 const NAVIGATION_DELAY_MS = 100;
+const POST_RENDER_RETRY_MS = 300;
+const POST_RENDER_ATTEMPTS = 10;
 
 const PUBLICATION_OBSERVERS: Record<
   PublicationCapturePlatform,
@@ -201,6 +205,28 @@ function checkAndReinitialize(): void {
   }
   // Notify side panel of platform/URL change
   notifyPlatformDetected();
+  notifyWhenPostRenders();
+}
+
+let postRenderTimer: number | undefined;
+
+/**
+ * A single-page site renders the post after the URL changes, so a post page is
+ * read again until its post appears and the side panel is told once more.
+ */
+function notifyWhenPostRenders(attempt = 0): void {
+  window.clearTimeout(postRenderTimer);
+  const platform = getCurrentPlatform();
+  if (!platform?.extractPostId() || attempt >= POST_RENDER_ATTEMPTS) {
+    return;
+  }
+  postRenderTimer = window.setTimeout(() => {
+    if (readPagePost(platform)) {
+      notifyPlatformDetected();
+      return;
+    }
+    notifyWhenPostRenders(attempt + 1);
+  }, POST_RENDER_RETRY_MS);
 }
 
 function setupNavigationListeners(): void {
@@ -241,16 +267,27 @@ function notifyPlatformDetected(): void {
 
 function extractCurrentPageContext(): {
   url: string;
+  post?: PagePost;
   postContent?: string;
   postAuthor?: string;
 } {
-  const context: { url: string; postContent?: string; postAuthor?: string } = {
+  const context: {
+    url: string;
+    post?: PagePost;
+    postContent?: string;
+    postAuthor?: string;
+  } = {
     url: window.location.href,
   };
 
   const platform = getCurrentPlatform();
   if (!platform) {
     return context;
+  }
+
+  const post = readPagePost(platform);
+  if (post) {
+    context.post = post;
   }
 
   // Try to extract visible post content
@@ -450,6 +487,7 @@ setupNavigationListeners();
 initializePlatformIntegration();
 
 notifyPlatformDetected();
+notifyWhenPostRenders();
 
 // Initialize Twitter image hover if on Twitter
 const platform = getCurrentPlatform();

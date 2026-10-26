@@ -12,6 +12,7 @@ import { KnowledgeCapturePage } from '~components/pages/KnowledgeCapturePage';
 import { BrandSelector } from '~components/settings/BrandSelector';
 import { OrganizationSelector } from '~components/settings/OrganizationSelector';
 import { SettingsPanel } from '~components/settings/SettingsPanel';
+import { GenfeedLogoIcon } from '~components/ui';
 import { useAccountThemeSync } from '~hooks/use-account-theme-sync';
 import { useExtensionTheme } from '~hooks/use-extension-theme';
 import { useWorkspace } from '~hooks/use-workspace';
@@ -295,8 +296,9 @@ function SidePanelContent() {
         className="gf-app flex h-screen min-w-0 flex-col bg-background text-foreground"
       >
         <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-3">
-          <span className="shrink-0 text-sm font-semibold tracking-tight">
-            Genfeed
+          <span className="flex shrink-0 items-center" title="Genfeed">
+            <GenfeedLogoIcon className="size-6" />
+            <span className="sr-only">Genfeed</span>
           </span>
           <div className="grid min-w-0 flex-1 grid-cols-2 gap-1">
             <OrganizationSelector />

@@ -4,6 +4,7 @@ export {
   CloseIcon,
   CreateIcon,
   ExternalLinkIcon,
+  GenfeedLogoIcon,
   PostsIcon,
   RefreshIcon,
   ReplyIcon,
