@@ -628,6 +628,25 @@ describe('useEnhanceUpscale', () => {
       },
     );
 
+    it('tells the user when the Topaz price has not been quoted yet', async () => {
+      const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
+      await act(async () => {
+        await result.current.handleUpscale(video);
+      });
+      await act(async () => {
+        await result.current.executeUpscale({
+          model: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+          targetFps: 30,
+          targetResolution: '1080p',
+          cost: null,
+        });
+      });
+      expect(mockPostUpscale).not.toHaveBeenCalled();
+      expect(mockError).toHaveBeenCalledWith(
+        'The upscale price is still loading. Try again in a moment.',
+      );
+    });
+
     it('accepts the API-quoted Topaz price for a supported 4K/60 selection', async () => {
       const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
       await act(async () => {

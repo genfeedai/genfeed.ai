@@ -211,7 +211,9 @@ export function useEnhanceUpscale({
             (selection && !isSelectedCostValid)))
       ) {
         return notificationsService.error(
-          'Upscale model or price changed. Review a new quote before continuing.',
+          isVideo && selection?.cost === null
+            ? 'The upscale price is still loading. Try again in a moment.'
+            : 'Upscale model or price changed. Review a new quote before continuing.',
         );
       }
       pendingTransformation.current = true;

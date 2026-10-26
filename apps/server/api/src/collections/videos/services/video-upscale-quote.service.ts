@@ -2,8 +2,8 @@ import { ModelCreditQuoteService } from '@api/collections/models/services/model-
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { assertSupportedVideoUpscaleOptions } from '@api/collections/videos/utils/video-upscale-options.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { IngredientCategory } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { BadRequestException, Injectable } from '@nestjs/common';
