@@ -329,6 +329,8 @@ async function loadInboxBrandSlugs(input: {
 
 type McpApprovalInboxEntry = {
   brandId: string | null;
+  /** Slug of the approval's brand, when the member may open that brand. */
+  brandSlug: string | undefined;
   isPending: boolean;
   summary: string;
 };
@@ -339,12 +341,13 @@ type McpApprovalInboxEntry = {
  * for. An approval that is gone from the page's map renders as unavailable.
  */
 async function loadMcpApprovalEntries(input: {
+  member: { brands: Array<{ id: string }>; role: { key: string } };
   organizationId: string;
   page: Array<{ event: { sourceId: string; sourceType: string } }>;
   prisma: PrismaService;
   userId: string;
 }): Promise<Map<string, McpApprovalInboxEntry>> {
-  const { organizationId, page, prisma, userId } = input;
+  const { member, organizationId, page, prisma, userId } = input;
   const ids = [
     ...new Set(
       page
@@ -359,19 +362,126 @@ async function loadMcpApprovalEntries(input: {
     where: scopedWhere(organizationId, { id: { in: ids }, userId }),
     select: { arguments: true, id: true, status: true, toolName: true },
   });
+  const entries = approvals.map((approval) => {
+    const args = isRecord(approval.arguments) ? approval.arguments : {};
+    return {
+      brandId: typeof args.brandId === 'string' ? args.brandId : null,
+      id: approval.id,
+      isPending: approval.status === McpApprovalStatus.PENDING,
+      summary: summarizeMcpApproval(approval.toolName, args).slice(0, 300),
+    };
+  });
+  const brandSlugs = await loadVisibleBrandSlugs({
+    brandIds: entries.flatMap((entry) =>
+      entry.brandId ? [entry.brandId] : [],
+    ),
+    member,
+    organizationId,
+    prisma,
+  });
   return new Map(
-    approvals.map((approval) => {
-      const args = isRecord(approval.arguments) ? approval.arguments : {};
-      return [
-        approval.id,
-        {
-          brandId: typeof args.brandId === 'string' ? args.brandId : null,
-          isPending: approval.status === McpApprovalStatus.PENDING,
-          summary: summarizeMcpApproval(approval.toolName, args).slice(0, 300),
-        },
-      ];
-    }),
+    entries.map(({ id, ...entry }) => [
+      id,
+      {
+        ...entry,
+        brandSlug: entry.brandId ? brandSlugs.get(entry.brandId) : undefined,
+      },
+    ]),
   );
+}
+
+/**
+ * The bell row for an MCP approval alert. An approval with a brand opens in
+ * that brand's queue, one without in the organization's; a decided approval or
+ * a brand the member cannot open leaves no link.
+ */
+function mcpApprovalInboxItem<
+  A,
+  R extends {
+    event: { eventKey: string; sourceId: string };
+    id: string;
+    occurredAt: Date;
+    readAt: Date | null;
+    topic: string;
+  },
+>(input: {
+  activity: (A & { value: string | null }) | null;
+  approval: McpApprovalInboxEntry | undefined;
+  orgSlug: string;
+  row: R;
+}) {
+  const { activity, approval, orgSlug, row } = input;
+  const canLink = Boolean(
+    approval?.isPending && (!approval.brandId || approval.brandSlug),
+  );
+  return {
+    id: row.id,
+    topic: row.topic,
+    occurredAt: row.occurredAt,
+    readAt: row.readAt,
+    outcome: readInboxOutcome(row.event.eventKey),
+    severity: getActivityAlertPolicy(row.event.eventKey)?.severity ?? null,
+    activity:
+      activity && approval
+        ? { ...activity, value: approval.summary }
+        : activity,
+    sourceHref: canLink
+      ? inboxSourceHref(
+          orgSlug,
+          approval?.brandSlug,
+          createPublishingApprovalsRoute({
+            approval: buildReviewInboxItemId({
+              approvalId: row.event.sourceId,
+              kind: 'mcp_approval',
+            }),
+          }),
+        )
+      : null,
+    sourceLabel: approval?.summary ?? null,
+    failure: null,
+  };
+}
+
+/** The bell row for a `social.reply` alert; it links to the newest reply. */
+function socialReplyInboxItem<
+  A,
+  R extends {
+    event: { eventKey: string };
+    id: string;
+    occurredAt: Date;
+    readAt: Date | null;
+    topic: string;
+  },
+>(input: {
+  activity: A;
+  brandSlug: string | undefined;
+  orgSlug: string;
+  row: R;
+  socialReply: SocialReplyInboxPayload;
+}) {
+  const { activity, brandSlug, orgSlug, row, socialReply } = input;
+  return {
+    id: row.id,
+    topic: row.topic,
+    occurredAt: row.occurredAt,
+    readAt: row.readAt,
+    outcome: 'completed' as const,
+    severity: getActivityAlertPolicy(row.event.eventKey)?.severity ?? null,
+    activity,
+    sourceHref: brandSlug
+      ? inboxSourceHref(
+          orgSlug,
+          brandSlug,
+          createMessagesConversationRoute(socialReply.newestConversationId),
+        )
+      : null,
+    sourceLabel: null,
+    failure: null,
+    socialReply: {
+      accountHandle: socialReply.accountHandle,
+      replyCount: socialReply.replyCount,
+    },
+  };
 }
 
 @Injectable()
@@ -558,88 +668,31 @@ export class NotificationInboxService {
     });
 
     const mcpApprovals = await loadMcpApprovalEntries({
+      member,
       organizationId,
       page,
       prisma: this.prisma,
       userId,
     });
-    const approvalBrandSlugs = await loadVisibleBrandSlugs({
-      brandIds: [...mcpApprovals.values()].flatMap((entry) =>
-        entry.brandId ? [entry.brandId] : [],
-      ),
-      member,
-      organizationId,
-      prisma: this.prisma,
-    });
 
     const docs = page.map((row) => {
       if (row.event.sourceType === MCP_APPROVAL_SOURCE_TYPE) {
-        const approval = mcpApprovals.get(row.event.sourceId);
-        const activity = readInboxActivity(organizationId, row.activity);
-        // An approval with a brand opens in that brand's queue, one without in
-        // the organization's; a brand the member cannot open leaves no link.
-        const brandSlug = approval?.brandId
-          ? approvalBrandSlugs.get(approval.brandId)
-          : undefined;
-        const canLink = Boolean(
-          approval?.isPending && (!approval.brandId || brandSlug),
-        );
-        return {
-          id: row.id,
-          topic: row.topic,
-          occurredAt: row.occurredAt,
-          readAt: row.readAt,
-          outcome: readInboxOutcome(row.event.eventKey),
-          severity:
-            getActivityAlertPolicy(row.event.eventKey)?.severity ?? null,
-          activity:
-            activity && approval
-              ? { ...activity, value: approval.summary }
-              : activity,
-          sourceHref: canLink
-            ? inboxSourceHref(
-                member.organization.slug,
-                brandSlug,
-                createPublishingApprovalsRoute({
-                  approval: buildReviewInboxItemId({
-                    approvalId: row.event.sourceId,
-                    kind: 'mcp_approval',
-                  }),
-                }),
-              )
-            : null,
-          sourceLabel: approval?.summary ?? null,
-          failure: null,
-        };
+        return mcpApprovalInboxItem({
+          activity: readInboxActivity(organizationId, row.activity),
+          approval: mcpApprovals.get(row.event.sourceId),
+          orgSlug: member.organization.slug,
+          row,
+        });
       }
       const socialReply = readSocialReplyPayload(row.topic, row.event.payload);
       if (socialReply) {
-        const brandSlug = inboxBrandSlugs.get(socialReply.brandId);
-        return {
-          id: row.id,
-          topic: row.topic,
-          occurredAt: row.occurredAt,
-          readAt: row.readAt,
-          outcome: 'completed' as const,
-          severity:
-            getActivityAlertPolicy(row.event.eventKey)?.severity ?? null,
+        return socialReplyInboxItem({
           activity: readInboxActivity(organizationId, row.activity),
-          sourceHref: brandSlug
-            ? inboxSourceHref(
-                member.organization.slug,
-                brandSlug,
-                createMessagesConversationRoute(
-                  socialReply.newestConversationId,
-                ),
-              )
-            : null,
-          sourceLabel: null,
-          failure: null,
-          socialReply: {
-            accountHandle: socialReply.accountHandle,
-            replyCount: socialReply.replyCount,
-          },
-        };
+          brandSlug: inboxBrandSlugs.get(socialReply.brandId),
+          orgSlug: member.organization.slug,
+          row,
+          socialReply,
+        });
       }
       const breakoutRemix = readBreakoutRemixPayload(
         row.topic,
