@@ -192,11 +192,6 @@ export class GenerationBillingService {
       await this.byok.bindOutput(request, output, organizationId);
       return;
     }
-    // Self-hosted reservations are unpersisted stubs (OssCreditsUtilsService),
-    // so there is no quote-group hold to bind and nothing to enforce.
-    if (!hasOrganizationBilling()) {
-      return;
-    }
     // Only a completion-settled request holds a quote group (see
     // `reserveGenerationRequestCredits`); a caller that settles its own hold
     // keeps it whole, so there is no group to bind to.
@@ -207,6 +202,11 @@ export class GenerationBillingService {
       !config.isByokBypass &&
       organizationId
     ) {
+      // Self-hosted reservations are unpersisted stubs (OssCreditsUtilsService),
+      // so there is no quote-group hold to bind and nothing to enforce.
+      if (!hasOrganizationBilling()) {
+        return;
+      }
       await this.quoteGroups.bindOutput(request, output.ingredientId);
       request.creditsConfig = {
         ...config,
