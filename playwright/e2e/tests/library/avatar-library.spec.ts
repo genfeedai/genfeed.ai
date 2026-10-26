@@ -82,12 +82,12 @@ test.describe('Avatar Library', () => {
     // Status reads /ingredients/summary (ILibrarySummary). It is a facet of
     // the shared Filters menu (#7567): one radio row per shelf.
     const status = await openFilterFacet(authenticatedPage, 'Status');
-    await expect(
-      status.getByRole('menuitemradio', {
-        name: 'Needs review (2)',
-        exact: true,
-      }),
-    ).toBeVisible();
+    // The shelf count is a trailing badge (#8054), not part of the label.
+    const needsReview = status.getByRole('menuitemradio', {
+      name: /^Needs review\b/,
+    });
+    await expect(needsReview).toBeVisible();
+    await expect(needsReview).toContainText('2');
   });
 
   // Choosing the organization and brand default avatar moved out of the asset
