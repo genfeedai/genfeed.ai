@@ -42,7 +42,7 @@ const drops = [
     droppedSchemaLine: '@@index([organizationId, isDeleted])\n',
   },
   {
-    model: 'ClipResult',
+    model: 'ClipperResult',
     migration: '20261026090400_drop_redundant_clip_results_project_index',
     dropped: 'clip_results_organizationId_projectId_idx',
     keptSchemaLine: '@@index([organizationId, projectId, status, isDeleted])',
