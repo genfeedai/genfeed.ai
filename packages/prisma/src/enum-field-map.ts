@@ -5498,7 +5498,6 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'defaultAvatarIngredientId',
       'defaultAvatarPhotoUrl',
       'defaultAvatarRef',
-      'defaultHomeAppId',
       'defaultImageModel',
       'defaultImageToVideoModel',
       'defaultLocale',
@@ -5555,12 +5554,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'webhookEndpoint',
       'webhookSecret',
     ],
-    listFields: [
-      'defaultRailOrder',
-      'enabledModelIds',
-      'releasedItemIds',
-      'webhookEventTypes',
-    ],
+    listFields: ['enabledModelIds', 'releasedItemIds', 'webhookEventTypes'],
     enumFields: {
       agentReplyStyle: { enumType: 'AgentReplyStyle', isRequired: true },
     },
@@ -7059,12 +7053,6 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       skill: 'skillId',
       skillVersion: 'skillVersionId',
     },
-  },
-  SkillMigrationFinding: {
-    allFields: ['createdAt', 'detail', 'id', 'kind'],
-    listFields: [],
-    enumFields: {},
-    relationIdFields: {},
   },
   SkillPublication: {
     allFields: [
@@ -8883,8 +8871,6 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'nodeContinuations',
       'nodeResults',
       'posts',
-      'readChildEdges',
-      'readParentEdges',
       'scrubNodeIds',
       'workspaceTasks',
     ],
@@ -8940,26 +8926,6 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       brand: 'brandId',
     },
   },
-  WorkflowExecutionReadLineage: {
-    allFields: [
-      'childExecution',
-      'childExecutionId',
-      'childScope',
-      'createdAt',
-      'itemIndex',
-      'organizationId',
-      'parentExecution',
-      'parentExecutionId',
-      'parentNodeId',
-      'parentScope',
-    ],
-    listFields: [],
-    enumFields: {},
-    relationIdFields: {
-      childExecution: 'childExecutionId',
-      parentExecution: 'parentExecutionId',
-    },
-  },
   WorkflowExecutionReadScope: {
     allFields: [
       'batchChildVersion',
@@ -8980,7 +8946,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'rootContentHash',
       'scopeClass',
     ],
-    listFields: ['childEdges', 'dependencies', 'parentEdges'],
+    listFields: ['dependencies'],
     enumFields: {},
     relationIdFields: {
       batchChildVersion: 'batchChildVersionId',
