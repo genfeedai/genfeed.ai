@@ -99,23 +99,6 @@ describe('isHostedGenfeedCloud', () => {
     expect(isSaaS()).toBe(true);
   });
 
-  it.each([
-    'GENFEEDAI_API_PUBLIC_URL',
-    'GENFEEDAI_APP_URL',
-    'GENFEEDAI_MCP_PUBLIC_URL',
-    'NEXT_PUBLIC_API_ENDPOINT',
-    'NEXT_PUBLIC_APPS_APP_ENDPOINT',
-    'NEXT_PUBLIC_APPS_ADMIN_ENDPOINT',
-    'NEXT_PUBLIC_APPS_WEBSITE_ENDPOINT',
-    'NEXT_PUBLIC_MCP_ENDPOINT',
-  ] as const)('reads %s through the literal env reader', (key) => {
-    vi.stubEnv('GENFEED_CLOUD', '');
-    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', '');
-    vi.stubEnv(key, 'https://x.genfeed.ai');
-
-    expect(isHostedGenfeedFromEnv()).toBe(true);
-  });
-
   it('honours an explicit NEXT_PUBLIC_GENFEED_CLOUD flag without a hosted URL', () => {
     vi.stubEnv('GENFEED_CLOUD', '');
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', '1');

@@ -22,11 +22,13 @@ const HOSTED_GENFEED_URL_ENV_KEYS = [
 ] as const;
 
 /**
- * Read one deployment env var from `process.env` with a literal property
- * access. Next inlines `NEXT_PUBLIC_*` values into the browser bundle only for
- * literal `process.env.NAME` reads; `process.env[key]` is undefined there, so
- * an explicit `NEXT_PUBLIC_GENFEED_CLOUD` would be honoured on the server and
- * silently ignored in the browser.
+ * Read one deployment env var from `process.env`. Next inlines `NEXT_PUBLIC_*`
+ * values into the browser bundle only for literal `process.env.NAME` reads, and
+ * `process.env[key]` is undefined there. The two explicit cloud flags are read
+ * literally so an explicit `NEXT_PUBLIC_GENFEED_CLOUD` is honoured in the
+ * browser as it is on the server. The hosted-URL keys keep their dynamic read
+ * on purpose: in the browser the hostname rule decides, and inlining the URLs
+ * would make any build whose API endpoint is on `*.genfeed.ai` Cloud there.
  */
 function readDeploymentEnv(key: string): string | undefined {
   switch (key) {
@@ -34,24 +36,8 @@ function readDeploymentEnv(key: string): string | undefined {
       return process.env.GENFEED_CLOUD;
     case 'NEXT_PUBLIC_GENFEED_CLOUD':
       return process.env.NEXT_PUBLIC_GENFEED_CLOUD;
-    case 'GENFEEDAI_API_PUBLIC_URL':
-      return process.env.GENFEEDAI_API_PUBLIC_URL;
-    case 'GENFEEDAI_APP_URL':
-      return process.env.GENFEEDAI_APP_URL;
-    case 'GENFEEDAI_MCP_PUBLIC_URL':
-      return process.env.GENFEEDAI_MCP_PUBLIC_URL;
-    case 'NEXT_PUBLIC_API_ENDPOINT':
-      return process.env.NEXT_PUBLIC_API_ENDPOINT;
-    case 'NEXT_PUBLIC_APPS_APP_ENDPOINT':
-      return process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT;
-    case 'NEXT_PUBLIC_APPS_ADMIN_ENDPOINT':
-      return process.env.NEXT_PUBLIC_APPS_ADMIN_ENDPOINT;
-    case 'NEXT_PUBLIC_APPS_WEBSITE_ENDPOINT':
-      return process.env.NEXT_PUBLIC_APPS_WEBSITE_ENDPOINT;
-    case 'NEXT_PUBLIC_MCP_ENDPOINT':
-      return process.env.NEXT_PUBLIC_MCP_ENDPOINT;
     default:
-      return undefined;
+      return process.env[key];
   }
 }
 
@@ -114,7 +100,7 @@ export function isHostedGenfeedFromReader(readEnv: EnvValueReader): boolean {
 }
 
 export function isHostedGenfeedFromEnv(): boolean {
-  return isHostedGenfeedFromReader(readDeploymentEnv);
+  return isHostedGenfeedFromReader((key) => process.env[key]);
 }
 
 /**
