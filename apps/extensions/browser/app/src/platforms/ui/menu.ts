@@ -30,7 +30,7 @@ const TRIGGER_CSS = `
   }
   .trigger {
     box-sizing: border-box; display: inline-grid; place-items: center;
-    width: calc(var(--gf-height, ${DEFAULT_HEIGHT_PX}px) * 1.22);
+    width: var(--gf-height, ${DEFAULT_HEIGHT_PX}px);
     height: var(--gf-height, ${DEFAULT_HEIGHT_PX}px); margin: 0; padding: 0;
     border: 1px solid color-mix(in srgb, var(--text) 35%, transparent);
     border-radius: var(--gf-radius, 9999px); background: transparent;
@@ -42,6 +42,10 @@ const TRIGGER_CSS = `
   .trigger.native { border-color: transparent; background: var(--gf-bg); color: var(--gf-fg); }
   .trigger.native:hover, .trigger.native[aria-expanded="true"] {
     background: var(--gf-bg); filter: brightness(0.9);
+  }
+  .trigger.icon { border-color: transparent; background: transparent; color: var(--gf-fg, var(--muted)); }
+  .trigger.icon:hover, .trigger.icon[aria-expanded="true"] {
+    background: color-mix(in srgb, currentColor 10%, transparent);
   }
   .trigger:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .trigger svg { display: block; width: 20px; height: 20px; }
@@ -278,7 +282,9 @@ export function createGenfeedGroup({
   if (skin) {
     host.style.setProperty('--gf-height', `${skin.height}px`);
     host.style.setProperty('--gf-radius', `${skin.radius}px`);
-    if (skin.background && skin.color) {
+    if (skin.isIcon && skin.color) {
+      host.style.setProperty('--gf-fg', skin.color);
+    } else if (skin.background && skin.color) {
       host.style.setProperty('--gf-bg', skin.background);
       host.style.setProperty('--gf-fg', skin.color);
     }
@@ -286,7 +292,11 @@ export function createGenfeedGroup({
 
   const trigger = document.createElement('button');
   trigger.type = 'button';
-  trigger.className = skin?.background ? 'trigger native' : 'trigger';
+  trigger.className = skin?.isIcon
+    ? 'trigger icon'
+    : skin?.background
+      ? 'trigger native'
+      : 'trigger';
   trigger.title = 'Genfeed';
   trigger.setAttribute('aria-label', 'Genfeed actions');
   trigger.setAttribute('aria-haspopup', 'menu');

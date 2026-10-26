@@ -289,3 +289,73 @@ describe('mayContainSubmit', () => {
     ).toBe(true);
   });
 });
+
+describe('mountGenfeedGroup in the X toolbar', () => {
+  const composer = `
+    <div id="composer" style="${COLUMN}">
+      <div data-testid="tweetTextarea_0" contenteditable="true"></div>
+      <div id="row" style="${ROW}">
+        <div data-testid="toolBar" style="${ROW}">
+          <div id="icon-wrap"><button id="gif" aria-label="Add a GIF">gif</button></div>
+          <div id="location-wrap"><button id="location" aria-label="Tag location">pin</button></div>
+        </div>
+        <div id="wrapper" style="${COLUMN}">
+          <button id="reply" data-testid="tweetButtonInline">Reply</button>
+        </div>
+      </div>
+    </div>`;
+
+  function renderComposer(): { boundary: Element; submit: Element } {
+    document.body.innerHTML = composer;
+    for (const id of ['gif', 'location']) {
+      (document.getElementById(id) as HTMLElement).getBoundingClientRect = () =>
+        ({ height: 34, width: 34 }) as DOMRect;
+    }
+    const submit = document.getElementById('reply') as Element;
+    const boundary = findComposerScope(submit, platforms.twitter) as Element;
+    return { boundary, submit };
+  }
+
+  it('joins the icon row as a round, unfilled button after the last icon', () => {
+    const { boundary, submit } = renderComposer();
+
+    const group = mountGenfeedGroup(
+      submit,
+      [],
+      boundary,
+      platforms.twitter,
+    ) as HTMLElement;
+
+    expect(group.previousElementSibling?.id).toBe('location-wrap');
+    expect(group.style.getPropertyValue('--gf-height')).toBe('34px');
+    expect(group.style.getPropertyValue('--gf-radius')).toBe('17px');
+    expect(
+      group.shadowRoot?.querySelector('.trigger')?.classList.contains('icon'),
+    ).toBe(true);
+  });
+
+  it('leaves one group in the composer, however often X re-renders it', () => {
+    const { boundary, submit } = renderComposer();
+    mountGenfeedGroup(submit, [], boundary, platforms.twitter);
+    const stale = document.createElement('div');
+    stale.setAttribute('data-genfeed-group', '');
+    document.getElementById('wrapper')?.appendChild(stale);
+
+    mountGenfeedGroup(submit, [], boundary, platforms.twitter);
+
+    expect(document.querySelectorAll('[data-genfeed-group]')).toHaveLength(1);
+    expect(
+      mountGenfeedGroup(submit, [], boundary, platforms.twitter),
+    ).toBeNull();
+  });
+
+  it('falls back to the Reply button when the toolbar has no icons', () => {
+    const { boundary, submit } = renderComposer();
+    document.getElementById('gif')?.remove();
+    document.getElementById('location')?.remove();
+
+    const group = mountGenfeedGroup(submit, [], boundary, platforms.twitter);
+
+    expect(group?.nextElementSibling?.id).toBe('wrapper');
+  });
+});

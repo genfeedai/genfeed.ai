@@ -102,12 +102,6 @@ export function measureSkin(submit: Element): ButtonSkin {
   };
 }
 
-function hasGroup(anchor: Element): boolean {
-  return Boolean(
-    anchor.parentElement?.querySelector(`:scope > [${GROUP_ATTRIBUTE}]`),
-  );
-}
-
 /**
  * The nearest ancestor of a submit button that also holds the reply box: the
  * composer it belongs to. Null for a button that is not part of one, which is
@@ -135,29 +129,112 @@ export function findComposerScope(
   return null;
 }
 
+const ICON_BUTTON_SELECTOR = 'button[aria-label], [role="button"][aria-label]';
+const ICON_SIZE_MIN_PX = 24;
+const ICON_SIZE_MAX_PX = 48;
+
+interface MountSlot {
+  anchor: Element;
+  isAfter: boolean;
+  skin: ButtonSkin;
+}
+
+/** The last visible icon button of the composer's toolbar, which our button joins. */
+function findToolbarIcon(
+  boundary: Element,
+  platform: PlatformConfig,
+): { icon: Element; toolbar: Element } | null {
+  const selector = platform.selectors.toolbar;
+  const toolbar = selector ? boundary.querySelector(selector) : null;
+  if (!toolbar) {
+    return null;
+  }
+  const icons = Array.from(toolbar.querySelectorAll(ICON_BUTTON_SELECTOR));
+  for (let index = icons.length - 1; index >= 0; index -= 1) {
+    const { height } = icons[index].getBoundingClientRect();
+    if (height >= ICON_SIZE_MIN_PX && height <= ICON_SIZE_MAX_PX) {
+      return { icon: icons[index], toolbar };
+    }
+  }
+  return null;
+}
+
+/**
+ * Where the group goes: after the last icon of the composer's toolbar, round and
+ * in the icons' own colour, or else just before the submit button.
+ */
+function findMountSlot(
+  submit: Element,
+  boundary: Element | undefined,
+  platform: PlatformConfig | undefined,
+): MountSlot {
+  const toolbar =
+    boundary && platform ? findToolbarIcon(boundary, platform) : null;
+  if (toolbar) {
+    const height = Math.round(toolbar.icon.getBoundingClientRect().height);
+    return {
+      anchor: findRowAnchor(toolbar.icon, toolbar.toolbar),
+      isAfter: true,
+      skin: {
+        color: getComputedStyle(toolbar.icon).color,
+        height,
+        isIcon: true,
+        radius: height / 2,
+      },
+    };
+  }
+  return {
+    anchor: findRowAnchor(submit, boundary),
+    isAfter: false,
+    skin: measureSkin(submit),
+  };
+}
+
+function isInPlace(group: Element, slot: MountSlot): boolean {
+  return (
+    group.isConnected &&
+    (slot.isAfter
+      ? group.previousElementSibling === slot.anchor
+      : group.nextElementSibling === slot.anchor)
+  );
+}
+
 // The group mounted for each submit button, so a re-render that moves the
 // button's row replaces the group instead of adding a second one.
 const mountedGroups = new WeakMap<Element, HTMLElement>();
 
-/** Puts the Genfeed group on the row of a submit button, once. */
+/**
+ * Puts one Genfeed group in a composer, once. Any other group in the same
+ * composer, left behind by a re-render, is removed.
+ */
 export function mountGenfeedGroup(
   submit: Element,
   groups: MenuGroupSpec[],
   boundary?: Element,
+  platform?: PlatformConfig,
 ): HTMLElement | null {
-  const anchor = findRowAnchor(submit, boundary);
-  const existing = mountedGroups.get(submit);
-  if (existing?.isConnected) {
-    if (existing.nextElementSibling === anchor) {
-      return null;
-    }
-    existing.remove();
+  const slot = findMountSlot(submit, boundary, platform);
+  const { anchor } = slot;
+  const parent = anchor.parentElement;
+  const previous = mountedGroups.get(submit);
+  const scope = boundary ?? parent;
+  const found = new Set<Element>(
+    scope?.querySelectorAll(`[${GROUP_ATTRIBUTE}]`) ?? [],
+  );
+  if (previous) {
+    found.add(previous);
   }
-  if (!anchor.parentElement || hasGroup(anchor)) {
+  const placed = Array.from(found).find((group) => isInPlace(group, slot));
+  for (const group of found) {
+    if (group !== placed) {
+      group.remove();
+    }
+  }
+  if (placed || !parent) {
     return null;
   }
-  const group = createGenfeedGroup({ groups, skin: measureSkin(submit) });
-  anchor.parentElement.insertBefore(group, anchor);
+  const group = createGenfeedGroup({ groups, skin: slot.skin });
+  parent.insertBefore(group, slot.isAfter ? anchor.nextSibling : anchor);
   mountedGroups.set(submit, group);
   return group;
 }

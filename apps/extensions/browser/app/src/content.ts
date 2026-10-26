@@ -112,6 +112,7 @@ function initializePlatformIntegration(): void {
           postUrl,
         }),
         boundary ?? undefined,
+        currentPlatform,
       );
     }
   }
