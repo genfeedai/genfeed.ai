@@ -158,6 +158,30 @@ describe('megapixel and minimum cost properties', () => {
     );
   });
 
+  it('does not overcharge the whole-credit megapixel prices that float math rounded up', () => {
+    // Random sampling almost never lands on a whole-credit price, so pin the
+    // reported cases (#8278). Float math charged 56, 110, 56 and 56.
+    expect(calculateMegapixelCost(500, 1100, 100)).toBe(55);
+    expect(calculateMegapixelCost(545, 2000, 100)).toBe(109);
+    expect(calculateMegapixelCost(550, 1000, 100)).toBe(55);
+    expect(calculateMegapixelCost(550, 2000, 50)).toBe(55);
+  });
+
+  it('does not overcharge the whole-credit per-second prices that float math rounded up', () => {
+    // 25 s at 0.28 per second is exactly 7; float math charged 8.
+    expect(calculatePerSecondCost(25, 0.28)).toBe(7);
+    expect(
+      quoteVideoGenerationCredits({
+        cost: 1,
+        costPerUnit: 0.28,
+        duration: 25,
+        modelKey: MODEL_KEY,
+        pricingType: 'per-second',
+      }),
+    ).toBe(7);
+    expect(calculatePerSecondCost(25, 0.56)).toBe(14);
+  });
+
   it('charges a per-second rate as its exact price rounded up, in every quote path', () => {
     fc.assert(
       fc.property(
