@@ -186,6 +186,22 @@ describe('usePromptTextEnhancement', () => {
     expect(result.current.isEnhancing).toBe(true);
   });
 
+  it('enhances the live composer text when the settled prompt has not caught up', async () => {
+    const { result } = renderHook(() =>
+      usePromptTextEnhancement({
+        brandId: 'brand-1',
+        contentType: 'image',
+        getLivePrompt: () => 'A coast at dusk',
+        modelKey: '',
+        onPromptChange: vi.fn(),
+        prompt: '',
+      }),
+    );
+    await act(async () => result.current.enhancePrompt());
+    expect(mockPromptsPost).toHaveBeenCalledOnce();
+    expect(mockPromptsPost.mock.calls[0][0].original).toBe('A coast at dusk');
+  });
+
   it('replaces the prompt in place when enhancement completes, without generating', async () => {
     const onPromptChange = vi.fn();
     const { result } = renderHook(() =>

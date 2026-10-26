@@ -253,10 +253,13 @@ export function AgentChatInput({
     },
     [skillSlugs],
   );
+  // `promptText` settles 150ms after typing stops; Enhance reads the editor.
+  const getLivePrompt = useCallback(() => editor?.getText() ?? '', [editor]);
   const promptEnhancement = usePromptTextEnhancement({
     brandId: conversationBrandId,
     contentType:
       generationMode === AgentGenerationMode.VIDEO ? 'video' : 'image',
+    getLivePrompt,
     modelKey: '',
     onPromptChange: handleEnhancedPrompt,
     prompt: promptText,

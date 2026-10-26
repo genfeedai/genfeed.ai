@@ -40,6 +40,12 @@ export interface UsePromptTextEnhancementParams {
   /** Left out for an unbranded thread, which is enhanced without a brand. */
   brandId?: string;
   contentType?: 'image' | 'video';
+  /**
+   * Reads the composer's text as it is right now. A composer that updates
+   * `prompt` on a delay (Agent debounces typing) supplies this so Enhance acts
+   * on what the operator sees, not on the last settled value.
+   */
+  getLivePrompt?: () => string;
   modelKey: string;
   onPromptChange: (text: string) => void;
   prompt: string;
@@ -91,6 +97,7 @@ export interface UsePromptTextEnhancementResult {
 export function usePromptTextEnhancement({
   brandId,
   contentType,
+  getLivePrompt,
   modelKey,
   onPromptChange,
   prompt,
@@ -109,6 +116,12 @@ export function usePromptTextEnhancement({
   scopeRef.current = { brandId, contentType, modelKey };
   const promptRef = useRef(prompt);
   promptRef.current = prompt;
+  const getLivePromptRef = useRef(getLivePrompt);
+  getLivePromptRef.current = getLivePrompt;
+  const readPrompt = useCallback(
+    () => getLivePromptRef.current?.() ?? promptRef.current,
+    [],
+  );
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const undoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
@@ -202,7 +215,7 @@ export function usePromptTextEnhancement({
     // enhancement with those stripped. Staleness and undo compare against what
     // the operator can actually see, or a picked skill would make every
     // enhancement look like a concurrent edit and get discarded.
-    const originalPrompt = promptRef.current;
+    const originalPrompt = readPrompt();
     const raw = originalPrompt.trim();
     const resolved = resolveRequestedSkillsRef.current?.(raw);
     const text = resolved?.content.trim() ?? raw;
@@ -278,7 +291,7 @@ export function usePromptTextEnhancement({
             // Only replace the prompt if the operator has not edited it
             // since the request was sent — never clobber a live edit with a
             // stale enhancement result.
-            if (promptRef.current === originalPrompt) {
+            if (readPrompt() === originalPrompt) {
               setSuccessfulEnhancement({
                 text: result,
                 promptId: created.id,
@@ -333,6 +346,7 @@ export function usePromptTextEnhancement({
     modelKey,
     notificationsService,
     onPromptChange,
+    readPrompt,
     subscribe,
   ]);
 
