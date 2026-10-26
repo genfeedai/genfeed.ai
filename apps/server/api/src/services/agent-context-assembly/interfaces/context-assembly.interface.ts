@@ -1,4 +1,5 @@
 import type {
+  ContextCoverage,
   IBrandKitReadiness,
   IMissingBrandContext,
   KnowledgeRetrievalCitation,
@@ -45,6 +46,12 @@ export interface ContextLayers {
   brandMemory?: boolean;
   /** BRAND_TRUTH Knowledge passages (requires a query). Default on. */
   brandKnowledge?: boolean;
+  /**
+   * Whether BRAND_TRUTH Knowledge could be read completely (requires a query
+   * and an explicit `brandId`). Only an incomplete read reaches the prompt.
+   * Default on.
+   */
+  contextCoverage?: boolean;
   ragContext?: boolean;
   recentPosts?: boolean;
   performancePatterns?: boolean;
@@ -62,6 +69,7 @@ export type AssembledContextLayerName =
   | 'brandGuidance'
   | 'brandMemory'
   | 'brandKnowledge'
+  | 'contextCoverage'
   | 'ragContext'
   | 'recentPosts'
   | 'performancePatterns'
@@ -133,6 +141,8 @@ export interface AssembledBrandContext {
   }>;
   ragEntries?: AssembledRagEntry[];
   brandKnowledgeEntries?: AssembledBrandKnowledgeEntry[];
+  /** Set only when the automatic Knowledge read was partial, stale or failed. */
+  contextCoverage?: ContextCoverage;
   recentPostSummaries?: string[];
   /** Askable missing brand fields, set only when that layer is on. */
   missingBrandContext?: IMissingBrandContext;
@@ -181,6 +191,7 @@ export type BrandContextBudgetPriority =
   | 'recentPosts'
   | 'historicalPerformance'
   | 'brandKnowledge'
+  | 'coverage'
   | 'general'
   | 'customInstructions'
   | 'guardrails'

@@ -21,6 +21,8 @@ export const BRAND_CONTEXT_CHARACTER_BUDGET = 6000;
 export const RETRIEVED_BRAND_MEMORY_HEADER = '## Retrieved Brand Memory';
 /** Header of the authoritative BRAND_TRUTH Knowledge section. */
 export const BRAND_KNOWLEDGE_HEADER = '## Brand Knowledge';
+/** Header of the Knowledge coverage limitation; kept whole under budget pressure. */
+export const KNOWLEDGE_COVERAGE_HEADER = '## Knowledge Coverage';
 
 type BudgetSection = {
   body?: string;
@@ -40,7 +42,8 @@ const PRIORITY_RANK: Record<BrandContextBudgetPriority, number> = {
   general: 4,
   customInstructions: 5,
   guardrails: 6,
-  brandVoice: 7,
+  coverage: 7,
+  brandVoice: 8,
 };
 
 const SECTION_HEADER_PATTERN = /^(?:##\s+.+|[A-Z][A-Z ]+:)$/;
@@ -61,6 +64,9 @@ function readTruncationPriority(header: string): BrandContextBudgetPriority {
   }
   if (header === BRAND_KNOWLEDGE_HEADER) {
     return 'brandKnowledge';
+  }
+  if (header === KNOWLEDGE_COVERAGE_HEADER) {
+    return 'coverage';
   }
   if (header === '## Custom Instructions' || header === 'SYSTEM DIRECTIVES:') {
     return 'customInstructions';
