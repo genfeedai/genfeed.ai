@@ -46,13 +46,34 @@ const shotIdsSchema = z
     'Shot IDs must be unique.',
   );
 
-/** Quotes sketch stills for the given shots, or for every shot that needs one. */
+/** A long-form storyboard has up to 600 cutaways; a call covers a batch. */
+export const STORYBOARD_CUTAWAY_STILLS_PER_CALL = 60;
+
+const cutawayIdsSchema = z
+  .array(storyboardIdSchema)
+  .min(1)
+  .max(STORYBOARD_CUTAWAY_STILLS_PER_CALL)
+  .refine(
+    (ids) => new Set(ids).size === ids.length,
+    'Cutaway IDs must be unique.',
+  );
+
+/**
+ * Quotes stills for the given shots, or for every shot that needs one. On a
+ * long-form storyboard the stills are cutaway B-roll: the given cutaways, or
+ * every one without footage.
+ */
 export const quoteStoryboardStillsSchema = z
   .object({
     expectedRevision: z.number().int().positive(),
     shotIds: shotIdsSchema.optional(),
+    cutawayIds: cutawayIdsSchema.optional(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (input) => !(input.shotIds && input.cutawayIds),
+    'Quote shots or cutaways, not both.',
+  );
 
 export const storyboardStillQuoteSchema = z
   .object({
@@ -65,13 +86,14 @@ export const storyboardStillQuoteSchema = z
       .array(
         z
           .object({
+            /** The shot, or on a long-form storyboard the cutaway. */
             shotId: storyboardIdSchema,
             credits: z.number().finite().nonnegative(),
           })
           .strict(),
       )
       .min(1)
-      .max(12),
+      .max(STORYBOARD_CUTAWAY_STILLS_PER_CALL),
     total: z.number().finite().nonnegative(),
   })
   .strict()
@@ -87,10 +109,15 @@ export const storyboardStillQuoteSchema = z
 export const generateStoryboardStillsSchema = z
   .object({
     expectedRevision: z.number().int().positive(),
-    shotIds: shotIdsSchema,
+    shotIds: shotIdsSchema.optional(),
+    cutawayIds: cutawayIdsSchema.optional(),
     inputHash: z.string().regex(/^[a-f0-9]{64}$/),
   })
-  .strict();
+  .strict()
+  .refine(
+    (input) => Boolean(input.shotIds) !== Boolean(input.cutawayIds),
+    'Generate stills for shots or for cutaways.',
+  );
 
 export type QuoteStoryboardStills = z.infer<typeof quoteStoryboardStillsSchema>;
 export type StoryboardStillQuote = z.infer<typeof storyboardStillQuoteSchema>;

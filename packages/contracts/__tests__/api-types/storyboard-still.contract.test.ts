@@ -31,6 +31,30 @@ describe('storyboard still contract', () => {
     ).toBe(false);
   });
 
+  it('generates stills for shots or for cutaways, never both or neither', () => {
+    expect(
+      generateStoryboardStillsSchema.safeParse({
+        expectedRevision: 3,
+        cutawayIds: ['cutaway-1'],
+        inputHash,
+      }).success,
+    ).toBe(true);
+    expect(
+      generateStoryboardStillsSchema.safeParse({
+        expectedRevision: 3,
+        shotIds: ['shot-1'],
+        cutawayIds: ['cutaway-1'],
+        inputHash,
+      }).success,
+    ).toBe(false);
+    expect(
+      generateStoryboardStillsSchema.safeParse({
+        expectedRevision: 3,
+        inputHash,
+      }).success,
+    ).toBe(false);
+  });
+
   it('requires the quote total to equal its lines', () => {
     const quote = {
       revision: 3,

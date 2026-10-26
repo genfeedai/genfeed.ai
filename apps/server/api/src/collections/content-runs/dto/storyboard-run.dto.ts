@@ -137,14 +137,31 @@ export class QuoteStoryboardStillsDto extends ControlStoryboardRunDto {
   @ArrayMaxSize(12)
   @IsString({ each: true })
   shotIds?: string[];
+
+  @ApiProperty({ maxItems: 60, minItems: 1, required: false, type: [String] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(60)
+  @IsString({ each: true })
+  cutawayIds?: string[];
 }
 export class GenerateStoryboardStillsDto extends ControlStoryboardRunDto {
-  @ApiProperty({ maxItems: 12, minItems: 1, type: [String] })
+  @ApiProperty({ maxItems: 12, minItems: 1, required: false, type: [String] })
+  @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(12)
   @IsString({ each: true })
-  shotIds!: string[];
+  shotIds?: string[];
+
+  @ApiProperty({ maxItems: 60, minItems: 1, required: false, type: [String] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(60)
+  @IsString({ each: true })
+  cutawayIds?: string[];
 
   @ApiProperty()
   @IsString()

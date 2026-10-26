@@ -652,3 +652,114 @@ describe('StoryboardStillsService reconcile', () => {
     expect(context.current().plan?.shots[0].stillFreshness).toBe('generating');
   });
 });
+
+function longFormConfig(): StoryboardNativeRunConfig {
+  const base = draftConfig();
+  return {
+    ...base,
+    state: 'approved',
+    approvedRevision: 4,
+    plan: {
+      ...base.plan,
+      format: '16:9',
+      runtimeBudgetSeconds: null,
+      shots: [],
+      longForm: {
+        runtimeBudgetSeconds: 600,
+        presenterId: 'cast-mia',
+        segments: [
+          {
+            id: 'segment-1',
+            ordinal: 1,
+            narration: 'Most founders underprice their first plan.',
+            estimatedSeconds: 4,
+            cutaways: [
+              {
+                id: 'cutaway-1',
+                kind: 'motion_graphic',
+                brief: 'A bar chart of churn by price tier',
+                startSeconds: 0,
+                durationSeconds: 2,
+              },
+              {
+                id: 'cutaway-2',
+                kind: 'still',
+                brief: 'A founder at a whiteboard',
+                assetId: 'existing-footage',
+                startSeconds: 2,
+                durationSeconds: 2,
+              },
+            ],
+          },
+        ],
+      },
+    },
+  };
+}
+
+describe('StoryboardStillsService long-form cutaways', () => {
+  it('draws every cutaway without footage as finished B-roll', async () => {
+    const context = setup(longFormConfig());
+    const quote = await context.service.quote('org-1', 'brand-1', 'run-1', {
+      expectedRevision: 4,
+    });
+    expect(quote.items).toEqual([{ shotId: 'cutaway-1', credits: 4 }]);
+
+    await context.service.generate('org-1', 'brand-1', 'run-1', 'user-1', {
+      expectedRevision: 4,
+      cutawayIds: ['cutaway-1'],
+      inputHash: quote.inputHash,
+    });
+    const [, dto] = context.images.generateImage.mock.calls[0];
+    expect(dto).toMatchObject({
+      aspectRatio: '16:9',
+      references: ['style-1', 'style-2', 'style-3', 'style-4'],
+    });
+    expect((dto as { text: string }).text).toContain(
+      'A bar chart of churn by price tier',
+    );
+    expect((dto as { text: string }).text).not.toContain(
+      DRAFT_GENERATION_CONFIG.sketchStyle,
+    );
+
+    context.ingredients.set('asset-1', { status: 'GENERATED' });
+    await context.service.reconcile('org-1', 'brand-1', 'run-1');
+    expect(
+      context
+        .current()
+        .plan.longForm?.segments[0]?.cutaways.map((cutaway) => cutaway.assetId),
+    ).toEqual(['asset-1', 'existing-footage']);
+  });
+
+  it('leaves the slot empty when the brief changed while it rendered', async () => {
+    const context = setup(longFormConfig());
+    const quote = await context.service.quote('org-1', 'brand-1', 'run-1', {
+      expectedRevision: 4,
+    });
+    await context.service.generate('org-1', 'brand-1', 'run-1', 'user-1', {
+      expectedRevision: 4,
+      cutawayIds: ['cutaway-1'],
+      inputHash: quote.inputHash,
+    });
+    context.edit((config) => {
+      const cutaway = config.plan.longForm?.segments[0]?.cutaways[0];
+      if (cutaway) cutaway.brief = 'A line chart instead';
+    });
+    context.ingredients.set('asset-1', { status: 'GENERATED' });
+    await context.service.reconcile('org-1', 'brand-1', 'run-1');
+
+    expect(
+      context.current().plan.longForm?.segments[0]?.cutaways[0]?.assetId,
+    ).toBeUndefined();
+  });
+
+  it('refuses shot ids on a long-form storyboard', async () => {
+    const context = setup(longFormConfig());
+    await expect(
+      context.service.quote('org-1', 'brand-1', 'run-1', {
+        expectedRevision: 4,
+        shotIds: ['shot-1'],
+      }),
+    ).rejects.toThrow(BadRequestException);
+  });
+});

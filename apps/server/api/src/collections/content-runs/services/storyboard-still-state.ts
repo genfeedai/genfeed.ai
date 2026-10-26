@@ -1,5 +1,8 @@
 import { storyboardConfigHash } from '@api/collections/content-runs/services/storyboard-config-hash';
-import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
+import type {
+  StoryboardCutaway,
+  StoryboardPlan,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import { DRAFT_GENERATION_CONFIG } from '@genfeedai/contracts/constants';
 import { BadRequestException } from '@nestjs/common';
 import { z } from 'zod';
@@ -72,7 +75,7 @@ function mentions(action: string, name: string): boolean {
  */
 export function storyboardStillInput(plan: StoryboardPlan, shotId: string) {
   const shot = plan.shots.find((value) => value.id === shotId);
-  if (!shot) throw new BadRequestException('Shot not found.');
+  if (!shot) return storyboardCutawayStillInput(plan, shotId);
   const speaker = plan.cast.find((member) => member.id === shot.speakerId);
   const cast = [
     ...(speaker ? [speaker] : []),
@@ -104,6 +107,43 @@ export function storyboardStillInput(plan: StoryboardPlan, shotId: string) {
   const input = {
     prompt,
     referenceAssetIds,
+    aspectRatio: plan.format,
+    modelKey: DRAFT_GENERATION_CONFIG.draftModelKey,
+  };
+  return { ...input, fingerprint: storyboardConfigHash(input) };
+}
+
+/** How each kind of cutaway is drawn: B-roll, so finished, not a sketch. */
+export const STORYBOARD_CUTAWAY_STILL_STYLE: Record<
+  StoryboardCutaway['kind'],
+  string
+> = {
+  still:
+    'Photographic B-roll frame, natural light, shallow depth of field, no people facing the camera, no text, no watermark.',
+  motion_graphic:
+    'Clean flat motion-graphics frame on a plain background, bold simple shapes, large legible numbers or words only where the brief names them, no watermark.',
+  library_clip:
+    'Photographic B-roll frame, natural light, shallow depth of field, no text, no watermark.',
+};
+
+/**
+ * The provider input for a long-form cutaway still: the brief in the plan's
+ * format, drawn in the brand's style references.
+ */
+export function storyboardCutawayStillInput(
+  plan: StoryboardPlan,
+  cutawayId: string,
+) {
+  const cutaway = plan.longForm?.segments
+    .flatMap((segment) => segment.cutaways)
+    .find((value) => value.id === cutawayId);
+  if (!cutaway) throw new BadRequestException('Shot or cutaway not found.');
+  const input = {
+    prompt: `${cutaway.brief.trim()} ${STORYBOARD_CUTAWAY_STILL_STYLE[cutaway.kind]}`,
+    referenceAssetIds: plan.styleReferenceAssetIds.slice(
+      0,
+      DRAFT_GENERATION_CONFIG.maxReferences,
+    ),
     aspectRatio: plan.format,
     modelKey: DRAFT_GENERATION_CONFIG.draftModelKey,
   };

@@ -33,6 +33,7 @@ import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/sto
 import {
   generateStoryboardStillsSchema,
   quoteStoryboardStillsSchema,
+  STORYBOARD_CUTAWAY_STILLS_PER_CALL,
   STORYBOARD_STILL_SOURCE_ACTION_PREFIX,
   type StoryboardStillQuote,
   storyboardStillQuoteSchema,
@@ -99,7 +100,12 @@ export class StoryboardStillsService {
       runId,
       input.expectedRevision,
     );
-    return this.buildQuote(organizationId, config, input.shotIds);
+    return this.buildQuote(
+      organizationId,
+      config,
+      input.shotIds,
+      input.cutawayIds,
+    );
   }
 
   async generate(
@@ -116,7 +122,12 @@ export class StoryboardStillsService {
       runId,
       input.expectedRevision,
     );
-    const quote = await this.buildQuote(organizationId, config, input.shotIds);
+    const quote = await this.buildQuote(
+      organizationId,
+      config,
+      input.shotIds,
+      input.cutawayIds,
+    );
     if (quote.inputHash !== input.inputHash)
       throw new ConflictException(
         'The storyboard or the still price changed. Review the new quote.',
@@ -154,6 +165,9 @@ export class StoryboardStillsService {
       if (
         plan.shots.some(
           (shot) => ids.has(shot.id) && shot.stillFreshness === 'generating',
+        ) ||
+        (current.stillOperations ?? []).some(
+          (op) => ids.has(op.shotId) && isLiveStillOperation(op),
         )
       )
         throw new ConflictException(
@@ -214,8 +228,24 @@ export class StoryboardStillsService {
     organizationId: string,
     config: StoryboardStoredRunConfig,
     shotIds?: readonly string[],
+    cutawayIds?: readonly string[],
   ): Promise<StoryboardStillQuote> {
     const { plan } = config;
+    if (plan.longForm) {
+      if (shotIds)
+        throw new BadRequestException(
+          'A long-form storyboard has cutaways, not shots.',
+        );
+      return this.priceStills(
+        organizationId,
+        config,
+        this.cutawayTargets(config, cutawayIds),
+      );
+    }
+    if (cutawayIds)
+      throw new BadRequestException(
+        'Only a long-form storyboard has cutaways.',
+      );
     if (config.state !== 'storyboard')
       throw new ConflictException(
         'Stills can be generated only while the storyboard is a draft. Edit the plan first.',
@@ -245,10 +275,62 @@ export class StoryboardStillsService {
           `The still for shot ${shot.ordinal} is already generating.`,
         );
     }
+    return this.priceStills(
+      organizationId,
+      config,
+      targets.map((shot) => shot.id),
+    );
+  }
+
+  /**
+   * Cutaways that need a still: the named ones, or every cutaway without
+   * footage, in playback order, one batch at a time.
+   */
+  private cutawayTargets(
+    config: StoryboardStoredRunConfig,
+    cutawayIds?: readonly string[],
+  ): string[] {
+    if (!['storyboard', 'approved'].includes(config.state))
+      throw new ConflictException(
+        'Cutaway stills can be generated only for a draft or approved storyboard.',
+      );
+    const cutaways = (config.plan.longForm?.segments ?? []).flatMap(
+      (segment) => segment.cutaways,
+    );
+    const live = new Set(
+      (config.stillOperations ?? [])
+        .filter(isLiveStillOperation)
+        .map((op) => op.shotId),
+    );
+    const targets = cutawayIds
+      ? cutawayIds.map((id) => {
+          if (!cutaways.some((cutaway) => cutaway.id === id))
+            throw new BadRequestException(`Cutaway ${id} not found.`);
+          if (live.has(id))
+            throw new ConflictException(
+              'A still for one of these cutaways is already generating.',
+            );
+          return id;
+        })
+      : cutaways
+          .filter((cutaway) => !cutaway.assetId && !live.has(cutaway.id))
+          .map((cutaway) => cutaway.id)
+          .slice(0, STORYBOARD_CUTAWAY_STILLS_PER_CALL);
+    if (!targets.length)
+      throw new BadRequestException('No cutaway needs a still.');
+    return targets;
+  }
+
+  private async priceStills(
+    organizationId: string,
+    config: StoryboardStoredRunConfig,
+    targetIds: readonly string[],
+  ): Promise<StoryboardStillQuote> {
+    const { plan } = config;
     const modelKey = DRAFT_GENERATION_CONFIG.draftModelKey;
-    const stills = targets.map((shot) => ({
-      shotId: shot.id,
-      ...storyboardStillInput(plan, shot.id),
+    const stills = targetIds.map((shotId) => ({
+      shotId,
+      ...storyboardStillInput(plan, shotId),
     }));
     const estimate = await this.estimate.estimate({
       organizationId,
@@ -584,6 +666,31 @@ export class StoryboardStillsService {
             stillFreshness: isFresh ? 'fresh' : 'stale',
           };
         }),
+        ...(plan.longForm
+          ? {
+              longForm: {
+                ...plan.longForm,
+                segments: plan.longForm.segments.map((segment) => ({
+                  ...segment,
+                  cutaways: segment.cutaways.map((cutaway) => {
+                    const op = byShot.get(cutaway.id);
+                    const outcome = op
+                      ? outcomes.get(op.operationId)
+                      : undefined;
+                    // A brief edited while the still rendered keeps its
+                    // footage slot empty rather than show the old picture.
+                    return op &&
+                      outcome?.state === 'ready' &&
+                      outcome.assetId &&
+                      storyboardStillInput(plan, cutaway.id).fingerprint ===
+                        op.fingerprint
+                      ? { ...cutaway, assetId: outcome.assetId }
+                      : cutaway;
+                  }),
+                })),
+              },
+            }
+          : {}),
       },
     });
   }
