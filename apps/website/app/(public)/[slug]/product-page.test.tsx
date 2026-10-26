@@ -58,4 +58,29 @@ describe('ProductPage', () => {
     expect(screen.getByText('Workflow Trigger Agent')).toBeInTheDocument();
     expect(screen.getByText('Newsletter Agent')).toBeInTheDocument();
   });
+
+  it.each([
+    [
+      'docs',
+      'Read the guides and API reference, or contribute fixes on GitHub.',
+    ],
+    [
+      'mobile',
+      'Join the alpha and approve, review and publish from your phone.',
+    ],
+    [
+      'extension',
+      'Join the alpha and use Genfeed from any page in your browser.',
+    ],
+    ['chatgpt', 'Get started with ChatGPT Integration on Genfeed.'],
+  ])('writes the %s final CTA for that product', (slug, body) => {
+    const product = getProductBySlug(slug);
+    if (!product) {
+      throw new Error(`Expected fixture product "${slug}" to exist`);
+    }
+
+    render(<ProductPage product={product} />);
+
+    expect(screen.getByText(body)).toBeInTheDocument();
+  });
 });

@@ -13,6 +13,7 @@ import { GitHubLink } from './github-link';
 
 type Props = {
   cta: Product['cta'];
+  ctaBody?: Product['ctaBody'];
   githubUrl: Product['githubUrl'];
   name: Product['name'];
   status: Product['status'];
@@ -20,15 +21,12 @@ type Props = {
 
 export default function ProductFinalCTA({
   cta,
+  ctaBody,
   githubUrl,
   name,
   status,
 }: Props) {
-  const bodyText = status
-    ? `Join the ${status} program and help shape the future of ${name}.`
-    : githubUrl
-      ? `Browse the ${name} source on GitHub.`
-      : `Get started with ${name} on Genfeed.`;
+  const bodyText = ctaBody ?? `Get started with ${name} on Genfeed.`;
 
   return (
     <section className="max-w-4xl mx-auto pb-20">

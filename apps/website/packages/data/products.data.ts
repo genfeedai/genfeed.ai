@@ -44,6 +44,8 @@ export interface Product {
   }[];
   relatedProducts: string[];
   cta: string;
+  /** Final-CTA body copy, authored per product. Defaults to a generic line. */
+  ctaBody?: string;
   githubUrl?: string;
   status?: 'alpha' | 'beta' | 'coming-soon' | 'available';
 }
@@ -465,6 +467,8 @@ export const products: Product[] = [
     ],
     category: 'Developer Tools',
     cta: 'Get Started',
+    ctaBody:
+      'Join the alpha and bring Genfeed Studio into your Cursor workflow.',
     description:
       'Cursor extension that brings Genfeed Studio directly into your editor. Generate AI videos, images, and music without leaving Cursor.',
     features: [
@@ -563,6 +567,7 @@ export const products: Product[] = [
     ],
     category: 'Mobile',
     cta: 'Join Alpha',
+    ctaBody: 'Join the alpha and approve, review and publish from your phone.',
     description:
       'Mobile companion app for Genfeed.ai. Approve content, receive notifications, and manage your workspace from iOS or Android devices.',
     features: [
@@ -656,6 +661,8 @@ export const products: Product[] = [
     ],
     category: 'Documentation',
     cta: 'View on GitHub',
+    ctaBody:
+      'Read the guides and API reference, or contribute fixes on GitHub.',
     description:
       'API references, integration guides, self-hosting instructions, and step-by-step tutorials for every Genfeed product. Open source and community-driven.',
     features: [
@@ -750,6 +757,7 @@ export const products: Product[] = [
     ],
     category: 'Browser Extension',
     cta: 'Join Alpha',
+    ctaBody: 'Join the alpha and use Genfeed from any page in your browser.',
     description:
       'Chrome extension for Genfeed.ai. Generate content, publish to social media, and manage your workspace directly from your browser.',
     features: [

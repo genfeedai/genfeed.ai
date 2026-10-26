@@ -175,6 +175,7 @@ export default function ProductPage({ product }: { product: Product }) {
 
       <ProductFinalCTA
         cta={product.cta}
+        ctaBody={product.ctaBody}
         githubUrl={product.githubUrl}
         name={product.name}
         status={product.status}
