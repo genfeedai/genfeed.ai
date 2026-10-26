@@ -82,6 +82,7 @@ export default function GenerationSetupSectionChips(
     outputControls,
     referenceCount,
     setup,
+    showEnhancementSettings = false,
     showPresets = true,
   } = props;
   const translate = useTranslations('agent.generationSetup');
@@ -164,7 +165,7 @@ export default function GenerationSetupSectionChips(
       label: translate('look'),
       value: translate('look'),
     });
-  if (capabilities.hasBrandEnrichment)
+  if (capabilities.hasBrandEnrichment || showEnhancementSettings)
     chips.push({
       icon: <Megaphone aria-hidden="true" className={SHELL_ICON_CLASS} />,
       id: 'brand',

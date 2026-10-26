@@ -5,6 +5,7 @@ import {
   type AgentThreadMode,
   inferAgentMediaGenerationModeFromPrompt,
 } from '@genfeedai/contracts';
+import GenerationHarnessSettingsPopover from '@ui/dropdowns/generation-setup/GenerationHarnessSettingsPopover';
 import PromptBarEnhanceControls from '@ui/prompt-bars/components/toolbar/PromptBarEnhanceControls';
 import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/PromptBarReferenceControls';
 import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
@@ -121,21 +122,28 @@ function AgentChatInputToolbarInner({
         )
       }
       enhance={
-        isAgentControlsHidden || !enhancement ? null : (
-          <PromptBarEnhanceControls
-            isDisabled={disabled || showStop || !promptText.trim()}
-            isEnhancing={enhancement.isEnhancing}
-            labels={{
-              cancelAria: translate('cancelEnhancingPrompt'),
-              enhanceAria: translate('enhancePrompt'),
-              enhanceLabel: translate('enhanceLabel'),
-              undoAria: translate('undoPromptEnhancement'),
-              undoLabel: translate('undo'),
-            }}
-            onCancel={enhancement.onCancel}
-            onEnhance={enhancement.onEnhance}
-            onUndo={enhancement.canUndo ? enhancement.onUndo : undefined}
-          />
+        isAgentControlsHidden ? null : (
+          <>
+            {enhancement ? (
+              <PromptBarEnhanceControls
+                isDisabled={disabled || showStop || !promptText.trim()}
+                isEnhancing={enhancement.isEnhancing}
+                labels={{
+                  cancelAria: translate('cancelEnhancingPrompt'),
+                  enhanceAria: translate('enhancePrompt'),
+                  enhanceLabel: translate('enhanceLabel'),
+                  undoAria: translate('undoPromptEnhancement'),
+                  undoLabel: translate('undo'),
+                }}
+                onCancel={enhancement.onCancel}
+                onEnhance={enhancement.onEnhance}
+                onUndo={enhancement.canUndo ? enhancement.onUndo : undefined}
+              />
+            ) : null}
+            <GenerationHarnessSettingsPopover
+              isDisabled={disabled || showStop}
+            />
+          </>
         )
       }
       reference={

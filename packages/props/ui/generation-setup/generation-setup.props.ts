@@ -232,6 +232,7 @@ export interface GenerationSetupCustomizePanelProps {
   /** Puts every setup field back to its default; offered at the top of the Presets panel. */
   onResetAll?: () => void;
   typeOptions: readonly GenerationSetupTypeOption[];
+  showEnhancementSettings?: boolean;
   capabilities: StudioPlaygroundCapabilities;
   creditsAvailable?: number | null;
   favoriteModelKeys: string[];
@@ -306,6 +307,7 @@ export interface GenerationSetupOutputMenuProps {
 
 export interface GenerationSetupBrandSectionProps {
   capabilities: StudioPlaygroundCapabilities;
+  showEnhancementSettings?: boolean;
   onResetField: (key: GenerationSetupFieldKey) => void;
   onSetField: GenerationSetupFieldSetter;
   reasons: Partial<Record<GenerationSetupFieldKey, string>>;

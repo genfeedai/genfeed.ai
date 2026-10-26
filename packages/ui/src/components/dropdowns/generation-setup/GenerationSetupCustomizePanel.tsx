@@ -38,6 +38,7 @@ export default function GenerationSetupCustomizePanel({
   onSetField,
   reasons,
   setup,
+  showEnhancementSettings,
 }: GenerationSetupCustomizePanelProps) {
   const translate = useTranslations('agent.generationSetup');
   const resolvedSection = initialSection;
@@ -114,6 +115,7 @@ export default function GenerationSetupCustomizePanel({
             onSetField={onSetField}
             reasons={reasons}
             setup={setup}
+            showEnhancementSettings={showEnhancementSettings}
           />
         ) : null}
         {resolvedSection === 'presets' && setup.presetId && onClearPreset ? (

@@ -1,15 +1,18 @@
 'use client';
 
 import type { GenerationSetupBrandSectionProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
+import GenerationHarnessSettingsSection from '@ui/dropdowns/generation-setup/GenerationHarnessSettingsSection';
 import GenerationSetupFieldRow from '@ui/dropdowns/generation-setup/GenerationSetupFieldRow';
 import { Switch } from '@ui/primitives/switch';
 import { useTranslations } from 'next-intl';
 
 /**
- * Brand tab: this generation's brand voice, on or off (rendered for output
- * types whose capabilities carry `hasBrandEnrichment`). It is a plain switch
- * like every other on/off field; leaving the agent's pick shows the row's
- * reset, which hands the choice back.
+ * Brand tab: everything brand-aware about a prompt in one place. Brand voice
+ * is this generation's on or off (rendered for output types whose
+ * capabilities carry `hasBrandEnrichment`): a plain switch like every other
+ * on/off field, whose reset hands the choice back to the agent. The saved
+ * organization and brand enhancement defaults follow it, without a heading,
+ * when the surface offers them.
  *
  * The Prompt enhance switch that used to live here was removed in #4676: it
  * never enhanced anything, and toggling it off silently suppressed branding
@@ -22,28 +25,34 @@ export default function GenerationSetupBrandSection({
   onSetField,
   reasons,
   setup,
+  showEnhancementSettings = false,
 }: GenerationSetupBrandSectionProps) {
   const translate = useTranslations('agent.generationSetup');
 
-  if (!capabilities.hasBrandEnrichment) return null;
+  if (!capabilities.hasBrandEnrichment && !showEnhancementSettings) return null;
 
   return (
-    <GenerationSetupFieldRow
-      fieldKey="brandingMode"
-      label={translate('brandVoice')}
-      onReset={onResetField}
-      reason={reasons.brandingMode}
-      source={setup.sources.brandingMode ?? 'agent'}
-    >
-      <div className="flex w-full justify-end">
-        <Switch
-          aria-label={translate('brandVoice')}
-          isChecked={setup.values.brandingMode === 'brand'}
-          onCheckedChange={(isChecked) =>
-            onSetField('brandingMode', isChecked ? 'brand' : 'off')
-          }
-        />
-      </div>
-    </GenerationSetupFieldRow>
+    <div className="flex flex-col gap-3">
+      {capabilities.hasBrandEnrichment ? (
+        <GenerationSetupFieldRow
+          fieldKey="brandingMode"
+          label={translate('brandVoice')}
+          onReset={onResetField}
+          reason={reasons.brandingMode}
+          source={setup.sources.brandingMode ?? 'agent'}
+        >
+          <div className="flex w-full justify-end">
+            <Switch
+              aria-label={translate('brandVoice')}
+              isChecked={setup.values.brandingMode === 'brand'}
+              onCheckedChange={(isChecked) =>
+                onSetField('brandingMode', isChecked ? 'brand' : 'off')
+              }
+            />
+          </div>
+        </GenerationSetupFieldRow>
+      ) : null}
+      {showEnhancementSettings ? <GenerationHarnessSettingsSection /> : null}
+    </div>
   );
 }

@@ -85,13 +85,14 @@ describe('AgentChatInputToolbar', () => {
     expect(
       screen.getByRole('button', { name: 'Agent mode: Manual' }),
     ).toBeInTheDocument();
-    // Same labelled Enhance chip as the Studio bar, not a settings popover.
+    // Same labelled Enhance chip as the Studio bar; the saved enhancement
+    // defaults stay one click away in an icon-only settings button beside it.
     expect(
       screen.getByRole('button', { name: 'Enhance prompt' }),
     ).toHaveTextContent('Enhance');
     expect(
-      screen.queryByRole('button', { name: 'Prompt enhancement settings' }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('button', { name: 'Prompt enhancement settings' }),
+    ).toBeInTheDocument();
     const attach = screen.getByRole('button', { name: 'Add context' });
     expect(attach).toHaveTextContent('Reference');
     fireEvent.pointerDown(attach);

@@ -169,7 +169,7 @@ export default function GenerationSetupModelSection({
         />
         <CommandList
           className={cn(
-            'min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain px-0.5 py-0.5',
+            'min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain p-1 [&_[cmdk-item]]:rounded-lg',
             'max-h-[min(280px,calc(var(--radix-popover-content-available-height,70vh)-8rem))]',
           )}
         >
@@ -182,7 +182,7 @@ export default function GenerationSetupModelSection({
                 return (
                   <CommandItem
                     className={cn(
-                      'flex min-h-7 cursor-pointer items-center gap-2 rounded-sm px-1.5 py-0.5 text-xs text-foreground data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground',
+                      'flex min-h-7 cursor-pointer items-center gap-2 px-1.5 py-0.5 text-xs text-foreground data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground',
                       isRowSelected && 'bg-background-tertiary',
                     )}
                     disabled={isDisabled}

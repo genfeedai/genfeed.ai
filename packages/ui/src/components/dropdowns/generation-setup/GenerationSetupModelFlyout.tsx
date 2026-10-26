@@ -82,7 +82,7 @@ export default function GenerationSetupModelFlyout({
           aria-expanded={isOpen}
           aria-haspopup="dialog"
           className={cn(
-            'flex min-h-7 cursor-pointer items-center gap-2 rounded-sm px-1.5 py-0.5 text-xs data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground',
+            'flex min-h-7 cursor-pointer items-center gap-2 px-1.5 py-0.5 text-xs data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground',
             tone === 'muted'
               ? 'text-muted-foreground'
               : 'min-h-9 text-foreground',
@@ -118,7 +118,7 @@ export default function GenerationSetupModelFlyout({
         avoidCollisions
         className={cn(
           overlayMenuSurfaceClassName,
-          'w-[min(380px,calc(100vw-2rem))] overflow-hidden rounded-lg p-0',
+          'w-[min(380px,calc(100vw-2rem))] overflow-hidden rounded-xl p-0',
           'max-h-[min(480px,var(--radix-popover-content-available-height,70vh))]',
           isPhoneViewport && 'w-[var(--radix-popover-trigger-width)]',
         )}
@@ -147,7 +147,7 @@ export default function GenerationSetupModelFlyout({
           ref={flyoutRef}
           shouldFilter={false}
         >
-          <CommandList className="max-h-[min(440px,calc(var(--radix-popover-content-available-height,70vh)-1rem))] overflow-x-hidden overflow-y-auto overscroll-contain px-0.5 py-0.5">
+          <CommandList className="max-h-[min(440px,calc(var(--radix-popover-content-available-height,70vh)-1rem))] overflow-x-hidden overflow-y-auto overscroll-contain p-1 [&_[cmdk-item]]:rounded-lg">
             <CommandGroup>{children}</CommandGroup>
           </CommandList>
         </Command>

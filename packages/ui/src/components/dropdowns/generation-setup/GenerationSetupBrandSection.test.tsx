@@ -14,6 +14,24 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
+vi.mock('@hooks/data/generation/use-generation-harness-settings', () => ({
+  useGenerationHarnessSettings: () => ({
+    brandId: 'brand-1',
+    error: null,
+    isLoading: false,
+    isSaving: false,
+    refresh: vi.fn(),
+    save: vi.fn().mockResolvedValue(undefined),
+    settings: {
+      brandEnabled: null,
+      brandId: 'brand-1',
+      isEnabled: true,
+      organizationEnabled: true,
+      source: 'organization',
+    },
+  }),
+}));
+
 const CAPABILITIES: StudioPlaygroundCapabilities = {
   hasAspectRatio: true,
   hasBrandEnrichment: true,
@@ -71,11 +89,12 @@ function renderSection(setup: GenerationSetup) {
 }
 
 describe('GenerationSetupBrandSection', () => {
-  it('shows brand voice as one switch with no tri-state or enhancement control', () => {
+  it('shows brand voice as one switch with no heading or enhancement defaults', () => {
     const { brandVoice } = renderSection(buildSetup('brand'));
 
     expect(brandVoice).toBeChecked();
     expect(screen.queryByRole('button', { name: 'Inherit' })).toBeNull();
+    expect(screen.queryByRole('heading')).toBeNull();
     expect(screen.queryByText(/prompt enhancement/i)).toBeNull();
   });
 
@@ -87,6 +106,29 @@ describe('GenerationSetupBrandSection', () => {
     expect(brandVoice).not.toBeChecked();
     fireEvent.click(brandVoice);
     expect(onSetField).toHaveBeenCalledWith('brandingMode', 'brand');
+  });
+
+  it('keeps the enhancement defaults, with no heading, when the surface offers them', () => {
+    render(
+      <GenerationSetupBrandSection
+        capabilities={CAPABILITIES}
+        onResetField={vi.fn()}
+        onSetField={vi.fn()}
+        reasons={{}}
+        setup={buildSetup('brand')}
+        showEnhancementSettings
+      />,
+    );
+
+    expect(screen.getByRole('switch', { name: 'Brand voice' })).toBeChecked();
+    expect(
+      screen.getByRole('group', { name: 'Organization prompt enhancement' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('group', { name: 'Brand prompt enhancement' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('heading')).toBeNull();
+    expect(screen.queryByText('Prompt enhancement')).toBeNull();
   });
 
   it('renders nothing when the output type has no brand enrichment', () => {

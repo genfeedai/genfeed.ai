@@ -1418,6 +1418,7 @@ export default function StudioPlaygroundComposer({
               outputControls={outputControls}
               presets={presets}
               referenceCount={crunReferenceCount ?? attachedAssets.length}
+              showEnhancementSettings={type === 'image' || type === 'video'}
               showPresets={type === 'image' || type === 'video'}
               systemPresets={systemPresetOptions}
               reasons={reasons}
