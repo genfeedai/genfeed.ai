@@ -764,6 +764,35 @@ describe('AgentThreadList', () => {
     expect(storeState.threads[0]?.title).toBe('Renamed thread');
   });
 
+  it('starts renaming in place when the thread title is double-clicked', async () => {
+    const thread = createThread('conv-1', 'Rename me');
+    const apiService = createApiService({
+      getThreads: vi.fn().mockResolvedValue([thread]),
+      unarchiveThread: vi.fn(),
+      updateThread: vi.fn().mockResolvedValue({ ...thread, title: 'Quick' }),
+    });
+
+    render(<AgentThreadList apiService={apiService as never} />);
+
+    fireEvent.doubleClick(await screen.findByText('Rename me'));
+
+    const renameInput = screen.getByRole('textbox', {
+      name: 'Rename Rename me',
+    });
+    expect(renameInput).toHaveFocus();
+
+    fireEvent.change(renameInput, { target: { value: 'Quick' } });
+    fireEvent.keyDown(renameInput, { key: 'Enter' });
+
+    await waitFor(() => {
+      expect(apiService.updateThread).toHaveBeenCalledWith(
+        'conv-1',
+        { title: 'Quick' },
+        expect.any(AbortSignal),
+      );
+    });
+  });
+
   it('renders compact context previews without an avatar or thumbnail column', async () => {
     const thread = createThread('conv-1', 'Compact row', {
       lastAssistantPreview: 'Three portraits are ready',

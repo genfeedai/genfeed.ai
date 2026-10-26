@@ -22,6 +22,7 @@ function setup(
   priorMessageCount = 0,
   threadMode?: AgentThreadMode,
 ) {
+  const countMessages = vi.fn().mockResolvedValue(priorMessageCount);
   const prisma = {
     agentThread: {
       findFirst: vi.fn().mockResolvedValue({
@@ -76,7 +77,7 @@ function setup(
     },
     {
       addMessage: vi.fn(),
-      countMessages: vi.fn().mockResolvedValue(priorMessageCount),
+      countMessages,
       getMessagesByRoom: vi.fn().mockResolvedValue([
         {
           role: AgentMessageRole.ASSISTANT,
@@ -108,6 +109,7 @@ function setup(
     workflows,
   ]) as AgentTurnWorkflowExecutionService;
   return {
+    countMessages,
     service,
     prisma,
     plan,
@@ -512,6 +514,16 @@ describe('thread title seeding', () => {
     await service.execute(prepared.state);
 
     expect(stream.runStreamLoop.mock.calls[0]?.[10]).toBe('Agent');
+  });
+
+  it('excludes the already-persisted first user message when deciding the turn is the first', async () => {
+    const { service, countMessages } = setup('api', 0);
+    const prepared = await service.prepare(interactive, workflowContext);
+    await service.execute(prepared.state);
+
+    expect(countMessages).toHaveBeenCalledWith('thread', {
+      excludeMessageId: workflowContext.executionId,
+    });
   });
 
   it('never retitles the thread on follow-up messages', async () => {

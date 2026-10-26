@@ -316,13 +316,20 @@ export class AgentMessagesService extends BaseService<
   }
 
   /**
-   * Count all non-deleted messages in a thread.
+   * Count all non-deleted messages in a thread. `excludeMessageId` leaves one
+   * message out, e.g. the user turn the caller is already acting on.
    */
-  async countMessages(roomId: string): Promise<number> {
+  async countMessages(
+    roomId: string,
+    options: { excludeMessageId?: string } = {},
+  ): Promise<number> {
     return this.delegate.count({
       where: {
         isDeleted: false,
         threadId: roomId,
+        ...(options.excludeMessageId
+          ? { id: { not: options.excludeMessageId } }
+          : {}),
       },
     });
   }

@@ -113,6 +113,24 @@ test.describe('Chat flow interactions', () => {
     await assertHealthy(authenticatedPage);
   });
 
+  test('double-clicking a thread title opens the inline rename input', async ({
+    authenticatedPage,
+  }) => {
+    await assertRouteRenders(authenticatedPage, `${ORG}/agent/thread-1`);
+    const threadLink = authenticatedPage
+      .locator('[data-testid="agent-thread-list-content"] a')
+      .first();
+
+    if (await threadLink.isVisible({ timeout: 8_000 }).catch(() => false)) {
+      await threadLink.dblclick({ timeout: 5_000 }).catch(() => {});
+      await expect(
+        authenticatedPage.getByRole('textbox', { name: /^Rename / }),
+      ).toBeVisible({ timeout: 5_000 });
+      await authenticatedPage.keyboard.press('Escape');
+    }
+    await assertHealthy(authenticatedPage);
+  });
+
   test('model or agent selector toggles when present', async ({
     authenticatedPage,
   }) => {

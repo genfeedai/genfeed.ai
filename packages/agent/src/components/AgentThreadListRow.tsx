@@ -216,6 +216,12 @@ export function AgentThreadListRow({
             // messages+snapshot set (#2790).
             onSelect(conv);
           }}
+          onDoubleClick={(event) => {
+            // The first click already selected the thread; the second turns
+            // the title into the rename input in place.
+            event.preventDefault();
+            onStartRename(conv);
+          }}
           onPointerEnter={() => {
             prefetchThreadRoute();
             onPrefetch(conv.id);

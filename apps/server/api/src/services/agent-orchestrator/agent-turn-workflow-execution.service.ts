@@ -509,12 +509,16 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
       id: state.threadId,
       organizationId: state.organizationId,
     });
-    // Name the thread from its first intent only. Counted before this turn's
-    // user message is persisted; an empty seed disables model retitling. An
+    // Name the thread from its first intent only; an empty seed disables model
+    // retitling. Acceptance persists this turn's user message (id = execution
+    // id) before the workflow runs, so it is excluded from the count — a plain
+    // count would never be 0 and the model title would never be applied. An
     // agent's own conversation keeps the agent's name, so it is never retitled.
     const isFirstTurn =
       request.source !== 'proactive' &&
-      (await this.agentMessagesService.countMessages(state.threadId)) === 0;
+      (await this.agentMessagesService.countMessages(state.threadId, {
+        excludeMessageId: state.executionId,
+      })) === 0;
     const seedTitle = isFirstTurn
       ? String(thread?.title ?? buildSeedThreadTitle(request.content))
       : '';
