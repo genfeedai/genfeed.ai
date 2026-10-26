@@ -6,8 +6,12 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
+/** Label of the profile created when a brand has none at its first review. */
+const FEEDBACK_PROFILE_LABEL = 'Brand harness';
 /** Excerpt length cap for content copied into a harness anti-example. */
 const AVOID_EXCERPT_MAX_LENGTH = 480;
+/** Reason length cap for the rejection note shown next to an anti-example. */
+const AVOID_REASON_MAX_LENGTH = 240;
 /** Total avoidFeedback entries kept per profile; oldest auto-added evicted first. */
 const AVOID_FEEDBACK_CAP = 20;
 
@@ -20,6 +24,8 @@ export type RecordReviewDecisionParams = {
   content: string;
   /** Reviewer-supplied rejection feedback, when present. */
   reason?: string;
+  /** Reviewer who made the decision; stamps a profile created for the feedback. */
+  userId?: string;
   /** Domain of the thing that was reviewed, e.g. `turbo_run_item`. */
   sourceType: string;
   /** ID of the thing that was reviewed, e.g. the batch item id. */
@@ -35,6 +41,10 @@ export type RecordReviewDecisionParams = {
  * `avoidFeedback` audit trail (source stamp, reason, timestamp) so the cap/
  * eviction logic can tell auto-added entries apart from operator/seed
  * anti-examples and never evict the latter.
+ *
+ * The reviewer's reason is rendered next to the excerpt in `examples.avoid`
+ * ("<excerpt> — because <reason>") so it reaches later prompts, and a brand
+ * with no active harness profile gets one so the feedback is not dropped.
  *
  * `approved` is an intentional no-op here — positive reinforcement from
  * high-performing content is owned by `HarnessWinnerPromotionService`
@@ -108,13 +118,22 @@ export class HarnessReviewFeedbackService {
       return;
     }
 
-    const profile = await harnessProfilesService.getActiveForBrand(
-      params.organizationId,
-      params.brandId,
-    );
-    if (!profile) {
-      return;
-    }
+    const profile =
+      (await harnessProfilesService.getActiveForBrand(
+        params.organizationId,
+        params.brandId,
+      )) ??
+      (await harnessProfilesService.create(
+        {
+          brandId: params.brandId,
+          isDefault: true,
+          label: FEEDBACK_PROFILE_LABEL,
+          scope: 'brand',
+          status: 'active',
+        },
+        params.organizationId,
+        params.userId,
+      ));
 
     const source = `${params.sourceType}:${params.sourceId}`;
     const existingFeedback = profile.avoidFeedback ?? [];
@@ -127,7 +146,9 @@ export class HarnessReviewFeedbackService {
       addedAt: new Date().toISOString(),
       content: truncateExcerpt(content, AVOID_EXCERPT_MAX_LENGTH),
       isAutoAdded: true,
-      reason: params.reason?.trim() || undefined,
+      reason:
+        truncateExcerpt(params.reason?.trim() ?? '', AVOID_REASON_MAX_LENGTH) ||
+        undefined,
       source,
     };
 
@@ -139,11 +160,14 @@ export class HarnessReviewFeedbackService {
     // Avoid strings never tracked by a feedback entry predate this pipeline
     // (operator/seed-curated) — keep them untouched and uncapped.
     const humanAvoid = (profile.examples?.avoid ?? []).filter(
-      (item) => !existingFeedback.some((fb) => fb.content === item),
+      (item) =>
+        !existingFeedback.some(
+          (fb) => fb.content === item || renderAvoidEntry(fb) === item,
+        ),
     );
     const nextAvoid = dedupeAvoidList([
       ...humanAvoid,
-      ...cappedFeedback.map((fb) => fb.content),
+      ...cappedFeedback.map(renderAvoidEntry),
     ]);
 
     await harnessProfilesService.update(
@@ -173,6 +197,13 @@ export class HarnessReviewFeedbackService {
     }
     return resolveOptionalProvider(this.moduleRef, HarnessProfilesService);
   }
+}
+
+/** The anti-example line a later prompt sees: the excerpt plus why it was turned down. */
+function renderAvoidEntry(entry: IHarnessAvoidFeedbackEntry): string {
+  return entry.reason
+    ? `${entry.content} — because ${entry.reason}`
+    : entry.content;
 }
 
 function truncateExcerpt(value: string, maxLength: number): string {

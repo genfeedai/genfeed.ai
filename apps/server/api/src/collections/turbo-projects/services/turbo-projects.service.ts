@@ -786,7 +786,7 @@ export class TurboProjectsService {
           reviewTurboRunId,
           reviewItemIds,
           scope.organizationId,
-          undefined,
+          dto.reason?.trim() || undefined,
           scope.userId,
         );
       }

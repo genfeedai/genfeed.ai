@@ -1,6 +1,10 @@
 'use client';
 
-import { formatEnumLabel, TurboProjectItemStatus } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  formatEnumLabel,
+  TurboProjectItemStatus,
+} from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { IngredientsService } from '@services/content/ingredients.service';
@@ -41,6 +45,13 @@ export default function TurboProjectItemCard({
         .catch(() => undefined);
     return () => controller.abort();
   }, [ingredientId, service]);
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const confirmReject = () => {
+    onReview('rejected', rejectReason.trim() || undefined);
+    setIsRejecting(false);
+    setRejectReason('');
+  };
   const reviewable =
     Boolean(item.reviewItemId) &&
     !item.scheduledAt &&
@@ -108,7 +119,7 @@ export default function TurboProjectItemCard({
                   id: 'reject',
                   label: t('reject'),
                   isDisabled: disabled,
-                  onSelect: () => onReview('rejected'),
+                  onSelect: () => setIsRejecting(true),
                 },
               ]
             : []),
@@ -125,6 +136,28 @@ export default function TurboProjectItemCard({
             : []),
         ]}
       />
+      {isRejecting && (
+        <div className="flex flex-col gap-2">
+          <Textarea
+            aria-label={t('rejectReasonLabel')}
+            placeholder={t('rejectReasonHint')}
+            value={rejectReason}
+            onChange={(event) => setRejectReason(event.target.value)}
+            maxLength={500}
+          />
+          <div className="flex gap-2">
+            <Button isDisabled={disabled} onClick={confirmReject}>
+              {t('confirmReject')}
+            </Button>
+            <Button
+              variant={ButtonVariant.GHOST}
+              onClick={() => setIsRejecting(false)}
+            >
+              {t('cancelReject')}
+            </Button>
+          </div>
+        </div>
+      )}
       {item.scheduledTargets
         .filter((target) => target.status === 'failed')
         .map((target) => (

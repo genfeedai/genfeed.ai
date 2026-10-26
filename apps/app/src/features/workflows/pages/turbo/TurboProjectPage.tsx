@@ -351,9 +351,13 @@ export default function TurboProjectPage({ projectId }: TurboProjectPageProps) {
                     `caption:${item.id}`,
                   )
                 }
-                onReview={(decision) =>
+                onReview={(decision, reason) =>
                   void write((api) =>
-                    api.review(projectId, { itemIds: [item.id], decision }),
+                    api.review(projectId, {
+                      itemIds: [item.id],
+                      decision,
+                      ...(reason ? { reason } : {}),
+                    }),
                   )
                 }
               />

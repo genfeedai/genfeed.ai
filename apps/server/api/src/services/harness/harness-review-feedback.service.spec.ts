@@ -6,6 +6,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 
 function createHarnessProfilesService() {
   return {
+    create: vi.fn(),
     getActiveForBrand: vi.fn(),
     update: vi.fn(),
   };
@@ -63,7 +64,10 @@ describe('HarnessReviewFeedbackService', () => {
       harnessProfilesService.update.mock.calls[0];
     expect(profileId).toBe('profile-1');
     expect(organizationId).toBe('org-1');
-    expect(dto.examples.avoid).toEqual(['This post says something off-brand.']);
+    // The reviewer's reason travels with the excerpt into later prompts.
+    expect(dto.examples.avoid).toEqual([
+      'This post says something off-brand. — because Too salesy',
+    ]);
     expect(dto.avoidFeedback).toHaveLength(1);
     expect(dto.avoidFeedback[0]).toMatchObject({
       content: 'This post says something off-brand.',
@@ -143,19 +147,88 @@ describe('HarnessReviewFeedbackService', () => {
     expect(harnessProfilesService.getActiveForBrand).not.toHaveBeenCalled();
   });
 
-  it('no-ops when the brand has no active harness profile', async () => {
+  it('creates a harness profile when the brand has none, so the feedback is kept', async () => {
+    const created = createProfile({ id: 'profile-new' });
     harnessProfilesService.getActiveForBrand.mockResolvedValue(null);
+    harnessProfilesService.create.mockResolvedValue(created);
+    harnessProfilesService.update.mockResolvedValue(created);
 
     await service.recordReviewDecision({
       brandId: 'brand-1',
       content: 'Off-brand copy',
       decision: ReviewDecision.REJECTED,
       organizationId: 'org-1',
+      reason: 'Too salesy',
       sourceId: 'item-7',
+      sourceType: 'turbo_run_item',
+      userId: 'user-1',
+    });
+
+    expect(harnessProfilesService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        isDefault: true,
+        scope: 'brand',
+        status: 'active',
+      }),
+      'org-1',
+      'user-1',
+    );
+    const [profileId, dto] = harnessProfilesService.update.mock.calls[0];
+    expect(profileId).toBe('profile-new');
+    expect(dto.examples.avoid).toEqual(['Off-brand copy — because Too salesy']);
+  });
+
+  it('caps a long reason and keeps an entry without one as the bare excerpt', async () => {
+    const profile = createProfile();
+    harnessProfilesService.getActiveForBrand.mockResolvedValue(profile);
+    harnessProfilesService.update.mockResolvedValue(profile);
+
+    await service.recordReviewDecision({
+      brandId: 'brand-1',
+      content: 'Draft A',
+      decision: ReviewDecision.REJECTED,
+      organizationId: 'org-1',
+      reason: 'y'.repeat(600),
+      sourceId: 'item-r1',
       sourceType: 'turbo_run_item',
     });
 
-    expect(harnessProfilesService.update).not.toHaveBeenCalled();
+    const [, dto] = harnessProfilesService.update.mock.calls[0];
+    expect(dto.avoidFeedback[0].reason.length).toBeLessThanOrEqual(240);
+    expect(dto.avoidFeedback[0].reason.endsWith('…')).toBe(true);
+  });
+
+  it('re-renders an earlier entry that has a reason instead of keeping it as a human string', async () => {
+    const profile = createProfile({
+      avoidFeedback: [
+        {
+          addedAt: '2026-08-01T00:00:00.000Z',
+          content: 'Old rejected draft.',
+          isAutoAdded: true,
+          reason: 'Wrong audience',
+          source: 'turbo_run_item:old',
+        },
+      ],
+      examples: { avoid: ['Old rejected draft.'], good: [] },
+    });
+    harnessProfilesService.getActiveForBrand.mockResolvedValue(profile);
+    harnessProfilesService.update.mockResolvedValue(profile);
+
+    await service.recordReviewDecision({
+      brandId: 'brand-1',
+      content: 'New rejected draft.',
+      decision: ReviewDecision.REJECTED,
+      organizationId: 'org-1',
+      sourceId: 'item-new',
+      sourceType: 'turbo_run_item',
+    });
+
+    const [, dto] = harnessProfilesService.update.mock.calls[0];
+    expect(dto.examples.avoid).toEqual([
+      'Old rejected draft. — because Wrong audience',
+      'New rejected draft.',
+    ]);
   });
 
   it('dedupes by source stamp instead of writing a duplicate entry', async () => {

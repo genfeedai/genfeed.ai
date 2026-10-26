@@ -28,7 +28,7 @@ export interface TurboProjectItemCardProps {
   onRemove: () => void;
   onRetry: () => void;
   onCaption: (caption: string) => void;
-  onReview: (decision: 'approved' | 'rejected') => void;
+  onReview: (decision: 'approved' | 'rejected', reason?: string) => void;
 }
 export interface TurboScheduleProps {
   canSchedule: boolean;

@@ -403,6 +403,7 @@ describe('TurboRunReviewService harness review feedback', () => {
       reason: 'Too salesy for our voice.',
       sourceId: 'item-1',
       sourceType: 'turbo_run_item',
+      userId: 'user-1',
     });
   });
 

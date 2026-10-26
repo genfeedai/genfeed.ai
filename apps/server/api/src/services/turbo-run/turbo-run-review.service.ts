@@ -428,6 +428,7 @@ export class TurboRunReviewService {
     organizationId: string,
     brandId: string | undefined,
     reason?: string,
+    userId?: string,
   ): void {
     if (!this.harnessReviewFeedbackService || items.length === 0) {
       return;
@@ -446,6 +447,7 @@ export class TurboRunReviewService {
         reason,
         sourceId: item.id,
         sourceType: 'turbo_run_item',
+        userId,
       });
     }
   }
@@ -585,6 +587,7 @@ export class TurboRunReviewService {
       orgId,
       updated.brandId ?? undefined,
       feedback,
+      actorUserId,
     );
     return this.summaryService.toTurboRunSummary(updated);
   }

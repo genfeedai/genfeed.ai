@@ -248,7 +248,7 @@ export class HarnessProfilesService {
   async create(
     dto: UpsertHarnessProfileDto,
     organizationId: string,
-    userId: string,
+    userId: string | undefined,
     serverFields: HarnessProfileServerFields = {},
   ): Promise<HarnessProfileDocument> {
     const existingProfiles = await this.findForBrand(

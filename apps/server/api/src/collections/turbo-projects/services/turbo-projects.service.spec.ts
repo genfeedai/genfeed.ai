@@ -1042,5 +1042,34 @@ describe('TurboProjectsService', () => {
         'user-1',
       );
     });
+
+    it('passes the reviewer reason to the rejection so the next batch learns from it', async () => {
+      useProject(makeProject({ status: TurboProjectStatus.REVIEWING }));
+      prisma.turboProjectItem.findMany.mockResolvedValue([
+        makeItem({
+          reviewTurboRunId: 'review-run-1',
+          reviewItemId: 'review-item-1',
+          status: TurboProjectItemStatus.APPROVED,
+        }),
+      ]);
+
+      await service.review(
+        'project-1',
+        {
+          decision: 'rejected',
+          itemIds: ['item-1'],
+          reason: '  Too salesy for our voice  ',
+        },
+        scope,
+      );
+
+      expect(turboRunService.rejectItems).toHaveBeenCalledWith(
+        'review-run-1',
+        ['review-item-1'],
+        'org-1',
+        'Too salesy for our voice',
+        'user-1',
+      );
+    });
   });
 });
