@@ -256,17 +256,6 @@ export default function DiscoveryDesk() {
     [handleSourceChange, href, router],
   );
 
-  const sourceTabs = useMemo(
-    () => [
-      { id: 'all', label: translateDesk('sourceTabs.all') },
-      { id: 'trends', label: translateDesk('sourceTabs.trends') },
-      { id: 'owned', label: translateDesk('sourceTabs.owned') },
-      { id: 'imported', label: translateDesk('sourceTabs.imported') },
-      { id: 'following', label: translateDesk('following.title') },
-    ],
-    [translateDesk],
-  );
-
   const handleContentTypeChange = useCallback(
     (value: DiscoveryDeskContentTypeFilter) => {
       dispatch({ contentType: value, type: 'SET_CONTENT_TYPE' });
@@ -382,19 +371,12 @@ export default function DiscoveryDesk() {
   return (
     <>
       <Container
-        headerTabs={{
-          activeTab: sourceParam,
-          ariaLabel: translateDesk('sourcesLabel'),
-          fullWidth: false,
-          onTabChange: handleSourceTabChange,
-          tabs: sourceTabs,
-        }}
         icon={TrendingUp}
         label={translateDesk('title')}
         leading={
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <FormSearchbar
-              className="w-48"
+              isCollapsible
               onSearch={setSearch}
               placeholder={translateDesk('searchPlaceholder')}
               size={ComponentSize.SM}
@@ -406,9 +388,11 @@ export default function DiscoveryDesk() {
               items={items}
               onContentTypeChange={handleContentTypeChange}
               onSort={handleSort}
+              onSourceChange={handleSourceTabChange}
               onTogglePlatform={handleTogglePlatform}
               onClearPlatforms={handleClearPlatforms}
               sort={state.sort}
+              source={sourceParam}
               summary={summary}
             />
           </div>

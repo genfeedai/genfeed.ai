@@ -242,12 +242,12 @@ test.describe('Posts — deep interactions', () => {
     });
     await settle(authenticatedPage);
 
+    await authenticatedPage.getByRole('button', { name: /^Filters/ }).click();
+    await authenticatedPage.getByRole('menuitem', { name: /^Type/ }).click();
     await authenticatedPage
-      .locator('button[role="combobox"][aria-label="Content type"]')
+      .getByRole('menuitemradio', { name: /^Newsletters/ })
       .click();
-    await authenticatedPage
-      .getByRole('option', { name: 'Newsletters', exact: true })
-      .click();
+    await authenticatedPage.keyboard.press('Escape');
     await settle(authenticatedPage);
     await expect(authenticatedPage).toHaveURL(/type=newsletter/);
 
@@ -259,6 +259,11 @@ test.describe('Posts — deep interactions', () => {
       authenticatedPage.getByText('Weekly Standup Post'),
     ).toHaveCount(0);
 
+    // Search rests as an icon; open it first.
+    await authenticatedPage
+      .getByTestId('collapsible-search-trigger')
+      .first()
+      .click();
     const search = authenticatedPage.locator(
       'input[placeholder*="Search posts" i]',
     );

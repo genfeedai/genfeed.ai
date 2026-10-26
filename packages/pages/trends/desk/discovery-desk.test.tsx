@@ -141,7 +141,21 @@ vi.mock('@pages/trends/desk/desk-empty-states', () => ({
 }));
 
 vi.mock('@pages/trends/desk/desk-filter-rail', () => ({
-  default: () => <div data-testid="desk-filter-rail" />,
+  default: ({
+    onSourceChange,
+    source,
+  }: {
+    onSourceChange: (value: string) => void;
+    source: string;
+  }) => (
+    <div data-source={source} data-testid="desk-filter-rail">
+      {['all', 'trends', 'owned'].map((value) => (
+        <button key={value} onClick={() => onSourceChange(value)} type="button">
+          {`source ${value}`}
+        </button>
+      ))}
+    </div>
+  ),
 }));
 
 vi.mock('@pages/trends/desk/desk-heat-strip', () => ({
@@ -203,6 +217,10 @@ vi.mock('@services/core/notifications.service', () => ({
 }));
 
 import DiscoveryDesk from './discovery-desk';
+
+function selectSource(value: string) {
+  fireEvent.click(screen.getByRole('button', { name: `source ${value}` }));
+}
 
 describe('DiscoveryDesk', () => {
   beforeEach(() => {
@@ -273,7 +291,7 @@ describe('DiscoveryDesk', () => {
     ).toBe(false);
   });
 
-  it('filters visible rows from the source tabs and records the URL source', () => {
+  it('filters visible rows from the Source filter and records the URL source', () => {
     const trendsItem = buildItem({
       key: 'trend:public',
       source: 'trends',
@@ -291,51 +309,30 @@ describe('DiscoveryDesk', () => {
 
     render(<DiscoveryDesk />);
 
-    expect(screen.getByRole('tab', { name: 'All' })).toHaveAttribute(
-      'data-state',
-      'active',
-    );
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
     expect(screen.getByText('Workflow demo clip')).toBeInTheDocument();
     expect(screen.getByText('Creator collab teaser')).toBeInTheDocument();
 
-    const trendsTab = screen.getByRole('tab', { name: 'Public trends' });
-    fireEvent.mouseDown(trendsTab, { button: 0, ctrlKey: false });
+    selectSource('trends');
 
-    expect(trendsTab).toHaveAttribute('data-state', 'active');
     expect(mocks.setParamState).toHaveBeenCalledWith('source', 'trends');
     expect(screen.getByText('Workflow demo clip')).toBeInTheDocument();
     expect(screen.queryByText('Creator collab teaser')).not.toBeInTheDocument();
 
-    fireEvent.mouseDown(screen.getByRole('tab', { name: 'My accounts' }), {
-      button: 0,
-      ctrlKey: false,
-    });
+    selectSource('owned');
 
     expect(mocks.setParamState).toHaveBeenCalledWith('source', 'owned');
     expect(screen.getByTestId('desk-empty-state')).toBeInTheDocument();
     expect(screen.queryByText('Workflow demo clip')).not.toBeInTheDocument();
 
-    fireEvent.mouseDown(screen.getByRole('tab', { name: 'All' }), {
-      button: 0,
-      ctrlKey: false,
-    });
+    selectSource('all');
 
     expect(mocks.setParamState).toHaveBeenCalledWith('source', 'all');
     expect(screen.getByText('Workflow demo clip')).toBeInTheDocument();
     expect(screen.getByText('Creator collab teaser')).toBeInTheDocument();
   });
 
-  it('activates a source tab from the keyboard', () => {
-    render(<DiscoveryDesk />);
-
-    const trendsTab = screen.getByRole('tab', { name: 'Public trends' });
-    fireEvent.keyDown(trendsTab, { key: 'Enter' });
-
-    expect(trendsTab).toHaveAttribute('data-state', 'active');
-    expect(mocks.setParamState).toHaveBeenCalledWith('source', 'trends');
-  });
-
-  it('keeps the active source tab after the URL source is restored', () => {
+  it('keeps the active source after the URL source is restored', () => {
     mocks.paramState.source = 'trends';
     const trendsItem = buildItem({
       key: 'trend:public',
@@ -354,12 +351,12 @@ describe('DiscoveryDesk', () => {
 
     render(<DiscoveryDesk />);
 
-    expect(screen.getByRole('tab', { name: 'Public trends' })).toHaveAttribute(
-      'data-state',
-      'active',
-    );
     expect(screen.getByText('Workflow demo clip')).toBeInTheDocument();
     expect(screen.queryByText('Creator collab teaser')).not.toBeInTheDocument();
+    expect(screen.getByTestId('desk-filter-rail')).toHaveAttribute(
+      'data-source',
+      'trends',
+    );
   });
 
   it('keeps search on the left of the Following topbar', () => {

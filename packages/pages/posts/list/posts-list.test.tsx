@@ -253,6 +253,11 @@ vi.mock('@ui/display/table/Table', () => ({
   ),
 }));
 
+function lastToolbarProps(): { publishingView?: string } {
+  const [node] = setFiltersNodeMock.mock.calls.at(-1) ?? [];
+  return (node as { props: { publishingView?: string } }).props;
+}
+
 describe('PostsList', () => {
   beforeEach(() => {
     pushMock.mockReset();
@@ -274,9 +279,8 @@ describe('PostsList', () => {
       />,
     );
 
-    // An explicit `status` prop opts out of the publisher `not-posted` default,
-    // so the list header describes every lifecycle state.
-    expect(screen.getByRole('heading', { name: 'All posts' })).toBeVisible();
+    // The breadcrumb is the only title: the list draws no heading of its own.
+    expect(screen.queryByRole('heading', { name: 'All posts' })).toBeNull();
     // Sidebar agent owns generation — no floating posts prompt bar.
     expect(
       screen.queryByPlaceholderText(/ai productivity tips/i),
@@ -294,13 +298,20 @@ describe('PostsList', () => {
   it.each([
     [PostStatus.PENDING, 'Pending'],
     [PostStatus.PROCESSING, 'Publishing'],
-  ] as const)('labels the %s publisher view as %s', (status, heading) => {
-    render(
-      <PostsList scope={PageScope.PUBLISHING} platform="all" status={status} />,
-    );
+  ] as const)(
+    'selects the %s publisher view in the Filters menu (%s)',
+    (status) => {
+      render(
+        <PostsList
+          scope={PageScope.PUBLISHING}
+          platform="all"
+          status={status}
+        />,
+      );
 
-    expect(screen.getByRole('heading', { name: heading })).toBeVisible();
-  });
+      expect(lastToolbarProps().publishingView).toBe(status);
+    },
+  );
 
   it('opens the post detail overlay from the table row path', async () => {
     resourceData = [postFixture];
@@ -323,7 +334,7 @@ describe('PostsList', () => {
   it('defaults the publisher list to the not-posted view when no status is given', () => {
     render(<PostsList scope={PageScope.PUBLISHING} platform="all" />);
 
-    expect(screen.getByRole('heading', { name: 'Not posted' })).toBeVisible();
+    expect(lastToolbarProps().publishingView).toBe('not-posted');
   });
 
   it('opens the dedicated post editor', () => {

@@ -425,11 +425,6 @@ const UI_TEST_MESSAGES = {
     },
   },
   ui: {
-    channelDropdown: {
-      allChannels: 'All channels',
-      connectedAccounts: 'Connected accounts',
-      more: 'More',
-    },
     promptBarBlacklist: {
       avoid: 'Avoid',
       chooseWhatToAvoid: 'Choose what to avoid',

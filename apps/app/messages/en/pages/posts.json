@@ -169,17 +169,23 @@
       }
     },
     "toolbar": {
+      "channelAria": "Channel",
       "failed": "Failed",
       "notPosted": "Not posted",
       "pending": "Pending",
       "posted": "Posted",
       "publishing": "Publishing",
       "publishingStateAria": "Publishing state",
+      "searchChannels": "Search channels",
       "searchPlaceholder": "Search posts",
       "sortAria": "Sort",
-      "sourceAll": "All sources",
       "sourceAria": "Source",
-      "sourceExtension": "Imported"
+      "sourceExtension": "Imported",
+      "statusAria": "Status",
+      "typeAria": "Type",
+      "typeArticle": "Articles",
+      "typeNewsletter": "Newsletters",
+      "typePost": "Social posts"
     },
     "unscheduled": "Unscheduled",
     "untitled": "Untitled post",

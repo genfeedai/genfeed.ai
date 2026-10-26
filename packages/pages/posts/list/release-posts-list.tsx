@@ -445,8 +445,6 @@ export default function ReleasePostsList({
     );
     setFiltersNode(
       <PostsListToolbar
-        showSearch={false}
-        onSearchChange={handleSearchChange}
         onSourceChange={handleSourceChange}
         sourceValue={source}
         onSortChange={(nextSort) =>
@@ -459,7 +457,6 @@ export default function ReleasePostsList({
             params.delete('page');
           })
         }
-        searchValue={search}
         sortOptions={
           isCapturedView
             ? CAPTURED_POSTS_SORT_OPTIONS

@@ -25,6 +25,8 @@ function renderFilters() {
     onClearPlatforms: vi.fn(),
     onSort: vi.fn(),
     onContentTypeChange: vi.fn(),
+    onSourceChange: vi.fn(),
+    source: 'all',
   };
   render(<DeskFilterRail {...props} />);
   return props;
@@ -50,6 +52,15 @@ describe('Discovery filter menu', () => {
     expect(props.onTogglePlatform).toHaveBeenCalledWith('youtube');
   });
 
+  it('offers the sources as one nested facet instead of a tab strip', async () => {
+    const props = renderFilters();
+    const user = await openFacet(/^Source/);
+    await user.click(
+      await screen.findByRole('menuitemradio', { name: /My accounts/ }),
+    );
+    expect(props.onSourceChange).toHaveBeenCalledWith('owned');
+  });
+
   it('clears the platform and content type filters together', async () => {
     const props = renderFilters();
     const user = userEvent.setup();
@@ -57,6 +68,7 @@ describe('Discovery filter menu', () => {
     await user.click(screen.getByRole('menuitem', { name: 'Clear filters' }));
     expect(props.onClearPlatforms).toHaveBeenCalledOnce();
     expect(props.onContentTypeChange).toHaveBeenCalledWith('all');
+    expect(props.onSourceChange).toHaveBeenCalledWith('all');
   });
 
   it('exposes content type and sorting as nested single choices', async () => {

@@ -32,8 +32,9 @@ test.describe('Posts — Management', () => {
     await mockPostsList(authenticatedPage);
     await postsPage.gotoNotPosted();
 
-    // Lifecycle state is a deep link, not a tab; the toolbar's content-type,
-    // channel, and status filters are the current UI for narrowing the list.
+    // Lifecycle state is a deep link, not a tab; the Filters menu's type,
+    // channel, and status facets are the current UI for narrowing the list.
+    await postsPage.filtersButton.first().click();
     await expect(postsPage.contentTypeFilterTrigger).toBeVisible();
     await expect(postsPage.channelFilterTrigger).toBeVisible();
     await expect(postsPage.statusFilterTrigger).toBeVisible();
@@ -171,10 +172,11 @@ test.describe('Posts — Management', () => {
       authenticatedPage.getByText('Status Filter Scheduled'),
     ).toBeVisible();
 
-    // Open the real status multiselect and pick a single, specific status.
+    // Open the Status facet of the Filters menu and pick one status.
+    await postsPage.filtersButton.first().click();
     await postsPage.statusFilterTrigger.click();
     await authenticatedPage
-      .getByRole('option', { name: 'Draft', exact: true })
+      .getByRole('menuitemcheckbox', { name: /^Draft/ })
       .click();
     await authenticatedPage.keyboard.press('Escape');
 

@@ -18,6 +18,9 @@ const CONTENT_TYPE_OPTIONS: DiscoveryDeskContentTypeFilter[] = [
   'post',
 ];
 
+/** Where a signal comes from. `following` opens the Following deck. */
+const SOURCE_OPTIONS = ['trends', 'owned', 'imported', 'following'] as const;
+
 const SORT_OPTIONS: DiscoveryDeskSort[] = [
   'velocity',
   'virality',
@@ -34,7 +37,9 @@ export default function DeskFilterRail({
   summary,
   onContentTypeChange,
   onSort,
+  onSourceChange,
   sort,
+  source,
 }: {
   activePlatforms: Set<string>;
   onTogglePlatform: (platform: string) => void;
@@ -44,7 +49,9 @@ export default function DeskFilterRail({
   contentType: DiscoveryDeskContentTypeFilter;
   onContentTypeChange: (value: DiscoveryDeskContentTypeFilter) => void;
   onSort: (value: DiscoveryDeskSort) => void;
+  onSourceChange: (value: string) => void;
   sort: DiscoveryDeskSort;
+  source: string;
 }) {
   const translate = useTranslations('common.trends.desk');
   const platforms = Array.from(
@@ -55,6 +62,28 @@ export default function DeskFilterRail({
     ]),
   ).sort();
   const facets: FilterMenuFacet[] = [
+    {
+      defaultValue: 'all',
+      key: 'source',
+      label: translate('filters.source'),
+      onChange: onSourceChange,
+      options: [
+        {
+          count: items.length,
+          label: translate('sourceTabs.all'),
+          value: 'all',
+        },
+        ...SOURCE_OPTIONS.map((option) => ({
+          count: items.filter((item) => item.source === option).length,
+          label: translate(
+            option === 'following' ? 'following.title' : `sourceTabs.${option}`,
+          ),
+          value: option,
+        })),
+      ],
+      selection: 'single',
+      value: source,
+    },
     {
       key: 'platforms',
       label: translate('filters.platforms'),
@@ -116,6 +145,7 @@ export default function DeskFilterRail({
       onClear={() => {
         onClearPlatforms();
         onContentTypeChange('all');
+        onSourceChange('all');
       }}
     />
   );

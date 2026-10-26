@@ -370,7 +370,6 @@
     "packages/pages/posts/[id]/ingredient-posts.tsx": 6,
     "packages/pages/posts/detail/components/PostDetailCardBody.tsx": 4,
     "packages/pages/posts/detail/components/PostDetailHeader.tsx": 1,
-    "packages/pages/posts/library/publishing-content-library-toolbar.tsx": 5,
     "packages/pages/posts/library/publishing-content-library.tsx": 7,
     "packages/pages/posts/list/components/EvalCell.tsx": 1,
     "packages/pages/posts/list/components/PostsCardActions.tsx": 9,

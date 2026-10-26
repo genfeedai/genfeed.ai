@@ -156,13 +156,10 @@ export default function PostsList({
     );
     setFiltersNode(
       <PostsListToolbar
-        showSearch={false}
-        searchValue={filterSearch}
         sortValue={filterSort || getDefaultSort(status)}
         sortOptions={sortOptions}
         publishingView={publishingView}
         onPublishingViewChange={handlePublicationStateChange}
-        onSearchChange={handleSearchChange}
         onSortChange={handleToolbarSortChange}
       />,
     );
@@ -186,45 +183,8 @@ export default function PostsList({
     };
   }, [setFiltersNode, setLeadingNode]);
 
-  const listHeading =
-    publishingView === 'posted'
-      ? 'Posted'
-      : publishingView === PostStatus.FAILED
-        ? 'Failed'
-        : publishingView === PostStatus.PENDING
-          ? 'Pending'
-          : publishingView === PostStatus.PROCESSING
-            ? 'Publishing'
-            : publishingView === 'not-posted'
-              ? 'Not posted'
-              : 'All posts';
-  const listDescription =
-    publishingView === 'posted'
-      ? 'Posts already live on their destination platforms.'
-      : publishingView === PostStatus.FAILED
-        ? 'Posts that could not be published. Fix the issue and retry.'
-        : publishingView === PostStatus.PENDING
-          ? 'Posts queued to enter the publishing pipeline.'
-          : publishingView === PostStatus.PROCESSING
-            ? 'Posts currently being sent to destination platforms.'
-            : publishingView === 'not-posted'
-              ? 'Drafts, scheduled posts, and publishing work in progress.'
-              : 'Posts across every publishing state.';
-
   return (
     <div>
-      {/* The admin breadcrumb already names the page, so it draws no header. */}
-      {isAdminScope ? null : (
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="text-base font-semibold text-foreground">
-              {listHeading}
-            </h2>
-            <p className="mt-1 text-sm text-foreground/55">{listDescription}</p>
-          </div>
-        </div>
-      )}
-
       {isError && posts.length > 0 ? (
         <ErrorFallback
           compact
@@ -269,7 +229,7 @@ export default function PostsList({
                   secondaryActions={secondaryCardActions}
                 />
               </CollectionSection>
-              <CollectionSection title={translate('all')} isLoading={isLoading}>
+              <CollectionSection isLoading={isLoading}>
                 <PostsGrid
                   posts={posts}
                   view={viewType === VIEW_TYPE_GRID ? 'grid' : 'list'}

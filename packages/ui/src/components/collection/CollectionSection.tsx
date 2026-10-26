@@ -30,36 +30,40 @@ export default function CollectionSection({
   return (
     <section
       aria-busy={isLoading || undefined}
-      aria-labelledby={headingId}
+      aria-labelledby={title ? headingId : undefined}
       className={cn('flex flex-col gap-3', className)}
       data-testid={dataTestId}
     >
-      <div
-        className={cn(
-          'flex flex-wrap items-end justify-between gap-3',
-          isHeaderSticky && 'sticky top-0 z-10 bg-background py-2',
-        )}
-      >
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <h2
-            className="flex items-baseline gap-2 text-sm font-semibold text-foreground"
-            id={headingId}
-          >
-            <span className="truncate">{title}</span>
-            {isCountVisible && itemCount !== undefined && itemCount > 0 ? (
-              <span className="text-xs font-medium tabular-nums text-muted-foreground">
-                {itemCount}
-              </span>
+      {title || description || actions ? (
+        <div
+          className={cn(
+            'flex flex-wrap items-end justify-between gap-3',
+            isHeaderSticky && 'sticky top-0 z-10 bg-background py-2',
+          )}
+        >
+          <div className="flex min-w-0 flex-col gap-0.5">
+            {title ? (
+              <h2
+                className="flex items-baseline gap-2 text-sm font-semibold text-foreground"
+                id={headingId}
+              >
+                <span className="truncate">{title}</span>
+                {isCountVisible && itemCount !== undefined && itemCount > 0 ? (
+                  <span className="text-xs font-medium tabular-nums text-muted-foreground">
+                    {itemCount}
+                  </span>
+                ) : null}
+              </h2>
             ) : null}
-          </h2>
-          {description ? (
-            <p className="text-xs text-muted-foreground">{description}</p>
+            {description ? (
+              <p className="text-xs text-muted-foreground">{description}</p>
+            ) : null}
+          </div>
+          {actions ? (
+            <div className="flex shrink-0 items-center gap-2">{actions}</div>
           ) : null}
         </div>
-        {actions ? (
-          <div className="flex shrink-0 items-center gap-2">{actions}</div>
-        ) : null}
-      </div>
+      ) : null}
 
       {error ? (
         <div role="alert">

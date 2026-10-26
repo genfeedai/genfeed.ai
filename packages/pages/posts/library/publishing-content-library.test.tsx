@@ -15,6 +15,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -181,8 +182,10 @@ describe('PublishingContentLibrary', () => {
       .findLast(Boolean);
     render(filters);
 
+    await userEvent.click(screen.getByRole('button', { name: 'menu' }));
+
     expect(
-      screen.getByRole('combobox', { name: 'toolbar.sourceAria' }),
+      await screen.findByRole('menuitem', { name: /sourceAria/ }),
     ).toBeVisible();
   });
 
@@ -292,10 +295,10 @@ describe('PublishingContentLibrary', () => {
     const [filters] = mocks.setFiltersNode.mock.calls.at(-1) ?? [];
     const toolbar = render(filters);
     expect(
-      toolbar.queryByPlaceholderText('Search posts'),
+      toolbar.queryByPlaceholderText('toolbar.searchPlaceholder'),
     ).not.toBeInTheDocument();
     const leading = render(search);
-    const input = leading.getByPlaceholderText('Search posts');
+    const input = leading.getByPlaceholderText('toolbar.searchPlaceholder');
     expect(input).toHaveValue('launch');
     fireEvent.change(input, { target: { value: 'updated' } });
     fireEvent.keyDown(input, { key: 'Enter' });

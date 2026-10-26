@@ -336,6 +336,24 @@ export default function PublishingContentLibrary() {
     [pathname, router, searchParamsString],
   );
 
+  const clearFilters = useCallback(() => {
+    const params = new URLSearchParams(searchParamsString);
+    for (const key of [
+      'page',
+      'platform',
+      'publicationState',
+      'source',
+      'status',
+      'type',
+    ]) {
+      params.delete(key);
+    }
+    const queryString = params.toString();
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      scroll: false,
+    });
+  }, [pathname, router, searchParamsString]);
+
   const getDetailHref = useCallback(
     (item: PublishingContentLibraryItem) => {
       if (item.release) {
@@ -595,17 +613,16 @@ export default function PublishingContentLibrary() {
     );
     setFiltersNode(
       <PublishingContentLibraryToolbar
-        showSearch={false}
         accountOptions={accountOptions}
         channelOptions={channelOptions}
         channelValue={channel}
-        searchValue={search}
+        items={items}
         sourceValue={source}
         statusOptions={statusOptions}
         statusValue={status}
         typeValue={type}
         onChannelChange={(value) => replaceQueryParam('platform', value)}
-        onSearchChange={(value) => replaceQueryParam('search', value)}
+        onClear={clearFilters}
         onSourceChange={(value) => replaceQueryParam('source', value ?? '')}
         onStatusChange={(value) => replaceQueryParam('status', value)}
         onTypeChange={(value) => replaceQueryParam('type', value)}
@@ -620,6 +637,8 @@ export default function PublishingContentLibrary() {
     accountOptions,
     channel,
     channelOptions,
+    clearFilters,
+    items,
     replaceQueryParam,
     search,
     setFiltersNode,
@@ -741,7 +760,7 @@ export default function PublishingContentLibrary() {
           onRowClick={openRowOverlay}
         />
       </CollectionSection>
-      <CollectionSection title={translate('all')} isLoading={isLoading}>
+      <CollectionSection isLoading={isLoading}>
         {filteredItems.length > 0 && (view === 'grid' || view === 'board') ? (
           view === 'grid' ? (
             <div className="grid grid-cols-1 gap-4 @[40rem]:grid-cols-2 @[60rem]:grid-cols-3">

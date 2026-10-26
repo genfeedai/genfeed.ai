@@ -230,11 +230,15 @@ test.describe('Discovery section', () => {
       );
 
       // The Desk's source filter is URL-backed (`?source=`) — select a
-      // non-default tab so refresh has real state to preserve.
-      const trendsTab = authenticatedPage.getByRole('tab', {
-        name: 'Public trends',
-      });
-      await trendsTab.click();
+      // non-default source in the Filters menu so refresh has real state to
+      // preserve.
+      await authenticatedPage.getByRole('button', { name: /^Filters/ }).click();
+      await authenticatedPage
+        .getByRole('menuitem', { name: /^Source/ })
+        .click();
+      await authenticatedPage
+        .getByRole('menuitemradio', { name: /^Public trends/ })
+        .click();
       await expect(authenticatedPage).toHaveURL(/source=trends/);
       await expect(
         authenticatedPage.getByText('Workflow demo clip'),
@@ -254,9 +258,11 @@ test.describe('Discovery section', () => {
       await expect(authenticatedPage).toHaveURL(/source=trends/);
       await expect(discoveryPage.mainContent).toBeVisible();
 
-      // The active tab and the row filtering it drives must both survive
+      // The active source and the row filtering it drives must both survive
       // the reload — not only the URL param.
-      await expect(trendsTab).toHaveAttribute('data-state', 'active');
+      await expect(
+        authenticatedPage.getByRole('button', { name: /^Filters/ }),
+      ).toContainText('1');
       await expect(
         authenticatedPage.getByText('Workflow demo clip'),
       ).toBeVisible();

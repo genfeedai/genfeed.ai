@@ -96,7 +96,7 @@ test.describe('Discovery — deep interactions', () => {
     await assertNoErrorBoundaryFallback(authenticatedPage, `${BASE}/overview`);
   });
 
-  test('Desk source tabs filter visible rows and update the URL', async ({
+  test('Desk Source filter narrows visible rows and updates the URL', async ({
     authenticatedPage,
   }) => {
     await mockDiscoveryDeskFollowingFeed(authenticatedPage);
@@ -110,11 +110,17 @@ test.describe('Discovery — deep interactions', () => {
       authenticatedPage.getByText('Creator collab teaser'),
     ).toBeVisible();
 
-    const trendsTab = authenticatedPage.getByRole('tab', {
-      name: 'Public trends',
-    });
-    await trendsTab.click();
-    await expect(trendsTab).toHaveAttribute('data-state', 'active');
+    // The source tab strip lives in the one nested Filters menu.
+    await expect(authenticatedPage.getByRole('tab')).toHaveCount(0);
+    const chooseSource = async (name: RegExp) => {
+      await authenticatedPage.getByRole('button', { name: /^Filters/ }).click();
+      await authenticatedPage
+        .getByRole('menuitem', { name: /^Source/ })
+        .click();
+      await authenticatedPage.getByRole('menuitemradio', { name }).click();
+    };
+
+    await chooseSource(/^Public trends/);
     await expect(authenticatedPage).toHaveURL(/source=trends/);
     await expect(
       authenticatedPage.getByText('Workflow demo clip'),
@@ -123,11 +129,7 @@ test.describe('Discovery — deep interactions', () => {
       authenticatedPage.getByText('Creator collab teaser'),
     ).toBeHidden();
 
-    const ownedTab = authenticatedPage.getByRole('tab', {
-      name: 'My accounts',
-    });
-    await ownedTab.click();
-    await expect(ownedTab).toHaveAttribute('data-state', 'active');
+    await chooseSource(/^My accounts/);
     await expect(authenticatedPage).toHaveURL(/source=owned/);
     await expect(
       authenticatedPage.getByText('Workflow demo clip'),
@@ -139,9 +141,7 @@ test.describe('Discovery — deep interactions', () => {
       authenticatedPage.getByRole('heading', { name: 'No saved posts yet' }),
     ).toBeVisible();
 
-    const allTab = authenticatedPage.getByRole('tab', { name: 'All' });
-    await allTab.click();
-    await expect(allTab).toHaveAttribute('data-state', 'active');
+    await chooseSource(/^All/);
     await expect(
       authenticatedPage.getByText('Workflow demo clip'),
     ).toBeVisible();
@@ -152,30 +152,23 @@ test.describe('Discovery — deep interactions', () => {
     await assertNoErrorBoundaryFallback(authenticatedPage, `${BASE}/overview`);
   });
 
-  test('accessibility: Desk source tabs are keyboard operable', async ({
+  test('accessibility: the Desk Source filter is keyboard operable', async ({
     authenticatedPage,
   }) => {
     await mockDiscoveryDeskFollowingFeed(authenticatedPage);
 
     await assertRouteRenders(authenticatedPage, `${BASE}/overview`);
 
-    // WAI-ARIA tab pattern: a role="tab" button must be operable by
-    // keyboard, not only by pointer. This is a dedicated accessibility
-    // check, kept separate from the functional coverage above (which now
-    // uses ordinary pointer clicks after #5400 fixed the header so the
-    // tabs no longer collapse under the workspace-inspector rail).
-    const trendsTab = authenticatedPage.getByRole('tab', {
-      name: 'Public trends',
-    });
-    await trendsTab.focus();
-    await trendsTab.press('Enter');
-    await expect(trendsTab).toHaveAttribute('data-state', 'active');
+    const filters = authenticatedPage.getByRole('button', { name: /^Filters/ });
+    await filters.focus();
+    await filters.press('Enter');
+    const source = authenticatedPage.getByRole('menuitem', { name: /^Source/ });
+    await source.focus();
+    await source.press('ArrowRight');
+    await authenticatedPage
+      .getByRole('menuitemradio', { name: /^Public trends/ })
+      .press('Enter');
     await expect(authenticatedPage).toHaveURL(/source=trends/);
-
-    const allTab = authenticatedPage.getByRole('tab', { name: 'All' });
-    await allTab.focus();
-    await allTab.press('Enter');
-    await expect(allTab).toHaveAttribute('data-state', 'active');
   });
 
   test('Ads page renders, refresh re-fetches, and platform tabs switch with observable state', async ({

@@ -91,23 +91,15 @@ export class PostsPage {
       'h1:has-text("Posts"), [data-testid="page-title"]',
     );
 
-    // Content library filters (toolbar rendered by
-    // PublishingContentLibraryToolbar). The type Select and the channel menu
-    // (a plain button opening the shared DropdownChannel, not a combobox)
-    // keep a stable aria-label; the status multiselect's accessible name is its
-    // placeholder text since none of our fixtures pre-select a real status
-    // option (the legacy `publicationState` bucket values, e.g.
-    // 'not-posted', never match a real status option value).
-    this.contentTypeFilterTrigger = page.locator(
-      'button[role="combobox"][aria-label="Content type"]',
-    );
-    this.channelFilterTrigger = page.getByRole('button', {
-      exact: true,
-      name: 'Channel',
+    // Content library filters: type, channel, source and status are facets of
+    // the one shared Filters menu (see `selectFilter`).
+    this.contentTypeFilterTrigger = page.getByRole('menuitem', {
+      name: /^Type/,
     });
-    this.statusFilterTrigger = page.getByRole('button', {
-      name: 'All statuses',
+    this.channelFilterTrigger = page.getByRole('menuitem', {
+      name: /^Channel/,
     });
+    this.statusFilterTrigger = page.getByRole('menuitem', { name: /^Status/ });
 
     // View toggles
     this.gridViewButton = page.locator(

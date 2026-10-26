@@ -1,19 +1,15 @@
 'use client';
 
 import { ComponentSize, PostStatus } from '@genfeedai/contracts';
-import PostsSourceSelect from '@pages/posts/list/components/PostsSourceSelect';
-import type {
-  PostsSourceFilter,
-  PublishingPostsView,
-} from '@pages/posts/list/posts-list-query';
-import FormSearchbar from '@ui/primitives/searchbar';
+import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
+  POSTS_SOURCE_EXTENSION,
+  type PostsSourceFilter,
+  type PublishingPostsView,
+  parsePostsSource,
+} from '@pages/posts/list/posts-list-query';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
+import FormSearchbar from '@ui/primitives/searchbar';
 import { useTranslations } from 'next-intl';
 
 export interface PostsListToolbarOption {
@@ -33,11 +29,8 @@ const PUBLISHING_VIEW_OPTIONS: {
 ];
 
 export interface PostsListToolbarProps {
-  showSearch?: boolean;
-  searchValue: string;
   sortValue: string;
   sortOptions: PostsListToolbarOption[];
-  onSearchChange: (value: string) => void;
   onSortChange: (value: string) => void;
   onPublishingViewChange?: (value: PublishingPostsView) => void;
   onSourceChange?: (value: PostsSourceFilter | undefined) => void;
@@ -45,31 +38,33 @@ export interface PostsListToolbarProps {
   sourceValue?: PostsSourceFilter;
 }
 
+export interface PostsListSearchProps {
+  searchValue: string;
+  onSearchChange: (value: string) => void;
+}
+
+/** Rests as an icon, like the Library search. */
 export function PostsListSearch({
   searchValue,
   onSearchChange,
-}: Pick<PostsListToolbarProps, 'searchValue' | 'onSearchChange'>) {
+}: PostsListSearchProps) {
   const translate = useTranslations('pages.posts.list');
   return (
-    <div className="w-48 sm:w-56 xl:w-64">
-      <FormSearchbar
-        value={searchValue}
-        onSearch={onSearchChange}
-        placeholder={translate('toolbar.searchPlaceholder')}
-        // SM keeps the control on the same 32px shell row as ViewToggle + refresh.
-        size={ComponentSize.SM}
-        className="w-full"
-      />
-    </div>
+    <FormSearchbar
+      isCollapsible
+      onSearch={onSearchChange}
+      placeholder={translate('toolbar.searchPlaceholder')}
+      // SM keeps the control on the same 32px shell row as ViewToggle + refresh.
+      size={ComponentSize.SM}
+      value={searchValue}
+    />
   );
 }
 
+/** Publishing state, source and sort behind the shared Filters menu. */
 export default function PostsListToolbar({
-  showSearch = true,
-  searchValue,
   sortValue,
   sortOptions,
-  onSearchChange,
   onSortChange,
   onPublishingViewChange,
   onSourceChange,
@@ -77,61 +72,63 @@ export default function PostsListToolbar({
   sourceValue,
 }: PostsListToolbarProps) {
   const translate = useTranslations('pages.posts.list');
+  const translateMenu = useTranslations('ui.filtersButton');
+
+  const facets: FilterMenuFacet[] = [];
+
+  if (publishingView && onPublishingViewChange) {
+    facets.push({
+      // A list always shows one publishing state, so it picks a view rather
+      // than narrowing: it never lights the active-filter badge.
+      isCounted: false,
+      key: 'publishing-state',
+      label: translate('toolbar.publishingStateAria'),
+      onChange: (value) => onPublishingViewChange(value as PublishingPostsView),
+      options: PUBLISHING_VIEW_OPTIONS.map((option) => ({
+        label: translate(`toolbar.${option.messageKey}`),
+        value: option.value,
+      })),
+      selection: 'single',
+      value: publishingView,
+    });
+  }
+
+  if (onSourceChange) {
+    facets.push({
+      defaultValue: 'all',
+      key: 'source',
+      label: translate('toolbar.sourceAria'),
+      onChange: (value) => onSourceChange(parsePostsSource(value)),
+      options: [
+        { label: translateMenu('all'), value: 'all' },
+        {
+          label: translate('toolbar.sourceExtension'),
+          value: POSTS_SOURCE_EXTENSION,
+        },
+      ],
+      selection: 'single',
+      value: sourceValue ?? 'all',
+    });
+  }
+
+  facets.push({
+    isCounted: false,
+    key: 'sort',
+    label: translate('toolbar.sortAria'),
+    onChange: onSortChange,
+    options: sortOptions,
+    selection: 'single',
+    value: sortValue,
+  });
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      {showSearch ? (
-        <PostsListSearch
-          searchValue={searchValue}
-          onSearchChange={onSearchChange}
-        />
-      ) : null}
-
-      {publishingView && onPublishingViewChange ? (
-        <Select
-          value={publishingView}
-          onValueChange={(value) =>
-            onPublishingViewChange(value as PublishingPostsView)
-          }
-        >
-          <SelectTrigger
-            aria-label={translate('toolbar.publishingStateAria')}
-            className="w-32"
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {PUBLISHING_VIEW_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {translate(`toolbar.${option.messageKey}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      ) : null}
-
-      {onSourceChange ? (
-        <PostsSourceSelect
-          onSourceChange={onSourceChange}
-          sourceValue={sourceValue}
-        />
-      ) : null}
-
-      <Select value={sortValue} onValueChange={onSortChange}>
-        <SelectTrigger
-          aria-label={translate('toolbar.sortAria')}
-          className="w-40"
-        >
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {sortOptions.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+    <FilterMenu
+      allLabel={translateMenu('all')}
+      clearLabel={translateMenu('clear')}
+      facets={facets}
+      getActiveCountLabel={(count) => translateMenu('activeCount', { count })}
+      label={translateMenu('menu')}
+      onClear={() => onSourceChange?.(undefined)}
+    />
   );
 }

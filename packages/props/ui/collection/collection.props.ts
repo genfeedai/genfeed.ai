@@ -23,8 +23,11 @@ export interface UseCollectionViewPreferenceReturn {
 }
 
 export interface CollectionSectionProps {
-  /** Section heading. Rendered as an h2 so sections are page landmarks. */
-  title: ReactNode;
+  /**
+   * Section heading, rendered as an h2 so sections are page landmarks. Leave it
+   * out when the section is the page's only content: the breadcrumb is the title.
+   */
+  title?: ReactNode;
   description?: ReactNode;
   /** Trailing header slot — a "View all" link or a section-level action. */
   actions?: ReactNode;

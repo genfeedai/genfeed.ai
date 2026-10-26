@@ -1,7 +1,6 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import Module from './PostsListToolbar.tsx';
 
@@ -12,71 +11,64 @@ vi.mock('next-intl', async () => {
 
 const sortOptions = [{ label: 'Newest First', value: 'createdAt: -1' }];
 
-describe('PostsListToolbar.tsx', () => {
-  const source = readFileSync(
-    join(import.meta.dirname, 'PostsListToolbar.tsx'),
-    'utf8',
-  );
+async function openFilters() {
+  const user = userEvent.setup();
+  await user.click(screen.getByRole('button', { name: /^Filters/ }));
+  return user;
+}
 
+describe('PostsListToolbar.tsx', () => {
   it('exports a component', () => {
     expect(Module).toBeDefined();
   });
 
-  it('resolves publisher view labels through the host pages catalog', () => {
-    expect(source).toContain("useTranslations('pages.posts.list')");
-    expect(source).toContain("translate('toolbar.sortAria')");
-    expect(source).not.toContain('Held as data rather than inline JSX');
-    expect(source).not.toContain("label: 'Not posted'");
-    expect(source).not.toContain('aria-label="Sort"');
-  });
-
-  it('does not accept route navigation as toolbar content', () => {
-    expect(source).not.toContain('viewNode');
-    expect(source).not.toContain('ReactNode');
-  });
-
-  it('offers the Source filter only when a handler is supplied', () => {
-    const { rerender } = render(
-      <Module
-        onSearchChange={vi.fn()}
-        onSortChange={vi.fn()}
-        searchValue=""
-        sortOptions={sortOptions}
-        sortValue="createdAt: -1"
-      />,
-    );
-    expect(
-      screen.queryByRole('combobox', { name: 'Source' }),
-    ).not.toBeInTheDocument();
-
-    rerender(
-      <Module
-        onSearchChange={vi.fn()}
-        onSortChange={vi.fn()}
-        onSourceChange={vi.fn()}
-        searchValue=""
-        sortOptions={sortOptions}
-        sortValue="createdAt: -1"
-      />,
-    );
-    expect(screen.getByRole('combobox', { name: 'Source' })).toHaveTextContent(
-      'All sources',
-    );
-  });
-
-  it('shows the stored extension source as the Imported label', () => {
+  it('puts every control behind the one shared Filters menu', async () => {
     render(
       <Module
-        onSearchChange={vi.fn()}
+        onPublishingViewChange={vi.fn()}
         onSortChange={vi.fn()}
         onSourceChange={vi.fn()}
-        searchValue=""
+        publishingView="not-posted"
+        sortOptions={sortOptions}
+        sortValue="createdAt: -1"
+      />,
+    );
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+
+    await openFilters();
+    expect(
+      screen.getByRole('menuitem', { name: /Publishing state/ }),
+    ).toBeVisible();
+    expect(screen.getByRole('menuitem', { name: /Source/ })).toBeVisible();
+    expect(screen.getByRole('menuitem', { name: /Sort/ })).toBeVisible();
+  });
+
+  it('offers the Source filter only when a handler is supplied', async () => {
+    render(
+      <Module
+        onSortChange={vi.fn()}
+        sortOptions={sortOptions}
+        sortValue="createdAt: -1"
+      />,
+    );
+    await openFilters();
+    expect(
+      screen.queryByRole('menuitem', { name: /Source/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the stored extension source as the Imported label', async () => {
+    render(
+      <Module
+        onSortChange={vi.fn()}
+        onSourceChange={vi.fn()}
         sortOptions={sortOptions}
         sortValue="createdAt: -1"
         sourceValue="extension"
       />,
     );
-    expect(screen.getByRole('combobox', { name: 'Source' })).toHaveTextContent(
+    await openFilters();
+    expect(screen.getByRole('menuitem', { name: /Source/ })).toHaveTextContent(
       'Imported',
     );
   });

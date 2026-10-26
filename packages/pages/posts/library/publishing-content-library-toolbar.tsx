@@ -1,141 +1,198 @@
 'use client';
 
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
-import type { PublishingContentTypeFilter } from '@pages/posts/library/publishing-content-library.helpers';
-import { PUBLISHING_CONTENT_TYPES } from '@pages/posts/library/publishing-content-library.helpers';
-import PostsSourceSelect from '@pages/posts/list/components/PostsSourceSelect';
-import type { PostsSourceFilter } from '@pages/posts/list/posts-list-query';
-import type { PublishingContentAccount } from '@props/posts/publishing-content-entry.props';
-import DropdownChannel from '@ui/dropdowns/channel/DropdownChannel';
-import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
-import { ghostSelectTriggerClassName } from '@ui/primitives/field-control';
-import FormSearchbar from '@ui/primitives/searchbar';
+import { ComponentSize } from '@genfeedai/contracts';
+import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
+import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
+import type {
+  PublishingContentLibraryItem,
+  PublishingContentTypeFilter,
+} from '@pages/posts/library/publishing-content-library.helpers';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
+  formatPublishingContentStatus,
+  PUBLISHING_CONTENT_TYPES,
+} from '@pages/posts/library/publishing-content-library.helpers';
+import {
+  POSTS_SOURCE_EXTENSION,
+  type PostsSourceFilter,
+  parsePostsSource,
+} from '@pages/posts/list/posts-list-query';
+import type { PublishingContentAccount } from '@props/posts/publishing-content-entry.props';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
+import FormSearchbar from '@ui/primitives/searchbar';
+import { Globe, Mail, Share2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import type { ReactNode } from 'react';
 
 interface FilterOption {
   label: string;
   value: string;
 }
 
+const CHANNEL_ACCOUNT_PREFIX = 'account:';
+const FACET_ALL = 'all';
+
 export interface PublishingContentLibraryToolbarProps {
-  showSearch?: boolean;
   accountOptions: PublishingContentAccount[];
   channelOptions: FilterOption[];
   channelValue: string;
-  searchValue: string;
+  /** Unfiltered rows; the facets show how many results sit behind each option. */
+  items: readonly PublishingContentLibraryItem[];
   sourceValue?: PostsSourceFilter;
   statusOptions: FilterOption[];
   statusValue: string[];
   typeValue: PublishingContentTypeFilter;
   onChannelChange: (value: string) => void;
-  onSearchChange: (value: string) => void;
+  onClear: () => void;
   onSourceChange: (value: PostsSourceFilter | undefined) => void;
   onStatusChange: (value: string[]) => void;
   onTypeChange: (value: PublishingContentTypeFilter) => void;
 }
 
+export interface PublishingContentLibrarySearchProps {
+  searchValue: string;
+  onSearchChange: (value: string) => void;
+}
+
+/** Rests as an icon, like the Library search. */
 export function PublishingContentLibrarySearch({
   searchValue,
   onSearchChange,
-}: Pick<
-  PublishingContentLibraryToolbarProps,
-  'searchValue' | 'onSearchChange'
->) {
+}: PublishingContentLibrarySearchProps) {
+  const translate = useTranslations('pages.posts.list');
+
   return (
-    <div className="w-40 @[56rem]/publishing:w-64">
-      <FormSearchbar
-        value={searchValue}
-        onSearch={onSearchChange}
-        placeholder="Search posts"
-        size={ComponentSize.SM}
-        className="w-full"
-      />
-    </div>
+    <FormSearchbar
+      isCollapsible
+      onSearch={onSearchChange}
+      placeholder={translate('toolbar.searchPlaceholder')}
+      size={ComponentSize.SM}
+      value={searchValue}
+    />
   );
 }
 
+function renderChannelIcon(channel: string): ReactNode {
+  return (
+    getPlatformIcon(channel, 'size-4') ??
+    (channel === 'email' ? (
+      <Mail aria-hidden="true" className="size-4" />
+    ) : channel === 'web' ? (
+      <Globe aria-hidden="true" className="size-4" />
+    ) : (
+      <Share2 aria-hidden="true" className="size-4" />
+    ))
+  );
+}
+
+/**
+ * Type, channel, source and status behind the shared Filters menu, the same
+ * control the Library uses, so the subbar is one line at any width.
+ */
 export default function PublishingContentLibraryToolbar({
-  showSearch = true,
   accountOptions,
   channelOptions,
   channelValue,
-  searchValue,
+  items,
   sourceValue,
   statusOptions,
   statusValue,
   typeValue,
   onChannelChange,
-  onSearchChange,
+  onClear,
   onSourceChange,
   onStatusChange,
   onTypeChange,
 }: PublishingContentLibraryToolbarProps) {
+  const translate = useTranslations('pages.posts.list.toolbar');
+  const translateMenu = useTranslations('ui.filtersButton');
+  const allLabel = translateMenu('all');
+
+  const typeLabels: Record<(typeof PUBLISHING_CONTENT_TYPES)[number], string> =
+    {
+      article: translate('typeArticle'),
+      newsletter: translate('typeNewsletter'),
+      post: translate('typePost'),
+    };
+
+  const facets: FilterMenuFacet[] = [
+    {
+      defaultValue: FACET_ALL,
+      key: 'type',
+      label: translate('typeAria'),
+      onChange: (value) => onTypeChange(value as PublishingContentTypeFilter),
+      options: [
+        { count: items.length, label: allLabel, value: FACET_ALL },
+        ...PUBLISHING_CONTENT_TYPES.map((type) => ({
+          count: items.filter((item) => item.type === type).length,
+          label: typeLabels[type],
+          value: type,
+        })),
+      ],
+      selection: 'single',
+      value: typeValue,
+    },
+    {
+      defaultValue: FACET_ALL,
+      key: 'channel',
+      label: translate('channelAria'),
+      onChange: onChannelChange,
+      options: [
+        { count: items.length, label: allLabel, value: FACET_ALL },
+        ...accountOptions.map((account) => ({
+          count: items.filter((item) =>
+            item.accounts?.some((candidate) => candidate.id === account.id),
+          ).length,
+          icon: renderChannelIcon(account.platform),
+          isLiteral: true,
+          label: account.label,
+          value: `${CHANNEL_ACCOUNT_PREFIX}${account.id}`,
+        })),
+        ...channelOptions.map((channel) => ({
+          count: items.filter((item) =>
+            (item.channels ?? [item.channel]).includes(channel.value),
+          ).length,
+          icon: renderChannelIcon(channel.value),
+          label: channel.label,
+          value: channel.value,
+        })),
+      ],
+      searchPlaceholder: translate('searchChannels'),
+      selection: 'single',
+      value: channelValue,
+    },
+    {
+      defaultValue: FACET_ALL,
+      key: 'source',
+      label: translate('sourceAria'),
+      onChange: (value) => onSourceChange(parsePostsSource(value)),
+      options: [
+        { label: translate('sourceExtension'), value: POSTS_SOURCE_EXTENSION },
+      ],
+      selection: 'single',
+      value: sourceValue ?? FACET_ALL,
+    },
+    {
+      key: 'status',
+      label: translate('statusAria'),
+      onChange: onStatusChange,
+      options: statusOptions.map((option) => ({
+        count: items.filter((item) => item.status === option.value).length,
+        label: option.label || formatPublishingContentStatus(option.value),
+        value: option.value,
+      })),
+      selection: 'multiple',
+      values: statusValue,
+    },
+  ];
+
   return (
-    // Tiers key off the Publishing page width (`@container/publishing` on the
-    // layout Container), so opening the inspector compacts the row — narrower
-    // search, icon-only Approval Queue — instead of wrapping it. Items only
-    // wrap as a last resort on phone widths.
-    <div className="flex flex-wrap items-center justify-end gap-2">
-      {showSearch ? (
-        <PublishingContentLibrarySearch
-          searchValue={searchValue}
-          onSearchChange={onSearchChange}
-        />
-      ) : null}
-
-      <Select
-        value={typeValue}
-        onValueChange={(value) =>
-          onTypeChange(value as PublishingContentTypeFilter)
-        }
-      >
-        <SelectTrigger
-          aria-label="Content type"
-          className={ghostSelectTriggerClassName}
-        >
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All types</SelectItem>
-          {PUBLISHING_CONTENT_TYPES.map((type) => (
-            <SelectItem key={type} value={type}>
-              {type === 'post'
-                ? 'Social posts'
-                : type === 'article'
-                  ? 'Articles'
-                  : 'Newsletters'}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <DropdownChannel
-        accounts={accountOptions}
-        ariaLabel="Channel"
-        channels={channelOptions}
-        value={channelValue}
-        onChange={onChannelChange}
-      />
-
-      <PostsSourceSelect
-        onSourceChange={onSourceChange}
-        sourceValue={sourceValue}
-      />
-
-      <DropdownMultiSelect
-        variant={ButtonVariant.GHOST}
-        name="status"
-        options={statusOptions}
-        values={statusValue}
-        onChange={(_name, values) => onStatusChange(values)}
-        placeholder="All statuses"
-      />
-    </div>
+    <FilterMenu
+      allLabel={translateMenu('all')}
+      clearLabel={translateMenu('clear')}
+      facets={facets}
+      getActiveCountLabel={(count) => translateMenu('activeCount', { count })}
+      label={translateMenu('menu')}
+      onClear={onClear}
+    />
   );
 }
