@@ -17,6 +17,7 @@ import { ContentRunsService } from '@services/content/content-runs.service';
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Container from '@ui/layout/container/Container';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   ChartColumn,
@@ -183,11 +184,7 @@ function Panel({
 }
 
 function Pill({ children }: { children: ReactNode }) {
-  return (
-    <span className="rounded-full bg-secondary px-2 py-1 text-2xs uppercase text-foreground/60 shadow-border">
-      {children}
-    </span>
-  );
+  return <Badge variant="secondary">{children}</Badge>;
 }
 
 function Section({

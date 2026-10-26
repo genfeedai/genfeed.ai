@@ -3,6 +3,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { WorkspaceTaskOutputsCardProps } from '@props/workspace/workspace-task-outputs-card.props';
 import Card from '@ui/card/Card';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import {
@@ -65,9 +66,9 @@ export function WorkspaceTaskOutputsCard({
                   <p className="font-medium text-foreground">
                     {getWorkspaceLinkedOutputTitle(group.root)}
                   </p>
-                  <span className="rounded-full border border-border px-2 py-1 text-2xs font-semibold uppercase tracking-[0.14em] text-foreground/55">
+                  <Badge variant="secondary">
                     {outputs.length} variant{outputs.length === 1 ? '' : 's'}
-                  </span>
+                  </Badge>
                 </div>
 
                 <div className="divide-y divide-border">
@@ -94,9 +95,7 @@ export function WorkspaceTaskOutputsCard({
                             </p>
                           </div>
                           {isKept ? (
-                            <span className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-2 py-1 text-2xs font-semibold uppercase tracking-[0.14em] text-emerald-300">
-                              Kept
-                            </span>
+                            <Badge variant="success">Kept</Badge>
                           ) : null}
                         </div>
 

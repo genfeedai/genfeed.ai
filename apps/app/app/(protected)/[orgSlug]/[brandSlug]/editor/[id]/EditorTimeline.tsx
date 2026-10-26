@@ -10,6 +10,7 @@ import type {
   EditorTimelineProps,
   TrackRowProps,
 } from '@props/studio/editor-timeline.props';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { useCallback, useRef, useState } from 'react';
 import { formatTimelineFrameTime } from './editor-time-format.util';
@@ -82,9 +83,7 @@ function TrackRow({
     <div className="flex border-b border-border">
       {/* Track header */}
       <div className="flex w-48 shrink-0 items-center gap-2 border-r border-border bg-card px-3 py-2">
-        <span className="rounded bg-muted px-1.5 py-0.5 text-2xs font-semibold uppercase text-foreground/60">
-          {trackLabel}
-        </span>
+        <Badge variant="secondary">{trackLabel}</Badge>
         <span className="truncate text-sm font-medium">{track.name}</span>
         <div className="ml-auto flex items-center gap-1">
           <Button

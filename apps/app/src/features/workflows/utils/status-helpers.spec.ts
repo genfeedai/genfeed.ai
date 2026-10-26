@@ -5,7 +5,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import {
   formatLifecycleLabel,
-  getLifecycleBadgeClass,
+  getLifecycleBadgeVariant,
   getStatusBorderColor,
   getStatusColor,
   getStatusIcon,
@@ -69,21 +69,19 @@ describe('getStatusBorderColor', () => {
     ));
 });
 
-describe('getLifecycleBadgeClass', () => {
+describe('getLifecycleBadgeVariant', () => {
   it('published', () =>
-    expect(getLifecycleBadgeClass(WorkflowLifecycle.PUBLISHED)).toContain(
+    expect(getLifecycleBadgeVariant(WorkflowLifecycle.PUBLISHED)).toBe(
       'success',
     ));
   it('archived', () =>
-    expect(getLifecycleBadgeClass(WorkflowLifecycle.ARCHIVED)).toBe(
-      'border border-border bg-foreground/[0.04] text-foreground/55',
+    expect(getLifecycleBadgeVariant(WorkflowLifecycle.ARCHIVED)).toBe(
+      'secondary',
     ));
   it('draft/default', () =>
-    expect(getLifecycleBadgeClass(WorkflowLifecycle.DRAFT)).toContain(
-      'warning',
-    ));
+    expect(getLifecycleBadgeVariant(WorkflowLifecycle.DRAFT)).toBe('warning'));
   it('undefined', () =>
-    expect(getLifecycleBadgeClass(undefined)).toContain('warning'));
+    expect(getLifecycleBadgeVariant(undefined)).toBe('warning'));
 });
 
 describe('formatLifecycleLabel', () => {

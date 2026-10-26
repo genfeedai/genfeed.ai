@@ -2,6 +2,7 @@
 
 import type { ModelCapability } from '@genfeedai/contracts/types';
 import { ModelCapabilityEnum } from '@genfeedai/contracts/types';
+import { Badge } from '@ui/primitives/badge';
 
 const CAPABILITY_LABELS: Record<ModelCapability, string> = {
   [ModelCapabilityEnum.TEXT_TO_IMAGE]: 'txt->img',
@@ -16,9 +17,5 @@ export function CapabilityBadge({
 }: {
   capability: ModelCapability;
 }) {
-  return (
-    <span className="rounded bg-secondary px-1.5 py-0.5 text-2xs text-muted-foreground">
-      {CAPABILITY_LABELS[capability]}
-    </span>
-  );
+  return <Badge variant="secondary">{CAPABILITY_LABELS[capability]}</Badge>;
 }

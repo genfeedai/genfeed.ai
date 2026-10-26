@@ -10,6 +10,7 @@ import {
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import Card from '@ui/card/Card';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -146,20 +147,20 @@ export default function JourneyPageContent() {
                       <h2 className="text-lg font-semibold text-foreground">
                         {mission.label}
                       </h2>
-                      <span className="rounded-full bg-warning/10 px-2.5 py-1 text-xs font-semibold text-warning">
+                      <Badge variant="warning">
                         {translate('missionReward', {
                           count: mission.rewardCredits,
                         })}
-                      </span>
+                      </Badge>
                       {isRecommended ? (
-                        <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary">
+                        <Badge variant="default">
                           {translate('recommendedNext')}
-                        </span>
+                        </Badge>
                       ) : null}
                       {isCompleted ? (
-                        <span className="rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold text-success">
+                        <Badge variant="success">
                           {translate('completed')}
-                        </span>
+                        </Badge>
                       ) : null}
                     </div>
 

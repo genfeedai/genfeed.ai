@@ -1,6 +1,7 @@
 'use client';
 
 import { Code } from '@genfeedai/ui';
+import { Badge } from '@ui/primitives/badge';
 import type { NodeProps } from '@xyflow/react';
 import { memo } from 'react';
 import { isNodeDataRecord } from '@/features/workflows/nodes/node-data';
@@ -25,9 +26,7 @@ function UnknownWorkflowNodeComponent({
         <h3 className="truncate text-sm font-semibold text-foreground">
           {label}
         </h3>
-        <span className="rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-2xs font-medium text-red-300">
-          Unsupported
-        </span>
+        <Badge variant="destructive">Unsupported</Badge>
       </div>
       <p className="text-xs text-muted-foreground">
         This workflow contains a node type the editor cannot render yet.

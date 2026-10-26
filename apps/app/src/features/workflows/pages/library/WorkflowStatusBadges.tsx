@@ -1,10 +1,11 @@
 'use client';
 
+import { Badge } from '@ui/primitives/badge';
 import { Cloud, CloudUpload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
   formatLifecycleLabel,
-  getLifecycleBadgeClass,
+  getLifecycleBadgeVariant,
   isNonDefaultWorkflowLifecycle,
 } from '@/features/workflows/utils/status-helpers';
 import type { WorkflowStatusBadgesProps } from './workflow-library.types';
@@ -25,29 +26,21 @@ export default function WorkflowStatusBadges({
   return (
     <span className="flex shrink-0 items-center gap-1 text-xs font-normal">
       {isSystemWorkflow ? (
-        <span className="rounded-full bg-info/10 px-2 py-0.5 text-info">
-          {translate('system')}
-        </span>
+        <Badge variant="info">{translate('system')}</Badge>
       ) : null}
       {isCloudStateVisible && workflow.cloudSync ? (
-        <span className="flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-success">
-          <Cloud className="size-3" />
+        <Badge icon={<Cloud />} variant="success">
           {translate('synced')}
-        </span>
+        </Badge>
       ) : isCloudStateVisible ? (
-        <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
-          <CloudUpload className="size-3" />
+        <Badge icon={<CloudUpload />} variant="secondary">
           {translate('local')}
-        </span>
+        </Badge>
       ) : null}
       {hasLifecycleBadge ? (
-        <span
-          className={`rounded-full px-2 py-0.5 ${getLifecycleBadgeClass(
-            workflow.lifecycle,
-          )}`}
-        >
+        <Badge variant={getLifecycleBadgeVariant(workflow.lifecycle)}>
           {formatLifecycleLabel(workflow.lifecycle)}
-        </span>
+        </Badge>
       ) : null}
     </span>
   );

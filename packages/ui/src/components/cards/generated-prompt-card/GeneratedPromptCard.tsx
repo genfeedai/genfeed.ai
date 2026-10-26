@@ -7,6 +7,7 @@ import type {
   PromptMetadataTagProps,
 } from '@genfeedai/props/studio/prompt-generator.props';
 import Card from '@ui/card/Card';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import {
@@ -164,10 +165,9 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
  */
 function MetadataTag({ icon, label }: PromptMetadataTagProps) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-border bg-foreground/[0.04] px-2 py-0.5 text-2xs text-muted-foreground">
-      {icon}
+    <Badge icon={icon} variant="secondary">
       {label}
-    </span>
+    </Badge>
   );
 }
 

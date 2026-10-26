@@ -13,6 +13,7 @@ import {
   getJsonApiErrorMessage,
 } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   Check,
@@ -412,9 +413,9 @@ export function WorkflowSurfaceInspector({
             </p>
           </div>
           {execution ? (
-            <span className="rounded-full bg-muted px-2 py-0.5 text-2xs text-foreground">
+            <Badge variant="secondary">
               {formatEnumLabel(execution.status)}
-            </span>
+            </Badge>
           ) : null}
         </div>
 

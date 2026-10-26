@@ -269,7 +269,7 @@ vi.mock('@/features/workflows/services/workflow-api', () => ({
 vi.mock('@/features/workflows/utils/status-helpers', () => ({
   formatLifecycleLabel: (lifecycle: string) =>
     lifecycle.charAt(0).toUpperCase() + lifecycle.slice(1),
-  getLifecycleBadgeClass: () => 'lifecycle-badge',
+  getLifecycleBadgeVariant: () => 'secondary',
   isNonDefaultWorkflowLifecycle: (lifecycle: string) =>
     lifecycle === 'published' || lifecycle === 'archived',
 }));
@@ -513,7 +513,7 @@ describe('WorkflowLibraryPage card semantics', () => {
     const { unmount } = render(<WorkflowLibraryPage />);
 
     expect(screen.getByText('synced')).toHaveClass(
-      'bg-success/10',
+      'bg-success/15',
       'text-success',
     );
 
@@ -521,7 +521,7 @@ describe('WorkflowLibraryPage card semantics', () => {
     mocks.isSystemWorkflow = true;
     render(<WorkflowLibraryPage />);
 
-    expect(screen.getByText('System')).toHaveClass('bg-info/10', 'text-info');
+    expect(screen.getByText('System')).toHaveClass('bg-info/15', 'text-info');
   });
 
   it('labels unsynced desktop workflows as local', () => {
@@ -530,7 +530,7 @@ describe('WorkflowLibraryPage card semantics', () => {
     render(<WorkflowLibraryPage />);
 
     expect(screen.getByText('local')).toHaveClass(
-      'bg-muted',
+      'bg-tertiary',
       'text-muted-foreground',
     );
   });
@@ -538,7 +538,7 @@ describe('WorkflowLibraryPage card semantics', () => {
   it('labels published lifecycle and keeps the pause switch off the cramped header', () => {
     render(<WorkflowLibraryPage />);
 
-    expect(screen.getByText('Published')).toHaveClass('lifecycle-badge');
+    expect(screen.getByText('Published')).toHaveClass('bg-tertiary');
     expect(screen.queryByText('published')).not.toBeInTheDocument();
     expect(
       screen.getByRole('switch', {

@@ -27,6 +27,7 @@ import { usePlatformOAuthConnect } from '@hooks/auth/use-platform-oauth-connect/
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { SocialMessagesService } from '@services/social/messages.service';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   ChevronLeft,
@@ -94,11 +95,7 @@ function StatusPill({ status }: { status: string }) {
 }
 
 function PlatformPill({ platform }: { platform: string }) {
-  return (
-    <span className="inline-flex items-center rounded bg-background-tertiary px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
-      {platform}
-    </span>
-  );
+  return <Badge variant="secondary">{platform}</Badge>;
 }
 
 function MessageBubble({
@@ -685,15 +682,17 @@ export default function MessagesPage() {
                       <PlatformPill platform={selectedConversation.platform} />
                       <StatusPill status={selectedConversation.status} />
                       {isReadOnly ? (
-                        <span className="inline-flex items-center gap-1 rounded bg-warning/10 px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider text-warning">
-                          <LockKeyhole aria-hidden="true" className="size-3" />
+                        <Badge
+                          icon={<LockKeyhole className="size-3" />}
+                          variant="warning"
+                        >
                           {translate('conversation.readOnly')}
-                        </span>
+                        </Badge>
                       ) : null}
                       {selectedConversation.needsReview ? (
-                        <span className="inline-flex items-center rounded bg-warning/10 px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider text-warning">
+                        <Badge variant="warning">
                           {translate('conversation.review')}
-                        </span>
+                        </Badge>
                       ) : null}
                     </div>
                     <h2 className="truncate text-base font-semibold text-foreground">

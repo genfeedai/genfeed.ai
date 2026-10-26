@@ -24,6 +24,7 @@ import type {
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   Popover,
@@ -237,9 +238,9 @@ function ConversationRow({
             {conversation.latestMessageText || 'No message preview available'}
           </span>
           {conversation.unreadCount > 0 ? (
-            <span className="shrink-0 rounded-full bg-info/15 px-1.5 py-0.5 text-2xs font-semibold tabular-nums text-info">
+            <Badge className="shrink-0 tabular-nums" variant="info">
               {conversation.unreadCount}
-            </span>
+            </Badge>
           ) : null}
         </span>
         <span className="mt-1 flex min-w-0 items-center gap-1.5 text-2xs font-medium text-muted-foreground">

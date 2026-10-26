@@ -8,6 +8,7 @@ import ModelSelectorModelSpec from '@ui/dropdowns/model-selector/ModelSelectorMo
 import ModelSelectorQualityBar from '@ui/dropdowns/model-selector/ModelSelectorQualityBar';
 import { getModelRowCapabilities } from '@ui/dropdowns/model-selector/model-selector.utils';
 import ModelAvatar from '@ui/models/ModelAvatar';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { CommandItem } from '@ui/primitives/command';
@@ -138,15 +139,15 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
           <ModelSelectorCostBadge costTier={costTier} />
 
           {isLocked ? (
-            <span className="shrink-0 rounded-full border border-destructive/20 bg-destructive/10 px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-[0.12em] text-destructive">
+            <Badge className="shrink-0" variant="destructive">
               Credits
-            </span>
+            </Badge>
           ) : null}
 
           {option.isDeprecated && isLegacyBadgeVisible ? (
-            <span className="shrink-0 rounded-full border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-[0.12em] text-amber-300">
+            <Badge className="shrink-0" variant="warning">
               Legacy
-            </span>
+            </Badge>
           ) : null}
 
           <Button

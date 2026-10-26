@@ -24,9 +24,7 @@ export default function ArtifactEditorShell({
         <div className="mx-auto flex max-w-7xl items-start justify-between gap-4 px-6 py-3">
           <div className="min-w-0 flex-1 space-y-1.5">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="gen-label rounded-full border border-border bg-foreground/[0.04] px-2 py-0.5 text-2xs text-foreground/55">
-                {artifactLabel}
-              </span>
+              <Badge variant="secondary">{artifactLabel}</Badge>
               {badges}
               {/* variant, not status — a status badge would relabel itself. */}
               {isDirty ? (

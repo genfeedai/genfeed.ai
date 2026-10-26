@@ -16,6 +16,7 @@ import { useSubscription } from '@genfeedai/hooks/data/subscription/use-subscrip
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import { getDesktopCreditsVisibility } from '@genfeedai/services/core/desktop-runtime.service';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { TriangleAlert, X } from 'lucide-react';
 import Link from 'next/link';
@@ -217,9 +218,12 @@ function LowCreditsContent({
                 {title}
               </p>
               {balanceLabel ? (
-                <span className="whitespace-nowrap rounded-full border border-border bg-secondary px-2 py-0.5 text-2xs font-semibold uppercase tracking-[0.08em] tabular-nums text-foreground/70">
+                <Badge
+                  className="whitespace-nowrap tabular-nums"
+                  variant="secondary"
+                >
                   {balanceLabel}
-                </span>
+                </Badge>
               ) : null}
             </div>
 

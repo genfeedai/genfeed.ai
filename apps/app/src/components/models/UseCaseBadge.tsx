@@ -1,6 +1,7 @@
 'use client';
 
 import type { ModelUseCase } from '@genfeedai/contracts/types';
+import { Badge } from '@ui/primitives/badge';
 import { USE_CASE_CONFIG } from './model-browser-badges.constants';
 
 export function UseCaseBadge({ useCase }: { useCase: ModelUseCase }) {
@@ -9,9 +10,8 @@ export function UseCaseBadge({ useCase }: { useCase: ModelUseCase }) {
   const Icon = config.icon;
 
   return (
-    <span className="inline-flex items-center gap-1 rounded bg-secondary px-1.5 py-0.5 text-2xs font-medium text-muted-foreground border border-border">
-      <Icon className="size-2.5" />
+    <Badge icon={<Icon />} variant="secondary">
       {config.label}
-    </span>
+    </Badge>
   );
 }

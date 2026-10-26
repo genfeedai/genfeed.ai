@@ -5,6 +5,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { WorkflowLifecycle } from '@genfeedai/workflows/contracts';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -22,7 +23,7 @@ import {
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
-import { getLifecycleBadgeClass } from '@/features/workflows/utils/status-helpers';
+import { getLifecycleBadgeVariant } from '@/features/workflows/utils/status-helpers';
 
 interface WorkflowEditorSectionTopbarProps {
   estimateLabel?: string | null;
@@ -108,16 +109,20 @@ export function WorkflowEditorSectionTopbar({
             <div className="h-6 w-px shrink-0 bg-border" aria-hidden="true" />
           ) : null}
           {estimateLabel ? (
-            <span className="hidden whitespace-nowrap rounded-full border border-border/80 bg-secondary/35 px-2.5 py-1 text-2xs text-muted-foreground 2xl:inline-flex">
+            <Badge
+              className="hidden whitespace-nowrap 2xl:inline-flex"
+              variant="secondary"
+            >
               {estimateLabel}
-            </span>
+            </Badge>
           ) : null}
 
-          <span
-            className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium capitalize ${getLifecycleBadgeClass(lifecycle)}`}
+          <Badge
+            className="shrink-0"
+            variant={getLifecycleBadgeVariant(lifecycle)}
           >
             {lifecycle}
-          </span>
+          </Badge>
 
           {onSchedule ? (
             <Button

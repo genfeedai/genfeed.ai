@@ -75,16 +75,16 @@ export function getStatusBorderColor(status: WorkflowExecutionStatus): string {
  *
  * `workflows.lifecycle` is a `String` column, so these labels stay lowercase.
  */
-export function getLifecycleBadgeClass(
+export function getLifecycleBadgeVariant(
   lifecycle: WorkflowLifecycleContract | undefined,
-): string {
+): 'secondary' | 'success' | 'warning' {
   switch (lifecycle) {
     case WorkflowLifecycle.PUBLISHED:
-      return 'border border-success/20 bg-success/10 text-success';
+      return 'success';
     case WorkflowLifecycle.ARCHIVED:
-      return 'border border-border bg-foreground/[0.04] text-foreground/55';
+      return 'secondary';
     default:
-      return 'border border-warning/20 bg-warning/10 text-warning';
+      return 'warning';
   }
 }
 

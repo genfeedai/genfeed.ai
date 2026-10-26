@@ -2,6 +2,7 @@
 
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
 import {
@@ -93,9 +94,7 @@ export function WorkflowPickerOverlay({
                       <h3 className="truncate text-sm font-medium text-foreground">
                         {workflow.label}
                       </h3>
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-2xs capitalize text-muted-foreground">
-                        {workflow.lifecycle}
-                      </span>
+                      <Badge variant="secondary">{workflow.lifecycle}</Badge>
                     </div>
                     <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
                       {workflow.description ??

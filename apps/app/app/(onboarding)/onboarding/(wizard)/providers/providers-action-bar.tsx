@@ -2,6 +2,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { ProvidersActionBarProps } from '@props/onboarding/providers-action-bar.props';
 import Card from '@ui/card/Card';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import Link from 'next/link';
@@ -12,9 +13,9 @@ const CURRENT_RING = 'ring-1 ring-border-strong';
 
 function CurrentBadge() {
   return (
-    <span className="absolute -top-2 right-3 z-10 rounded-full bg-hover px-2 py-0.5 text-2xs font-semibold uppercase tracking-wide text-foreground">
+    <Badge className="absolute -top-2 right-3 z-10" variant="secondary">
       Current
-    </span>
+    </Badge>
   );
 }
 
