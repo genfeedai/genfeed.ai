@@ -1,6 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import type { Readable } from 'node:stream';
+import {
+  FILES_REQUEST_TIMEOUT_MS,
+  FilesRetryPolicy,
+  sendFilesRequest,
+} from '@api/services/files-microservice/client/files-request-retry.util';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import { FileInputType } from '@genfeedai/contracts';
 import {
@@ -26,8 +31,9 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
+import type { AxiosResponse } from 'axios';
 import FormData from 'form-data';
-import { firstValueFrom } from 'rxjs';
+import type { Observable } from 'rxjs';
 import { z } from 'zod';
 
 const MULTIPART_MAX_BYTES = Number.POSITIVE_INFINITY;
@@ -53,6 +59,11 @@ const uploadMetadataSchema = z
  */
 const PERCEPTION_FINGERPRINT_TIMEOUT_MS = 2 * 60 * 1000;
 const PERCEPTION_ARTEFACTS_TIMEOUT_MS = 10 * 60 * 1000;
+
+/** A Buffer can be replayed; anything else is a one-shot stream. */
+function isStreamBody(data: Readable | Buffer): boolean {
+  return !Buffer.isBuffer(data);
+}
 
 function filenameForUpload(contentType: string, filename = 'upload'): string {
   if (path.extname(filename)) {
@@ -96,10 +107,30 @@ export class FilesClientService {
       'http://localhost:3012';
   }
 
+  /**
+   * Every files-service call goes through here so retries follow one policy:
+   * pre-send failures retry for any replayable call, mid-flight failures only
+   * for calls that name `FilesRetryPolicy.IDEMPOTENT`.
+   */
+  private send<T>(
+    operation: string,
+    execute: () => Observable<AxiosResponse<T>>,
+    options: {
+      hasStreamBody?: boolean;
+      retryPolicy?: FilesRetryPolicy;
+    } = {},
+  ): Promise<AxiosResponse<T>> {
+    return sendFilesRequest(execute, {
+      ...options,
+      logger: this.loggerService,
+      operation,
+    });
+  }
+
   async watermarkExport(
     payload: IWatermarkExportRequest,
   ): Promise<IWatermarkExportResult> {
-    const response = await firstValueFrom(
+    const response = await this.send('watermarkExport', () =>
       this.httpService.post<IWatermarkExportResult>(
         `${this.filesServiceUrl}/v1/files/watermark-export`,
         payload,
@@ -116,7 +147,7 @@ export class FilesClientService {
 
   async resizeImage(imageData: Buffer, target: IVideoDimensions) {
     try {
-      const response = await firstValueFrom(
+      const response = await this.send('resizeImage', () =>
         this.httpService.post(
           `${this.filesServiceUrl}/v1/files/processing/resize-image`,
           {
@@ -124,6 +155,7 @@ export class FilesClientService {
             imageData: imageData.toString('base64'),
             width: target.width,
           },
+          { timeout: FILES_REQUEST_TIMEOUT_MS.PROCESSING },
         ),
       );
       return Buffer.from(response.data.data, 'base64');
@@ -135,7 +167,7 @@ export class FilesClientService {
 
   async resizeImageFromUrl(imageUrl: string, target: IVideoDimensions) {
     try {
-      const response = await firstValueFrom(
+      const response = await this.send('resizeImageFromUrl', () =>
         this.httpService.post(
           `${this.filesServiceUrl}/v1/files/processing/resize-image`,
           {
@@ -143,6 +175,7 @@ export class FilesClientService {
             imageUrl,
             width: target.width,
           },
+          { timeout: FILES_REQUEST_TIMEOUT_MS.PROCESSING },
         ),
       );
       return Buffer.from(response.data.data, 'base64');
@@ -164,16 +197,20 @@ export class FilesClientService {
     hasAudio?: boolean;
   }> {
     try {
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.filesServiceUrl}/v1/files/metadata`,
-          { url },
-          {
-            headers: {
-              'x-api-key': this.configService.get('GENFEEDAI_API_KEY') || '',
+      const response = await this.send(
+        'extractMetadataFromUrl',
+        () =>
+          this.httpService.post(
+            `${this.filesServiceUrl}/v1/files/metadata`,
+            { url },
+            {
+              headers: {
+                'x-api-key': this.configService.get('GENFEEDAI_API_KEY') || '',
+              },
+              timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD,
             },
-          },
-        ),
+          ),
+        { retryPolicy: FilesRetryPolicy.IDEMPOTENT },
       );
 
       const metadata = response.data;
@@ -211,28 +248,35 @@ export class FilesClientService {
     url: string,
     kind: MediaReadinessKind,
   ): Promise<MediaProbe> {
-    const response = await firstValueFrom(
-      this.httpService.post<IFFprobeResult>(
-        `${this.filesServiceUrl}/v1/files/metadata`,
-        { url },
-        {
-          headers: {
-            'x-api-key': this.configService.get('GENFEEDAI_API_KEY') || '',
+    const response = await this.send(
+      'probeMediaFromUrl',
+      () =>
+        this.httpService.post<IFFprobeResult>(
+          `${this.filesServiceUrl}/v1/files/metadata`,
+          { url },
+          {
+            headers: {
+              'x-api-key': this.configService.get('GENFEEDAI_API_KEY') || '',
+            },
+            timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD,
           },
-        },
-      ),
+        ),
+      { retryPolicy: FilesRetryPolicy.IDEMPOTENT },
     );
     return this.toMediaProbe(response.data, kind);
   }
 
   /** SHA-256 and size of the bytes behind an asset URL (#4879). */
   async fingerprintMedia(url: string): Promise<MediaPerceptionFingerprint> {
-    const response = await firstValueFrom(
-      this.httpService.post<unknown>(
-        `${this.filesServiceUrl}/v1/files/perception/fingerprint`,
-        { url },
-        { timeout: PERCEPTION_FINGERPRINT_TIMEOUT_MS },
-      ),
+    const response = await this.send(
+      'fingerprintMedia',
+      () =>
+        this.httpService.post<unknown>(
+          `${this.filesServiceUrl}/v1/files/perception/fingerprint`,
+          { url },
+          { timeout: PERCEPTION_FINGERPRINT_TIMEOUT_MS },
+        ),
+      { retryPolicy: FilesRetryPolicy.IDEMPOTENT },
     );
     return mediaPerceptionFingerprintSchema.parse(response.data);
   }
@@ -244,12 +288,15 @@ export class FilesClientService {
   async extractPerceptionArtefacts(
     request: MediaPerceptionArtefactsRequest,
   ): Promise<MediaPerceptionArtefacts> {
-    const response = await firstValueFrom(
-      this.httpService.post<unknown>(
-        `${this.filesServiceUrl}/v1/files/perception/artefacts`,
-        request,
-        { timeout: PERCEPTION_ARTEFACTS_TIMEOUT_MS },
-      ),
+    const response = await this.send(
+      'extractPerceptionArtefacts',
+      () =>
+        this.httpService.post<unknown>(
+          `${this.filesServiceUrl}/v1/files/perception/artefacts`,
+          request,
+          { timeout: PERCEPTION_ARTEFACTS_TIMEOUT_MS },
+        ),
+      { retryPolicy: FilesRetryPolicy.IDEMPOTENT },
     );
     return mediaPerceptionArtefactsSchema.parse(response.data);
   }
@@ -352,7 +399,7 @@ export class FilesClientService {
     width?: number,
   ) {
     try {
-      const response = await firstValueFrom(
+      const response = await this.send('generateThumbnail', () =>
         this.httpService.post(
           `${this.filesServiceUrl}/v1/files/processing/generate-thumbnail`,
           {
@@ -361,6 +408,7 @@ export class FilesClientService {
             videoUrl,
             width,
           },
+          { timeout: FILES_REQUEST_TIMEOUT_MS.PROCESSING },
         ),
       );
       return response.data;
@@ -379,10 +427,11 @@ export class FilesClientService {
     durationSeconds: number;
     outputKey?: string;
   }): Promise<{ publicUrl: string; s3Key: string; duration: number }> {
-    const response = await firstValueFrom(
+    const response = await this.send('assembleSpeech', () =>
       this.httpService.post(
         `${this.filesServiceUrl}/v1/files/processing/speech-assembly`,
         params,
+        { timeout: FILES_REQUEST_TIMEOUT_MS.HEAVY_PROCESSING },
       ),
     );
     return response.data;
@@ -403,10 +452,11 @@ export class FilesClientService {
     duration?: number;
   }> {
     try {
-      const response = await firstValueFrom(
+      const response = await this.send('audioOverlay', () =>
         this.httpService.post(
           `${this.filesServiceUrl}/v1/files/processing/audio-overlay`,
           params,
+          { timeout: FILES_REQUEST_TIMEOUT_MS.HEAVY_PROCESSING },
         ),
       );
       return response.data;
@@ -433,10 +483,11 @@ export class FilesClientService {
     contactSheetUrl: string | null;
   }> {
     try {
-      const response = await firstValueFrom(
+      const response = await this.send('inspectVideoQa', () =>
         this.httpService.post(
           `${this.filesServiceUrl}/v1/files/processing/video-qa`,
           params,
+          { timeout: FILES_REQUEST_TIMEOUT_MS.HEAVY_PROCESSING },
         ),
       );
       return response.data;
@@ -455,12 +506,16 @@ export class FilesClientService {
     contentType: string,
   ): Promise<void> {
     try {
-      await firstValueFrom(
-        this.httpService.put(uploadUrl, data, {
-          headers: { 'Content-Type': contentType },
-          maxBodyLength: MULTIPART_MAX_BYTES,
-          maxContentLength: MULTIPART_MAX_BYTES,
-        }),
+      await this.send(
+        'putStreamToUrl',
+        () =>
+          this.httpService.put(uploadUrl, data, {
+            headers: { 'Content-Type': contentType },
+            maxBodyLength: MULTIPART_MAX_BYTES,
+            maxContentLength: MULTIPART_MAX_BYTES,
+            timeout: FILES_REQUEST_TIMEOUT_MS.UPLOAD,
+          }),
+        { hasStreamBody: isStreamBody(data) },
       );
     } catch (error: unknown) {
       this.loggerService.error(
@@ -517,12 +572,13 @@ export class FilesClientService {
       }
 
       const apiSource: IApiUploadSource = source;
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.filesServiceUrl}/v1/files/upload`, {
-          key: this.allocateUploadKey(key, type),
-          source: apiSource,
-          type,
-        }),
+      const uploadKey = this.allocateUploadKey(key, type);
+      const response = await this.send('uploadToS3', () =>
+        this.httpService.post(
+          `${this.filesServiceUrl}/v1/files/upload`,
+          { key: uploadKey, source: apiSource, type },
+          { timeout: FILES_REQUEST_TIMEOUT_MS.UPLOAD },
+        ),
       );
 
       return this.validateUploadMetadata(response.data);
@@ -557,12 +613,12 @@ export class FilesClientService {
         true,
       );
     }
-    const response = await firstValueFrom(
-      this.httpService.post(`${this.filesServiceUrl}/v1/files/upload`, {
-        key,
-        source,
-        type,
-      }),
+    const response = await this.send('uploadToExistingObject', () =>
+      this.httpService.post(
+        `${this.filesServiceUrl}/v1/files/upload`,
+        { key, source, type },
+        { timeout: FILES_REQUEST_TIMEOUT_MS.UPLOAD },
+      ),
     );
     return this.validateUploadMetadata(response.data);
   }
@@ -601,10 +657,15 @@ export class FilesClientService {
   /** Delete one full storage key through the configured storage provider. */
   async deleteStoredObject(storageKey: string): Promise<void> {
     try {
-      await firstValueFrom(
-        this.httpService.post(`${this.filesServiceUrl}/v1/files/delete`, {
-          storageKey,
-        }),
+      await this.send(
+        'deleteStoredObject',
+        () =>
+          this.httpService.post(
+            `${this.filesServiceUrl}/v1/files/delete`,
+            { storageKey },
+            { timeout: FILES_REQUEST_TIMEOUT_MS.QUICK },
+          ),
+        { retryPolicy: FilesRetryPolicy.IDEMPOTENT },
       );
     } catch (error: unknown) {
       this.loggerService.error('Failed to delete stored object', {
@@ -617,16 +678,20 @@ export class FilesClientService {
 
   /** Whether one full storage key names an object, without reading it. */
   async storedObjectExists(storageKey: string): Promise<boolean> {
-    const response = await firstValueFrom(
-      this.httpService.post(
-        `${this.filesServiceUrl}/v1/files/exists`,
-        { storageKey },
-        {
-          headers: {
-            'x-api-key': this.configService.get('GENFEEDAI_API_KEY') || '',
+    const response = await this.send(
+      'storedObjectExists',
+      () =>
+        this.httpService.post(
+          `${this.filesServiceUrl}/v1/files/exists`,
+          { storageKey },
+          {
+            headers: {
+              'x-api-key': this.configService.get('GENFEEDAI_API_KEY') || '',
+            },
+            timeout: FILES_REQUEST_TIMEOUT_MS.QUICK,
           },
-        },
-      ),
+        ),
+      { retryPolicy: FilesRetryPolicy.IDEMPOTENT },
     );
     return response.data?.exists === true;
   }
@@ -639,28 +704,35 @@ export class FilesClientService {
     filename = 'upload',
     isExistingObject = false,
   ): Promise<IFileMetadata> {
-    const form = new FormData();
-    form.append('contentType', contentType);
-    form.append('file', file, {
-      contentType,
-      filename: filenameForUpload(contentType, filename),
-    });
-    form.append(
-      'key',
-      isExistingObject ? key : this.allocateUploadKey(key, type),
-    );
-    form.append('type', type);
+    const uploadKey = isExistingObject
+      ? key
+      : this.allocateUploadKey(key, type);
 
-    const response = await firstValueFrom(
-      this.httpService.post(
-        `${this.filesServiceUrl}/v1/files/upload/multipart`,
-        form,
-        {
-          headers: form.getHeaders(),
-          maxBodyLength: MULTIPART_MAX_BYTES,
-          maxContentLength: MULTIPART_MAX_BYTES,
-        },
-      ),
+    // A form is a one-shot stream, so each attempt builds its own.
+    const response = await this.send(
+      'postMultipartUpload',
+      () => {
+        const form = new FormData();
+        form.append('contentType', contentType);
+        form.append('file', file, {
+          contentType,
+          filename: filenameForUpload(contentType, filename),
+        });
+        form.append('key', uploadKey);
+        form.append('type', type);
+
+        return this.httpService.post(
+          `${this.filesServiceUrl}/v1/files/upload/multipart`,
+          form,
+          {
+            headers: form.getHeaders(),
+            maxBodyLength: MULTIPART_MAX_BYTES,
+            maxContentLength: MULTIPART_MAX_BYTES,
+            timeout: FILES_REQUEST_TIMEOUT_MS.UPLOAD,
+          },
+        );
+      },
+      { hasStreamBody: isStreamBody(file) },
     );
 
     return this.validateUploadMetadata(response.data);
@@ -674,13 +746,17 @@ export class FilesClientService {
     type: string,
   ): Promise<NodeJS.ReadableStream> {
     try {
-      const response = await firstValueFrom(
-        this.httpService.get(
-          `${this.filesServiceUrl}/v1/files/download/${type}/${key}`,
-          {
-            responseType: 'stream',
-          },
-        ),
+      const response = await this.send(
+        'getFileFromS3',
+        () =>
+          this.httpService.get(
+            `${this.filesServiceUrl}/v1/files/download/${type}/${key}`,
+            {
+              responseType: 'stream',
+              timeout: FILES_REQUEST_TIMEOUT_MS.DOWNLOAD,
+            },
+          ),
+        { retryPolicy: FilesRetryPolicy.IDEMPOTENT },
       );
 
       return response.data as NodeJS.ReadableStream;
@@ -723,16 +799,21 @@ export class FilesClientService {
     }
 
     try {
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.filesServiceUrl}/v1/files/presigned-upload`,
-          {
-            ...(contentLength !== undefined ? { contentLength } : {}),
-            contentType,
-            filename: this.allocateUploadKey(key, type),
-            type,
-          },
-        ),
+      const filename = this.allocateUploadKey(key, type);
+      const response = await this.send(
+        'getPresignedUploadUrl',
+        () =>
+          this.httpService.post(
+            `${this.filesServiceUrl}/v1/files/presigned-upload`,
+            {
+              ...(contentLength !== undefined ? { contentLength } : {}),
+              contentType,
+              filename,
+              type,
+            },
+            { timeout: FILES_REQUEST_TIMEOUT_MS.QUICK },
+          ),
+        { retryPolicy: FilesRetryPolicy.IDEMPOTENT },
       );
 
       return {
@@ -758,10 +839,14 @@ export class FilesClientService {
     _expiresIn: number = 3600,
   ): Promise<string> {
     try {
-      const response = await firstValueFrom(
-        this.httpService.get(
-          `${this.filesServiceUrl}/v1/files/presigned-download/${type}/${key}`,
-        ),
+      const response = await this.send(
+        'getPresignedDownloadUrl',
+        () =>
+          this.httpService.get(
+            `${this.filesServiceUrl}/v1/files/presigned-download/${type}/${key}`,
+            { timeout: FILES_REQUEST_TIMEOUT_MS.QUICK },
+          ),
+        { retryPolicy: FilesRetryPolicy.IDEMPOTENT },
       );
 
       return response.data.downloadUrl;
@@ -775,11 +860,15 @@ export class FilesClientService {
   async getPresignedDownloadUrlForObjectKey(
     storageKey: string,
   ): Promise<string> {
-    const response = await firstValueFrom(
-      this.httpService.post(
-        `${this.filesServiceUrl}/v1/files/presigned-download`,
-        { storageKey },
-      ),
+    const response = await this.send(
+      'getPresignedDownloadUrlForObjectKey',
+      () =>
+        this.httpService.post(
+          `${this.filesServiceUrl}/v1/files/presigned-download`,
+          { storageKey },
+          { timeout: FILES_REQUEST_TIMEOUT_MS.QUICK },
+        ),
+      { retryPolicy: FilesRetryPolicy.IDEMPOTENT },
     );
     return response.data.downloadUrl;
   }
@@ -794,13 +883,12 @@ export class FilesClientService {
     destinationType?: string,
   ): Promise<void> {
     try {
-      await firstValueFrom(
-        this.httpService.post(`${this.filesServiceUrl}/v1/files/copy`, {
-          destinationKey,
-          destinationType,
-          sourceKey,
-          sourceType,
-        }),
+      await this.send('copyInS3', () =>
+        this.httpService.post(
+          `${this.filesServiceUrl}/v1/files/copy`,
+          { destinationKey, destinationType, sourceKey, sourceType },
+          { timeout: FILES_REQUEST_TIMEOUT_MS.PROCESSING },
+        ),
       );
     } catch (error: unknown) {
       const parsedError = error as Error & {
@@ -832,7 +920,7 @@ export class FilesClientService {
     borderInset?: number,
   ): Promise<{ frames: Buffer[] }> {
     try {
-      const response = await firstValueFrom(
+      const response = await this.send('splitImage', () =>
         this.httpService.post(
           `${this.filesServiceUrl}/v1/files/processing/split-image`,
           {
@@ -841,6 +929,7 @@ export class FilesClientService {
             gridRows,
             imageUrl,
           },
+          { timeout: FILES_REQUEST_TIMEOUT_MS.PROCESSING },
         ),
       );
 

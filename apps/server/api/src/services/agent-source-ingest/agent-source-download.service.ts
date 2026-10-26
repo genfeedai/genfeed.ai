@@ -8,6 +8,11 @@ import type {
   AgentSourceJobObservation,
 } from '@api/services/agent-source-ingest/agent-source-ingest.interface';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import {
+  FILES_REQUEST_TIMEOUT_MS,
+  FilesRetryPolicy,
+  sendFilesRequest,
+} from '@api/services/files-microservice/client/files-request-retry.util';
 import { CLIPPER_AUDIO_EXTRACTION_JOB_TIMEOUT_MS } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -21,7 +26,6 @@ import {
   Injectable,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { firstValueFrom } from 'rxjs';
 
 export class AgentSourceImportPendingError extends ServiceUnavailableException {}
 export class AgentSourceExtractionFailedError extends ServiceUnavailableException {}
@@ -357,11 +361,17 @@ export class AgentSourceDownloadService {
     while (Date.now() < deadline) {
       let envelope: Record<string, unknown>;
       try {
-        const observation = await firstValueFrom(
-          this.http.get<unknown>(
-            `${baseUrl}/v1/files/job/${encodeURIComponent(jobId)}`,
-            { timeout: 30_000 },
-          ),
+        const observation = await sendFilesRequest(
+          () =>
+            this.http.get<unknown>(
+              `${baseUrl}/v1/files/job/${encodeURIComponent(jobId)}`,
+              { timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD },
+            ),
+          {
+            logger: this.logger,
+            operation: 'pollSourceJob',
+            retryPolicy: FilesRetryPolicy.IDEMPOTENT,
+          },
         );
         envelope = record(observation.data);
       } catch (error) {
@@ -430,11 +440,17 @@ export class AgentSourceDownloadService {
     const baseUrl = this.config.get('GENFEEDAI_MICROSERVICES_FILES_URL');
     if (typeof baseUrl !== 'string' || !baseUrl) return { state: 'uncertain' };
     try {
-      const response = await firstValueFrom(
-        this.http.get<unknown>(
-          `${baseUrl}/v1/files/job/${encodeURIComponent(jobId)}`,
-          { timeout: 30_000 },
-        ),
+      const response = await sendFilesRequest(
+        () =>
+          this.http.get<unknown>(
+            `${baseUrl}/v1/files/job/${encodeURIComponent(jobId)}`,
+            { timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD },
+          ),
+        {
+          logger: this.logger,
+          operation: 'observeQueuedSource',
+          retryPolicy: FilesRetryPolicy.IDEMPOTENT,
+        },
       );
       const observation = normalizeJobObservation(
         response.data,
@@ -503,19 +519,21 @@ export class AgentSourceDownloadService {
     baseUrl: string,
   ): Promise<void> {
     const expectedJobId = `agent-source-${ingredientId}`;
-    const response = await firstValueFrom(
-      this.http.post<unknown>(
-        `${baseUrl}/v1/files/process/video`,
-        {
-          id: expectedJobId,
-          ingredientId,
-          organizationId: context.organizationId,
-          userId: context.userId,
-          params: { inputPath: url },
-          type: 'video-to-audio',
-        },
-        { timeout: 30_000 },
-      ),
+    const response = await sendFilesRequest(
+      () =>
+        this.http.post<unknown>(
+          `${baseUrl}/v1/files/process/video`,
+          {
+            id: expectedJobId,
+            ingredientId,
+            organizationId: context.organizationId,
+            userId: context.userId,
+            params: { inputPath: url },
+            type: 'video-to-audio',
+          },
+          { timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD },
+        ),
+      { logger: this.logger, operation: 'enqueueYoutube' },
     );
     const payload = record(response.data);
     const jobId = payload.jobId ?? record(payload.data).jobId;

@@ -1,7 +1,11 @@
+import {
+  FILES_REQUEST_TIMEOUT_MS,
+  FilesRetryPolicy,
+  sendFilesRequest,
+} from '@api/services/files-microservice/client/files-request-retry.util';
 import { ConfigService } from '@libs/config/config.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
-import { firstValueFrom } from 'rxjs';
 
 export interface TaskJobRequest {
   taskId: string;
@@ -62,11 +66,14 @@ export class TaskQueueClientService {
 
   private async queueJob(type: TaskQueueJobType, data: TaskJobRequest) {
     try {
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.filesServiceUrl}/tasks/queue/${type}`,
-          data,
-        ),
+      const response = await sendFilesRequest(
+        () =>
+          this.httpService.post(
+            `${this.filesServiceUrl}/tasks/queue/${type}`,
+            data,
+            { timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD },
+          ),
+        { logger: this.logger, operation: `queueJob:${type}` },
       );
       this.logger.log(`Queued ${type} job for asset ${data.assetId}`);
       return response.data;
@@ -78,10 +85,17 @@ export class TaskQueueClientService {
 
   async getJobStatus(jobId: string) {
     try {
-      const response = await firstValueFrom(
-        this.httpService.get(
-          `${this.filesServiceUrl}/tasks/queue/status/${jobId}`,
-        ),
+      const response = await sendFilesRequest(
+        () =>
+          this.httpService.get(
+            `${this.filesServiceUrl}/tasks/queue/status/${jobId}`,
+            { timeout: FILES_REQUEST_TIMEOUT_MS.QUICK },
+          ),
+        {
+          logger: this.logger,
+          operation: 'getJobStatus',
+          retryPolicy: FilesRetryPolicy.IDEMPOTENT,
+        },
       );
       return response.data;
     } catch (error: unknown) {

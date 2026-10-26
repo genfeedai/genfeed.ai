@@ -5,11 +5,15 @@ import type {
   CreateHookRemixDto,
 } from '@api/endpoints/v1/hook-remix/dto/create-hook-remix.dto';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import {
+  FILES_REQUEST_TIMEOUT_MS,
+  FilesRetryPolicy,
+  sendFilesRequest,
+} from '@api/services/files-microservice/client/files-request-retry.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class HookRemixService {
@@ -56,21 +60,24 @@ export class HookRemixService {
     const hookDuration = dto.hookDurationSeconds ?? 3;
 
     try {
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.filesServiceUrl}/v1/files/process/hook-remix`,
-          {
-            brandId: dto.brandId,
-            ctaVideoUrl: ctaIngredient.cdnUrl,
-            description: dto.description,
-            hookDurationSeconds: hookDuration,
-            jobId,
-            label: dto.label,
-            organizationId,
-            userId,
-            youtubeUrl: dto.youtubeUrl,
-          },
-        ),
+      const response = await sendFilesRequest(
+        () =>
+          this.httpService.post(
+            `${this.filesServiceUrl}/v1/files/process/hook-remix`,
+            {
+              brandId: dto.brandId,
+              ctaVideoUrl: ctaIngredient.cdnUrl,
+              description: dto.description,
+              hookDurationSeconds: hookDuration,
+              jobId,
+              label: dto.label,
+              organizationId,
+              userId,
+              youtubeUrl: dto.youtubeUrl,
+            },
+            { timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD },
+          ),
+        { logger: this.loggerService, operation: 'createHookRemix' },
       );
 
       return {
@@ -125,21 +132,24 @@ export class HookRemixService {
           : undefined;
 
         try {
-          const response = await firstValueFrom(
-            this.httpService.post(
-              `${this.filesServiceUrl}/v1/files/process/hook-remix`,
-              {
-                batchId,
-                brandId: dto.brandId,
-                ctaVideoUrl: ctaIngredient.cdnUrl,
-                hookDurationSeconds: hookDuration,
-                jobId,
-                label,
-                organizationId,
-                userId,
-                youtubeUrl,
-              },
-            ),
+          const response = await sendFilesRequest(
+            () =>
+              this.httpService.post(
+                `${this.filesServiceUrl}/v1/files/process/hook-remix`,
+                {
+                  batchId,
+                  brandId: dto.brandId,
+                  ctaVideoUrl: ctaIngredient.cdnUrl,
+                  hookDurationSeconds: hookDuration,
+                  jobId,
+                  label,
+                  organizationId,
+                  userId,
+                  youtubeUrl,
+                },
+                { timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD },
+              ),
+            { logger: this.loggerService, operation: 'createBatchHookRemix' },
           );
 
           return {
@@ -174,8 +184,17 @@ export class HookRemixService {
 
   async getJob(jobId: string) {
     try {
-      const response = await firstValueFrom(
-        this.httpService.get(`${this.filesServiceUrl}/v1/files/job/${jobId}`),
+      const response = await sendFilesRequest(
+        () =>
+          this.httpService.get(
+            `${this.filesServiceUrl}/v1/files/job/${jobId}`,
+            { timeout: FILES_REQUEST_TIMEOUT_MS.QUICK },
+          ),
+        {
+          logger: this.loggerService,
+          operation: 'getHookRemixJob',
+          retryPolicy: FilesRetryPolicy.IDEMPOTENT,
+        },
       );
       return response.data;
     } catch (error: unknown) {

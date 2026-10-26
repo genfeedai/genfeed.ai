@@ -1,4 +1,8 @@
 import process from 'node:process';
+import {
+  FILES_REQUEST_TIMEOUT_MS,
+  sendFilesRequest,
+} from '@api/services/files-microservice/client/files-request-retry.util';
 import { ConfigService } from '@libs/config/config.service';
 import type {
   DegradedDependency,
@@ -570,13 +574,15 @@ export class MicroservicesService implements OnModuleInit, HealthContributor {
         formData.append('metadata', JSON.stringify(fileData.metadata));
       }
 
-      const response = await firstValueFrom(
-        this.httpService.post(`${filesUrl}/v1/files/upload`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-          timeout: 30000,
-        }),
+      const response = await sendFilesRequest(
+        () =>
+          this.httpService.post(`${filesUrl}/v1/files/upload`, formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+            timeout: FILES_REQUEST_TIMEOUT_MS.UPLOAD,
+          }),
+        { logger: this.loggerService, operation: 'uploadFile' },
       );
 
       return response.data;

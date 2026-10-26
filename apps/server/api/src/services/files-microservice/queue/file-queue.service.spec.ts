@@ -110,6 +110,7 @@ describe('FileQueueService', () => {
       expect(httpService.post).toHaveBeenCalledWith(
         'http://localhost:3012/v1/files/process/video',
         mockJob,
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
 
@@ -140,6 +141,7 @@ describe('FileQueueService', () => {
       expect(httpService.post).toHaveBeenCalledWith(
         'http://localhost:3012/v1/files/process/image',
         mockJob,
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
 
@@ -170,6 +172,7 @@ describe('FileQueueService', () => {
       expect(httpService.post).toHaveBeenCalledWith(
         'http://localhost:3012/v1/files/process/file',
         mockJob,
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
 
@@ -201,6 +204,7 @@ describe('FileQueueService', () => {
       expect(result).toEqual(mockStatus);
       expect(httpService.get).toHaveBeenCalledWith(
         'http://localhost:3012/v1/files/job/job_123',
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
 
@@ -260,6 +264,7 @@ describe('FileQueueService', () => {
       expect(httpService.post).toHaveBeenCalledWith(
         'http://localhost:3012/v1/files/job/job_123/cancel',
         {},
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
 
@@ -336,6 +341,7 @@ describe('FileQueueService', () => {
       expect(result).toEqual(mockStats);
       expect(httpService.get).toHaveBeenCalledWith(
         'http://localhost:3012/v1/files/stats',
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
 
@@ -380,6 +386,7 @@ describe('FileQueueService', () => {
           type: 'add-watermark',
           userId: 'system',
         }),
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
   });
@@ -411,6 +418,7 @@ describe('FileQueueService', () => {
           type: 'video-to-gif',
           userId: 'system',
         }),
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
   });
@@ -446,6 +454,7 @@ describe('FileQueueService', () => {
           type: 'convert-to-portrait',
           userId: 'system',
         }),
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
 
@@ -469,6 +478,7 @@ describe('FileQueueService', () => {
             width: 1080,
           },
         }),
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
   });
@@ -503,6 +513,7 @@ describe('FileQueueService', () => {
           type: 'prepare-all-files',
           userId: 'system',
         }),
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
   });
@@ -532,6 +543,7 @@ describe('FileQueueService', () => {
           type: 'cleanup-temp-files',
           userId: 'system',
         }),
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
   });
@@ -615,6 +627,7 @@ describe('FileQueueService', () => {
           organizationId: 'org',
           sourceStorageKey: canonicalKey,
         }),
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     } finally {
       decrypt.mockRestore();

@@ -191,6 +191,7 @@ describe('HookRemixService', () => {
           userId,
           youtubeUrl: baseHookRemixDto.youtubeUrl,
         }),
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
   });
@@ -301,6 +302,7 @@ describe('HookRemixService', () => {
       expect(result).toEqual(mockStatus);
       expect(httpGetMock).toHaveBeenCalledWith(
         'http://localhost:3012/v1/files/job/job-123',
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
 

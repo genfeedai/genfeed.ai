@@ -31,6 +31,11 @@ import {
   type SystemWorkflowActionRequest,
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
+import {
+  FILES_REQUEST_TIMEOUT_MS,
+  FilesRetryPolicy,
+  sendFilesRequest,
+} from '@api/services/files-microservice/client/files-request-retry.util';
 import { PublicClipperToolStoreService } from '@api/services/public-clipper-tool/public-clipper-tool-store.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import {
@@ -53,7 +58,6 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { firstValueFrom } from 'rxjs';
 
 function readFileJobStatus(value: unknown): Record<string, unknown> {
   const response = readRecord(value);
@@ -485,24 +489,29 @@ export class ClipperAnalysisWorkflowService implements OnModuleInit {
   ): Promise<ClipperReferenceFrameSet> {
     const filesUrl = this.getFilesServiceUrl();
 
-    const response = await firstValueFrom(
-      this.httpService.post(
-        `${filesUrl}/v1/files/process/video`,
-        {
-          id: `clipper-reference-frames-${projectId}`,
-          ingredientId: projectId,
-          organizationId,
-          // Stored sources (uploads, Library assets, materialized YouTube
-          // downloads) are read by key; the files service only fetches
-          // remote URLs from YouTube.
-          params: sourceS3Key
-            ? { s3Key: sourceS3Key, timestamps }
-            : { inputPath: youtubeUrl, timestamps },
-          type: 'extract-reference-frames',
-          userId,
-        },
-        { headers: { 'Content-Type': 'application/json' } },
-      ),
+    const response = await sendFilesRequest(
+      () =>
+        this.httpService.post(
+          `${filesUrl}/v1/files/process/video`,
+          {
+            id: `clipper-reference-frames-${projectId}`,
+            ingredientId: projectId,
+            organizationId,
+            // Stored sources (uploads, Library assets, materialized YouTube
+            // downloads) are read by key; the files service only fetches
+            // remote URLs from YouTube.
+            params: sourceS3Key
+              ? { s3Key: sourceS3Key, timestamps }
+              : { inputPath: youtubeUrl, timestamps },
+            type: 'extract-reference-frames',
+            userId,
+          },
+          {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD,
+          },
+        ),
+      { logger: this.logger, operation: 'extractReferenceFrames' },
     );
 
     const jobId = response.data?.jobId || response.data?.data?.jobId;
@@ -528,23 +537,28 @@ export class ClipperAnalysisWorkflowService implements OnModuleInit {
   ): Promise<AudioExtractionResult> {
     const filesUrl = this.getFilesServiceUrl();
 
-    const response = await firstValueFrom(
-      this.httpService.post(
-        `${filesUrl}/v1/files/process/video`,
-        {
-          id: `clip-audio-${projectId}`,
-          ingredientId: ingredientId ?? projectId,
-          organizationId,
-          // A remote source is stored during extraction so reference frames
-          // can later read it by key (provider-hosted Library videos).
-          params: sourceS3Key
-            ? { s3Key: sourceS3Key }
-            : { inputPath: youtubeUrl, materializeSource: true },
-          type: 'video-to-audio',
-          userId,
-        },
-        { headers: { 'Content-Type': 'application/json' } },
-      ),
+    const response = await sendFilesRequest(
+      () =>
+        this.httpService.post(
+          `${filesUrl}/v1/files/process/video`,
+          {
+            id: `clip-audio-${projectId}`,
+            ingredientId: ingredientId ?? projectId,
+            organizationId,
+            // A remote source is stored during extraction so reference frames
+            // can later read it by key (provider-hosted Library videos).
+            params: sourceS3Key
+              ? { s3Key: sourceS3Key }
+              : { inputPath: youtubeUrl, materializeSource: true },
+            type: 'video-to-audio',
+            userId,
+          },
+          {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD,
+          },
+        ),
+      { logger: this.logger, operation: 'downloadAudio' },
     );
 
     const jobId = response.data?.jobId || response.data?.data?.jobId;
@@ -582,8 +596,16 @@ export class ClipperAnalysisWorkflowService implements OnModuleInit {
     const start = Date.now();
 
     while (Date.now() - start < timeoutMs) {
-      const response = await firstValueFrom(
-        this.httpService.get<unknown>(`${filesUrl}/v1/files/job/${jobId}`),
+      const response = await sendFilesRequest(
+        () =>
+          this.httpService.get<unknown>(`${filesUrl}/v1/files/job/${jobId}`, {
+            timeout: FILES_REQUEST_TIMEOUT_MS.QUICK,
+          }),
+        {
+          logger: this.logger,
+          operation: 'pollClipperJob',
+          retryPolicy: FilesRetryPolicy.IDEMPOTENT,
+        },
       );
 
       const payload = readFileJobStatus(response.data);
@@ -643,8 +665,16 @@ export class ClipperAnalysisWorkflowService implements OnModuleInit {
     const start = Date.now();
 
     while (Date.now() - start < timeoutMs) {
-      const response = await firstValueFrom(
-        this.httpService.get<unknown>(`${filesUrl}/v1/files/job/${jobId}`),
+      const response = await sendFilesRequest(
+        () =>
+          this.httpService.get<unknown>(`${filesUrl}/v1/files/job/${jobId}`, {
+            timeout: FILES_REQUEST_TIMEOUT_MS.QUICK,
+          }),
+        {
+          logger: this.logger,
+          operation: 'pollClipperJob',
+          retryPolicy: FilesRetryPolicy.IDEMPOTENT,
+        },
       );
       const payload = readFileJobStatus(response.data);
       const status = payload?.status || payload?.state;

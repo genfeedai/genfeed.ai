@@ -91,6 +91,7 @@ describe('TaskQueueClientService', () => {
       expect(httpService.post).toHaveBeenCalledWith(
         `${mockFilesServiceUrl}/tasks/queue/transform`,
         mockTaskJobRequest,
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
       expect(loggerLogSpy).toHaveBeenCalledWith(
         `Queued transform job for asset ${mockTaskJobRequest.assetId}`,
@@ -125,6 +126,7 @@ describe('TaskQueueClientService', () => {
       expect(httpService.post).toHaveBeenCalledWith(
         `${mockFilesServiceUrl}/tasks/queue/upscale`,
         mockTaskJobRequest,
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
 
@@ -156,6 +158,7 @@ describe('TaskQueueClientService', () => {
       expect(httpService.post).toHaveBeenCalledWith(
         `${mockFilesServiceUrl}/tasks/queue/caption`,
         mockTaskJobRequest,
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
 
@@ -187,6 +190,7 @@ describe('TaskQueueClientService', () => {
       expect(httpService.post).toHaveBeenCalledWith(
         `${mockFilesServiceUrl}/tasks/queue/resize`,
         mockTaskJobRequest,
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
 
@@ -218,6 +222,7 @@ describe('TaskQueueClientService', () => {
       expect(httpService.post).toHaveBeenCalledWith(
         `${mockFilesServiceUrl}/tasks/queue/clip`,
         mockTaskJobRequest,
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
 
@@ -257,6 +262,7 @@ describe('TaskQueueClientService', () => {
       expect(result).toEqual(mockResponse.data);
       expect(httpService.get).toHaveBeenCalledWith(
         `${mockFilesServiceUrl}/tasks/queue/status/${jobId}`,
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
 
@@ -323,6 +329,7 @@ describe('TaskQueueClientService', () => {
       expect(httpService.post).toHaveBeenCalledWith(
         `${mockFilesServiceUrl}/tasks/queue/transform`,
         minimalRequest,
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
 

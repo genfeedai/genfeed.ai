@@ -1,4 +1,5 @@
 import { Readable } from 'node:stream';
+import { FILES_REQUEST_TIMEOUT_MS } from '@api/services/files-microservice/client/files-request-retry.util';
 import { FileInputType } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -89,7 +90,10 @@ describe('FilesClientService', () => {
     expect(post).toHaveBeenCalledWith(
       `${BASE}/v1/files/metadata`,
       { url: 'https://cdn.test/clip.mp4' },
-      { headers: { 'x-api-key': '' } },
+      expect.objectContaining({
+        headers: { 'x-api-key': '' },
+        timeout: expect.any(Number),
+      }),
     );
     expect(probe).toEqual(
       expect.objectContaining({
@@ -210,6 +214,7 @@ describe('FilesClientService', () => {
     expect(post).toHaveBeenCalledWith(
       'http://localhost:3012/v1/files/processing/resize-image',
       expect.anything(),
+      expect.objectContaining({ timeout: expect.any(Number) }),
     );
   });
 
@@ -226,7 +231,9 @@ describe('FilesClientService', () => {
       expect(post).toHaveBeenCalledWith(
         `${BASE}/v1/files/perception/fingerprint`,
         { url: 'https://cdn.test/clip.mp4' },
-        { timeout: 120_000 },
+        expect.objectContaining({
+          timeout: 120_000,
+        }),
       );
     });
 
@@ -246,7 +253,9 @@ describe('FilesClientService', () => {
       expect(post).toHaveBeenCalledWith(
         `${BASE}/v1/files/perception/artefacts`,
         expect.objectContaining({ assetHash: HASH, frameCount: 6 }),
-        { timeout: 600_000 },
+        expect.objectContaining({
+          timeout: 600_000,
+        }),
       );
     });
   });
@@ -272,6 +281,7 @@ describe('FilesClientService', () => {
           imageData: Buffer.from('original').toString('base64'),
           width: 100,
         },
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
 
@@ -306,6 +316,7 @@ describe('FilesClientService', () => {
       expect(post).toHaveBeenCalledWith(
         `${BASE}/v1/files/processing/resize-image`,
         { height: 200, imageUrl: 'https://cdn.test/a.png', width: 100 },
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
 
@@ -409,6 +420,7 @@ describe('FilesClientService', () => {
           videoUrl: 'https://cdn/a.mp4',
           width: 640,
         },
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
 
@@ -445,6 +457,7 @@ describe('FilesClientService', () => {
       expect(post).toHaveBeenCalledWith(
         `${BASE}/v1/files/processing/audio-overlay`,
         params,
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
 
@@ -487,6 +500,7 @@ describe('FilesClientService', () => {
       expect(post).toHaveBeenCalledWith(
         `${BASE}/v1/files/processing/video-qa`,
         params,
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
   });
@@ -579,11 +593,15 @@ describe('FilesClientService', () => {
         'images',
         source,
       );
-      expect(post).toHaveBeenCalledWith(`${BASE}/v1/files/upload`, {
-        key: 'stored-token.png',
-        source,
-        type: 'images',
-      });
+      expect(post).toHaveBeenCalledWith(
+        `${BASE}/v1/files/upload`,
+        {
+          key: 'stored-token.png',
+          source,
+          type: 'images',
+        },
+        expect.objectContaining({ timeout: expect.any(Number) }),
+      );
       await service.uploadToS3('stored-token.png', 'images', source);
       expect(post.mock.calls[1]?.[1].key).not.toBe('stored-token.png');
     });
@@ -617,6 +635,7 @@ describe('FilesClientService', () => {
         `${BASE}/v1/files/upload/multipart`,
         expect.any(FormData),
         expect.objectContaining({
+          timeout: expect.any(Number),
           headers: expect.any(Object),
           maxBodyLength: Number.POSITIVE_INFINITY,
         }),
@@ -695,6 +714,7 @@ describe('FilesClientService', () => {
       expect(post).toHaveBeenCalledWith(
         `${BASE}/v1/files/upload`,
         expect.objectContaining({ source }),
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
 
@@ -726,7 +746,10 @@ describe('FilesClientService', () => {
       );
       expect(get).toHaveBeenCalledWith(
         `${BASE}/v1/files/download/musics/key-1`,
-        { responseType: 'stream' },
+        expect.objectContaining({
+          responseType: 'stream',
+          timeout: expect.any(Number),
+        }),
       );
     });
 
@@ -811,11 +834,15 @@ describe('FilesClientService', () => {
         uploadMethod: 'PUT',
         uploadUrl: 'https://s3/put',
       });
-      expect(post).toHaveBeenCalledWith(`${BASE}/v1/files/presigned-upload`, {
-        contentType: 'audio/mpeg',
-        filename: expect.stringMatching(/^[a-f0-9-]{36}$/),
-        type: 'musics',
-      });
+      expect(post).toHaveBeenCalledWith(
+        `${BASE}/v1/files/presigned-upload`,
+        {
+          contentType: 'audio/mpeg',
+          filename: expect.stringMatching(/^[a-f0-9-]{36}$/),
+          type: 'musics',
+        },
+        expect.objectContaining({ timeout: expect.any(Number) }),
+      );
     });
 
     it('defaults the content type to an opaque octet stream', async () => {
@@ -827,6 +854,7 @@ describe('FilesClientService', () => {
       expect(post).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({ contentType: 'application/octet-stream' }),
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
 
@@ -854,6 +882,7 @@ describe('FilesClientService', () => {
       ).resolves.toBe('https://s3/get');
       expect(get).toHaveBeenCalledWith(
         `${BASE}/v1/files/presigned-download/musics/key-1`,
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
 
@@ -881,9 +910,13 @@ describe('FilesClientService', () => {
       await expect(
         service.getPresignedDownloadUrlForObjectKey(storageKey),
       ).resolves.toBe('https://s3/get?signature=grant');
-      expect(post).toHaveBeenCalledWith(`${BASE}/v1/files/presigned-download`, {
-        storageKey,
-      });
+      expect(post).toHaveBeenCalledWith(
+        `${BASE}/v1/files/presigned-download`,
+        {
+          storageKey,
+        },
+        expect.objectContaining({ timeout: expect.any(Number) }),
+      );
       expect(get).not.toHaveBeenCalled();
     });
   });
@@ -896,12 +929,16 @@ describe('FilesClientService', () => {
       await expect(
         service.copyInS3('src', 'dst', 'musics', 'videos'),
       ).resolves.toBeUndefined();
-      expect(post).toHaveBeenCalledWith(`${BASE}/v1/files/copy`, {
-        destinationKey: 'dst',
-        destinationType: 'videos',
-        sourceKey: 'src',
-        sourceType: 'musics',
-      });
+      expect(post).toHaveBeenCalledWith(
+        `${BASE}/v1/files/copy`,
+        {
+          destinationKey: 'dst',
+          destinationType: 'videos',
+          sourceKey: 'src',
+          sourceType: 'musics',
+        },
+        expect.objectContaining({ timeout: expect.any(Number) }),
+      );
     });
 
     it('logs the parsed error detail before rethrowing', async () => {
@@ -952,9 +989,13 @@ describe('FilesClientService', () => {
       await expect(
         service.deleteStoredObject('videos/source.mp4'),
       ).resolves.toBeUndefined();
-      expect(post).toHaveBeenCalledWith(`${BASE}/v1/files/delete`, {
-        storageKey: 'videos/source.mp4',
-      });
+      expect(post).toHaveBeenCalledWith(
+        `${BASE}/v1/files/delete`,
+        {
+          storageKey: 'videos/source.mp4',
+        },
+        expect.objectContaining({ timeout: expect.any(Number) }),
+      );
     });
   });
 
@@ -969,7 +1010,10 @@ describe('FilesClientService', () => {
       expect(post).toHaveBeenCalledWith(
         `${BASE}/v1/files/exists`,
         { storageKey: 'ingredients/images/a' },
-        { headers: { 'x-api-key': 'service-key' } },
+        expect.objectContaining({
+          headers: { 'x-api-key': 'service-key' },
+          timeout: expect.any(Number),
+        }),
       );
     });
 
@@ -1008,6 +1052,7 @@ describe('FilesClientService', () => {
           gridRows: 2,
           imageUrl: 'https://cdn/sheet.png',
         },
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
 
@@ -1020,6 +1065,7 @@ describe('FilesClientService', () => {
       expect(post).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({ borderInset: 0 }),
+        expect.objectContaining({ timeout: expect.any(Number) }),
       );
     });
 
@@ -1110,7 +1156,187 @@ describe('metadata service authentication', () => {
       expect(call).toEqual([
         `${BASE}/v1/files/metadata`,
         { url: 'https://cdn.test/audio.mp3' },
-        { headers: { 'x-api-key': 'metadata-key' } },
+        {
+          headers: { 'x-api-key': 'metadata-key' },
+          timeout: expect.any(Number),
+        },
       ]);
+  });
+});
+
+describe('FilesClientService retries and timeouts', () => {
+  const transientError = (code: string) =>
+    Object.assign(new Error(code), { code });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('retries an idempotent lookup after a mid-flight reset', async () => {
+    vi.useFakeTimers();
+    const { loggerService, post, service } = createHarness();
+    post
+      .mockReturnValueOnce(throwError(() => transientError('ECONNRESET')))
+      .mockReturnValueOnce(of({ data: { exists: true } }));
+
+    const result = service.storedObjectExists('ingredients/images/a');
+    await vi.runAllTimersAsync();
+
+    await expect(result).resolves.toBe(true);
+    expect(post).toHaveBeenCalledTimes(2);
+    expect(loggerService.warn).toHaveBeenCalledWith(
+      'Retrying files service request: storedObjectExists',
+      { attempt: 1, code: 'ECONNRESET' },
+    );
+  });
+
+  it('gives up on an idempotent call after two retries', async () => {
+    vi.useFakeTimers();
+    const { post, service } = createHarness();
+    post.mockReturnValue(throwError(() => transientError('ECONNRESET')));
+
+    const result = service.storedObjectExists('k');
+    const assertion = expect(result).rejects.toThrowError('ECONNRESET');
+    await vi.runAllTimersAsync();
+
+    await assertion;
+    expect(post).toHaveBeenCalledTimes(3);
+  });
+
+  it('retries a mutating call only when the request never left the host', async () => {
+    vi.useFakeTimers();
+    const { post, service } = createHarness();
+    post
+      .mockReturnValueOnce(throwError(() => transientError('ENOTFOUND')))
+      .mockReturnValueOnce(of({ data: {} }));
+
+    const result = service.copyInS3('src', 'dst');
+    await vi.runAllTimersAsync();
+
+    await expect(result).resolves.toBeUndefined();
+    expect(post).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([['ECONNRESET'], ['ETIMEDOUT']])(
+    'never replays a non-idempotent copy after %s',
+    async (code) => {
+      const { post, service } = createHarness();
+      post.mockReturnValue(throwError(() => transientError(code)));
+
+      await expect(service.copyInS3('src', 'dst')).rejects.toThrowError(code);
+      expect(post).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('never replays a processing POST after a socket hang up', async () => {
+    const { post, service } = createHarness();
+    post.mockReturnValue(throwError(() => new Error('socket hang up')));
+
+    await expect(
+      service.resizeImage(Buffer.from('img'), { height: 100, width: 100 }),
+    ).rejects.toThrowError('socket hang up');
+    expect(post).toHaveBeenCalledTimes(1);
+  });
+
+  it('never replays a request the server already answered', async () => {
+    const { post, service } = createHarness();
+    post.mockReturnValue(
+      throwError(() =>
+        Object.assign(new Error('bad gateway'), {
+          code: 'ECONNRESET',
+          response: { status: 502 },
+        }),
+      ),
+    );
+
+    await expect(service.storedObjectExists('k')).rejects.toThrowError(
+      'bad gateway',
+    );
+    expect(post).toHaveBeenCalledTimes(1);
+  });
+
+  it('rebuilds the multipart form for each pre-send retry of a buffer upload', async () => {
+    vi.useFakeTimers();
+    const { post, service } = createHarness(BASE, false);
+    post
+      .mockReturnValueOnce(throwError(() => transientError('ECONNREFUSED')))
+      .mockReturnValueOnce(of({ data: { publicUrl: 'https://cdn/a.png' } }));
+
+    const result = service.uploadToS3('key-1', 'images', {
+      contentType: 'image/png',
+      data: Buffer.from('png'),
+      type: FileInputType.BUFFER,
+    });
+    await vi.runAllTimersAsync();
+
+    await expect(result).resolves.toEqual({ publicUrl: 'https://cdn/a.png' });
+    expect(post).toHaveBeenCalledTimes(2);
+    const [firstForm, secondForm] = post.mock.calls.map((call) => call[1]);
+    expect(firstForm).toBeInstanceOf(FormData);
+    expect(secondForm).toBeInstanceOf(FormData);
+    expect(secondForm).not.toBe(firstForm);
+  });
+
+  it('never retries a stream upload', async () => {
+    const { post, service } = createHarness(BASE, false);
+    post.mockReturnValue(throwError(() => transientError('ENOTFOUND')));
+
+    await expect(
+      service.uploadStreamToS3('key-1', 'videos', {
+        contentType: 'video/mp4',
+        data: Readable.from(Buffer.from('video-bytes')),
+        filename: 'clip.mp4',
+      }),
+    ).rejects.toThrowError('ENOTFOUND');
+    expect(post).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    [
+      'storedObjectExists',
+      FILES_REQUEST_TIMEOUT_MS.QUICK,
+      (service: InstanceType<typeof FilesClientService>) =>
+        service.storedObjectExists('k'),
+    ],
+    [
+      'copyInS3',
+      FILES_REQUEST_TIMEOUT_MS.PROCESSING,
+      (service: InstanceType<typeof FilesClientService>) =>
+        service.copyInS3('src', 'dst'),
+    ],
+    [
+      'inspectVideoQa',
+      FILES_REQUEST_TIMEOUT_MS.HEAVY_PROCESSING,
+      (service: InstanceType<typeof FilesClientService>) =>
+        service.inspectVideoQa({
+          blackDurationSeconds: 1,
+          freezeDurationSeconds: 1,
+          isContactSheetEnabled: false,
+          videoUrl: 'https://cdn.test/v.mp4',
+        }),
+    ],
+  ])('sends an explicit %s timeout', async (_name, timeout, invoke) => {
+    const { post, service } = createHarness();
+    post.mockReturnValue(of({ data: { exists: true } }));
+
+    await invoke(service).catch(() => undefined);
+
+    expect(post).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.anything(),
+      expect.objectContaining({ timeout }),
+    );
+  });
+
+  it('gives a download the download timeout', async () => {
+    const { get, service } = createHarness();
+    get.mockReturnValue(of({ data: Readable.from([]) }));
+
+    await service.getFileFromS3('key-1', 'videos');
+
+    expect(get).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ timeout: FILES_REQUEST_TIMEOUT_MS.DOWNLOAD }),
+    );
   });
 });

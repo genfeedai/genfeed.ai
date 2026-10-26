@@ -1,6 +1,11 @@
 import type { UpdateCredentialDto } from '@api/collections/credentials/dto/update-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import {
+  FILES_REQUEST_TIMEOUT_MS,
+  FilesRetryPolicy,
+  sendFilesRequest,
+} from '@api/services/files-microservice/client/files-request-retry.util';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { requireStoredMediaKey } from '@api/services/media-urls/media-delivery-policy.util';
 import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth.util';
@@ -20,7 +25,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { ConflictException, Injectable, Optional } from '@nestjs/common';
-import { firstValueFrom } from 'rxjs';
+import type { AxiosResponse } from 'axios';
+import type { Observable } from 'rxjs';
 
 type FileProcessingJob = IFileProcessingJob;
 type JobResponse = IJobResponse;
@@ -48,6 +54,18 @@ export class FileQueueService {
     this.filesServiceUrl =
       this.configService.get('GENFEEDAI_MICROSERVICES_FILES_URL') ??
       'http://localhost:3012';
+  }
+
+  private send<T>(
+    operation: string,
+    execute: () => Observable<AxiosResponse<T>>,
+    options: { retryPolicy?: FilesRetryPolicy } = {},
+  ): Promise<AxiosResponse<T>> {
+    return sendFilesRequest(execute, {
+      ...options,
+      logger: this.loggerService,
+      operation,
+    });
   }
 
   private requireEncryptedToken(
@@ -150,10 +168,11 @@ export class FileQueueService {
 
   async processVideo(job: FileProcessingJob): Promise<JobResponse> {
     try {
-      const response = await firstValueFrom(
+      const response = await this.send('processVideo', () =>
         this.httpService.post(
           `${this.filesServiceUrl}/v1/files/process/video`,
           job,
+          { timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD },
         ),
       );
       return response.data;
@@ -165,10 +184,11 @@ export class FileQueueService {
 
   async processImage(job: FileProcessingJob): Promise<JobResponse> {
     try {
-      const response = await firstValueFrom(
+      const response = await this.send('processImage', () =>
         this.httpService.post(
           `${this.filesServiceUrl}/v1/files/process/image`,
           job,
+          { timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD },
         ),
       );
       return response.data;
@@ -180,10 +200,11 @@ export class FileQueueService {
 
   async processFile(job: FileProcessingJob): Promise<JobResponse> {
     try {
-      const response = await firstValueFrom(
+      const response = await this.send('processFile', () =>
         this.httpService.post(
           `${this.filesServiceUrl}/v1/files/process/file`,
           job,
+          { timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD },
         ),
       );
       return response.data;
@@ -195,8 +216,14 @@ export class FileQueueService {
 
   async getJobStatus(jobId: string): Promise<IJobStatusResponse> {
     try {
-      const response = await firstValueFrom(
-        this.httpService.get(`${this.filesServiceUrl}/v1/files/job/${jobId}`),
+      const response = await this.send(
+        'getJobStatus',
+        () =>
+          this.httpService.get(
+            `${this.filesServiceUrl}/v1/files/job/${jobId}`,
+            { timeout: FILES_REQUEST_TIMEOUT_MS.QUICK },
+          ),
+        { retryPolicy: FilesRetryPolicy.IDEMPOTENT },
       );
       return response.data;
     } catch (error: unknown) {
@@ -208,8 +235,14 @@ export class FileQueueService {
   /** Job status, or null when the files service no longer holds the job. */
   async findJobStatus(jobId: string): Promise<IJobStatusResponse | null> {
     try {
-      const response = await firstValueFrom(
-        this.httpService.get(`${this.filesServiceUrl}/v1/files/job/${jobId}`),
+      const response = await this.send(
+        'getJobStatus',
+        () =>
+          this.httpService.get(
+            `${this.filesServiceUrl}/v1/files/job/${jobId}`,
+            { timeout: FILES_REQUEST_TIMEOUT_MS.QUICK },
+          ),
+        { retryPolicy: FilesRetryPolicy.IDEMPOTENT },
       );
       return response.data;
     } catch (error: unknown) {
@@ -223,10 +256,11 @@ export class FileQueueService {
 
   async cancelEditorRender(jobId: string): Promise<IJobCancellationResponse> {
     try {
-      const response = await firstValueFrom(
+      const response = await this.send('cancelEditorRender', () =>
         this.httpService.post(
           `${this.filesServiceUrl}/v1/files/job/${jobId}/cancel`,
           {},
+          { timeout: FILES_REQUEST_TIMEOUT_MS.QUICK },
         ),
       );
       return response.data;
@@ -273,8 +307,13 @@ export class FileQueueService {
 
   async getQueueStats(): Promise<IQueueStats> {
     try {
-      const response = await firstValueFrom(
-        this.httpService.get(`${this.filesServiceUrl}/v1/files/stats`),
+      const response = await this.send(
+        'getQueueStats',
+        () =>
+          this.httpService.get(`${this.filesServiceUrl}/v1/files/stats`, {
+            timeout: FILES_REQUEST_TIMEOUT_MS.QUICK,
+          }),
+        { retryPolicy: FilesRetryPolicy.IDEMPOTENT },
       );
       return response.data;
     } catch (error: unknown) {
@@ -431,7 +470,7 @@ export class FileQueueService {
         ),
       );
 
-      const response = await firstValueFrom(
+      const response = await this.send('uploadYoutube', () =>
         this.httpService.post(
           `${this.filesServiceUrl}/v1/files/process/youtube`,
           {
@@ -464,6 +503,7 @@ export class FileQueueService {
             type: 'upload-youtube',
             userId: data.userId,
           },
+          { timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD },
         ),
       );
       return response.data;

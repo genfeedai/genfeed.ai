@@ -1,3 +1,4 @@
+import { FILES_REQUEST_TIMEOUT_MS } from '@api/services/files-microservice/client/files-request-retry.util';
 import { MicroservicesService } from '@api/services/microservices/microservices.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -630,7 +631,7 @@ describe('MicroservicesService', () => {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
-          timeout: 30000,
+          timeout: FILES_REQUEST_TIMEOUT_MS.UPLOAD,
         }),
       );
     });
