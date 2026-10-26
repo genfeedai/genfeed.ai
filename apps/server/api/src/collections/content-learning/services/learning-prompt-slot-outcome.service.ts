@@ -4,6 +4,7 @@ import type {
   LearningPromptSlotOutcomeReport,
 } from '@api/collections/content-learning/interfaces/learning-prompt-slot-outcome.interface';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   compareStructuredPromptSlots,
   hasStructuredPrompt,
@@ -161,9 +162,7 @@ export class LearningPromptSlotOutcomeService {
       orderBy: { id: 'desc' },
       select: slotOutcomePostSelect,
       take: LEARNING_PROMPT_SLOT_POST_LIMIT + 1,
-      where: {
-        isDeleted: false,
-        organizationId,
+      where: scopedWhere(organizationId, {
         ...(brandId ? { brandId } : {}),
         ...(credentialId ? { credentialId } : {}),
         ingredientLinks: {
@@ -172,7 +171,7 @@ export class LearningPromptSlotOutcomeService {
         learningDecision: {
           is: { isDeleted: false, organizationId, synthetic: false },
         },
-      },
+      }),
     });
     const isTruncated = rows.length > LEARNING_PROMPT_SLOT_POST_LIMIT;
     return buildLearningPromptSlotOutcomeReport(
