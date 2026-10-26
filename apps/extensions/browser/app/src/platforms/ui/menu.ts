@@ -148,6 +148,12 @@ function buildItem(spec: MenuItemSpec, onActivate: () => void): MenuItemView {
 
   button.addEventListener('click', () => {
     onActivate();
+    // Reloading or updating the extension leaves this page's copy cut off from
+    // it; no action can reach Genfeed until the tab is refreshed.
+    if (!chrome.runtime?.id) {
+      controls.setStatus('error', 'Genfeed updated. Refresh this tab');
+      return;
+    }
     void Promise.resolve()
       .then(() => spec.run(controls))
       .catch((error: unknown) => {

@@ -235,6 +235,26 @@ describe('Genfeed button group', () => {
     expect(rows()[0].textContent?.trim()).toBe('Something went wrong');
   });
 
+  it('asks for a tab refresh when the extension was reloaded under the page', () => {
+    const run = vi.fn();
+    const runtime = chrome.runtime as { id?: string };
+    const id = runtime.id;
+    runtime.id = undefined;
+    try {
+      const host = mount(groups(item({ run })));
+      trigger(host).click();
+      rows()[0].click();
+      trigger(host).click();
+
+      expect(run).not.toHaveBeenCalled();
+      expect(rows()[0].textContent?.trim()).toBe(
+        'Genfeed updated. Refresh this tab',
+      );
+    } finally {
+      runtime.id = id;
+    }
+  });
+
   it('closes on Escape and returns focus to the button', () => {
     const host = mount(groups(item()));
     trigger(host).click();

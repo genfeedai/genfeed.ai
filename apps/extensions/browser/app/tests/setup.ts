@@ -19,6 +19,7 @@ Object.defineProperty(global, 'chrome', {
       set: vi.fn(),
     },
     runtime: {
+      id: 'test-id',
       getURL: vi.fn((path: string) => `chrome-extension://test-id/${path}`),
       onMessage: {
         addListener: vi.fn(),

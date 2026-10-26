@@ -1,6 +1,5 @@
 import type { PlatformConfig } from '~platforms/config';
 import { createGenfeedGroup, GROUP_ATTRIBUTE } from '~platforms/ui/menu';
-import { readHostPalette } from '~theme/host-palette';
 import type { ButtonSkin, MenuGroupSpec } from '~types/genfeed-menu';
 
 const DEFAULT_HEIGHT_PX = 36;
@@ -169,13 +168,19 @@ function findToolbarIcon(
 
 /**
  * Where the group goes: after the last icon of the composer's toolbar, round and
- * in the icons' own colour, or else just before the submit button.
+ * in the icons' own colour, or else just before the submit button. A composer
+ * whose icon row is collapsed (X's reply box before it is focused) gets no
+ * group: the row, and the group with it, appears when the user focuses it.
  */
 function findMountSlot(
   submit: Element,
   boundary: Element | undefined,
   platform: PlatformConfig | undefined,
-): MountSlot {
+): MountSlot | null {
+  const toolbarSelector = platform?.selectors.toolbar;
+  if (toolbarSelector && boundary && !boundary.querySelector(toolbarSelector)) {
+    return null;
+  }
   const toolbar =
     boundary && platform ? findToolbarIcon(boundary, platform) : null;
   if (toolbar) {
@@ -194,23 +199,7 @@ function findMountSlot(
   return {
     anchor: findRowAnchor(submit, boundary),
     isAfter: false,
-    skin: platform?.selectors.toolbar
-      ? collapsedComposerSkin(submit)
-      : measureSkin(submit),
-  };
-}
-
-/**
- * A composer with an icon row that is collapsed (X's reply box before it is
- * focused) has no icons to copy yet. The group still looks the way it will once
- * the row appears, so the button does not change shape when the user focuses.
- */
-function collapsedComposerSkin(submit: Element): ButtonSkin {
-  return {
-    color: readHostPalette()?.text ?? getComputedStyle(submit).color,
-    height: DEFAULT_HEIGHT_PX,
-    isIcon: true,
-    radius: DEFAULT_HEIGHT_PX / 2,
+    skin: measureSkin(submit),
   };
 }
 
@@ -238,8 +227,8 @@ export function mountGenfeedGroup(
   platform?: PlatformConfig,
 ): HTMLElement | null {
   const slot = findMountSlot(submit, boundary, platform);
-  const { anchor } = slot;
-  const parent = anchor.parentElement;
+  const anchor = slot?.anchor;
+  const parent = anchor?.parentElement ?? null;
   const previous = mountedGroups.get(submit);
   const scope = boundary ?? parent;
   const found = new Set<Element>(
@@ -248,13 +237,15 @@ export function mountGenfeedGroup(
   if (previous) {
     found.add(previous);
   }
-  const placed = Array.from(found).find((group) => isInPlace(group, slot));
+  const placed = slot
+    ? Array.from(found).find((group) => isInPlace(group, slot))
+    : undefined;
   for (const group of found) {
     if (group !== placed) {
       group.remove();
     }
   }
-  if (placed || !parent) {
+  if (placed || !slot || !anchor || !parent) {
     return null;
   }
   const group = createGenfeedGroup({ groups, skin: slot.skin });
@@ -304,12 +295,17 @@ export function findSubmitButtons(
   return found;
 }
 
-/** Whether a node, or anything inside it, is something the group attaches to. */
+/**
+ * Whether a node, or anything inside it, is something the group attaches to.
+ * An icon row counts too: X adds it when a collapsed reply box is focused.
+ */
 export function mayContainSubmit(
   platform: PlatformConfig,
   node: Element,
 ): boolean {
-  const selector =
-    platform.selectors.submitButton ?? platform.selectors.replyTextarea;
+  const { submitButton, replyTextarea, toolbar } = platform.selectors;
+  const selector = [submitButton ?? replyTextarea, toolbar]
+    .filter(Boolean)
+    .join(', ');
   return node.matches(selector) || Boolean(node.querySelector(selector));
 }
