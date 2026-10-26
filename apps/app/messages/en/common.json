@@ -50,7 +50,9 @@
     "description": "Create on-brand videos, images and posts with AI, review them, then publish everywhere.",
     "stepCreate": "Create",
     "stepReview": "Review",
-    "stepPublish": "Publish"
+    "stepPublish": "Publish",
+    "pause": "Pause background video",
+    "play": "Play background video"
   },
   "actions": {
     "cancel": "Cancel",

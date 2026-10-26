@@ -1,9 +1,12 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { AuthShowcaseProps } from '@genfeedai/props/layout/auth-showcase.props';
+import { Button } from '@ui/primitives/button';
+import { Pause, Play } from 'lucide-react';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /**
  * Real Genfeed art that ships with the app: frames cropped from the cinematic
@@ -35,6 +38,9 @@ const APP_WINDOWS = [
   `${STILL_PATH}/app-playground.webp`,
   `${STILL_PATH}/app-automation.webp`,
 ] as const;
+
+const REEL_SRC = `${STILL_PATH}/reel.mp4`;
+const REEL_POSTER = `${STILL_PATH}/reel-poster.webp`;
 
 const ROTATE_INTERVAL_MS = 4500;
 
@@ -93,7 +99,12 @@ function ShowcaseFrame({
   );
 }
 
-function MediaWall(props: Omit<AuthShowcaseProps, 'variant'>) {
+type ShowcaseCopyProps = Omit<
+  AuthShowcaseProps,
+  'pauseLabel' | 'playLabel' | 'variant'
+>;
+
+function MediaWall(props: ShowcaseCopyProps) {
   return (
     <ShowcaseFrame>
       <div className="absolute inset-0 grid grid-cols-3 gap-3 px-3">
@@ -141,7 +152,7 @@ function MediaWall(props: Omit<AuthShowcaseProps, 'variant'>) {
   );
 }
 
-function ToolRotator(props: Omit<AuthShowcaseProps, 'variant'>) {
+function ToolRotator(props: ShowcaseCopyProps) {
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
@@ -191,7 +202,7 @@ function ToolRotator(props: Omit<AuthShowcaseProps, 'variant'>) {
   );
 }
 
-function ContentBento(props: Omit<AuthShowcaseProps, 'variant'>) {
+function ContentBento(props: ShowcaseCopyProps) {
   const bentoCells = [
     { className: 'col-span-2 row-span-2', src: STILLS[1] },
     { className: '', src: STILLS[0] },
@@ -228,7 +239,103 @@ function ContentBento(props: Omit<AuthShowcaseProps, 'variant'>) {
   );
 }
 
-export default function AuthShowcase({ variant, ...copy }: AuthShowcaseProps) {
+function VideoReel({
+  pauseLabel,
+  playLabel,
+  ...copy
+}: ShowcaseCopyProps & Pick<AuthShowcaseProps, 'pauseLabel' | 'playLabel'>) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isReducedMotion, setIsReducedMotion] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(true);
+
+  // Reduced motion keeps the poster and never loads the video. The rest start
+  // playing once the form has mounted, so the clip never blocks sign-in.
+  useEffect(() => {
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setIsReducedMotion(query.matches);
+    setIsPlaying(!query.matches);
+
+    function handleChange(event: MediaQueryListEvent) {
+      setIsReducedMotion(event.matches);
+      setIsPlaying(!event.matches);
+    }
+
+    query.addEventListener('change', handleChange);
+    return () => query.removeEventListener('change', handleChange);
+  }, []);
+
+  function handleToggle() {
+    const element = videoRef.current;
+    if (!element) {
+      return;
+    }
+
+    if (element.paused) {
+      void element.play();
+      setIsPlaying(true);
+    } else {
+      element.pause();
+      setIsPlaying(false);
+    }
+  }
+
+  return (
+    <ShowcaseFrame>
+      <Image
+        src={REEL_POSTER}
+        alt=""
+        fill
+        priority
+        sizes="(min-width: 1024px) 55vw, 0px"
+        className="object-cover"
+      />
+      {isReducedMotion ? null : (
+        <video
+          ref={videoRef}
+          autoPlay
+          className="absolute inset-0 size-full object-cover"
+          loop
+          muted
+          playsInline
+          poster={REEL_POSTER}
+          preload="metadata"
+          src={REEL_SRC}
+        >
+          <track kind="captions" />
+        </video>
+      )}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background from-20% via-background/70 via-45% to-background/20" />
+      <div className="absolute inset-x-0 bottom-0 p-10">
+        <ShowcaseCopy {...copy} />
+      </div>
+      {isReducedMotion ? null : (
+        <Button
+          ariaLabel={isPlaying ? pauseLabel : playLabel}
+          className="absolute right-4 top-4"
+          icon={
+            isPlaying ? (
+              <Pause className="size-4" />
+            ) : (
+              <Play className="size-4" />
+            )
+          }
+          onClick={handleToggle}
+          size={ButtonSize.ICON}
+          type="button"
+          variant={ButtonVariant.SECONDARY}
+          withWrapper={false}
+        />
+      )}
+    </ShowcaseFrame>
+  );
+}
+
+export default function AuthShowcase({
+  pauseLabel,
+  playLabel,
+  variant,
+  ...copy
+}: AuthShowcaseProps) {
   switch (variant) {
     case 'wall':
       return <MediaWall {...copy} />;
@@ -236,5 +343,9 @@ export default function AuthShowcase({ variant, ...copy }: AuthShowcaseProps) {
       return <ToolRotator {...copy} />;
     case 'bento':
       return <ContentBento {...copy} />;
+    case 'video':
+      return (
+        <VideoReel pauseLabel={pauseLabel} playLabel={playLabel} {...copy} />
+      );
   }
 }

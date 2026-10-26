@@ -16,10 +16,23 @@ vi.mock('next/image', () => ({
 }));
 
 const COPY = {
+  pauseLabel: 'Pause',
+  playLabel: 'Play',
   description: 'Create, review and publish.',
   headline: 'From brief to published.',
   steps: ['Create', 'Review', 'Publish'],
 };
+
+function mockReducedMotion(isReduced: boolean) {
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn().mockReturnValue({
+      addEventListener: vi.fn(),
+      matches: isReduced,
+      removeEventListener: vi.fn(),
+    }),
+  );
+}
 
 describe('AuthShowcase', () => {
   it.each(['wall', 'rotator', 'bento'] as const)(
@@ -43,5 +56,21 @@ describe('AuthShowcase', () => {
     for (const image of images) {
       expect(image).toHaveAttribute('alt', '');
     }
+  });
+
+  it('plays the video variant with a pause control', () => {
+    mockReducedMotion(false);
+    const { container } = render(<AuthShowcase variant="video" {...COPY} />);
+
+    expect(container.querySelector('video')?.muted).toBe(true);
+    expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument();
+  });
+
+  it('keeps the video variant to its poster under reduced motion', () => {
+    mockReducedMotion(true);
+    const { container } = render(<AuthShowcase variant="video" {...COPY} />);
+
+    expect(container.querySelector('video')).toBeNull();
+    expect(screen.queryByRole('button')).toBeNull();
   });
 });

@@ -159,10 +159,7 @@ describe('AuthFormLayout', () => {
     );
 
     expect(screen.getByTestId('child')).toBeInTheDocument();
-    expect(screen.getByTestId('aside').closest('aside')).toHaveAttribute(
-      'aria-hidden',
-      'true',
-    );
+    expect(screen.getByTestId('aside').closest('aside')).toHaveClass('hidden');
     expect(
       screen.getByRole('heading', { name: 'Welcome back' }),
     ).toBeInTheDocument();

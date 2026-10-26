@@ -5,7 +5,12 @@ import AuthShowcase from '@ui/layouts/auth/AuthShowcase';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
-const VARIANTS: readonly AuthShowcaseVariant[] = ['wall', 'rotator', 'bento'];
+const VARIANTS: readonly AuthShowcaseVariant[] = [
+  'wall',
+  'rotator',
+  'bento',
+  'video',
+];
 
 function parseVariant(value: string | null): AuthShowcaseVariant {
   return VARIANTS.find((variant) => variant === value) ?? 'wall';
@@ -20,6 +25,8 @@ export default function AuthShowcaseAside() {
     <AuthShowcase
       description={translate('authShowcase.description')}
       headline={translate('authShowcase.headline')}
+      pauseLabel={translate('authShowcase.pause')}
+      playLabel={translate('authShowcase.play')}
       steps={[
         translate('authShowcase.stepCreate'),
         translate('authShowcase.stepReview'),

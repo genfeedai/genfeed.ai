@@ -89,9 +89,7 @@ export default function AuthFormLayout({
               {children}
             </div>
           </div>
-          <aside aria-hidden="true" className="hidden p-3 lg:block">
-            {aside}
-          </aside>
+          <aside className="hidden p-3 lg:block">{aside}</aside>
         </main>
       );
     }
