@@ -1,3 +1,4 @@
+import type { IMusic } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { AudioPreviewPlayerProps } from '@ui/audio/preview-player/AudioPreviewPlayer';
@@ -71,7 +72,7 @@ describe('ModalGalleryItemMusic', () => {
       ingredientUrl: 'http://example.com/music.mp3',
       metadata: { label: 'Test Music' },
       metadataDuration: 120,
-    },
+    } as unknown as IMusic,
     onSelect: vi.fn(),
   };
 
@@ -131,7 +132,12 @@ describe('ModalGalleryItemMusic', () => {
     render(
       <ModalGalleryItemMusic
         {...defaultProps}
-        music={{ ...defaultProps.music, ingredientUrl: undefined }}
+        music={
+          {
+            ...defaultProps.music,
+            ingredientUrl: undefined,
+          } as unknown as IMusic
+        }
       />,
     );
     expect(screen.getByTestId('shared-audio-player')).not.toHaveAttribute(
@@ -143,7 +149,7 @@ describe('ModalGalleryItemMusic', () => {
     const musicWithoutLabel = {
       ...defaultProps.music,
       metadata: {},
-    };
+    } as unknown as IMusic;
     render(
       <ModalGalleryItemMusic {...defaultProps} music={musicWithoutLabel} />,
     );
@@ -158,11 +164,7 @@ describe('ModalGalleryItemMusic', () => {
     render(
       <ModalGalleryItemMusic
         {...defaultProps}
-        music={
-          musicWithNullMetadata as unknown as import('react').ComponentProps<
-            typeof ModalGalleryItemMusic
-          >['music']
-        }
+        music={musicWithNullMetadata as unknown as IMusic}
       />,
     );
     expect(screen.getByText('Untitled')).toBeInTheDocument();
@@ -189,7 +191,7 @@ describe('ModalGalleryItemMusic', () => {
     const musicWithoutDuration = {
       ...defaultProps.music,
       metadataDuration: undefined,
-    };
+    } as unknown as IMusic;
     render(
       <ModalGalleryItemMusic {...defaultProps} music={musicWithoutDuration} />,
     );
