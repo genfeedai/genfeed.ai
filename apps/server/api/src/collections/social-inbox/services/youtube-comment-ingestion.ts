@@ -180,12 +180,15 @@ export async function ingestOwnedYoutubeComments(
   );
   let messagesCreated = 0;
   let conversationsCreated = 0;
+  let commentsSeen = 0;
+  let postsScanned = 0;
   const postFailures: YoutubeInboxPostFailure[] = [];
 
   for (const credential of credentials) {
     const posts = await ports.findOwnedPosts(scope.organizationId, credential);
 
     for (const post of posts) {
+      postsScanned++;
       try {
         const comments = await ports.listVideoComments(
           scope.organizationId,
@@ -195,6 +198,7 @@ export async function ingestOwnedYoutubeComments(
           credential.id,
         );
 
+        commentsSeen += comments.length;
         if (comments.length === 0) {
           continue;
         }
@@ -275,5 +279,12 @@ export async function ingestOwnedYoutubeComments(
     }
   }
 
-  return { conversationsCreated, messagesCreated, postFailures };
+  return {
+    commentsSeen,
+    conversationsCreated,
+    credentialsScanned: credentials.length,
+    messagesCreated,
+    postFailures,
+    postsScanned,
+  };
 }

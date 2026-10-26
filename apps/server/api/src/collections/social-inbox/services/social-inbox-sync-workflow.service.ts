@@ -32,6 +32,31 @@ const SOCIAL_INBOX_SYNC_SURFACES: ReadonlyArray<
   [Platform.LINKEDIN, SocialConversationType.DM],
 ];
 
+/**
+ * A sync that listed nothing because it could not run must fail the job, so a
+ * completed job always means the inbox was actually read.
+ */
+function assertSyncDiagnosable(
+  result: SocialInboxSyncResult,
+  input: SocialInboxSyncInput,
+): SocialInboxSyncResult {
+  if (result.credentialsScanned === 0 && input.credentialId) {
+    throw new Error(
+      'Inbox sync found no connected account for the selected credential. Reconnect the account and sync again.',
+    );
+  }
+  const failures = result.postFailures ?? [];
+  if (
+    failures.length > 0 &&
+    failures.length === (result.postsScanned ?? failures.length)
+  ) {
+    throw new Error(
+      `Inbox sync failed for all ${failures.length} scanned post(s): ${failures[0]?.errorName}: ${failures[0]?.message}`,
+    );
+  }
+  return result;
+}
+
 @Injectable()
 export class SocialInboxSyncWorkflowService implements OnModuleInit {
   constructor(
@@ -162,7 +187,9 @@ export class SocialInboxSyncWorkflowService implements OnModuleInit {
       userId: input.userId,
     };
     const options = { credentialId: input.credentialId, limit: input.limit };
-    return executor(scope, options);
+    return executor(scope, options).then((result) =>
+      assertSyncDiagnosable(result, input),
+    );
   }
 
   private readInput(value: unknown): SocialInboxSyncInput {

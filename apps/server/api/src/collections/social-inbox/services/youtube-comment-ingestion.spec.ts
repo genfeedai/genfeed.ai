@@ -46,6 +46,36 @@ function createPorts(
 }
 
 describe('ingestOwnedYoutubeComments', () => {
+  it('reports how much it scanned so an empty import can be diagnosed', async () => {
+    const result = await ingestOwnedYoutubeComments(
+      scope,
+      {},
+      createPorts({ listVideoComments: vi.fn(async () => []) }),
+    );
+
+    expect(result).toMatchObject({
+      commentsSeen: 0,
+      credentialsScanned: 1,
+      messagesCreated: 0,
+      postFailures: [],
+      postsScanned: 3,
+    });
+  });
+
+  it('reports zero scanned posts when no owned video is eligible', async () => {
+    const result = await ingestOwnedYoutubeComments(
+      scope,
+      {},
+      createPorts({ findOwnedPosts: vi.fn(async () => []) }),
+    );
+
+    expect(result).toMatchObject({
+      credentialsScanned: 1,
+      postFailures: [],
+      postsScanned: 0,
+    });
+  });
+
   it('stops a credential after a quota failure instead of retrying every post', async () => {
     const quotaError = Object.assign(new Error('Quota exceeded'), {
       errors: [{ reason: 'quotaExceeded' }],

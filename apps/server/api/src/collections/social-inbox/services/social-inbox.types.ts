@@ -91,9 +91,15 @@ export interface YoutubeInboxPostFailure {
 }
 
 export interface YoutubeCommentIngestResult {
+  /** Comments and replies the listing returned, whether or not they were new. */
+  commentsSeen: number;
   conversationsCreated: number;
+  /** Connected YouTube credentials the sweep considered. */
+  credentialsScanned: number;
   messagesCreated: number;
   postFailures: YoutubeInboxPostFailure[];
+  /** Eligible owned videos the sweep tried to list. Zero means none qualified. */
+  postsScanned: number;
 }
 
 export interface SocialActionInput {

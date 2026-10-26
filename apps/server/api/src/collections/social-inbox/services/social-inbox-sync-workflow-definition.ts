@@ -30,8 +30,14 @@ export interface SocialInboxSyncInput {
 export interface SocialInboxSyncResult {
   conversationsCreated: number;
   messagesCreated: number;
+  /** YouTube comment sync: comments the listing returned (new or already stored). */
+  commentsSeen?: number;
+  /** YouTube comment sync: connected credentials considered. */
+  credentialsScanned?: number;
   /** Present on YouTube comment sync. Empty when every owned post was listed. */
   postFailures?: YoutubeInboxPostFailure[];
+  /** YouTube comment sync: eligible owned videos listed. Zero means none qualified. */
+  postsScanned?: number;
 }
 
 export const SOCIAL_INBOX_SYNC_ACTION_IDS = {

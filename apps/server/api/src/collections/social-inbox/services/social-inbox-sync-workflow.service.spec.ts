@@ -1,6 +1,9 @@
 import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
 import { SocialInboxSyncWorkflowService } from '@api/collections/social-inbox/services/social-inbox-sync-workflow.service';
-import { buildSocialInboxSyncWorkflowDefinition } from '@api/collections/social-inbox/services/social-inbox-sync-workflow-definition';
+import {
+  buildSocialInboxSyncWorkflowDefinition,
+  SOCIAL_INBOX_SYNC_ACTION_IDS,
+} from '@api/collections/social-inbox/services/social-inbox-sync-workflow-definition';
 import type { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { Platform, SocialConversationType } from '@genfeedai/contracts';
@@ -18,8 +21,21 @@ const SURFACES = [
 
 function createService() {
   const registeredWorkflows: string[] = [];
+  const registeredActions = new Map<
+    string,
+    (request: { input: Record<string, unknown> }) => Promise<unknown>
+  >();
   const workflowRunner = {
-    registerAction: vi.fn(),
+    registerAction: vi.fn(
+      (
+        actionId: string,
+        handler: (request: {
+          input: Record<string, unknown>;
+        }) => Promise<unknown>,
+      ) => {
+        registeredActions.set(actionId, handler);
+      },
+    ),
     registerWorkflow: vi.fn((definition: { canonicalId: string }) => {
       registeredWorkflows.push(definition.canonicalId);
     }),
@@ -42,7 +58,14 @@ function createService() {
     workflowQueue as unknown as WorkflowExecutionQueueService,
   );
 
-  return { registeredWorkflows, service, workflowQueue, workflowRunner };
+  return {
+    registeredActions,
+    registeredWorkflows,
+    service,
+    socialInboxService,
+    workflowQueue,
+    workflowRunner,
+  };
 }
 
 describe('SocialInboxSyncWorkflowService', () => {
@@ -79,4 +102,81 @@ describe('SocialInboxSyncWorkflowService', () => {
       expect(registeredWorkflows).toContain(queued.canonicalId);
     },
   );
+
+  describe('YouTube comment sync result', () => {
+    async function runYoutubeSync(
+      result: Record<string, unknown>,
+      credentialId?: string,
+    ) {
+      const { registeredActions, service, socialInboxService } =
+        createService();
+      service.onModuleInit();
+      socialInboxService.ingestYoutubeComments.mockResolvedValue(result);
+      const action = registeredActions.get(
+        SOCIAL_INBOX_SYNC_ACTION_IDS.YOUTUBE_COMMENTS,
+      );
+      return action?.({
+        input: { state: { credentialId, organizationId: 'org-1' } },
+      });
+    }
+
+    it('returns the scan counters for a sync that read the inbox', async () => {
+      const result = {
+        commentsSeen: 0,
+        conversationsCreated: 0,
+        credentialsScanned: 1,
+        messagesCreated: 0,
+        postFailures: [],
+        postsScanned: 0,
+      };
+
+      await expect(runYoutubeSync(result)).resolves.toEqual(result);
+    });
+
+    it('fails the job when every scanned post failed instead of completing', async () => {
+      await expect(
+        runYoutubeSync({
+          commentsSeen: 0,
+          conversationsCreated: 0,
+          credentialsScanned: 1,
+          messagesCreated: 0,
+          postFailures: [
+            { errorName: 'Error', message: 'Forbidden', postId: 'p1' },
+          ],
+          postsScanned: 1,
+        }),
+      ).rejects.toThrow('failed for all 1 scanned post(s): Error: Forbidden');
+    });
+
+    it('keeps a partial failure as a completed result with postFailures', async () => {
+      const result = {
+        commentsSeen: 1,
+        conversationsCreated: 1,
+        credentialsScanned: 1,
+        messagesCreated: 1,
+        postFailures: [
+          { errorName: 'Error', message: 'Forbidden', postId: 'p1' },
+        ],
+        postsScanned: 2,
+      };
+
+      await expect(runYoutubeSync(result)).resolves.toEqual(result);
+    });
+
+    it('fails the job when the selected credential is not connected', async () => {
+      await expect(
+        runYoutubeSync(
+          {
+            commentsSeen: 0,
+            conversationsCreated: 0,
+            credentialsScanned: 0,
+            messagesCreated: 0,
+            postFailures: [],
+            postsScanned: 0,
+          },
+          'cred-1',
+        ),
+      ).rejects.toThrow('no connected account');
+    });
+  });
 });
