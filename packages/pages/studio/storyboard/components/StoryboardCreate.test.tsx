@@ -207,6 +207,32 @@ describe('Storyboard shared composer', () => {
       ),
     );
   });
+  it('saves a long transcript as a landscape long-form storyboard', async () => {
+    render(<StoryboardCreate />);
+    fireEvent.click(screen.getByRole('button', { name: 'Long video' }));
+    expect(screen.queryByLabelText('Runtime budget (seconds)')).toBeNull();
+    const transcript = 'So here is the thing about consistency. '.repeat(100);
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: transcript },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save storyboard' }));
+    await waitFor(() =>
+      expect(mocks.create).toHaveBeenCalledWith({
+        source: {
+          kind: 'brief',
+          brief: transcript.trim(),
+          length: 'long_form',
+        },
+        planSettings: {
+          format: '16:9',
+          videoModelKey: null,
+          runtimeBudgetSeconds: null,
+          styleReferenceAssetIds: [],
+          cast: [],
+        },
+      }),
+    );
+  });
   it('saves only owned, nondeleted style references and clears them when the brand changes', async () => {
     const { rerender } = render(<StoryboardCreate />);
     fireEvent.click(

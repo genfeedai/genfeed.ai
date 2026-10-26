@@ -125,9 +125,20 @@ export const renderStoryboardARollSchema = z
   })
   .strict();
 
+/** The presenter render, or the cheap spoken draft of the same narration. */
+export type StoryboardPresenterTrack = 'aRoll' | 'animatic';
+
+/** The Editor project an animatic or a finished long-form edit opened as. */
+export const storyboardLongFormAssemblySchema = z.object({
+  editorProjectId: z.string().trim().min(1).max(255),
+});
+
 export type StoryboardARollPiece = z.infer<typeof storyboardARollPieceSchema>;
 export type StoryboardARollChunk = z.infer<typeof storyboardARollChunkSchema>;
 export type StoryboardARoll = z.infer<typeof storyboardARollSchema>;
 export type QuoteStoryboardARoll = z.infer<typeof quoteStoryboardARollSchema>;
 export type StoryboardARollQuote = z.infer<typeof storyboardARollQuoteSchema>;
 export type RenderStoryboardARoll = z.infer<typeof renderStoryboardARollSchema>;
+export type StoryboardLongFormAssembly = z.infer<
+  typeof storyboardLongFormAssemblySchema
+>;

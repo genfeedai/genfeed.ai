@@ -1,6 +1,8 @@
 import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import { describe, expect, it } from 'vitest';
 import {
+  editStoryboardCutaway,
+  editStoryboardSegment,
   editStoryboardShot,
   editStoryboardStyle,
   insertStoryboardShot,
@@ -8,6 +10,7 @@ import {
   removeStoryboardShot,
   reorderStoryboardShots,
   storyboardApprovalProblems,
+  storyboardLongFormApprovalProblems,
   storyboardShotsNeedingStills,
 } from './storyboard-plan';
 
@@ -179,5 +182,104 @@ describe('server-owned stills', () => {
     expect(storyboardShotsNeedingStills(board).map((shot) => shot.id)).toEqual([
       'shot-1',
     ]);
+  });
+});
+
+const longFormPlan: StoryboardPlan = {
+  ...plan,
+  format: '16:9',
+  runtimeBudgetSeconds: null,
+  shots: [],
+  cast: [
+    {
+      id: 'presenter-1',
+      name: 'Presenter',
+      referenceAssetIds: [],
+      avatarAssetId: 'avatar-1',
+    },
+  ],
+  longForm: {
+    runtimeBudgetSeconds: 600,
+    presenterId: 'presenter-1',
+    segments: [
+      {
+        id: 'segment-1',
+        ordinal: 1,
+        narration: 'Start here.',
+        estimatedSeconds: 3,
+        cutaways: [
+          {
+            id: 'cut-1',
+            kind: 'still',
+            brief: 'A desk',
+            assetId: 'image-9',
+            startSeconds: 0,
+            durationSeconds: 2,
+          },
+        ],
+      },
+    ],
+  },
+} as StoryboardPlan;
+const messages = { noScript: 'no script', presenter: 'presenter' };
+
+describe('long-form plan editing', () => {
+  it('edits a segment narration and drops footage of a rewritten cutaway', () => {
+    expect(
+      editStoryboardSegment(longFormPlan, 'segment-1', { narration: 'New.' })
+        .longForm?.segments[0]?.narration,
+    ).toBe('New.');
+    const rewritten = editStoryboardCutaway(longFormPlan, 'cut-1', {
+      brief: 'A window',
+    }).longForm?.segments[0]?.cutaways[0];
+    expect(rewritten).toMatchObject({ brief: 'A window' });
+    expect(rewritten?.assetId).toBeUndefined();
+  });
+  it('shows a cutaway still the server attached unless the cutaway changed', () => {
+    const local = editStoryboardSegment(longFormPlan, 'segment-1', {
+      narration: 'Start here.',
+    });
+    const withoutAsset = editStoryboardCutaway(local, 'cut-1', {
+      brief: 'A desk',
+    });
+    expect(
+      overlayStoryboardStills(withoutAsset, longFormPlan).longForm?.segments[0]
+        ?.cutaways[0]?.assetId,
+    ).toBe('image-9');
+    const rewritten = editStoryboardCutaway(local, 'cut-1', {
+      brief: 'A window',
+    });
+    expect(
+      overlayStoryboardStills(rewritten, longFormPlan).longForm?.segments[0]
+        ?.cutaways[0]?.assetId,
+    ).toBeUndefined();
+  });
+  it('needs a script and a presenter with an avatar and a voice', () => {
+    expect(storyboardLongFormApprovalProblems(longFormPlan, messages)).toEqual([
+      'presenter',
+    ]);
+    expect(
+      storyboardLongFormApprovalProblems(
+        {
+          ...longFormPlan,
+          cast: [
+            {
+              id: 'presenter-1',
+              name: 'Presenter',
+              referenceAssetIds: [],
+              avatarAssetId: 'avatar-1',
+              voiceId: 'voice-1',
+            },
+          ],
+          longForm: {
+            runtimeBudgetSeconds: 600,
+            presenterId: 'presenter-1',
+            segments: [],
+          },
+        } as StoryboardPlan,
+        messages,
+      ),
+    ).toEqual(['no script']);
+    expect(storyboardLongFormApprovalProblems(plan, messages)).toEqual([]);
   });
 });

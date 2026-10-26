@@ -1,4 +1,8 @@
-import type { StoryboardShot } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
+import type {
+  StoryboardCutaway,
+  StoryboardSegment,
+  StoryboardShot,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { StoryboardEditablePlan } from '@genfeedai/props/studio/storyboard.props';
 import { getStoryboardAssetLabel } from '@pages/studio/storyboard/utils/storyboard-asset-label';
@@ -27,6 +31,23 @@ export function storyboardApprovalProblems(
   return problems;
 }
 
+/** What a long-form plan still needs before it can be approved. */
+export function storyboardLongFormApprovalProblems(
+  plan: StoryboardEditablePlan,
+  messages: { noScript: string; presenter: string },
+): string[] {
+  const longForm = plan.longForm;
+  if (!longForm) return [];
+  const problems: string[] = [];
+  if (!longForm.segments.length) problems.push(messages.noScript);
+  const presenter = plan.cast.find(
+    (member) => member.id === longForm.presenterId,
+  );
+  if (!presenter?.avatarAssetId || !presenter.voiceId)
+    problems.push(messages.presenter);
+  return problems;
+}
+
 /**
  * Stills are server-owned. A local edit may stale a still before it saves,
  * but a still the server is generating, or one it attached or settled since
@@ -38,8 +59,33 @@ export function overlayStoryboardStills(
 ): StoryboardEditablePlan {
   if (!saved) return local;
   const byId = new Map(saved.shots.map((shot) => [shot.id, shot]));
+  // A cutaway still the server attached since the local copy shows too,
+  // unless the cutaway was rewritten locally since.
+  const cutawayAssets = new Map(
+    (saved.longForm?.segments ?? []).flatMap((segment) =>
+      segment.cutaways.flatMap((cutaway) =>
+        cutaway.assetId ? [[cutaway.id, cutaway] as const] : [],
+      ),
+    ),
+  );
   return {
     ...local,
+    ...(local.longForm
+      ? {
+          longForm: {
+            ...local.longForm,
+            segments: local.longForm.segments.map((segment) => ({
+              ...segment,
+              cutaways: segment.cutaways.map((cutaway) => {
+                const server = cutawayAssets.get(cutaway.id);
+                return !cutaway.assetId && server?.brief === cutaway.brief
+                  ? { ...cutaway, assetId: server.assetId }
+                  : cutaway;
+              }),
+            })),
+          },
+        }
+      : {}),
     shots: local.shots.map((shot) => {
       const server = byId.get(shot.id);
       if (
@@ -67,6 +113,46 @@ export function storyboardShotsNeedingStills(
       Boolean(shot.action.trim()) &&
       ['missing', 'stale', 'failed'].includes(shot.stillFreshness),
   );
+}
+
+export function editStoryboardSegment(
+  plan: StoryboardEditablePlan,
+  id: string,
+  patch: Partial<Pick<StoryboardSegment, 'narration' | 'sectionLabel'>>,
+): StoryboardEditablePlan {
+  if (!plan.longForm) return plan;
+  return {
+    ...plan,
+    longForm: {
+      ...plan.longForm,
+      segments: plan.longForm.segments.map((segment) =>
+        segment.id === id ? { ...segment, ...patch } : segment,
+      ),
+    },
+  };
+}
+
+/** Editing a cutaway's brief drops its footage: the still no longer matches. */
+export function editStoryboardCutaway(
+  plan: StoryboardEditablePlan,
+  id: string,
+  patch: Partial<Pick<StoryboardCutaway, 'brief'>>,
+): StoryboardEditablePlan {
+  if (!plan.longForm) return plan;
+  return {
+    ...plan,
+    longForm: {
+      ...plan.longForm,
+      segments: plan.longForm.segments.map((segment) => ({
+        ...segment,
+        cutaways: segment.cutaways.map((cutaway) => {
+          if (cutaway.id !== id) return cutaway;
+          const { assetId: _assetId, ...rest } = cutaway;
+          return { ...rest, ...patch };
+        }),
+      })),
+    },
+  };
 }
 
 export function editStoryboardShot(

@@ -11,6 +11,7 @@ import {
   IngredientCategory,
 } from '@genfeedai/contracts';
 import type { StudioStoryboardProposal } from '@genfeedai/contracts/api-types/contracts';
+import { STORYBOARD_LONG_BRIEF_MAX_CHARACTERS } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { StoryboardPreset } from '@genfeedai/props/studio/storyboard-presets.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -40,8 +41,10 @@ const FORMAT_OPTIONS = ['9:16', '16:9', '1:1'].map((value) => ({
 }));
 const RUNTIME_BUDGET_SECONDS = [15, 30, 45, 60];
 const MAX_BRIEF_LENGTH = 2000;
+/** A long-form brief is a voice-note transcript or an idea dump. */
+const MAX_LONG_FORM_BRIEF_LENGTH = STORYBOARD_LONG_BRIEF_MAX_CHARACTERS;
 // The counter only appears once the brief is close to the limit.
-const CHARACTER_COUNT_THRESHOLD = MAX_BRIEF_LENGTH * 0.8;
+const COUNTER_THRESHOLD = 0.8;
 
 /** Selection/upload saves media only; creating a draft never dispatches paid work. */
 export default function StoryboardCreate() {
@@ -52,7 +55,11 @@ export default function StoryboardCreate() {
   const { href } = useOrgUrl();
   const router = useRouter();
   const { create, error, isCreating, isCurrentResult } = useCreateStoryboard();
-  const [mode, setMode] = useState<'brief' | 'video'>('brief');
+  const [mode, setMode] = useState<'brief' | 'longForm' | 'video'>('brief');
+  const isLongForm = mode === 'longForm';
+  const maxBriefLength = isLongForm
+    ? MAX_LONG_FORM_BRIEF_LENGTH
+    : MAX_BRIEF_LENGTH;
   const [brief, setBrief] = useState('');
   // The agent brief the composer was last filled from, for provenance.
   const [agentBrief, setAgentBrief] = useState<string | null>(null);
@@ -112,7 +119,10 @@ export default function StoryboardCreate() {
       ? (brief.trim().length > 0 || Boolean(image)) &&
         brief.trim().length <= MAX_BRIEF_LENGTH &&
         validBudget
-      : Boolean(video);
+      : isLongForm
+        ? brief.trim().length > 0 &&
+          brief.trim().length <= MAX_LONG_FORM_BRIEF_LENGTH
+        : Boolean(video);
   function chooseStartingImage() {
     openGallery({
       category: IngredientCategory.IMAGE,
@@ -155,8 +165,22 @@ export default function StoryboardCreate() {
   async function submit() {
     if (!valid || isCreating) return;
     const author = resolveAgentPromptAuthor(agentBrief, brief);
-    const input =
-      mode === 'brief'
+    const input = isLongForm
+      ? {
+          source: {
+            kind: 'brief' as const,
+            brief: brief.trim(),
+            length: 'long_form' as const,
+          },
+          planSettings: {
+            format,
+            videoModelKey: null,
+            runtimeBudgetSeconds: null,
+            styleReferenceAssetIds: styles.map((reference) => reference.id),
+            cast: [],
+          },
+        }
+      : mode === 'brief'
         ? {
             source: {
               kind: 'brief' as const,
@@ -206,6 +230,18 @@ export default function StoryboardCreate() {
             onClick={() => setMode('brief')}
           />
           <Button
+            label={translate('longFormTitle')}
+            aria-pressed={isLongForm}
+            variant={
+              isLongForm ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
+            }
+            disabled={isCreating}
+            onClick={() => {
+              setMode('longForm');
+              setFormat('16:9');
+            }}
+          />
+          <Button
             label={translate('remixTitle')}
             aria-pressed={mode === 'video'}
             variant={
@@ -227,12 +263,14 @@ export default function StoryboardCreate() {
               ) : undefined
             }
           >
-            {mode === 'brief' ? (
+            {mode !== 'video' ? (
               <PromptEditor
                 ariaLabel={translate('brief')}
                 value={brief}
                 isDisabled={isCreating}
-                placeholder={translate('briefPlaceholder')}
+                placeholder={translate(
+                  isLongForm ? 'longFormPlaceholder' : 'briefPlaceholder',
+                )}
                 onValueChange={setBrief}
                 onSubmit={() => void submit()}
                 className="min-h-16"
@@ -240,7 +278,7 @@ export default function StoryboardCreate() {
             ) : null}
             <PromptBarToolbar
               leading={
-                mode === 'brief' ? (
+                mode !== 'video' ? (
                   <>
                     <PromptBarCompactSelect
                       ariaLabel={translate('formatAria')}
@@ -256,13 +294,15 @@ export default function StoryboardCreate() {
                           setFormat(value);
                       }}
                     />
-                    <PromptBarCompactSelect
-                      ariaLabel={translate('runtimeBudget')}
-                      isDisabled={isCreating}
-                      options={budgetOptions}
-                      value={budget}
-                      onChange={setBudget}
-                    />
+                    {isLongForm ? null : (
+                      <PromptBarCompactSelect
+                        ariaLabel={translate('runtimeBudget')}
+                        isDisabled={isCreating}
+                        options={budgetOptions}
+                        value={budget}
+                        onChange={setBudget}
+                      />
+                    )}
                   </>
                 ) : null
               }
@@ -291,10 +331,11 @@ export default function StoryboardCreate() {
                 />
               }
             />
-            {mode === 'brief' && brief.length >= CHARACTER_COUNT_THRESHOLD ? (
+            {mode !== 'video' &&
+            brief.length >= maxBriefLength * COUNTER_THRESHOLD ? (
               <p
                 className={
-                  brief.length > MAX_BRIEF_LENGTH
+                  brief.length > maxBriefLength
                     ? 'mt-2 text-xs text-destructive'
                     : 'mt-2 text-xs text-muted-foreground'
                 }
@@ -307,6 +348,10 @@ export default function StoryboardCreate() {
         {mode === 'video' ? (
           <p role="status" className="text-sm">
             {video?.title || translate('chooseOwnedVideo')}
+          </p>
+        ) : isLongForm ? (
+          <p className="text-sm text-muted-foreground">
+            {translate('longFormHint')}
           </p>
         ) : (
           <>
@@ -339,7 +384,7 @@ export default function StoryboardCreate() {
                 },
               ]
             : []),
-          ...(mode === 'brief'
+          ...(mode !== 'video'
             ? styles.map((reference) => ({
                 id: `style:${reference.id}`,
                 title: reference.title,

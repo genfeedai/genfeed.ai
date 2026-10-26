@@ -5,9 +5,15 @@ import type {
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import type { BrandRemixRunSummary } from '@genfeedai/contracts/api-types/contracts/brand-remix-run-summary.contract';
 import type { QuoteBrandRemixScenes } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
+import type {
+  StoryboardARollQuote,
+  StoryboardPresenterTrack,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-a-roll.contract';
 import type { StoryboardCharacterReplacement } from '@genfeedai/contracts/api-types/contracts/storyboard-character-replace.contract';
 import type {
   StoryboardCastMember,
+  StoryboardCutaway,
+  StoryboardSegment,
   StoryboardShot,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
@@ -216,6 +222,50 @@ export interface StoryboardPlanEditorProps {
   readonly generateStills?: (
     quote: StoryboardStillQuote,
   ) => Promise<StoryboardRun>;
+  readonly longForm?: StoryboardLongFormActions;
+}
+
+/** The paid long-form steps (#8218), each priced before it starts. */
+export interface StoryboardLongFormActions {
+  /** Cutaway stills were started and some have not landed yet. */
+  readonly isDrawingCutaways: boolean;
+  readonly quoteCutaways: (
+    revision: number,
+    cutawayIds?: readonly string[],
+  ) => Promise<StoryboardStillQuote>;
+  readonly generateCutaways: (
+    quote: StoryboardStillQuote,
+  ) => Promise<StoryboardRun>;
+  readonly quotePresenter: (
+    track: StoryboardPresenterTrack,
+  ) => Promise<StoryboardARollQuote>;
+  readonly renderPresenter: (
+    track: StoryboardPresenterTrack,
+    quote: StoryboardARollQuote,
+  ) => Promise<StoryboardRun>;
+  /** Opens the animatic or the finished edit; resolves to the Editor project id. */
+  readonly assembleLongForm: (
+    track: StoryboardPresenterTrack,
+  ) => Promise<string>;
+}
+
+export interface StoryboardLongFormBoardProps {
+  readonly run: StoryboardRun;
+  readonly segments: readonly StoryboardSegment[];
+  readonly isApproved: boolean;
+  readonly isDisabled: boolean;
+  readonly cutawayStills: Readonly<Record<string, string | undefined>>;
+  readonly onPatchSegment: (
+    segmentId: string,
+    patch: Partial<Pick<StoryboardSegment, 'narration' | 'sectionLabel'>>,
+  ) => void;
+  readonly onPatchCutaway: (
+    cutawayId: string,
+    patch: Partial<Pick<StoryboardCutaway, 'brief'>>,
+  ) => void;
+  /** Saves pending edits, then runs a step against the saved revision. */
+  readonly onPerform: (action: (revision: number) => Promise<unknown>) => void;
+  readonly actions?: StoryboardLongFormActions;
 }
 
 export type StoryboardDraftPageProps = Pick<
@@ -231,6 +281,7 @@ export type StoryboardDraftPageProps = Pick<
   | 'refreshCapabilities'
   | 'quoteStills'
   | 'generateStills'
+  | 'longForm'
 > & {
   /** Drafts the plan from the brief, or revises it when `instruction` is set. */
   readonly draftPlan: (instruction?: string) => Promise<StoryboardRun>;

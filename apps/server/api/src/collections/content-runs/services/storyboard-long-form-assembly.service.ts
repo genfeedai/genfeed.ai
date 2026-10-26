@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
-import type { StoryboardPresenterTrack } from '@api/collections/content-runs/services/storyboard-a-roll.service';
 import {
   matchStoryboardARollChunks,
   planStoryboardARollChunks,
@@ -20,7 +19,10 @@ import {
   EditorTrackType,
   IngredientFormat,
 } from '@genfeedai/contracts';
-import type { StoryboardARollChunk } from '@genfeedai/contracts/api-types/contracts/storyboard-a-roll.contract';
+import type {
+  StoryboardARollChunk,
+  StoryboardPresenterTrack,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-a-roll.contract';
 import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type {
   IEditorClip,

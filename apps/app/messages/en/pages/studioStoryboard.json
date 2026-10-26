@@ -68,7 +68,10 @@
     "startingImage": "Starting image",
     "title": "Create a storyboard",
     "uploadVideo": "Upload a video",
-    "uploadedVideo": "Uploaded video"
+    "uploadedVideo": "Uploaded video",
+    "longFormTitle": "Long video",
+    "longFormPlaceholder": "Paste a voice-note transcript or dump your ideas. They become a script for one presenter, with B-roll.",
+    "longFormHint": "Up to 20,000 characters. You review the script, then draft a cheap animatic before the presenter render."
   },
   "draft": {
     "draftFailed": "Could not draft the storyboard. Try again.",
@@ -474,5 +477,46 @@
     "briefPlaceholder": "Describe the video you want to make",
     "changesPlaceholder": "Ask for changes, e.g. make shot 3 shorter and end on a question",
     "retry": "Try again"
+  },
+  "longForm": {
+    "productionTitle": "Make the video",
+    "brollTitle": "B-roll stills",
+    "brollProgress": "{ready} of {total} cutaways have footage",
+    "brollDraw": "Draw missing stills",
+    "brollDrawing": "Drawing stills",
+    "cutawayQuote": "{count, plural, one {# still} other {# stills}}: {price}",
+    "animaticTitle": "Animatic",
+    "animaticHint": "Hear the script in the presenter's voice before paying for the render.",
+    "animaticDraft": "Draft animatic",
+    "animaticDrafting": "Speaking the script",
+    "animaticOpen": "Open animatic",
+    "animaticQuote": "Animatic, {count, plural, one {# part} other {# parts}}: {price}",
+    "presenterTitle": "Presenter",
+    "presenterHint": "Renders the presenter with HeyGen Avatar IV.",
+    "presenterNeedsApproval": "Approve the storyboard to render the presenter.",
+    "presenterRender": "Render presenter",
+    "presenterRendering": "Rendering the presenter",
+    "presenterConfirmTitle": "Render the presenter?",
+    "presenterConfirmMessage": "{count, plural, one {# part} other {# parts}}, about {duration} of video: {price}. Parts already rendered are not charged again.",
+    "presenterConfirm": "Render",
+    "finalOpen": "Open the edit",
+    "trackProgress": "{ready} of {total} parts ready{failed, plural, =0 {} other {, # failed}}",
+    "priceCredits": "{credits} credits",
+    "priceByok": "billed to your own provider key",
+    "segment": "Segment {ordinal}",
+    "segmentNameFor": "Name of segment {ordinal}",
+    "segmentNamePlaceholder": "Name this part",
+    "narration": "Narration",
+    "cutaways": "Cutaways",
+    "cutawayBrief": "What the cutaway shows",
+    "cutawayTiming": "at {at} for {seconds}s",
+    "noFootage": "No footage yet",
+    "kinds": {
+      "still": "Still",
+      "motion_graphic": "Motion graphic",
+      "library_clip": "Library clip"
+    },
+    "problemNoScript": "Draft the script first.",
+    "problemPresenter": "Give the presenter an avatar image and a voice."
   }
 }

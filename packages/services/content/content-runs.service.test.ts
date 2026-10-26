@@ -531,6 +531,47 @@ describe('ContentRunsService canonical storyboard drafts', () => {
     mockGet.mockResolvedValue(response);
     mockDeserializeResource.mockReturnValue(run);
   });
+  it('prices the presenter or the animatic on its own route and opens the edit', async () => {
+    const quote = {
+      revision: 3,
+      modelKey: 'heygen/avatar-iv',
+      billingMode: 'platform',
+      inputHash: 'a'.repeat(64),
+      items: [
+        { ordinal: 1, characters: 900, estimatedSeconds: 60, credits: 12 },
+      ],
+      readyChunkIds: [],
+      total: 12,
+    };
+    mockPost.mockResolvedValueOnce({ data: quote });
+    const service = new ContentRunsService('token');
+    expect(
+      await service.quoteStoryboardPresenter('brand-1', 'run-1', 'aRoll', {
+        expectedRevision: 3,
+      }),
+    ).toEqual(quote);
+    expect(mockPost).toHaveBeenLastCalledWith(
+      '/brands/brand-1/storyboard-runs/run-1/a-roll/quote',
+      { expectedRevision: 3 },
+    );
+    mockPost.mockResolvedValueOnce({
+      data: { editorProjectId: 'project-1', timeline: {} },
+    });
+    expect(
+      await service.assembleStoryboardLongForm('brand-1', 'run-1', 'animatic'),
+    ).toEqual({ editorProjectId: 'project-1' });
+    expect(mockPost).toHaveBeenLastCalledWith(
+      '/brands/brand-1/storyboard-runs/run-1/animatic/assemble',
+      {},
+    );
+    mockPost.mockResolvedValueOnce({ data: { ...quote, total: -1 } });
+    await expect(
+      service.quoteStoryboardPresenter('brand-1', 'run-1', 'animatic', {
+        expectedRevision: 3,
+      }),
+    ).rejects.toThrow();
+  });
+
   it('reads exact capabilities without JSON:API deserialization and rejects malformed timing data', async () => {
     const response = {
       version: 1,

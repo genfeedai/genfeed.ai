@@ -23,6 +23,7 @@ import StoryboardAnimatic from '@pages/studio/storyboard/components/StoryboardAn
 import StoryboardCastPanel from '@pages/studio/storyboard/components/StoryboardCastPanel';
 import StoryboardDetailsPanel from '@pages/studio/storyboard/components/StoryboardDetailsPanel';
 import StoryboardInspector from '@pages/studio/storyboard/components/StoryboardInspector';
+import StoryboardLongFormBoard from '@pages/studio/storyboard/components/StoryboardLongFormBoard';
 import StoryboardReferencesPanel from '@pages/studio/storyboard/components/StoryboardReferencesPanel';
 import StoryboardRuntimeRail from '@pages/studio/storyboard/components/StoryboardRuntimeRail';
 import StoryboardSaveIndicator from '@pages/studio/storyboard/components/StoryboardSaveIndicator';
@@ -33,6 +34,8 @@ import { useStoryboardAutosave } from '@pages/studio/storyboard/hooks/use-storyb
 import { useStoryboardVoices } from '@pages/studio/storyboard/hooks/use-storyboard-voices';
 import { normalizeStoryboardModel } from '@pages/studio/storyboard/utils/storyboard-capabilities';
 import {
+  editStoryboardCutaway,
+  editStoryboardSegment,
   editStoryboardShot,
   editStoryboardStyle,
   insertStoryboardShot,
@@ -41,6 +44,7 @@ import {
   reorderStoryboardShots,
   storyboardApprovalProblems,
   storyboardAssetLabel,
+  storyboardLongFormApprovalProblems,
   storyboardShotsNeedingStills,
 } from '@pages/studio/storyboard/utils/storyboard-plan';
 import {
@@ -75,6 +79,7 @@ export default function StoryboardPlanEditor({
   approvePlan,
   quoteStills,
   generateStills,
+  longForm,
   capabilities,
   capabilityError,
   refreshCapabilities,
@@ -88,6 +93,7 @@ export default function StoryboardPlanEditor({
   const translateWorkspace = useTranslations(
     'pages.studioStoryboard.workspace',
   );
+  const translateLongForm = useTranslations('pages.studioStoryboard.longForm');
   const { openConfirm } = useConfirmModal();
   const { openGallery } = useGalleryModal();
   const {
@@ -182,6 +188,13 @@ export default function StoryboardPlanEditor({
         id,
         kind: 'image' as const,
       })),
+      ...(plan.longForm?.segments ?? []).flatMap((segment) =>
+        segment.cutaways.flatMap((cutaway) =>
+          cutaway.assetId
+            ? [{ id: cutaway.assetId, kind: 'image' as const }]
+            : [],
+        ),
+      ),
       ...plan.cast
         .flatMap((member) => [
           ...(member.avatarAssetId ? [member.avatarAssetId] : []),
@@ -190,7 +203,13 @@ export default function StoryboardPlanEditor({
         .map((id) => ({ id, kind: 'image' as const })),
     ],
   );
-  const problems = storyboardApprovalProblems(plan);
+  const isLongForm = Boolean(plan.longForm);
+  const problems = isLongForm
+    ? storyboardLongFormApprovalProblems(plan, {
+        noScript: translateLongForm('problemNoScript'),
+        presenter: translateLongForm('problemPresenter'),
+      })
+    : storyboardApprovalProblems(plan);
   for (const member of plan.cast)
     if (
       member.voiceId &&
@@ -198,12 +217,13 @@ export default function StoryboardPlanEditor({
         !voices.some((voice) => voice.id === member.voiceId))
     )
       problems.push(translate('voiceUnavailableFor', { name: member.name }));
-  if (!supportedDurations.length)
+  if (!isLongForm && !supportedDurations.length)
     problems.push(translate('capabilitiesUnavailable'));
   const approved =
     autosave.status === 'saved' &&
     run.config.approvedRevision === autosave.revision;
-  const hasShots = plan.shots.length > 0;
+  const segments = plan.longForm?.segments ?? [];
+  const hasShots = plan.shots.length > 0 || segments.length > 0;
   const ranges = storyboardRuntimeRanges(plan.shots);
   const usedSeconds = plan.shots.reduce(
     (sum, shot) => sum + (shot.durationSeconds ?? 0),
@@ -488,7 +508,9 @@ export default function StoryboardPlanEditor({
               }
               onClick={() =>
                 void perform((revision, saved) => {
-                  const blockers = storyboardApprovalProblems(saved);
+                  const blockers = saved.longForm
+                    ? []
+                    : storyboardApprovalProblems(saved);
                   if (blockers.length) throw new Error(blockers.join(' '));
                   return approvePlan(revision);
                 })
@@ -499,7 +521,8 @@ export default function StoryboardPlanEditor({
       >
         <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
           {notices}
-          {capabilityError || currentCapabilities?.status === 'unavailable' ? (
+          {!isLongForm &&
+          (capabilityError || currentCapabilities?.status === 'unavailable') ? (
             <div
               role="status"
               className="space-y-2 text-sm text-muted-foreground"
@@ -534,6 +557,53 @@ export default function StoryboardPlanEditor({
               <Skeleton className="h-56 w-full" />
               <Skeleton className="h-56 w-full" />
             </div>
+          ) : isLongForm && hasShots ? (
+            <>
+              <StoryboardLongFormBoard
+                run={run}
+                segments={segments}
+                isApproved={approved}
+                isDisabled={isDisabled}
+                cutawayStills={Object.fromEntries(
+                  segments.flatMap((segment) =>
+                    segment.cutaways.flatMap((cutaway) =>
+                      cutaway.assetId
+                        ? [
+                            [
+                              cutaway.assetId,
+                              assets[`image:${cutaway.assetId}`]?.cdnUrl ??
+                                undefined,
+                            ],
+                          ]
+                        : [],
+                    ),
+                  ),
+                )}
+                onPatchSegment={(segmentId, patch) =>
+                  edit(editStoryboardSegment(plan, segmentId, patch))
+                }
+                onPatchCutaway={(cutawayId, patch) =>
+                  edit(editStoryboardCutaway(plan, cutawayId, patch))
+                }
+                onPerform={(action) =>
+                  void perform((revision) => action(revision))
+                }
+                actions={longForm}
+              />
+              {problems.length ? (
+                <div
+                  role="status"
+                  className="space-y-1 text-xs text-muted-foreground"
+                >
+                  <p>{translate('beforeApproving')}</p>
+                  <ul className="list-disc pl-4">
+                    {problems.map((problem) => (
+                      <li key={problem}>{problem}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </>
           ) : hasShots ? (
             <>
               <StoryboardAnimatic
@@ -667,18 +737,22 @@ export default function StoryboardPlanEditor({
                       onClick={onDraftFromBrief}
                     />
                   ) : null}
-                  <Button
-                    label={translate('addShot')}
-                    icon={<Plus className="size-4" />}
-                    variant={ButtonVariant.GHOST}
-                    disabled={isDisabled || timingDisabled || !hasShotDuration}
-                    tooltip={
-                      hasShotDuration
-                        ? undefined
-                        : translate('durationUntilResolved')
-                    }
-                    onClick={() => addShot()}
-                  />
+                  {isLongForm ? null : (
+                    <Button
+                      label={translate('addShot')}
+                      icon={<Plus className="size-4" />}
+                      variant={ButtonVariant.GHOST}
+                      disabled={
+                        isDisabled || timingDisabled || !hasShotDuration
+                      }
+                      tooltip={
+                        hasShotDuration
+                          ? undefined
+                          : translate('durationUntilResolved')
+                      }
+                      onClick={() => addShot()}
+                    />
+                  )}
                 </div>
               }
             />

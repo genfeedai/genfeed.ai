@@ -3,6 +3,10 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { getSession } from '@genfeedai/auth-client';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import type {
+  StoryboardARollQuote,
+  StoryboardPresenterTrack,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-a-roll.contract';
 import { storyboardPlanSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardSourceSelector } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
@@ -30,6 +34,18 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 /** How often a board with a generating still asks the server to record finished stills. */
 const STILL_RECONCILE_MS = 4_000;
+/** Presenter renders take minutes; the narration draft takes seconds. */
+const PRESENTER_RECONCILE_MS = 8_000;
+/** Cutaway stills are not marked on the plan; stop asking after this long. */
+const CUTAWAY_STILL_WAIT_MS = 10 * 60_000;
+
+function hasLiveChunks(run: StoryboardRun | null): boolean {
+  return [run?.config.aRoll, run?.config.animatic].some((track) =>
+    track?.chunks.some(
+      (chunk) => chunk.state === 'pending' || chunk.state === 'submitted',
+    ),
+  );
+}
 
 /** Neutral persisted drafts use the brand-scoped API, never a local run substitute. */
 export function useDurableStoryboardRun(runId: string) {
@@ -462,6 +478,112 @@ export function useDurableStoryboardRun(runId: string) {
     },
     [brandId, runId, getService, adopt, scope],
   );
+  /** Long-form cutaways asked for a still, until the still is attached. */
+  const [pendingCutaways, setPendingCutaways] = useState<{
+    ids: readonly string[];
+    since: number;
+  }>();
+  const quoteCutaways = useCallback(
+    async (revision: number, cutawayIds?: readonly string[]) => {
+      if (!brandId || activeScope.current !== scope)
+        throw new Error('Storyboard scope changed.');
+      const service = await getService();
+      try {
+        return await service.quoteStoryboardStills(brandId, runId, {
+          expectedRevision: revision,
+          ...(cutawayIds ? { cutawayIds: [...cutawayIds] } : {}),
+        });
+      } catch (error) {
+        throw new Error(
+          getJsonApiErrorMessage(error, 'Could not price the B-roll stills.'),
+        );
+      }
+    },
+    [brandId, runId, getService, scope],
+  );
+  const generateCutaways = useCallback(
+    async (quote: StoryboardStillQuote) => {
+      if (!brandId || activeScope.current !== scope)
+        throw new Error('Storyboard scope changed.');
+      const service = await getService();
+      const cutawayIds = quote.items.map((item) => item.shotId);
+      let run: StoryboardRun;
+      try {
+        run = await service.generateStoryboardStills(brandId, runId, {
+          expectedRevision: quote.revision,
+          cutawayIds,
+          inputHash: quote.inputHash,
+        });
+      } catch (error) {
+        throw new Error(
+          getJsonApiErrorMessage(error, 'Could not start the B-roll stills.'),
+        );
+      }
+      setPendingCutaways({ ids: cutawayIds, since: Date.now() });
+      return adopt(run);
+    },
+    [brandId, runId, getService, adopt, scope],
+  );
+  const quotePresenter = useCallback(
+    async (track: StoryboardPresenterTrack) => {
+      if (!brandId || activeScope.current !== scope)
+        throw new Error('Storyboard scope changed.');
+      const persisted = latestRun.current;
+      if (!persisted) throw new Error('Storyboard scope changed.');
+      const service = await getService();
+      try {
+        return await service.quoteStoryboardPresenter(brandId, runId, track, {
+          expectedRevision: persisted.config.revision,
+        });
+      } catch (error) {
+        throw new Error(
+          getJsonApiErrorMessage(error, 'Could not price the narration.'),
+        );
+      }
+    },
+    [brandId, runId, getService, scope],
+  );
+  const renderPresenter = useCallback(
+    async (track: StoryboardPresenterTrack, quote: StoryboardARollQuote) => {
+      if (!brandId || activeScope.current !== scope)
+        throw new Error('Storyboard scope changed.');
+      const service = await getService();
+      let run: StoryboardRun;
+      try {
+        run = await service.renderStoryboardPresenter(brandId, runId, track, {
+          expectedRevision: quote.revision,
+          inputHash: quote.inputHash,
+        });
+      } catch (error) {
+        throw new Error(
+          getJsonApiErrorMessage(error, 'Could not start the narration.'),
+        );
+      }
+      return adopt(run);
+    },
+    [brandId, runId, getService, adopt, scope],
+  );
+  /** Opens the animatic or the finished edit; returns the Editor project id. */
+  const assembleLongForm = useCallback(
+    async (track: StoryboardPresenterTrack) => {
+      if (!brandId || activeScope.current !== scope)
+        throw new Error('Storyboard scope changed.');
+      const service = await getService();
+      try {
+        const { editorProjectId } = await service.assembleStoryboardLongForm(
+          brandId,
+          runId,
+          track,
+        );
+        return editorProjectId;
+      } catch (error) {
+        throw new Error(
+          getJsonApiErrorMessage(error, 'Could not open the edit.'),
+        );
+      }
+    },
+    [brandId, runId, getService, scope],
+  );
   const currentRun = result.scope === scope ? result.run : null;
   const isGeneratingStills = Boolean(
     currentRun?.config.plan?.shots.some(
@@ -497,6 +619,61 @@ export function useDurableStoryboardRun(runId: string) {
       if (timer) clearTimeout(timer);
     };
   }, [brandId, runId, isGeneratingStills, getService, adopt]);
+  const isRenderingPresenter = hasLiveChunks(currentRun);
+  useEffect(() => {
+    if (!brandId || !isRenderingPresenter) return;
+    const controller = new AbortController();
+    const timer = setInterval(() => {
+      void getService()
+        .then((service) =>
+          service.reconcileStoryboardPresenter(
+            brandId,
+            runId,
+            controller.signal,
+          ),
+        )
+        .then((run) => {
+          if (!controller.signal.aborted) adopt(run);
+        })
+        .catch(() => undefined);
+    }, PRESENTER_RECONCILE_MS);
+    return () => {
+      controller.abort();
+      clearInterval(timer);
+    };
+  }, [brandId, runId, isRenderingPresenter, getService, adopt]);
+  const attachedCutaways = new Set(
+    (currentRun?.config.plan?.longForm?.segments ?? []).flatMap((segment) =>
+      segment.cutaways.flatMap((cutaway) =>
+        cutaway.assetId ? [cutaway.id] : [],
+      ),
+    ),
+  );
+  const isDrawingCutaways = Boolean(
+    pendingCutaways?.ids.some((id) => !attachedCutaways.has(id)),
+  );
+  useEffect(() => {
+    if (!brandId || !isDrawingCutaways || !pendingCutaways) return;
+    const controller = new AbortController();
+    const timer = setInterval(() => {
+      if (Date.now() - pendingCutaways.since > CUTAWAY_STILL_WAIT_MS) {
+        setPendingCutaways(undefined);
+        return;
+      }
+      void getService()
+        .then((service) =>
+          service.reconcileStoryboardStills(brandId, runId, controller.signal),
+        )
+        .then((run) => {
+          if (!controller.signal.aborted) adopt(run);
+        })
+        .catch(() => undefined);
+    }, STILL_RECONCILE_MS);
+    return () => {
+      controller.abort();
+      clearInterval(timer);
+    };
+  }, [brandId, runId, isDrawingCutaways, pendingCutaways, getService, adopt]);
   return {
     transport,
     reread: transport?.read,
@@ -511,5 +688,13 @@ export function useDurableStoryboardRun(runId: string) {
     draftPlan,
     quoteStills,
     generateStills,
+    longForm: {
+      isDrawingCutaways,
+      quoteCutaways,
+      generateCutaways,
+      quotePresenter,
+      renderPresenter,
+      assembleLongForm,
+    },
   };
 }

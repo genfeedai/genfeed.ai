@@ -26,6 +26,7 @@ import {
   STORYBOARD_A_ROLL_MODEL_KEY,
   type StoryboardARollChunk,
   type StoryboardARollQuote,
+  type StoryboardPresenterTrack,
   storyboardARollQuoteSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-a-roll.contract';
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
@@ -42,8 +43,6 @@ const MUTATION_ATTEMPTS = 5;
 /** A chunk that left no placeholder for this long never reached HeyGen. */
 export const A_ROLL_ABANDONED_MS = 5 * 60_000;
 
-/** The paid avatar render, or its cheap spoken draft. */
-export type StoryboardPresenterTrack = 'aRoll' | 'animatic';
 const TRACKS: readonly StoryboardPresenterTrack[] = ['aRoll', 'animatic'];
 
 interface ChunkPrice {

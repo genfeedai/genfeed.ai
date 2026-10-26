@@ -19,6 +19,15 @@ import type {
   QuoteBrandRemixScenes,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import {
+  type QuoteStoryboardARoll,
+  type RenderStoryboardARoll,
+  type StoryboardARollQuote,
+  type StoryboardLongFormAssembly,
+  type StoryboardPresenterTrack,
+  storyboardARollQuoteSchema,
+  storyboardLongFormAssemblySchema,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-a-roll.contract';
+import {
   type ReplaceStoryboardCharacter,
   type StoryboardCharacterOperationReceipt,
   type StoryboardCharacterReplacement,
@@ -133,6 +142,11 @@ export interface ListContentRunsFilters {
   skillSlug?: string;
   status?: ContentRunStatus;
 }
+
+const STORYBOARD_PRESENTER_PATHS: Record<StoryboardPresenterTrack, string> = {
+  aRoll: 'a-roll',
+  animatic: 'animatic',
+};
 
 export class ContentRunsService extends HTTPBaseService {
   constructor(token: string) {
@@ -345,6 +359,59 @@ export class ContentRunsService extends HTTPBaseService {
       { signal },
     );
     return deserializeStoryboardRunDocument(response.data);
+  }
+
+  /** The presenter render (`aRoll`) or its cheap spoken draft (`animatic`). */
+  async quoteStoryboardPresenter(
+    brandId: string,
+    runId: string,
+    track: StoryboardPresenterTrack,
+    input: QuoteStoryboardARoll,
+  ): Promise<StoryboardARollQuote> {
+    const response = await this.instance.post<StoryboardARollQuote>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/${STORYBOARD_PRESENTER_PATHS[track]}/quote`,
+      input,
+    );
+    return storyboardARollQuoteSchema.parse(response.data);
+  }
+
+  async renderStoryboardPresenter(
+    brandId: string,
+    runId: string,
+    track: StoryboardPresenterTrack,
+    input: RenderStoryboardARoll,
+  ): Promise<StoryboardRun> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/${STORYBOARD_PRESENTER_PATHS[track]}`,
+      input,
+    );
+    return deserializeStoryboardRunDocument(response.data);
+  }
+
+  /** Records finished presenter and animatic renders. */
+  async reconcileStoryboardPresenter(
+    brandId: string,
+    runId: string,
+    signal?: AbortSignal,
+  ): Promise<StoryboardRun> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/a-roll/reconcile`,
+      {},
+      { signal },
+    );
+    return deserializeStoryboardRunDocument(response.data);
+  }
+
+  async assembleStoryboardLongForm(
+    brandId: string,
+    runId: string,
+    track: StoryboardPresenterTrack,
+  ): Promise<StoryboardLongFormAssembly> {
+    const response = await this.instance.post<StoryboardLongFormAssembly>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/${track === 'aRoll' ? 'long-form' : 'animatic'}/assemble`,
+      {},
+    );
+    return storyboardLongFormAssemblySchema.parse(response.data);
   }
 
   async updateStoryboardSource(
