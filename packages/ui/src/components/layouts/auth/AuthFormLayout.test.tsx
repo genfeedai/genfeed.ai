@@ -145,4 +145,26 @@ describe('AuthFormLayout', () => {
     expect(card).toHaveClass('rounded-card');
     expect(card).toHaveClass('shadow-border');
   });
+
+  it('should render the aside beside the form without a card when provided', () => {
+    render(
+      <AuthFormLayout
+        aside={<div data-testid="aside">Showcase</div>}
+        description="Sign in"
+        logoSize="compact"
+        title="Welcome back"
+      >
+        <div data-testid="child">Child Content</div>
+      </AuthFormLayout>,
+    );
+
+    expect(screen.getByTestId('child')).toBeInTheDocument();
+    expect(screen.getByTestId('aside').closest('aside')).toHaveAttribute(
+      'aria-hidden',
+      'true',
+    );
+    expect(
+      screen.getByRole('heading', { name: 'Welcome back' }),
+    ).toBeInTheDocument();
+  });
 });

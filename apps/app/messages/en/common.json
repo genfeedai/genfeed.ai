@@ -45,6 +45,13 @@
     "verifyEmailClick": "Click the link in the email to finish creating your account.",
     "verifyEmailSentTo": "We sent a verification link to"
   },
+  "authShowcase": {
+    "headline": "From brief to published, in one studio.",
+    "description": "Create on-brand videos, images and posts with AI, review them, then publish everywhere.",
+    "stepCreate": "Create",
+    "stepReview": "Review",
+    "stepPublish": "Publish"
+  },
   "actions": {
     "cancel": "Cancel",
     "clearFilters": "Clear Filters",

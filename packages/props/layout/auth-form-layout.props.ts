@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 export type AuthFormLayoutLogoSize = 'default' | 'compact';
 
 interface AuthFormLayoutBaseProps {
+  /** Decorative showcase beside the form; shown from `lg` up, replaces the card. */
+  aside?: ReactNode;
   children: ReactNode;
   headingIcon?: ReactNode;
   /** Widen the compact card for two-column content such as OAuth consent. */

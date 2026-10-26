@@ -321,3 +321,25 @@
     animation: none;
   }
 }
+
+/**
+ * Vertical drift for the auth showcase media wall. Each column holds its set
+ * twice, so translating by exactly half its height restarts invisibly.
+ */
+@keyframes auth-wall-scroll {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, -50%, 0);
+  }
+}
+.animate-auth-wall-scroll {
+  animation: auth-wall-scroll var(--auth-wall-duration, 90s) linear infinite;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-auth-wall-scroll {
+    animation: none;
+  }
+}

@@ -27,6 +27,7 @@ import {
   toAbsoluteAuthCallbackURL,
   toAbsoluteMagicLinkCallbackURL,
 } from '../auth-callback-url';
+import AuthShowcaseAside from '../auth-showcase-aside';
 import {
   AUTH_LINK_CLASS_NAME,
   AUTH_PRIMARY_BUTTON_CLASS_NAME,
@@ -227,6 +228,7 @@ export default function SignUpBetterAuth({
             . {translate('signUpForm.verifyEmailClick')}
           </>
         }
+        aside={<AuthShowcaseAside />}
         logoSize="compact"
         title={translate('loginForm.checkEmail')}
       >
@@ -239,6 +241,7 @@ export default function SignUpBetterAuth({
     return (
       <AuthFormLayout
         description={translate('signUpForm.passwordDescription')}
+        aside={<AuthShowcaseAside />}
         logoSize="compact"
         title={translate('signUpForm.passwordTitle')}
       >
@@ -325,6 +328,7 @@ export default function SignUpBetterAuth({
     return (
       <AuthFormLayout
         description={translate('signUpForm.magicLinkUnavailableDescription')}
+        aside={<AuthShowcaseAside />}
         logoSize="compact"
         title={translate('signUpForm.magicLinkUnavailableTitle')}
       >
@@ -353,6 +357,7 @@ export default function SignUpBetterAuth({
             in the email to create your account.
           </>
         }
+        aside={<AuthShowcaseAside />}
         logoSize="compact"
         title="Check your email"
       >
@@ -365,6 +370,7 @@ export default function SignUpBetterAuth({
     return (
       <AuthFormLayout
         description="Enter your email and we'll send you a secure sign-up link."
+        aside={<AuthShowcaseAside />}
         logoSize="compact"
         title="Sign up with a magic link"
       >
@@ -411,6 +417,7 @@ export default function SignUpBetterAuth({
   return (
     <AuthFormLayout
       description="Start using Genfeed"
+      aside={<AuthShowcaseAside />}
       logoSize="compact"
       title="Create your account"
     >

@@ -39,6 +39,7 @@ import {
   toAbsoluteAuthCallbackURL,
   toAbsoluteMagicLinkCallbackURL,
 } from '../auth-callback-url';
+import AuthShowcaseAside from '../auth-showcase-aside';
 import {
   AUTH_LINK_CLASS_NAME,
   AUTH_PRIMARY_BUTTON_CLASS_NAME,
@@ -551,6 +552,7 @@ export default function LoginBetterAuth({
             <p>{translate('loginForm.clickEmailLink')}</p>
           </>
         }
+        aside={<AuthShowcaseAside />}
         logoSize="compact"
         title={translate('loginForm.checkEmail')}
         headingIcon={
@@ -571,6 +573,7 @@ export default function LoginBetterAuth({
     return (
       <AuthFormLayout
         description={translate('loginForm.magicLinkDescription')}
+        aside={<AuthShowcaseAside />}
         logoSize="compact"
         title={translate('loginForm.magicLinkTitle')}
       >
@@ -617,6 +620,7 @@ export default function LoginBetterAuth({
     return (
       <AuthFormLayout
         description={translate('loginForm.passwordDescription')}
+        aside={<AuthShowcaseAside />}
         logoSize="compact"
         title={translate('loginForm.passwordTitle')}
       >
@@ -684,7 +688,12 @@ export default function LoginBetterAuth({
   }
 
   return (
-    <AuthFormLayout description={description} logoSize="compact" title={title}>
+    <AuthFormLayout
+      description={description}
+      aside={<AuthShowcaseAside />}
+      logoSize="compact"
+      title={title}
+    >
       <div className="w-full space-y-4">
         {invitationNotice ? (
           <Alert type={invitationNotice.type}>{invitationNotice.message}</Alert>
