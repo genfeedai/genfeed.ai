@@ -16,7 +16,7 @@ import type { OverflowMenuProps } from './types';
  */
 export function OverflowMenu({ items }: OverflowMenuProps) {
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button
           withWrapper={false}

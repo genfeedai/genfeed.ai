@@ -17,7 +17,7 @@ import type { ToolbarDropdownProps } from './types';
  */
 export function ToolbarDropdown({ label, items }: ToolbarDropdownProps) {
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button
           withWrapper={false}
