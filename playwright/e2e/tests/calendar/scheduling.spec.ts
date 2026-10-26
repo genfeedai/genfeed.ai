@@ -319,12 +319,6 @@ test.describe('Calendar — Scheduling', () => {
       status: PostStatus.SCHEDULED,
     });
 
-    const articleReads: string[] = [];
-    authenticatedPage.on('response', (response) => {
-      if (/\/articles(\?|$)/.test(response.url())) {
-        articleReads.push(`${response.status()} ${response.url()}`);
-      }
-    });
     await mockCalendarPosts(
       authenticatedPage,
       [post],
@@ -348,19 +342,15 @@ test.describe('Calendar — Scheduling', () => {
       '.gen-calendar-event',
       { hasText: 'Mixed Social Post' },
     );
+    // Articles carry no channel, badge or indicator, so the calendar leaves
+    // them to FullCalendar's default event markup (`.fc-event`); only posts get
+    // the custom `.gen-calendar-event` card.
     const articleEvent = dayColumn(
       authenticatedPage,
       dates.wednesdayDateKey,
-    ).locator('.gen-calendar-event', { hasText: 'Mixed Launch Article' });
+    ).locator('.fc-event', { hasText: 'Mixed Launch Article' });
     await expect(postEvent).toBeVisible();
-    // Name what the page did with the article read so a miss is diagnosable.
-    const eventTitles = await authenticatedPage
-      .locator('.gen-calendar-event')
-      .allInnerTexts();
-    await expect(
-      articleEvent,
-      `article reads ${JSON.stringify(articleReads)}; events on page ${JSON.stringify(eventTitles)}`,
-    ).toBeVisible();
+    await expect(articleEvent).toBeVisible();
 
     // Kind-specific navigation: an article opens its editor route directly.
     await articleEvent.click();
