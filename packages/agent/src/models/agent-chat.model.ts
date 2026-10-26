@@ -486,6 +486,7 @@ export interface AgentThreadSnapshot {
     status?: string;
     startedAt?: string;
     completedAt?: string;
+    error?: string;
   } | null;
   lastAssistantMessage: {
     messageId: string;

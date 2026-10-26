@@ -87,9 +87,14 @@ export function readSnapshotRunError(
   }
 
   const payloadError = failedEntry?.payload?.error;
-  return typeof payloadError === 'string' && payloadError.trim()
-    ? payloadError.trim()
-    : 'Agent generation failed. Please retry.';
+  if (typeof payloadError === 'string' && payloadError.trim()) {
+    return payloadError.trim();
+  }
+
+  // The run failed without a thread error event; the server reconciles the
+  // failed execution's own error onto the active run.
+  const runError = snapshot.activeRun?.error?.trim();
+  return runError || 'Agent generation failed. Please retry.';
 }
 
 function readPayloadString(

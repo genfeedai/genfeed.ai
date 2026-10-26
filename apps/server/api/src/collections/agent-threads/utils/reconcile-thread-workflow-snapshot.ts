@@ -14,7 +14,14 @@ import { Prisma, type WorkflowExecution } from '@genfeedai/prisma';
 type SnapshotExecution = Pick<
   WorkflowExecution,
   'id' | 'status' | 'createdAt' | 'startedAt' | 'completedAt'
->;
+> &
+  Partial<Pick<WorkflowExecution, 'error'>>;
+
+/** The execution's own failure text, when it recorded one. */
+function readExecutionError(execution: SnapshotExecution): string | undefined {
+  const error = execution.error?.trim();
+  return error ? error : undefined;
+}
 
 function uiActionStatusFor(
   status: SnapshotExecution['status'],
@@ -58,7 +65,8 @@ function settleUiActionRuns(
             error:
               status === 'cancelled'
                 ? 'The action was cancelled.'
-                : 'The action failed before it finished.',
+                : (readExecutionError(execution) ??
+                  'The action failed before it finished.'),
           }),
     };
   });
@@ -120,6 +128,7 @@ export function reconcileThreadWorkflowSnapshot(
   const snapshotStatus = isSameRun ? snapshot.activeRun?.status : undefined;
   const isCancelled = execution.status === 'CANCELLED';
   const isFailed = execution.status === 'FAILED';
+  const executionError = isFailed ? readExecutionError(execution) : undefined;
   const status = isCancelled
     ? snapshotStatus === AgentRuntimeState.INTERRUPTED
       ? AgentRuntimeState.INTERRUPTED
@@ -147,6 +156,12 @@ export function reconcileThreadWorkflowSnapshot(
         ? { completedAt: execution.completedAt.toISOString() }
         : {}),
       status,
+      // A run that failed without recording a thread error event (a crashed
+      // worker, a failure action that itself failed) would otherwise reach the
+      // client as a bare "failed" with nothing to show.
+      ...(status === AgentRuntimeState.FAILED && executionError
+        ? { error: executionError }
+        : {}),
     },
     ...(isCancelled || isFailed
       ? {
@@ -164,7 +179,7 @@ export async function readThreadWorkflowSnapshot(
 ): Promise<AgentThreadSnapshotDocument> {
   const branches = AGENT_CONVERSATION_WORKFLOW_IDS.map(
     (canonicalId) => Prisma.sql`
-    (SELECT id, status::text, "createdAt", "startedAt", "completedAt"
+    (SELECT id, status::text, "createdAt", "startedAt", "completedAt", error
      FROM workflow_executions
      WHERE "organizationId" = ${snapshot.organizationId}
        AND "isDeleted" = false
@@ -174,7 +189,7 @@ export async function readThreadWorkflowSnapshot(
   `,
   );
   const executions = await prisma.$queryRaw<SnapshotExecution[]>(Prisma.sql`
-    SELECT id, status, "createdAt", "startedAt", "completedAt"
+    SELECT id, status, "createdAt", "startedAt", "completedAt", error
     FROM (${Prisma.join(branches, ' UNION ALL ')}) AS candidates
     ORDER BY "createdAt" DESC, id DESC LIMIT 1
   `);
@@ -192,7 +207,7 @@ export async function readThreadWorkflowSnapshot(
   ].filter((runId) => runId !== latest?.id);
   const relatedExecutions = relatedRunIds.length
     ? await prisma.$queryRaw<SnapshotExecution[]>(Prisma.sql`
-        SELECT id, status::text AS status, "createdAt", "startedAt", "completedAt"
+        SELECT id, status::text AS status, "createdAt", "startedAt", "completedAt", error
         FROM workflow_executions
         WHERE "organizationId" = ${snapshot.organizationId}
           AND "isDeleted" = false

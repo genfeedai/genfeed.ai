@@ -57,6 +57,30 @@ describe('readSnapshotRunError', () => {
     );
   });
 
+  it('falls back to the run error the server reconciled from its execution', () => {
+    expect(
+      readSnapshotRunError({
+        ...baseSnapshot,
+        activeRun: {
+          error: 'Nodes failed: infer-turn: provider returned 402',
+          runId: 'run-new',
+          status: 'failed',
+        },
+        timeline: [],
+      }),
+    ).toBe('Nodes failed: infer-turn: provider returned 402');
+  });
+
+  it('keeps the generic message when nothing recorded a cause', () => {
+    expect(
+      readSnapshotRunError({
+        ...baseSnapshot,
+        activeRun: { runId: 'run-new', status: 'failed' },
+        timeline: [],
+      }),
+    ).toBe('Agent generation failed. Please retry.');
+  });
+
   it('does not revive an older error after the current run completed', () => {
     expect(
       readSnapshotRunError({

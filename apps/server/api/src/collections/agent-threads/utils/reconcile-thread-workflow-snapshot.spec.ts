@@ -57,6 +57,31 @@ describe('durable workflow snapshot recovery', () => {
       status: 'running',
     });
   });
+  it('carries the failed execution error onto the active run', () => {
+    expect(
+      reconcileThreadWorkflowSnapshot(snapshot(), {
+        ...execution('FAILED'),
+        error: ' Nodes failed: infer-turn: provider returned 402 ',
+      }).activeRun,
+    ).toEqual({
+      error: 'Nodes failed: infer-turn: provider returned 402',
+      runId: 'current-execution',
+      startedAt: createdAt.toISOString(),
+      status: 'failed',
+    });
+  });
+  it('omits the error when the failed execution recorded none or did not fail', () => {
+    expect(
+      reconcileThreadWorkflowSnapshot(snapshot(), execution('FAILED'))
+        .activeRun,
+    ).not.toHaveProperty('error');
+    expect(
+      reconcileThreadWorkflowSnapshot(snapshot(), {
+        ...execution('COMPLETED'),
+        error: 'stale',
+      }).activeRun,
+    ).not.toHaveProperty('error');
+  });
   it.each(['FAILED', 'CANCELLED', 'COMPLETED'] as const)(
     'reconciles a stale running snapshot to %s',
     (status) => {

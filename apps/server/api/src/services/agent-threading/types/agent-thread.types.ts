@@ -93,6 +93,8 @@ export interface AgentThreadActiveRun {
   status: string;
   startedAt?: string;
   completedAt?: string;
+  /** Failure text of the run's execution, when no thread event carried one. */
+  error?: string;
 }
 
 export interface AgentThreadLatestPlan {
