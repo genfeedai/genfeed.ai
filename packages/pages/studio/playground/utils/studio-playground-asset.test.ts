@@ -560,6 +560,31 @@ describe('resolveStudioAssetFacts', () => {
     expect(square.aspectRatio).toBe('1:1');
     expect(landscape.aspectRatio).toBe('16:9');
     expect(unmeasured.aspectRatio).toBe('16:9');
+
+    const loaded = resolveStudioAssetFacts(
+      buildJob({
+        ingredient: buildIngredient({ category: IngredientCategory.VIDEO }),
+        recipe,
+        type: 'video',
+      }),
+      { height: 768, width: 768 },
+    );
+    const persistedWins = resolveStudioAssetFacts(
+      buildJob({
+        ingredient: buildIngredient({
+          category: IngredientCategory.VIDEO,
+          metadata: { height: 1080, width: 1920 } as IIngredient['metadata'],
+        }),
+        recipe,
+        type: 'video',
+      }),
+      { height: 768, width: 768 },
+    );
+
+    // A video with no stored size reports what the browser measured, not the
+    // recipe's requested ratio (#7946).
+    expect(loaded.aspectRatio).toBe('1:1');
+    expect(persistedWins.aspectRatio).toBe('16:9');
   });
 
   it('falls back to live job fields and omits what it does not know', () => {

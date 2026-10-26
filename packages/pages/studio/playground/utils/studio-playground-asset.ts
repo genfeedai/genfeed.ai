@@ -264,9 +264,11 @@ function toValidDate(value: number | string | undefined): Date | undefined {
  * The facts the asset panel lists for a generation. Only persisted metadata
  * and the recipe that actually left Studio count: the `Ingredient` model's
  * getters invent defaults (8s, 1080×1920) that must never read as real facts.
+ * `loadedDimensions` is the intrinsic size of the media the preview loaded.
  */
 export function resolveStudioAssetFacts(
   job: StudioPlaygroundJob,
+  loadedDimensions?: { height: number; width: number },
 ): StudioPlaygroundAssetFacts {
   const ingredient = job.ingredient ?? null;
   const metadata =
@@ -274,7 +276,11 @@ export function resolveStudioAssetFacts(
       ? ingredient.metadata
       : undefined;
   const submittedRecipe = job.recipe;
-  const { height, width } = resolveStudioAssetDimensions(ingredient);
+  const persisted = resolveStudioAssetDimensions(ingredient);
+  // Persisted dimensions come first; a video that never stored them still
+  // reports the size the browser measured on the loaded file (#7946).
+  const height = persisted.height ?? loadedDimensions?.height;
+  const width = persisted.width ?? loadedDimensions?.width;
   const brand = ingredient?.brand;
   const durationSeconds = submittedRecipe?.duration ?? metadata?.duration;
   const measuredAspectRatio =

@@ -114,7 +114,6 @@ export default function StudioPlaygroundInspector({
   const { brandId } = useBrand();
   const { orgId, sessionId, userId } = useAuthIdentity();
   const { label } = getStudioPlaygroundTypeConfig(job.type);
-  const facts = resolveStudioAssetFacts(job);
   const siblingJobs = useMemo(
     () => runJobs.filter((candidate) => candidate.id !== job.id),
     [job.id, runJobs],
@@ -148,6 +147,20 @@ export default function StudioPlaygroundInspector({
   );
   const [loadingPreviewScope, setLoadingPreviewScope] = useState<string | null>(
     null,
+  );
+  const [loadedMedia, setLoadedMedia] = useState<{
+    height: number;
+    scope: string;
+    width: number;
+  } | null>(null);
+  const handleMediaMeasured = (width: number, height: number) => {
+    if (width > 0 && height > 0) {
+      setLoadedMedia({ height, scope: previewScope, width });
+    }
+  };
+  const facts = resolveStudioAssetFacts(
+    job,
+    loadedMedia?.scope === previewScope ? loadedMedia : undefined,
   );
   const mediaPreview = useAuthorizedMediaPreview(ingredient, previewRevision);
   const isReady =
@@ -461,7 +474,13 @@ export default function StudioPlaygroundInspector({
             sizes={isFocused ? '(min-width: 1024px) 65vw, 100vw' : '480px'}
             src={previewUrl}
             onError={() => setFailedPreviewScope(previewScope)}
-            onLoad={handlePreviewLoaded}
+            onLoad={(event) => {
+              handleMediaMeasured(
+                event.currentTarget.naturalWidth,
+                event.currentTarget.naturalHeight,
+              );
+              handlePreviewLoaded();
+            }}
           />
         </div>
       );
@@ -482,6 +501,11 @@ export default function StudioPlaygroundInspector({
           mediaProps={{
             onError: () => setFailedPreviewScope(previewScope),
             onLoadedData: handlePreviewLoaded,
+            onLoadedMetadata: (event) =>
+              handleMediaMeasured(
+                event.currentTarget.videoWidth,
+                event.currentTarget.videoHeight,
+              ),
           }}
           onPlaybackError={() => setFailedPreviewScope(previewScope)}
           thumbnail={ingredient?.thumbnailUrl}

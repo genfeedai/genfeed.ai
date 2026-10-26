@@ -697,6 +697,39 @@ describe('StudioPlaygroundInspector', () => {
     );
   });
 
+  it('lists the aspect the loaded image measured when no size was stored', () => {
+    const ingredient = {
+      brandId: 'brand-1',
+      category: IngredientCategory.IMAGE,
+      cdnUrl: 'https://cdn.example/ing-1.png',
+      id: 'ing-1',
+    } as IIngredient;
+    const job = {
+      ...recipeJob,
+      ingredient,
+      recipe: { ...recipeJob.recipe, aspectRatio: '16:9' },
+    };
+    render(
+      <StudioPlaygroundInspector
+        job={job}
+        onRemix={vi.fn()}
+        onUseInPost={vi.fn()}
+        onSelect={vi.fn()}
+        onVary={vi.fn()}
+        runJobs={[job]}
+      />,
+    );
+    const facts = screen.getByTestId('studio-playground-inspector');
+    expect(facts).toHaveTextContent('Aspect16:9');
+
+    const preview = screen.getByRole('img', { name: 'Image preview' });
+    Object.defineProperty(preview, 'naturalWidth', { value: 768 });
+    Object.defineProperty(preview, 'naturalHeight', { value: 768 });
+    fireEvent.load(preview);
+
+    expect(facts).toHaveTextContent('Aspect1:1');
+  });
+
   it('shows the Knowledge versions folded into the submitted prompt', async () => {
     mocks.findOne.mockResolvedValue({
       id: 'ing-1',
