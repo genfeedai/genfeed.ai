@@ -1,7 +1,11 @@
 import type { SlotComparisonReport } from '@genfeedai/harness';
 
+/** Most organizations one pooled report may read. */
+export const LEARNING_PROMPT_SLOT_POOL_LIMIT = 20;
+
 export interface LearningPromptSlotOutcomeQuery {
-  organizationId: string;
+  /** One organization, or several for a pooled internal view. */
+  organizationIds: string[];
   brandId?: string;
   credentialId?: string;
 }
@@ -18,7 +22,13 @@ export interface LearningPromptSlotOutcomeGroup {
 }
 
 export interface LearningPromptSlotOutcomeReport {
-  organizationId: string;
+  organizationIds: string[];
+  /**
+   * True when more than one organization was read together. Their audiences
+   * differ, so a gap can reflect who saw the posts rather than the slot;
+   * treat a pooled verdict as a weaker lead than a single-organization one.
+   */
+  isPooled: boolean;
   /** Posts read: published media posts with a learning decision. */
   postCount: number;
   /** Posts left out, by reason. */

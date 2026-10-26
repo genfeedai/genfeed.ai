@@ -89,7 +89,11 @@ describe('buildLearningPromptSlotOutcomeReport', () => {
       }),
     ];
 
-    const report = buildLearningPromptSlotOutcomeReport('org-1', posts, false);
+    const report = buildLearningPromptSlotOutcomeReport(
+      ['org-1'],
+      posts,
+      false,
+    );
 
     expect(report.postCount).toBe(51);
     expect(
@@ -117,14 +121,14 @@ describe('buildLearningPromptSlotOutcomeReport', () => {
         prompts: [prompt(index % 3 ? { mood: 'calm' } : { style: 'film' })],
       }),
     );
-    expect(buildLearningPromptSlotOutcomeReport('org-1', posts, false)).toEqual(
-      buildLearningPromptSlotOutcomeReport('org-1', posts, false),
-    );
+    expect(
+      buildLearningPromptSlotOutcomeReport(['org-1'], posts, false),
+    ).toEqual(buildLearningPromptSlotOutcomeReport(['org-1'], posts, false));
   });
 
   it('counts, rather than guesses, posts it cannot use', () => {
     const report = buildLearningPromptSlotOutcomeReport(
-      'org-1',
+      ['org-1'],
       [
         post('no-decision', { hasDecision: false }),
         post('invalid', { status: 'censored', composite: null }),
@@ -150,7 +154,7 @@ describe('buildLearningPromptSlotOutcomeReport', () => {
 
   it('reads the lead prompt of a carousel and maps blacklists to avoid', () => {
     const report = buildLearningPromptSlotOutcomeReport(
-      'org-1',
+      ['org-1'],
       [
         post('carousel', {
           prompts: [
@@ -185,7 +189,7 @@ describe('LearningPromptSlotOutcomeService', () => {
     const report = await service.report({
       brandId: 'brand-1',
       credentialId: 'cred-1',
-      organizationId: 'org-1',
+      organizationIds: ['org-1'],
     });
 
     expect(findMany).toHaveBeenCalledWith(
@@ -202,7 +206,8 @@ describe('LearningPromptSlotOutcomeService', () => {
         }),
       }),
     );
-    expect(report.organizationId).toBe('org-1');
+    expect(report.organizationIds).toEqual(['org-1']);
+    expect(report.isPooled).toBe(false);
     expect(report.isTruncated).toBe(false);
   });
 
@@ -213,9 +218,71 @@ describe('LearningPromptSlotOutcomeService', () => {
     );
     const { service } = build(rows);
 
-    const report = await service.report({ organizationId: 'org-1' });
+    const report = await service.report({ organizationIds: ['org-1'] });
 
     expect(report.isTruncated).toBe(true);
     expect(report.postCount).toBe(LEARNING_PROMPT_SLOT_POST_LIMIT);
+  });
+
+  it('reads each pooled organization with its own tenant filter and merges the rows', async () => {
+    const findMany = vi
+      .fn()
+      .mockResolvedValueOnce([post('a-1'), post('a-2')])
+      .mockResolvedValueOnce([post('b-1')]);
+    const service = new LearningPromptSlotOutcomeService({
+      post: { findMany },
+    } as unknown as PrismaService);
+
+    const report = await service.report({
+      organizationIds: ['org-a', 'org-b'],
+    });
+
+    expect(findMany).toHaveBeenCalledTimes(2);
+    const scopes = findMany.mock.calls.map(
+      ([args]) => args.where.learningDecision.is.organizationId,
+    );
+    expect(scopes).toEqual(['org-a', 'org-b']);
+    for (const [args] of findMany.mock.calls) {
+      expect(args.where.organizationId).toBe(
+        args.where.learningDecision.is.organizationId,
+      );
+      expect(args.where.isDeleted).toBe(false);
+    }
+    expect(report.isPooled).toBe(true);
+    expect(report.organizationIds).toEqual(['org-a', 'org-b']);
+    expect(report.postCount).toBe(3);
+  });
+
+  it('flags truncation when any pooled organization hit the limit', async () => {
+    const findMany = vi
+      .fn()
+      .mockResolvedValueOnce([post('a-1')])
+      .mockResolvedValueOnce(
+        Array.from({ length: LEARNING_PROMPT_SLOT_POST_LIMIT + 1 }, (_, i) =>
+          post(`b-${i}`),
+        ),
+      );
+    const service = new LearningPromptSlotOutcomeService({
+      post: { findMany },
+    } as unknown as PrismaService);
+
+    const report = await service.report({ organizationIds: ['a', 'b'] });
+
+    expect(report.isTruncated).toBe(true);
+    expect(report.postCount).toBe(LEARNING_PROMPT_SLOT_POST_LIMIT + 1);
+  });
+
+  it('seeds a pooled report from the sorted organizations so order does not change it', () => {
+    const posts = Array.from({ length: 40 }, (_, index) =>
+      post(`p-${index}`, {
+        composite: index % 2 ? 0.4 : -0.1,
+        prompts: [prompt(index % 3 ? { mood: 'calm' } : { style: 'film' })],
+      }),
+    );
+    expect(
+      buildLearningPromptSlotOutcomeReport(['b', 'a'], posts, false).groups,
+    ).toEqual(
+      buildLearningPromptSlotOutcomeReport(['a', 'b'], posts, false).groups,
+    );
   });
 });

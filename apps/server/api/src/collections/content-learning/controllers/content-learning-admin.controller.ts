@@ -17,6 +17,7 @@ import { LearningDatasetService } from '@api/collections/content-learning/servic
 import { LearningPromptSlotOutcomeService } from '@api/collections/content-learning/services/learning-prompt-slot-outcome.service';
 import { LearningReleaseService } from '@api/collections/content-learning/services/learning-release.service';
 import { LearningRunService } from '@api/collections/content-learning/services/learning-run.service';
+import { resolveSlotOutcomeOrganizations } from '@api/collections/content-learning/utils/learning-prompt-slot-organizations.util';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -175,9 +176,19 @@ export class ContentLearningAdminController {
   @Get('prompt-slots') async promptSlots(
     @Query() query: LearningPromptSlotOutcomeDto,
   ): Promise<{ data: LearningPromptSlotOutcomeReport }> {
+    const organizations = resolveSlotOutcomeOrganizations(query);
+    if ('error' in organizations) {
+      throw new BadRequestException(organizations.error);
+    }
     return {
-      // tenant-scope-ignore: superadmin reads the organization named in the query
-      data: await crossOrgUnsafe(() => this.slotOutcomes.report(query)),
+      // tenant-scope-ignore: superadmin reads the organizations named in the query
+      data: await crossOrgUnsafe(() =>
+        this.slotOutcomes.report({
+          brandId: query.brandId,
+          credentialId: query.credentialId,
+          organizationIds: organizations.organizationIds,
+        }),
+      ),
     };
   }
   @Post('datasets') async createDataset(
