@@ -46,12 +46,6 @@ export type TierPlanEntitlement = ApiTierEntitlement & {
   byokAccess: boolean;
   /** Connected publishing/integration channels. `null` means unlimited. */
   channelLimit: TierLimit;
-  /**
-   * Whether the tier may download clean (unwatermarked) ingredient exports.
-   * Cloud SaaS only; the free tier gets platform-branded exports.
-   * Self-hosted is not gated by this flag — it is always unrestricted.
-   */
-  cleanExportAccess: boolean;
   /** Owned organizations/workspaces. `null` means unlimited organizations. */
   organizationLimit: TierLimit;
   /** Organization seats. `null` means unlimited team seats. */
@@ -99,7 +93,6 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
     brandLimit: PLAN_LIMIT_UNLIMITED,
     byokAccess: false,
     channelLimit: PLAN_LIMIT_UNLIMITED,
-    cleanExportAccess: false,
     organizationLimit: SINGLE_ORGANIZATION_LIMIT,
     seatLimit: FREE_SEAT_LIMIT,
     trainingAccess: false,
@@ -110,7 +103,6 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
     brandLimit: PLAN_LIMIT_UNLIMITED,
     byokAccess: true,
     channelLimit: PLAN_LIMIT_UNLIMITED,
-    cleanExportAccess: true,
     organizationLimit: PLAN_LIMIT_UNLIMITED,
     seatLimit: PLAN_LIMIT_UNLIMITED,
     trainingAccess: true,
@@ -121,7 +113,6 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
     brandLimit: PLAN_LIMIT_UNLIMITED,
     byokAccess: true,
     channelLimit: PLAN_LIMIT_UNLIMITED,
-    cleanExportAccess: true,
     organizationLimit: PLAN_LIMIT_UNLIMITED,
     seatLimit: PLAN_LIMIT_UNLIMITED,
     trainingAccess: true,
@@ -193,16 +184,6 @@ export function hasByokAccess(tier: string | null | undefined): boolean {
 /** Whether a tier may create custom model trainings (LoRA). Scale and above. */
 export function hasTrainingAccess(tier: string | null | undefined): boolean {
   return getPlanEntitlementForTier(tier).trainingAccess;
-}
-
-/**
- * Whether a tier may download clean (unwatermarked) ingredient exports.
- * Scale and above on cloud SaaS; the free tier only gets platform-branded
- * exports. Callers must separately allow self-hosted
- * deployments, which are always unrestricted regardless of tier.
- */
-export function hasCleanExportAccess(tier: string | null | undefined): boolean {
-  return getPlanEntitlementForTier(tier).cleanExportAccess;
 }
 
 /**

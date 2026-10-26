@@ -45,4 +45,29 @@ test.describe('Library — Images', () => {
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
   });
+
+  test('download is never locked behind a plan', async ({
+    authenticatedPage,
+  }) => {
+    await assertRouteRenders(authenticatedPage, `${BRAND}/library/images`);
+
+    const tile = authenticatedPage
+      .locator('[data-testid="ingredient-item"]')
+      .first();
+    await tile.hover().catch(() => {});
+
+    const options = authenticatedPage
+      .getByRole('button', { name: 'Download options' })
+      .first();
+    // The tile only shows its actions when the mocked collection renders one.
+    if ((await options.count()) === 0) return;
+
+    await options.click({ force: true });
+    await expect(
+      authenticatedPage.getByRole('menuitem', { name: 'Download original' }),
+    ).toBeEnabled();
+    await expect(authenticatedPage.getByText(/upgrade to scale/i)).toHaveCount(
+      0,
+    );
+  });
 });

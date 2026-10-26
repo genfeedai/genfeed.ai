@@ -22,21 +22,18 @@ import { IngredientsService } from '@services/content/ingredients.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
+  fetchDownloadBlob,
   saveDownloadBlob,
   ingredientDownloadFilenameForBlob,
-  filenameFromContentDisposition,
 } = vi.hoisted(() => ({
+  fetchDownloadBlob: vi.fn(),
   saveDownloadBlob: vi.fn(),
   ingredientDownloadFilenameForBlob: vi.fn(
     () => 'Test Image-image-ing-123.png',
   ),
-  filenameFromContentDisposition: vi.fn(
-    (header: string | undefined) =>
-      /filename="([^"]+)"/.exec(header ?? '')?.[1],
-  ),
 }));
 vi.mock('@genfeedai/helpers/media/download/download.helper', () => ({
-  filenameFromContentDisposition,
+  fetchDownloadBlob,
   ingredientDownloadFilenameForBlob,
   saveDownloadBlob,
 }));
@@ -53,24 +50,63 @@ describe('IngredientsService', () => {
     http = installMockHttp(service);
   });
 
-  it('downloads the original as an attachment through the API', async () => {
+  const ingredient = {
+    category: IngredientCategory.IMAGE,
+    id: 'ing-123',
+    metadata: { label: 'Test Image' },
+  } as const;
+
+  it('downloads the original straight from the CDN with a signed URL', async () => {
     const blob = new Blob(['png'], { type: 'image/png' });
+    http.post.mockResolvedValue(
+      axiosResponse(
+        resourceDocument(
+          {
+            state: 'READY',
+            url: 'https://cdn.genfeed.ai/ingredients/ing-123?Signature=abc',
+          },
+          { id: 'ing-123', type: 'media-delivery-grants' },
+        ),
+      ),
+    );
+    fetchDownloadBlob.mockResolvedValue(blob);
+
+    await service.downloadOriginal(ingredient as IIngredient);
+
+    expect(http.post).toHaveBeenCalledWith(
+      'https://api.genfeed.ai/v1/ingredients/ing-123/original-grant',
+    );
+    expect(fetchDownloadBlob).toHaveBeenCalledWith(
+      'https://cdn.genfeed.ai/ingredients/ing-123?Signature=abc',
+    );
+    expect(http.get).not.toHaveBeenCalled();
+    expect(saveDownloadBlob).toHaveBeenCalledWith(
+      blob,
+      'Test Image-image-ing-123.png',
+    );
+  });
+
+  it('relays the original through the API when the CDN is unreachable', async () => {
+    const blob = new Blob(['png'], { type: 'image/png' });
+    http.post.mockResolvedValue(
+      axiosResponse(
+        resourceDocument(
+          {
+            state: 'READY',
+            url: 'https://cdn.genfeed.ai/ingredients/ing-123?Signature=abc',
+          },
+          { id: 'ing-123', type: 'media-delivery-grants' },
+        ),
+      ),
+    );
+    fetchDownloadBlob.mockRejectedValue(new TypeError('Failed to fetch'));
     http.get.mockResolvedValue({ data: blob });
-    const ingredient = {
-      category: IngredientCategory.IMAGE,
-      id: 'ing-123',
-      metadata: { label: 'Test Image' },
-    } as const;
 
     await service.downloadOriginal(ingredient as IIngredient);
 
     expect(http.get).toHaveBeenCalledWith(
       'https://api.genfeed.ai/v1/ingredients/ing-123/original-download',
       { responseType: 'blob', timeout: 600_000 },
-    );
-    expect(ingredientDownloadFilenameForBlob).toHaveBeenCalledWith(
-      ingredient,
-      blob,
     );
     expect(saveDownloadBlob).toHaveBeenCalledWith(
       blob,
@@ -82,22 +118,31 @@ describe('IngredientsService', () => {
     ['image-1', 'png', 'image/png'],
     ['video-1', 'mp4', 'video/mp4'],
   ])(
-    'downloads the watermarked %s as an attachment through the API',
+    'downloads the watermarked %s straight from the CDN',
     async (id, extension, mimeType) => {
       const blob = new Blob([extension], { type: mimeType });
-      http.post.mockResolvedValue({
-        data: blob,
-        headers: {
-          'content-disposition': `attachment; filename="${id}-watermarked.${extension}"`,
-        },
-      });
+      http.post.mockResolvedValue(
+        axiosResponse(
+          resourceDocument(
+            {
+              filename: `${id}-watermarked.${extension}`,
+              url: `https://cdn.genfeed.ai/exports/watermarked/${id}.${extension}`,
+            },
+            { id, type: 'ingredient-exports' },
+          ),
+        ),
+      );
+      fetchDownloadBlob.mockResolvedValue(blob);
 
       await service.downloadWatermarked(id);
 
       expect(http.post).toHaveBeenCalledWith(
-        `https://api.genfeed.ai/v1/ingredients/${id}/export-file`,
-        { watermark: true },
-        { responseType: 'blob', timeout: 600_000 },
+        `https://api.genfeed.ai/v1/ingredients/${id}/export`,
+        undefined,
+        { timeout: 600_000 },
+      );
+      expect(fetchDownloadBlob).toHaveBeenCalledWith(
+        `https://cdn.genfeed.ai/exports/watermarked/${id}.${extension}`,
       );
       expect(saveDownloadBlob).toHaveBeenCalledWith(
         blob,
@@ -111,11 +156,7 @@ describe('IngredientsService', () => {
       Object.assign(new Error('Request failed with status code 400'), {
         isAxiosError: true,
         response: {
-          data: new Blob([
-            JSON.stringify({
-              errors: [{ detail: 'Invalid brand watermark settings' }],
-            }),
-          ]),
+          data: { errors: [{ detail: 'Invalid brand watermark settings' }] },
           status: 400,
         },
       }),

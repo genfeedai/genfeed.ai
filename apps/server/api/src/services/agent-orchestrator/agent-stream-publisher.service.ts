@@ -101,12 +101,11 @@ export class AgentStreamPublisherService {
       userId: data.userId,
       brandId: thread.brandId ?? undefined,
     };
-    const [ingredients, clean, assets] = await Promise.all([
+    const [ingredients, assets] = await Promise.all([
       this.mediaIssuer.projectIngredients(scope, ids),
-      this.mediaIssuer.hasCleanAccess(scope.organizationId),
       this.mediaIssuer.projectAssets(scope, assetIds),
     ]);
-    return projectMediaResponse(data, ingredients, clean, assets) as T;
+    return projectMediaResponse(data, ingredients, true, assets) as T;
   }
 
   private getCoalesceWindowMs(): number {

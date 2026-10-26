@@ -1,5 +1,4 @@
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
-import { mediaSourceIdentity } from '@api/services/media-urls/media-delivery-policy.util';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isCloudDeployment } from '@genfeedai/config';
@@ -40,7 +39,7 @@ const source: MediaDeliverySource = {
   version: 1,
 };
 
-async function setup(tier = 'free') {
+async function setup() {
   const prisma = {
     asset: { findMany: vi.fn().mockResolvedValue([]) },
     post: {
@@ -52,11 +51,6 @@ async function setup(tier = 'free') {
     mediaDeliveryVariant: {
       findMany: vi.fn().mockResolvedValue([]),
       findFirst: vi.fn().mockResolvedValue(null),
-    },
-    organization: {
-      findFirst: vi
-        .fn()
-        .mockResolvedValue({ settings: { subscriptionTier: tier } }),
     },
   };
   const config = {
@@ -90,8 +84,8 @@ async function setup(tier = 'free') {
 }
 
 describe('AuthorizedMediaUrlService', () => {
-  it('projects paid assets only from canonical organization-bound stored keys', async () => {
-    const { service, prisma, urls } = await setup('scale');
+  it('projects assets only from canonical organization-bound stored keys', async () => {
+    const { service, prisma, urls } = await setup();
     prisma.asset.findMany.mockResolvedValue([
       {
         id: 'asset-1',
@@ -116,7 +110,7 @@ describe('AuthorizedMediaUrlService', () => {
     expect(result[0].url).toContain('signed=1');
   });
   it('does not turn arbitrary asset provider URLs into grants', async () => {
-    const { service, prisma, urls } = await setup('scale');
+    const { service, prisma, urls } = await setup();
     prisma.asset.findMany.mockResolvedValue([
       {
         id: 'asset-1',
@@ -130,7 +124,7 @@ describe('AuthorizedMediaUrlService', () => {
     ]);
     expect(urls.buildUrl).not.toHaveBeenCalled();
   });
-  it('mints server asset URLs for the organization regardless of tier, only from plain stored keys', async () => {
+  it('mints server asset URLs for the organization, only from plain stored keys', async () => {
     const { service, prisma, urls } = await setup();
     prisma.asset.findMany.mockResolvedValue([
       { id: 'asset-1', cloudObjectKey: 'references/asset-1 ?#.png' },
@@ -170,22 +164,8 @@ describe('AuthorizedMediaUrlService', () => {
       service.issueServerAssetUrls(organizationId, ['asset-1']),
     ).rejects.toThrow('signing is unavailable');
   });
-  it('keeps non-entitled asset originals unavailable but signs brand identity', async () => {
+  it('signs a brand logo for the brand identity of any brand the member can open', async () => {
     const { service, prisma, urls } = await setup();
-    expect(await service.projectAssets(scope, ['asset-1'])).toEqual([
-      { assetId: 'asset-1', url: null },
-    ]);
-    // Free plans only ever look up brand logos and banners.
-    expect(prisma.asset.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          category: { in: ['BANNER', 'LOGO'] },
-          parentType: 'BRAND',
-        }),
-      }),
-    );
-    expect(urls.buildUrl).not.toHaveBeenCalled();
-
     prisma.asset.findMany.mockResolvedValue([
       {
         id: 'asset-1',
@@ -223,16 +203,8 @@ describe('AuthorizedMediaUrlService', () => {
 
   beforeEach(() => vi.mocked(isCloudDeployment).mockReturnValue(true));
 
-  it('denies free original grants without asking the signer', async () => {
-    const { service, urls } = await setup();
-    await expect(service.issueOriginal(scope, ingredientId)).rejects.toThrow(
-      'paid plan',
-    );
-    expect(urls.buildUrl).not.toHaveBeenCalled();
-  });
-
-  it('mints paid original grants from the exact stored key using existing TTL', async () => {
-    const { service, prisma, urls } = await setup('scale');
+  it('mints original grants from the exact stored key using existing TTL', async () => {
+    const { service, prisma, urls } = await setup();
     const start = Date.now();
     const grant = await service.issueOriginal(scope, ingredientId);
     expect(urls.buildUrl).toHaveBeenCalledWith(source.s3Key);
@@ -252,7 +224,7 @@ describe('AuthorizedMediaUrlService', () => {
       { ...source, organizationId: testId('org', 2) },
       { ...source, userId: testId('user', 2) },
     ]) {
-      const { service, prisma, urls } = await setup('scale');
+      const { service, prisma, urls } = await setup();
       prisma.ingredient.findMany.mockResolvedValue(record ? [record] : []);
       await expect(service.issueOriginal(scope, ingredientId)).rejects.toThrow(
         'unavailable',
@@ -261,69 +233,32 @@ describe('AuthorizedMediaUrlService', () => {
     }
   });
 
-  it('returns pending previews and never falls back to the original', async () => {
+  it('signs the stored original as the preview of every organization', async () => {
     const { service, urls } = await setup();
     expect(
       (await service.projectIngredients(scope, [ingredientId]))[0].grant,
-    ).toMatchObject({ state: 'PENDING', url: null });
-    expect(urls.buildUrl).not.toHaveBeenCalled();
+    ).toMatchObject({ state: 'READY', purpose: 'preview' });
+    expect(urls.buildUrl).toHaveBeenCalledWith(source.s3Key);
   });
 
-  it('uses only a ready derivative with the current source identity', async () => {
-    const { service, prisma, urls } = await setup();
-    prisma.mediaDeliveryVariant.findMany.mockResolvedValue([
-      {
-        ingredientId,
-        sourceIdentity: 'stale',
-        state: 'READY',
-        storageKey: 'exports/watermarked/stale.png',
-      },
-      {
-        ingredientId,
-        sourceIdentity: mediaSourceIdentity(source),
-        state: 'READY',
-        storageKey: 'exports/watermarked/preview.png',
-      },
-    ]);
-    const [projection] = await service.projectIngredients(scope, [
-      ingredientId,
-    ]);
-    expect(projection.grant.state).toBe('READY');
-    expect(urls.buildUrl).toHaveBeenCalledWith(
-      'exports/watermarked/preview.png',
-    );
-  });
-
-  it('makes unsupported formats unavailable and signer failure has no unsigned fallback', async () => {
-    const { service, prisma, config, urls } = await setup();
-    prisma.ingredient.findMany.mockResolvedValue([
-      { ...source, category: 'VOICE' },
-    ]);
-    expect(
-      (await service.projectIngredients(scope, [ingredientId]))[0].grant.state,
-    ).toBe('UNSUPPORTED');
+  it('has no unsigned fallback when signing is unavailable', async () => {
+    const { service, config, urls } = await setup();
     config.isCdnSigningEnabled = false;
-    prisma.organization.findFirst.mockResolvedValue({
-      settings: { subscriptionTier: 'scale' },
-    });
     await expect(service.issueOriginal(scope, ingredientId)).rejects.toThrow(
       'signing is unavailable',
     );
     expect(urls.buildUrl).not.toHaveBeenCalled();
   });
 
-  it('publishes originals internally without granting free browser access', async () => {
+  it('publishes originals internally from the exact stored key', async () => {
     const { service } = await setup();
     const urls = await service.issueServerPublish(organizationId, [
       ingredientId,
     ]);
     expect(urls.get(ingredientId)).toContain('signed=1');
-    await expect(service.issueOriginal(scope, ingredientId)).rejects.toThrow(
-      'paid plan',
-    );
   });
 
-  it('mints execution URLs for the organization own media from the exact stored key, regardless of tier', async () => {
+  it('mints execution URLs for the organization own media from the exact stored key', async () => {
     const { service, prisma, urls } = await setup();
     const result = await service.issueExecutionUrls(scope, [
       ingredientId,
@@ -398,22 +333,14 @@ describe('AuthorizedMediaUrlService', () => {
       id: testId('ingredient', 2),
       s3Key: null,
     };
-    const readyVariant = {
-      ingredientId,
-      sourceIdentity: mediaSourceIdentity(source),
-      state: 'READY',
-      storageKey: 'exports/watermarked/preview.png',
-    };
-
     beforeEach(() => {
       vi.mocked(Sentry.captureException).mockClear();
       vi.mocked(Sentry.captureMessage).mockClear();
     });
 
-    it('degrades a free item whose signer throws without failing the batch', async () => {
+    it('degrades an item whose signer throws without failing the batch', async () => {
       const { service, prisma, urls, logger } = await setup();
       prisma.ingredient.findMany.mockResolvedValue([source, brokenSource]);
-      prisma.mediaDeliveryVariant.findMany.mockResolvedValue([readyVariant]);
       urls.buildUrl.mockImplementationOnce(() => {
         throw new Error('signer exploded');
       });
@@ -423,7 +350,7 @@ describe('AuthorizedMediaUrlService', () => {
       ]);
       expect(result.map((entry) => entry.grant.state)).toEqual([
         'FAILED',
-        'PENDING',
+        'FAILED',
       ]);
       expect(Sentry.captureException).toHaveBeenCalledWith(
         expect.any(Error),
@@ -437,8 +364,8 @@ describe('AuthorizedMediaUrlService', () => {
       expect(logger.error).not.toHaveBeenCalled();
     });
 
-    it('keeps paid items with invalid keys per-item FAILED and out of Sentry', async () => {
-      const { service, prisma, logger } = await setup('scale');
+    it('keeps items with invalid keys per-item FAILED and out of Sentry', async () => {
+      const { service, prisma, logger } = await setup();
       prisma.ingredient.findMany.mockResolvedValue([brokenSource, source]);
       const result = await service.projectIngredients(scope, [
         brokenSource.id,
@@ -453,7 +380,7 @@ describe('AuthorizedMediaUrlService', () => {
     });
 
     it('degrades public derivatives and brand assets per item', async () => {
-      const { service, prisma, urls } = await setup('scale');
+      const { service, prisma, urls } = await setup();
       urls.buildUrl.mockImplementation(() => {
         throw new Error('signer exploded');
       });
@@ -481,7 +408,6 @@ describe('AuthorizedMediaUrlService', () => {
         },
       });
       prisma.ingredient.findMany.mockResolvedValue([source]);
-      prisma.mediaDeliveryVariant.findMany.mockResolvedValue([readyVariant]);
       service.onModuleInit();
       const first = await service.projectIngredients(scope, [ingredientId]);
       await service.projectIngredients(scope, [ingredientId]);

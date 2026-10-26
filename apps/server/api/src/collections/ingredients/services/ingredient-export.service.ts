@@ -1,7 +1,6 @@
+import { createHash } from 'node:crypto';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
-import { PLATFORM_PREVIEW_LAYERS } from '@api/services/media-urls/media-delivery-policy.util';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
@@ -12,11 +11,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { resolveIngredientMediaUrl } from '@libs/media/media-url.util';
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 const POSITIONS: readonly string[] = [
   'top-left',
@@ -31,18 +26,13 @@ export class IngredientExportService {
     private readonly files: FilesClientService,
     private readonly config: ConfigService,
     private readonly mediaUrlService: MediaUrlService,
-    private readonly mediaIssuer: AuthorizedMediaUrlService,
   ) {}
 
+  /** Brand-watermarked copy of an ingredient, cached by source and settings. */
   async export(
     ingredientId: string,
     organizationId: string,
-    watermark: boolean,
   ): Promise<IIngredientExportResult & { id: string }> {
-    if (!watermark)
-      throw new ForbiddenException(
-        'This endpoint only creates watermarked previews',
-      );
     const ingredient = await this.prisma.ingredient.findFirst({
       where: { id: ingredientId, organizationId, isDeleted: false },
       include: { metadata: true },
@@ -61,7 +51,7 @@ export class IngredientExportService {
       );
     if (!ingredient.s3Key?.trim())
       throw new BadRequestException(
-        'The original must be stored before creating a preview',
+        'The original must be stored before creating a watermarked copy',
       );
     const filename = `${ingredient.id}-watermarked.${category === 'videos' ? 'mp4' : 'png'}`;
     if (!ingredient.brandId)
@@ -74,6 +64,7 @@ export class IngredientExportService {
     if (!brand) throw new NotFoundException('Brand');
     const text = brand.watermarkText?.trim();
     let logoStorageKey: string | undefined;
+    let logoVersion: string | undefined;
     if (brand.watermarkLogoId) {
       const logo = await this.prisma.asset.findFirst({
         where: {
@@ -88,6 +79,7 @@ export class IngredientExportService {
         throw new BadRequestException(
           'The watermark logo must be an image belonging to this brand',
         );
+      logoVersion = logo.updatedAt.toISOString();
       logoStorageKey =
         logo.cloudObjectKey ??
         (logo.category === 'LOGO' ? `logos/${logo.id}` : undefined);
@@ -103,24 +95,33 @@ export class IngredientExportService {
       brand.watermarkOpacity > 1
     )
       throw new BadRequestException('Invalid brand watermark settings');
-    const layers: IWatermarkLayer[] =
-      text || logoStorageKey
-        ? [
-            {
-              text: text || undefined,
-              logoStorageKey,
-              opacity: brand.watermarkOpacity,
-              position: brand.watermarkPosition as WatermarkPosition,
-            },
-          ]
-        : [];
-    if (
-      layers.length === 0 ||
-      (this.config.isAuthorizedMediaDeliveryEnabled &&
-        !(await this.mediaIssuer.hasCleanAccess(organizationId)))
-    )
-      layers.push(...PLATFORM_PREVIEW_LAYERS.map((entry) => ({ ...entry })));
+    if (!text && !logoStorageKey)
+      throw new BadRequestException(
+        'Add watermark text or a logo to this brand before exporting',
+      );
+    const layers: IWatermarkLayer[] = [
+      {
+        text: text || undefined,
+        logoStorageKey,
+        opacity: brand.watermarkOpacity,
+        position: brand.watermarkPosition as WatermarkPosition,
+      },
+    ];
     const result = await this.files.watermarkExport({
+      // Everything the rendered bytes depend on, so a repeat download finds the
+      // stored copy without fetching or encoding the source again.
+      cacheKey: createHash('sha256')
+        .update(
+          JSON.stringify([
+            ingredient.s3Key,
+            ingredient.version,
+            ingredient.generationCompletedAt?.toISOString() ?? null,
+            ingredient.fileSize,
+            logoVersion ?? null,
+            layers,
+          ]),
+        )
+        .digest('hex'),
       storageKey: ingredient.s3Key,
       category,
       layers,

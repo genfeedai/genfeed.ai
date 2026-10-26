@@ -6,7 +6,7 @@ import {
   MEDIA_VARIANT_RETRY_BASE_MS,
   MEDIA_VARIANT_STALE_PENDING_MS,
 } from '@api/services/media-urls/media-recovery.constants';
-import type { MediaDeliveryPurpose } from '@genfeedai/contracts/interfaces';
+import type { MediaVariantPurpose } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
@@ -31,13 +31,12 @@ type RecoverableVariant = {
 };
 
 /** `public-social` is never rendered, so it is never recovered either. */
-const RECOVERABLE_PURPOSES: readonly MediaDeliveryPurpose[] = [
-  'preview',
+const RECOVERABLE_PURPOSES: readonly MediaVariantPurpose[] = [
   'public-share',
   'public-og',
 ];
 
-function recoverablePurpose(purpose: string): MediaDeliveryPurpose | null {
+function recoverablePurpose(purpose: string): MediaVariantPurpose | null {
   return (
     RECOVERABLE_PURPOSES.find((candidate) => candidate === purpose) ?? null
   );

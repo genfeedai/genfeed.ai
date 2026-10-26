@@ -2,14 +2,10 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
-import {
-  serializeCollection,
-  serializeSingle,
-} from '@api/helpers/utils/response/response.util';
+import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { streamRemoteAttachment } from '@api/helpers/utils/stream-attachment/stream-attachment.util';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import {
-  PrepareMediaPreviewsDto,
   PreparePublicMediaDto,
   PublicMediaGrantQueryDto,
 } from '@api/services/media-urls/media-delivery.dto';
@@ -40,21 +36,6 @@ export class MediaDeliveryController {
     private readonly issuer: AuthorizedMediaUrlService,
     private readonly preparation: MediaDerivativePreparationService,
   ) {}
-
-  @Post('media-previews')
-  @RateLimit({ limit: 10, scope: 'user', windowMs: 60_000 })
-  async preparePreviews(
-    @Req() request: Request,
-    @CurrentUser() user: AuthenticatedUser,
-    @Body() dto: PrepareMediaPreviewsDto,
-  ) {
-    const scope = this.scope(user);
-    await this.preparation.prepare(scope, dto.ids);
-    const projections = await this.issuer.projectIngredients(scope, dto.ids);
-    return serializeCollection(request, MediaDeliveryGrantSerializer, {
-      docs: projections.map((projection) => projection.grant),
-    });
-  }
 
   @Post(':id/original-grant')
   @Header('Cache-Control', 'no-store')

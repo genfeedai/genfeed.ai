@@ -119,7 +119,7 @@ export function saveDownloadBlob(blob: Blob, filename: string): void {
 // one: it restarts whenever bytes arrive and only stops a stalled connection.
 const DOWNLOAD_STALL_TIMEOUT_MS = 600_000;
 
-async function fetchDownloadBlob(url: string): Promise<Blob> {
+export async function fetchDownloadBlob(url: string): Promise<Blob> {
   const controller = new AbortController();
   let stallTimer = setTimeout(
     () => controller.abort(),

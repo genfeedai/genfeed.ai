@@ -10,7 +10,6 @@ import {
   getSeatLimitForTier,
   getUpgradeTierForLimit,
   hasApiAccess,
-  hasCleanExportAccess,
   hasTrainingAccess,
   SCALE_API_RATE_LIMIT,
   SINGLE_ORGANIZATION_LIMIT,
@@ -43,12 +42,6 @@ describe('tier API entitlements', () => {
     expect(hasTrainingAccess(SubscriptionTier.FREE)).toBe(false);
     expect(hasTrainingAccess(SubscriptionTier.SCALE)).toBe(true);
     expect(hasTrainingAccess(SubscriptionTier.ENTERPRISE)).toBe(true);
-  });
-
-  it('denies clean-export access to free tiers and grants Scale+ (SaaS gate for #4498)', () => {
-    expect(hasCleanExportAccess(SubscriptionTier.FREE)).toBe(false);
-    expect(hasCleanExportAccess(SubscriptionTier.SCALE)).toBe(true);
-    expect(hasCleanExportAccess(SubscriptionTier.ENTERPRISE)).toBe(true);
   });
 
   it('grants API access with escalating limits to paid tiers', () => {

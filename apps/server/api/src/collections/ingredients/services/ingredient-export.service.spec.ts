@@ -1,5 +1,3 @@
-import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
-
 const deployment = vi.hoisted(() => ({ selfHosted: false }));
 vi.mock('@genfeedai/config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/config')>();
@@ -12,7 +10,7 @@ import { FilesClientService } from '@api/services/files-microservice/client/file
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ConfigService } from '@libs/config/config.service';
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 
 describe('IngredientExportService', () => {
@@ -37,21 +35,17 @@ describe('IngredientExportService', () => {
   };
   const files = { watermarkExport: vi.fn() };
   const config = {
-    isAuthorizedMediaDeliveryEnabled: false,
     cdnUrl: 'https://cdn.example',
     get: vi.fn(),
   };
   const mediaUrls = { buildUrlFromAbsolute: vi.fn() };
-  const mediaIssuer = { hasCleanAccess: vi.fn() };
   let service: IngredientExportService;
 
   beforeEach(async () => {
     vi.resetAllMocks();
     deployment.selfHosted = false;
-    config.isAuthorizedMediaDeliveryEnabled = false;
     config.get.mockReturnValue('https://media.example');
     mediaUrls.buildUrlFromAbsolute.mockImplementation((url: string) => url);
-    mediaIssuer.hasCleanAccess.mockResolvedValue(false);
     prisma.ingredient.findFirst.mockResolvedValue(ingredient);
     prisma.brand.findFirst.mockResolvedValue(brand);
     files.watermarkExport.mockResolvedValue({
@@ -61,10 +55,6 @@ describe('IngredientExportService', () => {
     const module = await Test.createTestingModule({
       providers: [
         IngredientExportService,
-        {
-          provide: AuthorizedMediaUrlService,
-          useValue: mediaIssuer,
-        },
         { provide: PrismaService, useValue: prisma },
         {
           provide: ConfigService,
@@ -77,27 +67,8 @@ describe('IngredientExportService', () => {
     service = module.get(IngredientExportService);
   });
 
-  it('adds the platform watermark for free active exports regardless of custom branding', async () => {
-    config.isAuthorizedMediaDeliveryEnabled = true;
-    await service.export('image-1', 'org-1', true);
-    expect(files.watermarkExport).toHaveBeenCalledWith(
-      expect.objectContaining({
-        layers: expect.arrayContaining([
-          { text: 'Genfeed.ai', position: 'bottom-right', opacity: 0.85 },
-        ]),
-      }),
-    );
-  });
-
-  it('never exposes an original through the preview endpoint', async () => {
-    await expect(service.export('image-1', 'org-1', false)).rejects.toThrow(
-      ForbiddenException,
-    );
-    expect(prisma.ingredient.findFirst).not.toHaveBeenCalled();
-  });
-
   it('scopes source and brand and preserves the source key', async () => {
-    const result = await service.export('image-1', 'org-1', true);
+    const result = await service.export('image-1', 'org-1');
     expect(prisma.ingredient.findFirst).toHaveBeenCalledWith({
       where: { id: 'image-1', organizationId: 'org-1', isDeleted: false },
       include: { metadata: true },
@@ -106,6 +77,7 @@ describe('IngredientExportService', () => {
       where: { id: 'brand-1', organizationId: 'org-1', isDeleted: false },
     });
     expect(files.watermarkExport).toHaveBeenCalledWith({
+      cacheKey: expect.stringMatching(/^[a-f0-9]{64}$/),
       category: 'images',
       storageKey: 'images/image-1',
       layers: [
@@ -130,7 +102,7 @@ describe('IngredientExportService', () => {
         ...ingredient,
         category,
       });
-      const result = await service.export('image-1', 'org-1', true);
+      const result = await service.export('image-1', 'org-1');
       expect(files.watermarkExport).toHaveBeenCalledWith(
         expect.objectContaining({ category: rendererCategory }),
       );
@@ -143,7 +115,7 @@ describe('IngredientExportService', () => {
       url: '/local/exports/preview.png',
       storageKey: 'exports/preview.png',
     });
-    const result = await service.export('image-1', 'org-1', true);
+    const result = await service.export('image-1', 'org-1');
     expect(result.url).toBe('https://cdn.example/exports/preview.png');
   });
 
@@ -156,7 +128,7 @@ describe('IngredientExportService', () => {
       (url: string) => `${url}?Signature=signed`,
     );
 
-    const result = await service.export('image-1', 'org-1', true);
+    const result = await service.export('image-1', 'org-1');
 
     expect(mediaUrls.buildUrlFromAbsolute).toHaveBeenCalledWith(
       'https://cdn.example/exports/preview.png',
@@ -172,7 +144,7 @@ describe('IngredientExportService', () => {
       url: '/local/exports/preview.png',
       storageKey: 'exports/preview.png',
     });
-    const result = await service.export('image-1', 'org-1', true);
+    const result = await service.export('image-1', 'org-1');
     expect(result.url).toBe('https://media.example/local/exports/preview.png');
   });
 
@@ -183,7 +155,7 @@ describe('IngredientExportService', () => {
       url: '/local/exports/preview.png',
       storageKey: 'exports/preview.png',
     });
-    await expect(service.export('image-1', 'org-1', true)).rejects.toThrow(
+    await expect(service.export('image-1', 'org-1')).rejects.toThrow(
       BadRequestException,
     );
   });
@@ -193,7 +165,7 @@ describe('IngredientExportService', () => {
       ...ingredient,
       s3Key: null,
     });
-    await expect(service.export('image-1', 'org-1', true)).rejects.toThrow(
+    await expect(service.export('image-1', 'org-1')).rejects.toThrow(
       BadRequestException,
     );
     expect(files.watermarkExport).not.toHaveBeenCalled();
@@ -201,7 +173,7 @@ describe('IngredientExportService', () => {
 
   it('rejects inaccessible sources', async () => {
     prisma.ingredient.findFirst.mockResolvedValue(null);
-    await expect(service.export('image-1', 'other-org', true)).rejects.toThrow(
+    await expect(service.export('image-1', 'other-org')).rejects.toThrow(
       NotFoundException,
     );
     expect(files.watermarkExport).not.toHaveBeenCalled();
@@ -213,7 +185,7 @@ describe('IngredientExportService', () => {
       watermarkLogoId: 'foreign-logo',
     });
     prisma.asset.findFirst.mockResolvedValue(null);
-    await expect(service.export('image-1', 'org-1', true)).rejects.toThrow(
+    await expect(service.export('image-1', 'org-1')).rejects.toThrow(
       BadRequestException,
     );
     expect(prisma.asset.findFirst).toHaveBeenCalledWith({
@@ -239,60 +211,53 @@ describe('IngredientExportService', () => {
       category: 'LOGO',
       cloudObjectKey: 'logos/logo-1',
     });
-    await expect(service.export('image-1', 'org-1', true)).rejects.toThrow(
+    await expect(service.export('image-1', 'org-1')).rejects.toThrow(
       BadRequestException,
     );
     expect(files.watermarkExport).not.toHaveBeenCalled();
   });
 
   it.each(['IMAGE', 'VIDEO', 'IMAGE_EDIT', 'VIDEO_EDIT'])(
-    'exports a default-brand %s with the platform watermark',
+    'never adds a platform watermark: a %s needs the brand text or logo',
     async (category) => {
-      config.isAuthorizedMediaDeliveryEnabled = true;
       prisma.ingredient.findFirst.mockResolvedValue({
         ...ingredient,
         category,
       });
       prisma.brand.findFirst.mockResolvedValue({
         ...brand,
-        watermarkText: null,
+        watermarkText: ' ',
       });
-      await service.export('image-1', 'org-1', true);
-      expect(files.watermarkExport).toHaveBeenCalledWith({
-        category: category.startsWith('IMAGE') ? 'images' : 'videos',
-        storageKey: ingredient.s3Key,
-        layers: [
-          { text: 'Genfeed.ai', position: 'bottom-right', opacity: 0.85 },
-        ],
-      });
+      await expect(service.export('image-1', 'org-1')).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(files.watermarkExport).not.toHaveBeenCalled();
     },
   );
 
-  it.each([true, false])(
-    'keeps unconfigured exports watermarked when clean access is %s',
-    async (hasCleanAccess) => {
-      config.isAuthorizedMediaDeliveryEnabled = true;
-      mediaIssuer.hasCleanAccess.mockResolvedValue(hasCleanAccess);
-      prisma.brand.findFirst.mockResolvedValue({
-        ...brand,
-        watermarkText: ' ',
-      });
-      await service.export('image-1', 'org-1', true);
-      expect(files.watermarkExport).toHaveBeenCalledWith(
-        expect.objectContaining({
-          layers: [
-            { text: 'Genfeed.ai', position: 'bottom-right', opacity: 0.85 },
-          ],
-        }),
-      );
-    },
-  );
+  it('addresses the stored copy by source and watermark settings', async () => {
+    const keyFor = async (overrides: Record<string, unknown>) => {
+      files.watermarkExport.mockClear();
+      prisma.brand.findFirst.mockResolvedValue({ ...brand, ...overrides });
+      await service.export('image-1', 'org-1');
+      return files.watermarkExport.mock.calls[0][0].cacheKey as string;
+    };
+    const base = await keyFor({});
+    expect(await keyFor({})).toBe(base);
+    expect(await keyFor({ watermarkText: 'Other' })).not.toBe(base);
+    expect(await keyFor({ watermarkOpacity: 0.5 })).not.toBe(base);
+    prisma.ingredient.findFirst.mockResolvedValue({
+      ...ingredient,
+      version: 2,
+    });
+    expect(await keyFor({})).not.toBe(base);
+  });
 
   it.each([Number.NaN, 0, 1.1])(
     'rejects invalid brand opacity %s',
     async (watermarkOpacity) => {
       prisma.brand.findFirst.mockResolvedValue({ ...brand, watermarkOpacity });
-      await expect(service.export('image-1', 'org-1', true)).rejects.toThrow(
+      await expect(service.export('image-1', 'org-1')).rejects.toThrow(
         BadRequestException,
       );
       expect(files.watermarkExport).not.toHaveBeenCalled();

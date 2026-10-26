@@ -68,6 +68,10 @@ export class WatermarkExportService {
   async render(
     request: IWatermarkExportRequest,
   ): Promise<IWatermarkExportResult> {
+    // A stored copy needs no render slot, no source download and no encode.
+    this.validate(request);
+    const cached = await this.findCached(request);
+    if (cached) return cached;
     if (this.activeRenders >= 2)
       throw new HttpException(
         'Watermark rendering is busy. Try again shortly.',
@@ -81,10 +85,31 @@ export class WatermarkExportService {
     }
   }
 
+  private requestedStorageKey(request: IWatermarkExportRequest): string | null {
+    if (!request.cacheKey) return null;
+    const digest = createHash('sha256')
+      .update(
+        JSON.stringify({
+          version: 2,
+          category: request.category,
+          cacheKey: request.cacheKey,
+        }),
+      )
+      .digest('hex');
+    return `exports/watermarked/${digest}.${request.category === 'images' ? 'png' : 'mp4'}`;
+  }
+
+  private async findCached(
+    request: IWatermarkExportRequest,
+  ): Promise<IWatermarkExportResult | null> {
+    const storageKey = this.requestedStorageKey(request);
+    if (!storageKey || !(await this.storage.exists(storageKey))) return null;
+    return { storageKey, url: this.storage.getUrl(storageKey) };
+  }
+
   private async renderFile(
     request: IWatermarkExportRequest,
   ): Promise<IWatermarkExportResult> {
-    this.validate(request);
     await mkdir(FILES_TMP_ROOT, { recursive: true });
     const directory = await mkdtemp(path.join(FILES_TMP_ROOT, 'watermark-'));
     try {
@@ -168,7 +193,9 @@ export class WatermarkExportService {
         overlayPaths.push(overlayPath);
       }
       const extension = request.category === 'images' ? 'png' : 'mp4';
-      const storageKey = `exports/watermarked/${digest.digest('hex')}.${extension}`;
+      const storageKey =
+        this.requestedStorageKey(request) ??
+        `exports/watermarked/${digest.digest('hex')}.${extension}`;
       if (await this.storage.exists(storageKey))
         return { storageKey, url: this.storage.getUrl(storageKey) };
       const output = path.join(directory, `output.${extension}`);
@@ -231,7 +258,7 @@ export class WatermarkExportService {
       '-c:v',
       'libx264',
       '-preset',
-      'fast',
+      'veryfast',
       '-crf',
       '20',
       '-pix_fmt',
@@ -280,6 +307,11 @@ export class WatermarkExportService {
   private validate(request: IWatermarkExportRequest): void {
     if (!request || !['images', 'videos'].includes(request.category))
       throw invalid('Expected an image or video export');
+    if (
+      request.cacheKey !== undefined &&
+      !/^[a-f0-9]{64}$/.test(request.cacheKey)
+    )
+      throw invalid('Invalid export cache key');
     this.validateStoredSource(request.storageKey);
     if (
       !Array.isArray(request.layers) ||

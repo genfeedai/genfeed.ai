@@ -23,7 +23,6 @@ import type {
   MediaDeliverySource,
   MediaResourceProjection,
 } from '@genfeedai/contracts/interfaces';
-import { hasCleanExportAccess } from '@genfeedai/pricing';
 import { AssetCategory, AssetParent } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -68,11 +67,6 @@ export class AuthorizedMediaUrlService implements OnModuleInit {
       ingredientId,
     ]);
     this.requireRecordAccess(source, scope);
-    if (!(await this.hasCleanAccess(scope.organizationId))) {
-      throw new ForbiddenException(
-        'A paid plan is required for clean originals',
-      );
-    }
     return this.grant(
       source.id,
       requireStoredMediaKey(source),
@@ -85,58 +79,18 @@ export class AuthorizedMediaUrlService implements OnModuleInit {
     ingredientIds: readonly string[],
   ): Promise<MediaResourceProjection[]> {
     if (ingredientIds.length === 0) return [];
-    const [sources, hasCleanAccess] = await Promise.all([
-      this.readSources(scope.organizationId, ingredientIds),
-      this.hasCleanAccess(scope.organizationId),
-    ]);
-    const visible = sources.filter((source) =>
-      hasMediaRecordAccess(source, scope),
-    );
-    const variants = hasCleanAccess
-      ? []
-      : await this.prisma.mediaDeliveryVariant.findMany({
-          where: {
-            ingredientId: { in: visible.map((source) => source.id) },
-            isDeleted: false,
-            organizationId: scope.organizationId,
-            policyVersion: MEDIA_DELIVERY_POLICY_VERSION,
-            purpose: 'preview',
-          },
-        });
-    return visible.map((source) => {
-      let grant: MediaDeliveryGrant;
-      if (hasCleanAccess) {
-        grant = this.safeGrant(
+    const sources = await this.readSources(scope.organizationId, ingredientIds);
+    return sources
+      .filter((source) => hasMediaRecordAccess(source, scope))
+      .map((source) => ({
+        grant: this.safeGrant(
           source,
           () => requireStoredMediaKey(source),
           'preview',
-        );
-      } else if (!protectedPreviewCategory(source)) {
-        grant = this.unavailable(source.id, 'preview', 'UNSUPPORTED');
-      } else {
-        const variant = variants.find(
-          (entry) =>
-            entry.ingredientId === source.id &&
-            entry.sourceIdentity === mediaSourceIdentity(source),
-        );
-        const storageKey = variant?.storageKey;
-        grant =
-          variant?.state === 'READY' &&
-          storageKey?.startsWith('exports/watermarked/') &&
-          storageKey !== source.s3Key
-            ? this.safeGrant(source, () => storageKey, 'preview')
-            : this.unavailable(
-                source.id,
-                'preview',
-                variant?.state === 'FAILED'
-                  ? 'FAILED'
-                  : variant?.state === 'UNSUPPORTED'
-                    ? 'UNSUPPORTED'
-                    : 'PENDING',
-              );
-      }
-      return { grant, ingredientId: source.id, metadataId: source.metadataId };
-    });
+        ),
+        ingredientId: source.id,
+        metadataId: source.metadataId,
+      }));
   }
 
   /** Internal execution capability; there is deliberately no HTTP route. */
@@ -450,11 +404,9 @@ export class AuthorizedMediaUrlService implements OnModuleInit {
     assetIds: readonly string[],
   ): Promise<MediaAssetProjection[]> {
     if (assetIds.length === 0) return [];
-    const hasCleanAccess = await this.hasCleanAccess(scope.organizationId);
     // Brand identity (logo, banner) is not generated media: it renders in the
-    // brand switcher on every plan and for every brand the member can open, so
-    // it skips the clean-access and selected-brand gates. Everything else
-    // stays gated.
+    // brand switcher for every brand the member can open, so it skips the
+    // selected-brand gate. Everything else stays gated.
     const assets = await this.prisma.asset.findMany({
       select: {
         id: true,
@@ -468,12 +420,6 @@ export class AuthorizedMediaUrlService implements OnModuleInit {
         id: { in: [...assetIds].slice(0, 500) },
         parentOrgId: scope.organizationId,
         isDeleted: false,
-        ...(hasCleanAccess
-          ? {}
-          : {
-              category: { in: BRAND_IDENTITY_CATEGORIES },
-              parentType: AssetParent.BRAND,
-            }),
       },
     });
     const visible = new Map<string, MediaAssetProjection>(
@@ -605,18 +551,6 @@ export class AuthorizedMediaUrlService implements OnModuleInit {
       }
     }
     return granted;
-  }
-
-  async hasCleanAccess(organizationId: string): Promise<boolean> {
-    if (!isCloudDeployment()) return true;
-    const organization = await this.prisma.organization.findFirst({
-      select: { settings: { select: { subscriptionTier: true } } },
-      where: { id: organizationId, isDeleted: false },
-    });
-    return Boolean(
-      organization &&
-        hasCleanExportAccess(organization.settings?.subscriptionTier),
-    );
   }
 
   private requireRecordAccess(

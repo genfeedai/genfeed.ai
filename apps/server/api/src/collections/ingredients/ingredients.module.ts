@@ -28,7 +28,6 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { PersonasCoreModule } from '@api/collections/personas/personas-core.module';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
-import { CleanExportAccessGuard } from '@api/helpers/guards/clean-export-access/clean-export-access.guard';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { MediaPerceptionModule } from '@api/services/media-perception/media-perception.module';
 import { ModerationModule } from '@api/services/moderation/moderation.module';
@@ -67,7 +66,6 @@ import { Module } from '@nestjs/common';
   providers: [
     AdminGenerationReviewsService,
     AssetAccessGuard,
-    CleanExportAccessGuard,
     IngredientCharacterFilterService,
     IngredientExportService,
     IngredientGenerationCancellationService,

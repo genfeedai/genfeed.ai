@@ -46,7 +46,7 @@ const data = {
   organizationId: source.organizationId as string,
   ingredientId: source.id,
   sourceIdentity: mediaSourceIdentity(source),
-  purpose: 'preview' as const,
+  purpose: 'public-share' as const,
 };
 
 function filesFailure(status: number, body: unknown): AxiosError<unknown> {
@@ -80,7 +80,7 @@ async function setup() {
     isAuthorizedMediaPreparationEnabled: false,
   };
   const issuer = {
-    hasPublicPermission: vi.fn().mockResolvedValue(false),
+    hasPublicPermission: vi.fn().mockResolvedValue(true),
     readPublicSources: vi.fn().mockResolvedValue([source]),
     readSources: vi.fn().mockResolvedValue([source]),
   };
@@ -115,7 +115,7 @@ describe('protected derivative preparation', () => {
   it('does no queue or rendering work before activation', async () => {
     const { service, config, prisma, queue, files } = await setup();
     config.isAuthorizedMediaDeliveryEnabled = false;
-    await service.enqueue(data.organizationId, source.id);
+    await service.enqueue(data.organizationId, source.id, 'public-share');
     await service.process(data);
     expect(prisma.mediaDeliveryVariant.upsert).not.toHaveBeenCalled();
     expect(queue.add).not.toHaveBeenCalled();
@@ -125,7 +125,7 @@ describe('protected derivative preparation', () => {
     const { service, config, queue } = await setup();
     config.isAuthorizedMediaDeliveryEnabled = false;
     config.isAuthorizedMediaPreparationEnabled = true;
-    await service.enqueue(data.organizationId, source.id);
+    await service.enqueue(data.organizationId, source.id, 'public-share');
     expect(queue.add).toHaveBeenCalledOnce();
   });
 
@@ -146,13 +146,13 @@ describe('protected derivative preparation', () => {
 
   it('deduplicates durable source/policy identity and performs no rendering at enqueue', async () => {
     const { service, prisma, queue, files } = await setup();
-    await service.enqueue(data.organizationId, source.id);
+    await service.enqueue(data.organizationId, source.id, 'public-share');
     expect(prisma.mediaDeliveryVariant.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         create: expect.objectContaining({
           sourceIdentity: data.sourceIdentity,
           policyVersion: 1,
-          purpose: 'preview',
+          purpose: 'public-share',
           sourceKey: source.s3Key,
         }),
       }),
@@ -174,7 +174,7 @@ describe('protected derivative preparation', () => {
       state: 'FAILED',
       updatedAt: new Date(Date.now() - 5_000),
     });
-    await service.enqueue(data.organizationId, source.id);
+    await service.enqueue(data.organizationId, source.id, 'public-share');
     expect(queue.add).not.toHaveBeenCalled();
 
     prisma.mediaDeliveryVariant.upsert.mockResolvedValue({
@@ -182,7 +182,7 @@ describe('protected derivative preparation', () => {
       state: 'FAILED',
       updatedAt: new Date(Date.now() - 120_000),
     });
-    await service.enqueue(data.organizationId, source.id);
+    await service.enqueue(data.organizationId, source.id, 'public-share');
     expect(queue.add).toHaveBeenCalledOnce();
   });
 
@@ -195,9 +195,9 @@ describe('protected derivative preparation', () => {
         state,
       });
       prisma.mediaDeliveryVariant.findFirst.mockResolvedValue({ state });
-      await service.enqueue(data.organizationId, source.id);
+      await service.enqueue(data.organizationId, source.id, 'public-share');
       await service.process(data);
-      await service.enqueue(data.organizationId, source.id);
+      await service.enqueue(data.organizationId, source.id, 'public-share');
       await service.process(data);
       expect(queue.add).not.toHaveBeenCalled();
       expect(files.watermarkExport).not.toHaveBeenCalled();
@@ -226,7 +226,7 @@ describe('protected derivative preparation', () => {
           isDeleted: false,
           organizationId: data.organizationId,
           policyVersion: 1,
-          purpose: 'preview',
+          purpose: 'public-share',
           sourceIdentity: data.sourceIdentity,
         },
       });
@@ -242,7 +242,7 @@ describe('protected derivative preparation', () => {
       });
       const writes = prisma.mediaDeliveryVariant.updateMany.mock.calls.length;
       for (let access = 0; access < 2; access += 1) {
-        await service.enqueue(data.organizationId, source.id);
+        await service.enqueue(data.organizationId, source.id, 'public-share');
         await service.process(data);
       }
       expect(queue.add).not.toHaveBeenCalled();
@@ -259,12 +259,12 @@ describe('protected derivative preparation', () => {
       id: testId('variant', 1),
       state: 'UNSUPPORTED',
     });
-    await service.enqueue(data.organizationId, source.id);
+    await service.enqueue(data.organizationId, source.id, 'public-share');
     expect(queue.add).not.toHaveBeenCalled();
 
     const revised = { ...source, version: 2 };
     issuer.readSources.mockResolvedValue([revised]);
-    await service.enqueue(data.organizationId, source.id);
+    await service.enqueue(data.organizationId, source.id, 'public-share');
     expect(queue.add).toHaveBeenCalledWith(
       'prepare',
       { ...data, sourceIdentity: mediaSourceIdentity(revised) },
@@ -330,23 +330,6 @@ describe('protected derivative preparation', () => {
     );
   });
 
-  it('reuses an existing protected preview for public derivatives without another original download', async () => {
-    const { service, issuer, prisma, files } = await setup();
-    issuer.hasPublicPermission.mockResolvedValue(true);
-    prisma.mediaDeliveryVariant.findFirst
-      .mockResolvedValueOnce({ state: 'PENDING' })
-      .mockResolvedValueOnce({
-        state: 'READY',
-        storageKey: 'exports/watermarked/cached.png',
-      });
-    await service.process({ ...data, purpose: 'public-share' });
-    expect(files.watermarkExport).not.toHaveBeenCalled();
-    expect(files.copyInS3).toHaveBeenCalledWith(
-      'exports/watermarked/cached.png',
-      `public/media/${data.organizationId}/public-share/${data.sourceIdentity}.png`,
-    );
-  });
-
   it('renders a platform-protected separate object and stores only canonical variant identity', async () => {
     const { service, prisma, files } = await setup();
     await service.process(data);
@@ -355,18 +338,22 @@ describe('protected derivative preparation', () => {
       storageKey: source.s3Key,
       layers: [{ text: 'Genfeed.ai', position: 'bottom-right', opacity: 0.85 }],
     });
+    expect(files.copyInS3).toHaveBeenCalledWith(
+      'exports/watermarked/prepared.png',
+      `public/media/${data.organizationId}/public-share/${data.sourceIdentity}.png`,
+    );
     expect(prisma.mediaDeliveryVariant.updateMany).toHaveBeenLastCalledWith({
       data: {
         failureCode: null,
         state: 'READY',
-        storageKey: 'exports/watermarked/prepared.png',
+        storageKey: `public/media/${data.organizationId}/public-share/${data.sourceIdentity}.png`,
       },
       where: {
         ingredientId: source.id,
         isDeleted: false,
         organizationId: data.organizationId,
         policyVersion: 1,
-        purpose: 'preview',
+        purpose: 'public-share',
         sourceIdentity: data.sourceIdentity,
       },
     });
@@ -378,7 +365,8 @@ describe('protected derivative preparation', () => {
     await service.process(data);
     expect(files.watermarkExport).not.toHaveBeenCalled();
     issuer.readSources.mockResolvedValue([source]);
-    await service.process({ ...data, purpose: 'public-share' });
+    issuer.hasPublicPermission.mockResolvedValue(false);
+    await service.process(data);
     expect(files.watermarkExport).not.toHaveBeenCalled();
   });
 

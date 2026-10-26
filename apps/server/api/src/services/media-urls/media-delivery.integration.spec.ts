@@ -57,7 +57,6 @@ const source = {
   mimeType: 'image/png',
   s3Key: 'ingredients/images/random%2F?#.png',
 };
-let tier = 'free';
 let publicConsent = false;
 const queue = { add: vi.fn() };
 const variants = new Map<string, Record<string, unknown>>();
@@ -83,12 +82,6 @@ const prisma = {
           : [];
       },
     ),
-  },
-  organization: {
-    findFirst: vi.fn(async () => {
-      expect(getTenantContext()?.organizationId).toBeDefined();
-      return { settings: { subscriptionTier: tier } };
-    }),
   },
   mediaDeliveryVariant: {
     findMany: vi.fn(async () => [...variants.values()]),
@@ -200,7 +193,6 @@ describe('media issuer production module HTTP boundary', () => {
     await app?.close();
   });
   beforeEach(() => {
-    tier = 'free';
     publicConsent = false;
     variants.clear();
     queue.add.mockClear();
@@ -233,7 +225,10 @@ describe('media issuer production module HTTP boundary', () => {
       .expect(200);
     expect(ingredientReads).toEqual([organizationId]);
     expect(JSON.stringify(response.body)).not.toContain('private-original');
-    expect(response.body.mediaDelivery.state).toBe('PENDING');
+    expect(response.body.mediaDelivery).toMatchObject({
+      state: 'FAILED',
+      url: null,
+    });
   });
 
   it('requires real global authentication on the original-grant route', async () => {
@@ -242,17 +237,10 @@ describe('media issuer production module HTTP boundary', () => {
       .expect(401);
     expect(ingredientReads).toEqual([]);
   });
-  it('enforces authentication, entitlement and tenant boundaries before downloading an original', async () => {
+  it('enforces authentication and tenant boundaries before downloading an original', async () => {
     const path = `/ingredients/${ingredientId}/original-download`;
     await request(app.getHttpServer()).get(path).expect(401);
     expect(ingredientReads).toEqual([]);
-    for (const token of ['free', 'admin']) {
-      await request(app.getHttpServer())
-        .get(path)
-        .set('Authorization', `Bearer ${token}`)
-        .expect(403);
-    }
-    tier = 'scale';
     await request(app.getHttpServer())
       .get(path)
       .set('Authorization', 'Bearer foreign')
@@ -261,17 +249,11 @@ describe('media issuer production module HTTP boundary', () => {
       .get(path)
       .set('Authorization', 'Bearer paid')
       .expect(503);
-    expect(ingredientReads).toEqual([
-      organizationId,
-      organizationId,
-      testId('foreignorg'),
-      organizationId,
-    ]);
+    expect(ingredientReads).toEqual([testId('foreignorg'), organizationId]);
   });
   it.each(['paid', 'admin'])(
     'rejects tenant overrides before reading an original for %s',
     async (token) => {
-      tier = 'scale';
       await request(app.getHttpServer())
         .get(`/ingredients/${ingredientId}/original-download`)
         .query({ organizationId: testId('foreignorg') })
@@ -280,17 +262,7 @@ describe('media issuer production module HTTP boundary', () => {
       expect(ingredientReads).toEqual([]);
     },
   );
-  it('denies free API-key and admin clean grants using the current organization entitlement', async () => {
-    for (const token of ['free', 'admin']) {
-      await request(app.getHttpServer())
-        .post(`/ingredients/${ingredientId}/original-grant`)
-        .set('Authorization', `Bearer ${token}`)
-        .expect(403);
-    }
-    expect(ingredientReads).toEqual([organizationId, organizationId]);
-  });
   it('propagates global tenant scope and rejects cross-organization identities before signing', async () => {
-    tier = 'scale';
     await request(app.getHttpServer())
       .post(`/ingredients/${ingredientId}/original-grant`)
       .set('Authorization', 'Bearer foreign')
@@ -298,7 +270,6 @@ describe('media issuer production module HTTP boundary', () => {
     expect(ingredientReads).toEqual([testId('foreignorg')]);
   });
   it('fails closed when authorized original signing is unavailable', async () => {
-    tier = 'scale';
     await request(app.getHttpServer())
       .post(`/ingredients/${ingredientId}/original-grant`)
       .set('Authorization', 'Bearer paid')
@@ -306,10 +277,10 @@ describe('media issuer production module HTTP boundary', () => {
   });
   it('rejects attacker-selected keys and URLs in preparation DTOs', async () => {
     await request(app.getHttpServer())
-      .post('/ingredients/media-previews')
+      .post(`/ingredients/${ingredientId}/public-derivative`)
       .set('Authorization', 'Bearer free')
       .send({
-        ids: [ingredientId],
+        purpose: 'public-share',
         storageKey: source.s3Key,
         url: 'https://attacker.test/original',
       })

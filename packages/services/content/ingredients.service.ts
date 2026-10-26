@@ -20,7 +20,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import {
-  filenameFromContentDisposition,
+  fetchDownloadBlob,
   ingredientDownloadFilenameForBlob,
   saveDownloadBlob,
 } from '@genfeedai/helpers/media/download/download.helper';
@@ -53,28 +53,18 @@ type IngredientModelConstructorMap = {
   ingredients: typeof Ingredient;
 };
 
-/**
- * A `responseType: 'blob'` request buries the API's JSON error body inside a
- * Blob, so the reason (for example "Configure a watermark in brand settings
- * first") never reaches the caller. Unwrap it into the error message.
- */
-async function readExportErrorDetail(error: unknown): Promise<string | null> {
+/** The API says why a watermark export was refused; surface that reason. */
+function readExportErrorDetail(error: unknown): string | null {
   if (!axios.isAxiosError(error)) return null;
   const data: unknown = error.response?.data;
-  if (!(data instanceof Blob)) return null;
-  try {
-    const body: unknown = JSON.parse(await data.text());
-    if (typeof body !== 'object' || body === null) return null;
-    const { detail, errors, message } = body as {
-      detail?: unknown;
-      errors?: Array<{ detail?: unknown }>;
-      message?: unknown;
-    };
-    const reason = detail ?? errors?.[0]?.detail ?? message;
-    return typeof reason === 'string' && reason.trim() ? reason : null;
-  } catch {
-    return null;
-  }
+  if (typeof data !== 'object' || data === null) return null;
+  const { detail, errors, message } = data as {
+    detail?: unknown;
+    errors?: Array<{ detail?: unknown }>;
+    message?: unknown;
+  };
+  const reason = detail ?? errors?.[0]?.detail ?? message;
+  return typeof reason === 'string' && reason.trim() ? reason : null;
 }
 
 /** The bulk tag endpoint answers plain JSON; tolerate a JSON API wrapper too. */
@@ -100,9 +90,8 @@ function isBulkDeleteResult(
 export class IngredientsService<
   T extends Ingredient = Ingredient,
 > extends BaseService<T> {
-  private readonly previewBatch = new MediaPreviewBatchService(
-    (ids) => this.findByIds(ids),
-    (ids) => this.preparePreviews(ids),
+  private readonly previewBatch = new MediaPreviewBatchService((ids) =>
+    this.findByIds(ids),
   );
 
   public static async publicGrant(
@@ -120,50 +109,64 @@ export class IngredientsService<
   public previewGrant(
     id: string,
     signal: AbortSignal,
-    options?: { isRetry?: boolean },
   ): Promise<MediaDeliveryGrant | null> {
-    return this.previewBatch.request(id, signal, options);
+    return this.previewBatch.request(id, signal);
   }
 
+  /**
+   * Downloads the stored original straight from the CDN with a short-lived
+   * signed URL, so the bytes never pass through the API. If the browser cannot
+   * reach the CDN directly, the API relays the same file.
+   */
   public async downloadOriginal(ingredient: IIngredient): Promise<void> {
-    const response = await this.instance.get<Blob>(
-      `${EnvironmentService.apiEndpoint}/ingredients/${encodeURIComponent(ingredient.id)}/original-download`,
-      { responseType: 'blob', timeout: 600_000 },
-    );
-    saveDownloadBlob(
-      response.data,
-      await ingredientDownloadFilenameForBlob(ingredient, response.data),
-    );
-  }
-
-  public async preparePreviews(ids: readonly string[]): Promise<void> {
-    await this.instance.post(
-      `${EnvironmentService.apiEndpoint}/ingredients/media-previews`,
-      { ids: [...ids].slice(0, 50) },
-    );
-  }
-
-  public async downloadWatermarked(id: string): Promise<void> {
-    let response: Awaited<ReturnType<typeof this.instance.post<Blob>>>;
+    const encodedId = encodeURIComponent(ingredient.id);
+    let blob: Blob;
     try {
-      response = await this.instance.post<Blob>(
-        `${EnvironmentService.apiEndpoint}/ingredients/${encodeURIComponent(id)}/export-file`,
-        { watermark: true },
+      const grant = await this.instance.post<JsonApiResponseDocument>(
+        `${EnvironmentService.apiEndpoint}/ingredients/${encodedId}/original-grant`,
+      );
+      const { url } = deserializeResource<MediaDeliveryGrant>(grant.data);
+      if (!url) throw new Error('No signed download URL available');
+      blob = await fetchDownloadBlob(url);
+    } catch {
+      const relayed = await this.instance.get<Blob>(
+        `${EnvironmentService.apiEndpoint}/ingredients/${encodedId}/original-download`,
         { responseType: 'blob', timeout: 600_000 },
       );
+      blob = relayed.data;
+    }
+    saveDownloadBlob(
+      blob,
+      await ingredientDownloadFilenameForBlob(ingredient, blob),
+    );
+  }
+
+  /**
+   * Downloads the brand-watermarked copy. The API renders it once and stores
+   * it; later downloads of the same copy are instant and, like originals,
+   * come straight from the CDN.
+   */
+  public async downloadWatermarked(id: string): Promise<void> {
+    let created: { filename: string; url: string };
+    try {
+      const response = await this.instance.post<JsonApiResponseDocument>(
+        `${EnvironmentService.apiEndpoint}/ingredients/${encodeURIComponent(id)}/export`,
+        undefined,
+        { timeout: 600_000 },
+      );
+      created = deserializeResource<{ filename: string; url: string }>(
+        response.data,
+      );
     } catch (error) {
-      const detail = await readExportErrorDetail(error);
+      const detail = readExportErrorDetail(error);
       if (!detail) throw error;
       const exportError = new Error(detail, { cause: error });
       exportError.name = WATERMARK_EXPORT_ERROR_NAME;
       throw exportError;
     }
-    const header = response.headers?.['content-disposition'];
     saveDownloadBlob(
-      response.data,
-      filenameFromContentDisposition(
-        typeof header === 'string' ? header : undefined,
-      ) ?? `${id}-watermarked`,
+      await fetchDownloadBlob(created.url),
+      created.filename || `${id}-watermarked`,
     );
   }
 

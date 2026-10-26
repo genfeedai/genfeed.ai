@@ -1,7 +1,5 @@
 'use client';
 
-import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
-import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   ComponentSize,
   IngredientCategory,
@@ -17,7 +15,6 @@ import {
 } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useQuickActions } from '@genfeedai/hooks/ui/use-quick-actions/use-quick-actions';
-import { hasCleanExportAccess } from '@genfeedai/pricing';
 import type { StudioQuickActionsProps } from '@genfeedai/props/studio/studio.props';
 import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
 import SaveAsCharacter from '@ui/characters/SaveAsCharacter';
@@ -92,15 +89,11 @@ function IngredientQuickActionsContent(
   const { push } = useRouter();
   const { href } = useOrgUrl();
 
-  const { settings } = useBrand();
   const storyboardEntry = useStoryboardEntry();
   const canCreateStoryboard = Boolean(
     selectedIngredient &&
       storyboardEntry.canCreateFromAsset(selectedIngredient),
   );
-  const canDownloadOriginal =
-    isSelfHostedDeployment() ||
-    hasCleanExportAccess(settings?.subscriptionTier);
 
   const isVideo = selectedIngredient?.category === IngredientCategory.VIDEO;
 
@@ -412,7 +405,6 @@ function IngredientQuickActionsContent(
         disabled={downloadAction.isDisabled || downloadAction.isLoading}
         onDownloadOriginal={() => onDownload(selectedIngredient)}
         isCompact={isMasonryCompact}
-        canDownloadOriginal={canDownloadOriginal}
       />
     ) : null;
   const visibleActions = (items: IQuickAction[]) =>

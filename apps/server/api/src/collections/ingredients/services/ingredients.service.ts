@@ -471,9 +471,6 @@ export class IngredientsService extends BaseService<
           updateDto.scope === 'PUBLIC')
       ) {
         try {
-          await this.moduleRef
-            .get(MediaDerivativePreparationService, { strict: false })
-            .enqueue(result.organizationId, result.id);
           if (result.isPublic || result.scope === 'PUBLIC') {
             const preparation = this.moduleRef.get(
               MediaDerivativePreparationService,
@@ -491,7 +488,7 @@ export class IngredientsService extends BaseService<
             );
           }
         } catch (error: unknown) {
-          this.logger.warn('Protected preview preparation requires retry', {
+          this.logger.warn('Public media preparation requires retry', {
             id,
             error,
           });

@@ -436,7 +436,6 @@ export const websitePlans: WebsitePlanProps[] = [
     features: [
       '1 seat, 1 workspace',
       'Unlimited brands and channels',
-      'Watermarked exports',
       `API access (${FREE_API_RATE_LIMIT} requests/min)`,
     ],
     interval: 'payg',
@@ -457,7 +456,6 @@ export const websitePlans: WebsitePlanProps[] = [
     description: 'One studio for teams, organizations, and brands',
     features: [
       'Unlimited seats and client workspaces',
-      'Clean exports',
       'Any model, Ultra quality',
       'Brand model training',
       'Automation, Messages, Discovery',
@@ -548,7 +546,7 @@ export function formatTierLabel(
     return fallback;
   }
 
-  if (Object.prototype.hasOwnProperty.call(PLAN_LABELS, tier)) {
+  if (Object.hasOwn(PLAN_LABELS, tier)) {
     return PLAN_LABELS[tier as PlanTier];
   }
 

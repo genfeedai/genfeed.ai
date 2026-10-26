@@ -120,7 +120,6 @@ describe('authorized media preview refresh', () => {
     expect(state.previewGrant).toHaveBeenCalledWith(
       'image-a',
       expect.any(AbortSignal),
-      { isRetry: true },
     );
     expect(result.current?.state).toBe('FAILED');
     await act(async () => {

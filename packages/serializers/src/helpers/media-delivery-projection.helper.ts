@@ -148,7 +148,7 @@ export function assetResponseIds(value: unknown): string[] {
 export function projectMediaResponse(
   value: unknown,
   projections: readonly MediaResourceProjection[],
-  hasCleanAccess: boolean,
+  isOrganizationView: boolean,
   assets: readonly MediaAssetProjection[] = [],
 ): unknown {
   const ingredients = new Map(
@@ -180,7 +180,7 @@ export function projectMediaResponse(
         fields,
         ingredients.get(ingredientId),
         ingredientId,
-        hasCleanAccess,
+        isOrganizationView,
       );
     else if (assetId) {
       fields.cdnUrl = assetUrls.get(assetId) ?? null;
@@ -191,7 +191,7 @@ export function projectMediaResponse(
     } else if (input.type === 'metadata') {
       fields.result = metadata.get(String(input.id))?.grant.url ?? null;
     } else if (
-      !hasCleanAccess &&
+      !isOrganizationView &&
       (input.type === 'brand' ||
         (typeof input.slug === 'string' &&
           ('logo' in input || 'banner' in input)))
@@ -204,7 +204,7 @@ export function projectMediaResponse(
       fields.logoUrl = projectedAssetUrl(fields.logo);
       fields.bannerUrl = projectedAssetUrl(fields.banner);
     } else if (
-      !hasCleanAccess &&
+      !isOrganizationView &&
       (input.type === 'organization-setting' ||
         'defaultAvatarPhotoUrl' in input)
     ) {
@@ -219,7 +219,7 @@ function projectIngredient(
   fields: Record<string, unknown>,
   projection: MediaResourceProjection | undefined,
   id: string,
-  hasCleanAccess: boolean,
+  isOrganizationView: boolean,
 ): void {
   fields.cdnUrl = projection?.grant.url ?? null;
   fields.s3Key = null;
@@ -250,7 +250,7 @@ function projectIngredient(
   // generated video thumbnail to sign; images are their own preview.
   if ('ingredientId' in fields && 'thumbnailUrl' in fields)
     fields.thumbnailUrl = fields.isVideo === true ? null : fields.cdnUrl;
-  if (!hasCleanAccess) {
+  if (!isOrganizationView) {
     for (const field of [
       'generationHarness',
       'imageEdit',

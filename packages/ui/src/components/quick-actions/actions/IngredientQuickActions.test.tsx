@@ -1,10 +1,6 @@
 import type { SaveAsCharacterProps } from '@genfeedai/props/characters/save-as-character.props';
 import '@testing-library/jest-dom/vitest';
-import {
-  IngredientCategory,
-  IngredientStatus,
-  SubscriptionTier,
-} from '@genfeedai/contracts';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
@@ -13,12 +9,6 @@ import { describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   useQuickActions: vi.fn(),
   push: vi.fn(),
-  isSelfHostedDeployment: vi.fn(() => false),
-  useBrand: vi.fn(
-    (): { settings: { subscriptionTier: SubscriptionTier } | null } => ({
-      settings: null,
-    }),
-  ),
 }));
 
 vi.mock('@hooks/ui/use-storyboard-entry/use-storyboard-entry', () => ({
@@ -38,14 +28,6 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
-
-vi.mock('@genfeedai/config/deployment', () => ({
-  isSelfHostedDeployment: mocks.isSelfHostedDeployment,
-}));
-
-vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
-  useBrand: mocks.useBrand,
-}));
 
 vi.mock('@genfeedai/hooks/ui/use-quick-actions/use-quick-actions', () => ({
   useQuickActions: vi.fn(
@@ -94,12 +76,7 @@ vi.mock('@genfeedai/hooks/ui/use-quick-actions/use-quick-actions', () => ({
 }));
 
 vi.mock('@ui/quick-actions/actions/IngredientDownloadButton', () => ({
-  default: ({ canDownloadOriginal }: { canDownloadOriginal?: boolean }) => (
-    <div
-      data-can-download-original={String(canDownloadOriginal)}
-      data-testid="watermark-download"
-    />
-  ),
+  default: () => <div data-testid="watermark-download" />,
 }));
 
 vi.mock('@ui/dropdowns/prompt/DropdownPrompt', () => ({
@@ -132,64 +109,6 @@ describe('IngredientQuickActions', () => {
     id: 'ingredient-1',
     promptText: 'test prompt',
   } as IIngredient;
-
-  beforeEach(() => {
-    mocks.isSelfHostedDeployment.mockReturnValue(false);
-    mocks.useBrand.mockReturnValue({ settings: null });
-  });
-
-  describe('canDownloadOriginal entitlement', () => {
-    it('is unrestricted on self-hosted deployments regardless of tier', () => {
-      mocks.isSelfHostedDeployment.mockReturnValue(true);
-      mocks.useBrand.mockReturnValue({
-        settings: { subscriptionTier: SubscriptionTier.FREE },
-      });
-      render(
-        <IngredientQuickActions
-          selectedIngredient={ingredient}
-          onDownload={vi.fn()}
-        />,
-      );
-      expect(screen.getByTestId('watermark-download')).toHaveAttribute(
-        'data-can-download-original',
-        'true',
-      );
-    });
-
-    it('locks the original download for SaaS free-tier organizations', () => {
-      mocks.isSelfHostedDeployment.mockReturnValue(false);
-      mocks.useBrand.mockReturnValue({
-        settings: { subscriptionTier: SubscriptionTier.FREE },
-      });
-      render(
-        <IngredientQuickActions
-          selectedIngredient={ingredient}
-          onDownload={vi.fn()}
-        />,
-      );
-      expect(screen.getByTestId('watermark-download')).toHaveAttribute(
-        'data-can-download-original',
-        'false',
-      );
-    });
-
-    it('unlocks the original download for SaaS paid-tier organizations', () => {
-      mocks.isSelfHostedDeployment.mockReturnValue(false);
-      mocks.useBrand.mockReturnValue({
-        settings: { subscriptionTier: SubscriptionTier.SCALE },
-      });
-      render(
-        <IngredientQuickActions
-          selectedIngredient={ingredient}
-          onDownload={vi.fn()}
-        />,
-      );
-      expect(screen.getByTestId('watermark-download')).toHaveAttribute(
-        'data-can-download-original',
-        'true',
-      );
-    });
-  });
 
   it.each([
     IngredientCategory.IMAGE,

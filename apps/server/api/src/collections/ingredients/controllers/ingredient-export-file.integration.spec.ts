@@ -6,11 +6,9 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import { IngredientExportsController } from '@api/collections/ingredients/controllers/ingredient-exports.controller';
 import { IngredientExportService } from '@api/collections/ingredients/services/ingredient-export.service';
-import { CleanExportAccessGuard } from '@api/helpers/guards/clean-export-access/clean-export-access.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ConfigService as FilesConfigService } from '@files/config/config.service';
@@ -19,7 +17,6 @@ import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { S3Service } from '@files/services/s3/s3.service';
 import { WatermarkExportService } from '@files/services/watermark-export/watermark-export.service';
 import type { FFprobeData } from '@files/shared/interfaces/ffmpeg.interfaces';
-import { SubscriptionTier } from '@genfeedai/contracts';
 import type { StorageProvider } from '@genfeedai/storage';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -37,10 +34,6 @@ vi.mock('@genfeedai/config', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@genfeedai/config')>()),
   isCloudDeployment: () => true,
   isSelfHostedDeployment: () => false,
-}));
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getIsSuperAdmin: () => false,
-  getSubscriptionTier: () => SubscriptionTier.FREE,
 }));
 
 function resolveBinary(staticPath: string | null, fallback: string) {
@@ -82,7 +75,7 @@ async function probe(file: string): Promise<FFprobeData> {
   return JSON.parse(result.stdout);
 }
 
-describe('Library watermarked attachment delivery with synthetic media', () => {
+describe('Library brand-watermarked export with synthetic media', () => {
   let app: INestApplication;
   let filesApp: INestApplication;
   let directory: string;
@@ -97,7 +90,7 @@ describe('Library watermarked attachment delivery with synthetic media', () => {
   };
   const brand = {
     id: 'brand-1',
-    watermarkText: null,
+    watermarkText: 'Preview',
     watermarkLogoId: null,
     watermarkOpacity: 0.35,
     watermarkPosition: 'bottom-right',
@@ -238,17 +231,12 @@ describe('Library watermarked attachment delivery with synthetic media', () => {
       providers: [
         IngredientExportService,
         FilesClientService,
-        CleanExportAccessGuard,
         { provide: PrismaService, useValue: prisma },
         { provide: ConfigService, useValue: config },
         { provide: LoggerService, useValue: { warn: vi.fn() } },
         {
           provide: HttpService,
           useValue: new HttpService(axios.create({ proxy: false })),
-        },
-        {
-          provide: AuthorizedMediaUrlService,
-          useValue: { hasCleanAccess: async () => false },
         },
         {
           provide: MediaUrlService,
@@ -286,21 +274,33 @@ describe('Library watermarked attachment delivery with synthetic media', () => {
     vi.unstubAllGlobals();
   });
 
-  it('delivers a visible platform-watermarked PNG from an unconfigured brand', async () => {
-    const result = await request(app.getHttpServer())
-      .post('/ingredients/image-1/export-file')
-      .send({ watermark: true })
+  /** Creates the export, then downloads the stored copy the way the browser does. */
+  async function exportAndDownload(id: string, organization = 'org-1') {
+    const created = await request(app.getHttpServer())
+      .post(`/ingredients/${id}/export`)
+      .set('x-fixture-org', organization)
       .expect(201);
-    expect(result.headers['content-disposition']).toBe(
-      'attachment; filename="image-1-watermarked.png"',
-    );
-    expect(result.headers['content-type']).toContain('image/png');
-    expect(result.headers['cache-control']).toBe('no-store');
-    expect(result.headers['access-control-expose-headers']).toBe(
-      'Content-Disposition',
-    );
-    if (!Buffer.isBuffer(result.body))
-      throw new Error('Expected an attachment buffer');
+    const { filename, url } = created.body.data.attributes as {
+      filename: string;
+      url: string;
+    };
+    const file = await axios.get<ArrayBuffer>(url, {
+      responseType: 'arraybuffer',
+      proxy: false,
+    });
+    return {
+      body: Buffer.from(file.data),
+      contentType: String(file.headers['content-type']),
+      filename,
+      url,
+    };
+  }
+
+  it('creates a visible brand-watermarked PNG served straight from the CDN', async () => {
+    const result = await exportAndDownload('image-1');
+    expect(result.filename).toBe('image-1-watermarked.png');
+    expect(result.contentType).toContain('image/png');
+    expect(result.url).toContain('/exports/watermarked/');
     expect(await sharp(result.body).metadata()).toMatchObject({
       width: 400,
       height: 300,
@@ -312,8 +312,17 @@ describe('Library watermarked attachment delivery with synthetic media', () => {
     expect(uploadFromFile).toHaveBeenCalledTimes(1);
   });
 
+  it('serves the stored copy on a repeat export without rendering again', async () => {
+    const first = await exportAndDownload('image-1');
+    uploadFromFile.mockClear();
+    const second = await exportAndDownload('image-1');
+    expect(second.url).toBe(first.url);
+    expect(second.body.equals(first.body)).toBe(true);
+    expect(uploadFromFile).not.toHaveBeenCalled();
+  });
+
   it.skipIf(!ffmpeg || !ffprobe)(
-    'delivers a visible platform-watermarked MP4 with its audio and duration',
+    'creates a visible brand-watermarked MP4 with its audio and duration',
     async () => {
       prisma.ingredient.findFirst.mockResolvedValue({
         ...ingredient,
@@ -321,17 +330,9 @@ describe('Library watermarked attachment delivery with synthetic media', () => {
         category: 'VIDEO',
         s3Key: 'ingredients/source.mp4',
       });
-      const result = await request(app.getHttpServer())
-        .post('/ingredients/video-1/export-file')
-        .send({ watermark: true })
-        .buffer(true)
-        .expect(201);
-      expect(result.headers['content-disposition']).toBe(
-        'attachment; filename="video-1-watermarked.mp4"',
-      );
-      expect(result.headers['content-type']).toContain('video/mp4');
-      if (!Buffer.isBuffer(result.body))
-        throw new Error('Expected an attachment buffer');
+      const result = await exportAndDownload('video-1');
+      expect(result.filename).toBe('video-1-watermarked.mp4');
+      expect(result.contentType).toContain('video/mp4');
       const output = path.join(directory, 'download.mp4');
       await writeFile(output, result.body);
       const metadata = await probe(output);
@@ -349,31 +350,18 @@ describe('Library watermarked attachment delivery with synthetic media', () => {
     30_000,
   );
 
-  it.each([{}, { watermark: null }, { watermark: 'true' }, { watermark: 1 }])(
-    'rejects invalid download input %j before rendering',
-    async (body) => {
-      await request(app.getHttpServer())
-        .post('/ingredients/image-1/export-file')
-        .send(body)
-        .expect(400);
-      expect(prisma.ingredient.findFirst).not.toHaveBeenCalled();
-      expect(uploadFromFile).not.toHaveBeenCalled();
-    },
-  );
-  it('denies a clean export for the free tier before reading media', async () => {
+  it('refuses an export for a brand without a watermark instead of branding it as Genfeed', async () => {
+    prisma.brand.findFirst.mockResolvedValue({ ...brand, watermarkText: null });
     await request(app.getHttpServer())
-      .post('/ingredients/image-1/export-file')
-      .send({ watermark: false })
-      .expect(403);
-    expect(prisma.ingredient.findFirst).not.toHaveBeenCalled();
+      .post('/ingredients/image-1/export')
+      .expect(400);
     expect(uploadFromFile).not.toHaveBeenCalled();
   });
   it('denies an inaccessible asset with organization and soft-delete scope', async () => {
     prisma.ingredient.findFirst.mockResolvedValue(null);
     await request(app.getHttpServer())
-      .post('/ingredients/image-1/export-file')
+      .post('/ingredients/image-1/export')
       .set('x-fixture-org', 'other-org')
-      .send({ watermark: true })
       .expect(404);
     expect(prisma.ingredient.findFirst).toHaveBeenCalledWith({
       where: { id: 'image-1', organizationId: 'other-org', isDeleted: false },
@@ -381,11 +369,10 @@ describe('Library watermarked attachment delivery with synthetic media', () => {
     });
     expect(uploadFromFile).not.toHaveBeenCalled();
   });
-  it('denies an inaccessible brand instead of applying the default watermark', async () => {
+  it('denies an inaccessible brand instead of applying a default watermark', async () => {
     prisma.brand.findFirst.mockResolvedValue(null);
     await request(app.getHttpServer())
-      .post('/ingredients/image-1/export-file')
-      .send({ watermark: true })
+      .post('/ingredients/image-1/export')
       .expect(404);
     expect(prisma.brand.findFirst).toHaveBeenCalledWith({
       where: { id: 'brand-1', organizationId: 'org-1', isDeleted: false },
@@ -398,8 +385,7 @@ describe('Library watermarked attachment delivery with synthetic media', () => {
       category: 'MUSIC',
     });
     await request(app.getHttpServer())
-      .post('/ingredients/image-1/export-file')
-      .send({ watermark: true })
+      .post('/ingredients/image-1/export')
       .expect(400);
     expect(uploadFromFile).not.toHaveBeenCalled();
   });

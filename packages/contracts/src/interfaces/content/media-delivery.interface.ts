@@ -4,6 +4,9 @@ export type MediaDeliveryPurpose =
   | 'public-og'
   | 'public-social';
 
+/** Purposes that have a persisted derivative; `preview` is the live original. */
+export type MediaVariantPurpose = Exclude<MediaDeliveryPurpose, 'preview'>;
+
 export interface MediaDeliveryScope {
   organizationId: string;
   userId: string;
@@ -22,7 +25,7 @@ export interface MediaDeliveryJobData {
   organizationId: string;
   ingredientId: string;
   sourceIdentity: string;
-  purpose: MediaDeliveryPurpose;
+  purpose: MediaVariantPurpose;
 }
 
 export interface MediaResourceProjection {

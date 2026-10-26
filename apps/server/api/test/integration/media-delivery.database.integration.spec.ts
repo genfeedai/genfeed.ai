@@ -174,26 +174,24 @@ describe.skipIf(!databaseUrl)(
       }
     });
 
-    it('denies free originals and foreign/deleted records through actual scoped database reads', async () => {
+    it('denies foreign/deleted records and signs the caller own original through actual scoped database reads', async () => {
       await runWithTenantContext({ organizationId: freeOrg }, async () => {
-        await expect(
-          issuer.issueOriginal(freeScope, freeImage),
-        ).rejects.toThrow('paid plan');
         await expect(
           issuer.issueOriginal(freeScope, paidImage),
         ).rejects.toThrow('unavailable');
         await expect(
           issuer.issueOriginal(freeScope, deletedImage),
         ).rejects.toThrow('unavailable');
+        expect(urls.buildUrl).not.toHaveBeenCalled();
         const [projection] = await issuer.projectIngredients(freeScope, [
           freeImage,
         ]);
-        expect(projection.grant).toMatchObject({ state: 'PENDING', url: null });
+        expect(projection.grant).toMatchObject({ state: 'READY' });
+        expect(urls.buildUrl).toHaveBeenCalledWith(sourceKey);
       });
-      expect(urls.buildUrl).not.toHaveBeenCalled();
     });
 
-    it('issues a fresh paid grant for the exact raw key with a bounded expiry', async () => {
+    it('issues a fresh grant for the exact raw key with a bounded expiry', async () => {
       const started = Date.now();
       const grant = await runWithTenantContext(
         { organizationId: paidOrg },
@@ -226,9 +224,10 @@ describe.skipIf(!databaseUrl)(
         sourceKey,
         sourceVersion: source.version,
         policyVersion: 1,
-        purpose: 'preview',
+        purpose: 'public-share',
         state: 'READY',
-        storageKey: 'exports/watermarked/media-db-preview.png',
+        storageKey:
+          'public/media/media-db-org/public-share/media-db-preview.png',
       };
       await db.mediaDeliveryVariant.create({ data });
       await expect(db.mediaDeliveryVariant.create({ data })).rejects.toThrow();
@@ -248,7 +247,7 @@ describe.skipIf(!databaseUrl)(
       ).rejects.toThrow();
     });
 
-    it('guards new variant reads and rejects stale source derivatives without an original fallback', async () => {
+    it('guards new variant reads and keeps signing the current original after a source revision', async () => {
       await runWithTenantContext({ organizationId: freeOrg }, async () => {
         await expect(
           guarded.mediaDeliveryVariant.findMany({
@@ -258,7 +257,7 @@ describe.skipIf(!databaseUrl)(
         const [ready] = await issuer.projectIngredients(freeScope, [freeImage]);
         expect(ready.grant.state).toBe('READY');
         expect(new URL(ready.grant.url as string).pathname).toBe(
-          '/exports/watermarked/media-db-preview.png',
+          '/%20ingredients/images/opaque%252F%3F%23token.png%20',
         );
         await db.ingredient.update({
           where: { id: freeImage },
@@ -267,7 +266,7 @@ describe.skipIf(!databaseUrl)(
         const [changed] = await issuer.projectIngredients(freeScope, [
           freeImage,
         ]);
-        expect(changed.grant).toMatchObject({ state: 'PENDING', url: null });
+        expect(changed.grant.state).toBe('READY');
       });
     });
   },

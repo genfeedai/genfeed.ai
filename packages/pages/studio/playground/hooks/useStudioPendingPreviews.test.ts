@@ -186,19 +186,16 @@ describe('useStudioPendingPreviews', () => {
             mediaDelivery: grant('READY', 'https://cdn/ready'),
           }),
         ]);
-      const prepare = vi.fn().mockResolvedValue(undefined);
-      const batch = new MediaPreviewBatchService(read, prepare);
+      const batch = new MediaPreviewBatchService(read);
       const previewGrant = vi.fn(batch.request.bind(batch));
       const { recoverPreview } = renderPreviews(previewGrant, [job]);
 
       await vi.advanceTimersByTimeAsync(25);
       expect(read).toHaveBeenCalledTimes(1);
-      expect(prepare).not.toHaveBeenCalled();
       expect(recoverPreview).not.toHaveBeenCalled();
       await vi.advanceTimersByTimeAsync(60_000);
 
       expect(read).toHaveBeenCalledTimes(3);
-      expect(prepare).toHaveBeenCalledExactlyOnceWith(['ing-1']);
       expect(recoverPreview).toHaveBeenCalledExactlyOnceWith(
         job,
         'https://cdn/ready',
@@ -227,22 +224,20 @@ describe('useStudioPendingPreviews', () => {
     );
   });
 
-  it('bounds passive reads without preparing a permanently failed render', async () => {
+  it('bounds passive reads for a permanently failed render', async () => {
     vi.useFakeTimers();
     const read = vi
       .fn()
       .mockResolvedValue([
         new Image({ id: 'ing-1', mediaDelivery: grant('FAILED') }),
       ]);
-    const prepare = vi.fn();
-    const batch = new MediaPreviewBatchService(read, prepare);
+    const batch = new MediaPreviewBatchService(read);
     const previewGrant = vi.fn(batch.request.bind(batch));
     const { recoverPreview } = renderPreviews(previewGrant);
 
     await vi.advanceTimersByTimeAsync(1_300_000);
 
     expect(read).toHaveBeenCalledTimes(40);
-    expect(prepare).not.toHaveBeenCalled();
     expect(recoverPreview).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(60_000);
     expect(read).toHaveBeenCalledTimes(40);

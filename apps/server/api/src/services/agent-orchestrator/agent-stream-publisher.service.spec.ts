@@ -1090,7 +1090,6 @@ describe('authorized media stream projection', () => {
           },
         },
       ]),
-      hasCleanAccess: vi.fn().mockResolvedValue(false),
       projectAssets: vi.fn().mockResolvedValue([]),
     };
     const threads = {

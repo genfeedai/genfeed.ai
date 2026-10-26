@@ -25,7 +25,7 @@ function variant(overrides: Record<string, unknown> = {}) {
     id: testId('variant', 1),
     ingredientId: testId('ingredient', 1),
     organizationId: testId('org', 1),
-    purpose: 'preview',
+    purpose: 'public-share',
     sourceIdentity: 'identity-1',
     state: 'PENDING',
     updatedAt: new Date(now.getTime() - MEDIA_VARIANT_STALE_PENDING_MS - 1),
@@ -107,7 +107,7 @@ describe('MediaVariantRecoveryService', () => {
       {
         ingredientId: testId('ingredient', 1),
         organizationId: testId('org', 1),
-        purpose: 'preview',
+        purpose: 'public-share',
         sourceIdentity: 'identity-1',
       },
     );
@@ -122,7 +122,7 @@ describe('MediaVariantRecoveryService', () => {
         where: expect.objectContaining({
           attemptCount: { lt: MEDIA_VARIANT_MAX_RECOVERY_ATTEMPTS },
           isDeleted: false,
-          purpose: { in: ['preview', 'public-share', 'public-og'] },
+          purpose: { in: ['public-share', 'public-og'] },
           state: 'PENDING',
           updatedAt: {
             lt: new Date(now.getTime() - MEDIA_VARIANT_STALE_PENDING_MS),
@@ -166,7 +166,7 @@ describe('MediaVariantRecoveryService', () => {
     expect(preparation.addPrepareJob).toHaveBeenCalledTimes(1);
     expect(preparation.addPrepareJob).toHaveBeenCalledWith(
       testId('variant', 2),
-      expect.objectContaining({ purpose: 'preview' }),
+      expect.objectContaining({ purpose: 'public-share' }),
     );
   });
 

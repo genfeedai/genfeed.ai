@@ -46,17 +46,11 @@ export class MediaDeliveryResponseInterceptor implements NestInterceptor {
           organizationId: user.organizationId,
           userId: user.userId || user.id,
         };
-        const [projections, hasCleanAccess, assets] = await Promise.all([
+        const [projections, assets] = await Promise.all([
           this.issuer.projectIngredients(scope, ids),
-          this.issuer.hasCleanAccess(scope.organizationId),
           this.issuer.projectAssets(scope, assetResponseIds(response)),
         ]);
-        return projectMediaResponse(
-          response,
-          projections,
-          hasCleanAccess,
-          assets,
-        );
+        return projectMediaResponse(response, projections, true, assets);
       }),
     );
   }

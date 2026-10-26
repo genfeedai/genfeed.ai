@@ -87,9 +87,7 @@ export function useAuthorizedMediaPreview(
                 initial.purpose,
                 controller.signal,
               )
-            : await (await getService()).previewGrant(id, controller.signal, {
-                isRetry: retryRevision > 0,
-              });
+            : await (await getService()).previewGrant(id, controller.signal);
         if (controller.signal.aborted) return;
         if (grant && grant.id === id && grant.purpose === initial.purpose) {
           setFresh({ sourceIdentity, grant });

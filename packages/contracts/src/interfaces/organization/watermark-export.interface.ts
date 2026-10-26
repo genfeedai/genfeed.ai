@@ -12,6 +12,12 @@ export interface IWatermarkLayer {
 }
 
 export interface IWatermarkExportRequest {
+  /**
+   * Identity of everything the rendered bytes depend on. When set, the stored
+   * copy is addressed by it, so a repeat request returns the stored copy without
+   * fetching or encoding the source again.
+   */
+  cacheKey?: string;
   storageKey: string;
   category: 'images' | 'videos';
   layers: IWatermarkLayer[];

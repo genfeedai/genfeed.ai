@@ -159,122 +159,49 @@ describe('IngredientDownloadButton', () => {
     expect(trigger.className).not.toContain('ring-ring');
   });
 
-  describe('canDownloadOriginal entitlement gate', () => {
-    it('disables the standalone Original button and never calls the callback', async () => {
-      const original = vi.fn();
-      render(
-        <IngredientDownloadButton
-          ingredientId="image-1"
-          onDownloadOriginal={original}
-          canDownloadOriginal={false}
-        />,
-      );
-      const trigger = screen.getByRole('button', { name: 'original' });
-      expect(trigger).toBeDisabled();
-      fireEvent.click(trigger);
-      await Promise.resolve();
-      expect(original).not.toHaveBeenCalled();
-    });
+  it('swaps the download icon for the spinner while downloading instead of drawing both', async () => {
+    let finish: () => void = () => undefined;
+    const original = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    render(
+      <IngredientDownloadButton
+        ingredientId="image-1"
+        onDownloadOriginal={original}
+        isCompact
+      />,
+    );
+    const trigger = screen.getByRole('button', { name: 'options' });
+    expect(trigger.querySelector('.lucide-download')).toBeInTheDocument();
 
-    it('disables the Original menu item in the split dropdown', async () => {
-      const original = vi.fn();
-      render(
-        <IngredientDownloadButton
-          ingredientId="image-1"
-          onDownloadOriginal={original}
-          canDownloadOriginal={false}
-        />,
-      );
-      fireEvent.pointerDown(screen.getByRole('button', { name: 'options' }), {
-        button: 0,
-      });
-      const item = await screen.findByRole('menuitem', { name: /original/i });
-      expect(item).toHaveAttribute('aria-disabled', 'true');
-      fireEvent.click(item);
-      await Promise.resolve();
-      expect(original).not.toHaveBeenCalled();
-    });
+    fireEvent.pointerDown(trigger, { button: 0 });
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'original' }));
 
-    it('disables the Original menu item in compact mode', async () => {
-      const original = vi.fn();
-      render(
-        <IngredientDownloadButton
-          ingredientId="image-1"
-          onDownloadOriginal={original}
-          canDownloadOriginal={false}
-          isCompact
-        />,
-      );
-      fireEvent.pointerDown(screen.getByRole('button', { name: 'options' }), {
-        button: 0,
-      });
-      const item = await screen.findByRole('menuitem', { name: /original/i });
-      expect(item).toHaveAttribute('aria-disabled', 'true');
-      fireEvent.click(item);
-      await Promise.resolve();
-      expect(original).not.toHaveBeenCalled();
-    });
+    await waitFor(() => expect(trigger).toBeDisabled());
+    expect(trigger.querySelector('.lucide-download')).not.toBeInTheDocument();
+    expect(trigger.querySelectorAll('svg')).toHaveLength(1);
 
-    it('shows the upgrade tooltip from a focusable wrapper around the locked button', async () => {
-      render(
-        <IngredientDownloadButton
-          ingredientId="image-1"
-          onDownloadOriginal={vi.fn()}
-          canDownloadOriginal={false}
-        />,
-      );
-      const wrapper = screen.getByRole('button', { name: 'originalLocked' });
-      expect(wrapper).toHaveAttribute('tabIndex', '0');
-      expect(wrapper).not.toHaveAttribute('disabled');
-      expect(wrapper).toContainElement(
-        screen.getByRole('button', { name: 'original' }),
-      );
-      fireEvent.keyDown(document.body, { key: 'Tab' });
-      fireEvent.focus(wrapper);
-      expect(await screen.findByRole('tooltip')).toHaveTextContent(
-        'originalLocked',
-      );
-    });
+    finish();
+    await waitFor(() => expect(trigger).toBeEnabled());
+    expect(trigger.querySelector('.lucide-download')).toBeInTheDocument();
+  });
 
-    it('shows an upgrade hint on the locked Original menu item', async () => {
-      render(
-        <IngredientDownloadButton
-          ingredientId="image-1"
-          onDownloadOriginal={vi.fn()}
-          canDownloadOriginal={false}
-        />,
-      );
-      fireEvent.pointerDown(screen.getByRole('button', { name: 'options' }), {
-        button: 0,
-      });
-      const item = await screen.findByRole('menuitem', { name: /original/i });
-      expect(item).toHaveTextContent('upgradeHint');
+  it('never locks the original behind a plan', async () => {
+    render(
+      <IngredientDownloadButton
+        ingredientId="image-1"
+        onDownloadOriginal={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'original' })).toBeEnabled();
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'options' }), {
+      button: 0,
     });
-
-    it('renders no locked wrapper when the original is available', () => {
-      render(
-        <IngredientDownloadButton
-          ingredientId="image-1"
-          onDownloadOriginal={vi.fn()}
-        />,
-      );
-      expect(
-        screen.queryByRole('button', { name: 'originalLocked' }),
-      ).not.toBeInTheDocument();
-    });
-
-    it('keeps the original action enabled when canDownloadOriginal is omitted (default true)', async () => {
-      const original = vi.fn();
-      render(
-        <IngredientDownloadButton
-          ingredientId="image-1"
-          onDownloadOriginal={original}
-        />,
-      );
-      const trigger = screen.getByRole('button', { name: 'original' });
-      expect(trigger).toBeEnabled();
-      fireEvent.click(trigger);
-      await waitFor(() => expect(original).toHaveBeenCalledOnce());
-    });
+    const item = await screen.findByRole('menuitem', { name: 'original' });
+    expect(item).not.toHaveAttribute('aria-disabled', 'true');
+    expect(item).not.toHaveTextContent('upgradeHint');
   });
 });

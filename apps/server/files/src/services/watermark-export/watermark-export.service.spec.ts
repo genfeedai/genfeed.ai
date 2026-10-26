@@ -386,6 +386,46 @@ describe('WatermarkExportService', () => {
     },
     30_000,
   );
+  it('stores the copy under its cache key and serves it later without downloading the source', async () => {
+    const cacheKey = 'a'.repeat(64);
+    const { service, storage } = setup();
+    const stored = new Set<string>();
+    vi.mocked(storage.uploadFromFile).mockImplementation(async (key) => {
+      stored.add(key);
+      return key;
+    });
+    vi.mocked(storage.exists).mockImplementation(async (key) =>
+      stored.has(key),
+    );
+
+    const first = await service.render({ ...request, cacheKey });
+    expect(first.storageKey).toMatch(
+      /^exports\/watermarked\/[a-f0-9]{64}\.png$/,
+    );
+    expect(storage.download).toHaveBeenCalledTimes(1);
+
+    vi.mocked(storage.download).mockClear();
+    vi.mocked(storage.uploadFromFile).mockClear();
+    const second = await service.render({ ...request, cacheKey });
+    expect(second).toEqual(first);
+    expect(storage.download).not.toHaveBeenCalled();
+    expect(storage.uploadFromFile).not.toHaveBeenCalled();
+
+    const other = await service.render({
+      ...request,
+      cacheKey: 'b'.repeat(64),
+    });
+    expect(other.storageKey).not.toBe(first.storageKey);
+  });
+
+  it('rejects a malformed cache key before touching storage', async () => {
+    const { service, storage } = setup();
+    await expect(
+      service.render({ ...request, cacheKey: '../escape' }),
+    ).rejects.toThrow('Invalid export cache key');
+    expect(storage.exists).not.toHaveBeenCalled();
+  });
+
   it('reuses the rendered content without overwriting an original', async () => {
     const { service, storage } = setup();
     const first = await service.render(request);

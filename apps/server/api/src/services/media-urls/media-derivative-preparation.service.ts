@@ -13,8 +13,8 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isCloudDeployment } from '@genfeedai/config';
 import type {
   MediaDeliveryJobData,
-  MediaDeliveryPurpose,
   MediaDeliveryScope,
+  MediaVariantPurpose,
 } from '@genfeedai/contracts/interfaces';
 import { MEDIA_DELIVERY_QUEUE } from '@genfeedai/contracts/queue';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
@@ -96,7 +96,7 @@ export class MediaDerivativePreparationService {
   async prepare(
     scope: MediaDeliveryScope,
     ingredientIds: readonly string[],
-    purpose: MediaDeliveryPurpose = 'preview',
+    purpose: MediaVariantPurpose,
   ): Promise<void> {
     const sources = await this.issuer.readSources(
       scope.organizationId,
@@ -109,13 +109,12 @@ export class MediaDerivativePreparationService {
       throw new NotFoundException('Media is unavailable');
     }
     if (
-      purpose !== 'preview' &&
-      (purpose === 'public-social' ||
-        (
-          await Promise.all(
-            sources.map((source) => this.issuer.hasPublicPermission(source)),
-          )
-        ).some((allowed) => !allowed))
+      purpose === 'public-social' ||
+      (
+        await Promise.all(
+          sources.map((source) => this.issuer.hasPublicPermission(source)),
+        )
+      ).some((allowed) => !allowed)
     ) {
       throw new ForbiddenException(
         'This media has no public-delivery permission',
@@ -132,7 +131,7 @@ export class MediaDerivativePreparationService {
   async enqueue(
     organizationId: string,
     ingredientId: string,
-    purpose: MediaDeliveryPurpose = 'preview',
+    purpose: MediaVariantPurpose,
   ): Promise<void> {
     if (!this.isEnabled()) return;
     const [source] = await this.issuer.readSources(organizationId, [
@@ -140,9 +139,8 @@ export class MediaDerivativePreparationService {
     ]);
     if (!source) return;
     if (
-      purpose !== 'preview' &&
-      (!(await this.issuer.hasPublicPermission(source)) ||
-        purpose === 'public-social')
+      !(await this.issuer.hasPublicPermission(source)) ||
+      purpose === 'public-social'
     ) {
       throw new ForbiddenException(
         'This media has no public-delivery permission',
@@ -225,9 +223,8 @@ export class MediaDerivativePreparationService {
     if (
       !source ||
       mediaSourceIdentity(source) !== data.sourceIdentity ||
-      (data.purpose !== 'preview' &&
-        (!(await this.issuer.hasPublicPermission(source)) ||
-          data.purpose === 'public-social'))
+      !(await this.issuer.hasPublicPermission(source)) ||
+      data.purpose === 'public-social'
     )
       return;
     const where = {
@@ -257,25 +254,12 @@ export class MediaDerivativePreparationService {
     });
     let watermarkExportPending = false;
     try {
-      const preparedPreview =
-        data.purpose === 'preview'
-          ? null
-          : await this.prisma.mediaDeliveryVariant.findFirst({
-              where: { ...where, purpose: 'preview', state: 'READY' },
-            });
-      const reusableKey =
-        preparedPreview?.storageKey?.startsWith('exports/watermarked/') &&
-        preparedPreview.storageKey !== source.s3Key
-          ? preparedPreview.storageKey
-          : null;
-      watermarkExportPending = !reusableKey;
-      const rendered = reusableKey
-        ? { storageKey: reusableKey }
-        : await this.files.watermarkExport({
-            category,
-            layers: PLATFORM_PREVIEW_LAYERS.map((layer) => ({ ...layer })),
-            storageKey: requireStoredMediaKey(source),
-          });
+      watermarkExportPending = true;
+      const rendered = await this.files.watermarkExport({
+        category,
+        layers: PLATFORM_PREVIEW_LAYERS.map((layer) => ({ ...layer })),
+        storageKey: requireStoredMediaKey(source),
+      });
       watermarkExportPending = false;
       requireStoredMediaKey({ s3Key: rendered.storageKey });
       if (
@@ -284,40 +268,8 @@ export class MediaDerivativePreparationService {
       ) {
         throw new Error('Renderer returned an invalid protected variant');
       }
-      if (data.purpose !== 'preview' && !reusableKey) {
-        const identity = {
-          organizationId: data.organizationId,
-          ingredientId: data.ingredientId,
-          sourceIdentity: data.sourceIdentity,
-          policyVersion: MEDIA_DELIVERY_POLICY_VERSION,
-          purpose: 'preview',
-        };
-        await this.prisma.mediaDeliveryVariant.upsert({
-          where: {
-            organizationId: data.organizationId,
-            isDeleted: false,
-            organizationId_ingredientId_sourceIdentity_policyVersion_purpose:
-              identity,
-          },
-          create: {
-            ...identity,
-            sourceKey: requireStoredMediaKey(source),
-            sourceVersion: source.version,
-            state: 'READY',
-            storageKey: rendered.storageKey,
-          },
-          update: {
-            state: 'READY',
-            storageKey: rendered.storageKey,
-            failureCode: null,
-          },
-        });
-      }
-      let storageKey = rendered.storageKey;
-      if (data.purpose !== 'preview') {
-        storageKey = `public/media/${data.organizationId}/${data.purpose}/${data.sourceIdentity}.${category === 'images' ? 'png' : 'mp4'}`;
-        await this.files.copyInS3(rendered.storageKey, storageKey);
-      }
+      const storageKey = `public/media/${data.organizationId}/${data.purpose}/${data.sourceIdentity}.${category === 'images' ? 'png' : 'mp4'}`;
+      await this.files.copyInS3(rendered.storageKey, storageKey);
       await this.prisma.mediaDeliveryVariant.updateMany({
         data: { failureCode: null, state: 'READY', storageKey },
         where: {
