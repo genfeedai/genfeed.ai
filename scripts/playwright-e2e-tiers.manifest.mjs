@@ -97,6 +97,12 @@ export const PLAYWRIGHT_E2E_LANE_EXCLUSIONS = [
       'Needs the Cloud build (test-only `NEXT_PUBLIC_GENFEED_E2E_DEPLOYMENT=cloud`); the Community-built full tier gates credit reads behind hasOrganizationBillingHint(). Executed by the e2e-cloud-billing job in playwright-full-nightly.yml.',
   },
   {
+    lane: 'cloud',
+    file: 'playwright/e2e/tests/cloud/google-sign-in.spec.ts',
+    reason:
+      'Google sign-in is hidden on a Community build without a key; Cloud always shows it. Needs the Cloud build (test-only `NEXT_PUBLIC_GENFEED_E2E_DEPLOYMENT=cloud`). Executed by the e2e-cloud-billing job in playwright-full-nightly.yml.',
+  },
+  {
     lane: 'release-install',
     file: 'playwright/e2e/tests/release/app-loads.spec.ts',
     reason:
