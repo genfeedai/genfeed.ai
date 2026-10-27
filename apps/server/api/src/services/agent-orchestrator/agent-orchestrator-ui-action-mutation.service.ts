@@ -6,8 +6,12 @@ import { assertApiKeyAgentPublishingScope } from '@api/helpers/utils/auth/api-ke
 import type { ThreadUiActionExecutionParams } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.types';
 import { AgentOrchestratorUiActionFinalizerService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-finalizer.service';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { buildMutationApprovalCard } from '@api/services/agent-orchestrator/tools/mutation-approval-card';
+import {
+  buildMutationApprovalCard,
+  humanize,
+} from '@api/services/agent-orchestrator/tools/mutation-approval-card';
 import { buildApprovedMutationOutcome } from '@api/services/agent-orchestrator/tools/mutation-approval-outcome';
+import { APPROVAL_PENDING_RESULT_SUMMARY } from '@api/services/agent-orchestrator/utils/agent-terminal-tool-result.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { type CuratedActionName, getToolByName } from '@genfeedai/actions';
 import { buildLogicalWriteKey } from '@genfeedai/actions/server';
@@ -466,13 +470,13 @@ export class AgentOrchestratorUiActionMutationService {
           isDeleted: false,
           role: 'assistant',
         },
-        select: { id: true, metadata: true },
+        select: { id: true, metadata: true, toolCalls: true },
       });
       let resolvedCard: AgentUiAction | undefined;
-      const updates: Pick<
+      const updates: (Pick<
         PersistedMutationProposal,
         'messageId' | 'metadata'
-      >[] = [];
+      > & { toolCalls?: unknown })[] = [];
       for (const message of messages) {
         const metadata = record(message.metadata);
         const currentActions = Array.isArray(metadata.uiActions)
@@ -555,6 +559,16 @@ export class AgentOrchestratorUiActionMutationService {
         updates.push({
           messageId: message.id,
           metadata: { ...metadata, uiActions: actions },
+          toolCalls: settleApprovalToolCall(
+            message.toolCalls,
+            String(
+              record(
+                actions.find((action) => record(action).id === sourceActionId),
+              ).title,
+            ),
+            status,
+            result,
+          ),
         });
       }
       if (!resolvedCard)
@@ -579,6 +593,9 @@ export class AgentOrchestratorUiActionMutationService {
           },
           data: {
             metadata: toPrismaJson(update.metadata),
+            ...(update.toolCalls === undefined
+              ? {}
+              : { toolCalls: toPrismaJson(update.toolCalls) }),
           },
         });
         if (patched.count !== 1) {
@@ -638,4 +655,39 @@ export class AgentOrchestratorUiActionMutationService {
       );
     return proposals;
   }
+}
+
+/**
+ * The tool call that produced a proposal card was saved as "Waiting for your
+ * approval". Once the user decides, it reports the outcome instead, so the
+ * transcript does not contradict the card next to it. Returns undefined when
+ * there is nothing to change.
+ */
+function settleApprovalToolCall(
+  toolCalls: unknown,
+  cardTitle: string,
+  status: 'approved' | 'declined',
+  result: AgentToolResult | undefined,
+): unknown {
+  if (!Array.isArray(toolCalls)) return undefined;
+  const index = toolCalls.findIndex(
+    (candidate) =>
+      record(record(candidate).result).summary ===
+        APPROVAL_PENDING_RESULT_SUMMARY &&
+      humanize(String(record(candidate).toolName)) === cardTitle,
+  );
+  if (index < 0) return undefined;
+  const summary =
+    status === 'declined'
+      ? 'Declined'
+      : !result
+        ? 'Approved, running'
+        : result.success
+          ? 'Approved and completed'
+          : (result.error ?? 'Approved, but it failed');
+  return toolCalls.map((candidate, position) =>
+    position === index
+      ? { ...record(candidate), result: { summary } }
+      : candidate,
+  );
 }

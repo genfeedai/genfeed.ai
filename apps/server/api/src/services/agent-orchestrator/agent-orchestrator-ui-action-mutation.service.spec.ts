@@ -117,6 +117,41 @@ describe('persisted mutation approvals', () => {
       data: { id: 'batch-1' },
     });
   });
+  it('replaces the saved "Waiting for your approval" tool result with the outcome', async () => {
+    const waiting = {
+      status: 'completed',
+      toolName: 'generate_turbo_content',
+      result: { summary: 'Waiting for your approval' },
+    };
+    const unrelated = {
+      status: 'completed',
+      toolName: 'get_brands',
+      result: { summary: 'Waiting for your approval' },
+    };
+    messages.getMessagesByRoom.mockResolvedValue([
+      {
+        id: 'message-1',
+        role: 'assistant',
+        metadata: {
+          uiActions: [{ ...card(), title: 'Generate turbo content' }],
+        },
+        toolCalls: [unrelated, waiting],
+      },
+    ]);
+
+    await service.execute('confirm_mutation', params());
+
+    expect(transaction.agentMessage.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          toolCalls: [
+            unrelated,
+            { ...waiting, result: { summary: 'Approved and completed' } },
+          ],
+        }),
+      }),
+    );
+  });
   it('executes stored arguments and consumes the original card', async () => {
     await service.execute('confirm_mutation', params());
     expect(executor.executeTool).toHaveBeenCalledWith(
@@ -555,7 +590,7 @@ describe('persisted mutation approvals', () => {
         isDeleted: false,
         role: 'assistant',
       },
-      select: { id: true, metadata: true },
+      select: { id: true, metadata: true, toolCalls: true },
     });
   });
 
