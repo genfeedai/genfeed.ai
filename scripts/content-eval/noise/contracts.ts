@@ -16,6 +16,8 @@ export const NOISE_SECTION_VERSION = 'noise-v1';
 export const NOISE_SATURATION_THRESHOLD = 0.95;
 /** Outputs regraded to measure judge stability when `--repeats` is above 1. */
 export const GRADE_TWICE_SAMPLE_SIZE = 6;
+/** Void-reason prefix for a generation that stopped at the token limit. */
+export const CUT_OFF_VOID_PREFIX = 'generation cut off';
 
 const nullableUnit = z.number().min(0).max(1).nullable();
 
@@ -66,6 +68,8 @@ export type NoiseComparison = z.infer<typeof noiseComparisonSchema>;
 
 export const noiseErrorsSchema = z.object({
   contestantId: z.string().min(1),
+  /** Generations that stopped at the token limit: a budget problem, not quality. */
+  cutOffs: z.number().int().nonnegative(),
   generationFailures: z.number().int().nonnegative(),
   judgingFailures: z.number().int().nonnegative(),
   otherVoid: z.number().int().nonnegative(),

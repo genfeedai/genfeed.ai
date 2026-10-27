@@ -330,6 +330,7 @@ function buildSpendPort(ledger: EvalSpendLedger): MediaSpendPort {
           costUsd: input.credits * 0.01,
           credits: input.credits,
           family: input.contestant.family,
+          finishReason: null,
           isFailed: false,
           kind: 'generation',
           latencyMs: 0,

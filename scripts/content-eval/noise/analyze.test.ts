@@ -171,7 +171,7 @@ describe('analyzeNoise', () => {
     expect(section?.diagnostics.warnings.join(' ')).toContain('case-0');
   });
 
-  it('keeps timeouts and failures out of the scores and reports them apart', () => {
+  it('keeps timeouts, failures and cut-offs out of the scores and reports them apart', () => {
     const section = analyzeNoise([
       ...arm('base', [0.5, 0.6]),
       row({ contestant: 'cand', fixtureId: 'case-0', score: 0.8 }),
@@ -189,6 +189,13 @@ describe('analyzeNoise', () => {
         score: null,
         voidReason: 'judging failed: schema repair',
       }),
+      row({
+        contestant: 'cand',
+        fixtureId: 'case-3',
+        isAccepted: null,
+        score: null,
+        voidReason: 'generation cut off at the 1024-token limit',
+      }),
     ]);
     expect(
       section?.diagnostics.errors.find(
@@ -196,13 +203,17 @@ describe('analyzeNoise', () => {
       ),
     ).toEqual({
       contestantId: 'cand',
+      cutOffs: 1,
       generationFailures: 1,
       judgingFailures: 1,
       otherVoid: 0,
-      rows: 3,
+      rows: 4,
       timeouts: 1,
     });
     expect(section?.contestants[1]?.score.n).toBe(1);
+    expect(section?.diagnostics.warnings.join(' ')).toContain(
+      'cand: 1 output(s) stopped at the token limit',
+    );
   });
 
   it('reports verdict changes from the grade-twice sample', () => {
