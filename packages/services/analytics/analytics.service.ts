@@ -9,6 +9,7 @@ import type {
   IQueryParams,
   IViralHooksResult,
   IWinnerPost,
+  IXGrowthReport,
 } from '@genfeedai/contracts/interfaces';
 import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -246,6 +247,20 @@ export class AnalyticsService extends HTTPBaseService {
         params: query,
       })
       .then((res) => deserializeResource<unknown>(res.data));
+  }
+
+  public async getXGrowthReport(
+    credentialId: string,
+    query: IQueryParams,
+  ): Promise<IXGrowthReport> {
+    return await this.instance
+      .get<JsonApiResponseDocument>(
+        `accounts/${credentialId}/x-growth-report`,
+        {
+          params: query,
+        },
+      )
+      .then((res) => deserializeResource<IXGrowthReport>(res.data));
   }
 
   public async getFleetEvaluationPolicy(

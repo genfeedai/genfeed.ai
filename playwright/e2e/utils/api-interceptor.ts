@@ -7,6 +7,7 @@ import {
   LibraryShelf,
   Platform,
   SubscriptionStatus,
+  TargetAnalyticsCollectionState,
 } from '@genfeedai/contracts';
 import {
   DEFAULT_PLATFORM_FLAGS,
@@ -35,6 +36,7 @@ import type {
   ITrendHashtag,
   ITrendSound,
   IUnitEconomicsReport,
+  IXGrowthReport,
   OrganizationCreditUsageResponse,
   SocialSourcesResponse,
 } from '@genfeedai/contracts/interfaces';
@@ -1095,6 +1097,99 @@ async function handleBillingRoutes(route: Route): Promise<void> {
   });
 }
 
+/** The connected X account whose detail page shows the X activity report. */
+const MOCK_X_ACCOUNT_ID = 'mock-x-id';
+
+function createMockXGrowthReport(credentialId: string): IXGrowthReport {
+  const observed = (value: number) => ({
+    availability: AnalyticsMetricAvailability.OBSERVED,
+    value,
+  });
+  return {
+    activity: {
+      isTruncated: false,
+      rows: [
+        {
+          approval: null,
+          collectionMessage: null,
+          collectionState: TargetAnalyticsCollectionState.READY,
+          externalId: 'x-1',
+          isStale: false,
+          kind: 'quote',
+          metricState: 'observed',
+          metrics: {
+            comments: observed(1),
+            likes: observed(2),
+            saves: observed(0),
+            shares: observed(1),
+            views: observed(120),
+          },
+          postId: 'mock-post-1',
+          publishedAt: '2026-10-03T10:00:00.000Z',
+          sampleUpdatedAt: '2026-10-06T10:00:00.000Z',
+          sendReceipt: {
+            externalId: 'x-1',
+            publishedAt: '2026-10-03T10:00:00.000Z',
+            url: 'https://x.com/mock/status/1',
+          },
+          text: 'Mock quote publication',
+          url: 'https://x.com/mock/status/1',
+        },
+        {
+          approval: null,
+          collectionMessage: null,
+          collectionState: TargetAnalyticsCollectionState.UNAVAILABLE,
+          externalId: null,
+          isStale: false,
+          kind: 'reply',
+          metricState: 'unavailable',
+          metrics: null,
+          postId: 'mock-post-2',
+          publishedAt: '2026-10-04T10:00:00.000Z',
+          sampleUpdatedAt: null,
+          sendReceipt: null,
+          text: 'Mock reply publication',
+          url: null,
+        },
+      ],
+      summary: {
+        byKind: { post: 0, quote: 1, reply: 1, unknown: 0 },
+        rowsWithObservedViews: 1,
+        rowsWithStaleMetrics: 0,
+        totalRows: 2,
+        totalViews: 120,
+      },
+    },
+    directConversions: { reason: 'unavailable', state: 'unavailable' },
+    generatedAt: '2026-10-27T12:00:00.000Z',
+    growth: {
+      delta: 50,
+      endDate: '2026-10-07',
+      endFollowers: 1050,
+      maxGapDays: 2,
+      observedDays: 4,
+      periodDays: 7,
+      relationship: 'correlation',
+      resets: [],
+      startDate: '2026-10-01',
+      startFollowers: 1000,
+      state: 'observed',
+    },
+    period: {
+      from: '2026-10-01T00:00:00.000Z',
+      to: '2026-10-07T23:59:59.999Z',
+    },
+    profileTraffic: { reason: 'unavailable', state: 'unavailable' },
+    scope: {
+      brandId: 'brand-1',
+      credentialId,
+      handle: 'mock',
+      organizationId: 'org-1',
+    },
+    scopeKey: `org-1|brand-1|${credentialId}`,
+  };
+}
+
 function createMockAccountAnalytics(credentialId: string): IAccountAnalytics {
   return {
     coverage: 1,
@@ -1114,7 +1209,8 @@ function createMockAccountAnalytics(credentialId: string): IAccountAnalytics {
       isConnected: true,
       label: 'Mock account',
       manageHref: '/settings/connected-accounts',
-      platform: Platform.TIKTOK,
+      platform:
+        credentialId === MOCK_X_ACCOUNT_ID ? Platform.TWITTER : Platform.TIKTOK,
     },
     metrics: [
       {
@@ -1204,6 +1300,24 @@ async function handleAnalyticsRoutes(route: Route): Promise<void> {
     await route.fulfill({
       body: JSON.stringify(
         wrapInJsonApi(brands, 'analytics-brand-stats', 'mock-brand-stats'),
+      ),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
+  const xGrowthReportMatch = pathname.match(
+    /\/analytics\/accounts\/([^/]+)\/x-growth-report$/,
+  );
+  if (xGrowthReportMatch) {
+    await route.fulfill({
+      body: JSON.stringify(
+        wrapInJsonApi(
+          createMockXGrowthReport(xGrowthReportMatch[1]),
+          'x-growth-report',
+          xGrowthReportMatch[1],
+        ),
       ),
       contentType: 'application/json',
       status: 200,

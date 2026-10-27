@@ -5,6 +5,7 @@ import {
   AnalyticsMetric,
   ButtonVariant,
   PageScope,
+  Platform,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
@@ -20,6 +21,7 @@ import {
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import AnalyticsAccountXGrowth from '@pages/analytics/accounts/analytics-account-x-growth';
 import PostDetailPanel from '@pages/posts/detail/PostDetailPanel';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AnalyticsService } from '@services/analytics/analytics.service';
@@ -243,6 +245,14 @@ export default function AnalyticsAccountDetail() {
           onRowClick={(row) => setSelectedPostId(row.postId)}
         />
       </div>
+      {detail?.identity.platform === Platform.TWITTER ? (
+        <div className="mt-4">
+          <AnalyticsAccountXGrowth
+            brandId={detail.identity.brandId}
+            credentialId={credentialId}
+          />
+        </div>
+      ) : null}
       <PostDetailPanel
         postId={selectedPostId}
         scope={PageScope.ANALYTICS}
