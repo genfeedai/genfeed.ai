@@ -11,7 +11,7 @@ Every other folder is reached through its own subpath export in `package.json`.
 ```ts
 import { ActivityKey } from '@genfeedai/contracts'; // root: enums and analytics only
 import type { IActivityPopulated } from '@genfeedai/contracts/interfaces';
-import { QUEUE_NAMES } from '@genfeedai/contracts/queue';
+import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/contracts/queue';
 ```
 
 Enums are the import almost every file needs, and the analytics helpers are small, so both
