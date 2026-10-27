@@ -22,7 +22,7 @@ describe('ContentWritingHandler', () => {
 
   const baseContext = {
     brandId: 'test-object-id',
-    brandVoice: 'Bold and witty',
+    brandBrief: 'Voice: bold and witty.',
     organizationId: 'test-object-id',
     platforms: ['instagram'],
   };
@@ -153,7 +153,9 @@ describe('ContentWritingHandler', () => {
 
     const [request] = mockLlmDispatcherService.chatCompletion.mock.calls[0];
     const systemPrompt = request.messages[0].content as string;
-    expect(systemPrompt).toContain('Bold and witty');
+    expect(systemPrompt).toContain(
+      'Brand brief (follow it exactly; never contradict its guardrails, and do not invent claims it does not support):\nVoice: bold and witty.',
+    );
     expect(systemPrompt).toContain('twitter post of 280 characters max');
     expect(systemPrompt).toContain('each link counts 23');
     expect(systemPrompt).toContain('strong hook in the first line');

@@ -33,7 +33,6 @@ describe('ImageGenerationHandler', () => {
 
   const baseContext = {
     brandId: 'test-object-id',
-    brandVoice: 'voice',
     organizationId: 'test-object-id',
     platforms: ['instagram'],
   };

@@ -6,6 +6,7 @@ import {
   type SkillExecutionContext,
   type SkillHandler,
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
+import { skillBrandBriefSection } from '@api/services/skill-executor/skill-brand-brief.util';
 import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -48,6 +49,7 @@ export class TrendRemixHandler implements SkillHandler {
         ? params.platform
         : context.platforms[0];
 
+    const brandBrief = skillBrandBriefSection(context);
     const trend = await this.resolveTrend(context, params, platform);
 
     if (!trend) {
@@ -69,11 +71,12 @@ export class TrendRemixHandler implements SkillHandler {
 
     const systemPrompt = [
       `You are a social media content expert specializing in trend-based content creation.`,
-      `Brand voice: ${context.brandVoice || 'professional and engaging'}.`,
       `Tone: ${tone}.`,
       `Platform: ${platform ?? 'social media'} (max ${charLimit} characters).`,
       `Your task: create a remix of the given trend that feels native to the platform while matching the brand voice.`,
-    ].join(' ');
+    ]
+      .join(' ')
+      .concat(`\n\n${brandBrief}`);
 
     const userPrompt = [
       `Create a ${platform ?? 'social media'} post that remixes the following trend:`,
@@ -83,7 +86,7 @@ export class TrendRemixHandler implements SkillHandler {
       ``,
       `Requirements:`,
       `- Stay within ${charLimit} characters`,
-      `- Match the brand voice: ${context.brandVoice || 'professional and engaging'}`,
+      `- Match the brand voice and guardrails in the brand brief`,
       `- Keep tone: ${tone}`,
       `- Include 2-3 relevant hashtags naturally`,
       `- Make it platform-native and engaging`,
