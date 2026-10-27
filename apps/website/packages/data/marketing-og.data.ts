@@ -150,7 +150,7 @@ function productHeadlineFontSize(headline: readonly string[]): number {
 
 function productCard(headline: readonly string[]): MarketingOgDefinition {
   return {
-    ...SOCIAL_OG_CARDS.default,
+    ...MARKETING_OG_CARDS.default,
     headline,
     headlineFontSize: productHeadlineFontSize(headline),
   };
