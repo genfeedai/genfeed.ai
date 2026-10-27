@@ -96,6 +96,8 @@ async function mountPlayground(page: Page) {
       createdAt: '2026-10-10T00:00:00Z',
       prompt: { original: id },
       generationHarness: {
+        // The first card carries an unapproved draft kit; cards stay quiet.
+        brandMode: id === menuId ? 'provisional_brand' : undefined,
         brandId: 'brand-1',
         originalPrompt: id,
         enhancedPrompt: id,
@@ -214,6 +216,7 @@ for (const viewport of [
     const { generationWrites } = await mountPlayground(page);
     const card = page.getByTestId(`studio-asset-${menuId}`);
     await expect(card).toHaveAttribute('data-asset-media-state', 'ready');
+    await expect(card.getByText('Provisional brand')).toHaveCount(0);
     const more = card.getByRole('button', { name: 'More', exact: true });
 
     // Pointer: hover reveals the bar and the click opens the menu.
