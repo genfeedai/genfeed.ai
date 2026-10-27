@@ -694,7 +694,9 @@ export default function BrandDetailManualKitCard({
                   {draft.readiness.status} - {draft.readiness.score}%
                 </p>
               </div>
-              <Badge variant="secondary">{draft.sourceType}</Badge>
+              <Badge className="normal-case" variant="secondary">
+                {draft.sourceType}
+              </Badge>
             </div>
 
             <div className="space-y-2">
