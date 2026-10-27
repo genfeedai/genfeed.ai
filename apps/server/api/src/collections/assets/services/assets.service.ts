@@ -10,6 +10,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 type AssetCreateInput = CreateAssetDto & {
+  /** Marks how the asset came to be, e.g. a pending generation placeholder. */
+  origin?: string;
   /** Tenant of a non-organization parent, stamped as `parentOrgId`. */
   parentOrgId?: string;
   userId: string;

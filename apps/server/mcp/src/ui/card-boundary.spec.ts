@@ -18,16 +18,16 @@ it('shows the card text in place of a card that throws and keeps its siblings', 
       createElement(
         'div',
         null,
-        createElement(
-          CardBoundary,
-          { fallback: 'Our launch video.', key: 'bad' },
-          createElement(Broken),
-        ),
-        createElement(
-          CardBoundary,
-          { fallback: 'unused', key: 'ok' },
-          createElement('p', null, 'Draft that renders.'),
-        ),
+        createElement(CardBoundary, {
+          children: createElement(Broken),
+          fallback: 'Our launch video.',
+          key: 'bad',
+        }),
+        createElement(CardBoundary, {
+          children: createElement('p', null, 'Draft that renders.'),
+          fallback: 'unused',
+          key: 'ok',
+        }),
       ),
     ),
   );
