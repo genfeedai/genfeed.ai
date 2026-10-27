@@ -157,6 +157,48 @@ describe('media delivery response projection', () => {
     expect(brand.references).toBeNull();
   });
 
+  it('signs a brand logo and banner serialized as included JSON:API resources', () => {
+    const bannerId = testId('asset', 2);
+    const response = {
+      data: {
+        id: testId('brand', 1),
+        attributes: { slug: 'test' },
+        type: 'brand',
+      },
+      included: [
+        {
+          id: assetId,
+          attributes: {
+            category: 'LOGO',
+            cdnUrl: 'https://cdn.example/logos/unsigned',
+          },
+          type: 'logo',
+        },
+        {
+          id: bannerId,
+          attributes: {
+            category: 'BANNER',
+            cdnUrl: 'https://cdn.example/banners/unsigned',
+          },
+          type: 'banner',
+        },
+      ],
+    };
+    expect(assetResponseIds(response)).toEqual([assetId, bannerId]);
+
+    const projected = projectMediaResponse(response, [], true, [
+      { assetId, url: 'https://cdn.example/logos/unsigned?Signature=a' },
+    ]) as {
+      included: { attributes: Record<string, unknown> }[];
+    };
+
+    expect(projected.included[0].attributes.cdnUrl).toBe(
+      'https://cdn.example/logos/unsigned?Signature=a',
+    );
+    // An asset the caller cannot see is withheld instead of left unsigned.
+    expect(projected.included[1].attributes.cdnUrl).toBeNull();
+  });
+
   it('does not rewrite arbitrary strings or the authorized upload PUT capability', () => {
     const response = {
       prompt: 'https://provider.example/a?b#c%2F',
