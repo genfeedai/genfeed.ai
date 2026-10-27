@@ -486,72 +486,16 @@ export class AgentOrchestratorUiActionMutationService {
         const actions = currentActions.map((candidate) => {
           const card = record(candidate);
           if (card.id !== sourceActionId) return candidate;
-          const data = record(card.data);
-          if (
-            card.type !== 'mutation_approval_card' ||
-            data.approvalId !== params.payload?.approvalId ||
-            data.sourceActionId !== sourceActionId
-          ) {
-            throw new BadRequestException(
-              'The original card does not match this approval.',
-            );
-          }
-          if (
-            data.scopeVersion !== scope.contextVersion ||
-            (data.brandId ?? null) !== (scope.brandId ?? null)
-          ) {
-            throw new ConflictException(
-              'This approval is stale. Prepare the action again in the current brand context.',
-            );
-          }
-          if (
-            (data.status === 'declined' && status === 'approved') ||
-            (data.status === 'approved' && status === 'declined')
-          ) {
-            throw new ConflictException(
-              'This approval already has the opposite consent.',
-            );
-          }
-          if (
-            approval?.status === 'PENDING' &&
-            (!Number.isFinite(Date.parse(String(data.expiresAt))) ||
-              Date.parse(String(data.expiresAt)) <= Date.now())
-          ) {
-            throw new ConflictException(
-              'This approval expired. Prepare the action again.',
-            );
-          }
+          const resolved = this.resolveProposalCard(
+            card,
+            sourceActionId,
+            status,
+            result,
+            params,
+            scope,
+            approval,
+          );
           hasChanges = true;
-          const resolved: AgentUiAction = {
-            ...card,
-            id: sourceActionId,
-            type: 'mutation_approval_card',
-            title:
-              typeof card.title === 'string' ? card.title : 'Review action',
-            ctas: [],
-            requiresConfirmation: false,
-            data: {
-              ...record(card.data),
-              status,
-              executionStatus:
-                status === 'declined'
-                  ? 'cancelled'
-                  : result
-                    ? result.success
-                      ? 'completed'
-                      : 'failed'
-                    : ['completed', 'failed', 'cancelled'].includes(
-                          String(data.executionStatus),
-                        )
-                      ? data.executionStatus
-                      : 'running',
-              ...(result?.success
-                ? { error: undefined }
-                : result?.error !== undefined
-                  ? { error: result.error }
-                  : {}),
-            },
-          };
           resolvedCard ??= resolved;
           return resolved;
         });
@@ -606,6 +550,81 @@ export class AgentOrchestratorUiActionMutationService {
       }
       return resolvedCard;
     });
+  }
+
+  private resolveProposalCard(
+    card: Record<string, unknown>,
+    sourceActionId: string,
+    status: 'approved' | 'declined',
+    result: AgentToolResult | undefined,
+    params: ThreadUiActionExecutionParams,
+    scope: Awaited<ReturnType<typeof this.lockProposalThread>>,
+    approval?: McpApprovalDocument,
+  ): AgentUiAction {
+    const data = record(card.data);
+    if (
+      card.type !== 'mutation_approval_card' ||
+      data.approvalId !== params.payload?.approvalId ||
+      data.sourceActionId !== sourceActionId
+    ) {
+      throw new BadRequestException(
+        'The original card does not match this approval.',
+      );
+    }
+    if (
+      data.scopeVersion !== scope.contextVersion ||
+      (data.brandId ?? null) !== (scope.brandId ?? null)
+    ) {
+      throw new ConflictException(
+        'This approval is stale. Prepare the action again in the current brand context.',
+      );
+    }
+    if (
+      (data.status === 'declined' && status === 'approved') ||
+      (data.status === 'approved' && status === 'declined')
+    ) {
+      throw new ConflictException(
+        'This approval already has the opposite consent.',
+      );
+    }
+    if (
+      approval?.status === 'PENDING' &&
+      (!Number.isFinite(Date.parse(String(data.expiresAt))) ||
+        Date.parse(String(data.expiresAt)) <= Date.now())
+    ) {
+      throw new ConflictException(
+        'This approval expired. Prepare the action again.',
+      );
+    }
+    return {
+      ...card,
+      id: sourceActionId,
+      type: 'mutation_approval_card',
+      title: typeof card.title === 'string' ? card.title : 'Review action',
+      ctas: [],
+      requiresConfirmation: false,
+      data: {
+        ...record(card.data),
+        status,
+        executionStatus:
+          status === 'declined'
+            ? 'cancelled'
+            : result
+              ? result.success
+                ? 'completed'
+                : 'failed'
+              : ['completed', 'failed', 'cancelled'].includes(
+                    String(data.executionStatus),
+                  )
+                ? data.executionStatus
+                : 'running',
+        ...(result?.success
+          ? { error: undefined }
+          : result?.error !== undefined
+            ? { error: result.error }
+            : {}),
+      },
+    };
   }
 
   private async loadProposals(
