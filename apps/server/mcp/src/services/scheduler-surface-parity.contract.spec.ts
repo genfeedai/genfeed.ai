@@ -34,7 +34,7 @@ const SHARED_CAPABILITIES = {
     rest: ["@Patch(':id')", "case 'cancel':"],
   },
   create: {
-    cli: [".command('bulk')", "post<JsonApiDocument>('/schedules/bulk'"],
+    cli: [".command('bulk')", "post<BulkScheduleResult>('/schedules/bulk'"],
     mcp: ["name: 'create_scheduled_release'"],
     rest: ['@Post()', 'async create('],
   },
