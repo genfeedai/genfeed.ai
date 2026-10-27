@@ -31,9 +31,9 @@ CREATE TABLE "knowledge_source_conflicts" (
   CONSTRAINT "knowledge_source_conflicts_organizationId_fkey"
     FOREIGN KEY ("organizationId") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT "knowledge_source_conflicts_versionAId_sourceAId_organizati_fkey"
-    FOREIGN KEY ("versionAId", "sourceAId", "organizationId") REFERENCES "knowledge_source_versions"("id", "sourceId", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE,
+    FOREIGN KEY ("versionAId", "sourceAId", "organizationId") REFERENCES "knowledge_source_versions"("id", "sourceId", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE DEFERRABLE INITIALLY DEFERRED,
   CONSTRAINT "knowledge_source_conflicts_versionBId_sourceBId_organizati_fkey"
-    FOREIGN KEY ("versionBId", "sourceBId", "organizationId") REFERENCES "knowledge_source_versions"("id", "sourceId", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE
+    FOREIGN KEY ("versionBId", "sourceBId", "organizationId") REFERENCES "knowledge_source_versions"("id", "sourceId", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE DEFERRABLE INITIALLY DEFERRED
 );
 
 CREATE UNIQUE INDEX "knowledge_source_conflicts_organizationId_versionAId_versio_key"
@@ -62,7 +62,7 @@ CREATE TABLE "knowledge_conflict_scans" (
   CONSTRAINT "knowledge_conflict_scans_organizationId_fkey"
     FOREIGN KEY ("organizationId") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT "knowledge_conflict_scans_versionId_sourceId_organizationId_fkey"
-    FOREIGN KEY ("versionId", "sourceId", "organizationId") REFERENCES "knowledge_source_versions"("id", "sourceId", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE
+    FOREIGN KEY ("versionId", "sourceId", "organizationId") REFERENCES "knowledge_source_versions"("id", "sourceId", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE DEFERRABLE INITIALLY DEFERRED
 );
 
 CREATE UNIQUE INDEX "knowledge_conflict_scans_organizationId_versionId_key"
