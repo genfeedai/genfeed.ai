@@ -11,6 +11,8 @@ import {
   AccountAnalyticsTopQueryDto,
   FleetEvaluationPolicyDto,
 } from '@api/endpoints/analytics/dto/account-analytics-query.dto';
+import { XGrowthReportQueryDto } from '@api/endpoints/analytics/dto/x-growth-report-query.dto';
+import { XGrowthReportService } from '@api/endpoints/analytics/x-growth-report/x-growth-report.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
@@ -26,6 +28,7 @@ import {
   AccountAnalyticsListSerializer,
   AccountAnalyticsTopSerializer,
   FleetEvaluationPolicySerializer,
+  XGrowthReportSerializer,
 } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -37,6 +40,7 @@ import {
   Patch,
   Query,
   Req,
+  SetMetadata,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -53,6 +57,7 @@ export class AccountAnalyticsController {
     private readonly accountAnalyticsService: AccountAnalyticsService,
     private readonly loggerService: LoggerService,
     private readonly cacheTagsService: CacheTagsService,
+    private readonly xGrowthReportService: XGrowthReportService,
   ) {}
 
   /**
@@ -133,6 +138,39 @@ export class AccountAnalyticsController {
     return serializeSingle(req, AccountAnalyticsTopSerializer, {
       accounts: data,
     });
+  }
+
+  /**
+   * What one connected X account published in the period, how each publication
+   * performed and how its followers moved. Read from stored data only, so it is
+   * not cached: a result is bound to the account, brand and period it names.
+   */
+  @Get('accounts/:credentialId/x-growth-report')
+  @SetMetadata('roles', [
+    'superadmin',
+    MemberRole.OWNER,
+    MemberRole.ADMIN,
+    MemberRole.CREATOR,
+    MemberRole.ANALYTICS,
+  ])
+  async getXGrowthReport(
+    @CurrentUser() user: User,
+    @Req() req: ExpressRequest,
+    @Param('credentialId') credentialId: string,
+    @Query() query: XGrowthReportQueryDto,
+  ): Promise<unknown> {
+    const organizationId = this.organizationId(user, req);
+    const data = await this.xGrowthReportService.build(
+      { brandId: query.brandId, organizationId, userId: user.userId },
+      {
+        credentialId,
+        period: {
+          from: `${query.startDate.slice(0, 10)}T00:00:00.000Z`,
+          to: `${query.endDate.slice(0, 10)}T23:59:59.999Z`,
+        },
+      },
+    );
+    return serializeSingle(req, XGrowthReportSerializer, data);
   }
 
   @Get('accounts/:credentialId')

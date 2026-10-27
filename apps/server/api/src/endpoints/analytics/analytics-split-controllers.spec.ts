@@ -322,6 +322,7 @@ describe('Analytics split-controller HTTP contract', () => {
       accountAnalyticsService as never,
       { log: vi.fn() } as never,
       cacheTagsService as never,
+      {} as never,
     );
 
     await controller.savePolicy(
@@ -341,5 +342,61 @@ describe('Analytics split-controller HTTP contract', () => {
     expect(cacheTagsService.invalidateByTags).toHaveBeenCalledWith([
       'accounts',
     ]);
+  });
+
+  it('builds the X growth report for the caller organization, brand and day range', async () => {
+    const build = vi.fn().mockResolvedValue({ scopeKey: 'k' });
+    const controller = new AccountAnalyticsController(
+      {} as never,
+      { log: vi.fn() } as never,
+      {} as never,
+      { build } as never,
+    );
+
+    await controller.getXGrowthReport(
+      { organizationId: 'org-1', userId: 'user-1' } as never,
+      {
+        query: {},
+        originalUrl: '/analytics/accounts/cred-1/x-growth-report',
+      } as never,
+      'cred-1',
+      { brandId: 'brand-1', endDate: '2026-10-07', startDate: '2026-10-01' },
+    );
+
+    expect(build).toHaveBeenCalledWith(
+      { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-1' },
+      {
+        credentialId: 'cred-1',
+        period: {
+          from: '2026-10-01T00:00:00.000Z',
+          to: '2026-10-07T23:59:59.999Z',
+        },
+      },
+    );
+  });
+
+  it('refuses a report for another organization before reading anything', async () => {
+    const build = vi.fn();
+    const controller = new AccountAnalyticsController(
+      {} as never,
+      { log: vi.fn() } as never,
+      {} as never,
+      { build } as never,
+    );
+
+    await expect(
+      controller.getXGrowthReport(
+        { organizationId: 'org-1', userId: 'user-1' } as never,
+        { query: { organizationId: 'org-2' } } as never,
+        'cred-1',
+        {
+          brandId: 'brand-1',
+          endDate: '2026-10-07',
+          startDate: '2026-10-01',
+          organizationId: 'org-2',
+        },
+      ),
+    ).rejects.toThrow();
+    expect(build).not.toHaveBeenCalled();
   });
 });
