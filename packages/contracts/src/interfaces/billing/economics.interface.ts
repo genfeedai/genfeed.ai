@@ -216,3 +216,10 @@ export interface IStripePaymentRevenueReference {
   /** `billing_revenue_events.stripeObjectId`: the checkout session or invoice id. */
   revenueObjectId: string;
 }
+
+/** The Stripe processing fee on one payment, in its balance transaction's currency. */
+export interface IStripeProcessingFee {
+  currency: string;
+  /** Minor units, always positive. */
+  feeMinor: number;
+}

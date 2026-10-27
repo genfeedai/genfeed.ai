@@ -15,6 +15,7 @@ vi.unmock('@prisma/adapter-pg');
 const connectionString = process.env.BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL;
 const NET_MINOR = 2_900;
 const GROSS_MINOR = 3_480;
+const FEE_MINOR = 131;
 
 describe.skipIf(!connectionString)(
   'revenue ledger refunds and disputes (PostgreSQL)',
@@ -33,6 +34,7 @@ describe.skipIf(!connectionString)(
       warn: vi.fn(),
     } as unknown as LoggerService;
     const unused = Object.create(null);
+    const paymentReferences = { resolveProcessingFee: vi.fn() };
     let organizationId: string;
     let saleId: string;
     let suffix: string;
@@ -62,6 +64,10 @@ describe.skipIf(!connectionString)(
     }
 
     beforeEach(async () => {
+      paymentReferences.resolveProcessingFee.mockResolvedValue({
+        currency: 'USD',
+        feeMinor: FEE_MINOR,
+      });
       suffix = randomUUID().slice(0, 8);
       const userId = `usr_${suffix}`;
       organizationId = `org_${suffix}`;
@@ -103,6 +109,7 @@ describe.skipIf(!connectionString)(
         unused,
         unused,
         unused,
+        paymentReferences,
       );
     });
 
@@ -209,6 +216,52 @@ describe.skipIf(!connectionString)(
       );
 
       expect(await adjustmentRows(`refund:ch_6_${suffix}`)).toEqual([]);
+    });
+
+    it('takes the Stripe fee out of revenue once, however often the payment is replayed', async () => {
+      const fee = () =>
+        service.recordProcessingFee({
+          occurredAt: new Date(),
+          organizationId,
+          payment: { paymentIntentId: `pi_${suffix}` },
+          revenueObjectId: saleId,
+          userId: null,
+        });
+      await fee();
+      await fee();
+
+      const rows = await database().billingRevenueEvent.findMany({
+        where: { stripeObjectId: `fee:${saleId}` },
+      });
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        amountMinor: -FEE_MINOR,
+        currency: 'usd',
+        organizationId,
+        source: BillingRevenueSource.PROCESSING_FEE,
+      });
+    });
+
+    it('nets fees out of the Economics revenue report without counting them as payments', async () => {
+      const economics = new EconomicsService(
+        database() as unknown as PrismaService,
+      );
+      const today = new Date().toISOString().slice(0, 10);
+      const before = await economics.getRevenue({ from: today, to: today });
+
+      await service.recordProcessingFee({
+        occurredAt: new Date(),
+        organizationId,
+        payment: { paymentIntentId: `pi_${suffix}` },
+        revenueObjectId: saleId,
+      });
+      const after = await economics.getRevenue({ from: today, to: today });
+
+      expect(after.totals.revenueUsd - before.totals.revenueUsd).toBeCloseTo(
+        -1.31,
+        2,
+      );
+      expect(after.totals.events).toBe(before.totals.events);
     });
 
     it('nets refunds out of the Economics revenue report without counting them as payments', async () => {

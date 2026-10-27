@@ -449,6 +449,19 @@ export class StripeCheckoutWebhookHandler {
       stripeObjectId: session.id,
       userId,
     });
+    const paymentIntentId =
+      typeof session.payment_intent === 'string'
+        ? session.payment_intent
+        : session.payment_intent?.id;
+    if (paymentIntentId) {
+      await this.supportService.recordProcessingFee({
+        occurredAt: new Date(session.created * 1000),
+        organizationId,
+        payment: { paymentIntentId },
+        revenueObjectId: session.id,
+        userId,
+      });
+    }
   }
 
   private toErrorMessage(error: unknown): string {

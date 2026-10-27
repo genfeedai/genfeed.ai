@@ -33,3 +33,11 @@ export function revenueAdjustmentKey(
 ): string {
   return `${adjustmentId}:${adjustedGrossMinor}`;
 }
+
+/**
+ * Ledger key of the processing fee Stripe charged on one payment. The fee is
+ * fixed once the charge settles, so a replayed webhook lands on the same key.
+ */
+export function processingFeeKey(revenueObjectId: string): string {
+  return `fee:${revenueObjectId}`;
+}

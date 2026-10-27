@@ -87,6 +87,7 @@ describe('Stripe webhook credit grant guard (relink between persist and reconcil
     isUniqueConstraintError: vi.fn(() => false),
     markOnboardingComplete: vi.fn(),
     recordCreditsActivity: vi.fn(),
+    recordProcessingFee: vi.fn(),
     recordRevenueEvent: vi.fn(),
     resolveSubscriptionPlan: vi.fn(() => SubscriptionPlan.MONTHLY),
     resolveTierFromPriceId: vi.fn(() => null),
