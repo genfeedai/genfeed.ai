@@ -55,8 +55,9 @@ import type { Request } from 'express';
 function buildBrandAssetPrompt(
   brand: BrandDocument,
   promptPrefix: string,
+  userPrompt: string,
 ): string {
-  const brandInfo = [`${promptPrefix} for ${brand.label}`];
+  const brandInfo = [`${promptPrefix} for ${brand.label}`, userPrompt];
 
   if (brand.description) {
     brandInfo.push(brand.description);
@@ -125,7 +126,10 @@ export class AssetsOperationsController {
       },
     ).toUpperCase() as AssetCategory;
 
-    InputValidationUtil.validateString(generateAssetDto.text, 'text');
+    const text = InputValidationUtil.validateString(
+      generateAssetDto.text,
+      'text',
+    );
 
     if (![AssetCategory.LOGO, AssetCategory.BANNER].includes(category)) {
       throw new ValidationException('Invalid asset type');
@@ -158,6 +162,7 @@ export class AssetsOperationsController {
       category === AssetCategory.BANNER
         ? 'Generate a professional landscape banner (1920x1080)'
         : 'Generate a professional logo (1024x1024)',
+      text,
     );
 
     // The placeholder stays invisible to brand readers (and the current logo or
