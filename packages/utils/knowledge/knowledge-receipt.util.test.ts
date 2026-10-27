@@ -1,9 +1,9 @@
 import type { KnowledgeRetrievalCitation } from '@genfeedai/contracts/interfaces';
+import { describe, expect, it } from 'vitest';
 import {
   readKnowledgeSearchReceipts,
   toKnowledgeReceipt,
-} from '@genfeedai/utils/knowledge/knowledge-receipt.util';
-import { describe, expect, it } from 'vitest';
+} from './knowledge-receipt.util';
 
 const citation = {
   kind: 'TEXT',
