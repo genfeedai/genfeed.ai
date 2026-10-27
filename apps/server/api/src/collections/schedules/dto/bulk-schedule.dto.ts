@@ -49,4 +49,8 @@ export class BulkScheduleDto {
   @IsOptional()
   @IsObject()
   customTimes?: Record<string, string>; // { contentId: ISO datetime }
+
+  @IsOptional()
+  @IsString()
+  timezone?: string; // IANA name; the `ai-optimal` hours are local to it. Default: 'UTC'
 }

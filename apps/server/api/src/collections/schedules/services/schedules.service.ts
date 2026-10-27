@@ -6,7 +6,7 @@ import { GetOptimalTimeDto } from '@api/collections/schedules/dto/optimal-time.d
 import type { ScheduleDocument } from '@api/collections/schedules/schemas/schedule.schema';
 import {
   buildPostingTimeRecommendation,
-  DEFAULT_POSTING_HOURS,
+  generateDefaultPostingTimes,
   toPostingWindowPosts,
 } from '@api/collections/schedules/utils/posting-time-recommendation.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -163,6 +163,7 @@ export class SchedulesService {
         staggerMinutes,
         dto.customTimes,
         dto.platforms?.[0],
+        dto.timezone || 'UTC',
       );
 
       for (let i = 0; i < dto.contentIds.length; i++) {
@@ -239,13 +240,26 @@ export class SchedulesService {
     staggerMinutes: number,
     customTimes?: Record<string, string>,
     platform?: string,
+    timezone = 'UTC',
   ): Date[] {
     if (strategy === 'custom' && customTimes) {
       return Object.values(customTimes).map((t) => new Date(t));
     }
 
     if (strategy === 'ai-optimal') {
-      return this.generateOptimalTimes(count, platform);
+      try {
+        return generateDefaultPostingTimes(
+          count,
+          platform,
+          timezone,
+          Date.now(),
+        );
+      } catch (error) {
+        if (error instanceof RangeError) {
+          throw new ValidationException(error.message, 'timezone', timezone);
+        }
+        throw error;
+      }
     }
 
     const times: Date[] = [];
@@ -254,45 +268,6 @@ export class SchedulesService {
       const time = new Date(now.getTime() + i * staggerMinutes * 60 * 1000);
       times.push(time);
     }
-    return times;
-  }
-
-  /**
-   * Generate optimal posting times based on platform-specific windows.
-   */
-  private generateOptimalTimes(count: number, platform?: string): Date[] {
-    const normalizedPlatform = platform?.toLowerCase() ?? 'general';
-    const windows =
-      DEFAULT_POSTING_HOURS[normalizedPlatform] ??
-      DEFAULT_POSTING_HOURS.general;
-
-    const optimalHours: number[] = [];
-    for (const [start, end] of windows) {
-      for (let h = start; h < end; h++) {
-        optimalHours.push(h);
-      }
-    }
-
-    const times: Date[] = [];
-    const now = new Date();
-    let dayOffset = 1;
-    let hourIndex = 0;
-
-    for (let i = 0; i < count; i++) {
-      const scheduleDate = new Date(now);
-      scheduleDate.setDate(scheduleDate.getDate() + dayOffset);
-      scheduleDate.setHours(optimalHours[hourIndex], 0, 0, 0);
-      scheduleDate.setMilliseconds(0);
-
-      times.push(scheduleDate);
-
-      hourIndex++;
-      if (hourIndex >= optimalHours.length) {
-        hourIndex = 0;
-        dayOffset++;
-      }
-    }
-
     return times;
   }
 }
