@@ -1,3 +1,5 @@
+import { CredentialPlatform } from '@genfeedai/contracts';
+import { getPlatformPreviewLimit } from '@genfeedai/contracts/constants';
 import type {
   ContentHarnessContribution,
   ContentHarnessInput,
@@ -30,16 +32,25 @@ function buildYouTubePlatformContribution(
     );
   }
 
+  const limit = getPlatformPreviewLimit(CredentialPlatform.YOUTUBE);
+  const guardrails = [
+    'Title and thumbnail must match what the video actually shows.',
+    'Use at most 3 hashtags in the description.',
+  ];
+
+  if (limit) {
+    guardrails.push(
+      `Stay within ${limit.captionMaxLength} characters for the description.`,
+    );
+  }
+
   return {
     evaluationCriteria: [
       'YouTube click promise: would the title make the target viewer click?',
       'YouTube delivery: does the content pay off what the title promises?',
       'YouTube retention: is there a reason to keep watching at every section?',
     ],
-    guardrails: [
-      'Title and thumbnail must match what the video actually shows.',
-      'Use at most 3 hashtags in the description.',
-    ],
+    guardrails,
     styleDirectives,
     systemDirectives: [
       'Optimize for YouTube: clicks that the video then keeps, through search and watch time.',

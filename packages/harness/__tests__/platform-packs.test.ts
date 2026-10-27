@@ -114,6 +114,9 @@ describe('platform caption limits', () => {
       contribute(INSTAGRAM_PLATFORM_HARNESS_PACK, input('instagram'))
         .guardrails,
     ).toContain('Stay within 2200 characters for the caption.');
+    expect(
+      contribute(YOUTUBE_PLATFORM_HARNESS_PACK, input('youtube')).guardrails,
+    ).toContain('Stay within 5000 characters for the description.');
   });
 
   it('drops the LinkedIn post limit for long-form articles', () => {
