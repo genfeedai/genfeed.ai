@@ -407,12 +407,12 @@ describe('OrganizationPluginsPage (#7842)', () => {
     expect(screen.queryByTestId('plugins-app-detail')).toBeNull();
   });
 
-  it('clears an empty search from the empty state', async () => {
+  it('shows every plugin again from the empty state', async () => {
     const user = userEvent.setup();
     render(<OrganizationPluginsPage />);
 
     await user.type(screen.getByPlaceholderText('Search plugins'), 'zzzz');
-    await user.click(screen.getByRole('button', { name: 'Clear search' }));
+    await user.click(screen.getByRole('button', { name: 'Show all plugins' }));
 
     expect(screen.queryByTestId('plugins-empty')).toBeNull();
     expect(screen.getAllByTestId(/^plugins-app-(?!detail)/)).toHaveLength(4);

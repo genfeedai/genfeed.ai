@@ -2620,7 +2620,7 @@
       }
     },
     "noMatches": "No plugins match your search.",
-    "clearSearch": "Clear search",
+    "showAll": "Show all plugins",
     "workflowsTitle": "Workflows",
     "workflowsDescription": "Browse the workflow library and install a workflow for this brand.",
     "openWorkflows": "Open workflow library",

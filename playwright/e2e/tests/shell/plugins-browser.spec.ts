@@ -60,7 +60,7 @@ test('organization Plugins browser keeps scope, search and previews usable on de
   await expect(detail).toHaveCount(0);
   await page.getByPlaceholder('Search plugins').fill('nothing-matches');
   await expect(page.getByTestId('plugins-empty')).toBeVisible();
-  await page.getByRole('button', { name: 'Clear search' }).click();
+  await page.getByRole('button', { name: 'Show all plugins' }).click();
   await expect(apps).toHaveCount(9);
 
   await page.screenshot({

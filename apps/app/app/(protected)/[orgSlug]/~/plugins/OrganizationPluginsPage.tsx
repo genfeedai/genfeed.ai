@@ -301,7 +301,7 @@ function OrganizationPluginsCatalog() {
             size={ButtonSize.SM}
             onClick={() => setSearchQuery('')}
           >
-            {translate('clearSearch')}
+            {translate('showAll')}
           </Button>
         </div>
       )}
