@@ -2,7 +2,6 @@
  * Better Auth integration types (epic #735, Phase 1 — #736).
  */
 import type { PrismaClient } from '@genfeedai/prisma';
-import type { RateLimit } from 'better-auth';
 
 /** OAuth credentials for first-party social sign-in providers. */
 /** Inputs to the email-verification enforcement decision. */
@@ -125,14 +124,15 @@ export interface IBetterAuthRateLimitRedisCommands {
 
 /**
  * Better Auth's `rateLimit.customStorage` contract, adapted from
- * {@link IBetterAuthRateLimitStore} by `buildRateLimitStorage`. Counters are the
- * library's own `RateLimit` records — the JSON round trip and the fail-open
- * guards stay inside the adapter, so consumers only ever see a parsed counter
- * or `null`.
+ * {@link IBetterAuthRateLimitStore} by `buildRateLimitStorage`. The JSON round
+ * trip and the fail-open guards stay inside the adapter, so Better Auth only
+ * ever sees a decision, never a store error.
  */
 export interface IBetterAuthRateLimitStorage {
-  get: (key: string) => Promise<RateLimit | null>;
-  set: (key: string, value: RateLimit) => Promise<void>;
+  consume: (
+    key: string,
+    rule: { max: number; window: number },
+  ) => Promise<{ allowed: boolean; retryAfter: number | null }>;
 }
 
 /** Which Redis command the rate-limit store was running when it degraded. */
@@ -268,7 +268,7 @@ export interface ICreateBetterAuthOptions {
    */
   ipAddressHeaders?: string[];
   /**
-   * Enable Better Auth's experimental single-query joins on the Prisma adapter.
+   * Enable Better Auth single-query joins (`advanced.database.joins`) on the Prisma adapter.
    * Gated off by default; flip per environment after staging verification.
    */
   experimentalJoins?: boolean;

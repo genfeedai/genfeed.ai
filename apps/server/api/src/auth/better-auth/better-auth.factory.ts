@@ -129,16 +129,23 @@ export function buildBetterAuthDashPlugin(apiKey: string) {
  */
 export function buildBetterAuthAdvancedOptions({
   cookieDomain,
+  experimentalJoins,
   ipAddressHeaders,
 }: Pick<
   ICreateBetterAuthOptions,
-  'cookieDomain' | 'ipAddressHeaders'
+  'cookieDomain' | 'experimentalJoins' | 'ipAddressHeaders'
 >): NonNullable<BetterAuthOptions['advanced']> {
   return {
-    // Keep auth-owned records inside Genfeed's canonical entity-ID contract.
-    // Better Auth otherwise injects mixed-case base62 IDs that the API's entity
-    // boundaries do not recognize; UUID generation works across every adapter.
-    database: { generateId: 'uuid' },
+    database: {
+      // Keep auth-owned records inside Genfeed's canonical entity-ID contract.
+      // Better Auth otherwise injects mixed-case base62 IDs that the API's
+      // entity boundaries do not recognize; UUID generation works across every
+      // adapter.
+      generateId: 'uuid',
+      // Single-query joins (Prisma adapter). Env-gated; off unless explicitly
+      // enabled after staging verification.
+      ...(experimentalJoins ? { joins: true } : {}),
+    },
     ...(ipAddressHeaders && ipAddressHeaders.length > 0
       ? { ipAddress: { ipAddressHeaders } }
       : {}),
@@ -171,6 +178,11 @@ function isStoredRateLimit(value: unknown): value is RateLimit {
  * so all API instances share one counter window (per-process memory would let
  * the effective limit scale with instance count). Reads/writes are JSON.
  *
+ * Better Auth 1.7 asks custom storage for one `consume` step per request: record
+ * the request and report whether it is allowed. The step here is read, decide,
+ * write over the shared KV, so it is no more atomic than the get/set pair it
+ * replaces (see the follow-up for a Redis `INCR` store).
+ *
  * This layer fails open independently of the injected store (#738, criterion 7).
  * `buildRedisRateLimitStore` already swallows Redis errors, but Better Auth
  * awaits `customStorage` directly on the `/auth/*` hot path, so *any* rejection
@@ -181,42 +193,67 @@ function isStoredRateLimit(value: unknown): value is RateLimit {
 export function buildRateLimitStorage(
   store: IBetterAuthRateLimitStore,
 ): IBetterAuthRateLimitStorage {
+  async function read(key: string): Promise<RateLimit | null> {
+    let raw: string | null;
+    try {
+      raw = await store.get(`${RATE_LIMIT_KEY_PREFIX}${key}`);
+    } catch {
+      return null;
+    }
+    if (!raw) {
+      return null;
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      // Corrupt or foreign value at this key (e.g. another app sharing the
+      // Redis instance). Fail open — treat it as no existing window rather
+      // than letting a SyntaxError surface from the rate limiter as a 500.
+      return null;
+    }
+    // Parseable but not a counter — same threat, one step further in. Discard
+    // it so the next write rebuilds a clean window and throttling resumes.
+    return isStoredRateLimit(parsed) ? parsed : null;
+  }
+
+  async function write(key: string, value: RateLimit): Promise<void> {
+    try {
+      await store.set(
+        `${RATE_LIMIT_KEY_PREFIX}${key}`,
+        JSON.stringify(value),
+        RATE_LIMIT_TTL_SECONDS,
+      );
+    } catch {
+      // Dropping the write loses the window, which lets the next request
+      // through. That is the correct trade: a 500 here would block sign-in.
+    }
+  }
+
   return {
-    get: async (key) => {
-      let raw: string | null;
-      try {
-        raw = await store.get(`${RATE_LIMIT_KEY_PREFIX}${key}`);
-      } catch {
-        return null;
+    consume: async (key, rule) => {
+      const now = Date.now();
+      const windowMs = rule.window * 1_000;
+      const current = await read(key);
+
+      if (!current || now - current.lastRequest >= windowMs) {
+        await write(key, { count: 1, key, lastRequest: now });
+        return { allowed: true, retryAfter: null };
       }
-      if (!raw) {
-        return null;
+
+      if (current.count >= rule.max) {
+        return {
+          allowed: false,
+          retryAfter: Math.ceil((current.lastRequest + windowMs - now) / 1_000),
+        };
       }
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(raw);
-      } catch {
-        // Corrupt or foreign value at this key (e.g. another app sharing the
-        // Redis instance). Fail open — treat it as no existing window rather
-        // than letting a SyntaxError surface from the rate limiter as a 500.
-        return null;
-      }
-      // Parseable but not a counter — same threat, one step further in. Discard
-      // it so the next write rebuilds a clean window and throttling resumes.
-      return isStoredRateLimit(parsed) ? parsed : null;
-    },
-    set: async (key, value) => {
-      try {
-        await store.set(
-          `${RATE_LIMIT_KEY_PREFIX}${key}`,
-          JSON.stringify(value),
-          RATE_LIMIT_TTL_SECONDS,
-        );
-      } catch {
-        // Dropping the write loses the window, which lets the next request
-        // through. That is the correct trade: a 500 here would block sign-in.
-        return;
-      }
+
+      await write(key, {
+        ...current,
+        count: current.count + 1,
+        lastRequest: now,
+      });
+      return { allowed: true, retryAfter: null };
     },
   };
 }
@@ -864,11 +901,9 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
         ? { customStorage: buildRateLimitStorage(rateLimitStore) }
         : {}),
     },
-    // Experimental single-query joins (Prisma adapter). Env-gated; off unless
-    // explicitly enabled after staging verification.
-    ...(experimentalJoins ? { experimental: { joins: true } } : {}),
     advanced: buildBetterAuthAdvancedOptions({
       cookieDomain,
+      experimentalJoins,
       ipAddressHeaders,
     }),
     user: {
