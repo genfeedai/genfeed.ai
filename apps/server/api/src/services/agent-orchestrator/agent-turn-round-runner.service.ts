@@ -18,6 +18,7 @@ import {
   buildAgentArtifactCompletionMetadata as buildArtifactMetadata,
 } from '@api/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
 import { recordDashboardBlocks } from '@api/services/agent-orchestrator/utils/agent-dashboard-blocks.util';
+import { hasGenerationHoldIntent } from '@api/services/agent-orchestrator/utils/agent-generation-hold-intent.util';
 import {
   type GenerationRedirect,
   getGenerationPreparationRedirect,
@@ -585,6 +586,7 @@ export class AgentTurnRoundRunnerService {
         params,
         toolName,
         preparedToolCall,
+        hasGenerationHoldIntent(currentOperatorMessage),
       );
       if (!result) {
         return { isCancelled: true, wasInterrupted: true };
@@ -878,6 +880,7 @@ export class AgentTurnRoundRunnerService {
     preparedToolCall: Awaited<
       ReturnType<AgentToolConfirmationService['prepareToolCall']>
     >,
+    isGenerationReviewRequested: boolean,
   ): Promise<AgentToolResult | null> {
     const { onBeforeTool } = params.strategy ?? {};
     const outcome = await raceToolExecution(
@@ -887,6 +890,7 @@ export class AgentTurnRoundRunnerService {
         this.buildToolExecutionContext(
           params,
           preparedToolCall.confirmationContext,
+          isGenerationReviewRequested,
         ),
       ),
       {
@@ -924,6 +928,7 @@ export class AgentTurnRoundRunnerService {
     confirmationContext: Awaited<
       ReturnType<AgentToolConfirmationService['prepareToolCall']>
     >['confirmationContext'],
+    isGenerationReviewRequested: boolean,
   ): ToolExecutionContext {
     const {
       attachmentUrls,
@@ -966,6 +971,7 @@ export class AgentTurnRoundRunnerService {
       runId: context.executionId,
       hostSupportsApproval: context.hostSupportsApproval ?? true,
       ...(confirmationContext ?? {}),
+      ...(isGenerationReviewRequested ? { isGenerationReviewRequested } : {}),
       strategyId: context.strategyId,
       thinkingModel,
       threadId,

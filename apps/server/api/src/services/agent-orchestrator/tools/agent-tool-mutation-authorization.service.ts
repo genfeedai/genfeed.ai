@@ -36,7 +36,9 @@ import type {
   CuratedActionName,
 } from '@genfeedai/actions';
 import {
+  AGENT_ACTION_CLASS,
   evaluateMutationPolicy,
+  getAgentActionClass,
   getToolByName,
   getVisualGenerationReviewType,
   isMcpApprovalSkippable,
@@ -172,6 +174,15 @@ export class AgentToolMutationAuthorizationService {
       isMcpTextDraftCall(parameters)
     )
       effectivePolicy = 'direct';
+    // "Do not generate yet" and "show the cost first" hold a credit spender
+    // for review in every mode, including Auto.
+    if (
+      context.isGenerationReviewRequested === true &&
+      !context.approvedApprovalId &&
+      getAgentActionClass(toolName) === AGENT_ACTION_CLASS.CREDIT_SPENDING
+    ) {
+      effectivePolicy = 'approval-required';
+    }
     if (await this.isMcpApprovalWaived(toolName, context, effectivePolicy)) {
       effectivePolicy = 'direct';
     }

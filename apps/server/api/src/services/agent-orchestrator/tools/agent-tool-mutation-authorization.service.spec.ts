@@ -1216,3 +1216,83 @@ describe('AgentToolMutationAuthorizationService MCP approval setting', () => {
     },
   );
 });
+
+describe('AgentToolMutationAuthorizationService generation hold', () => {
+  function harness() {
+    const service = new AgentToolMutationAuthorizationService(
+      {} as never,
+      {
+        createPending: vi
+          .fn()
+          .mockResolvedValue({ id: 'pending-id', status: 'PENDING' }),
+        findActiveByIdempotencyKey: vi.fn().mockResolvedValue(null),
+      } as never,
+      { findOne: vi.fn().mockResolvedValue({ mode: 'auto' }) } as never,
+    );
+    const reviewCard = {
+      creditsUsed: 0,
+      requiresConfirmation: true,
+      success: true,
+    };
+    const collaborators = {
+      prepareHandler: {
+        prepareGeneration: vi.fn().mockResolvedValue(reviewCard),
+      },
+      routeRewriteService: {
+        scopeToolResultHrefs: vi.fn(async (result: unknown) => result),
+      },
+    };
+    return { collaborators, reviewCard, service };
+  }
+
+  const context: ToolExecutionContext = {
+    hostSupportsApproval: true,
+    organizationId: 'org',
+    threadId: 'thread',
+    userId: 'user',
+  };
+  const image = { prompt: 'A trail junction at dusk', type: 'image' };
+
+  it('runs an image directly in Auto mode when the user did not hold it', async () => {
+    const { collaborators, service } = harness();
+
+    const result = await service.authorize(
+      'generate',
+      image,
+      context,
+      collaborators as never,
+    );
+
+    expect(result).toEqual({ kind: 'execute' });
+  });
+
+  it('returns the cost review instead of generating when the user said to hold', async () => {
+    const { collaborators, reviewCard, service } = harness();
+
+    const result = await service.authorize(
+      'generate',
+      image,
+      { ...context, isGenerationReviewRequested: true },
+      collaborators as never,
+    );
+
+    expect(result).toEqual({ kind: 'return', result: reviewCard });
+  });
+
+  it('lets an approved card run even when the hold is still set', async () => {
+    const { collaborators, service } = harness();
+
+    const result = await service.authorize(
+      'generate',
+      image,
+      {
+        ...context,
+        confirmationOrigin: 'thread-ui-action',
+        isGenerationReviewRequested: true,
+      },
+      collaborators as never,
+    );
+
+    expect(result).toEqual({ kind: 'execute' });
+  });
+});
