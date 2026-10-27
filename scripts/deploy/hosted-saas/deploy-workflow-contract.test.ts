@@ -74,6 +74,17 @@ describe('hosted SaaS Vercel deployment contract', () => {
     expect(core).toContain("steps.wait-metadata-clients.outcome == 'failure'");
   });
 
+  test('lets the Sentry build plugin see its token through turbo strict env mode', async () => {
+    for (const workspace of ['app', 'website']) {
+      const turbo = await Bun.file(
+        `../../../apps/${workspace}/turbo.json`,
+      ).text();
+      expect(turbo).toContain('"SENTRY_AUTH_TOKEN"');
+      // A hashed secret would also bust the remote cache on every rotation.
+      expect(turbo).not.toMatch(/"env": \[[^\]]*SENTRY_AUTH_TOKEN/);
+    }
+  });
+
   test('routes the production app auth proxy through the public API', async () => {
     const vercel = await workflow('_deploy-hosted-saas-vercel.yml');
     const core = await workflow('_deploy-hosted-saas-core.yml');

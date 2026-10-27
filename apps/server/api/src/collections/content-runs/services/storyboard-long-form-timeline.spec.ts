@@ -1,4 +1,5 @@
 import {
+  buildLongFormCaptions,
   buildLongFormTimeline,
   LONG_FORM_J_CUT_LEAD_SECONDS,
 } from '@api/collections/content-runs/services/storyboard-long-form-timeline';
@@ -145,5 +146,38 @@ describe('buildLongFormTimeline', () => {
     expect(second?.startSeconds).toBeGreaterThanOrEqual(
       (first?.startSeconds ?? 0) + (first?.durationSeconds ?? 0) - 0.001,
     );
+  });
+});
+
+describe('buildLongFormCaptions', () => {
+  it('cues each sentence at the measured rate of its render', () => {
+    const captions = buildLongFormCaptions(
+      [chunk(1, 'segment-1', 100), chunk(2, 'segment-2', 50)],
+      120,
+    );
+
+    // Ten one-cue sentences per render.
+    expect(captions).toHaveLength(20);
+    expect(captions[0]).toMatchObject({ text: SENTENCE, startSeconds: 0 });
+    expect(captions[0]?.durationSeconds).toBeCloseTo(10, 1);
+    expect(captions[10]).toMatchObject({ startSeconds: 100 });
+    expect(captions[10]?.durationSeconds).toBeCloseTo(5, 1);
+    const last = captions.at(-1);
+    expect((last?.startSeconds ?? 0) + (last?.durationSeconds ?? 0)).toBe(150);
+  });
+
+  it('splits a long sentence at word boundaries without losing words', () => {
+    const captions = buildLongFormCaptions([chunk(1, 'segment-1', 100)], 40);
+
+    for (const caption of captions)
+      expect(caption.text.length).toBeLessThanOrEqual(40);
+    expect(captions.map((caption) => caption.text).join(' ')).toBe(NARRATION);
+    for (let index = 1; index < captions.length; index++) {
+      const before = captions[index - 1];
+      expect(captions[index]?.startSeconds).toBeCloseTo(
+        (before?.startSeconds ?? 0) + (before?.durationSeconds ?? 0),
+        2,
+      );
+    }
   });
 });

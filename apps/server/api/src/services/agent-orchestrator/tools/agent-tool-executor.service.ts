@@ -43,6 +43,10 @@ import { AgentQualityToolHandler } from '@api/services/agent-orchestrator/tools/
 import { AgentReviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-review-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { AgentSpawnToolHandler } from '@api/services/agent-orchestrator/tools/agent-spawn-tool-handler.service';
+import {
+  AgentStoryboardToolHandler,
+  isAgentStoryboardTool,
+} from '@api/services/agent-orchestrator/tools/agent-storyboard-tool-handler.service';
 import { AgentThreadToolHandler } from '@api/services/agent-orchestrator/tools/agent-thread-tool-handler.service';
 import { AgentToolCatalogHandler } from '@api/services/agent-orchestrator/tools/agent-tool-catalog-handler.service';
 import { dispatchRegisteredAgentTool } from '@api/services/agent-orchestrator/tools/agent-tool-dispatch.routes';
@@ -216,6 +220,13 @@ export interface ToolExecutionContext {
   hostSupportsApproval?: boolean;
   /** Already-claimed MCP/tool approval that authorizes this exact logical write. */
   approvedApprovalId?: string;
+  /**
+   * The user's current message asked to see the cost first or not to generate
+   * yet. A credit-spending call then returns its approval card in every mode,
+   * so a plain-language hold is not overridden by the model. Set by the tool
+   * round from the operator message, never read from a request.
+   */
+  isGenerationReviewRequested?: boolean;
   /** Server-derived reviewer authority, restricted to threadless approval redemption. */
   approvalReviewerAuthorized?: boolean;
 }
@@ -310,6 +321,9 @@ export class AgentToolExecutorService implements OnModuleInit {
 
   @Inject(BrandAccessService)
   private readonly brandAccessService!: BrandAccessService;
+
+  @Inject(AgentStoryboardToolHandler)
+  private readonly storyboardHandler!: AgentStoryboardToolHandler;
 
   constructor(
     private readonly loggerService: LoggerService,
@@ -764,6 +778,9 @@ export class AgentToolExecutorService implements OnModuleInit {
   ): Promise<AgentToolResult> {
     if (toolName === 'get_generation_options') {
       return this.dispatchGenerationOptions(toolName, params, ctx);
+    }
+    if (isAgentStoryboardTool(toolName)) {
+      return this.storyboardHandler.execute(toolName, params, ctx);
     }
     return Object.hasOwn(VISUAL_CODE_ACTION_ALIASES, toolName)
       ? this.dispatchVisualCode(toolName, params, ctx)

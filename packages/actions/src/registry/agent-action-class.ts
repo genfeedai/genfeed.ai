@@ -62,6 +62,8 @@ const CREDIT_SPENDING_TOOL_NAMES = new Set<string>([
   'generate_monthly_content',
   'transform_media',
   'execute_workflow',
+  // Starts a quoted storyboard render; chat approves it outside Auto mode.
+  'start_storyboard_long_form',
 ]);
 
 /**

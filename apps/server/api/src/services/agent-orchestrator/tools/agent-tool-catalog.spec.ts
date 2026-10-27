@@ -30,6 +30,10 @@ const THREAD_HANDLER_PATH = resolve(
   HERE,
   'agent-thread-tool-handler.service.ts',
 );
+const STORYBOARD_HANDLER_PATH = resolve(
+  HERE,
+  'agent-storyboard-tool-handler.service.ts',
+);
 
 function collectToolNameCaseMembers(filePath: string): Set<string> {
   const sourceFile = ts.createSourceFile(
@@ -78,6 +82,7 @@ describe('curated Agent action catalog', () => {
       ...collectToolNameCaseMembers(X_ACTIONS_HANDLER_PATH),
       ...collectToolNameCaseMembers(GENERATION_SETTINGS_HANDLER_PATH),
       ...collectToolNameCaseMembers(THREAD_HANDLER_PATH),
+      ...collectToolNameCaseMembers(STORYBOARD_HANDLER_PATH),
     ]);
     const executorNames = memberNames;
     const missing = getToolsForSurface('agent')

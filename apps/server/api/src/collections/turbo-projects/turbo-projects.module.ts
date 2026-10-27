@@ -5,6 +5,7 @@ import { ModelsModule } from '@api/collections/models/models.module';
 import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { TurboProjectsController } from '@api/collections/turbo-projects/controllers/turbo-projects.controller';
+import { TurboIdeasBriefService } from '@api/collections/turbo-projects/services/turbo-ideas-brief.service';
 import { TurboProjectCreditsService } from '@api/collections/turbo-projects/services/turbo-project-credits.service';
 import { TurboProjectIdeaDispatchService } from '@api/collections/turbo-projects/services/turbo-project-idea-dispatch.service';
 import { TurboProjectIdeaGenerationService } from '@api/collections/turbo-projects/services/turbo-project-idea-generation.service';
@@ -17,6 +18,7 @@ import { VideosModule } from '@api/collections/videos/videos.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { ByokModule } from '@api/services/byok/byok.module';
+import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { RouterModule } from '@api/services/router/router.module';
 import { TurboRunModule } from '@api/services/turbo-run/turbo-run.module';
 import { LoggerModule } from '@libs/logger/logger.module';
@@ -29,6 +31,7 @@ import { Module } from '@nestjs/common';
     TurboRunModule,
     BrandsCoreModule,
     ByokModule,
+    ContentHarnessModule,
     CreditsModule,
     ImagesModule,
     LoggerModule,
@@ -44,6 +47,7 @@ import { Module } from '@nestjs/common';
   providers: [
     TurboProjectCreditsService,
     TurboProjectIdeaDispatchService,
+    TurboIdeasBriefService,
     TurboProjectIdeaGenerationService,
     TurboProjectQuoteService,
     TurboProjectReconcileService,

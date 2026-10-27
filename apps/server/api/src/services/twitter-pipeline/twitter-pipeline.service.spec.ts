@@ -98,6 +98,7 @@ describe('TwitterPipelineService draft actions', () => {
 
   let actions: Map<string, ActionHandler>;
   let llmDispatcherService: { completeStructured: ReturnType<typeof vi.fn> };
+  const harness = { formatBrief: vi.fn(), resolveBrief: vi.fn() };
 
   const searchResults = [
     {
@@ -124,8 +125,97 @@ describe('TwitterPipelineService draft actions', () => {
         },
         runWorkflow: vi.fn(),
       } as never,
+      harness as never,
     );
+    harness.resolveBrief.mockResolvedValue({ id: 'brief' });
+    harness.formatBrief.mockReturnValue('BRAND BRIEF: dry, concrete.');
     service.onModuleInit();
+  });
+
+  const voiceConfig = {
+    description: 'Technical',
+    handle: '@brand',
+    searchQuery: 'AI',
+  };
+  const buildPrompt = (request: Record<string, unknown>) =>
+    actions.get(TWITTER_PIPELINE_ACTION_IDS.DRAFT_BUILD_PROMPT)?.({
+      input: { request },
+    }) as Promise<{ prompt: string }>;
+
+  it('writes the drafts against the brand brief when a brand is given', async () => {
+    const built = await buildPrompt({
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      searchResults,
+      voiceConfig,
+    });
+
+    expect(harness.resolveBrief).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        platform: 'twitter',
+        topic: 'Shipping beats planning',
+      }),
+    );
+    expect(built.prompt).toContain('BRAND BRIEF: dry, concrete.');
+  });
+
+  it('adds no brief when no brand is given', async () => {
+    const built = await buildPrompt({ searchResults, voiceConfig });
+
+    expect(harness.resolveBrief).not.toHaveBeenCalled();
+    expect(built.prompt).not.toContain('Brand brief');
+  });
+
+  it('fails with a retryable 503 when the brand brief is unavailable', async () => {
+    harness.formatBrief.mockReturnValue('  ');
+
+    await expect(
+      buildPrompt({
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        searchResults,
+        voiceConfig,
+      }),
+    ).rejects.toThrow('Brand context is unavailable');
+  });
+
+  it('lets the model skip tweets it has nothing to add to', async () => {
+    const built = await buildPrompt({ searchResults, voiceConfig });
+
+    expect(built.prompt).not.toContain('Generate exactly');
+    expect(built.prompt).toContain(
+      'Skip a tweet when you have nothing specific to add',
+    );
+  });
+
+  it('drops a suggestion over the 280 character limit', async () => {
+    const opportunities = (await actions.get(
+      TWITTER_PIPELINE_ACTION_IDS.DRAFT_PARSE,
+    )?.({
+      input: {
+        draftContext: { searchResults },
+        generation: {
+          opportunities: [
+            {
+              reason: 'Too long',
+              suggestedText: 'x'.repeat(281),
+              type: 'original',
+            },
+            {
+              reason: 'Fits',
+              suggestedText: 'Short and sharp',
+              type: 'original',
+            },
+          ],
+        },
+      },
+    })) as Array<{ suggestedText: string }>;
+
+    expect(opportunities.map((entry) => entry.suggestedText)).toEqual([
+      'Short and sharp',
+    ]);
   });
 
   it('asks the dispatcher for the opportunities schema', async () => {

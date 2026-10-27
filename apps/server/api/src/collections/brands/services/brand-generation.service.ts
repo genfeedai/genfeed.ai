@@ -358,6 +358,7 @@ export class BrandGenerationService {
     dto: GenerateTurboIdeasDto,
     organizationId: string,
     findBrand: BrandFinder,
+    harnessBrief: string,
   ): Promise<TurboIdea[]> {
     this.logger.debug('Generating batch ideas', {
       brandId,
@@ -439,6 +440,9 @@ Return ONLY a JSON array (no markdown fences). Each element must be an object wi
 
 Brand profile:
 ${brandParts.join('\n')}${angleContext}${batchContext}
+
+Brand brief (follow it exactly; never contradict its guardrails, and do not invent claims it does not support):
+${harnessBrief}
 
 Respond ONLY with the JSON array.`;
           return this.generateTurboIdeaBatch(

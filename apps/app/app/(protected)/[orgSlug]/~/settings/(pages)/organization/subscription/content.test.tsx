@@ -16,7 +16,7 @@ import SettingsSubscriptionPage from './content';
 import '@testing-library/jest-dom/vitest';
 import type { UseSubscriptionReturn } from '@genfeedai/contracts/interfaces/hooks/hooks.interface';
 
-// PlansCard renders inside this page, so the catalog-backed stub keeps the
+// UpgradePlan renders inside this page, so the catalog-backed stub keeps the
 // assertions on real copy without a NextIntlClientProvider.
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
@@ -169,26 +169,74 @@ describe('SettingsSubscriptionPage', () => {
     expect(screen.queryByText('Credits Left')).not.toBeInTheDocument();
   });
 
-  it('puts the billing portal at the top, ahead of the plans', () => {
+  it('puts the upgrade inside the Current Plan card, with no separate Plans section', () => {
     render(<SettingsSubscriptionPage />);
 
     const portal = screen.getByRole('button', { name: /Open Billing Portal/i });
-    const plansHeading = screen.getByRole('heading', { name: 'Plans' });
+    const upgrade = screen.getByRole('button', { name: /Upgrade to Scale/i });
     expect(
-      portal.compareDocumentPosition(plansHeading) &
+      portal.compareDocumentPosition(upgrade) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    expect(
+      screen.getByText('Current Plan').closest('[class*="border"]'),
+    ).toContainElement(upgrade);
+    expect(
+      screen.queryByRole('heading', { name: 'Plans' }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('Manage subscription')).not.toBeInTheDocument();
   });
 
-  it('offers in-app plan selection alongside the billing portal', () => {
+  it('shows the Scale price and key benefits beside the upgrade button', () => {
     render(<SettingsSubscriptionPage />);
 
-    expect(screen.getByText('Plans')).toBeInTheDocument();
+    expect(screen.getByText('$499/mo')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /Upgrade to Scale/i }),
+      screen.getByText('Unlimited seats and client workspaces'),
     ).toBeInTheDocument();
   });
+
+  it.each([SubscriptionTier.SCALE, SubscriptionTier.ENTERPRISE])(
+    'offers no upgrade to Scale on the %s plan',
+    (subscriptionTier) => {
+      useBrandMock.mockReturnValue({
+        isReady: true,
+        organizationId: 'org-123',
+        settings: { subscriptionTier },
+      });
+
+      render(<SettingsSubscriptionPage />);
+
+      expect(
+        screen.queryByRole('button', { name: /Upgrade to Scale/i }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /Open Billing Portal/i }),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it.each([SubscriptionTier.FREE, 'payg'])(
+    'hides the period end on the %s plan, which has no renewal',
+    (subscriptionTier) => {
+      useBrandMock.mockReturnValue({
+        isReady: true,
+        organizationId: 'org-123',
+        settings: { subscriptionTier },
+      });
+      setSubscription(
+        new Subscription({
+          currentPeriodEnd: '2026-11-11T00:00:00.000Z',
+          status: SubscriptionStatus.ACTIVE,
+          stripeSubscriptionId: 'sub_active_fixture',
+        }),
+      );
+
+      render(<SettingsSubscriptionPage />);
+
+      expect(screen.queryByText(/Current period ends/)).not.toBeInTheDocument();
+    },
+  );
 
   it('names the plan from the organization tier, not the unserialized category', () => {
     // The mocked subscription claims category "pro" while the org tier is
@@ -280,9 +328,27 @@ describe('SettingsSubscriptionPage', () => {
 
         expect(screen.getByText('Incomplete')).toHaveClass('text-warning');
         expect(screen.queryByText('Active')).not.toBeInTheDocument();
-        expect(screen.getByText(/Current period ends/)).toBeVisible();
       },
     );
+
+    it('shows the period end on the Scale plan', () => {
+      useBrandMock.mockReturnValue({
+        isReady: true,
+        organizationId: 'org-123',
+        settings: { subscriptionTier: SubscriptionTier.SCALE },
+      });
+      setSubscription(
+        new Subscription({
+          currentPeriodEnd: '2026-11-01T00:00:00.000Z',
+          status: SubscriptionStatus.ACTIVE,
+          stripeSubscriptionId: 'sub_scale_fixture',
+        }),
+      );
+
+      render(<SettingsSubscriptionPage />);
+
+      expect(screen.getByText(/Current period ends/)).toBeVisible();
+    });
 
     it.each([SubscriptionTier.SCALE, SubscriptionTier.ENTERPRISE])(
       'does not promote a paid %s placeholder to Active',
@@ -529,7 +595,7 @@ describe('SettingsSubscriptionPage', () => {
         screen.queryByRole('button', { name: 'Open Billing Portal' }),
       ).not.toBeInTheDocument();
       expect(
-        screen.queryByRole('heading', { name: 'Plans' }),
+        screen.queryByRole('button', { name: 'Upgrade to Scale' }),
       ).not.toBeInTheDocument();
       expect(useSubscriptionMock).not.toHaveBeenCalled();
       expect(useBillingAccountMock).not.toHaveBeenCalled();
@@ -596,7 +662,9 @@ describe('SettingsSubscriptionPage', () => {
         expect(
           screen.getByRole('button', { name: 'Open Billing Portal' }),
         ).toBeVisible();
-        expect(screen.getByRole('heading', { name: 'Plans' })).toBeVisible();
+        expect(
+          screen.getByRole('button', { name: 'Upgrade to Scale' }),
+        ).toBeVisible();
         expect(useSubscriptionMock).toHaveBeenCalledTimes(2);
         expect(useBillingAccountMock).toHaveBeenCalledTimes(1);
       },
@@ -652,7 +720,7 @@ describe('SettingsSubscriptionPage', () => {
         expect(screen.queryByRole('button')).not.toBeInTheDocument();
         expect(screen.queryByRole('link')).not.toBeInTheDocument();
         expect(
-          screen.queryByRole('heading', { name: 'Plans' }),
+          screen.queryByRole('button', { name: 'Upgrade to Scale' }),
         ).not.toBeInTheDocument();
         expect(screen.queryByText('Billing account')).not.toBeInTheDocument();
         expect(useSubscriptionMock).not.toHaveBeenCalled();
@@ -679,7 +747,9 @@ describe('SettingsSubscriptionPage', () => {
       vi.stubEnv('GENFEED_CLOUD', 'false');
       vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'false');
       render(<SettingsSubscriptionPage />);
-      expect(screen.getByRole('heading', { name: 'Plans' })).toBeVisible();
+      expect(
+        screen.getByRole('button', { name: 'Upgrade to Scale' }),
+      ).toBeVisible();
     });
     it.each(['cloud', 'self-hosted'] as const)(
       'mounts and removes the data child through same-instance %s transitions',
@@ -723,7 +793,7 @@ describe('SettingsSubscriptionPage', () => {
           runtime.mockReturnValue(snapshot);
           rerender(<SettingsSubscriptionPage />);
           expect(
-            Boolean(screen.queryByRole('heading', { name: 'Plans' })),
+            Boolean(screen.queryByRole('button', { name: 'Upgrade to Scale' })),
           ).toBe(allowed);
           expect(Boolean(screen.queryByText('Billing account'))).toBe(allowed);
           expect(
@@ -742,7 +812,7 @@ describe('SettingsSubscriptionPage', () => {
         }
       },
     );
-    it('cancels an already scheduled Plans retry when runtime denial unmounts it', async () => {
+    it('cancels an already scheduled upgrade retry when runtime denial unmounts it', async () => {
       const previewPlanChange = vi.fn().mockRejectedValue({
         response: {
           data: {
@@ -772,7 +842,7 @@ describe('SettingsSubscriptionPage', () => {
         context: subscriptionCloudContext,
       });
       const { rerender } = render(<SettingsSubscriptionPage />);
-      fireEvent.click(screen.getByRole('button', { name: 'Switch to Scale' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Upgrade to Scale' }));
       await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
       const retry = notifications.error.mock.calls[0]?.[1]?.onAction;
       expect(retry).toBeTypeOf('function');
@@ -788,7 +858,7 @@ describe('SettingsSubscriptionPage', () => {
         });
         rerender(<SettingsSubscriptionPage />);
         expect(
-          screen.queryByRole('heading', { name: 'Plans' }),
+          screen.queryByRole('button', { name: 'Upgrade to Scale' }),
         ).not.toBeInTheDocument();
         expect(useSubscriptionMock).not.toHaveBeenCalled();
         expect(useBillingAccountMock).not.toHaveBeenCalled();

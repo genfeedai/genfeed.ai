@@ -25,6 +25,7 @@ function call(overrides: Partial<CallProvenance> = {}): CallProvenance {
     costUsd: 0,
     credits: 0,
     family: 'google',
+    finishReason: null,
     isFailed: false,
     kind: 'judge',
     latencyMs: 5,

@@ -50,6 +50,10 @@ import {
   resolveBlockedTools,
   TURBO_RUN_SCOPED_ALLOWED_TOOLS,
 } from '@api/services/agent-orchestrator/utils/agent-tool-definitions.util';
+import {
+  AGENT_UNPRODUCED_DRAFTS_INSTRUCTION,
+  claimsUnproducedDrafts,
+} from '@api/services/agent-orchestrator/utils/agent-unproduced-drafts.util';
 import { sanitizeAgentOutputText } from '@api/services/agent-orchestrator/utils/sanitize-agent-output.util';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type { OpenRouterChatCompletionResponse } from '@api/services/integrations/openrouter/dto/openrouter.dto';
@@ -201,6 +205,7 @@ export class AgentOrchestratorSyncLoopService {
       const { allowedToolNames, messages, tools } =
         await this.prepareSyncTurnInputs(params);
       let round = 0;
+      let hasRequestedUnproducedDrafts = false;
 
       while (round < AGENT_MAX_TOOL_ROUNDS || loopState.terminalContent) {
         round++;
@@ -225,6 +230,21 @@ export class AgentOrchestratorSyncLoopService {
         loopState.hasPreviousRoundUsedTools = Boolean(toolCalls?.length);
 
         if (!toolCalls || toolCalls.length === 0) {
+          if (
+            !hasRequestedUnproducedDrafts &&
+            claimsUnproducedDrafts(
+              sanitizeAgentOutputText(assistantMessage.content || ''),
+              toolRoundState.toolCalls,
+              toolRoundState.uiActions,
+            )
+          ) {
+            hasRequestedUnproducedDrafts = true;
+            messages.push(
+              { content: assistantMessage.content ?? '', role: 'assistant' },
+              { content: AGENT_UNPRODUCED_DRAFTS_INSTRUCTION, role: 'system' },
+            );
+            continue;
+          }
           return await this.finalizeSyncTurn({
             assistantMessage,
             defaultModelKey,

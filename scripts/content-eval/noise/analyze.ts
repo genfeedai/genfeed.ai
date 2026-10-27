@@ -16,7 +16,11 @@ import type {
   NoiseSection,
   NoiseVerdict,
 } from './contracts';
-import { NOISE_SATURATION_THRESHOLD, NOISE_SECTION_VERSION } from './contracts';
+import {
+  CUT_OFF_VOID_PREFIX,
+  NOISE_SATURATION_THRESHOLD,
+  NOISE_SECTION_VERSION,
+} from './contracts';
 import { estimate, mean, pooledSd } from './stats';
 
 const NOISE_SUITES = new Set<ScoredRow['suite']>(['ladder', 'harness-ab']);
@@ -91,15 +95,20 @@ function errorsFor(rows: ScoredRow[], contestantId: string) {
   const generation = voided.filter((row) =>
     reasonOf(row).startsWith('generation failed'),
   );
+  const cutOffs = voided.filter((row) =>
+    reasonOf(row).startsWith(CUT_OFF_VOID_PREFIX),
+  );
   const judging = voided.filter((row) =>
     reasonOf(row).startsWith('judging failed'),
   );
 
   return {
     contestantId,
+    cutOffs: cutOffs.length,
     generationFailures: generation.length,
     judgingFailures: judging.length,
-    otherVoid: voided.length - generation.length - judging.length,
+    otherVoid:
+      voided.length - generation.length - cutOffs.length - judging.length,
     rows: own.length,
     timeouts: timeouts.length,
   };
@@ -226,6 +235,11 @@ export function analyzeNoise(rows: ScoredRow[]): NoiseSection | undefined {
     if (failures > 0 || entry.timeouts > 0) {
       warnings.push(
         `${entry.contestantId}: ${entry.generationFailures} generation and ${entry.judgingFailures} judging failures (${entry.timeouts} timeouts) are excluded from scores, not counted as variance.`,
+      );
+    }
+    if (entry.cutOffs > 0) {
+      warnings.push(
+        `${entry.contestantId}: ${entry.cutOffs} output(s) stopped at the token limit and are excluded from scores. Raise the generation token limit before reading quality.`,
       );
     }
   }

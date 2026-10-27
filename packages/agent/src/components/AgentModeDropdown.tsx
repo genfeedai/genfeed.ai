@@ -11,6 +11,7 @@ import {
   PROMPT_BAR_CHIP_CLASS,
   PROMPT_BAR_CHIP_FIT_CLASS,
   PROMPT_BAR_CHIP_LABEL_CLASS,
+  SHELL_ICON_CLASS,
 } from '@ui/constants/shell-chrome.constant';
 import { Button } from '@ui/primitives/button';
 import {
@@ -22,9 +23,15 @@ import {
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
 import { keepFocusOnSwitch } from '@ui/prompt-bars/base/keep-focus-on-switch';
-import { ChevronDown, Hand, ListChecks, Sparkles } from 'lucide-react';
+import {
+  ChevronDown,
+  Hand,
+  ListChecks,
+  type LucideIcon,
+  Sparkles,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type ReactElement, type ReactNode, useMemo } from 'react';
+import { type ReactElement, useMemo } from 'react';
 
 interface AgentModeDropdownProps {
   className?: string;
@@ -35,7 +42,7 @@ interface AgentModeDropdownProps {
 
 interface AgentModeOption {
   description: string;
-  icon: ReactNode;
+  Icon: LucideIcon;
   label: string;
   value: AgentThreadMode;
 }
@@ -58,19 +65,19 @@ export function AgentModeDropdown({
     () => [
       {
         description: translate('auto.description'),
-        icon: <Sparkles className="size-4" />,
+        Icon: Sparkles,
         label: translate('auto.label'),
         value: AgentThreadMode.AUTO,
       },
       {
         description: translate('manual.description'),
-        icon: <Hand className="size-4" />,
+        Icon: Hand,
         label: translate('manual.label'),
         value: AgentThreadMode.MANUAL,
       },
       {
         description: translate('plan.description'),
-        icon: <ListChecks className="size-4" />,
+        Icon: ListChecks,
         label: translate('plan.label'),
         value: AgentThreadMode.PLAN,
       },
@@ -93,7 +100,7 @@ export function AgentModeDropdown({
             PROMPT_BAR_CHIP_FIT_CLASS,
             className,
           )}
-          icon={active.icon}
+          icon={<active.Icon aria-hidden className={SHELL_ICON_CLASS} />}
           isDisabled={isDisabled}
           size={ButtonSize.SM}
           textTransform="none"
@@ -127,7 +134,10 @@ export function AgentModeDropdown({
         >
           {options.map((option) => (
             <DropdownMenuRadioItem key={option.value} value={option.value}>
-              <span className="text-muted-foreground">{option.icon}</span>
+              <option.Icon
+                aria-hidden
+                className="size-4 text-muted-foreground"
+              />
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="truncate text-xs normal-case">
                   {option.label}

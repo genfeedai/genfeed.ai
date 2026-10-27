@@ -104,6 +104,49 @@ describe('AgentChatInputToolbar', () => {
     expect(onInsertReference).toHaveBeenCalledOnce();
   });
 
+  it('puts Enhance beside Send on the right and Add context last on the left', () => {
+    render(
+      <ConversationComposerShellProvider
+        contextLabel="Library"
+        draftScopeKey={null}
+        placement="dock"
+        portalTarget={null}
+        shellState="canvas"
+      >
+        <AgentChatInputToolbar
+          {...buildDefaultProps({
+            enhancement: {
+              canUndo: false,
+              isEnhancing: false,
+              onCancel: vi.fn(),
+              onEnhance: vi.fn(),
+              onUndo: vi.fn(),
+            },
+            isEmptyComposer: false,
+            promptText: 'Plan next week',
+          })}
+        />
+      </ConversationComposerShellProvider>,
+    );
+
+    const toolbar = screen.getByTestId('prompt-bar-toolbar');
+    const left = toolbar.querySelector('[data-prompt-bar-leading]');
+    const right = left?.nextElementSibling;
+    const leftNames = Array.from(left?.querySelectorAll('button') ?? []).map(
+      (button) => button.getAttribute('aria-label'),
+    );
+    expect(leftNames).toEqual([
+      'Agent mode: Manual',
+      'Prompt enhancement settings',
+      'Add context',
+    ]);
+    expect(
+      Array.from(right?.querySelectorAll('button') ?? []).map((button) =>
+        button.getAttribute('aria-label'),
+      ),
+    ).toEqual(['Enhance prompt', 'Send message']);
+  });
+
   it('keeps Enhance disabled while the prompt has no text, even with a ready attachment', () => {
     render(
       <ConversationComposerShellProvider

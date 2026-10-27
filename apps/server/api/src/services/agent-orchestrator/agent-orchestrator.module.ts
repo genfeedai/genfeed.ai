@@ -16,6 +16,7 @@ import { BrandInterviewModule } from '@api/collections/brands/brand-interview/br
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
+import { ContentRunsModule } from '@api/collections/content-runs/content-runs.module';
 import { ContextsModule } from '@api/collections/contexts/contexts.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
@@ -49,6 +50,7 @@ import { VotesModule } from '@api/collections/votes/votes.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { CommonModule } from '@api/common/common.module';
+import { OrganizationModuleAccessModule } from '@api/common/organization-modules/organization-module-access.module';
 import { RequestContextModule } from '@api/common/request-context.module';
 import { AdsResearchModule } from '@api/endpoints/ads-research/ads-research.module';
 import { AiActionsModule } from '@api/endpoints/ai-actions/ai-actions.module';
@@ -127,6 +129,7 @@ import { AgentQualityToolHandler } from '@api/services/agent-orchestrator/tools/
 import { AgentReviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-review-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { AgentSpawnToolHandler } from '@api/services/agent-orchestrator/tools/agent-spawn-tool-handler.service';
+import { AgentStoryboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-storyboard-tool-handler.service';
 import { AgentStrategyScheduleAuthorityService } from '@api/services/agent-orchestrator/tools/agent-strategy-schedule-authority.service';
 import { AgentThreadToolHandler } from '@api/services/agent-orchestrator/tools/agent-thread-tool-handler.service';
 import { AgentToolCatalogHandler } from '@api/services/agent-orchestrator/tools/agent-tool-catalog-handler.service';
@@ -246,6 +249,8 @@ import { Module } from '@nestjs/common';
     SettingsModule,
     SocialInboxModule,
     TrendsModule,
+    ContentRunsModule,
+    OrganizationModuleAccessModule,
     UsersModule,
     VideosCoreModule,
     VoicesModule,
@@ -306,6 +311,7 @@ import { Module } from '@nestjs/common';
     AgentPublishToolHandler,
     AgentQualityToolHandler,
     AgentReviewToolHandler,
+    AgentStoryboardToolHandler,
     AgentTrendsToolHandler,
     AgentWorkspaceToolHandler,
     AgentOrchestratorTurboRunService,

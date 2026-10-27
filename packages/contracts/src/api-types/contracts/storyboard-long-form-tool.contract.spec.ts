@@ -1,6 +1,10 @@
-import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
-import { editLongFormScript } from '@mcp/services/client/storyboard.client';
 import { describe, expect, it } from 'vitest';
+import {
+  editStoryboardLongFormScript as editLongFormScript,
+  startStoryboardLongFormToolSchema,
+  storyboardLongFormToolSchema,
+} from './storyboard-long-form-tool.contract';
+import type { StoryboardPlan } from './storyboard-plan.contract';
 
 function plan(): StoryboardPlan {
   return {
@@ -68,5 +72,48 @@ describe('editLongFormScript', () => {
     expect(() =>
       editLongFormScript({ ...plan(), longForm: undefined }, {}),
     ).toThrow('not a long-form video');
+  });
+});
+
+describe('long-form storyboard tool schemas', () => {
+  it('renders a long-form stage only with its quote hash, cutaways only with their ids', () => {
+    const render = startStoryboardLongFormToolSchema;
+    const input = {
+      brandId: 'brand-1',
+      runId: 'run-1',
+      expectedRevision: 2,
+      inputHash: 'b'.repeat(64),
+    };
+    expect(render.safeParse({ ...input, stage: 'presenter' }).success).toBe(
+      true,
+    );
+    expect(
+      render.safeParse({ ...input, stage: 'cutaways', cutawayIds: ['cut-1'] })
+        .success,
+    ).toBe(true);
+    expect(render.safeParse({ ...input, stage: 'cutaways' }).success).toBe(
+      false,
+    );
+    expect(
+      render.safeParse({ ...input, stage: 'animatic', cutawayIds: ['cut-1'] })
+        .success,
+    ).toBe(false);
+    expect(
+      render.safeParse({ ...input, stage: 'presenter', inputHash: undefined })
+        .success,
+    ).toBe(false);
+    const longForm = storyboardLongFormToolSchema;
+    expect(
+      longForm.safeParse({ brandId: 'brand-1', runId: 'run-1', action: 'get' })
+        .success,
+    ).toBe(true);
+    expect(
+      longForm.safeParse({
+        brandId: 'brand-1',
+        runId: 'run-1',
+        action: 'quote',
+        stage: 'presenter',
+      }).success,
+    ).toBe(false);
   });
 });

@@ -49,6 +49,7 @@ export class TwitterPipelineController {
       organizationId,
       dto.searchResults,
       dto.voiceConfig,
+      dto.brandId,
     );
   }
 

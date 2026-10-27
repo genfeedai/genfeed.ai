@@ -26,8 +26,15 @@ import { resolveOrganizationCreatorRole } from '@api/collections/roles/utils/res
 import type { SettingDocument } from '@api/collections/settings/schemas/setting.schema';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { OrganizationCategory } from '@genfeedai/contracts';
-import { DEFAULT_THEME } from '@genfeedai/contracts/constants';
-import { resolveSignupWorkspaceLabel } from '@genfeedai/helpers';
+import {
+  DEFAULT_THEME,
+  PERSONAL_ORGANIZATION_LABEL,
+} from '@genfeedai/contracts/constants';
+import {
+  buildPersonalOrganizationSlugSeed,
+  resolveSignupOrganizationLabel,
+  resolveSignupWorkspaceLabel,
+} from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
@@ -88,7 +95,10 @@ export class UserSetupService {
       const organizationResult = await this.getOrCreateOrganization(
         userId,
         category,
-        workspaceLabel,
+        resolveSignupOrganizationLabel({
+          email: profile?.email,
+          name: profile?.name,
+        }),
       );
       organization = organizationResult.organization;
 
@@ -200,7 +210,7 @@ export class UserSetupService {
   private async getOrCreateOrganization(
     userId: string,
     category?: OrganizationCategory,
-    workspaceLabel?: string,
+    organizationLabel?: string,
   ): Promise<{ organization: OrganizationDocument; wasCreated: boolean }> {
     // Membership is the source of truth for org access — findMine and
     // switchOrganization both resolve a user's orgs via the `members`
@@ -250,8 +260,12 @@ export class UserSetupService {
 
     this.logger.log(`Creating organization for user ${userId}`, this.context);
 
-    const label = workspaceLabel || resolveSignupWorkspaceLabel({});
-    const slug = await this.organizationsService.generateUniqueSlug(label);
+    const label = organizationLabel || resolveSignupWorkspaceLabel({});
+    const slug = await this.organizationsService.generateUniqueSlug(
+      label === PERSONAL_ORGANIZATION_LABEL
+        ? buildPersonalOrganizationSlugSeed(userId)
+        : label,
+    );
 
     const organization = await this.organizationsService.create({
       category: category || OrganizationCategory.BUSINESS,

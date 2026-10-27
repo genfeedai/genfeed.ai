@@ -263,6 +263,54 @@ describe('runContentEval with the stub dispatcher', () => {
     expect(report.passed).toBe(false);
   });
 
+  it('reports a cut-off generation apart from failures, with its cost kept', async () => {
+    const { report } = await runContentEval(
+      options({
+        createDispatcher: async () =>
+          createStubDispatcher({ cutOffModels: [CHALLENGER] }),
+      }),
+    );
+    const challengerRows = report.outcome.rows.filter(
+      (row) => row.contestant?.id === CHALLENGER,
+    );
+    const cutOffCalls = report.calls.filter(
+      (call) => call.finishReason === 'length',
+    );
+
+    expect(contentEvalReportSchema.safeParse(report).success).toBe(true);
+    expect(challengerRows).toHaveLength(3);
+    for (const row of challengerRows) {
+      expect(row.voidReason).toMatch(
+        /^generation cut off at the 1024-token limit/,
+      );
+      expect(row.output).toBeNull();
+      // The provider billed the full token limit; the void row keeps it.
+      expect(row.costCredits).toBeGreaterThan(0);
+    }
+    expect(cutOffCalls).toHaveLength(3);
+    expect(
+      cutOffCalls.every(
+        (call) =>
+          call.model === CHALLENGER &&
+          call.isFailed &&
+          call.completionTokens === 1024,
+      ),
+    ).toBe(true);
+    expect(
+      report.calls
+        .filter((call) => call.finishReason !== 'length')
+        .every((call) => call.finishReason === 'stop'),
+    ).toBe(true);
+    expect(
+      report.noise?.diagnostics.errors.find(
+        (entry) => entry.contestantId === CHALLENGER,
+      ),
+    ).toMatchObject({ cutOffs: 3, generationFailures: 0, otherVoid: 0 });
+    expect(report.noise?.diagnostics.warnings.join(' ')).toContain(
+      'stopped at the token limit',
+    );
+  });
+
   it('runs the judge suite against human bands', async () => {
     const { report } = await runContentEval(
       options({ fixturePath: JUDGE_FIXTURE, models: [], suite: 'judge' }),

@@ -1,0 +1,129 @@
+{
+  "note": "A recorded plan-draft reply for voice-note.json, in the strict output shape the drafter asks the model for. Replaying it keeps the benchmark free and deterministic.",
+  "reply": {
+    "title": "Post every day for thirty days",
+    "logline": "Why small studios stall between finished pieces, and a thirty-day habit that fixes it.",
+    "segments": [
+      {
+        "existingSegmentId": null,
+        "sectionLabel": "Hook",
+        "narration": "Most small studios quit posting in the first ninety days. Not because they are lazy. Because they are waiting to be finished. They post a new glaze or a new mug, and then nothing for three weeks, and then they wonder why nobody sees the next thing. The honest answer is that the feed does not know you exist between those posts. So today I want to show you what changed that for our studio, and the habit you can start tomorrow morning.",
+        "cutaways": [
+          {
+            "kind": "still",
+            "brief": "A phone screen showing a studio profile with three posts spread across two months",
+            "startSeconds": 10,
+            "durationSeconds": 6
+          },
+          {
+            "kind": "motion_graphic",
+            "brief": "The words 'waiting to be finished' typed on a plain clay-coloured background",
+            "startSeconds": 24,
+            "durationSeconds": 4
+          }
+        ]
+      },
+      {
+        "existingSegmentId": null,
+        "sectionLabel": "The kiln",
+        "narration": "Last winter our kiln broke for a whole month. I had nothing finished to show. So I filmed the repair. The broken element. The parts arriving in a box that was far too big. Me getting the wiring wrong, twice. It was not pretty and it was not planned. And that month we gained more new followers than in the whole year before it. That is when it clicked for me. People do not follow finished things. They follow a person making things.",
+        "cutaways": [
+          {
+            "kind": "still",
+            "brief": "A cold electric kiln with its lid open and a burnt-out heating element",
+            "startSeconds": 2,
+            "durationSeconds": 5
+          },
+          {
+            "kind": "still",
+            "brief": "An oversized cardboard box of kiln parts on a workshop bench",
+            "startSeconds": 14,
+            "durationSeconds": 4
+          },
+          {
+            "kind": "motion_graphic",
+            "brief": "A follower count climbing month by month, with one month far above the rest",
+            "startSeconds": 26,
+            "durationSeconds": 6
+          }
+        ]
+      },
+      {
+        "existingSegmentId": null,
+        "sectionLabel": "Film the process",
+        "narration": "So here are three things you can do. The first one is to film the process, not the product. Keep your phone on a small tripod next to the wheel and let it run while you work. You will throw away most of it. That is fine. The ten seconds where the clay collapses, or the glaze comes out of the kiln a colour you did not expect, are the moments people stop scrolling for. The finished mug is the least interesting part of its own story.",
+        "cutaways": [
+          {
+            "kind": "still",
+            "brief": "A phone on a small tripod beside a pottery wheel, recording",
+            "startSeconds": 6,
+            "durationSeconds": 5
+          },
+          {
+            "kind": "still",
+            "brief": "A collapsed bowl slumped on a spinning wheel",
+            "startSeconds": 22,
+            "durationSeconds": 4
+          }
+        ]
+      },
+      {
+        "existingSegmentId": null,
+        "sectionLabel": "Same time, every day",
+        "narration": "The second thing is to pick one time of day and post then, every day, for thirty days. Not perfect. Just on time. If it is seven in the morning, it is seven in the morning, even when the post is a blurry photo of a drying rack. The point of the thirty days is not any single post. It is teaching yourself that posting is part of the work, like wedging clay, and not a reward you get once something is done.",
+        "cutaways": [
+          {
+            "kind": "motion_graphic",
+            "brief": "A thirty-day calendar filling in one square at a time",
+            "startSeconds": 4,
+            "durationSeconds": 6
+          },
+          {
+            "kind": "still",
+            "brief": "A slightly blurry photo of a drying rack full of greenware",
+            "startSeconds": 18,
+            "durationSeconds": 4
+          }
+        ]
+      },
+      {
+        "existingSegmentId": null,
+        "sectionLabel": "Reuse one session",
+        "narration": "The third thing is reuse. One hour at the wheel is a short video of the throw, a carousel of stills from the same session, and a short post about what went wrong. That is three posts from one hour. And if you are worried people will get bored of seeing so much of you, they will not, because they will not see all of it. Most people see maybe one in five of your posts. Posting every day just means the one they do see is recent.",
+        "cutaways": [
+          {
+            "kind": "motion_graphic",
+            "brief": "One hour of footage splitting into three posts: a video, a carousel and a text post",
+            "startSeconds": 3,
+            "durationSeconds": 7
+          },
+          {
+            "kind": "motion_graphic",
+            "brief": "Five post tiles with only one of them lit up",
+            "startSeconds": 26,
+            "durationSeconds": 5
+          }
+        ]
+      },
+      {
+        "existingSegmentId": null,
+        "sectionLabel": "Close",
+        "narration": "So here is the challenge. Do it for thirty days. Write down your follower count on day one and on day thirty. If it did not work, you have lost nothing, and you have a month of process footage you can use anywhere. If it did work, you already know what to do on day thirty-one. For us, the kiln breaking turned out to be the best thing that ever happened to the studio. I hope your version of it is a little cheaper.",
+        "cutaways": [
+          {
+            "kind": "still",
+            "brief": "A notebook with two follower counts written on day one and day thirty",
+            "startSeconds": 8,
+            "durationSeconds": 5
+          },
+          {
+            "kind": "still",
+            "brief": "The repaired kiln glowing during a firing",
+            "startSeconds": 28,
+            "durationSeconds": 5
+          }
+        ]
+      }
+    ]
+  }
+}

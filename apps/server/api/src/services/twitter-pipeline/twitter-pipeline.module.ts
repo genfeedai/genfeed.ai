@@ -1,5 +1,6 @@
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
+import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
@@ -12,6 +13,7 @@ import { Module } from '@nestjs/common';
   controllers: [TwitterPipelineController],
   exports: [TwitterPipelineService],
   imports: [
+    ContentHarnessModule,
     CredentialsCoreModule,
     LoggerModule,
     LlmDispatcherModule,

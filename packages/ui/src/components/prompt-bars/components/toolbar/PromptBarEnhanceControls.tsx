@@ -38,7 +38,7 @@ export default function PromptBarEnhanceControls({
         className={cn(PROMPT_BAR_CHIP_CLASS, PROMPT_BAR_CHIP_FIT_CLASS)}
         icon={
           isEnhancing ? (
-            <Spinner className="size-4" />
+            <Spinner className={SHELL_ICON_CLASS} />
           ) : (
             <WandSparkles aria-hidden="true" className={SHELL_ICON_CLASS} />
           )

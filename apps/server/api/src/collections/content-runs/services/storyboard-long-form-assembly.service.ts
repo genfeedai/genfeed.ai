@@ -6,11 +6,13 @@ import {
   storyboardARollPresenter,
 } from '@api/collections/content-runs/services/storyboard-a-roll-plan';
 import {
+  buildLongFormCaptions,
   buildLongFormTimeline,
   type LongFormTimeline,
 } from '@api/collections/content-runs/services/storyboard-long-form-timeline';
 import { StoryboardRunStoreService } from '@api/collections/content-runs/services/storyboard-run-store.service';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
+import { wrapCompositionText } from '@api/collections/editor-projects/utils/remotion-composition.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -54,6 +56,13 @@ const SETTINGS: Record<
   '1:1': { format: IngredientFormat.SQUARE, width: 1080, height: 1080 },
 };
 
+/** Caption line width in characters; a cue holds at most two lines. */
+const CAPTION_LINE_CHARACTERS: Record<StoryboardPlan['format'], number> = {
+  '16:9': 42,
+  '9:16': 26,
+  '1:1': 30,
+};
+
 interface FootageAsset {
   category: string;
   durationSeconds?: number;
@@ -66,6 +75,60 @@ function clock(seconds: number): string {
 
 function frames(seconds: number): number {
   return Math.round(seconds * LONG_FORM_EDIT_FPS);
+}
+
+/** Burned-in captions of the narration, low in the frame over every track. */
+function captionTrack(
+  chunks: readonly StoryboardARollChunk[],
+  format: StoryboardPlan['format'],
+  totalDurationFrames: number,
+): IEditorTrack {
+  const { width, height } = SETTINGS[format];
+  const lineCharacters = CAPTION_LINE_CHARACTERS[format];
+  const clips = buildLongFormCaptions(chunks, lineCharacters * 2).map(
+    (caption): IEditorClip => {
+      const startFrame = Math.min(
+        frames(caption.startSeconds),
+        totalDurationFrames - 1,
+      );
+      const durationFrames = Math.max(
+        1,
+        Math.min(
+          frames(caption.startSeconds + caption.durationSeconds),
+          totalDurationFrames,
+        ) - startFrame,
+      );
+      return {
+        id: randomUUID(),
+        ingredientId: '',
+        ingredientUrl: '',
+        startFrame,
+        durationFrames,
+        sourceStartFrame: 0,
+        sourceEndFrame: durationFrames,
+        effects: [],
+        textOverlay: {
+          text: wrapCompositionText(caption.text, lineCharacters),
+          position: { x: 50, y: 86 },
+          fontSize: Math.round(Math.min(width, height) * 0.046),
+          color: '#FFFFFF',
+          fontFamily: 'Arial',
+          fontWeight: 700,
+          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+          padding: 12,
+        },
+      };
+    },
+  );
+  return {
+    id: randomUUID(),
+    type: EditorTrackType.TEXT,
+    name: 'Captions',
+    isMuted: false,
+    isLocked: false,
+    volume: 100,
+    clips,
+  };
 }
 
 /** The plan without the given cutaways, for laying out the edit. */
@@ -177,10 +240,13 @@ export class StoryboardLongFormAssemblyService {
           ? 'The animatic narration must be speech.'
           : 'The presenter track must be video.',
       );
-    const tracks = isDraft
-      ? this.buildDraftTracks(timeline, footage, presenter.avatarAssetId)
-      : this.buildTracks(timeline, footage);
     const totalDurationFrames = frames(timeline.totalSeconds);
+    const tracks = [
+      ...(isDraft
+        ? this.buildDraftTracks(timeline, footage, presenter.avatarAssetId)
+        : this.buildTracks(timeline, footage)),
+      captionTrack(chunks, plan.format, totalDurationFrames),
+    ];
     const project = await this.editorProjects.create({
       brandId,
       config: {

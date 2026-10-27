@@ -2123,6 +2123,7 @@ describe('BrandsService', () => {
         brandId,
         { count: 50, formats: ['image'] as TurboIdeaFormat[] },
         organizationId,
+        'Guardrails: never promise cures.',
       );
 
       // 50 ideas at no more than 9 per reply takes 6 calls.
@@ -2179,9 +2180,20 @@ describe('BrandsService', () => {
         brandId,
         { count: 2, formats: ['image', 'avatar'] as TurboIdeaFormat[] },
         organizationId,
+        'Guardrails: never promise cures.',
       );
 
       expect(llmDispatcher.chatCompletion).toHaveBeenCalledTimes(1);
+      const [[request]] = llmDispatcher.chatCompletion.mock.calls as [
+        { messages: { content: string }[] },
+      ][];
+      // The avatar's spoken script is written under the composed brief.
+      expect(request.messages[0].content).toContain(
+        'Brand brief (follow it exactly; never contradict its guardrails',
+      );
+      expect(request.messages[0].content).toContain(
+        'Guardrails: never promise cures.',
+      );
       expect(result).toHaveLength(2);
       expect(result[0].id).toBeTruthy();
       expect(result[1].id).toBeTruthy();
@@ -2198,6 +2210,7 @@ describe('BrandsService', () => {
           brandId,
           { count: 2, formats: ['image'] as TurboIdeaFormat[] },
           organizationId,
+          'brief',
         ),
       ).rejects.toThrow(NotFoundException);
       expect(llmDispatcher.chatCompletion).not.toHaveBeenCalled();
@@ -2217,6 +2230,7 @@ describe('BrandsService', () => {
           brandId,
           { count: 2, formats: ['image'] as TurboIdeaFormat[] },
           organizationId,
+          'brief',
         ),
       ).rejects.toThrow(BadRequestException);
       expect(llmDispatcher.chatCompletion).not.toHaveBeenCalled();
@@ -2238,6 +2252,7 @@ describe('BrandsService', () => {
         brandId,
         { count: 2, formats: ['image'] as TurboIdeaFormat[] },
         organizationId,
+        'brief',
       );
 
       expect(result).toEqual([]);

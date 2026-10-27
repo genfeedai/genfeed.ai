@@ -69,6 +69,7 @@ export * from './social-warmup-capability.contract';
 export * from './social-warmup-journey.contract';
 export * from './storyboard-a-roll.contract';
 export * from './storyboard-character-replace.contract';
+export * from './storyboard-long-form-tool.contract';
 export * from './storyboard-plan.contract';
 export * from './storyboard-run.contract';
 export * from './storyboard-run-capabilities.contract';

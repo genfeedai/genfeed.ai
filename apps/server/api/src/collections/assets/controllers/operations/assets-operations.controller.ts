@@ -4,6 +4,7 @@
  */
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ASSET_ORIGIN_GENERATION_PENDING } from '@api/collections/assets/constants/asset-origin.constant';
 import { GenerateAssetDto } from '@api/collections/assets/dto/generate-asset.dto';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
@@ -19,7 +20,10 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
-import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import {
+  returnNotFound,
+  serializeSingle,
+} from '@api/helpers/utils/response/response.util';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { isCloudDeployment } from '@genfeedai/config';
@@ -51,8 +55,9 @@ import type { Request } from 'express';
 function buildBrandAssetPrompt(
   brand: BrandDocument,
   promptPrefix: string,
+  userPrompt: string,
 ): string {
-  const brandInfo = [`${promptPrefix} for ${brand.label}`];
+  const brandInfo = [`${promptPrefix} for ${brand.label}`, userPrompt];
 
   if (brand.description) {
     brandInfo.push(brand.description);
@@ -135,19 +140,16 @@ export class AssetsOperationsController {
         ? { height: 1080, width: 1920 }
         : { height: 1024, width: 1024 };
 
-    let brand: BrandDocument | null = null;
-    const brandIdToUse = parentId;
+    // The brand scopes the asset to its tenant; a brand that is not found in
+    // the caller's organization must fail instead of generating for it.
+    const brand = await this.brandsService.findOne({
+      id: parentId,
+      isDeleted: false,
+      organizationId: user.organizationId,
+    });
 
-    if (brandIdToUse) {
-      try {
-        brand = await this.brandsService.findOne({
-          id: brandIdToUse,
-          organizationId: user.organizationId,
-        });
-      } catch (error) {
-        this.loggerService.error(`${url} - Failed to fetch brand`, error);
-        // Continue without brand if fetch fails
-      }
+    if (!brand) {
+      return returnNotFound('Brand', parentId);
     }
 
     const selectedModel =
@@ -155,80 +157,70 @@ export class AssetsOperationsController {
         ? CLOUD_QUALITY_IMAGE_MODEL_KEY
         : LOWEST_COST_IMAGE_MODEL_KEY;
 
-    // Build enhanced prompt using brand information
-    let enhancedPrompt = text;
-    if (brand && category === AssetCategory.BANNER) {
-      enhancedPrompt = buildBrandAssetPrompt(
-        brand,
-        'Generate a professional landscape banner (1920x1080)',
-      );
-    } else if (brand && category === AssetCategory.LOGO) {
-      enhancedPrompt = buildBrandAssetPrompt(
-        brand,
-        'Generate a professional logo (1024x1024)',
-      );
-    } else if (category === AssetCategory.BANNER) {
-      enhancedPrompt = `Generate a professional landscape banner (1920x1080). ${text}`;
-    } else if (category === AssetCategory.LOGO) {
-      enhancedPrompt = `Generate a professional logo (1024x1024). ${text}`;
-    }
-
-    // Replace the logo / banner
-    await this.assetsService.patchAll(
-      {
-        category,
-        parentBrandId: parentId,
-        parentType: AssetParent.BRAND,
-        userId: user.userId ?? user.id,
-      },
-      { isDeleted: true },
+    const enhancedPrompt = buildBrandAssetPrompt(
+      brand,
+      category === AssetCategory.BANNER
+        ? 'Generate a professional landscape banner (1920x1080)'
+        : 'Generate a professional logo (1024x1024)',
+      text,
     );
 
+    // The placeholder stays invisible to brand readers (and the current logo or
+    // banner stays in place) until the webhook uploads the output.
     const assetData = await this.assetsService.create({
       category,
+      origin: ASSET_ORIGIN_GENERATION_PENDING,
       parentId,
-      parentType: generateAssetDto.parentType,
+      parentOrgId: user.organizationId,
+      parentType: AssetParent.BRAND,
       userId: user.userId ?? user.id,
     });
 
-    const { input: promptParams } = await this.promptBuilderService.buildPrompt(
-      selectedModel as string,
-      {
-        brand: brand
-          ? {
+    try {
+      const { input: promptParams } =
+        await this.promptBuilderService.buildPrompt(
+          selectedModel as string,
+          {
+            brand: {
               label: brand.label,
               primaryColor: brand.primaryColor,
               secondaryColor: brand.secondaryColor,
               text: brand.text ?? undefined,
-            }
-          : undefined,
-        height,
-        modelCategory: ModelCategory.IMAGE,
-        prompt: enhancedPrompt,
-        style: 'natural',
-        width,
-      },
-      user.organizationId,
-    );
+            },
+            height,
+            modelCategory: ModelCategory.IMAGE,
+            prompt: enhancedPrompt,
+            style: 'natural',
+            width,
+          },
+          user.organizationId,
+        );
 
-    const generationId = await this.replicateService.generateTextToImage(
-      selectedModel as string,
-      promptParams,
-    );
+      const generationId = await this.replicateService.generateTextToImage(
+        selectedModel as string,
+        promptParams,
+      );
 
-    if (!generationId) {
-      throw new ValidationException('Failed to start image generation');
+      if (!generationId) {
+        throw new ValidationException('Failed to start image generation');
+      }
+
+      await this.assetsService.patch(assetData.id, {
+        externalId: generationId,
+      });
+
+      this.loggerService.log(`${url} - Replicate generation started`, {
+        assetId: assetData.id,
+        category,
+        generationId,
+      });
+    } catch (error: unknown) {
+      // Drop the placeholder and let the error surface before the credits
+      // interceptor charges the organization.
+      this.loggerService.error(`${url} - Failed to start generation`, error);
+      await this.assetsService.remove(assetData.id);
+      throw error;
     }
-
-    await this.assetsService.patch(assetData.id, {
-      externalId: generationId,
-    });
-
-    this.loggerService.log(`${url} - Replicate generation started`, {
-      assetId: assetData.id,
-      category,
-      generationId,
-    });
 
     return serializeSingle(request, AssetSerializer, assetData);
   }

@@ -7,6 +7,7 @@ import {
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { GrowthTrendsCardProps } from '@genfeedai/props/analytics/analytics.props';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
+import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
 import { Skeleton } from '@ui/primitives/skeleton';
@@ -53,11 +54,9 @@ export function GrowthTrendsCard({
   isLoading = false,
   className = '',
 }: GrowthTrendsCardProps) {
-  const cardClassName = `rounded-xl bg-card shadow-border p-6 ${className}`;
-
   if (isLoading) {
     return (
-      <div className={cardClassName}>
+      <Card bodyClassName="gap-0 p-6" className={className}>
         <div>
           <Skeleton className="mb-4 h-6 w-1/3" />
           <div className="space-y-4">
@@ -65,23 +64,23 @@ export function GrowthTrendsCard({
             <Skeleton className="h-20" />
           </div>
         </div>
-      </div>
+      </Card>
     );
   }
 
   if (!growthData) {
     return (
-      <div className={cardClassName}>
+      <Card bodyClassName="gap-0 p-6" className={className}>
         <h3 className="text-lg font-semibold text-foreground mb-4">
           Growth Trends
         </h3>
         <CardEmptyContent label="No growth data available" />
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className={cardClassName}>
+    <Card bodyClassName="gap-0 p-6" className={className}>
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-foreground">Growth Trends</h3>
         <div className="flex items-center gap-2">
@@ -223,6 +222,6 @@ export function GrowthTrendsCard({
         Comparing {getTimeframeLabel(timeframe).toLowerCase()} vs previous
         period
       </p>
-    </div>
+    </Card>
   );
 }

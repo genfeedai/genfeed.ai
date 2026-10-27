@@ -226,6 +226,8 @@ const EXPECTED_SYSTEM_WORKFLOW_IDS: readonly string[] = [
   'agent.tool.spawn_content_agent',
   'agent.tool.start_brand_interview',
   'agent.tool.start_outreach_sequence',
+  'agent.tool.start_storyboard_long_form',
+  'agent.tool.storyboard_long_form',
   'agent.tool.submit_brand_interview_answer',
   'agent.tool.suggest_ingredient_alternatives',
   'agent.tool.suggest_next_steps',

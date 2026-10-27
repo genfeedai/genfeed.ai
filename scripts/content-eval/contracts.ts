@@ -137,7 +137,21 @@ export interface EvalUsage {
   promptTokens: number;
 }
 
+/**
+ * Why the model stopped. `length`: it hit the token limit, so the output is
+ * cut off. Null when the route does not report one.
+ */
+export const EVAL_FINISH_REASONS = [
+  'stop',
+  'length',
+  'content-filter',
+  'other',
+] as const;
+export type EvalFinishReason = (typeof EVAL_FINISH_REASONS)[number];
+
 export interface EvalStructuredResponse<TResult> {
+  /** The last attempt's finish reason; a repaired answer reports the repair. */
+  finishReason: EvalFinishReason | null;
   latencyMs: number;
   /** Resolved model id the provider actually served. */
   modelVersion: string;
@@ -193,6 +207,8 @@ export const callProvenanceSchema = z.object({
   ]),
   credits: z.number().nonnegative(),
   family: z.string().min(1),
+  /** Why the model stopped; `length` marks a cut-off output. */
+  finishReason: z.enum(EVAL_FINISH_REASONS).nullable().default(null),
   /** The call errored (provider, schema repair, timeout) but was still charged. */
   isFailed: z.boolean().default(false),
   kind: z.enum(CALL_ROLES),
@@ -465,6 +481,11 @@ export interface MeteredCallResult<TResult> {
 }
 
 export interface StubDispatcherOptions {
+  /**
+   * Registry keys whose generations stop at the token limit, billed at the
+   * full limit: a cut-off fixture (#5600).
+   */
+  cutOffModels?: string[];
   /** Registry keys whose calls fail, to exercise void handling. */
   failingModels?: string[];
   isFirstAlwaysPreferred?: boolean;

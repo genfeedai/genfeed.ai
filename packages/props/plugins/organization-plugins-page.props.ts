@@ -9,7 +9,7 @@ import type { ReactNode } from 'react';
 /** One native app in Plugins (#5502), with its resolved state for the member. */
 export interface PluginAppEntry {
   appId: NativeSecondaryAppId;
-  /** One line shown on the card and list row. */
+  /** One line shown on the card. */
   description: string;
   /** What a member can do with the app, three short lines. */
   highlights: string[];
@@ -24,10 +24,8 @@ export interface PluginAppEntry {
   summary: string;
 }
 
-/** Categories an app is filed under; the category filter mirrors these. */
+/** Categories an app is filed under. */
 export type PluginCategoryId = 'create' | 'publish' | 'automate';
-
-export type PluginFilterId = 'all' | PluginCategoryId;
 
 /** Abstract mini-illustration drawn on an app's thumbnail. */
 export type PluginThumbnailArt =
@@ -45,13 +43,7 @@ export type PluginThumbnailArt =
 
 export type PluginThumbnailTone = 'info' | 'primary' | 'success' | 'warning';
 
-export type PluginThumbnailSize = 'card' | 'compact' | 'standard' | 'preview';
-
-export type PluginStatusFilter =
-  | 'all'
-  | 'installed'
-  | 'available'
-  | 'restricted';
+export type PluginThumbnailSize = 'card' | 'standard' | 'preview';
 
 /** Plugins-only presentation data for one native app, keyed by app id. */
 export interface PluginAppCatalogEntry {
@@ -86,7 +78,7 @@ export interface PluginAppAccessNoteProps {
   state: PluginAppEntry['state'];
 }
 
-/** Props shared by the grid card and the list row of one plugin app. */
+/** Props for the grid card of one plugin app. */
 export interface PluginAppItemProps {
   actions: ReactNode;
   app: PluginAppEntry;

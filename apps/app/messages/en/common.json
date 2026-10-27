@@ -1183,8 +1183,7 @@
     "threads": "Threads",
     "threadsLoading": "Loading threads",
     "untitledThread": "Untitled",
-    "title": "Agent",
-    "unavailable": "Agent is the main view here"
+    "title": "Agent"
   },
   "contextSidebar": {
     "close": "Close details",
@@ -2393,9 +2392,8 @@
     "plans": {
       "changeErrorTitle": "Plan change failed",
       "confirmChange": "Confirm change",
-      "confirmTitle": "Switch to {plan}?",
+      "confirmTitle": "Upgrade to {plan}?",
       "creditsPerMonth": "{credits} / month",
-      "current": "Current",
       "failures": {
         "billingCustomerMismatch": "This subscription belongs to another organization. Contact support to reconnect billing.",
         "billingCustomerMissing": "Your billing account needs repair before the plan can change. Contact support.",
@@ -2422,7 +2420,6 @@
       "prorationUpgrade": "Stripe estimates your next invoice at {amount}, including the prorated upgrade.",
       "retryAction": "Try again",
       "salesContact": "Need higher limits, custom terms, or an enterprise deployment? Email {email}.",
-      "switchTo": "Switch to {plan}",
       "unavailable": "This plan is not available in this environment yet.",
       "upgradeTo": "Upgrade to {plan}"
     }
@@ -2528,15 +2525,11 @@
   "plugins": {
     "title": "Plugins",
     "breadcrumbLabel": "Breadcrumb",
-    "allCategories": "All categories",
     "selectApp": "Select {app}",
     "selectedApp": "{app}, selected",
     "status": {
-      "label": "App status",
-      "all": "All",
       "installed": "Installed",
-      "available": "Available",
-      "restricted": "Restricted"
+      "available": "Available"
     },
     "search": "Search plugins",
     "installedTitle": "Installed",
@@ -2548,13 +2541,6 @@
       "unavailable": "Unavailable"
     },
     "pinned": "Pinned",
-    "filterAll": "All",
-    "filters": {
-      "menu": "Filters",
-      "category": "Category",
-      "clear": "Clear filters",
-      "activeCount": "{count, plural, one {# filter active} other {# filters active}}"
-    },
     "categories": {
       "create": "Create",
       "publish": "Publish & grow",
@@ -2631,6 +2617,7 @@
       }
     },
     "noMatches": "No plugins match your search.",
+    "showAll": "Show all plugins",
     "workflowsTitle": "Workflows",
     "workflowsDescription": "Browse the workflow library and install a workflow for this brand.",
     "openWorkflows": "Open workflow library",

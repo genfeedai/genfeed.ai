@@ -25,6 +25,11 @@ export class TwitterPipelineSearchDto {
 }
 
 export class TwitterPipelineDraftDto {
+  /** Brand whose voice and harness brief the drafts follow. */
+  @IsOptional()
+  @IsString()
+  brandId?: string;
+
   @IsArray()
   searchResults!: ITwitterSearchResult[];
 

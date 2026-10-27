@@ -554,6 +554,8 @@ export class ReplicateGenerationWebhookHandler {
           assetId: String(asset.id),
           category: asset.category,
           error: payload.error || 'Asset generation failed',
+          parentId: asset.parentBrandId ?? asset.parentOrgId ?? undefined,
+          parentType: asset.parentType,
           predictionId: payload.id,
         },
       );

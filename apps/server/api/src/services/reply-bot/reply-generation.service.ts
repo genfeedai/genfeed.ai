@@ -70,45 +70,6 @@ export interface DmGenerationOptions {
   userId: string;
 }
 
-// Fallback templates when AI generation fails
-const FALLBACK_REPLY_TEMPLATES: Record<ReplyTone, string[]> = {
-  [ReplyTone.PROFESSIONAL]: [
-    'Thank you for your insightful comment.',
-    'Excellent observation. I appreciate your perspective.',
-    'Great point. Thank you for engaging with this content.',
-  ],
-  [ReplyTone.CASUAL]: [
-    'Thanks for chiming in! 🙌',
-    'Appreciate you sharing your thoughts!',
-    'Good stuff! Thanks for the reply.',
-  ],
-  [ReplyTone.FRIENDLY]: [
-    'Thanks so much for your reply! Really appreciate it. 😊',
-    'Love hearing from you! Thanks for engaging.',
-    'So glad you stopped by! Thanks for sharing.',
-  ],
-  [ReplyTone.HUMOROUS]: [
-    'Ha! You get it. Thanks for playing along! 😄',
-    'This is the energy I needed today. Thanks!',
-    'Love the vibe! Thanks for keeping it fun.',
-  ],
-  [ReplyTone.INFORMATIVE]: [
-    "Great question! Here's what I can share...",
-    'Thanks for asking. Let me elaborate on that.',
-    "Interesting point. Here's some additional context.",
-  ],
-  [ReplyTone.SUPPORTIVE]: [
-    "Really appreciate you sharing this! You've got this. 💪",
-    'Thanks for being here. Your support means a lot!',
-    'So grateful for your engagement. Keep being awesome!',
-  ],
-  [ReplyTone.ENGAGING]: [
-    'Love this! What are your thoughts on...?',
-    'Great point! Have you considered...?',
-    "Interesting take! I'd love to hear more about your perspective.",
-  ],
-};
-
 @Injectable()
 export class ReplyGenerationService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -234,17 +195,13 @@ Body: ${escapeConversationData(options.tweetContent.slice(0, CONVERSATION_MESSAG
         throw error;
       }
 
-      if (options.conversationType) {
-        this.loggerService.error(`${url} failed`, error);
-        throw new ServiceUnavailableException(
-          'Unable to generate a suggested reply',
-        );
-      }
-
-      this.loggerService.error(`${url} failed, using fallback`, error);
-
-      // Return a fallback template reply
-      return this.getFallbackReply(options.tone);
+      // No canned reply: a template ("Thank you for your insightful comment.")
+      // posted under the brand is worse than no reply, and the callers record
+      // the failure and skip the item.
+      this.loggerService.error(`${url} failed`, error);
+      throw new ServiceUnavailableException(
+        'Unable to generate a suggested reply',
+      );
     }
   }
 
@@ -324,22 +281,10 @@ DM text:`;
         throw error;
       }
 
-      this.loggerService.error(`${url} failed, using fallback`, error);
-
-      // Return a simple fallback DM
-      return `Hey @${options.tweetAuthor}! Thanks for engaging with my tweet. Really appreciate it! 🙏`;
+      // No canned DM: see generateReply.
+      this.loggerService.error(`${url} failed`, error);
+      throw new ServiceUnavailableException('Unable to generate a DM');
     }
-  }
-
-  /**
-   * Get a fallback reply when AI generation fails
-   */
-  private getFallbackReply(tone: ReplyTone): string {
-    const templates =
-      FALLBACK_REPLY_TEMPLATES[tone] ||
-      FALLBACK_REPLY_TEMPLATES[ReplyTone.FRIENDLY];
-    const randomIndex = Math.floor(Math.random() * templates.length);
-    return templates[randomIndex];
   }
 
   /**
