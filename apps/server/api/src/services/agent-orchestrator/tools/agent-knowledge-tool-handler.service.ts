@@ -267,6 +267,7 @@ export class AgentKnowledgeToolHandler {
         brandId,
         ...(cursor ? { cursor } : {}),
         ...(readKinds(params.kinds) ? { kinds: readKinds(params.kinds) } : {}),
+        mode: params.mode === 'timeline' ? 'timeline' : 'search',
         knowledgePurposes: readPurposes(params.purposes),
         knowledgeSourceIds: sourceIds,
         limit: readBoundedInt(

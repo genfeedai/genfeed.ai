@@ -20,6 +20,35 @@ describe('knowledge search cursor', () => {
     });
   });
 
+  it('round-trips a timeline position and keeps it apart from a score position', () => {
+    const cursor = encodeKnowledgeSearchCursor(
+      { entryId: 'entry-1', occurredAt: '2026-06-15T00:00:00.000Z' },
+      fingerprint,
+    );
+    expect(decodeKnowledgeSearchCursor(cursor, fingerprint)).toEqual({
+      entryId: 'entry-1',
+      occurredAt: '2026-06-15T00:00:00.000Z',
+    });
+    const both = Buffer.from(
+      JSON.stringify({
+        f: fingerprint,
+        i: 'entry-1',
+        s: '0.5',
+        t: '2026-06-15T00:00:00.000Z',
+        v: 1,
+      }),
+    ).toString('base64url');
+    expect(() => decodeKnowledgeSearchCursor(both, fingerprint)).toThrow(
+      InvalidKnowledgeSearchCursorError,
+    );
+    const badTime = Buffer.from(
+      JSON.stringify({ f: fingerprint, i: 'e', t: "now'; --", v: 1 }),
+    ).toString('base64url');
+    expect(() => decodeKnowledgeSearchCursor(badTime, fingerprint)).toThrow(
+      InvalidKnowledgeSearchCursorError,
+    );
+  });
+
   it('rejects a cursor from a different query, filter set or tenant', () => {
     const cursor = encodeKnowledgeSearchCursor(
       { entryId: 'entry-1', score: '0.5' },

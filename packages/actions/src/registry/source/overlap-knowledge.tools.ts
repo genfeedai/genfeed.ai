@@ -48,6 +48,12 @@ export const OVERLAP_KNOWLEDGE_TOOLS: SourceTool[] = [
           minimum: 1,
           type: 'integer',
         },
+        mode: {
+          description:
+            'search (default) ranks by relevance; timeline lists the matching passages oldest first by capture time, each with its citation, for answering what happened in order',
+          enum: ['search', 'timeline'],
+          type: 'string',
+        },
         occurredFrom: {
           description:
             'Only passages from source versions captured on or after this ISO 8601 date',

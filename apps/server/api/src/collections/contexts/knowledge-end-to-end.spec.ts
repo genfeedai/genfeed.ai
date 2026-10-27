@@ -1082,6 +1082,79 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
       expect(afterHide.nextCursor).toBeUndefined();
     });
 
+    it('lists matching passages oldest first with citations and pages through them', async () => {
+      const sources = [];
+      for (const [word, observedAt] of [
+        ['gamma', '2026-03-01T00:00:00Z'],
+        ['alpha', '2026-01-01T00:00:00Z'],
+        ['delta', '2026-04-01T00:00:00Z'],
+        ['beta', '2026-02-01T00:00:00Z'],
+      ] as const) {
+        const added = await note(
+          `Note ${word}`,
+          `Zephyr-9 grinder update about ${word}.`,
+        );
+        sources.push({ added, observedAt });
+      }
+      await prisma.$executeRawUnsafe(
+        'ALTER TABLE knowledge_source_versions DISABLE TRIGGER USER',
+      );
+      for (const { added, observedAt } of sources) {
+        const version = await records.getCurrentVersion(
+          actorA,
+          added.source.id,
+        );
+        await prisma.$executeRawUnsafe(
+          `UPDATE knowledge_source_versions SET "observedAt" = '${observedAt}' WHERE id = '${version.id}'`,
+        );
+      }
+      await prisma.$executeRawUnsafe(
+        'ALTER TABLE knowledge_source_versions ENABLE TRIGGER USER',
+      );
+      const query = 'Zephyr-9 grinder update';
+
+      const all = await search(actorA, query, { limit: 12, mode: 'timeline' });
+      expect(titles(all)).toEqual([
+        'Note alpha',
+        'Note beta',
+        'Note gamma',
+        'Note delta',
+      ]);
+      expect(all.hits.map((hit) => hit.occurredAt)).toEqual([
+        '2026-01-01T00:00:00.000Z',
+        '2026-02-01T00:00:00.000Z',
+        '2026-03-01T00:00:00.000Z',
+        '2026-04-01T00:00:00.000Z',
+      ]);
+      expect(all.hits.every((hit) => hit.citation)).toBe(true);
+
+      const first = await search(actorA, query, { limit: 3, mode: 'timeline' });
+      expect(titles(first)).toEqual(titles(all).slice(0, 3));
+      const second = await search(actorA, query, {
+        cursor: first.nextCursor,
+        limit: 3,
+        mode: 'timeline',
+      });
+      expect(titles(second)).toEqual(['Note delta']);
+      expect(second.nextCursor).toBeUndefined();
+
+      const window = await search(actorA, query, {
+        mode: 'timeline',
+        occurredFrom: new Date('2026-02-01T00:00:00Z'),
+        occurredTo: new Date('2026-03-01T00:00:00Z'),
+      });
+      expect(titles(window)).toEqual(['Note beta', 'Note gamma']);
+
+      // A ranked cursor is not a timeline cursor, and the reverse.
+      const ranked = await search(actorA, query, { limit: 1 });
+      await expect(
+        search(actorA, query, {
+          cursor: ranked.nextCursor,
+          mode: 'timeline',
+        }),
+      ).rejects.toThrow(InvalidKnowledgeSearchCursorError);
+    });
+
     it('rejects a cursor from another query, filter set or tenant', async () => {
       for (const word of ['alpha', 'bravo', 'charlie']) {
         await note(`Note ${word}`, `Zephyr-9 grinder note about ${word}.`);

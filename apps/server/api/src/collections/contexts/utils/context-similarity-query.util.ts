@@ -1,4 +1,5 @@
 import { buildMemorySourceSnapshotHashQuery } from '@api/collections/contexts/utils/context-embedding-claim-query.util';
+import type { KnowledgeSearchPosition } from '@api/collections/contexts/utils/knowledge-search-cursor.util';
 import {
   KnowledgeMemoryScope,
   type KnowledgeSourceKind,
@@ -19,11 +20,13 @@ export const KNOWLEDGE_SEARCH_EXACT_TERM_WEIGHT = 0.5;
  * deterministically.
  */
 export interface KnowledgeSearchQueryOptions {
-  after?: { entryId: string; score: string };
+  after?: KnowledgeSearchPosition;
   exactTerms: string[];
   kinds?: KnowledgeSourceKind[];
   occurredFrom?: Date;
   occurredTo?: Date;
+  /** `timeline` orders by capture time, oldest first, instead of by score. */
+  order?: 'score' | 'timeline';
 }
 
 export interface ContextSimilarityQueryOptions {
@@ -243,12 +246,26 @@ export function buildContextSimilarityQuery(
 
   // Keyset order: the score is rounded to six places and ties break on the
   // entry id, so the position after any row is one comparison.
-  const afterFilter = search.after
-    ? Prisma.sql`WHERE (r."score", r."entryId") < (${search.after.score}::numeric, ${search.after.entryId})`
-    : Prisma.empty;
+  const after = search.after;
+  if (search.order === 'timeline') {
+    const afterTimeline =
+      after?.occurredAt !== undefined
+        ? Prisma.sql`WHERE (r."observedAt", r."entryId") > (${new Date(after.occurredAt)}, ${after.entryId})`
+        : Prisma.empty;
+    return Prisma.sql`
+      SELECT * FROM (${body}) r
+      ${afterTimeline}
+      ORDER BY r."observedAt" ASC, r."entryId" ASC
+      LIMIT ${limit}
+    `;
+  }
+  const afterScore =
+    after?.score !== undefined
+      ? Prisma.sql`WHERE (r."score", r."entryId") < (${after.score}::numeric, ${after.entryId})`
+      : Prisma.empty;
   return Prisma.sql`
     SELECT * FROM (${body}) r
-    ${afterFilter}
+    ${afterScore}
     ORDER BY r."score" DESC, r."entryId" DESC
     LIMIT ${limit}
   `;

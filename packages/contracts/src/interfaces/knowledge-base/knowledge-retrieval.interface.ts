@@ -40,6 +40,8 @@ export interface BrandKnowledgeSearchParams
   cursor?: string;
   /** Only passages from sources of these kinds. */
   kinds?: KnowledgeSourceKind[];
+  /** `timeline` lists the matching passages oldest first; the default ranks by relevance. */
+  mode?: 'search' | 'timeline';
   occurredFrom?: Date;
   occurredTo?: Date;
 }

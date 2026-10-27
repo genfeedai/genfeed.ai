@@ -257,6 +257,7 @@ describe('AgentKnowledgeToolHandler', () => {
       knowledgeSourceIds: ['source-1'],
       limit: 12,
       minRelevance: 0,
+      mode: 'search',
       organizationId: 'org-1',
       query: 'pricing',
       userId: 'user-1',
@@ -558,6 +559,23 @@ describe('AgentKnowledgeToolHandler', () => {
       expect(
         knowledgeContentRetrievalService.searchBrandKnowledge,
       ).not.toHaveBeenCalled();
+    });
+
+    it('lists a timeline only when asked, and ranks otherwise', async () => {
+      const { knowledgeContentRetrievalService, handler } = buildHandler();
+
+      await handler.searchKnowledge({ mode: 'timeline', query: 'launch' }, ctx);
+      await handler.searchKnowledge(
+        { mode: 'anything else', query: 'launch' },
+        ctx,
+      );
+      await handler.searchKnowledge({ query: 'launch' }, ctx);
+
+      expect(
+        knowledgeContentRetrievalService.searchBrandKnowledge.mock.calls.map(
+          ([call]) => call.mode,
+        ),
+      ).toEqual(['timeline', 'search', 'search']);
     });
 
     it('returns the next cursor and says the result is truncated', async () => {

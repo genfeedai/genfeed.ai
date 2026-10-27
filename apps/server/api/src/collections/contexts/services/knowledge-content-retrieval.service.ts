@@ -16,6 +16,7 @@ import type { ContextSimilarityQueryOptions } from '@api/collections/contexts/ut
 import {
   decodeKnowledgeSearchCursor,
   encodeKnowledgeSearchCursor,
+  type KnowledgeSearchPosition,
   knowledgeSearchFingerprint,
 } from '@api/collections/contexts/utils/knowledge-search-cursor.util';
 import { extractExactTerms } from '@api/collections/contexts/utils/knowledge-search-terms.util';
@@ -92,7 +93,9 @@ export class KnowledgeContentRetrievalService {
     if (params.knowledgeSourceIds?.length === 0) return { hits: [] };
     const pageSize = Math.max(1, params.limit ?? 5);
     const query = params.query.trim();
+    const isTimeline = params.mode === 'timeline';
     const fingerprint = knowledgeSearchFingerprint([
+      isTimeline ? 'timeline' : 'search',
       params.organizationId,
       params.userId,
       params.brandId,
@@ -125,6 +128,7 @@ export class KnowledgeContentRetrievalService {
           ...(params.kinds?.length ? { kinds: params.kinds } : {}),
           ...(params.occurredFrom ? { occurredFrom: params.occurredFrom } : {}),
           ...(params.occurredTo ? { occurredTo: params.occurredTo } : {}),
+          ...(isTimeline ? { order: 'timeline' as const } : {}),
         },
       },
     );
@@ -134,15 +138,19 @@ export class KnowledgeContentRetrievalService {
       const occurredAt = page[index]?.observedAt;
       return occurredAt ? { ...hit, occurredAt } : hit;
     });
+    const position: KnowledgeSearchPosition | undefined = !last?.entryId
+      ? undefined
+      : isTimeline
+        ? last.observedAt
+          ? { entryId: last.entryId, occurredAt: last.observedAt }
+          : undefined
+        : last.score
+          ? { entryId: last.entryId, score: last.score }
+          : undefined;
     return {
       hits,
-      ...(entries.length > pageSize && last?.entryId && last.score
-        ? {
-            nextCursor: encodeKnowledgeSearchCursor(
-              { entryId: last.entryId, score: last.score },
-              fingerprint,
-            ),
-          }
+      ...(entries.length > pageSize && position
+        ? { nextCursor: encodeKnowledgeSearchCursor(position, fingerprint) }
         : {}),
     };
   }
