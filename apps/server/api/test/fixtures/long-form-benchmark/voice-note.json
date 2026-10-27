@@ -1,0 +1,12 @@
+{
+  "benchmarkTaskId": "long-form-presenter",
+  "benchmarkTaskVersion": 1,
+  "note": "A synthetic voice note written for the long-form benchmark. Not a real person or company. The same transcript is published with the benchmark task so anyone can re-run it.",
+  "runtimeBudgetSeconds": 480,
+  "presenter": {
+    "name": "Presenter",
+    "avatarAssetId": "benchmark-presenter-photo",
+    "voiceId": "benchmark-presenter-voice"
+  },
+  "transcript": "Okay so, um, this is the voice note for the video about posting every day. Let me just talk it through. So the thing I keep seeing with small studios, and I was one of them, is they post when they have something finished. A new glaze, a new mug, whatever. And then nothing for three weeks. And then they wonder why nobody sees the next thing. The honest answer is the feed doesn't know you exist between those posts. So the hook is something like, most small studios quit posting in the first ninety days, and it's not because they're lazy, it's because they're waiting to be finished. Then I want to tell the story of the kiln. Last winter our kiln broke for a whole month. I had nothing finished to show. So I just filmed the repair. The broken element, the parts arriving, me getting it wrong twice. That month we got more new followers than the whole year before. People don't follow finished things, they follow a person making things. That's the middle of the video. Then the practical part. Three things. One, film the process, not the product. Keep your phone on a little tripod by the wheel and just let it run. Two, pick one time of day and post then, every day, for thirty days. Not perfect, just on time. Three, reuse. One throwing session is a reel, a carousel of stills, and a short post about what went wrong. That's three posts from one hour. And then I want to cover the fear, which is, won't people get bored? And the answer is they won't see all of it. Most people see maybe one in five of your posts. Posting every day just means the one they see is recent. Then the close. Do it for thirty days. Count your followers on day one and day thirty. If it didn't work you've lost nothing, you've got thirty days of process footage. And if it worked, well, you know what to do on day thirty one. Something like that. Maybe end on the kiln again, like, the kiln breaking was the best thing that happened to the studio. Yeah. Okay."
+}
