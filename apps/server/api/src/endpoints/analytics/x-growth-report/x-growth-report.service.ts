@@ -1,8 +1,5 @@
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import type {
-  XGrowthPeriod,
-  XGrowthReport,
-} from '@api/endpoints/analytics/x-growth-report/x-growth-report.types';
+import type { XPostFacts } from '@api/endpoints/analytics/x-growth-report/x-growth-report.types';
 import {
   buildXGrowthReport,
   X_GROWTH_MAX_PERIOD_DAYS,
@@ -10,6 +7,10 @@ import {
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { toPrismaCredentialPlatform } from '@genfeedai/contracts';
+import type {
+  IXGrowthPeriod,
+  IXGrowthReport,
+} from '@genfeedai/contracts/interfaces';
 import type {
   PublicationInsight,
   PublicationInsightsScope,
@@ -22,7 +23,7 @@ const MAX_PUBLICATION_PAGES = 2;
 
 interface XGrowthReportRequest {
   credentialId: string;
-  period: XGrowthPeriod;
+  period: IXGrowthPeriod;
 }
 
 /**
@@ -43,7 +44,7 @@ export class XGrowthReportService {
     scope: PublicationInsightsScope,
     request: XGrowthReportRequest,
     now: Date = new Date(),
-  ): Promise<XGrowthReport> {
+  ): Promise<IXGrowthReport> {
     const period = this.validatePeriod(request.period, now);
     const credential = await this.prisma.credential.findFirst({
       select: { externalHandle: true, id: true, username: true },
@@ -80,6 +81,10 @@ export class XGrowthReportService {
       isTruncated = page === MAX_PUBLICATION_PAGES;
     }
 
+    const postFacts = await this.loadPostFacts(
+      scope,
+      publications.map((publication) => publication.id),
+    );
     const snapshots = await this.prisma.accountAnalyticsSnapshot.findMany({
       orderBy: { date: 'asc' },
       select: { date: true, followers: true, metricAvailability: true },
@@ -94,6 +99,7 @@ export class XGrowthReportService {
       isTruncated,
       now,
       period,
+      postFacts,
       publications,
       scope: {
         brandId: scope.brandId,
@@ -105,7 +111,52 @@ export class XGrowthReportService {
     });
   }
 
-  private validatePeriod(period: XGrowthPeriod, now: Date): XGrowthPeriod {
+  /** What each post records about quoting and about who approved it. */
+  private async loadPostFacts(
+    scope: PublicationInsightsScope,
+    postIds: string[],
+  ): Promise<Map<string, XPostFacts>> {
+    if (postIds.length === 0) {
+      return new Map();
+    }
+    const posts = await this.prisma.post.findMany({
+      select: {
+        id: true,
+        publishApproval: { select: { executedAt: true, status: true } },
+        quoteTweetId: true,
+        reviewDecision: true,
+        reviewedAt: true,
+      },
+      where: scopedWhere(scope.organizationId, {
+        brandId: scope.brandId,
+        id: { in: postIds },
+      }),
+    });
+    return new Map(
+      posts.map((post) => {
+        const hasApproval = Boolean(
+          post.reviewDecision || post.reviewedAt || post.publishApproval,
+        );
+        return [
+          post.id,
+          {
+            approval: hasApproval
+              ? {
+                  decision: post.reviewDecision ?? null,
+                  publishApprovalExecutedAt:
+                    post.publishApproval?.executedAt?.toISOString() ?? null,
+                  publishApprovalStatus: post.publishApproval?.status ?? null,
+                  reviewedAt: post.reviewedAt?.toISOString() ?? null,
+                }
+              : null,
+            isQuote: Boolean(post.quoteTweetId),
+          },
+        ];
+      }),
+    );
+  }
+
+  private validatePeriod(period: IXGrowthPeriod, now: Date): IXGrowthPeriod {
     const from = new Date(period.from);
     const to = new Date(period.to);
     if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) {

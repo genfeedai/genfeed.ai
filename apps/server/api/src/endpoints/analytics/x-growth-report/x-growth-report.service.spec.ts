@@ -22,6 +22,7 @@ interface CredentialRow {
 
 function setup(options: {
   credentials?: CredentialRow[];
+  posts?: Array<Record<string, unknown>>;
   pages?: Array<{
     docs: Array<Partial<PublicationInsight>>;
     hasNextPage: boolean;
@@ -45,6 +46,15 @@ function setup(options: {
   ];
   const prisma = {
     accountAnalyticsSnapshot: { findMany: async () => [] },
+    post: {
+      findMany: async ({ where }: { where: Record<string, unknown> }) =>
+        (options.posts ?? []).filter(
+          (row) =>
+            row.organizationId === where.organizationId &&
+            row.brandId === where.brandId &&
+            (where.id as { in: string[] }).in.includes(row.id as string),
+        ),
+    },
     credential: {
       findFirst: async ({ where }: { where: Record<string, unknown> }) =>
         credentials.find(
@@ -150,5 +160,72 @@ describe('XGrowthReportService', () => {
     await expect(
       service.build(SCOPE, { credentialId: 'cred-1', period }, NOW),
     ).rejects.toThrow();
+  });
+
+  it('adds quote and approval facts from the post, within the same organization and brand', async () => {
+    const { service } = setup({
+      pages: [
+        {
+          docs: [
+            {
+              id: 'p1',
+              publicationKind: 'post',
+              urlKind: 'permalink',
+              url: 'https://x.com/genfeedai/status/1',
+              externalId: '1',
+            },
+            {
+              id: 'p2',
+              publicationKind: 'post',
+              urlKind: 'permalink',
+              url: 'https://x.com/genfeedai/status/2',
+              externalId: '2',
+            },
+          ],
+          hasNextPage: false,
+        },
+      ],
+      posts: [
+        {
+          brandId: 'brand-1',
+          id: 'p1',
+          organizationId: 'org-1',
+          publishApproval: {
+            executedAt: new Date('2026-10-03T10:00:05.000Z'),
+            status: 'executed',
+          },
+          quoteTweetId: 'q-9',
+          reviewDecision: 'APPROVED',
+          reviewedAt: new Date('2026-10-03T09:00:00.000Z'),
+        },
+        {
+          brandId: 'brand-9',
+          id: 'p2',
+          organizationId: 'org-1',
+          publishApproval: null,
+          quoteTweetId: 'q-8',
+          reviewDecision: 'APPROVED',
+          reviewedAt: null,
+        },
+      ],
+    });
+
+    const report = await service.build(
+      SCOPE,
+      { credentialId: 'cred-1', period: PERIOD },
+      NOW,
+    );
+
+    expect(report.activity.rows.map((row) => row.kind)).toEqual([
+      'quote',
+      'post',
+    ]);
+    expect(report.activity.rows[0].approval).toMatchObject({
+      decision: 'APPROVED',
+      publishApprovalStatus: 'executed',
+      reviewedAt: '2026-10-03T09:00:00.000Z',
+    });
+    // The other brand's post row is never read, so p2 carries no facts.
+    expect(report.activity.rows[1].approval).toBeNull();
   });
 });

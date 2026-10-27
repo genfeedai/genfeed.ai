@@ -235,7 +235,12 @@ describe('buildXGrowthReport', () => {
     expect(activity.rows[1].kind).toBe('reply');
     // A parent's context URL is not the publication's own address.
     expect(activity.rows[2].url).toBeNull();
-    expect(activity.summary.byKind).toEqual({ post: 2, reply: 1, unknown: 0 });
+    expect(activity.summary.byKind).toEqual({
+      post: 2,
+      quote: 0,
+      reply: 1,
+      unknown: 0,
+    });
   });
 
   it('shows missing, pending, failed and stale metrics as such, never a zero', () => {
@@ -309,5 +314,60 @@ describe('buildXGrowthReport', () => {
     expect(result.scopeKey).not.toBe(
       growthScopeKey(SCOPE, { ...PERIOD, to: '2026-10-09T00:00:00.000Z' }),
     );
+  });
+
+  it('tells a quote from a post and a reply, and carries approval and send receipts', () => {
+    const facts = new Map([
+      [
+        'q',
+        {
+          approval: {
+            decision: 'APPROVED',
+            publishApprovalExecutedAt: '2026-10-03T10:00:05.000Z',
+            publishApprovalStatus: 'executed',
+            reviewedAt: '2026-10-03T09:00:00.000Z',
+          },
+          isQuote: true,
+        },
+      ],
+      ['r', { approval: null, isQuote: true }],
+    ]);
+
+    const { activity } = buildXGrowthReport({
+      isTruncated: false,
+      now: NOW,
+      period: PERIOD,
+      postFacts: facts,
+      publications: [
+        insight('q'),
+        insight('r', { publicationKind: 'reply' }),
+        insight('n', { externalId: null }),
+      ],
+      scope: SCOPE,
+      snapshots: [],
+    });
+
+    expect(activity.rows.map((row) => row.kind)).toEqual([
+      'quote',
+      'reply',
+      'post',
+    ]);
+    expect(activity.rows[0].approval).toMatchObject({
+      decision: 'APPROVED',
+      publishApprovalStatus: 'executed',
+    });
+    expect(activity.rows[0].sendReceipt).toEqual({
+      externalId: 'x-q',
+      publishedAt: '2026-10-03T10:00:00.000Z',
+      url: 'https://x.com/genfeedai/status/q',
+    });
+    // A row X never returned an id for has no send receipt, and none is made up.
+    expect(activity.rows[2].sendReceipt).toBeNull();
+    expect(activity.rows[2].approval).toBeNull();
+    expect(activity.summary.byKind).toMatchObject({
+      post: 1,
+      quote: 1,
+      reply: 1,
+    });
   });
 });

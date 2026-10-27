@@ -1,14 +1,6 @@
 import type {
-  XActivityKind,
-  XActivityMetricState,
-  XActivityRow,
-  XActivitySummary,
-  XFollowerGrowth,
-  XFollowerReset,
   XFollowerSnapshotInput,
-  XGrowthPeriod,
-  XGrowthReport,
-  XGrowthScope,
+  XPostFacts,
 } from '@api/endpoints/analytics/x-growth-report/x-growth-report.types';
 import {
   AnalyticsMetricAvailability,
@@ -16,6 +8,17 @@ import {
   DEFAULT_FLEET_EVALUATION_FRESHNESS_HOURS,
   TargetAnalyticsCollectionState,
 } from '@genfeedai/contracts';
+import type {
+  IXActivityRow,
+  IXActivitySummary,
+  IXFollowerReset,
+  IXGrowthPeriod,
+  IXGrowthReport,
+  IXGrowthScope,
+  XActivityKind,
+  XActivityMetricState,
+  XFollowerGrowth,
+} from '@genfeedai/contracts/interfaces';
 import type { PublicationInsight } from '@genfeedai/contracts/interfaces/content/publication-insights.interface';
 
 const DAY_MS = 86_400_000;
@@ -35,7 +38,7 @@ function dayKey(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-export function periodDays(period: XGrowthPeriod): number {
+export function periodDays(period: IXGrowthPeriod): number {
   return Math.max(
     1,
     Math.ceil(
@@ -46,8 +49,8 @@ export function periodDays(period: XGrowthPeriod): number {
 }
 
 export function growthScopeKey(
-  scope: Pick<XGrowthScope, 'brandId' | 'credentialId' | 'organizationId'>,
-  period: XGrowthPeriod,
+  scope: Pick<IXGrowthScope, 'brandId' | 'credentialId' | 'organizationId'>,
+  period: IXGrowthPeriod,
 ): string {
   return [
     scope.organizationId,
@@ -82,7 +85,7 @@ function isObservedFollowers(snapshot: XFollowerSnapshotInput): boolean {
  */
 export function buildFollowerGrowth(
   snapshots: XFollowerSnapshotInput[],
-  period: XGrowthPeriod,
+  period: IXGrowthPeriod,
 ): XFollowerGrowth {
   const days = periodDays(period);
   const from = new Date(period.from).getTime();
@@ -99,7 +102,7 @@ export function buildFollowerGrowth(
     }))
     .sort((left, right) => left.date.getTime() - right.date.getTime());
 
-  const resets: XFollowerReset[] = [];
+  const resets: IXFollowerReset[] = [];
   let segmentStart = 0;
   for (let index = 1; index < observed.length; index += 1) {
     const before = observed[index - 1].followers;
@@ -185,13 +188,30 @@ function metricState(insight: PublicationInsight): XActivityMetricState {
   return observed > 0 ? 'partial' : 'unavailable';
 }
 
+/**
+ * A reply stays a reply; a post that quotes another is a quote. Both come from
+ * what is stored on the publication, never from its text or a parent URL.
+ */
+function kindOf(
+  insight: PublicationInsight,
+  facts?: XPostFacts,
+): XActivityKind {
+  if (insight.publicationKind === 'post' && facts?.isQuote) {
+    return 'quote';
+  }
+  return insight.publicationKind;
+}
+
 export function toActivityRow(
   insight: PublicationInsight,
   now: Date,
-): XActivityRow {
+  facts?: XPostFacts,
+): IXActivityRow {
   const sampleUpdatedAt = insight.latestSample?.updatedAt ?? null;
-  const kind: XActivityKind = insight.publicationKind;
+  const kind = kindOf(insight, facts);
+  const url = insight.urlKind === 'permalink' ? insight.url : null;
   return {
+    approval: facts?.approval ?? null,
     collectionMessage: insight.collectionMessage,
     collectionState: insight.collectionState,
     externalId: insight.externalId,
@@ -207,13 +227,21 @@ export function toActivityRow(
     publishedAt: insight.publicationDate,
     sampleUpdatedAt,
     text: insight.description,
-    url: insight.urlKind === 'permalink' ? insight.url : null,
+    sendReceipt: insight.externalId
+      ? {
+          externalId: insight.externalId,
+          publishedAt: insight.publicationDate,
+          url,
+        }
+      : null,
+    url,
   };
 }
 
-export function summarizeActivity(rows: XActivityRow[]): XActivitySummary {
+export function summarizeActivity(rows: IXActivityRow[]): IXActivitySummary {
   const byKind: Record<XActivityKind, number> = {
     post: 0,
+    quote: 0,
     reply: 0,
     unknown: 0,
   };
@@ -242,13 +270,14 @@ export function summarizeActivity(rows: XActivityRow[]): XActivitySummary {
 export function buildXGrowthReport(input: {
   isTruncated: boolean;
   now: Date;
-  period: XGrowthPeriod;
+  period: IXGrowthPeriod;
+  postFacts?: Map<string, XPostFacts>;
   publications: PublicationInsight[];
-  scope: XGrowthScope;
+  scope: IXGrowthScope;
   snapshots: XFollowerSnapshotInput[];
-}): XGrowthReport {
+}): IXGrowthReport {
   const rows = input.publications.map((insight) =>
-    toActivityRow(insight, input.now),
+    toActivityRow(insight, input.now, input.postFacts?.get(insight.id)),
   );
   return {
     activity: {
