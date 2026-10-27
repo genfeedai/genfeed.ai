@@ -115,8 +115,9 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
-vi.mock('@genfeedai/config', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@genfeedai/config')>();
+vi.mock('@genfeedai/config/deployment', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@genfeedai/config/deployment')>();
   return {
     ...actual,
     isSelfHostedDeployment: () => false,

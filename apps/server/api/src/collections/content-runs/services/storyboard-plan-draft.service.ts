@@ -5,6 +5,12 @@ import {
   storyboardLongFormDraftOutputSchema,
 } from '@api/collections/content-runs/services/storyboard-long-form-draft';
 import {
+  applyStoryboardLongFormTranslation,
+  buildStoryboardLongFormTranslationMessages,
+  type StoryboardLongFormTranslationRequest,
+  storyboardLongFormTranslationOutputSchema,
+} from '@api/collections/content-runs/services/storyboard-long-form-translation';
+import {
   assembleStoryboardDraft,
   buildStoryboardDraftMessages,
   STORYBOARD_MIN_SHOTS,
@@ -102,6 +108,36 @@ export class StoryboardPlanDraftService {
         JSON.parse(response.choices[0]?.message.content ?? ''),
       );
       return assembleStoryboardLongFormDraft(request, output);
+    } catch (error: unknown) {
+      return this.fail(error);
+    }
+  }
+
+  /**
+   * Translate a long-form script line by line for a copy in another language
+   * (#8226). Same retry contract as `draft`: nothing is saved on failure.
+   */
+  async translateLongForm(
+    request: StoryboardLongFormTranslationRequest,
+  ): Promise<StoryboardPlan> {
+    try {
+      const response = await this.openrouter.chatCompletion({
+        model: LLM_DEFAULTS.productTextFallback,
+        max_tokens: 32_768,
+        messages: buildStoryboardLongFormTranslationMessages(request),
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'storyboard_long_form_translation',
+            strict: true,
+            schema: z.toJSONSchema(storyboardLongFormTranslationOutputSchema),
+          },
+        },
+      });
+      const output = storyboardLongFormTranslationOutputSchema.parse(
+        JSON.parse(response.choices[0]?.message.content ?? ''),
+      );
+      return applyStoryboardLongFormTranslation(request.plan, output);
     } catch (error: unknown) {
       return this.fail(error);
     }

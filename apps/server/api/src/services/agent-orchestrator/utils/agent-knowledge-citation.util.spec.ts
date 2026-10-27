@@ -9,6 +9,7 @@ import {
   KnowledgeSourcePurpose,
 } from '@genfeedai/contracts';
 import type { KnowledgeReceipt } from '@genfeedai/contracts/interfaces';
+import { readKnowledgeSearchReceipts } from '@genfeedai/utils/knowledge/knowledge-receipt.util';
 import { describe, expect, it } from 'vitest';
 
 function passage(sourceId: string, content: string) {
@@ -35,6 +36,20 @@ function receipt(sourceId: string): KnowledgeReceipt {
 }
 
 describe('annotateKnowledgeSearchData', () => {
+  it('records the same receipts an MCP client receives for the same result', () => {
+    const turn: { knowledgePassages?: TurnKnowledgePassages } = {};
+    const data = {
+      passages: [passage('a', 'one'), passage('b', 'two')],
+      query: 'q',
+    };
+    annotateKnowledgeSearchData(turn, data, 'brand-1');
+    expect(
+      [...(turn.knowledgePassages?.values() ?? [])].map(
+        (entry) => entry.receipt,
+      ),
+    ).toEqual(readKnowledgeSearchReceipts(data));
+  });
+
   it('gives every passage a distinct id and records it for the turn', () => {
     const turn: { knowledgePassages?: TurnKnowledgePassages } = {};
     const annotated = annotateKnowledgeSearchData(

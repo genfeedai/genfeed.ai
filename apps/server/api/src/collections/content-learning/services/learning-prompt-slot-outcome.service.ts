@@ -1,10 +1,10 @@
-import type {
-  LearningPromptSlotOutcomeGroup,
-  LearningPromptSlotOutcomeQuery,
-  LearningPromptSlotOutcomeReport,
-} from '@api/collections/content-learning/interfaces/learning-prompt-slot-outcome.interface';
+import type { LearningPromptSlotOutcomeQuery } from '@api/collections/content-learning/interfaces/learning-prompt-slot-outcome.interface';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
+import type {
+  LearningPromptSlotOutcomeGroup,
+  LearningPromptSlotOutcomeReport,
+} from '@genfeedai/contracts/interfaces';
 import {
   compareStructuredPromptSlots,
   hasStructuredPrompt,
@@ -81,10 +81,11 @@ function rewardObjective(confidence: Prisma.JsonValue): string | null {
  * Posts without a valid reward or without stored slots are counted, not guessed.
  */
 export function buildLearningPromptSlotOutcomeReport(
-  organizationId: string,
+  organizationIds: readonly string[],
   posts: readonly LearningSlotOutcomePostRow[],
   isTruncated: boolean,
 ): LearningPromptSlotOutcomeReport {
+  const scope = [...organizationIds].sort().join(',');
   const skipped = { noPrompt: 0, noSlots: 0, noValidReward: 0 };
   const grouped = new Map<
     string,
@@ -132,12 +133,13 @@ export function buildLearningPromptSlotOutcomeReport(
       objective,
       postCount: observations.length,
       comparison: compareStructuredPromptSlots(observations, {
-        seed: `${organizationId}:${key}`,
+        seed: `${scope}:${key}`,
       }),
     }));
 
   return {
-    organizationId,
+    organizationIds: [...organizationIds],
+    isPooled: organizationIds.length > 1,
     postCount: posts.length,
     skipped,
     isTruncated,
@@ -157,26 +159,33 @@ export class LearningPromptSlotOutcomeService {
   async report(
     query: LearningPromptSlotOutcomeQuery,
   ): Promise<LearningPromptSlotOutcomeReport> {
-    const { organizationId, brandId, credentialId } = query;
-    const rows = await this.prisma.post.findMany({
-      orderBy: { id: 'desc' },
-      select: slotOutcomePostSelect,
-      take: LEARNING_PROMPT_SLOT_POST_LIMIT + 1,
-      where: scopedWhere(organizationId, {
-        ...(brandId ? { brandId } : {}),
-        ...(credentialId ? { credentialId } : {}),
-        ingredientLinks: {
-          some: { ingredient: { isDeleted: false, promptId: { not: null } } },
-        },
-        learningDecision: {
-          is: { isDeleted: false, organizationId, synthetic: false },
-        },
-      }),
-    });
-    const isTruncated = rows.length > LEARNING_PROMPT_SLOT_POST_LIMIT;
+    const { organizationIds, brandId, credentialId } = query;
+    const posts: LearningSlotOutcomePostRow[] = [];
+    let isTruncated = false;
+    // One scoped query per organization: a pooled view never widens a query's
+    // tenant filter, it only concatenates single-tenant reads.
+    for (const organizationId of organizationIds) {
+      const rows = await this.prisma.post.findMany({
+        orderBy: { id: 'desc' },
+        select: slotOutcomePostSelect,
+        take: LEARNING_PROMPT_SLOT_POST_LIMIT + 1,
+        where: scopedWhere(organizationId, {
+          ...(brandId ? { brandId } : {}),
+          ...(credentialId ? { credentialId } : {}),
+          ingredientLinks: {
+            some: { ingredient: { isDeleted: false, promptId: { not: null } } },
+          },
+          learningDecision: {
+            is: { isDeleted: false, organizationId, synthetic: false },
+          },
+        }),
+      });
+      isTruncated ||= rows.length > LEARNING_PROMPT_SLOT_POST_LIMIT;
+      posts.push(...rows.slice(0, LEARNING_PROMPT_SLOT_POST_LIMIT));
+    }
     return buildLearningPromptSlotOutcomeReport(
-      organizationId,
-      rows.slice(0, LEARNING_PROMPT_SLOT_POST_LIMIT),
+      organizationIds,
+      posts,
       isTruncated,
     );
   }

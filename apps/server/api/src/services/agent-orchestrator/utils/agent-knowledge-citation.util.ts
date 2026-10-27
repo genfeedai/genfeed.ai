@@ -1,8 +1,11 @@
 import type {
   AgentKnowledgeCitation,
   KnowledgeReceipt,
-  KnowledgeRetrievalCitation,
 } from '@genfeedai/contracts/interfaces';
+import {
+  isKnowledgeSearchPassage,
+  toKnowledgeReceipt,
+} from '@genfeedai/utils/knowledge/knowledge-receipt.util';
 
 /** Most passages one turn can offer; matches the resolver's own bound. */
 export const MAX_TURN_KNOWLEDGE_PASSAGES = 512;
@@ -20,23 +23,6 @@ export interface TurnKnowledgePassage {
 
 export type TurnKnowledgePassages = Map<string, TurnKnowledgePassage>;
 
-interface SearchPassage {
-  citation: KnowledgeRetrievalCitation;
-  content: string;
-  relevance: number;
-}
-
-function isSearchPassage(value: unknown): value is SearchPassage {
-  if (!value || typeof value !== 'object') return false;
-  const { citation, content, relevance } = value as Partial<SearchPassage>;
-  return (
-    typeof content === 'string' &&
-    typeof relevance === 'number' &&
-    typeof citation?.sourceId === 'string' &&
-    typeof citation.versionId === 'string'
-  );
-}
-
 /**
  * Gives each passage of a `search_knowledge` result an opaque id and records
  * the passage server-side. The model can only cite ids from this map, so text
@@ -53,7 +39,7 @@ export function annotateKnowledgeSearchData(
   const ids: string[] = [];
   const passages = data.passages.map((passage: unknown) => {
     if (
-      !isSearchPassage(passage) ||
+      !isKnowledgeSearchPassage(passage) ||
       turnPassages.size >= MAX_TURN_KNOWLEDGE_PASSAGES
     ) {
       return passage;
@@ -63,11 +49,7 @@ export function annotateKnowledgeSearchData(
     const passageId = `p${next}`;
     turnPassages.set(passageId, {
       ...(brandId ? { brandId } : {}),
-      receipt: {
-        ...passage.citation,
-        excerpt: passage.content,
-        relevance: passage.relevance,
-      },
+      receipt: toKnowledgeReceipt(passage),
     });
     ids.push(passageId);
     return { ...passage, passageId };

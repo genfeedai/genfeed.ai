@@ -8,13 +8,12 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { DiscoveryPage } from '../../pages/discovery.page';
+import { chooseFilterOption } from '../../utils/filter-menu';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 /** Picks one platform in the Platform facet of the shared Filters menu. */
 async function chooseAdsPlatform(page: Page, name: RegExp): Promise<void> {
-  await page.getByRole('button', { name: /^Filters/ }).click();
-  await page.getByRole('menuitem', { name: /^Platform/ }).click();
-  await page.getByRole('menuitemradio', { name }).click();
+  await chooseFilterOption(page, 'Platform', name);
 }
 
 /**
@@ -237,13 +236,7 @@ test.describe('Discovery section', () => {
       // The Desk's source filter is URL-backed (`?source=`) — select a
       // non-default source in the Filters menu so refresh has real state to
       // preserve.
-      await authenticatedPage.getByRole('button', { name: /^Filters/ }).click();
-      await authenticatedPage
-        .getByRole('menuitem', { name: /^Source/ })
-        .click();
-      await authenticatedPage
-        .getByRole('menuitemradio', { name: /^Public trends/ })
-        .click();
+      await chooseFilterOption(authenticatedPage, 'Source', /^Public trends/);
       await expect(authenticatedPage).toHaveURL(/source=trends/);
       await expect(
         authenticatedPage.getByText('Workflow demo clip'),

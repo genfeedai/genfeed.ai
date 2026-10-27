@@ -81,14 +81,42 @@ describe('ContentLearningAdminController list endpoints', () => {
 
 describe('ContentLearningAdminController prompt slot report', () => {
   it('reports the slot outcomes of the organization named in the query', async () => {
-    const report = { organizationId: 'org-1', groups: [] };
+    const report = { groups: [], isPooled: false, organizationIds: ['org-1'] };
     const slotOutcomes = { report: vi.fn().mockResolvedValue(report) };
     const { controller } = makeController(slotOutcomes);
-    const query = { brandId: 'brand-1', organizationId: 'org-1' };
 
-    await expect(controller.promptSlots(query)).resolves.toEqual({
-      data: report,
+    await expect(
+      controller.promptSlots({ brandId: 'brand-1', organizationId: 'org-1' }),
+    ).resolves.toEqual({ data: report });
+    expect(slotOutcomes.report).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      credentialId: undefined,
+      organizationIds: ['org-1'],
     });
-    expect(slotOutcomes.report).toHaveBeenCalledWith(query);
   });
+
+  it('pools the organizations named in organizationIds', async () => {
+    const slotOutcomes = { report: vi.fn().mockResolvedValue({ groups: [] }) };
+    const { controller } = makeController(slotOutcomes);
+
+    await controller.promptSlots({ organizationIds: 'org-1,org-2' });
+
+    expect(slotOutcomes.report).toHaveBeenCalledWith(
+      expect.objectContaining({ organizationIds: ['org-1', 'org-2'] }),
+    );
+  });
+
+  it.each([
+    ['no organization', {}],
+    ['both forms', { organizationId: 'a', organizationIds: 'b,c' }],
+  ])(
+    'rejects a request with %s before reading anything',
+    async (_label, query) => {
+      const slotOutcomes = { report: vi.fn() };
+      const { controller } = makeController(slotOutcomes);
+
+      await expect(controller.promptSlots(query)).rejects.toThrow();
+      expect(slotOutcomes.report).not.toHaveBeenCalled();
+    },
+  );
 });

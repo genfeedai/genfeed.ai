@@ -5,6 +5,7 @@ import {
   mockDiscoveryDeskFollowingFeed,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { chooseFilterOption } from '../../utils/filter-menu';
 import {
   assertNoErrorBoundaryFallback,
   assertRouteRenders,
@@ -113,11 +114,7 @@ test.describe('Discovery — deep interactions', () => {
     // The source tab strip lives in the one nested Filters menu.
     await expect(authenticatedPage.getByRole('tab')).toHaveCount(0);
     const chooseSource = async (name: RegExp) => {
-      await authenticatedPage.getByRole('button', { name: /^Filters/ }).click();
-      await authenticatedPage
-        .getByRole('menuitem', { name: /^Source/ })
-        .click();
-      await authenticatedPage.getByRole('menuitemradio', { name }).click();
+      await chooseFilterOption(authenticatedPage, 'Source', name);
     };
 
     await chooseSource(/^Public trends/);
@@ -224,11 +221,7 @@ test.describe('Discovery — deep interactions', () => {
     // The platform strip lives in the one nested Filters menu.
     await expect(authenticatedPage.getByRole('tab')).toHaveCount(0);
     const choosePlatform = async (name: RegExp) => {
-      await authenticatedPage.getByRole('button', { name: /^Filters/ }).click();
-      await authenticatedPage
-        .getByRole('menuitem', { name: /^Platform/ })
-        .click();
-      await authenticatedPage.getByRole('menuitemradio', { name }).click();
+      await chooseFilterOption(authenticatedPage, 'Platform', name);
     };
 
     await choosePlatform(/^Google \+ YouTube/);

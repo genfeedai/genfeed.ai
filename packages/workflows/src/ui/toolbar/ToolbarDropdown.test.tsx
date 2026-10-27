@@ -32,11 +32,17 @@ describe('ToolbarDropdown', () => {
     return { onClick };
   }
 
-  it('opens on trigger click and lists items', () => {
+  function openMenu() {
+    fireEvent.keyDown(screen.getByRole('button', { name: /File/ }), {
+      key: 'Enter',
+    });
+  }
+
+  it('opens from the trigger and lists items', () => {
     renderDropdown();
     expect(screen.queryByText('First Action')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByText('File'));
+    openMenu();
     expect(screen.getByText('First Action')).toBeInTheDocument();
     expect(screen.getByText('Docs')).toBeInTheDocument();
     expect(screen.getByText('↗')).toBeInTheDocument();
@@ -44,7 +50,7 @@ describe('ToolbarDropdown', () => {
 
   it('invokes the item action and closes', () => {
     const { onClick } = renderDropdown();
-    fireEvent.click(screen.getByText('File'));
+    openMenu();
     fireEvent.click(screen.getByText('First Action'));
 
     expect(onClick).toHaveBeenCalledTimes(1);
@@ -53,7 +59,7 @@ describe('ToolbarDropdown', () => {
 
   it('ignores clicks on disabled items', () => {
     const { onClick } = renderDropdown(vi.fn(), { disabled: true });
-    fireEvent.click(screen.getByText('File'));
+    openMenu();
     fireEvent.click(screen.getByText('First Action'));
 
     expect(onClick).not.toHaveBeenCalled();
@@ -61,16 +67,8 @@ describe('ToolbarDropdown', () => {
 
   it('closes on Escape', () => {
     renderDropdown();
-    fireEvent.click(screen.getByText('File'));
-    fireEvent.keyDown(document, { key: 'Escape' });
-
-    expect(screen.queryByText('First Action')).not.toBeInTheDocument();
-  });
-
-  it('closes on outside mousedown', () => {
-    renderDropdown();
-    fireEvent.click(screen.getByText('File'));
-    fireEvent.mouseDown(document.body);
+    openMenu();
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
 
     expect(screen.queryByText('First Action')).not.toBeInTheDocument();
   });

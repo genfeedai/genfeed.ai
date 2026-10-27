@@ -2,6 +2,7 @@ import { SocialConversationType } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   getMessagesSyncFeedback,
+  getMessagesSyncResultFeedback,
   parseMessagesSurface,
   settleMessagesSyncJobs,
 } from './messages-page.helpers';
@@ -110,5 +111,76 @@ describe('getMessagesSyncFeedback', () => {
       error: 'Sync failed to queue for Instagram, X, LinkedIn.',
       notice: null,
     });
+  });
+});
+
+describe('getMessagesSyncResultFeedback', () => {
+  it('reports what a YouTube comment sync scanned and imported', () => {
+    expect(
+      getMessagesSyncResultFeedback([
+        {
+          commentsSeen: 3,
+          conversationType: 'comment',
+          conversationsCreated: 2,
+          kind: 'sync-completed',
+          messagesCreated: 3,
+          platform: 'youtube',
+          postFailureCount: 1,
+          postsScanned: 4,
+        },
+      ]),
+    ).toEqual({
+      error: null,
+      notice:
+        'YouTube comments sync finished: scanned 4 videos, saw 3 comments, imported 3 new messages in 2 conversations. 1 video could not be read.',
+    });
+  });
+
+  it('says so when no published video is eligible instead of reporting a bare success', () => {
+    expect(
+      getMessagesSyncResultFeedback([
+        {
+          commentsSeen: 0,
+          conversationType: 'comment',
+          conversationsCreated: 0,
+          kind: 'sync-completed',
+          messagesCreated: 0,
+          platform: 'youtube',
+          postFailureCount: 0,
+          postsScanned: 0,
+        },
+      ]).notice,
+    ).toContain('no published video is eligible');
+  });
+
+  it('shows a failed job as an error, never as a finished sync', () => {
+    expect(
+      getMessagesSyncResultFeedback([
+        {
+          conversationType: 'comment',
+          kind: 'sync-failed',
+          message: 'Inbox sync found no connected account.',
+          platform: 'youtube',
+        },
+      ]),
+    ).toEqual({
+      error:
+        'YouTube comments sync failed: Inbox sync found no connected account.',
+      notice: null,
+    });
+  });
+
+  it('summarises non-YouTube syncs by their imported counts', () => {
+    expect(
+      getMessagesSyncResultFeedback([
+        {
+          conversationType: 'dm',
+          conversationsCreated: 1,
+          kind: 'sync-completed',
+          messagesCreated: 1,
+          platform: 'twitter',
+        },
+      ]).notice,
+    ).toBe('X direct messages sync finished: 1 new message in 1 conversation.');
   });
 });

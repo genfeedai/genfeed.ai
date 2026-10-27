@@ -38,6 +38,7 @@ import { StoryboardAnimaticVoiceService } from '@api/collections/content-runs/se
 import { StoryboardCharacterReplaceService } from '@api/collections/content-runs/services/storyboard-character-replace.service';
 import { StoryboardLongFormAssemblyService } from '@api/collections/content-runs/services/storyboard-long-form-assembly.service';
 import { StoryboardLongFormEstimateService } from '@api/collections/content-runs/services/storyboard-long-form-estimate.service';
+import { StoryboardLongFormTranslationService } from '@api/collections/content-runs/services/storyboard-long-form-translation.service';
 import { StoryboardPlanDraftService } from '@api/collections/content-runs/services/storyboard-plan-draft.service';
 import { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/services/storyboard-run-capabilities.service';
 import { StoryboardRunStoreService } from '@api/collections/content-runs/services/storyboard-run-store.service';
@@ -130,6 +131,7 @@ import { Module } from '@nestjs/common';
     StoryboardAnimaticVoiceService,
     StoryboardLongFormAssemblyService,
     StoryboardLongFormEstimateService,
+    StoryboardLongFormTranslationService,
     BrandRemixSceneService,
     BrandRemixSceneStoreService,
     BrandRemixSceneQuoteService,

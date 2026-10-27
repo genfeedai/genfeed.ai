@@ -18,7 +18,10 @@ import type {
   StoryboardSegment,
   StoryboardShot,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
-import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
+import type {
+  StoryboardRun,
+  StoryboardTranslationLanguage,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardRunCapabilities } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
 import type { StoryboardRunSummary } from '@genfeedai/contracts/api-types/contracts/storyboard-run-summary.contract';
 import type { StoryboardSourceSelector } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
@@ -250,6 +253,11 @@ export interface StoryboardLongFormActions {
     revision: number,
     signal?: AbortSignal,
   ) => Promise<StoryboardLongFormEstimate>;
+  /** Copies the storyboard with its script in another language; returns the copy. */
+  readonly translateLongForm: (
+    revision: number,
+    language: StoryboardTranslationLanguage,
+  ) => Promise<StoryboardRun>;
   /** Opens the animatic or the finished edit as an Editor project. */
   readonly assembleLongForm: (
     track: StoryboardPresenterTrack,

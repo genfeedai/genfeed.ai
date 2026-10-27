@@ -4,6 +4,7 @@ import adminCreditHolds from '../../messages/en/pages/adminCreditHolds.json';
 import adminEconomics from '../../messages/en/pages/adminEconomics.json';
 import adminFlags from '../../messages/en/pages/adminFlags.json';
 import adminGenerations from '../../messages/en/pages/adminGenerations.json';
+import adminLearning from '../../messages/en/pages/adminLearning.json';
 import adminModelDetail from '../../messages/en/pages/adminModelDetail.json';
 import adminModelPricing from '../../messages/en/pages/adminModelPricing.json';
 import adminOrganizationReleases from '../../messages/en/pages/adminOrganizationReleases.json';
@@ -40,6 +41,7 @@ const messages = {
   adminOrganizationReleases,
   adminOrganizations,
   adminFlags,
+  adminLearning,
   platformSettings,
   adminAgents,
   adminUsers,

@@ -10,6 +10,7 @@ import {
   RenderStoryboardARollDto,
   ReplaceStoryboardCharacterDto,
   ResetStoryboardPlanDto,
+  TranslateStoryboardRunDto,
   UpdateStoryboardPlanDto,
   UpdateStoryboardSourceDto,
 } from '@api/collections/content-runs/dto/storyboard-run.dto';
@@ -17,6 +18,7 @@ import { StoryboardARollService } from '@api/collections/content-runs/services/s
 import { StoryboardCharacterReplaceService } from '@api/collections/content-runs/services/storyboard-character-replace.service';
 import { StoryboardLongFormAssemblyService } from '@api/collections/content-runs/services/storyboard-long-form-assembly.service';
 import { StoryboardLongFormEstimateService } from '@api/collections/content-runs/services/storyboard-long-form-estimate.service';
+import { StoryboardLongFormTranslationService } from '@api/collections/content-runs/services/storyboard-long-form-translation.service';
 import { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/services/storyboard-run-capabilities.service';
 import { StoryboardRunsService } from '@api/collections/content-runs/services/storyboard-runs.service';
 import { StoryboardStillsService } from '@api/collections/content-runs/services/storyboard-stills.service';
@@ -55,6 +57,7 @@ export class StoryboardRunsController {
     private readonly aRoll: StoryboardARollService,
     private readonly assembly: StoryboardLongFormAssemblyService,
     private readonly estimates: StoryboardLongFormEstimateService,
+    private readonly translations: StoryboardLongFormTranslationService,
   ) {}
 
   @Post()
@@ -212,6 +215,23 @@ export class StoryboardRunsController {
     @Body() body: QuoteStoryboardARollDto,
   ) {
     return this.estimates.estimate(
+      user.organizationId,
+      brandId,
+      runId,
+      user.userId,
+      body,
+    );
+  }
+
+  /** A new storyboard with the script in another language (#8226). */
+  @Post(':runId/long-form/translations')
+  translateLongForm(
+    @Param('brandId') brandId: string,
+    @Param('runId') runId: string,
+    @CurrentUser() user: User,
+    @Body() body: TranslateStoryboardRunDto,
+  ) {
+    return this.translations.translate(
       user.organizationId,
       brandId,
       runId,

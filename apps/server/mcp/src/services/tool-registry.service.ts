@@ -21,6 +21,7 @@ import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { serializeMediaArtifact } from '@genfeedai/helpers';
 import { SATOSHI_FONT_RESOURCE_PATH } from '@genfeedai/ui/static/font';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
+import { readKnowledgeSearchReceipts } from '@genfeedai/utils/knowledge/knowledge-receipt.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
@@ -891,6 +892,12 @@ export class ToolRegistryService implements OnModuleInit {
         withoutBrandLogos(payload),
         getToolByName(name)?.title,
       ).content[0].text;
+    // The same receipts a chat answer cites, so an external client can cite
+    // the exact source versions behind each passage.
+    if (name === 'search_knowledge')
+      Object.assign(response.structuredContent, {
+        receipts: readKnowledgeSearchReceipts(payload),
+      });
     if (name === 'get_account')
       response.content[0].text = accountToolText(payload, {
         brandsUrl: `${getPublicAppUrl()}${APP_ROUTES.SETTINGS.BRANDS}`,

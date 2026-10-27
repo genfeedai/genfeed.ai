@@ -22,9 +22,10 @@ export function IsModelKeyOrTraining(validationOptions?: ValidationOptions) {
 
           const known = (Object.values(MODEL_KEYS) as string[]).includes(value);
           const isTrainer = value.startsWith('replicate/fast-flux-trainer');
-          // Accept Replicate destinations like "owner/model[:version]"
+          // Accept Replicate destinations like "owner/model[:version]". Model
+          // names may contain periods (e.g. "google/veo-3.1").
           const looksLikeReplicateDestination =
-            /^(?:[\w-]+\/[\w-]+(?::[\w-]+)?)$/.test(value);
+            /^(?:[\w-]+\/[\w.-]+(?::[\w-]+)?)$/.test(value);
           // Accept Replicate version ids (typically long hex strings)
           const looksLikeReplicateVersionId = /^[a-f0-9]{25,}$/i.test(value);
 

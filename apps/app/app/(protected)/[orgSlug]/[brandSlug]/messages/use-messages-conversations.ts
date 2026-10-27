@@ -26,6 +26,7 @@ export type { UseMessagesConversationsParams } from '@genfeedai/props/messages/m
 export function useMessagesConversations({
   getMessagesService,
   onClearSelectedConversationParam,
+  onSyncResult,
   onUnreadStateChange,
   query,
   requestedConversationId,
@@ -310,6 +311,7 @@ export function useMessagesConversations({
 
   useMessagesRealtime({
     onRefresh: handleRealtimeRefresh,
+    onSyncResult,
     organizationId,
   });
 

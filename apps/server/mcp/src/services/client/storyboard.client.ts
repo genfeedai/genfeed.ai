@@ -91,7 +91,7 @@ export function editLongFormScript(
 export class StoryboardClient {
   constructor(private readonly base: BaseApiClient) {}
 
-  /** Reads, edits, prices, quotes and assembles a long-form storyboard (#8225). */
+  /** Reads, edits, prices, quotes, translates and assembles a long-form storyboard (#8225). */
   storyboardLongForm(input: StoryboardToolInput<'storyboard_long_form'>) {
     const parsed = storyboardToolSchemas.storyboard_long_form.parse(input);
     const runsPath = `/brands/${encodeURIComponent(parsed.brandId)}/storyboard-runs`;
@@ -167,6 +167,15 @@ export class StoryboardClient {
             });
             return storyboardLongFormEstimateSchema.parse(response.data);
           }
+          case 'translate':
+            return parseStoryboardRun(
+              this.base,
+              await http.post(`${runPath}/long-form/translations`, {
+                clientRequestId: parsed.clientRequestId,
+                expectedRevision: parsed.expectedRevision,
+                language: parsed.language,
+              }),
+            );
           case 'reconcile':
             // Presenter and animatic renders, then the cutaway stills.
             await http.post(`${runPath}/a-roll/reconcile`, {});

@@ -723,6 +723,8 @@ test.describe('Discovery prefilled remix handoff', () => {
     await expect.poll(() => savedGetCount).toBeGreaterThan(refreshBaseline);
     await authenticatedPage.getByRole('button', { name: 'Filters' }).click();
     await expect(authenticatedPage.getByText('Timeframe')).toBeHidden();
+    // The open menu is modal and hides the page behind it, so close it first.
+    await authenticatedPage.keyboard.press('Escape');
     await authenticatedPage
       .getByRole('button', {
         name: 'Select Durable Meta winner for research context',

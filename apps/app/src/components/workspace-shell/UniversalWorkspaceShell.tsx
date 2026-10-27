@@ -729,9 +729,11 @@ function UniversalWorkspaceShellContent({
 
   // The topbar's Chat and Context toggles drive this panel through the dock.
   const registerAgentDockPanel = agentDock?.registerPanel;
+  // Below `xl` the rail does not render, so a context left open at a wider
+  // size is not visible: only the sheet (dock or mobile context) is.
   const isPanelVisible =
     (isAgentDockHost && isAgentDockOpen) ||
-    isInspectorOpen ||
+    (isInspectorOpen && !isCompactViewport) ||
     isMobileContextOpen;
   const hasContextView = isAgentDockHost || Boolean(activeContextSidebar);
   const panelControls = useMemo<WorkspacePanelControls>(

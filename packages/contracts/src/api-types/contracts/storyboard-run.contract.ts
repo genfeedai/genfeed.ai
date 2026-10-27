@@ -98,6 +98,34 @@ export const createStoryboardRunSchema = z
     planSettings: storyboardPlanSettingsSchema.optional(),
   })
   .strict();
+/** Languages a long-form video can be remade in; the presenter voices speak all of them. */
+export const STORYBOARD_TRANSLATION_LANGUAGES = [
+  'en',
+  'es',
+  'fr',
+  'de',
+  'it',
+  'pt',
+  'nl',
+  'pl',
+  'tr',
+  'ja',
+  'ko',
+  'zh',
+  'hi',
+  'ar',
+] as const;
+export const storyboardTranslationLanguageSchema = z.enum(
+  STORYBOARD_TRANSLATION_LANGUAGES,
+);
+/** Copies a long-form storyboard into a new one with its script in another language. */
+export const translateStoryboardRunSchema = z
+  .object({
+    clientRequestId: z.string().uuid(),
+    expectedRevision: z.number().int().positive(),
+    language: storyboardTranslationLanguageSchema,
+  })
+  .strict();
 export const controlStoryboardRunSchema = z
   .object({ expectedRevision: z.number().int().positive() })
   .strict();
@@ -121,6 +149,12 @@ export type StoryboardRunConfig = z.infer<typeof storyboardRunConfigSchema>;
 export type StoryboardRun = z.infer<typeof storyboardRunSchema>;
 export type CreateStoryboardRun = z.infer<typeof createStoryboardRunSchema>;
 export type ControlStoryboardRun = z.infer<typeof controlStoryboardRunSchema>;
+export type StoryboardTranslationLanguage = z.infer<
+  typeof storyboardTranslationLanguageSchema
+>;
+export type TranslateStoryboardRun = z.infer<
+  typeof translateStoryboardRunSchema
+>;
 export type ResetStoryboardPlan = ControlStoryboardRun;
 export type ApproveStoryboardPlan = ControlStoryboardRun;
 export type DraftStoryboardPlan = z.infer<typeof draftStoryboardPlanSchema>;

@@ -1,3 +1,4 @@
+import { ActivityKey } from '@genfeedai/contracts';
 import type { Page } from '@playwright/test';
 import {
   createAuthenticatedPage,
@@ -91,7 +92,7 @@ async function mockInbox(page: Page, label: string, slug: string) {
               failure: null,
               activity: {
                 id: 'activity-approval',
-                key: 'activity.approval.requested',
+                key: ActivityKey.MCP_APPROVAL_REQUESTED,
                 value: 'Generate · Type: image',
                 source: 'mcp-approval',
                 brandId: null,

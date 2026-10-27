@@ -40,3 +40,19 @@ export async function openFilterFacet(
   await expect(submenu).toBeVisible();
   return submenu;
 }
+
+/**
+ * Picks one row (radio or checkbox) of one facet. Opens the submenu with the
+ * keyboard on purpose: Playwright teleports the mouse, and Radix closes a
+ * submenu when the pointer leaves its trigger without moving toward it, so a
+ * click on the facet row followed by a click on an option never lands.
+ */
+export async function chooseFilterOption(
+  page: Page,
+  facet: string,
+  option: RegExp,
+  scope: Page | Locator = page,
+): Promise<void> {
+  const submenu = await openFilterFacet(page, facet, scope);
+  await submenu.getByRole('menuitemradio', { name: option }).click();
+}

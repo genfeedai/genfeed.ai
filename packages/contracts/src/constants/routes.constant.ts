@@ -24,6 +24,7 @@ export const APP_ROUTES = {
     },
     ADMINISTRATION: {
       ANNOUNCEMENTS: '/admin/administration/announcements',
+      LEARNING: '/admin/administration/learning',
       REFERRALS: '/admin/administration/referrals',
       ROLES: '/admin/administration/roles',
       SUBSCRIPTIONS: '/admin/administration/subscriptions',

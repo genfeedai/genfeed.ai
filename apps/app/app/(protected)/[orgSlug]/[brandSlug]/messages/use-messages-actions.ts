@@ -2,6 +2,7 @@ import { SocialConversationType } from '@genfeedai/contracts';
 import type {
   SocialConversationStatus,
   SocialInboxReference,
+  SocialInboxSyncRealtimeEvent,
 } from '@genfeedai/contracts/interfaces';
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
 import type { UseMessagesActionsParams } from '@genfeedai/props/messages/messages-actions.props';
@@ -10,6 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   getMessagesErrorMessage,
   getMessagesSyncFeedback,
+  getMessagesSyncResultFeedback,
   type MessagesBusyAction,
   type MessagesSyncJob,
   STATUS_LABELS,
@@ -48,6 +50,9 @@ export function useMessagesActions({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const actionInFlightRef = useRef<string | null>(null);
+  // End-of-job results for the Sync click in flight; null when none is awaited,
+  // so another tab's or a scheduled sync never rewrites this screen's notice.
+  const syncResultsRef = useRef<SocialInboxSyncRealtimeEvent[] | null>(null);
   const draftRevisionRef = useRef(1);
   const pendingIdempotencyKeysRef = useRef(new Map<string, string>());
 
@@ -273,6 +278,7 @@ export function useMessagesActions({
     }
     actionInFlightRef.current = action;
     setBusyAction('sync');
+    syncResultsRef.current = [];
     setError(null);
     onLoadError?.(null);
     setNotice(null);
@@ -345,8 +351,12 @@ export function useMessagesActions({
             ? 'comments'
             : 'all',
       });
-      setError(feedback.error);
-      setNotice(feedback.notice);
+      // A job can end before the queue calls settle; its result is the
+      // better message, so the "started" notice must not overwrite it.
+      if (!syncResultsRef.current?.length) {
+        setError(feedback.error);
+        setNotice(feedback.notice);
+      }
       captureMessagesSurfaceEvent({
         action,
         outcome: outcome.hasSuccess ? 'succeeded' : 'failed',
@@ -368,6 +378,19 @@ export function useMessagesActions({
     onLoadError,
     syncCredentials,
   ]);
+
+  const handleSyncResult = useCallback(
+    (event: SocialInboxSyncRealtimeEvent) => {
+      if (!syncResultsRef.current) {
+        return;
+      }
+      syncResultsRef.current = [...syncResultsRef.current, event];
+      const feedback = getMessagesSyncResultFeedback(syncResultsRef.current);
+      setError(feedback.error);
+      setNotice(feedback.notice);
+    },
+    [],
+  );
 
   const handleApproveDraft = useCallback(
     async (messageId: string) => {
@@ -549,6 +572,7 @@ export function useMessagesActions({
     handleRejectDraft,
     handleStatusChange,
     handleSync,
+    handleSyncResult,
     handleToggleConversationReference,
     handleToggleMessageReference,
     isConversationReferenced,

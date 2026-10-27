@@ -2,6 +2,7 @@ import type {
   StoryboardPlan,
   StoryboardPlanSettings,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
+import { STORYBOARD_TRANSLATION_LANGUAGES } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { CreateStoryboardRunQuote } from '@genfeedai/contracts/api-types/contracts/storyboard-run-quote.contract';
 import { storyboardOperationSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-run-quote.contract';
 import type { StoryboardSourceSelector } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
@@ -169,6 +170,15 @@ export class GenerateStoryboardStillsDto extends ControlStoryboardRunDto {
 }
 
 export class QuoteStoryboardARollDto extends ControlStoryboardRunDto {}
+export class TranslateStoryboardRunDto extends ControlStoryboardRunDto {
+  @ApiProperty({ format: 'uuid' })
+  @IsUUID()
+  clientRequestId!: string;
+
+  @ApiProperty({ enum: STORYBOARD_TRANSLATION_LANGUAGES })
+  @IsIn(STORYBOARD_TRANSLATION_LANGUAGES)
+  language!: (typeof STORYBOARD_TRANSLATION_LANGUAGES)[number];
+}
 export class RenderStoryboardARollDto extends ControlStoryboardRunDto {
   @ApiProperty()
   @IsString()

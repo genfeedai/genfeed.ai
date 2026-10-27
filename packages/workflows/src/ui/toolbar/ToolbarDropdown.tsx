@@ -2,88 +2,56 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@genfeedai/ui/primitives/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@genfeedai/ui/primitives/dropdown-menu';
 import { ChevronDown } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
 import type { ToolbarDropdownProps } from './types';
 
 /**
  * Toolbar dropdown menu component
  */
 export function ToolbarDropdown({ label, items }: ToolbarDropdownProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
-
   return (
-    <div ref={menuRef} className="relative">
-      <Button
-        withWrapper={false}
-        variant={ButtonVariant.GHOST}
-        size={ButtonSize.SM}
-        onClick={() => setIsOpen(!isOpen)}
-        className="text-muted-foreground hover:text-foreground"
-      >
-        {label}
-        <ChevronDown className="size-3.5" />
-      </Button>
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger asChild>
+        <Button
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.SM}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          {label}
+          <ChevronDown className="size-3.5" />
+        </Button>
+      </DropdownMenuTrigger>
 
-      {isOpen && (
-        <div className="absolute left-0 top-full z-50 mt-1 min-w-[180px] border border-border bg-card py-1 shadow-lg whitespace-nowrap">
-          {items.map((item) => {
-            if (item.separator) {
-              return <div key={item.id} className="my-1 h-px bg-border" />;
-            }
+      <DropdownMenuContent align="start" className="min-w-[180px]">
+        {items.map((item) => {
+          if (item.separator) {
+            return <DropdownMenuSeparator key={item.id} />;
+          }
 
-            return (
-              <Button
-                withWrapper={false}
-                key={item.id}
-                variant={ButtonVariant.GHOST}
-                onClick={() => {
-                  if (item.disabled || !item.onClick) return;
-                  item.onClick();
-                  setIsOpen(false);
-                }}
-                disabled={item.disabled}
-                className="w-full justify-start gap-2.5 px-3 py-2 text-sm text-foreground"
-              >
-                <span className="size-4 shrink-0">{item.icon}</span>
-                <span>{item.label}</span>
-                {item.external && (
-                  <span className="ml-auto text-xs text-muted-foreground">
-                    ↗
-                  </span>
-                )}
-              </Button>
-            );
-          })}
-        </div>
-      )}
-    </div>
+          return (
+            <DropdownMenuItem
+              key={item.id}
+              className="gap-2.5 whitespace-nowrap"
+              disabled={item.disabled}
+              onSelect={() => item.onClick?.()}
+            >
+              <span className="size-4 shrink-0">{item.icon}</span>
+              <span>{item.label}</span>
+              {item.external && (
+                <span className="ml-auto text-xs text-muted-foreground">↗</span>
+              )}
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

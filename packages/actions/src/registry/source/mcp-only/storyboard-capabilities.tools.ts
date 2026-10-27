@@ -39,7 +39,7 @@ export const MCP_STORYBOARD_CAPABILITY_TOOLS: SourceTool[] = [
   {
     name: 'storyboard_long_form',
     description:
-      'Work on a long-form storyboard (voice note to presenter video). create starts one from a transcript or idea dump (brief); get reads the run and plan; draft_plan drafts or revises the plan from the brief (instruction); edit_script rewrites segment narration and cutaway briefs by id; approve_plan locks it; quote prices one paid stage and returns its inputHash; estimate prices every stage still left for the whole video without holding credits; reconcile picks up finished renders; assemble opens the animatic or final edit as an Editor project. Never charges credits.',
+      'Work on a long-form storyboard (voice note to presenter video). create starts one from a transcript or idea dump (brief); get reads the run and plan; draft_plan drafts or revises the plan from the brief (instruction); edit_script rewrites segment narration and cutaway briefs by id; approve_plan locks it; quote prices one paid stage and returns its inputHash; estimate prices every stage still left for the whole video without holding credits; translate copies the storyboard into a new one with the script in another language, keeping the presenter, cutaways and stills, and returns the copy; reconcile picks up finished renders; assemble opens the animatic or final edit as an Editor project. Never charges credits.',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -54,6 +54,7 @@ export const MCP_STORYBOARD_CAPABILITY_TOOLS: SourceTool[] = [
             'approve_plan',
             'quote',
             'estimate',
+            'translate',
             'reconcile',
             'assemble',
           ],
@@ -63,7 +64,8 @@ export const MCP_STORYBOARD_CAPABILITY_TOOLS: SourceTool[] = [
         clientRequestId: {
           type: 'string',
           format: 'uuid',
-          description: 'create only: a new UUID for this video.',
+          description:
+            'create and translate only: a new UUID for this video or copy.',
         },
         brief: {
           type: 'string',
@@ -75,7 +77,7 @@ export const MCP_STORYBOARD_CAPABILITY_TOOLS: SourceTool[] = [
         expectedRevision: {
           ...revision,
           description:
-            'Run revision from get; required for draft_plan, edit_script, approve_plan, quote and estimate.',
+            'Run revision from get; required for draft_plan, edit_script, approve_plan, quote, estimate and translate.',
         },
         instruction: {
           type: 'string',
@@ -119,6 +121,27 @@ export const MCP_STORYBOARD_CAPABILITY_TOOLS: SourceTool[] = [
           ...cutawayIds,
           description:
             'quote with stage cutaways: these cutaways; omit for every cutaway without footage.',
+        },
+        language: {
+          type: 'string',
+          enum: [
+            'en',
+            'es',
+            'fr',
+            'de',
+            'it',
+            'pt',
+            'nl',
+            'pl',
+            'tr',
+            'ja',
+            'ko',
+            'zh',
+            'hi',
+            'ar',
+          ],
+          description:
+            'translate only: ISO 639-1 code of the language to make the copy in.',
         },
         track: {
           type: 'string',

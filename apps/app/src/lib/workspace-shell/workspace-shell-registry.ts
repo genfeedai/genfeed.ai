@@ -1175,6 +1175,7 @@ const ADMIN_CONTROL_PLANE_ROUTE_PATTERNS = [
   '/admin/economics/organizations',
   '/admin/administration/referrals',
   '/admin/administration/announcements',
+  '/admin/administration/learning',
   '/admin/administration/system-emails',
   '/admin/flags',
   '/admin/settings',

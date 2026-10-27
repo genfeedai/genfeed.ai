@@ -1,0 +1,42 @@
+{
+  "title": "Learning",
+  "intro": "Which prompt slots go with better measured results. Compares posts that fill a slot against posts that leave it empty, per media type and objective. These are correlations from observed posts, not tested causes.",
+  "form": {
+    "organizationIds": "Organization IDs",
+    "organizationIdsHelp": "One organization, or several separated by commas for a pooled view.",
+    "brandId": "Brand ID (optional)",
+    "submit": "Run report"
+  },
+  "idle": "Enter at least one organization ID to run the report.",
+  "loading": "Loading learning report",
+  "loadFailed": "The learning report could not be loaded.",
+  "retry": "Retry report",
+  "empty": "No posts with a measured reward and structured prompt slots were found.",
+  "pooled": {
+    "title": "Pooled across organizations",
+    "description": "These organizations have different audiences, so a gap can reflect who saw the posts rather than the prompt. Treat pooled verdicts as a weaker lead than a single-organization result."
+  },
+  "truncated": "The post limit was reached, so older posts were not read.",
+  "summary": "{count, plural, one {# post read} other {# posts read}} across {organizations, plural, one {# organization} other {# organizations}}.",
+  "skipped": "Left out: {noValidReward} without a valid reward, {noPrompt} without a stored prompt, {noSlots} with a prompt that predates structured slots.",
+  "group": "{category} · {objective} · {count, plural, one {# post} other {# posts}}",
+  "columns": {
+    "slot": "Slot",
+    "value": "Value",
+    "filled": "Filled",
+    "rest": "Rest",
+    "difference": "Difference",
+    "verdict": "Verdict"
+  },
+  "filledVsEmpty": "Filled vs empty",
+  "range": "{difference} ({lower} to {upper})",
+  "groupStats": "{count} · mean {mean}",
+  "noData": "n/a",
+  "verdicts": {
+    "better": "Better",
+    "worse": "Worse",
+    "within_noise": "Within noise",
+    "insufficient_data": "Not enough data"
+  },
+  "note": "Verdicts use an interval at the stated confidence level and are corrected for the number of comparisons. Rewards are scored against each post's own objective."
+}
