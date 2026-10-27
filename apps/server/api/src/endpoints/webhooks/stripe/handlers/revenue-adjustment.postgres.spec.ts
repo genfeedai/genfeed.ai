@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { EconomicsService } from '@api/endpoints/admin/economics/economics.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
+import type { StripePaymentRevenueReferenceService } from '@api/services/integrations/stripe/services/stripe-payment-revenue-reference.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BillingRevenueSource } from '@genfeedai/contracts';
 import { PrismaClient } from '@genfeedai/prisma';
@@ -109,7 +110,7 @@ describe.skipIf(!connectionString)(
         unused,
         unused,
         unused,
-        paymentReferences,
+        paymentReferences as unknown as StripePaymentRevenueReferenceService,
       );
     });
 
