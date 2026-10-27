@@ -13,6 +13,8 @@ import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import { BRAND_CONTEXT_CHARACTER_BUDGET } from '@api/services/agent-context-assembly/brand-context-budget.util';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -28,12 +30,15 @@ import {
 } from '@genfeedai/contracts';
 import type { AccountPublishingConstraints } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 
 type ThreadGenerationMetadata = Pick<
   AuthenticatedUser,
   'brandId' | 'organizationId' | 'userId'
 >;
+
+export const THREAD_BRAND_CONTEXT_UNAVAILABLE =
+  'Brand context is unavailable for this thread. Please retry.';
 
 const TWITTER_THREAD_CONSTRAINTS: AccountPublishingConstraints = {
   maxWeightedCharacters: 280,
@@ -49,6 +54,7 @@ const TWITTER_THREAD_CONSTRAINTS: AccountPublishingConstraints = {
 export class PostThreadGenerationService {
   constructor(
     private readonly activityRecorder: ActivityRecorderService,
+    private readonly harness: HarnessGenerationService,
     private readonly logger: LoggerService,
     private readonly postsService: PostsService,
     private readonly promptBuilderService: PromptBuilderService,
@@ -154,7 +160,7 @@ export class PostThreadGenerationService {
     const additionalCount = dto.count - 1;
     const originalContent =
       originalPost.description?.replace(/<[^>]+>/g, ' ').trim() || '';
-    const prompt = await this.templatesService.getRenderedPrompt(
+    const template = await this.templatesService.getRenderedPrompt(
       PromptTemplateKey.THREAD_EXPAND,
       {
         additionalCount,
@@ -164,6 +170,16 @@ export class PostThreadGenerationService {
       },
       identity.organizationId,
     );
+    const brief = await this.resolveThreadBrief(
+      originalPost,
+      originalContent,
+      identity,
+    );
+    const prompt = [
+      template,
+      `Brand brief for this thread. Write every reply in this voice and follow its X thread craft and guardrails:\n${brief}`,
+      'Keep the output format asked for above.',
+    ].join('\n\n');
     const { input } = await this.promptBuilderService.buildPrompt(
       DEFAULT_MINI_TEXT_MODEL,
       {
@@ -189,6 +205,45 @@ export class PostThreadGenerationService {
     return parsePostGenerationSlots(content, additionalCount, {
       constraints: TWITTER_THREAD_CONSTRAINTS,
     });
+  }
+
+  /**
+   * Replies are written against the composed harness brief (brand voice, X
+   * thread craft, guardrails), like posts, scripts and newsletters. A thread is
+   * never expanded without it: an unresolved brief fails the request, and the
+   * caller can retry, instead of letting a generic thread through.
+   */
+  private async resolveThreadBrief(
+    originalPost: PostDocument,
+    originalContent: string,
+    identity: ThreadGenerationMetadata,
+  ): Promise<string> {
+    const brandId = originalPost.brandId
+      ? String(originalPost.brandId)
+      : identity.brandId;
+    const brief = await this.harness.resolveBrief({
+      brandId,
+      contentType: 'thread',
+      includeContentMemory: true,
+      objective: 'engagement',
+      organizationId: identity.organizationId,
+      platform: 'twitter',
+      topic: originalContent.slice(0, 200),
+      userId: identity.userId,
+    });
+    const formatted = this.harness.formatBrief(brief).trim();
+    if (
+      !brief ||
+      !formatted ||
+      formatted.length > BRAND_CONTEXT_CHARACTER_BUDGET
+    ) {
+      this.logger.warn(`${this.constructor.name} harness brief unavailable`, {
+        brandId,
+        organizationId: identity.organizationId,
+      });
+      throw new ServiceUnavailableException(THREAD_BRAND_CONTEXT_UNAVAILABLE);
+    }
+    return formatted;
   }
 
   private async completeGeneratedChildren(

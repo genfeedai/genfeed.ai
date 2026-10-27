@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildPersonalOrganizationSlugSeed,
   deriveBrandNameFromDomain,
   extractBrandDomain,
   extractEmailDomain,
   isPersonalEmailDomain,
   resolveSignupBrandDomain,
+  resolveSignupOrganizationLabel,
   resolveSignupWorkspaceLabel,
 } from './signup-brand-domain.helper';
 
@@ -137,5 +139,46 @@ describe('resolveSignupWorkspaceLabel', () => {
     expect(resolveSignupWorkspaceLabel({ email: null, name: '  ' })).toBe(
       'Workspace',
     );
+  });
+});
+
+describe('resolveSignupOrganizationLabel', () => {
+  it.each([
+    'pjeeva391@gmail.com',
+    'someone@Outlook.com',
+    'a.b@yahoo.co.uk',
+    'me@proton.me',
+  ])(
+    'names a personal mailbox (%s) Personal, ignoring the display name',
+    (email) => {
+      expect(resolveSignupOrganizationLabel({ email, name: 'Some One' })).toBe(
+        'Personal',
+      );
+    },
+  );
+
+  it('keeps the company name for a work domain', () => {
+    expect(
+      resolveSignupOrganizationLabel({ email: 'vincent@shipshit.dev' }),
+    ).toBe('Shipshit');
+  });
+
+  it('falls back to the workspace label when there is no email', () => {
+    expect(resolveSignupOrganizationLabel({ name: 'Vincent D' })).toBe(
+      'Vincent D',
+    );
+    expect(resolveSignupOrganizationLabel({})).toBe('Workspace');
+  });
+});
+
+describe('buildPersonalOrganizationSlugSeed', () => {
+  it('uses the tail of the user id, never the email handle', () => {
+    expect(buildPersonalOrganizationSlugSeed('cm0user0000AB12cd34')).toBe(
+      'personal-ab12cd34',
+    );
+  });
+
+  it('degrades to a bare personal seed for an empty id', () => {
+    expect(buildPersonalOrganizationSlugSeed('')).toBe('personal');
   });
 });

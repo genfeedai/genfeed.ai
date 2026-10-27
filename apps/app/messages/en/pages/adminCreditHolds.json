@@ -27,6 +27,7 @@
   "columnOrganization": "Organization",
   "columnOwner": "Owner",
   "columnPlan": "Plan",
+  "planPayg": "PAYG",
   "columnStatus": "Status",
   "columnBalance": "Balance",
   "columnUsed": "Used",

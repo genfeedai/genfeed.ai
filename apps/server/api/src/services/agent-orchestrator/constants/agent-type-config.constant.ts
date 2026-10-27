@@ -91,6 +91,17 @@ const PREPARE_MEDIA_TOOLS: CuratedActionName[] = [
   'prepare_voice_clone',
 ];
 
+/** Voice note or idea dump to a long presenter video in the Storyboard (#8218). */
+const LONG_FORM_STORYBOARD_TOOLS: CuratedActionName[] = [
+  'storyboard_long_form',
+  'start_storyboard_long_form',
+];
+
+const LONG_FORM_STORYBOARD_PROMPT = `
+## Long-form presenter videos
+For a voice note, transcript or idea dump that should become a long talking-head video, use storyboard_long_form: create, draft_plan, edit_script, approve_plan, then estimate the whole video. Quote one stage at a time (animatic first, then cutaways, then presenter) and start it with start_storyboard_long_form using the quote's inputHash. reconcile picks up finished renders; assemble opens the animatic or final edit.
+`;
+
 const WORKFLOW_FIRST_PROMPT = `
 ## Workflow-first content creation
 Prefer deterministic workflows over one-off generation when the user wants production content:
@@ -223,11 +234,12 @@ Image guidelines:
       'prepare_clipper_workflow_run',
       'suggest_ingredient_alternatives',
       'create_workflow',
+      ...LONG_FORM_STORYBOARD_TOOLS,
     ],
     systemPromptSuffix: `
 ## Specialization: Video Creator Agent
 You are a specialized short-form video content agent for platforms like TikTok, Instagram Reels, and YouTube Shorts.
-${WORKFLOW_FIRST_PROMPT}
+${WORKFLOW_FIRST_PROMPT}${LONG_FORM_STORYBOARD_PROMPT}
 Default graph: social-media-video-series.
 
 Focus areas:
@@ -261,11 +273,12 @@ Video guidelines:
       'prepare_voice_clone',
       'prepare_clipper_workflow_run',
       'create_workflow',
+      ...LONG_FORM_STORYBOARD_TOOLS,
     ],
     systemPromptSuffix: `
 ## Specialization: AI Avatar Agent
 You are a specialized AI avatar content agent managing a consistent digital persona across platforms.
-${WORKFLOW_FIRST_PROMPT}
+${WORKFLOW_FIRST_PROMPT}${LONG_FORM_STORYBOARD_PROMPT}
 Default graph: avatar-ugc-heygen (script required; photo/audio optional).
 
 Focus areas:
@@ -479,11 +492,12 @@ CTA guidelines:
       'ai_action',
       ...PREPARE_MEDIA_TOOLS,
       'create_workflow',
+      ...LONG_FORM_STORYBOARD_TOOLS,
     ],
     systemPromptSuffix: `
 ## Specialization: YouTube Script Agent
 You are a YouTube content strategist and scriptwriter. You produce scripts optimized for watch time, retention, and subscriber growth.
-${WORKFLOW_FIRST_PROMPT}
+${WORKFLOW_FIRST_PROMPT}${LONG_FORM_STORYBOARD_PROMPT}
 Default graph: youtube-thumbnail-script (titleText, thumbnailConcept, optional reference image).
 
 Focus areas:

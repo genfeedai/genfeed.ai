@@ -1,7 +1,5 @@
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { SubscriptionChangePreview } from '@genfeedai/contracts/interfaces';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
   formatPlanIncludedCredits,
   formatPlanPriceLabel,
@@ -13,8 +11,6 @@ import { useSubscription } from '@hooks/data/subscription/use-subscription/use-s
 import { StripeService } from '@services/billing/stripe.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import { Text } from '@ui/typography/text';
 import { Check } from 'lucide-react';
@@ -24,11 +20,11 @@ import { useEffect, useRef, useState } from 'react';
 import { getSubscriptionFailureView } from './subscription-failure.util';
 
 /**
- * Only the two self-serve plans are sold in the app. Free/PAYG is never
- * advertised here, and Enterprise is a conversation rather than a checkout
- * button — hence the contact line under the tiles.
+ * Scale is the only self-serve plan. Free/PAYG is never advertised here, and
+ * Enterprise is a conversation rather than a checkout button — hence the
+ * contact line under the offer.
  */
-const SELLABLE_TIERS: PlanTier[] = ['scale'];
+const UPGRADE_TIER: PlanTier = 'scale';
 
 /** Features are already ordered strongest-first in the pricing package. */
 const FEATURES_SHOWN = 4;
@@ -72,9 +68,8 @@ function describeProration(preview: SubscriptionChangePreview) {
  * Plan selection for the subscription settings page: Stripe Checkout for an
  * org that has never subscribed, a prorated in-place change for one that has.
  */
-export default function PlansCard() {
+export default function UpgradePlan() {
   const translate = useTranslations('common');
-  const { settings } = useBrand();
   const { subscription, previewPlanChange, changeSubscriptionPlan } =
     useSubscription();
 
@@ -119,7 +114,6 @@ export default function PlansCard() {
     StripeService.getInstance(token),
   );
 
-  const currentTier = settings?.subscriptionTier;
   // An org with no Stripe subscription has nothing to prorate against, so it
   // goes through Checkout; the change endpoint would reject it outright.
   const hasStripeSubscription = Boolean(subscription?.stripeSubscriptionId);
@@ -284,89 +278,61 @@ export default function PlansCard() {
 
   const proration = preview ? describeProration(preview) : null;
 
+  const plan = getPlanByTier(UPGRADE_TIER);
+  const isUnavailable = !plan.stripePriceId;
+
   return (
     <section
-      aria-labelledby="subscription-plans-heading"
-      className="flex flex-col gap-3"
+      aria-label={translate('subscription.plans.upgradeTo', {
+        plan: plan.label,
+      })}
+      className="flex flex-col gap-4 border-t border-border pt-4"
     >
-      <Text as="h2" id="subscription-plans-heading" size="sm" weight="semibold">
-        Plans
-      </Text>
-      <div className="grid gap-3 md:grid-cols-2">
-        {SELLABLE_TIERS.map((tier) => {
-          const plan = getPlanByTier(tier);
-          const isCurrentPlan = currentTier === tier;
-          const isUnavailable = !plan.stripePriceId;
-
-          return (
-            <Card
-              key={tier}
-              className={cn(isCurrentPlan && 'border-success/40')}
-              bodyClassName="flex h-full flex-col gap-4 p-5"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex flex-col gap-1">
-                  <Text weight="medium">{plan.label}</Text>
-                  <Text size="sm" color="muted">
-                    {translate('subscription.plans.creditsPerMonth', {
-                      credits: formatPlanIncludedCredits(tier),
-                    })}
-                  </Text>
-                </div>
-                {isCurrentPlan ? (
-                  <Badge variant="success">
-                    {translate('subscription.plans.current')}
-                  </Badge>
-                ) : null}
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <Text as="p" size="xl" weight="bold">
-                  {formatPlanPriceLabel(tier)}
-                </Text>
-              </div>
-
-              <ul className="flex flex-1 flex-col gap-1.5">
-                {plan.features.slice(0, FEATURES_SHOWN).map((feature) => (
-                  <li key={feature} className="flex items-start gap-2">
-                    <Check className="mt-0.5 size-4 shrink-0 text-success" />
-                    <Text size="sm" color="muted">
-                      {feature}
-                    </Text>
-                  </li>
-                ))}
-              </ul>
-
-              {isCurrentPlan ? null : (
-                <Button
-                  className="w-full"
-                  variant={ButtonVariant.DEFAULT}
-                  isDisabled={isUnavailable || busyTier !== null}
-                  isLoading={busyTier === tier}
-                  onClick={() => handleSelectPlan(tier)}
-                >
-                  {hasStripeSubscription
-                    ? translate('subscription.plans.switchTo', {
-                        plan: plan.label,
-                      })
-                    : translate('subscription.plans.upgradeTo', {
-                        plan: plan.label,
-                      })}
-                </Button>
-              )}
-
-              {isUnavailable ? (
-                <Text size="xs" color="muted">
-                  {translate('subscription.plans.unavailable')}
-                </Text>
-              ) : null}
-            </Card>
-          );
-        })}
+      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
+        <div className="flex flex-col gap-1">
+          <Text as="p" size="sm" weight="semibold">
+            {plan.label}
+          </Text>
+          <Text as="p" size="sm" color="muted">
+            {translate('subscription.plans.creditsPerMonth', {
+              credits: formatPlanIncludedCredits(UPGRADE_TIER),
+            })}
+          </Text>
+        </div>
+        <Text as="p" size="xl" weight="bold">
+          {formatPlanPriceLabel(UPGRADE_TIER)}
+        </Text>
       </div>
 
+      <ul className="grid gap-x-6 gap-y-1.5 sm:grid-cols-2">
+        {plan.features.slice(0, FEATURES_SHOWN).map((feature) => (
+          <li key={feature} className="flex items-start gap-2">
+            <Check className="mt-0.5 size-4 shrink-0 text-success" />
+            <Text size="sm" color="muted">
+              {feature}
+            </Text>
+          </li>
+        ))}
+      </ul>
+
+      <Button
+        className="w-full sm:w-fit"
+        variant={ButtonVariant.DEFAULT}
+        isDisabled={isUnavailable || busyTier !== null}
+        isLoading={busyTier === UPGRADE_TIER}
+        onClick={() => handleSelectPlan(UPGRADE_TIER)}
+      >
+        {translate('subscription.plans.upgradeTo', { plan: plan.label })}
+      </Button>
+
+      {isUnavailable ? (
+        <Text size="xs" color="muted">
+          {translate('subscription.plans.unavailable')}
+        </Text>
+      ) : null}
+
       {pendingTier && proration ? (
-        <Card bodyClassName="flex flex-col gap-3 p-4">
+        <div className="flex flex-col gap-3 rounded-lg border border-border p-4">
           <Text as="p" size="sm" weight="medium">
             {translate('subscription.plans.confirmTitle', {
               plan: getPlanByTier(pendingTier).label,
@@ -392,7 +358,7 @@ export default function PlansCard() {
               {translate('actions.cancel')}
             </Button>
           </div>
-        </Card>
+        </div>
       ) : null}
 
       <Text as="p" size="xs" color="muted">

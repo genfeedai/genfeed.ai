@@ -135,6 +135,11 @@ export class ReplicatePollProcessor extends WorkerHost {
       error,
       externalId: job.data.externalId,
       ingredientId: job.data.ingredientId,
+      // A "succeeded" prediction we cannot use is otherwise unexplainable from
+      // the logs: say what the provider returned, never the URL itself.
+      ...(status === 'succeeded' || status === 'completed'
+        ? { outputShape: this.describeOutputShape(prediction.output) }
+        : {}),
     });
   }
 
@@ -160,6 +165,32 @@ export class ReplicatePollProcessor extends WorkerHost {
       return;
     }
     await this.pollQueue.schedule({ ...data, attempt: data.attempt + 1 });
+  }
+
+  /** JSON type and URL hostnames of a provider output, without paths or query strings. */
+  private describeOutputShape(output: unknown): {
+    hostnames: string[];
+    outputType: string;
+  } {
+    const values = Array.isArray(output) ? output : [output];
+    const hostnames = values.flatMap((value) => {
+      if (typeof value !== 'string') return [];
+      try {
+        return [new URL(value).hostname];
+      } catch {
+        return [];
+      }
+    });
+    return {
+      hostnames: [...new Set(hostnames)],
+      outputType: Array.isArray(output)
+        ? `array(${output.length}) of ${[
+            ...new Set(output.map((value) => typeof value)),
+          ].join('|')}`
+        : output === null
+          ? 'null'
+          : typeof output,
+    };
   }
 
   private resolveOutput(

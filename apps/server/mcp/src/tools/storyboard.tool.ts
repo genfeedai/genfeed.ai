@@ -4,9 +4,7 @@ import { storyboardToolSchemas } from '@mcp/tools/storyboard.schemas';
 
 export const STORYBOARD_TOOL_NAMES = new Set<string>([
   'create_storyboard_remix',
-  'start_storyboard_long_form',
   'replace_storyboard_character',
-  'storyboard_long_form',
   'storyboard_run_capabilities',
 ]);
 
@@ -39,18 +37,6 @@ export async function handleStoryboardTool(
       return textResult(
         await client.replaceStoryboardCharacter(
           storyboardToolSchemas.replace_storyboard_character.parse(args),
-        ),
-      );
-    case 'storyboard_long_form':
-      return textResult(
-        await client.storyboardLongForm(
-          storyboardToolSchemas.storyboard_long_form.parse(args),
-        ),
-      );
-    case 'start_storyboard_long_form':
-      return textResult(
-        await client.renderStoryboardLongForm(
-          storyboardToolSchemas.start_storyboard_long_form.parse(args),
         ),
       );
     default:

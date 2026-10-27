@@ -11,8 +11,6 @@ describe('storyboard MCP tools', () => {
     expect([...STORYBOARD_TOOL_NAMES].sort()).toEqual([
       'create_storyboard_remix',
       'replace_storyboard_character',
-      'start_storyboard_long_form',
-      'storyboard_long_form',
       'storyboard_run_capabilities',
     ]);
     expect(getToolByName('create_storyboard_remix')).toMatchObject({
@@ -43,11 +41,11 @@ describe('storyboard MCP tools', () => {
     });
   });
 
-  it('keeps the long-form flow quoted: free reads and edits, a hash-bound render', () => {
+  it('keeps the long-form flow quoted for chat and MCP: free reads and edits, a hash-bound render', () => {
     expect(getToolByName('storyboard_long_form')).toMatchObject({
       creditCost: 0,
       mutationPolicy: 'direct',
-      surfaces: { agent: false, mcp: true },
+      surfaces: { agent: true, mcp: true },
       toolset: 'inspiration',
     });
     expect(getToolByName('start_storyboard_long_form')).toMatchObject({
@@ -63,35 +61,6 @@ describe('storyboard MCP tools', () => {
       openWorldHint: true,
       readOnlyHint: false,
     });
-  });
-
-  it('routes the long-form tools to the client', async () => {
-    const storyboardLongForm = vi.fn(async () => ({ id: 'run-1' }));
-    const renderStoryboardLongForm = vi.fn(async () => ({ id: 'run-1' }));
-    const client = {
-      renderStoryboardLongForm,
-      storyboardLongForm,
-    } as unknown as ClientService;
-    await handleStoryboardTool(client, 'storyboard_long_form', {
-      action: 'reconcile',
-      brandId: 'brand-1',
-      runId: 'run-1',
-    });
-    await handleStoryboardTool(client, 'start_storyboard_long_form', {
-      brandId: 'brand-1',
-      runId: 'run-1',
-      stage: 'animatic',
-      expectedRevision: 4,
-      inputHash: 'c'.repeat(64),
-    });
-    expect(storyboardLongForm).toHaveBeenCalledWith({
-      action: 'reconcile',
-      brandId: 'brand-1',
-      runId: 'run-1',
-    });
-    expect(renderStoryboardLongForm).toHaveBeenCalledWith(
-      expect.objectContaining({ stage: 'animatic', expectedRevision: 4 }),
-    );
   });
 
   it('creates an uploaded-video storyboard run and replaces one shot', async () => {

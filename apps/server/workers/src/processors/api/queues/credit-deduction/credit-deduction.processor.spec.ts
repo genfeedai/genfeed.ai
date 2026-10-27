@@ -108,6 +108,7 @@ describe('CreditDeductionProcessor', () => {
         creditTransactionsService as never,
       ),
       freeTrialEmails as never,
+      { grantBestEffort: async () => undefined } as never,
     );
   });
 
@@ -867,6 +868,7 @@ describe('Crun media BYOK consumer authority', () => {
       prisma as never,
       {} as never,
       {} as never,
+      { grantBestEffort: async () => undefined } as never,
     );
     const data: CreditDeductionJobData = {
       type: 'record-byok-usage',

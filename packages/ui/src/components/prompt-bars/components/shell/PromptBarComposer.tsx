@@ -33,7 +33,10 @@ const RESTING_BODY_CLASS = cn(
   '[&>[data-prompt-editor]]:min-w-0 [&>[data-prompt-editor]]:flex-1',
   '[&_.ProseMirror]:!min-h-8 [&_.ProseMirror]:!max-h-8 [&_.ProseMirror]:overflow-hidden [&_.ProseMirror]:whitespace-nowrap [&_.ProseMirror]:leading-8 [&_.ProseMirror]:!py-0',
   '[&>[data-prompt-bar-toolbar]]:mt-0 [&>[data-prompt-bar-toolbar]]:min-h-0 [&>[data-prompt-bar-toolbar]]:flex-none [&>[data-prompt-bar-toolbar]]:flex-nowrap',
-  '[&_[data-prompt-bar-leading]]:hidden',
+  '[&_[data-prompt-bar-leading]]:hidden [&_[data-prompt-bar-enhance]]:hidden',
+  // The row is sized by its content here, which inline-size containment would
+  // collapse to nothing, so it stops being a container.
+  '[&>[data-prompt-bar-toolbar]]:w-auto [&>[data-prompt-bar-toolbar]]:[container-type:normal]',
 );
 
 /**

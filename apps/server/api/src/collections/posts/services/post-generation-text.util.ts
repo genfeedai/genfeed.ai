@@ -46,6 +46,14 @@ export function parsePostGenerationSlots(
   });
 }
 
+/**
+ * A numbering prefix such as `2.`, `3)`, `Tweet 4:` or `1/`. The delimiter must
+ * be followed by whitespace, so a post that opens with a figure ("2.5 million
+ * readers", "3-step checklist", "5:30am") keeps its first word.
+ */
+const POST_NUMBER_PREFIX = /^[-*\s]*(?:tweet|post)?\s*\d+[:.)/-]\s+/i;
+const POST_NUMBER_MARKER = /^[-*\s]*(?:tweet|post)?\s*(\d+)[:.)/-]\s+\S/i;
+
 function createPostGenerationParser(
   context?: Pick<AccountPublishingContext, 'constraints'>,
 ) {
@@ -56,7 +64,7 @@ function createPostGenerationParser(
   const usesWeightedCharacters =
     context?.constraints.usesWeightedCharacters ?? false;
   const cleanPost = (post: string) =>
-    post.replace(/^[-*\s]*(?:tweet|post)?\s*\d+[:.)-]\s*/i, '').trim();
+    post.replace(POST_NUMBER_PREFIX, '').trim();
   const isValid = (post: string) =>
     isValidPostLength(post, maxLength, usesWeightedCharacters);
 
@@ -96,6 +104,11 @@ function extractPostGenerationCandidates(
       }
     }
 
+    const numberedCandidates = splitNumberedPosts(content);
+    if (numberedCandidates) {
+      return numberedCandidates;
+    }
+
     const lineCandidates = removeStructuralSeparators(
       content.split('\n'),
       cleanPost,
@@ -111,6 +124,27 @@ function extractPostGenerationCandidates(
   }
 
   return [];
+}
+
+/**
+ * Posts numbered 1, 2, 3… keep their own line breaks, and any lead-in before
+ * the first number ("Here is your thread:") is dropped. Returns null unless the
+ * markers count up from 1, so a list inside one post is not read as a thread.
+ */
+function splitNumberedPosts(content: string): string[] | null {
+  const posts: string[][] = [];
+  for (const line of content.split('\n')) {
+    const marker = POST_NUMBER_MARKER.exec(line);
+    if (marker && Number(marker[1]) === posts.length + 1) {
+      posts.push([line]);
+    } else if (posts.length > 0) {
+      posts[posts.length - 1]?.push(line);
+    }
+  }
+  if (posts.length < 2) {
+    return null;
+  }
+  return posts.map((lines) => lines.join('\n').trim());
 }
 
 function removeStructuralSeparators(

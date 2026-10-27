@@ -17,6 +17,7 @@ import {
   resolveConversationComposerDestinationHref,
   useAgentChatStore,
 } from '@genfeedai/agent';
+import { useResetAgentOnOrganizationChange } from '@genfeedai/agent/hooks/use-reset-agent-on-organization-change';
 import {
   attachContentToConversationDraft,
   buildConversationComposerDraftScopeKey,
@@ -176,6 +177,7 @@ function UniversalWorkspaceShellContent({
   const searchParamsString = searchParams.toString();
   const { back, push, replace } = useRouter();
   const { brandId, brands, organizationId, selectedBrand } = useBrand();
+  useResetAgentOnOrganizationChange(organizationId);
   const { activeHref, brandSlug, href, orgHref, orgSlug } = useOrgUrl();
   const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
   const activeSurfaceAdapter = useActiveAnalyticsWorkspaceSurfaceAdapter();

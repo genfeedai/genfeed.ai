@@ -5,7 +5,7 @@ import CompositeLayout from '@genfeedai/agent/components/blocks/CompositeLayout'
 import DynamicChart from '@genfeedai/agent/components/blocks/DynamicChart';
 import DynamicTable from '@genfeedai/agent/components/blocks/DynamicTable';
 import { formatAnimatedValue } from '@genfeedai/agent/components/blocks/metric-value-format.util';
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import type {
   AgentUIBlock,
   AgentUIBlockWidth,
@@ -24,6 +24,7 @@ import type {
   TopPostsBlock,
 } from '@genfeedai/contracts/interfaces';
 import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
+import Card from '@ui/card/Card';
 import MetricCardUI from '@ui/cards/metric-card/MetricCard';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
@@ -197,6 +198,10 @@ function KPIGrid({ block }: { block: KPIGridBlock }): ReactElement {
   );
 }
 
+function topPostBodyClassName(isList: boolean): string {
+  return isList ? 'flex-row items-center gap-3 p-3' : 'gap-0 p-3';
+}
+
 function TopPosts({ block }: { block: TopPostsBlock }): ReactElement {
   const isList = block.layout !== 'grid';
   const hydratableBlock = block as HydratableBlock<TopPostsBlock>;
@@ -210,12 +215,11 @@ function TopPosts({ block }: { block: TopPostsBlock }): ReactElement {
         }
       >
         {Array.from({ length: isList ? 4 : 3 }).map((_, index) => (
-          <div
+          <Card
             // biome-ignore lint/suspicious/noArrayIndexKey: Fixed layout slots have positional identity and no item state.
             key={`top-post-loading-${index}`}
-            className={`rounded-lg border border-border bg-card p-3 ${
-              isList ? 'flex items-center gap-3' : ''
-            }`}
+            bodyClassName={topPostBodyClassName(isList)}
+            variant={CardVariant.BORDERED}
           >
             <div
               className={`animate-pulse rounded bg-muted/70 ${
@@ -226,7 +230,7 @@ function TopPosts({ block }: { block: TopPostsBlock }): ReactElement {
               <div className="h-4 w-2/3 animate-pulse rounded bg-muted/70" />
               <div className="h-3 w-1/2 animate-pulse rounded bg-muted/60" />
             </div>
-          </div>
+          </Card>
         ))}
       </div>
     );
@@ -237,11 +241,10 @@ function TopPosts({ block }: { block: TopPostsBlock }): ReactElement {
       className={isList ? 'space-y-2' : 'grid grid-cols-2 gap-3 sm:grid-cols-3'}
     >
       {block.posts.map((post) => (
-        <div
+        <Card
           key={post.id}
-          className={`rounded-lg border border-border bg-card p-3 ${
-            isList ? 'flex items-center gap-3' : ''
-          }`}
+          bodyClassName={topPostBodyClassName(isList)}
+          variant={CardVariant.BORDERED}
         >
           {post.thumbnail && (
             <Image
@@ -271,7 +274,7 @@ function TopPosts({ block }: { block: TopPostsBlock }): ReactElement {
               )}
             </div>
           </div>
-        </div>
+        </Card>
       ))}
     </div>
   );

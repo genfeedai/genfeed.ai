@@ -13,6 +13,7 @@ import { AgentOrchestratorTurboRunService } from '@api/services/agent-orchestrat
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import {
   type AgentToolRoundState,
+  type AgentToolRoundStrategy,
   AgentTurnRoundRunnerService,
   assertAgentCreditBudget,
 } from '@api/services/agent-orchestrator/agent-turn-round-runner.service';
@@ -49,6 +50,10 @@ import {
   resolveBlockedTools,
   TURBO_RUN_SCOPED_ALLOWED_TOOLS,
 } from '@api/services/agent-orchestrator/utils/agent-tool-definitions.util';
+import {
+  AGENT_UNPRODUCED_DRAFTS_INSTRUCTION,
+  claimsUnproducedDrafts,
+} from '@api/services/agent-orchestrator/utils/agent-unproduced-drafts.util';
 import { sanitizeAgentOutputText } from '@api/services/agent-orchestrator/utils/sanitize-agent-output.util';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type { OpenRouterChatCompletionResponse } from '@api/services/integrations/openrouter/dto/openrouter.dto';
@@ -262,6 +267,7 @@ export class AgentOrchestratorStreamLoopService {
       // Auto-routing decision inputs (#4865): the tier depends on how the turn
       // has behaved so far, not only on the opening message.
       let hasPreviousRoundUsedTools = false;
+      let hasRequestedUnproducedDrafts = false;
       let latestAutoRouting: AgentAutoRoutingResolution | undefined;
       let terminalContent: string | undefined;
       let latestProviderUsage = {
@@ -455,6 +461,22 @@ export class AgentOrchestratorStreamLoopService {
             return;
           }
 
+          if (
+            !hasRequestedUnproducedDrafts &&
+            claimsUnproducedDrafts(
+              sanitizeAgentOutputText(assistantMessage.content || ''),
+              toolRoundState.toolCalls,
+              toolRoundState.uiActions,
+            )
+          ) {
+            hasRequestedUnproducedDrafts = true;
+            messages.push(
+              { content: assistantMessage.content ?? '', role: 'assistant' },
+              { content: AGENT_UNPRODUCED_DRAFTS_INSTRUCTION, role: 'system' },
+            );
+            continue;
+          }
+
           const threadEnvelope = extractThreadEnvelope({
             assistantContent: sanitizeAgentOutputText(
               assistantMessage.content || '',
@@ -600,108 +622,7 @@ export class AgentOrchestratorStreamLoopService {
           policy: resolvedPolicy,
           source,
           state: toolRoundState,
-          strategy: {
-            deferUnknownToolFailure: true,
-            logParseErrors: false,
-            onAfterTool: async () =>
-              (await this.isRunCancelled(context)) ? 'cancel' : 'continue',
-            onBeforeTool: async () =>
-              (await this.isRunCancelled(context)) ? 'cancel' : 'continue',
-            onToolCompleted: async (event) => {
-              if (event.kind === 'unknown') {
-                await this.streamEffects.publishStreamingToolCompleted({
-                  context,
-                  debug: {
-                    error: event.summary.error,
-                    parameters: event.parameters,
-                  },
-                  detail: event.summary.error,
-                  durationMs: event.summary.durationMs,
-                  error: event.summary.error,
-                  label: event.requestedToolName,
-                  parameters: event.parameters,
-                  resultSummary: event.summary.error,
-                  status: 'failed',
-                  threadId,
-                  toolCallId: event.toolCallId,
-                  toolName: event.requestedToolName,
-                });
-                return;
-              }
-
-              if (event.kind === 'insufficient_credits') {
-                await this.streamEffects.publishStreamingToolCompleted({
-                  context,
-                  debug: {
-                    error: event.summary.error,
-                    parameters: event.parameters,
-                  },
-                  detail: event.summary.error,
-                  durationMs: event.summary.durationMs,
-                  error: event.summary.error,
-                  parameters: event.parameters,
-                  resultSummary: event.summary.error,
-                  status: 'failed',
-                  threadId,
-                  toolCallId: event.toolCallId,
-                  toolName: event.toolName,
-                });
-                return;
-              }
-
-              await this.streamEffects.publishStreamingToolCompleted({
-                context,
-                creditsUsed: event.summary.creditsUsed,
-                debug: event.summary.error
-                  ? {
-                      error: event.summary.error,
-                      parameters: event.parameters,
-                      result: event.result?.data,
-                    }
-                  : {
-                      parameters: event.parameters,
-                      result: event.result?.data,
-                    },
-                detail:
-                  event.summary.status === 'completed'
-                    ? (event.summary.resultSummary ??
-                      `${event.toolName} completed`)
-                    : event.summary.error,
-                durationMs: event.durationMs,
-                error: event.summary.error,
-                parameters: event.parameters,
-                resultSummary: event.summary.resultSummary,
-                status: event.summary.status,
-                threadId,
-                toolCallId: event.toolCallId,
-                toolName: event.toolName,
-                uiActions: event.result?.nextActions,
-              });
-            },
-            onToolStarted: async (event) => {
-              await this.streamEffects.publishStreamingToolStarted({
-                context,
-                parameters: event.parameters,
-                startedAt: new Date(event.startTime).toISOString(),
-                threadId,
-                toolCallId: event.toolCallId,
-                toolName: event.toolName,
-              });
-            },
-            onUiBlocks: async (event) => {
-              if (event.deferPublish) {
-                return;
-              }
-              await this.streamEffects.publishStreamUiBlocks({
-                blockIds: event.blockIds,
-                blocks: event.blocks as AgentUIBlocksEvent['blocks'],
-                context,
-                operation: event.operation,
-                runId: context.executionId,
-                threadId,
-              });
-            },
-          },
+          strategy: this.buildStreamToolRoundStrategy(context, threadId),
           thinkingModel: resolvedPolicy.thinkingModelOverride ?? undefined,
           threadId,
           toolCalls,
@@ -761,6 +682,113 @@ export class AgentOrchestratorStreamLoopService {
     } finally {
       this.activeStreams.delete(threadId);
     }
+  }
+
+  private buildStreamToolRoundStrategy(
+    context: AgentChatContext,
+    threadId: string,
+  ): AgentToolRoundStrategy {
+    return {
+      deferUnknownToolFailure: true,
+      logParseErrors: false,
+      onAfterTool: async () =>
+        (await this.isRunCancelled(context)) ? 'cancel' : 'continue',
+      onBeforeTool: async () =>
+        (await this.isRunCancelled(context)) ? 'cancel' : 'continue',
+      onToolCompleted: async (event) => {
+        if (event.kind === 'unknown') {
+          await this.streamEffects.publishStreamingToolCompleted({
+            context,
+            debug: {
+              error: event.summary.error,
+              parameters: event.parameters,
+            },
+            detail: event.summary.error,
+            durationMs: event.summary.durationMs,
+            error: event.summary.error,
+            label: event.requestedToolName,
+            parameters: event.parameters,
+            resultSummary: event.summary.error,
+            status: 'failed',
+            threadId,
+            toolCallId: event.toolCallId,
+            toolName: event.requestedToolName,
+          });
+          return;
+        }
+
+        if (event.kind === 'insufficient_credits') {
+          await this.streamEffects.publishStreamingToolCompleted({
+            context,
+            debug: {
+              error: event.summary.error,
+              parameters: event.parameters,
+            },
+            detail: event.summary.error,
+            durationMs: event.summary.durationMs,
+            error: event.summary.error,
+            parameters: event.parameters,
+            resultSummary: event.summary.error,
+            status: 'failed',
+            threadId,
+            toolCallId: event.toolCallId,
+            toolName: event.toolName,
+          });
+          return;
+        }
+
+        await this.streamEffects.publishStreamingToolCompleted({
+          context,
+          creditsUsed: event.summary.creditsUsed,
+          debug: event.summary.error
+            ? {
+                error: event.summary.error,
+                parameters: event.parameters,
+                result: event.result?.data,
+              }
+            : {
+                parameters: event.parameters,
+                result: event.result?.data,
+              },
+          detail:
+            event.summary.status === 'completed'
+              ? (event.summary.resultSummary ?? `${event.toolName} completed`)
+              : event.summary.error,
+          durationMs: event.durationMs,
+          error: event.summary.error,
+          parameters: event.parameters,
+          resultSummary: event.summary.resultSummary,
+          status: event.summary.status,
+          threadId,
+          toolCallId: event.toolCallId,
+          toolName: event.toolName,
+          uiActions: event.result?.nextActions,
+        });
+      },
+      onToolStarted: async (event) => {
+        await this.streamEffects.publishStreamingToolStarted({
+          context,
+          parameters: event.parameters,
+          startedAt: new Date(event.startTime).toISOString(),
+          threadId,
+          toolCallId: event.toolCallId,
+          toolName: event.toolName,
+        });
+      },
+      onUiBlocks: async (event) => {
+        if (event.deferPublish) {
+          return;
+        }
+        await this.streamEffects.publishStreamUiBlocks({
+          blockIds: event.blockIds,
+          blocks: event.blocks as AgentUIBlocksEvent['blocks'],
+          context,
+          operation: event.operation,
+          runId: context.executionId,
+          threadId,
+        });
+      },
+    };
   }
 
   private async isRunCancelled(context: AgentChatContext): Promise<boolean> {

@@ -6,8 +6,12 @@ import { assertApiKeyAgentPublishingScope } from '@api/helpers/utils/auth/api-ke
 import type { ThreadUiActionExecutionParams } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.types';
 import { AgentOrchestratorUiActionFinalizerService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-finalizer.service';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { buildMutationApprovalCard } from '@api/services/agent-orchestrator/tools/mutation-approval-card';
+import {
+  buildMutationApprovalCard,
+  humanize,
+} from '@api/services/agent-orchestrator/tools/mutation-approval-card';
 import { buildApprovedMutationOutcome } from '@api/services/agent-orchestrator/tools/mutation-approval-outcome';
+import { APPROVAL_PENDING_RESULT_SUMMARY } from '@api/services/agent-orchestrator/utils/agent-terminal-tool-result.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { type CuratedActionName, getToolByName } from '@genfeedai/actions';
 import { buildLogicalWriteKey } from '@genfeedai/actions/server';
@@ -466,13 +470,13 @@ export class AgentOrchestratorUiActionMutationService {
           isDeleted: false,
           role: 'assistant',
         },
-        select: { id: true, metadata: true },
+        select: { id: true, metadata: true, toolCalls: true },
       });
       let resolvedCard: AgentUiAction | undefined;
-      const updates: Pick<
+      const updates: (Pick<
         PersistedMutationProposal,
         'messageId' | 'metadata'
-      >[] = [];
+      > & { toolCalls?: unknown })[] = [];
       for (const message of messages) {
         const metadata = record(message.metadata);
         const currentActions = Array.isArray(metadata.uiActions)
@@ -482,72 +486,16 @@ export class AgentOrchestratorUiActionMutationService {
         const actions = currentActions.map((candidate) => {
           const card = record(candidate);
           if (card.id !== sourceActionId) return candidate;
-          const data = record(card.data);
-          if (
-            card.type !== 'mutation_approval_card' ||
-            data.approvalId !== params.payload?.approvalId ||
-            data.sourceActionId !== sourceActionId
-          ) {
-            throw new BadRequestException(
-              'The original card does not match this approval.',
-            );
-          }
-          if (
-            data.scopeVersion !== scope.contextVersion ||
-            (data.brandId ?? null) !== (scope.brandId ?? null)
-          ) {
-            throw new ConflictException(
-              'This approval is stale. Prepare the action again in the current brand context.',
-            );
-          }
-          if (
-            (data.status === 'declined' && status === 'approved') ||
-            (data.status === 'approved' && status === 'declined')
-          ) {
-            throw new ConflictException(
-              'This approval already has the opposite consent.',
-            );
-          }
-          if (
-            approval?.status === 'PENDING' &&
-            (!Number.isFinite(Date.parse(String(data.expiresAt))) ||
-              Date.parse(String(data.expiresAt)) <= Date.now())
-          ) {
-            throw new ConflictException(
-              'This approval expired. Prepare the action again.',
-            );
-          }
+          const resolved = this.resolveProposalCard(
+            card,
+            sourceActionId,
+            status,
+            result,
+            params,
+            scope,
+            approval,
+          );
           hasChanges = true;
-          const resolved: AgentUiAction = {
-            ...card,
-            id: sourceActionId,
-            type: 'mutation_approval_card',
-            title:
-              typeof card.title === 'string' ? card.title : 'Review action',
-            ctas: [],
-            requiresConfirmation: false,
-            data: {
-              ...record(card.data),
-              status,
-              executionStatus:
-                status === 'declined'
-                  ? 'cancelled'
-                  : result
-                    ? result.success
-                      ? 'completed'
-                      : 'failed'
-                    : ['completed', 'failed', 'cancelled'].includes(
-                          String(data.executionStatus),
-                        )
-                      ? data.executionStatus
-                      : 'running',
-              ...(result?.success
-                ? { error: undefined }
-                : result?.error !== undefined
-                  ? { error: result.error }
-                  : {}),
-            },
-          };
           resolvedCard ??= resolved;
           return resolved;
         });
@@ -555,6 +503,16 @@ export class AgentOrchestratorUiActionMutationService {
         updates.push({
           messageId: message.id,
           metadata: { ...metadata, uiActions: actions },
+          toolCalls: settleApprovalToolCall(
+            message.toolCalls,
+            String(
+              record(
+                actions.find((action) => record(action).id === sourceActionId),
+              ).title,
+            ),
+            status,
+            result,
+          ),
         });
       }
       if (!resolvedCard)
@@ -579,6 +537,9 @@ export class AgentOrchestratorUiActionMutationService {
           },
           data: {
             metadata: toPrismaJson(update.metadata),
+            ...(update.toolCalls === undefined
+              ? {}
+              : { toolCalls: toPrismaJson(update.toolCalls) }),
           },
         });
         if (patched.count !== 1) {
@@ -589,6 +550,81 @@ export class AgentOrchestratorUiActionMutationService {
       }
       return resolvedCard;
     });
+  }
+
+  private resolveProposalCard(
+    card: Record<string, unknown>,
+    sourceActionId: string,
+    status: 'approved' | 'declined',
+    result: AgentToolResult | undefined,
+    params: ThreadUiActionExecutionParams,
+    scope: Awaited<ReturnType<typeof this.lockProposalThread>>,
+    approval?: McpApprovalDocument,
+  ): AgentUiAction {
+    const data = record(card.data);
+    if (
+      card.type !== 'mutation_approval_card' ||
+      data.approvalId !== params.payload?.approvalId ||
+      data.sourceActionId !== sourceActionId
+    ) {
+      throw new BadRequestException(
+        'The original card does not match this approval.',
+      );
+    }
+    if (
+      data.scopeVersion !== scope.contextVersion ||
+      (data.brandId ?? null) !== (scope.brandId ?? null)
+    ) {
+      throw new ConflictException(
+        'This approval is stale. Prepare the action again in the current brand context.',
+      );
+    }
+    if (
+      (data.status === 'declined' && status === 'approved') ||
+      (data.status === 'approved' && status === 'declined')
+    ) {
+      throw new ConflictException(
+        'This approval already has the opposite consent.',
+      );
+    }
+    if (
+      approval?.status === 'PENDING' &&
+      (!Number.isFinite(Date.parse(String(data.expiresAt))) ||
+        Date.parse(String(data.expiresAt)) <= Date.now())
+    ) {
+      throw new ConflictException(
+        'This approval expired. Prepare the action again.',
+      );
+    }
+    return {
+      ...card,
+      id: sourceActionId,
+      type: 'mutation_approval_card',
+      title: typeof card.title === 'string' ? card.title : 'Review action',
+      ctas: [],
+      requiresConfirmation: false,
+      data: {
+        ...record(card.data),
+        status,
+        executionStatus:
+          status === 'declined'
+            ? 'cancelled'
+            : result
+              ? result.success
+                ? 'completed'
+                : 'failed'
+              : ['completed', 'failed', 'cancelled'].includes(
+                    String(data.executionStatus),
+                  )
+                ? data.executionStatus
+                : 'running',
+        ...(result?.success
+          ? { error: undefined }
+          : result?.error !== undefined
+            ? { error: result.error }
+            : {}),
+      },
+    };
   }
 
   private async loadProposals(
@@ -638,4 +674,39 @@ export class AgentOrchestratorUiActionMutationService {
       );
     return proposals;
   }
+}
+
+/**
+ * The tool call that produced a proposal card was saved as "Waiting for your
+ * approval". Once the user decides, it reports the outcome instead, so the
+ * transcript does not contradict the card next to it. Returns undefined when
+ * there is nothing to change.
+ */
+function settleApprovalToolCall(
+  toolCalls: unknown,
+  cardTitle: string,
+  status: 'approved' | 'declined',
+  result: AgentToolResult | undefined,
+): unknown {
+  if (!Array.isArray(toolCalls)) return undefined;
+  const index = toolCalls.findIndex(
+    (candidate) =>
+      record(record(candidate).result).summary ===
+        APPROVAL_PENDING_RESULT_SUMMARY &&
+      humanize(String(record(candidate).toolName)) === cardTitle,
+  );
+  if (index < 0) return undefined;
+  const summary =
+    status === 'declined'
+      ? 'Declined'
+      : !result
+        ? 'Approved, running'
+        : result.success
+          ? 'Approved and completed'
+          : (result.error ?? 'Approved, but it failed');
+  return toolCalls.map((candidate, position) =>
+    position === index
+      ? { ...record(candidate), result: { summary } }
+      : candidate,
+  );
 }

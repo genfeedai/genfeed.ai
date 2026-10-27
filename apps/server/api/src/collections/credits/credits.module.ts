@@ -17,6 +17,7 @@ import { GenerationHoldRecoveryService } from '@api/collections/credits/services
 import { GenerationLineReservationService } from '@api/collections/credits/services/generation-line-reservation.service';
 import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
 import { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
+import { RetryCreditBackService } from '@api/collections/credits/services/retry-credit-back.service';
 import { SignupGrantEligibilityService } from '@api/collections/credits/services/signup-grant-eligibility.service';
 import { TopbarBalancesService } from '@api/collections/credits/services/topbar-balances.service';
 import { VideoGenerationLineageService } from '@api/collections/credits/services/video-generation-lineage.service';
@@ -51,6 +52,7 @@ import { Module } from '@nestjs/common';
     GenerationHoldRecoveryService,
     GenerationQuoteGroupService,
     GenerationLineReservationService,
+    RetryCreditBackService,
     VideoGenerationLineageService,
     WorkflowGenerationBillingService,
   ],
@@ -83,6 +85,7 @@ import { Module } from '@nestjs/common';
     GenerationHoldRecoveryService,
     GenerationQuoteGroupService,
     GenerationLineReservationService,
+    RetryCreditBackService,
     VideoGenerationLineageService,
     WorkflowGenerationBillingService,
     {

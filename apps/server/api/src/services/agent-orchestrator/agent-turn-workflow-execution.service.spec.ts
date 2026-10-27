@@ -579,7 +579,15 @@ describe('immediate media turns', () => {
     expect(executeUiAction).not.toHaveBeenCalled();
   });
 
-  it('still runs a locked video turn outside Plan mode', async () => {
+  it('does not charge a Manual thread before it confirms the cost', async () => {
+    const { executeUiAction, result } = await runMediaTurn(
+      AgentThreadMode.MANUAL,
+    );
+    expect(result).toBeNull();
+    expect(executeUiAction).not.toHaveBeenCalled();
+  });
+
+  it('still runs a locked video turn in Auto mode', async () => {
     const { executeUiAction, result } = await runMediaTurn(
       AgentThreadMode.AUTO,
     );
