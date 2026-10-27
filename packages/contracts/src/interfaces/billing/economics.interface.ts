@@ -77,6 +77,8 @@ export interface IEconomicsRevenueTotals {
 }
 
 export interface IEconomicsRevenueDailyPoint {
+  /** Refunds and disputes, zero or negative. */
+  adjustmentsUsd: number;
   creditPackUsd: number;
   date: string;
   subscriptionUsd: number;
@@ -201,4 +203,16 @@ export interface IEconomicsCoverageReport {
   ledgers: IEconomicsLedgerCoverage[];
   operations: IEconomicsOperationCoverage[];
   to: string;
+}
+
+/**
+ * Which revenue-ledger row a Stripe payment was recorded under, and what the
+ * customer paid for it (tax included), so a refund or dispute can take the
+ * same net share back out.
+ */
+export interface IStripePaymentRevenueReference {
+  /** Gross charged amount in minor units, tax included. */
+  grossAmountMinor: number;
+  /** `billing_revenue_events.stripeObjectId`: the checkout session or invoice id. */
+  revenueObjectId: string;
 }

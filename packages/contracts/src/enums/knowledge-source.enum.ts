@@ -36,6 +36,15 @@ export enum KnowledgeRetrievalState {
   EXPIRED = 'EXPIRED',
 }
 
+export enum KnowledgeConflictStatus {
+  /** The judge found the two versions disagree and nobody has decided yet. */
+  OPEN = 'OPEN',
+  DISMISSED = 'DISMISSED',
+  RESOLVED = 'RESOLVED',
+  /** The pair was judged consistent; kept so it is not judged again. */
+  CLEARED = 'CLEARED',
+}
+
 export enum KnowledgeRetentionState {
   RETAINED = 'RETAINED',
   SCHEDULED_FOR_PURGE = 'SCHEDULED_FOR_PURGE',

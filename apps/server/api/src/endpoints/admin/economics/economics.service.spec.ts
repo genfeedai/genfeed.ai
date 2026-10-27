@@ -204,8 +204,18 @@ describe('EconomicsService', () => {
     const report = await service.getRevenue({ from: FROM, to: TO });
 
     expect(report.daily).toEqual([
-      { creditPackUsd: 0, date: '2026-09-02', subscriptionUsd: 29 },
-      { creditPackUsd: 10, date: '2026-09-03', subscriptionUsd: 0 },
+      {
+        adjustmentsUsd: 0,
+        creditPackUsd: 0,
+        date: '2026-09-02',
+        subscriptionUsd: 29,
+      },
+      {
+        adjustmentsUsd: 0,
+        creditPackUsd: 10,
+        date: '2026-09-03',
+        subscriptionUsd: 0,
+      },
     ]);
     expect(report.totals).toEqual({
       averageRevenuePerEventUsd: 19.5,

@@ -147,6 +147,15 @@ export const GENERATION_TYPES: readonly GenerationTypeEntry[] = [
     source: `${API}/collections/videos/services/video-generation-brief.util.ts`,
   },
   {
+    enumRefs: {},
+    id: 'skill-handlers',
+    marker: 'resolveBrief',
+    note: 'The content-writing, trend-remix and content-geo-optimizer skill handlers write against the composed harness brief through SkillBrandBriefService (contentType post, or article for the GEO rewrite) and fail with a retryable 503 when it is unavailable; there is no brand-voice-string fallback.',
+    path: 'harness',
+    smoke: null,
+    source: `${API}/services/skill-executor/skill-brand-brief.service.ts`,
+  },
+  {
     enumRefs: { IngredientCategory: ['IMAGE', 'VIDEO'] },
     id: 'studio-media-ingredients',
     note: 'IngredientCategory.IMAGE/VIDEO are the stored output of the image and video rows above.',

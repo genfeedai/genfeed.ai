@@ -19,7 +19,10 @@ import {
   toNumber,
 } from '@api/endpoints/admin/economics/economics-report.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BillingRevenueSource } from '@genfeedai/contracts';
+import {
+  BillingRevenueSource,
+  isRevenueAdjustmentSource,
+} from '@genfeedai/contracts';
 import type {
   EconomicsCostKind,
   IEconomicsCostCategoryRow,
@@ -270,13 +273,19 @@ export class EconomicsService {
 
     const dayRows = new Map<
       string,
-      { creditPack: number; subscription: number }
+      { adjustments: number; creditPack: number; subscription: number }
     >();
     for (const row of byDay) {
-      const entry = dayRows.get(row.day) ?? { creditPack: 0, subscription: 0 };
+      const entry = dayRows.get(row.day) ?? {
+        adjustments: 0,
+        creditPack: 0,
+        subscription: 0,
+      };
       const minor = toNumber(row.revenueMinor);
       if (row.source === BillingRevenueSource.SUBSCRIPTION_INVOICE) {
         entry.subscription += minor;
+      } else if (isRevenueAdjustmentSource(row.source)) {
+        entry.adjustments += minor;
       } else {
         entry.creditPack += minor;
       }
@@ -287,6 +296,7 @@ export class EconomicsService {
     ).map((date) => {
       const entry = dayRows.get(date);
       return {
+        adjustmentsUsd: minorToUsd(entry?.adjustments ?? 0),
         creditPackUsd: minorToUsd(entry?.creditPack ?? 0),
         date,
         subscriptionUsd: minorToUsd(entry?.subscription ?? 0),
@@ -298,7 +308,16 @@ export class EconomicsService {
       revenueUsd: minorToUsd(toNumber(row.revenueMinor)),
       source: row.source,
     }));
-    const events = sources.reduce((sum, row) => sum + row.events, 0);
+    // Refunds and disputes net the revenue down but are not payments: they do
+    // not count as events, and the per-event average is over sales only.
+    const sales = bySource.filter(
+      (row) => !isRevenueAdjustmentSource(row.source),
+    );
+    const events = sales.reduce((sum, row) => sum + toNumber(row.events), 0);
+    const salesMinor = sales.reduce(
+      (sum, row) => sum + toNumber(row.revenueMinor),
+      0,
+    );
     const revenueMinor = bySource.reduce(
       (sum, row) => sum + toNumber(row.revenueMinor),
       0,
@@ -333,7 +352,7 @@ export class EconomicsService {
       ),
       totals: {
         averageRevenuePerEventUsd:
-          events > 0 ? minorToUsd(revenueMinor / events) : 0,
+          events > 0 ? minorToUsd(salesMinor / events) : 0,
         events,
         payingOrganizations: toNumber(
           payingOrgs.find((row) => row.isCurrent)?.organizations,
@@ -535,7 +554,7 @@ export class EconomicsService {
       SELECT
         to_char("occurredAt", 'YYYY-MM-DD') AS "day",
         COALESCE(SUM("amountMinor"), 0)::bigint AS "revenueMinor",
-        COUNT(*)::bigint AS "events"
+        (COUNT(*) FILTER (WHERE "amountMinor" > 0))::bigint AS "events"
       FROM "billing_revenue_events"
       WHERE "isDeleted" = false
         AND "currency" = ${REPORTING_CURRENCY}
@@ -597,6 +616,7 @@ export class EconomicsService {
         COUNT(DISTINCT "organizationId")::bigint AS "organizations"
       FROM "billing_revenue_events"
       WHERE "isDeleted" = false
+        AND "amountMinor" > 0
         AND "currency" = ${REPORTING_CURRENCY}
         AND "occurredAt" >= ${window.previousFrom}
         AND "occurredAt" < ${window.toExclusive}
