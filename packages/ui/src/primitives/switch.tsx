@@ -32,7 +32,7 @@ export interface SwitchProps extends SwitchBaseProps {
  * on/off always slides left ↔ right in both Light and Dark. Do not center the
  * thumb with flex — translate owns position.
  *
- * Motion: the thumb travels with a slight spring overshoot, colors fade on the
+ * Motion: the thumb travels on a non-overshooting ease-out, colors fade on the
  * standard ease, and pressing an enabled switch stretches the thumb (the
  * checked thumb is re-anchored to the right edge) so the toggle feels physical.
  */
