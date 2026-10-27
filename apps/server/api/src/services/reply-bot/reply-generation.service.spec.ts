@@ -18,6 +18,7 @@ import {
   SystemPromptKey,
 } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ServiceUnavailableException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('ReplyGenerationService', () => {
@@ -280,15 +281,14 @@ describe('ReplyGenerationService', () => {
       );
     });
 
-    it('should return a fallback reply when AI generation fails', async () => {
+    it('fails instead of answering with a canned reply when AI generation fails', async () => {
       mockTemplatesService.getRenderedPrompt.mockRejectedValue(
         new Error('AI error'),
       );
 
-      const result = await service.generateReply(baseOptions);
-
-      expect(typeof result).toBe('string');
-      expect(result.length).toBeGreaterThan(0);
+      await expect(service.generateReply(baseOptions)).rejects.toThrow(
+        ServiceUnavailableException,
+      );
       expect(mockLoggerService.error).toHaveBeenCalled();
     });
   });
@@ -336,15 +336,14 @@ describe('ReplyGenerationService', () => {
       expect(mockPromptBuilderService.buildPrompt).toHaveBeenCalled();
     });
 
-    it('should return a fallback DM when AI generation fails', async () => {
+    it('fails instead of sending a canned DM when AI generation fails', async () => {
       mockPromptBuilderService.buildPrompt.mockRejectedValue(
         new Error('DM gen failed'),
       );
 
-      const result = await service.generateDm(dmOptions);
-
-      expect(result).toContain('@author123');
-      expect(result).toContain('Thanks for engaging');
+      await expect(service.generateDm(dmOptions)).rejects.toThrow(
+        ServiceUnavailableException,
+      );
     });
 
     it('should include context and custom instructions in prompt when provided', async () => {
