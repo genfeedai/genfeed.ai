@@ -1,3 +1,4 @@
+import { ASSET_ORIGIN_GENERATION_PENDING } from '@api/collections/assets/constants/asset-origin.constant';
 import { BRAND_KIT_RESOLVED_REFERENCE_LIMIT } from '@api/collections/brands/constants/brand-kit-assets.constant';
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import type { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
@@ -65,6 +66,7 @@ describe('BrandKitAssetsService.resolveBrandKitAssets', () => {
     expect(sql).toContain('"category" = ANY( ? ::"AssetCategory"[])');
     expect(readBindings(queryRaw.mock.calls[0])).toEqual([
       'org-1',
+      ASSET_ORIGIN_GENERATION_PENDING,
       ['brand-1'],
       ['LOGO', 'BANNER', 'REFERENCE'],
       'REFERENCE',
@@ -175,7 +177,7 @@ describe('BrandKitAssetsService.resolveBrandKitAssetsForBrands', () => {
     );
 
     expect(queryRaw).toHaveBeenCalledTimes(1);
-    expect(readBindings(queryRaw.mock.calls[0])[1]).toEqual([
+    expect(readBindings(queryRaw.mock.calls[0])[2]).toEqual([
       'brand-1',
       'brand-2',
     ]);

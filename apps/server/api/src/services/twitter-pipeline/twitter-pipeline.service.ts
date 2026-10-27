@@ -1,3 +1,4 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { isValidPostLength } from '@api/collections/posts/services/post-generation-text.util';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
@@ -44,6 +45,12 @@ export const TWITTER_DRAFT_BRAND_CONTEXT_UNAVAILABLE =
 
 /** An X post, reply or quote is held to the standard 280 weighted characters. */
 const TWITTER_DRAFT_MAX_CHARACTERS = 280;
+
+/** Who asked for the drafts; brand access for the brief is checked for them. */
+export type TwitterDraftCaller = Pick<
+  AuthenticatedUser,
+  'apiKeyId' | 'isApiKey' | 'scopes' | 'userId'
+>;
 
 type TwitterPublishRequest = {
   credentialId?: string;
@@ -164,9 +171,15 @@ export class TwitterPipelineService implements OnModuleInit {
     orgId: string,
     searchResults: ITwitterSearchResult[],
     voiceConfig: ITwitterVoiceConfig,
-    brandId?: string,
+    brandId: string | undefined,
+    caller: TwitterDraftCaller,
   ): Promise<ITwitterOpportunity[]> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    // Resolved here, where the caller is known, so brand access is checked
+    // for them rather than for the workflow's system owner.
+    const brandBrief = brandId
+      ? await this.resolveDraftBrief(orgId, brandId, searchResults, caller)
+      : null;
 
     try {
       const definition = buildTwitterDraftWorkflowDefinition();
@@ -177,6 +190,7 @@ export class TwitterPipelineService implements OnModuleInit {
           inputValues: {
             request: {
               ...(brandId ? { brandId } : {}),
+              ...(brandBrief ? { brandBrief } : {}),
               organizationId: orgId,
               searchResults,
               voiceConfig,
@@ -265,7 +279,10 @@ export class TwitterPipelineService implements OnModuleInit {
     const request = this.readRequest(input);
     const searchResults = this.readSearchResults(request.searchResults);
     const voiceConfig = this.readVoiceConfig(request.voiceConfig);
-    const brief = await this.resolveDraftBrief(request, searchResults);
+    const brief =
+      typeof request.brandBrief === 'string' && request.brandBrief
+        ? request.brandBrief
+        : null;
     return {
       prompt: this.buildHybridPrompt(searchResults, voiceConfig, brief),
       searchResults,
@@ -415,22 +432,19 @@ export class TwitterPipelineService implements OnModuleInit {
    * generic drafts through, like the other branded text generators.
    */
   private async resolveDraftBrief(
-    request: Record<string, unknown>,
+    organizationId: string,
+    brandId: string,
     searchResults: ITwitterSearchResult[],
-  ): Promise<string | null> {
-    const brandId =
-      typeof request.brandId === 'string' && request.brandId
-        ? request.brandId
-        : null;
-    if (!brandId) return null;
-    const organizationId = this.requiredString(
-      request.organizationId,
-      'organizationId',
-    );
+    caller: TwitterDraftCaller,
+  ): Promise<string> {
     const harness = this.harnessGenerationService;
     const brief = harness
       ? await harness.resolveBrief({
+          apiKeyId: caller.apiKeyId,
           brandId,
+          isApiKey: caller.isApiKey,
+          scopes: caller.scopes,
+          userId: caller.userId,
           contentType: 'reply',
           includeContentMemory: true,
           objective: 'engagement',
