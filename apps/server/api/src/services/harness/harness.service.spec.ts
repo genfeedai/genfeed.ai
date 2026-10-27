@@ -77,6 +77,10 @@ describe('ContentHarnessService', () => {
     await expect(service.listLoadedPackIds()).resolves.toEqual([
       'core-baseline',
       'platform-x',
+      'platform-linkedin',
+      'platform-instagram',
+      'platform-tiktok',
+      'platform-youtube',
       'brand-fidelity',
       'viral-psychology',
       'b2b-media-craft',
@@ -96,6 +100,10 @@ describe('ContentHarnessService', () => {
     await expect(service.listLoadedPackIds()).resolves.toEqual([
       'core-baseline',
       'platform-x',
+      'platform-linkedin',
+      'platform-instagram',
+      'platform-tiktok',
+      'platform-youtube',
       'brand-fidelity',
       'viral-psychology',
       'b2b-media-craft',
@@ -108,6 +116,10 @@ describe('ContentHarnessService', () => {
       builtInPackIds: [
         'core-baseline',
         'platform-x',
+        'platform-linkedin',
+        'platform-instagram',
+        'platform-tiktok',
+        'platform-youtube',
         'brand-fidelity',
         'viral-psychology',
         'b2b-media-craft',
@@ -123,6 +135,10 @@ describe('ContentHarnessService', () => {
       loadedPackIds: [
         'core-baseline',
         'platform-x',
+        'platform-linkedin',
+        'platform-instagram',
+        'platform-tiktok',
+        'platform-youtube',
         'brand-fidelity',
         'viral-psychology',
         'b2b-media-craft',
