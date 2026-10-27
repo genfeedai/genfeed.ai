@@ -28,6 +28,15 @@
         "VERCEL_GIT_COMMIT_SHA",
         "RELEASE_TAG"
       ],
+      // Turbo's strict env mode drops undeclared variables, so without these the
+      // Sentry build plugin never saw its token and no source maps were uploaded.
+      // Pass-through keeps the secret out of the task hash.
+      "passThroughEnv": [
+        "SENTRY_AUTH_TOKEN",
+        "SENTRY_ORG",
+        "SENTRY_PROJECT",
+        "SENTRY_RELEASE"
+      ],
       "inputs": [
         "$TURBO_EXTENDS$",
         "$TURBO_ROOT$/package.json",
