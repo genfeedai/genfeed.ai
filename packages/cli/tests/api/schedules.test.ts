@@ -43,18 +43,84 @@ describe('api/schedules', () => {
     expect(mockGet).toHaveBeenCalledWith('/schedules/calendar?start=2026-08-01&end=2026-08-31');
   });
 
-  it('bulk schedules items', async () => {
-    const items = [
-      { contentId: 'content-1', platform: 'instagram', scheduledAt: '2026-08-10T09:00:00Z' },
-    ];
-    mockPost.mockResolvedValue({ data: [] });
-    mockFlattenCollection.mockReturnValue([{ id: 'entry-1', scheduledAt: '2026-08-10T09:00:00Z' }]);
+  describe('bulkSchedule', () => {
+    const item = (contentId: string, platform: string, scheduledAt: string) => ({
+      contentId,
+      platform,
+      scheduledAt,
+    });
 
-    const { bulkSchedule } = await import('../../src/api/schedules');
-    const result = await bulkSchedule(items);
+    it('sends each platform as a custom-strategy request keyed by content id', async () => {
+      mockPost
+        .mockResolvedValueOnce({ failed: [], scheduled: [{ id: 's1', scheduledAt: 'a' }] })
+        .mockResolvedValueOnce({
+          failed: [{ contentId: 'c3', reason: 'Not found' }],
+          scheduled: [{ id: 's2', scheduledAt: 'b' }],
+        });
 
-    expect(mockPost).toHaveBeenCalledWith('/schedules/bulk', { items });
-    expect(result).toHaveLength(1);
+      const { bulkSchedule } = await import('../../src/api/schedules');
+      const result = await bulkSchedule('brand-1', [
+        item('c1', 'linkedin', '2026-09-02T09:00:00Z'),
+        item('c2', 'twitter', '2026-09-02T10:00:00Z'),
+        item('c3', 'linkedin', '2026-09-02T11:00:00Z'),
+      ]);
+
+      expect(mockPost).toHaveBeenCalledTimes(2);
+      expect(mockPost).toHaveBeenNthCalledWith(1, '/schedules/bulk', {
+        brandIds: ['brand-1'],
+        contentIds: ['c1', 'c3'],
+        customTimes: { c1: '2026-09-02T09:00:00Z', c3: '2026-09-02T11:00:00Z' },
+        platforms: ['linkedin'],
+        schedulingStrategy: 'custom',
+      });
+      expect(mockPost).toHaveBeenNthCalledWith(2, '/schedules/bulk', {
+        brandIds: ['brand-1'],
+        contentIds: ['c2'],
+        customTimes: { c2: '2026-09-02T10:00:00Z' },
+        platforms: ['twitter'],
+        schedulingStrategy: 'custom',
+      });
+      expect(result.scheduled.map((entry) => entry.id)).toEqual(['s1', 's2']);
+      expect(result.failed).toEqual([{ contentId: 'c3', reason: 'Not found' }]);
+      expect(mockFlattenCollection).not.toHaveBeenCalled();
+    });
+
+    it('sends each platform 100 content ids at a time', async () => {
+      mockPost.mockResolvedValue({ failed: [], scheduled: [{ id: 's', scheduledAt: 'a' }] });
+      const items = Array.from({ length: 101 }, (_, index) =>
+        item(`c${index}`, 'twitter', '2026-09-02T09:00:00Z')
+      );
+
+      const { bulkSchedule } = await import('../../src/api/schedules');
+      await bulkSchedule('brand-1', items);
+
+      expect(mockPost.mock.calls.map(([, body]) => body.contentIds.length)).toEqual([100, 1]);
+    });
+
+    it('reports a failed batch against its content ids when another batch succeeded', async () => {
+      mockPost
+        .mockResolvedValueOnce({ failed: [], scheduled: [{ id: 's1', scheduledAt: 'a' }] })
+        .mockRejectedValueOnce(new Error('Rate limited'));
+
+      const { bulkSchedule } = await import('../../src/api/schedules');
+      const result = await bulkSchedule('brand-1', [
+        item('c1', 'linkedin', '2026-09-02T09:00:00Z'),
+        item('c2', 'twitter', '2026-09-02T10:00:00Z'),
+      ]);
+
+      expect(result.scheduled).toHaveLength(1);
+      expect(result.failed).toEqual([{ contentId: 'c2', reason: 'Rate limited' }]);
+    });
+
+    it('throws the first error when nothing could be scheduled', async () => {
+      mockPost.mockRejectedValue(new Error('Invalid or expired API key'));
+
+      const { bulkSchedule } = await import('../../src/api/schedules');
+
+      await expect(
+        bulkSchedule('brand-1', [item('c1', 'linkedin', '2026-09-02T09:00:00Z')])
+      ).rejects.toThrow('Invalid or expired API key');
+    });
   });
 
   it('asks for the posting windows of one platform and returns the answer as is', async () => {

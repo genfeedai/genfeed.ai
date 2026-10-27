@@ -27,11 +27,63 @@ export async function getCalendar(start?: string, end?: string): Promise<Schedul
   return flattenCollection<ScheduleEntry>(response);
 }
 
-export async function bulkSchedule(items: BulkScheduleItem[]): Promise<ScheduleEntry[]> {
-  const response = await post<JsonApiDocument>('/schedules/bulk', {
-    items,
-  });
-  return flattenCollection<ScheduleEntry>(response);
+export interface BulkScheduleFailure {
+  contentId: string;
+  reason: string;
+}
+
+export interface BulkScheduleResult {
+  scheduled: ScheduleEntry[];
+  failed: BulkScheduleFailure[];
+}
+
+/** The API refuses more content ids than this in one bulk request. */
+const BULK_SCHEDULE_BATCH_SIZE = 100;
+
+/**
+ * Schedules each item at its own time. The endpoint takes one platform and one
+ * brand per request and, for the `custom` strategy, a `contentId -> time` map,
+ * so items are grouped by platform and sent in batches. A batch that fails is
+ * reported against its content ids; if nothing was scheduled at all the first
+ * error is thrown, so a bad key or brand is not buried in a list.
+ */
+export async function bulkSchedule(
+  brandId: string,
+  items: BulkScheduleItem[]
+): Promise<BulkScheduleResult> {
+  const byPlatform = new Map<string, BulkScheduleItem[]>();
+  for (const item of items) {
+    byPlatform.set(item.platform, [...(byPlatform.get(item.platform) ?? []), item]);
+  }
+
+  const result: BulkScheduleResult = { failed: [], scheduled: [] };
+  let firstError: unknown;
+
+  for (const [platform, platformItems] of byPlatform) {
+    for (let start = 0; start < platformItems.length; start += BULK_SCHEDULE_BATCH_SIZE) {
+      const batch = platformItems.slice(start, start + BULK_SCHEDULE_BATCH_SIZE);
+      try {
+        const response = await post<BulkScheduleResult>('/schedules/bulk', {
+          brandIds: [brandId],
+          contentIds: batch.map((item) => item.contentId),
+          customTimes: Object.fromEntries(batch.map((item) => [item.contentId, item.scheduledAt])),
+          platforms: [platform],
+          schedulingStrategy: 'custom',
+        });
+        result.scheduled.push(...response.scheduled);
+        result.failed.push(...response.failed);
+      } catch (error) {
+        firstError ??= error;
+        const reason = error instanceof Error ? error.message : 'Request failed';
+        result.failed.push(...batch.map((item) => ({ contentId: item.contentId, reason })));
+      }
+    }
+  }
+
+  if (result.scheduled.length === 0 && firstError !== undefined) {
+    throw firstError;
+  }
+  return result;
 }
 
 export async function getOptimalTime(
