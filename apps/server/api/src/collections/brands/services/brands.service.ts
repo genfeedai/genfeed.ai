@@ -971,9 +971,6 @@ export class BrandsService extends BaseService<
     );
   }
 
-  /**
-   * Count brands matching filter
-   */
   count(filter: Record<string, unknown>): Promise<number> {
     return this.delegate.count({ where: filter }) as Promise<number>;
   }

@@ -1,3 +1,4 @@
+import { TurboIdeasBriefService } from '@api/collections/turbo-projects/services/turbo-ideas-brief.service';
 import { TurboProjectsService } from '@api/collections/turbo-projects/services/turbo-projects.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import {
@@ -126,7 +127,7 @@ describe('TurboProjectsService', () => {
     ideaGeneration as never,
     brandsService as never,
     platformSettingsService as never,
-    harness as never,
+    new TurboIdeasBriefService(harness as never, logger as never),
   );
 
   function useProject(project: Row, items: Row[] = []) {

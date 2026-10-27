@@ -10,6 +10,7 @@ import type { QuoteTurboProjectDto } from '@api/collections/turbo-projects/dto/q
 import type { ReviewTurboProjectItemsDto } from '@api/collections/turbo-projects/dto/review-turbo-project-items.dto';
 import type { UpdateTurboProjectDto } from '@api/collections/turbo-projects/dto/update-turbo-project.dto';
 import type { UpdateTurboProjectItemDto } from '@api/collections/turbo-projects/dto/update-turbo-project-item.dto';
+import { TurboIdeasBriefService } from '@api/collections/turbo-projects/services/turbo-ideas-brief.service';
 import {
   type TurboProjectWithItems,
   toTurboProject,
@@ -31,8 +32,6 @@ import { WorkflowsService } from '@api/collections/workflows/services/workflows.
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { scopedWhere } from '@api/index';
-import { BRAND_CONTEXT_CHARACTER_BUDGET } from '@api/services/agent-context-assembly/brand-context-budget.util';
-import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
@@ -56,11 +55,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
-  ServiceUnavailableException,
 } from '@nestjs/common';
-
-export const TURBO_IDEAS_BRAND_CONTEXT_UNAVAILABLE =
-  'Brand context is unavailable for these ideas. Please retry.';
 
 const INPUT_CATEGORIES = new Set<string>([
   IngredientCategory.IMAGE,
@@ -98,7 +93,7 @@ export class TurboProjectsService {
     private readonly ideaGeneration: TurboProjectIdeaGenerationService,
     private readonly brandsService: BrandsService,
     private readonly platformSettingsService: PlatformSettingsService,
-    private readonly harness: HarnessGenerationService,
+    private readonly ideasBrief: TurboIdeasBriefService,
   ) {}
 
   async list(
@@ -308,11 +303,7 @@ export class TurboProjectsService {
     this.assertDraft(before);
     if (before.kind !== TurboProjectKind.IDEAS)
       throw new BadRequestException('Only idea projects generate ideas');
-    const harnessBrief = await this.resolveIdeasBrief(
-      before.brandId,
-      dto,
-      scope,
-    );
+    const brief = await this.ideasBrief.resolve(before.brandId, dto, scope);
     const project = await this.update(
       id,
       { settings: { ideas: dto }, step: TurboProjectStep.IDEAS },
@@ -322,7 +313,7 @@ export class TurboProjectsService {
       project.brandId,
       dto,
       scope.organizationId,
-      harnessBrief,
+      brief,
     );
     return this.reconcileService.runExclusive(id, async () => {
       const current = await this.requireProject(id, scope);
@@ -332,39 +323,6 @@ export class TurboProjectsService {
         );
       return this.addItemsLocked(id, { ideas }, scope);
     });
-  }
-
-  /**
-   * Ideas carry the hook, caption and, for avatar ideas, the words the avatar
-   * speaks, so they are written against the composed harness brief like other
-   * copy. Without it the request fails instead of letting generic ideas through.
-   */
-  private async resolveIdeasBrief(
-    brandId: string,
-    dto: GenerateTurboIdeasDto,
-    scope: ITurboProjectScope,
-  ): Promise<string> {
-    const topic = dto.angle?.trim();
-    const brief = await this.harness.resolveBrief({
-      brandId,
-      contentType: 'ugc',
-      includeContentMemory: Boolean(topic),
-      objective: 'engagement',
-      organizationId: scope.organizationId,
-      topic: topic || undefined,
-      userId: scope.userId,
-    });
-    const formatted = this.harness.formatBrief(brief).trim();
-    if (!formatted || formatted.length > BRAND_CONTEXT_CHARACTER_BUDGET) {
-      this.logger.warn(`${this.context} harness brief unavailable`, {
-        brandId,
-        organizationId: scope.organizationId,
-      });
-      throw new ServiceUnavailableException(
-        TURBO_IDEAS_BRAND_CONTEXT_UNAVAILABLE,
-      );
-    }
-    return formatted;
   }
 
   /**
