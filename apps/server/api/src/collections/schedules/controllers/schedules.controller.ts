@@ -1,42 +1,18 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
 import { BulkScheduleDto } from '@api/collections/schedules/dto/bulk-schedule.dto';
 import { GetOptimalTimeDto } from '@api/collections/schedules/dto/optimal-time.dto';
 import { SchedulesService } from '@api/collections/schedules/services/schedules.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
-import {
-  Credits,
-  DeferCreditsUntilModelResolution,
-} from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
-import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
-import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
-import {
-  assertOrganizationCreditsAvailable,
-  getDefaultTextMinimumCredits,
-} from '@api/helpers/utils/credits/organization-credits-gate.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
-import { ActivitySource } from '@genfeedai/contracts';
 import type { ValidateChannelTargetSettingsInput } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { ScheduleSerializer } from '@genfeedai/serializers';
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  Query,
-  Req,
-  UseGuards,
-  UseInterceptors,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
@@ -45,13 +21,8 @@ import type { Request } from 'express';
 @FeatureFlag('publishing')
 @OrganizationModule('publishing')
 @Controller('schedules')
-@UseInterceptors(CreditsInterceptor)
 export class SchedulesController {
-  constructor(
-    private readonly schedulesService: SchedulesService,
-    private readonly creditsUtilsService: CreditsUtilsService,
-    private readonly modelsService: ModelsService,
-  ) {}
+  constructor(private readonly schedulesService: SchedulesService) {}
 
   @Get('channel-capabilities')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -80,37 +51,16 @@ export class SchedulesController {
   }
 
   /**
-   * Get optimal posting time
+   * Get the best posting time: learned from the organization's own measured
+   * posts, or labelled default times when there is not enough data.
    */
   @Post('optimal')
-  @UseGuards(CreditsGuard)
-  @Credits({
-    description: 'Optimal schedule suggestion (text model)',
-    source: ActivitySource.SCRIPT,
-  })
-  @DeferCreditsUntilModelResolution()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getOptimalTime(
-    @Req() req: Request,
     @Body() dto: GetOptimalTimeDto,
     @CurrentUser() user: User,
   ) {
-    const organization = user.organizationId;
-    await assertOrganizationCreditsAvailable(
-      this.creditsUtilsService,
-      organization,
-      await getDefaultTextMinimumCredits(this.modelsService),
-    );
-    let billedCredits = 0;
-    const result = await this.schedulesService.getOptimalTime(
-      dto,
-      organization,
-      (amount) => {
-        billedCredits += amount;
-      },
-    );
-    finalizeDeferredTextCredits(req, billedCredits);
-    return result;
+    return await this.schedulesService.getOptimalTime(dto, user.organizationId);
   }
 
   /**

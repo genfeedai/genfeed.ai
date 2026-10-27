@@ -4,16 +4,12 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
 import { SchedulesController } from '@api/collections/schedules/controllers/schedules.controller';
 import { BulkScheduleDto } from '@api/collections/schedules/dto/bulk-schedule.dto';
 import { GetOptimalTimeDto } from '@api/collections/schedules/dto/optimal-time.dto';
 import { SchedulesService } from '@api/collections/schedules/services/schedules.service';
-import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
-import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -49,19 +45,6 @@ describe('SchedulesController', () => {
       controllers: [SchedulesController],
       providers: [
         {
-          provide: CreditsUtilsService,
-          useValue: {
-            checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
-            getOrganizationCreditsBalance: vi.fn().mockResolvedValue(0),
-          },
-        },
-        {
-          provide: ModelsService,
-          useValue: {
-            findOne: vi.fn().mockResolvedValue(null),
-          },
-        },
-        {
           provide: LoggerService,
           useValue: {
             debug: vi.fn(),
@@ -76,14 +59,7 @@ describe('SchedulesController', () => {
         },
       ],
     })
-      .overrideInterceptor(CreditsInterceptor)
-      .useValue({
-        intercept: (_context: unknown, next: { handle: () => unknown }) =>
-          next.handle(),
-      })
       .overrideGuard(SubscriptionGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(CreditsGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })
@@ -151,29 +127,21 @@ describe('SchedulesController', () => {
   });
 
   describe('getOptimalTime', () => {
-    it('should return optimal posting time', async () => {
+    it("asks the service for the caller's organization only", async () => {
       const dto: GetOptimalTimeDto = {
-        contentType: 'image',
-        platform: 'instagram',
+        platform: 'twitter',
+        timezone: 'Europe/Malta',
       };
+      const recommendation = { basis: 'default', windows: [] };
+      mockSchedulesService.getOptimalTime.mockResolvedValue(recommendation);
 
-      const optimalTime = {
-        platform: 'instagram',
-        reasoning: 'Peak engagement time',
-        recommendedTime: '18:00',
-        timezone: 'UTC',
-      };
-
-      mockSchedulesService.getOptimalTime.mockResolvedValue(optimalTime);
-
-      const result = await controller.getOptimalTime(mockReq, dto, mockUser);
+      const result = await controller.getOptimalTime(dto, mockUser);
 
       expect(service.getOptimalTime).toHaveBeenCalledWith(
         dto,
         MOCK_ORGANIZATION_ID,
-        expect.any(Function),
       );
-      expect(result).toEqual(optimalTime);
+      expect(result).toEqual(recommendation);
     });
   });
 

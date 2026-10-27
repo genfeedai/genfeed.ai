@@ -68,3 +68,27 @@ export interface PostingWindowResult {
   /** Best first; empty unless `status` is `ready`. */
   windows: PostingWindow[];
 }
+
+/** One recommended slot. Defaults have no weekday and no sample behind them. */
+export interface PostingTimeWindow {
+  /** 0 is Monday, 6 is Sunday; null for a default that applies every day. */
+  weekday: number | null;
+  startHour: number;
+  endHour: number;
+  sampleCount: number | null;
+  median: number | null;
+}
+
+/** Answer of the posting-time recommendation, in the account timezone. */
+export interface PostingTimeRecommendation {
+  /** `learned` only from enough measured posts; `default` is a platform guess. */
+  basis: 'learned' | 'default';
+  method: 'median-by-slot' | 'platform-default';
+  metric: 'engagementRate';
+  platform: string;
+  timezone: string;
+  eligibleCount: number;
+  spanDays: number;
+  windows: PostingTimeWindow[];
+  reasoning: string[];
+}

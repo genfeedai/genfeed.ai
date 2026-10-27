@@ -19,18 +19,21 @@ const WEEKDAY_INDEX: Readonly<Record<string, number>> = {
   Wed: 2,
 };
 
+/** The accepted rule (#6769): 20 posts over 28 days, 3 per 3-hour slot, read at 24 to 48 hours. */
+export const DEFAULT_POSTING_WINDOW_OPTIONS: Readonly<PostingWindowOptions> = {
+  minimumPosts: 20,
+  minimumPostsPerSlot: 3,
+  minimumSpanDays: 28,
+  observationMaxMs: 2 * DAY_MS,
+  observationMinMs: DAY_MS,
+  slotHours: 3,
+  topCount: 3,
+};
+
 function resolveOptions(
   options: PostingWindowInput['options'],
 ): PostingWindowOptions {
-  const resolved = {
-    minimumPosts: options?.minimumPosts ?? 20,
-    minimumPostsPerSlot: options?.minimumPostsPerSlot ?? 3,
-    minimumSpanDays: options?.minimumSpanDays ?? 28,
-    observationMaxMs: options?.observationMaxMs ?? 2 * DAY_MS,
-    observationMinMs: options?.observationMinMs ?? DAY_MS,
-    slotHours: options?.slotHours ?? 3,
-    topCount: options?.topCount ?? 3,
-  };
+  const resolved = { ...DEFAULT_POSTING_WINDOW_OPTIONS, ...options };
   if (!Number.isInteger(resolved.slotHours) || 24 % resolved.slotHours !== 0) {
     throw new RangeError('Posting window slotHours must divide 24');
   }
