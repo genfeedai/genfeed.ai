@@ -4,6 +4,7 @@ import { BaseEntity } from '@api/entities/base.entity';
 export class OrganizationEntity extends BaseEntity implements Organization {
   declare readonly id: string;
   declare readonly authProviderLogoUrl: string | null;
+  declare readonly metadata: string | null;
   declare readonly userId: string;
   declare readonly billingAccountId: string | null;
 
