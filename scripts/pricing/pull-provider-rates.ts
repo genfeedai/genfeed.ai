@@ -13,6 +13,7 @@
 import { spawnSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { resolveOpenapiProperties } from '../../apps/server/workers/src/services/openapi-property.util';
 import { describeProviderRateChanges } from '../../packages/pricing/src/reviewed-rate-hash';
 import {
   extractReplicateBillingTiers,
@@ -66,9 +67,11 @@ async function fetchInputProperties(
       };
     };
   };
-  return (
-    model.latest_version?.openapi_schema?.components?.schemas?.Input
-      ?.properties ?? {}
+  const openapi = model.latest_version?.openapi_schema ?? {};
+  // Replicate keeps enums in `components.schemas` behind `allOf` refs.
+  return resolveOpenapiProperties(
+    openapi.components?.schemas?.Input?.properties ?? {},
+    openapi,
   );
 }
 

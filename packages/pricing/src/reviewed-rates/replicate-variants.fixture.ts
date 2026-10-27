@@ -1,4 +1,4 @@
-/** Public provider schema/billingConfig captured 2026-10-05. No approvals or margins. */
+/** Public provider schema/billingConfig captured 2026-10-05 (kling motion-control, gpt-5-structured and p-video-2 added 2026-10-27). No approvals or margins. */
 export const REPLICATE_VARIANT_FIXTURES: Readonly<
   Record<
     string,
@@ -4474,6 +4474,1019 @@ export const REPLICATE_VARIANT_FIXTURES: Readonly<
             type: 'per-unit',
           },
         ],
+      },
+    ],
+  },
+  'kwaivgi/kling-v2.6-motion-control': {
+    sourceUrl:
+      'https://replicate.com/kwaivgi/kling-v2.6-motion-control/api/schema',
+    inputProperties: {
+      mode: {
+        enum: ['std', 'pro'],
+        type: 'string',
+        title: 'mode',
+        description:
+          "Video generation mode. 'std': Standard mode (cost-effective). 'pro': Professional mode (higher quality).",
+        $ref: '#/components/schemas/mode',
+        allOf: [
+          {
+            $ref: '#/components/schemas/mode',
+          },
+        ],
+        default: 'std',
+        'x-order': 4,
+      },
+      image: {
+        type: 'string',
+        title: 'Image',
+        format: 'uri',
+        'x-order': 1,
+        description:
+          'Reference image. The characters, backgrounds, and other elements in the generated video are based on the reference image. Supports .jpg/.jpeg/.png, max 10MB, dimensions 340px-3850px, aspect ratio 1:2.5 to 2.5:1.',
+      },
+      video: {
+        type: 'string',
+        title: 'Video',
+        format: 'uri',
+        'x-order': 2,
+        description:
+          'Reference video. The character actions in the generated video are consistent with the reference video. Supports .mp4/.mov, max 100MB, 3-30 seconds duration depending on character_orientation.',
+      },
+      prompt: {
+        type: 'string',
+        title: 'Prompt',
+        default: '',
+        'x-order': 0,
+        description:
+          'Text prompt for video generation. You can add elements to the screen and achieve motion effects through prompt words.',
+      },
+      keep_original_sound: {
+        type: 'boolean',
+        title: 'Keep Original Sound',
+        default: true,
+        'x-order': 5,
+        description: 'Whether to keep the original sound of the video',
+      },
+      character_orientation: {
+        enum: ['image', 'video'],
+        type: 'string',
+        title: 'character_orientation',
+        description:
+          "Generate the orientation of the characters in the video. 'image': same orientation as the person in the picture (max 10s video). 'video': consistent with the orientation of the characters in the video (max 30s video).",
+        $ref: '#/components/schemas/character_orientation',
+        allOf: [
+          {
+            $ref: '#/components/schemas/character_orientation',
+          },
+        ],
+        default: 'image',
+        'x-order': 3,
+      },
+    },
+    tiers: [
+      {
+        criteria: [
+          {
+            description: 'std',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'std',
+          },
+        ],
+        description: null,
+        prices: [
+          {
+            description: 'or around 14 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.07',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: 'std',
+      },
+      {
+        criteria: [
+          {
+            description: 'pro',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'pro',
+          },
+        ],
+        description: null,
+        prices: [
+          {
+            description: 'or around 83 seconds for $10',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.12',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: 'pro',
+      },
+    ],
+  },
+  'kwaivgi/kling-v3-motion-control': {
+    sourceUrl:
+      'https://replicate.com/kwaivgi/kling-v3-motion-control/api/schema',
+    inputProperties: {
+      mode: {
+        enum: ['std', 'pro'],
+        type: 'string',
+        title: 'mode',
+        description:
+          "Video generation mode. 'std': Standard mode (720p, cost-effective). 'pro': Professional mode (1080p, higher quality).",
+        $ref: '#/components/schemas/mode',
+        allOf: [
+          {
+            $ref: '#/components/schemas/mode',
+          },
+        ],
+        default: 'pro',
+        'x-order': 4,
+      },
+      image: {
+        type: 'string',
+        title: 'Image',
+        format: 'uri',
+        'x-order': 1,
+        description:
+          'Reference image. The characters, backgrounds, and other elements in the generated video are based on the reference image. Supports .jpg/.jpeg/.png, max 10MB, dimensions 340px-3850px, aspect ratio 1:2.5 to 2.5:1.',
+      },
+      video: {
+        type: 'string',
+        title: 'Video',
+        format: 'uri',
+        'x-order': 2,
+        description:
+          'Reference video. The character actions in the generated video are consistent with the reference video. Supports .mp4/.mov, max 100MB, 3-30 seconds duration depending on character_orientation.',
+      },
+      prompt: {
+        type: 'string',
+        title: 'Prompt',
+        default: '',
+        'x-order': 0,
+        description:
+          'Text prompt for video generation. You can add elements to the screen and achieve motion effects through prompt words.',
+      },
+      keep_original_sound: {
+        type: 'boolean',
+        title: 'Keep Original Sound',
+        default: true,
+        'x-order': 5,
+        description:
+          'Whether to keep the original sound of the reference video',
+      },
+      character_orientation: {
+        enum: ['image', 'video'],
+        type: 'string',
+        title: 'character_orientation',
+        description:
+          "Orientation of the character in the generated video. 'image': same orientation as the person in the picture (max 10s video). 'video': consistent with the orientation of the characters in the video (max 30s video). When binding elements, only 'video' orientation is supported.",
+        $ref: '#/components/schemas/character_orientation',
+        allOf: [
+          {
+            $ref: '#/components/schemas/character_orientation',
+          },
+        ],
+        default: 'image',
+        'x-order': 3,
+      },
+    },
+    tiers: [
+      {
+        criteria: [
+          {
+            description: 'std',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'std',
+          },
+        ],
+        description: null,
+        prices: [
+          {
+            description: 'or around 14 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.07',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: null,
+      },
+      {
+        criteria: [
+          {
+            description: 'pro',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'pro',
+          },
+        ],
+        description: null,
+        prices: [
+          {
+            description: 'or around 83 seconds for $10',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.12',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: null,
+      },
+    ],
+  },
+  'openai/gpt-5-structured': {
+    sourceUrl: 'https://replicate.com/openai/gpt-5-structured/api/schema',
+    inputProperties: {
+      model: {
+        enum: ['gpt-5', 'gpt-5-mini', 'gpt-5-nano'],
+        type: 'string',
+        title: 'model',
+        description: 'GPT-5 model to use.',
+        $ref: '#/components/schemas/model',
+        allOf: [
+          {
+            $ref: '#/components/schemas/model',
+          },
+        ],
+        default: 'gpt-5',
+        'x-order': 0,
+      },
+      tools: {
+        type: 'array',
+        items: {
+          type: 'object',
+        },
+        title: 'Tools',
+        default: [],
+        'x-order': 10,
+        description:
+          'Tools to make available to the model. Should be a JSON object containing a list of tool definitions.',
+      },
+      prompt: {
+        type: 'string',
+        title: 'Prompt',
+        'x-order': 1,
+        nullable: true,
+        description:
+          'A simple text input to the model, equivalent to a text input with the user role. Ignored if input_item_list is provided.',
+      },
+      verbosity: {
+        enum: ['low', 'medium', 'high'],
+        type: 'string',
+        title: 'verbosity',
+        description:
+          "Constrains the verbosity of the model's response. Lower values will result in more concise responses, while higher values will result in more verbose responses. Currently supported values are low, medium, and high. GPT-5 supports this parameter to help control whether answers are short and to the point or long and comprehensive.",
+        $ref: '#/components/schemas/verbosity',
+        allOf: [
+          {
+            $ref: '#/components/schemas/verbosity',
+          },
+        ],
+        default: 'medium',
+        'x-order': 5,
+      },
+      image_input: {
+        type: 'array',
+        items: {
+          type: 'string',
+          format: 'uri',
+        },
+        title: 'Image Input',
+        default: [],
+        'x-order': 3,
+        description: 'List of images to send to the model',
+      },
+      json_schema: {
+        type: 'object',
+        title: 'Json Schema',
+        default: {},
+        'x-order': 11,
+        description:
+          'A JSON schema that the response must conform to. For simple data structures we recommend using `simple_text_format_schema` which will be converted to a JSON schema for you.',
+      },
+      instructions: {
+        type: 'string',
+        title: 'Instructions',
+        'x-order': 2,
+        nullable: true,
+        description:
+          "A system (or developer) message inserted into the model's context. When using along with previous_response_id, the instructions from a previous response will not be carried over to the next response. This makes it simple to swap out system (or developer) messages in new responses.",
+      },
+      simple_schema: {
+        type: 'array',
+        items: {
+          type: 'string',
+        },
+        title: 'Simple Schema',
+        default: [],
+        'x-order': 7,
+        description:
+          "Create a JSON schema for the output to conform to. The schema will be created from a simple list of field specifications. Strings: 'thing' (defaults to string), 'thing:str', 'thing:string'. Booleans: 'is_a_thing:bool' or 'is_a_thing:boolean'. Numbers: 'count:number', 'count:int'. Lists: 'things:list' (defaults to list of strings), 'things:list:str', 'number_things:list:number', etc. Nested objects are not supported, use `json_schema` instead.",
+      },
+      input_item_list: {
+        type: 'array',
+        items: {
+          type: 'object',
+        },
+        title: 'Input Item List',
+        default: [],
+        'x-order': 8,
+        description:
+          'A list of one or many input items to the model, containing different content types. This parameter corresponds with the `input` OpenAI API parameter. For more details see: https://platform.openai.com/docs/api-reference/responses/create#responses_create-input. Similar to the `messages` parameter, but with more flexibility in the content types.',
+      },
+      reasoning_effort: {
+        enum: ['minimal', 'low', 'medium', 'high'],
+        type: 'string',
+        title: 'reasoning_effort',
+        description:
+          'Constrains effort on reasoning for GPT-5 models. Currently supported values are minimal, low, medium, and high. The minimal value gets answers back faster without extensive reasoning first. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response. For higher reasoning efforts you may need to increase your max_completion_tokens to avoid empty responses (where all the tokens are used on reasoning).',
+        $ref: '#/components/schemas/reasoning_effort',
+        allOf: [
+          {
+            $ref: '#/components/schemas/reasoning_effort',
+          },
+        ],
+        default: 'minimal',
+        'x-order': 4,
+      },
+      enable_web_search: {
+        type: 'boolean',
+        title: 'Enable Web Search',
+        default: false,
+        'x-order': 6,
+        description: 'Allow GPT-5 to use web search for the response.',
+      },
+      max_output_tokens: {
+        type: 'integer',
+        title: 'Max Output Tokens',
+        'x-order': 12,
+        nullable: true,
+        description:
+          'Maximum number of completion tokens to generate. For higher reasoning efforts you may need to increase your max_completion_tokens to avoid empty responses (where all the tokens are used on reasoning).',
+      },
+      previous_response_id: {
+        type: 'string',
+        title: 'Previous Response Id',
+        'x-order': 9,
+        nullable: true,
+        description: 'The ID of a previous response to continue from.',
+      },
+    },
+    tiers: [
+      {
+        criteria: [
+          {
+            description: 'gpt-5',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'gpt-5',
+          },
+        ],
+        description: null,
+        prices: [
+          {
+            description: 'or 800,000 tokens for $1',
+            metric: 'token_input_count',
+            metric_display: 'input token',
+            price: '$1.25',
+            title: 'per million input tokens',
+            type: 'per-unit',
+          },
+          {
+            description: 'or 100,000 tokens for $1',
+            metric: 'token_output_count',
+            metric_display: 'output token',
+            price: '$0.01',
+            title: 'per thousand output tokens',
+            type: 'per-unit',
+          },
+        ],
+        title: null,
+      },
+      {
+        criteria: [
+          {
+            description: 'gpt-5-nano',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'gpt-5-nano',
+          },
+        ],
+        description: null,
+        prices: [
+          {
+            description: 'or 20,000,000 tokens for $1',
+            metric: 'token_input_count',
+            metric_display: 'input token',
+            price: '$0.05',
+            title: 'per million input tokens',
+            type: 'per-unit',
+          },
+          {
+            description: 'or 2,500,000 tokens for $1',
+            metric: 'token_output_count',
+            metric_display: 'output token',
+            price: '$0.40',
+            title: 'per million output tokens',
+            type: 'per-unit',
+          },
+        ],
+        title: null,
+      },
+      {
+        criteria: [
+          {
+            description: 'gpt-5-mini',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'gpt-5-mini',
+          },
+        ],
+        description: null,
+        prices: [
+          {
+            description: 'or 4,000,000 tokens for $1',
+            metric: 'token_input_count',
+            metric_display: 'input token',
+            price: '$0.25',
+            title: 'per million input tokens',
+            type: 'per-unit',
+          },
+          {
+            description: 'or 500,000 tokens for $1',
+            metric: 'token_output_count',
+            metric_display: 'output token',
+            price: '$2',
+            title: 'per million output tokens',
+            type: 'per-unit',
+          },
+        ],
+        title: null,
+      },
+    ],
+  },
+  'prunaai/p-video-2': {
+    sourceUrl: 'https://replicate.com/prunaai/p-video-2/api/schema',
+    inputProperties: {
+      fps: {
+        enum: [24, 48],
+        type: 'integer',
+        title: 'fps',
+        description: 'Frames per second of the video.',
+        $ref: '#/components/schemas/fps',
+        allOf: [
+          {
+            $ref: '#/components/schemas/fps',
+          },
+        ],
+        default: 24,
+        'x-order': 7,
+      },
+      seed: {
+        type: 'integer',
+        title: 'Seed',
+        'x-order': 12,
+        nullable: true,
+        description: 'Random seed. Set for reproducible generation.',
+      },
+      audio: {
+        type: 'string',
+        title: 'Audio',
+        format: 'uri',
+        'x-order': 3,
+        nullable: true,
+        description:
+          'Input audio to condition video generation. Supports flac, mp3, wav.',
+      },
+      draft: {
+        type: 'boolean',
+        title: 'Draft',
+        default: false,
+        'x-order': 8,
+        description:
+          'Draft mode. Generates a lower-quality preview of the video.',
+      },
+      image: {
+        type: 'string',
+        title: 'Image',
+        format: 'uri',
+        'x-order': 1,
+        nullable: true,
+        description:
+          'Input image to generate video from (image-to-video). Supports jpg, jpeg, png, webp.',
+      },
+      no_op: {
+        type: 'boolean',
+        title: 'No Op',
+        default: false,
+        'x-order': 13,
+        description: 'Health check mode - returns status without inference.',
+      },
+      prompt: {
+        type: 'string',
+        title: 'Prompt',
+        'x-order': 0,
+        description: 'Text prompt for video generation.',
+      },
+      duration: {
+        type: 'integer',
+        title: 'Duration',
+        maximum: 20,
+        minimum: 1,
+        'x-order': 4,
+        nullable: true,
+        description:
+          'Duration of the video in seconds (1-20). Leave empty to let the model choose length from the prompt. Ignored when audio is provided.',
+      },
+      resolution: {
+        enum: ['720p', '1080p'],
+        type: 'string',
+        title: 'resolution',
+        description: 'Resolution of the video.',
+        $ref: '#/components/schemas/resolution',
+        allOf: [
+          {
+            $ref: '#/components/schemas/resolution',
+          },
+        ],
+        default: '720p',
+        'x-order': 6,
+      },
+      save_audio: {
+        type: 'boolean',
+        title: 'Save Audio',
+        default: true,
+        'x-order': 11,
+        description: 'Save the video with audio.',
+      },
+      aspect_ratio: {
+        enum: ['16:9', '9:16', '4:3', '3:4', '3:2', '2:3', '1:1'],
+        type: 'string',
+        title: 'aspect_ratio',
+        description:
+          'Aspect ratio of the video. Ignored when an input image is provided.',
+        $ref: '#/components/schemas/aspect_ratio',
+        allOf: [
+          {
+            $ref: '#/components/schemas/aspect_ratio',
+          },
+        ],
+        default: '16:9',
+        'x-order': 5,
+      },
+      last_frame_image: {
+        type: 'string',
+        title: 'Last Frame Image',
+        format: 'uri',
+        'x-order': 2,
+        nullable: true,
+        description:
+          'Reference image for the last frame of the video. Supports jpg, jpeg, png, webp.',
+      },
+      prompt_upsampling: {
+        type: 'boolean',
+        title: 'Prompt Upsampling',
+        default: true,
+        'x-order': 9,
+        description: 'Use prompt upsampling to enhance the prompt.',
+      },
+      disable_safety_filter: {
+        type: 'boolean',
+        title: 'Disable Safety Filter',
+        default: true,
+        'x-order': 10,
+        description:
+          'Disable safety filter for prompts (and input image). When disabled, prompts are not checked for unsafe content before generation.',
+      },
+    },
+    tiers: [
+      {
+        criteria: [
+          {
+            description: 'base',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'base',
+          },
+          {
+            description: '720p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '720p',
+          },
+        ],
+        description: '720p full quality',
+        prices: [
+          {
+            description: 'or around 33 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.03',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: '720p',
+      },
+      {
+        criteria: [
+          {
+            description: 'draft',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'draft',
+          },
+          {
+            description: '720p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '720p',
+          },
+        ],
+        description: '720p draft mode',
+        prices: [
+          {
+            description: 'or around 66 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.015',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: '720p draft',
+      },
+      {
+        criteria: [
+          {
+            description: 'base',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'base',
+          },
+          {
+            description: '1080p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '1080p',
+          },
+        ],
+        description: '1080p full quality',
+        prices: [
+          {
+            description: 'or around 16 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.06',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: '1080p',
+      },
+      {
+        criteria: [
+          {
+            description: 'draft',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'draft',
+          },
+          {
+            description: '1080p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '1080p',
+          },
+        ],
+        description: '1080p draft mode',
+        prices: [
+          {
+            description: 'or around 33 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.03',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: '1080p draft',
+      },
+    ],
+  },
+  'prunaai/p-video-2-pro': {
+    sourceUrl: 'https://replicate.com/prunaai/p-video-2-pro/api/schema',
+    inputProperties: {
+      mode: {
+        enum: ['quality', 'speed', 'cost'],
+        type: 'string',
+        title: 'mode',
+        description: 'Generation mode: quality, speed, or cost.',
+        $ref: '#/components/schemas/mode',
+        allOf: [
+          {
+            $ref: '#/components/schemas/mode',
+          },
+        ],
+        default: 'speed',
+        'x-order': 1,
+      },
+      seed: {
+        type: 'integer',
+        title: 'Seed',
+        'x-order': 8,
+        nullable: true,
+        description: 'Random seed for reproducible generation.',
+      },
+      image: {
+        type: 'string',
+        title: 'Image',
+        format: 'uri',
+        'x-order': 3,
+        nullable: true,
+        description: 'First-frame reference image.',
+      },
+      prompt: {
+        type: 'string',
+        title: 'Prompt',
+        'x-order': 0,
+        description: 'Text prompt for video generation.',
+      },
+      duration: {
+        type: 'integer',
+        title: 'Duration',
+        default: 5,
+        maximum: 15,
+        minimum: 5,
+        'x-order': 5,
+        description: 'Video duration in seconds.',
+      },
+      resolution: {
+        enum: ['480p', '768p', '1080p', '2k', '4k'],
+        type: 'string',
+        title: 'resolution',
+        description:
+          'Video resolution. 1080p, 2k and 4k generate at 768p and upscale it (24 fps kept).',
+        $ref: '#/components/schemas/resolution',
+        allOf: [
+          {
+            $ref: '#/components/schemas/resolution',
+          },
+        ],
+        default: '768p',
+        'x-order': 6,
+      },
+      aspect_ratio: {
+        enum: ['16:9', '9:16', '4:3', '3:4', '3:2', '2:3', '1:1'],
+        type: 'string',
+        title: 'aspect_ratio',
+        description:
+          'Aspect ratio; reference images determine the canvas when provided.',
+        $ref: '#/components/schemas/aspect_ratio',
+        allOf: [
+          {
+            $ref: '#/components/schemas/aspect_ratio',
+          },
+        ],
+        default: '16:9',
+        'x-order': 7,
+      },
+      last_frame_image: {
+        type: 'string',
+        title: 'Last Frame Image',
+        format: 'uri',
+        'x-order': 4,
+        nullable: true,
+        description: 'Last-frame reference image.',
+      },
+      prompt_upsampler: {
+        enum: ['off', 'turbo', 'max'],
+        type: 'string',
+        title: 'prompt_upsampler',
+        description: 'Expand your prompt before video generation.',
+        $ref: '#/components/schemas/prompt_upsampler',
+        allOf: [
+          {
+            $ref: '#/components/schemas/prompt_upsampler',
+          },
+        ],
+        default: 'turbo',
+        'x-order': 2,
+      },
+      enable_safety_filter: {
+        type: 'boolean',
+        title: 'Enable Safety Filter',
+        default: false,
+        'x-order': 9,
+        description:
+          'Check the inputs against the content policy. When off, only the always-on categories (sexual content involving minors, self-harm intent or instructions) are still blocked.',
+      },
+    },
+    tiers: [
+      {
+        criteria: [
+          {
+            description: 'cost',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'cost',
+          },
+          {
+            description: '480p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '480p',
+          },
+        ],
+        description: '480p resolution, cost mode',
+        prices: [
+          {
+            description: 'or 100 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.01',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: '480p cost',
+      },
+      {
+        criteria: [
+          {
+            description: 'cost',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'cost',
+          },
+          {
+            description: '768p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '768p',
+          },
+        ],
+        description: '768p resolution, cost mode',
+        prices: [
+          {
+            description: 'or 40 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.025',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: '768p cost',
+      },
+      {
+        criteria: [
+          {
+            description: 'speed',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'speed',
+          },
+          {
+            description: '480p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '480p',
+          },
+        ],
+        description: '480p resolution, speed mode',
+        prices: [
+          {
+            description: 'or 50 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.02',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: '480p speed',
+      },
+      {
+        criteria: [
+          {
+            description: 'quality',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'quality',
+          },
+          {
+            description: '480p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '480p',
+          },
+        ],
+        description: '480p resolution, quality mode',
+        prices: [
+          {
+            description: 'or 25 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.04',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: '480p quality',
+      },
+      {
+        criteria: [
+          {
+            description: 'speed',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'speed',
+          },
+          {
+            description: '768p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '768p',
+          },
+        ],
+        description: '768p resolution, speed mode',
+        prices: [
+          {
+            description: 'or around 28 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.035',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: '768p speed',
+      },
+      {
+        criteria: [
+          {
+            description: 'quality',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'quality',
+          },
+          {
+            description: '768p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '768p',
+          },
+        ],
+        description: '768p resolution, quality mode',
+        prices: [
+          {
+            description: 'or around 13 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.075',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: '768p quality',
       },
     ],
   },
