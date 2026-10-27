@@ -1,6 +1,9 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { isValidPostLength } from '@api/collections/posts/services/post-generation-text.util';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { BRAND_CONTEXT_CHARACTER_BUDGET } from '@api/services/agent-context-assembly/brand-context-budget.util';
 import { toReplyBotCredentialData } from '@api/services/campaign/reply-bot-credential.util';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
@@ -23,13 +26,24 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable, type OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  type OnModuleInit,
+  Optional,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import {
   buildTwitterDraftWorkflowDefinition,
   buildTwitterPublishWorkflowDefinition,
   buildTwitterSearchWorkflowDefinition,
   TWITTER_PIPELINE_ACTION_IDS,
 } from './twitter-pipeline-workflow-definition';
+
+export const TWITTER_DRAFT_BRAND_CONTEXT_UNAVAILABLE =
+  'Brand context is unavailable for these drafts. Please retry.';
+
+/** An X post, reply or quote is held to the standard 280 weighted characters. */
+const TWITTER_DRAFT_MAX_CHARACTERS = 280;
 
 type TwitterPublishRequest = {
   credentialId?: string;
@@ -49,6 +63,8 @@ export class TwitterPipelineService implements OnModuleInit {
     private readonly botActionExecutorService: BotActionExecutorService,
     private readonly credentialsService: CredentialsService,
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
+    @Optional()
+    private readonly harnessGenerationService?: HarnessGenerationService,
   ) {}
 
   onModuleInit(): void {
@@ -148,6 +164,7 @@ export class TwitterPipelineService implements OnModuleInit {
     orgId: string,
     searchResults: ITwitterSearchResult[],
     voiceConfig: ITwitterVoiceConfig,
+    brandId?: string,
   ): Promise<ITwitterOpportunity[]> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -159,6 +176,7 @@ export class TwitterPipelineService implements OnModuleInit {
           canonicalId: definition.canonicalId,
           inputValues: {
             request: {
+              ...(brandId ? { brandId } : {}),
               organizationId: orgId,
               searchResults,
               voiceConfig,
@@ -247,8 +265,9 @@ export class TwitterPipelineService implements OnModuleInit {
     const request = this.readRequest(input);
     const searchResults = this.readSearchResults(request.searchResults);
     const voiceConfig = this.readVoiceConfig(request.voiceConfig);
+    const brief = await this.resolveDraftBrief(request, searchResults);
     return {
-      prompt: this.buildHybridPrompt(searchResults, voiceConfig),
+      prompt: this.buildHybridPrompt(searchResults, voiceConfig, brief),
       searchResults,
     };
   }
@@ -278,7 +297,15 @@ export class TwitterPipelineService implements OnModuleInit {
     const draftContext = this.readRecord(input.draftContext);
     const generation = this.readRecord(input.generation);
     return this.enrichOpportunities(
-      twitterOpportunitiesSchema.parse(generation).opportunities,
+      twitterOpportunitiesSchema
+        .parse(generation)
+        .opportunities.filter((opportunity) =>
+          isValidPostLength(
+            opportunity.suggestedText,
+            TWITTER_DRAFT_MAX_CHARACTERS,
+            true,
+          ),
+        ),
       this.readSearchResults(draftContext.searchResults),
     );
   }
@@ -382,9 +409,57 @@ export class TwitterPipelineService implements OnModuleInit {
   /**
    * Build hybrid prompt from real tweet data (ported from scanner.js)
    */
+  /**
+   * With a brand, the drafts follow its composed harness brief (voice, X craft,
+   * guardrails). An unresolved brief fails the request instead of letting
+   * generic drafts through, like the other branded text generators.
+   */
+  private async resolveDraftBrief(
+    request: Record<string, unknown>,
+    searchResults: ITwitterSearchResult[],
+  ): Promise<string | null> {
+    const brandId =
+      typeof request.brandId === 'string' && request.brandId
+        ? request.brandId
+        : null;
+    if (!brandId) return null;
+    const organizationId = this.requiredString(
+      request.organizationId,
+      'organizationId',
+    );
+    const harness = this.harnessGenerationService;
+    const brief = harness
+      ? await harness.resolveBrief({
+          brandId,
+          contentType: 'reply',
+          includeContentMemory: true,
+          objective: 'engagement',
+          organizationId,
+          platform: 'twitter',
+          topic: searchResults[0]?.text.slice(0, 200),
+        })
+      : null;
+    const formatted = harness?.formatBrief(brief).trim() ?? '';
+    if (
+      !brief ||
+      !formatted ||
+      formatted.length > BRAND_CONTEXT_CHARACTER_BUDGET
+    ) {
+      this.loggerService.error(
+        `${this.constructorName} harness brief unavailable`,
+        { brandId, organizationId },
+      );
+      throw new ServiceUnavailableException(
+        TWITTER_DRAFT_BRAND_CONTEXT_UNAVAILABLE,
+      );
+    }
+    return formatted;
+  }
+
   private buildHybridPrompt(
     tweets: ITwitterSearchResult[],
     voiceConfig: ITwitterVoiceConfig,
+    brief: string | null = null,
   ): string {
     const tweetList = tweets
       .map(
@@ -395,21 +470,22 @@ export class TwitterPipelineService implements OnModuleInit {
 
     return `You are a Twitter/X engagement strategist. Below are ${tweets.length} REAL trending tweets found via the Twitter API.
 
-For each tweet, suggest either a reply or a quote-tweet in the specified voice. Choose whichever would get more engagement.
+For each tweet where you have something specific to add, suggest either a reply or a quote-tweet in the specified voice. Choose whichever would get more engagement.
 
 Also generate 2 original tweet ideas inspired by the themes and trends you see in these tweets.
 
 Voice: ${voiceConfig.description}
 
 Account: ${voiceConfig.handle}
-
+${brief ? `\nBrand brief. Follow its voice, X craft and guardrails:\n${brief}\n` : ''}
 Here are the real tweets:
 
 ${tweetList}
 
 Rules:
 - For reply/quote entries, set "tweetIndex" (1-${tweets.length}) matching the tweet number above; leave it out for original ideas
-- Generate exactly ${tweets.length} reply/quote suggestions (one per tweet) + 2 original ideas = ${tweets.length + 2} total
+- Skip a tweet when you have nothing specific to add: never reply with agreement, praise, or a question that only asks for engagement
+- Generate 2 original ideas, plus at most one reply/quote suggestion per tweet
 - Keep responses under 280 characters
 - Be authentic to the voice, not generic or cringe
 - Say in "reason" why each one is worth posting`;
