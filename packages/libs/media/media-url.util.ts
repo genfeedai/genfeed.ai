@@ -238,7 +238,19 @@ export function signCdnUrl(
     return absoluteUrl;
   }
 
-  const encodedPath = parsed.pathname.replace(/^\/+/, '');
+  // A CDN base can carry a path (self-hosted serves local media under /local).
+  // buildFromEncodedPath re-adds it, so the path must be recovered relative to
+  // that base; a same-origin URL outside it is not ours to rewrite.
+  const basePath = cdnBase.pathname.replace(/\/+$/, '');
+  let relativePath = parsed.pathname;
+  if (basePath) {
+    if (!relativePath.startsWith(`${basePath}/`)) {
+      return absoluteUrl;
+    }
+    relativePath = relativePath.slice(basePath.length);
+  }
+
+  const encodedPath = relativePath.replace(/^\/+/, '');
   if (!encodedPath) {
     return absoluteUrl;
   }

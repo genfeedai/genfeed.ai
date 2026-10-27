@@ -197,3 +197,37 @@ describe('self-hosted WebSocket publishing', () => {
     expect(dockerfile).toMatch(/^EXPOSE [^\n]*\b3011\b/m);
   });
 });
+
+describe('self-hosted media path (#8440)', () => {
+  it('publishes the files service on loopback so the browser can load local media', () => {
+    expect(readText('docker/docker-compose.selfhosted.yml')).toMatch(
+      /^\s+- "127\.0\.0\.1:\$\{SELFHOSTED_FILES_PORT:-3012\}:3012"(?:[ \t]+#.*)?$/m,
+    );
+    expect(readText('docker/Dockerfile.selfhosted')).toMatch(
+      /^EXPOSE [^\n]*\b3012\b/m,
+    );
+  });
+
+  it('serves local media from the files /local mount in both the runtime and build defaults', () => {
+    expect(readText('docker/selfhosted-entrypoint.sh')).toMatch(
+      /^export GENFEEDAI_CDN_URL=\$\{GENFEEDAI_CDN_URL:-http:\/\/localhost:3012\/local\}$/m,
+    );
+    expect(readText('docker/Dockerfile.selfhosted')).toMatch(
+      /^ARG NEXT_PUBLIC_CDN_URL=http:\/\/localhost:3012\/local$/m,
+    );
+  });
+
+  it('hands the files service a scratch root the app user can write', () => {
+    const dockerfile = readText('docker/Dockerfile.selfhosted');
+
+    expect(dockerfile).toMatch(/mkdir -p [^\n]*\/app\/public\/tmp/);
+    expect(dockerfile).toMatch(/chown -R appuser:appuser [^\n]*\/app\/public/);
+  });
+
+  it('generates and persists the internal API key when none is set', () => {
+    const entrypoint = readText('docker/selfhosted-entrypoint.sh');
+
+    expect(entrypoint).toMatch(/\/data\/\.internal-api-key/);
+    expect(entrypoint).toMatch(/^export GENFEEDAI_API_KEY$/m);
+  });
+});

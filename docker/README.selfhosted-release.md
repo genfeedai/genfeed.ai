@@ -23,6 +23,12 @@ at `http://localhost:3014`. Keep port 3011 reachable from the browser on the
 same machine for live agent chat and follow-up turns; it binds to `127.0.0.1`
 only because the socket process also serves other notification routes.
 
+Generated images and video are served from the files service at
+`http://localhost:3012/local` (bound to `127.0.0.1`); the browser must be able to
+reach that port to show results. `SELFHOSTED_FILES_PORT` overrides its host port
+only, with the same caveat as the WebSocket port: the browser endpoint is built
+into the image as `NEXT_PUBLIC_CDN_URL`.
+
 `SELFHOSTED_WS_PORT` overrides the socket's host port only (default `3011`).
 The browser endpoint is built into the image as `http://localhost:3011`; a
 different host port requires a proxy at that endpoint or a custom image built

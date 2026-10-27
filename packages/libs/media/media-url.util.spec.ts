@@ -259,6 +259,28 @@ describe('signCdnUrl', () => {
   });
 });
 
+describe('media URLs on a CDN base with a path prefix (self-hosted /local, #8440)', () => {
+  const local: MediaUrlConfig = { cdnUrl: 'http://localhost:3012/local' };
+
+  it('builds an ingredient URL under the prefix exactly once', () => {
+    expect(ingredientMediaUrl({ s3Key: 'ingredients/images/abc' }, local)).toBe(
+      'http://localhost:3012/local/ingredients/images/abc',
+    );
+  });
+
+  it('keeps a stored URL under the prefix instead of prefixing it again', () => {
+    expect(
+      signCdnUrl('http://localhost:3012/local/ingredients/images/abc', local),
+    ).toBe('http://localhost:3012/local/ingredients/images/abc');
+  });
+
+  it('leaves a same-origin URL outside the prefix untouched', () => {
+    expect(signCdnUrl('http://localhost:3012/v1/health', local)).toBe(
+      'http://localhost:3012/v1/health',
+    );
+  });
+});
+
 describe('ingredientMediaUrl', () => {
   it('signs the URL built from the record’s own key', () => {
     const url = ingredientMediaUrl(
