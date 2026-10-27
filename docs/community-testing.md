@@ -91,9 +91,10 @@ your org name comes from onboarding).
 
 What to do with it:
 
-1. Ask for the three drafts. Expect to see only the first one in the thread
-   ([#7884](https://github.com/genfeedai/genfeed.ai/issues/7884)); ask for them
-   one at a time if you want to compare. Pick one and write down why.
+1. Ask for the three drafts. The agent may say they are ready without showing
+   them ([#8368](https://github.com/genfeedai/genfeed.ai/issues/8368)); if the
+   thread has no drafts, ask it to "print all three drafts as plain text". Pick
+   one and write down why.
 2. Expect the first set to miss the format: in our test runs every draft broke
    "one paragraph, two sentences" and some made a durability claim the brief
    forbids. That is the point of this step. Reject one and send a correction,
@@ -101,10 +102,13 @@ What to do with it:
    characters, no claim that pages stay dry or legible, ending with "Open the
    product page."_ The hook counts as sentence one and "Open the product page."
    as sentence two. Check the next version against your own rules.
-3. Optional, needs a provider key: ask for the image. The agent shows a card
-   with the model and credit cost. Approve it to generate, or decline to stop. A
-   self-hosted install shows credits, not dollars; your provider bills the
-   real cost. Note the model, the credits shown and the time it took, and whether
+3. Optional, needs a provider key: ask for the image last. The agent is meant
+   to show a card with the model and credit cost that you approve or decline. In
+   a v0.2.17 Cloud rehearsal it generated the image without that card, even after
+   being told not to
+   ([#8368](https://github.com/genfeedai/genfeed.ai/issues/8368)), so only ask if
+   you accept the spend. A self-hosted install shows credits, not dollars; your
+   provider bills the real cost. Note the model, the credits shown and the time it took, and whether
    the image invents product details the brief did not give.
 4. Check that nothing was posted: no social account is connected, and a "Create
    post" card is only a proposal until you approve it, even when the agent says
