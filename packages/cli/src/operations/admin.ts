@@ -1,6 +1,7 @@
 import type {
   AdminModelPricingReport,
   AdminModelPricingRow,
+  IHarnessActivationReport,
   IOrganizationAppsReport,
   IOrganizationsReport,
   ModelPricingAttentionLevel,
@@ -238,4 +239,26 @@ export async function approveSystemBrand(
       { updatedAt }
     )
   );
+}
+
+export async function readHarnessActivation(): Promise<IHarnessActivationReport> {
+  return flattenSingle<IHarnessActivationReport>(
+    await adminGet<JsonApiDocument>('/admin/harness/activation')
+  );
+}
+
+/**
+ * The expected pack ids that are not loaded from a configured external pack.
+ * A built-in pack with the same id does not count: fallback is not activation.
+ */
+export function findMissingExternalPacks(
+  report: IHarnessActivationReport,
+  expectedPackIds: readonly string[]
+): string[] {
+  const loaded = new Set(
+    report.external
+      .filter((activation) => activation.state === 'loaded' && activation.packId)
+      .map((activation) => activation.packId)
+  );
+  return expectedPackIds.filter((packId) => !loaded.has(packId));
 }
