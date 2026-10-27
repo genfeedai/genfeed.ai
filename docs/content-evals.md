@@ -44,11 +44,14 @@ bun run eval:content:smoke -- --max-credits=300 --dispatcher=live
   | `social-post`, `linkedin-post` | `POST /posts/draft-generations` (branded, receipt-backed draft) |
   | `thread` | that draft as the opener, then `POST /posts/:id/thread-drafts` for the replies, as the app builds an X thread. The thread-drafts step expands the opener and does not itself read the brand kit. |
   | `reply` | `POST /reply-bot-configs/author-reply/draft` with the row's `input.comment`. Not metered by the credit ledger, so each call is charged the reservation. Needs the `reply_bot` flag on the eval org. |
+  | `article`, `linkedin-article` | `POST /articles/generations` (one article; `linkedin-article` adds the `linkedin-article` category). Credit-metered. Needs article generation enabled on the eval org. |
+  | `newsletter` | `POST /newsletters/generate-draft` with the row prompt as the topic (200 characters at most). Not metered by the credit ledger, so each call is charged the reservation. The route takes no brand id and writes for the eval API key's default brand, which must be the Kelder brand. |
 
-  The thread route needs the `publishing` flag on the eval org. The other five
-  kinds (article, linkedin-article, ad-copy, script, newsletter) have no
-  product route yet; the summary names them as not measured through the
-  product. Add a route by extending `PRODUCT_TEXT_ROUTES` and the port. A live
+  The thread route needs the `publishing` flag on the eval org. The other two
+  kinds (ad-copy, script) have no product route a fixture row can reach: scripts
+  are written by the agent chat tool and ad packs start from a researched ad id.
+  The summary names them as not measured through the product. Add a route by
+  extending `PRODUCT_TEXT_ROUTES` and the port. A live
   product text cell needs the three variables below and is `skipped` without
   them.
 - Live image and video cells need `CONTENT_EVAL_GENFEED_API_URL`,

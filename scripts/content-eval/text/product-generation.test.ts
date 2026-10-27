@@ -353,10 +353,167 @@ describe('ProductApiTextGeneration: reply route', () => {
   });
 });
 
+describe('ProductApiTextGeneration: article route', () => {
+  const ARTICLE_PATH = '/articles/generations';
+  const ARTICLE: TextGenerationRequest = {
+    ...DRAFT,
+    prompt: 'Write a short article: how to choose your first skillet.',
+    route: { kind: 'article', category: null },
+  };
+  const articleAnswer: Answer = {
+    body: {
+      data: [
+        {
+          attributes: {
+            content: 'Pick 26 cm if you cook for two.',
+            label: 'Choosing your first skillet',
+          },
+        },
+      ],
+    },
+    status: 200,
+  };
+
+  it('generates one article for the brand and reports the balance spend', async () => {
+    const { calls, port } = productApi({
+      answers: { [ARTICLE_PATH]: articleAnswer },
+      balances: [100, 94],
+    });
+
+    const result = await port.generate(ARTICLE, signal);
+
+    expect(result).toMatchObject({
+      costEvidence: 'reported',
+      creditsCharged: 6,
+      endpoints: ['articles/generations'],
+      status: 'generated',
+      text: 'Choosing your first skillet\n\nPick 26 cm if you cook for two.',
+    });
+    expect(calls.find((call) => call.method === 'POST')?.body).toEqual({
+      brandId: 'brand-kelder',
+      count: 1,
+      prompt: ARTICLE.prompt,
+    });
+  });
+
+  it('asks for the LinkedIn category on a LinkedIn article', async () => {
+    const { calls, port } = productApi({
+      answers: { [ARTICLE_PATH]: articleAnswer },
+      balances: [100, 94],
+    });
+
+    await port.generate(
+      { ...ARTICLE, route: { kind: 'article', category: 'linkedin-article' } },
+      signal,
+    );
+
+    expect(calls.find((call) => call.method === 'POST')?.body).toMatchObject({
+      category: 'linkedin-article',
+    });
+  });
+
+  it('fails the row when article generation is not enabled for the org', async () => {
+    const { port } = productApi({
+      answers: {
+        [ARTICLE_PATH]: {
+          body: {
+            detail: 'Article generation is not enabled for this organization',
+          },
+          status: 403,
+        },
+      },
+      balances: [100, 100],
+    });
+
+    expect(await port.generate(ARTICLE, signal)).toMatchObject({
+      error:
+        'HTTP 403: Article generation is not enabled for this organization',
+      status: 'failed',
+      text: null,
+    });
+  });
+
+  it('fails the row when the generated article has no content', async () => {
+    const { port } = productApi({
+      answers: {
+        [ARTICLE_PATH]: { body: { data: [{ attributes: {} }] }, status: 200 },
+      },
+      balances: [100, 99],
+    });
+
+    expect(await port.generate(ARTICLE, signal)).toMatchObject({
+      error: 'the product returned no article content',
+      status: 'failed',
+    });
+  });
+});
+
+describe('ProductApiTextGeneration: newsletter route', () => {
+  const NEWSLETTER_PATH = '/newsletters/generate-draft';
+  const NEWSLETTER: TextGenerationRequest = {
+    ...DRAFT,
+    prompt: 'Write the monthly KELDER newsletter: a seasonal recipe.',
+    route: { kind: 'newsletter' },
+  };
+
+  it('drafts a newsletter from the topic and charges the reservation because the route is not metered', async () => {
+    const { calls, port } = productApi({
+      answers: {
+        [NEWSLETTER_PATH]: {
+          body: {
+            data: {
+              attributes: {
+                content: 'This month: a cast-iron cornbread.',
+                label: 'KELDER in October',
+              },
+            },
+          },
+          status: 200,
+        },
+      },
+    });
+
+    const result = await port.generate(NEWSLETTER, signal);
+
+    expect(result).toMatchObject({
+      costEvidence: 'estimated',
+      creditsCharged: PRODUCT_TEXT_RESERVED_CREDITS,
+      endpoints: ['newsletters/generate-draft'],
+      status: 'generated',
+      text: 'KELDER in October\n\nThis month: a cast-iron cornbread.',
+    });
+    expect(calls.some((call) => call.url.endsWith('/credits/usage'))).toBe(
+      false,
+    );
+    // The route takes no brand id: it writes for the key's default brand.
+    expect(calls[0]?.body).toEqual({ topic: NEWSLETTER.prompt });
+  });
+
+  it('keeps a retryable 503 (brand context unavailable) as a failed row', async () => {
+    const { port } = productApi({
+      answers: {
+        [NEWSLETTER_PATH]: {
+          body: { detail: 'Brand context is unavailable for this draft.' },
+          status: 503,
+        },
+      },
+    });
+
+    expect(await port.generate(NEWSLETTER, signal)).toMatchObject({
+      creditsCharged: PRODUCT_TEXT_RESERVED_CREDITS,
+      error: 'HTTP 503: Brand context is unavailable for this draft.',
+      status: 'failed',
+    });
+  });
+});
+
 describe('product text routes', () => {
-  it('serves X and LinkedIn posts, X threads and X replies', () => {
+  it('serves posts, threads, replies, articles and newsletters', () => {
     expect(PRODUCT_TEXT_ROUTES).toEqual({
+      article: { kind: 'article', category: null },
+      'linkedin-article': { kind: 'article', category: 'linkedin-article' },
       'linkedin-post': { kind: 'draft', platform: 'linkedin' },
+      newsletter: { kind: 'newsletter' },
       reply: { kind: 'reply' },
       'social-post': { kind: 'draft', platform: 'twitter' },
       thread: { kind: 'thread' },
@@ -368,7 +525,7 @@ describe('product text routes', () => {
       (row) => PRODUCT_TEXT_ROUTES[row.contentKind] !== undefined,
     );
 
-    expect(routed).toHaveLength(8);
+    expect(routed).toHaveLength(14);
     for (const row of routed) {
       expect(routeRowProblem(row)).toBeNull();
     }
@@ -416,6 +573,30 @@ describe('product text routes', () => {
         input: { ...post.input, platform: 'linkedin' },
       }),
     ).toMatch(/writes for twitter/);
+  });
+
+  it('rejects a prompt the article or newsletter route would refuse', () => {
+    const newsletter = SMOKE_ROWS.find(
+      (row) => row.contentKind === 'newsletter',
+    );
+    if (!newsletter) throw new Error('smoke fixture has no newsletter row');
+
+    expect(
+      routeRowProblem({
+        ...newsletter,
+        input: { ...newsletter.input, prompt: 'x'.repeat(201) },
+      }),
+    ).toMatch(/takes at most 200/);
+  });
+
+  it('leaves script and ad copy without a route', () => {
+    for (const kind of ['ad-copy', 'script']) {
+      const row = SMOKE_ROWS.find(
+        (candidate) => candidate.contentKind === kind,
+      );
+      if (!row) throw new Error(`smoke fixture has no ${kind} row`);
+      expect(routeRowProblem(row)).toBe(`${kind} has no product text route`);
+    }
   });
 
   it('gives the stub port a deterministic draft per route and a model to attribute', async () => {

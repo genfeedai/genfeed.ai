@@ -166,7 +166,7 @@ async function generateViaProduct(
     seed: context.config.seed + repeatIndex,
     settings: {
       endpoint: result.endpoints.join(' + '),
-      platform: routePlatform(request.route),
+      platform: routePlatform(request.route) ?? 'none',
     },
   };
   context.ledger.charge({

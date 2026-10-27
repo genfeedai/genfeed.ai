@@ -12,6 +12,15 @@
  *           replies, which is how the app builds an X thread
  *   reply   `POST /reply-bot-configs/author-reply/draft` (harness-aware, saves
  *           no post, and not metered by the credit ledger)
+ *   article `POST /articles/generations` (credit-metered; the org must have
+ *           article generation enabled). A LinkedIn article is the same route
+ *           with the `linkedin-article` category
+ *   newsletter `POST /newsletters/generate-draft` (saves a draft; not metered
+ *           by the credit ledger). It takes no brand id: the brand is the eval
+ *           API key's default brand, which must be the eval brand
+ *
+ * Script and ad copy have no HTTP route a fixture row can reach: scripts are
+ * written by the agent chat tool, and ad packs start from a researched ad id.
  */
 
 import { createHash } from 'node:crypto';
@@ -22,26 +31,54 @@ import { readErrorMessage } from '../media/generation';
 export type ProductTextPlatform = 'linkedin' | 'twitter';
 
 export type ProductTextRoute =
+  | { kind: 'article'; category: 'linkedin-article' | null }
   | { kind: 'draft'; platform: ProductTextPlatform }
+  | { kind: 'newsletter' }
   | { kind: 'reply' }
   | { kind: 'thread' };
 
 /**
  * Text kinds the product serves through a route above. Every other smoke text
- * kind has its own endpoint (article, newsletter, script, ad copy) and is
- * listed as "no product route yet" in the smoke summary rather than faked.
+ * kind (script, ad copy) is listed as "no product route yet" in the smoke
+ * summary rather than faked.
  */
 export const PRODUCT_TEXT_ROUTES: Readonly<Record<string, ProductTextRoute>> = {
+  article: { kind: 'article', category: null },
+  'linkedin-article': { kind: 'article', category: 'linkedin-article' },
   'linkedin-post': { kind: 'draft', platform: 'linkedin' },
+  newsletter: { kind: 'newsletter' },
   reply: { kind: 'reply' },
   'social-post': { kind: 'draft', platform: 'twitter' },
   thread: { kind: 'thread' },
 };
 
-/** Replies and threads are X features: the product only builds them there. */
-export function routePlatform(route: ProductTextRoute): ProductTextPlatform {
-  return route.kind === 'draft' ? route.platform : 'twitter';
+/**
+ * The platform a route writes for, or null when it is not tied to one.
+ * Replies and threads are X features: the product only builds them there.
+ */
+export function routePlatform(
+  route: ProductTextRoute,
+): ProductTextPlatform | null {
+  switch (route.kind) {
+    case 'draft':
+      return route.platform;
+    case 'article':
+      return route.category === 'linkedin-article' ? 'linkedin' : null;
+    case 'newsletter':
+      return null;
+    case 'reply':
+    case 'thread':
+      return 'twitter';
+  }
 }
+
+/** Routes whose spend the credit ledger records, so a balance diff is real. */
+function isMeteredRoute(route: ProductTextRoute): boolean {
+  return route.kind !== 'reply' && route.kind !== 'newsletter';
+}
+
+/** Request limits of the product routes, so an over-long row fails by name. */
+const PROMPT_LIMITS = { article: 500, newsletter: 200 } as const;
 
 /**
  * Credits reserved before each product call. The draft route settles a
@@ -69,11 +106,18 @@ export function routeRowProblem(row: FixtureRow): string | null {
   const route = PRODUCT_TEXT_ROUTES[row.contentKind];
   if (!route) return `${row.contentKind} has no product text route`;
   const platform = routePlatform(route);
-  if (row.input.platform && row.input.platform !== platform) {
+  if (platform && row.input.platform && row.input.platform !== platform) {
     return `row ${row.id} is ${row.input.platform} but the product route for ${row.contentKind} writes for ${platform}`;
   }
   if (route.kind === 'reply' && !row.input.comment) {
     return `row ${row.id} needs input.comment: the product reply route answers an inbound message`;
+  }
+  const limit =
+    route.kind === 'article' || route.kind === 'newsletter'
+      ? PROMPT_LIMITS[route.kind]
+      : null;
+  if (limit !== null && row.input.prompt.length > limit) {
+    return `row ${row.id} prompt is ${row.input.prompt.length} characters; the ${route.kind} route takes at most ${limit}`;
   }
   return null;
 }
@@ -138,6 +182,11 @@ interface DraftGenerationResponse {
   postId?: unknown;
 }
 
+/** A serialized document: `{ data: { attributes } }` or a collection of them. */
+interface SerializedDocument {
+  data?: unknown;
+}
+
 interface ThreadDraftResponse {
   posts?: unknown;
 }
@@ -156,6 +205,16 @@ const REFUSAL_PATTERN = /(safety|moderation|nsfw|content policy|refus)/i;
 
 function maybeString(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value : null;
+}
+
+/** `attributes` of a serialized document, or of the first of a collection. */
+function firstAttributes(data: unknown): Record<string, unknown> | null {
+  const document = Array.isArray(data) ? data[0] : data;
+  if (typeof document !== 'object' || document === null) return null;
+  const attributes = (document as { attributes?: unknown }).attributes;
+  return typeof attributes === 'object' && attributes !== null
+    ? (attributes as Record<string, unknown>)
+    : null;
 }
 
 /** What a route's calls produced, before cost and status are settled. */
@@ -182,18 +241,14 @@ export class ProductApiTextGeneration implements TextGenerationPort {
     request: TextGenerationRequest,
     signal: AbortSignal,
   ): Promise<TextGenerationResult> {
-    // The reply route runs outside the credit ledger, so a balance diff would
-    // read as a free call; it is charged the reservation instead.
-    const isMetered = request.route.kind !== 'reply';
+    // The reply and newsletter routes run outside the credit ledger, so a
+    // balance diff would read as a free call; they are charged the reservation
+    // instead.
+    const isMetered = isMeteredRoute(request.route);
     const balanceBefore = isMetered ? await this.readBalance(signal) : null;
     const startedAt = this.now();
 
-    const outcome =
-      request.route.kind === 'reply'
-        ? await this.draftReply(request, signal)
-        : request.route.kind === 'thread'
-          ? await this.draftThread(request, signal)
-          : await this.draftPost(request, request.route.platform, signal);
+    const outcome = await this.run(request, request.route, signal);
 
     const latencyMs = Math.max(0, Math.round(this.now() - startedAt));
     const balanceAfter = isMetered ? await this.readBalance(signal) : null;
@@ -226,6 +281,25 @@ export class ProductApiTextGeneration implements TextGenerationPort {
       status: REFUSAL_PATTERN.test(detail) ? 'refused' : 'failed',
       text: null,
     };
+  }
+
+  private run(
+    request: TextGenerationRequest,
+    route: ProductTextRoute,
+    signal: AbortSignal,
+  ): Promise<PipelineOutcome> {
+    switch (route.kind) {
+      case 'article':
+        return this.draftArticle(request, route.category, signal);
+      case 'draft':
+        return this.draftPost(request, route.platform, signal);
+      case 'newsletter':
+        return this.draftNewsletter(request, signal);
+      case 'reply':
+        return this.draftReply(request, signal);
+      case 'thread':
+        return this.draftThread(request, signal);
+    }
   }
 
   private async draftPost(
@@ -331,6 +405,59 @@ export class ProductApiTextGeneration implements TextGenerationPort {
     };
   }
 
+  private async draftArticle(
+    request: TextGenerationRequest,
+    category: 'linkedin-article' | null,
+    signal: AbortSignal,
+  ): Promise<PipelineOutcome> {
+    const endpoint = 'articles/generations';
+    const step = await this.post<SerializedDocument>(
+      `/${endpoint}`,
+      {
+        brandId: request.brandId,
+        count: 1,
+        prompt: request.prompt,
+        ...(category ? { category } : {}),
+      },
+      signal,
+    );
+    return this.serializedOutcome(endpoint, step, 'article');
+  }
+
+  private async draftNewsletter(
+    request: TextGenerationRequest,
+    signal: AbortSignal,
+  ): Promise<PipelineOutcome> {
+    const endpoint = 'newsletters/generate-draft';
+    const step = await this.post<SerializedDocument>(
+      `/${endpoint}`,
+      { topic: request.prompt },
+      signal,
+    );
+    return this.serializedOutcome(endpoint, step, 'newsletter');
+  }
+
+  /** Title and body of the first serialized document, as one piece of text. */
+  private serializedOutcome(
+    endpoint: string,
+    step: StepOutcome<SerializedDocument>,
+    what: string,
+  ): PipelineOutcome {
+    const attributes = firstAttributes(step.body?.data);
+    const content = maybeString(attributes?.content);
+    const label = maybeString(attributes?.label);
+    return {
+      endpoints: [endpoint],
+      error:
+        step.error ??
+        (content === null ? `the product returned no ${what} content` : null),
+      model: null,
+      postId: null,
+      text:
+        content === null ? null : label ? `${label}\n\n${content}` : content,
+    };
+  }
+
   private async post<TBody>(
     path: string,
     body: Record<string, string | number>,
@@ -397,7 +524,7 @@ export function createStubTextGeneration(model: string): TextGenerationPort {
   return {
     async generate(request) {
       const digest = createHash('sha256').update(request.prompt).digest('hex');
-      const platform = routePlatform(request.route);
+      const platform = routePlatform(request.route) ?? 'web';
       const text =
         request.route.kind === 'thread'
           ? Array.from(
