@@ -17,6 +17,10 @@ export class PersistedVideoGenerationException extends HttpException {
       { cause: error },
     );
     if (error instanceof HttpException) this.name = error.name;
+    // The redacted response is what a client sees. `message` is read only by
+    // logs, Sentry and the agent turn's "Nodes failed: <node>: <message>"
+    // string, where Nest's default (the class name) hid every cause.
+    if (error instanceof Error && error.message) this.message = error.message;
     this.persistedVideoIngredientIds = Object.freeze([...ids]);
   }
 
