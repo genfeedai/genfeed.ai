@@ -181,7 +181,10 @@ function setup(initial: StoryboardNativeRunConfig = draftConfig()) {
     settleReservation: vi.fn(async () => ({})),
     releaseReservation: vi.fn(async () => ({})),
     findReservationForWorkload: vi.fn(
-      async () => null as { id: string } | null,
+      async (_query: {
+        workloadId: string;
+        workloadType: string;
+      }): Promise<{ id: string } | null> => null,
     ),
   };
   const source = { validatePlanAssets: vi.fn(async () => undefined) };
@@ -537,7 +540,10 @@ describe('StoryboardStillsService reconcile', () => {
     const context = setup();
     await quoteAndGenerate(context, ['shot-1']);
     context.edit((config) => {
-      const [operation] = config.stillOperations ?? [];
+      const stored = config as StoryboardNativeRunConfig & {
+        stillOperations: Array<Record<string, unknown>>;
+      };
+      const [operation] = stored.stillOperations;
       delete operation.reservationId;
       operation.billing = 'none';
     });
@@ -566,7 +572,10 @@ describe('StoryboardStillsService reconcile', () => {
     const context = setup();
     await quoteAndGenerate(context, ['shot-1']);
     context.edit((config) => {
-      const [operation] = config.stillOperations ?? [];
+      const stored = config as StoryboardNativeRunConfig & {
+        stillOperations: Array<Record<string, unknown>>;
+      };
+      const [operation] = stored.stillOperations;
       delete operation.reservationId;
       operation.billing = 'none';
     });
