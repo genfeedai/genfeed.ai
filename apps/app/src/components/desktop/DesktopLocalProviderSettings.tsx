@@ -333,7 +333,7 @@ function DesktopLocalProviderSettingsPanel({
           {translate('inactive.action')}
         </Button>
         {status ? (
-          <p className="mt-2 break-words text-2xs text-foreground/48">
+          <p className="mt-2 break-words text-2xs text-muted-foreground">
             {status}
           </p>
         ) : null}
@@ -443,7 +443,9 @@ function DesktopLocalProviderSettingsPanel({
         {costTranslate(getDesktopLocalCostState(runtime))}
       </p>
       {status && (
-        <p className="mt-2 break-words text-2xs text-foreground/48">{status}</p>
+        <p className="mt-2 break-words text-2xs text-muted-foreground">
+          {status}
+        </p>
       )}
     </>
   );

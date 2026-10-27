@@ -193,7 +193,7 @@ export default function DesktopServerSettings() {
             <span className="block font-medium">
               {translate(`options.${option}.label`)}
             </span>
-            <span className="block text-2xs text-foreground/48">
+            <span className="block text-2xs text-muted-foreground">
               {option === 'cloud'
                 ? isSignedIn(cloudServerId)
                   ? translate('signedIn')
@@ -288,7 +288,7 @@ export default function DesktopServerSettings() {
             : translate('actions.switch')}
         </Button>
         {activeServerId && isSignedIn(activeServerId) ? (
-          <span className="text-2xs text-foreground/48">
+          <span className="text-2xs text-muted-foreground">
             {translate('signedIn')}
           </span>
         ) : null}

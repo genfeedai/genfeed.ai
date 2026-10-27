@@ -33,7 +33,7 @@ function formatCurrency(value: number): string {
 }
 
 function _formatPercent(value: number): string {
-  if (!Number.isFinite(value)) return 'N/A';
+  if (!Number.isFinite(value)) return '-';
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
 }
 
@@ -189,7 +189,7 @@ function ProjectionCard({ projections }: ProjectionCardProps) {
           <p className="text-lg font-semibold tabular-nums text-foreground">
             {projections.revenueNext30d !== null
               ? formatCurrency(projections.revenueNext30d)
-              : 'N/A'}
+              : '-'}
           </p>
         </div>
         <div>
@@ -197,7 +197,7 @@ function ProjectionCard({ projections }: ProjectionCardProps) {
           <p className="text-lg font-semibold tabular-nums text-foreground">
             {projections.creditsNext30d !== null
               ? formatCompactNumberIntl(projections.creditsNext30d)
-              : 'N/A'}
+              : '-'}
           </p>
         </div>
         <div>
@@ -205,7 +205,7 @@ function ProjectionCard({ projections }: ProjectionCardProps) {
           <p className="text-lg font-semibold tabular-nums text-foreground">
             {projections.ingredientsNext30d !== null
               ? formatCompactNumberIntl(projections.ingredientsNext30d)
-              : 'N/A'}
+              : '-'}
           </p>
         </div>
       </div>

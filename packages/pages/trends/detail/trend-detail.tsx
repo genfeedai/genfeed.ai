@@ -183,7 +183,7 @@ export default function TrendDetail({
           analyticsMetric: 'engagementRate' as const,
           value: trend.metadata?.engagementRate
             ? `${trend.metadata.engagementRate.toFixed(1)}%`
-            : 'N/A',
+            : '-',
           valueClassName: 'text-accent',
         },
         {
@@ -192,7 +192,7 @@ export default function TrendDetail({
           iconClassName: 'bg-info/10 text-info',
           value: trend.metadata?.reach
             ? formatCompactNumber(trend.metadata.reach)
-            : 'N/A',
+            : '-',
           valueClassName: 'text-info',
         },
         {
@@ -201,7 +201,7 @@ export default function TrendDetail({
           iconClassName: 'bg-warning/10 text-warning',
           value: trend.metadata?.impressions
             ? formatCompactNumber(trend.metadata.impressions)
-            : 'N/A',
+            : '-',
           valueClassName: 'text-warning',
         },
       ]

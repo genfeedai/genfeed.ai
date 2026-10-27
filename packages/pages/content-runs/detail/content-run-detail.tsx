@@ -606,19 +606,19 @@ export default function ContentRunDetailPage({
               </div>
               <dl className="grid gap-3 text-sm sm:grid-cols-3">
                 <div>
-                  <dt className="text-xs text-foreground/48">Created</dt>
+                  <dt className="text-xs text-muted-foreground">Created</dt>
                   <dd className="mt-1 text-foreground/80">
                     {formatDateTime(run.createdAt)}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-foreground/48">Credits</dt>
+                  <dt className="text-xs text-muted-foreground">Credits</dt>
                   <dd className="mt-1 text-foreground/80">
                     {formatMetric(run.creditsUsed)}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-foreground/48">Duration</dt>
+                  <dt className="text-xs text-muted-foreground">Duration</dt>
                   <dd className="mt-1 text-foreground/80">
                     {run.duration ? `${run.duration}ms` : '-'}
                   </dd>

@@ -317,7 +317,7 @@ export function MessagesConversationSidebar({
     hasSyncableAccounts && conversations.length > 0 ? (
       <Button
         ariaLabel={syncLabel}
-        className="size-8 shrink-0 rounded-md border border-border bg-foreground/[0.025] text-foreground/48 hover:bg-foreground/[0.07] hover:text-foreground"
+        className="size-8 shrink-0 rounded-md border border-border bg-foreground/[0.025] text-muted-foreground hover:bg-foreground/[0.07] hover:text-foreground"
         icon={<RefreshCw className="size-4" />}
         isDisabled={
           Boolean(writeBlockedReason) ||

@@ -300,7 +300,7 @@ export default function IngredientTabsTags({
           </div>
           <div className="p-4 bg-tertiary">
             <div className="text-sm text-foreground/60">Most Used</div>
-            <div className="text-lg font-bold">{tags[0]?.label || 'N/A'}</div>
+            <div className="text-lg font-bold">{tags[0]?.label || '-'}</div>
           </div>
         </div>
       </Card>

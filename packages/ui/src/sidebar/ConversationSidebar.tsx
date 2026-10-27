@@ -30,7 +30,7 @@ export function ConversationSidebarSearch({
       <Searchbar
         ariaLabel={ariaLabel}
         className="min-w-0 flex-1"
-        inputClassName="rounded-md border-border bg-background-secondary text-xs placeholder:text-foreground/28"
+        inputClassName="rounded-md border-border bg-background-secondary text-xs placeholder:text-muted-foreground"
         onChange={(event: ChangeEvent<HTMLInputElement>) =>
           onChange(event.target.value)
         }
@@ -63,7 +63,7 @@ export function ConversationSidebarSection({
           {label}
         </span>
         {typeof count === 'number' ? (
-          <span className="shrink-0 font-mono font-medium tracking-normal text-foreground/22">
+          <span className="shrink-0 font-mono font-medium tracking-normal text-muted-foreground">
             {count}
           </span>
         ) : null}
