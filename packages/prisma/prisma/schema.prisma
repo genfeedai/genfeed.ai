@@ -814,6 +814,8 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   knowledgeSources KnowledgeSource[]
   knowledgeSpaces KnowledgeSpace[]
   knowledgeSourceRefreshRuns KnowledgeSourceRefreshRun[]
+  knowledgeSourceConflicts KnowledgeSourceConflict[]
+  knowledgeConflictScans KnowledgeConflictScan[]
   knowledgeCaptureRequests KnowledgeCaptureRequest[]
   id                        String                @id @default(cuid())
   authProviderLogoUrl       String?
@@ -8028,6 +8030,13 @@ enum KnowledgeSourceSyncState {
   FAILED
 }
 
+enum KnowledgeConflictStatus {
+  OPEN
+  DISMISSED
+  RESOLVED
+  CLEARED
+}
+
 enum KnowledgeRefreshRunStatus {
   QUEUED
   PROCESSING
@@ -8120,6 +8129,9 @@ model KnowledgeSourceVersion {
   supersedesVersions KnowledgeSourceVersion[] @relation("KnowledgeVersionSupersession")
   chunks             ContextEntry[]
   candidateRefreshRuns KnowledgeSourceRefreshRun[]
+  conflictsAsA        KnowledgeSourceConflict[] @relation("KnowledgeConflictVersionA")
+  conflictsAsB        KnowledgeSourceConflict[] @relation("KnowledgeConflictVersionB")
+  conflictScans       KnowledgeConflictScan[]
   @@unique([sourceId, version])
   @@unique([id, sourceId, organizationId])
   @@index([organizationId, sourceId, isDeleted, isCurrent], map: "knowledge_source_versions_scope_current_idx")
@@ -8193,6 +8205,60 @@ model KnowledgeSourceRefreshRun {
   @@index([organizationId, sourceId, status, isDeleted])
   @@index([organizationId, nextAttemptAt, isDeleted])
   @@map("knowledge_source_refresh_runs")
+}
+
+/// A judged pair of current Knowledge versions. OPEN means the judge found the
+/// two disagree; CLEARED records a pair judged consistent so it is not judged
+/// again. Versions are stored in id order so a pair has one row.
+model KnowledgeSourceConflict {
+  id              String                  @id @default(uuid())
+  organizationId  String
+  versionAId      String
+  sourceAId       String
+  versionBId      String
+  sourceBId       String
+  contentHashA    String
+  contentHashB    String
+  status          KnowledgeConflictStatus @default(OPEN)
+  summary         String?
+  excerptA        String?
+  excerptB        String?
+  judgeModel      String
+  judgedAt        DateTime                @default(now())
+  decidedAt       DateTime?
+  decidedByUserId String?
+  isDeleted       Boolean                 @default(false)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  organization    Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  versionA        KnowledgeSourceVersion  @relation("KnowledgeConflictVersionA", fields: [versionAId, sourceAId, organizationId], references: [id, sourceId, organizationId], onDelete: Restrict)
+  versionB        KnowledgeSourceVersion  @relation("KnowledgeConflictVersionB", fields: [versionBId, sourceBId, organizationId], references: [id, sourceId, organizationId], onDelete: Restrict)
+
+  @@unique([organizationId, versionAId, versionBId])
+  @@index([organizationId, status, isDeleted])
+  @@index([organizationId, versionBId, status, isDeleted])
+  @@map("knowledge_source_conflicts")
+}
+
+model KnowledgeConflictScan {
+  id             String                 @id @default(uuid())
+  organizationId String
+  versionId      String
+  sourceId       String
+  contentHash    String
+  candidateCount Int                    @default(0)
+  isComplete     Boolean                @default(false)
+  attemptCount   Int                    @default(0)
+  scannedAt      DateTime               @default(now())
+  isDeleted      Boolean                @default(false)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  version        KnowledgeSourceVersion @relation(fields: [versionId, sourceId, organizationId], references: [id, sourceId, organizationId], onDelete: Restrict)
+
+  @@unique([organizationId, versionId])
+  @@index([organizationId, isComplete, isDeleted])
+  @@map("knowledge_conflict_scans")
 }
 
 model KnowledgeCaptureRequest {
