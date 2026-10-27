@@ -32,7 +32,7 @@ export interface SwitchProps extends SwitchBaseProps {
  * on/off always slides left ↔ right in both Light and Dark. Do not center the
  * thumb with flex — translate owns position.
  *
- * Motion: the thumb travels with a slight spring overshoot, colors fade on the
+ * Motion: the thumb travels on a non-overshooting ease-out, colors fade on the
  * standard ease, and pressing an enabled switch stretches the thumb (the
  * checked thumb is re-anchored to the right edge) so the toggle feels physical.
  */
@@ -42,7 +42,7 @@ const SWITCH_CONTRAST_CLASSNAME = cn(
   'data-[state=unchecked]:[&>span]:!translate-x-0',
   'data-[state=unchecked]:[&>span]:!bg-background',
   'data-[state=checked]:[&>span]:!bg-primary-foreground',
-  '[&>span]:![transition:translate_300ms_cubic-bezier(0.34,1.56,0.64,1),width_200ms_cubic-bezier(0.32,0.72,0,1),background-color_200ms_cubic-bezier(0.32,0.72,0,1)]',
+  '[&>span]:![transition:translate_300ms_cubic-bezier(0.32,0.72,0,1),width_200ms_cubic-bezier(0.32,0.72,0,1),background-color_200ms_cubic-bezier(0.32,0.72,0,1)]',
   'motion-reduce:[&>span]:!transition-none',
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
 );

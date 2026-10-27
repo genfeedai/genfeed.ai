@@ -53,7 +53,7 @@ const ANIMATION_STYLES = `
   .connection-success-badge {
     opacity: 0;
     transform: scale(0.4);
-    animation: connection-success-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) 1150ms forwards;
+    animation: connection-success-pop 420ms cubic-bezier(0.32, 0.72, 0, 1) 1150ms forwards;
   }
 
   .connection-success-check {

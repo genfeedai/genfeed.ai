@@ -45,9 +45,9 @@ function Alert({
   );
 }
 
-function AlertTitle({ className, ...props }: ComponentPropsWithoutRef<'h5'>) {
+function AlertTitle({ className, ...props }: ComponentPropsWithoutRef<'div'>) {
   return (
-    <h5
+    <div
       className={cn(
         'col-start-2 mb-1 font-medium leading-none tracking-tight',
         className,
