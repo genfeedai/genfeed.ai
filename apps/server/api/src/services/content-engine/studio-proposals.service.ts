@@ -2,6 +2,11 @@ import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { PlanPerformanceContextService } from '@api/services/content-engine/plan-performance-context.service';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
+import {
+  HARNESS_BRIEF_PROMPT_HEADING,
+  resolveRequiredHarnessBrief,
+} from '@api/services/harness/required-harness-brief.util';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import {
   STUDIO_MEDIA_PROPOSALS_SCHEMA_NAME,
@@ -15,6 +20,9 @@ import {
 } from '@genfeedai/contracts/api-types/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { Injectable } from '@nestjs/common';
+
+export const STUDIO_PROPOSALS_BRAND_CONTEXT_UNAVAILABLE =
+  'Brand context is unavailable for these proposals. Please retry.';
 
 export interface StudioProposalsRequest {
   brandId: string;
@@ -42,6 +50,7 @@ export class StudioProposalsService {
     private readonly brandOsRevisionsService: BrandOsRevisionsService,
     private readonly llmDispatcherService: LlmDispatcherService,
     private readonly planPerformanceContextService: PlanPerformanceContextService,
+    private readonly harness: HarnessGenerationService,
   ) {}
 
   async propose(
@@ -58,23 +67,36 @@ export class StudioProposalsService {
         : { isBrandApproved: false, proposals: [], surface };
     }
 
-    const [context, performance] = await Promise.all([
+    const [context, performance, brandBrief] = await Promise.all([
       this.agentContextAssemblyService.assembleContext({
         brandId,
-        layers: { performancePatterns: true },
         organizationId,
         query: `${surface} content ideas`,
         userId,
       }),
       this.planPerformanceContextService.build({ brandId, organizationId }),
+      resolveRequiredHarnessBrief(
+        this.harness,
+        {
+          brandId,
+          contentType: surface === 'image' ? 'image' : 'video',
+          includeContentMemory: true,
+          objective: 'engagement',
+          organizationId,
+          surface: surface === 'storyboard' ? undefined : 'media',
+          topic: `${surface} content ideas`,
+          userId,
+        },
+        STUDIO_PROPOSALS_BRAND_CONTEXT_UNAVAILABLE,
+      ),
     ]);
     if (!context) throw new NotFoundException('Brand');
 
     const count = request.count ?? STUDIO_PROPOSAL_DEFAULT_COUNT;
-    const systemPrompt = this.agentContextAssemblyService.buildSystemPrompt(
+    const systemPrompt = [
       `You are ${context.brandName}'s creative director. You write ready-to-generate drafts for the brand's studio, so the team can create without writing a prompt. Stay on brand: voice, audience, visual identity and what already performs.`,
-      context,
-    );
+      `${HARNESS_BRIEF_PROMPT_HEADING}\n${brandBrief}`,
+    ].join('\n\n');
     const userPrompt = [
       `Write ${count} distinct proposals. ${SURFACE_INSTRUCTIONS[surface]}`,
       'Give each one a short title and a one-sentence "why" that names the brand signal or performance pattern it builds on.',
