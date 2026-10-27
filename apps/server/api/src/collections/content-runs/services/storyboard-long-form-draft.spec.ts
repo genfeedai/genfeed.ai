@@ -42,7 +42,10 @@ function request(
   overrides: Partial<StoryboardLongFormDraftRequest> = {},
 ): StoryboardLongFormDraftRequest {
   return {
-    brand: { name: 'Acme' },
+    brand: {
+      brief: 'Voice: plain. Guardrails: no income claims.',
+      name: 'Acme',
+    },
     brief: 'I keep seeing founders underprice their first plan.',
     current: emptyPlan,
     mode: 'draft',

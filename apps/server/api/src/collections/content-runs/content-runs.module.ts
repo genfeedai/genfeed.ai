@@ -36,6 +36,7 @@ import { PausedXAdsCampaignDraftService } from '@api/collections/content-runs/se
 import { StoryboardARollService } from '@api/collections/content-runs/services/storyboard-a-roll.service';
 import { StoryboardAnimaticVoiceService } from '@api/collections/content-runs/services/storyboard-animatic-voice.service';
 import { StoryboardCharacterReplaceService } from '@api/collections/content-runs/services/storyboard-character-replace.service';
+import { StoryboardDraftBriefService } from '@api/collections/content-runs/services/storyboard-draft-brief.service';
 import { StoryboardLongFormAssemblyService } from '@api/collections/content-runs/services/storyboard-long-form-assembly.service';
 import { StoryboardLongFormEstimateService } from '@api/collections/content-runs/services/storyboard-long-form-estimate.service';
 import { StoryboardLongFormTranslationService } from '@api/collections/content-runs/services/storyboard-long-form-translation.service';
@@ -64,6 +65,7 @@ import { ByokModule } from '@api/services/byok/byok.module';
 import { ContentOptimizationModule } from '@api/services/content-optimization/content-optimization.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
+import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfield.module';
 import { MetaAdsModule } from '@api/services/integrations/meta-ads/meta-ads.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
@@ -94,6 +96,7 @@ import { Module } from '@nestjs/common';
     ContentRunRecommendationsService,
   ],
   imports: [
+    ContentHarnessModule,
     PersonasCoreModule,
     PlatformSettingsModule,
     FileQueueModule,
@@ -127,6 +130,7 @@ import { Module } from '@nestjs/common';
   providers: [
     StoryboardCharacterReplaceService,
     StoryboardPlanDraftService,
+    StoryboardDraftBriefService,
     StoryboardRunCapabilitiesService,
     StoryboardRunsService,
     StoryboardRunStoreService,

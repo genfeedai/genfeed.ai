@@ -121,6 +121,15 @@ export const GENERATION_TYPES: readonly GenerationTypeEntry[] = [
   },
   {
     enumRefs: {},
+    id: 'storyboard-plan-draft',
+    marker: 'resolveBrief',
+    note: 'Storyboard plan drafts and long-form scripts (shots, narration and cutaways) compose the harness brief (contentType video) and fail with a retryable 503 before the model when it is unavailable.',
+    path: 'harness',
+    smoke: null,
+    source: `${API}/collections/content-runs/services/storyboard-draft-brief.service.ts`,
+  },
+  {
+    enumRefs: {},
     id: 'ad-copy',
     marker: 'resolveBrief',
     path: 'harness',
