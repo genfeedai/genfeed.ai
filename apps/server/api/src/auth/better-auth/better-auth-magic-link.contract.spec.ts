@@ -239,7 +239,9 @@ describe('Better Auth magic-link lifecycle contract', () => {
     const stored = harness.database.verification ?? [];
 
     expect(stored).toHaveLength(1);
-    expect(stored[0]?.identifier).toBe(delivered.token);
+    // 1.7 namespaces verification identifiers so an OAuth state row can never
+    // be redeemed as a magic link (GHSA-965c-763c-88jm).
+    expect(stored[0]?.identifier).toBe(`magic-link:${delivered.token}`);
     expect(JSON.stringify(harness.database)).toContain(delivered.token);
 
     const verificationResponse = await verifyMagicLink(

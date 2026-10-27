@@ -1,7 +1,7 @@
 import { PlatformRole } from '@genfeedai/contracts';
-import type { BetterAuthOptions, RateLimit } from 'better-auth';
+import type { BetterAuthOptions } from 'better-auth';
 import { parseUserInput } from 'better-auth/db';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   applyEmailVerificationPolicy,
   assertSignupMagicLinkCanCreateUser,
@@ -635,37 +635,91 @@ function createFakeRateLimitStore(): IBetterAuthRateLimitStore & {
   };
 }
 
-const sampleRateLimit: RateLimit = {
-  count: 3,
-  key: 'ip:1.2.3.4',
-  lastRequest: 1700,
-};
+const RATE_LIMIT_RULE = { max: 3, window: 10 };
 
 describe('buildRateLimitStorage', () => {
-  it('round-trips a rate-limit record through the shared store', async () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('allows requests up to the rule max, then denies with a retry hint', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-27T12:00:00.000Z'));
     const storage = buildRateLimitStorage(createFakeRateLimitStore());
 
-    await storage.set('ip:1.2.3.4', sampleRateLimit);
+    for (let attempt = 0; attempt < RATE_LIMIT_RULE.max; attempt += 1) {
+      expect(await storage.consume('ip:1.2.3.4', RATE_LIMIT_RULE)).toEqual({
+        allowed: true,
+        retryAfter: null,
+      });
+    }
 
-    expect(await storage.get('ip:1.2.3.4')).toEqual(sampleRateLimit);
+    vi.advanceTimersByTime(4_000);
+
+    expect(await storage.consume('ip:1.2.3.4', RATE_LIMIT_RULE)).toEqual({
+      allowed: false,
+      retryAfter: 6,
+    });
+  });
+
+  it('starts a fresh window once the rule window has elapsed', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-27T12:00:00.000Z'));
+    const storage = buildRateLimitStorage(createFakeRateLimitStore());
+
+    for (let attempt = 0; attempt < RATE_LIMIT_RULE.max; attempt += 1) {
+      await storage.consume('ip:1.2.3.4', RATE_LIMIT_RULE);
+    }
+    vi.advanceTimersByTime(RATE_LIMIT_RULE.window * 1_000);
+
+    expect(await storage.consume('ip:1.2.3.4', RATE_LIMIT_RULE)).toEqual({
+      allowed: true,
+      retryAfter: null,
+    });
   });
 
   it('namespaces keys and applies a TTL so idle counters self-expire', async () => {
     const store = createFakeRateLimitStore();
     const storage = buildRateLimitStorage(store);
 
-    await storage.set('ip:1.2.3.4', sampleRateLimit);
+    await storage.consume('ip:1.2.3.4', RATE_LIMIT_RULE);
 
     const [call] = store.setCalls;
     expect(call.key).toBe('ba:ratelimit:ip:1.2.3.4');
-    expect(call.value).toBe(JSON.stringify(sampleRateLimit));
+    expect(JSON.parse(call.value)).toMatchObject({
+      count: 1,
+      key: 'ip:1.2.3.4',
+    });
     expect(call.ttlSeconds).toBe(RATE_LIMIT_TTL_SECONDS);
   });
 
-  it('returns null when the counter is absent (fail-open path)', async () => {
+  it('counts each key separately', async () => {
     const storage = buildRateLimitStorage(createFakeRateLimitStore());
 
-    expect(await storage.get('missing')).toBeNull();
+    for (let attempt = 0; attempt < RATE_LIMIT_RULE.max; attempt += 1) {
+      await storage.consume('ip:1.2.3.4', RATE_LIMIT_RULE);
+    }
+
+    expect(await storage.consume('ip:5.6.7.8', RATE_LIMIT_RULE)).toEqual({
+      allowed: true,
+      retryAfter: null,
+    });
+  });
+
+  it('fails open when the store throws', async () => {
+    const storage = buildRateLimitStorage({
+      get: async () => {
+        throw new Error('redis down');
+      },
+      set: async () => {
+        throw new Error('redis down');
+      },
+    });
+
+    expect(await storage.consume('ip:1.2.3.4', RATE_LIMIT_RULE)).toEqual({
+      allowed: true,
+      retryAfter: null,
+    });
   });
 });
 
@@ -779,6 +833,15 @@ describe('buildBetterAuthAdvancedOptions', () => {
     expect(buildBetterAuthAdvancedOptions({})).toEqual({
       database: { generateId: 'uuid' },
     });
+  });
+
+  it('enables database joins only when experimentalJoins is set', () => {
+    expect(
+      buildBetterAuthAdvancedOptions({ experimentalJoins: true }).database,
+    ).toEqual({ generateId: 'uuid', joins: true });
+    expect(
+      buildBetterAuthAdvancedOptions({ experimentalJoins: false }).database,
+    ).toEqual({ generateId: 'uuid' });
   });
 
   it('shares the cookie only when cookieDomain is provided', () => {
