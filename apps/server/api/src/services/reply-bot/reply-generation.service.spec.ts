@@ -195,9 +195,9 @@ describe('ReplyGenerationService', () => {
 
   describe('generateReply', () => {
     const baseOptions = {
-      length: 'short' as const,
+      length: ReplyLength.SHORT,
       organizationId: 'org-123',
-      tone: 'professional' as const,
+      tone: ReplyTone.PROFESSIONAL,
       tweetAuthor: '@testuser',
       tweetContent: 'This is a test tweet',
       userId: 'user-123',
