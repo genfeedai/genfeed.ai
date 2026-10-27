@@ -18,17 +18,11 @@ import {
   resolveOrganizationModulePresentationAccess,
 } from '@genfeedai/contracts/constants';
 import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
-import type {
-  PluginAppEntry,
-  PluginFilterId,
-  PluginStatusFilter,
-} from '@genfeedai/props/plugins/organization-plugins-page.props';
+import type { PluginAppEntry } from '@genfeedai/props/plugins/organization-plugins-page.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
+import CollectionGrid from '@ui/collection/CollectionGrid';
 import CollectionSection from '@ui/collection/CollectionSection';
 import CollectionView from '@ui/collection/CollectionView';
-import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
-import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
@@ -45,42 +39,10 @@ import PluginAppAccessNote from '@/components/plugins/PluginAppAccessNote';
 import PluginAppActions from '@/components/plugins/PluginAppActions';
 import PluginAppCard from '@/components/plugins/PluginAppCard';
 import PluginAppDetailsPanel from '@/components/plugins/PluginAppDetailsPanel';
-import PluginAppRow from '@/components/plugins/PluginAppRow';
-import {
-  PLUGIN_APP_CATALOG,
-  PLUGIN_CATEGORY_IDS,
-} from '@/components/plugins/plugin-app-catalog';
+import { PLUGIN_APP_CATALOG } from '@/components/plugins/plugin-app-catalog';
 import { isPluginAppOpenable } from '@/components/plugins/plugin-app-state';
 import { useInstalledApps } from '@/components/shell/installed-apps.provider';
 import { useRailPreferencesContext } from '@/components/shell/rail-preferences.provider';
-
-const ALL_FILTER = 'all';
-const PLUGIN_STATUS_FILTERS: readonly PluginStatusFilter[] = [
-  'all',
-  'installed',
-  'available',
-  'restricted',
-];
-
-function isPluginStatusFilter(value: string): value is PluginStatusFilter {
-  return PLUGIN_STATUS_FILTERS.some((status) => status === value);
-}
-
-function matchesStatus(
-  app: PluginAppEntry,
-  status: PluginStatusFilter,
-): boolean {
-  switch (status) {
-    case 'all':
-      return true;
-    case 'installed':
-      return app.isInstalled && isPluginAppOpenable(app);
-    case 'available':
-      return app.state === 'not-installed';
-    default:
-      return !isPluginAppOpenable(app) && app.state !== 'not-installed';
-  }
-}
 
 /**
  * Plugins at `/:orgSlug/~/plugins` (#5502): the native apps a member installs
@@ -105,13 +67,7 @@ function OrganizationPluginsCatalog() {
   const [failedActions, setFailedActions] = useState<
     Partial<Record<NativeSecondaryAppId, 'install' | 'uninstall'>>
   >({});
-  const [filter, setFilter] = useState<PluginFilterId>(ALL_FILTER);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<PluginStatusFilter>('all');
-  const { setView, view } = useCollectionViewPreference({
-    defaultView: ViewType.GRID,
-    surface: 'plugins',
-  });
   const [selectedAppId, setSelectedAppId] =
     useState<NativeSecondaryAppId | null>(null);
   const brandSlug = selectedBrand?.slug?.trim() || undefined;
@@ -176,34 +132,16 @@ function OrganizationPluginsCatalog() {
     ],
   );
 
-  // Only categories that hold an app the member can see are offered, so a
-  // category that is empty for this member never shows up as a filter.
-  const filterIds = useMemo<PluginFilterId[]>(
-    () =>
-      PLUGIN_CATEGORY_IDS.filter((categoryId) =>
-        apps.some(
-          (app) => PLUGIN_APP_CATALOG[app.appId].category === categoryId,
-        ),
-      ),
-    [apps],
-  );
-  const activeFilter = filterIds.some((filterId) => filterId === filter)
-    ? filter
-    : ALL_FILTER;
-
   const visibleApps = useMemo(() => {
     const term = searchQuery.trim().toLowerCase();
     return apps.filter(
       (app) =>
-        (activeFilter === ALL_FILTER ||
-          PLUGIN_APP_CATALOG[app.appId].category === activeFilter) &&
-        matchesStatus(app, statusFilter) &&
-        (term === '' ||
-          app.label.toLowerCase().includes(term) ||
-          app.description.toLowerCase().includes(term) ||
-          app.summary.toLowerCase().includes(term)),
+        term === '' ||
+        app.label.toLowerCase().includes(term) ||
+        app.description.toLowerCase().includes(term) ||
+        app.summary.toLowerCase().includes(term),
     );
-  }, [activeFilter, apps, searchQuery, statusFilter]);
+  }, [apps, searchQuery]);
 
   // No per-member app usage is recorded anywhere, so "most used" cannot be
   // computed. Installed apps the member can open come first, pinned ones
@@ -295,57 +233,6 @@ function OrganizationPluginsCatalog() {
           value={searchQuery}
         />
       }
-      filters={
-        <FilterMenu
-          facets={[
-            {
-              defaultValue: 'all',
-              key: 'status',
-              label: translate('status.label'),
-              onChange: (value) => {
-                if (isPluginStatusFilter(value)) {
-                  setStatusFilter(value);
-                }
-              },
-              options: PLUGIN_STATUS_FILTERS.map((status) => ({
-                count: apps.filter((app) => matchesStatus(app, status)).length,
-                label: translate(`status.${status}`),
-                value: status,
-              })),
-              selection: 'single',
-              value: statusFilter,
-            },
-            {
-              defaultValue: ALL_FILTER,
-              key: 'category',
-              label: translate('filters.category'),
-              onChange: (value) =>
-                setFilter(filterIds.find((id) => id === value) ?? ALL_FILTER),
-              options: [
-                {
-                  count: apps.length,
-                  label: translate('allCategories'),
-                  value: ALL_FILTER,
-                },
-                ...filterIds.map((id) => ({
-                  count: apps.filter(
-                    (app) => PLUGIN_APP_CATALOG[app.appId].category === id,
-                  ).length,
-                  label: translate(`categories.${id}`),
-                  value: id,
-                })),
-              ],
-              selection: 'single',
-              value: activeFilter,
-            },
-          ]}
-          onClear={() => {
-            setFilter(ALL_FILTER);
-            setStatusFilter('all');
-          }}
-        />
-      }
-      views={<CollectionViewToggle onViewChange={setView} view={view} />}
     >
       {installedApps.status === 'error' ? (
         <p className="text-sm text-destructive" role="alert">
@@ -364,7 +251,7 @@ function OrganizationPluginsCatalog() {
             maxColumns={3}
             renderGridItem={() => null}
             renderListItem={() => null}
-            view={view}
+            view={ViewType.GRID}
           />
         </div>
       ) : visibleApps.length > 0 ? (
@@ -391,18 +278,13 @@ function OrganizationPluginsCatalog() {
               key={section.id}
               title={section.title}
             >
-              <CollectionView<PluginAppEntry>
-                getItemKey={(app) => app.appId}
-                items={section.apps}
-                maxColumns={3}
-                renderGridItem={(app) => (
-                  <PluginAppCard {...getItemProps(app)} />
-                )}
-                renderListItem={(app) => (
-                  <PluginAppRow {...getItemProps(app)} />
-                )}
-                view={view}
-              />
+              {section.apps.length > 0 ? (
+                <CollectionGrid maxColumns={3}>
+                  {section.apps.map((app) => (
+                    <PluginAppCard key={app.appId} {...getItemProps(app)} />
+                  ))}
+                </CollectionGrid>
+              ) : null}
             </CollectionSection>
           ))}
         </div>
@@ -417,13 +299,9 @@ function OrganizationPluginsCatalog() {
           <Button
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
-            onClick={() => {
-              setSearchQuery('');
-              setFilter(ALL_FILTER);
-              setStatusFilter('all');
-            }}
+            onClick={() => setSearchQuery('')}
           >
-            {translate('filters.clear')}
+            {translate('clearSearch')}
           </Button>
         </div>
       )}

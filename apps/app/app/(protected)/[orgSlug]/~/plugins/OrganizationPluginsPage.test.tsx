@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 
-import { selectFilterOption } from '@app-tests/filter-menu.helpers';
 import {
   ContextSidebarOutlet,
   ContextSidebarProvider,
@@ -166,14 +165,15 @@ describe('OrganizationPluginsPage (#7842)', () => {
     ]);
   });
 
-  it('keeps status and category in one Filters menu beside a view toggle', () => {
+  it('shows the search and the grid without filters or a view toggle', () => {
     render(<OrganizationPluginsPage />);
     expect(screen.queryByRole('tablist')).toBeNull();
     expect(screen.queryByRole('combobox')).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Filters/ })).toBeNull();
+    expect(screen.queryByRole('radio')).toBeNull();
     expect(
-      screen.getByRole('button', { name: /^Filters/ }),
+      screen.getByTestId('collapsible-search-trigger'),
     ).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: 'Grid' })).toBeInTheDocument();
     expect(
       screen.getByTestId('plugins-thumbnail-playground'),
     ).toBeInTheDocument();
@@ -225,24 +225,6 @@ describe('OrganizationPluginsPage (#7842)', () => {
     expect(within(detail()).queryByText(/Break an idea/)).toBeNull();
   });
 
-  it('switches between the grid and the list without losing the selection', async () => {
-    const user = userEvent.setup();
-    render(<OrganizationPluginsPage />);
-    await selectApp(user, 'storyboard');
-
-    await user.click(screen.getByRole('radio', { name: 'List' }));
-
-    expect(card('storyboard')).toHaveTextContent(
-      'Plan a story scene by scene, then generate it.',
-    );
-    expect(
-      within(card('storyboard')).getByRole('button', {
-        name: 'Storyboard, selected',
-      }),
-    ).toBeInTheDocument();
-    expect(detail()).toHaveTextContent('Break an idea into scenes');
-  });
-
   it('narrows the list with the search box', async () => {
     const user = userEvent.setup();
     render(<OrganizationPluginsPage />);
@@ -262,19 +244,6 @@ describe('OrganizationPluginsPage (#7842)', () => {
     expect(screen.getByTestId('plugins-empty')).toHaveTextContent(
       'No plugins match your search.',
     );
-  });
-
-  it('filters the catalog by category', async () => {
-    const user = userEvent.setup();
-    render(<OrganizationPluginsPage />);
-
-    await selectFilterOption(user, 'Category', 'Publish & grow');
-
-    expect(
-      screen
-        .getAllByTestId(/^plugins-app-(?!detail)/)
-        .map((element) => element.dataset.testid),
-    ).toEqual(['plugins-app-discovery']);
   });
 
   it('lists every native app for an organization on release preview', () => {
@@ -424,20 +393,29 @@ describe('OrganizationPluginsPage (#7842)', () => {
     expect(screen.queryByTestId('plugins-browser')).toBeNull();
     expect(screen.queryByRole('button', { name: /^Add / })).toBeNull();
   });
-  it('filters by installation state and closes details when the selection leaves the results', async () => {
+
+  it('closes details when the search leaves the selection out of the results', async () => {
     const user = userEvent.setup();
     render(<OrganizationPluginsPage />);
     await selectApp(user, 'storyboard');
     expect(detail()).toBeInTheDocument();
-    await selectFilterOption(user, 'App status', 'Installed');
-    expect(screen.getAllByTestId(/^plugins-app-(?!detail)/)).toHaveLength(1);
-    expect(screen.queryByTestId('plugins-app-detail')).toBeNull();
-    await selectFilterOption(user, 'App status', 'Available');
-    expect(screen.queryByTestId('plugins-app-playground')).toBeNull();
-    expect(card('storyboard')).toBeInTheDocument();
-    await selectFilterOption(user, 'App status', 'Restricted');
-    expect(appState('turbo')).toBe('organization-disabled');
+
+    await user.type(screen.getByPlaceholderText('Search plugins'), 'prompt');
+
+    expect(card('playground')).toBeInTheDocument();
     expect(screen.queryByTestId('plugins-app-storyboard')).toBeNull();
+    expect(screen.queryByTestId('plugins-app-detail')).toBeNull();
+  });
+
+  it('clears an empty search from the empty state', async () => {
+    const user = userEvent.setup();
+    render(<OrganizationPluginsPage />);
+
+    await user.type(screen.getByPlaceholderText('Search plugins'), 'zzzz');
+    await user.click(screen.getByRole('button', { name: 'Clear search' }));
+
+    expect(screen.queryByTestId('plugins-empty')).toBeNull();
+    expect(screen.getAllByTestId(/^plugins-app-(?!detail)/)).toHaveLength(4);
   });
 
   it('blocks repeat installs and removals while saving', async () => {

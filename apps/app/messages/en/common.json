@@ -2528,15 +2528,11 @@
   "plugins": {
     "title": "Plugins",
     "breadcrumbLabel": "Breadcrumb",
-    "allCategories": "All categories",
     "selectApp": "Select {app}",
     "selectedApp": "{app}, selected",
     "status": {
-      "label": "App status",
-      "all": "All",
       "installed": "Installed",
-      "available": "Available",
-      "restricted": "Restricted"
+      "available": "Available"
     },
     "search": "Search plugins",
     "installedTitle": "Installed",
@@ -2548,13 +2544,6 @@
       "unavailable": "Unavailable"
     },
     "pinned": "Pinned",
-    "filterAll": "All",
-    "filters": {
-      "menu": "Filters",
-      "category": "Category",
-      "clear": "Clear filters",
-      "activeCount": "{count, plural, one {# filter active} other {# filters active}}"
-    },
     "categories": {
       "create": "Create",
       "publish": "Publish & grow",
@@ -2631,6 +2620,7 @@
       }
     },
     "noMatches": "No plugins match your search.",
+    "clearSearch": "Clear search",
     "workflowsTitle": "Workflows",
     "workflowsDescription": "Browse the workflow library and install a workflow for this brand.",
     "openWorkflows": "Open workflow library",
