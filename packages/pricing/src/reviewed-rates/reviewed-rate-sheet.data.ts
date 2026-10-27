@@ -1533,6 +1533,90 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-06T09:45:36.337Z',
   },
   {
+    endpoint: 'kwaivgi/kling-v2.6-motion-control',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.07,
+        when: {
+          model_variant: 'std',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.12,
+        when: {
+          model_variant: 'pro',
+        },
+        isPerOutput: true,
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'field',
+          field: 'mode',
+          valueMap: {
+            std: 'std',
+            pro: 'pro',
+          },
+          fieldType: 'string',
+          default: 'std',
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/kwaivgi/kling-v2.6-motion-control',
+    verifiedAt: '2026-10-27T18:32:59.958Z',
+  },
+  {
+    endpoint: 'kwaivgi/kling-v3-motion-control',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.07,
+        when: {
+          model_variant: 'std',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.12,
+        when: {
+          model_variant: 'pro',
+        },
+        isPerOutput: true,
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'field',
+          field: 'mode',
+          valueMap: {
+            std: 'std',
+            pro: 'pro',
+          },
+          fieldType: 'string',
+          default: 'pro',
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/kwaivgi/kling-v3-motion-control',
+    verifiedAt: '2026-10-27T18:33:07.856Z',
+  },
+  {
     endpoint: 'kwaivgi/kling-v3-omni-video',
     provider: 'replicate',
     rates: [
@@ -1920,6 +2004,79 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-06T09:45:37.023Z',
   },
   {
+    endpoint: 'openai/gpt-5-structured',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'input-token',
+        unit: 'input-token',
+        unitPriceUsd: 1.25e-6,
+        when: {
+          model_variant: 'gpt-5',
+        },
+      },
+      {
+        component: 'output-token',
+        unit: 'output-token',
+        unitPriceUsd: 1e-5,
+        when: {
+          model_variant: 'gpt-5',
+        },
+      },
+      {
+        component: 'input-token',
+        unit: 'input-token',
+        unitPriceUsd: 5.0000000000000004e-8,
+        when: {
+          model_variant: 'gpt-5-nano',
+        },
+      },
+      {
+        component: 'output-token',
+        unit: 'output-token',
+        unitPriceUsd: 4.0000000000000003e-7,
+        when: {
+          model_variant: 'gpt-5-nano',
+        },
+      },
+      {
+        component: 'input-token',
+        unit: 'input-token',
+        unitPriceUsd: 2.5e-7,
+        when: {
+          model_variant: 'gpt-5-mini',
+        },
+      },
+      {
+        component: 'output-token',
+        unit: 'output-token',
+        unitPriceUsd: 2e-6,
+        when: {
+          model_variant: 'gpt-5-mini',
+        },
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'field',
+          field: 'model',
+          valueMap: {
+            'gpt-5': 'gpt-5',
+            'gpt-5-mini': 'gpt-5-mini',
+            'gpt-5-nano': 'gpt-5-nano',
+          },
+          fieldType: 'string',
+          default: 'gpt-5',
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/openai/gpt-5-structured',
+    verifiedAt: '2026-10-27T18:33:09.009Z',
+  },
+  {
     endpoint: 'openai/gpt-5.2',
     provider: 'replicate',
     rates: [
@@ -2208,6 +2365,20 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-06T09:45:37.924Z',
   },
   {
+    endpoint: 'prunaai/p-image',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.005,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://replicate.com/prunaai/p-image',
+    verifiedAt: '2026-10-27T18:33:13.841Z',
+  },
+  {
     endpoint: 'prunaai/p-video',
     provider: 'replicate',
     rates: [
@@ -2232,6 +2403,155 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     ],
     sourceUrl: 'https://replicate.com/prunaai/p-video',
     verifiedAt: '2026-10-06T21:45:00.000Z',
+  },
+  {
+    endpoint: 'prunaai/p-video-2',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.03,
+        when: {
+          model_variant: 'base',
+          resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.015,
+        when: {
+          model_variant: 'draft',
+          resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.06,
+        when: {
+          model_variant: 'base',
+          resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.03,
+        when: {
+          model_variant: 'draft',
+          resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'field',
+          field: 'draft',
+          valueMap: {
+            false: 'base',
+            true: 'draft',
+          },
+          fieldType: 'boolean',
+          default: false,
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/prunaai/p-video-2',
+    verifiedAt: '2026-10-27T18:33:12.195Z',
+  },
+  {
+    endpoint: 'prunaai/p-video-2-pro',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.01,
+        when: {
+          model_variant: 'cost',
+          resolution: '480p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.025,
+        when: {
+          model_variant: 'cost',
+          resolution: '768p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.02,
+        when: {
+          model_variant: 'speed',
+          resolution: '480p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.04,
+        when: {
+          model_variant: 'quality',
+          resolution: '480p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.035,
+        when: {
+          model_variant: 'speed',
+          resolution: '768p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.075,
+        when: {
+          model_variant: 'quality',
+          resolution: '768p',
+        },
+        isPerOutput: true,
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'field',
+          field: 'mode',
+          valueMap: {
+            cost: 'cost',
+            speed: 'speed',
+            quality: 'quality',
+          },
+          fieldType: 'string',
+          default: 'speed',
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/prunaai/p-video-2-pro',
+    verifiedAt: '2026-10-27T18:33:10.964Z',
   },
   {
     endpoint: 'qwen/qwen-image',

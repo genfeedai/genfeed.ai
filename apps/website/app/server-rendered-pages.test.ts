@@ -16,6 +16,7 @@ const SERVER_RENDERED_PAGES = [
   'app/(content)/articles/[slug]/article-detail.tsx',
   'app/(content)/articles/articles-list.tsx',
   'app/(public)/about/about-content.tsx',
+  'app/(public)/affiliates/affiliates-content.tsx',
   'app/(public)/agent-clients/agent-client-channel-content.tsx',
   'app/(public)/agent-clients/agent-client-content.tsx',
   'app/(public)/agent/agent-content.tsx',

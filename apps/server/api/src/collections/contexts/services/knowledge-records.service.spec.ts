@@ -45,6 +45,7 @@ const migrations = [
   '20260917180000_knowledge_refresh_and_transcripts',
   '20260918120000_knowledge_capture_request_hash',
   '20261022090000_context_embedding_queue',
+  '20261027070000_agent_memory_revisions',
 ].map((name) =>
   readFileSync(
     new URL(
@@ -163,7 +164,11 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
         CREATE TABLE organizations (id text PRIMARY KEY, "isDeleted" boolean DEFAULT false);
         CREATE TABLE users (id text PRIMARY KEY, "isDeleted" boolean NOT NULL DEFAULT false);
         CREATE TABLE api_keys (id text PRIMARY KEY, "userId" text NOT NULL REFERENCES users(id), "organizationId" text NOT NULL REFERENCES organizations(id), scopes text[] NOT NULL, "isRevoked" boolean NOT NULL DEFAULT false, "expiresAt" TIMESTAMP(3));
-        CREATE TABLE agent_memories (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id));
+        CREATE TABLE agent_memories (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id),
+         "userId" text, "brandId" text, "campaignId" text, scope text, content text, type text, kind text, "contentType" text,
+         platform text, summary text, tags text[], "sourceType" text, "sourceUrl" text, "sourceContentId" text, "sourceMessageId" text,
+         metadata jsonb, importance double precision, confidence double precision, "performanceSnapshot" jsonb, "promotedSkillId" text,
+         "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
         CREATE TABLE brands (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id), "isDeleted" boolean DEFAULT false, UNIQUE(id, "organizationId"));
         INSERT INTO organizations(id) VALUES ('org-a'), ('org-b');
         INSERT INTO users(id) VALUES ('legacyBase62User'), ('otherUser');

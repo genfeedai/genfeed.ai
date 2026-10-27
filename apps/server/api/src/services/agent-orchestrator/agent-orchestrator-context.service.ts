@@ -522,6 +522,9 @@ export class AgentOrchestratorContextService {
         importance: memory.importance,
         kind: memory.kind,
         platform: memory.platform,
+        // The exact revision the answer was grounded on, so a later correction
+        // does not change what an earlier answer is said to have used.
+        revisionId: memory.currentRevisionId ?? null,
         scope: memory.scope,
         sourceContentId: memory.sourceContentId,
         sourceMessageId: memory.sourceMessageId,
@@ -543,6 +546,7 @@ export class AgentOrchestratorContextService {
         kind: entry.kind,
         platform: entry.platform,
         reasons: entry.generationInfluence?.reasons ?? [],
+        revisionId: entry.revisionId,
         score: entry.generationInfluence?.score ?? 0,
         sourceType: entry.sourceType,
         summary: entry.summary || entry.content?.slice(0, 160),

@@ -7,37 +7,32 @@
 @token = your_better_auth_jwt_token_here
 @repurposingJobId = replace_with_actual_job_id
 
-### 1. Get optimal posting time (AI-powered)
+### 1. Get optimal posting time (learned from your measured posts, else labelled defaults)
 POST {{baseUrl}}/schedules/optimal
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "contentId": "video_123",
-  "contentType": "video",
   "platform": "instagram",
-  "goal": "engagement",
   "timezone": "America/New_York"
 }
 
-### Example Response:
+### Example Response (learned; slots are local to "timezone", weekday 0 is Monday):
 ### {
-###   "recommendedTime": "2025-10-09T14:00:00Z",
-###   "alternativeTimes": [
-###     "2025-10-09T18:00:00Z",
-###     "2025-10-10T09:00:00Z"
+###   "basis": "learned",
+###   "method": "median-by-slot",
+###   "metric": "engagementRate",
+###   "platform": "instagram",
+###   "timezone": "America/New_York",
+###   "eligibleCount": 34,
+###   "spanDays": 61.5,
+###   "windows": [
+###     { "weekday": 0, "startHour": 9, "endHour": 12, "sampleCount": 6, "median": 0.047 }
 ###   ],
-###   "confidence": 85,
-###   "expectedPerformance": {
-###     "estimatedEngagement": 250,
-###     "estimatedReach": 5000
-###   },
-###   "reasoning": [
-###     "Peak engagement hours for your target audience",
-###     "Lower competition during this time slot",
-###     "Historical data shows 2x higher reach"
-###   ]
+###   "reasoning": ["Ranked by median engagement rate per 3-hour slot in America/New_York, from 34 posts over 61.5 days."]
 ### }
+### With too little data: "basis": "default", "method": "platform-default", and windows without weekday,
+### sampleCount or median. Optional "brandId" and "credentialId" narrow the posts that are read.
 
 ### 2. Bulk schedule content
 POST {{baseUrl}}/schedules/bulk
@@ -49,9 +44,11 @@ Content-Type: application/json
   "platforms": ["instagram", "tiktok"],
   "brandIds": ["account_insta_1", "account_tiktok_1"],
   "schedulingStrategy": "ai-optimal",
-  "staggerMinutes": 60
+  "staggerMinutes": 60,
+  "timezone": "America/New_York"
 }
 
+### "ai-optimal" times are the platform default hours, local to `timezone` (default UTC).
 ### Example Response:
 ### {
 ###   "scheduled": [
@@ -188,21 +185,15 @@ Authorization: Bearer {{token}}
 
 ### Full workflow example
 ### Step 1: Get optimal time
-# @name getOptimalTime
 POST {{baseUrl}}/schedules/optimal
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "contentId": "my_video",
-  "contentType": "video",
-  "platform": "tiktok",
-  "goal": "engagement"
+  "platform": "tiktok"
 }
 
-### Step 2: Bulk schedule based on optimal times
-@recommendedTime = {{getOptimalTime.response.body.recommendedTime}}
-
+### Step 2: Bulk schedule with the platform windows
 POST {{baseUrl}}/schedules/bulk
 Authorization: Bearer {{token}}
 Content-Type: application/json

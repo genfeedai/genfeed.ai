@@ -203,8 +203,8 @@ describe('runCheckProductRouteInventory', () => {
       issues: [],
       protectedPageCount: 249,
       protectedRouteCount: 272,
-      publicRouteCount: 110,
-      websitePublicRouteCount: 85,
+      publicRouteCount: 111,
+      websitePublicRouteCount: 86,
     });
   });
 });

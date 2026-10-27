@@ -5,7 +5,14 @@ import { describe, expect, it, vi } from 'vitest';
 import EconomicsRevenueReport from './revenue-report';
 
 const report: IEconomicsRevenueReport = {
-  daily: [{ creditPackUsd: 10, date: '2026-09-03', subscriptionUsd: 29 }],
+  daily: [
+    {
+      adjustmentsUsd: 0,
+      creditPackUsd: 10,
+      date: '2026-09-03',
+      subscriptionUsd: 29,
+    },
+  ],
   from: '2026-09-01',
   latestEvents: [
     {

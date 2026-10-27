@@ -1,6 +1,5 @@
-import { ModelsService } from '@api/collections/models/services/models.service';
 import { SchedulesService } from '@api/collections/schedules/services/schedules.service';
-import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { ValidationException } from '@api/exceptions/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
@@ -27,6 +26,12 @@ describe('SchedulesService', () => {
   let service: SchedulesService;
 
   const mockPrismaService = {
+    contentPerformance: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+    post: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
     schedule: {
       count: vi.fn().mockResolvedValue(0),
       create: vi.fn().mockResolvedValue(null),
@@ -64,18 +69,6 @@ describe('SchedulesService', () => {
         {
           provide: LoggerService,
           useValue: mockLoggerService,
-        },
-        {
-          provide: ModelsService,
-          useValue: {
-            getOneByKey: vi.fn().mockResolvedValue(null),
-          },
-        },
-        {
-          provide: ReplicateService,
-          useValue: {
-            runTraining: vi.fn(),
-          },
         },
       ],
     }).compile();
@@ -144,6 +137,219 @@ describe('SchedulesService', () => {
           }),
         ]),
       );
+    });
+  });
+
+  describe('getOptimalTime', () => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const NOW = Date.parse('2026-10-20T00:00:00Z');
+    const FIRST_MONDAY = Date.parse('2026-08-03T13:30:00Z');
+    const FIRST_THURSDAY = Date.parse('2026-07-30T18:00:00Z');
+
+    function weekly(prefix: string, firstMs: number, weeks: number) {
+      return Array.from({ length: weeks }, (_, index) => ({
+        id: `${prefix}-${index}`,
+        publishedAt: new Date(firstMs + index * 7 * DAY),
+      }));
+    }
+
+    function measured(
+      posts: { id: string; publishedAt: Date }[],
+      engagementRate: number,
+    ) {
+      return posts.map((post) => ({
+        engagementRate,
+        measuredAt: new Date(post.publishedAt.getTime() + 36 * 60 * 60 * 1000),
+        postId: post.id,
+      }));
+    }
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(NOW);
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('returns labelled default times when there is no data', async () => {
+      mockPrismaService.post.findMany.mockResolvedValue([]);
+
+      const result = await service.getOptimalTime(
+        { platform: 'Twitter' },
+        'org_1',
+      );
+
+      expect(result).toMatchObject({
+        basis: 'default',
+        eligibleCount: 0,
+        method: 'platform-default',
+        platform: 'twitter',
+        timezone: 'UTC',
+      });
+      expect(result.windows[0]).toEqual({
+        endHour: 10,
+        median: null,
+        sampleCount: null,
+        startHour: 8,
+        weekday: null,
+      });
+      expect(
+        mockPrismaService.contentPerformance.findMany,
+      ).not.toHaveBeenCalled();
+    });
+
+    it("ranks the organization's slots by median engagement rate", async () => {
+      const mondays = weekly('mon', FIRST_MONDAY, 12);
+      const thursdays = weekly('thu', FIRST_THURSDAY, 12);
+      mockPrismaService.post.findMany.mockResolvedValue([
+        ...mondays,
+        ...thursdays,
+      ]);
+      mockPrismaService.contentPerformance.findMany.mockResolvedValue([
+        ...measured(mondays, 0.05),
+        ...measured(thursdays, 0.02),
+      ]);
+
+      const result = await service.getOptimalTime(
+        { platform: 'twitter' },
+        'org_1',
+      );
+
+      expect(result.basis).toBe('learned');
+      expect(result.method).toBe('median-by-slot');
+      expect(result.eligibleCount).toBe(24);
+      expect(result.windows).toEqual([
+        {
+          endHour: 15,
+          median: 0.05,
+          sampleCount: 12,
+          startHour: 12,
+          weekday: 0,
+        },
+        {
+          endHour: 21,
+          median: 0.02,
+          sampleCount: 12,
+          startHour: 18,
+          weekday: 3,
+        },
+      ]);
+    });
+
+    it('does not rank posts that have no engagement rate', async () => {
+      const mondays = weekly('mon', FIRST_MONDAY, 12);
+      const thursdays = weekly('thu', FIRST_THURSDAY, 12);
+      mockPrismaService.post.findMany.mockResolvedValue([
+        ...mondays,
+        ...thursdays,
+      ]);
+      mockPrismaService.contentPerformance.findMany.mockResolvedValue(
+        measured(mondays, 0.05),
+      );
+
+      const result = await service.getOptimalTime(
+        { platform: 'twitter' },
+        'org_1',
+      );
+
+      expect(result.eligibleCount).toBe(12);
+      expect(result.basis).toBe('default');
+    });
+
+    it('reads posts and metrics for one organization, not deleted, in scope', async () => {
+      await service.getOptimalTime(
+        {
+          brandId: 'brand_1',
+          credentialId: 'credential_1',
+          platform: 'twitter',
+        },
+        'org_1',
+      );
+
+      expect(mockPrismaService.post.findMany.mock.calls[0][0].where).toEqual({
+        brandId: 'brand_1',
+        credentialId: 'credential_1',
+        isDeleted: false,
+        organizationId: 'org_1',
+        platform: 'twitter',
+        publishedAt: { gte: new Date(NOW - 90 * DAY), lte: new Date(NOW) },
+      });
+    });
+
+    it('scopes the metrics read to the organization too', async () => {
+      mockPrismaService.post.findMany.mockResolvedValue(
+        weekly('mon', FIRST_MONDAY, 2),
+      );
+
+      await service.getOptimalTime({ platform: 'twitter' }, 'org_1');
+
+      expect(
+        mockPrismaService.contentPerformance.findMany.mock.calls[0][0].where,
+      ).toMatchObject({ isDeleted: false, organizationId: 'org_1' });
+    });
+
+    it('rejects a timezone that does not exist', async () => {
+      await expect(
+        service.getOptimalTime(
+          { platform: 'twitter', timezone: 'Not/AZone' },
+          'org_1',
+        ),
+      ).rejects.toBeInstanceOf(ValidationException);
+    });
+  });
+
+  describe('bulkSchedule with ai-optimal times', () => {
+    const base = {
+      brandIds: ['brand_1'],
+      contentIds: ['content_1', 'content_2'],
+      platforms: ['twitter'],
+      schedulingStrategy: 'ai-optimal' as const,
+    };
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(Date.parse('2026-10-20T10:00:00Z'));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('schedules the default hours in the requested timezone', async () => {
+      await service.bulkSchedule(
+        { ...base, timezone: 'America/New_York' },
+        'org_1',
+        'user_1',
+      );
+
+      const scheduledAt = mockPrismaService.schedule.create.mock.calls.map(
+        ([args]) => args.data.scheduledAt.toISOString(),
+      );
+      expect(scheduledAt).toEqual([
+        '2026-10-21T12:00:00.000Z',
+        '2026-10-21T13:00:00.000Z',
+      ]);
+    });
+
+    it('defaults to UTC without a timezone', async () => {
+      await service.bulkSchedule(base, 'org_1', 'user_1');
+
+      expect(
+        mockPrismaService.schedule.create.mock.calls[0][0].data.scheduledAt.toISOString(),
+      ).toBe('2026-10-21T08:00:00.000Z');
+    });
+
+    it('rejects a timezone that does not exist before writing anything', async () => {
+      await expect(
+        service.bulkSchedule(
+          { ...base, timezone: 'Not/AZone' },
+          'org_1',
+          'user_1',
+        ),
+      ).rejects.toBeInstanceOf(ValidationException);
+      expect(mockPrismaService.schedule.create).not.toHaveBeenCalled();
     });
   });
 });

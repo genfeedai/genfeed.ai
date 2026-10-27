@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { toWorkflowActor } from '@api/authorization/brand-access/workflow-actor.util';
+import { CorrectAgentMemoryDto } from '@api/collections/agent-memories/dto/correct-agent-memory.dto';
 import type {
   AgentMemoryContentType,
   AgentMemoryKind,
@@ -7,6 +8,7 @@ import type {
 } from '@api/collections/agent-memories/schemas/agent-memory.schema';
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
 import { AgentMemoryCaptureService } from '@api/collections/agent-memories/services/agent-memory-capture.service';
+import { AgentMemoryRevisionsService } from '@api/collections/agent-memories/services/agent-memory-revisions.service';
 import { resolveKnowledgeActor } from '@api/collections/contexts/utils/knowledge-actor.util';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
@@ -24,7 +26,10 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { MemberRole } from '@genfeedai/contracts';
-import { AgentMemorySerializer } from '@genfeedai/serializers';
+import {
+  AgentMemoryRevisionSerializer,
+  AgentMemorySerializer,
+} from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -47,6 +52,7 @@ export class AgentMemoriesController {
   constructor(
     private readonly memoriesService: AgentMemoriesService,
     private readonly memoryCaptureService: AgentMemoryCaptureService,
+    private readonly memoryRevisionsService: AgentMemoryRevisionsService,
     private readonly loggerService: LoggerService,
   ) {}
 
@@ -205,6 +211,86 @@ export class AgentMemoriesController {
       };
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'createMemory');
+    }
+  }
+
+  @Post(':id/revisions')
+  @ApiOperation({
+    summary:
+      'Correct a memory: append an immutable revision and make it the current one',
+  })
+  async correct(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: CorrectAgentMemoryDto,
+    @CurrentUser() user: User,
+  ) {
+    try {
+      const result = await this.memoryRevisionsService.correct(
+        resolveKnowledgeActor(user),
+        id,
+        body,
+      );
+      return serializeSingle(
+        req,
+        AgentMemoryRevisionSerializer,
+        result.revision,
+      );
+    } catch (error: unknown) {
+      return ErrorResponse.handle(error, this.loggerService, 'correctMemory');
+    }
+  }
+
+  @TenantReadPolicy('selected')
+  @Get(':id/revisions')
+  @ApiOperation({ summary: 'List the revisions of a memory, newest first' })
+  async listRevisions(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    try {
+      const page = await this.memoryRevisionsService.list(
+        resolveKnowledgeActor(user, undefined, resolveTenantReadScope(user)),
+        id,
+        { cursor, limit: limit === undefined ? undefined : Number(limit) },
+      );
+      const collection = serializeCollection(
+        req,
+        AgentMemoryRevisionSerializer,
+        {
+          docs: page.items,
+        },
+      );
+      return {
+        ...collection,
+        meta: { ...collection.meta, nextCursor: page.nextCursor },
+      };
+    } catch (error: unknown) {
+      return ErrorResponse.handle(error, this.loggerService, 'listRevisions');
+    }
+  }
+
+  @TenantReadPolicy('selected')
+  @Get(':id/revisions/:revisionId')
+  @ApiOperation({ summary: 'Read one exact revision of a memory' })
+  async getRevision(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('revisionId') revisionId: string,
+    @CurrentUser() user: User,
+  ) {
+    try {
+      const revision = await this.memoryRevisionsService.get(
+        resolveKnowledgeActor(user, undefined, resolveTenantReadScope(user)),
+        id,
+        revisionId,
+      );
+      return serializeSingle(req, AgentMemoryRevisionSerializer, revision);
+    } catch (error: unknown) {
+      return ErrorResponse.handle(error, this.loggerService, 'getRevision');
     }
   }
 

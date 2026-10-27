@@ -12,6 +12,16 @@ const FAL_NO_PUBLIC_RATE =
   'The fal model page publishes no list price (2026-10-21).';
 const LEGACY_KEY =
   'Legacy registry key, not a provider endpoint, so no provider page or rate exists.';
+const BILLING_RESOLUTION_NOT_AN_INPUT =
+  'Replicate prices it by output resolution, which the model does not take as an input, so a request cannot select its rate (2026-10-27).';
+const RANGE_CRITERION =
+  'Replicate prices it with a range criterion the importer cannot map yet (2026-10-27).';
+const UNMAPPED_METRIC =
+  'Replicate bills it on a metric the importer cannot map yet (2026-10-27).';
+const TIER_WITHOUT_PRICE =
+  'Replicate lists a billing tier without a price (2026-10-27).';
+const LOCAL_MODEL =
+  'Self-hosted local model: there is no provider list price to import.';
 const NO_RATE_SHEET_PROVIDER =
   'The rate sheet seeds Replicate, fal, HeyGen and ElevenLabs only; this provider has no public list price to import.';
 
@@ -70,6 +80,15 @@ export const UNPRICED_MODELS: Readonly<Record<string, string>> = {
   'meta/musicgen': NO_PUBLIC_RATE,
   'mureka/v9':
     'The provider pricing page was unreachable (HTTP 404) when captured.',
+  'bytedance/seedance-1.5-pro': BILLING_RESOLUTION_NOT_AN_INPUT,
+  'google/gemini-3.1-pro': RANGE_CRITERION,
+  'local/mistral-small': LOCAL_MODEL,
+  'local/qwen-32b': LOCAL_MODEL,
+  'luma/modify-video': UNMAPPED_METRIC,
+  'openai/gpt-image-1-mini': TIER_WITHOUT_PRICE,
+  'prunaai/p-image-trainer': UNMAPPED_METRIC,
+  'prunaai/z-image-turbo':
+    'Replicate prices it per output megapixel by a target resolution the model does not take (width and height are the inputs), and the 0.5 and 1 tiers list inconsistent prices (2026-10-27).',
   'replicate/fast-flux-trainer':
     'A training job billed on GPU time; Replicate publishes no per-run price.',
   runwayml: LEGACY_KEY,

@@ -4,6 +4,8 @@ export interface SkillExecutionContext {
   brandVoice: string;
   platforms: string[];
   memory?: Record<string, unknown>;
+  /** The acting user of the workflow run; brand access is checked for them. */
+  userId?: string;
 }
 
 export interface GeneratedContent {

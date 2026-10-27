@@ -670,8 +670,7 @@ export class PostingCadencesService {
             organizationId,
             userId,
             slot,
-            cadence,
-            brief,
+            { apiKeyContext, brief, cadence },
           );
 
       if (slot.format === PostCategory.ARTICLE) {

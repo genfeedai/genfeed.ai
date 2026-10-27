@@ -18,11 +18,12 @@ import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { Archive, Lock, Sparkles, X } from 'lucide-react';
+import { Archive, Lock, Pencil, Sparkles, X } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
+import EditMemoryDialog from './edit-memory-dialog';
 
 export default function SettingsOrganizationMemoryPage() {
   const translate = useTranslations('common.settings.memory');
@@ -41,6 +42,7 @@ export default function SettingsOrganizationMemoryPage() {
   const [entries, setEntries] = useState<OrgMemoryEntry[] | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [editingEntry, setEditingEntry] = useState<OrgMemoryEntry | null>(null);
 
   const authorLabel = useCallback(
     (entry: OrgMemoryEntry): string =>
@@ -208,6 +210,14 @@ export default function SettingsOrganizationMemoryPage() {
         ) : null}
         {canGovern ? (
           <div className="flex flex-wrap gap-2">
+            <Button
+              icon={<Pencil className="size-3.5" />}
+              isDisabled={pendingId === entry.id}
+              label={translate('actions.edit')}
+              onClick={() => setEditingEntry(entry)}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+            />
             {!entry.promotedSkillId ? (
               <>
                 <Button
@@ -266,6 +276,12 @@ export default function SettingsOrganizationMemoryPage() {
           canGovern
             ? [
                 {
+                  icon: <Pencil />,
+                  isDisabled: (entry) => pendingId === entry.id,
+                  onClick: (entry) => setEditingEntry(entry),
+                  tooltip: translate('actions.edit'),
+                },
+                {
                   icon: <Sparkles />,
                   isDisabled: (entry) =>
                     Boolean(entry.promotedSkillId) || pendingId === entry.id,
@@ -307,6 +323,15 @@ export default function SettingsOrganizationMemoryPage() {
         items={entries ?? []}
         label={translate('table')}
         rowSidebar={rowSidebar}
+      />
+      <EditMemoryDialog
+        entry={editingEntry}
+        onCorrected={() => loadEntries()}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setEditingEntry(null);
+          }
+        }}
       />
       {entries && entries.length > 0 ? (
         <AutoPagination showTotal totalLabel="memories" />

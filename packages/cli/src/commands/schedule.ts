@@ -1,3 +1,4 @@
+import type { PostingTimeWindow } from '@genfeedai/contracts/interfaces';
 import { confirm } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { Command } from 'commander';
@@ -8,7 +9,7 @@ import {
   bulkSchedule,
   cancelScheduledRelease,
   getCalendar,
-  getOptimalTimes,
+  getOptimalTime,
   getScheduledRelease,
   rescheduleScheduledRelease,
 } from '@/api/schedules';
@@ -203,37 +204,49 @@ scheduleCommand
     }
   });
 
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+function formatPostingWindow(window: PostingTimeWindow): string {
+  const day = window.weekday === null ? 'Every day' : (WEEKDAYS[window.weekday] ?? '?');
+  const hours = `${String(window.startHour).padStart(2, '0')}:00-${String(window.endHour).padStart(2, '0')}:00`;
+  if (window.median === null || window.sampleCount === null) {
+    return `  ${day.padEnd(9)} ${hours}`;
+  }
+  return `  ${day.padEnd(9)} ${hours}  median ${window.median.toFixed(4)} from ${window.sampleCount} posts`;
+}
+
 scheduleCommand
   .command('optimal')
-  .description('Get optimal posting times')
-  .option('--platform <platform>', 'Target platform')
-  .option('--timezone <tz>', 'Timezone')
+  .description('Get the best posting windows for a platform')
+  .requiredOption('--platform <platform>', 'Target platform (twitter, instagram, linkedin, ...)')
+  .option('--timezone <tz>', 'IANA timezone for the windows (default UTC)')
   .option('--json', 'Output as JSON')
   .action(async (options) => {
     try {
       await requireAuth();
 
-      const spinner = ora('Calculating optimal times...').start();
-      const times = await getOptimalTimes(options.platform, options.timezone);
+      const spinner = ora('Reading your posting history...').start();
+      const recommendation = await getOptimalTime(options.platform, options.timezone);
       spinner.stop();
 
-      if (times.length === 0) {
-        print(chalk.dim('No optimal time data available.'));
-        return;
-      }
-
       if (options.json) {
-        printJson(times);
+        printJson(recommendation);
         return;
       }
 
-      print(formatHeader('\nOptimal Posting Times:\n'));
+      const title =
+        recommendation.basis === 'learned' ? 'Learned from your posts' : 'Default times';
+      print(
+        formatHeader(`\n${title} for ${recommendation.platform} (${recommendation.timezone}):\n`)
+      );
 
-      for (const t of times) {
-        const bar = chalk.green('|'.repeat(Math.round(t.score / 5)));
-        print(
-          `  ${chalk.blue(t.platform.padEnd(12))} ${t.day.padEnd(10)} ${String(t.hour).padStart(2, '0')}:00 ${t.timezone}  ${bar}`
-        );
+      for (const window of recommendation.windows) {
+        print(formatPostingWindow(window));
+      }
+
+      print();
+      for (const line of recommendation.reasoning) {
+        print(chalk.dim(line));
       }
     } catch (error) {
       handleError(error);
