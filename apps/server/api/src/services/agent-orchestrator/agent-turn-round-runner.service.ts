@@ -586,7 +586,6 @@ export class AgentTurnRoundRunnerService {
         params,
         toolName,
         preparedToolCall,
-        hasGenerationHoldIntent(currentOperatorMessage),
       );
       if (!result) {
         return { isCancelled: true, wasInterrupted: true };
@@ -880,7 +879,6 @@ export class AgentTurnRoundRunnerService {
     preparedToolCall: Awaited<
       ReturnType<AgentToolConfirmationService['prepareToolCall']>
     >,
-    isGenerationReviewRequested: boolean,
   ): Promise<AgentToolResult | null> {
     const { onBeforeTool } = params.strategy ?? {};
     const outcome = await raceToolExecution(
@@ -890,7 +888,6 @@ export class AgentTurnRoundRunnerService {
         this.buildToolExecutionContext(
           params,
           preparedToolCall.confirmationContext,
-          isGenerationReviewRequested,
         ),
       ),
       {
@@ -928,7 +925,6 @@ export class AgentTurnRoundRunnerService {
     confirmationContext: Awaited<
       ReturnType<AgentToolConfirmationService['prepareToolCall']>
     >['confirmationContext'],
-    isGenerationReviewRequested: boolean,
   ): ToolExecutionContext {
     const {
       attachmentUrls,
@@ -971,7 +967,11 @@ export class AgentTurnRoundRunnerService {
       runId: context.executionId,
       hostSupportsApproval: context.hostSupportsApproval ?? true,
       ...(confirmationContext ?? {}),
-      ...(isGenerationReviewRequested ? { isGenerationReviewRequested } : {}),
+      ...(hasGenerationHoldIntent(
+        this.readCurrentOperatorMessage(params.messages, params.source),
+      )
+        ? { isGenerationReviewRequested: true }
+        : {}),
       strategyId: context.strategyId,
       thinkingModel,
       threadId,
