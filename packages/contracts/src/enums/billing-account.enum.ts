@@ -121,12 +121,15 @@ export enum BillingRevenueSource {
   REFUND = 'refund',
   /** Negative row: net-of-tax share of a disputed (charged back) payment. */
   DISPUTE = 'dispute',
+  /** Negative row: the Stripe processing fee charged on a payment. */
+  PROCESSING_FEE = 'processing_fee',
 }
 
-/** Refund and dispute rows reduce revenue; they are not payments. */
+/** Refund, dispute and fee rows reduce revenue; they are not payments. */
 export function isRevenueAdjustmentSource(source: string): boolean {
   return (
     source === BillingRevenueSource.REFUND ||
-    source === BillingRevenueSource.DISPUTE
+    source === BillingRevenueSource.DISPUTE ||
+    source === BillingRevenueSource.PROCESSING_FEE
   );
 }

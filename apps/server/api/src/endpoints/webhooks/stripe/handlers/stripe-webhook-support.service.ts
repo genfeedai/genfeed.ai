@@ -6,6 +6,7 @@ import { AccessBootstrapCacheService } from '@api/common/services/access-bootstr
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import {
+  processingFeeKey,
   proratedNetMinor,
   revenueAdjustmentKey,
 } from '@api/endpoints/webhooks/stripe/handlers/revenue-adjustment.util';
@@ -18,11 +19,12 @@ import { scopedWhere } from '@api/index';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import type { StripeCheckoutSession } from '@api/services/integrations/stripe/services/stripe.service';
+import { StripePaymentRevenueReferenceService } from '@api/services/integrations/stripe/services/stripe-payment-revenue-reference.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivityKey,
   type ActivitySource,
-  type BillingRevenueSource,
+  BillingRevenueSource,
   CreditTransactionCategory,
   SubscriptionPlan,
   SubscriptionTier,
@@ -66,6 +68,16 @@ export type BillingRevenueEventInput = {
   userId?: string | null;
   /** Human-readable plan/product name for the operator alert, e.g. `Scale`. */
   planLabel?: string;
+};
+
+export type BillingProcessingFeeInput = {
+  occurredAt: Date;
+  organizationId: string;
+  /** Subscription payments resolve their fee through the invoice. */
+  payment: { invoiceId: string } | { paymentIntentId: string };
+  /** Ledger key of the payment the fee belongs to (checkout session or invoice id). */
+  revenueObjectId: string;
+  userId?: string | null;
 };
 
 export type BillingRevenueAdjustmentInput = {
@@ -138,6 +150,7 @@ export class StripeWebhookSupportService {
     private readonly usersService: UsersService,
     private readonly requestContextCacheService: RequestContextCacheService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
+    private readonly paymentReferences: StripePaymentRevenueReferenceService,
   ) {}
 
   /**
@@ -485,6 +498,43 @@ export class StripeWebhookSupportService {
       this.loggerService.error(
         `${this.constructorName} failed to record revenue adjustment`,
         { adjustmentId: input.adjustmentId, error },
+      );
+    }
+  }
+
+  /**
+   * Takes the Stripe processing fee of a recorded payment out of revenue as a
+   * negative ledger row, so the cash margin is after fees. One row per
+   * payment (replays hit the unique key). Best-effort like the revenue row it
+   * follows: the payment is already processed, so a Stripe lookup failure is
+   * logged, never thrown.
+   */
+  async recordProcessingFee(input: BillingProcessingFeeInput): Promise<void> {
+    try {
+      const fee = await this.paymentReferences.resolveProcessingFee(
+        input.payment,
+      );
+      if (!fee || !(fee.feeMinor > 0)) {
+        return;
+      }
+      await this.prisma.billingRevenueEvent.createMany({
+        data: [
+          {
+            amountMinor: -Math.round(fee.feeMinor),
+            currency: fee.currency.trim().toLowerCase() || 'usd',
+            occurredAt: input.occurredAt,
+            organizationId: input.organizationId,
+            source: BillingRevenueSource.PROCESSING_FEE,
+            stripeObjectId: processingFeeKey(input.revenueObjectId),
+            userId: input.userId ?? null,
+          },
+        ],
+        skipDuplicates: true,
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName} failed to record processing fee`,
+        { error, revenueObjectId: input.revenueObjectId },
       );
     }
   }

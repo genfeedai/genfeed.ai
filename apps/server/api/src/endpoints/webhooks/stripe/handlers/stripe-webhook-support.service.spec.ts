@@ -9,6 +9,7 @@ import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/hand
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import type { StripeCheckoutSession } from '@api/services/integrations/stripe/services/stripe.service';
+import { StripePaymentRevenueReferenceService } from '@api/services/integrations/stripe/services/stripe-payment-revenue-reference.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import {
@@ -135,6 +136,10 @@ describe('StripeWebhookSupportService', () => {
         },
         { provide: SUBSCRIPTIONS_SERVICE, useValue: subscriptionsService },
         { provide: UsersService, useValue: usersService },
+        {
+          provide: StripePaymentRevenueReferenceService,
+          useValue: { resolveProcessingFee: vi.fn() },
+        },
         {
           provide: RequestContextCacheService,
           useValue: requestContextCacheService,

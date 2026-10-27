@@ -1,5 +1,8 @@
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
-import type { IStripePaymentRevenueReference } from '@genfeedai/contracts/interfaces/billing';
+import type {
+  IStripePaymentRevenueReference,
+  IStripeProcessingFee,
+} from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -54,5 +57,57 @@ export class StripePaymentRevenueReferenceService {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  /**
+   * The Stripe processing fee on a payment, from the balance transaction of
+   * its charge. Null while the charge has no balance transaction yet. Pass the
+   * invoice id for a subscription payment and the payment intent otherwise.
+   */
+  async resolveProcessingFee(
+    payment: { invoiceId: string } | { paymentIntentId: string },
+  ): Promise<IStripeProcessingFee | null> {
+    const url = `${StripePaymentRevenueReferenceService.name} ${CallerUtil.getCallerName()}`;
+    const { stripe } = this.stripeService;
+
+    try {
+      const paymentIntentId =
+        'paymentIntentId' in payment
+          ? payment.paymentIntentId
+          : await this.paymentIntentOfInvoice(payment.invoiceId);
+      if (!paymentIntentId) {
+        return null;
+      }
+      const paymentIntent = await stripe.paymentIntents.retrieve(
+        paymentIntentId,
+        { expand: ['latest_charge.balance_transaction'] },
+      );
+      const charge = paymentIntent.latest_charge;
+      const balanceTransaction =
+        charge && typeof charge === 'object'
+          ? charge.balance_transaction
+          : null;
+      if (!balanceTransaction || typeof balanceTransaction !== 'object') {
+        return null;
+      }
+      return {
+        currency: balanceTransaction.currency,
+        feeMinor: balanceTransaction.fee,
+      };
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
+
+  private async paymentIntentOfInvoice(
+    invoiceId: string,
+  ): Promise<string | null> {
+    const payments = await this.stripeService.stripe.invoicePayments.list({
+      invoice: invoiceId,
+      limit: 1,
+    });
+    const intent = payments.data[0]?.payment.payment_intent;
+    return typeof intent === 'string' ? intent : (intent?.id ?? null);
   }
 }

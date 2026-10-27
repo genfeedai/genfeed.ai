@@ -138,6 +138,13 @@ export class StripeInvoiceWebhookHandler {
         stripeObjectId: invoice.id,
         userId: updatedSubscription.userId,
       });
+      await this.supportService.recordProcessingFee({
+        occurredAt: invoicePaidAt(invoice),
+        organizationId: updatedSubscription.organizationId,
+        payment: { invoiceId: invoice.id },
+        revenueObjectId: invoice.id,
+        userId: updatedSubscription.userId,
+      });
 
       await this.upsertSubscriptionLeadForTier(updatedSubscription);
 

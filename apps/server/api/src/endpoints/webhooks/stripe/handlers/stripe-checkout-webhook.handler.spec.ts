@@ -78,6 +78,7 @@ describe('StripeCheckoutWebhookHandler', () => {
     markOnboardingComplete: vi.fn(),
     markOnboardingCompleteFromSession: vi.fn(),
     recordCreditsActivity: vi.fn(),
+    recordProcessingFee: vi.fn(),
     recordRevenueEvent: vi.fn(),
     resolveCheckoutCredits: vi.fn().mockReturnValue(100),
     upsertSkillsProLead: vi.fn(),

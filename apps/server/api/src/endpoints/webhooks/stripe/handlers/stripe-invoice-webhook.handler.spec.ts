@@ -47,6 +47,7 @@ describe('StripeInvoiceWebhookHandler', () => {
     isUniqueConstraintError: vi.fn().mockReturnValue(false),
     markOnboardingComplete: vi.fn(),
     recordCreditsActivity: vi.fn(),
+    recordProcessingFee: vi.fn(),
     recordRevenueEvent: vi.fn(),
     resolveTierFromPriceId: vi.fn().mockReturnValue(null),
     setHasEverHadCredits: vi.fn(),
