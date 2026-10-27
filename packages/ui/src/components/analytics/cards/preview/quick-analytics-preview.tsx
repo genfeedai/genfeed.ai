@@ -148,10 +148,7 @@ export function QuickAnalyticsPreview({
       {/* Quick Stats Grid */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         {quickStats.map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-lg bg-muted p-4"
-          >
+          <div key={stat.label} className="rounded-lg bg-muted p-4">
             <div className="flex items-center gap-2 mb-2">
               <stat.icon className={`size-4 ${stat.color}`} />
               <p className="text-xs text-muted-foreground">

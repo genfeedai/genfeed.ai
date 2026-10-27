@@ -10,6 +10,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 type AssetCreateInput = CreateAssetDto & {
+  /** Server-set provenance marker; never accepted from the request body. */
+  origin?: string;
   /** Tenant of a non-organization parent, stamped as `parentOrgId`. */
   parentOrgId?: string;
   userId: string;
