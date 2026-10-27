@@ -85,7 +85,7 @@ describe('api/schedules', () => {
       expect(mockFlattenCollection).not.toHaveBeenCalled();
     });
 
-    it('splits a platform into batches of 100 content ids', async () => {
+    it('sends each platform 100 content ids at a time', async () => {
       mockPost.mockResolvedValue({ failed: [], scheduled: [{ id: 's', scheduledAt: 'a' }] });
       const items = Array.from({ length: 101 }, (_, index) =>
         item(`c${index}`, 'twitter', '2026-09-02T09:00:00Z')
