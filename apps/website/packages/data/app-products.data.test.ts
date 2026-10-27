@@ -14,6 +14,10 @@ import {
   buildAppProductJsonLd,
   buildAppProductsHubJsonLd,
 } from '@data/app-products-jsonld';
+import {
+  MARKETING_OG_CARDS,
+  MARKETING_OG_PATHS,
+} from '@data/marketing-og.data';
 import { ORGANIZATION_MODULE_IDS } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 
@@ -121,6 +125,17 @@ describe('app product screenshots', () => {
     for (const product of appProducts) {
       const file = join(process.cwd(), 'public', product.screenshot.src);
       expect(existsSync(file), `${file} is missing`).toBe(true);
+    }
+  });
+
+  it('gives the hub and every product page its own OG card', () => {
+    for (const path of [
+      '/products',
+      ...appProducts.map((product) => `/products/${product.slug}`),
+    ]) {
+      const id = MARKETING_OG_PATHS[path];
+      expect(id, path).toBeDefined();
+      expect(MARKETING_OG_CARDS[id], path).toBeDefined();
     }
   });
 });
