@@ -1,3 +1,4 @@
+import { ASSET_ORIGIN_GENERATION_PENDING } from '@api/collections/assets/constants/asset-origin.constant';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 
@@ -509,6 +510,7 @@ describe('BrandsService', () => {
       expect(queryRaw).toHaveBeenCalledTimes(1);
       expect(queryRaw.mock.calls[0]?.slice(1)).toEqual([
         'org-1',
+        ASSET_ORIGIN_GENERATION_PENDING,
         ['brand-1'],
         ['LOGO', 'BANNER', 'REFERENCE'],
         'REFERENCE',

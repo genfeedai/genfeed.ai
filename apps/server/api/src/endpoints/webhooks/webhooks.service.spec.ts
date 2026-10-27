@@ -241,6 +241,8 @@ describe('WebhooksService', () => {
           provide: AssetsService,
           useValue: {
             findOne: vi.fn(),
+            patch: vi.fn(),
+            patchAll: vi.fn(),
           },
         },
         {
