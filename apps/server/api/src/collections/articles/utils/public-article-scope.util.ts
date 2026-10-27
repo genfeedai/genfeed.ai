@@ -16,8 +16,9 @@ export class PublicArticleScope {
     private readonly getOrganizationsService: () =>
       | OrganizationsService
       | undefined,
-    private readonly getConfiguredOrganizationId: () => string | undefined = () =>
-      undefined,
+    private readonly getConfiguredOrganizationId: () =>
+      | string
+      | undefined = () => undefined,
   ) {}
 
   async resolveOrganizationId(): Promise<string | null> {
