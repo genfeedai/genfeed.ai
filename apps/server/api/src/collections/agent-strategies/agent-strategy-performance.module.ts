@@ -1,5 +1,6 @@
 import { AgentStrategiesCoreModule } from '@api/collections/agent-strategies/agent-strategies-core.module';
 import { AgentStrategyAutopilotPerformanceService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-performance.service';
+import { AgentStrategyConversationQueueService } from '@api/collections/agent-strategies/services/agent-strategy-conversation-queue.service';
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
 import { AgentStrategyReportsService } from '@api/collections/agent-strategies/services/agent-strategy-reports.service';
 import { ContentPerformanceCoreModule } from '@api/collections/content-performance/content-performance-core.module';
@@ -18,11 +19,13 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     AgentStrategyAutopilotPerformanceService,
+    AgentStrategyConversationQueueService,
     AgentStrategyOpportunitiesService,
     AgentStrategyReportsService,
   ],
   exports: [
     AgentStrategyAutopilotPerformanceService,
+    AgentStrategyConversationQueueService,
     AgentStrategyOpportunitiesService,
     AgentStrategyReportsService,
   ],
