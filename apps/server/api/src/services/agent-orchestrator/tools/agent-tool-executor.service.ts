@@ -244,6 +244,7 @@ const BRANDLESS_AGENT_TOOLS = new Set<CuratedActionName>([
   'get_ad_research_detail',
   'get_analytics',
   'get_approval_summary',
+  'list_stalled_items',
   'get_connection_status',
   'get_account',
   'get_dashboard_layout',

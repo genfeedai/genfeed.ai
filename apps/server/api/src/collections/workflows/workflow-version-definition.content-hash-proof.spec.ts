@@ -180,6 +180,7 @@ const EXPECTED_SYSTEM_WORKFLOW_IDS: readonly string[] = [
   'agent.tool.list_knowledge_sources',
   'agent.tool.list_outlier_posts',
   'agent.tool.list_review_queue',
+  'agent.tool.list_stalled_items',
   'agent.tool.list_system_workflow_catalog',
   'agent.tool.list_workflow_runs',
   'agent.tool.list_workflows',

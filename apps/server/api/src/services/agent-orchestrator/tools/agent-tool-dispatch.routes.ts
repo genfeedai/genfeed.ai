@@ -356,6 +356,8 @@ function dispatchGrowthFamily(
       return handlers.proactiveHandler.draftEngagementReply(params, ctx);
     case 'get_approval_summary':
       return handlers.proactiveHandler.getApprovalSummary(ctx);
+    case 'list_stalled_items':
+      return handlers.proactiveHandler.listStalledItems(params, ctx);
     case 'analyze_performance':
       return handlers.proactiveHandler.analyzePerformance(params, ctx);
     case 'save_content_agent':

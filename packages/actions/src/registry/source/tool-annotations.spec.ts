@@ -797,6 +797,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     false,
     true,
   ],
+  ['list_stalled_items', 'List Stalled Items', true, false, true, false],
   [
     'list_system_workflow_catalog',
     'List System Workflow Catalog',
@@ -1045,7 +1046,7 @@ describe('MCP tool annotations', () => {
         tool?.annotations?.openWorldHint,
       ]).toEqual(row);
     }
-    expect(rows).toHaveLength(147);
+    expect(rows).toHaveLength(148);
     expect(rows.map((row) => row[0])).toEqual(expected.map((row) => row[0]));
     expect(rows).toEqual(expected);
   });
