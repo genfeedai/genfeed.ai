@@ -533,6 +533,26 @@ export class WorkflowGenerationBillingService {
   }
 
   /**
+   * For callers whose execution is already terminal: a failed close must not
+   * skip the steps after it. The hold stays RESERVED and the terminal sweep
+   * below re-runs the idempotent close (#7970).
+   */
+  async closeTerminal(
+    executionId: string,
+    organizationId: string,
+  ): Promise<void> {
+    try {
+      await this.closeExecution(executionId, organizationId);
+    } catch (error: unknown) {
+      this.logger.error(
+        'Workflow generation billing close failed; the sweep will retry',
+        error,
+        { executionId, organizationId },
+      );
+    }
+  }
+
+  /**
    * The credit expiry sweep skips workflow holds, so a terminal execution whose
    * finalization could not start its transaction (Sentry 8Q) would keep its
    * hold forever. Re-run the idempotent close for holds still RESERVED after

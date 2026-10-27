@@ -1,6 +1,7 @@
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentPrepareToolHandler } from '@api/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { AgentGenerationMode } from '@genfeedai/contracts';
 import { DEFAULT_AGENT_VIDEO_DURATION_SECONDS } from '@genfeedai/contracts/constants';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -113,6 +114,36 @@ describe('AgentPrepareToolHandler.prepareGeneration', () => {
           duration: DEFAULT_AGENT_VIDEO_DURATION_SECONDS,
         }),
       }),
+    );
+  });
+
+  it('does not prepare a provider video card for a motion-graphics request (#7680)', async () => {
+    const result = await createHandler().prepareGeneration(
+      {
+        generationType: 'video',
+        prompt:
+          'Create and render a five-second branded motion graphics video using the motion/visual-code renderer',
+      },
+      ctx,
+    );
+
+    expect(result).toMatchObject({ creditsUsed: 0, success: false });
+    expect(result.error).toContain('quote_visual_code_generation');
+    expect(result.nextActions).toBeUndefined();
+  });
+
+  it('prepares the same prompt when the person picked Video in the composer', async () => {
+    const result = await createHandler().prepareGeneration(
+      {
+        generationType: 'video',
+        prompt: 'A motion graphics style intro for my channel',
+      },
+      { ...ctx, generationMode: AgentGenerationMode.VIDEO },
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.nextActions?.[0]).toEqual(
+      expect.objectContaining({ type: 'generation_action_card' }),
     );
   });
 

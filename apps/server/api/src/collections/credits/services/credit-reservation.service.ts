@@ -10,6 +10,7 @@ import {
   validatedWorkflowAccountingAttribution,
   validatedWorkflowFundingAttribution,
 } from '@api/collections/workflow-executions/services/workflow-accounting.context';
+import { retryTransactionStart } from '@api/collections/workflows/utils/serializable-retry.util';
 import {
   BusinessLogicException,
   UnsettleableReservationException,
@@ -834,9 +835,13 @@ export class CreditReservationService {
   ): Promise<T> {
     for (let attempt = 0; attempt < MAX_SERIALIZATION_RETRIES; attempt += 1) {
       try {
-        return await this.transactionUtil.runInTransaction(operation, {
-          isolationLevel: 'Serializable',
-        });
+        // A pool that cannot hand out a connection never ran the operation,
+        // so retrying the start is safe (Sentry 8Q class of failure).
+        return await retryTransactionStart(() =>
+          this.transactionUtil.runInTransaction(operation, {
+            isolationLevel: 'Serializable',
+          }),
+        );
       } catch (error: unknown) {
         if (
           !isCreditTransactionConflict(error) ||

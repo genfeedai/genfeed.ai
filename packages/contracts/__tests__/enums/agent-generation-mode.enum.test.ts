@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   AgentGenerationMode,
   inferAgentMediaGenerationModeFromPrompt,
+  isCodeRenderedMotionPrompt,
   isExplicitAgentMediaGenerationMode,
   resolveAgentTurnGenerationMode,
 } from '../../src/enums/agent-generation-mode.enum';
@@ -56,6 +57,8 @@ describe('inferAgentMediaGenerationModeFromPrompt', () => {
     'schedule the draft for Friday',
     'Create and render a five-second branded motion graphics video using the motion/visual-code renderer',
     'make a remotion clip with simple shapes',
+    'Render a kinetic typography title card',
+    'Make an animated logo reveal',
     '',
   ])('leaves %s as conversation', (prompt) => {
     expect(inferAgentMediaGenerationModeFromPrompt(prompt)).toBeUndefined();
@@ -80,4 +83,23 @@ describe('resolveAgentTurnGenerationMode', () => {
       }),
     ).toBe(AgentGenerationMode.IMAGE);
   });
+});
+
+describe('isCodeRenderedMotionPrompt', () => {
+  it.each([
+    'a five-second motion graphics video',
+    'use the visual-code renderer',
+    'Remotion title card',
+    'kinetic typography for the quote',
+    'animated logo for the intro',
+  ])('flags %s', (prompt) => {
+    expect(isCodeRenderedMotionPrompt(prompt)).toBe(true);
+  });
+
+  it.each(['waves on a beach', 'a spinning logo clip', '', undefined, null])(
+    'does not flag %s',
+    (prompt) => {
+      expect(isCodeRenderedMotionPrompt(prompt)).toBe(false);
+    },
+  );
 });

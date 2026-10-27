@@ -54,8 +54,9 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    # A webhook or script failure must not fail the Release run that called this.
-    continue-on-error: true
+    # A webhook or script failure must not fail the Release run that called
+    # this. A manual dispatch has no caller, so its failures stay visible.
+    continue-on-error: ${{ inputs.trigger == 'production-deploy' }}
     steps:
       - name: Notify webhooks
         shell: bash
@@ -75,9 +76,24 @@ jobs:
             echo "::warning::tag is not a stable vX.Y.Z release; nothing sent"
             exit 0
           fi
-          if ! release=$(gh release view "$tag" --json isDraft,isPrerelease,url,publishedAt,targetCommitish); then
-            echo "::warning::release $tag not found; nothing sent"
+          trigger="${TRIGGER:-workflow_dispatch}"
+          if [ "$trigger" != "production-deploy" ] && [ "$trigger" != "workflow_dispatch" ]; then
+            echo "::warning::unsupported notification trigger; nothing sent"
             exit 0
+          fi
+          lookup_error=$(mktemp)
+          if release=$(gh release view "$tag" --json isDraft,isPrerelease,url,publishedAt,targetCommitish 2>"$lookup_error"); then
+            :
+          elif [ "$trigger" = "production-deploy" ] && grep -qi 'release not found' "$lookup_error"; then
+            # Release calls this while its GitHub release is still a draft, and
+            # GitHub hides drafts from this read-only token. Release already
+            # validated the stable tag and passes the deployed SHA.
+            release=$(jq -n --arg url "https://github.com/${GH_REPO}/releases/tag/${tag}" \
+              '{isDraft:true, isPrerelease:false, url:$url, publishedAt:null, targetCommitish:null}')
+          else
+            cat "$lookup_error" >&2
+            echo "::error::release $tag could not be read; nothing sent"
+            exit 1
           fi
           if [ "$(jq -r '.isPrerelease' <<<"$release")" = true ]; then
             echo "skip: $tag is a prerelease"
@@ -92,11 +108,6 @@ jobs:
           fi
           if ! [[ "$sha" =~ ^[0-9a-f]{40}$ ]]; then
             echo "::warning::could not resolve a commit SHA for $tag; nothing sent"
-            exit 0
-          fi
-          trigger="${TRIGGER:-workflow_dispatch}"
-          if [ "$trigger" != "production-deploy" ] && [ "$trigger" != "workflow_dispatch" ]; then
-            echo "::warning::unsupported notification trigger; nothing sent"
             exit 0
           fi
           payload=$(jq -n --arg repo "$GH_REPO" --arg tag "$tag" --arg sha "$sha" \

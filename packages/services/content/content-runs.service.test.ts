@@ -555,11 +555,18 @@ describe('ContentRunsService canonical storyboard drafts', () => {
       { expectedRevision: 3 },
     );
     mockPost.mockResolvedValueOnce({
-      data: { editorProjectId: 'project-1', timeline: {} },
+      data: {
+        editorProjectId: 'project-1',
+        skippedCutawayIds: ['cutaway-2'],
+        timeline: {},
+      },
     });
     expect(
       await service.assembleStoryboardLongForm('brand-1', 'run-1', 'animatic'),
-    ).toEqual({ editorProjectId: 'project-1' });
+    ).toEqual({
+      editorProjectId: 'project-1',
+      skippedCutawayIds: ['cutaway-2'],
+    });
     expect(mockPost).toHaveBeenLastCalledWith(
       '/brands/brand-1/storyboard-runs/run-1/animatic/assemble',
       {},

@@ -2182,9 +2182,12 @@ describe('SocialInboxService', () => {
 
       // thread-1 counted once despite two comments; thread-2 once.
       expect(result).toEqual({
+        commentsSeen: 3,
         conversationsCreated: 2,
+        credentialsScanned: 1,
         messagesCreated: 3,
         postFailures: [],
+        postsScanned: 1,
       });
       expect(context.conversations).toHaveLength(2);
       expect(context.messages).toHaveLength(3);
@@ -2229,9 +2232,12 @@ describe('SocialInboxService', () => {
       });
 
       expect(second).toEqual({
+        commentsSeen: 3,
         conversationsCreated: 0,
+        credentialsScanned: 1,
         messagesCreated: 0,
         postFailures: [],
+        postsScanned: 1,
       });
       expect(context.conversations).toHaveLength(2);
       expect(context.messages).toHaveLength(3);
@@ -2257,9 +2263,12 @@ describe('SocialInboxService', () => {
       });
 
       expect(second).toEqual({
+        commentsSeen: 3,
         conversationsCreated: 0,
+        credentialsScanned: 1,
         messagesCreated: 0,
         postFailures: [],
+        postsScanned: 1,
       });
       // The batched dedup already told us these rows exist; a resweep must not
       // re-run the findOrCreateConversation + findFirst pair per comment.
@@ -2335,8 +2344,11 @@ describe('SocialInboxService', () => {
       );
 
       expect(result).toEqual({
+        commentsSeen: 1,
         conversationsCreated: 1,
+        credentialsScanned: 1,
         messagesCreated: 1,
+        postsScanned: 2,
         postFailures: [
           {
             errorName: 'Error',

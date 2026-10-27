@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it, vi } from 'vitest';
+import { UsageError } from './cli';
 import type {
   ContentEvalRunOptions,
   DispatcherKind,
@@ -128,6 +129,97 @@ describe('runContentEval with the stub dispatcher', () => {
     expect(report.calls.length).toBeGreaterThan(0);
     expect(report.calls.length).toBeLessThan(18);
     expect(report.outcome.thresholdChecks).toEqual([]);
+  });
+
+  describe('noise-aware repeats (#5600)', () => {
+    it('reports an interval and a verdict even for a single repeat, without regrading', async () => {
+      const { report } = await runContentEval(options());
+
+      expect(contentEvalReportSchema.safeParse(report).success).toBe(true);
+      expect(report.config.repeats).toBe(1);
+      expect(
+        report.noise?.contestants.map((entry) => entry.contestantId),
+      ).toEqual([BASELINE, CHALLENGER]);
+      expect(report.noise?.diagnostics.gradeTwice).toBeNull();
+      // 3 rows × 2 contestants × (generation + pointwise) + 3 pairs × 2 battles.
+      expect(report.calls).toHaveLength(18);
+    });
+
+    it('answers every case once per repeat and aggregates per case', async () => {
+      const { report } = await runContentEval(options({ repeats: 3 }));
+
+      expect(contentEvalReportSchema.safeParse(report).success).toBe(true);
+      expect(report.config.repeats).toBe(3);
+      expect(report.outcome.rows).toHaveLength(3 * 2 * 3);
+      expect(report.outcome.pairs).toHaveLength(3 * 3);
+      for (const repeatIndex of [0, 1, 2]) {
+        expect(
+          report.outcome.rows.filter((row) => row.repeatIndex === repeatIndex),
+        ).toHaveLength(6);
+      }
+      expect(report.noise?.contestants).toEqual([
+        expect.objectContaining({ caseCount: 3, repeats: 3 }),
+        expect.objectContaining({ caseCount: 3, repeats: 3 }),
+      ]);
+      expect(report.noise?.comparisons).toHaveLength(1);
+      expect(report.outliers?.status).toBe('ok');
+      // Each repeat generates with its own seed.
+      const seeds = new Set(
+        report.calls
+          .filter((call) => call.kind === 'generation')
+          .map((call) => call.seed),
+      );
+      expect(seeds).toEqual(new Set([7, 8, 9]));
+    });
+
+    it('regrades a sample and finds a stable judge stable', async () => {
+      const { report } = await runContentEval(options({ repeats: 2 }));
+
+      expect(report.noise?.diagnostics.gradeTwice).toEqual({
+        changeRate: 0,
+        sampled: 6,
+        verdictChanges: 0,
+      });
+    });
+
+    it('detects a flaky judge with the grade-twice check', async () => {
+      const { report } = await runContentEval(
+        options({
+          createDispatcher: async () =>
+            createStubDispatcher({ isJudgeFlaky: true }),
+          repeats: 2,
+        }),
+      );
+
+      const gradeTwice = report.noise?.diagnostics.gradeTwice;
+      expect(gradeTwice?.sampled).toBe(6);
+      expect(gradeTwice?.verdictChanges).toBeGreaterThan(0);
+      expect(report.noise?.diagnostics.warnings.join(' ')).toMatch(
+        /changed its accept verdict/,
+      );
+    });
+
+    it('refuses an over-budget repeat count before creating a dispatcher', async () => {
+      const createDispatcher = vi.fn(
+        async (_kind: DispatcherKind): Promise<EvalDispatcher> =>
+          createStubDispatcher(),
+      );
+
+      await expect(
+        runContentEval(
+          options({ createDispatcher, maxCredits: 0.01, repeats: 5 }),
+        ),
+      ).rejects.toThrow(UsageError);
+      expect(createDispatcher).not.toHaveBeenCalled();
+    });
+
+    it('lets a repeat count that fits the cap run', async () => {
+      const { report } = await runContentEval(
+        options({ maxCredits: 500, repeats: 2 }),
+      );
+
+      expect(report.aborted).toBeNull();
+    });
   });
 
   it('rejects a same-family judge before creating a dispatcher', async () => {

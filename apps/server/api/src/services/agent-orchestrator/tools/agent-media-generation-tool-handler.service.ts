@@ -1,3 +1,4 @@
+import { codeRenderedMotionVideoError } from '@api/services/agent-orchestrator/tools/agent-code-rendered-motion-guard.util';
 import { AgentMediaAssetGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-asset-generation.service';
 import { AgentMediaTextGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-text-generation.service';
 import { AgentMediaTransformService } from '@api/services/agent-orchestrator/tools/agent-media-transform.service';
@@ -98,6 +99,12 @@ export class AgentMediaGenerationToolHandler {
     const prompt = typeof rest.prompt === 'string' ? rest.prompt.trim() : '';
     if (!prompt) {
       return { creditsUsed: 0, error: 'prompt is required', success: false };
+    }
+
+    const motionError =
+      type === 'video' ? codeRenderedMotionVideoError(prompt, ctx) : null;
+    if (motionError) {
+      return motionError;
     }
 
     return withMediaKind(

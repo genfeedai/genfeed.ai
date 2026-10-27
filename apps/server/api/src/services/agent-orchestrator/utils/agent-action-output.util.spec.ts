@@ -46,6 +46,28 @@ describe('toActionJsonOutput', () => {
     ).not.toThrow();
   });
 
+  it('accepts the unlimited self-hosted balance as a null creditsRemaining', () => {
+    const contract = contractFor('agent.thread.ui-action.execute');
+    const result = {
+      creditsRemaining: Number.POSITIVE_INFINITY,
+      creditsUsed: 0,
+      message: {
+        content: 'Action declined. Nothing was executed.',
+        metadata: {},
+        role: 'assistant',
+      },
+      threadId: 'thread-1',
+      toolCalls: [],
+    };
+
+    expect(() => contract.validateOutput(result, PROVENANCE)).toThrow(
+      /creditsRemaining/,
+    );
+    expect(() =>
+      contract.validateOutput(toActionJsonOutput(result), PROVENANCE),
+    ).not.toThrow();
+  });
+
   it('keeps values a JSON document can hold', () => {
     expect(
       toActionJsonOutput({ a: [1, 'b', null], c: { d: true }, e: undefined }),

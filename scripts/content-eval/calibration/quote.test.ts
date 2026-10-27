@@ -53,6 +53,7 @@ function report(calls: CallProvenance[], rowCount = 10): ContentEvalReport {
       fixturePath: 'synthetic:quote',
       judgeRegistryKeys: [GEMINI],
       maxCredits: 100,
+      repeats: 1,
       seed: 1,
       suite: 'judge',
       tieBand: 0.05,

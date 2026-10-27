@@ -450,3 +450,35 @@ describe('mountGenfeedGroup in a LinkedIn comment box', () => {
     }
   });
 });
+
+describe('mountGenfeedGroup in the LinkedIn share box', () => {
+  it('joins the share box icon row, and ignores a Media button outside it', () => {
+    document.body.innerHTML = `
+      <button aria-label="Media" id="stray-media">m</button>
+      <div data-sdui-screen="com.linkedin.sdui.flagshipnav.sharing.ShareCompose">
+        <div style="${COLUMN}">
+          <div contenteditable="true" role="textbox" componentkey="ShareBox_textEditor"></div>
+          <div style="${ROW}">
+            <button aria-label="Show Emoji Picker">e</button>
+            <button id="media" aria-label="Media">m</button>
+          </div>
+          <button type="button">Post</button>
+        </div>
+      </div>`;
+    for (const button of document.querySelectorAll('button')) {
+      button.getBoundingClientRect = () =>
+        ({ height: 40, width: 24 }) as DOMRect;
+    }
+
+    const anchors = findSubmitButtons(platforms.linkedin);
+    expect(anchors.map((anchor) => anchor.id)).toEqual(['media']);
+    const boundary = findComposerScope(anchors[0], platforms.linkedin);
+    mountGenfeedGroup(anchors[0], [], boundary as Element, platforms.linkedin);
+
+    expect(
+      document
+        .getElementById('media')
+        ?.nextElementSibling?.hasAttribute('data-genfeed-group'),
+    ).toBe(true);
+  });
+});

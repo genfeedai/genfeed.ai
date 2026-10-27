@@ -3,7 +3,6 @@ import 'server-only';
 import { BlockList, isIP } from 'node:net';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import {
-  isSelfHostedDeployment,
   parseTrustProxy,
   type TrustProxySetting,
 } from '@genfeedai/config/deployment';
@@ -11,6 +10,7 @@ import { PlatformRole } from '@genfeedai/contracts';
 import type { IUser } from '@genfeedai/contracts/interfaces';
 import type { AccessBootstrapState } from '@services/auth/auth.service';
 import { headers } from 'next/headers';
+import { getRequestDeployment } from './request-deployment.server';
 
 function normalizeIp(ip: string): string {
   const trimmed = ip.trim();
@@ -119,8 +119,10 @@ export async function isAdminIpAllowedForServerRequest(): Promise<boolean> {
   return clientIp !== '' && allowedIps.includes(clientIp);
 }
 
-function isLocalIdentityDeployment(): boolean {
-  return isSelfHostedDeployment() && !isBetterAuthEnabled();
+async function isLocalIdentityDeployment(): Promise<boolean> {
+  return (
+    (await getRequestDeployment()) === 'self-hosted' && !isBetterAuthEnabled()
+  );
 }
 
 /**
@@ -158,7 +160,7 @@ export async function resolveServerSuperAdmin(
   currentUser: IUser | null | undefined,
 ): Promise<boolean> {
   const hasSuperAdminRole =
-    isLocalIdentityDeployment() ||
+    (await isLocalIdentityDeployment()) ||
     access.isSuperAdmin === true ||
     currentUser?.platformRole === PlatformRole.SUPERADMIN;
 
@@ -175,7 +177,7 @@ export async function resolveServerSuperAdminFromToken(
   token: string,
 ): Promise<boolean> {
   const hasSuperAdminRole =
-    isLocalIdentityDeployment() || readTokenSuperAdminClaim(token);
+    (await isLocalIdentityDeployment()) || readTokenSuperAdminClaim(token);
 
   return hasSuperAdminRole && (await isAdminIpAllowedForServerRequest());
 }

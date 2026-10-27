@@ -123,4 +123,19 @@ describe('WorkflowGenerationBillingService.reconcileTerminalExecutions', () => {
 
     expect(closeExecution).toHaveBeenCalledTimes(1);
   });
+
+  it('closeTerminal logs a failed close and resolves so the caller continues', async () => {
+    const failure = new Error('Unable to start a transaction');
+    closeExecution.mockRejectedValueOnce(failure);
+
+    await expect(
+      service.closeTerminal('exec-1', 'org-a'),
+    ).resolves.toBeUndefined();
+
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('billing close failed'),
+      failure,
+      { executionId: 'exec-1', organizationId: 'org-a' },
+    );
+  });
 });

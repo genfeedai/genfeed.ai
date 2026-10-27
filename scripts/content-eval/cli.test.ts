@@ -31,10 +31,32 @@ describe('parseCliArgs', () => {
       maxCredits: 5,
       models: ['google/gemini-2.5-flash-lite', 'openai/gpt-5.6-luna'],
       out: null,
+      repeats: 1,
       seed: 1,
       suite: 'ladder',
       tieBand: 0.05,
     });
+  });
+
+  it('reads --repeats and refuses it outside the comparison suites or out of range', () => {
+    expect(
+      parseCliArgs([...BASE, '--max-credits=5', '--repeats=3']).repeats,
+    ).toBe(3);
+    expect(() =>
+      parseCliArgs([...BASE, '--max-credits=5', '--repeats=0']),
+    ).toThrow(UsageError);
+    expect(() =>
+      parseCliArgs([...BASE, '--max-credits=5', '--repeats=11']),
+    ).toThrow(UsageError);
+    expect(() =>
+      parseCliArgs([
+        '--max-credits=5',
+        '--suite=judge',
+        '--fixture=f.jsonl',
+        '--judge=anthropic/claude-sonnet-5',
+        '--repeats=2',
+      ]),
+    ).toThrow(UsageError);
   });
 
   it('rejects an empty judge list as a usage error', () => {

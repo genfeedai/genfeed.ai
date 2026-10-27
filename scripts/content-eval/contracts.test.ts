@@ -59,6 +59,7 @@ const REPORT_INPUT: ReportInput = {
     fixturePath: 'judge.synthetic.jsonl',
     judgeRegistryKeys: ['openai/gpt-5.6-luna'],
     maxCredits: 50,
+    repeats: 1,
     seed: 7,
     suite: 'judge',
     tieBand: 0.05,

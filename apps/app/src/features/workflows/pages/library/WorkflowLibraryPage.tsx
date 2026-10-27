@@ -15,6 +15,7 @@ import CollectionSection from '@ui/collection/CollectionSection';
 import CollectionView from '@ui/collection/CollectionView';
 import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import Container from '@ui/layout/container/Container';
+import PaginationStepper from '@ui/navigation/pagination/PaginationStepper';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
 import Spinner from '@ui/primitives/spinner';
@@ -410,30 +411,20 @@ export default function WorkflowLibraryPage() {
         ) : null}
 
         {pagination.pages > 1 ? (
-          <div className="flex items-center justify-between">
-            <Button
-              variant={ButtonVariant.SECONDARY}
-              disabled={pagination.page <= 1}
-              onClick={() => setPage(Math.max(1, pagination.page - 1))}
-            >
-              {translate('library.previous')}
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              {translate('library.pageStatus', {
-                page: pagination.page,
-                pages: pagination.pages,
-              })}
-            </span>
-            <Button
-              variant={ButtonVariant.SECONDARY}
-              disabled={pagination.page >= pagination.pages}
-              onClick={() =>
-                setPage(Math.min(pagination.pages, pagination.page + 1))
-              }
-            >
-              {translate('library.next')}
-            </Button>
-          </div>
+          <PaginationStepper
+            hasNext={pagination.page < pagination.pages}
+            hasPrevious={pagination.page > 1}
+            nextLabel={translate('library.next')}
+            onNext={() =>
+              setPage(Math.min(pagination.pages, pagination.page + 1))
+            }
+            onPrevious={() => setPage(Math.max(1, pagination.page - 1))}
+            previousLabel={translate('library.previous')}
+            status={translate('library.pageStatus', {
+              page: pagination.page,
+              pages: pagination.pages,
+            })}
+          />
         ) : null}
       </div>
 

@@ -34,6 +34,36 @@ bun run eval:content:smoke -- --max-credits=300 --dispatcher=live
   two rows for each smoke text kind, all fictional KELDER data. Real-brand rows
   stay in the private `genfeedai/harness` repo (`CONTENT_EVAL_PRIVATE_FIXTURES`).
 
+## Noise-aware reports
+
+Every ladder and harness A/B report carries a `noise` section, so a score gap
+is never read without its variance.
+
+```bash
+bun run eval:content -- --suite=ladder --fixture=<jsonl> --models=<baseline>,<challenger> \
+  --judge=<key> --max-credits=<n> --repeats=3
+```
+
+- `--repeats` (1 to 10, ladder and harness A/B only) answers each case that
+  many times per contestant, each repeat with its own generation seed. Repeats of
+  one case are averaged first, so the interval is over cases: more repeats
+  tighten the per-case score, not the number of independent prompts.
+- Per contestant: mean, 95% t-interval, and the pooled repeat sd.
+- Per challenger: a paired difference against the baseline. A winner is named
+  only when the whole interval is on one side of zero; otherwise the verdict is
+  `within-noise` with no winner, and with fewer than two paired cases it is
+  `insufficient-data`.
+- Diagnostics: a baseline at or above 95% warns (no headroom; compare cost at
+  parity); a case that fails in every repeat for every contestant is flagged as a
+  suspected task or grader defect; generation and judging failures and timeouts
+  are counted apart and never enter the scores; with `--repeats` above 1, six
+  outputs are graded a second time and the share whose accept verdict changed is
+  reported (their judge calls count against the cap, not against a contestant).
+- A repeat count whose projected spend (every generation at its token cap, a few
+  hundred tokens per judge verdict) exceeds `--max-credits` is refused before the
+  first provider call. The ledger still stops a run at the cap.
+- Not covered: cut-off output is not detected separately.
+
 ## CI
 
 `content-eval-smoke.yml` has two lanes and is never a release gate.

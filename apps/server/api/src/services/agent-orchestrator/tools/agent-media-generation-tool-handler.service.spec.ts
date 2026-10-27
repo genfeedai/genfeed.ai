@@ -5,6 +5,7 @@ import { AgentMediaGenerationToolHandler } from '@api/services/agent-orchestrato
 import { AgentMediaTextGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-text-generation.service';
 import { AgentMediaTransformService } from '@api/services/agent-orchestrator/tools/agent-media-transform.service';
 import { AgentMediaTurboRunService } from '@api/services/agent-orchestrator/tools/agent-media-turbo-run.service';
+import { AgentGenerationMode } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { describe, expect, it, vi } from 'vitest';
@@ -446,6 +447,39 @@ describe('AgentMediaGenerationToolHandler generate', () => {
       context,
     );
     expect(assetGeneration.generateImage).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    'Create a five-second branded motion graphics video with simple shapes',
+    'Render a kinetic typography title card',
+    'An animated logo reveal for the launch',
+  ])(
+    'sends %s to the visual-code tools, not a provider video (#7680)',
+    async (prompt) => {
+      const { assetGeneration, handler } = createRoutingHandler();
+
+      const result = await handler.generate({ prompt, type: 'video' }, context);
+
+      expect(result).toMatchObject({ creditsUsed: 0, success: false });
+      expect(result.error).toContain('quote_visual_code_generation');
+      expect(assetGeneration.generateVideo).not.toHaveBeenCalled();
+    },
+  );
+
+  it('still runs a motion prompt as a provider video when the person picked Video or confirmed the card', async () => {
+    const { assetGeneration, handler } = createRoutingHandler();
+    const prompt = 'A motion graphics style intro for my channel';
+
+    await handler.generate(
+      { prompt, type: 'video' },
+      { ...context, generationMode: AgentGenerationMode.VIDEO },
+    );
+    await handler.generate(
+      { prompt, type: 'video' },
+      { ...context, confirmationOrigin: 'thread-ui-action' },
+    );
+
+    expect(assetGeneration.generateVideo).toHaveBeenCalledTimes(2);
   });
 
   it('maps the prompt to text for voice', async () => {

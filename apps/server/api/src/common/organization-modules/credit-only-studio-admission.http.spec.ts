@@ -2,6 +2,7 @@ import { StoryboardRunsController } from '@api/collections/content-runs/controll
 import { StoryboardARollService } from '@api/collections/content-runs/services/storyboard-a-roll.service';
 import { StoryboardCharacterReplaceService } from '@api/collections/content-runs/services/storyboard-character-replace.service';
 import { StoryboardLongFormAssemblyService } from '@api/collections/content-runs/services/storyboard-long-form-assembly.service';
+import { StoryboardLongFormEstimateService } from '@api/collections/content-runs/services/storyboard-long-form-estimate.service';
 import { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/services/storyboard-run-capabilities.service';
 import { StoryboardRunsService } from '@api/collections/content-runs/services/storyboard-runs.service';
 import { StoryboardStillsService } from '@api/collections/content-runs/services/storyboard-stills.service';
@@ -101,6 +102,7 @@ describe('credit-only Studio HTTP admission', () => {
         { provide: StoryboardStillsService, useValue: {} },
         { provide: StoryboardARollService, useValue: {} },
         { provide: StoryboardLongFormAssemblyService, useValue: {} },
+        { provide: StoryboardLongFormEstimateService, useValue: {} },
         { provide: ImageUpscaleService, useValue: { upscaleImage } },
         {
           provide: LoggerService,

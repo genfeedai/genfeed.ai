@@ -2,6 +2,7 @@ import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const presetAttributes = createEntityAttributes([
   'adPreset',
+  'playbook',
   'organization',
   'brand',
   'organizationId',

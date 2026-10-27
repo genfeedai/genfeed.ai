@@ -304,6 +304,48 @@ export class StoryboardARollService {
     return { quote, matches };
   }
 
+  /**
+   * Prices the parts of a track still to render for the whole-video
+   * estimate (#8221), before approval: parts already rendered or rendering
+   * are free, failed ones are priced again.
+   */
+  async estimate(
+    track: StoryboardPresenterTrack,
+    organizationId: string,
+    brandId: string,
+    userId: string,
+    config: StoryboardStoredRunConfig,
+  ): Promise<{
+    parts: number;
+    credits: number;
+    seconds: number;
+    billingMode?: StoryboardARollQuote['billingMode'];
+  }> {
+    const pending = matchStoryboardARollChunks(
+      planStoryboardARollChunks(config.plan),
+      config[track]?.chunks,
+    ).filter(({ previous }) => !previous);
+    if (!pending.length) return { parts: 0, credits: 0, seconds: 0 };
+    const presenter = storyboardARollPresenter(config.plan);
+    const price = await this.pricer(
+      track,
+      organizationId,
+      brandId,
+      userId,
+      config,
+    );
+    let credits = 0;
+    let seconds = 0;
+    let billingMode: StoryboardARollQuote['billingMode'] | undefined;
+    for (const { input } of pending) {
+      const chunkPrice = await price(input.text, presenter);
+      credits += chunkPrice.credits;
+      seconds += chunkPrice.estimatedSeconds ?? input.estimatedSeconds;
+      billingMode = chunkPrice.billingMode;
+    }
+    return { parts: pending.length, credits, seconds, billingMode };
+  }
+
   /** Prices one chunk of the track. */
   private async pricer(
     track: StoryboardPresenterTrack,

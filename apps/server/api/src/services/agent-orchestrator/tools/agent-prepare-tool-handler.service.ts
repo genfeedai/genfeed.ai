@@ -14,6 +14,7 @@ import {
   isAgentNextStepDestinationKey,
 } from '@api/services/agent-orchestrator/constants/agent-next-step-destinations.constant';
 import type { ClipperWorkflowSummary } from '@api/services/agent-orchestrator/interfaces/agent-prepare-clipper-workflow.interface';
+import { codeRenderedMotionVideoError } from '@api/services/agent-orchestrator/tools/agent-code-rendered-motion-guard.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import {
@@ -164,6 +165,14 @@ export class AgentPrepareToolHandler {
         error: lockError,
         success: false,
       };
+    }
+
+    const motionError =
+      generationType === 'video'
+        ? codeRenderedMotionVideoError(prompt, ctx ?? {})
+        : null;
+    if (motionError) {
+      return motionError;
     }
 
     const title =

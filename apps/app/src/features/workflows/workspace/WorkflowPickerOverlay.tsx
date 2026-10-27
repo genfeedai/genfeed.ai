@@ -2,17 +2,12 @@
 
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
+import PaginationStepper from '@ui/navigation/pagination/PaginationStepper';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
 import Spinner from '@ui/primitives/spinner';
-import {
-  ArrowLeft,
-  ArrowRight,
-  ExternalLink,
-  Paperclip,
-  Zap,
-} from 'lucide-react';
+import { ExternalLink, Paperclip, Zap } from 'lucide-react';
 
 import type { WorkflowSummary } from '@/features/workflows/services/workflow-api';
 import { useWorkflowPicker } from './useWorkflowPicker';
@@ -139,27 +134,17 @@ export function WorkflowPickerOverlay({
         >
           Full library
         </Button>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Page {page}</span>
-          <Button
-            ariaLabel="Previous workflow page"
-            disabled={page === 1 || isLoading}
-            icon={<ArrowLeft className="size-4" />}
-            onClick={() => setPage((current) => Math.max(1, current - 1))}
-            size={ButtonSize.ICON}
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-          />
-          <Button
-            ariaLabel="Next workflow page"
-            disabled={!hasNextPage || isLoading}
-            icon={<ArrowRight className="size-4" />}
-            onClick={() => setPage((current) => current + 1)}
-            size={ButtonSize.ICON}
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-          />
-        </div>
+        <PaginationStepper
+          className="gap-2"
+          hasNext={hasNextPage}
+          hasPrevious={page > 1}
+          isDisabled={isLoading}
+          nextLabel="Next workflow page"
+          onNext={() => setPage((current) => current + 1)}
+          onPrevious={() => setPage((current) => Math.max(1, current - 1))}
+          previousLabel="Previous workflow page"
+          status={`Page ${page}`}
+        />
       </div>
     </div>
   );

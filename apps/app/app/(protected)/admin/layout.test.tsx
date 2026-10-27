@@ -4,18 +4,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const isProtectedBootstrapBypassedMock = vi.fn();
 const loadServerSuperAdminMock = vi.fn();
-const notFoundMock = vi.fn(() => {
-  throw new Error('NEXT_NOT_FOUND');
+const isPlaywrightAdminDeniedMock = vi.fn();
+const redirectMock = vi.fn((_path: string) => {
+  throw new Error('NEXT_REDIRECT');
 });
 
 vi.mock('@app-server/protected-bootstrap.server', () => ({
+  isPlaywrightAdminDenied: isPlaywrightAdminDeniedMock,
   isProtectedBootstrapBypassed: isProtectedBootstrapBypassedMock,
   loadServerSuperAdmin: loadServerSuperAdminMock,
 }));
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
-  notFound: notFoundMock,
+  redirect: redirectMock,
 }));
 
 describe('app/(protected)/admin/layout.tsx', () => {
@@ -27,7 +29,8 @@ describe('app/(protected)/admin/layout.tsx', () => {
 
     expect(source).toContain('loadServerSuperAdmin');
     expect(source).toContain('isProtectedBootstrapBypassed');
-    expect(source).toContain('notFound()');
+    expect(source).toContain('redirect(APP_ROUTES.ROOT)');
+    expect(source).not.toContain('notFound');
 
     // Self-host / local Portless superadmins must reach admin too. The guard's
     // doc comment names `isSaaS` deliberately, so assert against code only.
@@ -44,8 +47,9 @@ describe('AdminLayout authorization', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
-    notFoundMock.mockImplementation(() => {
-      throw new Error('NEXT_NOT_FOUND');
+    isPlaywrightAdminDeniedMock.mockResolvedValue(false);
+    redirectMock.mockImplementation(() => {
+      throw new Error('NEXT_REDIRECT');
     });
   });
 
@@ -57,17 +61,27 @@ describe('AdminLayout authorization', () => {
       props: { children: expect.arrayContaining([children]) },
     });
     expect(loadServerSuperAdminMock).not.toHaveBeenCalled();
-    expect(notFoundMock).not.toHaveBeenCalled();
+    expect(redirectMock).not.toHaveBeenCalled();
   });
 
-  it('404s a non-superadmin when the Playwright bypass is off', async () => {
+  it('redirects a non-superadmin to the app root when the Playwright bypass is off', async () => {
     isProtectedBootstrapBypassedMock.mockResolvedValue(false);
     loadServerSuperAdminMock.mockResolvedValue(false);
     const AdminLayout = (await import('./layout')).default;
 
-    await expect(AdminLayout({ children })).rejects.toThrow('NEXT_NOT_FOUND');
+    await expect(AdminLayout({ children })).rejects.toThrow('NEXT_REDIRECT');
     expect(loadServerSuperAdminMock).toHaveBeenCalledTimes(1);
-    expect(notFoundMock).toHaveBeenCalledTimes(1);
+    expect(redirectMock).toHaveBeenCalledWith('/');
+  });
+
+  it('redirects a Playwright visitor flagged as not an admin', async () => {
+    isProtectedBootstrapBypassedMock.mockResolvedValue(true);
+    isPlaywrightAdminDeniedMock.mockResolvedValue(true);
+    const AdminLayout = (await import('./layout')).default;
+
+    await expect(AdminLayout({ children })).rejects.toThrow('NEXT_REDIRECT');
+    expect(loadServerSuperAdminMock).not.toHaveBeenCalled();
+    expect(redirectMock).toHaveBeenCalledWith('/');
   });
 
   it('renders admin children for a superadmin when the Playwright bypass is off', async () => {
@@ -78,6 +92,6 @@ describe('AdminLayout authorization', () => {
     await expect(AdminLayout({ children })).resolves.toMatchObject({
       props: { children: expect.arrayContaining([children]) },
     });
-    expect(notFoundMock).not.toHaveBeenCalled();
+    expect(redirectMock).not.toHaveBeenCalled();
   });
 });

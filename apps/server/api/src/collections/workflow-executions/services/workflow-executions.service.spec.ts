@@ -25,7 +25,7 @@ describe('WorkflowExecutionsService', () => {
   };
 
   const makeService = (generationBilling?: {
-    closeExecution: ReturnType<typeof vi.fn>;
+    closeTerminal: ReturnType<typeof vi.fn>;
   }) => {
     const workflowExecution = {
       create: vi.fn().mockResolvedValue({ id: 'execution-1' }),
@@ -288,14 +288,14 @@ describe('WorkflowExecutionsService', () => {
 
   it('emits the terminal event even when billing close throws, on complete and cancel', async () => {
     const billing = {
-      closeExecution: vi.fn().mockRejectedValue(new Error('billing down')),
+      closeTerminal: vi.fn().mockRejectedValue(new Error('billing down')),
     };
     const { events, service } = makeService(billing);
 
     await service.completeExecution('execution-1', 'org-1').catch(() => null);
     await service.cancelExecution('execution-2', 'org-1').catch(() => null);
 
-    expect(billing.closeExecution).toHaveBeenCalledTimes(2);
+    expect(billing.closeTerminal).toHaveBeenCalledTimes(2);
     expect(events.emit.mock.calls.map(([, event]) => event)).toEqual([
       expect.objectContaining({
         executionId: 'execution-1',

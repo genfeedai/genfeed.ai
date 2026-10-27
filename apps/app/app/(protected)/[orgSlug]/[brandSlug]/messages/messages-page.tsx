@@ -27,11 +27,10 @@ import { usePlatformOAuthConnect } from '@hooks/auth/use-platform-oauth-connect/
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { SocialMessagesService } from '@services/social/messages.service';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import PaginationStepper from '@ui/navigation/pagination/PaginationStepper';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
-  ChevronLeft,
-  ChevronRight,
   CircleCheck,
   LinkIcon,
   LockKeyhole,
@@ -809,34 +808,21 @@ export default function MessagesPage() {
                   ))
                 )}
                 {messagePagination.totalPages > 1 ? (
-                  <div className="flex items-center justify-center gap-3 pt-3">
-                    <Button
-                      ariaLabel="Previous messages page"
-                      icon={<ChevronLeft className="size-4" />}
-                      isDisabled={!messagePagination.hasPrevious}
-                      onClick={() =>
-                        setMessagePage((page) => Math.max(1, page - 1))
-                      }
-                      size={ButtonSize.ICON}
-                      variant={ButtonVariant.GHOST}
-                      withWrapper={false}
-                    />
-                    <span className="text-xs text-gray-800">
-                      {translate('pagination.messagePage', {
-                        page: messagePagination.page,
-                        pages: messagePagination.totalPages,
-                      })}
-                    </span>
-                    <Button
-                      ariaLabel="Next messages page"
-                      icon={<ChevronRight className="size-4" />}
-                      isDisabled={!messagePagination.hasNext}
-                      onClick={() => setMessagePage((page) => page + 1)}
-                      size={ButtonSize.ICON}
-                      variant={ButtonVariant.GHOST}
-                      withWrapper={false}
-                    />
-                  </div>
+                  <PaginationStepper
+                    className="pt-3"
+                    hasNext={messagePagination.hasNext}
+                    hasPrevious={messagePagination.hasPrevious}
+                    nextLabel="Next messages page"
+                    onNext={() => setMessagePage((page) => page + 1)}
+                    onPrevious={() =>
+                      setMessagePage((page) => Math.max(1, page - 1))
+                    }
+                    previousLabel="Previous messages page"
+                    status={translate('pagination.messagePage', {
+                      page: messagePagination.page,
+                      pages: messagePagination.totalPages,
+                    })}
+                  />
                 ) : null}
               </div>
 

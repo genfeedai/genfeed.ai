@@ -23,6 +23,7 @@ import type {
 } from '@props/messages/messages-conversation-sidebar.props';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import PaginationStepper from '@ui/navigation/pagination/PaginationStepper';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -38,13 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import {
-  ChevronLeft,
-  ChevronRight,
-  ListFilter,
-  MessageSquare,
-  RefreshCw,
-} from 'lucide-react';
+import { ListFilter, MessageSquare, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 export type { MessagesInboxView, MessagesSurface };
@@ -650,32 +645,19 @@ export function MessagesConversationSidebar({
       </div>
 
       {pagination.totalPages > 1 ? (
-        <div className="flex shrink-0 items-center border-t border-border px-3 py-2">
-          <Button
-            ariaLabel={translate('sidebar.previousPage')}
-            icon={<ChevronLeft className="size-4" />}
-            isDisabled={!pagination.hasPrevious}
-            onClick={onPreviousPage}
-            size={ButtonSize.ICON}
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-          />
-          <span className="flex-1 text-center text-xs text-muted-foreground">
-            {translate('pagination.conversationPage', {
-              page: pagination.page,
-              pages: pagination.totalPages,
-            })}
-          </span>
-          <Button
-            ariaLabel={translate('sidebar.nextPage')}
-            icon={<ChevronRight className="size-4" />}
-            isDisabled={!pagination.hasNext}
-            onClick={onNextPage}
-            size={ButtonSize.ICON}
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-          />
-        </div>
+        <PaginationStepper
+          className="shrink-0 border-t border-border px-3 py-2"
+          hasNext={pagination.hasNext}
+          hasPrevious={pagination.hasPrevious}
+          nextLabel={translate('sidebar.nextPage')}
+          onNext={onNextPage}
+          onPrevious={onPreviousPage}
+          previousLabel={translate('sidebar.previousPage')}
+          status={translate('pagination.conversationPage', {
+            page: pagination.page,
+            pages: pagination.totalPages,
+          })}
+        />
       ) : null}
     </nav>
   );

@@ -11,6 +11,7 @@ import {
   MODEL_KEYS,
   resolveStudioGenerationDimensions,
 } from '@genfeedai/contracts/constants';
+import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import {
   calculateImageGenerationCredits,
   setRuntimeMarginMultiplier,
@@ -169,6 +170,58 @@ describe('Studio estimate parity with admission', () => {
         })
       ).credits;
     expect(await quoteFor(true)).not.toBe(await quoteFor(false));
+  });
+
+  it('prices Auto video on a model that needs a resolution, which the Auto quote omits', async () => {
+    // A fal model has no provider-built input to read a default resolution from.
+    const modelKey = MODEL_KEYS.FAL_MINIMAX_H3_MAX_DIRECTOR;
+    const defaultResolution = getDefaultVideoResolution(modelKey);
+    row = {
+      ...veoRow(),
+      key: modelKey,
+      provider: 'fal',
+      requiredSelectorKeys: ['resolution'],
+      reviewedPricing: {
+        ...reviewedAudioRates(),
+        rates: ['480P', '768P', '1080P'].map((resolution, index) => ({
+          component: 'generation',
+          isPerOutput: true,
+          unit: 'second',
+          unitPriceUsd: 0.1 * (index + 1),
+          when: { resolution },
+        })),
+      },
+    };
+    const autoService = new AgentGenerationEstimateService(
+      {
+        selectModel: vi
+          .fn()
+          .mockResolvedValue({ modelDetails: { key: modelKey } }),
+      } as never,
+      { validateModelForOrg: vi.fn(async () => row) } as never,
+      logger as never,
+      modelCreditQuote,
+      promptBuilder,
+    );
+    const request = {
+      category: 'video' as const,
+      duration: 8,
+      organizationId: 'org-1',
+      prompt: 'Launch video',
+    };
+    const named = await autoService.estimate({
+      ...request,
+      modelKey,
+      resolution: defaultResolution,
+    });
+    const auto = await autoService.estimate(request);
+    expect(named.isAvailable).toBe(true);
+    expect(auto.isAvailable).toBe(true);
+    expect(auto.credits).toBe(named.credits);
+    // A named model still has to say what it needs: nothing is filled in.
+    expect(
+      (await autoService.estimate({ ...request, modelKey })).isAvailable,
+    ).toBe(false);
   });
 
   it('prices Hailuo 5 s as the 6 s the provider executes, like admission', async () => {

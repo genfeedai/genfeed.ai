@@ -39,7 +39,7 @@ export const MCP_STORYBOARD_CAPABILITY_TOOLS: SourceTool[] = [
   {
     name: 'storyboard_long_form',
     description:
-      'Work on a long-form storyboard (voice note to presenter video). create starts one from a transcript or idea dump (brief); get reads the run and plan; draft_plan drafts or revises the plan from the brief (instruction); edit_script rewrites segment narration and cutaway briefs by id; approve_plan locks it; quote prices one paid stage and returns its inputHash; reconcile picks up finished renders; assemble opens the animatic or final edit as an Editor project. Never charges credits.',
+      'Work on a long-form storyboard (voice note to presenter video). create starts one from a transcript or idea dump (brief); get reads the run and plan; draft_plan drafts or revises the plan from the brief (instruction); edit_script rewrites segment narration and cutaway briefs by id; approve_plan locks it; quote prices one paid stage and returns its inputHash; estimate prices every stage still left for the whole video without holding credits; reconcile picks up finished renders; assemble opens the animatic or final edit as an Editor project. Never charges credits.',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -53,6 +53,7 @@ export const MCP_STORYBOARD_CAPABILITY_TOOLS: SourceTool[] = [
             'edit_script',
             'approve_plan',
             'quote',
+            'estimate',
             'reconcile',
             'assemble',
           ],
@@ -74,7 +75,7 @@ export const MCP_STORYBOARD_CAPABILITY_TOOLS: SourceTool[] = [
         expectedRevision: {
           ...revision,
           description:
-            'Run revision from get; required for draft_plan, edit_script, approve_plan and quote.',
+            'Run revision from get; required for draft_plan, edit_script, approve_plan, quote and estimate.',
         },
         instruction: {
           type: 'string',

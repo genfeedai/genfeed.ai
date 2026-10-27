@@ -2,6 +2,7 @@ import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ElementDto } from '@api/shared/dto/element/element.dto';
 import { ModelCategory, Platform } from '@genfeedai/contracts';
 import type { AdPreset } from '@genfeedai/contracts/api-types/contracts/ad-preset.contract';
+import type { B2bPlaybook } from '@genfeedai/contracts/api-types/contracts/b2b-playbook.contract';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
@@ -24,6 +25,15 @@ export class CreatePresetDto extends ElementDto {
     required: false,
   })
   adPreset?: AdPreset;
+
+  @IsOptional()
+  @IsObject()
+  @ApiProperty({
+    description:
+      'Typed B2B playbook: hook formula, shots, reference slots with roles, evaluation criteria and allowed models',
+    required: false,
+  })
+  playbook?: B2bPlaybook;
 
   @IsEntityId()
   @IsOptional()

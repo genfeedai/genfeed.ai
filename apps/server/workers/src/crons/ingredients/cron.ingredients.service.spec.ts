@@ -4,6 +4,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import type { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import type { AggregatePaginateResult } from '@api/helpers/types/aggregate-paginate-result';
+import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
@@ -32,6 +33,7 @@ describe('CronIngredientsService', () => {
   let configService: vi.Mocked<ConfigService>;
   let cacheService: vi.Mocked<CacheService>;
   let loggerService: vi.Mocked<LoggerService>;
+  let replicatePollQueue: { schedule: ReturnType<typeof vi.fn> };
 
   const mockStuckIngredients = {
     docs: [
@@ -119,6 +121,10 @@ describe('CronIngredientsService', () => {
             warn: vi.fn(),
           },
         },
+        {
+          provide: ReplicatePollQueueService,
+          useValue: { schedule: vi.fn().mockResolvedValue('job-1') },
+        },
       ],
     }).compile();
 
@@ -130,6 +136,7 @@ describe('CronIngredientsService', () => {
     configService = module.get(ConfigService);
     cacheService = module.get(CacheService);
     loggerService = module.get(LoggerService);
+    replicatePollQueue = module.get(ReplicatePollQueueService);
   });
 
   afterEach(() => {
@@ -186,6 +193,84 @@ describe('CronIngredientsService', () => {
         expect.stringContaining('Found 2 stuck processing ingredients'),
         expect.any(Object),
       );
+    });
+
+    describe('timed-out prediction recovery', () => {
+      const timedOut = (id: string, externalId: string) => ({
+        category: IngredientCategory.IMAGE,
+        id,
+        metadata: { externalId },
+        organizationId: 'org-1',
+      });
+      const respond = (recovery: unknown[]) =>
+        ingredientsService.findAll.mockImplementation((async (query: {
+          where: { status: IngredientStatus };
+        }) =>
+          query.where.status === IngredientStatus.FAILED
+            ? { docs: recovery }
+            : { docs: [] }) as never);
+
+      it('reads the provider status once for each timed-out Replicate prediction, including old ones', async () => {
+        respond([
+          timedOut('ingredient-old', 'pred-1'),
+          timedOut('ingredient-batch', 'pred-2_3'),
+        ]);
+
+        await service.checkStuckProcessingIngredients();
+
+        expect(ingredientsService.findAll).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              generationError: 'Processing timed out',
+              isDeleted: false,
+              metadata: {
+                is: {
+                  externalId: { not: null },
+                  externalProvider: 'replicate',
+                },
+              },
+              status: IngredientStatus.FAILED,
+            }),
+          }),
+          expect.any(Object),
+        );
+        // The ceiling attempt keeps the processor to one read per sweep.
+        expect(replicatePollQueue.schedule).toHaveBeenCalledWith({
+          attempt: 40,
+          category: IngredientCategory.IMAGE,
+          externalId: 'pred-1',
+          ingredientId: 'ingredient-old',
+          organizationId: 'org-1',
+        });
+        expect(replicatePollQueue.schedule).toHaveBeenCalledWith({
+          attempt: 40,
+          category: IngredientCategory.IMAGE,
+          externalId: 'pred-2',
+          ingredientId: 'ingredient-batch',
+          organizationId: 'org-1',
+          outputIndex: 3,
+        });
+      });
+
+      it('skips a timed-out ingredient with no provider id or no organization', async () => {
+        respond([
+          { ...timedOut('ingredient-a', 'pred-1'), organizationId: null },
+          { ...timedOut('ingredient-b', 'pred-2'), metadata: null },
+        ]);
+
+        await service.checkStuckProcessingIngredients();
+
+        expect(replicatePollQueue.schedule).not.toHaveBeenCalled();
+      });
+
+      it('releases the lock and logs when recovery fails', async () => {
+        ingredientsService.findAll.mockRejectedValue(new Error('db down'));
+
+        await service.checkStuckProcessingIngredients();
+
+        expect(loggerService.error).toHaveBeenCalled();
+        expect(cacheService.releaseLock).toHaveBeenCalled();
+      });
     });
 
     it('reports timed-out generations to Sentry', async () => {

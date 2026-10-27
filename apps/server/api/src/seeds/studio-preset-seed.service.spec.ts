@@ -1,12 +1,16 @@
 import { StudioPresetSeedService } from '@api/seeds/studio-preset-seed.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AD_PRESETS } from '@genfeedai/contracts/constants/ad-presets.constant';
+import { B2B_PLAYBOOKS } from '@genfeedai/contracts/constants/b2b-playbooks.constant';
 import {
   STUDIO_SYSTEM_PRESETS,
   studioSystemPresetId,
 } from '@genfeedai/contracts/constants/studio-system-presets.constant';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { describe, expect, it, vi } from 'vitest';
+
+const CATALOG_SIZE =
+  STUDIO_SYSTEM_PRESETS.length + AD_PRESETS.length + B2B_PLAYBOOKS.length;
 
 function fixture() {
   const prisma = {
@@ -30,14 +34,14 @@ describe('StudioPresetSeedService', () => {
     const { prisma, service } = fixture();
     expect(await service.reconcileCatalog()).toEqual({
       unchanged: 0,
-      written: STUDIO_SYSTEM_PRESETS.length + AD_PRESETS.length,
+      written: CATALOG_SIZE,
     });
     prisma.preset.findUnique.mockResolvedValue({
       organizationId: null,
       brandId: null,
     });
     expect(await service.reconcileCatalog()).toEqual({
-      unchanged: STUDIO_SYSTEM_PRESETS.length + AD_PRESETS.length,
+      unchanged: CATALOG_SIZE,
       written: 0,
     });
     for (const [index, preset] of STUDIO_SYSTEM_PRESETS.entries()) {
@@ -55,14 +59,22 @@ describe('StudioPresetSeedService', () => {
         },
       });
     }
-    expect(prisma.preset.create).toHaveBeenCalledTimes(
-      STUDIO_SYSTEM_PRESETS.length + AD_PRESETS.length,
-    );
+    expect(prisma.preset.create).toHaveBeenCalledTimes(CATALOG_SIZE);
     for (const preset of AD_PRESETS) {
       expect(prisma.preset.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             config: expect.objectContaining({ adPreset: preset }),
+          }),
+        }),
+      );
+    }
+    for (const playbook of B2B_PLAYBOOKS) {
+      expect(prisma.preset.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            category: playbook.mediaType,
+            config: expect.objectContaining({ playbook }),
           }),
         }),
       );
@@ -75,7 +87,7 @@ describe('StudioPresetSeedService', () => {
       brandId: 'other-brand',
     });
     expect(await service.reconcileCatalog()).toEqual({
-      unchanged: STUDIO_SYSTEM_PRESETS.length + AD_PRESETS.length,
+      unchanged: CATALOG_SIZE,
       written: 0,
     });
     expect(prisma.preset.create).not.toHaveBeenCalled();
@@ -98,9 +110,7 @@ describe('StudioPresetSeedService', () => {
       `Studio system preset reconcile failed for: ${conflicting.key}`,
     );
 
-    expect(prisma.preset.create).toHaveBeenCalledTimes(
-      STUDIO_SYSTEM_PRESETS.length + AD_PRESETS.length,
-    );
+    expect(prisma.preset.create).toHaveBeenCalledTimes(CATALOG_SIZE);
     expect(logger.error).toHaveBeenCalledTimes(1);
     expect(logger.error).toHaveBeenCalledWith(
       `Studio system preset seed failed for ${conflicting.key}`,

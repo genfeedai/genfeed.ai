@@ -326,6 +326,20 @@ describe('CreditReservationService', () => {
     expect(prisma.creditReservation.create).not.toHaveBeenCalled();
   });
 
+  it('retries a transaction that could not start without running the operation twice', async () => {
+    const startFailure = Object.assign(
+      new Error('Unable to start a transaction in the given time.'),
+      { code: 'P2028' },
+    );
+    transactionUtil.runInTransaction.mockRejectedValueOnce(startFailure);
+    const operation = vi.fn().mockResolvedValue('settled');
+
+    await expect(service.runSerializable(operation)).resolves.toBe('settled');
+
+    expect(transactionUtil.runInTransaction).toHaveBeenCalledTimes(2);
+    expect(operation).toHaveBeenCalledTimes(1);
+  });
+
   it('rejects settlement above the reserved amount', async () => {
     prisma.creditReservation.findFirst.mockResolvedValue({
       amount: 20,

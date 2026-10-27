@@ -34,7 +34,17 @@ const CODE_RENDERED_MOTION_PATTERNS: readonly RegExp[] = [
   /\bvisual[- ]code\b/i,
   /\bmotion[- ]renderer\b/i,
   /\bremotion\b/i,
+  /\bkinetic[- ]typography\b/i,
+  /\banimated\s+(logo|title|titles|text)\b/i,
 ];
+
+/** True when the text asks for code-rendered motion rather than a provider video. */
+export function isCodeRenderedMotionPrompt(
+  prompt: string | undefined | null,
+): boolean {
+  const text = prompt?.trim() ?? '';
+  return CODE_RENDERED_MOTION_PATTERNS.some((pattern) => pattern.test(text));
+}
 
 const IMAGE_PROMPT_PATTERNS: readonly RegExp[] = [
   /\b(generate|create|make|render|draw)\b[\s\S]{0,48}\b(image|picture|photo|pic|illustration|artwork)\b/i,
@@ -55,7 +65,7 @@ export function inferAgentMediaGenerationModeFromPrompt(
   if (!text) {
     return undefined;
   }
-  if (CODE_RENDERED_MOTION_PATTERNS.some((pattern) => pattern.test(text))) {
+  if (isCodeRenderedMotionPrompt(text)) {
     return undefined;
   }
   if (VIDEO_PROMPT_PATTERNS.some((pattern) => pattern.test(text))) {

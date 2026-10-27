@@ -121,6 +121,28 @@ describe('ClientService (MCP) domain clients', () => {
       { expectedRevision: 3 },
     );
 
+    const estimate = {
+      revision: 3,
+      billingMode: 'platform',
+      cutaways: { parts: 2, credits: 8 },
+      animatic: { parts: 1, credits: 2, seconds: 60 },
+      presenter: { parts: 1, credits: 12, seconds: 60 },
+      totalCredits: 22,
+    };
+    mockAxiosInstance.post.mockResolvedValueOnce({ data: estimate });
+    expect(
+      await service.storyboardLongForm({
+        action: 'estimate',
+        brandId: 'brand-1',
+        runId: 'run-1',
+        expectedRevision: 3,
+      }),
+    ).toEqual(estimate);
+    expect(mockAxiosInstance.post).toHaveBeenLastCalledWith(
+      '/brands/brand-1/storyboard-runs/run-1/long-form/estimate',
+      { expectedRevision: 3 },
+    );
+
     mockAxiosInstance.post.mockRejectedValueOnce(new Error('stop'));
     await expect(
       service.storyboardLongForm({

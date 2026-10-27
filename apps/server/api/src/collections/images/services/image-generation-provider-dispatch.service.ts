@@ -17,7 +17,10 @@ import {
   failUnproducedBatchOutput,
   requireExternalId,
 } from '@api/collections/images/services/image-generation-batch.util';
-import { completeImageGeneration } from '@api/collections/images/services/image-generation-completion.util';
+import {
+  completeImageGeneration,
+  releaseImageOutput,
+} from '@api/collections/images/services/image-generation-completion.util';
 import {
   resolveImageDispatchExecutePath,
   shouldFailAdditionalActivity,
@@ -198,7 +201,16 @@ export class ImageGenerationProviderDispatchService {
     }
     let generationPromise: Promise<unknown>;
     try {
-      await this.admitOutput(context, context.ingredientData.id);
+      try {
+        await this.admitOutput(context, context.ingredientData.id);
+      } catch (error: unknown) {
+        // A rejected admission would otherwise leave the placeholder PROCESSING.
+        await this.handleProviderFailure(
+          context,
+          error,
+          'Image output admission',
+        );
+      }
       if (
         context.editing &&
         context.outputs > 1 &&
@@ -547,7 +559,7 @@ export class ImageGenerationProviderDispatchService {
         failUnproducedBatchOutput(this.imagesService, context, ingredientId),
       )
     )
-      await this.releaseOutputCredits(context, ingredientId);
+      await releaseImageOutput(this.completionServices, context, ingredientId);
   }
 
   private async executeSequential(
@@ -896,7 +908,7 @@ export class ImageGenerationProviderDispatchService {
     });
     if (!claimed) throw error;
     this.loggerService.error(`${label} failed`, error);
-    await this.releaseOutputCredits(context, ingredientId);
+    await releaseImageOutput(this.completionServices, context, ingredientId);
     await this.failedGenerationService.notifyFailedImageGeneration(
       ingredientId,
       WebSocketPaths.image(ingredientId),
@@ -971,22 +983,6 @@ export class ImageGenerationProviderDispatchService {
       credits: amount / Math.max(context.outputs, 1),
       ingredientId: ingredientId.toString(),
     });
-  }
-
-  private async releaseOutputCredits(
-    context: ImageGenerationContext,
-    ingredientId: ImageGenerationSavedIngredient['id'],
-  ): Promise<void> {
-    try {
-      await this.generationBilling.releaseOutput(
-        ingredientId.toString(),
-        context.user.organizationId,
-      );
-    } catch (error: unknown) {
-      this.loggerService.error('Image credit release failed', error, {
-        ingredientId: ingredientId.toString(),
-      });
-    }
   }
 
   private get completionServices() {

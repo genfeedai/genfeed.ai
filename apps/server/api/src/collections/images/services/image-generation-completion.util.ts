@@ -108,6 +108,27 @@ export async function completeImageGeneration(
   });
 }
 
+/** Returns an output's held credits; a failed release is logged, never thrown. */
+export async function releaseImageOutput(
+  dependencies: Pick<
+    ImageGenerationCompletionDependencies,
+    'generationBilling' | 'loggerService'
+  >,
+  context: ImageGenerationContext,
+  ingredientId: ImageGenerationSavedIngredient['id'],
+): Promise<void> {
+  try {
+    await dependencies.generationBilling.releaseOutput(
+      ingredientId.toString(),
+      context.user.organizationId,
+    );
+  } catch (error: unknown) {
+    dependencies.loggerService.error('Image credit release failed', error, {
+      ingredientId: ingredientId.toString(),
+    });
+  }
+}
+
 /**
  * Translate a polling timeout into a 504 with the ingredient's current
  * status. No-op (caller re-throws the original error) for any other error or

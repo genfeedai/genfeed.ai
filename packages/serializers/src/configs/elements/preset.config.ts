@@ -8,6 +8,7 @@ export const presetSerializerConfig = {
   attributeDerivations: Object.fromEntries(
     [
       'adPreset',
+      'playbook',
       'label',
       'description',
       'prompt',

@@ -6,10 +6,15 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
+import { b2bPlaybookSchema } from '@genfeedai/contracts/api-types/contracts/b2b-playbook.contract';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { platformTenantProof } from '@libs/prisma/platform-scope';
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 
 const PRESET_CREATE_SCALAR_FIELDS = [
   'brandId',
@@ -40,11 +45,30 @@ const PRESET_CONFIG_FIELDS = [
   'model',
   'mood',
   'platform',
+  'playbook',
   'prompt',
   'promptTemplate',
   'scene',
   'style',
 ] as const;
+
+/**
+ * A playbook an admin saves must compile later, so reject a malformed one here
+ * rather than at generation time. `null` clears it and is not validated.
+ */
+function assertValidPlaybook(playbook: unknown): void {
+  if (playbook === undefined || playbook === null) return;
+  const parsed = b2bPlaybookSchema.safeParse(playbook);
+  if (!parsed.success) {
+    throw new BadRequestException(
+      `Invalid playbook: ${parsed.error.issues
+        .map(
+          (issue) => `${issue.path.join('.') || 'playbook'} ${issue.message}`,
+        )
+        .join('; ')}`,
+    );
+  }
+}
 
 /**
  * A `null` config value means "no setting" (an operator emptied Duration), so
@@ -81,6 +105,7 @@ export class PresetsService extends BaseService<
     createDto: CreatePresetDto,
     populate: PopulateOption[] = [],
   ): Promise<PresetDocument> {
+    assertValidPlaybook(createDto.playbook);
     await this.assertKeyAvailable(createDto.key, createDto.organizationId);
 
     try {
@@ -243,6 +268,7 @@ export class PresetsService extends BaseService<
     id: string,
     updateDto: Partial<UpdatePresetDto>,
   ): Promise<Record<string, unknown> | undefined> {
+    assertValidPlaybook(updateDto.playbook);
     const hasConfigPatch = this.hasConfigPatch(updateDto);
     const changesScope = updateDto.organizationId !== undefined;
 

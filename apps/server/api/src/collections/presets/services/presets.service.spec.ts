@@ -8,6 +8,7 @@ vi.mock('@genfeedai/prisma', async () => {
 import { PresetsService } from '@api/collections/presets/services/presets.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AD_PRESETS } from '@genfeedai/contracts/constants/ad-presets.constant';
+import { B2B_PLAYBOOKS } from '@genfeedai/contracts/constants/b2b-playbooks.constant';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 describe('PresetsService', () => {
@@ -212,6 +213,68 @@ describe('PresetsService', () => {
     expect(update).toHaveBeenCalledWith({
       data: { config: { key: 'studio-animation', label: 'Animation' } },
       where: { id: 'preset-1' },
+    });
+  });
+  describe('playbook', () => {
+    it('stores a valid playbook in config so an admin can edit it live', async () => {
+      create.mockImplementation(
+        async ({ data }: { data: Record<string, unknown> }) => ({
+          id: 'preset-1',
+          ...data,
+        }),
+      );
+
+      await service.create({
+        key: B2B_PLAYBOOKS[0].key,
+        playbook: B2B_PLAYBOOKS[0],
+      } as never);
+
+      expect(create.mock.calls[0][0].data.config).toEqual({
+        key: B2B_PLAYBOOKS[0].key,
+        playbook: B2B_PLAYBOOKS[0],
+      });
+    });
+
+    it('rejects a malformed playbook on create and writes nothing', async () => {
+      await expect(
+        service.create({
+          key: 'broken',
+          playbook: { ...B2B_PLAYBOOKS[0], shots: [] },
+        } as never),
+      ).rejects.toThrow(/Invalid playbook: shots/);
+      expect(create).not.toHaveBeenCalled();
+    });
+
+    it('rejects a malformed playbook on update and leaves the row alone', async () => {
+      await expect(
+        service.patch('preset-1', {
+          playbook: { ...B2B_PLAYBOOKS[0], allowedModels: [] },
+        } as never),
+      ).rejects.toThrow(/Invalid playbook: allowedModels/);
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    it('replaces a stored playbook with the edited one and keeps the rest', async () => {
+      const stored = {
+        config: { key: B2B_PLAYBOOKS[0].key, playbook: B2B_PLAYBOOKS[0] },
+        id: 'preset-1',
+      };
+      findUnique.mockResolvedValue(stored);
+      findFirst.mockResolvedValue(stored);
+      update.mockImplementation(
+        async ({ data }: { data: Record<string, unknown> }) => ({
+          id: 'preset-1',
+          ...data,
+        }),
+      );
+      const edited = { ...B2B_PLAYBOOKS[0], hookFormula: 'Lead with proof.' };
+
+      await service.patch('preset-1', { playbook: edited });
+
+      expect(update.mock.calls[0][0].data.config).toEqual({
+        key: B2B_PLAYBOOKS[0].key,
+        playbook: edited,
+      });
     });
   });
 });

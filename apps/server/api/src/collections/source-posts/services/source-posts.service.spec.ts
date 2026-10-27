@@ -1,4 +1,5 @@
 import { captureAndDetectNativeSourceExposureObservation } from '@api/collections/outliers/services/breakout-collected-signal.util';
+import type { BreakoutRemixOfferService } from '@api/collections/outliers/services/breakout-remix-offer.service';
 import { prepareNativeCollectedExposure } from '@api/collections/outliers/services/native-source-exposure-observation.util';
 import type { OutliersService } from '@api/collections/outliers/services/outliers.service';
 import type { SourceCollectResult } from '@api/services/source-collector/source-collector.types';
@@ -220,6 +221,149 @@ describe('SourcePostsService', () => {
     await service.upsertCollectedPosts(source, posts, collection);
     expect(captureCalls).not.toHaveBeenCalled();
     expect(sourcePost.upsert).toHaveBeenCalledTimes(3);
+  });
+
+  describe('native own-account remix offer (#7708)', () => {
+    const scope = {
+      brandId: 'brand-a',
+      credentialId: 'credential-a',
+      organizationId: 'org-a',
+      platform: Platform.TWITTER,
+    };
+    const collection = {
+      breakoutAttempt: {
+        ...scope,
+        provider: 'brand-oauth',
+        receivedAt: new Date('2026-10-08T12:00:01Z'),
+        requestStartedAt: new Date('2026-10-08T12:00:00Z'),
+        sourceAttemptId: 'attempt-a',
+      },
+      handle: 'author',
+      platform: SocialSourcePlatform.TWITTER,
+      posts: [
+        {
+          authorId: 'author-a',
+          id: 'tweet-a',
+          nativeFormat: 'text',
+          platform: SocialSourcePlatform.TWITTER,
+          text: 'Own post',
+        },
+      ],
+      provider: 'brand-oauth',
+    } as unknown as SourceCollectResult;
+    const posts = [
+      {
+        brandId: scope.brandId,
+        contentType: 'tweet',
+        externalId: 'tweet-a',
+        organizationId: scope.organizationId,
+        platform: scope.platform,
+        sourceId: 'source-a',
+        text: 'Own post',
+      },
+    ];
+    const source = {
+      brandId: scope.brandId,
+      handle: 'author',
+      id: 'source-a',
+      organizationId: scope.organizationId,
+      platform: scope.platform,
+      userId: 'legacy-bookkeeping-user',
+    };
+    const offerAfterCommit = vi.fn().mockResolvedValue(undefined);
+    const credentialFindFirst = vi.fn();
+
+    function build(capture: { status: string } | null) {
+      vi.mocked(prepareNativeCollectedExposure).mockResolvedValue(
+        capture ? ({} as BreakoutNativeCaptureInput) : null,
+      );
+      vi.mocked(
+        captureAndDetectNativeSourceExposureObservation,
+      ).mockResolvedValue(capture as never);
+      sourcePost.upsert.mockResolvedValue({
+        externalId: 'tweet-a',
+        id: 'native-a',
+      });
+      return new SourcePostsService(
+        {
+          credential: { findFirst: credentialFindFirst },
+          $transaction: vi.fn(async (callback: (tx: unknown) => unknown) =>
+            callback({}),
+          ),
+          socialSource: {
+            findFirst: vi.fn(async () => ({
+              credentialId: scope.credentialId,
+              sourceType: SocialSourceType.OWN_ACCOUNT,
+            })),
+          },
+          sourcePost,
+        } as unknown as PrismaService,
+        logger,
+        credentialsService as never,
+        outliers as unknown as OutliersService,
+        { offerAfterCommit } as unknown as BreakoutRemixOfferService,
+      );
+    }
+
+    beforeEach(() => {
+      credentialFindFirst.mockResolvedValue({ userId: 'member-a' });
+    });
+
+    it('offers the remix to the member who connected the account', async () => {
+      await build({ status: 'captured' }).upsertCollectedPosts(
+        source,
+        posts,
+        collection,
+      );
+
+      expect(offerAfterCommit).toHaveBeenCalledOnce();
+      expect(offerAfterCommit).toHaveBeenCalledWith(
+        { organizationId: 'org-a', userId: 'member-a' },
+        {
+          brandId: 'brand-a',
+          credentialId: 'credential-a',
+          externalId: 'tweet-a',
+          organizationId: 'org-a',
+          platform: Platform.TWITTER,
+        },
+      );
+    });
+
+    it('re-offers on a replayed capture so the offer service dedups, and never on a held one', async () => {
+      await build({ status: 'replayed' }).upsertCollectedPosts(
+        source,
+        posts,
+        collection,
+      );
+      expect(offerAfterCommit).toHaveBeenCalledOnce();
+
+      offerAfterCommit.mockClear();
+      await build({ status: 'held' }).upsertCollectedPosts(
+        source,
+        posts,
+        collection,
+      );
+      expect(offerAfterCommit).not.toHaveBeenCalled();
+    });
+
+    it('offers nothing when no member connected the account, and a failed offer never fails collection', async () => {
+      credentialFindFirst.mockResolvedValue({ userId: null });
+      await build({ status: 'captured' }).upsertCollectedPosts(
+        source,
+        posts,
+        collection,
+      );
+      expect(offerAfterCommit).not.toHaveBeenCalled();
+
+      credentialFindFirst.mockRejectedValue(new Error('db down'));
+      await expect(
+        build({ status: 'captured' }).upsertCollectedPosts(
+          source,
+          posts,
+          collection,
+        ),
+      ).resolves.toMatchObject({ rejectedCount: 0 });
+    });
   });
 
   it('excludes timeline sources from URL import deduplication within the same live tenant and brand', async () => {

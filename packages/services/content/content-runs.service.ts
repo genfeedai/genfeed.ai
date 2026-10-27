@@ -23,9 +23,11 @@ import {
   type RenderStoryboardARoll,
   type StoryboardARollQuote,
   type StoryboardLongFormAssembly,
+  type StoryboardLongFormEstimate,
   type StoryboardPresenterTrack,
   storyboardARollQuoteSchema,
   storyboardLongFormAssemblySchema,
+  storyboardLongFormEstimateSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-a-roll.contract';
 import {
   type ReplaceStoryboardCharacter,
@@ -373,6 +375,21 @@ export class ContentRunsService extends HTTPBaseService {
       input,
     );
     return storyboardARollQuoteSchema.parse(response.data);
+  }
+
+  /** Everything the long-form video still costs, before any spend. */
+  async estimateStoryboardLongForm(
+    brandId: string,
+    runId: string,
+    input: QuoteStoryboardARoll,
+    signal?: AbortSignal,
+  ): Promise<StoryboardLongFormEstimate> {
+    const response = await this.instance.post<StoryboardLongFormEstimate>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/long-form/estimate`,
+      input,
+      { signal },
+    );
+    return storyboardLongFormEstimateSchema.parse(response.data);
   }
 
   async renderStoryboardPresenter(

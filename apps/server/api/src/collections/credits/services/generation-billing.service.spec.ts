@@ -25,6 +25,13 @@ import { LoggerService } from '@libs/logger/logger.service';
 
 import { Test } from '@nestjs/testing';
 
+const configMock = vi.hoisted(() => ({ organizationBilling: true }));
+
+vi.mock('@genfeedai/config', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@genfeedai/config')>()),
+  usesMeteredCredits: () => configMock.organizationBilling,
+}));
+
 const NOW = new Date('2026-09-29T12:00:00Z');
 
 function hold(overrides: Partial<ICreditReservation> = {}): ICreditReservation {
@@ -116,6 +123,7 @@ describe('GenerationBillingService', () => {
   });
 
   beforeEach(() => {
+    configMock.organizationBilling = true;
     prisma.crunGenerationTask.findFirst.mockReset().mockResolvedValue(null);
     prisma.crunGenerationTask.findMany.mockReset().mockResolvedValue([]);
     vi.resetAllMocks();
@@ -242,6 +250,16 @@ describe('GenerationBillingService', () => {
 
       expect(quoteGroups.bindOutput).toHaveBeenCalledWith(billing, 'ing_1');
       expect(billing.creditsConfig?.boundOutputCount).toBe(1);
+    });
+
+    it('skips the quote group on a self-hosted install whose hold is an unpersisted stub', async () => {
+      configMock.organizationBilling = false;
+      const billing = request({ modelQuote: { modelKey: 'm' } as never });
+
+      await service.bindOutput(billing, { credits: 4, ingredientId: 'ing_1' });
+
+      expect(quoteGroups.bindOutput).not.toHaveBeenCalled();
+      expect(credits.bindReservationOutput).not.toHaveBeenCalled();
     });
 
     it('links BYOK usage without reserving platform credits', async () => {

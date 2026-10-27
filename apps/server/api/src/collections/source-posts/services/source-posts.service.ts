@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { captureAndDetectNativeSourceExposureObservation } from '@api/collections/outliers/services/breakout-collected-signal.util';
+import { BreakoutRemixOfferService } from '@api/collections/outliers/services/breakout-remix-offer.service';
 import { prepareNativeCollectedExposure } from '@api/collections/outliers/services/native-source-exposure-observation.util';
 import { OutliersService } from '@api/collections/outliers/services/outliers.service';
 import {
@@ -15,6 +16,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
   isPlatform,
+  type Platform,
   PostVisibility,
   SocialSourcePlatform,
   SocialSourceType,
@@ -29,7 +31,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { MAX_LISTENING_ATTRIBUTION_EVIDENCE_IDS } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 type SourceRecord = {
   id: string;
@@ -148,6 +150,7 @@ export class SourcePostsService {
     readonly _logger: LoggerService,
     private readonly credentialsService: CredentialsService,
     private readonly outliersService: OutliersService,
+    @Optional() private readonly remixOffers?: BreakoutRemixOfferService,
   ) {}
 
   private get db(): PrismaWithSourcePosts {
@@ -304,7 +307,7 @@ export class SourcePostsService {
           (item) => item.id === externalId,
         );
         if (evidence && attempt.provider === collection.provider) {
-          await this.prisma.$transaction(
+          const captured = await this.prisma.$transaction(
             async (tx) => {
               const prepared = await prepareNativeCollectedExposure(
                 tx,
@@ -320,14 +323,22 @@ export class SourcePostsService {
                 attempt,
                 evidence,
               );
-              if (prepared)
-                await captureAndDetectNativeSourceExposureObservation(
-                  tx,
-                  prepared,
-                );
+              return prepared
+                ? captureAndDetectNativeSourceExposureObservation(tx, prepared)
+                : null;
             },
             { maxWait: 10000, timeout: 60000 },
           );
+          if (
+            captured?.status === 'captured' ||
+            captured?.status === 'replayed'
+          )
+            await this.offerNativeRemix(
+              source,
+              credentialId,
+              platform,
+              externalId,
+            );
         }
       }
       collected.push(saved);
@@ -342,6 +353,47 @@ export class SourcePostsService {
 
     if (isAccountSource) await this.outliersService.refresh(account);
     return { posts: collected, rejectedCount };
+  }
+
+  /**
+   * A native own-account outlier gets the same free remix offer as a post
+   * published from Genfeed (#7708). Collection runs without an acting member,
+   * so the offer goes to the member who connected the account. It only records
+   * an activity: no spend, no publication. The offer dedups per detected
+   * response, so a repeat collection of the same post notifies once.
+   */
+  private async offerNativeRemix(
+    source: SourceRecord,
+    credentialId: string,
+    platform: Platform,
+    externalId: string,
+  ): Promise<void> {
+    if (!this.remixOffers) return;
+    try {
+      const credential = await this.prisma.credential.findFirst({
+        select: { userId: true },
+        where: scopedWhere(source.organizationId, {
+          brandId: source.brandId,
+          id: credentialId,
+        }),
+      });
+      if (!credential?.userId) return;
+      await this.remixOffers.offerAfterCommit(
+        { organizationId: source.organizationId, userId: credential.userId },
+        {
+          brandId: source.brandId,
+          credentialId,
+          externalId,
+          organizationId: source.organizationId,
+          platform,
+        },
+      );
+    } catch (error: unknown) {
+      this._logger.warn('Native breakout remix offer was not recorded', {
+        error: error instanceof Error ? error.message : String(error),
+        organizationId: source.organizationId,
+      });
+    }
   }
 
   private buildCollectedPostData(

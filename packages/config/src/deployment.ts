@@ -222,6 +222,33 @@ export function isProductionCloudFromReader(
   );
 }
 
+/**
+ * Resolve the deployment for one HTTP request from its Host header. The Vercel
+ * app server uses this so, in production, only the request's `*.genfeed.ai`
+ * host decides Cloud — no env variable can. The test-only override still applies
+ * off `*.genfeed.ai`. Outside production the flags and URL keys behave as in
+ * {@link getDeploymentFromReader}.
+ *
+ * `x-forwarded-host` may carry a comma-separated chain; the first entry is the
+ * host the client asked for.
+ */
+export function getDeploymentFromRequestHost(
+  host: string | null | undefined,
+  readEnv: EnvValueReader = readDeploymentEnv,
+): Deployment {
+  if (readEnv('NODE_ENV')?.trim() !== 'production') {
+    return getDeploymentFromReader(readEnv);
+  }
+
+  const hostname = hostnameFromUrl(host?.split(',')[0]);
+  if (hostname && isHostedGenfeedHostname(hostname)) {
+    return 'cloud';
+  }
+
+  const override = readEnv(E2E_DEPLOYMENT_OVERRIDE_ENV_KEY)?.trim();
+  return override === 'cloud' ? 'cloud' : 'self-hosted';
+}
+
 /** An Express `trust proxy` value: on/off, a hop count, or proxy addresses/subnets. */
 export type TrustProxySetting = boolean | number | string[];
 

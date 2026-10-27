@@ -559,7 +559,7 @@ export class WorkflowExecutionsService extends BaseService<
       organizationId: execution.organizationId ?? organizationId,
       status: error ? 'failed' : 'completed',
     });
-    await this.generationBilling?.closeExecution(
+    await this.generationBilling?.closeTerminal(
       executionId,
       execution.organizationId,
     );
@@ -636,7 +636,7 @@ export class WorkflowExecutionsService extends BaseService<
       organizationId,
       status: 'cancelled',
     });
-    await this.generationBilling?.closeExecution(executionId, organizationId);
+    await this.generationBilling?.closeTerminal(executionId, organizationId);
     const updated = await this.prisma.workflowExecution.findFirst({
       where: scopedWhere(organizationId, { id: executionId }),
     });

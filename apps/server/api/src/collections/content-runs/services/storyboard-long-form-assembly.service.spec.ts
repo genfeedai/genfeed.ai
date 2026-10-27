@@ -4,7 +4,6 @@ import { StoryboardLongFormAssemblyService } from '@api/collections/content-runs
 import type { StoryboardARollChunk } from '@genfeedai/contracts/api-types/contracts/storyboard-a-roll.contract';
 import type { StoryboardCutaway } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type { StoryboardNativeRunConfig } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
-import { ConflictException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
 const SENTENCE = `${'word '.repeat(19)}end.`;
@@ -13,6 +12,7 @@ const NARRATION = Array.from({ length: 10 }, () => SENTENCE).join(' ');
 function config(
   cutaways: StoryboardCutaway[] = [],
   chunkStates: Partial<StoryboardARollChunk>[] = [{}],
+  narration = NARRATION,
 ): StoryboardNativeRunConfig {
   const base: StoryboardNativeRunConfig = {
     origin: 'native',
@@ -52,7 +52,7 @@ function config(
           {
             id: 'segment-1',
             ordinal: 1,
-            narration: NARRATION,
+            narration,
             estimatedSeconds: 84,
             cutaways,
           },
@@ -103,7 +103,7 @@ function setup(initial: StoryboardNativeRunConfig) {
               : id.startsWith('speech')
                 ? 'VOICE'
                 : 'VIDEO',
-          status: 'GENERATED',
+          status: id.startsWith('failed') ? 'FAILED' : 'GENERATED',
           metadata: { duration: id === 'short-clip' ? 2 : 60 },
         })),
       ),
@@ -175,22 +175,73 @@ describe('StoryboardLongFormAssemblyService', () => {
     ).rejects.toThrow('Render the presenter track');
   });
 
-  it('refuses cutaways without footage', async () => {
+  it('leaves out cutaways without finished footage and reports them', async () => {
     const ctx = setup(
       config([
         {
           id: 'cutaway-1',
           kind: 'still',
           brief: 'Chart',
-          startSeconds: 20,
+          startSeconds: 5,
+          durationSeconds: 5,
+        },
+        {
+          id: 'cutaway-2',
+          kind: 'still',
+          brief: 'Team',
+          assetId: 'failed-still',
+          startSeconds: 15,
+          durationSeconds: 5,
+        },
+        {
+          id: 'cutaway-3',
+          kind: 'library_clip',
+          brief: 'Desk',
+          assetId: 'clip-1',
+          startSeconds: 25,
           durationSeconds: 5,
         },
       ]),
     );
 
+    const result = await ctx.service.assemble(
+      user as never,
+      'brand-1',
+      'run-1',
+      'aRoll',
+    );
+
+    expect(result.skippedCutawayIds).toEqual(['cutaway-1', 'cutaway-2']);
+    const created = ctx.editorProjects.create.mock.calls[0]?.[0] as {
+      tracks: { clips: { ingredientId: string }[] }[];
+    };
+    expect(created.tracks[0]?.clips.length).toBeGreaterThan(0);
+    expect(created.tracks[1]?.clips.map((clip) => clip.ingredientId)).toEqual([
+      'clip-1',
+    ]);
+  });
+
+  it('refuses when only a cutaway without footage hides a join', async () => {
+    const narration = Array.from({ length: 20 }, () => SENTENCE).join(' ');
+    const ctx = setup(
+      config(
+        [
+          {
+            id: 'cutaway-1',
+            kind: 'still',
+            brief: 'Chart',
+            startSeconds: 40,
+            durationSeconds: 5,
+          },
+        ],
+        [{}, {}],
+        narration,
+      ),
+    );
+
     await expect(
       ctx.service.assemble(user as never, 'brand-1', 'run-1', 'aRoll'),
-    ).rejects.toThrow(ConflictException);
+    ).rejects.toThrow('with footage around 0:42');
     expect(ctx.editorProjects.create).not.toHaveBeenCalled();
   });
 

@@ -5,6 +5,8 @@ import { isCloudDeployment } from '@genfeedai/config';
  * install has one only when `RESEND_API_KEY` is set. Without it the link is
  * stored but never delivered, so the auth screens must not offer it.
  */
-export function readMagicLinkAvailableFromEnv(): boolean {
-  return isCloudDeployment() || Boolean(process.env.RESEND_API_KEY?.trim());
+export function readMagicLinkAvailableFromEnv(
+  isCloud: boolean = isCloudDeployment(),
+): boolean {
+  return isCloud || Boolean(process.env.RESEND_API_KEY?.trim());
 }

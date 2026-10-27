@@ -16,11 +16,14 @@ vi.mock('next-intl', async () => {
 });
 const mocks = vi.hoisted(() => ({
   info: vi.fn(),
+  warning: vi.fn(),
   openConfirm: vi.fn(),
   push: vi.fn(),
 }));
 vi.mock('@services/core/notifications.service', () => ({
-  NotificationsService: { getInstance: () => ({ info: mocks.info }) },
+  NotificationsService: {
+    getInstance: () => ({ info: mocks.info, warning: mocks.warning }),
+  },
 }));
 vi.mock(
   '@genfeedai/contexts/providers/global-modals/global-modals.provider',
@@ -104,7 +107,22 @@ function actions(): StoryboardLongFormActions {
       total: 30,
     })),
     renderPresenter: vi.fn(async () => runWith()),
-    assembleLongForm: vi.fn(async () => 'project-9'),
+    estimateLongForm: vi.fn(async () => ({
+      revision: 3,
+      billingMode: 'platform' as const,
+      cutaways: { parts: 1, credits: 2 },
+      animatic: { parts: 1, credits: 1, seconds: 65 },
+      presenter: {
+        parts: 0,
+        credits: 0,
+        problem: 'Approve the storyboard before rendering the presenter.',
+      },
+      totalCredits: 3,
+    })),
+    assembleLongForm: vi.fn(async () => ({
+      editorProjectId: 'project-9',
+      skippedCutawayIds: [],
+    })),
   };
 }
 
@@ -204,6 +222,47 @@ describe('StoryboardLongFormBoard', () => {
       expect(mocks.push).toHaveBeenCalledWith('/org/brand/editor/project-9'),
     );
     expect(props.actions?.assembleLongForm).toHaveBeenCalledWith('aRoll');
+    expect(mocks.warning).not.toHaveBeenCalled();
+  });
+
+  it('shows what the whole video still costs before any step runs', async () => {
+    const props = renderBoard();
+    expect(
+      await screen.findByText(
+        'The whole video still costs about 3 credits. Each step asks before it charges. Approve the storyboard before rendering the presenter.',
+      ),
+    ).toBeTruthy();
+    expect(props.actions?.estimateLongForm).toHaveBeenCalledWith(
+      3,
+      expect.any(AbortSignal),
+    );
+  });
+
+  it('says which cutaways stayed out of the edit', async () => {
+    const props = renderBoard({
+      isApproved: true,
+      run: runWith({
+        aRoll: {
+          presenterId: 'presenter-1',
+          modelKey: 'heygen/avatar-iv',
+          chunks: [chunk('ready')],
+        },
+      }),
+    });
+    const assemble = props.actions?.assembleLongForm;
+    if (!assemble) throw new Error('The board needs its actions.');
+    vi.mocked(assemble).mockResolvedValueOnce({
+      editorProjectId: 'project-9',
+      skippedCutawayIds: ['cutaway-1', 'cutaway-2'],
+    });
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Open the edit' }),
+    );
+    await waitFor(() =>
+      expect(mocks.warning).toHaveBeenCalledWith(
+        '2 cutaways have no finished footage and stayed out of the edit. The presenter shows there.',
+      ),
+    );
   });
 
   it('keeps the animatic closed while its parts are still speaking', () => {

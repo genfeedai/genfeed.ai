@@ -597,6 +597,42 @@ describe('ImageGenerationProviderDispatchService', () => {
     });
   });
 
+  it('fails the placeholder and releases the hold when output admission is rejected', async () => {
+    generationBilling.bindOutput.mockRejectedValueOnce(
+      new Error('Generation quote hold has ended'),
+    );
+    const context = buildContext({
+      model: MODEL_KEYS.GENFEED_AI_FLUX_DEV,
+      request: {
+        creditsConfig: {
+          amount: 4,
+          reservationId: 'hold-1',
+          settlement: 'completion',
+        },
+      } as never,
+    });
+
+    await expect(service.dispatch(context)).rejects.toThrow(
+      'Generation quote hold has ended',
+    );
+
+    expect(imagesService.patchAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'ingredient-1',
+        status: IngredientStatus.PROCESSING,
+      }),
+      expect.objectContaining({
+        generationError: 'Generation quote hold has ended',
+        status: IngredientStatus.FAILED,
+      }),
+    );
+    expect(
+      failedGenerationService.notifyFailedImageGeneration,
+    ).toHaveBeenCalled();
+    expect(generationBilling.releasePool).toHaveBeenCalledOnce();
+    expect(comfyUIService.generateImage).not.toHaveBeenCalled();
+  });
+
   it('preserves completion when failure loses the terminal claim', async () => {
     const failure = new Error('provider rejected');
     comfyUIService.generateImage.mockRejectedValueOnce(failure);

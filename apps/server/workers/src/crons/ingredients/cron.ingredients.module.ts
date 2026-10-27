@@ -4,6 +4,7 @@ import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { CacheModule } from '@api/services/cache/cache.module';
 import { forwardRef, Module } from '@nestjs/common';
 import { CronIngredientsService } from '@workers/crons/ingredients/cron.ingredients.service';
+import { WorkersQueuesModule } from '@workers/queues/queues.module';
 import { FileServicesModule } from '@workers/services/file-services.module';
 
 @Module({
@@ -14,6 +15,7 @@ import { FileServicesModule } from '@workers/services/file-services.module';
     forwardRef(() => MetadataModule),
     CacheModule,
     FileServicesModule,
+    WorkersQueuesModule,
   ],
   providers: [CronIngredientsService],
 })

@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 export interface PaginationProps {
   currentPage: number;
   totalPages: number;
@@ -18,4 +20,18 @@ export interface AutoPaginationProps {
    * @default "results"
    */
   totalLabel?: string;
+}
+
+export interface PaginationStepperProps {
+  className?: string;
+  hasNext: boolean;
+  hasPrevious: boolean;
+  /** Disables both buttons, e.g. while a page is loading. */
+  isDisabled?: boolean;
+  nextLabel: string;
+  onNext: () => void;
+  onPrevious: () => void;
+  previousLabel: string;
+  /** Position text between the buttons, e.g. "Page 2 of 5". */
+  status: ReactNode;
 }

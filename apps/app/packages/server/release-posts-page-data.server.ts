@@ -75,7 +75,7 @@ export const loadReleasePostsPageData = cache(
       releases: [],
     };
 
-    if (!bootstrap || !hasUsableServerAuthToken(token)) {
+    if (!bootstrap || !(await hasUsableServerAuthToken(token))) {
       return empty;
     }
 

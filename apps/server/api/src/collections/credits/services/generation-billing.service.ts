@@ -34,6 +34,7 @@ import {
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import { MediaGenerationReceiptsService } from '@api/services/media-generation-receipts/media-generation-receipts.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { usesMeteredCredits } from '@genfeedai/config';
 import {
   ActivitySource,
   CreditReservationStatus,
@@ -201,6 +202,10 @@ export class GenerationBillingService {
       !config.isByokBypass &&
       organizationId
     ) {
+      // Self-hosted holds are unpersisted stubs: no quote group to bind.
+      if (!usesMeteredCredits()) {
+        return;
+      }
       await this.quoteGroups.bindOutput(request, output.ingredientId);
       request.creditsConfig = {
         ...config,

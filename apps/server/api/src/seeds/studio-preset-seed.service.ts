@@ -1,6 +1,7 @@
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ModelCategory } from '@genfeedai/contracts';
 import { AD_PRESETS } from '@genfeedai/contracts/constants/ad-presets.constant';
+import { B2B_PLAYBOOKS } from '@genfeedai/contracts/constants/b2b-playbooks.constant';
 import { STUDIO_SYSTEM_PRESETS } from '@genfeedai/contracts/constants/studio-system-presets.constant';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -17,6 +18,14 @@ const catalog = [
     prompt: '',
     type: 'video' as const,
     values: { adPreset: preset },
+  })),
+  ...B2B_PLAYBOOKS.map((playbook) => ({
+    description: playbook.description,
+    key: playbook.key,
+    label: playbook.label,
+    prompt: '',
+    type: playbook.mediaType,
+    values: { playbook },
   })),
 ];
 

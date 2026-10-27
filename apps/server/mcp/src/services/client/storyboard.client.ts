@@ -1,4 +1,7 @@
-import { storyboardARollQuoteSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-a-roll.contract';
+import {
+  storyboardARollQuoteSchema,
+  storyboardLongFormEstimateSchema,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-a-roll.contract';
 import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import { storyboardRunSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import { storyboardStillQuoteSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-still.contract';
@@ -88,7 +91,7 @@ export function editLongFormScript(
 export class StoryboardClient {
   constructor(private readonly base: BaseApiClient) {}
 
-  /** Reads, edits, quotes and assembles a long-form storyboard (#8225). */
+  /** Reads, edits, prices, quotes and assembles a long-form storyboard (#8225). */
   storyboardLongForm(input: StoryboardToolInput<'storyboard_long_form'>) {
     const parsed = storyboardToolSchemas.storyboard_long_form.parse(input);
     const runsPath = `/brands/${encodeURIComponent(parsed.brandId)}/storyboard-runs`;
@@ -157,6 +160,12 @@ export class StoryboardClient {
               { expectedRevision: parsed.expectedRevision },
             );
             return storyboardARollQuoteSchema.parse(response.data);
+          }
+          case 'estimate': {
+            const response = await http.post(`${runPath}/long-form/estimate`, {
+              expectedRevision: parsed.expectedRevision,
+            });
+            return storyboardLongFormEstimateSchema.parse(response.data);
           }
           case 'reconcile':
             // Presenter and animatic renders, then the cutaway stills.

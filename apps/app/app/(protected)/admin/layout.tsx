@@ -1,11 +1,13 @@
 import AppPageIntlProvider from '@app-i18n/AppPageIntlProvider';
 import messages from '@app-i18n/page-scopes/admin';
 import {
+  isPlaywrightAdminDenied,
   isProtectedBootstrapBypassed,
   loadServerSuperAdmin,
 } from '@app-server/protected-bootstrap.server';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { LayoutProps } from '@props/layout/layout.props';
-import { notFound } from 'next/navigation';
+import { redirect } from 'next/navigation';
 import AdminContextSidebar from '@/components/workspace-shell/AdminContextSidebar';
 
 /**
@@ -23,19 +25,19 @@ import AdminContextSidebar from '@/components/workspace-shell/AdminContextSideba
  * `NEXT_PUBLIC_PLAYWRIGHT_TEST` plus the `__playwright_test` cookie) skip
  * server bootstrap. Treat that as an explicit test superadmin so mocked
  * admin pages render. A client cookie alone does not bypass this gate.
+ *
+ * A visitor without admin access is redirected to the app root, which resolves
+ * their workspace, instead of getting a 404 inside the admin chrome.
  */
 export default async function AdminLayout({ children }: LayoutProps) {
-  if (await isProtectedBootstrapBypassed()) {
-    return (
-      <AppPageIntlProvider pages={messages}>
-        {children}
-        <AdminContextSidebar />
-      </AppPageIntlProvider>
-    );
-  }
+  const isSuperAdmin = (await isProtectedBootstrapBypassed())
+    ? !(await isPlaywrightAdminDenied())
+    : await loadServerSuperAdmin();
 
-  if (!(await loadServerSuperAdmin())) {
-    notFound();
+  if (!isSuperAdmin) {
+    // Send the visitor back to their workspace. Rendering a 404 here would
+    // leave the admin shell's rails around it.
+    redirect(APP_ROUTES.ROOT);
   }
 
   return (
