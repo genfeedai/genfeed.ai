@@ -2,6 +2,7 @@ import type { PostingWindowResult } from '@genfeedai/contracts/interfaces';
 import { DEFAULT_POSTING_WINDOW_OPTIONS } from '@genfeedai/helpers';
 import {
   buildPostingTimeRecommendation,
+  generateDefaultPostingTimes,
   toPostingWindowPosts,
 } from './posting-time-recommendation.util';
 
@@ -170,5 +171,80 @@ describe('buildPostingTimeRecommendation', () => {
         { endHour: 12, median: 0.05, sampleCount: 7, startHour: 9, weekday: 1 },
       ],
     });
+  });
+});
+
+describe('generateDefaultPostingTimes', () => {
+  const iso = (dates: Date[]) => dates.map((date) => date.toISOString());
+
+  it('puts the default hours on tomorrow in the account timezone', () => {
+    // Twitter defaults are 08, 09, 12 and 17 local; New York is UTC-4 in October.
+    expect(
+      iso(
+        generateDefaultPostingTimes(
+          5,
+          'twitter',
+          'America/New_York',
+          Date.parse('2026-10-20T10:00:00Z'),
+        ),
+      ),
+    ).toEqual([
+      '2026-10-21T12:00:00.000Z',
+      '2026-10-21T13:00:00.000Z',
+      '2026-10-21T16:00:00.000Z',
+      '2026-10-21T21:00:00.000Z',
+      '2026-10-22T12:00:00.000Z',
+    ]);
+  });
+
+  it('counts tomorrow in local days, not UTC days', () => {
+    // 23:30Z on the 20th is already 12:30 on the 21st in Auckland (UTC+13).
+    expect(
+      iso(
+        generateDefaultPostingTimes(
+          1,
+          'twitter',
+          'Pacific/Auckland',
+          Date.parse('2026-10-20T23:30:00Z'),
+        ),
+      ),
+    ).toEqual(['2026-10-21T19:00:00.000Z']);
+  });
+
+  it('keeps the local hour across the end of daylight saving time', () => {
+    // US clocks go back on 2026-11-01: 08:00 is 12:00Z before and 13:00Z after.
+    const times = generateDefaultPostingTimes(
+      5,
+      'twitter',
+      'America/New_York',
+      Date.parse('2026-10-30T10:00:00Z'),
+    );
+
+    expect(times[0].toISOString()).toBe('2026-10-31T12:00:00.000Z');
+    expect(times[4].toISOString()).toBe('2026-11-01T13:00:00.000Z');
+  });
+
+  it('falls back to the general hours for an unknown platform', () => {
+    expect(
+      iso(
+        generateDefaultPostingTimes(
+          1,
+          undefined,
+          'UTC',
+          Date.parse('2026-10-20T10:00:00Z'),
+        ),
+      ),
+    ).toEqual(['2026-10-21T09:00:00.000Z']);
+  });
+
+  it('rejects a timezone that does not exist', () => {
+    expect(() =>
+      generateDefaultPostingTimes(
+        1,
+        'twitter',
+        'Not/AZone',
+        Date.parse('2026-10-20T10:00:00Z'),
+      ),
+    ).toThrow(RangeError);
   });
 });

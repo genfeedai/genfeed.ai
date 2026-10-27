@@ -182,6 +182,9 @@ const CAPTURE_TARGETS: CaptureTarget[] = [
   },
 ];
 
+const MOTION_PROJECT_ID = 'motion-project-1';
+const TURBO_PROJECT_ID = 'turbo-project-1';
+
 /**
  * One frame per app surface, named after its /products/<slug> page. The slugs
  * come from `apps/website/packages/data/app-products.data.ts`, so a surface
@@ -191,8 +194,14 @@ const WEBSITE_PRODUCT_TARGETS: CaptureTarget[] = [
   { fileName: 'playground.png', path: brandPath('/playground') },
   { fileName: 'storyboard.png', path: brandPath('/storyboard') },
   { fileName: 'clipper.png', path: brandPath('/clipper') },
-  { fileName: 'motion.png', path: brandPath('/motion') },
-  { fileName: 'turbo.png', path: brandPath('/turbo') },
+  {
+    fileName: 'motion.png',
+    path: `${brandPath('/motion')}?project=${MOTION_PROJECT_ID}`,
+  },
+  {
+    fileName: 'turbo.png',
+    path: `${brandPath('/turbo')}/${TURBO_PROJECT_ID}`,
+  },
   { fileName: 'editor.png', path: brandPath('/editor') },
   { fileName: 'publishing.png', path: brandPath('/publishing/overview') },
   {
@@ -553,6 +562,7 @@ async function fulfillReadmeApi(route: Route, url: string): Promise<void> {
     await fulfillJson(route, {
       data: {
         attributes: {
+          brandId: 'brand-1',
           contextVersion: 1,
           createdAt: '2026-10-26T09:00:00.000Z',
           id: 'readme-thread-2',
@@ -574,6 +584,7 @@ async function fulfillReadmeApi(route: Route, url: string): Promise<void> {
       data: [
         {
           attributes: {
+            brandId: 'brand-1',
             contextVersion: 1,
             createdAt: '2026-08-01T12:00:00.000Z',
             id: 'readme-thread-1',
@@ -588,6 +599,7 @@ async function fulfillReadmeApi(route: Route, url: string): Promise<void> {
         },
         {
           attributes: {
+            brandId: 'brand-1',
             contextVersion: 1,
             createdAt: '2026-08-02T09:00:00.000Z',
             id: 'readme-thread-2',
@@ -1141,6 +1153,172 @@ const LIBRARY_GALLERY = Array.from({ length: 24 }, (_, index) => ({
   width: 1080,
 }));
 
+const MOTION_SETTINGS = {
+  durationFrames: 150,
+  fps: 30,
+  height: 1080,
+  width: 1080,
+};
+
+const MOTION_CATALOG = {
+  creditsPerSecond: 4,
+  defaultModelKey: 'motion-author-1',
+  defaultSettings: MOTION_SETTINGS,
+  isAvailable: true,
+  limits: {
+    allowedFps: [24, 30],
+    maxAssets: 8,
+    maxDurationFrames: 900,
+    maxDurationSeconds: 30,
+    maxHeight: 1920,
+    maxOutputs: 4,
+    maxPixels: 2073600,
+    maxPromptBytes: 8000,
+    maxPropsBytes: 20000,
+    maxRepairs: 2,
+    maxSourceBytes: 64000,
+    maxWidth: 1920,
+    renderDeadlineSeconds: 300,
+  },
+  models: [
+    {
+      inputCostPerMillion: 3,
+      inspectionCapability: 'declared',
+      isAvailable: true,
+      isByok: false,
+      isDefault: true,
+      key: 'motion-author-1',
+      label: 'Motion author',
+      outputCostPerMillion: 15,
+      provider: 'anthropic',
+      unavailableReason: null,
+    },
+  ],
+  outputFormats: ['mp4', 'png', 'jpeg'],
+  rendererVersion: '1.4.0',
+  unavailableReason: null,
+};
+
+const MOTION_PROJECT_LABELS = [
+  'Launch title card',
+  'Quarterly stats reveal',
+  'Product feature spotlight',
+];
+
+const MOTION_PROJECTS = MOTION_PROJECT_LABELS.map((label, index) => ({
+  brandId: 'brand-1',
+  createdAt: `2026-10-2${4 + index}T09:00:00.000Z`,
+  currentRevision: 2,
+  id: index === 0 ? MOTION_PROJECT_ID : `motion-project-${index + 1}`,
+  label,
+  nextRevisionCursor: null,
+  organizationId: 'org-1',
+  revisions: [2, 1].map((number) => ({
+    consumedCredits: 36 - (number - 1) * 6,
+    diagnostics: [],
+    hasSource: true,
+    id: `motion-revision-${index + 1}-${number}`,
+    maximumCredits: 60,
+    modelKey: 'motion-author-1',
+    number,
+    outputRequests: [{ format: 'png', frame: 60 }],
+    outputs: [
+      {
+        format: 'png',
+        height: 1080,
+        ingredientId: `capture-image-${index * 3 + number}`,
+        url: `${CAPTURE_CDN}/library-${index * 3 + number}.webp`,
+        width: 1080,
+      },
+    ],
+    previews: [0, 1, 2].map((frame) => ({
+      format: 'png',
+      frame: frame * 60,
+      height: 540,
+      url: `${CAPTURE_CDN}/library-${((index * 3 + number + frame + 3) % 24) + 1}.webp`,
+      width: 540,
+    })),
+    progress: 100,
+    projectId: index === 0 ? MOTION_PROJECT_ID : `motion-project-${index + 1}`,
+    prompt:
+      number === 1
+        ? `${label}: bold type over a soft gradient, 5 seconds.`
+        : `${label}: tighten the timing and add a subtle grain.`,
+    props: { accent: '#7c3aed', title: label },
+    receipts: [],
+    rendererVersion: '1.4.0',
+    requestId: `motion-request-${index + 1}-${number}`,
+    settings: MOTION_SETTINGS,
+    sourceAssetIds: [],
+    sourceHash: `hash-${index + 1}-${number}`,
+    status: 'completed',
+  })),
+  updatedAt: `2026-10-2${4 + index}T09:30:00.000Z`,
+  userId: 'user-1',
+}));
+
+const TURBO_IDEAS = [
+  ['Studio morning', 'Behind the scenes of a calm studio morning.'],
+  ['Three-second hook', 'The first frame decides everything.'],
+  ['Launch day', 'We shipped it. Here is what changed.'],
+  ['Before and after', 'Same brief, two very different cuts.'],
+  ['Quiet detail', 'The small thing nobody notices until it is gone.'],
+  ['Weekend drop', 'A limited run, out this Saturday.'],
+];
+
+const TURBO_ITEM_COUNTS = {
+  approved: 2,
+  failed: 0,
+  generating: 0,
+  pending: 0,
+  ready: 4,
+  rejected: 0,
+  scheduled: 0,
+  total: 6,
+};
+
+const TURBO_PROJECTS = [
+  ['Launch week ideas', 'REVIEWING'],
+  ['Weekend drop teasers', 'COMPLETED'],
+  ['Product tour cuts', 'SCHEDULED'],
+].map(([name, status], index) => ({
+  brandId: 'brand-1',
+  createdAt: `2026-10-2${3 + index}T08:00:00.000Z`,
+  id: index === 0 ? TURBO_PROJECT_ID : `turbo-project-${index + 1}`,
+  itemCounts: TURBO_ITEM_COUNTS,
+  items: TURBO_IDEAS.map(([hook, caption], position) => ({
+    caption,
+    createdAt: '2026-10-26T08:10:00.000Z',
+    id: `turbo-item-${index + 1}-${position + 1}`,
+    idea: {
+      caption,
+      format: 'image',
+      hook,
+      id: `turbo-idea-${position + 1}`,
+      platformHints: ['instagram', 'tiktok'],
+      visualPrompt: `${hook}, soft studio light, editorial framing.`,
+    },
+    outputCategory: 'IMAGE',
+    outputIngredientId: `capture-image-${position + 4}`,
+    position,
+    projectId: index === 0 ? TURBO_PROJECT_ID : `turbo-project-${index + 1}`,
+    retryCount: 0,
+    reviewItemId: `review-item-${position + 1}`,
+    scheduledTargets: [],
+    status: position < 2 ? 'APPROVED' : 'READY',
+  })),
+  kind: 'IDEAS',
+  name,
+  organizationId: 'org-1',
+  quote: null,
+  revision: 4,
+  settings: { ideas: { count: 6, formats: ['image'] } },
+  status,
+  step: 'review',
+  updatedAt: `2026-10-2${6 - index}T10:00:00.000Z`,
+  userId: 'user-1',
+}));
+
 async function fulfillSurfaceApi(route: Route, url: string): Promise<boolean> {
   if (CAPTURE_SET !== 'website') {
     return false;
@@ -1163,6 +1341,65 @@ async function fulfillSurfaceApi(route: Route, url: string): Promise<boolean> {
       }),
     );
     return true;
+  }
+  if (method === 'GET' && /\/visual-projects\/catalog$/.test(pathname)) {
+    await fulfillJson(route, {
+      data: {
+        attributes: MOTION_CATALOG,
+        id: 'catalog',
+        type: 'visual-catalog',
+      },
+    });
+    return true;
+  }
+  if (method === 'GET' && /\/visual-projects\/projects$/.test(pathname)) {
+    await fulfillJson(route, {
+      ...jsonApiCollection('visual-projects', MOTION_PROJECTS),
+      links: { cursor: { nextCursor: null } },
+    });
+    return true;
+  }
+  const motionProject = pathname.match(/\/visual-projects\/([^/]+)$/)?.[1];
+  if (method === 'GET' && motionProject) {
+    const project =
+      MOTION_PROJECTS.find((item) => item.id === motionProject) ??
+      MOTION_PROJECTS[0];
+    await fulfillJson(route, {
+      data: { attributes: project, id: project.id, type: 'visual-projects' },
+    });
+    return true;
+  }
+  if (method === 'GET' && /\/turbo-projects$/.test(pathname)) {
+    await fulfillJson(
+      route,
+      jsonApiCollection(
+        'turbo-projects',
+        TURBO_PROJECTS.map(({ items: _items, ...project }) => project),
+      ),
+    );
+    return true;
+  }
+  const turboProject = pathname.match(/\/turbo-projects\/([^/]+)$/)?.[1];
+  if (method === 'GET' && turboProject) {
+    const project =
+      TURBO_PROJECTS.find((item) => item.id === turboProject) ??
+      TURBO_PROJECTS[0];
+    await fulfillJson(route, {
+      data: { attributes: project, id: project.id, type: 'turbo-projects' },
+    });
+    return true;
+  }
+  const ingredientId = pathname.match(
+    /\/ingredients\/(capture-image-\d+)$/,
+  )?.[1];
+  if (method === 'GET' && ingredientId) {
+    const image = LIBRARY_GALLERY.find((item) => item.id === ingredientId);
+    if (image) {
+      await fulfillJson(route, {
+        data: { attributes: image, id: image.id, type: 'images' },
+      });
+      return true;
+    }
   }
   if (method === 'GET' && /\/corpus\/health$/.test(pathname)) {
     await fulfillJson(route, {

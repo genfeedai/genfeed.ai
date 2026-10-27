@@ -9,10 +9,12 @@ import {
   approvePricingRates,
   approveSystemBrand,
   filterPricingRows,
+  findMissingExternalPacks,
   findPendingVersion,
   findPricingFixTargets,
   fixModelPricing,
   type PriceSyncProvider,
+  readHarnessActivation,
   readOrganizationAppsReport,
   readOrganizationsReport,
   readPricingReport,
@@ -353,6 +355,45 @@ async function runOrganizationsList(options: {
   }
 }
 
+async function runHarnessActivation(options: {
+  expect?: string[];
+  isJson: boolean;
+}): Promise<void> {
+  const report = await readHarnessActivation();
+  const missing = findMissingExternalPacks(report, options.expect ?? []);
+
+  if (options.isJson) {
+    printJson({ ...report, missingExternalPackIds: missing });
+  } else {
+    print(formatHeader(`${report.packs.length} content harness packs loaded\n`));
+    const externalPackIds = new Set(
+      report.external.filter((item) => item.state === 'loaded').map((item) => item.packId)
+    );
+    for (const pack of report.packs) {
+      // An external pack reusing a built-in id replaces that built-in.
+      const source = externalPackIds.has(pack.id) ? 'external' : 'built-in';
+      print(`${chalk.bold(pack.id)} ${chalk.dim(`${pack.version} · ${source}`)}`);
+    }
+    print();
+    if (report.external.length === 0) {
+      print(chalk.dim('No external packs configured'));
+    }
+    for (const activation of report.external) {
+      const state =
+        activation.state === 'loaded' ? chalk.green(activation.state) : chalk.red(activation.state);
+      const pack = activation.packId
+        ? ` ${activation.packId}@${activation.packVersion ?? 'unknown'}`
+        : '';
+      print(`${state} ${activation.specifier}${pack}`);
+      if (activation.error) print(chalk.dim(`  ${activation.error}`));
+    }
+  }
+
+  if (missing.length > 0) {
+    throw new GenfeedError(`Expected external packs not loaded: ${missing.join(', ')}`);
+  }
+}
+
 async function readJsonFile(filePath: string): Promise<unknown> {
   try {
     return JSON.parse(await readFile(filePath, 'utf8')) as unknown;
@@ -538,7 +579,7 @@ function createBrandCommand(): Command {
 
 export const adminCommand = new Command('admin')
   .description(
-    'Super admin one-offs over the API: organization apps, pricing, seeds and the system brand'
+    'Super admin one-offs over the API: organization apps, harness packs, pricing, seeds and the system brand'
   )
   .addCommand(
     new Command('login')
@@ -591,6 +632,22 @@ export const adminCommand = new Command('admin')
           }
         })
     )
+  )
+  .addCommand(
+    new Command('harness')
+      .description('Show the content harness packs the API process loaded, with versions')
+      .option(
+        '--expect <packIds...>',
+        'Fail unless each pack id is loaded from a configured external pack'
+      )
+      .option('--json', 'Output as JSON')
+      .action(async (options: { expect?: string[] }, command: Command) => {
+        try {
+          await runHarnessActivation({ expect: options.expect, isJson: wantsJson(command) });
+        } catch (error) {
+          handleError(error);
+        }
+      })
   )
   .addCommand(createPricingCommand())
   .addCommand(createSeedCommand())

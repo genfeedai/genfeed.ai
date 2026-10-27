@@ -43,6 +43,9 @@ function request(
 ): StoryboardLongFormDraftRequest {
   return {
     brand: { name: 'Acme' },
+    brandId: 'brand-1',
+    organizationId: 'org-1',
+    userId: 'user-1',
     brief: 'I keep seeing founders underprice their first plan.',
     current: emptyPlan,
     mode: 'draft',

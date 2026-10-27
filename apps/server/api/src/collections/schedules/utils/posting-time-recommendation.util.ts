@@ -5,6 +5,7 @@ import type {
   PostingWindowResult,
 } from '@genfeedai/contracts/interfaces';
 import { DEFAULT_POSTING_WINDOW_OPTIONS } from '@genfeedai/helpers';
+import { DateTime } from 'luxon';
 
 export interface PostingPostRow {
   id: string;
@@ -142,4 +143,58 @@ export function buildPostingTimeRecommendation(
     ],
     windows: defaultWindows(platform),
   };
+}
+
+const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+/**
+ * One line per learned window ("Thu 18:00-21:00"), best first. A result that
+ * did not learn anything gives no lines: a default guess is not a finding.
+ */
+export function describeLearnedPostingWindows(
+  result: PostingWindowResult,
+): string[] {
+  if (result.basis !== 'learned') return [];
+  const pad = (hour: number) => `${String(hour).padStart(2, '0')}:00`;
+  return result.windows.map(
+    (window) =>
+      `${WEEKDAY_LABELS[window.weekday] ?? '?'} ${pad(window.startHour)}-${pad(window.endHour)}`,
+  );
+}
+
+/**
+ * Instants for the platform default hours, one per slot starting tomorrow in
+ * the account's timezone, so "9am" is 9am where the account is. The day is
+ * added in local calendar days, which keeps the hour across a DST change.
+ * Throws a RangeError for an unknown timezone.
+ */
+export function generateDefaultPostingTimes(
+  count: number,
+  platform: string | undefined,
+  timezone: string,
+  nowMs: number,
+): Date[] {
+  const windows =
+    DEFAULT_POSTING_HOURS[platform?.toLowerCase() ?? 'general'] ??
+    DEFAULT_POSTING_HOURS.general;
+  const hours = windows.flatMap(([start, end]) =>
+    Array.from({ length: end - start }, (_, offset) => start + offset),
+  );
+
+  const today = DateTime.fromMillis(nowMs, { zone: timezone });
+  if (!today.isValid) {
+    throw new RangeError(`Invalid time zone specified: ${timezone}`);
+  }
+
+  return Array.from({ length: count }, (_, index) =>
+    today
+      .plus({ days: 1 + Math.floor(index / hours.length) })
+      .set({
+        hour: hours[index % hours.length],
+        millisecond: 0,
+        minute: 0,
+        second: 0,
+      })
+      .toJSDate(),
+  );
 }

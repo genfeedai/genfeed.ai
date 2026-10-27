@@ -54,7 +54,14 @@ export interface StoryboardDraftBrand {
   name: string;
 }
 
-export interface StoryboardDraftRequest {
+/** Who is drafting and for which brand, so the harness brief is composed for them. */
+export interface StoryboardDraftActor {
+  brandId: string;
+  organizationId: string;
+  userId: string;
+}
+
+export interface StoryboardDraftRequest extends StoryboardDraftActor {
   brand: StoryboardDraftBrand;
   brief: string;
   current: StoryboardPlan;
@@ -125,6 +132,7 @@ export function fitStoryboardDurations(
 
 export function buildStoryboardDraftMessages(
   request: StoryboardDraftRequest,
+  harnessBrief: string,
 ): OpenRouterMessage[] {
   const durations = sortedDurations(request.model.supportedDurationsSeconds);
   const maxShots = storyboardMaxShots(durations, request.runtimeBudgetSeconds);
@@ -141,7 +149,9 @@ export function buildStoryboardDraftMessages(
         isRevision
           ? 'Apply the instruction to currentPlan. Keep shots the instruction does not touch as they are and give them their existingShotId. Use null for existingShotId on shots you add. Remove a shot by leaving it out.'
           : 'Draft a new plan from the brief. Use null for existingShotId on every shot.',
-      ].join(' '),
+      ]
+        .join(' ')
+        .concat(`\n\n${harnessBrief}`),
     },
     {
       role: 'user',

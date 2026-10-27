@@ -65,6 +65,9 @@ const emptyPlan: StoryboardPlan = {
 };
 
 const request: StoryboardLongFormDraftRequest = {
+  brandId: 'benchmark-brand',
+  organizationId: 'benchmark-org',
+  userId: 'benchmark-user',
   brand: { name: 'Benchmark studio' },
   brief: voiceNote.transcript,
   current: emptyPlan,
@@ -99,7 +102,7 @@ function render(
 
 describe('long-form benchmark: voice note to presenter edit', () => {
   it('sends the whole voice note to the drafter', () => {
-    const prompt = buildStoryboardLongFormDraftMessages(request)
+    const prompt = buildStoryboardLongFormDraftMessages(request, 'Brand brief.')
       .map((message) => message.content)
       .join('\n');
 

@@ -208,6 +208,15 @@ export const GENERATION_TYPES: readonly GenerationTypeEntry[] = [
     source: `${API}/services/script-generation/script-generation.service.ts`,
   },
   {
+    enumRefs: {},
+    id: 'storyboard-plan',
+    marker: 'resolveBrief',
+    note: 'Short and long-form storyboard plans (shots, narration, cutaways) are drafted against the composed harness brief (contentType video-script) and fail with a retryable 503 when it is unavailable; there is no generic fallback. Translating an existing long-form script is exempt: it keeps the approved words.',
+    path: 'harness',
+    smoke: null,
+    source: `${API}/collections/content-runs/services/storyboard-plan-draft.service.ts`,
+  },
+  {
     enumRefs: { GenerationType: ['CLIP'] },
     id: 'clip',
     note: 'Cuts an existing video; the clip prompt is not generative.',

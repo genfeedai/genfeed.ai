@@ -1,3 +1,4 @@
+import type { PostingTimeWindow } from '@genfeedai/contracts/interfaces';
 import { confirm } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { Command } from 'commander';
@@ -8,10 +9,11 @@ import {
   bulkSchedule,
   cancelScheduledRelease,
   getCalendar,
-  getOptimalTimes,
+  getOptimalTime,
   getScheduledRelease,
   rescheduleScheduledRelease,
 } from '@/api/schedules';
+import { getActiveBrand } from '@/config/store';
 import {
   formatHeader,
   formatLabel,
@@ -20,7 +22,7 @@ import {
   print,
   printJson,
 } from '@/ui/theme';
-import { handleError } from '@/utils/errors';
+import { GenfeedError, handleError, NoBrandError } from '@/utils/errors';
 
 export const scheduleCommand = new Command('schedule').description(
   'Content scheduling and calendar'
@@ -173,67 +175,135 @@ scheduleCommand
     }
   });
 
+function parseBulkItems(value: string): BulkScheduleItem[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value) as unknown;
+  } catch {
+    throw new GenfeedError('--items must be a JSON array');
+  }
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    throw new GenfeedError('--items must be a non-empty JSON array');
+  }
+
+  const seen = new Set<string>();
+  return parsed.map((entry: unknown, index) => {
+    const item = entry as Partial<Record<keyof BulkScheduleItem, unknown>> | null;
+    const { contentId, platform, scheduledAt } = item ?? {};
+    if (
+      typeof contentId !== 'string' ||
+      typeof platform !== 'string' ||
+      typeof scheduledAt !== 'string' ||
+      !contentId ||
+      !platform
+    ) {
+      throw new GenfeedError(
+        `--items[${index}] needs a contentId, a platform and a scheduledAt, all strings`
+      );
+    }
+    if (Number.isNaN(Date.parse(scheduledAt))) {
+      throw new GenfeedError(`--items[${index}].scheduledAt is not a date: ${scheduledAt}`);
+    }
+    const key = `${platform}:${contentId}`;
+    if (seen.has(key)) {
+      throw new GenfeedError(`--items lists ${contentId} twice for ${platform}`);
+    }
+    seen.add(key);
+    return { contentId, platform, scheduledAt };
+  });
+}
+
 scheduleCommand
   .command('bulk')
-  .description('Schedule multiple content items')
-  .requiredOption('--items <json>', 'JSON array of items to schedule')
+  .description('Schedule several content items, each at its own time')
+  .requiredOption(
+    '--items <json>',
+    'JSON array of {"contentId", "platform", "scheduledAt"} objects'
+  )
+  .option('--brand <id>', 'Brand to schedule for (default: the brand set with `gf brand use`)')
   .option('--json', 'Output as JSON')
   .action(async (options) => {
     try {
       await requireAuth();
 
-      const items = JSON.parse(options.items) as BulkScheduleItem[];
+      const items = parseBulkItems(options.items);
+      const brandId = options.brand ?? (await getActiveBrand());
+      if (!brandId) {
+        throw new NoBrandError();
+      }
 
       const spinner = ora(`Scheduling ${items.length} items...`).start();
-      const scheduled = await bulkSchedule(items);
-      spinner.succeed(`${scheduled.length} items scheduled`);
+      const { failed, scheduled } = await bulkSchedule(brandId, items);
+      const summary = `${scheduled.length} of ${items.length} items scheduled`;
+      if (failed.length > 0) {
+        spinner.warn(summary);
+        process.exitCode = 1;
+      } else {
+        spinner.succeed(summary);
+      }
 
       if (options.json) {
-        printJson(scheduled);
-      } else {
-        print(formatSuccess(`Scheduled ${scheduled.length} items`));
-        for (const entry of scheduled) {
-          print(formatLabel('ID', entry.id));
-          print(formatLabel('Scheduled', new Date(entry.scheduledAt).toLocaleString()));
-          print();
-        }
+        printJson({ failed, scheduled });
+        return;
+      }
+
+      print(formatSuccess(`Scheduled ${scheduled.length} items`));
+      for (const entry of scheduled) {
+        print(formatLabel('ID', entry.id));
+        print(formatLabel('Scheduled', new Date(entry.scheduledAt).toLocaleString()));
+        print();
+      }
+      for (const failure of failed) {
+        print(formatWarning(`${failure.contentId}: ${failure.reason}`));
       }
     } catch (error) {
       handleError(error);
     }
   });
 
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+function formatPostingWindow(window: PostingTimeWindow): string {
+  const day = window.weekday === null ? 'Every day' : (WEEKDAYS[window.weekday] ?? '?');
+  const hours = `${String(window.startHour).padStart(2, '0')}:00-${String(window.endHour).padStart(2, '0')}:00`;
+  if (window.median === null || window.sampleCount === null) {
+    return `  ${day.padEnd(9)} ${hours}`;
+  }
+  return `  ${day.padEnd(9)} ${hours}  median ${window.median.toFixed(4)} from ${window.sampleCount} posts`;
+}
+
 scheduleCommand
   .command('optimal')
-  .description('Get optimal posting times')
-  .option('--platform <platform>', 'Target platform')
-  .option('--timezone <tz>', 'Timezone')
+  .description('Get the best posting windows for a platform')
+  .requiredOption('--platform <platform>', 'Target platform (twitter, instagram, linkedin, ...)')
+  .option('--timezone <tz>', 'IANA timezone for the windows (default UTC)')
   .option('--json', 'Output as JSON')
   .action(async (options) => {
     try {
       await requireAuth();
 
-      const spinner = ora('Calculating optimal times...').start();
-      const times = await getOptimalTimes(options.platform, options.timezone);
+      const spinner = ora('Reading your posting history...').start();
+      const recommendation = await getOptimalTime(options.platform, options.timezone);
       spinner.stop();
 
-      if (times.length === 0) {
-        print(chalk.dim('No optimal time data available.'));
-        return;
-      }
-
       if (options.json) {
-        printJson(times);
+        printJson(recommendation);
         return;
       }
 
-      print(formatHeader('\nOptimal Posting Times:\n'));
+      const title =
+        recommendation.basis === 'learned' ? 'Learned from your posts' : 'Default times';
+      print(
+        formatHeader(`\n${title} for ${recommendation.platform} (${recommendation.timezone}):\n`)
+      );
 
-      for (const t of times) {
-        const bar = chalk.green('|'.repeat(Math.round(t.score / 5)));
-        print(
-          `  ${chalk.blue(t.platform.padEnd(12))} ${t.day.padEnd(10)} ${String(t.hour).padStart(2, '0')}:00 ${t.timezone}  ${bar}`
-        );
+      for (const window of recommendation.windows) {
+        print(formatPostingWindow(window));
+      }
+
+      print();
+      for (const line of recommendation.reasoning) {
+        print(chalk.dim(line));
       }
     } catch (error) {
       handleError(error);

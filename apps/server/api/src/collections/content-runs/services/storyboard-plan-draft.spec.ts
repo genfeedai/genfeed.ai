@@ -5,10 +5,17 @@ import {
   type StoryboardDraftRequest,
   storyboardMaxShots,
 } from '@api/collections/content-runs/services/storyboard-plan-draft';
-import { StoryboardPlanDraftService } from '@api/collections/content-runs/services/storyboard-plan-draft.service';
+import {
+  STORYBOARD_BRAND_CONTEXT_UNAVAILABLE,
+  StoryboardPlanDraftService,
+} from '@api/collections/content-runs/services/storyboard-plan-draft.service';
 import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
-import { ConflictException, ServiceUnavailableException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
 const emptyPlan: StoryboardPlan = {
@@ -41,6 +48,9 @@ function request(
   overrides: Partial<StoryboardDraftRequest> = {},
 ): StoryboardDraftRequest {
   return {
+    brandId: 'brand-1',
+    organizationId: 'org-1',
+    userId: 'user-1',
     brand: { name: 'Acme' },
     brief: 'Launch the new bottle.',
     current: emptyPlan,
@@ -236,17 +246,27 @@ describe('StoryboardPlanDraftService', () => {
     logline: '',
     shots: [drafted(), drafted()],
   };
-  function build(content: string | Error) {
+  function build(
+    content: string | Error,
+    brief: { brief: unknown; formatted: string } = {
+      brief: { id: 'brief-1' },
+      formatted: 'BRAND BRIEF: org directive, guardrails, criteria.',
+    },
+  ) {
     const chatCompletion = vi.fn(async () => {
       if (content instanceof Error) throw content;
       return { choices: [{ message: { content } }] };
     });
     const error = vi.fn();
+    const warn = vi.fn();
+    const resolveBrief = vi.fn(async () => brief.brief);
+    const formatBrief = vi.fn(() => brief.formatted);
     const service = new StoryboardPlanDraftService(
+      { formatBrief, resolveBrief } as never,
       { chatCompletion } as never,
-      { error } as never,
+      { error, warn } as never,
     );
-    return { service, chatCompletion, error };
+    return { service, chatCompletion, error, formatBrief, resolveBrief, warn };
   }
 
   it('asks for structured output and returns a fitted plan', async () => {
@@ -286,5 +306,88 @@ describe('StoryboardPlanDraftService', () => {
       service.draft(request({ runtimeBudgetSeconds: 6 })),
     ).rejects.toBeInstanceOf(ConflictException);
     expect(chatCompletion).not.toHaveBeenCalled();
+  });
+
+  it('writes the plan against the composed harness brief for the acting user', async () => {
+    const { service, chatCompletion, resolveBrief } = build(
+      JSON.stringify(output),
+    );
+    await service.draft(request());
+    expect(resolveBrief).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        contentType: 'video-script',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      }),
+    );
+    const [call] = chatCompletion.mock.calls as unknown as [
+      [{ messages: { content: string; role: string }[] }],
+    ];
+    expect(call[0].messages[0].content).toContain(
+      'BRAND BRIEF: org directive, guardrails, criteria.',
+    );
+  });
+
+  it.each([
+    ['no brief', { brief: null, formatted: '' }],
+    ['an empty brief', { brief: { id: 'b' }, formatted: '   ' }],
+    [
+      'an over-budget brief',
+      { brief: { id: 'b' }, formatted: 'x'.repeat(6001) },
+    ],
+  ])(
+    'refuses %s with a retryable 503 before any model call',
+    async (_name, brief) => {
+      const { service, chatCompletion } = build(JSON.stringify(output), brief);
+      await expect(service.draft(request())).rejects.toThrow(
+        STORYBOARD_BRAND_CONTEXT_UNAVAILABLE,
+      );
+      await expect(service.draft(request())).rejects.toBeInstanceOf(
+        ServiceUnavailableException,
+      );
+      expect(chatCompletion).not.toHaveBeenCalled();
+    },
+  );
+
+  it('lets a brand access refusal through without calling the model', async () => {
+    const { service, chatCompletion, resolveBrief } = build(
+      JSON.stringify(output),
+    );
+    resolveBrief.mockRejectedValueOnce(new ForbiddenException('No access'));
+    await expect(service.draft(request())).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    expect(chatCompletion).not.toHaveBeenCalled();
+  });
+
+  it('writes the long-form script against the same brief and refuses without it', async () => {
+    const longForm = {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+      brand: { name: 'Acme' },
+      brief: 'My voice note.',
+      current: emptyPlan,
+      mode: 'draft' as const,
+      runtimeBudgetSeconds: 120,
+    };
+    const ok = build(new Error('stop after the prompt'));
+    await expect(ok.service.draftLongForm(longForm)).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
+    const [call] = ok.chatCompletion.mock.calls as unknown as [
+      [{ messages: { content: string }[] }],
+    ];
+    expect(call[0].messages[0].content).toContain('BRAND BRIEF');
+
+    const missing = build(JSON.stringify(output), {
+      brief: null,
+      formatted: '',
+    });
+    await expect(missing.service.draftLongForm(longForm)).rejects.toThrow(
+      STORYBOARD_BRAND_CONTEXT_UNAVAILABLE,
+    );
+    expect(missing.chatCompletion).not.toHaveBeenCalled();
   });
 });

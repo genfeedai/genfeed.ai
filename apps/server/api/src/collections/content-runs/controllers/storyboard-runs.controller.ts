@@ -407,7 +407,13 @@ export class StoryboardRunsController {
     return serializeSingle(
       request,
       StoryboardRunSerializer,
-      await this.runs.draftPlan(user.organizationId, brandId, runId, body),
+      await this.runs.draftPlan(
+        user.organizationId,
+        brandId,
+        runId,
+        user.userId,
+        body,
+      ),
     );
   }
 

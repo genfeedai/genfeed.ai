@@ -35,6 +35,9 @@ describe('marketing OG images', () => {
     'card-0003',
     'claude--x-twitter',
     'vs--canva',
+    'products',
+    'product--storyboard',
+    'product--agent',
   ] as MarketingOgCard[])(
     'renders a crawler-ready %s PNG with the real bundled fonts',
     async (kind) => {

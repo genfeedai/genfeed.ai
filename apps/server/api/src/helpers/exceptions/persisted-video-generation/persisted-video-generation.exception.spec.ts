@@ -63,6 +63,16 @@ describe('PersistedVideoGenerationException', () => {
     });
     expect(wrapped.cause).toBe(original);
   });
+  it('carries the cause message for logs while the client response stays redacted', () => {
+    const original = new Error('provider rejected the prompt');
+    const wrapped = PersistedVideoGenerationException.from(original, [
+      'one',
+    ]) as PersistedVideoGenerationException;
+    expect(wrapped.message).toBe('provider rejected the prompt');
+    expect(JSON.stringify(wrapped.getResponse())).not.toContain(
+      'provider rejected the prompt',
+    );
+  });
   it.each(invalidPersistedVideoIdsCases)(
     'refuses the entire invalid ID list: $label',
     ({ ids }) => {

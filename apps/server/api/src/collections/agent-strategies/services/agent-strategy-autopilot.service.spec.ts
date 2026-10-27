@@ -2317,4 +2317,151 @@ describe('AgentStrategyAutopilotService', () => {
       }),
     );
   });
+
+  describe('best posting windows in the snapshot', () => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const HOUR = 60 * 60 * 1000;
+    const NOW = Date.parse('2026-10-20T00:00:00Z');
+    const FIRST_THURSDAY = Date.parse('2026-07-30T18:00:00Z');
+    const FIRST_MONDAY = Date.parse('2026-08-03T13:30:00Z');
+
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(NOW);
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    function weekly(
+      prefix: string,
+      platform: string,
+      firstMs: number,
+      weeks: number,
+      offsetHours = 0,
+    ) {
+      return Array.from({ length: weeks }, (_, week) => ({
+        id: `${prefix}-${week}`,
+        platform,
+        publishedAt: new Date(firstMs + week * 7 * DAY + offsetHours * HOUR),
+      }));
+    }
+
+    function measuredAfter36Hours(
+      posts: { id: string; publishedAt: Date }[],
+      engagementRate: number,
+    ) {
+      return posts.map((post) => ({
+        contentType: 'text',
+        engagementRate,
+        measuredAt: new Date(post.publishedAt.getTime() + 36 * HOUR),
+        performanceScore: 1,
+        platform: 'twitter',
+        postId: post.id,
+        views: 100,
+      }));
+    }
+
+    async function snapshotFor(
+      posts: ReturnType<typeof weekly>,
+      measurements: ReturnType<typeof measuredAfter36Hours>,
+    ) {
+      const deps = createService();
+      deps.postsService.findAll.mockResolvedValue({
+        docs: posts,
+        hasNextPage: false,
+        totalDocs: posts.length,
+      });
+      deps.contentPerformanceService.findAll.mockResolvedValue({
+        docs: measurements,
+        hasNextPage: false,
+        totalDocs: measurements.length,
+      });
+      return {
+        deps,
+        snapshot: await deps.performanceService.getPerformanceSnapshot(
+          strategyId,
+          organizationId,
+          'weekly',
+        ),
+      };
+    }
+
+    it('ranks the slots of a platform by median engagement over the last 90 days', async () => {
+      const thursdays = weekly('thu', 'twitter', FIRST_THURSDAY, 12);
+      const mondays = weekly('mon', 'twitter', FIRST_MONDAY, 12);
+
+      const { deps, snapshot } = await snapshotFor(
+        [...thursdays, ...mondays],
+        [
+          ...measuredAfter36Hours(thursdays, 0.05),
+          ...measuredAfter36Hours(mondays, 0.01),
+        ],
+      );
+
+      expect(snapshot.bestPostingWindows).toEqual([
+        'Thu 18:00-21:00',
+        'Mon 12:00-15:00',
+      ]);
+      expect(deps.postsService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            agentStrategyId: strategyId,
+            isDeleted: false,
+            organizationId,
+            publishedAt: {
+              gte: new Date(NOW - 90 * DAY),
+              lte: new Date(NOW),
+            },
+          }),
+        }),
+        { limit: 500, page: 1, pagination: true },
+        false,
+      );
+    });
+
+    it('names the platform of each window when several platforms learned something', async () => {
+      const twitter = [
+        ...weekly('tw-a', 'twitter', FIRST_THURSDAY, 13),
+        ...weekly('tw-b', 'twitter', FIRST_THURSDAY, 13, 1),
+      ];
+      const instagram = [
+        ...weekly('ig-a', 'instagram', FIRST_MONDAY, 13),
+        ...weekly('ig-b', 'instagram', FIRST_MONDAY, 13, 0.5),
+      ];
+
+      const { snapshot } = await snapshotFor(
+        [...twitter, ...instagram],
+        measuredAfter36Hours([...twitter, ...instagram], 0.03),
+      );
+
+      expect(snapshot.bestPostingWindows).toEqual([
+        'instagram Mon 12:00-15:00',
+        'twitter Thu 18:00-21:00',
+      ]);
+    });
+
+    it('reports nothing instead of a guess when there are too few measured posts', async () => {
+      const thursdays = weekly('thu', 'twitter', FIRST_THURSDAY, 6);
+
+      const { snapshot } = await snapshotFor(
+        thursdays,
+        measuredAfter36Hours(thursdays, 0.05),
+      );
+
+      expect(snapshot.bestPostingWindows).toEqual([]);
+    });
+
+    it('does not read measurements when no post was published in the range', async () => {
+      const { deps, snapshot } = await snapshotFor([], []);
+
+      expect(snapshot.bestPostingWindows).toEqual([]);
+      const measurementWheres =
+        deps.contentPerformanceService.findAll.mock.calls
+          .map(([args]) => args.where)
+          .filter((where) => where.postId !== undefined);
+      expect(measurementWheres).toEqual([]);
+    });
+  });
 });
