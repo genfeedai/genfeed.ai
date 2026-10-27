@@ -8,7 +8,11 @@ import {
   TurboProjectStatus,
   TurboProjectStep,
 } from '@genfeedai/contracts';
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 
 type Row = Record<string, unknown>;
 
@@ -110,6 +114,8 @@ describe('TurboProjectsService', () => {
   };
   const ideaGeneration = { quote: vi.fn(), retry: vi.fn(), start: vi.fn() };
   const platformSettingsService = { getFeatureSettings: vi.fn() };
+  const brandsService = { generateTurboIdeas: vi.fn() };
+  const harness = { formatBrief: vi.fn(), resolveBrief: vi.fn() };
   const service = new TurboProjectsService(
     prisma as never,
     logger as never,
@@ -118,8 +124,9 @@ describe('TurboProjectsService', () => {
     workflowsService as never,
     turboRunService as never,
     ideaGeneration as never,
-    { generateTurboIdeas: vi.fn() } as never,
+    brandsService as never,
     platformSettingsService as never,
+    harness as never,
   );
 
   function useProject(project: Row, items: Row[] = []) {
@@ -935,6 +942,59 @@ describe('TurboProjectsService', () => {
           scope,
         ),
       ).rejects.toThrow(NotFoundException);
+      expect(prisma.turboProject.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('writes ideas, and the avatar speech in them, against the harness brief', async () => {
+      useProject(makeProject({ kind: TurboProjectKind.IDEAS }));
+      platformSettingsService.getFeatureSettings.mockResolvedValue({
+        flags: { turbo_ideas: true },
+      });
+      const brief = { appliedPacks: [] };
+      harness.resolveBrief.mockResolvedValue(brief);
+      harness.formatBrief.mockReturnValue('Guardrails: never promise cures.');
+      brandsService.generateTurboIdeas.mockResolvedValue([]);
+
+      await service.generateIdeas(
+        'project-1',
+        { angle: 'Launch week', count: 3, formats: ['avatar'] } as never,
+        scope,
+      );
+
+      expect(harness.resolveBrief).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId: 'brand-1',
+          contentType: 'ugc',
+          organizationId: scope.organizationId,
+          topic: 'Launch week',
+          userId: scope.userId,
+        }),
+      );
+      expect(harness.formatBrief).toHaveBeenCalledWith(brief);
+      expect(brandsService.generateTurboIdeas).toHaveBeenCalledWith(
+        'brand-1',
+        expect.objectContaining({ formats: ['avatar'] }),
+        scope.organizationId,
+        'Guardrails: never promise cures.',
+      );
+    });
+
+    it('refuses to write ideas without brand context, before touching the project', async () => {
+      useProject(makeProject({ kind: TurboProjectKind.IDEAS }));
+      platformSettingsService.getFeatureSettings.mockResolvedValue({
+        flags: { turbo_ideas: true },
+      });
+      harness.resolveBrief.mockResolvedValue(null);
+      harness.formatBrief.mockReturnValue('');
+
+      await expect(
+        service.generateIdeas(
+          'project-1',
+          { count: 3, formats: ['avatar'] } as never,
+          scope,
+        ),
+      ).rejects.toThrow(ServiceUnavailableException);
+      expect(brandsService.generateTurboIdeas).not.toHaveBeenCalled();
       expect(prisma.turboProject.updateMany).not.toHaveBeenCalled();
     });
   });

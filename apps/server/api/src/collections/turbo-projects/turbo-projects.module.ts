@@ -17,6 +17,7 @@ import { VideosModule } from '@api/collections/videos/videos.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { ByokModule } from '@api/services/byok/byok.module';
+import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { RouterModule } from '@api/services/router/router.module';
 import { TurboRunModule } from '@api/services/turbo-run/turbo-run.module';
 import { LoggerModule } from '@libs/logger/logger.module';
@@ -29,6 +30,7 @@ import { Module } from '@nestjs/common';
     TurboRunModule,
     BrandsCoreModule,
     ByokModule,
+    ContentHarnessModule,
     CreditsModule,
     ImagesModule,
     LoggerModule,

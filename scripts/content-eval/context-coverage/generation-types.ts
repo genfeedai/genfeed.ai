@@ -166,7 +166,7 @@ export const GENERATION_TYPES: readonly GenerationTypeEntry[] = [
     enumRefs: { IngredientCategory: ['AVATAR'] },
     id: 'avatar-video',
     marker: 'resolveBrief',
-    note: 'The render speaks the text it is given, so brand context enters when the script is written. Agent chat generate_as_identity takes a topic and writes the script through ScriptGenerationService (composed harness brief, retryable 503 with no template fallback). Words a user supplies are spoken verbatim by design. The aiAvatarVideo workflow node and facecam task speak user-written text, and turbo-idea speech is written during idea generation; none of those compose the brief. Tracked in #7868.',
+    note: 'The render speaks the text it is given, so brand context enters when the script is written. Agent chat generate_as_identity takes a topic and writes the script through ScriptGenerationService (composed harness brief, retryable 503 with no template fallback). Words a user supplies are spoken verbatim by design. Turbo idea projects write avatar speech with their ideas, under the composed harness brief (contentType ugc), and fail with a retryable 503 when it is unavailable. The aiAvatarVideo workflow node and the facecam task speak text the user wrote, verbatim by design.',
     path: 'harness',
     smoke: null,
     source: `${API}/services/script-generation/script-generation.service.ts`,
