@@ -21,11 +21,25 @@ export async function selectAdvancedModel(
     .getByTestId('generation-setup-section-chips')
     .getByRole('button', { name: 'Configure Model', exact: true })
     .click();
-  await page
-    .getByRole('option')
-    .filter({ hasText: modelLabel })
-    .first()
-    .click();
+  // Catalog models sit under their family row ("FLUX.3" with a model count);
+  // opening it lists the family's own models in a dialog named after the
+  // family. A model without a family is picked straight from the list.
+  const row = page.getByRole('option').filter({ hasText: modelLabel }).first();
+  await expect(row).toBeVisible();
+  await row.click();
+  const family = page.getByRole('dialog', { name: modelLabel });
+  const isFamily = await family
+    .waitFor({ state: 'visible', timeout: 2_000 })
+    .then(
+      () => true,
+      () => false,
+    );
+  if (isFamily) {
+    await family
+      .getByRole('option')
+      .filter({ has: page.getByText(modelLabel, { exact: true }) })
+      .click();
+  }
 }
 
 /**
