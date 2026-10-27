@@ -791,6 +791,60 @@ describe('PostDraftGenerationService', () => {
       );
     });
 
+    it('reports each provider call it made, and none for a replay', async () => {
+      const onProviderDispatch = vi.fn();
+      mockBrandedText.generate
+        .mockResolvedValueOnce(overLimit)
+        .mockResolvedValueOnce({
+          hasNewDispatch: true,
+          kind: 'completed',
+          postId: 'post-2',
+          receipt,
+          text: 'Shorter text',
+        });
+      await service.generateDraftText(dto, identity, undefined, {
+        onProviderDispatch,
+      });
+      expect(onProviderDispatch).toHaveBeenCalledTimes(2);
+
+      onProviderDispatch.mockClear();
+      mockBrandedText.generate.mockReset();
+      mockBrandedText.generate.mockResolvedValue({
+        hasNewDispatch: false,
+        kind: 'completed',
+        postId: 'post-2',
+        receipt,
+        text: null,
+      });
+      mockPostsService.findOne.mockResolvedValue({ description: 'Saved text' });
+      await service.generateDraftText(dto, identity, undefined, {
+        onProviderDispatch,
+      });
+      expect(onProviderDispatch).not.toHaveBeenCalled();
+    });
+
+    it('keeps the first attempt billable when the retry stopped before any provider call', async () => {
+      mockBrandedText.generate
+        .mockResolvedValueOnce(overLimit)
+        .mockResolvedValueOnce({
+          hasNewDispatch: false,
+          kind: 'stopped',
+          postId: null,
+          reasonCode: 'provider_attempt_ref_unavailable',
+          receipt,
+        });
+
+      const error = await service
+        .generateDraftText(dto, identity)
+        .catch((caught: unknown) => caught);
+
+      expect(error).toMatchObject({
+        isBillableFailure: true,
+        providerAttempt: { model: DEFAULT_MINI_TEXT_MODEL },
+        reasonCode: 'provider_attempt_ref_unavailable',
+      });
+    });
+
     it('stops after the one retry and reports the retry as the failure', async () => {
       mockBrandedText.generate.mockResolvedValue(overLimit);
 

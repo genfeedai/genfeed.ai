@@ -44,6 +44,12 @@ export interface PostDraftGenerationOptions {
   surface?: 'api' | 'onboarding';
   /** Request key of the draft this one regenerates. */
   parentRequestId?: string;
+  /**
+   * Called once for each provider call this request actually made (not for a
+   * replay), so the caller can bill every paid call, including the over-limit
+   * retry.
+   */
+  onProviderDispatch?: () => void;
 }
 
 type GenerationMetadata = Pick<
@@ -155,12 +161,13 @@ export class PostDraftGenerationService {
       identity,
       context.brand.id,
     );
-    const attempt = (
+    let paidCalls = 0;
+    const attempt = async (
       requestKey: string,
       parentRequestId: string | undefined,
       shortenTo: number | null,
-    ) =>
-      this.brandedTextGenerationService.generate({
+    ) => {
+      const result = await this.brandedTextGenerationService.generate({
         initiatingActor: identity,
         input: {
           schemaVersion: 1,
@@ -224,6 +231,12 @@ export class PostDraftGenerationService {
           return { postId: String(post.id) };
         },
       });
+      if (result.kind !== 'in_progress' && result.hasNewDispatch) {
+        paidCalls += 1;
+        options.onProviderDispatch?.();
+      }
+      return result;
+    };
     let outcome = await attempt(dto.requestKey, options.parentRequestId, null);
     // One retry when the draft came back over the limit. It is a separate
     // receipt derived from the request key, so a replay of the same request
@@ -249,7 +262,9 @@ export class PostDraftGenerationService {
         brandedReasonHttpStatus(outcome.reasonCode),
         outcome.reasonCode,
         outcome.receipt.id,
-        outcome.hasNewDispatch ? { model } : null,
+        // The cost of an earlier paid attempt stays billable when the retry
+        // itself stopped before reaching the provider.
+        outcome.hasNewDispatch || paidCalls > 0 ? { model } : null,
       );
     const description =
       outcome.text ??
