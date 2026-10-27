@@ -70,11 +70,7 @@ describe('AnalyticsAdminSummaryService', () => {
       pagination: true,
     });
     // Totals never count soft-deleted rows.
-    for (const service of [
-      subscriptionsService,
-      usersService,
-      brandsService,
-    ]) {
+    for (const service of [subscriptionsService, usersService, brandsService]) {
       expect(service.findAll).toHaveBeenCalledWith(
         { where: { isDeleted: false } },
         options,
