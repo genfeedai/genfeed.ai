@@ -2,6 +2,7 @@ import { AnalyticsAdminSummaryService } from '@api/endpoints/analytics/analytics
 import { BotStatus, WorkflowStatus } from '@genfeedai/contracts';
 
 describe('AnalyticsAdminSummaryService', () => {
+  const configService = { get: vi.fn() };
   const botsService = { findAll: vi.fn() };
   const brandsService = { findAll: vi.fn() };
   const ingredientsService = { findAll: vi.fn() };
@@ -12,6 +13,7 @@ describe('AnalyticsAdminSummaryService', () => {
   const usersService = { findAll: vi.fn() };
   const workflowsService = { findAll: vi.fn() };
   const service = new AnalyticsAdminSummaryService(
+    configService as never,
     botsService as never,
     brandsService as never,
     ingredientsService as never,
@@ -25,6 +27,7 @@ describe('AnalyticsAdminSummaryService', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
+    configService.get.mockReturnValue('');
     botsService.findAll.mockResolvedValue({ total: 1 });
     brandsService.findAll.mockResolvedValue({ total: 3 });
     ingredientsService.findAll
@@ -98,6 +101,24 @@ describe('AnalyticsAdminSummaryService', () => {
     expect(botsService.findAll.mock.calls[0]?.[0]?.where).not.toHaveProperty(
       'enabled',
     );
+  });
+
+  it('leaves the internal, demo and system organizations out of the organization total', async () => {
+    configService.get.mockReturnValue(
+      ' org_internal, org_demo ,,genfeed-public-tools',
+    );
+
+    await service.getSummary({});
+
+    expect(configService.get).toHaveBeenCalledWith(
+      'POSTHOG_INTERNAL_ORGANIZATION_IDS',
+    );
+    expect(organizationsService.findAll.mock.calls[0]?.[0]).toEqual({
+      where: {
+        id: { notIn: ['org_internal', 'org_demo', 'genfeed-public-tools'] },
+        isDeleted: false,
+      },
+    });
   });
 
   it('preserves zero fallbacks for missing or malformed totals', async () => {

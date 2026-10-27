@@ -156,6 +156,13 @@ describe('EntityLeaderboardService', () => {
   const rankRows = (...ids: string[]) =>
     ids.map((entityId) => ({ entity_id: entityId }));
 
+  // Published posts per entity, the last of the per-entity lookups.
+  const postCountRows = (...counts: Array<[string, number]>) =>
+    counts.map(([entityId, total]) => ({
+      entity_id: entityId,
+      total_posts: BigInt(total),
+    }));
+
   const analyticsRow = (
     entityId: string,
     overrides: Record<string, unknown> = {},
@@ -168,7 +175,6 @@ describe('EntityLeaderboardService', () => {
     total_saves: BigInt(0),
     total_shares: BigInt(0),
     total_views: BigInt(0),
-    unique_posts: BigInt(0),
     ...overrides,
   });
 
@@ -211,10 +217,10 @@ describe('EntityLeaderboardService', () => {
             total_saves: BigInt(10),
             total_shares: BigInt(25),
             total_views: BigInt(1000),
-            unique_posts: BigInt(2),
           }),
         ])
-        .mockResolvedValueOnce([]); // previous period
+        .mockResolvedValueOnce([]) // previous period
+        .mockResolvedValueOnce(postCountRows([mockOrgId, 2]));
 
       const result = await service.getOrganizationsLeaderboard();
 
@@ -237,7 +243,6 @@ describe('EntityLeaderboardService', () => {
             total_saves: BigInt(25),
             total_shares: BigInt(25),
             total_views: BigInt(200),
-            unique_posts: BigInt(1),
           }),
         ])
         .mockResolvedValueOnce([
@@ -261,7 +266,6 @@ describe('EntityLeaderboardService', () => {
             total_saves: BigInt(1),
             total_shares: BigInt(2),
             total_views: BigInt(100),
-            unique_posts: BigInt(1),
           }),
         ])
         .mockResolvedValueOnce([]); // no previous data
@@ -319,7 +323,7 @@ describe('EntityLeaderboardService', () => {
       const [rankQuery, ...lookups] = capturedQueries;
       expect(rankQuery.sql).toContain('LIMIT ? OFFSET ?');
       expect(rankQuery.values.slice(-2)).toEqual([5, 0]);
-      expect(lookups).toHaveLength(2);
+      expect(lookups).toHaveLength(3);
       for (const lookup of lookups) {
         expect(lookup.values).toContainEqual(rankedIds);
       }
@@ -328,7 +332,7 @@ describe('EntityLeaderboardService', () => {
     it('should rank in SQL by the metric mapped from the sort enum', async () => {
       const cases: Array<[LeaderboardSort, string]> = [
         [LeaderboardSort.VIEWS, 'SUM("totalViews") AS metric'],
-        [LeaderboardSort.POSTS, 'COUNT(DISTINCT "postId") AS metric'],
+        [LeaderboardSort.POSTS, 'COUNT(*) AS metric'],
         [
           LeaderboardSort.ENGAGEMENT,
           'SUM("totalLikes" + "totalComments" + "totalShares" + "totalSaves") AS metric',
@@ -362,6 +366,20 @@ describe('EntityLeaderboardService', () => {
       expect(capturedQueries[0].sql).toContain('e."isDeleted" = false');
     });
 
+    it('should rank by published posts, not synced analytics rows, when sorting by posts', async () => {
+      const capturedQueries = captureQueryRawCalls([[]]);
+
+      await service.getOrganizationsLeaderboard(
+        '2025-01-01',
+        '2025-01-31',
+        LeaderboardSort.POSTS,
+      );
+
+      expect(capturedQueries[0].sql).toContain('FROM "posts"');
+      expect(capturedQueries[0].sql).toContain('"publishedAt" IS NOT NULL');
+      expect(capturedQueries[0].sql).not.toContain('post_analytics');
+    });
+
     it('should hydrate only the ranked ids and exclude deleted organizations', async () => {
       mockPrismaService.$queryRaw.mockResolvedValueOnce(rankRows(mockOrgId));
 
@@ -378,20 +396,27 @@ describe('EntityLeaderboardService', () => {
         rankRows(mockOrgId),
         [],
         [],
+        [],
       ]);
 
       await service.getOrganizationsLeaderboard('2025-01-01', '2025-01-31');
 
-      expect(capturedQueries).toHaveLength(3);
+      expect(capturedQueries).toHaveLength(4);
       const [rankQuery, ...lookups] = capturedQueries;
       expect(rankQuery.sql).toContain('"date" >= ?');
       expect(rankQuery.sql).toContain('"date" <= ?');
       for (const query of lookups) {
         expect(query.sql).toContain('"organizationId" = ANY(?::text[])');
-        expect(query.sql).toContain('"date" >= ?');
-        expect(query.sql).toContain('"date" <= ?');
+        expect(query.sql).toMatch(/"(date|publishedAt)" >= \?/);
+        expect(query.sql).toMatch(/"(date|publishedAt)" <= \?/);
         expect(query.values).toContainEqual([mockOrgId]);
       }
+      // Posts are counted from published posts, not from synced analytics rows.
+      const postsLookup = lookups.find(({ sql }) =>
+        sql.includes('FROM "posts"'),
+      );
+      expect(postsLookup?.sql).toContain('"publishedAt" IS NOT NULL');
+      expect(postsLookup?.sql).toContain('"isDeleted" = false');
     });
   });
 
@@ -437,7 +462,6 @@ describe('EntityLeaderboardService', () => {
             total_saves: BigInt(20),
             total_shares: BigInt(50),
             total_views: BigInt(2000),
-            unique_posts: BigInt(1),
           }),
         ])
         .mockResolvedValueOnce([]);
@@ -461,10 +485,11 @@ describe('EntityLeaderboardService', () => {
       mockPrismaService.$queryRaw
         .mockResolvedValueOnce(rankRows('brand-2', 'brand-1'))
         .mockResolvedValueOnce([
-          analyticsRow('brand-1', { unique_posts: BigInt(1) }),
-          analyticsRow('brand-2', { unique_posts: BigInt(3) }),
+          analyticsRow('brand-1'),
+          analyticsRow('brand-2'),
         ])
-        .mockResolvedValueOnce([]);
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce(postCountRows(['brand-1', 1], ['brand-2', 3]));
 
       const result = await service.getBrandsLeaderboard(
         undefined,
@@ -533,18 +558,19 @@ describe('EntityLeaderboardService', () => {
         rankRows(mockBrandId),
         [],
         [],
+        [],
       ]);
 
       await service.getBrandsLeaderboard('2025-01-01', '2025-01-31');
 
-      expect(capturedQueries).toHaveLength(3);
+      expect(capturedQueries).toHaveLength(4);
       const [rankQuery, ...lookups] = capturedQueries;
       expect(rankQuery.sql).toContain('"date" >= ?');
       expect(rankQuery.sql).toContain('"date" <= ?');
       for (const query of lookups) {
         expect(query.sql).toContain('"brandId" = ANY(?::text[])');
-        expect(query.sql).toContain('"date" >= ?');
-        expect(query.sql).toContain('"date" <= ?');
+        expect(query.sql).toMatch(/"(date|publishedAt)" >= \?/);
+        expect(query.sql).toMatch(/"(date|publishedAt)" <= \?/);
         expect(query.values).toContainEqual([mockBrandId]);
       }
     });

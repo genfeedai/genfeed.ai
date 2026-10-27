@@ -34,6 +34,37 @@ function getOrganizationHref(row: IOrganizationBilling): string {
   return `${APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS}/${row.organizationId}`;
 }
 
+/**
+ * The organization's tier, plus PAYG when it has bought a credit pack: PAYG is
+ * not a tier, so a PAYG buyer without a subscription is still on Free.
+ */
+function PlanBadges({
+  paygLabel,
+  row,
+}: {
+  paygLabel: string;
+  row: IOrganizationBilling;
+}) {
+  if (!row.tier && !row.hasPaygPurchase) {
+    return <>{EMPTY_CELL}</>;
+  }
+
+  return (
+    <span className="flex items-center gap-1">
+      {row.tier ? (
+        <Badge variant="outline" className="uppercase">
+          {row.tier}
+        </Badge>
+      ) : null}
+      {row.hasPaygPurchase ? (
+        <Badge variant="outline" className="uppercase">
+          {paygLabel}
+        </Badge>
+      ) : null}
+    </span>
+  );
+}
+
 export default function SubscriptionsList() {
   const t = useTranslations('pages.adminCreditHolds');
   const rowSidebarT = useTranslations('ui.rowSidebar');
@@ -101,14 +132,9 @@ export default function SubscriptionsList() {
     {
       header: t('columnPlan'),
       key: 'tier',
-      render: (row: IOrganizationBilling) =>
-        row.tier ? (
-          <Badge variant="outline" className="uppercase">
-            {row.tier}
-          </Badge>
-        ) : (
-          EMPTY_CELL
-        ),
+      render: (row: IOrganizationBilling) => (
+        <PlanBadges row={row} paygLabel={t('planPayg')} />
+      ),
     },
     {
       header: t('columnStatus'),
@@ -219,10 +245,8 @@ export default function SubscriptionsList() {
   const rowSidebar = createSummaryRowSidebar<IOrganizationBilling>({
     getBadges: (row) => (
       <>
-        {row.tier ? (
-          <Badge variant="outline" className="uppercase">
-            {row.tier}
-          </Badge>
+        {row.tier || row.hasPaygPurchase ? (
+          <PlanBadges row={row} paygLabel={t('planPayg')} />
         ) : null}
         {row.status ? <Badge status={row.status} /> : null}
       </>

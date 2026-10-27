@@ -13,6 +13,7 @@ type MockFn = ReturnType<typeof vi.fn>;
 interface PrismaFixture {
   billingAccountOrganization: { findMany: MockFn };
   creditBalance: { findMany: MockFn };
+  creditTransaction: { groupBy: MockFn };
   organization: { count: MockFn; findMany: MockFn };
   organizationSetting: { findMany: MockFn };
   subscription: { findMany: MockFn };
@@ -30,6 +31,7 @@ describe('SubscriptionsService.findAdminBilling', () => {
     prisma = {
       billingAccountOrganization: { findMany: vi.fn().mockResolvedValue([]) },
       creditBalance: { findMany: vi.fn().mockResolvedValue([]) },
+      creditTransaction: { groupBy: vi.fn().mockResolvedValue([]) },
       organization: {
         count: vi.fn().mockResolvedValue(0),
         findMany: vi.fn().mockResolvedValue([]),
@@ -100,6 +102,7 @@ describe('SubscriptionsService.findAdminBilling', () => {
     expect(result.docs).toEqual([
       expect.objectContaining({
         balance: 400,
+        hasPaygPurchase: false,
         hasSubscription: false,
         organizationId: 'org_free',
         organizationName: 'Org org_free',
@@ -109,6 +112,52 @@ describe('SubscriptionsService.findAdminBilling', () => {
         stripeCustomerId: null,
         tier: 'free',
       }),
+    ]);
+  });
+
+  it('flags an organization that bought a PAYG pack even though it has no subscription', async () => {
+    prisma.organization.findMany.mockResolvedValue([
+      organization('org_payg'),
+      organization('org_free'),
+    ]);
+    prisma.organization.count.mockResolvedValue(2);
+    prisma.creditTransaction.groupBy.mockResolvedValue([
+      { organizationId: 'org_payg' },
+    ]);
+
+    const result = await service.findAdminBilling({ limit: 15, page: 1 });
+
+    expect(prisma.creditTransaction.groupBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          isDeleted: false,
+          organizationId: { in: ['org_payg', 'org_free'] },
+          source: 'credits-payg',
+        }),
+      }),
+    );
+    expect(
+      result.docs.map(
+        ({ hasPaygPurchase, hasSubscription, organizationId, tier }) => ({
+          hasPaygPurchase,
+          hasSubscription,
+          organizationId,
+          tier,
+        }),
+      ),
+    ).toEqual([
+      {
+        hasPaygPurchase: true,
+        hasSubscription: false,
+        organizationId: 'org_payg',
+        tier: 'free',
+      },
+      {
+        hasPaygPurchase: false,
+        hasSubscription: false,
+        organizationId: 'org_free',
+        tier: 'free',
+      },
     ]);
   });
 

@@ -32,6 +32,7 @@ import type {
   EntityStatsRow,
   OrganizationDoc,
   PaginationSlice,
+  PostCountRow,
   ResolvedBrandDisplay,
 } from './analytics.types';
 
@@ -111,8 +112,7 @@ export class EntityLeaderboardService {
         SUM("totalLikes") AS total_likes,
         SUM("totalComments") AS total_comments,
         SUM("totalShares") AS total_shares,
-        SUM("totalSaves") AS total_saves,
-        COUNT(DISTINCT "postId") AS unique_posts
+        SUM("totalSaves") AS total_saves
         ${includePlatforms ? Prisma.sql`, ARRAY_AGG(DISTINCT "platform"::text) AS platforms` : Prisma.empty}
       FROM "post_analytics"
       WHERE ${column} = ANY(${entityIds}::text[])
@@ -130,7 +130,8 @@ export class EntityLeaderboardService {
       const stats: IEntityAnalyticsStats = {
         avgEngagementRate: row.avg_engagement_rate || 0,
         totalEngagement: totalLikes + totalComments + totalShares + totalSaves,
-        totalPosts: Number(row.unique_posts),
+        // Filled from the posts themselves, see getPublishedPostCounts.
+        totalPosts: 0,
         totalViews: Number(row.total_views),
       };
       if (includePlatforms) {
@@ -177,6 +178,40 @@ export class EntityLeaderboardService {
   }
 
   /**
+   * Posts published inside the window, grouped by entity ID. Counted from the
+   * posts themselves: `post_analytics` only has a row once a platform sync has
+   * collected metrics, so counting it reported 0 posts for every entity whose
+   * posts had not been synced yet.
+   */
+  private async getPublishedPostCounts(
+    entityIds: string[],
+    startDate: Date,
+    endDate: Date,
+    entityField: EntityField,
+  ): Promise<Map<string, number>> {
+    if (entityIds.length === 0) {
+      return new Map();
+    }
+
+    const column = this.entityColumn(entityField);
+
+    const results = await this.prisma.$queryRaw<PostCountRow[]>`
+      SELECT ${column} AS entity_id, COUNT(*) AS total_posts
+      FROM "posts"
+      WHERE ${column} = ANY(${entityIds}::text[])
+        AND "isDeleted" = false
+        AND "publishedAt" IS NOT NULL
+        AND "publishedAt" >= ${startDate}
+        AND "publishedAt" <= ${endDate}
+      GROUP BY ${column}
+    `;
+
+    return new Map(
+      results.map((row) => [row.entity_id, Number(row.total_posts)]),
+    );
+  }
+
+  /**
    * Metric expression a leaderboard is ranked by, evaluated per entity over
    * the requested window. Closed switch over the sort enum: nothing from the
    * request is ever spliced into the SQL text.
@@ -186,10 +221,34 @@ export class EntityLeaderboardService {
       case 'totalViews':
         return Prisma.sql`SUM("totalViews")`;
       case 'totalPosts':
-        return Prisma.sql`COUNT(DISTINCT "postId")`;
+        return Prisma.sql`COUNT(*)`;
       default:
         return Prisma.sql`SUM("totalLikes" + "totalComments" + "totalShares" + "totalSaves")`;
     }
+  }
+
+  /**
+   * Source rows the rank metric aggregates, narrowed to the window: published
+   * posts when ranking by posts, collected analytics snapshots otherwise.
+   */
+  private rankSourceSql(
+    sort: LeaderboardSort,
+    range: DateRange,
+    organizationFilter: PrismaSql,
+  ): PrismaSql {
+    if (SORT_FIELD_MAP[sort] === 'totalPosts') {
+      return Prisma.sql`"posts"
+        WHERE "isDeleted" = false
+          AND "publishedAt" IS NOT NULL
+          AND "publishedAt" >= ${range.startDate}
+          AND "publishedAt" <= ${range.endDate}
+          ${organizationFilter}`;
+    }
+
+    return Prisma.sql`"post_analytics"
+        WHERE "date" >= ${range.startDate}
+          AND "date" <= ${range.endDate}
+          ${organizationFilter}`;
   }
 
   /** Case-insensitive "contains" pattern with LIKE wildcards escaped. */
@@ -243,10 +302,7 @@ export class EntityLeaderboardService {
       FROM ${entityTable} e
       LEFT JOIN (
         SELECT ${analyticsColumn} AS entity_id, ${this.rankMetricSql(sort)} AS metric
-        FROM "post_analytics"
-        WHERE "date" >= ${range.startDate}
-          AND "date" <= ${range.endDate}
-          ${analyticsOrganizationFilter}
+        FROM ${this.rankSourceSql(sort, range, analyticsOrganizationFilter)}
         GROUP BY ${analyticsColumn}
       ) m ON m.entity_id = e."id"
       WHERE e."isDeleted" = false
@@ -317,22 +373,33 @@ export class EntityLeaderboardService {
       return [];
     }
 
-    const [docs, analyticsMap, previousEngagementMap] = await Promise.all([
-      this.findEntitiesByIds<TEntity>(entityType, ids, options.organizationId),
-      this.getCurrentAnalytics(
-        ids,
-        range.startDate,
-        range.endDate,
-        entityField,
-        includePlatforms,
-      ),
-      this.getPreviousEngagement(
-        ids,
-        range.previousStartDate,
-        range.previousEndDate,
-        entityField,
-      ),
-    ]);
+    const [docs, analyticsMap, previousEngagementMap, publishedPostsMap] =
+      await Promise.all([
+        this.findEntitiesByIds<TEntity>(
+          entityType,
+          ids,
+          options.organizationId,
+        ),
+        this.getCurrentAnalytics(
+          ids,
+          range.startDate,
+          range.endDate,
+          entityField,
+          includePlatforms,
+        ),
+        this.getPreviousEngagement(
+          ids,
+          range.previousStartDate,
+          range.previousEndDate,
+          entityField,
+        ),
+        this.getPublishedPostCounts(
+          ids,
+          range.startDate,
+          range.endDate,
+          entityField,
+        ),
+      ]);
 
     const defaults = includePlatforms
       ? DEFAULT_BRAND_ANALYTICS
@@ -346,7 +413,10 @@ export class EntityLeaderboardService {
             {
               entity,
               prevEngagement: previousEngagementMap.get(id) ?? 0,
-              stats: analyticsMap.get(id) ?? defaults,
+              stats: {
+                ...(analyticsMap.get(id) ?? defaults),
+                totalPosts: publishedPostsMap.get(id) ?? 0,
+              },
             },
           ]
         : [];

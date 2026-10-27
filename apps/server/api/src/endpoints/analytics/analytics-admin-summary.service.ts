@@ -22,11 +22,13 @@ import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/contracts/interfaces/billing';
+import { ConfigService } from '@libs/config/config.service';
 import { Inject, Injectable } from '@nestjs/common';
 
 @Injectable()
 export class AnalyticsAdminSummaryService {
   constructor(
+    private readonly configService: ConfigService,
     private readonly botsService: BotsService,
     private readonly brandsService: BrandsService,
     private readonly ingredientsService: IngredientsService,
@@ -85,7 +87,7 @@ export class AnalyticsAdminSummaryService {
         options,
       ),
       this.organizationsService.findAll(
-        { where: { isDeleted: false } },
+        { where: { isDeleted: false, ...this.excludeInternalOrganizations() } },
         options,
       ),
       this.workflowsService.findAll(
@@ -127,6 +129,22 @@ export class AnalyticsAdminSummaryService {
       totalViews: 0,
       viewsGrowth: 0,
     };
+  }
+
+  /**
+   * Drops the internal, demo and system organizations the platform runs
+   * itself on, so the organization count only reflects real accounts. It is the
+   * same list analytics uses to tag internal traffic.
+   */
+  private excludeInternalOrganizations(): { id?: { notIn: string[] } } {
+    const internalIds = String(
+      this.configService.get('POSTHOG_INTERNAL_ORGANIZATION_IDS') || '',
+    )
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean);
+
+    return internalIds.length > 0 ? { id: { notIn: internalIds } } : {};
   }
 
   private extractTotal(result: unknown): number {
