@@ -60,8 +60,20 @@ async function openStoryboardTab(
   // rail keeps its tabs rendered behind the content, so prefer the toggle
   // whenever it reports the panel closed.
   await expect(tabs.or(toggle).first()).toBeVisible();
-  if ((await toggle.getAttribute('aria-expanded')) === 'false')
-    await toggle.click();
+  // A selection can reveal the panel after the toggle mounts, so a click on a
+  // stale "closed" reading would close it again. Re-read until it reports open.
+  // Narrowing below xl with the panel open turns it into the Chat sheet, which
+  // covers the page; dismiss that before reaching for the Context toggle.
+  const sheet = page.getByRole('dialog', { name: 'Agent' });
+  await expect(async () => {
+    const isClosed = (await toggle.getAttribute('aria-expanded')) === 'false';
+    if (isClosed && (await sheet.isVisible()))
+      await sheet.getByRole('button', { name: 'Close panel' }).click();
+    if (isClosed) await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true', {
+      timeout: 2_000,
+    });
+  }).toPass({ timeout: 15_000 });
   await tabs.getByRole('tab', { name: new RegExp(`^${name}`) }).click();
 }
 async function closeStoryboardDrawer(page: Page) {

@@ -1633,6 +1633,48 @@ describe('UniversalWorkspaceShell', () => {
       );
     });
 
+    it('does not report a context left open at a wider size as visible below xl', async () => {
+      navigation.pathname = '/acme/moonrise/workspace';
+      let isCompact = false;
+      const changeListeners = new Set<() => void>();
+      window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        addEventListener: (_: string, listener: () => void) =>
+          changeListeners.add(listener),
+        addListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+        get matches() {
+          return isCompact && query === '(max-width: 1279px)';
+        },
+        media: query,
+        onchange: null,
+        removeEventListener: (_: string, listener: () => void) =>
+          changeListeners.delete(listener),
+        removeListener: vi.fn(),
+      }));
+      render(
+        <ContextSidebarProvider>
+          <AgentDockProvider>
+            <UniversalWorkspaceShell agentApiService={agentApiService}>
+              <DockProbe onDock={recordDock} />
+              <DockSelectionSurface />
+            </UniversalWorkspaceShell>
+          </AgentDockProvider>
+        </ContextSidebarProvider>,
+      );
+      await waitFor(() => expect(dock?.isAvailable).toBe(true));
+      expect(dock?.panel?.activeView).toBe('details');
+
+      // Narrowing the window removes the rail. Nothing is open in a sheet, so
+      // the topbar toggle must not read as pressed.
+      isCompact = true;
+      act(() => changeListeners.forEach((listener) => listener()));
+      await waitFor(() => expect(dock?.panel?.activeView).toBeNull());
+
+      showPanelView(dock, 'details');
+      expect(await screen.findByText('Asset detail')).toBeVisible();
+      expect(dock?.panel?.activeView).toBe('details');
+    });
+
     it('shares the panel between the agent and the selection details as views', async () => {
       navigation.pathname = '/acme/moonrise/workspace';
 

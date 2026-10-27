@@ -5,6 +5,7 @@ import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { SettingsPage } from '../../pages/settings.page';
 import { brandPath, orgSettingsRoute } from '../../utils/app-chrome';
+import { chooseFilterOption, openFilterFacet } from '../../utils/filter-menu';
 import { assertRouteRenders } from '../../utils/route-assertions';
 
 /**
@@ -27,28 +28,31 @@ const BRANDS_ROUTE = orgSettingsRoute(APP_ROUTES.SETTINGS.BRANDS);
 const API_KEYS_PATTERN = '**/api.genfeed.ai/v1/api-keys**';
 const BRANDS_LIST_PATTERN = '**/api.genfeed.ai/v1/brands?**';
 
-/** Opens the Category facet of the models Filters menu. */
-async function openModelCategoryFacet(settingsPage: SettingsPage) {
-  await settingsPage.canvas.getByRole('button', { name: /^Filters/ }).click();
-  await settingsPage.page.getByRole('menuitem', { name: /^Category/ }).click();
-}
-
 async function chooseModelCategory(
   settingsPage: SettingsPage,
   name: RegExp,
 ): Promise<void> {
-  await openModelCategoryFacet(settingsPage);
-  await settingsPage.page.getByRole('menuitemradio', { name }).click();
+  await chooseFilterOption(
+    settingsPage.page,
+    'Category',
+    name,
+    settingsPage.canvas,
+  );
 }
 
 async function expectModelCategoryChecked(
   settingsPage: SettingsPage,
   name: RegExp,
 ): Promise<void> {
-  await openModelCategoryFacet(settingsPage);
-  await expect(
-    settingsPage.page.getByRole('menuitemradio', { name }),
-  ).toHaveAttribute('aria-checked', 'true');
+  const submenu = await openFilterFacet(
+    settingsPage.page,
+    'Category',
+    settingsPage.canvas,
+  );
+  await expect(submenu.getByRole('menuitemradio', { name })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
   await settingsPage.page.keyboard.press('Escape');
 }
 

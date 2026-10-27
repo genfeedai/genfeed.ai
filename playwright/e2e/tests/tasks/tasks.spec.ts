@@ -4,6 +4,7 @@ import type { Page, Route } from '@playwright/test';
 import { playwrightApiOrigin } from '../../config/environment';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { chooseFilterOption } from '../../utils/filter-menu';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 type TaskCreatePayload = {
@@ -415,11 +416,7 @@ test.describe('Tasks', () => {
     // toolbar so it never collides with the per-row status/priority selects.
     const toolbar = authenticatedPage.getByTestId('container-header-actions');
     const chooseStatus = async (name: RegExp) => {
-      await toolbar.getByRole('button', { name: /^Filters/ }).click();
-      await authenticatedPage
-        .getByRole('menuitem', { name: /^Status/ })
-        .click();
-      await authenticatedPage.getByRole('menuitemradio', { name }).click();
+      await chooseFilterOption(authenticatedPage, 'Status', name, toolbar);
     };
     await chooseStatus(/^Blocked/);
 
