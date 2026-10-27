@@ -44,9 +44,10 @@ import {
 } from '../scorers/pairwise';
 import { SpendCapExceededError } from '../spend';
 import {
+  buildTextGenerationRequest,
   PRODUCT_TEXT_RESERVED_CREDITS,
-  PRODUCT_TEXT_ROUTES,
   type ProductTextBinding,
+  routePlatform,
 } from '../text/product-generation';
 import {
   atMost,
@@ -118,20 +119,14 @@ async function generateViaProduct(
   binding: ProductTextBinding,
   repeatIndex: number,
 ): Promise<ProductGeneration> {
-  const route = PRODUCT_TEXT_ROUTES[row.contentKind];
-  if (!route) {
-    throw new Error(
-      `${row.contentKind} has no product text route; the product arm only runs ${Object.keys(PRODUCT_TEXT_ROUTES).join(', ')}`,
-    );
-  }
+  const request = buildTextGenerationRequest(
+    row,
+    binding.brandId,
+    randomUUID(),
+  );
   context.ledger.reserve(PRODUCT_TEXT_RESERVED_CREDITS);
   const result = await binding.port.generate(
-    {
-      brandId: binding.brandId,
-      platform: route.platform,
-      prompt: row.input.prompt,
-      requestKey: randomUUID(),
-    },
+    request,
     new AbortController().signal,
   );
 
@@ -156,7 +151,12 @@ async function generateViaProduct(
     model,
     modelVersion: model,
     promptDigest: sha256Digest(
-      canonicalJson({ platform: route.platform, prompt: row.input.prompt }),
+      canonicalJson({
+        comment: request.comment,
+        prompt: request.prompt,
+        route: request.route,
+        threadSize: request.threadSize,
+      }),
     ),
     promptTokens: 0,
     provider: PRODUCT_PROVIDER,
@@ -165,8 +165,8 @@ async function generateViaProduct(
     rubricVersion: null,
     seed: context.config.seed + repeatIndex,
     settings: {
-      endpoint: 'posts/draft-generations',
-      platform: route.platform,
+      endpoint: result.endpoints.join(' + '),
+      platform: routePlatform(request.route),
     },
   };
   context.ledger.charge({

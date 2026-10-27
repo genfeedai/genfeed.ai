@@ -28,19 +28,29 @@ bun run eval:content:smoke -- --max-credits=300 --dispatcher=live
 - `--mediums=text,image,video` selects cells. The nightly lane runs `text`.
 - `--text-mode=product` runs the text cell through the product instead of the
   harness's own prompt (`--suite=product-ab`). The baseline is still the raw
-  prompt on the cheap model; the challenger sends the same prompt to
-  `POST /posts/draft-generations` with the eval org's key and the Kelder brand,
-  so the brand kit, harness brief, receipt and credit ledger run as for a
-  customer. Both arms face the same deterministic checks and cross-family
+  prompt on the cheap model; the challenger sends the same prompt through the
+  product's own route for that kind (below) with the eval org's key and the
+  Kelder brand, so the brand kit, harness brief, receipt and credit ledger run
+  as for a customer. Both arms face the same deterministic checks and cross-family
   judge, and the summary lists raw vs product-pipeline per kind. Each product
   call is reserved (5 credits) against the cell's cap before it is made and
   charged from the org's balance change afterwards (the reservation if the
   balance cannot be read); a row whose product model shares a family with a
-  judge is voided. Only `social-post` and `linkedin-post` have a product text
-  route today; the other seven kinds are named in the summary as not measured
-  through the product until their endpoints are added to `PRODUCT_TEXT_ROUTES`
-  (`text/product-generation.ts`). A live product text cell needs the three
-  variables below and is `skipped` without them.
+  judge is voided. Routes by kind (`PRODUCT_TEXT_ROUTES` in
+  `text/product-generation.ts`):
+
+  | kind | product route |
+  | --- | --- |
+  | `social-post`, `linkedin-post` | `POST /posts/draft-generations` (branded, receipt-backed draft) |
+  | `thread` | that draft as the opener, then `POST /posts/:id/thread-drafts` for the replies, as the app builds an X thread. The thread-drafts step expands the opener and does not itself read the brand kit. |
+  | `reply` | `POST /reply-bot-configs/author-reply/draft` with the row's `input.comment`. Not metered by the credit ledger, so each call is charged the reservation. Needs the `reply_bot` flag on the eval org. |
+
+  The thread route needs the `publishing` flag on the eval org. The other five
+  kinds (article, linkedin-article, ad-copy, script, newsletter) have no
+  product route yet; the summary names them as not measured through the
+  product. Add a route by extending `PRODUCT_TEXT_ROUTES` and the port. A live
+  product text cell needs the three variables below and is `skipped` without
+  them.
 - Live image and video cells need `CONTENT_EVAL_GENFEED_API_URL`,
   `CONTENT_EVAL_GENFEED_API_KEY` and `CONTENT_EVAL_KELDER_BRAND_ID` (an
   eval-org API key and the synthetic Kelder brand). Without them a cell is
