@@ -123,6 +123,17 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
   };
 });
 
+// StripeService reads the deployment through this subpath, which the barrel
+// mock above does not cover.
+vi.mock('@genfeedai/config/deployment', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@genfeedai/config/deployment')>();
+  return {
+    ...actual,
+    isSelfHostedDeployment: () => false,
+  };
+});
+
 const STRIPE_WEBHOOK_SECRET = 'whsec_test_stripe_webhook_credit_grant_e2e';
 const SCALE_MONTHLY_PRICE_ID = 'price_e2escalemonthly';
 const SCALE_YEARLY_PRICE_ID = 'price_e2escaleyearly';
