@@ -9,6 +9,10 @@ import type {
   StoryboardLongFormEstimate,
   StoryboardPresenterTrack,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-a-roll.contract';
+import {
+  STORYBOARD_TRANSLATION_LANGUAGES,
+  type StoryboardTranslationLanguage,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardStillQuote } from '@genfeedai/contracts/api-types/contracts/storyboard-still.contract';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { StoryboardLongFormBoardProps } from '@genfeedai/props/studio/storyboard.props';
@@ -20,10 +24,11 @@ import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
 import { Button } from '@ui/primitives/button';
 import { EditableText } from '@ui/primitives/editable-text';
 import Field from '@ui/primitives/field';
+import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
+import { useEffect, useMemo, useState } from 'react';
 
 interface TrackProgress {
   total: number;
@@ -63,6 +68,14 @@ export default function StoryboardLongFormBoard({
   actions,
 }: StoryboardLongFormBoardProps) {
   const translate = useTranslations('pages.studioStoryboard.longForm');
+  const locale = useLocale();
+  const languageNames = useMemo(
+    () => new Intl.DisplayNames([locale], { type: 'language' }),
+    [locale],
+  );
+  const [language, setLanguage] = useState<StoryboardTranslationLanguage>(
+    STORYBOARD_TRANSLATION_LANGUAGES[1],
+  );
   const { openConfirm } = useConfirmModal();
   const { href } = useOrgUrl();
   const router = useRouter();
@@ -144,6 +157,20 @@ export default function StoryboardLongFormBoard({
         onConfirm: () =>
           onPerform(() => actions.renderPresenter('aRoll', quote)),
       });
+    });
+  }
+  function makeTranslation() {
+    if (!actions) return;
+    onPerform(async (revision) => {
+      const copy = await actions.translateLongForm(revision, language);
+      NotificationsService.getInstance().success(
+        translate('translateDone', {
+          language: languageNames.of(language) ?? language,
+        }),
+      );
+      router.push(
+        href(`${APP_ROUTES.STUDIO.STORYBOARD}/${encodeURIComponent(copy.id)}`),
+      );
     });
   }
   function openEdit(track: StoryboardPresenterTrack) {
@@ -297,6 +324,43 @@ export default function StoryboardLongFormBoard({
             </div>
           </section>
         </div>
+        <section
+          aria-label={translate('translateTitle')}
+          className="flex flex-col gap-2 rounded-md border border-border p-3"
+        >
+          <p className="text-sm font-medium">{translate('translateTitle')}</p>
+          <p className="text-xs text-muted-foreground">
+            {translate('translateHint')}
+          </p>
+          <div className="flex flex-wrap items-end gap-2">
+            <SelectField
+              name="storyboard-translation-language"
+              label={translate('translateLanguage')}
+              value={language}
+              isDisabled={isBusy}
+              isFullWidth={false}
+              onChange={(event) => {
+                const next = STORYBOARD_TRANSLATION_LANGUAGES.find(
+                  (code) => code === event.target.value,
+                );
+                if (next) setLanguage(next);
+              }}
+            >
+              {STORYBOARD_TRANSLATION_LANGUAGES.map((code) => (
+                <option key={code} value={code}>
+                  {languageNames.of(code) ?? code}
+                </option>
+              ))}
+            </SelectField>
+            <Button
+              label={translate('translateStart')}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+              disabled={isBusy || segments.length === 0}
+              onClick={makeTranslation}
+            />
+          </div>
+        </section>
       </Card>
       {segments.map((segment) => {
         const start = elapsed;

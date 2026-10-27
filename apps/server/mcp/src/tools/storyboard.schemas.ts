@@ -9,6 +9,7 @@ import {
   controlStoryboardRunSchema,
   createStoryboardRunSchema,
   draftStoryboardPlanSchema,
+  translateStoryboardRunSchema,
   updateStoryboardSourceSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import {
@@ -90,6 +91,9 @@ const storyboardLongFormSchema = z.discriminatedUnion('action', [
     .strict(),
   z
     .object({ ...run, action: z.literal('estimate'), expectedRevision })
+    .strict(),
+  translateStoryboardRunSchema
+    .extend({ ...run, action: z.literal('translate') })
     .strict(),
   z.object({ ...run, action: z.literal('reconcile') }).strict(),
   z

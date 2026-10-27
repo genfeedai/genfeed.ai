@@ -12,17 +12,22 @@ import StoryboardLongFormBoard from './StoryboardLongFormBoard';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
-  return { useTranslations: translateFromCatalog };
+  return { useLocale: () => 'en', useTranslations: translateFromCatalog };
 });
 const mocks = vi.hoisted(() => ({
   info: vi.fn(),
+  success: vi.fn(),
   warning: vi.fn(),
   openConfirm: vi.fn(),
   push: vi.fn(),
 }));
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {
-    getInstance: () => ({ info: mocks.info, warning: mocks.warning }),
+    getInstance: () => ({
+      info: mocks.info,
+      success: mocks.success,
+      warning: mocks.warning,
+    }),
   },
 }));
 vi.mock(
@@ -118,6 +123,10 @@ function actions(): StoryboardLongFormActions {
         problem: 'Approve the storyboard before rendering the presenter.',
       },
       totalCredits: 3,
+    })),
+    translateLongForm: vi.fn(async () => ({
+      ...runWith(),
+      id: 'run-es',
     })),
     assembleLongForm: vi.fn(async () => ({
       editorProjectId: 'project-9',
@@ -235,6 +244,20 @@ describe('StoryboardLongFormBoard', () => {
     expect(props.actions?.estimateLongForm).toHaveBeenCalledWith(
       3,
       expect.any(AbortSignal),
+    );
+  });
+
+  it('makes a copy in the chosen language and opens it', async () => {
+    const props = renderBoard();
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Make a copy in this language' }),
+    );
+    await waitFor(() =>
+      expect(mocks.push).toHaveBeenCalledWith('/org/brand/storyboard/run-es'),
+    );
+    expect(props.actions?.translateLongForm).toHaveBeenCalledWith(3, 'es');
+    expect(mocks.success).toHaveBeenCalledWith(
+      'The Spanish copy is ready to review.',
     );
   });
 

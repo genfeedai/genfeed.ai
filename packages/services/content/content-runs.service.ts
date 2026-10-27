@@ -44,6 +44,7 @@ import type {
   CreateStoryboardRun,
   DraftStoryboardPlan,
   StoryboardRun,
+  TranslateStoryboardRun,
   UpdateStoryboardSource,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import {
@@ -390,6 +391,19 @@ export class ContentRunsService extends HTTPBaseService {
       { signal },
     );
     return storyboardLongFormEstimateSchema.parse(response.data);
+  }
+
+  /** A new storyboard with the long-form script in another language. */
+  async translateStoryboardLongForm(
+    brandId: string,
+    runId: string,
+    input: TranslateStoryboardRun,
+  ): Promise<StoryboardRun> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/long-form/translations`,
+      input,
+    );
+    return deserializeStoryboardRunDocument(response.data);
   }
 
   async renderStoryboardPresenter(

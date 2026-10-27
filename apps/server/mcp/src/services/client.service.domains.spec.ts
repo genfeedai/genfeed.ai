@@ -146,6 +146,26 @@ describe('ClientService (MCP) domain clients', () => {
     mockAxiosInstance.post.mockRejectedValueOnce(new Error('stop'));
     await expect(
       service.storyboardLongForm({
+        action: 'translate',
+        brandId: 'brand-1',
+        runId: 'run-1',
+        clientRequestId: 'd160833e-d602-4617-a21b-721eb9aa7da8',
+        expectedRevision: 3,
+        language: 'es',
+      }),
+    ).rejects.toThrow();
+    expect(mockAxiosInstance.post).toHaveBeenLastCalledWith(
+      '/brands/brand-1/storyboard-runs/run-1/long-form/translations',
+      {
+        clientRequestId: 'd160833e-d602-4617-a21b-721eb9aa7da8',
+        expectedRevision: 3,
+        language: 'es',
+      },
+    );
+
+    mockAxiosInstance.post.mockRejectedValueOnce(new Error('stop'));
+    await expect(
+      service.storyboardLongForm({
         action: 'create',
         brandId: 'brand-1',
         clientRequestId: 'd160833e-d602-4617-a21b-721eb9aa7da8',

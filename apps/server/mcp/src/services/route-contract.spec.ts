@@ -261,6 +261,12 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   },
   {
     method: 'Post',
+    sub: ':runId/long-form/translations',
+    controller: 'storyboardRuns',
+    tools: ['storyboard_long_form'],
+  },
+  {
+    method: 'Post',
     sub: ':runId/long-form/estimate',
     controller: 'storyboardRuns',
     tools: ['storyboard_long_form'],
