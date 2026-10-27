@@ -209,6 +209,12 @@ export const ONBOARDING_DRAFT_PLATFORMS: readonly OnboardingDraftPlatform[] = [
 export const ONBOARDING_MAX_DRAFT_ROUNDS = 2;
 
 /**
+ * Name of the organization created for a personal-mailbox signup. The URL slug
+ * is `personal-<id tail>`, never derived from the email handle.
+ */
+export const PERSONAL_ORGANIZATION_LABEL = 'Personal';
+
+/**
  * Personal email domains that require manual brand URL input.
  * Corporate email domains auto-extract brand from the domain.
  */
