@@ -11,6 +11,7 @@ import { BrandedModeResolverService } from '@api/services/branded-text-generatio
 import { BrandedTextGenerationService } from '@api/services/branded-text-generation/branded-text-generation.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { SourceCollectorService } from '@api/services/source-collector/source-collector.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
   PostCategory,
@@ -51,8 +52,8 @@ describe('PostDraftGenerationService', () => {
   const mockPostsService = {
     create: vi.fn(),
     findOne: vi.fn(),
-    listRecentPublishedTexts: vi.fn(),
   };
+  const mockPrisma = { post: { findMany: vi.fn() } };
   const mockCache = {
     generateKey: vi.fn((...parts: string[]) => parts.join(':')),
     getOrSet: vi.fn(async (_key: string, factory: () => Promise<unknown>) =>
@@ -94,7 +95,7 @@ describe('PostDraftGenerationService', () => {
         fallbackKey ?? DEFAULT_MINI_TEXT_MODEL,
     );
     mockModeResolver.resolve.mockResolvedValue({ mode: 'approved_brand' });
-    mockPostsService.listRecentPublishedTexts.mockResolvedValue([]);
+    mockPrisma.post.findMany.mockResolvedValue([]);
     resolveLearning = vi.spyOn(decisions, 'resolveForGeneration');
     const context = await Test.createTestingModule({
       providers: [
@@ -113,6 +114,7 @@ describe('PostDraftGenerationService', () => {
         { provide: BrandedModeResolverService, useValue: mockModeResolver },
         { provide: SourceCollectorService, useValue: mockSourceCollector },
         { provide: CacheService, useValue: mockCache },
+        { provide: PrismaService, useValue: mockPrisma },
         { provide: LoggerService, useValue: mockLogger },
       ],
     }).compile();
@@ -689,18 +691,24 @@ describe('PostDraftGenerationService', () => {
 
     it('shows the model the brand latest published posts and asks it not to repeat them', async () => {
       mockBrandedText.generate.mockResolvedValue(saved);
-      mockPostsService.listRecentPublishedTexts.mockResolvedValue([
-        'Season it twice.\nWipe, never soak.',
-        'x'.repeat(400),
+      mockPrisma.post.findMany.mockResolvedValue([
+        { description: 'Season it twice.\nWipe, never soak.' },
+        { description: 'x'.repeat(400) },
       ]);
 
       await service.generateDraftText(dto, identity);
 
-      expect(mockPostsService.listRecentPublishedTexts).toHaveBeenCalledWith(
-        organizationId,
-        brandId,
-        CredentialPlatform.TWITTER,
-        20,
+      expect(mockPrisma.post.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 20,
+          where: expect.objectContaining({
+            brandId,
+            isDeleted: false,
+            organizationId,
+            parentId: null,
+            platform: CredentialPlatform.TWITTER,
+          }),
+        }),
       );
       const lines = promptOf().split('\n');
       expect(lines).toContain(
@@ -712,7 +720,7 @@ describe('PostDraftGenerationService', () => {
 
     it('keeps the list per request key so a retry of the same request sends the same prompt', async () => {
       mockBrandedText.generate.mockResolvedValue(saved);
-      mockPostsService.listRecentPublishedTexts.mockResolvedValue(['Post A']);
+      mockPrisma.post.findMany.mockResolvedValue([{ description: 'Post A' }]);
 
       await service.generateDraftText(dto, identity);
 
@@ -725,9 +733,7 @@ describe('PostDraftGenerationService', () => {
 
     it('drafts without the list when the posts cannot be read', async () => {
       mockBrandedText.generate.mockResolvedValue(saved);
-      mockPostsService.listRecentPublishedTexts.mockRejectedValue(
-        new Error('db down'),
-      );
+      mockPrisma.post.findMany.mockRejectedValue(new Error('db down'));
 
       await expect(
         service.generateDraftText(dto, identity),

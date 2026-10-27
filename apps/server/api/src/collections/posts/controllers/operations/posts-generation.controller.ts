@@ -199,11 +199,10 @@ export class PostsGenerationController {
     @Body() dto: GeneratePostDraftDto,
     @CurrentUser() user: User,
   ): Promise<PostDraftGenerationResult> {
-    let paidCalls = 0;
     return finalizeBrandedTextCredits(
       request,
       (model) => resolveTextModelMinimumCredits(this.modelsService, model),
-      () =>
+      (onProviderDispatch) =>
         this.postGenerationService.generateDraftText(
           dto,
           user,
@@ -211,13 +210,8 @@ export class PostsGenerationController {
             request,
             user.organizationId,
           ),
-          {
-            onProviderDispatch: () => {
-              paidCalls += 1;
-            },
-          },
+          { onProviderDispatch },
         ),
-      () => paidCalls,
     );
   }
 

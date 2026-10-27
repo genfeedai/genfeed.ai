@@ -15,26 +15,25 @@ interface BrandedTextCreditOutcome {
  * any provider attempt stays deferred and its reservation is released.
  *
  * A request can make more than one paid provider call (the over-limit retry).
- * When the caller reports how many it made, each one is charged the model
- * minimum; without the report one call is assumed.
+ * `generate` receives a callback to report each one it made; each is charged
+ * the model minimum, and without a report one call is assumed.
  */
 export async function finalizeBrandedTextCredits<
   T extends BrandedTextCreditOutcome,
 >(
   request: Request,
   minimumCredits: (model: string | undefined) => Promise<number>,
-  generate: () => Promise<T>,
-  countPaidCalls?: () => number,
+  generate: (onProviderDispatch: () => void) => Promise<T>,
 ): Promise<T> {
+  let reportedCalls = 0;
   let result: T;
   try {
-    result = await generate();
+    result = await generate(() => {
+      reportedCalls += 1;
+    });
   } catch (error: unknown) {
     if (error instanceof BrandedGenerationBlockedException) {
-      const paidCalls = Math.max(
-        countPaidCalls?.() ?? 0,
-        error.providerAttempt ? 1 : 0,
-      );
+      const paidCalls = Math.max(reportedCalls, error.providerAttempt ? 1 : 0);
       if (paidCalls > 0)
         finalizeDeferredTextCredits(
           request,
@@ -46,8 +45,7 @@ export async function finalizeBrandedTextCredits<
   if (!result.brandedReceipt.isReplayed)
     finalizeDeferredTextCredits(
       request,
-      (await minimumCredits(result.model)) *
-        Math.max(1, countPaidCalls?.() ?? 1),
+      (await minimumCredits(result.model)) * Math.max(1, reportedCalls),
     );
   return result;
 }

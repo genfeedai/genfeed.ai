@@ -2,6 +2,7 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { LearningDecisionService } from '@api/collections/content-learning/services/learning-decision.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { isValidPostLength } from '@api/collections/posts/services/post-generation-text.util';
+import { listRecentPublishedTexts } from '@api/collections/posts/services/post-recent-published.util';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
@@ -16,6 +17,7 @@ import type { TextDispatchKeyResolver } from '@api/services/byok/text-dispatch-b
 import { CacheService } from '@api/services/cache/cache.service';
 import { SourceCollectionFailedException } from '@api/services/source-collector/source-collection-failed.exception';
 import { SourceCollectorService } from '@api/services/source-collector/source-collector.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
   PostCategory,
@@ -83,6 +85,7 @@ export class PostDraftGenerationService {
     private readonly brandedModeResolver: BrandedModeResolverService,
     private readonly sourceCollector: SourceCollectorService,
     private readonly cacheService: CacheService,
+    private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
   ) {}
   async generateDraftText(
@@ -181,18 +184,12 @@ export class PostDraftGenerationService {
           format: 'text',
           ...brandMode,
           ...(parentRequestId ? { parentRequestId } : {}),
-          originalPrompt: [
-            `Write one ${dto.platform} post, at most ${limit} characters.`,
-            'Return only the finished post text, without explanations or quotation marks.',
-            `Request: ${dto.prompt.trim()}`,
-            ...(referencePost ? [referencePost] : []),
-            ...(recentPosts ? [recentPosts] : []),
-            ...(shortenTo
-              ? [
-                  `Your previous draft was over the ${limit}-character limit. Write the post again, shorter: at most ${shortenTo} characters.`,
-                ]
-              : []),
-          ].join('\n'),
+          originalPrompt: this.buildDraftPrompt(
+            dto,
+            limit,
+            [referencePost, recentPosts],
+            shortenTo,
+          ),
           provider: 'openrouter',
           model,
           generationParameters: {
@@ -284,6 +281,25 @@ export class PostDraftGenerationService {
     };
   }
 
+  private buildDraftPrompt(
+    dto: PostDraftGenerationInput,
+    limit: number,
+    quotedMaterial: Array<string | null>,
+    shortenTo: number | null,
+  ): string {
+    return [
+      `Write one ${dto.platform} post, at most ${limit} characters.`,
+      'Return only the finished post text, without explanations or quotation marks.',
+      `Request: ${dto.prompt.trim()}`,
+      ...quotedMaterial.filter((material) => material),
+      ...(shortenTo
+        ? [
+            `Your previous draft was over the ${limit}-character limit. Write the post again, shorter: at most ${shortenTo} characters.`,
+          ]
+        : []),
+    ].join('\n');
+  }
+
   /**
    * The brand's latest published posts, so the model does not reopen with the
    * same hook or restate the same point. Best effort: a failed read drafts
@@ -303,7 +319,8 @@ export class PostDraftGenerationService {
           dto.requestKey ?? '',
         ),
         () =>
-          this.postsService.listRecentPublishedTexts(
+          listRecentPublishedTexts(
+            this.prisma,
             identity.organizationId,
             brandId,
             dto.platform,
