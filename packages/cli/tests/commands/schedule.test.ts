@@ -37,6 +37,7 @@ vi.mock('ora', () => {
     start: () => spinner,
     stop: vi.fn(),
     succeed: vi.fn(),
+    warn: vi.fn(),
   };
   return { default: () => spinner };
 });
@@ -165,6 +166,37 @@ describe('schedule lifecycle commands', () => {
         failed: [{ contentId: 'c2', reason: 'Not found' }],
         scheduled: [{ id: 's1', scheduledAt: '2026-09-02T09:00:00Z' }],
       });
+    });
+
+    it('exits non-zero when any item failed and zero when all were scheduled', async () => {
+      try {
+        await run('--brand', 'brand-flag');
+        expect(process.exitCode).toBe(1);
+
+        process.exitCode = undefined;
+        mockBulkSchedule.mockResolvedValue({
+          failed: [],
+          scheduled: [{ id: 's1', scheduledAt: '2026-09-02T09:00:00Z' }],
+        });
+        await run('--brand', 'brand-flag');
+        expect(process.exitCode).toBeUndefined();
+      } finally {
+        process.exitCode = undefined;
+      }
+    });
+
+    it('schedules for the active brand when --brand is omitted', async () => {
+      await run();
+
+      expect(mockBulkSchedule).toHaveBeenCalledWith('brand-active', items);
+      process.exitCode = undefined;
+    });
+
+    it('stops before scheduling when there is no brand', async () => {
+      mockGetActiveBrand.mockResolvedValue(undefined);
+
+      await expect(run()).rejects.toThrow();
+      expect(mockBulkSchedule).not.toHaveBeenCalled();
     });
 
     it('rejects items that are not a list of contentId, platform and scheduledAt', async () => {

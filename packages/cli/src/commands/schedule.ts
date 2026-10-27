@@ -233,7 +233,13 @@ scheduleCommand
 
       const spinner = ora(`Scheduling ${items.length} items...`).start();
       const { failed, scheduled } = await bulkSchedule(brandId, items);
-      spinner.succeed(`${scheduled.length} of ${items.length} items scheduled`);
+      const summary = `${scheduled.length} of ${items.length} items scheduled`;
+      if (failed.length > 0) {
+        spinner.warn(summary);
+        process.exitCode = 1;
+      } else {
+        spinner.succeed(summary);
+      }
 
       if (options.json) {
         printJson({ failed, scheduled });
