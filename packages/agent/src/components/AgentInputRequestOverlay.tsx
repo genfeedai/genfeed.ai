@@ -1,6 +1,7 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { AgentInputRequestOverlayProps } from '@genfeedai/props/ui/agent/agent-input-request-overlay.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
@@ -216,9 +217,9 @@ export function AgentInputRequestOverlay({
                         {option.label}
                       </span>
                       {isRecommended ? (
-                        <span className="rounded-full bg-foreground/[0.06] px-2 py-0.5 text-2xs font-medium uppercase tracking-[0.12em] text-foreground/55">
+                        <Badge variant="secondary">
                           {translate('recommended')}
-                        </span>
+                        </Badge>
                       ) : null}
                     </span>
                     {option.description ? (

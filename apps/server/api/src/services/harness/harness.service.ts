@@ -15,9 +15,13 @@ import {
   type ContentHarnessPackActivation,
   ContentHarnessRegistry,
   composeContentHarnessBrief,
+  INSTAGRAM_PLATFORM_HARNESS_PACK,
   isContentHarnessPack,
+  LINKEDIN_PLATFORM_HARNESS_PACK,
+  TIKTOK_PLATFORM_HARNESS_PACK,
   VIRAL_PSYCHOLOGY_HARNESS_PACK,
   X_PLATFORM_HARNESS_PACK,
+  YOUTUBE_PLATFORM_HARNESS_PACK,
 } from '@genfeedai/harness';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -197,6 +201,11 @@ export class ContentHarnessService implements OnModuleInit {
     registry.registerPack(CORE_CONTENT_HARNESS_PACK);
     // X/Twitter craft rules from open-source ranking signals (no-op off-platform).
     registry.registerPack(X_PLATFORM_HARNESS_PACK);
+    // Copy-only platform packs; each is a no-op off its own platform.
+    registry.registerPack(LINKEDIN_PLATFORM_HARNESS_PACK);
+    registry.registerPack(INSTAGRAM_PLATFORM_HARNESS_PACK);
+    registry.registerPack(TIKTOK_PLATFORM_HARNESS_PACK);
+    registry.registerPack(YOUTUBE_PLATFORM_HARNESS_PACK);
     // Stricter brand-fidelity / anti-genericity directives.
     registry.registerPack(BRAND_FIDELITY_HARNESS_PACK);
     // Demand -> hook -> retention -> conversion craft layer (platform-agnostic).

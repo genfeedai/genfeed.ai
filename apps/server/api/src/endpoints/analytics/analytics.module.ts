@@ -25,6 +25,7 @@ import { AnalyticsExportService } from '@api/endpoints/analytics/analytics-expor
 import { AnalyticsWinnersController } from '@api/endpoints/analytics/analytics-winners.controller';
 import { BusinessAnalyticsService } from '@api/endpoints/analytics/business-analytics.service';
 import { EntityLeaderboardService } from '@api/endpoints/analytics/entity-leaderboard.service';
+import { XGrowthReportService } from '@api/endpoints/analytics/x-growth-report/x-growth-report.service';
 import { CacheModule } from '@api/services/cache/cache.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.module';
@@ -73,6 +74,7 @@ import { Module } from '@nestjs/common';
   providers: [
     AccountAnalyticsService,
     AccountAnalyticsSnapshotService,
+    XGrowthReportService,
     AnalyticsAdminSummaryService,
     AnalyticsService,
     AnalyticsExportService,

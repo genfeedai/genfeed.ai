@@ -706,6 +706,7 @@ contentLearningOperations ContentLearningOperation[]
   agentGoals                AgentGoal[]
   agentMemories             AgentMemory[]
   promotedAgentMemories     AgentMemory[] @relation("AgentMemoryPromotions")
+  agentMemoryRevisions      AgentMemoryRevision[] @relation("AgentMemoryRevisionActors")
   agentThreads              AgentThread[]
   agentMessages             AgentMessage[]
   agentTransfers            AgentTransfer[]
@@ -814,6 +815,8 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   knowledgeSources KnowledgeSource[]
   knowledgeSpaces KnowledgeSpace[]
   knowledgeSourceRefreshRuns KnowledgeSourceRefreshRun[]
+  knowledgeSourceConflicts KnowledgeSourceConflict[]
+  knowledgeConflictScans KnowledgeConflictScan[]
   knowledgeCaptureRequests KnowledgeCaptureRequest[]
   id                        String                @id @default(cuid())
   authProviderLogoUrl       String?
@@ -869,6 +872,7 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   agentCampaigns                AgentCampaign[]
   agentGoals                    AgentGoal[]
   agentMemories                 AgentMemory[]
+  agentMemoryRevisions          AgentMemoryRevision[]
   agentThreads                  AgentThread[]
   agentMessages                 AgentMessage[]
   agentTransfers                AgentTransfer[]
@@ -2346,6 +2350,10 @@ model Ingredient {
   status                IngredientStatus         @default(DRAFT)
   // Permanent origin (#6010). Unlike `status`, never changes after creation.
   origin                IngredientOrigin         @default(UNKNOWN)
+  // True for a Studio video draft (a cheap preview, #7729). Written at creation
+  // from the submit options and never changed; the retry credit-back (#7730)
+  // does not count a draft as the first attempt of a brief.
+  isDraftRender         Boolean                  @default(false)
   transformations       TransformationCategory[] @default([])
   order                 Int                      @default(0)
   version               Int                      @default(1)
@@ -5119,6 +5127,11 @@ model AgentMemory {
   importance          Float?
   confidence          Float?
   performanceSnapshot Json?
+  currentRevisionId   String?
+  currentRevision     AgentMemoryRevision? @relation("AgentMemoryCurrentRevision", fields: [currentRevisionId, id, organizationId], references: [id, memoryId, organizationId], onDelete: Restrict, map: "agent_memories_current_revision_fkey")
+  promotedRevisionId  String?
+  promotedRevision    AgentMemoryRevision? @relation("AgentMemoryPromotedRevision", fields: [promotedRevisionId, id, organizationId], references: [id, memoryId, organizationId], onDelete: Restrict, map: "agent_memories_promoted_revision_fkey")
+  revisions           AgentMemoryRevision[] @relation("AgentMemoryRevisions")
   promotedSkillId     String?
   promotedSkill       Skill?         @relation(fields: [promotedSkillId], references: [id], onDelete: Restrict)
   promotedAt          DateTime?
@@ -5132,6 +5145,44 @@ model AgentMemory {
   @@index([organizationId, isDeleted, scope, brandId])
   @@index([promotedSkillId])
   @@map("agent_memories")
+}
+
+/// Immutable correction history of an AgentMemory. The revision row is the
+/// authority; the memory's own content columns are a projection of the current
+/// revision. `legacy_snapshot` rows are written by the migration for memories
+/// that predate revisions: their actor and reason are unknown and stay NULL.
+model AgentMemoryRevision {
+  id                  String       @id @default(cuid())
+  organizationId      String
+  organization        Organization @relation(fields: [organizationId], references: [id])
+  memoryId            String
+  memory              AgentMemory  @relation("AgentMemoryRevisions", fields: [memoryId, organizationId], references: [id, organizationId], onDelete: Restrict, map: "agent_memory_revisions_memory_fkey")
+  revision            Int
+  kind                String
+  content             String
+  summary             String?
+  tags                String[]     @default([])
+  importance          Float?
+  confidence          Float?
+  reason              String?
+  actorUserId         String?
+  actor               User?        @relation("AgentMemoryRevisionActors", fields: [actorUserId], references: [id], onDelete: Restrict)
+  originalCreatedAt   DateTime?
+  originalOwnerUserId String?
+  provenance          Json         @default("{}")
+  requestId           String?
+  requestHash         String?
+  isDeleted           Boolean      @default(false)
+  createdAt           DateTime     @default(now())
+  currentOf           AgentMemory[] @relation("AgentMemoryCurrentRevision")
+  promotedFrom        AgentMemory[] @relation("AgentMemoryPromotedRevision")
+  contextEntries      ContextEntry[] @relation("ContextEntrySourceMemoryRevision")
+
+  @@unique([organizationId, memoryId, revision], map: "agent_memory_revisions_org_memory_revision_key")
+  @@unique([organizationId, memoryId, requestId], map: "agent_memory_revisions_org_memory_request_key")
+  @@unique([id, memoryId, organizationId], map: "agent_memory_revisions_id_memoryId_organizationId_key")
+  @@index([organizationId, memoryId, revision(sort: Desc)])
+  @@map("agent_memory_revisions")
 }
 
 model AgentThreadEvent {
@@ -7121,6 +7172,8 @@ model ContextEntry {
   embeddingJobs ContextEmbeddingJob[]
   knowledgeEmbeddingManifest KnowledgeEmbeddingManifest? @relation(fields: [knowledgeEmbeddingManifestId, knowledgeSourceVersionId, knowledgeSourceId, organizationId], references: [id, versionId, sourceId, organizationId], onDelete: Restrict, map: "context_entries_embedding_manifest_fkey")
   sourceAgentMemory AgentMemory? @relation("ContextEntrySourceMemory", fields: [sourceAgentMemoryId, organizationId], references: [id, organizationId], onDelete: Restrict, map: "context_entries_source_memory_fkey")
+  sourceAgentMemoryRevisionId String?
+  sourceAgentMemoryRevision AgentMemoryRevision? @relation("ContextEntrySourceMemoryRevision", fields: [sourceAgentMemoryRevisionId, sourceAgentMemoryId, organizationId], references: [id, memoryId, organizationId], onDelete: Restrict, map: "context_entries_source_memory_revision_fkey")
   @@unique([id, organizationId], map: "context_entries_id_organizationId_key")
   @@unique([knowledgeEmbeddingManifestId, knowledgeChunkIndex], map: "context_entries_manifest_chunk_key")
   @@index([sourceAgentMemoryId, organizationId], map: "context_entries_source_memory_idx")
@@ -8024,6 +8077,13 @@ enum KnowledgeSourceSyncState {
   FAILED
 }
 
+enum KnowledgeConflictStatus {
+  OPEN
+  DISMISSED
+  RESOLVED
+  CLEARED
+}
+
 enum KnowledgeRefreshRunStatus {
   QUEUED
   PROCESSING
@@ -8116,6 +8176,9 @@ model KnowledgeSourceVersion {
   supersedesVersions KnowledgeSourceVersion[] @relation("KnowledgeVersionSupersession")
   chunks             ContextEntry[]
   candidateRefreshRuns KnowledgeSourceRefreshRun[]
+  conflictsAsA        KnowledgeSourceConflict[] @relation("KnowledgeConflictVersionA")
+  conflictsAsB        KnowledgeSourceConflict[] @relation("KnowledgeConflictVersionB")
+  conflictScans       KnowledgeConflictScan[]
   @@unique([sourceId, version])
   @@unique([id, sourceId, organizationId])
   @@index([organizationId, sourceId, isDeleted, isCurrent], map: "knowledge_source_versions_scope_current_idx")
@@ -8189,6 +8252,60 @@ model KnowledgeSourceRefreshRun {
   @@index([organizationId, sourceId, status, isDeleted])
   @@index([organizationId, nextAttemptAt, isDeleted])
   @@map("knowledge_source_refresh_runs")
+}
+
+/// A judged pair of current Knowledge versions. OPEN means the judge found the
+/// two disagree; CLEARED records a pair judged consistent so it is not judged
+/// again. Versions are stored in id order so a pair has one row.
+model KnowledgeSourceConflict {
+  id              String                  @id @default(uuid())
+  organizationId  String
+  versionAId      String
+  sourceAId       String
+  versionBId      String
+  sourceBId       String
+  contentHashA    String
+  contentHashB    String
+  status          KnowledgeConflictStatus @default(OPEN)
+  summary         String?
+  excerptA        String?
+  excerptB        String?
+  judgeModel      String
+  judgedAt        DateTime                @default(now())
+  decidedAt       DateTime?
+  decidedByUserId String?
+  isDeleted       Boolean                 @default(false)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  organization    Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  versionA        KnowledgeSourceVersion  @relation("KnowledgeConflictVersionA", fields: [versionAId, sourceAId, organizationId], references: [id, sourceId, organizationId], onDelete: Restrict)
+  versionB        KnowledgeSourceVersion  @relation("KnowledgeConflictVersionB", fields: [versionBId, sourceBId, organizationId], references: [id, sourceId, organizationId], onDelete: Restrict)
+
+  @@unique([organizationId, versionAId, versionBId])
+  @@index([organizationId, status, isDeleted])
+  @@index([organizationId, versionBId, status, isDeleted])
+  @@map("knowledge_source_conflicts")
+}
+
+model KnowledgeConflictScan {
+  id             String                 @id @default(uuid())
+  organizationId String
+  versionId      String
+  sourceId       String
+  contentHash    String
+  candidateCount Int                    @default(0)
+  isComplete     Boolean                @default(false)
+  attemptCount   Int                    @default(0)
+  scannedAt      DateTime               @default(now())
+  isDeleted      Boolean                @default(false)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  version        KnowledgeSourceVersion @relation(fields: [versionId, sourceId, organizationId], references: [id, sourceId, organizationId], onDelete: Restrict)
+
+  @@unique([organizationId, versionId])
+  @@index([organizationId, isComplete, isDeleted])
+  @@map("knowledge_conflict_scans")
 }
 
 model KnowledgeCaptureRequest {

@@ -227,7 +227,10 @@ describe('verified Knowledge citations in the final answer', () => {
       {} as never,
       {} as never,
       {} as never,
-      new AgentKnowledgeCitationService(verifier as never),
+      new AgentKnowledgeCitationService(
+        verifier as never,
+        { findOpenForVersions: async () => [] } as never,
+      ),
     );
     runner.finalizeKnowledgeCitations.mockImplementation(
       (...args: Parameters<typeof real.finalizeKnowledgeCitations>) =>
@@ -293,5 +296,45 @@ describe('verified Knowledge citations in the final answer', () => {
 
     expect(result.message.content).toBe('Nothing cited.');
     expect(result.message.metadata).not.toHaveProperty('knowledgeCitations');
+  });
+});
+
+describe('announced drafts that were never written', () => {
+  function reply(content: string) {
+    return {
+      id: 'reply',
+      usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+      choices: [{ message: { content, role: 'assistant', tool_calls: [] } }],
+    };
+  }
+  const draftText = [
+    'Here are the drafts:',
+    '1. Season it twice, wipe it never soak it, and it will outlast you.',
+    '2. Your skillet is not dirty, it is seasoned. Stop scrubbing it clean.',
+  ].join('\n');
+
+  it('asks once for the drafts and answers with the ones it writes', async () => {
+    const { run, provider } = setup();
+    provider.chatCompletion
+      .mockResolvedValueOnce(reply('Three drafts are ready above.'))
+      .mockResolvedValueOnce(reply(draftText));
+
+    const result = await run(50);
+
+    expect(provider.chatCompletion).toHaveBeenCalledTimes(2);
+    expect(result.message.content).toBe(draftText);
+  });
+
+  it('does not show the claim when the retry still writes nothing', async () => {
+    const { run, provider } = setup();
+    provider.chatCompletion.mockResolvedValue(
+      reply('Three drafts are ready above.'),
+    );
+
+    const result = await run(50);
+
+    expect(provider.chatCompletion).toHaveBeenCalledTimes(2);
+    expect(result.message.content).not.toContain('are ready above');
+    expect(result.message.content).toContain('have not written the drafts');
   });
 });

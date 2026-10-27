@@ -1,4 +1,8 @@
 import type { ToolCallSummary } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import {
+  claimsUnproducedDrafts,
+  withdrawUnproducedDraftClaims,
+} from '@api/services/agent-orchestrator/utils/agent-unproduced-drafts.util';
 import { type AgentUiAction } from '@genfeedai/contracts/interfaces';
 
 /**
@@ -20,9 +24,14 @@ export function normalizeFinalAssistantContent(
       action.title?.trim().toLowerCase() === 'create post' &&
       action.data?.status === 'pending',
   );
-  const content = hasPendingPostProposal
+  const proposalContent = hasPendingPostProposal
     ? normalizePendingPostContent(assistantContent)
     : assistantContent;
+  // Drafts the reply announces but the turn never produced are not shown as
+  // finished, even when the corrective round did not fix them.
+  const content = claimsUnproducedDrafts(proposalContent, toolCalls, uiActions)
+    ? withdrawUnproducedDraftClaims(proposalContent)
+    : proposalContent;
 
   if (content.trim().length > 0) {
     if (hasTurboRunResultCard) {

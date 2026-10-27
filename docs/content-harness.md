@@ -82,16 +82,30 @@ visual kinds it appends a short brand look rather than the whole brief.
 
 ## Built-in packs
 
-The API registers these five at startup, in this order
+The API registers these nine at startup, in this order
 (`ContentHarnessService.loadRegistry`):
 
 | Pack id | Source | Contributes |
 | --- | --- | --- |
 | `core-baseline` | `defaults.ts` | Brand name, topic and offer; tone, style, audience, pillars and values from the voice profile; persona anchors; objective, platform and format evaluation criteria; the brand's harness profile; generic anti-filler guardrails. For `music`, a reduced voice-only variant. |
 | `platform-x` | `platforms/x-algorithm.ts` | Craft rules, guardrails and criteria, only when `intent.platform` is X or Twitter. Returns nothing for any other platform. |
+| `platform-linkedin` | `platforms/linkedin.ts` | Only when `intent.platform` is LinkedIn: a hook that survives the "see more" fold, readable structure, no links in the body, at most five hashtags, the shared caption limit. Copy surface only. |
+| `platform-instagram` | `platforms/instagram.ts` | Only when `intent.platform` is Instagram or Reels: a hook in the first 125 caption characters, captions that add to the visual, carousel and Reels structure, the shared caption limit. Copy surface only. |
+| `platform-tiktok` | `platforms/tiktok.ts` | Only when `intent.platform` is TikTok: a true hook in the first seconds, one idea per video, a searchable caption, disclosure. Copy surface only. |
+| `platform-youtube` | `platforms/youtube.ts` | Only when `intent.platform` is YouTube or Shorts: searchable titles and descriptions, a payoff that matches the click, Shorts and long-form openings. Copy surface only. |
 | `brand-fidelity` | `brand-fidelity.ts` | Anti-genericity guardrails and a "would someone who knows this brand recognise it" criterion. Returns nothing for `music`. |
 | `viral-psychology` | `persuasion/viral-psychology.ts` | Demand, hook, retention and conversion craft, and the matching score keys. Registered with `surfaces: ['copy']`, so it never reaches media prompts. |
 | `b2b-media-craft` | `b2b-media-craft.ts` | For `video`, `ugc`, `image` and `ad-creative` briefs whose audience, offer or topic reads as business buyers: one action arc, a real product anchor, no model-rendered logos, interface or text. Registered with `surfaces: ['media']`, so it never reaches copy. Returns nothing for `music`. |
+
+Caption limits in the platform packs come from `PLATFORM_PREVIEW_LIMITS` in
+`@genfeedai/contracts/constants`, the same table the post previews use.
+
+The platform packs replace the full product skills that branded generation used to
+inject for these channels. When a brand has not picked skills, a turn on X,
+LinkedIn, Instagram, TikTok or YouTube adds no skill text
+(`default-first-party-skills.ts`); skills the brand enables or the caller
+requests still load, and agent-type defaults are unchanged. The public
+`SKILL.md` files in `skills/` stay the long form for agent users.
 
 The X pack encodes durable implications of X's published ranking material:
 conversation and reposts matter more than likes, and negative feedback is heavily
@@ -124,7 +138,7 @@ relevance 0.65 or higher. That is where promoted winners come back in. See below
 
 ## External packs
 
-A deployment can add packs beyond the built-in four by naming npm packages in
+A deployment can add packs beyond the built-in ones by naming npm packages in
 `CONTENT_HARNESS_PACKAGES`, a comma-separated list. The config schema validates
 the list. Pack contents belong to the operator who supplies them and never
 appear in this repository.
@@ -155,9 +169,22 @@ API refuses to start. It does not fall back to the built-in packs. With
 normal configuration.
 
 The report also lists `builtInPackIds` and `loadedPackIds`. Built-in packs never
-count as an activated external pack. `getActivationReport()` is a service method.
-No HTTP route exposes it today, so the evidence of activation is the startup log
-line and the boot smoke test.
+count as an activated external pack.
+
+A platform admin reads the report of a running API at
+`GET /admin/harness/activation` (super admin, and the caller's IP must be on
+`ADMIN_ALLOWED_IPS`). It returns the built-in pack ids, each external
+specifier with its state, and every registered pack with its version, never pack
+contents. From the CLI:
+
+```bash
+genfeed admin harness                      # list loaded packs and external states
+genfeed admin harness --expect <pack-id>   # exit non-zero unless that pack loaded externally
+```
+
+`--expect` fails for a pack id that only a built-in pack provides, so a fallback
+to the built-in packs never passes as activation. The startup log line and the
+boot smoke test remain the other evidence.
 
 At brief time, `appliedPacks` tells you which packs actually contributed, and
 `HarnessGenerationService` logs it as an operator-only receipt: pack ids and

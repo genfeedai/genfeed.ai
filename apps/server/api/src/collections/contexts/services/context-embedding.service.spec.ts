@@ -54,6 +54,7 @@ function fixture() {
     embeddingGeneration: 1,
     embeddingStoredGeneration: 0,
     sourceAgentMemoryId: null,
+    sourceAgentMemoryRevisionId: null,
     sourceSnapshotHash: null,
     knowledgeSourceId: null,
     knowledgeSourceVersionId: null,

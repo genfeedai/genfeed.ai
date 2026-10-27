@@ -34,6 +34,7 @@ import {
   AnalyticsTopContentSerializer,
   AnalyticsTrendSerializer,
   FleetEvaluationPolicySerializer,
+  XGrowthReportSerializer,
 } from '@serializers/server/common/analytics.serializer';
 import {
   ApiKeyFullSerializer,
@@ -314,6 +315,7 @@ describe('Server Serializers', () => {
         'function',
       );
       expect(typeof FleetEvaluationPolicySerializer.serialize).toBe('function');
+      expect(typeof XGrowthReportSerializer.serialize).toBe('function');
     });
   });
 

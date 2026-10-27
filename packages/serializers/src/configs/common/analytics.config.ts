@@ -18,6 +18,7 @@ import {
   analyticsTrendAttributes,
   analyticsWinnerPostAttributes,
   fleetEvaluationPolicyAttributes,
+  xGrowthReportAttributes,
 } from '@serializers/attributes/common';
 import { simpleConfig } from '@serializers/builders';
 
@@ -121,4 +122,9 @@ export const accountAnalyticsDetailSerializerConfig = simpleConfig(
 export const fleetEvaluationPolicySerializerConfig = simpleConfig(
   'fleet-evaluation-policy',
   fleetEvaluationPolicyAttributes,
+);
+
+export const xGrowthReportSerializerConfig = simpleConfig(
+  'x-growth-report',
+  xGrowthReportAttributes,
 );

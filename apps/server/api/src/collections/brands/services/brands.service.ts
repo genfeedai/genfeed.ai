@@ -921,12 +921,14 @@ export class BrandsService extends BaseService<
     brandId: string,
     dto: GenerateTurboIdeasDto,
     organizationId: string,
+    harnessBrief: string,
   ): Promise<TurboIdea[]> {
     return this.brandGenerationService.generateTurboIdeas(
       brandId,
       dto,
       organizationId,
       (criteria) => this.findOne(criteria),
+      harnessBrief,
     );
   }
 
@@ -969,9 +971,6 @@ export class BrandsService extends BaseService<
     );
   }
 
-  /**
-   * Count brands matching filter
-   */
   count(filter: Record<string, unknown>): Promise<number> {
     return this.delegate.count({ where: filter }) as Promise<number>;
   }

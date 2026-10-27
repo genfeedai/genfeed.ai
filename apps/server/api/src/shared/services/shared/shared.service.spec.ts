@@ -325,6 +325,32 @@ describe('SharedService', () => {
     );
   });
 
+  describe('draft render', () => {
+    it('stores the draft flag on the ingredient', async () => {
+      await service.createMediaDocuments(mockUser, {
+        category: IngredientCategory.VIDEO,
+        isDraftRender: true,
+        origin: IngredientOrigin.GENERATED,
+      });
+
+      expect(ingredientsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ isDraftRender: true }),
+      );
+    });
+
+    it('leaves an ordinary render unflagged', async () => {
+      await service.createMediaDocuments(mockUser, {
+        category: IngredientCategory.VIDEO,
+        isDraftRender: false,
+        origin: IngredientOrigin.GENERATED,
+      });
+
+      expect(ingredientsService.create).toHaveBeenCalledWith(
+        expect.not.objectContaining({ isDraftRender: expect.anything() }),
+      );
+    });
+  });
+
   describe('createMediaDocumentsInternal', () => {
     it('requires and persists explicit canonical ownership IDs', async () => {
       await service.createMediaDocumentsInternal({

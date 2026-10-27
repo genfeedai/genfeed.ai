@@ -44,8 +44,13 @@ export default defineConfig({
           '../../../../packages/helpers/src',
         ),
         '@hooks': path.resolve(extensionAppDir, './src/hooks'),
-        // The editor and prompt bars import each other through `@ui/prompt-*`,
-        // which tsconfig resolves via its `components/*` fallback.
+        // The editor and prompt bars import each other through `@ui/prompt-*`
+        // and the shell constants through `@ui/constants`, which tsconfig
+        // resolves via its `components/*` fallback.
+        '@ui/constants': path.resolve(
+          extensionAppDir,
+          '../../../../packages/ui/src/components/constants',
+        ),
         '@ui/menus': path.resolve(
           extensionAppDir,
           '../../../../packages/ui/src/components/menus',

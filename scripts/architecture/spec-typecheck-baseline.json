@@ -1857,14 +1857,6 @@
       "workspace": "api"
     },
     {
-      "code": 2741,
-      "count": 1,
-      "file": "apps/server/api/src/collections/schedules/controllers/schedules.controller.spec.ts",
-      "fingerprint": "1c36b98296b117d2d8b6",
-      "message": "Property 'contentId' is missing in type '{ contentType: \"image\"; platform: string; }' but required in type 'GetOptimalTimeDto'.",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/collections/social-sources/services/social-sources.service.spec.ts",
@@ -3614,22 +3606,6 @@
       "file": "apps/server/api/src/services/reply-bot/reply-candidate-prefilter.service.spec.ts",
       "fingerprint": "6a33ab33836fc06bcd63",
       "message": "Conversion of type '{ _id: string; filters: ReplyBotFilters; organization: string; type: ReplyBotType; }' to type 'ReplyBotConfigDocument' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ _id: string; filters: ReplyBotFilters; organization: string; type: ReplyBotType; }' is missing the following properties from type 'ReplyBotConfigDocument': id, brandId, createdAt, organizationId, and 3 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/services/reply-bot/reply-generation.service.spec.ts",
-      "fingerprint": "3ee8037d78d9b0e7d4e6",
-      "message": "Argument of type '{ length: \"short\"; organizationId: string; tone: \"professional\"; tweetAuthor: string; tweetContent: string; userId: string; }' is not assignable to parameter of type 'ReplyGenerationOptions'.   Types of property 'tone' are incompatible.     Type '\"professional\"' is not assignable to type 'ReplyTone'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/services/reply-bot/reply-generation.service.spec.ts",
-      "fingerprint": "e4f5a227b7aae666390f",
-      "message": "Argument of type '{ context: string; customInstructions: string; length: \"short\"; organizationId: string; tone: \"professional\"; tweetAuthor: string; tweetContent: string; userId: string; }' is not assignable to parameter of type 'ReplyGenerationOptions'.   Types of property 'tone' are incompatible.     Type '\"professional\"' is not assignable to type 'ReplyTone'.",
       "workspace": "api"
     },
     {

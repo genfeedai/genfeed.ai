@@ -1,4 +1,7 @@
-import type { KnowledgeSourcePurpose } from '../../enums/knowledge-source.enum';
+import type {
+  KnowledgeSourceKind,
+  KnowledgeSourcePurpose,
+} from '../../enums/knowledge-source.enum';
 import type { KnowledgeRetrievalCitation } from './knowledge-record.interface';
 
 /** Brand-scoped retrieval request over pgvector context entries. */
@@ -26,6 +29,23 @@ export interface BrandContentMemoryRetrievalParams {
   isKnowledgeOnly?: boolean;
 }
 
+/**
+ * Explicit Knowledge search (`search_knowledge`): the brand-scoped retrieval
+ * request plus filters and a cursor. Dates filter on the source version's
+ * capture time (`observedAt`), inclusive at both ends.
+ */
+export interface BrandKnowledgeSearchParams
+  extends BrandContentMemoryRetrievalParams {
+  /** Opaque cursor from a previous page of the same search. */
+  cursor?: string;
+  /** Only passages from sources of these kinds. */
+  kinds?: KnowledgeSourceKind[];
+  /** `timeline` lists the matching passages oldest first; the default ranks by relevance. */
+  mode?: 'search' | 'timeline';
+  occurredFrom?: Date;
+  occurredTo?: Date;
+}
+
 /** One retrieved passage with enough identity to cite it later. */
 export interface BrandContentMemoryHit {
   citation?: KnowledgeRetrievalCitation;
@@ -34,6 +54,17 @@ export interface BrandContentMemoryHit {
   metadata?: Record<string, unknown>;
   relevance: number;
   source?: string;
+}
+
+/** A passage of a Knowledge search with the time its source version was captured. */
+export interface KnowledgeSearchHit extends BrandContentMemoryHit {
+  occurredAt?: string;
+}
+
+/** One page of a Knowledge search; `nextCursor` is present only when more results exist. */
+export interface KnowledgeSearchPage {
+  hits: KnowledgeSearchHit[];
+  nextCursor?: string;
 }
 
 /**

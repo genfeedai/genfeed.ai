@@ -1,3 +1,4 @@
+import { InvalidKnowledgeSearchCursorError } from '@api/collections/contexts/utils/knowledge-search-cursor.util';
 import { AgentKnowledgeToolHandler } from '@api/services/agent-orchestrator/tools/agent-knowledge-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import {
@@ -73,21 +74,23 @@ function buildHandler() {
     unscheduleRefresh: vi.fn().mockResolvedValue(undefined),
   };
   const knowledgeContentRetrievalService = {
-    retrieveBrandContentMemory: vi.fn().mockResolvedValue([
-      {
-        citation: {
-          kind: 'URL',
-          purpose: 'BRAND_TRUTH',
-          sourceId: 'source-1',
-          title: 'Pricing',
-          version: 2,
-          versionId: 'version-1',
+    searchBrandKnowledge: vi.fn().mockResolvedValue({
+      hits: [
+        {
+          citation: {
+            kind: 'URL',
+            purpose: 'BRAND_TRUTH',
+            sourceId: 'source-1',
+            title: 'Pricing',
+            version: 2,
+            versionId: 'version-1',
+          },
+          content: 'Plans start at $29',
+          relevance: 0.9,
         },
-        content: 'Plans start at $29',
-        relevance: 0.9,
-      },
-      { content: 'Uncited legacy memory', relevance: 0.8 },
-    ]),
+        { content: 'Uncited legacy memory', relevance: 0.8 },
+      ],
+    }),
   };
   const contextCoverage = {
     forActor: vi.fn().mockResolvedValue({
@@ -120,9 +123,9 @@ describe('AgentKnowledgeToolHandler', () => {
   it('attaches coverage to an empty search and says it is incomplete when sources are partial', async () => {
     const { contextCoverage, knowledgeContentRetrievalService, handler } =
       buildHandler();
-    knowledgeContentRetrievalService.retrieveBrandContentMemory.mockResolvedValue(
-      [],
-    );
+    knowledgeContentRetrievalService.searchBrandKnowledge.mockResolvedValue({
+      hits: [],
+    });
     const coverage = {
       families: [
         {
@@ -154,9 +157,9 @@ describe('AgentKnowledgeToolHandler', () => {
 
   it('keeps the plain empty message when an empty search has complete coverage', async () => {
     const { knowledgeContentRetrievalService, handler } = buildHandler();
-    knowledgeContentRetrievalService.retrieveBrandContentMemory.mockResolvedValue(
-      [],
-    );
+    knowledgeContentRetrievalService.searchBrandKnowledge.mockResolvedValue({
+      hits: [],
+    });
 
     const result = await handler.searchKnowledge({ query: 'pricing' }, ctx);
 
@@ -166,9 +169,9 @@ describe('AgentKnowledgeToolHandler', () => {
   it('still answers an empty search when the coverage read fails', async () => {
     const { contextCoverage, knowledgeContentRetrievalService, handler } =
       buildHandler();
-    knowledgeContentRetrievalService.retrieveBrandContentMemory.mockResolvedValue(
-      [],
-    );
+    knowledgeContentRetrievalService.searchBrandKnowledge.mockResolvedValue({
+      hits: [],
+    });
     contextCoverage.forActor.mockRejectedValue(new Error('db down'));
 
     const result = await handler.searchKnowledge({ query: 'pricing' }, ctx);
@@ -247,13 +250,14 @@ describe('AgentKnowledgeToolHandler', () => {
     );
 
     expect(
-      knowledgeContentRetrievalService.retrieveBrandContentMemory,
+      knowledgeContentRetrievalService.searchBrandKnowledge,
     ).toHaveBeenCalledWith({
       brandId: 'brand-1',
       knowledgePurposes: [KnowledgeSourcePurpose.BRAND_TRUTH],
       knowledgeSourceIds: ['source-1'],
       limit: 12,
       minRelevance: 0,
+      mode: 'search',
       organizationId: 'org-1',
       query: 'pricing',
       userId: 'user-1',
@@ -276,7 +280,7 @@ describe('AgentKnowledgeToolHandler', () => {
     await handler.searchKnowledge({ query: 'pricing' }, ctx);
 
     expect(
-      knowledgeContentRetrievalService.retrieveBrandContentMemory,
+      knowledgeContentRetrievalService.searchBrandKnowledge,
     ).toHaveBeenCalledWith(expect.objectContaining({ minRelevance: 0.6 }));
   });
 
@@ -294,7 +298,7 @@ describe('AgentKnowledgeToolHandler', () => {
       'query is required',
     );
     expect(
-      knowledgeContentRetrievalService.retrieveBrandContentMemory,
+      knowledgeContentRetrievalService.searchBrandKnowledge,
     ).not.toHaveBeenCalled();
   });
 
@@ -308,7 +312,7 @@ describe('AgentKnowledgeToolHandler', () => {
 
     expect(result.success).toBe(true);
     expect(
-      knowledgeContentRetrievalService.retrieveBrandContentMemory,
+      knowledgeContentRetrievalService.searchBrandKnowledge,
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId: 'brand-explicit',
@@ -507,5 +511,131 @@ describe('AgentKnowledgeToolHandler', () => {
         { ...ctx, brandId: 'brand-2' },
       ),
     ).rejects.toBe(denied);
+  });
+  describe('search filters and paging', () => {
+    it('passes kinds, capture dates and the cursor to the search', async () => {
+      const { knowledgeContentRetrievalService, handler } = buildHandler();
+
+      await handler.searchKnowledge(
+        {
+          cursor: 'cursor-1',
+          kinds: ['URL', 'bogus', 'URL', 'DOCUMENT'],
+          occurredFrom: '2026-09-01',
+          occurredTo: '2026-09-30T23:59:59Z',
+          query: 'pricing',
+        },
+        ctx,
+      );
+
+      expect(
+        knowledgeContentRetrievalService.searchBrandKnowledge,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cursor: 'cursor-1',
+          kinds: ['URL', 'DOCUMENT'],
+          occurredFrom: new Date('2026-09-01'),
+          occurredTo: new Date('2026-09-30T23:59:59Z'),
+        }),
+      );
+    });
+
+    it.each([
+      ['an unreadable start date', { occurredFrom: 'last tuesday' }],
+      ['an unreadable end date', { occurredTo: 'soon' }],
+      ['a non-string date', { occurredFrom: 20260901 }],
+      [
+        'a start date after the end date',
+        { occurredFrom: '2026-10-01', occurredTo: '2026-09-01' },
+      ],
+    ])('refuses %s without searching', async (_label, filters) => {
+      const { knowledgeContentRetrievalService, handler } = buildHandler();
+
+      const result = await handler.searchKnowledge(
+        { query: 'pricing', ...filters },
+        ctx,
+      );
+
+      expect(result.success).toBe(false);
+      expect(
+        knowledgeContentRetrievalService.searchBrandKnowledge,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('lists a timeline only when asked, and ranks otherwise', async () => {
+      const { knowledgeContentRetrievalService, handler } = buildHandler();
+
+      await handler.searchKnowledge({ mode: 'timeline', query: 'launch' }, ctx);
+      await handler.searchKnowledge(
+        { mode: 'anything else', query: 'launch' },
+        ctx,
+      );
+      await handler.searchKnowledge({ query: 'launch' }, ctx);
+
+      expect(
+        knowledgeContentRetrievalService.searchBrandKnowledge.mock.calls.map(
+          ([call]) => call.mode,
+        ),
+      ).toEqual(['timeline', 'search', 'search']);
+    });
+
+    it('returns the next cursor and says the result is truncated', async () => {
+      const { knowledgeContentRetrievalService, handler } = buildHandler();
+      knowledgeContentRetrievalService.searchBrandKnowledge.mockResolvedValue({
+        hits: [
+          {
+            citation: { sourceId: 'source-1' },
+            content: 'Plans start at $29',
+            occurredAt: '2026-09-02T00:00:00.000Z',
+            relevance: 0.9,
+          },
+        ],
+        nextCursor: 'cursor-2',
+      });
+
+      const result = await handler.searchKnowledge({ query: 'pricing' }, ctx);
+
+      expect(result.data).toMatchObject({
+        isTruncated: true,
+        nextCursor: 'cursor-2',
+        passages: [
+          expect.objectContaining({ occurredAt: '2026-09-02T00:00:00.000Z' }),
+        ],
+      });
+    });
+
+    it('omits the cursor on the last page', async () => {
+      const { handler } = buildHandler();
+
+      const result = await handler.searchKnowledge({ query: 'pricing' }, ctx);
+
+      expect(result.data).not.toHaveProperty('nextCursor');
+      expect(result.data).not.toHaveProperty('isTruncated');
+    });
+
+    it('turns a cursor from another search into a clear tool error', async () => {
+      const { knowledgeContentRetrievalService, handler } = buildHandler();
+      knowledgeContentRetrievalService.searchBrandKnowledge.mockRejectedValue(
+        new InvalidKnowledgeSearchCursorError(),
+      );
+
+      const result = await handler.searchKnowledge(
+        { cursor: 'stale', query: 'pricing' },
+        ctx,
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('cursor');
+    });
+
+    it('lets any other search failure surface', async () => {
+      const { knowledgeContentRetrievalService, handler } = buildHandler();
+      knowledgeContentRetrievalService.searchBrandKnowledge.mockRejectedValue(
+        new Error('database unavailable'),
+      );
+
+      await expect(
+        handler.searchKnowledge({ query: 'pricing' }, ctx),
+      ).rejects.toThrow('database unavailable');
+    });
   });
 });

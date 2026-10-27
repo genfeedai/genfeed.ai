@@ -114,6 +114,27 @@ describe('AnalyticsService', () => {
       expect(setTotalDocs).toHaveBeenCalledWith(31);
     });
 
+    it('getXGrowthReport GETs the account report and deserializes it', async () => {
+      http.get.mockResolvedValue(
+        axiosResponse(resourceDocument({ scopeKey: 'k' }, { id: 'report' })),
+      );
+
+      const result = await service.getXGrowthReport('cred-1', {
+        brandId: 'brand-1',
+        endDate: '2026-10-07',
+        startDate: '2026-10-01',
+      });
+
+      expect(http.get).toHaveBeenCalledWith('accounts/cred-1/x-growth-report', {
+        params: {
+          brandId: 'brand-1',
+          endDate: '2026-10-07',
+          startDate: '2026-10-01',
+        },
+      });
+      expect(result).toMatchObject({ scopeKey: 'k' });
+    });
+
     it('scopes fleet evaluation policy updates to the selected organization', async () => {
       http.patch.mockResolvedValue(
         axiosResponse(resourceDocument({ windowWeeks: 4 }, { id: 'policy-1' })),

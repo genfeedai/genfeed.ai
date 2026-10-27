@@ -64,6 +64,7 @@ import { ByokModule } from '@api/services/byok/byok.module';
 import { ContentOptimizationModule } from '@api/services/content-optimization/content-optimization.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
+import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfield.module';
 import { MetaAdsModule } from '@api/services/integrations/meta-ads/meta-ads.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
@@ -83,6 +84,11 @@ import { Module } from '@nestjs/common';
   ],
   exports: [
     StoryboardRunsService,
+    StoryboardStillsService,
+    StoryboardARollService,
+    StoryboardLongFormAssemblyService,
+    StoryboardLongFormEstimateService,
+    StoryboardLongFormTranslationService,
     BrandRemixSceneService,
     BrandRemixRunsService,
     ContentRunsService,
@@ -102,6 +108,7 @@ import { Module } from '@nestjs/common';
     TurboRunModule,
     BrandsCoreModule,
     ByokModule,
+    ContentHarnessModule,
     ContentIntelligenceModule,
     CreditsModule,
     ContentOptimizationModule,

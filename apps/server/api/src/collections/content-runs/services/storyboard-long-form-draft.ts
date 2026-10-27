@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import {
+  type StoryboardDraftActor,
   type StoryboardDraftBrand,
   type StoryboardDraftMode,
   StoryboardDraftOutputError,
@@ -69,7 +70,7 @@ export type StoryboardLongFormDraftOutput = z.infer<
   typeof storyboardLongFormDraftOutputSchema
 >;
 
-export interface StoryboardLongFormDraftRequest {
+export interface StoryboardLongFormDraftRequest extends StoryboardDraftActor {
   brand: StoryboardDraftBrand;
   brief: string;
   current: StoryboardPlan;
@@ -80,6 +81,7 @@ export interface StoryboardLongFormDraftRequest {
 
 export function buildStoryboardLongFormDraftMessages(
   request: StoryboardLongFormDraftRequest,
+  harnessBrief: string,
 ): OpenRouterMessage[] {
   const isRevision = request.mode === 'revise';
   return [
@@ -96,7 +98,9 @@ export function buildStoryboardLongFormDraftMessages(
         isRevision
           ? 'Apply the instruction to currentPlan. Keep segments the instruction does not touch as they are and give them their existingSegmentId. Use null for existingSegmentId on segments you add. Remove a segment by leaving it out.'
           : 'Draft a new script from the brief. Use null for existingSegmentId on every segment.',
-      ].join(' '),
+      ]
+        .join(' ')
+        .concat(`\n\n${harnessBrief}`),
     },
     {
       role: 'user',

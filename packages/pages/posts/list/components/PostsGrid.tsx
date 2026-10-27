@@ -403,13 +403,13 @@ const PostsGrid = memo(
                   </Badge>
 
                   {post.scheduledDate && (
-                    <span className="rounded-full border border-border bg-background-secondary px-2.5 py-1 text-xs text-foreground/60">
+                    <Badge className="normal-case" variant="secondary">
                       {formatDateInTimezone(
                         post.scheduledDate,
                         browserTimezone,
                         'short',
                       )}
-                    </span>
+                    </Badge>
                   )}
 
                   {visiblePrimaryAction && (

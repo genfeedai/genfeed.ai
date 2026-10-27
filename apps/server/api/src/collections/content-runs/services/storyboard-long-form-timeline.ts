@@ -254,3 +254,65 @@ export function buildLongFormTimeline(
     uncoveredJoins,
   };
 }
+
+/** One caption on screen: at most two short lines of the spoken script. */
+export interface LongFormCaption {
+  text: string;
+  startSeconds: number;
+  durationSeconds: number;
+}
+
+/** Splits a sentence at word boundaries into pieces of at most `max` characters. */
+function captionPieces(
+  sentence: string,
+  max: number,
+): { offset: number; text: string }[] {
+  const pieces: { offset: number; text: string }[] = [];
+  let current: { offset: number; text: string } | undefined;
+  for (const word of sentence.matchAll(/\S+/gu)) {
+    const offset = word.index ?? 0;
+    if (current && offset + word[0].length - current.offset <= max) {
+      current.text = sentence.slice(current.offset, offset + word[0].length);
+      continue;
+    }
+    current = { offset, text: word[0] };
+    pieces.push(current);
+  }
+  return pieces;
+}
+
+/**
+ * Captions from the rendered speech (#8218): each sentence of every render,
+ * split at word boundaries into cues of at most `maxCharacters`, timed at
+ * that render's measured speaking rate. A cue stays up until the next one,
+ * so the captions never blink off mid-sentence. A copy in another language
+ * gets its captions from its own renders.
+ */
+export function buildLongFormCaptions(
+  chunks: readonly StoryboardARollChunk[],
+  maxCharacters: number,
+): LongFormCaption[] {
+  const captions: LongFormCaption[] = [];
+  let elapsed = 0;
+  for (const chunk of chunks) {
+    const seconds = chunk.durationSeconds ?? chunk.estimatedSeconds;
+    const perCharacter = seconds / chunk.text.length;
+    const cues = storyboardSentenceStarts(chunk.text).flatMap(
+      (start, index, starts) =>
+        captionPieces(
+          chunk.text.slice(start, starts[index + 1] ?? chunk.text.length),
+          maxCharacters,
+        ).map((piece) => ({ ...piece, offset: start + piece.offset })),
+    );
+    cues.forEach((cue, index) => {
+      const until = cues[index + 1]?.offset ?? chunk.text.length;
+      captions.push({
+        text: cue.text,
+        startSeconds: round(elapsed + cue.offset * perCharacter),
+        durationSeconds: round((until - cue.offset) * perCharacter),
+      });
+    });
+    elapsed += seconds;
+  }
+  return captions;
+}

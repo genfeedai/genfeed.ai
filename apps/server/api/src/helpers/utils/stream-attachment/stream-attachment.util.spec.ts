@@ -1,4 +1,5 @@
 import { EventEmitter } from 'node:events';
+import { ClientClosedRequestException } from '@api/helpers/exceptions/client-closed-request/client-closed-request.exception';
 import { streamRemoteAttachment } from '@api/helpers/utils/stream-attachment/stream-attachment.util';
 import { BadGatewayException, StreamableFile } from '@nestjs/common';
 import type { Response } from 'express';
@@ -108,7 +109,9 @@ describe('streamRemoteAttachment', () => {
       const error = await outcome;
 
       expect(wasAborted).toBe(true);
-      expect(error).toMatchObject({ name: 'AbortError' });
+      expect(error).toBeInstanceOf(ClientClosedRequestException);
+      expect(error).toMatchObject({ stage: 'awaiting-upstream' });
+      expect(error).toHaveProperty('status', 499);
       expect(res.set).not.toHaveBeenCalled();
       expectNoListeners(res);
     },
@@ -131,7 +134,8 @@ describe('streamRemoteAttachment', () => {
       if (outcome instanceof StreamableFile) outcome.getStream().destroy();
 
       expect(fetchMock).not.toHaveBeenCalled();
-      expect(outcome).toMatchObject({ name: 'AbortError' });
+      expect(outcome).toBeInstanceOf(ClientClosedRequestException);
+      expect(outcome).toMatchObject({ stage: 'before-upstream' });
       expect(res.set).not.toHaveBeenCalled();
       expectNoListeners(res);
     },
@@ -162,7 +166,8 @@ describe('streamRemoteAttachment', () => {
       if (result instanceof StreamableFile) result.getStream().destroy();
 
       expect(cancelledBeforeCleanup).toBe(1);
-      expect(result).toMatchObject({ name: 'AbortError' });
+      expect(result).toBeInstanceOf(ClientClosedRequestException);
+      expect(result).toMatchObject({ stage: 'before-stream' });
       expect(res.set).not.toHaveBeenCalled();
       expectNoListeners(res);
     },
@@ -224,6 +229,45 @@ describe('streamRemoteAttachment', () => {
     ).rejects.toBeInstanceOf(BadGatewayException);
     expect(res.set).not.toHaveBeenCalled();
     expectNoListeners(res);
+  });
+
+  it('reports an upstream abort the client did not cause as a gateway failure', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockRejectedValue(
+          new DOMException('Upstream timed out', 'TimeoutError'),
+        ),
+    );
+    const res = response();
+
+    await expect(
+      streamRemoteAttachment(
+        'https://cdn.example/preview.png',
+        'preview.png',
+        res,
+      ),
+    ).rejects.toBeInstanceOf(BadGatewayException);
+    expect(res.set).not.toHaveBeenCalled();
+    expectNoListeners(res);
+  });
+
+  it('keeps the client cancel apart from an upstream abort in the same request', async () => {
+    const res = response();
+    const upstream = pendingFetch();
+    const outcome = streamRemoteAttachment(
+      'https://cdn.example/preview.png',
+      'preview.png',
+      res,
+    ).catch((error: unknown) => error);
+
+    res.emit('close');
+    const error = await outcome;
+
+    expect(upstream.signal()?.aborted).toBe(true);
+    expect(error).not.toBeInstanceOf(BadGatewayException);
+    expect(error).toBeInstanceOf(ClientClosedRequestException);
   });
 
   it('preserves a network failure and removes response listeners', async () => {

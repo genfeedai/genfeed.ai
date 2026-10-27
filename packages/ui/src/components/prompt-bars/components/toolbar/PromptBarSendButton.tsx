@@ -3,6 +3,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { PromptBarSendButtonProps } from '@genfeedai/props/prompt-bars/prompt-bar-send-button.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { PROMPT_BAR_ICON_BUTTON_CLASS } from '@ui/constants/shell-chrome.constant';
 import { Button } from '@ui/primitives/button';
 import { ArrowUp } from 'lucide-react';
 import type { ReactElement } from 'react';
@@ -26,7 +27,7 @@ export default function PromptBarSendButton({
       {...buttonProps}
       ariaLabel={ariaLabel}
       aria-disabled={isAriaDisabled || undefined}
-      className={cn('size-8 shrink-0 min-h-0 min-w-0 p-0', className)}
+      className={cn(PROMPT_BAR_ICON_BUTTON_CLASS, className)}
       data-testid={testId}
       icon={icon ?? <ArrowUp className="size-3.5" />}
       isDisabled={isDisabled}

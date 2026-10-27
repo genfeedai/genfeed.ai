@@ -1,5 +1,6 @@
 import { AGENT_CLIENT_CHANNEL_SLUGS } from '@data/agent-client-channels.data';
 import { AGENT_CLIENT_SLUGS, getAgentClient } from '@data/agent-clients.data';
+import { appProducts } from '@data/app-products.data';
 import { competitors } from '@data/competitors.data';
 import { EDITORIAL_OG_ARTWORKS } from '@data/editorial-og.data';
 import { getIntegrationBySlug } from '@data/integrations.data';
@@ -127,6 +128,45 @@ for (const competitor of competitors) {
   const id = `vs--${competitor.slug}`;
   MARKETING_OG_CARDS[id] = editorialCard('vs', ['Genfeed vs', competitor.name]);
   MARKETING_OG_PATHS[`/vs/${competitor.slug}`] = id;
+}
+
+// App products without an editorial card get the branded default card with a
+// product headline. Products re-pointed from old routes keep their artwork.
+const APP_PRODUCT_OG_HEADLINES: Record<string, readonly string[]> = {
+  agent: ['Ask for it', 'Agent does it'],
+  clipper: ['Long video', 'Short clips'],
+  discovery: ['Find what', 'is trending'],
+  editor: ['Finish', 'on a timeline'],
+  messages: ['One inbox', 'Every reply'],
+  motion: ['Animate', 'any idea'],
+  storyboard: ['Plan', 'every scene'],
+  turbo: ['One brief', 'Bulk content'],
+};
+
+function productHeadlineFontSize(headline: readonly string[]): number {
+  const longest = Math.max(...headline.map((line) => line.length));
+  return longest <= 7 ? 104 : longest <= 10 ? 88 : longest <= 13 ? 74 : 64;
+}
+
+function productCard(headline: readonly string[]): MarketingOgDefinition {
+  return {
+    ...MARKETING_OG_CARDS.default,
+    headline,
+    headlineFontSize: productHeadlineFontSize(headline),
+  };
+}
+
+MARKETING_OG_CARDS.products = productCard(['Every', 'Genfeed app']);
+MARKETING_OG_PATHS['/products'] = 'products';
+
+for (const product of appProducts) {
+  const route = `/products/${product.slug}`;
+  if (MARKETING_OG_PATHS[route]) continue;
+  const headline = APP_PRODUCT_OG_HEADLINES[product.slug];
+  if (!headline) continue;
+  const id = `product--${product.slug}`;
+  MARKETING_OG_CARDS[id] = productCard(headline);
+  MARKETING_OG_PATHS[route] = id;
 }
 
 export type MarketingOgCard = keyof typeof MARKETING_OG_CARDS;

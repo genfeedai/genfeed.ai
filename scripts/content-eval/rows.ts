@@ -59,6 +59,10 @@ export const fixtureInputSchema = z.object({
     bannedPhrases: [],
     isCtaRequired: false,
   }),
+  /** Reply kinds: the inbound message the product's reply route answers. */
+  comment: z
+    .object({ author: z.string().min(1), text: z.string().min(1) })
+    .optional(),
   /** Judge suite: the already-produced text being scored. */
   output: z.string().min(1).optional(),
   platform: z.string().min(1).optional(),

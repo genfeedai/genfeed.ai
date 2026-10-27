@@ -310,7 +310,7 @@ export default function StoryboardCreate() {
                 mode === 'brief' ? (
                   <Button
                     ariaLabel={translateWorkspace('references')}
-                    icon={<Paperclip className="size-4" />}
+                    icon={<Paperclip className="size-3.5" />}
                     isDisabled={isCreating}
                     onClick={chooseStartingImage}
                     size={ButtonSize.ICON}

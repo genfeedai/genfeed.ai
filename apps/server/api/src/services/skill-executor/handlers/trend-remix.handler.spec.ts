@@ -2,6 +2,7 @@ import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { TrendRemixHandler } from '@api/services/skill-executor/handlers/trend-remix.handler';
+import { SkillBrandBriefService } from '@api/services/skill-executor/skill-brand-brief.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ServiceUnavailableException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -21,6 +22,10 @@ describe('TrendRemixHandler', () => {
 
   const mockLoggerService = {
     warn: vi.fn(),
+  };
+
+  const mockSkillBrandBriefService = {
+    resolve: vi.fn(),
   };
 
   const baseContext = {
@@ -54,6 +59,9 @@ describe('TrendRemixHandler', () => {
 
   beforeEach(async () => {
     vi.resetAllMocks();
+    mockSkillBrandBriefService.resolve.mockResolvedValue(
+      'Brand brief: bold and witty. Guardrails: no hype claims.',
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -61,6 +69,10 @@ describe('TrendRemixHandler', () => {
         { provide: TrendsService, useValue: mockTrendsService },
         { provide: LlmDispatcherService, useValue: mockLlmDispatcherService },
         { provide: LoggerService, useValue: mockLoggerService },
+        {
+          provide: SkillBrandBriefService,
+          useValue: mockSkillBrandBriefService,
+        },
       ],
     }).compile();
 
@@ -120,6 +132,43 @@ describe('TrendRemixHandler', () => {
         type: 'reply',
       }),
     ]);
+  });
+
+  it('writes the remix against the harness brief instead of a voice string', async () => {
+    mockTrendsService.getTrendsWithAccessControl.mockResolvedValue({
+      connectedPlatforms: ['instagram'],
+      lockedPlatforms: [],
+      trends: [mockTrend],
+    });
+    mockLlmDispatcherService.chatCompletion.mockResolvedValue(mockLlmSuccess);
+
+    await handler.execute({ ...baseContext, userId: 'user-1' }, {});
+
+    expect(mockSkillBrandBriefService.resolve).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: 'brand-id', userId: 'user-1' }),
+      { contentType: 'post', platform: 'instagram', topic: 'AI-generated art' },
+    );
+    const [request] = mockLlmDispatcherService.chatCompletion.mock.calls[0];
+    const systemPrompt = request.messages[0].content as string;
+    expect(systemPrompt).toContain('Guardrails: no hype claims.');
+    expect(systemPrompt).not.toContain('professional and engaging');
+    expect(request.messages[1].content).not.toContain('Bold and witty');
+  });
+
+  it('refuses before the provider call when the brand brief is unavailable', async () => {
+    mockTrendsService.getTrendsWithAccessControl.mockResolvedValue({
+      connectedPlatforms: ['instagram'],
+      lockedPlatforms: [],
+      trends: [mockTrend],
+    });
+    mockSkillBrandBriefService.resolve.mockRejectedValue(
+      new ServiceUnavailableException('Brand context could not be loaded'),
+    );
+
+    await expect(handler.execute(baseContext, {})).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
+    expect(mockLlmDispatcherService.chatCompletion).not.toHaveBeenCalled();
   });
 
   it('uses explicit trendId when provided', async () => {

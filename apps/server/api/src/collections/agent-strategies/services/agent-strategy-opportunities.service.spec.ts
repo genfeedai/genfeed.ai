@@ -3,7 +3,6 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 describe('AgentStrategyOpportunitiesService', () => {
-  const count = vi.fn();
   const create = vi.fn();
   const findFirst = vi.fn();
   const findMany = vi.fn();
@@ -16,7 +15,6 @@ describe('AgentStrategyOpportunitiesService', () => {
   const service = new AgentStrategyOpportunitiesService(
     {
       agentStrategyOpportunity: {
-        count,
         create,
         findFirst,
         findMany,
@@ -59,8 +57,9 @@ describe('AgentStrategyOpportunitiesService', () => {
     });
 
     it('ranks and windows ids in SQL, then hydrates only that page in rank order', async () => {
-      queryRaw.mockResolvedValueOnce([{ id: 'b' }, { id: 'a' }]);
-      count.mockResolvedValue(23);
+      queryRaw
+        .mockResolvedValueOnce([{ id: 'b' }, { id: 'a' }])
+        .mockResolvedValueOnce([{ count: 23 }]);
       findMany.mockResolvedValue([row('a', 10), row('b', 90)]);
 
       const result = await service.listOpenPageByStrategy(
@@ -78,13 +77,14 @@ describe('AgentStrategyOpportunitiesService', () => {
       expect(statement.values).toEqual(
         expect.arrayContaining(['org-1', 'strategy-1', 2, 4]),
       );
-      expect(count).toHaveBeenCalledWith({
-        where: expect.objectContaining({
-          isDeleted: false,
-          organizationId: 'org-1',
-          strategyId: 'strategy-1',
-        }),
-      });
+      const [countStatement] = queryRaw.mock.calls[1] as [
+        { sql: string; values: unknown[] },
+      ];
+      expect(countStatement.sql).toContain('COUNT(*)');
+      expect(countStatement.values).toEqual(
+        expect.arrayContaining(['org-1', 'strategy-1', 'conversation']),
+      );
+      expect(statement.values).toContain('conversation');
       expect(findMany).toHaveBeenCalledWith({
         take: 2,
         where: {
@@ -109,8 +109,7 @@ describe('AgentStrategyOpportunitiesService', () => {
     });
 
     it('skips the hydrate read when the page is empty', async () => {
-      queryRaw.mockResolvedValueOnce([]);
-      count.mockResolvedValue(3);
+      queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([{ count: 3 }]);
 
       const result = await service.listOpenPageByStrategy(
         'strategy-1',

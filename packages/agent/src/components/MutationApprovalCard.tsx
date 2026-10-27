@@ -194,7 +194,6 @@ export function MutationApprovalCard({
         {translate('unavailable')}
       </p>
     );
-  const RecoveryIcon = expired ? Clock3 : AlertTriangle;
   return (
     <div
       className="my-2 rounded-lg border border-border bg-background-secondary p-4"
@@ -220,45 +219,53 @@ export function MutationApprovalCard({
           )}
         </dl>
       )}
-      {(expired || executionFailed || hasError) && (
+      {expired && (
         <div
-          className={`mt-4 rounded-lg border p-3 ${expired ? 'border-warning/50 bg-warning/10' : 'border-destructive/50 bg-destructive/10'}`}
-          role={expired ? 'status' : 'alert'}
+          className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-warning/50 bg-warning/10 p-3"
+          role="status"
+        >
+          <Clock3 className="size-4 shrink-0 text-warning" aria-hidden="true" />
+          <p className="min-w-0 flex-1 basis-48 text-sm font-medium text-warning">
+            {translate('expired')}
+          </p>
+          {reviewPhase !== 'completed' && (
+            <Button
+              withWrapper={false}
+              isDisabled={!onUiAction || isPending}
+              aria-label={translate('prepareAgain')}
+              isLoading={isPending}
+              onClick={() => void recover()}
+            >
+              {translate('prepareAgain')}
+            </Button>
+          )}
+          {preparePhase === 'failed' && (
+            <p className="basis-full text-sm text-foreground">
+              {translate('prepareFailed')}
+            </p>
+          )}
+        </div>
+      )}
+      {(executionFailed || (hasError && !expired)) && (
+        <div
+          className="mt-4 rounded-lg border border-destructive/50 bg-destructive/10 p-3"
+          role="alert"
         >
           <div className="flex flex-wrap items-start gap-3">
-            <span
-              className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${expired ? 'bg-warning/15 text-warning' : 'bg-destructive/15 text-destructive'}`}
-            >
-              <RecoveryIcon className="size-4" aria-hidden="true" />
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-destructive/15 text-destructive">
+              <AlertTriangle className="size-4" aria-hidden="true" />
             </span>
             <div className="min-w-0 flex-1 basis-48">
-              <p
-                className={`text-sm font-semibold ${expired ? 'text-warning' : 'text-destructive'}`}
-              >
+              <p className="text-sm font-semibold text-destructive">
                 {translate(
-                  expired
-                    ? 'expiredTitle'
-                    : executionFailed
-                      ? 'failedTitle'
-                      : 'responseFailedTitle',
+                  executionFailed ? 'failedTitle' : 'responseFailedTitle',
                 )}
               </p>
               <p className="mt-1 text-sm text-foreground">
-                {translate(
-                  expired
-                    ? 'expiredDescription'
-                    : executionFailed
-                      ? 'failedDescription'
-                      : 'error',
-                )}
+                {translate(executionFailed ? 'failedDescription' : 'error')}
               </p>
-              {expired && preparePhase === 'failed' && (
-                <p className="mt-1 text-sm text-foreground">
-                  {translate('prepareFailed')}
-                </p>
-              )}
             </div>
-            {(expired || executionFailed) &&
+            {executionFailed &&
               (reviewPhase === 'completed' ? (
                 <p className="text-sm text-muted-foreground">
                   {translate('reviewRequested')}
@@ -268,13 +275,11 @@ export function MutationApprovalCard({
                   withWrapper={false}
                   className="ml-11 sm:ml-0"
                   isDisabled={!onUiAction || isPending}
-                  aria-label={translate(
-                    expired ? 'prepareAgain' : 'reviewChanges',
-                  )}
+                  aria-label={translate('reviewChanges')}
                   isLoading={isPending}
                   onClick={() => void recover()}
                 >
-                  {translate(expired ? 'prepareAgain' : 'reviewChanges')}
+                  {translate('reviewChanges')}
                 </Button>
               ))}
           </div>

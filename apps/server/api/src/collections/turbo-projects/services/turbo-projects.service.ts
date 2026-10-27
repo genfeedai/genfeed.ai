@@ -10,6 +10,7 @@ import type { QuoteTurboProjectDto } from '@api/collections/turbo-projects/dto/q
 import type { ReviewTurboProjectItemsDto } from '@api/collections/turbo-projects/dto/review-turbo-project-items.dto';
 import type { UpdateTurboProjectDto } from '@api/collections/turbo-projects/dto/update-turbo-project.dto';
 import type { UpdateTurboProjectItemDto } from '@api/collections/turbo-projects/dto/update-turbo-project-item.dto';
+import { TurboIdeasBriefService } from '@api/collections/turbo-projects/services/turbo-ideas-brief.service';
 import {
   type TurboProjectWithItems,
   toTurboProject,
@@ -92,6 +93,7 @@ export class TurboProjectsService {
     private readonly ideaGeneration: TurboProjectIdeaGenerationService,
     private readonly brandsService: BrandsService,
     private readonly platformSettingsService: PlatformSettingsService,
+    private readonly ideasBrief: TurboIdeasBriefService,
   ) {}
 
   async list(
@@ -301,6 +303,7 @@ export class TurboProjectsService {
     this.assertDraft(before);
     if (before.kind !== TurboProjectKind.IDEAS)
       throw new BadRequestException('Only idea projects generate ideas');
+    const brief = await this.ideasBrief.resolve(before.brandId, dto, scope);
     const project = await this.update(
       id,
       { settings: { ideas: dto }, step: TurboProjectStep.IDEAS },
@@ -310,6 +313,7 @@ export class TurboProjectsService {
       project.brandId,
       dto,
       scope.organizationId,
+      brief,
     );
     return this.reconcileService.runExclusive(id, async () => {
       const current = await this.requireProject(id, scope);

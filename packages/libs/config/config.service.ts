@@ -65,6 +65,7 @@ interface ApiEnvConfig extends IEnvConfig {
   TURNSTILE_SECRET_KEY?: string;
   GENERATION_BRIEF_LIVE_EVAL?: '0' | '1';
   POSTHOG_INTERNAL_ORGANIZATION_IDS?: string;
+  PUBLIC_ARTICLES_ORGANIZATION_ID?: string;
   POSTHOG_HOST?: string;
   POSTHOG_PROJECT_API_KEY?: string;
   POSTHOG_QUERY_API_KEY?: string;
@@ -120,6 +121,7 @@ const apiSpecificSchema = {
   // Comma-separated organization ids of Genfeed's own accounts; server-side
   // PostHog funnel events from them are flagged is_internal.
   POSTHOG_INTERNAL_ORGANIZATION_IDS: Joi.string().optional().allow(''),
+  PUBLIC_ARTICLES_ORGANIZATION_ID: Joi.string().optional().allow(''),
   POSTHOG_HOST: Joi.string().uri().optional().allow(''),
   POSTHOG_PROJECT_API_KEY: Joi.string().optional().allow(''),
   POSTHOG_QUERY_API_KEY: Joi.string().optional().allow(''),

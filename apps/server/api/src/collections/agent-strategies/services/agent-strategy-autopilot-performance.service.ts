@@ -22,11 +22,21 @@ import type { ContentPerformanceDocument } from '@api/collections/content-perfor
 import { ContentPerformanceService } from '@api/collections/content-performance/services/content-performance.service';
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import {
+  describeLearnedPostingWindows,
+  toPostingWindowPosts,
+} from '@api/collections/schedules/utils/posting-time-recommendation.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { TargetExecutionState } from '@genfeedai/contracts';
 import type { AgentStrategyCadenceStatus } from '@genfeedai/contracts/interfaces';
+import { computePostingWindows } from '@genfeedai/helpers';
 import { Injectable } from '@nestjs/common';
+
+/** Posting windows need weeks of history, so they read a wider range than the report period. */
+const POSTING_WINDOW_LOOKBACK_DAYS = 90;
+const POSTING_WINDOW_SAMPLE_LIMIT = 500;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 interface SnapshotSources {
   posts: PostDocument[];
@@ -80,10 +90,10 @@ export class AgentStrategyAutopilotPerformanceService {
         ? { cadence: await this.getCadenceStatus(strategy) }
         : {}),
       bestPlatformFormatPairs: this.computeBestPlatformFormatPairs(ranked),
-      bestPostingWindows: this.computeBestPostingWindows(
-        posts,
-        latest,
+      bestPostingWindows: await this.computeBestPostingWindows(
         strategy,
+        strategyId,
+        organizationId,
       ),
       sampling,
       topHooks: this.computeTopHooks(ranked),
@@ -267,29 +277,89 @@ export class AgentStrategyAutopilotPerformanceService {
       .slice(0, 5);
   }
 
-  private computeBestPostingWindows(
-    posts: PostDocument[],
-    latest: Map<string, ContentPerformanceDocument>,
+  /**
+   * Best weekday-and-hour slots, learned per platform from the strategy's
+   * published posts of the last 90 days (median engagement rate 24 to 48 hours
+   * after publishing, see `computePostingWindows`). The report period is too
+   * short for that, so this reads its own wider range. Platforms without
+   * enough measured posts contribute nothing rather than a guess.
+   */
+  private async computeBestPostingWindows(
     strategy: AgentStrategyDocument,
-  ): string[] {
-    const postingWindows = new Map<string, number>();
-    for (const post of posts) {
-      const measured = latest.get(post.id);
-      if (!post.publishedAt || !measured) continue;
-      const hour = new Intl.DateTimeFormat('en-GB', {
-        timeZone: strategy.timezone || 'UTC',
-        hour: '2-digit',
-        hourCycle: 'h23',
-      }).format(new Date(post.publishedAt));
-      postingWindows.set(
-        hour,
-        (postingWindows.get(hour) ?? 0) + measured.performanceScore,
-      );
+    strategyId: string,
+    organizationId: string,
+  ): Promise<string[]> {
+    const nowMs = Date.now();
+    const postPage = await this.postsService.findAll(
+      {
+        orderBy: [{ publishedAt: 'desc' }, { id: 'desc' }],
+        where: scopedWhere(getStrategyOrganizationId(strategy), {
+          agentStrategyId: strategyId,
+          brandId: getStrategyBrandId(strategy) ?? '',
+          publishedAt: {
+            gte: new Date(nowMs - POSTING_WINDOW_LOOKBACK_DAYS * DAY_MS),
+            lte: new Date(nowMs),
+          },
+        }),
+      },
+      { limit: POSTING_WINDOW_SAMPLE_LIMIT, page: 1, pagination: true },
+      false,
+    );
+    if (postPage.docs.length === 0) return [];
+
+    const measurementPage = await this.contentPerformanceService.findAll(
+      {
+        orderBy: [{ measuredAt: 'desc' }, { id: 'desc' }],
+        where: scopedWhere(organizationId, {
+          engagementRate: { not: null },
+          measuredAt: { not: null },
+          postId: { in: postPage.docs.map((post) => post.id) },
+        }),
+      },
+      { limit: POSTING_WINDOW_SAMPLE_LIMIT * 4, page: 1, pagination: true },
+      false,
+    );
+    const measurements = measurementPage.docs.map((row) => ({
+      engagementRate: row.engagementRate ?? null,
+      measuredAt: row.measuredAt ? new Date(row.measuredAt) : null,
+      postId: row.postId ?? null,
+    }));
+
+    const postsByPlatform = new Map<string, typeof postPage.docs>();
+    for (const post of postPage.docs) {
+      const platform = post.platform ?? 'unknown';
+      postsByPlatform.set(platform, [
+        ...(postsByPlatform.get(platform) ?? []),
+        post,
+      ]);
     }
-    return [...postingWindows.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([hour]) => `${hour}:00`);
+
+    const learned = [...postsByPlatform.entries()]
+      .sort(([a], [b]) => a.localeCompare(b, 'en'))
+      .map(([platform, posts]) => ({
+        lines: describeLearnedPostingWindows(
+          computePostingWindows({
+            nowMs,
+            posts: toPostingWindowPosts(
+              posts.map((post) => ({
+                id: post.id,
+                publishedAt: post.publishedAt
+                  ? new Date(post.publishedAt)
+                  : null,
+              })),
+              measurements,
+            ),
+            timezone: strategy.timezone || 'UTC',
+          }),
+        ),
+        platform,
+      }))
+      .filter((entry) => entry.lines.length > 0);
+
+    // Several platforms: say which one each window belongs to.
+    return learned.flatMap(({ lines, platform }) =>
+      learned.length > 1 ? lines.map((line) => `${platform} ${line}`) : lines,
+    );
   }
 
   private computeTopHooks(performance: ContentPerformanceDocument[]): string[] {

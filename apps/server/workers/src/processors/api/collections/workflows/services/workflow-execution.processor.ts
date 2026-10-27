@@ -7,6 +7,7 @@ import {
   DelayResumeJobData,
   WorkflowExecutorService,
 } from '@api/collections/workflows/services/workflow-executor.service';
+import { isRevokedWorkflowActorMessage } from '@api/collections/workflows/services/workflow-resume-actor.util';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { runWithActionOrigin } from '@api/index';
@@ -359,6 +360,28 @@ export class WorkflowExecutionProcessor extends WorkerHost {
           jobId: job.id,
         },
       );
+    }
+    if (
+      result.execution.status === WorkflowExecutionStatus.FAILED &&
+      isRevokedWorkflowActorMessage(result.execution.error)
+    ) {
+      // The executor refused on purpose and already recorded the reason on the
+      // execution row. Retrying cannot restore the member, and compensation
+      // would report a failure that did not happen.
+      this.logger.warn(
+        `${this.logContext} skipped system workflow whose recorded actor lost organization access`,
+        {
+          canonicalId: systemRun.input.canonicalId,
+          executionId: result.provenance.executionId,
+          jobId: job.id,
+          organizationId: systemRun.input.organizationId,
+        },
+      );
+      return {
+        executionId: result.provenance.executionId,
+        status: result.execution.status,
+        workflowId: result.provenance.workflowId,
+      };
     }
     if (result.execution.status === WorkflowExecutionStatus.FAILED) {
       throw new Error(

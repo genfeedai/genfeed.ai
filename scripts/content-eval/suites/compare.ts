@@ -9,6 +9,7 @@ import { randomUUID } from 'node:crypto';
 import { AGENT_CREDIT_USD } from '@genfeedai/contracts/constants';
 import { z } from 'zod';
 import type {
+  CallProvenance,
   Contestant,
   ContestantAnswer,
   ContestantProvenance,
@@ -28,7 +29,10 @@ import type {
 } from '../contracts';
 import { CONTENT_EVAL_THRESHOLDS } from '../contracts';
 import { requireModelFamily, resolveModelFamily } from '../families';
-import { GRADE_TWICE_SAMPLE_SIZE } from '../noise/contracts';
+import {
+  CUT_OFF_VOID_PREFIX,
+  GRADE_TWICE_SAMPLE_SIZE,
+} from '../noise/contracts';
 import {
   canonicalJson,
   MeteredCallError,
@@ -44,9 +48,10 @@ import {
 } from '../scorers/pairwise';
 import { SpendCapExceededError } from '../spend';
 import {
+  buildTextGenerationRequest,
   PRODUCT_TEXT_RESERVED_CREDITS,
-  PRODUCT_TEXT_ROUTES,
   type ProductTextBinding,
+  routePlatform,
 } from '../text/product-generation';
 import {
   atMost,
@@ -118,20 +123,14 @@ async function generateViaProduct(
   binding: ProductTextBinding,
   repeatIndex: number,
 ): Promise<ProductGeneration> {
-  const route = PRODUCT_TEXT_ROUTES[row.contentKind];
-  if (!route) {
-    throw new Error(
-      `${row.contentKind} has no product text route; the product arm only runs ${Object.keys(PRODUCT_TEXT_ROUTES).join(', ')}`,
-    );
-  }
+  const request = buildTextGenerationRequest(
+    row,
+    binding.brandId,
+    randomUUID(),
+  );
   context.ledger.reserve(PRODUCT_TEXT_RESERVED_CREDITS);
   const result = await binding.port.generate(
-    {
-      brandId: binding.brandId,
-      platform: route.platform,
-      prompt: row.input.prompt,
-      requestKey: randomUUID(),
-    },
+    request,
     new AbortController().signal,
   );
 
@@ -150,13 +149,19 @@ async function generateViaProduct(
     costUsd: result.creditsCharged * AGENT_CREDIT_USD,
     credits: result.creditsCharged,
     family: family ?? requireModelFamily(contestant.registryKey),
+    finishReason: null,
     isFailed: result.status !== 'generated',
     kind: 'generation' as const,
     latencyMs: result.latencyMs,
     model,
     modelVersion: model,
     promptDigest: sha256Digest(
-      canonicalJson({ platform: route.platform, prompt: row.input.prompt }),
+      canonicalJson({
+        comment: request.comment,
+        prompt: request.prompt,
+        route: request.route,
+        threadSize: request.threadSize,
+      }),
     ),
     promptTokens: 0,
     provider: PRODUCT_PROVIDER,
@@ -165,8 +170,8 @@ async function generateViaProduct(
     rubricVersion: null,
     seed: context.config.seed + repeatIndex,
     settings: {
-      endpoint: 'posts/draft-generations',
-      platform: route.platform,
+      endpoint: result.endpoints.join(' + '),
+      platform: routePlatform(request.route) ?? 'none',
     },
   };
   context.ledger.charge({
@@ -191,6 +196,47 @@ async function generateViaProduct(
     });
   }
   return { callId, model, text: result.text };
+}
+
+/** A void row for a generation that produced no scoreable text. */
+function voidedGeneration(
+  base: Omit<
+    ScoredRow,
+    | 'callIds'
+    | 'contestant'
+    | 'costCredits'
+    | 'deterministicChecks'
+    | 'isAccepted'
+    | 'latencyMs'
+    | 'output'
+    | 'voidReason'
+    | 'votes'
+  >,
+  contestant: ContestantProvenance,
+  call: CallProvenance | null,
+  voidReason: string,
+): ContestantAnswer {
+  // The call was still charged; keep its cost on the void row.
+  return {
+    scoredRow: {
+      ...base,
+      callIds: call ? [call.callId] : [],
+      contestant,
+      costCredits: call?.credits ?? 0,
+      deterministicChecks: [],
+      isAccepted: null,
+      latencyMs: call?.latencyMs ?? 0,
+      output: null,
+      voidReason,
+      votes: [],
+    },
+    text: null,
+  };
+}
+
+function cutOffReason(detail: string | null): string {
+  const limit = `${CUT_OFF_VOID_PREFIX} at the ${GENERATION_MAX_TOKENS}-token limit`;
+  return detail ? `${limit}: ${detail}` : limit;
 }
 
 async function answerRow(
@@ -263,33 +309,35 @@ async function answerRow(
           temperature: GENERATION_TEMPERATURE,
         },
       );
-      text = generated.response.value.text;
-      generationCallId = generated.provenance.callId;
       provenance.modelVersion = generated.provenance.modelVersion;
       provenance.provider = generated.provenance.provider;
+      if (generated.provenance.finishReason === 'length') {
+        // Even when the fragment parsed, it is not the model's full answer.
+        return voidedGeneration(
+          base,
+          provenance,
+          generated.provenance,
+          cutOffReason(null),
+        );
+      }
+      text = generated.response.value.text;
+      generationCallId = generated.provenance.callId;
     }
   } catch (error: unknown) {
     if (isFatal(error)) {
       throw error;
     }
 
-    // A failed generation was still charged; keep its cost on the void row.
     const failed = error instanceof MeteredCallError ? error.provenance : null;
-    return {
-      scoredRow: {
-        ...base,
-        callIds: failed ? [failed.callId] : [],
-        contestant: provenance,
-        costCredits: failed?.credits ?? 0,
-        deterministicChecks: [],
-        isAccepted: null,
-        latencyMs: failed?.latencyMs ?? 0,
-        output: null,
-        voidReason: `generation failed: ${error instanceof Error ? error.message : String(error)}`,
-        votes: [],
-      },
-      text: null,
-    };
+    const detail = error instanceof Error ? error.message : String(error);
+    return voidedGeneration(
+      base,
+      provenance,
+      failed,
+      failed?.finishReason === 'length'
+        ? cutOffReason(detail)
+        : `generation failed: ${detail}`,
+    );
   }
 
   const checks = runDeterministicChecks(text, row);

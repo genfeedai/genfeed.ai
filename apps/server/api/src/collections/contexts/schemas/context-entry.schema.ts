@@ -25,6 +25,8 @@ export type ContextEntryPendingEmbeddingRow = {
 export type ContextEntrySimilarityRow = {
   content: string | null;
   contextBaseId: string;
+  /** Present on explicit Knowledge search rows only. */
+  entryId?: string;
   kind: string | null;
   knowledgeSourceId: string | null;
   knowledgeSourceKind: string | null;
@@ -34,6 +36,9 @@ export type ContextEntrySimilarityRow = {
   knowledgeSourceVersion: number | null;
   knowledgeSourceVersionId: string | null;
   metadata: unknown;
+  observedAt?: Date | string | null;
+  /** Hybrid score, a decimal with six places; explicit Knowledge search only. */
+  score?: string | number;
   similarity: number;
 };
 
@@ -41,8 +46,12 @@ export type ContextEntrySimilarityResult = {
   citation?: KnowledgeRetrievalCitation;
   content: string;
   contextBaseId: string;
+  /** Present on explicit Knowledge search results only. */
+  entryId?: string;
   kind?: string;
   metadata?: Record<string, unknown>;
+  observedAt?: string;
+  score?: string;
   similarity: number;
 };
 

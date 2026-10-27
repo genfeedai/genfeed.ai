@@ -6,9 +6,17 @@ export const AGENT_STRATEGY_OPPORTUNITY_SOURCE_TYPES = [
   'trend',
   'event',
   'evergreen',
+  'conversation',
 ] as const;
 export type AgentStrategyOpportunitySourceType =
   (typeof AGENT_STRATEGY_OPPORTUNITY_SOURCE_TYPES)[number];
+
+/**
+ * Conversation opportunities are human-reviewed X posts to reply to. The
+ * autopilot never plans, budgets or publishes from them: the opportunity reads
+ * it uses leave this source type out.
+ */
+export const CONVERSATION_OPPORTUNITY_SOURCE_TYPE = 'conversation' as const;
 
 export const AGENT_STRATEGY_OPPORTUNITY_STATUSES = [
   'queued',

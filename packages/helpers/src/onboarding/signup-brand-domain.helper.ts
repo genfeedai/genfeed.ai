@@ -1,4 +1,7 @@
-import { PERSONAL_EMAIL_DOMAINS } from '@genfeedai/contracts/constants';
+import {
+  PERSONAL_EMAIL_DOMAINS,
+  PERSONAL_ORGANIZATION_LABEL,
+} from '@genfeedai/contracts/constants';
 
 export interface ResolveSignupBrandDomainInput {
   email?: string | null;
@@ -183,4 +186,33 @@ export function resolveSignupWorkspaceLabel(
   }
 
   return 'Workspace';
+}
+
+/**
+ * Name the first organization. A personal mailbox (gmail and friends) carries
+ * no company, so the org is simply "Personal" rather than a title-cased email
+ * handle; every other signup is named like its workspace.
+ */
+export function resolveSignupOrganizationLabel(
+  input: ResolveSignupWorkspaceLabelInput,
+): string {
+  if (isPersonalEmailDomain(extractEmailDomain(input.email))) {
+    return PERSONAL_ORGANIZATION_LABEL;
+  }
+
+  return resolveSignupWorkspaceLabel(input);
+}
+
+/**
+ * Slug seed for a personal organization: `personal-` plus the tail of the
+ * owner's opaque id. The email handle never reaches the URL, and the tail keeps
+ * the first slug unique without a counting loop over every earlier "personal".
+ */
+export function buildPersonalOrganizationSlugSeed(userId: string): string {
+  const tail = userId
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .slice(-8);
+
+  return tail ? `personal-${tail}` : 'personal';
 }

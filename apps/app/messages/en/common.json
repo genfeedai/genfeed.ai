@@ -769,6 +769,8 @@
     "memory": {
       "actions": {
         "archive": "Archive",
+        "edit": "Edit",
+        "history": "History",
         "promote": "Promote to skill",
         "reject": "Reject promotion",
         "viewSubscription": "View subscription"
@@ -783,14 +785,37 @@
         "status": "Status"
       },
       "description": "Brand and organization memory the agent was taught. Personal entries stay private until promoted.",
+      "edit": {
+        "cancel": "Cancel",
+        "contentLabel": "Memory",
+        "currentBadge": "Current",
+        "description": "Saving adds a new revision. Earlier revisions stay in the history.",
+        "historyEmpty": "No earlier revisions",
+        "historyLoadFailed": "Could not load the revision history",
+        "historyTitle": "Revision history",
+        "kind": {
+          "correction": "Correction",
+          "legacy_snapshot": "Before revisions",
+          "original": "Original"
+        },
+        "loadMore": "Show older revisions",
+        "reasonLabel": "Why is this changing?",
+        "reasonPlaceholder": "The launch date moved to the 14th",
+        "revisionLine": "Revision {revision}",
+        "save": "Save correction",
+        "title": "Edit memory"
+      },
       "empty": "No shared memory yet",
       "error": {
+        "conflict": "This memory changed since you opened it. Reload and try again.",
+        "correct": "Could not save the correction",
         "load": "Could not load organization memory",
         "update": "Could not update that memory entry"
       },
       "heading": "Organization memory",
       "notifications": {
         "archived": "Memory archived",
+        "corrected": "Memory corrected",
         "loadFailed": "Failed to load organization memory",
         "promoted": "Memory promoted to a skill",
         "rejected": "Promotion rejected"
@@ -1183,8 +1208,7 @@
     "threads": "Threads",
     "threadsLoading": "Loading threads",
     "untitledThread": "Untitled",
-    "title": "Agent",
-    "unavailable": "Agent is the main view here"
+    "title": "Agent"
   },
   "contextSidebar": {
     "close": "Close details",
@@ -2393,9 +2417,8 @@
     "plans": {
       "changeErrorTitle": "Plan change failed",
       "confirmChange": "Confirm change",
-      "confirmTitle": "Switch to {plan}?",
+      "confirmTitle": "Upgrade to {plan}?",
       "creditsPerMonth": "{credits} / month",
-      "current": "Current",
       "failures": {
         "billingCustomerMismatch": "This subscription belongs to another organization. Contact support to reconnect billing.",
         "billingCustomerMissing": "Your billing account needs repair before the plan can change. Contact support.",
@@ -2422,7 +2445,6 @@
       "prorationUpgrade": "Stripe estimates your next invoice at {amount}, including the prorated upgrade.",
       "retryAction": "Try again",
       "salesContact": "Need higher limits, custom terms, or an enterprise deployment? Email {email}.",
-      "switchTo": "Switch to {plan}",
       "unavailable": "This plan is not available in this environment yet.",
       "upgradeTo": "Upgrade to {plan}"
     }
@@ -2528,15 +2550,11 @@
   "plugins": {
     "title": "Plugins",
     "breadcrumbLabel": "Breadcrumb",
-    "allCategories": "All categories",
     "selectApp": "Select {app}",
     "selectedApp": "{app}, selected",
     "status": {
-      "label": "App status",
-      "all": "All",
       "installed": "Installed",
-      "available": "Available",
-      "restricted": "Restricted"
+      "available": "Available"
     },
     "search": "Search plugins",
     "installedTitle": "Installed",
@@ -2548,13 +2566,6 @@
       "unavailable": "Unavailable"
     },
     "pinned": "Pinned",
-    "filterAll": "All",
-    "filters": {
-      "menu": "Filters",
-      "category": "Category",
-      "clear": "Clear filters",
-      "activeCount": "{count, plural, one {# filter active} other {# filters active}}"
-    },
     "categories": {
       "create": "Create",
       "publish": "Publish & grow",
@@ -2631,6 +2642,7 @@
       }
     },
     "noMatches": "No plugins match your search.",
+    "showAll": "Show all plugins",
     "workflowsTitle": "Workflows",
     "workflowsDescription": "Browse the workflow library and install a workflow for this brand.",
     "openWorkflows": "Open workflow library",

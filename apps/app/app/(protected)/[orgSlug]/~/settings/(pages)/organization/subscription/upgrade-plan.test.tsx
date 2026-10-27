@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import PlansCard from './plans-card';
+import UpgradePlan from './upgrade-plan';
 import '@testing-library/jest-dom/vitest';
 
 // Resolve against the real catalog so these assertions stay on the copy a user
@@ -12,11 +12,6 @@ vi.mock('next-intl', async () => {
 
   return { useTranslations: translateFromCatalog };
 });
-
-const useBrandMock = vi.fn();
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => useBrandMock(),
-}));
 
 const useSubscriptionMock = vi.fn();
 vi.mock('@hooks/data/subscription/use-subscription/use-subscription', () => ({
@@ -75,15 +70,14 @@ function mockSubscription(stripeSubscriptionId?: string) {
   });
 }
 
-describe('PlansCard', () => {
+describe('UpgradePlan', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    useBrandMock.mockReturnValue({ settings: { subscriptionTier: 'free' } });
     mockSubscription();
   });
 
   it('sells only Scale — never Free or Enterprise', () => {
-    render(<PlansCard />);
+    render(<UpgradePlan />);
 
     expect(screen.getByText('Scale')).toBeInTheDocument();
     expect(screen.queryByText('Pay As You Go')).not.toBeInTheDocument();
@@ -91,13 +85,13 @@ describe('PlansCard', () => {
   });
 
   it('shows the Scale list price plainly', () => {
-    render(<PlansCard />);
+    render(<UpgradePlan />);
 
     expect(screen.getByText('$499/mo')).toBeInTheDocument();
   });
 
   it('renders every upgrade call to action as the primary (white) button', () => {
-    render(<PlansCard />);
+    render(<UpgradePlan />);
 
     const upgrade = screen.getByRole('button', {
       name: /Upgrade to Scale/i,
@@ -106,18 +100,13 @@ describe('PlansCard', () => {
     expect(upgrade.className).not.toMatch(/\bbg-tertiary\b/);
   });
 
-  it('badges the current plan and drops its call to action', () => {
-    useBrandMock.mockReturnValue({ settings: { subscriptionTier: 'scale' } });
+  it('lists the price, monthly credits and key benefits next to the button', () => {
+    render(<UpgradePlan />);
 
-    render(<PlansCard />);
-
-    expect(screen.getByText('Current')).toBeInTheDocument();
+    expect(screen.getByText('60,000 credits / month')).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: /Scale$/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /Upgrade to Scale/i }),
-    ).not.toBeInTheDocument();
+      screen.getByText('Unlimited seats and client workspaces'),
+    ).toBeInTheDocument();
   });
 
   it('sends an org without a Stripe subscription through checkout', async () => {
@@ -125,7 +114,7 @@ describe('PlansCard', () => {
       url: 'https://checkout.stripe.com/session',
     });
 
-    render(<PlansCard />);
+    render(<UpgradePlan />);
     fireEvent.click(screen.getByRole('button', { name: /Upgrade to Scale/i }));
 
     await waitFor(() => {
@@ -146,8 +135,8 @@ describe('PlansCard', () => {
       upcomingInvoice: { amount_due: 32_500, currency: 'usd', lines: [] },
     });
 
-    render(<PlansCard />);
-    fireEvent.click(screen.getByRole('button', { name: /Switch to Scale/i }));
+    render(<UpgradePlan />);
+    fireEvent.click(screen.getByRole('button', { name: /Upgrade to Scale/i }));
 
     await waitFor(() => {
       expect(previewPlanChange).toHaveBeenCalledWith('price_scale');
@@ -176,8 +165,8 @@ describe('PlansCard', () => {
       prorationAmount: 15_000,
     } as never);
 
-    render(<PlansCard />);
-    fireEvent.click(screen.getByRole('button', { name: /Switch to Scale/i }));
+    render(<UpgradePlan />);
+    fireEvent.click(screen.getByRole('button', { name: /Upgrade to Scale/i }));
 
     expect(
       await screen.findByText(
@@ -196,8 +185,8 @@ describe('PlansCard', () => {
       upcomingInvoice: { amount_due: 4_900, currency: 'usd', lines: [] },
     });
 
-    render(<PlansCard />);
-    fireEvent.click(screen.getByRole('button', { name: /Switch to Scale/i }));
+    render(<UpgradePlan />);
+    fireEvent.click(screen.getByRole('button', { name: /Upgrade to Scale/i }));
 
     expect(
       await screen.findByText(/Stripe estimates your next invoice at \$49\.00/),
@@ -212,7 +201,7 @@ describe('PlansCard', () => {
 
     async function selectScale() {
       mockSubscription('sub_stripe_1');
-      render(<PlansCard />);
+      render(<UpgradePlan />);
       fireEvent.click(await screen.findByRole('button', { name: /Scale/i }));
     }
 
@@ -327,8 +316,10 @@ describe('PlansCard', () => {
         upcomingInvoice: { amount_due: 32_500, currency: 'usd', lines: [] },
       });
 
-      render(<PlansCard />);
-      fireEvent.click(screen.getByRole('button', { name: /Switch to Scale/i }));
+      render(<UpgradePlan />);
+      fireEvent.click(
+        screen.getByRole('button', { name: /Upgrade to Scale/i }),
+      );
       await screen.findByRole('button', { name: /Confirm change/i });
     }
 

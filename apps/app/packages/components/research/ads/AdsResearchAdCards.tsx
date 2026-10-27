@@ -128,14 +128,14 @@ export function AdGridCard({
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {item.accountName && (
-            <span className="rounded-full border border-border bg-card px-2.5 py-1 text-xs text-foreground/60">
+            <Badge className="normal-case" variant="secondary">
               {item.accountName}
-            </span>
+            </Badge>
           )}
           {item.industry && (
-            <span className="rounded-full border border-border bg-card px-2.5 py-1 text-xs text-foreground/60">
+            <Badge className="normal-case" variant="secondary">
               {item.industry}
-            </span>
+            </Badge>
           )}
         </div>
       </Button>

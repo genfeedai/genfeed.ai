@@ -182,6 +182,7 @@ describe('async generation settlement', () => {
           .mockResolvedValue({ isTrialSubject: false, threshold: null }),
       } as never,
       { sendTrialCreditsLow: vi.fn() } as never,
+      { grantBestEffort: async () => undefined } as never,
     );
   });
 

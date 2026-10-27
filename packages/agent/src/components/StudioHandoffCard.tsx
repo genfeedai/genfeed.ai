@@ -1,4 +1,5 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { Badge } from '@ui/primitives/badge';
 import { ExternalLink, Paintbrush } from 'lucide-react';
 import Image from 'next/image';
 import type { ReactElement } from 'react';
@@ -44,9 +45,7 @@ export function StudioHandoffCard({
         )}
 
         <div className="mb-3">
-          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-2xs font-medium text-primary  ">
-            {editorType}
-          </span>
+          <Badge className="normal-case">{editorType}</Badge>
         </div>
 
         <a

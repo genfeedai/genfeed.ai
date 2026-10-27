@@ -1,4 +1,8 @@
 import { Readable } from 'node:stream';
+import {
+  ClientClosedRequestException,
+  type ClientClosedRequestStage,
+} from '@api/helpers/exceptions/client-closed-request/client-closed-request.exception';
 import { BadGatewayException, StreamableFile } from '@nestjs/common';
 import type { Response } from 'express';
 
@@ -7,6 +11,19 @@ export function sanitizeAttachmentFilename(filename: string): string {
   return trimmed.replace(/["\\\r\n]/g, '_').slice(0, 180);
 }
 
+function isAbortFailure(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    (error.name === 'AbortError' || error.name === 'TimeoutError')
+  );
+}
+
+/**
+ * Streams a remote file to the client as a download. If the client closes the
+ * connection first it throws `ClientClosedRequestException` (a 499 that is not
+ * reported) and cancels the upstream fetch. An upstream that aborts or times
+ * out on its own surfaces as a 502; any other failure is rethrown unchanged.
+ */
 export async function streamRemoteAttachment(
   url: string,
   filename: string,
@@ -14,17 +31,21 @@ export async function streamRemoteAttachment(
 ): Promise<StreamableFile> {
   const controller = new AbortController();
   const abort = () => controller.abort();
+  let stage: ClientClosedRequestStage = 'before-upstream';
   res.once('close', abort);
   res.once('finish', abort);
 
   try {
     if (res.destroyed || res.writableEnded) abort();
-    controller.signal.throwIfAborted();
+    if (controller.signal.aborted)
+      throw new ClientClosedRequestException(stage);
 
+    stage = 'awaiting-upstream';
     const upstream = await fetch(url, {
       cache: 'no-store',
       signal: controller.signal,
     });
+    stage = 'before-stream';
     if (res.destroyed || res.writableEnded) abort();
     if (controller.signal.aborted || !upstream.ok || !upstream.body) {
       try {
@@ -32,7 +53,8 @@ export async function streamRemoteAttachment(
       } catch {
         // Keep the original cancellation or gateway failure.
       }
-      controller.signal.throwIfAborted();
+      if (controller.signal.aborted)
+        throw new ClientClosedRequestException(stage);
       throw new BadGatewayException('The download is unavailable');
     }
 
@@ -52,6 +74,16 @@ export async function streamRemoteAttachment(
       fileStream.destroy();
       throw error;
     }
+  } catch (error) {
+    // The abort signal fires only for a client close, so an abort-shaped
+    // failure while it is set is a cancel; one without it is the upstream.
+    if (error instanceof ClientClosedRequestException) throw error;
+    if (isAbortFailure(error)) {
+      if (controller.signal.aborted)
+        throw new ClientClosedRequestException(stage);
+      throw new BadGatewayException('The download timed out upstream');
+    }
+    throw error;
   } finally {
     res.off('close', abort);
     res.off('finish', abort);

@@ -44,6 +44,8 @@ const VOICE = closedObjectSchema(
 );
 const DRAFT_REQUEST = closedObjectSchema(
   {
+    brandBrief: STRING_SCHEMA,
+    brandId: STRING_SCHEMA,
     organizationId: STRING_SCHEMA,
     searchResults: arraySchema(TWEET),
     voiceConfig: VOICE,

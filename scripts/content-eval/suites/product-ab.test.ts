@@ -51,14 +51,23 @@ describe('product-ab suite (stub dispatcher and stub product port)', () => {
       'raw',
       'product',
     ]);
-    // Two rows each for social-post and linkedin-post; the seven kinds
-    // without a product route stay out of the run.
-    expect(report.fixture.rowCount).toBe(4);
+    // Two rows each for social-post, linkedin-post, thread, reply, article,
+    // linkedin-article and newsletter; script and ad copy have no product
+    // route and stay out of the run.
+    expect(report.fixture.rowCount).toBe(14);
     expect(
       [...new Set(report.outcome.rows.map((row) => row.contentKind))].sort(),
-    ).toEqual(['linkedin-post', 'social-post']);
-    expect(report.outcome.rows).toHaveLength(8);
-    expect(report.outcome.pairs).toHaveLength(4);
+    ).toEqual([
+      'article',
+      'linkedin-article',
+      'linkedin-post',
+      'newsletter',
+      'reply',
+      'social-post',
+      'thread',
+    ]);
+    expect(report.outcome.rows).toHaveLength(28);
+    expect(report.outcome.pairs).toHaveLength(14);
   });
 
   it('records the product generation as a charged call with its own provenance', async () => {
@@ -67,7 +76,7 @@ describe('product-ab suite (stub dispatcher and stub product port)', () => {
     const productRows = report.outcome.rows.filter(
       (row) => row.contestant?.guidanceArm === 'product',
     );
-    expect(productRows).toHaveLength(4);
+    expect(productRows).toHaveLength(14);
     for (const row of productRows) {
       expect(row.voidReason).toBeNull();
       expect(row.contestant).toMatchObject({
@@ -79,14 +88,20 @@ describe('product-ab suite (stub dispatcher and stub product port)', () => {
     const productCalls = report.calls.filter(
       (call) => call.provider === 'genfeed-product-api',
     );
-    expect(productCalls).toHaveLength(4);
+    expect(productCalls).toHaveLength(14);
     for (const call of productCalls) {
       expect(call).toMatchObject({
         costEvidence: 'reservation',
         kind: 'generation',
-        settings: { endpoint: 'posts/draft-generations' },
       });
     }
+    expect([
+      ...new Set(
+        productCalls.map(
+          (call) => (call.settings as { endpoint: string }).endpoint,
+        ),
+      ),
+    ]).toEqual(['stub']);
     const spentOnProduct = productCalls.reduce(
       (sum, call) => sum + call.credits,
       0,

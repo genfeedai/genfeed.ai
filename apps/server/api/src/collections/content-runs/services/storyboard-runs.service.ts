@@ -417,6 +417,7 @@ export class StoryboardRunsService {
     organizationId: string,
     brandId: string,
     runId: string,
+    userId: string,
     body: unknown,
   ): Promise<StoryboardRun> {
     const input = parseInput(draftStoryboardPlanSchema, body);
@@ -447,6 +448,9 @@ export class StoryboardRunsService {
         brandId,
       );
       const plan = await this.drafter.draftLongForm({
+        brandId,
+        organizationId,
+        userId,
         brand: {
           name: context.brand.label,
           description: context.brand.description ?? undefined,
@@ -482,6 +486,9 @@ export class StoryboardRunsService {
       brandId,
     );
     const plan = await this.drafter.draft({
+      brandId,
+      organizationId,
+      userId,
       brand: {
         name: context.brand.label,
         description: context.brand.description ?? undefined,

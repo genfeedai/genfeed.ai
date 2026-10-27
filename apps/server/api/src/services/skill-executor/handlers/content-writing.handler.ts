@@ -6,6 +6,7 @@ import type {
   SkillExecutionContext,
   SkillHandler,
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
+import { SkillBrandBriefService } from '@api/services/skill-executor/skill-brand-brief.service';
 import { ContentIntelligencePlatform } from '@genfeedai/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import {
@@ -22,6 +23,7 @@ export class ContentWritingHandler implements SkillHandler {
     private readonly contentGeneratorService: ContentGeneratorService,
     private readonly llmDispatcherService: LlmDispatcherService,
     private readonly loggerService: LoggerService,
+    private readonly skillBrandBriefService: SkillBrandBriefService,
   ) {}
 
   async execute(
@@ -46,10 +48,20 @@ export class ContentWritingHandler implements SkillHandler {
         typeof params.variationsCount === 'number' ? params.variationsCount : 1,
     };
 
-    const generated = await this.contentGeneratorService.generateContent(
-      context.organizationId,
-      generationDto,
-    );
+    // Both passes write against the composed harness brief; neither runs
+    // without it, so a brand with no usable brief fails here, before any spend.
+    const harnessBrief = await this.skillBrandBriefService.resolve(context, {
+      contentType: 'post',
+      platform: generationDto.platform,
+      topic,
+    });
+    const generated =
+      await this.contentGeneratorService.generateContentWorkflow(
+        context.userId,
+        context.organizationId,
+        generationDto,
+        true,
+      );
 
     const firstDraft = generated[0];
     const targetPlatform = generationDto.platform;
@@ -62,10 +74,7 @@ export class ContentWritingHandler implements SkillHandler {
           max_tokens: 400,
           messages: [
             {
-              content: this.buildRewritePrompt(
-                context.brandVoice,
-                targetPlatform,
-              ),
+              content: this.buildRewritePrompt(harnessBrief, targetPlatform),
               role: 'system',
             },
             {
@@ -126,16 +135,17 @@ export class ContentWritingHandler implements SkillHandler {
    * counts it, and the hook in the first line, so autopilot drafts fit before
    * they reach fan-out.
    */
-  private buildRewritePrompt(brandVoice: string, platform: string): string {
+  private buildRewritePrompt(harnessBrief: string, platform: string): string {
     const lengthRule = describePlatformTextLimit(platform);
     return [
-      brandVoice
-        ? `Rewrite this content in brand voice: ${brandVoice}.`
-        : 'Rewrite this content in the brand voice.',
-      `Write it as one ${platform} post${lengthRule ? ` of ${lengthRule}` : ''}.`,
-      'Open with a strong hook in the first line.',
-      'Return only the post text.',
-    ].join(' ');
+      harnessBrief,
+      [
+        'Rewrite this content following the brand brief above.',
+        `Write it as one ${platform} post${lengthRule ? ` of ${lengthRule}` : ''}.`,
+        'Open with a strong hook in the first line.',
+        'Return only the post text.',
+      ].join(' '),
+    ].join('\n\n');
   }
 
   /** A rewrite never replaces a draft that fit with one that does not. */

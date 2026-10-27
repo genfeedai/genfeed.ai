@@ -18,6 +18,7 @@ import {
   buildAgentArtifactCompletionMetadata as buildArtifactMetadata,
 } from '@api/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
 import { recordDashboardBlocks } from '@api/services/agent-orchestrator/utils/agent-dashboard-blocks.util';
+import { hasGenerationHoldIntent } from '@api/services/agent-orchestrator/utils/agent-generation-hold-intent.util';
 import {
   type GenerationRedirect,
   getGenerationPreparationRedirect,
@@ -966,6 +967,11 @@ export class AgentTurnRoundRunnerService {
       runId: context.executionId,
       hostSupportsApproval: context.hostSupportsApproval ?? true,
       ...(confirmationContext ?? {}),
+      ...(hasGenerationHoldIntent(
+        this.readCurrentOperatorMessage(params.messages, params.source),
+      )
+        ? { isGenerationReviewRequested: true }
+        : {}),
       strategyId: context.strategyId,
       thinkingModel,
       threadId,

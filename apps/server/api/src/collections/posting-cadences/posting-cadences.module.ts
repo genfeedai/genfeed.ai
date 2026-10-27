@@ -6,6 +6,7 @@ import { PostingCadencesController } from '@api/collections/posting-cadences/con
 import { PostingCadenceCopyService } from '@api/collections/posting-cadences/services/posting-cadence-copy.service';
 import { PostingCadenceValidationService } from '@api/collections/posting-cadences/services/posting-cadence-validation.service';
 import { PostingCadencesService } from '@api/collections/posting-cadences/services/posting-cadences.service';
+import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { Module } from '@nestjs/common';
 
@@ -14,6 +15,7 @@ import { Module } from '@nestjs/common';
   exports: [PostingCadencesService],
   imports: [
     ArticlesModule,
+    ContentHarnessModule,
     CreditsModule,
     LlmDispatcherModule,
     ModelsModule,

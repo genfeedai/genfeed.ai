@@ -93,7 +93,6 @@ export interface AnalyticsAggRow {
   total_comments: bigint;
   total_shares: bigint;
   total_saves: bigint;
-  unique_posts: bigint;
   platforms?: string[];
 }
 
@@ -101,6 +100,12 @@ export interface AnalyticsAggRow {
 export interface EngagementAggRow {
   entity_id: string;
   total_engagement: bigint;
+}
+
+/** Raw row from $queryRaw published-post count aggregation */
+export interface PostCountRow {
+  entity_id: string;
+  total_posts: bigint;
 }
 
 /** One ranked entity id from the database-side leaderboard ranking query */

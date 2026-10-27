@@ -173,6 +173,8 @@
   "knowledgeReceipts": {
     "title": "Knowledge sources",
     "citationsTitle": "Sources",
+    "conflictsTitle": "Conflicting sources",
+    "conflictNotCited": "not cited in this answer",
     "unsupported": "{count, plural, one {# citation could not be verified and was removed.} other {# citations could not be verified and were removed.}}",
     "version": "Version {version}",
     "purpose": {
@@ -337,7 +339,8 @@
       "title": "Generate Profile Picture"
     },
     "cancel": "Cancel",
-    "generate": "Generate"
+    "generate": "Generate",
+    "generateFailed": "Could not start the generation. Please try again."
   },
   "elementPlatformFields": {
     "activeHelp": "Inactive elements are hidden from pickers.",

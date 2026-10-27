@@ -549,12 +549,12 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'start_remix_generation', surfaces: ['mcp'], toolset: 'inspiration' },
   {
     name: 'start_storyboard_long_form',
-    surfaces: ['mcp'],
+    surfaces: ['agent', 'mcp'],
     toolset: 'inspiration',
   },
   {
     name: 'storyboard_long_form',
-    surfaces: ['mcp'],
+    surfaces: ['agent', 'mcp'],
     toolset: 'inspiration',
   },
   {

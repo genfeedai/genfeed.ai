@@ -11,6 +11,7 @@ import {
 import type { BrandKitReviewCardProps } from '@props/pages/brand-detail.props';
 import type { BrandKitGroupedField } from '@props/pages/brand-kit-review.props';
 import Card from '@ui/card/Card';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   Collapsible,
@@ -253,9 +254,7 @@ export default function BrandKitReviewCard(props: BrandKitReviewCardProps) {
               <span className="font-medium">
                 {formatReadinessScore(draft.readiness.score)}
               </span>
-              <span className="rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground">
-                {draft.readiness.status}
-              </span>
+              <Badge variant="secondary">{draft.readiness.status}</Badge>
             </div>
             {draft.readiness.missingFields.length > 0 ? (
               <div className="mt-2 flex flex-wrap items-center gap-2">

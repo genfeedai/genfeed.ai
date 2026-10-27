@@ -1,4 +1,4 @@
-import type { Prisma } from '@genfeedai/prisma';
+import type { ApiKeyPublishingContext } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 
 export type CadenceRecord = {
   brief: string | null;
@@ -21,6 +21,12 @@ export type CadenceRecord = {
   userId: string;
   windowEndMinute: number;
   windowStartMinute: number;
+};
+
+export type SlotCopyRequest = {
+  apiKeyContext?: ApiKeyPublishingContext;
+  brief?: string;
+  cadence: CadenceRecord | null;
 };
 
 export type ReservationRecord = {
@@ -82,13 +88,6 @@ export type MatchingTarget = {
   groupId: string | null;
   id: string;
   scheduledDate: Date | null;
-};
-
-export type BrandContextRow = {
-  agentConfig: Prisma.JsonValue;
-  description: string | null;
-  label: string;
-  text: string | null;
 };
 
 export type ScheduledCampaignRow = {

@@ -23,3 +23,12 @@ it('shows an indeterminate shared indicator without claiming a numeric value', (
     transform: 'translateX(-60%)',
   });
 });
+
+it('lets callers recolor the indicator without keeping the primary fill', () => {
+  render(
+    <Progress value={25} aria-label="Usage" indicatorClassName="bg-success" />,
+  );
+  const indicator = screen.getByRole('progressbar').firstElementChild;
+  expect(indicator).toHaveClass('bg-success');
+  expect(indicator).not.toHaveClass('bg-primary');
+});

@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BRAND_ASSET_CACHE_TAGS } from '@api/collections/assets/constants/asset-cache-tags.constant';
 import type { CreateAssetDto } from '@api/collections/assets/dto/create-asset.dto';
 import type { CreateFromIngredientDto } from '@api/collections/assets/dto/create-from-ingredient.dto';
 import type { AssetDocument } from '@api/collections/assets/schemas/asset.schema';
@@ -28,8 +29,6 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
-
-const ASSET_CACHE_TAGS = ['brands', 'links', 'assets', 'public'];
 
 @Injectable()
 export class AssetIngestionService {
@@ -355,7 +354,7 @@ export class AssetIngestionService {
   }
 
   private async invalidateBrandAssets(parentId: string): Promise<void> {
-    await this.cacheService.invalidateByTags(ASSET_CACHE_TAGS);
+    await this.cacheService.invalidateByTags(BRAND_ASSET_CACHE_TAGS);
     await this.cacheService.del(`brand:${parentId}`);
   }
 

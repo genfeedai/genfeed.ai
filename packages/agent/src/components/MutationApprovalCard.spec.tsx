@@ -249,7 +249,9 @@ describe('contextual approval recovery', () => {
       act(() => vi.advanceTimersByTime(1));
       expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull();
       expect(screen.queryByRole('button', { name: 'Decline' })).toBeNull();
-      expect(screen.getByRole('status')).toHaveTextContent('Approval expired');
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Preview expired. Prepare it again to approve.',
+      );
       expect(
         screen.getByRole('button', { name: 'Prepare again' }),
       ).toBeEnabled();

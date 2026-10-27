@@ -1,6 +1,7 @@
 import { isCreditTransactionConflict } from '@api/collections/credits/services/credit-transaction-conflict';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ReservationEvidenceChangedException } from '@api/collections/credits/services/reservation-evidence-changed.exception';
+import { RetryCreditBackService } from '@api/collections/credits/services/retry-credit-back.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import type { GenerationCreditReservationRequest } from '@api/helpers/utils/credits/generation-credit-reservation.util';
 import { hasGenerationLineProtocol } from '@api/helpers/utils/credits/generation-line-reservation.util';
@@ -28,7 +29,7 @@ import type { ModelBillableCompletionInput } from '@genfeedai/contracts/interfac
 import { quoteModelBillableCompletion } from '@genfeedai/pricing';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { z } from 'zod';
 
 export interface FalGenerationCompletionInput {
@@ -47,6 +48,7 @@ export class GenerationQuoteGroupService {
     private readonly credits: CreditsUtilsService,
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
+    @Optional() private readonly retryCreditBack?: RetryCreditBackService,
   ) {}
 
   /** Internal adapter receipt only; caller/UI dimensions never enter this ledger. */
@@ -451,6 +453,23 @@ export class GenerationQuoteGroupService {
           completedOutputs: completedCount,
           billableProviderCostUsd: completion.billableProviderCostUsd,
         },
+      });
+      await this.grantRetryCreditBack(completedIds, completion.credits, hold);
+    }
+  }
+
+  /** Each completed output of a settled group is a retry candidate (#7730). */
+  private async grantRetryCreditBack(
+    completedIds: ReadonlySet<string>,
+    groupCredits: number,
+    hold: { organizationId: string },
+  ): Promise<void> {
+    const chargedCredits = groupCredits / Math.max(1, completedIds.size);
+    for (const ingredientId of completedIds) {
+      await this.retryCreditBack?.grantBestEffort({
+        chargedCredits,
+        ingredientId,
+        organizationId: hold.organizationId,
       });
     }
   }

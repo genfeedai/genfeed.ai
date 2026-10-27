@@ -65,6 +65,7 @@ export class IngredientEntity extends BaseEntity implements Ingredient {
   declare readonly version: number;
   declare readonly qualityStatus: Ingredient['qualityStatus'];
 
+  declare readonly isDraftRender: boolean;
   declare readonly isFavorite: boolean;
   declare readonly isHighlighted: boolean;
   declare readonly isDefault: boolean;

@@ -73,6 +73,8 @@ export interface IOrganizationBilling {
   organizationName: string;
   ownerEmail: string | null;
   hasSubscription: boolean;
+  /** The organization has bought a pay-as-you-go credit pack (no subscription needed). */
+  hasPaygPurchase: boolean;
   tier: string | null;
   plan: string | null;
   status: SubscriptionStatus | null;

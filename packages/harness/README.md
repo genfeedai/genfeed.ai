@@ -7,6 +7,8 @@ This package is intentionally split into:
 - contracts and composition helpers (`ContentHarnessPack`,
   `ContentHarnessRegistry`, `composeContentHarnessBrief`)
 - built-in packs (`CORE_CONTENT_HARNESS_PACK`, `X_PLATFORM_HARNESS_PACK`,
+  `LINKEDIN_PLATFORM_HARNESS_PACK`, `INSTAGRAM_PLATFORM_HARNESS_PACK`,
+  `TIKTOK_PLATFORM_HARNESS_PACK`, `YOUTUBE_PLATFORM_HARNESS_PACK`,
   `BRAND_FIDELITY_HARNESS_PACK`, `VIRAL_PSYCHOLOGY_HARNESS_PACK`,
   `B2B_MEDIA_CRAFT_HARNESS_PACK`)
 - external private packs, which the API loads at startup (see below)
@@ -50,8 +52,8 @@ const brief = await composeContentHarnessBrief(registry, {
 ## External packs
 
 The package does not load external packs itself. `ContentHarnessService` in the
-API (`apps/server/api/src/services/harness/harness.service.ts`) registers the four
-built-in packs, then loads each package named in the `CONTENT_HARNESS_PACKAGES`
+API (`apps/server/api/src/services/harness/harness.service.ts`) registers the built-in
+packs, then loads each package named in the `CONTENT_HARNESS_PACKAGES`
 environment variable (comma-separated). A module must export a `ContentHarnessPack`
 as `default` or as `CONTENT_HARNESS_PACK`; a pack needs a string `id` and `version`.
 

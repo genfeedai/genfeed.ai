@@ -32,22 +32,17 @@ const TONE_FILL_CLASSES: Record<PluginThumbnailTone, string> = {
 
 const SIZE_CLASSES: Record<PluginThumbnailSize, string> = {
   card: 'aspect-video w-full rounded-t-card',
-  compact: 'size-10 rounded-md',
   preview: 'aspect-video w-full rounded-t-card',
   standard: 'h-28 w-full rounded-t-card',
 };
 
 const ICON_SIZE_CLASSES: Record<PluginThumbnailSize, string> = {
   card: 'size-6',
-  compact: 'size-5',
   preview: 'size-6',
   standard: 'size-6',
 };
 
-const ICON_WRAPPER_CLASSES: Record<
-  Exclude<PluginThumbnailSize, 'compact'>,
-  string
-> = {
+const ICON_WRAPPER_CLASSES: Record<PluginThumbnailSize, string> = {
   card: 'size-12 rounded-lg',
   standard: 'size-12 rounded-lg',
   preview: 'size-12 rounded-lg',
@@ -262,13 +257,11 @@ export default function PluginAppThumbnail({
           fill
           loading="lazy"
           sizes={
-            size === 'compact'
-              ? '2.5rem'
-              : size === 'preview'
-                ? '(min-width: 1024px) 70vw, 95vw'
-                : size === 'card'
-                  ? '(min-width: 1024px) 24rem, 85vw'
-                  : '(min-width: 768px) 26rem, 85vw'
+            size === 'preview'
+              ? '(min-width: 1024px) 70vw, 95vw'
+              : size === 'card'
+                ? '(min-width: 1024px) 24rem, 85vw'
+                : '(min-width: 768px) 26rem, 85vw'
           }
           src={thumbnailSrc}
           unoptimized={!canOptimizeImageSource(thumbnailSrc)}
@@ -282,32 +275,24 @@ export default function PluginAppThumbnail({
       aria-hidden="true"
       className={cn(
         'relative flex shrink-0 items-center overflow-hidden bg-gradient-to-br',
-        size === 'compact'
-          ? 'justify-center border border-border'
-          : 'justify-between gap-4 border-b border-border px-6',
+        'justify-between gap-4 border-b border-border px-6',
         TONE_SURFACE_CLASSES[entry.tone],
         SIZE_CLASSES[size],
       )}
       data-testid={`plugins-thumbnail-${appId}`}
     >
-      {size === 'compact' ? (
-        <Icon className={cn(ICON_SIZE_CLASSES[size], 'text-foreground/80')} />
-      ) : (
-        <>
-          <div
-            className={cn(
-              'flex shrink-0 items-center justify-center',
-              TONE_ICON_CLASSES[entry.tone],
-              ICON_WRAPPER_CLASSES[size],
-            )}
-          >
-            <Icon className={ICON_SIZE_CLASSES[size]} />
-          </div>
-          <div className="flex min-w-0 flex-1 items-center justify-end">
-            <ThumbnailArt art={entry.art} tone={entry.tone} />
-          </div>
-        </>
-      )}
+      <div
+        className={cn(
+          'flex shrink-0 items-center justify-center',
+          TONE_ICON_CLASSES[entry.tone],
+          ICON_WRAPPER_CLASSES[size],
+        )}
+      >
+        <Icon className={ICON_SIZE_CLASSES[size]} />
+      </div>
+      <div className="flex min-w-0 flex-1 items-center justify-end">
+        <ThumbnailArt art={entry.art} tone={entry.tone} />
+      </div>
     </div>
   );
 }

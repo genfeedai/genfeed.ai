@@ -13,12 +13,21 @@ import {
   toBrandKnowledgeHits,
 } from '@api/collections/contexts/utils/context-brand-scope.util';
 import type { ContextSimilarityQueryOptions } from '@api/collections/contexts/utils/context-similarity-query.util';
+import {
+  decodeKnowledgeSearchCursor,
+  encodeKnowledgeSearchCursor,
+  type KnowledgeSearchPosition,
+  knowledgeSearchFingerprint,
+} from '@api/collections/contexts/utils/knowledge-search-cursor.util';
+import { extractExactTerms } from '@api/collections/contexts/utils/knowledge-search-terms.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { KnowledgeSourcePurpose } from '@genfeedai/contracts';
 import type {
   BrandContentMemoryHit,
   BrandContentMemoryRetrievalParams,
+  BrandKnowledgeSearchParams,
+  KnowledgeSearchPage,
   OrgAndPersonalContentMemoryRetrievalParams,
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
@@ -69,6 +78,81 @@ export class KnowledgeContentRetrievalService {
       },
     );
     return toBrandContentMemoryHits(entries, bases);
+  }
+
+  /**
+   * Explicit Knowledge search (`search_knowledge`): the brand's eligible
+   * passages ranked by vector similarity plus exact-name matches, filtered by
+   * source kind and capture date, one page at a time. Eligibility is applied
+   * again on every page, so a source that became ineligible between pages is
+   * gone from the next one. A cursor only works for the search it came from.
+   */
+  async searchBrandKnowledge(
+    params: BrandKnowledgeSearchParams,
+  ): Promise<KnowledgeSearchPage> {
+    if (params.knowledgeSourceIds?.length === 0) return { hits: [] };
+    const pageSize = Math.max(1, params.limit ?? 5);
+    const query = params.query.trim();
+    const isTimeline = params.mode === 'timeline';
+    const fingerprint = knowledgeSearchFingerprint([
+      isTimeline ? 'timeline' : 'search',
+      params.organizationId,
+      params.userId,
+      params.brandId,
+      query,
+      [...(params.kinds ?? [])].sort(),
+      params.occurredFrom?.toISOString() ?? null,
+      params.occurredTo?.toISOString() ?? null,
+      [...(params.knowledgePurposes ?? [])].sort(),
+      [...(params.knowledgeSourceIds ?? [])].sort(),
+    ]);
+    // A bad cursor fails the search; it is never read as "start over".
+    const after = params.cursor
+      ? decodeKnowledgeSearchCursor(params.cursor, fingerprint)
+      : undefined;
+
+    const { bases, entries } = await this.findBrandScopedEntries(
+      { ...params, limit: pageSize + 1 },
+      buildBrandContentMemoryBaseWhere,
+      {
+        isKnowledgeOnly: true,
+        ...(params.knowledgeSourceIds?.length
+          ? { knowledgeSourceIds: params.knowledgeSourceIds }
+          : {}),
+        ...(params.knowledgePurposes?.length
+          ? { knowledgePurposes: params.knowledgePurposes }
+          : {}),
+        search: {
+          ...(after ? { after } : {}),
+          exactTerms: extractExactTerms(query),
+          ...(params.kinds?.length ? { kinds: params.kinds } : {}),
+          ...(params.occurredFrom ? { occurredFrom: params.occurredFrom } : {}),
+          ...(params.occurredTo ? { occurredTo: params.occurredTo } : {}),
+          ...(isTimeline ? { order: 'timeline' as const } : {}),
+        },
+      },
+    );
+    const page = entries.slice(0, pageSize);
+    const last = page.at(-1);
+    const hits = toBrandContentMemoryHits(page, bases).map((hit, index) => {
+      const occurredAt = page[index]?.observedAt;
+      return occurredAt ? { ...hit, occurredAt } : hit;
+    });
+    const position: KnowledgeSearchPosition | undefined = !last?.entryId
+      ? undefined
+      : isTimeline
+        ? last.observedAt
+          ? { entryId: last.entryId, occurredAt: last.observedAt }
+          : undefined
+        : last.score
+          ? { entryId: last.entryId, score: last.score }
+          : undefined;
+    return {
+      hits,
+      ...(entries.length > pageSize && position
+        ? { nextCursor: encodeKnowledgeSearchCursor(position, fingerprint) }
+        : {}),
+    };
   }
 
   async retrieveSelectedBrandContentMemory(

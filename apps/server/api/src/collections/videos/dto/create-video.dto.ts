@@ -568,6 +568,16 @@ export class CreateVideoDto extends CreateIngredientDto {
   })
   readonly isAudioEnabled?: boolean;
 
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    default: false,
+    description:
+      'Marks the request as a Studio draft (a cheap preview). Stored on the output; it does not change the price.',
+    required: false,
+  })
+  readonly isDraft?: boolean;
+
   @IsNumber()
   @IsOptional()
   @Min(1)

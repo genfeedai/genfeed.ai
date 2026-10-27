@@ -135,6 +135,7 @@ export class ArticlesService
   private readonly constructorName = this.constructor.name;
   readonly publicArticleScope = new PublicArticleScope(
     () => this.organizationsService,
+    () => this.configService.get('PUBLIC_ARTICLES_ORGANIZATION_ID'),
   );
 
   constructor(

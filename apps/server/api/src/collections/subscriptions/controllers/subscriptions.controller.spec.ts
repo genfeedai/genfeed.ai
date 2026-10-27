@@ -553,6 +553,7 @@ describe('SubscriptionsController', () => {
     const billingRow = {
       balance: 30_000,
       currentPeriodEnd: null,
+      hasPaygPurchase: false,
       hasSubscription: false,
       isMaxedOut: false,
       isUnderUsing: false,

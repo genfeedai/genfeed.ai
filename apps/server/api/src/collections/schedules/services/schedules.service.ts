@@ -1,18 +1,18 @@
-import { ModelsService } from '@api/collections/models/services/models.service';
-import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import {
   BulkScheduleDto,
   MAX_BULK_SCHEDULE_CONTENT_IDS,
 } from '@api/collections/schedules/dto/bulk-schedule.dto';
 import { GetOptimalTimeDto } from '@api/collections/schedules/dto/optimal-time.dto';
 import type { ScheduleDocument } from '@api/collections/schedules/schemas/schedule.schema';
-import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
+import {
+  buildPostingTimeRecommendation,
+  generateDefaultPostingTimes,
+  toPostingWindowPosts,
+} from '@api/collections/schedules/utils/posting-time-recommendation.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { scopedWhere } from '@api/index';
-import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   ChannelCapability,
@@ -25,22 +25,20 @@ import {
   getChannelCapability as resolveChannelCapability,
   validateChannelTargetSettings as resolveChannelTargetValidation,
 } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
-import {
-  SCHEDULE_OPTIMAL_TIME_SCHEMA_NAME,
-  scheduleOptimalTimeSchema,
-} from '@genfeedai/contracts/api-types/contracts/schedule-optimal-time.contract';
+import type { PostingTimeRecommendation } from '@genfeedai/contracts/interfaces';
+import { computePostingWindows } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 type Schedule = ScheduleDocument;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class SchedulesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
-    private readonly modelsService: ModelsService,
-    private readonly replicateService: ReplicateService,
   ) {}
 
   listChannelCapabilities(
@@ -66,55 +64,62 @@ export class SchedulesService {
   }
 
   /**
-   * Get optimal posting time
+   * Best posting time for one platform, learned from the organization's own
+   * measured posts (median engagement rate per local slot) or, when there is
+   * not enough data, the platform default times labelled as defaults. No model
+   * is asked, so no numbers are invented and no credits are spent.
    */
   @HandleErrors('get optimal posting time', 'schedules')
   async getOptimalTime(
     dto: GetOptimalTimeDto,
     organizationId: string,
-    onBilling?: (amount: number) => void,
-  ): Promise<{
-    recommendedTime: string;
-    alternativeTimes: string[];
-    confidence: number;
-    expectedPerformance: {
-      estimatedEngagement: number;
-      estimatedReach: number;
-    };
-    reasoning: string[];
-  }> {
-    this.logger.debug('Getting optimal posting time', {
-      contentType: dto.contentType,
-      goal: dto.goal,
-      organizationId,
-      platform: dto.platform,
+  ): Promise<PostingTimeRecommendation> {
+    const platform = dto.platform.toLowerCase();
+    const timezone = dto.timezone || 'UTC';
+    const nowMs = Date.now();
+    const since = new Date(
+      nowMs - SchedulesService.POSTING_LOOKBACK_DAYS * DAY_MS,
+    );
+
+    const posts = await this.prisma.post.findMany({
+      orderBy: { publishedAt: 'desc' },
+      select: { id: true, publishedAt: true },
+      take: SchedulesService.POSTING_SAMPLE_LIMIT,
+      where: scopedWhere(organizationId, {
+        platform,
+        publishedAt: { gte: since, lte: new Date(nowMs) },
+        ...(dto.brandId ? { brandId: dto.brandId } : {}),
+        ...(dto.credentialId ? { credentialId: dto.credentialId } : {}),
+      }),
     });
 
-    const goal = dto.goal || 'engagement';
-    const timezone = dto.timezone || 'UTC';
+    const measurements =
+      posts.length === 0
+        ? []
+        : await this.prisma.contentPerformance.findMany({
+            select: { engagementRate: true, measuredAt: true, postId: true },
+            where: scopedWhere(organizationId, {
+              engagementRate: { not: null },
+              measuredAt: { not: null },
+              postId: { in: posts.map((post) => post.id) },
+            }),
+          });
 
-    const prompt = `Determine the optimal posting time for ${dto.contentType} on ${dto.platform} to maximize ${goal} in ${timezone} timezone.
-
-Give the recommended slot and a few alternatives as ISO-8601 instants, a
-0-100 confidence, the engagement and reach you expect, and the reasons
-behind the pick.`;
-
-    const input = { max_completion_tokens: 1024 };
-
-    return this.replicateService.generateStructuredTextSync(
-      DEFAULT_TEXT_MODEL,
-      {
-        input,
-        onAttempt: async (attemptInput, output) => {
-          onBilling?.(
-            await this.calculateDefaultTextCharge(attemptInput, output),
-          );
-        },
-        prompt,
-        schema: scheduleOptimalTimeSchema,
-        schemaName: SCHEDULE_OPTIMAL_TIME_SCHEMA_NAME,
-      },
-    );
+    try {
+      return buildPostingTimeRecommendation(
+        platform,
+        computePostingWindows({
+          nowMs,
+          posts: toPostingWindowPosts(posts, measurements),
+          timezone,
+        }),
+      );
+    } catch (error) {
+      if (error instanceof RangeError) {
+        throw new ValidationException(error.message);
+      }
+      throw error;
+    }
   }
 
   /**
@@ -158,6 +163,7 @@ behind the pick.`;
         staggerMinutes,
         dto.customTimes,
         dto.platforms?.[0],
+        dto.timezone || 'UTC',
       );
 
       for (let i = 0; i < dto.contentIds.length; i++) {
@@ -222,40 +228,8 @@ behind the pick.`;
     return results as unknown as Schedule[];
   }
 
-  /**
-   * Platform-specific optimal posting windows (hours in 24h format).
-   */
-  private static readonly OPTIMAL_HOURS: Record<string, number[][]> = {
-    facebook: [[13, 16]],
-    general: [
-      [9, 11],
-      [12, 14],
-      [17, 19],
-    ],
-    instagram: [
-      [11, 13],
-      [19, 21],
-    ],
-    linkedin: [
-      [7, 8],
-      [12, 13],
-      [17, 18],
-    ],
-    tiktok: [
-      [7, 9],
-      [12, 15],
-      [19, 23],
-    ],
-    twitter: [
-      [8, 10],
-      [12, 13],
-      [17, 18],
-    ],
-    youtube: [
-      [14, 16],
-      [18, 20],
-    ],
-  };
+  private static readonly POSTING_LOOKBACK_DAYS = 90;
+  private static readonly POSTING_SAMPLE_LIMIT = 500;
 
   /**
    * Private: Generate schedule times
@@ -266,13 +240,26 @@ behind the pick.`;
     staggerMinutes: number,
     customTimes?: Record<string, string>,
     platform?: string,
+    timezone = 'UTC',
   ): Date[] {
     if (strategy === 'custom' && customTimes) {
       return Object.values(customTimes).map((t) => new Date(t));
     }
 
     if (strategy === 'ai-optimal') {
-      return this.generateOptimalTimes(count, platform);
+      try {
+        return generateDefaultPostingTimes(
+          count,
+          platform,
+          timezone,
+          Date.now(),
+        );
+      } catch (error) {
+        if (error instanceof RangeError) {
+          throw new ValidationException(error.message, 'timezone', timezone);
+        }
+        throw error;
+      }
     }
 
     const times: Date[] = [];
@@ -282,61 +269,5 @@ behind the pick.`;
       times.push(time);
     }
     return times;
-  }
-
-  /**
-   * Generate optimal posting times based on platform-specific windows.
-   */
-  private generateOptimalTimes(count: number, platform?: string): Date[] {
-    const normalizedPlatform = platform?.toLowerCase() ?? 'general';
-    const windows =
-      SchedulesService.OPTIMAL_HOURS[normalizedPlatform] ??
-      SchedulesService.OPTIMAL_HOURS.general;
-
-    const optimalHours: number[] = [];
-    for (const [start, end] of windows) {
-      for (let h = start; h < end; h++) {
-        optimalHours.push(h);
-      }
-    }
-
-    const times: Date[] = [];
-    const now = new Date();
-    let dayOffset = 1;
-    let hourIndex = 0;
-
-    for (let i = 0; i < count; i++) {
-      const scheduleDate = new Date(now);
-      scheduleDate.setDate(scheduleDate.getDate() + dayOffset);
-      scheduleDate.setHours(optimalHours[hourIndex], 0, 0, 0);
-      scheduleDate.setMilliseconds(0);
-
-      times.push(scheduleDate);
-
-      hourIndex++;
-      if (hourIndex >= optimalHours.length) {
-        hourIndex = 0;
-        dayOffset++;
-      }
-    }
-
-    return times;
-  }
-
-  private async calculateDefaultTextCharge(
-    input: Record<string, unknown>,
-    output: string,
-  ): Promise<number> {
-    const model = await this.modelsService.findOne({
-      key: baseModelKey(DEFAULT_TEXT_MODEL),
-    });
-
-    if (!model) {
-      throw new Error(
-        `Model pricing is not configured for ${DEFAULT_TEXT_MODEL}`,
-      );
-    }
-
-    return calculateEstimatedTextCredits(model, input, output);
   }
 }

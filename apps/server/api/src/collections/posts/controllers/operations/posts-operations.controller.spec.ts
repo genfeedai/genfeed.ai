@@ -648,6 +648,76 @@ Tweet 3: Tech innovation is changing the world.`,
       expect(request.creditsConfig.deferred).toBe(false);
     });
 
+    describe('over-limit retry', () => {
+      beforeEach(() => {
+        mockModelsService.findOne.mockResolvedValue({
+          cost: 3,
+          pricingType: 'fixed',
+        });
+      });
+      afterEach(() => {
+        mockModelsService.findOne.mockResolvedValue(null);
+      });
+
+      const dispatchCalls = (calls: number) => {
+        draftGeneration.generateDraftText.mockImplementation(
+          async (
+            _dto: unknown,
+            _user: unknown,
+            _resolveApiKey: unknown,
+            options: { onProviderDispatch?: () => void },
+          ) => {
+            for (let call = 0; call < calls; call += 1)
+              options.onProviderDispatch?.();
+            return {
+              brandedReceipt: { isReplayed: false },
+              description: 'text',
+              model: 'model-a',
+            };
+          },
+        );
+      };
+
+      it('charges each paid provider call, so a retried draft costs twice a single one', async () => {
+        dispatchCalls(1);
+        const single = deferredRequest();
+        await generationController.generateDraftText(single, dto, mockUser);
+        dispatchCalls(2);
+        const retried = deferredRequest();
+        await generationController.generateDraftText(retried, dto, mockUser);
+
+        expect(single.creditsConfig.amount).toBeGreaterThan(0);
+        expect(single.creditsConfig.amount).toBe(3);
+        expect(retried.creditsConfig.amount).toBe(6);
+      });
+
+      it('charges the first call when the retry stopped before any provider attempt', async () => {
+        draftGeneration.generateDraftText.mockImplementation(
+          async (
+            _dto: unknown,
+            _user: unknown,
+            _resolveApiKey: unknown,
+            options: { onProviderDispatch?: () => void },
+          ) => {
+            options.onProviderDispatch?.();
+            throw new BrandedGenerationBlockedException(
+              409,
+              'provider_attempt_ref_unavailable',
+              'receipt-2',
+              { model: 'model-a' },
+            );
+          },
+        );
+        const request = deferredRequest();
+        await expect(
+          generationController.generateDraftText(request, dto, mockUser),
+        ).rejects.toBeInstanceOf(BrandedGenerationBlockedException);
+
+        expect(request.creditsConfig.deferred).toBe(false);
+        expect(request.creditsConfig.amount).toBe(3);
+      });
+    });
+
     it('leaves the charge deferred (released) when the request stopped before any provider attempt', async () => {
       draftGeneration.generateDraftText.mockRejectedValue(
         new BrandedGenerationBlockedException(409, 'no_revision', 'receipt-1'),

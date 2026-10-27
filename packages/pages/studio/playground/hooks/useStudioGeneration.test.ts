@@ -1874,8 +1874,25 @@ describe('video draft submission', () => {
     expect(mockVideosPost.mock.calls[0]?.[0]).toMatchObject({
       duration: 4,
       isAudioEnabled: false,
+      isDraft: true,
       model: fast,
     });
+  });
+
+  it('does not flag an ordinary submission as a draft', async () => {
+    mockVideosPost.mockResolvedValue({ pendingIngredientIds: ['full'] });
+    const { result } = renderStudioGeneration({
+      type: 'video',
+      models: [
+        makeModel(full, { durations: [4, 6, 8] }),
+        makeModel(fast, { durations: [4, 6, 8] }),
+      ],
+      settings: videoSettings,
+    });
+    await act(async () => {
+      expect(await result.current.submit('A reveal', {}, {})).toBe(true);
+    });
+    expect(mockVideosPost.mock.calls[0]?.[0]).not.toHaveProperty('isDraft');
   });
 
   it('refuses a draft it cannot price rather than charging the full render', async () => {

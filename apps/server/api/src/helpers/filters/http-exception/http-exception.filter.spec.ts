@@ -1,4 +1,5 @@
 import { BrandedGenerationBlockedException } from '@api/helpers/exceptions/branded-generation-blocked/branded-generation-blocked.exception';
+import { ClientClosedRequestException } from '@api/helpers/exceptions/client-closed-request/client-closed-request.exception';
 import { PersistedVideoGenerationException } from '@api/helpers/exceptions/persisted-video-generation/persisted-video-generation.exception';
 import { type ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 
@@ -445,6 +446,17 @@ describe('HttpExceptionFilter', () => {
       expect(mockLoggerService.error).not.toHaveBeenCalled();
       expect(Sentry.captureException).not.toHaveBeenCalled();
       expect(mockLoggerService.log).not.toHaveBeenCalled();
+    });
+
+    it('answers a client-closed download with its stage and no Sentry event (API-GENFEED-AI-91)', () => {
+      filter.catch(
+        new ClientClosedRequestException('awaiting-upstream'),
+        mockArgumentsHost,
+      );
+
+      expect(Sentry.captureException).not.toHaveBeenCalled();
+      expect(mockLoggerService.error).not.toHaveBeenCalled();
+      expect(mockResponse.status).toHaveBeenCalledWith(499);
     });
 
     it('should log errors in development environment', () => {

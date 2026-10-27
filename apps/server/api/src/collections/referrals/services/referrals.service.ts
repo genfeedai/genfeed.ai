@@ -15,7 +15,13 @@ import {
   ReferralRewardStatus,
   ReferralStatus,
 } from '@genfeedai/contracts';
-import { REFERRAL_REWARD_REVERSAL_REFERENCE_TYPE } from '@genfeedai/contracts/constants';
+import {
+  AFFILIATE_REWARD_RATE,
+  AFFILIATE_REWARD_RATE_PERCENT,
+  AFFILIATE_REWARD_WINDOW_MONTHS,
+  AFFILIATE_SETTLEMENT_DELAY_DAYS,
+  REFERRAL_REWARD_REVERSAL_REFERENCE_TYPE,
+} from '@genfeedai/contracts/constants';
 import type {
   IReferralAdminReward,
   IReferralClaimResult,
@@ -32,10 +38,6 @@ const generateReferralCode = customAlphabet(
   '23456789abcdefghjkmnpqrstuvwxyz',
   12,
 );
-const REWARD_RATE = 0.1;
-const REWARD_RATE_PERCENT = 10;
-const REWARD_WINDOW_MONTHS = 12;
-const SETTLEMENT_DELAY_DAYS = 7;
 const PROCESSING_LEASE_MS = 10 * 60 * 1000;
 const MAX_SETTLEMENT_BATCH = 50;
 export const REFERRAL_ADMIN_MAX_PAGE = 1_000_000;
@@ -158,9 +160,9 @@ export class ReferralsService {
       recentRewards: recentRewards.map((reward) => this.presentReward(reward)),
       referralCount,
       reversedCredits,
-      rewardRatePercent: REWARD_RATE_PERCENT,
-      rewardWindowMonths: REWARD_WINDOW_MONTHS,
-      settlementDelayDays: SETTLEMENT_DELAY_DAYS,
+      rewardRatePercent: AFFILIATE_REWARD_RATE_PERCENT,
+      rewardWindowMonths: AFFILIATE_REWARD_WINDOW_MONTHS,
+      settlementDelayDays: AFFILIATE_SETTLEMENT_DELAY_DAYS,
       shareUrl: `${configuredBaseUrl}/sign-up?ref=${referralCode.code}`,
       updatedAt: referralCode.updatedAt.toISOString(),
     };
@@ -304,7 +306,7 @@ export class ReferralsService {
           referredOrganizationId: actor.organizationId,
           referrerBillingAccountId: referralCode.rewardBillingAccountId,
           referrerOrganizationId: referralCode.rewardOrganizationId,
-          rewardEndsAt: addMonths(now, REWARD_WINDOW_MONTHS),
+          rewardEndsAt: addMonths(now, AFFILIATE_REWARD_WINDOW_MONTHS),
           status: ReferralStatus.ACTIVE,
         },
       });
@@ -370,11 +372,11 @@ export class ReferralsService {
       },
     });
     const netAmountCents = Math.max(0, Math.floor(input.netAmountCents));
-    const rewardCredits = Math.floor(netAmountCents * REWARD_RATE);
+    const rewardCredits = Math.floor(netAmountCents * AFFILIATE_REWARD_RATE);
     if (!referral || rewardCredits < 1) {
       return;
     }
-    const eligibleAt = addDays(now, SETTLEMENT_DELAY_DAYS);
+    const eligibleAt = addDays(now, AFFILIATE_SETTLEMENT_DELAY_DAYS);
     try {
       await this.prisma.referralReward.create({
         data: {
@@ -574,7 +576,7 @@ export class ReferralsService {
         reward.rewardCredits,
         ActivitySource.REFERRAL,
         'Affiliate purchase reward',
-        addMonths(new Date(), REWARD_WINDOW_MONTHS),
+        addMonths(new Date(), AFFILIATE_REWARD_WINDOW_MONTHS),
         {
           idempotencyKey,
           metadata: {
@@ -708,7 +710,7 @@ export class ReferralsService {
             Math.max(reward.refundedAmountCents, normalizedRefundCents),
           );
       const retainedCredits = Math.floor(
-        (reward.netAmountCents - refundedAmountCents) * REWARD_RATE,
+        (reward.netAmountCents - refundedAmountCents) * AFFILIATE_REWARD_RATE,
       );
       const wasGranted = Boolean(reward.grantTransactionId || reward.grantedAt);
 

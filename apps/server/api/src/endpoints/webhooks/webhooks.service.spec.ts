@@ -1,3 +1,7 @@
+import {
+  ASSET_ORIGIN_GENERATED,
+  ASSET_ORIGIN_GENERATION_PENDING,
+} from '@api/collections/assets/constants/asset-origin.constant';
 import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import { WebhookGenerationSettlementService } from '@api/endpoints/webhooks/services/webhook-generation-settlement.service';
 
@@ -29,6 +33,7 @@ import { MediaGenerationCostService } from '@api/services/media-vendor-cost/medi
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
   AssetCategory,
+  AssetParent,
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
@@ -215,6 +220,7 @@ describe('WebhooksService', () => {
         {
           provide: CacheService,
           useValue: {
+            del: vi.fn(),
             invalidateByTags: vi.fn(),
           },
         },
@@ -235,6 +241,8 @@ describe('WebhooksService', () => {
           provide: AssetsService,
           useValue: {
             findOne: vi.fn(),
+            patch: vi.fn(),
+            patchAll: vi.fn(),
           },
         },
         {
@@ -1173,6 +1181,62 @@ describe('WebhooksService', () => {
         expect.stringContaining('failed'),
         expect.any(Error),
       );
+    });
+
+    describe('generated brand logo or banner', () => {
+      const pendingBrandAsset = {
+        ...mockAsset,
+        origin: ASSET_ORIGIN_GENERATION_PENDING,
+        parentType: AssetParent.BRAND,
+      };
+
+      beforeEach(() => {
+        assetsService.findOne.mockResolvedValue(
+          pendingBrandAsset as unknown as AssetDocument,
+        );
+        assetsService.patch.mockResolvedValue(
+          pendingBrandAsset as unknown as AssetDocument,
+        );
+        assetsService.patchAll.mockResolvedValue({ modifiedCount: 1 });
+        cacheService.invalidateByTags.mockResolvedValue(0);
+      });
+
+      it('publishes the upload, retires the replaced asset and busts the brand caches', async () => {
+        await service.processAssetFromWebhook(integration, assetId, url);
+
+        expect(assetsService.patch).toHaveBeenCalledWith(assetId, {
+          origin: ASSET_ORIGIN_GENERATED,
+        });
+        expect(assetsService.patchAll).toHaveBeenCalledWith(
+          {
+            category: AssetCategory.LOGO,
+            id: { not: assetId },
+            parentBrandId: sharedId,
+            parentType: AssetParent.BRAND,
+          },
+          { isDeleted: true },
+        );
+        expect(cacheService.invalidateByTags).toHaveBeenCalledWith([
+          'brands',
+          'links',
+          'assets',
+          'public',
+        ]);
+        expect(cacheService.del).toHaveBeenCalledWith(`brand:${sharedId}`);
+      });
+
+      it('keeps the current asset when the output upload fails', async () => {
+        filesClientService.uploadToS3.mockRejectedValue(
+          new Error('Upload failed'),
+        );
+
+        await expect(
+          service.processAssetFromWebhook(integration, assetId, url),
+        ).rejects.toThrow('Upload failed');
+
+        expect(assetsService.patchAll).not.toHaveBeenCalled();
+        expect(cacheService.del).not.toHaveBeenCalled();
+      });
     });
 
     it('should log completion message', async () => {

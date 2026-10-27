@@ -202,7 +202,7 @@ export class PostsGenerationController {
     return finalizeBrandedTextCredits(
       request,
       (model) => resolveTextModelMinimumCredits(this.modelsService, model),
-      () =>
+      (onProviderDispatch) =>
         this.postGenerationService.generateDraftText(
           dto,
           user,
@@ -210,6 +210,7 @@ export class PostsGenerationController {
             request,
             user.organizationId,
           ),
+          { onProviderDispatch },
         ),
     );
   }

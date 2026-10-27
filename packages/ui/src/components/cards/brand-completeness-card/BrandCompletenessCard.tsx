@@ -7,6 +7,7 @@ import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useBrandCompleteness } from '@genfeedai/hooks/utils/use-brand-completeness/use-brand-completeness';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import { Progress } from '@ui/primitives/progress';
 import { Check, ChevronDown, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -81,12 +82,12 @@ function GroupRow({
           {group.label}
         </span>
         <div className="flex items-center gap-2">
-          <div className="h-1 w-10 overflow-hidden rounded-full bg-foreground/[0.06]">
-            <div
-              className="h-full rounded-full bg-foreground transition-[width] duration-500 ease-out"
-              style={{ width: `${group.score}%` }}
-            />
-          </div>
+          <Progress
+            aria-label={group.label}
+            className="h-1 w-10 bg-foreground/[0.06]"
+            indicatorClassName="bg-foreground"
+            value={group.score}
+          />
           <span className="w-7 text-right text-2xs font-medium text-muted-foreground tabular-nums">
             {group.score}%
           </span>
@@ -137,12 +138,11 @@ export default function BrandCompletenessCard({
       </div>
 
       {/* Progress bar */}
-      <div className="mb-3 h-1 overflow-hidden rounded-full bg-foreground/[0.06]">
-        <div
-          className="h-full rounded-full bg-foreground transition-[width] duration-500 ease-out"
-          style={{ width: `${result.overallScore}%` }}
-        />
-      </div>
+      <Progress
+        className="mb-3 h-1 bg-foreground/[0.06]"
+        indicatorClassName="bg-foreground"
+        value={result.overallScore}
+      />
 
       {/* Groups */}
       <div className="flex flex-col gap-0.5">
