@@ -11,7 +11,7 @@ function baseInput() {
   return {
     brandDescription: 'Open-source AI OS for content creation',
     brandLabel: 'Genfeed',
-    brandVoice: { tone: 'direct', voice: 'operator-to-operator' },
+    brandBrief: 'Voice: operator-to-operator. Guardrails: never promise cures.',
     campaign: {
       brief: 'A YouTube Short every two hours about shipping in public',
       label: 'August shorts',
@@ -36,7 +36,9 @@ describe('buildCadenceSlotGeneratePrompt', () => {
     expect(prompt.system).toContain('one post for a brand campaign');
     expect(prompt.system).toContain('Return only the post body');
     expect(prompt.user).toContain('Brand: Genfeed');
-    expect(prompt.user).toContain('Brand voice:');
+    expect(prompt.user).toContain(
+      'Brand brief (follow it exactly; never contradict its guardrails, and do not invent claims it does not support):\nVoice: operator-to-operator. Guardrails: never promise cures.',
+    );
     expect(prompt.user).toContain('Campaign: August shorts');
     expect(prompt.user).toContain(
       'Campaign brief: A YouTube Short every two hours',

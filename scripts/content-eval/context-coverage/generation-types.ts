@@ -112,6 +112,15 @@ export const GENERATION_TYPES: readonly GenerationTypeEntry[] = [
   },
   {
     enumRefs: {},
+    id: 'calendar-slot-copy',
+    marker: 'resolveBrief',
+    note: 'Calendar Generate (copy for an empty campaign slot) composes the harness brief (contentType post, or article for article slots) and fails with a retryable 503 before credits or the model when it is unavailable.',
+    path: 'harness',
+    smoke: null,
+    source: `${API}/collections/posting-cadences/services/posting-cadence-copy.service.ts`,
+  },
+  {
+    enumRefs: {},
     id: 'ad-copy',
     marker: 'resolveBrief',
     path: 'harness',

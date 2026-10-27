@@ -24,9 +24,10 @@ export type CadenceSlotScheduledItem = {
 };
 
 export type CadenceSlotGeneratePromptInput = {
+  /** The brand's composed harness brief: voice, guardrails, criteria. */
+  brandBrief: string;
   brandDescription: string | null;
   brandLabel: string;
-  brandVoice: Record<string, string | string[]> | null;
   campaign: CadenceSlotGenerateCampaign;
   format: PostCategory;
   instant: string;
@@ -109,9 +110,7 @@ export function buildCadenceSlotGeneratePrompt(
   const userLines = [
     `Brand: ${input.brandLabel}`,
     brandDescription ? `Brand description: ${brandDescription}` : null,
-    input.brandVoice
-      ? `Brand voice: ${JSON.stringify(input.brandVoice)}`
-      : null,
+    `Brand brief (follow it exactly; never contradict its guardrails, and do not invent claims it does not support):\n${input.brandBrief}`,
     `Campaign: ${campaignName}`,
     campaignBrief ? `Campaign brief: ${campaignBrief}` : null,
     `Format: ${input.format}`,

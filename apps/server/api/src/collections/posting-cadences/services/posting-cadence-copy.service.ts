@@ -1,4 +1,3 @@
-import { buildBrandVoiceSummary } from '@api/collections/brands/utils/brand-context.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
@@ -9,10 +8,12 @@ import {
   getMinimumTextCredits,
 } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { scopedWhere } from '@api/index';
+import { BRAND_CONTEXT_CHARACTER_BUDGET } from '@api/services/agent-context-assembly/brand-context-budget.util';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isCloudDeployment } from '@genfeedai/config';
-import { ActivitySource } from '@genfeedai/contracts';
+import { ActivitySource, PostCategory } from '@genfeedai/contracts';
 import {
   isWithinConsumptionTolerance,
   MAX_CADENCE_SPAN_DAYS,
@@ -30,13 +31,20 @@ import {
   shouldUseLowestCostModelDefaults,
 } from '@genfeedai/contracts/constants';
 import type { ICalendarSlot } from '@genfeedai/contracts/interfaces';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import type {
   BrandContextRow,
   CadenceRecord,
   ScheduledCampaignRow,
   TextPricedModel,
 } from './posting-cadence.types';
+
+export const CADENCE_COPY_BRAND_CONTEXT_UNAVAILABLE =
+  'Brand context is unavailable for this slot. Please retry.';
 
 @Injectable()
 export class PostingCadenceCopyService {
@@ -47,6 +55,7 @@ export class PostingCadenceCopyService {
     private readonly llmDispatcherService: LlmDispatcherService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly modelsService: ModelsService,
+    private readonly harness: HarnessGenerationService,
   ) {}
 
   async generateCampaignCopy(
@@ -56,6 +65,12 @@ export class PostingCadenceCopyService {
     cadence: CadenceRecord | null,
     overrideBrief: string | undefined,
   ): Promise<string> {
+    const brandBrief = await this.resolveSlotBrief(
+      organizationId,
+      userId,
+      slot,
+      overrideBrief ?? cadence?.brief ?? slot.resolvedBrief ?? undefined,
+    );
     const modelKey = this.resolveGenerateModelKey();
     const pricedModel = await this.getPricedGenerateModel(modelKey);
     await this.assertGenerateCreditsAvailable(organizationId, pricedModel);
@@ -67,13 +82,13 @@ export class PostingCadenceCopyService {
       cadence,
     );
     const prompt = buildCadenceSlotGeneratePrompt({
+      brandBrief,
       brandDescription: this.sanitizePromptText(
         brand?.description || brand?.text || null,
         500,
       ),
       brandLabel:
         this.sanitizePromptText(brand?.label || 'Brand', 120) ?? 'Brand',
-      brandVoice: brand ? buildBrandVoiceSummary(brand) : null,
       campaign: {
         brief: this.sanitizePromptText(
           cadence?.brief ?? slot.resolvedBrief ?? null,
@@ -116,13 +131,41 @@ export class PostingCadenceCopyService {
     return copy;
   }
 
+  /**
+   * Slot copy is published brand copy, so it is written against the composed
+   * harness brief like other posts. Without it the slot fails before any
+   * credit check instead of being written in a generic voice.
+   */
+  private async resolveSlotBrief(
+    organizationId: string,
+    userId: string,
+    slot: ICalendarSlot,
+    topic: string | undefined,
+  ): Promise<string> {
+    const brief = await this.harness.resolveBrief({
+      brandId: slot.brandId,
+      contentType: slot.format === PostCategory.ARTICLE ? 'article' : 'post',
+      includeContentMemory: Boolean(topic?.trim()),
+      objective: 'engagement',
+      organizationId,
+      topic: topic?.trim().slice(0, 200) || undefined,
+      userId,
+    });
+    const formatted = this.harness.formatBrief(brief).trim();
+    if (!formatted || formatted.length > BRAND_CONTEXT_CHARACTER_BUDGET) {
+      throw new ServiceUnavailableException(
+        CADENCE_COPY_BRAND_CONTEXT_UNAVAILABLE,
+      );
+    }
+    return formatted;
+  }
+
   private async loadBrandContext(
     organizationId: string,
     brandId: string,
   ): Promise<BrandContextRow | null> {
     return this.prisma.brand.findFirst({
       select: {
-        agentConfig: true,
         description: true,
         label: true,
         text: true,
