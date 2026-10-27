@@ -256,6 +256,31 @@ test('enforces executable contracts through the aggregate suite', () => {
   }
 });
 
+test('scans fork pull requests with a pinned gitleaks CLI instead of the licensed action', () => {
+  // #8333: GitHub withholds GITLEAKS_LICENSE from fork runs, so the licensed
+  // action hard-fails there. Forks keep the scan through the open-source CLI,
+  // pinned and checksum-verified; internal pull requests keep the action.
+  const workflow = readWorkflow('_ci-validation.yml');
+  const staticChecks = jobBlock(workflow, 'static-checks', 'ci.yml');
+
+  assert.match(
+    staticChecks,
+    /- name: Scan for secrets with gitleaks\n {8}if: github\.event_name != 'push' && github\.actor != 'dependabot\[bot\]' && github\.event\.pull_request\.head\.repo\.fork != true\n {8}uses: gitleaks\/gitleaks-action@/,
+  );
+  assert.match(
+    staticChecks,
+    /- name: Scan fork pull request for secrets with gitleaks CLI\n {8}if: github\.event_name == 'pull_request' && github\.event\.pull_request\.head\.repo\.fork == true\n/,
+  );
+  assert.match(staticChecks, /GITLEAKS_VERSION: \d+\.\d+\.\d+/);
+  assert.match(staticChecks, /GITLEAKS_LINUX_X64_SHA256: [0-9a-f]{64}/);
+  assert.match(staticChecks, /sha256sum --check --strict -/);
+  assert.match(
+    staticChecks,
+    /gitleaks" git \\\n\s+--config \.gitleaks\.toml \\\n\s+--log-opts="\$\{CI_BASE_SHA\}\.\.HEAD"/,
+  );
+  assert.match(staticChecks, /--exit-code 1/);
+});
+
 test('consolidates static validation into one runner slot', () => {
   // #1969: five ~1-minute jobs (format, secretlint, guards, lint, typecheck)
   // each burned a runner slot per PR and starved the org-wide pool at peak —
