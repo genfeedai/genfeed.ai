@@ -44,6 +44,7 @@ describe('self-hosted reference sync bootstrap', () => {
           cwd: root,
           env: {
             BETTER_AUTH_ENABLED: 'false',
+            GENFEEDAI_API_KEY: 'test-internal-api-key',
             GENFEEDAI_API_URL: 'http://localhost:4567',
             NODE_ENV: 'test',
             PATH: `${bin}:${process.env.PATH}`,
@@ -88,6 +89,7 @@ describe('self-hosted auth defaults', () => {
         env: {
           AUTH_ENV_TRACE: trace,
           BETTER_AUTH_SECRET: 'test-better-auth-secret',
+          GENFEEDAI_API_KEY: 'test-internal-api-key',
           GENFEEDAI_API_URL: 'http://localhost:4567',
           NODE_ENV: 'test',
           PATH: `${bin}:${process.env.PATH}`,
