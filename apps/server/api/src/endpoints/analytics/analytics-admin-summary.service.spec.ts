@@ -69,10 +69,20 @@ describe('AnalyticsAdminSummaryService', () => {
       page: 2,
       pagination: true,
     });
-    expect(subscriptionsService.findAll).toHaveBeenCalledWith(
-      { where: {} },
-      options,
-    );
+    // Totals never count soft-deleted rows.
+    for (const service of [
+      subscriptionsService,
+      usersService,
+      brandsService,
+    ]) {
+      expect(service.findAll).toHaveBeenCalledWith(
+        { where: { isDeleted: false } },
+        options,
+      );
+    }
+    expect(postsService.findAll.mock.calls[0]?.[0]).toEqual({
+      where: { isDeleted: false },
+    });
     expect(organizationsService.findAll).toHaveBeenCalledWith(
       { where: { isDeleted: false } },
       options,

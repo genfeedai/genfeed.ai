@@ -60,10 +60,13 @@ export class AnalyticsAdminSummaryService {
       totalModels,
       pendingPosts,
     ] = await Promise.all([
-      this.subscriptionsService.findAll({ where: {} }, options),
-      this.usersService.findAll({ where: {} }, options),
-      this.postsService.findAll({ where: {} }, options),
-      this.brandsService.findAll({ where: {} }, options),
+      this.subscriptionsService.findAll(
+        { where: { isDeleted: false } },
+        options,
+      ),
+      this.usersService.findAll({ where: { isDeleted: false } }, options),
+      this.postsService.findAll({ where: { isDeleted: false } }, options),
+      this.brandsService.findAll({ where: { isDeleted: false } }, options),
       this.ingredientsService.findAll(
         {
           where: {
