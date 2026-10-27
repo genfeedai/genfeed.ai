@@ -210,7 +210,9 @@ ENV BUILD_ID=$BUILD_ID
 ARG NEXT_PUBLIC_API_URL=/v1
 ARG NEXT_PUBLIC_API_ENDPOINT=http://localhost:3010/v1
 ARG NEXT_PUBLIC_WS_ENDPOINT=http://localhost:3011
-ARG NEXT_PUBLIC_CDN_URL=http://localhost:3012
+# Local-disk media is served by the files service under /local (main.ts), so the
+# public media base includes that prefix.
+ARG NEXT_PUBLIC_CDN_URL=http://localhost:3012/local
 ARG NEXT_PUBLIC_BETTER_AUTH_ENABLED=true
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_ENDPOINT=$NEXT_PUBLIC_API_ENDPOINT
@@ -268,10 +270,12 @@ RUN set -e; \
 FROM base AS runtime
 WORKDIR /app
 
-# Create persistent data dirs + app user
-RUN mkdir -p /data/redis /data/files /data/tmp/videos && \
+# Create persistent data dirs + app user. /app/public/tmp is the files service's
+# scratch root (cwd/public/tmp); /app itself is root-owned, so without this the
+# first upload or download fails with EACCES on mkdir (#8440).
+RUN mkdir -p /data/redis /data/files /data/tmp/videos /app/public/tmp && \
     useradd -m -u 1001 appuser && \
-    chown -R appuser:appuser /data
+    chown -R appuser:appuser /data /app/public
 
 # Copy the production workspace manifests and generated install-time outputs.
 COPY --from=production-deps --chown=appuser /app/apps/ apps/
@@ -308,8 +312,8 @@ COPY --chown=appuser packages/create/src/setup.ts /selfhosted-setup.ts
 RUN chmod +x /entrypoint.sh
 
 VOLUME /data
-# 3000 web · 3010 api · 3011 WebSocket · 3014 mcp (proxies to the api)
-EXPOSE 3000 3010 3011 3014
+# 3000 web · 3010 api · 3011 WebSocket · 3012 files (local media) · 3014 mcp (proxies to the api)
+EXPOSE 3000 3010 3011 3012 3014
 USER appuser
 RUN yt-dlp --version && ffmpeg -version > /dev/null
 

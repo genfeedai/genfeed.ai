@@ -25,9 +25,24 @@ if [ -z "$TOKEN_ENCRYPTION_KEY" ]; then
   fi
 fi
 export TOKEN_ENCRYPTION_KEY
+# Shared secret for service-to-service calls inside this container (the files
+# service reads platform runtime settings from the API with it; without it every
+# upload answers 503). Persisted so restarts keep one stable value.
+if [ -z "$GENFEEDAI_API_KEY" ]; then
+  if [ -f /data/.internal-api-key ]; then
+    GENFEEDAI_API_KEY=$(cat /data/.internal-api-key)
+  else
+    GENFEEDAI_API_KEY=$(head -c 48 /dev/urandom | base64 | tr -d '/+=\n' | head -c 48)
+    echo -n "$GENFEEDAI_API_KEY" > /data/.internal-api-key
+    chmod 600 /data/.internal-api-key
+  fi
+fi
+export GENFEEDAI_API_KEY
 export GENFEEDAI_MICROSERVICES_FILES_URL=${GENFEEDAI_MICROSERVICES_FILES_URL:-http://localhost:3012}
 export GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL=${GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL:-http://localhost:3011}
-export GENFEEDAI_CDN_URL=${GENFEEDAI_CDN_URL:-http://localhost:3012}
+# Local-disk media is served by the files service under /local, so the media base
+# carries that prefix. Set an S3/CDN origin here instead when media lives there.
+export GENFEEDAI_CDN_URL=${GENFEEDAI_CDN_URL:-http://localhost:3012/local}
 export GENFEEDAI_WEBHOOKS_URL=${GENFEEDAI_WEBHOOKS_URL:-http://localhost:3010}
 export GENFEEDAI_API_URL=${GENFEEDAI_API_URL:-http://localhost:3010}
 export GENFEEDAI_API_PUBLIC_URL=${GENFEEDAI_API_PUBLIC_URL:-$GENFEEDAI_API_URL}
