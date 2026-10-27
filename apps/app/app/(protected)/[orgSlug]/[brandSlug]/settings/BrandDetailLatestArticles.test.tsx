@@ -181,7 +181,10 @@ describe('BrandDetailLatestArticles', () => {
       screen
         .getAllByRole('heading', { level: 3 })
         .map((node) => node.textContent),
-    ).toEqual(['Latest Articles', 'Article 2', 'Article 1', '']);
+    ).toEqual(['Article 2', 'Article 1', '']);
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Latest Articles' }),
+    ).toBeInTheDocument();
     for (const tile of grid?.children ?? []) {
       expect(tile).toHaveClass(
         'flex flex-col overflow-hidden rounded-lg border border-border/50',
