@@ -35,6 +35,8 @@ export interface MediaDocumentsInput {
   hasAudio?: boolean;
   height?: number;
   isDefault?: boolean;
+  /** A Studio video draft (#7729); excluded from retry credit-back (#7730). */
+  isDraftRender?: boolean;
   isMergeEnabled?: boolean;
   label?: string;
   language?: string;

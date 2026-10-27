@@ -1132,6 +1132,7 @@ export function useStudioGeneration({
               },
               videoPromptData,
             );
+            if (options?.isDraft) payload.isDraft = true;
             const data = (await service.post(payload)) as GenerationResponse;
             trackPendingIds(resolvePendingIds(data), pendingContext);
             isAccepted = true;
