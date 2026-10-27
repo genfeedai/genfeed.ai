@@ -632,7 +632,7 @@ describe('AppProtectedTopbar', () => {
     render(<AppProtectedTopbar />);
 
     expect(screen.queryByTestId('topbar-context-toggle')).toBeNull();
-    expect(screen.getByTestId('topbar-agent-dock-toggle')).toBeDisabled();
+    expect(screen.queryByTestId('topbar-agent-dock-toggle')).toBeNull();
   });
 
   it('toggles the agent panel from the topbar', () => {
@@ -662,7 +662,7 @@ describe('AppProtectedTopbar', () => {
     expect(button).toHaveAttribute('aria-expanded', 'true');
   });
 
-  it('disables the agent panel toggle when the dock is unavailable', () => {
+  it('hides the agent panel toggle when the dock is unavailable', () => {
     agentDockState.value = {
       isAvailable: false,
       isOpen: false,
@@ -671,6 +671,6 @@ describe('AppProtectedTopbar', () => {
 
     render(<AppProtectedTopbar />);
 
-    expect(screen.getByTestId('topbar-agent-dock-toggle')).toBeDisabled();
+    expect(screen.queryByTestId('topbar-agent-dock-toggle')).toBeNull();
   });
 });

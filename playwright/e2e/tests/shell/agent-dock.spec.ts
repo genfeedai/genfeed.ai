@@ -12,7 +12,8 @@ import { expectNoErrorOverlay } from '../../utils/route-assertions';
  * Product-page agent chrome is the Agent tab of the right-hand side panel. The
  * panel runs the full window height beside the page; the topbar toggle and
  * ⌘J / Ctrl+J open and close it. `/agent` is the conversation itself, so the
- * panel closes there. Below `xl` the agent is a bottom sheet.
+ * panel closes and the topbar toggle is hidden there. Below `xl` the agent is
+ * a bottom sheet.
  *
  * @module agent-dock.spec
  */
@@ -133,7 +134,7 @@ test.describe('Agent dock', () => {
 
     await expect(page).toHaveURL(/\/agent(\/|$)/);
     await expect(dock).toHaveCount(0);
-    await expect(page.getByTestId('topbar-agent-dock-toggle')).toBeDisabled();
+    await expect(page.getByTestId('topbar-agent-dock-toggle')).toHaveCount(0);
 
     await openLibrary(page);
     await expect(dock).toHaveCount(0);

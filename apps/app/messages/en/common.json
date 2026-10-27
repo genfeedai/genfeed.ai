@@ -1183,8 +1183,7 @@
     "threads": "Threads",
     "threadsLoading": "Loading threads",
     "untitledThread": "Untitled",
-    "title": "Agent",
-    "unavailable": "Agent is the main view here"
+    "title": "Agent"
   },
   "contextSidebar": {
     "close": "Close details",
