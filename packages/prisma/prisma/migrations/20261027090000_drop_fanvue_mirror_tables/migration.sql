@@ -34,7 +34,8 @@ BEGIN
 END
 $$;
 
+-- fanvue_schedules references fanvue_content, so it goes first.
+DROP TABLE "fanvue_schedules";
 DROP TABLE "fanvue_content";
 DROP TABLE "fanvue_earnings";
-DROP TABLE "fanvue_schedules";
 DROP TABLE "fanvue_subscribers";
