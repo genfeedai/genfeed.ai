@@ -3,6 +3,7 @@ import type {
   McpCardAction,
   McpOrganizationSwitcher,
 } from '@mcp/shared/interfaces/mcp-app.interface';
+import type { ImgHTMLAttributes, ReactNode } from 'react';
 
 export interface PreviewBridge {
   origins: readonly string[];
@@ -57,4 +58,22 @@ export interface PendingResponse {
   resolve(value: unknown): void;
   reject(error: Error): void;
   timer: ReturnType<typeof setTimeout>;
+}
+export interface CardBoundaryProps {
+  children: ReactNode;
+  /** What the card says in words, shown if its view cannot render. */
+  fallback: string;
+}
+export interface CardBoundaryState {
+  hasError: boolean;
+}
+/** The `next/image` props the shared components pass, minus Next's loader. */
+export interface CardImageProps
+  extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'alt' | 'src'> {
+  alt: string;
+  fill?: boolean;
+  priority?: boolean;
+  quality?: number | string;
+  src: string;
+  unoptimized?: boolean;
 }

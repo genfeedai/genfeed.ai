@@ -1049,3 +1049,46 @@ it('shows article cards with a status badge and kind chip, not raw identifiers',
   expect(article?.querySelector('.meta')?.textContent).toContain('Article');
   expect(article?.textContent).not.toContain('article-123');
 });
+
+it('keeps a post on screen when its video fails to load', async () => {
+  message('ui/notifications/tool-result', {
+    structuredContent: {
+      genfeedCards: {
+        cards: [
+          {
+            date: '2026-10-26T09:00:00Z',
+            description: 'Our launch video.',
+            id: 'p1',
+            kind: 'post',
+            media: [
+              {
+                id: 'm1',
+                kind: 'video',
+                thumbnailUrl: 'https://cdn.genfeed.ai/poster.jpg',
+                url: 'https://cdn.genfeed.ai/video.mp4',
+              },
+            ],
+            mediaKind: 'video',
+            mediaUrl: 'https://cdn.genfeed.ai/video.mp4',
+            platform: 'instagram',
+            status: 'published',
+            title: 'Published',
+          },
+        ],
+        layout: 'posts',
+        title: 'Posts',
+        total: 1,
+      },
+    },
+  });
+  const video = document.querySelector('article video');
+  expect(video).not.toBeNull();
+  // An expired or blocked media URL: the shared player swaps in its fallback.
+  video?.dispatchEvent(new Event('error'));
+  await vi.runAllTimersAsync();
+  expect(document.querySelector('h1')?.textContent).toBe('Posts');
+  expect(document.body.textContent).toContain('Our launch video.');
+  expect(
+    document.querySelector('article img[alt="Video unavailable"]'),
+  ).not.toBeNull();
+});
