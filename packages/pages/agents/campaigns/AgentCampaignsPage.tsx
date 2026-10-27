@@ -32,6 +32,7 @@ import Container from '@ui/layout/container/Container';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
+import { Progress } from '@ui/primitives/progress';
 import { format } from 'date-fns';
 import {
   CirclePlay,
@@ -184,19 +185,12 @@ function CampaignProgress({
 
   return (
     <div className={cn('flex items-center gap-2', className)}>
-      <div
+      <Progress
         aria-label={translate('creditsProgress', { percent })}
-        aria-valuemax={100}
-        aria-valuemin={0}
-        aria-valuenow={percent}
-        className="h-1.5 w-full min-w-16 overflow-hidden rounded-full bg-foreground/[0.06]"
-        role="progressbar"
-      >
-        <div
-          className="h-full rounded-full bg-foreground/60 transition-all"
-          style={{ width: `${percent}%` }}
-        />
-      </div>
+        className="h-1.5 w-full min-w-16 bg-foreground/[0.06]"
+        indicatorClassName="bg-foreground/60"
+        value={percent}
+      />
       <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
         {percent}%
       </span>

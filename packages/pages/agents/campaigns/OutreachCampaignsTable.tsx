@@ -19,6 +19,7 @@ import type { OutreachCampaign } from '@services/automation/outreach-campaigns.s
 import Badge from '@ui/display/badge/Badge';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
+import { Progress } from '@ui/primitives/progress';
 import { Check, Pause, Play, RefreshCw, Settings, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
@@ -131,12 +132,12 @@ export default function OutreachCampaignsTable({
 
           return (
             <div className="flex flex-col gap-1">
-              <div className="h-2 w-24 overflow-hidden rounded-full bg-foreground/10">
-                <div
-                  className="h-full bg-success transition-all"
-                  style={{ width: `${percent}%` }}
-                />
-              </div>
+              <Progress
+                aria-label={`${percent}%`}
+                className="w-24 bg-foreground/10"
+                indicatorClassName="bg-success"
+                value={percent}
+              />
               <span className="text-xs text-foreground/60">{percent}%</span>
             </div>
           );

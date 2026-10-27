@@ -3,6 +3,7 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { Progress } from '@ui/primitives/progress';
 import { DollarSign } from 'lucide-react';
 import type { ReactElement } from 'react';
 
@@ -56,12 +57,11 @@ export function CreditsBalanceCard({
         <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
           <span>{usageLabel}</span>
         </div>
-        <div className="h-2 overflow-hidden rounded-full bg-muted">
-          <div
-            className={`h-full rounded-full ${barColor} transition-all duration-300`}
-            style={{ width: `${Math.min(usagePercent, 100)}%` }}
-          />
-        </div>
+        <Progress
+          className="bg-muted"
+          indicatorClassName={barColor}
+          value={Math.min(usagePercent, 100)}
+        />
       </div>
 
       {/* Buy Credits CTA */}

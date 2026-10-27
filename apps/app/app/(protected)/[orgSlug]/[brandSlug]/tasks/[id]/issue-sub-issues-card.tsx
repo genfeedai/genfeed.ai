@@ -1,5 +1,6 @@
 import type { IssueSubIssuesCardProps } from '@props/tasks/issue-sub-issues-card.props';
 import Card from '@ui/card/Card';
+import { Progress } from '@ui/primitives/progress';
 import { SubIssueRow } from './sub-issue-row';
 
 export default function IssueSubIssuesCard({
@@ -20,12 +21,11 @@ export default function IssueSubIssuesCard({
             Sub-issues ({subIssues.length})
           </h3>
           <div className="flex items-center gap-2">
-            <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-success/60 transition-[width]"
-                style={{ width: `${pct}%` }}
-              />
-            </div>
+            <Progress
+              className="h-1.5 w-16 bg-muted"
+              indicatorClassName="bg-success/60"
+              value={pct}
+            />
             <span className="text-2xs text-gray-800">
               {doneCount}/{subIssues.length}
             </span>

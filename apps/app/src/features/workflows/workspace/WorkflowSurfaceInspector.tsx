@@ -16,6 +16,7 @@ import {
 import { logger } from '@services/core/logger.service';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { Progress } from '@ui/primitives/progress';
 import Spinner from '@ui/primitives/spinner';
 import {
   Check,
@@ -430,14 +431,10 @@ export function WorkflowSurfaceInspector({
                 {execution.progress}%
               </span>
             </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-primary transition-[width]"
-                style={{
-                  width: `${Math.max(0, Math.min(100, execution.progress))}%`,
-                }}
-              />
-            </div>
+            <Progress
+              className="h-1.5 bg-muted"
+              value={Math.max(0, Math.min(100, execution.progress))}
+            />
           </div>
         ) : null}
       </section>
