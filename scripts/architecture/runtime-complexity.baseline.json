@@ -1,11 +1,5 @@
 [
   {
-    "actual": 156,
-    "file": "apps/server/api/src/collections/agent-memories/services/agent-memories.service.ts",
-    "metric": "method-lines",
-    "symbol": "AgentMemoriesService.scoreFeedbackMemory"
-  },
-  {
     "actual": 1081,
     "file": "apps/server/api/src/collections/agent-threads/services/agent-threads.service.ts",
     "metric": "file-lines",
