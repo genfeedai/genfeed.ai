@@ -154,7 +154,7 @@ export default function StudioPlaygroundStarterIdeas({
                 <span className="break-words text-left text-sm font-medium leading-snug text-foreground/88">
                   {translate(`${idea.id}.label`)}
                 </span>
-                <span className="break-words text-left text-2xs leading-snug text-foreground/48">
+                <span className="break-words text-left text-2xs leading-snug text-muted-foreground">
                   {translate(`${idea.id}.detail`)}
                   {taggedCharacter
                     ? ` · ${translate('tagsCharacter', { name: taggedCharacter.label })}`
@@ -168,7 +168,7 @@ export default function StudioPlaygroundStarterIdeas({
                     : ''}
                 </span>
               </span>
-              <span className="line-clamp-3 break-words text-left text-2xs leading-snug text-foreground/48">
+              <span className="line-clamp-3 break-words text-left text-2xs leading-snug text-muted-foreground">
                 {preview}
               </span>
             </Button>

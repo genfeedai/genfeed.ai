@@ -359,7 +359,7 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
       {data.approvalStatus === ReviewGateStatus.APPROVED && data.approvedBy && (
         <div className="text-xs text-muted-foreground">
           Approved by {data.approvedBy} at{' '}
-          <ClientFormattedDate fallback="N/A" value={data.approvedAt} />
+          <ClientFormattedDate fallback="-" value={data.approvedAt} />
         </div>
       )}
 

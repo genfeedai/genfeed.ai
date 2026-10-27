@@ -849,7 +849,7 @@ export default function MessagesPage() {
                     <p className="text-sm font-medium text-foreground">
                       {translate('conversation.readOnly')}
                     </p>
-                    <p className="mt-0.5 text-xs text-foreground/48">
+                    <p className="mt-0.5 text-xs text-muted-foreground">
                       {availability.postReplyReason}
                     </p>
                   </div>

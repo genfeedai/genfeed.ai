@@ -767,7 +767,7 @@
     "no": "No",
     "inactive": "Inactive",
     "unknown": "Unknown",
-    "notAvailable": "N/A",
+    "notAvailable": "-",
     "fields": {
       "account": "Account",
       "active": "Active",

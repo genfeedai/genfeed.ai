@@ -25,7 +25,7 @@ export function TagKeyCell({ tag }: TagCellProps) {
 export function TagCategoryCell({ tag }: TagCellProps) {
   return (
     <Badge variant="outline" size={ComponentSize.SM}>
-      {tag.category ?? 'N/A'}
+      {tag.category ?? '-'}
     </Badge>
   );
 }

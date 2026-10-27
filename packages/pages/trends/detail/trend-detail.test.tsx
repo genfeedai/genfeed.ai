@@ -120,7 +120,7 @@ describe('TrendDetail', () => {
     });
   });
 
-  it('renders N/A for metadata the trend does not carry', async () => {
+  it('renders a dash for metadata the trend does not carry', async () => {
     getTrendByIdMock.mockResolvedValue({
       ...trendDetailFixture,
       trend: { ...trendDetailFixture.trend, metadata: undefined },
@@ -129,7 +129,7 @@ describe('TrendDetail', () => {
     render(<TrendDetail trendId="trend-1" />);
 
     await waitFor(() => {
-      expect(screen.getAllByText('N/A').length).toBeGreaterThanOrEqual(3);
+      expect(screen.getAllByText('-').length).toBeGreaterThanOrEqual(3);
     });
   });
 

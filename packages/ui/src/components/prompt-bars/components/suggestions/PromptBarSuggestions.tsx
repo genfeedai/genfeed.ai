@@ -82,7 +82,7 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
                   {suggestion.label}
                 </span>
                 {suggestion.description ? (
-                  <span className="break-words text-left text-2xs leading-snug text-foreground/48">
+                  <span className="break-words text-left text-2xs leading-snug text-muted-foreground">
                     {suggestion.description}
                   </span>
                 ) : null}
