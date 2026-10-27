@@ -742,6 +742,7 @@ export const ROOT_ENV_SECTIONS: EnvSection[] = [
       'UNIPILE_API_BASE_URL',
       'UNIPILE_API_KEY',
       'UNIPILE_WEBHOOK_SECRET',
+      'PUBLIC_ARTICLES_ORGANIZATION_ID',
     ],
   },
   {
