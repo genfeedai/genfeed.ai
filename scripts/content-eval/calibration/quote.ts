@@ -12,6 +12,8 @@ export const EXPECTED_COMPLETION_TOKENS: ReadonlyArray<
   ['content-quality-scorer', 250],
   ['evaluations', 600],
   ['content-quality-v1', 300],
+  // Reasons and a verdict for each of eight claims.
+  ['content-claims-v1', 900],
   ['autoevals-battle', 300],
 ];
 
