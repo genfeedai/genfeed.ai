@@ -158,6 +158,24 @@ function publicationWhere(
         { description: { contains: query.search, mode: 'insensitive' } },
       ],
     });
+  const publishedFrom = query.publishedFrom
+    ? new Date(query.publishedFrom)
+    : undefined;
+  const publishedTo = query.publishedTo
+    ? new Date(query.publishedTo)
+    : undefined;
+  if (
+    (publishedFrom && Number.isNaN(publishedFrom.getTime())) ||
+    (publishedTo && Number.isNaN(publishedTo.getTime()))
+  )
+    throw new BadRequestException('Invalid publication period');
+  if (publishedFrom || publishedTo)
+    filters.push({
+      publicationDate: {
+        ...(publishedFrom ? { gte: publishedFrom } : {}),
+        ...(publishedTo ? { lte: publishedTo } : {}),
+      },
+    });
   if (query.capturedOnly)
     filters.push({
       source: 'extension',

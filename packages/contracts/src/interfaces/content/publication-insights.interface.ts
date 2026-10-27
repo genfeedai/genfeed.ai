@@ -60,6 +60,10 @@ export interface PublicationInsightsQuery {
   credentialId?: string[];
   externalId?: string;
   pageUrl?: string;
+  /** ISO time: publications from here on. Not exposed over HTTP. */
+  publishedFrom?: string;
+  /** ISO time: publications up to and including this. Not exposed over HTTP. */
+  publishedTo?: string;
   search?: string;
 }
 export interface PublicationInsightsScope {
