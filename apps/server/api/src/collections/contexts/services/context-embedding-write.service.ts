@@ -19,6 +19,7 @@ import { ContextEmbeddingQueueService } from '@api/collections/contexts/services
 import type { ContextBaseScopeRow } from '@api/collections/contexts/utils/context-brand-scope.util';
 import { buildMemorySourceSnapshotHashQuery } from '@api/collections/contexts/utils/context-embedding-claim-query.util';
 import { assertKnowledgeGovernance } from '@api/collections/contexts/utils/knowledge-actor.util';
+import { softDeleteContextEntries } from '@api/collections/contexts/utils/knowledge-chunk.util';
 import { PLATFORM_WORKFLOW_SCHEDULE_SOURCE } from '@api/collections/workflows/system-workflow-definition';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { KnowledgeMemoryScope } from '@genfeedai/contracts';
@@ -26,7 +27,7 @@ import type {
   ContextEmbeddingBackfillInput,
   ContextEmbeddingBackfillResult,
 } from '@genfeedai/contracts/interfaces/knowledge-base/context-embedding.interface';
-import type { ContextBase } from '@genfeedai/prisma';
+import type { ContextBase, ContextEmbeddingJob } from '@genfeedai/prisma';
 import {
   ContextEmbeddingOrigin,
   Prisma,
@@ -127,6 +128,95 @@ export class ContextEmbeddingWriteService {
     return saved.entry;
   }
 
+  /** Embedding model for entries a caller admits inside its own transaction. */
+  selectModel(): Promise<string> {
+    return this.provider.selectModel();
+  }
+
+  /** Hands committed jobs to the transport; without one the durable intent stays due. */
+  async enqueueJobs(
+    jobs: Array<{ id: string; organizationId: string; generation: number }>,
+  ): Promise<void> {
+    for (const job of jobs) {
+      try {
+        await this.queue.enqueue({
+          jobId: job.id,
+          organizationId: job.organizationId,
+          generation: job.generation,
+        });
+      } catch {
+        this.logger.warn(
+          'Context embedding transport unavailable; durable intent remains due',
+        );
+      }
+    }
+  }
+
+  /**
+   * Retires the entries derived from a memory and admits fresh ones for its
+   * current content, in the caller's transaction. The caller has already locked
+   * the memory row and written the new content to it; the superseded entries
+   * and their pending embedding jobs are gone before anything else can read them.
+   */
+  async replaceMemoryDerivatives(
+    tx: Prisma.TransactionClient,
+    input: {
+      actor: WorkflowInitiatingActor;
+      content: string;
+      memoryId: string;
+      modelIdentifier: string;
+      organizationId: string;
+      relevanceWeight?: number;
+      tags?: string[];
+    },
+  ): Promise<ContextEmbeddingJob[]> {
+    const superseded = await tx.contextEntry.findMany({
+      orderBy: { id: 'asc' },
+      where: {
+        isDeleted: false,
+        organizationId: input.organizationId,
+        sourceAgentMemoryId: input.memoryId,
+      },
+    });
+    if (superseded.length === 0) return [];
+    await softDeleteContextEntries(tx, input.organizationId, {
+      sourceAgentMemoryId: input.memoryId,
+    });
+    const jobs: ContextEmbeddingJob[] = [];
+    for (const entry of superseded) {
+      const previous = record(entry.data);
+      const metadata = {
+        ...record(previous.metadata),
+        ...(input.tags ? { tags: input.tags } : {}),
+      };
+      const weight =
+        input.relevanceWeight ??
+        (typeof previous.relevanceWeight === 'number'
+          ? previous.relevanceWeight
+          : undefined);
+      const saved = await this.writeInTransaction(
+        tx,
+        {
+          contextBaseId: entry.contextBaseId,
+          dto: {
+            content: input.content,
+            metadata,
+            ...(weight === undefined ? {} : { relevanceWeight: weight }),
+          },
+          organizationId: input.organizationId,
+          principal: {
+            actor: input.actor,
+            origin: 'ACTOR',
+            sourceMemoryId: input.memoryId,
+          },
+        },
+        input.modelIdentifier,
+      );
+      jobs.push(saved.job);
+    }
+    return jobs;
+  }
+
   async writeInTransaction(
     tx: Prisma.TransactionClient,
     input: ContextEmbeddingWriteInput,
@@ -185,6 +275,9 @@ export class ContextEmbeddingWriteService {
           ? {
               sourceAgentMemoryId: snapshot.id,
               sourceSnapshotHash: snapshot.hash,
+              ...(snapshot.currentRevisionId
+                ? { sourceAgentMemoryRevisionId: snapshot.currentRevisionId }
+                : {}),
             }
           : {}),
         data: toPrismaJson({
@@ -564,9 +657,14 @@ export class ContextEmbeddingWriteService {
       Prisma.sql`SELECT m."id" FROM "agent_memories" m WHERE m."id" = ${sourceMemoryId} AND m."organizationId" = ${organizationId} AND m."isDeleted" = false FOR UPDATE`,
     );
     const rows = await tx.$queryRaw<
-      Array<{ id: string; hash: string; content: string | null }>
+      Array<{
+        id: string;
+        hash: string;
+        content: string | null;
+        currentRevisionId: string | null;
+      }>
     >(Prisma.sql`
-      SELECT m."id", m."content", ${buildMemorySourceSnapshotHashQuery()} AS "hash"
+      SELECT m."id", m."content", m."currentRevisionId", ${buildMemorySourceSnapshotHashQuery()} AS "hash"
       FROM "agent_memories" m WHERE m."id" = ${sourceMemoryId} AND m."organizationId" = ${organizationId} AND m."isDeleted" = false
     `);
     const source = rows[0];

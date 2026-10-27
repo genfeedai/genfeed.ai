@@ -1,5 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { toWorkflowActor } from '@api/authorization/brand-access/workflow-actor.util';
+import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
+import { AgentMemoryRevisionsService } from '@api/collections/agent-memories/services/agent-memory-revisions.service';
 import type { KnowledgeActor } from '@api/collections/contexts/interfaces/knowledge-actor.interface';
 import { ContextEmbeddingService } from '@api/collections/contexts/services/context-embedding.service';
 import { ContextEmbeddingProviderService } from '@api/collections/contexts/services/context-embedding-provider.service';
@@ -67,6 +70,7 @@ const migrations = [
   '20260918120000_knowledge_capture_request_hash',
   '20261022090000_context_embedding_queue',
   '20261027060000_knowledge_source_conflicts',
+  '20261027070000_agent_memory_revisions',
 ].map((name) =>
   readFileSync(
     new URL(
@@ -83,7 +87,8 @@ const FIXTURE_SQL = `
 CREATE TABLE agent_memories (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id),
  "userId" text, "brandId" text, "campaignId" text, scope text, content text, type text, kind text, "contentType" text,
  platform text, summary text, tags text[], "sourceType" text, "sourceUrl" text, "sourceContentId" text, "sourceMessageId" text,
- metadata jsonb, importance integer, confidence double precision, "performanceSnapshot" jsonb, "isDeleted" boolean NOT NULL DEFAULT false);
+ metadata jsonb, importance double precision, confidence double precision, "performanceSnapshot" jsonb, "promotedSkillId" text, "promotedAt" timestamptz, "promotedByUserId" text, "isDeleted" boolean NOT NULL DEFAULT false,
+ "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
 CREATE TABLE agent_campaigns (id text PRIMARY KEY, "organizationId" text NOT NULL, "brandId" text, "userId" text, "isDeleted" boolean NOT NULL DEFAULT false);
   CREATE TABLE brands (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id), "isDeleted" boolean DEFAULT false, UNIQUE(id, "organizationId"));
   CREATE TABLE roles (id text PRIMARY KEY, key text NOT NULL, "isDeleted" boolean NOT NULL DEFAULT false);
@@ -159,6 +164,9 @@ let ingest: KnowledgeSourceIngestService;
 let capture: KnowledgeCaptureService;
 let selection: KnowledgeSelectionService;
 let agentContextAssembly: AgentContextAssemblyService;
+let memories: AgentMemoriesService;
+let memoryRevisions: AgentMemoryRevisionsService;
+let memoryWriter: ContextEmbeddingWriteService;
 
 /** Minimal brand identity the fixture brands table names — just enough for
  * `AgentContextAssemblyService.assembleContext` to render identity without a
@@ -332,6 +340,9 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
       provider,
     );
     records = new KnowledgeRecordsService(prismaService, policy, completion);
+    memoryWriter = writer;
+    memories = new AgentMemoriesService(prismaService, logger as never);
+    memoryRevisions = new AgentMemoryRevisionsService(prismaService, writer);
     contexts = new ContextsService(
       prismaService,
       logger as never,
@@ -1408,6 +1419,326 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
           },
         }),
       ).toBe(1);
+    });
+  });
+  describe('agent memory corrections', () => {
+    /** A saved brand memory with the context entry the capture flow derives from it, embedded. */
+    async function seedBrandMemory(actor: KnowledgeActor, content: string) {
+      const memory = await memories.createMemory(
+        actor.userId,
+        actor.organizationId,
+        {
+          brandId: actor.brandId,
+          content,
+          kind: 'reference',
+          scope: KnowledgeMemoryScope.BRAND,
+          tags: ['launch'],
+        },
+      );
+      const base = await prisma.contextBase.create({
+        data: {
+          createdById: actor.userId,
+          data: {},
+          organizationId: actor.organizationId,
+          sourceBrandId: actor.brandId,
+        },
+      });
+      await memoryWriter.write({
+        contextBaseId: base.id,
+        dto: { content, metadata: { source: 'agent-save' } },
+        organizationId: actor.organizationId,
+        principal: {
+          actor: toWorkflowActor(actor),
+          origin: 'ACTOR',
+          sourceMemoryId: String(memory.id),
+        },
+      });
+      await embedPendingJobs(actor.organizationId);
+      return { baseId: base.id, memory };
+    }
+
+    async function embedPendingJobs(organizationId: string) {
+      const jobs = await prisma.contextEmbeddingJob.findMany({
+        where: {
+          isDeleted: false,
+          organizationId,
+          status: { in: ['PENDING', 'RETRYABLE'] },
+        },
+      });
+      for (const job of jobs)
+        await embeddingExecution.process({
+          generation: job.generation,
+          jobId: job.id,
+          organizationId: job.organizationId,
+        });
+    }
+
+    function correction(
+      expectedRevisionId: string,
+      overrides: Partial<{
+        content: string;
+        reason: string;
+        requestId: string;
+      }> = {},
+    ) {
+      return {
+        content: 'Launch moved to the 14th; pricing starts at $39.',
+        expectedRevisionId,
+        reason: 'The launch date and price changed.',
+        requestId: randomUUID(),
+        ...overrides,
+      };
+    }
+
+    it('keeps the previous revision, makes the correction current and retrieves only its text', async () => {
+      const { memory } = await seedBrandMemory(
+        actorA,
+        'Launch is on the 7th and pricing starts at $29.',
+      );
+      expect(
+        (await retrieve(actorA, 'launch pricing starts')).map(
+          (hit) => hit.content,
+        ),
+      ).toEqual(['Launch is on the 7th and pricing starts at $29.']);
+
+      const original = await prisma.agentMemory.findFirstOrThrow({
+        where: { id: String(memory.id) },
+      });
+      expect(original.currentRevisionId).not.toBeNull();
+      const corrected = await memoryRevisions.correct(
+        actorA,
+        String(memory.id),
+        correction(original.currentRevisionId as string),
+      );
+      await embedPendingJobs('org-a');
+
+      expect(corrected.revision).toMatchObject({
+        actorUserId: 'user-a',
+        isCurrent: true,
+        kind: 'correction',
+        reason: 'The launch date and price changed.',
+        revision: 2,
+      });
+      const history = await memoryRevisions.list(actorA, String(memory.id));
+      expect(
+        history.items.map((item) => [item.revision, item.isCurrent]),
+      ).toEqual([
+        [2, true],
+        [1, false],
+      ]);
+      expect(history.items[1]).toMatchObject({
+        content: 'Launch is on the 7th and pricing starts at $29.',
+        kind: 'original',
+      });
+      expect(
+        (await retrieve(actorA, 'launch pricing starts')).map(
+          (hit) => hit.content,
+        ),
+      ).toEqual(['Launch moved to the 14th; pricing starts at $39.']);
+      const entries = await prisma.contextEntry.findMany({
+        where: { sourceAgentMemoryId: String(memory.id) },
+      });
+      expect(entries.filter((entry) => !entry.isDeleted)).toHaveLength(1);
+      expect(
+        entries.find((entry) => !entry.isDeleted)?.sourceAgentMemoryRevisionId,
+      ).toBe(corrected.revision.id);
+    });
+
+    it('refuses a stale revision and lets exactly one of two concurrent corrections win', async () => {
+      const { memory } = await seedBrandMemory(
+        actorA,
+        'Hooks stay under ten words.',
+      );
+      const first = (
+        await prisma.agentMemory.findFirstOrThrow({
+          where: { id: String(memory.id) },
+        })
+      ).currentRevisionId as string;
+
+      const outcomes = await Promise.allSettled([
+        memoryRevisions.correct(
+          actorA,
+          String(memory.id),
+          correction(first, { content: 'Hooks stay under eight words.' }),
+        ),
+        memoryRevisions.correct(
+          actorA,
+          String(memory.id),
+          correction(first, { content: 'Hooks stay under twelve words.' }),
+        ),
+      ]);
+      expect(outcomes.map((outcome) => outcome.status).sort()).toEqual([
+        'fulfilled',
+        'rejected',
+      ]);
+      expect(
+        outcomes.find((outcome) => outcome.status === 'rejected'),
+      ).toMatchObject({ reason: { status: 409 } });
+      await expect(
+        memoryRevisions.correct(actorA, String(memory.id), correction(first)),
+      ).rejects.toMatchObject({ status: 409 });
+      expect(
+        await prisma.agentMemoryRevision.count({
+          where: { memoryId: String(memory.id) },
+        }),
+      ).toBe(2);
+    });
+
+    it('returns the same revision for a repeated request id and refuses a changed payload', async () => {
+      const { memory } = await seedBrandMemory(
+        actorA,
+        'Sign off with the team name.',
+      );
+      const first = (
+        await prisma.agentMemory.findFirstOrThrow({
+          where: { id: String(memory.id) },
+        })
+      ).currentRevisionId as string;
+      const request = correction(first, {
+        content: 'Sign off with the founder name.',
+      });
+
+      const created = await memoryRevisions.correct(
+        actorA,
+        String(memory.id),
+        request,
+      );
+      const replayed = await memoryRevisions.correct(
+        actorA,
+        String(memory.id),
+        request,
+      );
+      expect(replayed.isReplay).toBe(true);
+      expect(replayed.revision.id).toBe(created.revision.id);
+      await expect(
+        memoryRevisions.correct(actorA, String(memory.id), {
+          ...request,
+          content: 'Sign off with nothing.',
+        }),
+      ).rejects.toMatchObject({ status: 409 });
+      expect(
+        await prisma.agentMemoryRevision.count({
+          where: { memoryId: String(memory.id) },
+        }),
+      ).toBe(2);
+    });
+
+    it('refuses corrections and history to people without access to the memory scope', async () => {
+      const personal = await memories.createMemory('user-a', 'org-a', {
+        content: 'My private note.',
+        scope: KnowledgeMemoryScope.PERSONAL,
+      });
+      const personalRevision = (
+        await prisma.agentMemory.findFirstOrThrow({
+          where: { id: String(personal.id) },
+        })
+      ).currentRevisionId as string;
+      // Another member, even an admin, never sees or edits a personal memory.
+      await expect(
+        memoryRevisions.correct(
+          actorAOther,
+          String(personal.id),
+          correction(personalRevision),
+        ),
+      ).rejects.toMatchObject({ status: 404 });
+      await expect(
+        memoryRevisions.list(actorAOther, String(personal.id)),
+      ).rejects.toMatchObject({ status: 404 });
+      // Another organization cannot reach it either.
+      await expect(
+        memoryRevisions.correct(
+          actorB,
+          String(personal.id),
+          correction(personalRevision),
+        ),
+      ).rejects.toMatchObject({ status: 404 });
+
+      const { memory: shared } = await seedBrandMemory(
+        actorA,
+        'Shared brand rule.',
+      );
+      const sharedRevision = (
+        await prisma.agentMemory.findFirstOrThrow({
+          where: { id: String(shared.id) },
+        })
+      ).currentRevisionId as string;
+      await pool.query(
+        `INSERT INTO "${schema}".roles(id, key) VALUES ('viewer', 'viewer')`,
+      );
+      await pool.query(
+        `UPDATE "${schema}".members SET "roleId" = 'viewer' WHERE id = 'm-a-other'`,
+      );
+      const ordinaryMember = { ...actorAOther, brandId: 'brand-a' };
+      await expect(
+        memoryRevisions.correct(
+          ordinaryMember,
+          String(shared.id),
+          correction(sharedRevision),
+        ),
+      ).rejects.toMatchObject({ status: 403 });
+      // Reading the brand's history stays open to its members.
+      expect(
+        (await memoryRevisions.list(ordinaryMember, String(shared.id))).items,
+      ).toHaveLength(1);
+      expect(
+        await prisma.agentMemoryRevision.count({
+          where: { memoryId: { in: [String(personal.id), String(shared.id)] } },
+        }),
+      ).toBe(2);
+    });
+
+    it('pages history newest first, resolves one revision and hides it once the memory is removed', async () => {
+      const { memory } = await seedBrandMemory(
+        actorA,
+        'Use two emojis at most.',
+      );
+      let current = (
+        await prisma.agentMemory.findFirstOrThrow({
+          where: { id: String(memory.id) },
+        })
+      ).currentRevisionId as string;
+      for (const content of ['Use one emoji at most.', 'Use no emojis.']) {
+        current = (
+          await memoryRevisions.correct(
+            actorA,
+            String(memory.id),
+            correction(current, { content }),
+          )
+        ).revision.id;
+      }
+      const firstPage = await memoryRevisions.list(actorA, String(memory.id), {
+        limit: 2,
+      });
+      expect(firstPage.items.map((item) => item.revision)).toEqual([3, 2]);
+      expect(firstPage.nextCursor).not.toBeNull();
+      const secondPage = await memoryRevisions.list(actorA, String(memory.id), {
+        cursor: firstPage.nextCursor as string,
+        limit: 2,
+      });
+      expect(secondPage.items.map((item) => item.revision)).toEqual([1]);
+      expect(secondPage.nextCursor).toBeNull();
+      await expect(
+        memoryRevisions.list(actorA, String(memory.id), {
+          cursor: 'not-a-cursor',
+        }),
+      ).rejects.toMatchObject({ status: 400 });
+      expect(
+        await memoryRevisions.get(
+          actorA,
+          String(memory.id),
+          firstPage.items[1].id,
+        ),
+      ).toMatchObject({ content: 'Use one emoji at most.', isCurrent: false });
+
+      await memories.removeMemory(String(memory.id), 'user-a', 'org-a');
+      expect(
+        await prisma.contextEntry.count({
+          where: { isDeleted: false, sourceAgentMemoryId: String(memory.id) },
+        }),
+      ).toBe(0);
+      await expect(
+        memoryRevisions.get(actorA, String(memory.id), current),
+      ).rejects.toMatchObject({ status: 404 });
     });
   });
 });

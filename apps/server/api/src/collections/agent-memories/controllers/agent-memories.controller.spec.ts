@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
 import { AgentMemoryCaptureService } from '@api/collections/agent-memories/services/agent-memory-capture.service';
+import { AgentMemoryRevisionsService } from '@api/collections/agent-memories/services/agent-memory-revisions.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -31,6 +32,7 @@ describe('AgentMemoriesController', () => {
   let controller: AgentMemoriesController;
   let memoriesService: vi.Mocked<AgentMemoriesService>;
   let memoryCaptureService: vi.Mocked<AgentMemoryCaptureService>;
+  let revisionsService: vi.Mocked<AgentMemoryRevisionsService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -57,6 +59,10 @@ describe('AgentMemoriesController', () => {
           },
         },
         {
+          provide: AgentMemoryRevisionsService,
+          useValue: { correct: vi.fn(), get: vi.fn(), list: vi.fn() },
+        },
+        {
           provide: LoggerService,
           useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
         },
@@ -69,12 +75,105 @@ describe('AgentMemoriesController', () => {
     controller = module.get(AgentMemoriesController);
     memoriesService = module.get(AgentMemoriesService);
     memoryCaptureService = module.get(AgentMemoryCaptureService);
+    revisionsService = module.get(AgentMemoryRevisionsService);
   });
 
   afterEach(() => vi.clearAllMocks());
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  describe('memory revisions', () => {
+    const serializingRequest = {
+      originalUrl: '/v1/agent/memories/memory-1/revisions',
+    } as Request;
+    const view = {
+      actorUserId: USER_ID,
+      confidence: 0.5,
+      content: 'Corrected',
+      createdAt: new Date('2026-10-27T07:00:00Z'),
+      id: 'revision-2',
+      importance: 0.5,
+      isCurrent: true,
+      kind: 'correction',
+      memoryId: 'memory-1',
+      provenance: {},
+      reason: 'It changed',
+      revision: 2,
+      summary: null,
+      tags: [],
+    };
+
+    it('corrects a memory as the authenticated user, never from the body', async () => {
+      revisionsService.correct.mockResolvedValue({
+        isReplay: false,
+        memory: {} as never,
+        revision: view as never,
+      });
+      const body = {
+        content: 'Corrected',
+        expectedRevisionId: 'revision-1',
+        reason: 'It changed',
+        requestId: '6f1c5b0e-6a6f-4a3b-9a5e-0d2f6c1d9a11',
+      };
+
+      const result = await controller.correct(
+        serializingRequest,
+        'memory-1',
+        body,
+        mockUser,
+      );
+
+      expect(revisionsService.correct).toHaveBeenCalledWith(
+        expect.objectContaining({ organizationId: ORG_ID, userId: USER_ID }),
+        'memory-1',
+        body,
+      );
+      expect(result).toMatchObject({
+        data: { attributes: { content: 'Corrected', isCurrent: true } },
+      });
+    });
+
+    it('lists revisions with the next cursor in the response meta', async () => {
+      revisionsService.list.mockResolvedValue({
+        items: [view as never],
+        nextCursor: 'cursor-1',
+      });
+
+      const result = await controller.listRevisions(
+        serializingRequest,
+        'memory-1',
+        mockUser,
+        undefined,
+        '5',
+      );
+
+      expect(revisionsService.list).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: USER_ID }),
+        'memory-1',
+        { cursor: undefined, limit: 5 },
+      );
+      expect(result).toMatchObject({ meta: { nextCursor: 'cursor-1' } });
+    });
+
+    it('reads one exact revision', async () => {
+      revisionsService.get.mockResolvedValue(view as never);
+
+      const result = await controller.getRevision(
+        serializingRequest,
+        'memory-1',
+        'revision-2',
+        mockUser,
+      );
+
+      expect(revisionsService.get).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: USER_ID }),
+        'memory-1',
+        'revision-2',
+      );
+      expect(result).toMatchObject({ data: { id: 'revision-2' } });
+    });
   });
 
   // ── personal / brand visibility ───────────────────────────────────────────

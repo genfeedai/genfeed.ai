@@ -31,6 +31,8 @@ function memory(
     platform: null,
     promotedAt: null,
     promotedByUserId: null,
+    currentRevisionId: null,
+    promotedRevisionId: null,
     promotedSkillId: null,
     scope: KnowledgeMemoryScope.PERSONAL,
     sourceContentId: null,

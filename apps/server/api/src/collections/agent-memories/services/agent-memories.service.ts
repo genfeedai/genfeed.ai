@@ -22,7 +22,7 @@ import {
   ContentSkillCategory,
   KnowledgeMemoryScope,
 } from '@genfeedai/contracts';
-import type { Prisma } from '@genfeedai/prisma';
+import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -166,6 +166,7 @@ export class AgentMemoriesService extends BaseService<
     organizationId: string,
   ): Promise<AgentMemoryDocument> {
     return this.prisma.$transaction(async (tx) => {
+      await this.lockMemory(tx, organizationId, memoryId);
       const memory = (await findOrThrow(
         tx.agentMemory,
         {
@@ -251,27 +252,53 @@ export class AgentMemoriesService extends BaseService<
       ? this.requireCampaignId(payload.campaignId)
       : undefined;
 
-    return this.create({
-      brandId: payload.brandId,
-      campaignId,
-      confidence: this.normalizeScore(payload.confidence, 0.5),
-      content: payload.content,
-      contentType: this.normalizeContentType(payload.contentType),
-      importance: this.normalizeScore(payload.importance, 0.5),
-      isDeleted: false,
-      kind: this.normalizeKind(payload.kind),
-      organizationId,
-      performanceSnapshot: payload.performanceSnapshot,
-      platform: payload.platform,
-      scope,
-      sourceContentId: payload.sourceContentId,
-      sourceMessageId: payload.sourceMessageId,
-      sourceType: payload.sourceType,
-      sourceUrl: payload.sourceUrl,
-      summary: payload.summary,
-      tags: payload.tags ?? [],
-      userId,
-    } as Record<string, unknown>);
+    return this.prisma.$transaction(async (tx) => {
+      const memory = await tx.agentMemory.create({
+        data: {
+          brandId: payload.brandId,
+          campaignId,
+          confidence: this.normalizeScore(payload.confidence, 0.5),
+          content: payload.content,
+          contentType: this.normalizeContentType(payload.contentType),
+          importance: this.normalizeScore(payload.importance, 0.5),
+          isDeleted: false,
+          kind: this.normalizeKind(payload.kind),
+          organizationId,
+          performanceSnapshot: payload.performanceSnapshot as
+            | Prisma.InputJsonValue
+            | undefined,
+          platform: payload.platform,
+          scope,
+          sourceContentId: payload.sourceContentId,
+          sourceMessageId: payload.sourceMessageId,
+          sourceType: payload.sourceType,
+          sourceUrl: payload.sourceUrl,
+          summary: payload.summary,
+          tags: payload.tags ?? [],
+          userId,
+        },
+      });
+      const revision = await tx.agentMemoryRevision.create({
+        data: {
+          confidence: memory.confidence,
+          content: memory.content ?? '',
+          importance: memory.importance,
+          kind: 'original',
+          memoryId: memory.id,
+          organizationId,
+          originalCreatedAt: memory.createdAt,
+          originalOwnerUserId: userId,
+          provenance: this.provenanceOf(memory),
+          revision: 1,
+          summary: memory.summary,
+          tags: memory.tags,
+        },
+      });
+      return (await tx.agentMemory.update({
+        data: { currentRevisionId: revision.id },
+        where: scopedWhere(organizationId, { id: memory.id }),
+      })) as AgentMemoryDocument;
+    });
   }
 
   async getCampaignMemories(
@@ -388,23 +415,27 @@ export class AgentMemoriesService extends BaseService<
     userId: string,
     organizationId: string,
   ): Promise<void> {
-    await findOrThrow(
-      this.delegate,
-      {
-        where: {
-          id: memoryId,
-          isDeleted: false,
-          organizationId,
-          userId,
+    await this.prisma.$transaction(async (tx) => {
+      await this.lockMemory(tx, organizationId, memoryId);
+      const memory = (await findOrThrow(
+        tx.agentMemory,
+        {
+          where: {
+            id: memoryId,
+            isDeleted: false,
+            organizationId,
+            userId,
+          },
         },
-      },
-      'Memory entry',
-      memoryId,
-    );
+        'Memory entry',
+        memoryId,
+      )) as AgentMemoryDocument;
 
-    await this.delegate.update({
-      where: scopedWhere(organizationId, { id: memoryId, userId }),
-      data: { isDeleted: true },
+      await tx.agentMemory.update({
+        data: { isDeleted: true },
+        where: scopedWhere(organizationId, { id: memoryId, userId }),
+      });
+      await this.archiveDerivedContextEntries(memory, organizationId, tx);
     });
   }
 
@@ -419,6 +450,7 @@ export class AgentMemoriesService extends BaseService<
     }
 
     return this.prisma.$transaction(async (tx) => {
+      await this.lockMemory(tx, organizationId, memoryId);
       const memory = (await findOrThrow(
         tx.agentMemory,
         {
@@ -464,6 +496,7 @@ export class AgentMemoriesService extends BaseService<
     }
 
     return this.prisma.$transaction(async (tx) => {
+      await this.lockMemory(tx, organizationId, memoryId);
       const memory = (await findOrThrow(
         tx.agentMemory,
         {
@@ -517,6 +550,9 @@ export class AgentMemoriesService extends BaseService<
         data: {
           promotedAt,
           promotedByUserId: actorUserId,
+          // The skill was written from the content of this revision; a later
+          // correction does not rewrite the skill.
+          promotedRevisionId: memory.currentRevisionId,
           promotedSkillId: skill.id,
         },
         where: {
@@ -603,6 +639,39 @@ export class AgentMemoriesService extends BaseService<
       return content.slice(0, 140);
     }
     return `Promoted memory ${memory.id}`;
+  }
+
+  /**
+   * Serialises every change to one memory (correction, archive, promotion), so
+   * none of them works from content another has just replaced.
+   */
+  private async lockMemory(
+    tx: Prisma.TransactionClient,
+    organizationId: string,
+    memoryId: string,
+  ): Promise<void> {
+    await tx.$queryRaw(
+      Prisma.sql`SELECT "id" FROM "agent_memories" WHERE "id" = ${memoryId} AND "organizationId" = ${organizationId} AND "isDeleted" = false FOR UPDATE`,
+    );
+  }
+
+  /** The source fields a revision keeps so the memory's origin stays explainable. */
+  private provenanceOf(memory: {
+    sourceContentId?: string | null;
+    sourceMessageId?: string | null;
+    sourceType?: string | null;
+    sourceUrl?: string | null;
+  }): Prisma.InputJsonObject {
+    return {
+      ...(memory.sourceContentId
+        ? { sourceContentId: memory.sourceContentId }
+        : {}),
+      ...(memory.sourceMessageId
+        ? { sourceMessageId: memory.sourceMessageId }
+        : {}),
+      ...(memory.sourceType ? { sourceType: memory.sourceType } : {}),
+      ...(memory.sourceUrl ? { sourceUrl: memory.sourceUrl } : {}),
+    };
   }
 
   private normalizeKind(value?: string): AgentMemoryKind {
