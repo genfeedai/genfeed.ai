@@ -15,7 +15,9 @@ import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-a
 import { useFormSubmitWithState } from '@genfeedai/hooks/utils/use-form-submit/use-form-submit';
 import type { ModalBrandGenerateProps } from '@genfeedai/props/modals/modal.props';
 import { AssetsService } from '@genfeedai/services/content/assets.service';
+import { getJsonApiErrorMessage } from '@genfeedai/services/core/json-api-error-message';
 import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
@@ -88,8 +90,18 @@ export default function ModalBrandGenerate({
       closeAccountGenerateModal();
     } catch (error) {
       logger.error(`${url} failed`, error);
+      NotificationsService.getInstance().error(
+        getJsonApiErrorMessage(error, translate('generateFailed')),
+      );
     }
-  }, [brandId, category, getAssetsService, form, closeAccountGenerateModal]);
+  }, [
+    brandId,
+    category,
+    getAssetsService,
+    form,
+    closeAccountGenerateModal,
+    translate,
+  ]);
 
   const { isSubmitting, onSubmit } = useFormSubmitWithState(() =>
     submitModalBrandGenerate(),

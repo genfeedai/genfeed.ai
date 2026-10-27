@@ -162,7 +162,6 @@ export function useBrandDetail(): UseBrandDetailReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratingBanner, setIsGeneratingBanner] = useState(false);
   const [isGeneratingLogo, setIsGeneratingLogo] = useState(false);
-  const [pendingAssetId, setPendingAssetId] = useState<string | null>(null);
   const [deletingRefId, setDeletingRefId] = useState<string | null>(null);
   const [generateModalType, setGenerateModalType] = useState<
     'banner' | 'logo' | null
@@ -506,49 +505,31 @@ export function useBrandDetail(): UseBrandDetailReturn {
       (data: {
         assetId: string;
         status: string;
-        metadata?: { category?: string };
+        metadata?: { category?: string; parentId?: string };
       }) => {
-        const { assetId, status, metadata } = data;
+        const { status, metadata } = data;
 
-        logger.info('Asset status websocket event received', {
-          assetId,
-          metadata,
-          pendingAssetId,
-          status,
-        });
-
-        if (!pendingAssetId) {
-          return;
-        }
-        if (String(assetId) !== String(pendingAssetId)) {
+        // Generation runs on a webhook after the request returns, so the page
+        // follows any logo or banner of this brand rather than a tracked id.
+        if (!brandId || metadata?.parentId !== brandId) {
           return;
         }
 
-        logger.info('Processing asset status update', {
-          assetId,
-          category: metadata?.category,
-          status,
-        });
+        const isBanner = metadata?.category === AssetCategory.BANNER;
+        setIsGeneratingBanner(false);
+        setIsGeneratingLogo(false);
 
         if (status === 'completed') {
-          const isBanner = metadata?.category === AssetCategory.BANNER;
-          setIsGeneratingBanner(false);
-          setIsGeneratingLogo(false);
-          setPendingAssetId(null);
-
           notificationsService.success(
             `${isBanner ? 'Banner' : 'Logo'} generated successfully`,
           );
-
-          if (brandId) {
-            findOneBrand(true);
-          }
+          findOneBrand(true);
         } else if (status === 'failed') {
-          setIsGeneratingBanner(false);
-          setIsGeneratingLogo(false);
-          setPendingAssetId(null);
-
-          notificationsService.error('Failed to generate asset');
+          notificationsService.error(
+            `${isBanner ? 'Banner' : 'Logo'} generation failed. Your current ${
+              isBanner ? 'banner' : 'logo'
+            } was kept.`,
+          );
         }
       },
     );
@@ -556,7 +537,7 @@ export function useBrandDetail(): UseBrandDetailReturn {
     return () => {
       unsubscribe();
     };
-  }, [brandId, findOneBrand, notificationsService, pendingAssetId, subscribe]);
+  }, [brandId, findOneBrand, notificationsService, subscribe]);
 
   // Delegates to the same helper the settings/connected-accounts accounts table
   // and ModalBrand use, so a disconnected-but-not-deleted or identity-less

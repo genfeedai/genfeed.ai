@@ -1,3 +1,4 @@
+import { BRAND_ASSET_CACHE_TAGS } from '@api/collections/assets/constants/asset-cache-tags.constant';
 import {
   ASSET_ORIGIN_GENERATED,
   ASSET_ORIGIN_GENERATION_PENDING,
@@ -764,13 +765,14 @@ export class WebhooksService {
 
   /**
    * A generated asset becomes visible only once its output is uploaded: clear
-   * the pending marker, then (for an organization logo) retire the previous
-   * logos and refresh the organizations cache so refetches see the new one.
+   * the pending marker, then retire the previous logo or banner it replaces
+   * and refresh the caches so refetches see the new one.
    */
   private async finalizeGeneratedAsset(asset: {
     category: string;
     id: string;
     origin?: string | null;
+    parentBrandId?: string | null;
     parentOrgId?: string | null;
     parentType: string;
   }): Promise<void> {
@@ -797,6 +799,25 @@ export class WebhooksService {
         { isDeleted: true },
       );
       await this.cacheService.invalidateByTags(['organizations']);
+    }
+
+    if (
+      asset.parentType === AssetParent.BRAND &&
+      (asset.category === AssetCategory.LOGO ||
+        asset.category === AssetCategory.BANNER) &&
+      asset.parentBrandId
+    ) {
+      await this.assetsService.patchAll(
+        {
+          category: asset.category,
+          id: { not: asset.id },
+          parentBrandId: asset.parentBrandId,
+          parentType: AssetParent.BRAND,
+        },
+        { isDeleted: true },
+      );
+      await this.cacheService.invalidateByTags(BRAND_ASSET_CACHE_TAGS);
+      await this.cacheService.del(`brand:${asset.parentBrandId}`);
     }
   }
 }

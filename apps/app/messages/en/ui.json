@@ -337,7 +337,8 @@
       "title": "Generate Profile Picture"
     },
     "cancel": "Cancel",
-    "generate": "Generate"
+    "generate": "Generate",
+    "generateFailed": "Could not start the generation. Please try again."
   },
   "elementPlatformFields": {
     "activeHelp": "Inactive elements are hidden from pickers.",

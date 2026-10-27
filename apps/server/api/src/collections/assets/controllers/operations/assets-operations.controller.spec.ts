@@ -1,5 +1,6 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ASSET_ORIGIN_GENERATION_PENDING } from '@api/collections/assets/constants/asset-origin.constant';
 import { AssetsOperationsController } from '@api/collections/assets/controllers/operations/assets-operations.controller';
 import type { GenerateAssetDto } from '@api/collections/assets/dto/generate-asset.dto';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
@@ -157,13 +158,16 @@ describe('AssetsOperationsController', () => {
           organizationId: expect.any(String),
         }),
       );
-      expect(assetsService.patchAll).toHaveBeenCalledWith(
-        expect.objectContaining({
-          category: AssetCategory.BANNER,
-          parentBrandId: expect.any(String),
-        }),
-        { isDeleted: true },
-      );
+      // The replaced banner is retired by the webhook once the output uploads.
+      expect(assetsService.patchAll).not.toHaveBeenCalled();
+      expect(assetsService.create).toHaveBeenCalledWith({
+        category: AssetCategory.BANNER,
+        origin: ASSET_ORIGIN_GENERATION_PENDING,
+        parentId: mockBrandId,
+        parentOrgId: mockOrgId,
+        parentType: AssetParent.BRAND,
+        userId: mockUserId,
+      });
       expect(promptBuilderService.buildPrompt).toHaveBeenCalledWith(
         MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
         expect.objectContaining({
@@ -185,43 +189,22 @@ describe('AssetsOperationsController', () => {
       expect(result).toBeDefined();
     });
 
-    it.each(['Create a logo about SQL', '$where, $not and $or examples'])(
-      'passes literal content to generation while keeping database arguments structured: %s',
-      async (text) => {
-        brandsService.findOne.mockResolvedValue(null);
+    it('should not generate for a brand outside the caller organization', async () => {
+      brandsService.findOne.mockResolvedValue(null);
 
-        await controller.generate(mockRequest, mockUser, {
+      await expect(
+        controller.generate(mockRequest, mockUser, {
           category: AssetCategory.LOGO,
           model: 'test-model',
           parentId: mockBrandId,
           parentType: AssetParent.BRAND,
-          text,
-        });
+          text: 'Generate a logo',
+        }),
+      ).rejects.toThrow();
 
-        expect(promptBuilderService.buildPrompt).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.objectContaining({
-            prompt: `Generate a professional logo (1024x1024). ${text}`,
-          }),
-          mockOrgId,
-        );
-        expect(assetsService.create).toHaveBeenCalledWith({
-          category: AssetCategory.LOGO,
-          parentId: mockBrandId,
-          parentType: AssetParent.BRAND,
-          userId: mockUserId,
-        });
-        expect(assetsService.patchAll).toHaveBeenCalledWith(
-          {
-            category: AssetCategory.LOGO,
-            parentBrandId: mockBrandId,
-            parentType: AssetParent.BRAND,
-            userId: mockUserId,
-          },
-          { isDeleted: true },
-        );
-      },
-    );
+      expect(assetsService.create).not.toHaveBeenCalled();
+      expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
+    });
 
     it('should reject a non-brand parent type', async () => {
       const userWithoutBrand = {
@@ -273,6 +256,9 @@ describe('AssetsOperationsController', () => {
       await expect(
         controller.generate(mockRequest, mockUser, generateDto),
       ).rejects.toThrow(ValidationException);
+
+      // The placeholder is dropped so it never shadows the current logo.
+      expect(assetsService.remove).toHaveBeenCalledWith(mockAssetId);
     });
   });
 });
