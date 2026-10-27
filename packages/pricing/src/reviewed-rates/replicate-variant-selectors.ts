@@ -41,6 +41,7 @@ const audio = field(
   'with_audio',
 );
 const kling3 = [field('mode', identity('standard', 'pro', '4k')), audio];
+const klingMotionControl = [field('mode', identity('std', 'pro'))];
 
 /** Public schema + billingConfig evidence verified 2026-10-05; no prices or margins. */
 export const REPLICATE_VARIANT_SELECTORS: Readonly<
@@ -98,6 +99,17 @@ export const REPLICATE_VARIANT_SELECTORS: Readonly<
     field('model', identity('photon-flash-1', 'photon-1')),
   ],
   'prunaai/p-video': [field('draft', { false: 'base', true: 'draft' })],
+  // Public schema and billingConfig, 2026-10-27: 1080p, 2k and 4k generate at
+  // 768p and upscale, so the provider publishes no tier for them.
+  'prunaai/p-video-2-pro': [
+    field('mode', identity('cost', 'speed', 'quality')),
+  ],
+  'prunaai/p-video-2': [field('draft', { false: 'base', true: 'draft' })],
+  'kwaivgi/kling-v2.6-motion-control': klingMotionControl,
+  'kwaivgi/kling-v3-motion-control': klingMotionControl,
+  'openai/gpt-5-structured': [
+    field('model', identity('gpt-5', 'gpt-5-mini', 'gpt-5-nano')),
+  ],
   'wan-video/wan-2.2-i2v-fast': [
     field('interpolate_output', { false: 'base', true: 'interpolate' }),
   ],

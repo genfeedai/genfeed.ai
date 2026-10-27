@@ -29,7 +29,12 @@ import { useEconomicsReport } from '../use-economics-report';
 
 const SUBSCRIPTION_COLOR = 'hsl(var(--success))';
 const CREDIT_PACK_COLOR = 'var(--accent-violet)';
-const KNOWN_SOURCES = ['credit_purchase', 'subscription_invoice'];
+const KNOWN_SOURCES = [
+  'credit_purchase',
+  'subscription_invoice',
+  'refund',
+  'dispute',
+];
 
 export default function EconomicsRevenueReport() {
   const translate = useTranslations('pages.adminEconomics');

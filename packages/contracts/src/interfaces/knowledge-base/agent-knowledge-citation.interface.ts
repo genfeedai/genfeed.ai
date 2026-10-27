@@ -6,6 +6,25 @@ export interface AgentKnowledgeCitation {
   receipt: KnowledgeReceipt;
 }
 
+/** One side of two Brand Truth sources that contradict each other. */
+export interface AgentKnowledgeConflictSource {
+  /** The quoted passage that states this source's side. */
+  excerpt: string;
+  /** The `[n]` marker when the answer cites this source. */
+  marker?: number;
+  sourceId: string;
+  title: string;
+  version: number;
+  versionId: string;
+}
+
+/** Two eligible Brand Truth sources the judge found to disagree (#5145). */
+export interface AgentKnowledgeConflict {
+  id: string;
+  sources: [AgentKnowledgeConflictSource, AgentKnowledgeConflictSource];
+  summary: string;
+}
+
 /**
  * Server-verified sources behind a chat answer, stored as `knowledgeCitations`
  * in the assistant message metadata. A citation the model produced but the
@@ -13,5 +32,7 @@ export interface AgentKnowledgeCitation {
  */
 export interface AgentKnowledgeCitations {
   citations: AgentKnowledgeCitation[];
+  /** Open conflicts that involve a cited source, with both sides shown. */
+  conflicts?: AgentKnowledgeConflict[];
   unsupportedCount: number;
 }

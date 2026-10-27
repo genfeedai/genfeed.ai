@@ -1,9 +1,14 @@
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { BRAND_CONTEXT_CHARACTER_BUDGET } from '@api/services/agent-context-assembly/brand-context-budget.util';
 import { StudioProposalsService } from '@api/services/content-engine/studio-proposals.service';
 import {
   STUDIO_MEDIA_PROPOSALS_SCHEMA_NAME,
   STUDIO_STORYBOARD_PROPOSALS_SCHEMA_NAME,
 } from '@genfeedai/contracts/api-types/contracts';
+import {
+  ForbiddenException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('StudioProposalsService', () => {
@@ -12,6 +17,9 @@ describe('StudioProposalsService', () => {
   const findApproved = vi.fn();
   const completeStructured = vi.fn();
   const buildPerformance = vi.fn();
+  const resolveBrief = vi.fn();
+  const formatBrief = vi.fn();
+  const warn = vi.fn();
   let service: StudioProposalsService;
 
   const request = {
@@ -34,11 +42,15 @@ describe('StudioProposalsService', () => {
       isColdStart: false,
       section: 'Top posts: behind-the-scenes reels.',
     });
+    resolveBrief.mockResolvedValue({ id: 'brief-1' });
+    formatBrief.mockReturnValue('HARNESS BRIEF: no hype, short sentences.');
     service = new StudioProposalsService(
       { assembleContext, buildSystemPrompt } as never,
       { findApproved } as never,
       { completeStructured } as never,
       { build: buildPerformance } as never,
+      { formatBrief, resolveBrief } as never,
+      { warn } as never,
     );
   });
 
@@ -122,5 +134,68 @@ describe('StudioProposalsService', () => {
     await expect(service.propose(request)).rejects.toBeInstanceOf(
       NotFoundException,
     );
+  });
+
+  it('writes the proposals against the harness brief for the surface', async () => {
+    completeStructured.mockResolvedValue({ proposals: [] });
+
+    await service.propose(request);
+    await service.propose({ ...request, surface: 'video' });
+    await service.propose({ ...request, surface: 'storyboard' });
+
+    expect(
+      resolveBrief.mock.calls.map(([params]) => params.contentType),
+    ).toEqual(['image', 'video', 'video-script']);
+    expect(resolveBrief.mock.calls[0][0]).toMatchObject({
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+    for (const [params] of completeStructured.mock.calls) {
+      expect(params.messages[0].content).toContain(
+        'HARNESS BRIEF: no hype, short sentences.',
+      );
+    }
+  });
+
+  it.each([
+    ['no brief', null, ''],
+    ['an empty brief', { id: 'brief-1' }, '   '],
+    [
+      'an over-budget brief',
+      { id: 'brief-1' },
+      'x'.repeat(BRAND_CONTEXT_CHARACTER_BUDGET + 1),
+    ],
+  ])(
+    'fails with a retryable 503 and drafts nothing for %s',
+    async (_label, brief, formatted) => {
+      resolveBrief.mockResolvedValue(brief);
+      formatBrief.mockReturnValue(formatted);
+
+      await expect(service.propose(request)).rejects.toBeInstanceOf(
+        ServiceUnavailableException,
+      );
+      expect(assembleContext).not.toHaveBeenCalled();
+      expect(completeStructured).not.toHaveBeenCalled();
+    },
+  );
+
+  it('lets a brand access refusal through without drafting', async () => {
+    resolveBrief.mockRejectedValue(
+      new ForbiddenException('Brand access denied'),
+    );
+
+    await expect(service.propose(request)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    expect(completeStructured).not.toHaveBeenCalled();
+  });
+
+  it('does not resolve a brief for a brand without an approved Brand OS', async () => {
+    findApproved.mockResolvedValue(null);
+
+    await service.propose(request);
+
+    expect(resolveBrief).not.toHaveBeenCalled();
   });
 });

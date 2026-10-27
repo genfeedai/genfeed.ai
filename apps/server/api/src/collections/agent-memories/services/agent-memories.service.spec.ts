@@ -32,6 +32,7 @@ describe('AgentMemoriesService', () => {
     update: ReturnType<typeof vi.fn>;
     updateMany: ReturnType<typeof vi.fn>;
   };
+  let agentMemoryRevisionDelegate: { create: ReturnType<typeof vi.fn> };
   let contextEmbeddingJobDelegate: { updateMany: ReturnType<typeof vi.fn> };
   let contextEntryDelegate: {
     groupBy: ReturnType<typeof vi.fn>;
@@ -58,6 +59,9 @@ describe('AgentMemoriesService', () => {
       update: vi.fn(),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     };
+    agentMemoryRevisionDelegate = {
+      create: vi.fn().mockResolvedValue({ id: 'revision-1' }),
+    };
     contextEmbeddingJobDelegate = {
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     };
@@ -78,6 +82,7 @@ describe('AgentMemoriesService', () => {
       $transaction: vi.fn(async (callback: (tx: unknown) => unknown) =>
         callback({
           agentMemory: agentMemoryDelegate,
+          agentMemoryRevision: agentMemoryRevisionDelegate,
           contextEntry: contextEntryDelegate,
           contextEmbeddingJob: contextEmbeddingJobDelegate,
           $queryRaw: vi.fn().mockResolvedValue([]),
@@ -282,6 +287,40 @@ describe('AgentMemoriesService', () => {
           scope: KnowledgeMemoryScope.BRAND,
         }),
       }),
+    );
+  });
+
+  it('records the first revision of a new memory and points the memory at it', async () => {
+    agentMemoryDelegate.create.mockResolvedValue({
+      confidence: 0.5,
+      content: 'Keep hooks short',
+      createdAt: new Date('2026-10-27T07:00:00Z'),
+      id: 'memory-1',
+      importance: 0.5,
+      sourceType: 'agent-save',
+      summary: null,
+      tags: ['hooks'],
+    });
+
+    await service.createMemory(userId, orgId, {
+      content: 'Keep hooks short',
+      sourceType: 'agent-save',
+      tags: ['hooks'],
+    });
+
+    expect(agentMemoryRevisionDelegate.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        content: 'Keep hooks short',
+        kind: 'original',
+        memoryId: 'memory-1',
+        organizationId: orgId,
+        originalOwnerUserId: userId,
+        provenance: { sourceType: 'agent-save' },
+        revision: 1,
+      }),
+    });
+    expect(agentMemoryDelegate.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { currentRevisionId: 'revision-1' } }),
     );
   });
 

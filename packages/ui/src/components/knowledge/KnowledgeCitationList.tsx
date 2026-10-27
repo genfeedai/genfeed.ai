@@ -21,7 +21,12 @@ export default function KnowledgeCitationList({
 }: KnowledgeCitationListProps): ReactElement | null {
   const translate = useTranslations('ui.knowledgeReceipts');
   const rows = [...citations.citations].sort((a, b) => a.marker - b.marker);
-  if (rows.length === 0 && citations.unsupportedCount === 0) {
+  const conflicts = citations.conflicts ?? [];
+  if (
+    rows.length === 0 &&
+    conflicts.length === 0 &&
+    citations.unsupportedCount === 0
+  ) {
     return null;
   }
 
@@ -74,6 +79,49 @@ export default function KnowledgeCitationList({
             ))}
           </ol>
         </>
+      ) : null}
+      {conflicts.length > 0 ? (
+        <div
+          className="space-y-1.5 rounded-md border border-warning/40 bg-warning/5 p-2"
+          data-testid="knowledge-conflicts"
+        >
+          <p className="text-2xs font-bold uppercase tracking-wide text-warning">
+            {translate('conflictsTitle')}
+          </p>
+          <ul className="space-y-2">
+            {conflicts.map((conflict) => (
+              <li
+                key={conflict.id}
+                className="space-y-1 text-xs"
+                data-testid={`knowledge-conflict-${conflict.id}`}
+              >
+                <p className="text-foreground">{conflict.summary}</p>
+                <ul className="space-y-1">
+                  {conflict.sources.map((source) => (
+                    <li key={source.versionId} className="flex gap-2">
+                      <span className="shrink-0 font-medium text-muted-foreground">
+                        {source.marker === undefined
+                          ? '•'
+                          : `[${source.marker}]`}
+                      </span>
+                      <p className="min-w-0 text-muted-foreground">
+                        <span className="font-medium text-foreground">
+                          {source.title}
+                        </span>{' '}
+                        {translate('version', { version: source.version })}
+                        {source.marker === undefined
+                          ? ` · ${translate('conflictNotCited')}`
+                          : null}
+                        {': '}
+                        {toExcerpt(source.excerpt)}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : null}
       {citations.unsupportedCount > 0 ? (
         <p

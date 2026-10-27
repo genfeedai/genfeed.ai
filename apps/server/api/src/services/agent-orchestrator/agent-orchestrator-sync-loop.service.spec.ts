@@ -227,7 +227,10 @@ describe('verified Knowledge citations in the final answer', () => {
       {} as never,
       {} as never,
       {} as never,
-      new AgentKnowledgeCitationService(verifier as never),
+      new AgentKnowledgeCitationService(
+        verifier as never,
+        { findOpenForVersions: async () => [] } as never,
+      ),
     );
     runner.finalizeKnowledgeCitations.mockImplementation(
       (...args: Parameters<typeof real.finalizeKnowledgeCitations>) =>

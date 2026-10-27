@@ -43,6 +43,7 @@ import {
   IngredientStatus,
   IntegrationPlatform,
   IntegrationStatus,
+  KnowledgeConflictStatus,
   KnowledgeProcessingState,
   KnowledgeRetentionPolicy,
   KnowledgeRetentionState,
@@ -117,6 +118,7 @@ const PRISMA_REQUIRED: Record<string, readonly string[]> = {
   ],
   KnowledgeSourcePurpose: ['BRAND_TRUTH', 'INSPIRATION', 'RESEARCH'],
   KnowledgeProcessingState: ['QUEUED', 'PROCESSING', 'READY', 'FAILED'],
+  KnowledgeConflictStatus: ['OPEN', 'DISMISSED', 'RESOLVED', 'CLEARED'],
   KnowledgeRetrievalState: [
     'ACTIVE',
     'STALE',
@@ -427,6 +429,7 @@ const DOMAIN_ENUMS: Record<string, Record<string, string>> = {
   IntegrationStatus,
   KnowledgeSourceKind,
   KnowledgeSourcePurpose,
+  KnowledgeConflictStatus,
   KnowledgeProcessingState,
   KnowledgeRetrievalState,
   KnowledgeRetentionState,

@@ -3,10 +3,16 @@ import {
   campaignPlanSchema,
 } from '@api/collections/campaigns/services/campaign-planning.service';
 import { CampaignsService } from '@api/collections/campaigns/services/campaigns.service';
+import { BRAND_CONTEXT_CHARACTER_BUDGET } from '@api/services/agent-context-assembly/brand-context-budget.util';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentCampaignStatus } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('CampaignPlanningService', () => {
@@ -20,6 +26,8 @@ describe('CampaignPlanningService', () => {
   const createCampaign = vi.spyOn(campaigns, 'create');
   const models = { findOne: vi.fn() };
   const cache = { withLock: vi.fn() };
+  const harness = { formatBrief: vi.fn(), resolveBrief: vi.fn() };
+  const logger = { warn: vi.fn() };
   const credits = {
     checkOrganizationCreditsAvailable: vi.fn(),
     getOrganizationCreditsBalance: vi.fn(),
@@ -50,6 +58,8 @@ describe('CampaignPlanningService', () => {
     context.buildSystemPrompt.mockReturnValue(
       'Scoped brand voice and guidance',
     );
+    harness.resolveBrief.mockResolvedValue({ id: 'brief-1' });
+    harness.formatBrief.mockReturnValue('HARNESS BRIEF: plain words only.');
     llm.completeStructured.mockResolvedValue(plan);
     createCampaign.mockResolvedValue({
       ...plan,
@@ -71,6 +81,8 @@ describe('CampaignPlanningService', () => {
       models as never,
       credits as never,
       cache as never,
+      harness as never,
+      logger as never,
     );
   });
   it('generates a brand-aware draft from just a name', async () => {
@@ -231,5 +243,53 @@ describe('CampaignPlanningService', () => {
       'busy',
     );
     expect(llm.completeStructured).not.toHaveBeenCalled();
+  });
+  it('writes the plan against the harness brief of the brand', async () => {
+    await service.generate('org-1', 'user-1', dto);
+    expect(harness.resolveBrief).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: dto.brandId,
+        contentType: 'post',
+        organizationId: 'org-1',
+        topic: 'Product launch',
+        userId: 'user-1',
+      }),
+    );
+    expect(context.buildSystemPrompt.mock.calls[0][0]).toContain(
+      'HARNESS BRIEF: plain words only.',
+    );
+  });
+  it.each([
+    ['no brief', null, ''],
+    ['an empty brief', { id: 'brief-1' }, '  '],
+    [
+      'an over-budget brief',
+      { id: 'brief-1' },
+      'x'.repeat(BRAND_CONTEXT_CHARACTER_BUDGET + 1),
+    ],
+  ])(
+    'fails with a retryable 503 before pricing or the model for %s',
+    async (_label, brief, formatted) => {
+      harness.resolveBrief.mockResolvedValue(brief);
+      harness.formatBrief.mockReturnValue(formatted);
+      const onBilling = vi.fn();
+      await expect(
+        service.generate('org-1', 'user-1', dto, onBilling),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      expect(models.findOne).not.toHaveBeenCalled();
+      expect(llm.completeStructured).not.toHaveBeenCalled();
+      expect(onBilling).not.toHaveBeenCalled();
+      expect(campaigns.create).not.toHaveBeenCalled();
+    },
+  );
+  it('lets a brand access refusal through without planning', async () => {
+    harness.resolveBrief.mockRejectedValue(
+      new ForbiddenException('Brand access denied'),
+    );
+    await expect(
+      service.generate('org-1', 'user-1', dto),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(llm.completeStructured).not.toHaveBeenCalled();
+    expect(campaigns.create).not.toHaveBeenCalled();
   });
 });

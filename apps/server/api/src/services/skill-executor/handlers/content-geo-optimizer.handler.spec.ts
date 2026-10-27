@@ -2,7 +2,9 @@ import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { LlmStructuredOutputError } from '@api/services/integrations/llm/llm-structured-output.error';
 import { ContentGeoOptimizerHandler } from '@api/services/skill-executor/handlers/content-geo-optimizer.handler';
+import { SkillBrandBriefService } from '@api/services/skill-executor/skill-brand-brief.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ServiceUnavailableException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -15,6 +17,10 @@ describe('ContentGeoOptimizerHandler', () => {
 
   const mockLoggerService = {
     warn: vi.fn(),
+  };
+
+  const mockSkillBrandBriefService = {
+    resolve: vi.fn(),
   };
 
   const mockAgentChatModelRegistryService = {
@@ -31,6 +37,9 @@ describe('ContentGeoOptimizerHandler', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    mockSkillBrandBriefService.resolve.mockResolvedValue(
+      'Brand brief: evidence-led and plainspoken. Guardrails: no hype claims.',
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -40,6 +49,10 @@ describe('ContentGeoOptimizerHandler', () => {
         {
           provide: AgentChatModelRegistryService,
           useValue: mockAgentChatModelRegistryService,
+        },
+        {
+          provide: SkillBrandBriefService,
+          useValue: mockSkillBrandBriefService,
         },
       ],
     }).compile();
@@ -87,6 +100,44 @@ describe('ContentGeoOptimizerHandler', () => {
         }),
       ],
     });
+  });
+
+  it('rewrites against the harness brief for the content title', async () => {
+    mockLlmDispatcherService.completeStructured.mockResolvedValue({
+      rewrittenContent: '## Direct answer\n\nShort answer.',
+      suggestions: [],
+    });
+
+    await handler.execute(
+      { ...baseContext, userId: 'user-1' },
+      { content: 'GEO content should answer the user clearly.', title: 'GEO' },
+    );
+
+    expect(mockSkillBrandBriefService.resolve).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: 'brand-id', userId: 'user-1' }),
+      { contentType: 'article', topic: 'GEO' },
+    );
+    const [request] = mockLlmDispatcherService.completeStructured.mock.calls[0];
+    expect(request.messages[1].content).toContain(
+      'Guardrails: no hype claims.',
+    );
+    expect(request.messages[1].content).not.toContain(
+      'Evidence-led and plainspoken',
+    );
+  });
+
+  it('fails with a 503 instead of the deterministic fallback when the brand brief is unavailable', async () => {
+    mockSkillBrandBriefService.resolve.mockRejectedValue(
+      new ServiceUnavailableException('Brand context could not be loaded'),
+    );
+
+    await expect(
+      handler.execute(baseContext, {
+        content: 'GEO content should answer the user clearly.',
+        title: 'GEO',
+      }),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    expect(mockLlmDispatcherService.completeStructured).not.toHaveBeenCalled();
   });
 
   it('falls back deterministically and emits Article JSON-LD when the LLM fails', async () => {

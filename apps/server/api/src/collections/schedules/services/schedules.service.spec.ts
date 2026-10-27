@@ -299,4 +299,57 @@ describe('SchedulesService', () => {
       ).rejects.toBeInstanceOf(ValidationException);
     });
   });
+
+  describe('bulkSchedule with ai-optimal times', () => {
+    const base = {
+      brandIds: ['brand_1'],
+      contentIds: ['content_1', 'content_2'],
+      platforms: ['twitter'],
+      schedulingStrategy: 'ai-optimal' as const,
+    };
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(Date.parse('2026-10-20T10:00:00Z'));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('schedules the default hours in the requested timezone', async () => {
+      await service.bulkSchedule(
+        { ...base, timezone: 'America/New_York' },
+        'org_1',
+        'user_1',
+      );
+
+      const scheduledAt = mockPrismaService.schedule.create.mock.calls.map(
+        ([args]) => args.data.scheduledAt.toISOString(),
+      );
+      expect(scheduledAt).toEqual([
+        '2026-10-21T12:00:00.000Z',
+        '2026-10-21T13:00:00.000Z',
+      ]);
+    });
+
+    it('defaults to UTC without a timezone', async () => {
+      await service.bulkSchedule(base, 'org_1', 'user_1');
+
+      expect(
+        mockPrismaService.schedule.create.mock.calls[0][0].data.scheduledAt.toISOString(),
+      ).toBe('2026-10-21T08:00:00.000Z');
+    });
+
+    it('rejects a timezone that does not exist before writing anything', async () => {
+      await expect(
+        service.bulkSchedule(
+          { ...base, timezone: 'Not/AZone' },
+          'org_1',
+          'user_1',
+        ),
+      ).rejects.toBeInstanceOf(ValidationException);
+      expect(mockPrismaService.schedule.create).not.toHaveBeenCalled();
+    });
+  });
 });

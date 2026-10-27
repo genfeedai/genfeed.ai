@@ -11,6 +11,7 @@ import { KnowledgeSourcesController } from '@api/collections/contexts/controller
 import { KnowledgeSpacesController } from '@api/collections/contexts/controllers/knowledge-spaces.controller';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { KnowledgeCaptureService } from '@api/collections/contexts/services/knowledge-capture.service';
+import { KnowledgeConflictLookupService } from '@api/collections/contexts/services/knowledge-conflict-lookup.service';
 import { KnowledgeContentRetrievalService } from '@api/collections/contexts/services/knowledge-content-retrieval.service';
 import { KnowledgeContextCoverageService } from '@api/collections/contexts/services/knowledge-context-coverage.service';
 import { KnowledgeReceiptVerifierService } from '@api/collections/contexts/services/knowledge-receipt-verifier.service';
@@ -50,6 +51,7 @@ import { Module } from '@nestjs/common';
     KnowledgeSelectionService,
     KnowledgeContextCoverageService,
     KnowledgeReceiptVerifierService,
+    KnowledgeConflictLookupService,
     KnowledgeTranscriptIngestService,
   ],
   imports: [
@@ -75,6 +77,7 @@ import { Module } from '@nestjs/common';
     KnowledgeSelectionService,
     KnowledgeContextCoverageService,
     KnowledgeReceiptVerifierService,
+    KnowledgeConflictLookupService,
     KnowledgeTranscriptIngestService,
   ],
 })

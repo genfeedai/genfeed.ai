@@ -157,6 +157,7 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/',
     '/:slug',
     '/about',
+    '/affiliates',
     '/agent',
     '/benchmark',
     '/best',

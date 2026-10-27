@@ -44,9 +44,11 @@ Content-Type: application/json
   "platforms": ["instagram", "tiktok"],
   "brandIds": ["account_insta_1", "account_tiktok_1"],
   "schedulingStrategy": "ai-optimal",
-  "staggerMinutes": 60
+  "staggerMinutes": 60,
+  "timezone": "America/New_York"
 }
 
+### "ai-optimal" times are the platform default hours, local to `timezone` (default UTC).
 ### Example Response:
 ### {
 ###   "scheduled": [

@@ -1,7 +1,9 @@
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { ContentWritingHandler } from '@api/services/skill-executor/handlers/content-writing.handler';
+import { SkillBrandBriefService } from '@api/services/skill-executor/skill-brand-brief.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ServiceUnavailableException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -9,7 +11,7 @@ describe('ContentWritingHandler', () => {
   let handler: ContentWritingHandler;
 
   const mockContentGeneratorService = {
-    generateContent: vi.fn(),
+    generateContentWorkflow: vi.fn(),
   };
 
   const mockLlmDispatcherService = {
@@ -18,6 +20,10 @@ describe('ContentWritingHandler', () => {
 
   const mockLoggerService = {
     warn: vi.fn(),
+  };
+
+  const mockSkillBrandBriefService = {
+    resolve: vi.fn(),
   };
 
   const baseContext = {
@@ -29,6 +35,9 @@ describe('ContentWritingHandler', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    mockSkillBrandBriefService.resolve.mockResolvedValue(
+      'Brand brief: bold and witty. Guardrails: no hype claims.',
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -42,6 +51,10 @@ describe('ContentWritingHandler', () => {
           provide: LoggerService,
           useValue: mockLoggerService,
         },
+        {
+          provide: SkillBrandBriefService,
+          useValue: mockSkillBrandBriefService,
+        },
       ],
     }).compile();
 
@@ -49,7 +62,7 @@ describe('ContentWritingHandler', () => {
   });
 
   it('generates content draft with refinement', async () => {
-    mockContentGeneratorService.generateContent.mockResolvedValue([
+    mockContentGeneratorService.generateContentWorkflow.mockResolvedValue([
       {
         content: 'Base generated content',
         hashtags: ['#ai'],
@@ -79,6 +92,48 @@ describe('ContentWritingHandler', () => {
     expect(result.platforms).toEqual(['instagram']);
   });
 
+  it('writes the draft and the rewrite against the harness brief', async () => {
+    mockContentGeneratorService.generateContentWorkflow.mockResolvedValue([
+      { content: 'Base draft', hashtags: [], patternUsed: 'freeform' },
+    ]);
+    mockLlmDispatcherService.chatCompletion.mockResolvedValue({
+      choices: [{ message: { content: 'Rewrite', role: 'assistant' } }],
+    });
+
+    await handler.execute(
+      { ...baseContext, userId: 'user-1' },
+      { platform: 'twitter', topic: 'AI hooks' },
+    );
+
+    expect(mockSkillBrandBriefService.resolve).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: 'test-object-id', userId: 'user-1' }),
+      { contentType: 'post', platform: 'twitter', topic: 'AI hooks' },
+    );
+    expect(
+      mockContentGeneratorService.generateContentWorkflow,
+    ).toHaveBeenCalledWith(
+      'user-1',
+      'test-object-id',
+      expect.objectContaining({ brandId: 'test-object-id', topic: 'AI hooks' }),
+      true,
+    );
+  });
+
+  it('refuses before any generation when the brand brief is unavailable', async () => {
+    mockSkillBrandBriefService.resolve.mockRejectedValue(
+      new ServiceUnavailableException('Brand context could not be loaded'),
+    );
+
+    await expect(
+      handler.execute(baseContext, { topic: 'AI hooks' }),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+
+    expect(
+      mockContentGeneratorService.generateContentWorkflow,
+    ).not.toHaveBeenCalled();
+    expect(mockLlmDispatcherService.chatCompletion).not.toHaveBeenCalled();
+  });
+
   it('throws when topic is missing', async () => {
     await expect(handler.execute(baseContext, {})).rejects.toThrow(
       'content-writing requires a topic',
@@ -86,7 +141,7 @@ describe('ContentWritingHandler', () => {
   });
 
   it('falls back to base draft when LLM refinement fails', async () => {
-    mockContentGeneratorService.generateContent.mockResolvedValue([
+    mockContentGeneratorService.generateContentWorkflow.mockResolvedValue([
       {
         content: 'Base generated content',
         hashtags: ['#ai'],
@@ -111,7 +166,7 @@ describe('ContentWritingHandler', () => {
   });
 
   it('uses first platform from context when platform param is missing', async () => {
-    mockContentGeneratorService.generateContent.mockResolvedValue([
+    mockContentGeneratorService.generateContentWorkflow.mockResolvedValue([
       {
         content: 'Generated for twitter',
         hashtags: [],
@@ -136,10 +191,12 @@ describe('ContentWritingHandler', () => {
     );
 
     expect(result.content).toBe('Refined for twitter');
-    expect(mockContentGeneratorService.generateContent).toHaveBeenCalled();
+    expect(
+      mockContentGeneratorService.generateContentWorkflow,
+    ).toHaveBeenCalled();
   });
   it('asks the rewrite to fit X and lead with a hook', async () => {
-    mockContentGeneratorService.generateContent.mockResolvedValue([
+    mockContentGeneratorService.generateContentWorkflow.mockResolvedValue([
       { content: 'Base draft', hashtags: [], patternUsed: 'freeform' },
     ]);
     mockLlmDispatcherService.chatCompletion.mockResolvedValue({
@@ -153,14 +210,14 @@ describe('ContentWritingHandler', () => {
 
     const [request] = mockLlmDispatcherService.chatCompletion.mock.calls[0];
     const systemPrompt = request.messages[0].content as string;
-    expect(systemPrompt).toContain('Bold and witty');
+    expect(systemPrompt).toContain('Guardrails: no hype claims.');
     expect(systemPrompt).toContain('twitter post of 280 characters max');
     expect(systemPrompt).toContain('each link counts 23');
     expect(systemPrompt).toContain('strong hook in the first line');
   });
 
   it('keeps a base draft that fits X when the rewrite runs over', async () => {
-    mockContentGeneratorService.generateContent.mockResolvedValue([
+    mockContentGeneratorService.generateContentWorkflow.mockResolvedValue([
       { content: 'Fits on X', hashtags: [], patternUsed: 'freeform' },
     ]);
     mockLlmDispatcherService.chatCompletion.mockResolvedValue({
