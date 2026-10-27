@@ -14,9 +14,21 @@ export function requireRecordedWorkflowActor(
   return userId;
 }
 
+const REVOKED_WORKFLOW_ACTOR_REASON =
+  'its recorded actor is no longer an active member of the organization.';
+
 /** Reason recorded on an execution whose recorded actor lost organization access. */
 export function buildRevokedWorkflowActorMessage(executionId: string): string {
-  return `Workflow execution ${executionId} was not resumed: its recorded actor is no longer an active member of the organization.`;
+  return `Workflow execution ${executionId} was not resumed: ${REVOKED_WORKFLOW_ACTOR_REASON}`;
+}
+
+/** Whether a recorded execution error is the deliberate revoked-actor refusal. */
+export function isRevokedWorkflowActorMessage(message: unknown): boolean {
+  return (
+    typeof message === 'string' &&
+    message.startsWith('Workflow execution ') &&
+    message.endsWith(` was not resumed: ${REVOKED_WORKFLOW_ACTOR_REASON}`)
+  );
 }
 
 /**

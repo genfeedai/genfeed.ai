@@ -1,6 +1,7 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { isCloudDeployment } from '@genfeedai/config/deployment';
 import { ONBOARDING_JOURNEY_TOTAL_CREDITS } from '@genfeedai/contracts/types/onboarding-journey';
+import { Progress } from '@ui/primitives/progress';
 import { ChevronRight, CircleCheck, Rocket } from 'lucide-react';
 import type { ReactElement } from 'react';
 
@@ -76,12 +77,7 @@ export function OnboardingChecklistCard({
           </span>
           <span>{progressPercent}%</span>
         </div>
-        <div className="h-2 overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-primary transition-all duration-300"
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
+        <Progress className="bg-muted" value={progressPercent} />
       </div>
 
       {/* Checklist items */}

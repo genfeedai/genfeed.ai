@@ -3,6 +3,7 @@
 import {
   ButtonSize,
   ButtonVariant,
+  CardVariant,
   ComponentSize,
   formatEnumLabel,
   WorkflowExecutionStatus,
@@ -14,8 +15,10 @@ import {
   getJsonApiErrorMessage,
 } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
+import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { Progress } from '@ui/primitives/progress';
 import Spinner from '@ui/primitives/spinner';
 import {
   Check,
@@ -400,7 +403,11 @@ export function WorkflowSurfaceInspector({
         </div>
       ) : null}
 
-      <section className="rounded-lg border border-border bg-background p-3">
+      <Card
+        variant={CardVariant.BORDERED}
+        className="bg-background"
+        bodyClassName="gap-0 p-3"
+      >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-foreground">
@@ -430,19 +437,19 @@ export function WorkflowSurfaceInspector({
                 {execution.progress}%
               </span>
             </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-primary transition-[width]"
-                style={{
-                  width: `${Math.max(0, Math.min(100, execution.progress))}%`,
-                }}
-              />
-            </div>
+            <Progress
+              className="h-1.5 bg-muted"
+              value={Math.max(0, Math.min(100, execution.progress))}
+            />
           </div>
         ) : null}
-      </section>
+      </Card>
 
-      <section className="rounded-lg border border-border bg-background p-3">
+      <Card
+        variant={CardVariant.BORDERED}
+        className="bg-background"
+        bodyClassName="gap-0 p-3"
+      >
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Required input
         </p>
@@ -466,9 +473,13 @@ export function WorkflowSurfaceInspector({
             ))}
           </ul>
         )}
-      </section>
+      </Card>
 
-      <section className="rounded-lg border border-border bg-background p-3">
+      <Card
+        variant={CardVariant.BORDERED}
+        className="bg-background"
+        bodyClassName="gap-0 p-3"
+      >
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Provenance
         </p>
@@ -495,9 +506,13 @@ export function WorkflowSurfaceInspector({
             </div>
           ) : null}
         </dl>
-      </section>
+      </Card>
 
-      <section className="rounded-lg border border-border bg-background p-3">
+      <Card
+        variant={CardVariant.BORDERED}
+        className="bg-background"
+        bodyClassName="gap-0 p-3"
+      >
         <div className="flex items-center gap-2">
           <ShieldCheck className="size-4 text-muted-foreground" />
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -551,10 +566,14 @@ export function WorkflowSurfaceInspector({
             No approval is currently required.
           </p>
         )}
-      </section>
+      </Card>
 
       {workflow?.schedule ? (
-        <section className="rounded-lg border border-border bg-background p-3">
+        <Card
+          variant={CardVariant.BORDERED}
+          className="bg-background"
+          bodyClassName="gap-0 p-3"
+        >
           <div className="flex items-center gap-2">
             <Clock className="size-4 text-muted-foreground" />
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -570,7 +589,7 @@ export function WorkflowSurfaceInspector({
               ? ` · Next run ${formatNextRunAt(workflow.nextRunAt, workflow.timezone)}`
               : ''}
           </p>
-        </section>
+        </Card>
       ) : null}
 
       <div className="space-y-2">

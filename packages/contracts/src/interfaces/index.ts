@@ -67,6 +67,7 @@ export * from './analytics/viral-hooks.interface';
 export * from './analytics/vote.interface';
 export * from './analytics/watchlist.interface';
 export * from './analytics/winner-classification.interface';
+export * from './analytics/x-growth-report.interface';
 export * from './auth/auth-public-data.interface';
 export * from './auth/authentication.interface';
 export * from './auth/better-auth.interface';

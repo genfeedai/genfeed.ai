@@ -54,6 +54,16 @@ describe('CreateVideoDto', () => {
     expect(CreateVideoDto).toBeDefined();
   });
 
+  it('keeps the draft flag through the whitelist and rejects a non-boolean', async () => {
+    await expect(
+      resolvedRequest(new ValidationPipe(), { isDraft: true }),
+    ).resolves.toMatchObject({ isDraft: true });
+    const errors = await validate(
+      plainToInstance(CreateVideoDto, { isDraft: 'yes' }),
+    );
+    expect(errors.some((error) => error.property === 'isDraft')).toBe(true);
+  });
+
   describe('validation', () => {
     it('should create an instance', () => {
       const dto = new CreateVideoDto();

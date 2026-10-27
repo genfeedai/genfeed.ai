@@ -176,6 +176,7 @@ const buildIngredientCreateDto = (
   ...(input.groupId !== undefined ? { groupId: input.groupId } : {}),
   ...(input.groupIndex !== undefined ? { groupIndex: input.groupIndex } : {}),
   isDefault: input.isDefault === true,
+  ...(input.isDraftRender === true ? { isDraftRender: true } : {}),
   ...(input.isMergeEnabled !== undefined
     ? { isMergeEnabled: input.isMergeEnabled }
     : {}),

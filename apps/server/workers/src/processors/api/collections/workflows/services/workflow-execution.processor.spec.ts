@@ -1,4 +1,5 @@
 import type { WorkflowExecutionJobData } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { buildRevokedWorkflowActorMessage } from '@api/collections/workflows/services/workflow-resume-actor.util';
 import { getActionOriginContext } from '@api/index';
 import { ActionOrigin, WorkflowExecutionStatus } from '@genfeedai/contracts';
 import {
@@ -564,6 +565,72 @@ describe('WorkflowExecutionProcessor', () => {
           processor.process(systemJob(false) as never),
         ).rejects.toBeInstanceOf(UnrecoverableError);
         expect(mockWorkflowExecutions.cancelExecution).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('revoked recorded actor', () => {
+      const input = {
+        actionType: 'analytics-sync',
+        canonicalId: 'analytics-sync',
+        organizationId: 'org-1',
+        source: 'platform-workflow-schedule',
+      };
+      const revokedJob = () =>
+        createMockJob({
+          systemRun: {
+            failureWorkflow: { canonicalId: 'failed-sync' },
+            input,
+            priorExecution: {
+              executionId: 'exec-pending',
+              status: WorkflowExecutionStatus.PENDING,
+              userId: 'user-gone',
+              workflowId: 'wf-1',
+              workflowLabel: 'Analytics sync',
+            },
+          },
+          type: 'system-run',
+        });
+      const failedWith = (error: string) => ({
+        error,
+        executionId: 'exec-pending',
+        nodeResults: [],
+        startedAt: new Date(),
+        status: WorkflowExecutionStatus.FAILED,
+        totalCreditsUsed: 0,
+        workflowId: 'wf-1',
+      });
+
+      it('records the executor refusal as a skipped run instead of an unrecoverable failure', async () => {
+        mockExecutor.continueExistingExecution.mockResolvedValueOnce(
+          failedWith(buildRevokedWorkflowActorMessage('exec-pending')),
+        );
+
+        await expect(
+          processor.process(revokedJob() as never),
+        ).resolves.toMatchObject({
+          executionId: 'exec-pending',
+          status: WorkflowExecutionStatus.FAILED,
+        });
+        expect(mockLogger.warn).toHaveBeenCalledWith(
+          expect.stringContaining('recorded actor lost organization access'),
+          expect.objectContaining({
+            canonicalId: 'analytics-sync',
+            executionId: 'exec-pending',
+            organizationId: 'org-1',
+          }),
+        );
+        expect(mockSystemWorkflowRunner.runWorkflow).not.toHaveBeenCalled();
+      });
+
+      it('still fails an ordinary executor failure terminally with compensation', async () => {
+        mockExecutor.continueExistingExecution.mockResolvedValueOnce(
+          failedWith('Nodes failed: provider rejected the request'),
+        );
+
+        await expect(
+          processor.process(revokedJob() as never),
+        ).rejects.toBeInstanceOf(UnrecoverableError);
+        expect(mockSystemWorkflowRunner.runWorkflow).toHaveBeenCalled();
       });
     });
 

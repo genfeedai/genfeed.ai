@@ -7,11 +7,12 @@ import type {
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { collectConnectPlatforms } from '@genfeedai/agent/utils/collapse-oauth-connect-cards';
 import { normalizeAgentAssetHref } from '@genfeedai/agent/utils/normalize-agent-app-href';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import { parseScopedAppPath } from '@genfeedai/contracts/constants';
 import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import Card from '@ui/card/Card';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
 import GenerationFeedback from '@ui/generation-receipts/GenerationFeedback';
 import KnowledgeReceiptList from '@ui/knowledge/KnowledgeReceiptList';
@@ -62,7 +63,11 @@ function GenericOAuthConnectCard({
     : rawIntegrationHref;
 
   return (
-    <div className="mt-2 rounded-lg border border-border bg-background p-3">
+    <Card
+      variant={CardVariant.BORDERED}
+      className="mt-2 bg-background"
+      bodyClassName="gap-0 p-3"
+    >
       <p className="mb-2 text-sm font-medium text-foreground">
         {action.title || 'Choose an integration'}
       </p>
@@ -81,7 +86,7 @@ function GenericOAuthConnectCard({
       >
         {translate('openIntegrations')}
       </a>
-    </div>
+    </Card>
   );
 }
 
@@ -133,7 +138,11 @@ export function OAuthConnectCard({
       : 'Connect an account';
 
   return (
-    <div className="mt-2 rounded-lg border border-border bg-background p-3">
+    <Card
+      variant={CardVariant.BORDERED}
+      className="mt-2 bg-background"
+      bodyClassName="gap-0 p-3"
+    >
       <p className="text-sm font-medium text-foreground">{title}</p>
       {action.description ? (
         <p className="mt-1 text-xs leading-5 text-muted-foreground">
@@ -165,7 +174,7 @@ export function OAuthConnectCard({
           {connectError}
         </p>
       ) : null}
-    </div>
+    </Card>
   );
 }
 

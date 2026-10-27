@@ -15,6 +15,7 @@ import {
   LazyModalBrandGenerate,
   LazyModalBrandLink,
 } from '@ui/lazy/modal/LazyModal';
+import { Badge } from '@ui/primitives/badge';
 import { useTranslations } from 'next-intl';
 
 /**
@@ -64,14 +65,14 @@ export default function BrandSidebarPanel(props: BrandSidebarPanelProps) {
       <TableRowSummary
         badges={
           <>
-            <span className="rounded-full border border-border bg-tertiary px-3 py-1 text-xs text-muted-foreground">
+            <Badge variant="secondary">
               {isPublicAssetScope(activeBrand.scope)
                 ? translate('public')
                 : translate('private')}
-            </span>
-            <span className="rounded-full border border-border bg-tertiary px-3 py-1 text-xs text-muted-foreground">
+            </Badge>
+            <Badge variant="secondary">
               {translate('connected', { count: connectedPlatformsCount })}
-            </span>
+            </Badge>
           </>
         }
         openHref={settingsHref}

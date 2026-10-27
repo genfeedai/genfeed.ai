@@ -110,6 +110,10 @@ describe('summariseSmoke', () => {
       evidenceKind: 'live-dispatcher',
       outcome: {
         rows: [
+          row('thread', 'raw', true, 0.5),
+          row('thread', 'product', true, 0.5),
+          row('reply', 'raw', true, 0.5),
+          row('reply', 'product', true, 0.5),
           row('social-post', 'raw', false, 0.25),
           row('social-post', 'product', true, 0.75),
           row('linkedin-post', 'raw', true, 0.5),
@@ -131,7 +135,7 @@ describe('summariseSmoke', () => {
     expect(markdown).toContain('| kind | raw accepted | product accepted |');
     expect(markdown).toContain('| social-post | 0/1 | 1/1 | 0.25 | 0.75 |');
     expect(markdown).toContain(
-      'No product text route yet, so not measured through the product: thread, article, linkedin-article, reply, ad-copy, script, newsletter.',
+      'No product text route yet, so not measured through the product: article, linkedin-article, ad-copy, script, newsletter.',
     );
   });
 });

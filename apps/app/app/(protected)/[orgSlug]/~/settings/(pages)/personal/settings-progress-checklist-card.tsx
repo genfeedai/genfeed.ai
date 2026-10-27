@@ -3,6 +3,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import type { Props } from '@props/settings/settings-progress-checklist-card.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
+import { Progress } from '@ui/primitives/progress';
 import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 
@@ -22,14 +23,11 @@ export default function SettingsProgressChecklistCard({
         </Badge>
       }
     >
-      <div className="h-2 overflow-hidden rounded-full bg-muted">
-        <div
-          className="h-full rounded-full bg-primary transition-[width]"
-          style={{
-            width: `${totalCount > 0 ? (completedCount / totalCount) * 100 : 0}%`,
-          }}
-        />
-      </div>
+      <Progress
+        aria-label={`${completedCount} of ${totalCount} complete`}
+        className="bg-muted"
+        value={totalCount > 0 ? (completedCount / totalCount) * 100 : 0}
+      />
 
       <div className="space-y-3">
         {steps.map((step) => (

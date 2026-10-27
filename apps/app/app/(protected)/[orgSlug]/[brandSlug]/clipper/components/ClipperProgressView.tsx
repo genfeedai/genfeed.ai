@@ -7,12 +7,12 @@ import type { ClipperProgressViewProps } from '@props/studio/clipper.props';
 import Card from '@ui/card/Card';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import { Button } from '@ui/primitives/button';
+import { Progress } from '@ui/primitives/progress';
 import Spinner from '@ui/primitives/spinner';
 import { Textarea } from '@ui/primitives/textarea';
 import { Check, Film, Sparkles, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-
 import ClipperResultCard from './ClipperResultCard';
 
 export default function ClipperProgressView({
@@ -154,9 +154,11 @@ export default function ClipperProgressView({
           project.status !== 'partially-completed' &&
           project.status !== 'failed' && (
             <div className="mt-4 flex items-center gap-3">
-              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                <div className="h-full w-2/3 animate-pulse rounded-full bg-primary transition-[width] duration-500" />
-              </div>
+              <Progress
+                isIndeterminate
+                aria-label={project.status}
+                className="h-1.5 flex-1 bg-muted"
+              />
               <span className="text-xs capitalize text-muted-foreground">
                 {project.status}
               </span>

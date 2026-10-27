@@ -3,6 +3,7 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useSetupCard } from '@genfeedai/hooks/utils/use-setup-card/use-setup-card';
 import Card from '@ui/card/Card';
+import { Progress } from '@ui/primitives/progress';
 import { Check, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
@@ -29,12 +30,7 @@ export default function SetupCard() {
         </span>
       </div>
 
-      <div className="mb-3 h-1 overflow-hidden rounded-full bg-foreground/[0.06]">
-        <div
-          className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
+      <Progress className="mb-3 h-1 bg-foreground/[0.06]" value={progress} />
 
       {/* Steps */}
       <div className="flex flex-col gap-0.5">

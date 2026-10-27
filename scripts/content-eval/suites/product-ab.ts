@@ -18,8 +18,9 @@
  *                             with a judge.
  * Environment (live): CONTENT_EVAL_GENFEED_API_KEY.
  *
- * Only kinds with a product text route run (`PRODUCT_TEXT_ROUTES`); the rest
- * of the fixture is left out and shown as "no product route" in the summary.
+ * Only kinds with a product text route run (`PRODUCT_TEXT_ROUTES`: X and
+ * LinkedIn posts, X threads, X author replies); the rest of the fixture is left
+ * out and shown as "no product route" in the summary.
  */
 
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
@@ -31,6 +32,7 @@ import {
   PRODUCT_TEXT_ROUTES,
   ProductApiTextGeneration,
   type ProductTextBinding,
+  routeRowProblem,
 } from '../text/product-generation';
 import { createComparisonSuite } from './compare';
 import { loadTextFixture } from './text-fixture';
@@ -85,12 +87,8 @@ export function createProductAbSuite(): SuiteRunner {
         );
       }
       for (const row of rows) {
-        const route = PRODUCT_TEXT_ROUTES[row.contentKind];
-        if (row.input.platform && row.input.platform !== route.platform) {
-          throw new UsageError(
-            `${loaded.path}: row ${row.id} is ${row.input.platform} but the product route for ${row.contentKind} writes for ${route.platform}`,
-          );
-        }
+        const problem = routeRowProblem(row);
+        if (problem) throw new UsageError(`${loaded.path}: ${problem}`);
       }
 
       binding =

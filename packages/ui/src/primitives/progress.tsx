@@ -7,6 +7,7 @@ import type { ComponentPropsWithRef } from 'react';
 export interface ProgressProps
   extends ComponentPropsWithRef<typeof ProgressPrimitive.Root> {
   isIndeterminate?: boolean;
+  indicatorClassName?: string;
 }
 
 function Progress({
@@ -14,6 +15,7 @@ function Progress({
   className,
   value,
   isIndeterminate = false,
+  indicatorClassName,
   ...props
 }: ProgressProps) {
   return (
@@ -28,7 +30,8 @@ function Progress({
     >
       <ProgressPrimitive.Indicator
         className={cn(
-          'h-full flex-1 bg-primary transition-transform duration-300 ease-out',
+          'h-full flex-1 transition-transform duration-300 ease-out',
+          indicatorClassName ?? 'bg-primary',
           isIndeterminate ? 'w-1/3 motion-safe:animate-pulse' : 'w-full',
         )}
         style={

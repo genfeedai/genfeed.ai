@@ -2346,6 +2346,10 @@ model Ingredient {
   status                IngredientStatus         @default(DRAFT)
   // Permanent origin (#6010). Unlike `status`, never changes after creation.
   origin                IngredientOrigin         @default(UNKNOWN)
+  // True for a Studio video draft (a cheap preview, #7729). Written at creation
+  // from the submit options and never changed; the retry credit-back (#7730)
+  // does not count a draft as the first attempt of a brief.
+  isDraftRender         Boolean                  @default(false)
   transformations       TransformationCategory[] @default([])
   order                 Int                      @default(0)
   version               Int                      @default(1)

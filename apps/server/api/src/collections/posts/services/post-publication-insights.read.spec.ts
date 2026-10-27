@@ -162,6 +162,35 @@ describe('publication insights scoped read model', () => {
     expect(f.raw).not.toHaveBeenCalled();
     expect(f.credential.findMany).not.toHaveBeenCalled();
   });
+  it('limits publications to the requested period and refuses a bad one', async () => {
+    const f = fixture([]);
+    await listPublicationInsights(
+      f.prisma,
+      {
+        brandId: 'brand',
+        publishedFrom: '2026-10-01T00:00:00.000Z',
+        publishedTo: '2026-10-08T00:00:00.000Z',
+      },
+      scope,
+    );
+    expect(f.post.findMany.mock.calls[0][0].where).toMatchObject({
+      AND: [
+        {
+          publicationDate: {
+            gte: new Date('2026-10-01T00:00:00.000Z'),
+            lte: new Date('2026-10-08T00:00:00.000Z'),
+          },
+        },
+      ],
+    });
+    await expect(
+      listPublicationInsights(
+        f.prisma,
+        { brandId: 'brand', publishedFrom: 'soon' },
+        scope,
+      ),
+    ).rejects.toThrow(/Invalid publication period/);
+  });
   it('returns multiple context replies without manufacturing IDs or choosing an account', async () => {
     const captured = {
       ...row,

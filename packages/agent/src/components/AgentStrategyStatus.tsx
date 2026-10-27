@@ -5,6 +5,7 @@ import {
   formatCreditBalanceExact,
   formatCreditCost,
 } from '@genfeedai/contracts/constants';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { type ReactElement, useCallback, useRef, useState } from 'react';
 
@@ -137,22 +138,16 @@ export function AgentStrategyStatus({
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Status
           </h3>
-          {!strategy.isEnabled && (
-            <span className="rounded-full border border-border px-2 py-0.5 text-2xs font-medium text-muted-foreground">
-              Paused
-            </span>
-          )}
+          {!strategy.isEnabled && <Badge variant="secondary">Paused</Badge>}
         </div>
         <div className="flex items-center gap-2">
-          <span
-            className={`rounded-full px-2 py-0.5 text-2xs font-medium ${
-              strategy.isActive && strategy.isEnabled
-                ? 'bg-success/10 text-green-500'
-                : 'bg-muted text-muted-foreground'
-            }`}
+          <Badge
+            variant={
+              strategy.isActive && strategy.isEnabled ? 'success' : 'secondary'
+            }
           >
             {strategy.isActive && strategy.isEnabled ? 'Active' : 'Inactive'}
-          </span>
+          </Badge>
           <Button
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}

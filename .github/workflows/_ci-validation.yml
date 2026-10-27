@@ -383,13 +383,35 @@ jobs:
       # The Full Suite skips it: every master commit arrived through a
       # scanned pull request. Dependabot runs read the Dependabot secret store,
       # where GITLEAKS_LICENSE is empty and the action hard-fails; their
-      # manifest/lockfile diffs still pass through secretlint below.
+      # manifest/lockfile diffs still pass through secretlint below. Fork pull
+      # requests get no repository secrets either, so they run the open-source
+      # CLI below instead of the licensed action (#8333).
       - name: Scan for secrets with gitleaks
-        if: github.event_name != 'push' && github.actor != 'dependabot[bot]'
+        if: github.event_name != 'push' && github.actor != 'dependabot[bot]' && github.event.pull_request.head.repo.fork != true
         uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+      - name: Scan fork pull request for secrets with gitleaks CLI
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true
+        env:
+          GITLEAKS_VERSION: 8.30.0
+          GITLEAKS_LINUX_X64_SHA256: 79a3ab579b53f71efd634f3aaf7e04a0fa0cf206b7ed434638d1547a2470a66e
+        run: |
+          set -euo pipefail
+          if [ -z "${CI_BASE_SHA:-}" ]; then
+            echo "::error::The Plan job did not resolve a base SHA for this pull request."
+            exit 1
+          fi
+          archive="${RUNNER_TEMP}/gitleaks.tar.gz"
+          curl -fsSL --retry 3 -o "${archive}" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_LINUX_X64_SHA256}  ${archive}" | sha256sum --check --strict -
+          tar -xzf "${archive}" -C "${RUNNER_TEMP}" gitleaks
+          "${RUNNER_TEMP}/gitleaks" git \
+            --config .gitleaks.toml \
+            --log-opts="${CI_BASE_SHA}..HEAD" \
+            --redact --verbose --no-banner --exit-code 1
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
       - name: Guard destructive migration release compatibility

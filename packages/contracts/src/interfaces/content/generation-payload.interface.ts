@@ -55,6 +55,8 @@ export interface VideoGenerationPayload extends BaseGenerationPayload {
   lens?: string;
   cameraMovement?: string;
   isAudioEnabled: boolean;
+  /** A Studio draft: a cheap preview, stored on the output (#7729). */
+  isDraft?: boolean;
   resolution?: string;
   duration?: number;
   endFrame?: string;

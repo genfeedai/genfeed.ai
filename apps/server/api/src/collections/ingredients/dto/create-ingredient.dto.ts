@@ -331,4 +331,6 @@ export class CreateIngredientDto {
 export type IngredientServerCreate = CreateIngredientDto & {
   readonly origin: IngredientOrigin;
   readonly generationProvider?: Prisma.InputJsonValue;
+  /** A Studio video draft; set by the server from the submit options. */
+  readonly isDraftRender?: boolean;
 };

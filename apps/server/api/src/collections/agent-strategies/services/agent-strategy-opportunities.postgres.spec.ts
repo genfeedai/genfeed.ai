@@ -176,6 +176,23 @@ describe.skipIf(!connectionString)(
       expect(page.totalDocs).toBe(1);
     });
 
+    it('leaves conversation rows out of the autopilot page and its count', async () => {
+      await seed('plain', { priorityScore: 1 });
+      await seed('conversation', {
+        priorityScore: 99,
+        sourceType: 'conversation',
+      });
+      await seed('trend', { priorityScore: 2, sourceType: 'trend' });
+
+      const page = await service.listOpenPageByStrategy(STRATEGY, ORG, {
+        limit: 20,
+        page: 1,
+      });
+
+      expect(page.docs.map((doc) => doc.id)).toEqual(['trend', 'plain']);
+      expect(page.totalDocs).toBe(2);
+    });
+
     it('returns an empty page, with the total, past the last page', async () => {
       await seed('only', { priorityScore: 1 });
 
@@ -186,6 +203,95 @@ describe.skipIf(!connectionString)(
 
       expect(page.docs).toEqual([]);
       expect(page).toMatchObject({ page: 4, totalDocs: 1, totalPages: 1 });
+    });
+  },
+);
+
+describe.skipIf(!connectionString)(
+  'AgentStrategyOpportunitiesService conversation reads (PostgreSQL)',
+  () => {
+    let pool: Pool;
+    let prisma: PrismaClient;
+    let schema: string;
+    let service: AgentStrategyOpportunitiesService;
+
+    async function seed(id: string, data: Record<string, unknown>) {
+      await pool.query(
+        `INSERT INTO "${schema}".agent_strategy_opportunities
+           (id, "strategyId", "organizationId", data, "isDeleted", "createdAt", "updatedAt")
+         VALUES ($1, $2, $3, $4::jsonb, false, now(), now())`,
+        [id, STRATEGY, ORG, JSON.stringify({ topic: id, ...data })],
+      );
+    }
+
+    beforeEach(async () => {
+      schema = `opportunities_${randomUUID().replaceAll('-', '')}`;
+      pool = new Pool({ connectionString });
+      await pool.query(`CREATE SCHEMA "${schema}"`);
+      await pool.query(`CREATE TABLE "${schema}".agent_strategy_opportunities (
+        id text PRIMARY KEY, "strategyId" text NOT NULL, "organizationId" text NOT NULL, "brandId" text,
+        data jsonb NOT NULL DEFAULT '{}', "isDeleted" boolean NOT NULL DEFAULT false,
+        "createdAt" timestamp(3) NOT NULL DEFAULT now(), "updatedAt" timestamp(3) NOT NULL
+      )`);
+      prisma = new PrismaClient({
+        adapter: new PrismaPg(
+          { connectionString, options: `-c search_path="${schema}",public` },
+          { schema },
+        ),
+      });
+      service = new AgentStrategyOpportunitiesService(
+        prisma as unknown as PrismaService,
+        { log: vi.fn() } as unknown as LoggerService,
+      );
+    });
+
+    afterEach(async () => {
+      await prisma.$disconnect();
+      await pool.query(`DROP SCHEMA "${schema}" CASCADE`);
+      await pool.end();
+    });
+
+    it('keeps the two queues apart in listByStrategy', async () => {
+      await seed('plain', { sourceType: 'trend', status: 'queued' });
+      await seed('chat', { sourceType: 'conversation', status: 'queued' });
+      await seed('chat-done', {
+        sourceType: 'conversation',
+        status: 'published',
+      });
+
+      const autopilot = await service.listByStrategy(STRATEGY, ORG);
+      const queue = await service.listByStrategy(STRATEGY, ORG, {
+        isConversationQueue: true,
+        statuses: ['queued', 'approved'],
+      });
+
+      expect(autopilot.map((row) => row.id)).toEqual(['plain']);
+      expect(queue.map((row) => row.id)).toEqual(['chat']);
+    });
+
+    it('moves a status once: the second of two racing transitions loses', async () => {
+      await seed('chat', { sourceType: 'conversation', status: 'queued' });
+
+      const first = await service.transitionStatus(
+        'chat',
+        ORG,
+        ['queued', 'approved'],
+        'published',
+        { reply: 'one' },
+      );
+      const second = await service.transitionStatus(
+        'chat',
+        ORG,
+        ['queued', 'approved'],
+        'published',
+        { reply: 'two' },
+      );
+
+      expect(first).toMatchObject({ reply: 'one', status: 'published' });
+      expect(second).toBeNull();
+      expect(await service.findById('chat', ORG)).toMatchObject({
+        reply: 'one',
+      });
     });
   },
 );

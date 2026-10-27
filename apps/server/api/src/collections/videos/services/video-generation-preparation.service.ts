@@ -360,6 +360,7 @@ export class VideoGenerationPreparationService {
         hasAudio: createVideoDto.isAudioEnabled,
         height,
         isDefault: createVideoDto.isDefault,
+        isDraftRender: createVideoDto.isDraft === true,
         language: createVideoDto.language,
         model,
         negativePrompt: createVideoDto.negativePrompt,

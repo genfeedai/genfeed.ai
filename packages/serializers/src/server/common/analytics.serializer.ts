@@ -19,6 +19,7 @@ import {
   analyticsTrendSerializerConfig,
   analyticsWinnerPostSerializerConfig,
   fleetEvaluationPolicySerializerConfig,
+  xGrowthReportSerializerConfig,
 } from '@serializers/configs';
 
 export const { AnalyticSerializer } = buildSerializer(
@@ -114,4 +115,9 @@ export const { AccountAnalyticsDetailSerializer } = buildSerializer(
 export const { FleetEvaluationPolicySerializer } = buildSerializer(
   'server',
   fleetEvaluationPolicySerializerConfig,
+);
+
+export const { XGrowthReportSerializer } = buildSerializer(
+  'server',
+  xGrowthReportSerializerConfig,
 );

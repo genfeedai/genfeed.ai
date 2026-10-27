@@ -8,6 +8,7 @@ import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import { DropdownMenuSeparator } from '@ui/primitives/dropdown-menu';
+import { Progress } from '@ui/primitives/progress';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 
@@ -122,15 +123,13 @@ export default function CreditsMenuSection({
 
       {!isLoadingState && !isUnavailable && planLimit > 0 ? (
         <div className="px-2 pb-2">
-          <div className="h-1 overflow-hidden rounded-full bg-foreground/[0.08]">
-            <div
-              className={cn(
-                'h-full rounded-full transition-[width,background-color] duration-500 motion-reduce:transition-none',
-                isCritical ? 'bg-destructive' : 'bg-foreground/45',
-              )}
-              style={{ width: `${Math.min(planUsagePercent, 100)}%` }}
-            />
-          </div>
+          <Progress
+            className="h-1 bg-foreground/[0.08]"
+            indicatorClassName={
+              isCritical ? 'bg-destructive' : 'bg-foreground/45'
+            }
+            value={Math.min(planUsagePercent, 100)}
+          />
         </div>
       ) : null}
 

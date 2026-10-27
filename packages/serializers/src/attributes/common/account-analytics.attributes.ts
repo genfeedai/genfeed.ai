@@ -36,3 +36,14 @@ export const fleetEvaluationPolicyAttributes = createEntityAttributes([
   'watchMin',
   'windowWeeks',
 ]);
+
+export const xGrowthReportAttributes = createEntityAttributes([
+  'activity',
+  'directConversions',
+  'generatedAt',
+  'growth',
+  'period',
+  'profileTraffic',
+  'scope',
+  'scopeKey',
+]);

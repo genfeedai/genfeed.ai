@@ -18,6 +18,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { BrandsService } from '@services/social/brands.service';
 import Card from '@ui/card/Card';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { ColorInput } from '@ui/primitives/color-input';
@@ -693,9 +694,9 @@ export default function BrandDetailManualKitCard({
                   {draft.readiness.status} - {draft.readiness.score}%
                 </p>
               </div>
-              <span className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
+              <Badge className="normal-case" variant="secondary">
                 {draft.sourceType}
-              </span>
+              </Badge>
             </div>
 
             <div className="space-y-2">
