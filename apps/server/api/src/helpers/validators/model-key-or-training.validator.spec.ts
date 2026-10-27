@@ -28,6 +28,8 @@ describe('IsModelKeyOrTraining', () => {
       messagesFor('replicate/fast-flux-trainer:abc'),
     ).resolves.toEqual([]);
     await expect(messagesFor('owner/model:v1')).resolves.toEqual([]);
+    await expect(messagesFor('owner/model-1.5:v1')).resolves.toEqual([]);
+    await expect(messagesFor('owner/model-2.1-pro')).resolves.toEqual([]);
     await expect(messagesFor('aaaaaaaaaaaaaaaaaaaaaaaaa')).resolves.toEqual([]);
   });
 
