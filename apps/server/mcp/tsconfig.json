@@ -14,7 +14,12 @@
     "resolveJsonModule": true,
     "types": ["node", "vitest/globals"]
   },
-  "exclude": ["node_modules", "dist", "src/ui/preview-client.tsx"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/ui/preview-client.tsx",
+    "src/ui/next-image.tsx"
+  ],
   "extends": "../tsconfig.json",
   "include": ["src/**/*"]
 }

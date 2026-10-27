@@ -230,13 +230,10 @@ export default function StudioPlaygroundCard({
   const height = Math.max(1, job.height || 1080);
   const masonryIngredient = useMemo(() => buildMasonryIngredient(job), [job]);
   const isListView = view === ViewType.LIST;
-  // Only the two modes a reader must not miss: an unapproved draft kit and a
-  // prompt that carried no brand at all.
+  // Cards flag only a prompt that carried no brand at all. A provisional kit
+  // stays in the inspector receipt and the publish hold, not on every card.
   const brandMode = job.ingredient?.generationHarness?.brandMode;
-  const unbrandedMode =
-    brandMode === 'raw' || brandMode === 'provisional_brand'
-      ? brandMode
-      : undefined;
+  const unbrandedMode = brandMode === 'raw' ? brandMode : undefined;
 
   const isVideo = VIDEO_TYPES.has(job.type);
   const ingredientMetadata = job.ingredient?.metadata;

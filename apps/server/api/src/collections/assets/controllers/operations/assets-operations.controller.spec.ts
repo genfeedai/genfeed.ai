@@ -174,7 +174,7 @@ describe('AssetsOperationsController', () => {
           height: 1080,
           modelCategory: ModelCategory.IMAGE,
           prompt:
-            'Generate a professional landscape banner (1920x1080) for Test Brand. Brand description. Primary color: #111111. Secondary color: #222222. Style: modern, clean, professional',
+            'Generate a professional landscape banner (1920x1080) for Test Brand. Generate a banner. Brand description. Primary color: #111111. Secondary color: #222222. Style: modern, clean, professional',
           width: 1920,
         }),
         mockOrgId.toString(),
@@ -187,6 +187,25 @@ describe('AssetsOperationsController', () => {
         externalId: 'generation-id',
       });
       expect(result).toBeDefined();
+    });
+
+    it('combines the typed prompt with the brand fields for a logo', async () => {
+      await controller.generate(mockRequest, mockUser, {
+        category: AssetCategory.LOGO,
+        model: 'test-model',
+        parentId: mockBrandId,
+        parentType: AssetParent.BRAND,
+        text: 'A compass over a mountain, flat vector',
+      });
+
+      expect(promptBuilderService.buildPrompt).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          prompt:
+            'Generate a professional logo (1024x1024) for Test Brand. A compass over a mountain, flat vector. Brand description. Primary color: #111111. Secondary color: #222222. Style: modern, clean, professional',
+        }),
+        mockOrgId,
+      );
     });
 
     it('should not generate for a brand outside the caller organization', async () => {

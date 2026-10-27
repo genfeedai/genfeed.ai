@@ -25,6 +25,8 @@ export interface SubscriptionBillingSource {
 export interface OrganizationBillingInput {
   /** Spendable credits: settled balance minus held. Zero when no wallet exists. */
   balance: number;
+  /** Whether the organization has ever bought a pay-as-you-go credit pack. */
+  hasPaygPurchase: boolean;
   organization: OrganizationBillingSource;
   /** Credits one billing period of the subscription's price includes. */
   planLimit: number;
@@ -36,7 +38,8 @@ export interface OrganizationBillingInput {
 export function buildOrganizationBillingRow(
   input: OrganizationBillingInput,
 ): IOrganizationBilling {
-  const { balance, organization, planLimit, subscription } = input;
+  const { balance, hasPaygPurchase, organization, planLimit, subscription } =
+    input;
 
   // A plan with no resolvable grant reports 0% used rather than dividing by
   // zero; the row still shows so the gap is visible, not hidden.
@@ -55,6 +58,7 @@ export function buildOrganizationBillingRow(
     currentPeriodEnd: subscription?.currentPeriodEnd
       ? subscription.currentPeriodEnd.toISOString()
       : null,
+    hasPaygPurchase,
     hasSubscription: Boolean(subscription),
     isMaxedOut: usedPercent >= 90,
     isUnderUsing: planLimit > 0 && usedPercent <= 10,

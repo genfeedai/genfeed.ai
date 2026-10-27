@@ -19,6 +19,7 @@ function provenance(costUsd: number, credits: number): CallProvenance {
     costUsd,
     credits,
     family: 'anthropic',
+    finishReason: null,
     isFailed: false,
     kind: 'judge',
     latencyMs: 5,

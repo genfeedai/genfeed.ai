@@ -246,6 +246,7 @@ export function createMediaStubDispatcher(): EvalDispatcher {
       const promptTokens = estimateTokens(canonicalJson(request.messages));
       const completionTokens = estimateTokens(canonicalJson(value));
       return {
+        finishReason: 'stop',
         latencyMs: completionTokens,
         modelVersion: `${request.model}@stub`,
         provider: 'stub',

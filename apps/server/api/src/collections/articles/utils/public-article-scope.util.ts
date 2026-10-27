@@ -3,10 +3,11 @@ import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-fil
 import { PUBLIC_ARTICLES_ORGANIZATION_SLUG } from '@genfeedai/contracts/constants';
 
 /**
- * genfeed.ai hosts only Genfeed's own articles. Organizations live in the auth
- * DB, so the organization id is resolved once by its unique slug and articles
- * are filtered on `organizationId`. While it cannot be resolved nothing is
- * cached and every anonymous read matches no tenant.
+ * genfeed.ai hosts only Genfeed's own articles, filtered on `organizationId`.
+ * A configured `PUBLIC_ARTICLES_ORGANIZATION_ID` is used as is, so renaming
+ * the organization never unpublishes the site. Without it the id is resolved
+ * once by the unique slug. While it cannot be resolved nothing is cached and
+ * every anonymous read matches no tenant.
  */
 export class PublicArticleScope {
   private organizationId?: string;
@@ -15,9 +16,17 @@ export class PublicArticleScope {
     private readonly getOrganizationsService: () =>
       | OrganizationsService
       | undefined,
+    private readonly getConfiguredOrganizationId: () =>
+      | string
+      | undefined = () => undefined,
   ) {}
 
   async resolveOrganizationId(): Promise<string | null> {
+    const configuredOrganizationId = this.getConfiguredOrganizationId()?.trim();
+    if (configuredOrganizationId) {
+      return configuredOrganizationId;
+    }
+
     if (this.organizationId) {
       return this.organizationId;
     }

@@ -76,7 +76,7 @@ it('shows contextual expiry and sends only a renewal request in Chromium', async
     </NextIntlClientProvider>,
   );
   await expect
-    .element(page.getByText('Approval expired', { exact: true }))
+    .element(page.getByText(messages.mutationApproval.expired, { exact: true }))
     .toBeVisible();
   await expect
     .element(page.getByRole('button', { name: 'Approve', exact: true }))

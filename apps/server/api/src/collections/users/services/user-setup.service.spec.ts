@@ -209,6 +209,33 @@ describe('UserSetupService', () => {
       );
     });
 
+    it('names a personal-mailbox org Personal with an id-derived slug, keeping the brand named after the user', async () => {
+      mockOrganizationsService.generateUniqueSlug.mockResolvedValue(
+        'personal-ab12cd34',
+      );
+
+      await service.initializeUserResources('cm0user0000ab12cd34', undefined, {
+        email: 'pjeeva391@gmail.com',
+        name: 'Pjeeva',
+      });
+
+      expect(mockOrganizationsService.generateUniqueSlug).toHaveBeenCalledWith(
+        'personal-ab12cd34',
+      );
+      expect(mockOrganizationsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          label: 'Personal',
+          slug: 'personal-ab12cd34',
+        }),
+      );
+      expect(mockBrandsService.generateUniqueSlug).toHaveBeenCalledWith(
+        'Pjeeva',
+      );
+      expect(mockBrandsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ label: 'Pjeeva' }),
+      );
+    });
+
     it('should call organizationsService.create with PERSONAL category when provided', async () => {
       // The service uses OrganizationCategory.BUSINESS as default; we verify the
       // create call happens (category is passed through even if entity constructor

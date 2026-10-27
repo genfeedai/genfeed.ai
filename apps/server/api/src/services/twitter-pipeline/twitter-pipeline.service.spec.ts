@@ -7,6 +7,18 @@ describe('TwitterPipelineService workflow boundary', () => {
     registerAction: vi.fn(),
     runWorkflow: vi.fn(),
   };
+  const harness = { formatBrief: vi.fn(), resolveBrief: vi.fn() };
+  const caller = {
+    apiKeyId: 'key-1',
+    isApiKey: true,
+    scopes: ['posts:draft'],
+    userId: 'user-1',
+  };
+  const voiceConfig = {
+    description: 'Technical',
+    handle: '@brand',
+    searchQuery: 'AI',
+  };
   const service = new TwitterPipelineService(
     { error: vi.fn(), log: vi.fn() } as never,
     {} as never,
@@ -14,6 +26,7 @@ describe('TwitterPipelineService workflow boundary', () => {
     {} as never,
     {} as never,
     runner as never,
+    harness as never,
   );
 
   beforeEach(() => vi.clearAllMocks());
@@ -49,18 +62,58 @@ describe('TwitterPipelineService workflow boundary', () => {
   it('routes generation through the multi-node draft workflow', async () => {
     runner.runWorkflow.mockResolvedValueOnce({ result: [] });
 
-    await service.draft('org-1', [], {
-      description: 'Technical',
-      handle: '@brand',
-      searchQuery: 'AI',
-    });
+    await service.draft('org-1', [], voiceConfig, undefined, caller);
 
+    expect(harness.resolveBrief).not.toHaveBeenCalled();
     expect(runner.runWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
         canonicalId: 'twitter.pipeline.draft',
+        inputValues: {
+          request: { organizationId: 'org-1', searchResults: [], voiceConfig },
+        },
         organizationId: 'org-1',
       }),
     );
+  });
+
+  it('resolves the brand brief for the caller, not the workflow owner', async () => {
+    harness.resolveBrief.mockResolvedValueOnce({ id: 'brief' });
+    harness.formatBrief.mockReturnValueOnce('BRAND BRIEF: dry, concrete.');
+    runner.runWorkflow.mockResolvedValueOnce({ result: [] });
+
+    await service.draft('org-1', [], voiceConfig, 'brand-1', caller);
+
+    expect(harness.resolveBrief).toHaveBeenCalledWith(
+      expect.objectContaining({
+        apiKeyId: 'key-1',
+        brandId: 'brand-1',
+        isApiKey: true,
+        organizationId: 'org-1',
+        platform: 'twitter',
+        scopes: ['posts:draft'],
+        userId: 'user-1',
+      }),
+    );
+    expect(runner.runWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inputValues: {
+          request: expect.objectContaining({
+            brandBrief: 'BRAND BRIEF: dry, concrete.',
+            brandId: 'brand-1',
+          }),
+        },
+      }),
+    );
+  });
+
+  it('fails with a retryable 503 before the workflow when the brief is unavailable', async () => {
+    harness.resolveBrief.mockResolvedValueOnce({ id: 'brief' });
+    harness.formatBrief.mockReturnValueOnce('  ');
+
+    await expect(
+      service.draft('org-1', [], voiceConfig, 'brand-1', caller),
+    ).rejects.toThrow('Brand context is unavailable');
+    expect(runner.runWorkflow).not.toHaveBeenCalled();
   });
 
   it('routes publishing through credential resolution and provider delivery', async () => {
@@ -142,43 +195,23 @@ describe('TwitterPipelineService draft actions', () => {
       input: { request },
     }) as Promise<{ prompt: string }>;
 
-  it('writes the drafts against the brand brief when a brand is given', async () => {
+  it('writes the drafts against the brief the request carries', async () => {
     const built = await buildPrompt({
+      brandBrief: 'BRAND BRIEF: dry, concrete.',
       brandId: 'brand-1',
       organizationId: 'org-1',
       searchResults,
       voiceConfig,
     });
 
-    expect(harness.resolveBrief).toHaveBeenCalledWith(
-      expect.objectContaining({
-        brandId: 'brand-1',
-        organizationId: 'org-1',
-        platform: 'twitter',
-        topic: 'Shipping beats planning',
-      }),
-    );
+    expect(harness.resolveBrief).not.toHaveBeenCalled();
     expect(built.prompt).toContain('BRAND BRIEF: dry, concrete.');
   });
 
   it('adds no brief when no brand is given', async () => {
     const built = await buildPrompt({ searchResults, voiceConfig });
 
-    expect(harness.resolveBrief).not.toHaveBeenCalled();
     expect(built.prompt).not.toContain('Brand brief');
-  });
-
-  it('fails with a retryable 503 when the brand brief is unavailable', async () => {
-    harness.formatBrief.mockReturnValue('  ');
-
-    await expect(
-      buildPrompt({
-        brandId: 'brand-1',
-        organizationId: 'org-1',
-        searchResults,
-        voiceConfig,
-      }),
-    ).rejects.toThrow('Brand context is unavailable');
   });
 
   it('lets the model skip tweets it has nothing to add to', async () => {
