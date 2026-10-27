@@ -25,6 +25,9 @@ export class TwitterPipelineSearchDto {
 }
 
 export class TwitterPipelineDraftDto {
+  @IsString()
+  brandId!: string;
+
   @IsArray()
   searchResults!: ITwitterSearchResult[];
 

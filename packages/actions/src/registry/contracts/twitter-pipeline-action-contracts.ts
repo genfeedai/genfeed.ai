@@ -44,11 +44,13 @@ const VOICE = closedObjectSchema(
 );
 const DRAFT_REQUEST = closedObjectSchema(
   {
+    brandBrief: STRING_SCHEMA,
+    brandId: STRING_SCHEMA,
     organizationId: STRING_SCHEMA,
     searchResults: arraySchema(TWEET),
     voiceConfig: VOICE,
   },
-  ['organizationId', 'searchResults', 'voiceConfig'],
+  ['brandBrief', 'brandId', 'organizationId', 'searchResults', 'voiceConfig'],
 );
 const DRAFT_CONTEXT = closedObjectSchema(
   { prompt: STRING_SCHEMA, searchResults: arraySchema(TWEET) },

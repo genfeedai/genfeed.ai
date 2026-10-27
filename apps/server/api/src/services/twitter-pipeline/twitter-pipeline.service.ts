@@ -1,6 +1,9 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { BRAND_CONTEXT_CHARACTER_BUDGET } from '@api/services/agent-context-assembly/brand-context-budget.util';
 import { toReplyBotCredentialData } from '@api/services/campaign/reply-bot-credential.util';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
@@ -23,13 +26,20 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable, type OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  type OnModuleInit,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import {
   buildTwitterDraftWorkflowDefinition,
   buildTwitterPublishWorkflowDefinition,
   buildTwitterSearchWorkflowDefinition,
   TWITTER_PIPELINE_ACTION_IDS,
 } from './twitter-pipeline-workflow-definition';
+
+export const X_DRAFT_BRAND_CONTEXT_UNAVAILABLE =
+  'Brand context is unavailable for these drafts. Please retry.';
 
 type TwitterPublishRequest = {
   credentialId?: string;
@@ -49,6 +59,7 @@ export class TwitterPipelineService implements OnModuleInit {
     private readonly botActionExecutorService: BotActionExecutorService,
     private readonly credentialsService: CredentialsService,
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
+    private readonly harness: HarnessGenerationService,
   ) {}
 
   onModuleInit(): void {
@@ -142,14 +153,24 @@ export class TwitterPipelineService implements OnModuleInit {
 
   /**
    * Draft opportunities using Grok through the LLM dispatcher
-   * Builds a hybrid prompt from real tweet data
+   * Builds a hybrid prompt from real tweet data, written against the brand's
+   * composed harness brief. Without the brief the drafts are refused rather
+   * than written in a generic voice.
    */
   async draft(
     orgId: string,
+    brandId: string,
     searchResults: ITwitterSearchResult[],
     voiceConfig: ITwitterVoiceConfig,
+    user: AuthenticatedUser,
   ): Promise<ITwitterOpportunity[]> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const brandBrief = await this.resolveDraftBrief(
+      orgId,
+      brandId,
+      voiceConfig,
+      user,
+    );
 
     try {
       const definition = buildTwitterDraftWorkflowDefinition();
@@ -159,6 +180,8 @@ export class TwitterPipelineService implements OnModuleInit {
           canonicalId: definition.canonicalId,
           inputValues: {
             request: {
+              brandBrief,
+              brandId,
               organizationId: orgId,
               searchResults,
               voiceConfig,
@@ -171,7 +194,7 @@ export class TwitterPipelineService implements OnModuleInit {
 
       this.loggerService.log(
         `${url} generated ${opportunities.length} opportunities`,
-        { orgId, voice: voiceConfig.handle },
+        { brandId, orgId, voice: voiceConfig.handle },
       );
 
       return opportunities;
@@ -179,6 +202,36 @@ export class TwitterPipelineService implements OnModuleInit {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  private async resolveDraftBrief(
+    organizationId: string,
+    brandId: string,
+    voiceConfig: ITwitterVoiceConfig,
+    user: AuthenticatedUser,
+  ): Promise<string> {
+    const brief = await this.harness.resolveBrief({
+      apiKeyId: user.apiKeyId,
+      brandId,
+      contentType: 'reply',
+      includeContentMemory: true,
+      isApiKey: user.isApiKey,
+      objective: 'engagement',
+      organizationId,
+      platform: 'twitter',
+      scopes: user.scopes,
+      topic: voiceConfig.searchQuery.trim() || undefined,
+      userId: user.userId,
+    });
+    const formatted = this.harness.formatBrief(brief).trim();
+    if (!formatted || formatted.length > BRAND_CONTEXT_CHARACTER_BUDGET) {
+      this.loggerService.warn(
+        `${this.constructorName} harness brief unavailable for X drafts`,
+        { brandId, organizationId },
+      );
+      throw new ServiceUnavailableException(X_DRAFT_BRAND_CONTEXT_UNAVAILABLE);
+    }
+    return formatted;
   }
 
   /**
@@ -247,8 +300,9 @@ export class TwitterPipelineService implements OnModuleInit {
     const request = this.readRequest(input);
     const searchResults = this.readSearchResults(request.searchResults);
     const voiceConfig = this.readVoiceConfig(request.voiceConfig);
+    const brandBrief = this.requiredString(request.brandBrief, 'brandBrief');
     return {
-      prompt: this.buildHybridPrompt(searchResults, voiceConfig),
+      prompt: this.buildHybridPrompt(searchResults, voiceConfig, brandBrief),
       searchResults,
     };
   }
@@ -385,6 +439,7 @@ export class TwitterPipelineService implements OnModuleInit {
   private buildHybridPrompt(
     tweets: ITwitterSearchResult[],
     voiceConfig: ITwitterVoiceConfig,
+    brandBrief: string,
   ): string {
     const tweetList = tweets
       .map(
@@ -402,6 +457,9 @@ Also generate 2 original tweet ideas inspired by the themes and trends you see i
 Voice: ${voiceConfig.description}
 
 Account: ${voiceConfig.handle}
+
+Brand brief (follow it exactly; never contradict its guardrails, and do not invent claims it does not support):
+${brandBrief}
 
 Here are the real tweets:
 

@@ -1,19 +1,35 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { LlmStructuredOutputError } from '@api/services/integrations/llm/llm-structured-output.error';
-import { TwitterPipelineService } from '@api/services/twitter-pipeline/twitter-pipeline.service';
+import {
+  TwitterPipelineService,
+  X_DRAFT_BRAND_CONTEXT_UNAVAILABLE,
+} from '@api/services/twitter-pipeline/twitter-pipeline.service';
 import { TWITTER_PIPELINE_ACTION_IDS } from '@api/services/twitter-pipeline/twitter-pipeline-workflow-definition';
+import { ServiceUnavailableException } from '@nestjs/common';
 
 describe('TwitterPipelineService workflow boundary', () => {
   const runner = {
     registerAction: vi.fn(),
     runWorkflow: vi.fn(),
   };
+  const harness = { formatBrief: vi.fn(), resolveBrief: vi.fn() };
+  const user = {
+    organizationId: 'org-1',
+    userId: 'user-1',
+  } as AuthenticatedUser;
+  const voiceConfig = {
+    description: 'Technical',
+    handle: '@brand',
+    searchQuery: 'AI',
+  };
   const service = new TwitterPipelineService(
-    { error: vi.fn(), log: vi.fn() } as never,
+    { error: vi.fn(), log: vi.fn(), warn: vi.fn() } as never,
     {} as never,
     {} as never,
     {} as never,
     {} as never,
     runner as never,
+    harness as never,
   );
 
   beforeEach(() => vi.clearAllMocks());
@@ -46,21 +62,51 @@ describe('TwitterPipelineService workflow boundary', () => {
     );
   });
 
-  it('routes generation through the multi-node draft workflow', async () => {
+  it('drafts through the multi-node workflow against the harness brief', async () => {
+    const brief = { appliedPacks: [] };
+    harness.resolveBrief.mockResolvedValueOnce(brief);
+    harness.formatBrief.mockReturnValueOnce('Guardrails: never promise cures.');
     runner.runWorkflow.mockResolvedValueOnce({ result: [] });
 
-    await service.draft('org-1', [], {
-      description: 'Technical',
-      handle: '@brand',
-      searchQuery: 'AI',
-    });
+    await service.draft('org-1', 'brand-1', [], voiceConfig, user);
 
+    expect(harness.resolveBrief).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        contentType: 'reply',
+        organizationId: 'org-1',
+        platform: 'twitter',
+        topic: 'AI',
+        userId: 'user-1',
+      }),
+    );
+    expect(harness.formatBrief).toHaveBeenCalledWith(brief);
     expect(runner.runWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
         canonicalId: 'twitter.pipeline.draft',
+        inputValues: {
+          request: {
+            brandBrief: 'Guardrails: never promise cures.',
+            brandId: 'brand-1',
+            organizationId: 'org-1',
+            searchResults: [],
+            voiceConfig,
+          },
+        },
         organizationId: 'org-1',
       }),
     );
+  });
+
+  it('refuses to draft without brand context, before any model call', async () => {
+    harness.resolveBrief.mockResolvedValueOnce(null);
+    harness.formatBrief.mockReturnValueOnce('');
+
+    const drafting = service.draft('org-1', 'brand-1', [], voiceConfig, user);
+
+    await expect(drafting).rejects.toThrow(ServiceUnavailableException);
+    await expect(drafting).rejects.toThrow(X_DRAFT_BRAND_CONTEXT_UNAVAILABLE);
+    expect(runner.runWorkflow).not.toHaveBeenCalled();
   });
 
   it('routes publishing through credential resolution and provider delivery', async () => {
@@ -124,6 +170,7 @@ describe('TwitterPipelineService draft actions', () => {
         },
         runWorkflow: vi.fn(),
       } as never,
+      {} as never,
     );
     service.onModuleInit();
   });
@@ -148,6 +195,7 @@ describe('TwitterPipelineService draft actions', () => {
     )?.({
       input: {
         request: {
+          brandBrief: 'Guardrails: never promise cures.',
           searchResults,
           voiceConfig: {
             description: 'Technical',
@@ -158,6 +206,9 @@ describe('TwitterPipelineService draft actions', () => {
       },
     })) as { prompt: string };
 
+    expect(built.prompt).toContain(
+      'Brand brief (follow it exactly; never contradict its guardrails, and do not invent claims it does not support):\nGuardrails: never promise cures.',
+    );
     expect(built.prompt).not.toContain('valid JSON');
     expect(built.prompt).not.toContain('no markdown fences');
   });

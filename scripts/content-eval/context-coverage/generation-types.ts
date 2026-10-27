@@ -103,6 +103,15 @@ export const GENERATION_TYPES: readonly GenerationTypeEntry[] = [
   },
   {
     enumRefs: {},
+    id: 'x-engagement-drafts',
+    marker: 'resolveBrief',
+    note: 'Discovery X drafts (replies, quote posts and original ideas from trending posts) compose the harness brief (contentType reply, platform twitter) and fail with a retryable 503 when it is unavailable.',
+    path: 'harness',
+    smoke: null,
+    source: `${API}/services/twitter-pipeline/twitter-pipeline.service.ts`,
+  },
+  {
+    enumRefs: {},
     id: 'ad-copy',
     marker: 'resolveBrief',
     path: 'harness',
