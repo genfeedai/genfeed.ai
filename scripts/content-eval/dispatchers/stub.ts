@@ -90,6 +90,23 @@ function stubJudgement(
       weaknesses: [],
     };
   }
+  if (schemaName === 'content_eval_judge_claims') {
+    // A claim passes when its own hash sits below the content's quality, so
+    // better content passes more claims and each claim answers stably.
+    const content = between(prompt, '[Content]:', '***') ?? prompt;
+    const quality = pointwiseQualityOf(content);
+    const claimIds = [...prompt.matchAll(/^- \[([^\]]+)\] /gm)].map(
+      (match) => match[1],
+    );
+    return {
+      claims: claimIds.map((claimId) => ({
+        claimId,
+        reasons: 'Stub claim: compared the claim hash with the content hash.',
+        verdict:
+          stubQuality(`${content}#${claimId}`) < quality ? 'pass' : 'fail',
+      })),
+    };
+  }
   const choiceList = /exactly one of: (.+)\.$/m.exec(prompt)?.[1];
   const choices = choiceList?.split(', ') ?? [];
   if (choices.length === 0) {

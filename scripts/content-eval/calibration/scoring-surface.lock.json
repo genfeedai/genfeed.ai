@@ -1,6 +1,6 @@
 {
   "text": {
-    "digest": "sha256:41ab9f7d62ddde30168fe4a7653d880c3884cd8019f40c612caf48e329f04d3d",
+    "digest": "sha256:4c5615664a5ec14ec3b9a60a0aa3f6e30868d49dcc1c2fef1c61b9ebf7a996cc",
     "files": [
       {
         "digest": "sha256:e3c711a4a276d6975eb473cf40c4644730d84b0eae7ae8665da980c66fd63c64",
@@ -31,7 +31,7 @@
         "path": "packages/harness/src/persuasion/viral-psychology.ts"
       },
       {
-        "digest": "sha256:9bdd9700b3a616e3333ba4754e2505c871eac1bbb6692f7ccbcea9d6ab8a995f",
+        "digest": "sha256:94bb2caf03ae0bcca42e900fe274b8c0564464e3ccebac7b6bd47910a3c1188d",
         "path": "scripts/content-eval/scorers/rubrics.ts"
       }
     ],
