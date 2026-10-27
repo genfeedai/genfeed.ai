@@ -60,7 +60,7 @@
     "symbol": "ListeningTopicAnalysisService.persistAnalysis"
   },
   {
-    "actual": 1010,
+    "actual": 1009,
     "file": "apps/server/api/src/collections/posting-cadences/services/posting-cadences.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/posting-cadences/services/posting-cadences.service.ts"
