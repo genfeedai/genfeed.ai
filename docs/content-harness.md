@@ -169,9 +169,22 @@ API refuses to start. It does not fall back to the built-in packs. With
 normal configuration.
 
 The report also lists `builtInPackIds` and `loadedPackIds`. Built-in packs never
-count as an activated external pack. `getActivationReport()` is a service method.
-No HTTP route exposes it today, so the evidence of activation is the startup log
-line and the boot smoke test.
+count as an activated external pack.
+
+A platform admin reads the report of a running API at
+`GET /admin/harness/activation` (super admin, and the caller's IP must be on
+`ADMIN_ALLOWED_IPS`). It returns the built-in pack ids, each external
+specifier with its state, and every registered pack with its version, never pack
+contents. From the CLI:
+
+```bash
+genfeed admin harness                      # list loaded packs and external states
+genfeed admin harness --expect <pack-id>   # exit non-zero unless that pack loaded externally
+```
+
+`--expect` fails for a pack id that only a built-in pack provides, so a fallback
+to the built-in packs never passes as activation. The startup log line and the
+boot smoke test remain the other evidence.
 
 At brief time, `appliedPacks` tells you which packs actually contributed, and
 `HarnessGenerationService` logs it as an operator-only receipt: pack ids and

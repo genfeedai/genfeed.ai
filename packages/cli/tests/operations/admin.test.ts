@@ -1,13 +1,16 @@
 import type {
   AdminModelPricingReport,
   AdminModelPricingRow,
+  IHarnessActivationReport,
 } from '@genfeedai/contracts/interfaces';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   filterPricingRows,
+  findMissingExternalPacks,
   findPendingVersion,
   findPricingFixTargets,
   fixModelPricing,
+  readHarnessActivation,
   readOrganizationAppsReport,
   readOrganizationsReport,
   seedArticles,
@@ -220,6 +223,46 @@ describe('operations/admin', () => {
 
       await expect(seedTemplates({ dryRun: true })).resolves.toBe(summary);
       expect(adminPost).toHaveBeenCalledWith('/admin/seeds/templates', { dryRun: true });
+    });
+  });
+
+  describe('harness activation', () => {
+    const activation: IHarnessActivationReport = {
+      builtInPackIds: ['core-baseline', 'platform-x'],
+      external: [
+        { packId: 'brand-pack', packVersion: '0.2.0', specifier: 'private-pack', state: 'loaded' },
+      ],
+      generatedAt: '2026-10-27T14:00:00.000Z',
+      packs: [
+        { id: 'core-baseline', version: '1.0.0' },
+        { id: 'platform-x', version: '1.0.0' },
+        { id: 'brand-pack', version: '0.2.0' },
+      ],
+    };
+
+    it('reads the activation report from the admin route', async () => {
+      mockAdminGet.mockResolvedValueOnce({ data: activation });
+      await expect(readHarnessActivation()).resolves.toEqual(activation);
+      expect(mockAdminGet).toHaveBeenCalledWith('/admin/harness/activation');
+    });
+
+    it('passes when every expected pack loaded from an external pack', () => {
+      expect(findMissingExternalPacks(activation, ['brand-pack'])).toEqual([]);
+    });
+
+    it('does not count a built-in pack as an activated external pack', () => {
+      expect(findMissingExternalPacks(activation, ['platform-x', 'other-pack'])).toEqual([
+        'platform-x',
+        'other-pack',
+      ]);
+    });
+
+    it('does not count an external pack that failed to load', () => {
+      const failed: IHarnessActivationReport = {
+        ...activation,
+        external: [{ specifier: 'private-pack', state: 'unresolvable' }],
+      };
+      expect(findMissingExternalPacks(failed, ['brand-pack'])).toEqual(['brand-pack']);
     });
   });
 });
