@@ -1,4 +1,6 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   TwitterPipelineDraftDto,
@@ -44,12 +46,14 @@ export class TwitterPipelineController {
   draft(
     @Param('organizationId') organizationId: string,
     @Body() dto: TwitterPipelineDraftDto,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.twitterqueryService.draft(
       organizationId,
       dto.searchResults,
       dto.voiceConfig,
       dto.brandId,
+      user,
     );
   }
 

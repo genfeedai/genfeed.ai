@@ -72,15 +72,27 @@ describe('TwitterPipelineController', () => {
   describe('draft', () => {
     it('should call service.draft', async () => {
       service.draft.mockResolvedValue([]);
-      await controller.draft('org-1', {
-        searchResults: [],
-        voiceConfig: {
-          description: 'Test voice',
-          handle: 'test',
-          searchQuery: 'test',
+      const user = { organizationId: 'org-1', userId: 'user-1' } as never;
+      await controller.draft(
+        'org-1',
+        {
+          brandId: 'brand-1',
+          searchResults: [],
+          voiceConfig: {
+            description: 'Test voice',
+            handle: 'test',
+            searchQuery: 'test',
+          },
         },
-      });
-      expect(service.draft).toHaveBeenCalled();
+        user,
+      );
+      expect(service.draft).toHaveBeenCalledWith(
+        'org-1',
+        [],
+        expect.objectContaining({ handle: 'test' }),
+        'brand-1',
+        user,
+      );
     });
   });
 
