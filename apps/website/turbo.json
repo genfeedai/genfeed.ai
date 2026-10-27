@@ -17,7 +17,16 @@
       ]
     },
     "build": {
-      "passThroughEnv": ["GITHUB_TOKEN"]
+      // Strict env mode drops undeclared variables; the Sentry build plugin
+      // needs its token to upload source maps. Pass-through keeps the secret
+      // out of the task hash.
+      "passThroughEnv": [
+        "GITHUB_TOKEN",
+        "SENTRY_AUTH_TOKEN",
+        "SENTRY_ORG",
+        "SENTRY_PROJECT",
+        "SENTRY_RELEASE"
+      ]
     }
   }
 }

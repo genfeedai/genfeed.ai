@@ -162,7 +162,7 @@ export async function meteredCall<TResult>(
     usage: EvalUsage | null,
     fields: Pick<
       CallProvenanceInput,
-      'isFailed' | 'latencyMs' | 'modelVersion' | 'provider'
+      'finishReason' | 'isFailed' | 'latencyMs' | 'modelVersion' | 'provider'
     >,
   ): CallProvenance => {
     const { costEvidence, costUsd } = chargeableUsage(
@@ -206,6 +206,7 @@ export async function meteredCall<TResult>(
     // A charge that crosses the cap throws SpendCapExceededError from here,
     // which outranks the dispatch failure.
     const provenance = charge(failure?.usage ?? null, {
+      finishReason: failure?.finishReason ?? null,
       isFailed: true,
       latencyMs: failure?.latencyMs ?? 0,
       modelVersion: request.model,
@@ -215,6 +216,7 @@ export async function meteredCall<TResult>(
   }
 
   const provenance = charge(response.usage, {
+    finishReason: response.finishReason,
     isFailed: false,
     latencyMs: response.latencyMs,
     modelVersion: response.modelVersion || request.model,

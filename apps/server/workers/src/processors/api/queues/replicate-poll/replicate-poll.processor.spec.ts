@@ -172,6 +172,30 @@ describe('ReplicatePollProcessor', () => {
     );
   });
 
+  it('logs what a succeeded prediction returned when no output is allowed, without the URL', async () => {
+    replicate.getPrediction.mockResolvedValue({
+      output: ['https://cdn.example.test/private/path.png?token=secret'],
+      status: 'succeeded',
+    });
+
+    await processor.process(buildJob());
+
+    expect(webhooks.handleFailedGenerationForIngredient).toHaveBeenCalledWith(
+      'ingredient-1',
+      'Replicate prediction prediction-1 ended with status succeeded without an allowed output',
+    );
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('generation failed'),
+      expect.objectContaining({
+        outputShape: {
+          hostnames: ['cdn.example.test'],
+          outputType: 'array(1) of string',
+        },
+      }),
+    );
+    expect(JSON.stringify(logger.error.mock.calls)).not.toContain('secret');
+  });
+
   it('marks a prediction failed after the polling ceiling', async () => {
     replicate.getPrediction.mockResolvedValue({ status: 'queued' });
 

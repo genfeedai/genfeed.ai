@@ -3,6 +3,7 @@ import {
   IngredientStatus,
   ViewType,
 } from '@genfeedai/contracts';
+import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces/content/generation-harness.interface';
 import type {
   IImage,
   IVideo,
@@ -981,6 +982,39 @@ describe('StudioPlaygroundCard', () => {
     fireEvent.click(screen.getByTestId('studio-asset-job-1'));
 
     expect(onSelect).toHaveBeenCalledWith(job);
+  });
+
+  it('flags an unbranded card but leaves a provisional kit to the inspector receipt', () => {
+    const renderWithBrandMode = (
+      brandMode: 'approved_brand' | 'provisional_brand' | 'raw',
+    ) =>
+      render(
+        <StudioPlaygroundCard
+          assetActions={buildAssetActions()}
+          job={{
+            ...generatedJob,
+            ingredient: {
+              category: IngredientCategory.IMAGE,
+              generationHarness: { brandMode } as GenerationHarnessReceipt,
+              id: generatedJob.id,
+              promptText: generatedJob.prompt,
+              status: IngredientStatus.GENERATED,
+            } as IImage,
+          }}
+          onReprompt={vi.fn()}
+          onSelect={vi.fn()}
+          view={ViewType.GRID}
+        />,
+      );
+
+    const raw = renderWithBrandMode('raw');
+    expect(screen.getByText('Not branded')).toBeInTheDocument();
+    raw.unmount();
+
+    const provisional = renderWithBrandMode('provisional_brand');
+    expect(screen.queryByText('Provisional brand')).not.toBeInTheDocument();
+    expect(screen.queryByText('Not branded')).not.toBeInTheDocument();
+    provisional.unmount();
   });
 
   it('renders readable metadata beside the thumbnail in list view', () => {

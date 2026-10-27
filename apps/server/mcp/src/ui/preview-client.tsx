@@ -20,6 +20,7 @@ import type {
   SummaryCardProps,
 } from '@mcp/shared/interfaces/mcp-preview.interface';
 import { isAccountAvatarOrigin } from '@mcp/ui/avatar-origins';
+import { CardBoundary } from '@mcp/ui/card-boundary';
 import uiMessages from '@preview-messages/ui';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import Card from '@ui/card/Card';
@@ -1174,18 +1175,22 @@ function Preview({ result, notice, bridge }: PreviewProps) {
                 </section>
               ))
             : view?.cards.map((item) => (
-                <CardPreview
+                <CardBoundary
                   key={
                     item.id ||
                     `${item.kind}-${item.title}-${item.url || item.description}`
                   }
-                  item={item}
-                  bridge={bridge}
-                  openImage={openImage}
-                  selectedId={selectedBrandId}
-                  isActionPending={Boolean(pendingBrandId)}
-                  onAction={runAction}
-                />
+                  fallback={item.description || item.title}
+                >
+                  <CardPreview
+                    item={item}
+                    bridge={bridge}
+                    openImage={openImage}
+                    selectedId={selectedBrandId}
+                    isActionPending={Boolean(pendingBrandId)}
+                    onAction={runAction}
+                  />
+                </CardBoundary>
               ))}
         </div>
         <Text as="footer" size="xs" color="muted" id="footer" className="mt-3">

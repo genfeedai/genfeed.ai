@@ -31,6 +31,8 @@ const INGREDIENT_CATEGORIES = new Set([
   'VIDEO_EDIT',
 ]);
 
+const BRAND_ASSET_CATEGORIES = new Set(['LOGO', 'BANNER', 'REFERENCE']);
+
 function isPlainObjectRecord(value: unknown): value is Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value))
     return false;
@@ -90,6 +92,16 @@ function assetIdentity(record: Record<string, unknown>): string | undefined {
       'cloudObjectKey' in record ||
       (['LOGO', 'BANNER', 'REFERENCE'].includes(String(record.category)) &&
         'cdnUrl' in record))
+  )
+    return record.id;
+  // A JSON:API resource included through a relationship is typed after the
+  // relationship key (`logo`, `banner`, `references`), not `asset`, and keeps
+  // its category inside `attributes`.
+  if (
+    typeof record.id === 'string' &&
+    isPlainObjectRecord(record.attributes) &&
+    BRAND_ASSET_CATEGORIES.has(String(record.attributes.category)) &&
+    'cdnUrl' in record.attributes
   )
     return record.id;
   if (typeof record.assetId === 'string' && 'url' in record)

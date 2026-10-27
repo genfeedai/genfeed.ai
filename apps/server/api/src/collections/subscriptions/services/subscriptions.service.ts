@@ -32,6 +32,7 @@ import {
 } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
+  ActivitySource,
   BillingAccountOrganizationStatus,
   SubscriptionPlan,
   SubscriptionStatus,
@@ -211,8 +212,11 @@ export class SubscriptionsService
     ]);
 
     const organizationIds = organizations.map(({ id }) => id);
-    const { links, settings, subscriptions } =
+    const { links, paygPurchases, settings, subscriptions } =
       await this.loadAdminBillingRelations(organizationIds);
+    const paygOrganizationIds = new Set(
+      paygPurchases.map(({ organizationId }) => organizationId),
+    );
 
     const billingAccountIdByOrganization = new Map<string, string>();
     for (const link of links) {
@@ -281,6 +285,7 @@ export class SubscriptionsService
 
         return buildOrganizationBillingRow({
           balance: wallet ? wallet.balance - wallet.heldAmount : 0,
+          hasPaygPurchase: paygOrganizationIds.has(organization.id),
           organization: {
             id: organization.id,
             label: organization.label,
@@ -319,10 +324,10 @@ export class SubscriptionsService
 
   private async loadAdminBillingRelations(organizationIds: string[]) {
     if (organizationIds.length === 0) {
-      return { links: [], settings: [], subscriptions: [] };
+      return { links: [], paygPurchases: [], settings: [], subscriptions: [] };
     }
 
-    const [subscriptions, settings, links] = await Promise.all([
+    const [subscriptions, settings, links, paygPurchases] = await Promise.all([
       this.prisma.subscription.findMany({
         include: { customer: { select: { stripeCustomerId: true } } },
         orderBy: { createdAt: 'desc' },
@@ -343,9 +348,20 @@ export class SubscriptionsService
           status: BillingAccountOrganizationStatus.LINKED,
         },
       }),
+      // A PAYG pack is a one-time credit purchase, not a subscription or a
+      // tier, so it only shows up as a credit grant with the PAYG source.
+      this.prisma.creditTransaction.groupBy({
+        by: ['organizationId'],
+        where: {
+          amount: { gt: 0 },
+          isDeleted: false,
+          organizationId: { in: organizationIds },
+          source: ActivitySource.PAY_AS_YOU_GO,
+        },
+      }),
     ]);
 
-    return { links, settings, subscriptions };
+    return { links, paygPurchases, settings, subscriptions };
   }
 
   private async loadAdminBillingWallets(
