@@ -31,7 +31,7 @@ export class TrendDiscoveryHandler implements SkillHandler {
           ? trend.metadata.hashtags.slice(0, 3).join(' ')
           : '';
 
-        return `${index + 1}. ${trend.topic} (${trend.platform}) ${hashtags}`.trim();
+        return `${index + 1}. ${trend.topic} (${trend.platform}) - Remix angle: ${context.brandVoice}. ${hashtags}`;
       })
       .join('\n');
 

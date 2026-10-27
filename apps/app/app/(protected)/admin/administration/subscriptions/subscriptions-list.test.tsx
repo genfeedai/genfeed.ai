@@ -131,6 +131,7 @@ function makeBilling(
   return {
     balance: 30_000,
     currentPeriodEnd: null,
+    hasPaygPurchase: false,
     hasSubscription: false,
     isMaxedOut: false,
     isUnderUsing: false,
@@ -196,6 +197,16 @@ describe('SubscriptionsList', () => {
     expect(screen.getByTestId('stripeCustomerId-org-1')).toHaveTextContent('-');
     expect(screen.getByTestId('currentPeriodEnd-org-1')).toHaveTextContent('-');
     expect(screen.queryByText('N/A')).not.toBeInTheDocument();
+  });
+
+  it('marks a PAYG buyer without a subscription as free plus PAYG', () => {
+    mockRows([makeBilling({ hasPaygPurchase: true, organizationId: 'org-3' })]);
+
+    render(<SubscriptionsList />);
+
+    expect(screen.getByTestId('tier-org-3')).toHaveTextContent('free');
+    expect(screen.getByTestId('tier-org-3')).toHaveTextContent('planPayg');
+    expect(screen.getByTestId('status-org-3')).toHaveTextContent('-');
   });
 
   it('renders a status badge, usage and the customer id for a subscribed organization', () => {

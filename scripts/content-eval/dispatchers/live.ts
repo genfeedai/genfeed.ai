@@ -29,12 +29,14 @@ import { Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type {
   EvalDispatcher,
+  EvalFinishReason,
   EvalMessage,
   EvalStructuredRequest,
   EvalStructuredResponse,
   EvalUsage,
 } from '../contracts';
 import { EvalDispatchError } from '../spend';
+import { toEvalFinishReason } from './finish-reason';
 
 function toOpenRouterMessage(message: EvalMessage): OpenRouterMessage {
   return { content: message.content, role: message.role };
@@ -115,6 +117,7 @@ export async function createLiveDispatcher(): Promise<EvalDispatcher> {
       let modelVersion = request.model;
       let provider = servedProvider(null, request.model);
       let hasUsage = false;
+      let finishReason: EvalFinishReason | null = null;
 
       // The dispatcher has no seed parameter today; the seed is recorded in
       // provenance so a re-run uses the same one once it does.
@@ -136,6 +139,9 @@ export async function createLiveDispatcher(): Promise<EvalDispatcher> {
                 : usage.costUsd + cost;
             modelVersion = response.model ?? modelVersion;
             provider = servedProvider(response, request.model);
+            finishReason = toEvalFinishReason(
+              response.choices?.[0]?.finish_reason,
+            );
           },
           schema: request.schema,
           schemaName: request.schemaName,
@@ -150,11 +156,12 @@ export async function createLiveDispatcher(): Promise<EvalDispatcher> {
           hasUsage ? usage : null,
           provider,
           Date.now() - startedAt,
-          { cause: error },
+          { cause: error, finishReason },
         );
       }
 
       return {
+        finishReason,
         latencyMs: Date.now() - startedAt,
         modelVersion,
         provider,

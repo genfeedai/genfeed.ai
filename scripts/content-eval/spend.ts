@@ -13,6 +13,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import type {
   CallProvenance,
+  EvalFinishReason,
   EvalSpendLedger,
   EvalUsage,
   ReservationTokens,
@@ -39,14 +40,18 @@ export class SpendCapExceededError extends Error {
  * reservation, because a timed-out call may still have been billed.
  */
 export class EvalDispatchError extends Error {
+  /** The last attempt's finish reason, when the provider answered at all. */
+  readonly finishReason: EvalFinishReason | null;
+
   constructor(
     message: string,
     readonly usage: EvalUsage | null,
     readonly provider: string | null,
     readonly latencyMs: number,
-    options?: { cause?: unknown },
+    options?: { cause?: unknown; finishReason?: EvalFinishReason | null },
   ) {
     super(message, options);
+    this.finishReason = options?.finishReason ?? null;
     this.name = 'EvalDispatchError';
   }
 }

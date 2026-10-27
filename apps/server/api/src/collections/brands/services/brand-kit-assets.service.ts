@@ -1,3 +1,4 @@
+import { ASSET_ORIGIN_GENERATION_PENDING } from '@api/collections/assets/constants/asset-origin.constant';
 import {
   ASSET_UPLOAD_TYPE_BY_ROLE,
   BRAND_KIT_RESOLVED_REFERENCE_LIMIT,
@@ -216,6 +217,10 @@ export class BrandKitAssetsService {
           WHERE asset."isDeleted" = false
             AND asset."parentType" = 'BRAND'::"AssetParent"
             AND asset."parentOrgId" = ${organizationId}
+            AND (
+              asset."origin" IS NULL
+              OR asset."origin" <> ${ASSET_ORIGIN_GENERATION_PENDING}
+            )
             AND asset."parentBrandId" = ANY(${uniqueBrandIds}::text[])
             AND asset."category" = ANY(${rankedCategories}::"AssetCategory"[])
         ) AS categorized

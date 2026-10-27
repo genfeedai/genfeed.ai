@@ -7,8 +7,6 @@ import {
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
-import { resolveRequiredHarnessBrief } from '@api/services/harness/required-harness-brief.util';
 import { ContentGeoOptimizerHandler } from '@api/services/skill-executor/handlers/content-geo-optimizer.handler';
 import { ContentWritingHandler } from '@api/services/skill-executor/handlers/content-writing.handler';
 import { ImageGenerationHandler } from '@api/services/skill-executor/handlers/image-generation.handler';
@@ -20,7 +18,6 @@ import type {
   SkillExecutionResult,
   SkillHandler,
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
-import { SKILL_BRAND_CONTEXT_UNAVAILABLE } from '@api/services/skill-executor/skill-brand-brief.util';
 import {
   buildSkillWorkflowDefinition,
   EXECUTABLE_SKILL_SLUGS,
@@ -29,17 +26,7 @@ import {
   SKILL_ACTION_IDS,
   SKILL_WORKFLOW_IDS,
 } from '@api/services/skill-executor/skill-workflow-definition';
-import type { ContentKind } from '@genfeedai/harness';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
-
-/** Skills that write brand copy, and the content kind their brief is for. */
-const BRAND_BRIEF_CONTENT_KINDS: Partial<
-  Record<ExecutableSkillSlug, ContentKind>
-> = {
-  'content-geo-optimizer': 'article',
-  'content-writing': 'post',
-  'trend-remix': 'post',
-};
 
 @Injectable()
 export class SkillWorkflowService implements OnModuleInit {
@@ -53,7 +40,6 @@ export class SkillWorkflowService implements OnModuleInit {
     imageGenerationHandler: ImageGenerationHandler,
     trendDiscoveryHandler: TrendDiscoveryHandler,
     trendRemixHandler: TrendRemixHandler,
-    private readonly harness: HarnessGenerationService,
     @Optional() private readonly skillLibrary?: SkillLibraryService,
   ) {
     this.handlers = {
@@ -125,29 +111,10 @@ export class SkillWorkflowService implements OnModuleInit {
       request.context.userId,
       this.readRecord(request.input.context, 'context'),
     );
-    const params = this.readRecord(request.input.params, 'params');
-    const contentType = BRAND_BRIEF_CONTENT_KINDS[skillSlug];
-    if (!contentType) return this.handlers[skillSlug].execute(context, params);
-    const topic =
-      typeof params.topic === 'string' ? params.topic.trim() : undefined;
-    const brandBrief = await resolveRequiredHarnessBrief(
-      this.harness,
-      {
-        brandId: context.brandId,
-        contentType,
-        includeContentMemory: Boolean(topic),
-        objective: 'engagement',
-        organizationId: context.organizationId,
-        platform:
-          typeof params.platform === 'string'
-            ? params.platform
-            : context.platforms[0],
-        topic: topic || undefined,
-        userId: request.context.userId,
-      },
-      SKILL_BRAND_CONTEXT_UNAVAILABLE,
+    return this.handlers[skillSlug].execute(
+      context,
+      this.readRecord(request.input.params, 'params'),
     );
-    return this.handlers[skillSlug].execute({ ...context, brandBrief }, params);
   }
 
   private async contextWithPins(
@@ -287,6 +254,8 @@ export class SkillWorkflowService implements OnModuleInit {
       : [];
     return {
       brandId: this.requiredString(context.brandId, 'context.brandId'),
+      brandVoice:
+        typeof context.brandVoice === 'string' ? context.brandVoice : '',
       ...(this.isRecord(context.memory) ? { memory: context.memory } : {}),
       organizationId: this.requiredString(
         context.organizationId,

@@ -50,9 +50,9 @@ export class TwitterPipelineController {
   ) {
     return this.twitterqueryService.draft(
       organizationId,
-      dto.brandId,
       dto.searchResults,
       dto.voiceConfig,
+      dto.brandId,
       user,
     );
   }

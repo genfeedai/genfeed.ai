@@ -96,7 +96,7 @@ function buildPostPreviews(
     : [];
 }
 
-function humanize(value: string): string {
+export function humanize(value: string): string {
   const text = value.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ');
   return text.charAt(0).toUpperCase() + text.slice(1);
 }

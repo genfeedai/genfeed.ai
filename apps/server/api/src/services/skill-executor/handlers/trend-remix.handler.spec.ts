@@ -25,7 +25,7 @@ describe('TrendRemixHandler', () => {
 
   const baseContext = {
     brandId: 'brand-id',
-    brandBrief: 'Voice: bold and witty.',
+    brandVoice: 'Bold and witty',
     organizationId: 'org-id',
     platforms: ['instagram'],
   };

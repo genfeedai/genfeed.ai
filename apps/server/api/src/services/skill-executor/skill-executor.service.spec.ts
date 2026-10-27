@@ -2,13 +2,11 @@ import { BUILT_IN_SKILL_CATALOG } from '@api/collections/skills/constants/skill-
 import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
-import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { ContentGeoOptimizerHandler } from '@api/services/skill-executor/handlers/content-geo-optimizer.handler';
 import { ContentWritingHandler } from '@api/services/skill-executor/handlers/content-writing.handler';
 import { ImageGenerationHandler } from '@api/services/skill-executor/handlers/image-generation.handler';
 import { TrendDiscoveryHandler } from '@api/services/skill-executor/handlers/trend-discovery.handler';
 import { TrendRemixHandler } from '@api/services/skill-executor/handlers/trend-remix.handler';
-import { SKILL_BRAND_CONTEXT_UNAVAILABLE } from '@api/services/skill-executor/skill-brand-brief.util';
 import { SkillWorkflowService } from '@api/services/skill-executor/skill-executor.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 
@@ -27,7 +25,6 @@ describe('SkillWorkflowService', () => {
     authorizeResolved: vi.fn(),
     recordResolution: vi.fn(),
   };
-  const harness = { formatBrief: vi.fn(), resolveBrief: vi.fn() };
   let service: SkillWorkflowService;
 
   beforeEach(async () => {
@@ -46,8 +43,6 @@ describe('SkillWorkflowService', () => {
       included: [],
       versions: [],
     });
-    harness.resolveBrief.mockResolvedValue({ appliedPacks: [] });
-    harness.formatBrief.mockReturnValue('Voice: direct.');
     runner.runWorkflow.mockResolvedValue({
       provenance: { executionId: 'execution-1' },
       result: {
@@ -68,7 +63,6 @@ describe('SkillWorkflowService', () => {
         { provide: ImageGenerationHandler, useValue: handler },
         { provide: TrendDiscoveryHandler, useValue: handler },
         { provide: TrendRemixHandler, useValue: handler },
-        { provide: HarnessGenerationService, useValue: harness },
         { provide: SkillLibraryService, useValue: skillLibrary },
       ],
     }).compile();
@@ -86,6 +80,7 @@ describe('SkillWorkflowService', () => {
       'content-writing',
       {
         brandId: 'brand-1',
+        brandVoice: 'Direct',
         organizationId: 'org-1',
         platforms: ['instagram'],
       },
@@ -128,6 +123,7 @@ describe('SkillWorkflowService', () => {
       'content-writing',
       {
         brandId: 'brand-1',
+        brandVoice: 'Direct',
         organizationId: 'org-1',
         platforms: ['instagram'],
       },
@@ -189,6 +185,7 @@ describe('SkillWorkflowService', () => {
     );
     const context: Record<string, unknown> = {
       brandId: 'brand-1',
+      brandVoice: 'Direct',
       organizationId: 'org-1',
       platforms: ['instagram'],
     };
@@ -229,58 +226,11 @@ describe('SkillWorkflowService', () => {
     );
   });
 
-  it('hands copy skills the harness brief and fails without one', async () => {
-    service.onModuleInit();
-    const action = runner.registerAction.mock.calls.find((call) =>
-      String(call[0]).includes('content-writing'),
-    )?.[1] as (request: unknown) => Promise<unknown>;
-    skillLibrary.authorizeResolved.mockImplementation(
-      async (_actor: unknown, docs: unknown[]) => ({
-        excluded: [],
-        included: docs,
-        versions: [],
-      }),
-    );
-    const request = {
-      context: { organizationId: 'org-1', userId: 'user-1' },
-      input: {
-        context: {
-          brandId: 'brand-1',
-          organizationId: 'org-1',
-          platforms: ['instagram'],
-        },
-        params: { topic: 'launch' },
-      },
-    };
-
-    await action(request);
-    expect(harness.resolveBrief).toHaveBeenCalledWith(
-      expect.objectContaining({
-        brandId: 'brand-1',
-        contentType: 'post',
-        organizationId: 'org-1',
-        platform: 'instagram',
-        topic: 'launch',
-        userId: 'user-1',
-      }),
-    );
-    expect(handler.execute).toHaveBeenLastCalledWith(
-      expect.objectContaining({ brandBrief: 'Voice: direct.' }),
-      { topic: 'launch' },
-    );
-
-    handler.execute.mockClear();
-    harness.formatBrief.mockReturnValue('');
-    await expect(action(request)).rejects.toThrow(
-      SKILL_BRAND_CONTEXT_UNAVAILABLE,
-    );
-    expect(handler.execute).not.toHaveBeenCalled();
-  });
-
   it('rejects a slug outside the reviewed action catalog', async () => {
     await expect(
       service.execute('custom-skill', {
         brandId: 'brand-1',
+        brandVoice: '',
         organizationId: 'org-1',
         platforms: [],
       }),

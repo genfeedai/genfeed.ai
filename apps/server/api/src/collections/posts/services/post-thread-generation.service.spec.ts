@@ -8,6 +8,7 @@ import { PostThreadGenerationService } from '@api/collections/posts/services/pos
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -19,6 +20,7 @@ import {
 } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ServiceUnavailableException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 const extraChildPostId = testId('post', 4);
@@ -47,6 +49,12 @@ describe('PostThreadGenerationService', () => {
   };
   const loggerService = {
     error: vi.fn(),
+    warn: vi.fn(),
+  };
+  const BRIEF = 'BRAND BRIEF: dry, concrete, no hashtags.';
+  const harnessService = {
+    formatBrief: vi.fn(),
+    resolveBrief: vi.fn(),
   };
   const postsService = {
     patch: vi
@@ -85,11 +93,14 @@ describe('PostThreadGenerationService', () => {
     );
     templatesService.getRenderedPrompt.mockResolvedValue('Expand this thread');
     websocketService.emit.mockResolvedValue(undefined);
+    harnessService.resolveBrief.mockResolvedValue({ id: 'brief' });
+    harnessService.formatBrief.mockReturnValue(BRIEF);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PostThreadGenerationService,
         { provide: ActivityRecorderService, useValue: activitiesService },
+        { provide: HarnessGenerationService, useValue: harnessService },
         { provide: LoggerService, useValue: loggerService },
         { provide: PostsService, useValue: postsService },
         { provide: PromptBuilderService, useValue: promptBuilderService },
@@ -116,6 +127,37 @@ describe('PostThreadGenerationService', () => {
     expect(postsService.patch).not.toHaveBeenCalled();
     expect(websocketService.emit).not.toHaveBeenCalled();
     expect(activitiesService.record).not.toHaveBeenCalled();
+  });
+
+  it('writes the replies against the brand brief for an X thread', async () => {
+    await service.draftThread(
+      { ...originalPost, brandId: 'brand-of-post' } as PostDocument,
+      { count: 3 },
+      identity,
+    );
+
+    expect(harnessService.resolveBrief).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-of-post',
+        contentType: 'thread',
+        organizationId: identity.organizationId,
+        platform: 'twitter',
+        topic: 'Original tweet content',
+      }),
+    );
+    const prompt = promptBuilderService.buildPrompt.mock.calls[0]?.[1]
+      ?.prompt as string;
+    expect(prompt).toContain('Expand this thread');
+    expect(prompt).toContain(BRIEF);
+  });
+
+  it('fails with a retryable 503, and spends nothing, when the brief is unavailable', async () => {
+    harnessService.formatBrief.mockReturnValue('   ');
+
+    await expect(
+      service.draftThread(originalPost, { count: 3 }, identity),
+    ).rejects.toThrow(ServiceUnavailableException);
+    expect(replicateService.generateTextCompletionSync).not.toHaveBeenCalled();
   });
 
   it('drops invalid draft replies instead of returning empty slots', async () => {

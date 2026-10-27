@@ -7,6 +7,7 @@ const tailwindcss = require('@tailwindcss/postcss');
 const repoRoot = path.resolve(__dirname, '../../..');
 const entry = path.join(__dirname, 'src/ui/preview-client.tsx');
 const style = path.join(__dirname, 'src/ui/preview.css');
+const nextImage = path.join(__dirname, 'src/ui/next-image.tsx');
 const paths = {
   '@preview-messages/ui': ['apps/app/messages/en/ui.json'],
   '@mcp/*': ['apps/server/mcp/src/*'],
@@ -36,6 +37,8 @@ async function buildMcpPreview(
     globalName: 'GenfeedPreview',
     platform: 'browser',
     conditions: ['browser'],
+    // next/image arrives as a module object in this bundle; see next-image.tsx.
+    alias: { 'next/image': nextImage },
     target: 'es2022',
     jsx: 'automatic',
     minify: true,

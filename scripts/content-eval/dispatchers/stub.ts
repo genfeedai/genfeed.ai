@@ -140,6 +140,7 @@ export function createStubDispatcher(
 ): EvalDispatcher {
   const usdPerToken = options.usdPerToken ?? STUB_DEFAULT_USD_PER_TOKEN;
   const failingModels = new Set(options.failingModels ?? []);
+  const cutOffModels = new Set(options.cutOffModels ?? []);
   const qualityOf = (content: string): number =>
     Math.min(1, Math.max(0, (options.qualityOf ?? stubQuality)(content)));
   // A flaky judge shifts some gradings by half the scale, wrapping around. Which
@@ -169,6 +170,25 @@ export function createStubDispatcher(
         );
       }
 
+      if (request.role === 'generation' && cutOffModels.has(request.model)) {
+        // The answer stopped mid-JSON, so the schema could not parse it; the
+        // provider still billed the full token limit.
+        throw new EvalDispatchError(
+          `Stub cut-off for ${request.model}`,
+          {
+            completionTokens: request.maxTokens,
+            costUsd:
+              (estimateTokens(canonicalJson(request.messages)) +
+                request.maxTokens) *
+              usdPerToken,
+            promptTokens: estimateTokens(canonicalJson(request.messages)),
+          },
+          STUB_PROVIDER,
+          request.maxTokens,
+          { finishReason: 'length' },
+        );
+      }
+
       const raw =
         request.role === 'generation'
           ? stubGeneration(request.model, request.messages)
@@ -185,6 +205,7 @@ export function createStubDispatcher(
       const completionTokens = estimateTokens(canonicalJson(value));
 
       return {
+        finishReason: 'stop',
         latencyMs: completionTokens,
         modelVersion: `${request.model}@stub`,
         provider: STUB_PROVIDER,

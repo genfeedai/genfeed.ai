@@ -38,7 +38,10 @@ describe('ArticlesService cache invalidation', () => {
   const brandId = 'brand_1';
 
   function buildService(
-    options: { organizationsService?: OrganizationsService } = {},
+    options: {
+      organizationsService?: OrganizationsService;
+      publicArticlesOrganizationId?: string;
+    } = {},
   ) {
     const delegate = {
       create: vi.fn(),
@@ -84,7 +87,11 @@ describe('ArticlesService cache invalidation', () => {
     } as unknown as CacheInvalidationService;
 
     const configService = {
-      get: vi.fn(),
+      get: vi.fn((key: string) =>
+        key === 'PUBLIC_ARTICLES_ORGANIZATION_ID'
+          ? options.publicArticlesOrganizationId
+          : undefined,
+      ),
     } as unknown as ConfigService;
 
     const service = new ArticlesService(
@@ -153,13 +160,34 @@ describe('ArticlesService cache invalidation', () => {
     expect(organizationsService.findOne).toHaveBeenCalledTimes(1);
     expect(organizationsService.findOne).toHaveBeenCalledWith({
       isDeleted: false,
-      slug: 'genfeed',
+      slug: 'genfeedai',
     });
     expect(delegate.findFirst.mock.calls[0][0].where).toMatchObject({
       organizationId: 'org_genfeed',
       slug: 'shared-slug',
       status: 'PUBLISHED',
     });
+  });
+
+  it('serves the configured organization id without a slug lookup, so a rename cannot unpublish the site', async () => {
+    const organizationsService = {
+      findOne: vi.fn().mockResolvedValue(null),
+    } as unknown as OrganizationsService;
+    const { service } = buildService({
+      organizationsService,
+      publicArticlesOrganizationId: ' org_renamed ',
+    });
+
+    await expect(
+      service.publicArticleScope.buildWhere(),
+    ).resolves.toMatchObject({ organizationId: 'org_renamed' });
+    await expect(
+      service.publicArticleScope.isHostedOrganization('org_renamed'),
+    ).resolves.toBe(true);
+    await expect(
+      service.publicArticleScope.isHostedOrganization('org_customer'),
+    ).resolves.toBe(false);
+    expect(organizationsService.findOne).not.toHaveBeenCalled();
   });
 
   it('matches no tenant when the Genfeed organization cannot be resolved', async () => {

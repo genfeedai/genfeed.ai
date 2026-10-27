@@ -3,6 +3,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ReviewablePostsService } from '@api/collections/posts/services/reviewable-posts.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { summarizeBrandVoice } from '@api/services/content-gateway/content-gateway-brand-voice.util';
 import type {
   ContentGatewayResult,
   ContentSignal,
@@ -22,7 +23,11 @@ export class ContentGatewayService {
   ) {}
 
   async routeSignal(signal: ContentSignal): Promise<ContentGatewayResult> {
-    await this.assertBrand(signal.organizationId, signal.brandId);
+    const brand = await this.assertBrand(signal.organizationId, signal.brandId);
+    const brandVoice = summarizeBrandVoice(
+      brand,
+      this.readPlatform(signal.payload),
+    );
 
     const requestedSkillSlugs = this.resolveSkillSlugs(signal.payload);
     const enabledSkillSlugs = await this.skillsService.getEnabledSkillSlugs(
@@ -39,6 +44,7 @@ export class ContentGatewayService {
         skillSlug,
         {
           brandId: signal.brandId,
+          brandVoice,
           organizationId: signal.organizationId,
           platforms: [],
         },
@@ -80,12 +86,13 @@ export class ContentGatewayService {
     params?: Record<string, unknown>,
     userId?: string,
   ): Promise<ContentGatewayResult> {
-    await this.assertBrand(organizationId, brandId);
+    const brand = await this.assertBrand(organizationId, brandId);
 
     const execution = await this.skillWorkflowService.execute(
       skillSlug,
       {
         brandId,
+        brandVoice: summarizeBrandVoice(brand, this.readPlatform(params)),
         organizationId,
         platforms: [],
       },
@@ -115,6 +122,15 @@ export class ContentGatewayService {
     const campaignId = payload?.campaignId;
     return typeof campaignId === 'string' && campaignId.trim()
       ? campaignId
+      : undefined;
+  }
+
+  private readPlatform(
+    payload: Record<string, unknown> | undefined,
+  ): string | undefined {
+    const platform = payload?.platform;
+    return typeof platform === 'string' && platform.trim()
+      ? platform
       : undefined;
   }
 

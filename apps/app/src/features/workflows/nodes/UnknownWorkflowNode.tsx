@@ -1,6 +1,7 @@
 'use client';
 
 import { Code } from '@genfeedai/ui';
+import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import type { NodeProps } from '@xyflow/react';
 import { memo } from 'react';
@@ -21,7 +22,7 @@ function UnknownWorkflowNodeComponent({
       : 'Unsupported workflow node';
 
   return (
-    <div className="min-w-[220px] rounded-lg shadow-border bg-card p-4">
+    <Card bodyClassName="gap-0" className="min-w-[220px]">
       <div className="mb-2 flex items-center justify-between gap-3">
         <h3 className="truncate text-sm font-semibold text-foreground">
           {label}
@@ -35,7 +36,7 @@ function UnknownWorkflowNodeComponent({
         Type:{' '}
         <Code className="bg-transparent text-foreground">{originalType}</Code>
       </p>
-    </div>
+    </Card>
   );
 }
 

@@ -6,7 +6,6 @@ import type {
   SkillExecutionContext,
   SkillHandler,
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
-import { skillBrandBriefSection } from '@api/services/skill-executor/skill-brand-brief.util';
 import { ContentIntelligencePlatform } from '@genfeedai/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import {
@@ -47,7 +46,6 @@ export class ContentWritingHandler implements SkillHandler {
         typeof params.variationsCount === 'number' ? params.variationsCount : 1,
     };
 
-    const brandBrief = skillBrandBriefSection(context);
     const generated = await this.contentGeneratorService.generateContent(
       context.organizationId,
       generationDto,
@@ -64,7 +62,10 @@ export class ContentWritingHandler implements SkillHandler {
           max_tokens: 400,
           messages: [
             {
-              content: this.buildRewritePrompt(brandBrief, targetPlatform),
+              content: this.buildRewritePrompt(
+                context.brandVoice,
+                targetPlatform,
+              ),
               role: 'system',
             },
             {
@@ -125,16 +126,16 @@ export class ContentWritingHandler implements SkillHandler {
    * counts it, and the hook in the first line, so autopilot drafts fit before
    * they reach fan-out.
    */
-  private buildRewritePrompt(brandBrief: string, platform: string): string {
+  private buildRewritePrompt(brandVoice: string, platform: string): string {
     const lengthRule = describePlatformTextLimit(platform);
     return [
-      'Rewrite this content in the brand voice the brief describes.',
+      brandVoice
+        ? `Rewrite this content in brand voice: ${brandVoice}.`
+        : 'Rewrite this content in the brand voice.',
       `Write it as one ${platform} post${lengthRule ? ` of ${lengthRule}` : ''}.`,
       'Open with a strong hook in the first line.',
       'Return only the post text.',
-    ]
-      .join(' ')
-      .concat(`\n\n${brandBrief}`);
+    ].join(' ');
   }
 
   /** A rewrite never replaces a draft that fit with one that does not. */

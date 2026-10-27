@@ -205,7 +205,7 @@ describe('ArticleDetail', () => {
   it('shows the live genfeed.ai link and share card for a published Genfeed article', () => {
     vi.mocked(useParams).mockReturnValue({
       brandSlug: 'genfeedai',
-      orgSlug: 'genfeed',
+      orgSlug: 'genfeedai',
     });
     useArticleDetailMock.mockReturnValue(savedArticleState('PUBLISHED'));
 
@@ -227,7 +227,7 @@ describe('ArticleDetail', () => {
   it('offers a preview link before a Genfeed article is published', () => {
     vi.mocked(useParams).mockReturnValue({
       brandSlug: 'genfeedai',
-      orgSlug: 'genfeed',
+      orgSlug: 'genfeedai',
     });
     useArticleDetailMock.mockReturnValue(savedArticleState('draft'));
 

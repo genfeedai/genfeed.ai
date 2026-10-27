@@ -21,6 +21,7 @@ import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly
 import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
 import { BrandedTextGenerationModule } from '@api/services/branded-text-generation/branded-text-generation.module';
 import { ByokModule } from '@api/services/byok/byok.module';
+import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
@@ -48,6 +49,7 @@ import { Module } from '@nestjs/common';
     AgentChatModelRegistryModule,
     BrandedTextGenerationModule,
     ByokModule,
+    ContentHarnessModule,
     ReplicateModule,
     NotificationsPublisherModule,
     PromptBuilderModule,

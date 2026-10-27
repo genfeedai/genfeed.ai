@@ -2,9 +2,11 @@
  * genfeed.ai serves articles (`/articles`, `/articles/:slug`, RSS, sitemap,
  * brand profiles) for exactly one organization: Genfeed's own. Customer
  * organizations can mark an article published, but it is never hosted on the
- * genfeed.ai website. Resolved by `Organization.slug`, which is unique.
+ * genfeed.ai website. Hosted cloud pins the organization by id with
+ * `PUBLIC_ARTICLES_ORGANIZATION_ID`, so renaming it cannot unpublish the site;
+ * without that id it is resolved by this unique `Organization.slug`.
  */
-export const PUBLIC_ARTICLES_ORGANIZATION_SLUG = 'genfeed';
+export const PUBLIC_ARTICLES_ORGANIZATION_SLUG = 'genfeedai';
 
 /** The public `/articles/:slug` segment: lowercase words joined by single hyphens. */
 export const ARTICLE_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;

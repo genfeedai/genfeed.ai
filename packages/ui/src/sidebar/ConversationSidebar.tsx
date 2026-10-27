@@ -59,13 +59,15 @@ export function ConversationSidebarSection({
   return (
     <section aria-label={label}>
       <div className="flex items-center gap-2 px-3 pb-1.5 pt-3 text-2xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
-        <span>{label}</span>
+        <span className="min-w-0 truncate" title={label}>
+          {label}
+        </span>
         {typeof count === 'number' ? (
-          <span className="font-mono font-medium tracking-normal text-foreground/22">
+          <span className="shrink-0 font-mono font-medium tracking-normal text-foreground/22">
             {count}
           </span>
         ) : null}
-        {actions ? <div className="ml-auto">{actions}</div> : null}
+        {actions ? <div className="ml-auto shrink-0">{actions}</div> : null}
       </div>
       <div className="flex flex-col gap-px px-2">{children}</div>
     </section>

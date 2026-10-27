@@ -9,10 +9,7 @@ import {
 import { MAX_CADENCE_SPAN_DAYS } from '@genfeedai/contracts/api-types/contracts/cadence-expansion.contract';
 import { ForbiddenException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  CADENCE_COPY_BRAND_CONTEXT_UNAVAILABLE,
-  PostingCadenceCopyService,
-} from './posting-cadence-copy.service';
+import { PostingCadenceCopyService } from './posting-cadence-copy.service';
 import { PostingCadenceValidationService } from './posting-cadence-validation.service';
 import { PostingCadencesService } from './posting-cadences.service';
 
@@ -143,7 +140,6 @@ describe('PostingCadencesService', () => {
   const postGroupsService = { create: vi.fn(), getOne: vi.fn() };
   const articlesService = { createArticle: vi.fn() };
   const llmDispatcherService = { chatCompletion: vi.fn() };
-  const harness = { formatBrief: vi.fn(), resolveBrief: vi.fn() };
   const creditsUtilsService = {
     checkOrganizationCreditsAvailable: vi.fn(),
     deductCreditsFromOrganization: vi.fn(),
@@ -256,14 +252,11 @@ describe('PostingCadencesService', () => {
     prisma.article.findMany.mockResolvedValue([]);
     slotReservation.findMany.mockResolvedValue([]);
     slotReservation.updateMany.mockResolvedValue({ count: 1 });
-    harness.resolveBrief.mockResolvedValue({ appliedPacks: [] });
-    harness.formatBrief.mockReturnValue('Guardrails: never promise cures.');
     const copyService = new PostingCadenceCopyService(
       prisma as never,
       llmDispatcherService as never,
       creditsUtilsService as never,
       modelsService as never,
-      harness as never,
     );
     const validationService = new PostingCadenceValidationService(
       prisma as never,
@@ -523,17 +516,6 @@ describe('PostingCadencesService', () => {
       (message) => message.role === 'user',
     )?.content;
     expect(userPrompt).toContain('Brand: Genfeed');
-    expect(userPrompt).toContain(
-      'Brand brief (follow it exactly; never contradict its guardrails, and do not invent claims it does not support):\nGuardrails: never promise cures.',
-    );
-    expect(harness.resolveBrief).toHaveBeenCalledWith(
-      expect.objectContaining({
-        brandId: BRAND_ID,
-        contentType: 'post',
-        organizationId: ORG_ID,
-        userId: USER_ID,
-      }),
-    );
     expect(userPrompt).toContain('Campaign: August shorts');
     expect(userPrompt).toContain('Morning: we shipped cadence ghosts');
     expect(userPrompt).toContain('Already scheduled in this campaign');
@@ -552,23 +534,6 @@ describe('PostingCadencesService', () => {
       creditsUtilsService.deductCreditsFromOrganization,
     ).toHaveBeenCalled();
     expect(result.releaseId).toBe('release-2');
-  });
-
-  it('refuses slot copy without brand context, before credits or the model', async () => {
-    slotReservation.findFirst.mockResolvedValue(null);
-    findFirst.mockResolvedValue(cadenceRow());
-    slotReservation.upsert.mockResolvedValue(missingReservation());
-    harness.resolveBrief.mockResolvedValue(null);
-    harness.formatBrief.mockReturnValue('');
-
-    await expect(
-      service.generate(ORG_ID, USER_ID, IDENTITY_KEY),
-    ).rejects.toThrow(CADENCE_COPY_BRAND_CONTEXT_UNAVAILABLE);
-    expect(
-      creditsUtilsService.checkOrganizationCreditsAvailable,
-    ).not.toHaveBeenCalled();
-    expect(llmDispatcherService.chatCompletion).not.toHaveBeenCalled();
-    expect(postGroupsService.create).not.toHaveBeenCalled();
   });
 
   it('persists skip and omits the skipped identity from listSlots', async () => {

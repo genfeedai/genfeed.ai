@@ -2,6 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { PROMPT_BAR_ICON_BUTTON_CLASS } from '@ui/constants/shell-chrome.constant';
 import { Button } from '@ui/primitives/button';
 import { Mic } from 'lucide-react';
 import type { ReactElement } from 'react';
@@ -30,7 +31,7 @@ export default function PromptBarVoiceControl({
   onStartListening,
   onStopListening,
 }: PromptBarVoiceControlProps): ReactElement {
-  const controlClass = cn('size-8 shrink-0 min-h-0 min-w-0 p-0', className);
+  const controlClass = cn(PROMPT_BAR_ICON_BUTTON_CLASS, className);
 
   if (isTranscribing) {
     return (

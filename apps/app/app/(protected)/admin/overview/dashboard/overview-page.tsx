@@ -251,32 +251,26 @@ export default function OverviewPage() {
   const { stats, leaderboard, timeseries, isLoading, isRefreshing, refresh } =
     useAdminStats();
 
-  // Build KPI items from real data with trends
-  // Use monthlyGrowth as general indicator, with fallback values for display
-  const monthlyGrowth = stats?.monthlyGrowth || 0;
+  // Totals only: the API has no period-over-period figures, so no trend is shown.
   const kpiItems: KPICardProps[] = [
     {
       icon: Users,
       label: 'Total Users',
-      trend: monthlyGrowth > 0 ? 12 : -5,
       value: formatNumber(stats?.totalUsers),
     },
     {
       icon: Building2,
       label: 'Organizations',
-      trend: monthlyGrowth > 0 ? 8 : -3,
       value: formatNumber(stats?.totalOrganizations),
     },
     {
       icon: Newspaper,
       label: 'Total Posts',
-      trend: monthlyGrowth > 0 ? 24 : monthlyGrowth,
       value: formatNumber(stats?.totalPosts),
     },
     {
       icon: CreditCard,
       label: 'Subscriptions',
-      trend: monthlyGrowth > 0 ? 15 : -2,
       value: formatNumber(stats?.totalSubscriptions),
     },
   ];

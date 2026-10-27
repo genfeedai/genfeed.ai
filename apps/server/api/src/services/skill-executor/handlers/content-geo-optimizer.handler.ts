@@ -5,7 +5,6 @@ import {
   type SkillExecutionContext,
   type SkillHandler,
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
-import { skillBrandBriefSection } from '@api/services/skill-executor/skill-brand-brief.util';
 import {
   CONTENT_GEO_OPTIMIZATION_SCHEMA_NAME,
   type ContentGeoOptimization,
@@ -71,7 +70,6 @@ export class ContentGeoOptimizerHandler implements SkillHandler {
     if (!sourceContent) {
       throw new Error(`${GEO_SKILL_SLUG} requires content`);
     }
-    const brandBrief = skillBrandBriefSection(context);
 
     const title = this.getString(params.title) ?? 'Generated content';
     const sources = this.getStringArray(params.sources);
@@ -91,7 +89,6 @@ export class ContentGeoOptimizerHandler implements SkillHandler {
     );
     const llmResult = await this.runLlmRewrite(
       context,
-      brandBrief,
       params,
       sourceContent,
       scorecard,
@@ -131,7 +128,6 @@ export class ContentGeoOptimizerHandler implements SkillHandler {
 
   private async runLlmRewrite(
     context: SkillExecutionContext,
-    brandBrief: string,
     params: Record<string, unknown>,
     sourceContent: string,
     scorecard: GeoScorecard,
@@ -147,11 +143,7 @@ export class ContentGeoOptimizerHandler implements SkillHandler {
               role: 'system',
             },
             {
-              content: this.buildLlmPrompt(
-                brandBrief,
-                sourceContent,
-                scorecard,
-              ),
+              content: this.buildLlmPrompt(context, sourceContent, scorecard),
               role: 'user',
             },
           ],
@@ -174,7 +166,7 @@ export class ContentGeoOptimizerHandler implements SkillHandler {
   }
 
   private buildLlmPrompt(
-    brandBrief: string,
+    context: SkillExecutionContext,
     sourceContent: string,
     scorecard: GeoScorecard,
   ): string {
@@ -191,7 +183,7 @@ export class ContentGeoOptimizerHandler implements SkillHandler {
       '- Preserve factual meaning and brand voice.',
       '- Add source/citation placeholders only when the input provides source URLs.',
       '- Do not invent facts, statistics, sources, dates, or quotes.',
-      brandBrief,
+      `Brand voice: ${context.brandVoice || 'clear, useful, and evidence-led'}.`,
       weakFindings ? `Weak GEO findings:\n${weakFindings}` : null,
       `Content:\n${sourceContent.slice(0, 12000)}`,
     ]

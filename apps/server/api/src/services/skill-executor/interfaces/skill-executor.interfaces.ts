@@ -1,11 +1,7 @@
 export interface SkillExecutionContext {
   organizationId: string;
   brandId: string;
-  /**
-   * The composed harness brief, resolved by the skill workflow for skills
-   * that write brand copy. Callers never supply it.
-   */
-  brandBrief?: string;
+  brandVoice: string;
   platforms: string[];
   memory?: Record<string, unknown>;
 }

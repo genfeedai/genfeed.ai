@@ -1,5 +1,6 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { isValidPostLength } from '@api/collections/posts/services/post-generation-text.util';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { BRAND_CONTEXT_CHARACTER_BUDGET } from '@api/services/agent-context-assembly/brand-context-budget.util';
 import { toReplyBotCredentialData } from '@api/services/campaign/reply-bot-credential.util';
@@ -29,6 +30,7 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   Injectable,
   type OnModuleInit,
+  Optional,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import {
@@ -38,8 +40,17 @@ import {
   TWITTER_PIPELINE_ACTION_IDS,
 } from './twitter-pipeline-workflow-definition';
 
-export const X_DRAFT_BRAND_CONTEXT_UNAVAILABLE =
+export const TWITTER_DRAFT_BRAND_CONTEXT_UNAVAILABLE =
   'Brand context is unavailable for these drafts. Please retry.';
+
+/** An X post, reply or quote is held to the standard 280 weighted characters. */
+const TWITTER_DRAFT_MAX_CHARACTERS = 280;
+
+/** Who asked for the drafts; brand access for the brief is checked for them. */
+export type TwitterDraftCaller = Pick<
+  AuthenticatedUser,
+  'apiKeyId' | 'isApiKey' | 'scopes' | 'userId'
+>;
 
 type TwitterPublishRequest = {
   credentialId?: string;
@@ -59,7 +70,8 @@ export class TwitterPipelineService implements OnModuleInit {
     private readonly botActionExecutorService: BotActionExecutorService,
     private readonly credentialsService: CredentialsService,
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
-    private readonly harness: HarnessGenerationService,
+    @Optional()
+    private readonly harnessGenerationService?: HarnessGenerationService,
   ) {}
 
   onModuleInit(): void {
@@ -153,24 +165,21 @@ export class TwitterPipelineService implements OnModuleInit {
 
   /**
    * Draft opportunities using Grok through the LLM dispatcher
-   * Builds a hybrid prompt from real tweet data, written against the brand's
-   * composed harness brief. Without the brief the drafts are refused rather
-   * than written in a generic voice.
+   * Builds a hybrid prompt from real tweet data
    */
   async draft(
     orgId: string,
-    brandId: string,
     searchResults: ITwitterSearchResult[],
     voiceConfig: ITwitterVoiceConfig,
-    user: AuthenticatedUser,
+    brandId: string | undefined,
+    caller: TwitterDraftCaller,
   ): Promise<ITwitterOpportunity[]> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const brandBrief = await this.resolveDraftBrief(
-      orgId,
-      brandId,
-      voiceConfig,
-      user,
-    );
+    // Resolved here, where the caller is known, so brand access is checked
+    // for them rather than for the workflow's system owner.
+    const brandBrief = brandId
+      ? await this.resolveDraftBrief(orgId, brandId, searchResults, caller)
+      : null;
 
     try {
       const definition = buildTwitterDraftWorkflowDefinition();
@@ -180,8 +189,8 @@ export class TwitterPipelineService implements OnModuleInit {
           canonicalId: definition.canonicalId,
           inputValues: {
             request: {
-              brandBrief,
-              brandId,
+              ...(brandId ? { brandId } : {}),
+              ...(brandBrief ? { brandBrief } : {}),
               organizationId: orgId,
               searchResults,
               voiceConfig,
@@ -194,7 +203,7 @@ export class TwitterPipelineService implements OnModuleInit {
 
       this.loggerService.log(
         `${url} generated ${opportunities.length} opportunities`,
-        { brandId, orgId, voice: voiceConfig.handle },
+        { orgId, voice: voiceConfig.handle },
       );
 
       return opportunities;
@@ -202,36 +211,6 @@ export class TwitterPipelineService implements OnModuleInit {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
-  }
-
-  private async resolveDraftBrief(
-    organizationId: string,
-    brandId: string,
-    voiceConfig: ITwitterVoiceConfig,
-    user: AuthenticatedUser,
-  ): Promise<string> {
-    const brief = await this.harness.resolveBrief({
-      apiKeyId: user.apiKeyId,
-      brandId,
-      contentType: 'reply',
-      includeContentMemory: true,
-      isApiKey: user.isApiKey,
-      objective: 'engagement',
-      organizationId,
-      platform: 'twitter',
-      scopes: user.scopes,
-      topic: voiceConfig.searchQuery.trim() || undefined,
-      userId: user.userId,
-    });
-    const formatted = this.harness.formatBrief(brief).trim();
-    if (!formatted || formatted.length > BRAND_CONTEXT_CHARACTER_BUDGET) {
-      this.loggerService.warn(
-        `${this.constructorName} harness brief unavailable for X drafts`,
-        { brandId, organizationId },
-      );
-      throw new ServiceUnavailableException(X_DRAFT_BRAND_CONTEXT_UNAVAILABLE);
-    }
-    return formatted;
   }
 
   /**
@@ -300,9 +279,12 @@ export class TwitterPipelineService implements OnModuleInit {
     const request = this.readRequest(input);
     const searchResults = this.readSearchResults(request.searchResults);
     const voiceConfig = this.readVoiceConfig(request.voiceConfig);
-    const brandBrief = this.requiredString(request.brandBrief, 'brandBrief');
+    const brief =
+      typeof request.brandBrief === 'string' && request.brandBrief
+        ? request.brandBrief
+        : null;
     return {
-      prompt: this.buildHybridPrompt(searchResults, voiceConfig, brandBrief),
+      prompt: this.buildHybridPrompt(searchResults, voiceConfig, brief),
       searchResults,
     };
   }
@@ -332,7 +314,15 @@ export class TwitterPipelineService implements OnModuleInit {
     const draftContext = this.readRecord(input.draftContext);
     const generation = this.readRecord(input.generation);
     return this.enrichOpportunities(
-      twitterOpportunitiesSchema.parse(generation).opportunities,
+      twitterOpportunitiesSchema
+        .parse(generation)
+        .opportunities.filter((opportunity) =>
+          isValidPostLength(
+            opportunity.suggestedText,
+            TWITTER_DRAFT_MAX_CHARACTERS,
+            true,
+          ),
+        ),
       this.readSearchResults(draftContext.searchResults),
     );
   }
@@ -436,10 +426,54 @@ export class TwitterPipelineService implements OnModuleInit {
   /**
    * Build hybrid prompt from real tweet data (ported from scanner.js)
    */
+  /**
+   * With a brand, the drafts follow its composed harness brief (voice, X craft,
+   * guardrails). An unresolved brief fails the request instead of letting
+   * generic drafts through, like the other branded text generators.
+   */
+  private async resolveDraftBrief(
+    organizationId: string,
+    brandId: string,
+    searchResults: ITwitterSearchResult[],
+    caller: TwitterDraftCaller,
+  ): Promise<string> {
+    const harness = this.harnessGenerationService;
+    const brief = harness
+      ? await harness.resolveBrief({
+          apiKeyId: caller.apiKeyId,
+          brandId,
+          isApiKey: caller.isApiKey,
+          scopes: caller.scopes,
+          userId: caller.userId,
+          contentType: 'reply',
+          includeContentMemory: true,
+          objective: 'engagement',
+          organizationId,
+          platform: 'twitter',
+          topic: searchResults[0]?.text.slice(0, 200),
+        })
+      : null;
+    const formatted = harness?.formatBrief(brief).trim() ?? '';
+    if (
+      !brief ||
+      !formatted ||
+      formatted.length > BRAND_CONTEXT_CHARACTER_BUDGET
+    ) {
+      this.loggerService.error(
+        `${this.constructorName} harness brief unavailable`,
+        { brandId, organizationId },
+      );
+      throw new ServiceUnavailableException(
+        TWITTER_DRAFT_BRAND_CONTEXT_UNAVAILABLE,
+      );
+    }
+    return formatted;
+  }
+
   private buildHybridPrompt(
     tweets: ITwitterSearchResult[],
     voiceConfig: ITwitterVoiceConfig,
-    brandBrief: string,
+    brief: string | null = null,
   ): string {
     const tweetList = tweets
       .map(
@@ -450,24 +484,22 @@ export class TwitterPipelineService implements OnModuleInit {
 
     return `You are a Twitter/X engagement strategist. Below are ${tweets.length} REAL trending tweets found via the Twitter API.
 
-For each tweet, suggest either a reply or a quote-tweet in the specified voice. Choose whichever would get more engagement.
+For each tweet where you have something specific to add, suggest either a reply or a quote-tweet in the specified voice. Choose whichever would get more engagement.
 
 Also generate 2 original tweet ideas inspired by the themes and trends you see in these tweets.
 
 Voice: ${voiceConfig.description}
 
 Account: ${voiceConfig.handle}
-
-Brand brief (follow it exactly; never contradict its guardrails, and do not invent claims it does not support):
-${brandBrief}
-
+${brief ? `\nBrand brief. Follow its voice, X craft and guardrails:\n${brief}\n` : ''}
 Here are the real tweets:
 
 ${tweetList}
 
 Rules:
 - For reply/quote entries, set "tweetIndex" (1-${tweets.length}) matching the tweet number above; leave it out for original ideas
-- Generate exactly ${tweets.length} reply/quote suggestions (one per tweet) + 2 original ideas = ${tweets.length + 2} total
+- Skip a tweet when you have nothing specific to add: never reply with agreement, praise, or a question that only asks for engagement
+- Generate 2 original ideas, plus at most one reply/quote suggestion per tweet
 - Keep responses under 280 characters
 - Be authentic to the voice, not generic or cringe
 - Say in "reason" why each one is worth posting`;

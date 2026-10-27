@@ -695,14 +695,19 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
     if (!isExplicitAgentMediaGenerationMode(generationMode)) {
       return null;
     }
-    // Plan mode promises a plan and estimate before anything runs. This turn
-    // skips the model and charges immediately, so a Plan thread takes the plan
-    // path below instead, whether the media mode was locked or inferred.
+    // Plan mode promises a plan and estimate before anything runs, and Manual
+    // mode promises a confirmation before credits are spent. This turn skips
+    // the model and charges immediately, so a Plan or Manual thread takes the
+    // normal path below instead (the plan, or the `generate` review card with
+    // model and cost), whether the media mode was locked or inferred.
     const thread = await this.agentThreadsService.findOne({
       id: state.threadId,
       organizationId: state.organizationId,
     });
-    if (thread?.mode === AgentThreadMode.PLAN) {
+    if (
+      thread?.mode === AgentThreadMode.PLAN ||
+      thread?.mode === AgentThreadMode.MANUAL
+    ) {
       return null;
     }
     const settings = state.request.generationSettings;

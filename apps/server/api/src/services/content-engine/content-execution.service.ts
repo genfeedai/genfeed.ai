@@ -2,6 +2,8 @@ import { type ContentPlanItemDocument } from '@api/collections/content-plan-item
 import { ContentPlanItemsService } from '@api/collections/content-plan-items/services/content-plan-items.service';
 import { ContentPlansService } from '@api/collections/content-plans/services/content-plans.service';
 import { ReviewablePostsService } from '@api/collections/posts/services/reviewable-posts.service';
+import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
+import { buildBrandVoiceText } from '@api/services/agent-context-assembly/brand-context-prompt-sections.util';
 import { ContentOrchestrationService } from '@api/services/content-orchestration/content-orchestration.service';
 import { PipelineStep } from '@api/services/content-orchestration/pipeline.interfaces';
 import { SkillWorkflowService } from '@api/services/skill-executor/skill-executor.service';
@@ -33,6 +35,7 @@ export class ContentExecutionService {
     private readonly reviewablePostsService: ReviewablePostsService,
     private readonly skillWorkflowService: SkillWorkflowService,
     private readonly contentOrchestrationService: ContentOrchestrationService,
+    private readonly contextAssemblyService: AgentContextAssemblyService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -226,6 +229,7 @@ export class ContentExecutionService {
       skillSlug,
       {
         brandId,
+        brandVoice: await this.resolveBrandVoice(organizationId, brandId),
         organizationId,
         platforms: itemPlatforms,
       },
@@ -274,6 +278,31 @@ export class ContentExecutionService {
       postId,
       status: ContentPlanItemStatus.COMPLETED,
     };
+  }
+
+  /**
+   * The brand voice the agent is given, from the same assembled brand context
+   * (identity and guidance layers only). Empty when the brand has no voice.
+   */
+  private async resolveBrandVoice(
+    organizationId: string,
+    brandId: string,
+  ): Promise<string> {
+    const context = await this.contextAssemblyService.assembleContext({
+      brandId,
+      layers: {
+        brandGuidance: true,
+        brandIdentity: true,
+        brandKnowledge: false,
+        brandMemory: false,
+        missingBrandContext: false,
+        performancePatterns: false,
+        ragContext: false,
+        recentPosts: false,
+      },
+      organizationId,
+    });
+    return context ? buildBrandVoiceText(context) : '';
   }
 
   private async executeMediaqueryItem(

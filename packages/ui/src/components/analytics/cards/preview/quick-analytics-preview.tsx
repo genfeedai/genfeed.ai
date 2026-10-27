@@ -1,11 +1,13 @@
 'use client';
 
+import { CardVariant } from '@genfeedai/contracts';
 import type { IAnalytics } from '@genfeedai/contracts/interfaces';
 import {
   formatCompactNumberIntl,
   formatPercentage,
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
+import Card from '@ui/card/Card';
 import { ChartContainer } from '@ui/charts';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { ArrowRight, ChartNoAxesColumn, Eye, Heart } from 'lucide-react';
@@ -54,11 +56,13 @@ export function QuickAnalyticsPreview({
   className = '',
   title = 'Analytics Overview',
 }: QuickAnalyticsPreviewProps) {
-  const cardClassName = `rounded-xl border border-border bg-card p-6 ${className}`;
-
   if (isLoading) {
     return (
-      <div className={cardClassName}>
+      <Card
+        bodyClassName="gap-0 p-6"
+        className={className}
+        variant={CardVariant.BORDERED}
+      >
         <div>
           <Skeleton className="mb-6 h-6 w-1/3" />
           <div className="mb-6 grid grid-cols-3 gap-4">
@@ -69,13 +73,17 @@ export function QuickAnalyticsPreview({
           <Skeleton className="mb-4 h-32" />
           <Skeleton className="h-10" />
         </div>
-      </div>
+      </Card>
     );
   }
 
   if (!data) {
     return (
-      <div className={cardClassName}>
+      <Card
+        bodyClassName="gap-0 p-6"
+        className={className}
+        variant={CardVariant.BORDERED}
+      >
         <div className="flex items-center gap-2 mb-6">
           <ChartNoAxesColumn className="size-4 text-muted-foreground" />
           <h3 className="text-lg font-semibold text-foreground">{title}</h3>
@@ -92,7 +100,7 @@ export function QuickAnalyticsPreview({
             <ArrowRight className="size-4" />
           </Link>
         </div>
-      </div>
+      </Card>
     );
   }
 
@@ -123,7 +131,11 @@ export function QuickAnalyticsPreview({
   ];
 
   return (
-    <div className={cardClassName}>
+    <Card
+      bodyClassName="gap-0 p-6"
+      className={className}
+      variant={CardVariant.BORDERED}
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
@@ -138,7 +150,7 @@ export function QuickAnalyticsPreview({
         {quickStats.map((stat) => (
           <div
             key={stat.label}
-            className="rounded-lg border border-border bg-muted p-4"
+            className="rounded-lg bg-muted p-4"
           >
             <div className="flex items-center gap-2 mb-2">
               <stat.icon className={`size-4 ${stat.color}`} />
@@ -163,7 +175,7 @@ export function QuickAnalyticsPreview({
       </div>
 
       {/* Mini Trend Chart */}
-      <div className="mb-6 rounded-lg border border-border bg-secondary p-4">
+      <div className="mb-6 rounded-lg bg-secondary p-4">
         <p className="text-sm font-medium text-foreground/80 mb-3">
           Views Trend
         </p>
@@ -225,7 +237,7 @@ export function QuickAnalyticsPreview({
 
       {/* Best Performing Platform */}
       {data.bestPerformingPlatform && (
-        <div className="mb-6 rounded-lg border border-border bg-secondary p-3">
+        <div className="mb-6 rounded-lg bg-secondary p-3">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-foreground">
               Best Performing Platform
@@ -246,6 +258,6 @@ export function QuickAnalyticsPreview({
         View Detailed Analytics
         <ArrowRight className="size-4" />
       </Link>
-    </div>
+    </Card>
   );
 }

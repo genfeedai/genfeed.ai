@@ -24,7 +24,7 @@ describe('ContentGeoOptimizerHandler', () => {
 
   const baseContext = {
     brandId: 'brand-id',
-    brandBrief: 'Voice: evidence-led and plainspoken.',
+    brandVoice: 'Evidence-led and plainspoken',
     organizationId: 'org-id',
     platforms: ['blog'],
   };

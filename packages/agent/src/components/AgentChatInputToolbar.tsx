@@ -121,29 +121,27 @@ function AgentChatInputToolbarInner({
           />
         )
       }
-      enhance={
+      leading={
         isAgentControlsHidden ? null : (
-          <>
-            {enhancement ? (
-              <PromptBarEnhanceControls
-                isDisabled={disabled || showStop || !promptText.trim()}
-                isEnhancing={enhancement.isEnhancing}
-                labels={{
-                  cancelAria: translate('cancelEnhancingPrompt'),
-                  enhanceAria: translate('enhancePrompt'),
-                  enhanceLabel: translate('enhanceLabel'),
-                  undoAria: translate('undoPromptEnhancement'),
-                  undoLabel: translate('undo'),
-                }}
-                onCancel={enhancement.onCancel}
-                onEnhance={enhancement.onEnhance}
-                onUndo={enhancement.canUndo ? enhancement.onUndo : undefined}
-              />
-            ) : null}
-            <GenerationHarnessSettingsPopover
-              isDisabled={disabled || showStop}
-            />
-          </>
+          <GenerationHarnessSettingsPopover isDisabled={disabled || showStop} />
+        )
+      }
+      enhance={
+        isAgentControlsHidden || !enhancement ? null : (
+          <PromptBarEnhanceControls
+            isDisabled={disabled || showStop || !promptText.trim()}
+            isEnhancing={enhancement.isEnhancing}
+            labels={{
+              cancelAria: translate('cancelEnhancingPrompt'),
+              enhanceAria: translate('enhancePrompt'),
+              enhanceLabel: translate('enhanceLabel'),
+              undoAria: translate('undoPromptEnhancement'),
+              undoLabel: translate('undo'),
+            }}
+            onCancel={enhancement.onCancel}
+            onEnhance={enhancement.onEnhance}
+            onUndo={enhancement.canUndo ? enhancement.onUndo : undefined}
+          />
         )
       }
       reference={

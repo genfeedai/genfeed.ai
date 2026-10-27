@@ -50,7 +50,7 @@ const DRAFT_REQUEST = closedObjectSchema(
     searchResults: arraySchema(TWEET),
     voiceConfig: VOICE,
   },
-  ['brandBrief', 'brandId', 'organizationId', 'searchResults', 'voiceConfig'],
+  ['organizationId', 'searchResults', 'voiceConfig'],
 );
 const DRAFT_CONTEXT = closedObjectSchema(
   { prompt: STRING_SCHEMA, searchResults: arraySchema(TWEET) },

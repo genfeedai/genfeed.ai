@@ -1,3 +1,5 @@
+import type { Prisma } from '@genfeedai/prisma';
+
 export type CadenceRecord = {
   brief: string | null;
   brandId: string;
@@ -83,6 +85,7 @@ export type MatchingTarget = {
 };
 
 export type BrandContextRow = {
+  agentConfig: Prisma.JsonValue;
   description: string | null;
   label: string;
   text: string | null;
