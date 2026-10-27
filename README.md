@@ -12,8 +12,9 @@ connected channels. Work in Genfeed or connect the AI agent you already use.
 
 **If Genfeed is useful, [star it on GitHub](https://github.com/genfeedai/genfeed.ai) ⭐ so others can find it.**
 
-<!-- TODO(demo): add the pinned demo video/GIF here (brief in → agent drafts →
-waits for approval → publishes). Real footage only; no mock media. -->
+![A prompt typed in Genfeed Playground, a real image generated with FLUX 1 Schnell, then approved](docs/assets/readme/generation.gif)
+
+_One real generation on a self-hosted instance: prompt, generate, approve. About 25 seconds, unedited apart from trimming._
 
 ```bash
 npx @genfeedai/create my-genfeed
