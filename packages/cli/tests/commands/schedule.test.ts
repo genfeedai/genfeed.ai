@@ -2,8 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { scheduleCommand } from '../../src/commands/schedule';
 
 const {
+  mockBulkSchedule,
   mockCancelScheduledRelease,
   mockConfirm,
+  mockGetActiveBrand,
   mockGetScheduledRelease,
   mockHandleError,
   mockPrint,
@@ -11,8 +13,10 @@ const {
   mockRequireAuth,
   mockRescheduleScheduledRelease,
 } = vi.hoisted(() => ({
+  mockBulkSchedule: vi.fn(),
   mockCancelScheduledRelease: vi.fn(),
   mockConfirm: vi.fn(),
+  mockGetActiveBrand: vi.fn(),
   mockGetScheduledRelease: vi.fn(),
   mockHandleError: vi.fn((error: unknown) => {
     throw error;
@@ -42,13 +46,17 @@ vi.mock('../../src/api/client', () => ({
 }));
 
 vi.mock('../../src/api/schedules', () => ({
-  bulkSchedule: vi.fn(),
+  bulkSchedule: (brandId: string, items: unknown) => mockBulkSchedule(brandId, items),
   cancelScheduledRelease: (releaseId: string) => mockCancelScheduledRelease(releaseId),
   getCalendar: vi.fn(),
   getOptimalTimes: vi.fn(),
   getScheduledRelease: (releaseId: string) => mockGetScheduledRelease(releaseId),
   rescheduleScheduledRelease: (releaseId: string, scheduledDate: string) =>
     mockRescheduleScheduledRelease(releaseId, scheduledDate),
+}));
+
+vi.mock('../../src/config/store', () => ({
+  getActiveBrand: () => mockGetActiveBrand(),
 }));
 
 vi.mock('../../src/ui/theme', () => ({
@@ -60,7 +68,8 @@ vi.mock('../../src/ui/theme', () => ({
   printJson: (value: unknown) => mockPrintJson(value),
 }));
 
-vi.mock('../../src/utils/errors', () => ({
+vi.mock('../../src/utils/errors', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../src/utils/errors')>()),
   handleError: (error: unknown) => mockHandleError(error),
 }));
 
@@ -128,5 +137,57 @@ describe('schedule lifecycle commands', () => {
       '2026-09-01T10:00:00.000Z'
     );
     expect(mockPrintJson).toHaveBeenCalledWith(release);
+  });
+
+  describe('bulk', () => {
+    const items = [
+      { contentId: 'c1', platform: 'linkedin', scheduledAt: '2026-09-02T09:00:00Z' },
+      { contentId: 'c2', platform: 'twitter', scheduledAt: '2026-09-02T10:00:00Z' },
+    ];
+    const run = (...extra: string[]) =>
+      scheduleCommand.parseAsync(['bulk', '--items', JSON.stringify(items), '--json', ...extra], {
+        from: 'user',
+      });
+
+    beforeEach(() => {
+      mockGetActiveBrand.mockResolvedValue('brand-active');
+      mockBulkSchedule.mockResolvedValue({
+        failed: [{ contentId: 'c2', reason: 'Not found' }],
+        scheduled: [{ id: 's1', scheduledAt: '2026-09-02T09:00:00Z' }],
+      });
+    });
+
+    it('schedules for the selected brand and prints scheduled and failed items', async () => {
+      await run('--brand', 'brand-flag');
+
+      expect(mockBulkSchedule).toHaveBeenCalledWith('brand-flag', items);
+      expect(mockPrintJson).toHaveBeenCalledWith({
+        failed: [{ contentId: 'c2', reason: 'Not found' }],
+        scheduled: [{ id: 's1', scheduledAt: '2026-09-02T09:00:00Z' }],
+      });
+    });
+
+    it('rejects items that are not a list of contentId, platform and scheduledAt', async () => {
+      await expect(
+        scheduleCommand.parseAsync(['bulk', '--items', '[{"contentId":"c1"}]'], { from: 'user' })
+      ).rejects.toThrow('needs a contentId, a platform and a scheduledAt');
+      await expect(
+        scheduleCommand.parseAsync(
+          ['bulk', '--items', '[{"contentId":"c1","platform":"x","scheduledAt":"not a date"}]'],
+          { from: 'user' }
+        )
+      ).rejects.toThrow('is not a date');
+      await expect(
+        scheduleCommand.parseAsync(
+          [
+            'bulk',
+            '--items',
+            '[{"contentId":"c1","platform":"x","scheduledAt":"2026-09-02T09:00:00Z"},{"contentId":"c1","platform":"x","scheduledAt":"2026-09-02T10:00:00Z"}]',
+          ],
+          { from: 'user' }
+        )
+      ).rejects.toThrow('lists c1 twice for x');
+      expect(mockBulkSchedule).not.toHaveBeenCalled();
+    });
   });
 });
