@@ -553,6 +553,7 @@ async function fulfillReadmeApi(route: Route, url: string): Promise<void> {
     await fulfillJson(route, {
       data: {
         attributes: {
+          brandId: 'brand-1',
           contextVersion: 1,
           createdAt: '2026-10-26T09:00:00.000Z',
           id: 'readme-thread-2',
@@ -574,6 +575,7 @@ async function fulfillReadmeApi(route: Route, url: string): Promise<void> {
       data: [
         {
           attributes: {
+            brandId: 'brand-1',
             contextVersion: 1,
             createdAt: '2026-08-01T12:00:00.000Z',
             id: 'readme-thread-1',
@@ -588,6 +590,7 @@ async function fulfillReadmeApi(route: Route, url: string): Promise<void> {
         },
         {
           attributes: {
+            brandId: 'brand-1',
             contextVersion: 1,
             createdAt: '2026-08-02T09:00:00.000Z',
             id: 'readme-thread-2',
