@@ -3,6 +3,7 @@ import { KnowledgeContentRetrievalService } from '@api/collections/contexts/serv
 import { KnowledgeContextCoverageService } from '@api/collections/contexts/services/knowledge-context-coverage.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import { describeContextCoverage } from '@api/collections/contexts/utils/context-coverage.util';
+import { InvalidKnowledgeSearchCursorError } from '@api/collections/contexts/utils/knowledge-search-cursor.util';
 import { resolveKnowledgeMinRelevance } from '@api/collections/contexts/utils/knowledge-source.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
@@ -16,6 +17,7 @@ import type {
   AgentToolResult,
   ContextCoverage,
   ContextCoverageUsage,
+  KnowledgeSearchPage,
 } from '@genfeedai/contracts/interfaces';
 import type {
   KnowledgeSource,
@@ -89,6 +91,28 @@ function readPurposes(value: unknown): KnowledgeSourcePurpose[] | undefined {
     .map(readPurpose)
     .filter((purpose): purpose is KnowledgeSourcePurpose => Boolean(purpose));
   return purposes.length > 0 ? purposes : undefined;
+}
+
+function readKinds(value: unknown): KnowledgeSourceKind[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  const kinds = value.filter((kind): kind is KnowledgeSourceKind =>
+    Object.values(KnowledgeSourceKind).includes(kind as KnowledgeSourceKind),
+  );
+  return kinds.length > 0 ? [...new Set(kinds)] : undefined;
+}
+
+/** A date the caller supplied: `null` when absent, `'invalid'` when not a real date. */
+function readDate(value: unknown): Date | null | 'invalid' {
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
+  if (typeof value !== 'string') {
+    return 'invalid';
+  }
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? 'invalid' : parsed;
 }
 
 function readBoundedInt(value: unknown, fallback: number, max: number): number {
@@ -215,13 +239,34 @@ export class AgentKnowledgeToolHandler {
     if (sourceIds && ctx.isWorkflowScoped) {
       await this.records.assertSourcesInScope(toActor(ctx), sourceIds);
     }
-    const hits =
-      await this.knowledgeContentRetrievalService.retrieveBrandContentMemory({
+    const occurredFrom = readDate(params.occurredFrom);
+    const occurredTo = readDate(params.occurredTo);
+    if (occurredFrom === 'invalid' || occurredTo === 'invalid') {
+      return {
+        creditsUsed: 0,
+        error:
+          'occurredFrom and occurredTo must be ISO 8601 dates, for example 2026-09-01 or 2026-09-01T00:00:00Z.',
+        success: false,
+      };
+    }
+    if (occurredFrom && occurredTo && occurredFrom > occurredTo) {
+      return {
+        creditsUsed: 0,
+        error: 'occurredFrom must not be after occurredTo.',
+        success: false,
+      };
+    }
+    const cursor = readOptionalString(params.cursor)?.trim();
+    let page: KnowledgeSearchPage;
+    try {
+      page = await this.knowledgeContentRetrievalService.searchBrandKnowledge({
         userId: ctx.userId,
         isApiKey: ctx.apiKeyContext?.isApiKey,
         apiKeyId: ctx.apiKeyContext?.apiKeyId,
         scopes: ctx.apiKeyContext?.scopes,
         brandId,
+        ...(cursor ? { cursor } : {}),
+        ...(readKinds(params.kinds) ? { kinds: readKinds(params.kinds) } : {}),
         knowledgePurposes: readPurposes(params.purposes),
         knowledgeSourceIds: sourceIds,
         limit: readBoundedInt(
@@ -233,14 +278,28 @@ export class AgentKnowledgeToolHandler {
           sourceIds,
           SEARCH_MIN_RELEVANCE,
         ),
+        ...(occurredFrom ? { occurredFrom } : {}),
+        ...(occurredTo ? { occurredTo } : {}),
         organizationId: ctx.organizationId,
         query,
       });
-    const passages = hits
+    } catch (error: unknown) {
+      if (error instanceof InvalidKnowledgeSearchCursorError) {
+        return {
+          creditsUsed: 0,
+          error:
+            'cursor does not belong to this search. Start again without a cursor, or reuse the exact query and filters it came from.',
+          success: false,
+        };
+      }
+      throw error;
+    }
+    const passages = page.hits
       .filter((hit) => hit.citation)
       .map((hit) => ({
         citation: hit.citation,
         content: hit.content,
+        ...(hit.occurredAt ? { occurredAt: hit.occurredAt } : {}),
         relevance: hit.relevance,
       }));
     // Zero hits never prove the library is empty, so an empty result carries coverage.
@@ -257,7 +316,10 @@ export class AgentKnowledgeToolHandler {
             ? coverage?.isIncomplete
               ? 'No eligible passages were returned; coverage is incomplete. Do not tell the user nothing exists.'
               : 'No saved Knowledge matched. Capture a source first or broaden the query.'
-            : `${passages.length} cited passage${passages.length === 1 ? '' : 's'} found.`,
+            : `${passages.length} cited passage${passages.length === 1 ? '' : 's'} found${page.nextCursor ? '; more results exist, pass nextCursor with the same query and filters for the next page' : ''}.`,
+        ...(page.nextCursor
+          ? { isTruncated: true, nextCursor: page.nextCursor }
+          : {}),
         passages,
         query,
       },

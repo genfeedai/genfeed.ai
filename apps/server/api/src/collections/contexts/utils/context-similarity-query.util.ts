@@ -1,12 +1,34 @@
 import { buildMemorySourceSnapshotHashQuery } from '@api/collections/contexts/utils/context-embedding-claim-query.util';
 import {
   KnowledgeMemoryScope,
+  type KnowledgeSourceKind,
   type KnowledgeSourcePurpose,
 } from '@genfeedai/contracts';
 import { CONTEXT_EMBEDDING_DIMENSION } from '@genfeedai/contracts/constants';
 import { Prisma } from '@genfeedai/prisma';
 
+/** Weight of the exact-name match in the hybrid score; the vector similarity weighs 1. */
+export const KNOWLEDGE_SEARCH_EXACT_TERM_WEIGHT = 0.5;
+
+/**
+ * Explicit Knowledge search: hybrid keyword + vector ranking, filters and
+ * keyset paging over the same eligibility rules as retrieval. A passage that
+ * contains one of `exactTerms` is admitted even below the similarity
+ * threshold, but only if it has a current vector, so eligibility never
+ * loosens. Each row's score is immutable for a given query, so `after` pages
+ * deterministically.
+ */
+export interface KnowledgeSearchQueryOptions {
+  after?: { entryId: string; score: string };
+  exactTerms: string[];
+  kinds?: KnowledgeSourceKind[];
+  occurredFrom?: Date;
+  occurredTo?: Date;
+}
+
 export interface ContextSimilarityQueryOptions {
+  /** Hybrid ranking, filters and paging for `search_knowledge`. */
+  search?: KnowledgeSearchQueryOptions;
   /** Canonical authenticated viewer; never a request-body identity. */
   viewerUserId?: string;
   /** Restrict hits to chunks of these Knowledge sources. */
@@ -91,7 +113,43 @@ export function buildContextSimilarityQuery(
     ? Prisma.sql`AND e."knowledgeSourceId" IS NOT NULL`
     : Prisma.empty;
 
-  return Prisma.sql`
+  const search = options.search;
+  const exactTermCount = search?.exactTerms.length ?? 0;
+  const exactTermMatches =
+    search && exactTermCount > 0
+      ? Prisma.join(
+          search.exactTerms.map(
+            (term) =>
+              Prisma.sql`(strpos(lower(COALESCE(e."data"->>'content', '')), ${term.toLowerCase()}) > 0)::int`,
+          ),
+          ' + ',
+        )
+      : Prisma.sql`0`;
+  const searchColumns = search
+    ? Prisma.sql`,
+      e."id" AS "entryId",
+      v."observedAt" AS "observedAt",
+      ROUND(
+        (1 - (e."embedding" <=> ${embedding}::vector))::numeric
+          + ${KNOWLEDGE_SEARCH_EXACT_TERM_WEIGHT}::numeric * (${exactTermMatches})::numeric / ${Math.max(exactTermCount, 1)}::numeric,
+        6
+      ) AS "score"`
+    : Prisma.empty;
+  const kindFilter = search?.kinds?.length
+    ? Prisma.sql`AND s."kind"::text IN (${Prisma.join(search.kinds)})`
+    : Prisma.empty;
+  const occurredFromFilter = search?.occurredFrom
+    ? Prisma.sql`AND v."observedAt" >= ${search.occurredFrom}`
+    : Prisma.empty;
+  const occurredToFilter = search?.occurredTo
+    ? Prisma.sql`AND v."observedAt" <= ${search.occurredTo}`
+    : Prisma.empty;
+  const similarityAdmission =
+    search && exactTermCount > 0
+      ? Prisma.sql`AND ((e."embedding" <=> ${embedding}::vector) <= ${maxDistance} OR (${exactTermMatches}) >= 1)`
+      : Prisma.sql`AND (e."embedding" <=> ${embedding}::vector) <= ${maxDistance}`;
+
+  const body = Prisma.sql`
     SELECT
       e."contextBaseId",
       e."data"->>'content' AS "content",
@@ -104,7 +162,7 @@ export function buildContextSimilarityQuery(
       v."id" AS "knowledgeSourceVersionId",
       v."version" AS "knowledgeSourceVersion",
       v."provenance"->>'url' AS "knowledgeSourceUrl",
-      1 - (e."embedding" <=> ${embedding}::vector) AS "similarity"
+      1 - (e."embedding" <=> ${embedding}::vector) AS "similarity"${searchColumns}
     FROM "context_entries" e
     JOIN "context_bases" b ON b."id" = e."contextBaseId" AND b."organizationId" = e."organizationId" AND b."isDeleted" = false
     LEFT JOIN "agent_memories" m ON m."id" = e."sourceAgentMemoryId" AND m."organizationId" = e."organizationId"
@@ -169,8 +227,29 @@ export function buildContextSimilarityQuery(
       ${brandScopeFilter}
       ${orgAndPersonalScopeFilter}
       ${knowledgeOnlyFilter}
-      AND (e."embedding" <=> ${embedding}::vector) <= ${maxDistance}
-    ORDER BY e."embedding" <=> ${embedding}::vector ASC
+      ${kindFilter}
+      ${occurredFromFilter}
+      ${occurredToFilter}
+      ${similarityAdmission}
+  `;
+
+  if (!search) {
+    return Prisma.sql`
+      ${body}
+      ORDER BY e."embedding" <=> ${embedding}::vector ASC
+      LIMIT ${limit}
+    `;
+  }
+
+  // Keyset order: the score is rounded to six places and ties break on the
+  // entry id, so the position after any row is one comparison.
+  const afterFilter = search.after
+    ? Prisma.sql`WHERE (r."score", r."entryId") < (${search.after.score}::numeric, ${search.after.entryId})`
+    : Prisma.empty;
+  return Prisma.sql`
+    SELECT * FROM (${body}) r
+    ${afterFilter}
+    ORDER BY r."score" DESC, r."entryId" DESC
     LIMIT ${limit}
   `;
 }

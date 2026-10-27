@@ -1,6 +1,15 @@
 import type { SourceTool } from '../../interfaces/source-tool.interface';
 
 const PURPOSE_ENUM = ['BRAND_TRUTH', 'INSPIRATION', 'RESEARCH'] as const;
+const KIND_ENUM = [
+  'TEXT',
+  'URL',
+  'FILE',
+  'DOCUMENT',
+  'VIDEO',
+  'AUDIO',
+  'RSS',
+] as const;
 const PROCESSING_STATE_ENUM = [
   'QUEUED',
   'PROCESSING',
@@ -18,15 +27,36 @@ export const OVERLAP_KNOWLEDGE_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Search the brand Knowledge library (saved pages, documents and notes) and return cited passages with their source, purpose and relevance. Use it before writing anything that must be accurate about the brand.',
+      'Search the brand Knowledge library (saved pages, documents and notes) and return cited passages with their source, purpose, capture time and relevance. Exact names, product codes and quoted phrases in the query are matched verbatim as well as by meaning. Filter by source kind and capture date; when more results exist the answer carries nextCursor, which you pass back with the same query and filters for the next page. Use it before writing anything that must be accurate about the brand.',
     name: 'search_knowledge',
     parameters: {
       properties: {
+        cursor: {
+          description:
+            'nextCursor from the previous page of this same search; omit for the first page',
+          maxLength: 512,
+          type: 'string',
+        },
+        kinds: {
+          description: 'Restrict to sources of these kinds; omit for all kinds',
+          items: { enum: [...KIND_ENUM], type: 'string' },
+          type: 'array',
+        },
         limit: {
           description: 'Maximum passages to return (1-12)',
           maximum: 12,
           minimum: 1,
           type: 'integer',
+        },
+        occurredFrom: {
+          description:
+            'Only passages from source versions captured on or after this ISO 8601 date',
+          type: 'string',
+        },
+        occurredTo: {
+          description:
+            'Only passages from source versions captured on or before this ISO 8601 date',
+          type: 'string',
         },
         purposes: {
           description:

@@ -13,6 +13,7 @@ import { KnowledgeRecordsService } from '@api/collections/contexts/services/know
 import { KnowledgeSelectionService } from '@api/collections/contexts/services/knowledge-selection.service';
 import { KnowledgeSourceIngestService } from '@api/collections/contexts/services/knowledge-source-ingest.service';
 import { extractSourceText } from '@api/collections/contexts/utils/extract-source-text.util';
+import { InvalidKnowledgeSearchCursorError } from '@api/collections/contexts/utils/knowledge-search-cursor.util';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { formatHarnessBrief } from '@api/services/harness/harness-brief.util';
 import {
@@ -31,6 +32,7 @@ import {
 import { CONTEXT_EMBEDDING_DIMENSION } from '@genfeedai/contracts/constants';
 import type {
   BrandContentMemoryRetrievalParams,
+  BrandKnowledgeSearchParams,
   KnowledgeSourceIngestWorkflowInput,
 } from '@genfeedai/contracts/interfaces';
 import { PrismaClient } from '@genfeedai/prisma';
@@ -890,6 +892,233 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
     expect(hits[0]?.citation).toMatchObject({
       version: 2,
       versionId: refreshed.version.id,
+    });
+  });
+  describe('Knowledge search', () => {
+    const search = (
+      actor: KnowledgeActor,
+      query: string,
+      extra: Partial<BrandKnowledgeSearchParams> = {},
+    ) =>
+      knowledgeContentRetrieval.searchBrandKnowledge({
+        brandId: actor.brandId ?? '',
+        limit: 6,
+        minRelevance: 0.6,
+        organizationId: actor.organizationId,
+        query,
+        userId: actor.userId,
+        ...extra,
+      });
+    const note = (title: string, text: string) =>
+      capture.capture(actorA, {
+        kind: KnowledgeSourceKind.TEXT,
+        purpose: KnowledgeSourcePurpose.BRAND_TRUTH,
+        scope: KnowledgeMemoryScope.BRAND,
+        text,
+        title,
+      });
+    const titles = (page: { hits: Array<{ source?: string }> }) =>
+      page.hits.map((hit) => hit.source);
+
+    it('returns a passage with an exact name even when its similarity is below the threshold', async () => {
+      await note(
+        'Grinder launch',
+        'The Zephyr-9 espresso grinder ships in March with a ceramic burr set.',
+      );
+      await note(
+        'Pricing',
+        'Plans start at $29 per month for the starter tier.',
+      );
+      const query = 'What does the Zephyr-9 cost?';
+
+      // Vector similarity alone misses it: only a few common words overlap.
+      expect(await retrieve(actorA, query, { minRelevance: 0.6 })).toEqual([]);
+
+      const page = await search(actorA, query);
+      expect(titles(page)).toEqual(['Grinder launch']);
+      expect(page.hits[0]?.relevance).toBeLessThan(0.6);
+      expect(page.nextCursor).toBeUndefined();
+    });
+
+    it('ranks an exact-name passage above an equally similar one without the name', async () => {
+      await note('Plain', 'Zephyr nine espresso grinder ships in March today.');
+      await note('Named', 'Zephyr-9 espresso grinder ships in March today.');
+
+      const page = await search(
+        actorA,
+        'Zephyr-9 espresso grinder ships March',
+        {
+          minRelevance: 0.3,
+        },
+      );
+
+      expect(titles(page)[0]).toBe('Named');
+    });
+
+    it('filters by capture date and source kind and keeps eligibility on every filter', async () => {
+      const older = await note('Older', 'Zephyr-9 grinder notes from January.');
+      const newer = await note('Newer', 'Zephyr-9 grinder notes from June.');
+      const olderVersion = await records.getCurrentVersion(
+        actorA,
+        older.source.id,
+      );
+      const newerVersion = await records.getCurrentVersion(
+        actorA,
+        newer.source.id,
+      );
+      // Evidence is immutable by trigger; the fixture backdates it directly.
+      await prisma.$executeRawUnsafe(
+        'ALTER TABLE knowledge_source_versions DISABLE TRIGGER USER',
+      );
+      await prisma.$executeRawUnsafe(
+        `UPDATE knowledge_source_versions SET "observedAt" = '2026-01-15T00:00:00Z' WHERE id = '${olderVersion.id}'`,
+      );
+      await prisma.$executeRawUnsafe(
+        `UPDATE knowledge_source_versions SET "observedAt" = '2026-06-15T00:00:00Z' WHERE id = '${newerVersion.id}'`,
+      );
+      await prisma.$executeRawUnsafe(
+        'ALTER TABLE knowledge_source_versions ENABLE TRIGGER USER',
+      );
+      await prisma.$executeRawUnsafe(
+        `UPDATE knowledge_sources SET kind = 'URL' WHERE id = '${newer.source.id}'`,
+      );
+      const query = 'Zephyr-9 grinder notes';
+
+      expect(titles(await search(actorA, query)).sort()).toEqual([
+        'Newer',
+        'Older',
+      ]);
+      const recent = await search(actorA, query, {
+        occurredFrom: new Date('2026-03-01T00:00:00Z'),
+      });
+      expect(titles(recent)).toEqual(['Newer']);
+      expect(recent.hits[0]?.occurredAt).toBe('2026-06-15T00:00:00.000Z');
+      expect(
+        titles(
+          await search(actorA, query, {
+            occurredTo: new Date('2026-03-01T00:00:00Z'),
+          }),
+        ),
+      ).toEqual(['Older']);
+      // Both ends are inclusive.
+      expect(
+        titles(
+          await search(actorA, query, {
+            occurredFrom: new Date('2026-01-15T00:00:00Z'),
+            occurredTo: new Date('2026-01-15T00:00:00Z'),
+          }),
+        ),
+      ).toEqual(['Older']);
+      expect(
+        titles(
+          await search(actorA, query, {
+            kinds: [KnowledgeSourceKind.URL],
+          }),
+        ),
+      ).toEqual(['Newer']);
+      expect(
+        await search(actorA, query, {
+          kinds: [KnowledgeSourceKind.URL],
+          occurredTo: new Date('2026-03-01T00:00:00Z'),
+        }),
+      ).toEqual({ hits: [] });
+
+      // A hidden source stays hidden whatever the filter.
+      await prisma.knowledgeSource.update({
+        data: { isVisible: false },
+        where: { id: newer.source.id },
+      });
+      expect(
+        await search(actorA, query, { kinds: [KnowledgeSourceKind.URL] }),
+      ).toEqual({ hits: [] });
+    });
+
+    it('pages deterministically and drops a source that becomes ineligible between pages', async () => {
+      const sources = [];
+      for (const word of ['alpha', 'bravo', 'charlie', 'delta', 'echo']) {
+        sources.push(
+          await note(`Note ${word}`, `Zephyr-9 grinder note about ${word}.`),
+        );
+      }
+      const query = 'Zephyr-9 grinder note';
+
+      const everything = await search(actorA, query, { limit: 12 });
+      expect(everything.hits).toHaveLength(5);
+      expect(everything.nextCursor).toBeUndefined();
+
+      const first = await search(actorA, query, { limit: 2 });
+      expect(first.hits).toHaveLength(2);
+      expect(first.nextCursor).toBeDefined();
+      expect(titles(first)).toEqual(titles(everything).slice(0, 2));
+
+      const second = await search(actorA, query, {
+        cursor: first.nextCursor,
+        limit: 2,
+      });
+      expect(titles(second)).toEqual(titles(everything).slice(2, 4));
+      expect(second.nextCursor).toBeDefined();
+
+      const third = await search(actorA, query, {
+        cursor: second.nextCursor,
+        limit: 2,
+      });
+      expect(titles(third)).toEqual(titles(everything).slice(4));
+      expect(third.nextCursor).toBeUndefined();
+
+      // The source that would have led the last page is hidden after page two.
+      const lastTitle = titles(everything)[4];
+      const hidden = sources.find(
+        (source) => source.source.title === lastTitle,
+      );
+      await prisma.knowledgeSource.update({
+        data: { isVisible: false },
+        where: { id: hidden?.source.id },
+      });
+      const afterHide = await search(actorA, query, {
+        cursor: second.nextCursor,
+        limit: 2,
+      });
+      expect(afterHide.hits).toEqual([]);
+      expect(afterHide.nextCursor).toBeUndefined();
+    });
+
+    it('rejects a cursor from another query, filter set or tenant', async () => {
+      for (const word of ['alpha', 'bravo', 'charlie']) {
+        await note(`Note ${word}`, `Zephyr-9 grinder note about ${word}.`);
+      }
+      const query = 'Zephyr-9 grinder note';
+      const first = await search(actorA, query, { limit: 1 });
+      const cursor = first.nextCursor;
+      expect(cursor).toBeDefined();
+
+      await expect(
+        search(actorA, 'Another-1 query', { cursor, limit: 1 }),
+      ).rejects.toThrow(InvalidKnowledgeSearchCursorError);
+      await expect(
+        search(actorA, query, {
+          cursor,
+          kinds: [KnowledgeSourceKind.URL],
+          limit: 1,
+        }),
+      ).rejects.toThrow(InvalidKnowledgeSearchCursorError);
+      await expect(search(actorB, query, { cursor, limit: 1 })).rejects.toThrow(
+        InvalidKnowledgeSearchCursorError,
+      );
+      await expect(
+        search(actorA, query, { cursor: 'not-a-cursor', limit: 1 }),
+      ).rejects.toThrow(InvalidKnowledgeSearchCursorError);
+    });
+
+    it('never returns another tenant’s passage for an exact name', async () => {
+      await capture.capture(actorB, {
+        kind: KnowledgeSourceKind.TEXT,
+        purpose: KnowledgeSourcePurpose.BRAND_TRUTH,
+        scope: KnowledgeMemoryScope.BRAND,
+        text: 'Zephyr-9 is our secret codename.',
+        title: 'Other tenant codename',
+      });
+
+      expect(await search(actorA, 'Zephyr-9 codename')).toEqual({ hits: [] });
     });
   });
 });

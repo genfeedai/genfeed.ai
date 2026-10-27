@@ -776,10 +776,17 @@ export class ContextsService {
               ...(citation ? { citation } : {}),
               content: row.content,
               contextBaseId: row.contextBaseId,
+              ...(row.entryId ? { entryId: row.entryId } : {}),
               ...(row.kind ? { kind: row.kind } : {}),
               ...(this.isPlainObject(row.metadata)
                 ? { metadata: row.metadata }
                 : {}),
+              ...(row.observedAt
+                ? { observedAt: new Date(row.observedAt).toISOString() }
+                : {}),
+              ...(row.score === undefined
+                ? {}
+                : { score: Number(row.score).toFixed(6) }),
               similarity: Number(row.similarity),
             },
           ];
