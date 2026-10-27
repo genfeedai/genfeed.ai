@@ -143,3 +143,20 @@ export function buildPostingTimeRecommendation(
     windows: defaultWindows(platform),
   };
 }
+
+const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+/**
+ * One line per learned window ("Thu 18:00-21:00"), best first. A result that
+ * did not learn anything gives no lines: a default guess is not a finding.
+ */
+export function describeLearnedPostingWindows(
+  result: PostingWindowResult,
+): string[] {
+  if (result.basis !== 'learned') return [];
+  const pad = (hour: number) => `${String(hour).padStart(2, '0')}:00`;
+  return result.windows.map(
+    (window) =>
+      `${WEEKDAY_LABELS[window.weekday] ?? '?'} ${pad(window.startHour)}-${pad(window.endHour)}`,
+  );
+}
