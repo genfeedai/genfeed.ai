@@ -1,6 +1,7 @@
 import { isCreditTransactionConflict } from '@api/collections/credits/services/credit-transaction-conflict';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { RetryCreditBackService } from '@api/collections/credits/services/retry-credit-back.service';
 import { runWithWorkflowAccounting } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { crunReceiptAllowsDisposition } from '@api/helpers/utils/credits/generation-quote-group.schema';
@@ -49,6 +50,7 @@ export class CreditDeductionProcessor extends WorkerHost {
     private readonly prisma: PrismaService,
     private readonly lowCreditThreshold: LowCreditThresholdService,
     private readonly freeTrialEmails: FreeTrialEmailsService,
+    private readonly retryCreditBack: RetryCreditBackService,
   ) {
     super();
   }
@@ -154,6 +156,7 @@ export class CreditDeductionProcessor extends WorkerHost {
         }
 
         await this.checkLowCredits(organizationId);
+        await this.grantRetryCreditBack(job.data);
       } else if (type === 'record-byok-usage') {
         if (await this.recordCrunByokUsage(job.data)) return;
         const currentBalance =
@@ -528,6 +531,25 @@ export class CreditDeductionProcessor extends WorkerHost {
         `Media asset ${job.data.settlementAssetId} is not terminal (${status || 'missing'})`,
       );
     return Boolean(asset?.s3Key || asset?.metadata?.result);
+  }
+
+  /** A settled media charge for a regenerated brief earns credit back (#7730). */
+  private async grantRetryCreditBack(
+    data: CreditDeductionJobData,
+  ): Promise<void> {
+    const assetId = data.metadata?.assetId;
+    if (
+      typeof assetId !== 'string' ||
+      !(data.amount > 0) ||
+      data.metadata?.durationTopUpOfReservationId !== undefined
+    ) {
+      return;
+    }
+    await this.retryCreditBack.grantBestEffort({
+      chargedCredits: data.amount,
+      ingredientId: assetId,
+      organizationId: data.organizationId,
+    });
   }
 
   private async checkLowCredits(organizationId: string): Promise<void> {
