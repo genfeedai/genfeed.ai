@@ -18,6 +18,18 @@ The package root export (`src/index.ts`) currently re-exports `analytics` and
 `enums` only. Other folders are available through the subpath exports listed in
 `package.json`.
 
+```ts
+import { ActivityKey } from '@genfeedai/contracts'; // root: enums and analytics only
+import type { IActivityPopulated } from '@genfeedai/contracts/interfaces';
+import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/contracts/queue';
+```
+
+Enums are imported by almost every file and the analytics helpers are small, so
+both stay on the root. The other folders are large and used by fewer files;
+keeping them off the root barrel stops every consumer from loading all of them.
+When you add a folder, add a subpath export for it, and add it to the root only
+when nearly every consumer needs it.
+
 ## `src/` directory map
 
 | Folder | Role |
@@ -32,6 +44,9 @@ The package root export (`src/index.ts`) currently re-exports `analytics` and
 | `desktop/` | Desktop IPC channel names and local/offline runtime switches |
 
 Do not edit generated API types under `src/api-types/generated/` by hand.
+
+`package.json` `exports` is the source of truth for the exact subpaths. If this
+table and `exports` disagree, `exports` wins.
 
 ## Shared interfaces
 
