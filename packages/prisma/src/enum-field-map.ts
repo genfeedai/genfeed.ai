@@ -3746,6 +3746,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'isDefault',
       'isDefaultSelectable',
       'isDeleted',
+      'isDraftRender',
       'isFavorite',
       'isFeatured',
       'isHighlighted',
