@@ -21,7 +21,7 @@ import { Text } from '@ui/typography/text';
 import { ExternalLink } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
-import PlansCard from './plans-card';
+import UpgradePlan from './upgrade-plan';
 
 /**
  * `subscription.category` is not serialized to the client, so the plan name is
@@ -114,6 +114,12 @@ function SettingsSubscriptionContent() {
       SUBSCRIPTION_TIER_LABELS[SubscriptionTier.FREE] &&
     !subscription?.stripeSubscriptionId &&
     (!subscription || subscription.status === SubscriptionStatus.INCOMPLETE);
+  const tierLabel = formatSubscriptionTierLabel(settings?.subscriptionTier);
+  // Free and pay-as-you-go have no recurring period, and only Scale is sold,
+  // so the upgrade offer and the renewal date follow the same split.
+  const isBelowScale =
+    tierLabel === SUBSCRIPTION_TIER_LABELS[SubscriptionTier.FREE] ||
+    tierLabel === SUBSCRIPTION_TIER_LABELS.payg;
   const displayedStatus = isFreePlanActive
     ? SubscriptionStatus.ACTIVE
     : subscription?.status;
@@ -157,7 +163,7 @@ function SettingsSubscriptionContent() {
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
             <div className="flex items-center gap-3">
               <Text as="p" size="xl" weight="bold">
-                {formatSubscriptionTierLabel(settings?.subscriptionTier)}
+                {tierLabel}
               </Text>
               <Badge
                 variant={
@@ -169,7 +175,7 @@ function SettingsSubscriptionContent() {
                 {formatEnumLabel(displayedStatus)}
               </Badge>
             </div>
-            {subscription?.currentPeriodEnd && (
+            {!isBelowScale && subscription?.currentPeriodEnd && (
               <Text as="p" size="sm" color="muted">
                 Current period ends{' '}
                 <span className="font-medium text-foreground">
@@ -202,6 +208,8 @@ function SettingsSubscriptionContent() {
             />
           ))}
         </div>
+
+        {isBelowScale && !isPlanLoading ? <UpgradePlan /> : null}
 
         {billingAccount?.kind === 'account' ? (
           <div className="flex flex-col gap-4 border-t border-border pt-4">
@@ -291,8 +299,6 @@ function SettingsSubscriptionContent() {
           </div>
         ) : null}
       </Card>
-
-      <PlansCard />
     </div>
   );
 }
