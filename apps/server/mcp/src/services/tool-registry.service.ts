@@ -38,6 +38,10 @@ import {
   requiresMcpToolApproval,
 } from '@mcp/services/mcp-approval-gate.util';
 import {
+  isBrandContextUri,
+  readBrandContextResource,
+} from '@mcp/services/mcp-brand-context-resource.util';
+import {
   collectBrandIds,
   withBrandNames,
 } from '@mcp/services/mcp-brand-names.util';
@@ -943,6 +947,20 @@ export class ToolRegistryService implements OnModuleInit {
             },
           ],
         };
+      }
+
+      if (isBrandContextUri(uri)) {
+        return await readBrandContextResource(uri, {
+          executeTool: (toolName, parameters, context) =>
+            this.clientService.executeAgentTool(toolName, parameters, context),
+          isToolAllowed: (toolName) =>
+            isToolAllowedInMcpAccessMode(
+              this.requestAccessMode,
+              toolName,
+              'agent',
+            ),
+          listBrands: () => this.listCallerBrands(),
+        });
       }
 
       switch (uri) {

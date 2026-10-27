@@ -14,6 +14,7 @@ import {
  */
 export const McpResourceUri = {
   AGENT_GUIDE: 'https://genfeed.ai/llms.txt',
+  BRAND_CONTEXT: 'genfeed://brands/context',
   CONTENT_CARDS: MCP_CARD_RESOURCE_URI,
   ORGANIZATION_ANALYTICS: 'genfeed://analytics/organization',
   VIDEO_ANALYTICS: 'genfeed://analytics/videos',
@@ -46,6 +47,13 @@ export const PUBLIC_MCP_RESOURCES: readonly McpResource[] = [
 
 export const MCP_RESOURCES: readonly McpResource[] = [
   ...PUBLIC_MCP_RESOURCES,
+  {
+    description:
+      "A brand's identity, voice and Knowledge coverage with citable source ids and versions. Read genfeed://brands/context?brandId=<id> to pick a brand; a single-brand account needs no id.",
+    mimeType: 'application/json',
+    name: 'Brand Context',
+    uri: McpResourceUri.BRAND_CONTEXT,
+  },
   {
     description: 'Get analytics for all videos in your organization',
     mimeType: 'application/json',
