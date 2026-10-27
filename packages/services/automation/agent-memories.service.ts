@@ -1,5 +1,9 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
-import type { IAgentMemoryEntry } from '@genfeedai/contracts/interfaces';
+import type {
+  IAgentMemoryEntry,
+  IAgentMemoryRevision,
+  ICorrectAgentMemoryInput,
+} from '@genfeedai/contracts/interfaces';
 import type { OrgMemoryEntry } from '@props/settings/org-memory.props';
 import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -80,6 +84,38 @@ export class AgentMemoriesService extends HTTPBaseService {
       PagesService.setTotalDocs(data.totalDocs);
     }
     return data.docs;
+  }
+
+  /**
+   * Corrects a memory: the API appends an immutable revision and makes it
+   * current. A stale `expectedRevisionId` answers 409.
+   */
+  async correct(
+    memoryId: string,
+    input: ICorrectAgentMemoryInput,
+  ): Promise<IAgentMemoryRevision> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/${memoryId}/revisions`,
+      input,
+    );
+    return deserializeResource<IAgentMemoryRevision>(response.data);
+  }
+
+  /** One page of a memory's revisions, newest first. */
+  async listRevisions(
+    memoryId: string,
+    query: { cursor?: string; limit?: number } = {},
+    signal?: AbortSignal,
+  ): Promise<{ items: IAgentMemoryRevision[]; nextCursor: string | null }> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      `/${memoryId}/revisions`,
+      { params: query, signal },
+    );
+    const nextCursor = response.data.meta?.nextCursor;
+    return {
+      items: deserializeCollection<IAgentMemoryRevision>(response.data),
+      nextCursor: typeof nextCursor === 'string' ? nextCursor : null,
+    };
   }
 
   async archive(memoryId: string): Promise<OrgMemoryEntry> {

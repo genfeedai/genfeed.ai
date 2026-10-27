@@ -73,6 +73,17 @@ describe('Footer Component', () => {
     expect(hrefs).toContain('/articles');
   });
 
+  it('links the affiliate program under Company', () => {
+    const company = WEBSITE_SECTIONS.find(
+      (section) => section.title === 'Company',
+    );
+
+    expect(company?.links).toContainEqual({
+      href: '/affiliates',
+      label: 'Affiliates',
+    });
+  });
+
   it('leaves the legal links to the bottom bar', () => {
     const hrefs = WEBSITE_SECTIONS.flatMap((section) =>
       section.links.map((link) => link.href),

@@ -5,6 +5,7 @@ import {
   type SkillExecutionContext,
   type SkillHandler,
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
+import { SkillBrandBriefService } from '@api/services/skill-executor/skill-brand-brief.service';
 import {
   CONTENT_GEO_OPTIMIZATION_SCHEMA_NAME,
   type ContentGeoOptimization,
@@ -60,6 +61,7 @@ export class ContentGeoOptimizerHandler implements SkillHandler {
     private readonly llmDispatcherService: LlmDispatcherService,
     private readonly loggerService: LoggerService,
     private readonly agentChatModelRegistry: AgentChatModelRegistryService,
+    private readonly skillBrandBriefService: SkillBrandBriefService,
   ) {}
 
   async execute(
@@ -132,6 +134,12 @@ export class ContentGeoOptimizerHandler implements SkillHandler {
     sourceContent: string,
     scorecard: GeoScorecard,
   ): Promise<ContentGeoOptimization | null> {
+    // Resolved outside the try below: a rewrite is never written without the
+    // brand brief, and its absence is an error, not a reason to fall back.
+    const harnessBrief = await this.skillBrandBriefService.resolve(context, {
+      contentType: 'article',
+      topic: this.getString(params.title),
+    });
     try {
       return await this.llmDispatcherService.completeStructured(
         {
@@ -143,7 +151,11 @@ export class ContentGeoOptimizerHandler implements SkillHandler {
               role: 'system',
             },
             {
-              content: this.buildLlmPrompt(context, sourceContent, scorecard),
+              content: this.buildLlmPrompt(
+                harnessBrief,
+                sourceContent,
+                scorecard,
+              ),
               role: 'user',
             },
           ],
@@ -166,7 +178,7 @@ export class ContentGeoOptimizerHandler implements SkillHandler {
   }
 
   private buildLlmPrompt(
-    context: SkillExecutionContext,
+    harnessBrief: string,
     sourceContent: string,
     scorecard: GeoScorecard,
   ): string {
@@ -183,7 +195,7 @@ export class ContentGeoOptimizerHandler implements SkillHandler {
       '- Preserve factual meaning and brand voice.',
       '- Add source/citation placeholders only when the input provides source URLs.',
       '- Do not invent facts, statistics, sources, dates, or quotes.',
-      `Brand voice: ${context.brandVoice || 'clear, useful, and evidence-led'}.`,
+      harnessBrief,
       weakFindings ? `Weak GEO findings:\n${weakFindings}` : null,
       `Content:\n${sourceContent.slice(0, 12000)}`,
     ]

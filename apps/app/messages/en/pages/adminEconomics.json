@@ -48,7 +48,9 @@
     },
     "sources": {
       "credit_purchase": "Credit pack",
-      "subscription_invoice": "Subscription"
+      "subscription_invoice": "Subscription",
+      "refund": "Refunds",
+      "dispute": "Disputes"
     },
     "topOrganizations": "Top organizations",
     "latestPayments": "Latest {limit} payments",

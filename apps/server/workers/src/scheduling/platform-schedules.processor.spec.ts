@@ -16,6 +16,7 @@ function handler() {
 describe('PlatformSchedulesProcessor', () => {
   const config = { isDevSchedulersEnabled: true };
   const contextEmbeddings = { sweep: handler() };
+  const knowledgeConflicts = { sweep: handler() };
   const turboRun = {
     reconcileTurboProjects: handler(),
     reconcileSettlementShortfalls: handler(),
@@ -76,6 +77,10 @@ describe('PlatformSchedulesProcessor', () => {
       [
         PLATFORM_SCHEDULED_TASKS.CONTEXT_EMBEDDING_SWEEP,
         contextEmbeddings.sweep,
+      ],
+      [
+        PLATFORM_SCHEDULED_TASKS.KNOWLEDGE_CONFLICT_SWEEP,
+        knowledgeConflicts.sweep,
       ],
       [
         PLATFORM_SCHEDULED_TASKS.BRAND_RELOCATION_RECOVERY,
@@ -265,6 +270,7 @@ describe('PlatformSchedulesProcessor', () => {
         brandRelocations as never,
         contextEmbeddings as never,
         mediaDeliveryRecovery as never,
+        knowledgeConflicts as never,
       ),
       patterns as never,
       posts as never,

@@ -1,4 +1,4 @@
-import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
+import type { IReleaseGroup, PostingTimeRecommendation } from '@genfeedai/contracts/interfaces';
 import { get, patch, post } from './client';
 import { flattenCollection, flattenSingle, type JsonApiDocument } from './json-api';
 
@@ -15,14 +15,6 @@ export interface BulkScheduleItem {
   contentId: string;
   platform: string;
   scheduledAt: string;
-}
-
-export interface OptimalTime {
-  platform: string;
-  day: string;
-  hour: number;
-  timezone: string;
-  score: number;
 }
 
 export async function getCalendar(start?: string, end?: string): Promise<ScheduleEntry[]> {
@@ -94,15 +86,14 @@ export async function bulkSchedule(
   return result;
 }
 
-export async function getOptimalTimes(
-  platform?: string,
+export async function getOptimalTime(
+  platform: string,
   timezone?: string
-): Promise<OptimalTime[]> {
-  const body: Record<string, unknown> = {};
-  if (platform) body.platform = platform;
-  if (timezone) body.timezone = timezone;
-  const response = await post<JsonApiDocument>('/schedules/optimal', body);
-  return flattenCollection<OptimalTime>(response);
+): Promise<PostingTimeRecommendation> {
+  return post<PostingTimeRecommendation>('/schedules/optimal', {
+    platform,
+    ...(timezone ? { timezone } : {}),
+  });
 }
 
 export async function getScheduledRelease(releaseId: string): Promise<IReleaseGroup> {

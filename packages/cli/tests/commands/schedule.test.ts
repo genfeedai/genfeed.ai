@@ -6,6 +6,7 @@ const {
   mockCancelScheduledRelease,
   mockConfirm,
   mockGetActiveBrand,
+  mockGetOptimalTime,
   mockGetScheduledRelease,
   mockHandleError,
   mockPrint,
@@ -17,6 +18,7 @@ const {
   mockCancelScheduledRelease: vi.fn(),
   mockConfirm: vi.fn(),
   mockGetActiveBrand: vi.fn(),
+  mockGetOptimalTime: vi.fn(),
   mockGetScheduledRelease: vi.fn(),
   mockHandleError: vi.fn((error: unknown) => {
     throw error;
@@ -50,7 +52,7 @@ vi.mock('../../src/api/schedules', () => ({
   bulkSchedule: (brandId: string, items: unknown) => mockBulkSchedule(brandId, items),
   cancelScheduledRelease: (releaseId: string) => mockCancelScheduledRelease(releaseId),
   getCalendar: vi.fn(),
-  getOptimalTimes: vi.fn(),
+  getOptimalTime: (platform: string, timezone?: string) => mockGetOptimalTime(platform, timezone),
   getScheduledRelease: (releaseId: string) => mockGetScheduledRelease(releaseId),
   rescheduleScheduledRelease: (releaseId: string, scheduledDate: string) =>
     mockRescheduleScheduledRelease(releaseId, scheduledDate),
@@ -220,6 +222,66 @@ describe('schedule lifecycle commands', () => {
         )
       ).rejects.toThrow('lists c1 twice for x');
       expect(mockBulkSchedule).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('optimal', () => {
+    const recommendation = {
+      basis: 'learned',
+      eligibleCount: 24,
+      method: 'median-by-slot',
+      metric: 'engagementRate',
+      platform: 'twitter',
+      reasoning: ['Ranked by median engagement rate per 3-hour slot.'],
+      spanDays: 84,
+      timezone: 'Europe/Malta',
+      windows: [
+        { endHour: 21, median: 0.0345, sampleCount: 12, startHour: 18, weekday: 3 },
+        { endHour: 15, median: 0.021, sampleCount: 12, startHour: 12, weekday: 0 },
+      ],
+    };
+    const args = ['optimal', '--platform', 'twitter', '--timezone', 'Europe/Malta'];
+
+    it('prints learned windows with their weekday, median and sample count', async () => {
+      mockGetOptimalTime.mockResolvedValue(recommendation);
+
+      await scheduleCommand.parseAsync(args, { from: 'user' });
+
+      expect(mockGetOptimalTime).toHaveBeenCalledWith('twitter', 'Europe/Malta');
+      const lines = mockPrint.mock.calls.map(([line]) => String(line));
+      expect(lines).toContainEqual(expect.stringContaining('Learned from your posts for twitter'));
+      expect(lines).toContainEqual(
+        expect.stringContaining('Thu       18:00-21:00  median 0.0345 from 12 posts')
+      );
+      expect(lines).toContainEqual(
+        expect.stringContaining('Mon       12:00-15:00  median 0.0210 from 12 posts')
+      );
+      expect(lines).toContainEqual(expect.stringContaining('Ranked by median engagement rate'));
+    });
+
+    it('labels default times as defaults and omits the sample columns', async () => {
+      mockGetOptimalTime.mockResolvedValue({
+        ...recommendation,
+        basis: 'default',
+        method: 'platform-default',
+        reasoning: ['Default times for twitter, not learned from your posts.'],
+        windows: [{ endHour: 10, median: null, sampleCount: null, startHour: 8, weekday: null }],
+      });
+
+      await scheduleCommand.parseAsync(args, { from: 'user' });
+
+      const lines = mockPrint.mock.calls.map(([line]) => String(line));
+      expect(lines).toContainEqual(expect.stringContaining('Default times for twitter'));
+      expect(lines).toContainEqual('  Every day 08:00-10:00');
+      expect(lines).toContainEqual(expect.stringContaining('not learned from your posts'));
+    });
+
+    it('prints the recommendation as JSON', async () => {
+      mockGetOptimalTime.mockResolvedValue(recommendation);
+
+      await scheduleCommand.parseAsync([...args, '--json'], { from: 'user' });
+
+      expect(mockPrintJson).toHaveBeenCalledWith(recommendation);
     });
   });
 });

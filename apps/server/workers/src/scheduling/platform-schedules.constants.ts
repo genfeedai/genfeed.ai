@@ -20,6 +20,7 @@ import { X_REPLY_WATCH_SCHEDULE } from '@workers/crons/x-replies/x-reply-watch.c
  */
 export const PLATFORM_SCHEDULED_TASKS = {
   CONTEXT_EMBEDDING_SWEEP: 'context-embedding-sweep',
+  KNOWLEDGE_CONFLICT_SWEEP: 'knowledge-conflict-sweep',
   BRAND_RELOCATION_RECOVERY: 'brand-relocation-recovery',
   PROACTIVE_AGENT_STRATEGIES: 'proactive-agent-strategies',
   ANALYTICS_SYNC: 'analytics-sync',
@@ -82,6 +83,10 @@ export type PlatformSchedule = {
 export const PLATFORM_SCHEDULE_CATALOG = {
   [PLATFORM_SCHEDULED_TASKS.CONTEXT_EMBEDDING_SWEEP]: {
     pattern: '* * * * *',
+    timezone: 'UTC',
+  },
+  [PLATFORM_SCHEDULED_TASKS.KNOWLEDGE_CONFLICT_SWEEP]: {
+    pattern: '*/5 * * * *',
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.BRAND_RELOCATION_RECOVERY]: {

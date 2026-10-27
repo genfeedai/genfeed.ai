@@ -5,6 +5,10 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
+import {
+  proratedNetMinor,
+  revenueAdjustmentKey,
+} from '@api/endpoints/webhooks/stripe/handlers/revenue-adjustment.util';
 import type {
   StripeMetadata,
   StripeRecurringInterval,
@@ -62,6 +66,19 @@ export type BillingRevenueEventInput = {
   userId?: string | null;
   /** Human-readable plan/product name for the operator alert, e.g. `Scale`. */
   planLabel?: string;
+};
+
+export type BillingRevenueAdjustmentInput = {
+  /** Cumulative gross amount refunded or disputed, tax included. */
+  adjustedGrossMinor: number;
+  /** `refund:<charge id>` or `dispute:<dispute id>`. */
+  adjustmentId: string;
+  occurredAt: Date;
+  /** Gross amount the customer paid for the original payment. */
+  originalGrossMinor: number;
+  /** Ledger key of the payment being reversed (checkout session or invoice id). */
+  originalStripeObjectId: string;
+  source: BillingRevenueSource.REFUND | BillingRevenueSource.DISPUTE;
 };
 
 type PurchasedCreditsReference = {
@@ -391,6 +408,83 @@ export class StripeWebhookSupportService {
           source: input.source,
           stripeObjectId: input.stripeObjectId,
         },
+      );
+    }
+  }
+
+  /**
+   * Takes the net-of-tax share of a refund or dispute back out of revenue as
+   * a negative ledger row on the original payment's organization. Refund
+   * events report the charge's cumulative total, so the row holds only what
+   * earlier rows for the same adjustment have not already taken out. A payment
+   * the ledger never recorded (before it started, or outside Checkout and
+   * Billing) is skipped: there is no revenue to subtract it from.
+   */
+  async recordRevenueAdjustment(
+    input: BillingRevenueAdjustmentInput,
+  ): Promise<void> {
+    try {
+      // tenant-scope-ignore: the signed Stripe payment id establishes the organization scope
+      const original = await this.prisma.billingRevenueEvent.findFirst({
+        where: {
+          isDeleted: false,
+          stripeObjectId: input.originalStripeObjectId,
+        },
+      });
+      if (!original || original.amountMinor <= 0) {
+        this.loggerService.warn(
+          `${this.constructorName} no revenue row to adjust`,
+          {
+            adjustmentId: input.adjustmentId,
+            originalStripeObjectId: input.originalStripeObjectId,
+          },
+        );
+        return;
+      }
+
+      const targetNetMinor = proratedNetMinor({
+        adjustedGrossMinor: input.adjustedGrossMinor,
+        originalGrossMinor: input.originalGrossMinor,
+        originalNetMinor: original.amountMinor,
+      });
+
+      await this.prisma.$transaction(async (transaction) => {
+        // Two events for one charge can race; serialize them so each sees the
+        // other's row before computing what is still owed.
+        await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${input.adjustmentId}))`;
+        const taken = await transaction.billingRevenueEvent.aggregate({
+          _sum: { amountMinor: true },
+          where: {
+            isDeleted: false,
+            organizationId: original.organizationId,
+            stripeObjectId: { startsWith: `${input.adjustmentId}:` },
+          },
+        });
+        const amountMinor = -targetNetMinor - (taken._sum.amountMinor ?? 0);
+        if (amountMinor >= 0) return;
+
+        await transaction.billingRevenueEvent.createMany({
+          data: [
+            {
+              amountMinor,
+              currency: original.currency,
+              occurredAt: input.occurredAt,
+              organizationId: original.organizationId,
+              source: input.source,
+              stripeObjectId: revenueAdjustmentKey(
+                input.adjustmentId,
+                input.adjustedGrossMinor,
+              ),
+              userId: original.userId,
+            },
+          ],
+          skipDuplicates: true,
+        });
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName} failed to record revenue adjustment`,
+        { adjustmentId: input.adjustmentId, error },
       );
     }
   }

@@ -123,30 +123,28 @@ describe('api/schedules', () => {
     });
   });
 
-  it('fetches optimal times without filters', async () => {
-    mockPost.mockResolvedValue({ data: [] });
-    mockFlattenCollection.mockReturnValue([]);
+  it('asks for the posting windows of one platform and returns the answer as is', async () => {
+    const recommendation = { basis: 'default', platform: 'tiktok', windows: [] };
+    mockPost.mockResolvedValue(recommendation);
 
-    const { getOptimalTimes } = await import('../../src/api/schedules');
-    await getOptimalTimes();
+    const { getOptimalTime } = await import('../../src/api/schedules');
+    const result = await getOptimalTime('tiktok');
 
-    expect(mockPost).toHaveBeenCalledWith('/schedules/optimal', {});
+    expect(mockPost).toHaveBeenCalledWith('/schedules/optimal', { platform: 'tiktok' });
+    expect(mockFlattenCollection).not.toHaveBeenCalled();
+    expect(result).toBe(recommendation);
   });
 
-  it('fetches optimal times with platform and timezone', async () => {
-    mockPost.mockResolvedValue({ data: [] });
-    mockFlattenCollection.mockReturnValue([
-      { day: 'tuesday', hour: 17, platform: 'tiktok', score: 88, timezone: 'UTC' },
-    ]);
+  it('sends the timezone when one is given', async () => {
+    mockPost.mockResolvedValue({ basis: 'learned', windows: [] });
 
-    const { getOptimalTimes } = await import('../../src/api/schedules');
-    const result = await getOptimalTimes('tiktok', 'UTC');
+    const { getOptimalTime } = await import('../../src/api/schedules');
+    await getOptimalTime('tiktok', 'Europe/Malta');
 
     expect(mockPost).toHaveBeenCalledWith('/schedules/optimal', {
       platform: 'tiktok',
-      timezone: 'UTC',
+      timezone: 'Europe/Malta',
     });
-    expect(result[0].score).toBe(88);
   });
 
   it('reads a scheduled release from the canonical post-group route', async () => {

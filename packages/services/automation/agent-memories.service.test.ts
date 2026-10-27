@@ -99,4 +99,47 @@ describe('AgentMemoriesService', () => {
     await service.reject('m1');
     expect(postMock).toHaveBeenCalledWith('/m1/reject');
   });
+
+  it('corrects a memory and pages its revisions with the cursor from the response meta', async () => {
+    postMock.mockResolvedValue({
+      data: {
+        data: {
+          attributes: { content: 'Corrected', isCurrent: true, revision: 2 },
+          id: 'revision-2',
+          type: 'agent-memory-revision',
+        },
+      },
+    });
+    getMock.mockResolvedValue({
+      data: {
+        data: [
+          {
+            attributes: { content: 'Corrected', revision: 2 },
+            id: 'revision-2',
+            type: 'agent-memory-revision',
+          },
+        ],
+        meta: { nextCursor: 'cursor-1' },
+      },
+    });
+    const service = AgentMemoriesService.getInstance('token');
+    const input = {
+      content: 'Corrected',
+      expectedRevisionId: 'revision-1',
+      reason: 'It changed',
+      requestId: 'request-1',
+    };
+
+    const revision = await service.correct('memory-1', input);
+    const page = await service.listRevisions('memory-1', { limit: 1 });
+
+    expect(postMock).toHaveBeenCalledWith('/memory-1/revisions', input);
+    expect(revision).toMatchObject({ content: 'Corrected', id: 'revision-2' });
+    expect(getMock).toHaveBeenCalledWith('/memory-1/revisions', {
+      params: { limit: 1 },
+      signal: undefined,
+    });
+    expect(page.nextCursor).toBe('cursor-1');
+    expect(page.items).toHaveLength(1);
+  });
 });

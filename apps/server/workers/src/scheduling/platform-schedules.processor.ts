@@ -93,6 +93,8 @@ export class PlatformSchedulesProcessor extends WorkerHost {
     this.handlers = {
       [PLATFORM_SCHEDULED_TASKS.CONTEXT_EMBEDDING_SWEEP]: () =>
         this.recovery.recoverContextEmbeddings(),
+      [PLATFORM_SCHEDULED_TASKS.KNOWLEDGE_CONFLICT_SWEEP]: () =>
+        this.recovery.scanKnowledgeConflicts(),
       [PLATFORM_SCHEDULED_TASKS.BRAND_RELOCATION_RECOVERY]: () =>
         this.recovery.recoverBrandRelocations(),
       [PLATFORM_SCHEDULED_TASKS.CRUN_TASK_RECONCILE]: () =>

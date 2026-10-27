@@ -112,7 +112,7 @@ export class SkillWorkflowService implements OnModuleInit {
       this.readRecord(request.input.context, 'context'),
     );
     return this.handlers[skillSlug].execute(
-      context,
+      { ...context, userId: request.context.userId },
       this.readRecord(request.input.params, 'params'),
     );
   }

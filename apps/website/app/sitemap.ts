@@ -219,6 +219,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
       url: 'https://genfeed.ai/self-hosted',
     },
+    {
+      changeFrequency: 'weekly',
+      priority: 0.6,
+      url: 'https://genfeed.ai/affiliates',
+    },
     // Linked from the site footer (Platform) so the page is crawl-reachable
     // even while the first desktop build is still unpublished.
     {

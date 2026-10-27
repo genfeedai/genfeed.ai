@@ -1,11 +1,5 @@
 [
   {
-    "actual": 156,
-    "file": "apps/server/api/src/collections/agent-memories/services/agent-memories.service.ts",
-    "metric": "method-lines",
-    "symbol": "AgentMemoriesService.scoreFeedbackMemory"
-  },
-  {
     "actual": 1081,
     "file": "apps/server/api/src/collections/agent-threads/services/agent-threads.service.ts",
     "metric": "file-lines",
@@ -60,7 +54,7 @@
     "symbol": "ListeningTopicAnalysisService.persistAnalysis"
   },
   {
-    "actual": 1010,
+    "actual": 1009,
     "file": "apps/server/api/src/collections/posting-cadences/services/posting-cadences.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/posting-cadences/services/posting-cadences.service.ts"

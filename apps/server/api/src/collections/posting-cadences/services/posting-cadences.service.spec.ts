@@ -1,3 +1,4 @@
+import { BRAND_CONTEXT_CHARACTER_BUDGET } from '@api/services/agent-context-assembly/brand-context-budget.util';
 import {
   ApiKeyScope,
   CalendarSlotItemType,
@@ -7,7 +8,10 @@ import {
   ReleaseStatus,
 } from '@genfeedai/contracts';
 import { MAX_CADENCE_SPAN_DAYS } from '@genfeedai/contracts/api-types/contracts/cadence-expansion.contract';
-import { ForbiddenException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PostingCadenceCopyService } from './posting-cadence-copy.service';
 import { PostingCadenceValidationService } from './posting-cadence-validation.service';
@@ -146,6 +150,10 @@ describe('PostingCadencesService', () => {
     getOrganizationCreditsBalance: vi.fn(),
   };
   const modelsService = { findOne: vi.fn() };
+  const harnessGenerationService = {
+    formatBrief: vi.fn(),
+    resolveBrief: vi.fn(),
+  };
   const slotReservation = {
     findFirst: vi.fn(),
     findMany: vi.fn().mockResolvedValue([]),
@@ -252,11 +260,17 @@ describe('PostingCadencesService', () => {
     prisma.article.findMany.mockResolvedValue([]);
     slotReservation.findMany.mockResolvedValue([]);
     slotReservation.updateMany.mockResolvedValue({ count: 1 });
+    harnessGenerationService.resolveBrief.mockResolvedValue({ id: 'brief' });
+    harnessGenerationService.formatBrief.mockReturnValue(
+      'Brand voice: direct, operator-to-operator.\nGuardrails: no hype claims.',
+    );
     const copyService = new PostingCadenceCopyService(
       prisma as never,
       llmDispatcherService as never,
       creditsUtilsService as never,
       modelsService as never,
+      harnessGenerationService as never,
+      { warn: vi.fn() } as never,
     );
     const validationService = new PostingCadenceValidationService(
       prisma as never,
@@ -515,6 +529,7 @@ describe('PostingCadencesService', () => {
     const userPrompt = messages.find(
       (message) => message.role === 'user',
     )?.content;
+    expect(userPrompt).toContain('Guardrails: no hype claims.');
     expect(userPrompt).toContain('Brand: Genfeed');
     expect(userPrompt).toContain('Campaign: August shorts');
     expect(userPrompt).toContain('Morning: we shipped cadence ghosts');
@@ -534,6 +549,65 @@ describe('PostingCadencesService', () => {
       creditsUtilsService.deductCreditsFromOrganization,
     ).toHaveBeenCalled();
     expect(result.releaseId).toBe('release-2');
+    expect(harnessGenerationService.resolveBrief).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: BRAND_ID,
+        contentType: 'post',
+        organizationId: ORG_ID,
+        userId: USER_ID,
+      }),
+    );
+  });
+
+  it.each([
+    ['no brief resolves', null, ''],
+    ['the brief is empty', { id: 'brief' }, '   '],
+    [
+      'the brief is over the brand context budget',
+      { id: 'brief' },
+      'x'.repeat(BRAND_CONTEXT_CHARACTER_BUDGET + 1),
+    ],
+  ])(
+    'refuses with a retryable 503 before pricing or credits when %s',
+    async (_name, brief, formatted) => {
+      slotReservation.findFirst.mockResolvedValue(null);
+      findFirst.mockResolvedValue(cadenceRow());
+      slotReservation.upsert.mockResolvedValue(missingReservation());
+      harnessGenerationService.resolveBrief.mockResolvedValue(brief);
+      harnessGenerationService.formatBrief.mockReturnValue(formatted);
+
+      await expect(
+        service.generate(ORG_ID, USER_ID, IDENTITY_KEY),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+
+      expect(modelsService.findOne).not.toHaveBeenCalled();
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).not.toHaveBeenCalled();
+      expect(llmDispatcherService.chatCompletion).not.toHaveBeenCalled();
+      expect(
+        creditsUtilsService.deductCreditsFromOrganization,
+      ).not.toHaveBeenCalled();
+      expect(postGroupsService.create).not.toHaveBeenCalled();
+    },
+  );
+
+  it('lets a brand access refusal stop the generate before any charge', async () => {
+    slotReservation.findFirst.mockResolvedValue(null);
+    findFirst.mockResolvedValue(cadenceRow());
+    slotReservation.upsert.mockResolvedValue(missingReservation());
+    harnessGenerationService.resolveBrief.mockRejectedValue(
+      new ForbiddenException('No access to this brand'),
+    );
+
+    await expect(
+      service.generate(ORG_ID, USER_ID, IDENTITY_KEY),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(llmDispatcherService.chatCompletion).not.toHaveBeenCalled();
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
   });
 
   it('persists skip and omits the skipped identity from listSlots', async () => {
