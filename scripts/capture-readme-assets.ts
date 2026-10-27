@@ -1,12 +1,13 @@
 #!/usr/bin/env bun
 /**
- * Capture mocked README PNGs via Playwright app-core (no live backend).
+ * Capture the mocked website product screenshots via Playwright app-core (no
+ * live backend). README screenshots come from `bun run readme:capture`.
  *
  * Starts `apps/app` with the hermetic Playwright auth bypass, intercepts
  * mock CDN media with local placeholder images, and writes frames to
- * docs/assets/readme/.
+ * apps/website/public/products/.
  *
- * Usage: bun run readme:capture
+ * Usage: bun run website:capture-products
  */
 import { spawn } from 'node:child_process';
 import { readdir, unlink } from 'node:fs/promises';
@@ -27,6 +28,7 @@ const child = spawn(
     cwd: repoRoot,
     env: {
       ...process.env,
+      CAPTURE_SET: 'website',
       // biome-ignore lint/suspicious/noUndeclaredEnvVars: not a turbo task
       APP_BASE_URL: process.env.APP_BASE_URL || 'http://127.0.0.1:3000',
       NEXT_PUBLIC_PLAYWRIGHT_BANNER_SKIP: 'true',

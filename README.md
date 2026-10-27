@@ -8,6 +8,9 @@ connected channels. Work in Genfeed or connect the AI agent you already use.
 [![CI](https://github.com/genfeedai/genfeed.ai/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/genfeedai/genfeed.ai/actions/workflows/ci.yml?query=branch%3Amaster)
 [![Release](https://img.shields.io/github/v/release/genfeedai/genfeed.ai?label=release)](https://github.com/genfeedai/genfeed.ai/releases/latest)
 [![License: AGPL-3.0-or-later](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue.svg)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/genfeedai/genfeed.ai?style=social)](https://github.com/genfeedai/genfeed.ai)
+
+**If Genfeed is useful, [star it on GitHub](https://github.com/genfeedai/genfeed.ai) ⭐ so others can find it.**
 
 <!-- TODO(demo): add the pinned demo video/GIF here (brief in → agent drafts →
 waits for approval → publishes). Real footage only; no mock media. -->
@@ -19,8 +22,6 @@ npx @genfeedai/create my-genfeed
 Needs Docker Compose v2 and Node.js 24. The wizard verifies the release bundle,
 asks for your [OpenRouter API key](https://openrouter.ai/keys), then starts it. Install guide: [genfeed.ai/self-hosted](https://genfeed.ai/self-hosted)
 · [docs.genfeed.ai](https://docs.genfeed.ai/self-host/installation).
-
-If Genfeed is useful, a ⭐ on GitHub helps others find it.
 
 > [!WARNING]
 > Genfeed is `0.x` and under active development. Breaking changes ship with an
@@ -148,17 +149,21 @@ The standard MCP preset is approval-first: an agent can generate, draft, and sch
 publishing waits for a human. What each surface exposes and why is in
 [Agent Surface](docs/agent-surface.md).
 
-![Agent conversation shell in a mocked Community workspace](docs/assets/readme/agent-shell.png)
+Captured from the real self-hosted app, v0.2.17, 1440×900 dark theme. The
+posts and the agent conversation are seeded demo content, not a live
+generation. Regenerate with `bun run readme:capture`.
 
-_Mocked Playwright capture of the agent conversation shell. Fixture data, not a live generation._
+![Agent conversation in Genfeed: a brief for a launch week recap and the agent's drafted X and LinkedIn posts](docs/assets/readme/agent-shell.png)
 
-![Publishing desk in a mocked Community workspace](docs/assets/readme/publishing-desk.png)
+_Agent: a brief in, drafts out. Both posts wait in Publishing for approval._
 
-_Mocked Playwright capture of the Publish desk._
+![Publishing posts list with scheduled, draft and published posts across X, LinkedIn, Instagram, TikTok and YouTube](docs/assets/readme/publishing-desk.png)
 
-![Visual workflow authoring in a mocked Community workspace](docs/assets/readme/automation-workflows.png)
+_Publish: scheduled, draft and published posts in one list._
 
-_Mocked Playwright capture of Automate workflow authoring._
+![Visual workflow editor showing the Research to Content workflow: Search Knowledge, Generate Post Draft, Collect Workflow Output](docs/assets/readme/automation-workflows.png)
+
+_Automate: the Research to Content workflow template in the visual editor._
 
 ## Capabilities
 
