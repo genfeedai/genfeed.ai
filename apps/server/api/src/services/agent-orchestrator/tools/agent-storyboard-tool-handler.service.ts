@@ -95,23 +95,12 @@ export class AgentStoryboardToolHandler {
         );
       case 'draft_plan':
         return summarizeRun(
-          await this.runs.draftPlan(
-            organizationId,
-            brandId,
-            input.runId,
-            {
-              expectedRevision: input.expectedRevision,
-              ...(input.instruction === undefined
-                ? {}
-                : { instruction: input.instruction }),
-            },
-            {
-              apiKeyId: ctx.apiKeyContext?.apiKeyId,
-              isApiKey: ctx.apiKeyContext?.isApiKey,
-              scopes: ctx.apiKeyContext?.scopes,
-              userId,
-            },
-          ),
+          await this.runs.draftPlan(organizationId, brandId, input.runId, {
+            expectedRevision: input.expectedRevision,
+            ...(input.instruction === undefined
+              ? {}
+              : { instruction: input.instruction }),
+          }),
         );
       case 'edit_script':
         return this.editScript(organizationId, brandId, input);

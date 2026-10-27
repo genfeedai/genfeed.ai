@@ -1,8 +1,5 @@
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import {
-  STUDIO_PROPOSALS_BRAND_CONTEXT_UNAVAILABLE,
-  StudioProposalsService,
-} from '@api/services/content-engine/studio-proposals.service';
+import { StudioProposalsService } from '@api/services/content-engine/studio-proposals.service';
 import {
   STUDIO_MEDIA_PROPOSALS_SCHEMA_NAME,
   STUDIO_STORYBOARD_PROPOSALS_SCHEMA_NAME,
@@ -11,10 +8,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('StudioProposalsService', () => {
   const assembleContext = vi.fn();
+  const buildSystemPrompt = vi.fn();
   const findApproved = vi.fn();
   const completeStructured = vi.fn();
   const buildPerformance = vi.fn();
-  const harness = { formatBrief: vi.fn(), resolveBrief: vi.fn() };
   let service: StudioProposalsService;
 
   const request = {
@@ -31,21 +28,17 @@ describe('StudioProposalsService', () => {
       brandId: 'brand-1',
       brandName: 'Acme',
     });
-    harness.resolveBrief.mockResolvedValue({ appliedPacks: [] });
-    harness.formatBrief.mockReturnValue(
-      'Voice: warm. Guardrails: no health claims.',
-    );
+    buildSystemPrompt.mockImplementation((base: string) => `${base}\nBRAND`);
     buildPerformance.mockResolvedValue({
       dataset: { totalPosts: 12 },
       isColdStart: false,
       section: 'Top posts: behind-the-scenes reels.',
     });
     service = new StudioProposalsService(
-      { assembleContext } as never,
+      { assembleContext, buildSystemPrompt } as never,
       { findApproved } as never,
       { completeStructured } as never,
       { build: buildPerformance } as never,
-      harness as never,
     );
   });
 
@@ -82,6 +75,7 @@ describe('StudioProposalsService', () => {
     expect(assembleContext).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId: 'brand-1',
+        layers: { performancePatterns: true },
         organizationId: 'org-1',
         userId: 'user-1',
       }),
@@ -89,18 +83,7 @@ describe('StudioProposalsService', () => {
     const [params, organizationId] = completeStructured.mock.calls[0];
     expect(organizationId).toBe('org-1');
     expect(params.schemaName).toBe(STUDIO_MEDIA_PROPOSALS_SCHEMA_NAME);
-    expect(params.messages[0].content).toContain(
-      'Brand brief (follow it exactly; never contradict its guardrails, and do not invent claims it does not support):\nVoice: warm. Guardrails: no health claims.',
-    );
-    expect(harness.resolveBrief).toHaveBeenCalledWith(
-      expect.objectContaining({
-        brandId: 'brand-1',
-        contentType: 'image',
-        organizationId: 'org-1',
-        surface: 'media',
-        userId: 'user-1',
-      }),
-    );
+    expect(params.messages[0].content).toContain('BRAND');
     expect(params.messages[1].content).toContain('Write 2 distinct proposals');
     expect(params.messages[1].content).toContain(
       'Top posts: behind-the-scenes reels.',
@@ -131,16 +114,6 @@ describe('StudioProposalsService', () => {
     expect(completeStructured.mock.calls[0][0].schemaName).toBe(
       STUDIO_STORYBOARD_PROPOSALS_SCHEMA_NAME,
     );
-  });
-
-  it('refuses to propose without the harness brief, before the model', async () => {
-    harness.resolveBrief.mockResolvedValue(null);
-    harness.formatBrief.mockReturnValue('');
-
-    await expect(service.propose(request)).rejects.toThrow(
-      STUDIO_PROPOSALS_BRAND_CONTEXT_UNAVAILABLE,
-    );
-    expect(completeStructured).not.toHaveBeenCalled();
   });
 
   it('fails when the brand context cannot be assembled', async () => {

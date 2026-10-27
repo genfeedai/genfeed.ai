@@ -65,10 +65,7 @@ const emptyPlan: StoryboardPlan = {
 };
 
 const request: StoryboardLongFormDraftRequest = {
-  brand: {
-    brief: 'Voice: plain, first person. Audience: early-stage founders.',
-    name: 'Benchmark studio',
-  },
+  brand: { name: 'Benchmark studio' },
   brief: voiceNote.transcript,
   current: emptyPlan,
   mode: 'draft',

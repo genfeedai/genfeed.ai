@@ -15,7 +15,6 @@ import { ContentPlannerService } from '@api/services/content-engine/content-plan
 import { PlanPerformanceContextService } from '@api/services/content-engine/plan-performance-context.service';
 import { StudioProposalsService } from '@api/services/content-engine/studio-proposals.service';
 import { ContentOrchestrationModule } from '@api/services/content-orchestration/content-orchestration.module';
-import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { PatternMatcherModule } from '@api/services/pattern-matcher/pattern-matcher.module';
 import { SkillWorkflowModule } from '@api/services/skill-executor/skill-executor.module';
@@ -26,7 +25,6 @@ import { Module } from '@nestjs/common';
   controllers: [ContentEngineController],
   exports: [ContentPlannerService, ContentExecutionService],
   imports: [
-    ContentHarnessModule,
     AdPerformanceModule,
     AdWatchedAdvertisersCoreModule,
     AgentContextAssemblyModule,

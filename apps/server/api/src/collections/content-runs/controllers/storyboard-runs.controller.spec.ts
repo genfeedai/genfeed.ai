@@ -47,7 +47,6 @@ describe('storyboard plan draft route', () => {
       'brand-1',
       'run-1',
       body,
-      { organizationId: 'authenticated-org', userId: 'user-1' },
     );
   });
 

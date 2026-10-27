@@ -1,4 +1,3 @@
-import { STORYBOARD_BRAND_CONTEXT_UNAVAILABLE } from '@api/collections/content-runs/services/storyboard-draft-brief.service';
 import { StoryboardPlanDraftService } from '@api/collections/content-runs/services/storyboard-plan-draft.service';
 import { StoryboardRunsService } from '@api/collections/content-runs/services/storyboard-runs.service';
 import type { StoryboardNativeRunConfig } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
@@ -9,8 +8,6 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
-
-const ACTOR = { userId: 'user-1' };
 
 function emptyConfig(): StoryboardNativeRunConfig {
   return {
@@ -95,9 +92,6 @@ function setup(config: StoryboardNativeRunConfig = emptyConfig()) {
     })),
   };
   const capabilities = { resolve: vi.fn(async () => capability) };
-  const draftBrief = {
-    resolve: vi.fn(async () => 'Voice: plain. Guardrails: no health claims.'),
-  };
   const service = new StoryboardRunsService(
     {} as never,
     planning as never,
@@ -109,39 +103,25 @@ function setup(config: StoryboardNativeRunConfig = emptyConfig()) {
       { chatCompletion } as never,
       logger as never,
     ),
-    draftBrief as never,
   );
   const reply = (content: unknown) =>
     chatCompletion.mockResolvedValueOnce({
       choices: [{ message: { content: JSON.stringify(content) } }],
     });
-  return {
-    service,
-    store,
-    chatCompletion,
-    reply,
-    planning,
-    source,
-    config,
-    draftBrief,
-  };
+  return { service, store, chatCompletion, reply, planning, source, config };
 }
 
 describe('Storyboard plan drafting', () => {
   it('drafts from the brief, fits the default budget and saves a reset point', async () => {
-    const { service, store, reply, chatCompletion, draftBrief } = setup();
+    const { service, store, reply, chatCompletion } = setup();
     reply({
       title: 'Bottle launch',
       logline: 'A bottle changes the day.',
       shots: [shotJson(1), shotJson(2), shotJson(3)],
     });
-    const run = (await service.draftPlan(
-      'org-1',
-      'brand-1',
-      'run-1',
-      { expectedRevision: 3 },
-      ACTOR,
-    )) as unknown as StoryboardNativeRunConfig;
+    const run = (await service.draftPlan('org-1', 'brand-1', 'run-1', {
+      expectedRevision: 3,
+    })) as unknown as StoryboardNativeRunConfig;
     expect(run).toMatchObject({ revision: 4, state: 'storyboard' });
     expect(run.plan.title).toBe('Bottle launch');
     expect(run.plan.runtimeBudgetSeconds).toBe(30);
@@ -153,34 +133,6 @@ describe('Storyboard plan drafting', () => {
     expect(store.save).toHaveBeenCalledTimes(1);
     const prompt = chatCompletion.mock.calls[0][0].messages[1].content;
     expect(prompt).toContain('Launch the new bottle.');
-    expect(JSON.parse(prompt).brand).toEqual({
-      brief: 'Voice: plain. Guardrails: no health claims.',
-      name: 'Acme',
-    });
-    expect(draftBrief.resolve).toHaveBeenCalledWith(
-      'org-1',
-      'brand-1',
-      ACTOR,
-      'Launch the new bottle.',
-    );
-  });
-
-  it('refuses to draft without brand context, before the model and the save', async () => {
-    const { service, store, chatCompletion, draftBrief } = setup();
-    draftBrief.resolve.mockRejectedValueOnce(
-      new ServiceUnavailableException(STORYBOARD_BRAND_CONTEXT_UNAVAILABLE),
-    );
-    await expect(
-      service.draftPlan(
-        'org-1',
-        'brand-1',
-        'run-1',
-        { expectedRevision: 3 },
-        ACTOR,
-      ),
-    ).rejects.toThrow(STORYBOARD_BRAND_CONTEXT_UNAVAILABLE);
-    expect(chatCompletion).not.toHaveBeenCalled();
-    expect(store.save).not.toHaveBeenCalled();
   });
 
   it('snaps durations to the model and keeps the total inside the budget', async () => {

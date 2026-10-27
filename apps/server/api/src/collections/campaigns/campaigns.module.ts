@@ -19,7 +19,6 @@ import { QueuesModule } from '@api/queues/core/queues.module';
 import { AdsGatewayModule } from '@api/services/ads-gateway/ads-gateway.module';
 import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';
 import { ByokModule } from '@api/services/byok/byok.module';
-import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { Module } from '@nestjs/common';
@@ -28,7 +27,6 @@ import { Module } from '@nestjs/common';
   controllers: [CampaignsController],
   exports: [CampaignsService],
   imports: [
-    ContentHarnessModule,
     PlatformSettingsModule,
     CreditsModule,
     ModelsModule,

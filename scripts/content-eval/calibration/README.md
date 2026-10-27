@@ -35,14 +35,6 @@ Expected: `exit=1` because stub κ is below the threshold by design; jq prints
 includes `perRowExpectedUsd`. Stub evidence does not measure live judge quality;
 linking it produces an advisory warning, not a CI failure or a live-evidence claim.
 
-## Claim rubrics (#5604)
-
-`content-claims-v1` asks the judge for a pass, fail or not-applicable verdict
-on each of eight checkable claims; the score is the share of applicable claims
-that pass. A claim rubric runs in this judge suite, which is how it is
-calibrated, but gating suites refuse it until its spec names a live
-calibration report for its exact digest (`assertRubricMayGate`).
-
 ## Scales and metrics
 
 Scores use `s = (clamp(n) − min) / (max − min)`, rounded to four decimals.

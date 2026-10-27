@@ -9,40 +9,34 @@
  */
 
 import { z } from 'zod';
-import {
-  type BattleJudgement,
-  type BattleJudgeRequest,
-  type CallProvenance,
-  CLAIM_VERDICTS,
-  type ClaimVerdict,
-  type EvalJudge,
-  type EvalJudgeOptions,
-  type EvalRubricSpec,
-  type JudgeClassifyInput,
-  type JudgeClassifyResult,
-  type JudgeVote,
-  type PointwiseJudgement,
-  type PointwiseJudgeRequest,
-  type RubricRecord,
+import type {
+  BattleJudgement,
+  BattleJudgeRequest,
+  CallProvenance,
+  EvalJudge,
+  EvalJudgeOptions,
+  EvalRubricSpec,
+  JudgeClassifyInput,
+  JudgeClassifyResult,
+  JudgeVote,
+  PointwiseJudgement,
+  PointwiseJudgeRequest,
+  RubricRecord,
 } from '../contracts';
 import { requireModelFamily } from '../families';
 import { MeteredCallError, meteredCall } from '../provenance';
 import { SpendCapExceededError } from '../spend';
 import {
   BATTLE_RUBRIC,
-  isClaimRubric,
+  CONTENT_QUALITY_RUBRIC,
   RUBRICS_BY_VERSION,
-  renderClaims,
   renderTemplate,
   rubricDigest,
   toRubricRecord,
 } from './rubrics';
 
 export const JUDGE_SCHEMA_NAME = 'content_eval_judge_classification';
-export const CLAIMS_JUDGE_SCHEMA_NAME = 'content_eval_judge_claims';
 const JUDGE_MAX_TOKENS = 1024;
-// Reasons for every claim in one answer.
-const CLAIMS_JUDGE_MAX_TOKENS = 2048;
 const JUDGE_TEMPERATURE = 0;
 
 function cotSuffix(choices: string[]): string {
@@ -70,70 +64,12 @@ function classificationSchema(choices: string[]) {
 export function resolvePointwiseRubric(rubricVersion: string): EvalRubricSpec {
   const spec = RUBRICS_BY_VERSION.get(rubricVersion);
   if (!spec || spec.id === BATTLE_RUBRIC.id) {
-    const known = [...RUBRICS_BY_VERSION.values()]
-      .filter((entry) => entry.id !== BATTLE_RUBRIC.id)
-      .map((entry) => entry.version);
     throw new Error(
-      `Unknown pointwise rubric "${rubricVersion}"; known: ${known.join(', ')}`,
+      `Unknown pointwise rubric "${rubricVersion}"; known: ${CONTENT_QUALITY_RUBRIC.version}`,
     );
   }
 
   return spec;
-}
-
-function claimsSchema(spec: EvalRubricSpec) {
-  const [first, ...rest] = (spec.claims ?? []).map((claim) => claim.id);
-  if (first === undefined) {
-    throw new Error(`Rubric ${spec.version} has no claims`);
-  }
-
-  return z.object({
-    claims: z.array(
-      z.object({
-        claimId: z.enum([first, ...rest]),
-        reasons: z.string().min(1),
-        verdict: z.enum(CLAIM_VERDICTS),
-      }),
-    ),
-  });
-}
-
-const CLAIMS_SUFFIX = [
-  'Answer with `claims`: one entry per claim, in the order listed, with its',
-  '`claimId`, then `reasons` (write these first, step by step), then `verdict`.',
-].join(' ');
-
-/**
- * Every listed claim answered exactly once, and the share of applicable ones
- * that pass. A score needs at least one applicable claim.
- */
-export function scoreClaimVerdicts(
-  spec: EvalRubricSpec,
-  verdicts: ClaimVerdict[],
-): number {
-  const expected = (spec.claims ?? []).map((claim) => claim.id);
-  const answered = verdicts.map((entry) => entry.claimId);
-  const missing = expected.filter((id) => !answered.includes(id));
-  if (missing.length > 0 || answered.length !== expected.length) {
-    throw new Error(
-      `Claim verdicts must answer each claim once; missing ${missing.join(', ') || 'none'}, got ${answered.length} of ${expected.length}`,
-    );
-  }
-  const applicable = verdicts.filter(
-    (entry) => entry.verdict !== 'not-applicable',
-  );
-  if (applicable.length === 0) {
-    throw new Error('Every claim was not-applicable; no score can be derived');
-  }
-  const passed = applicable.filter((entry) => entry.verdict === 'pass');
-  return Math.round((passed.length / applicable.length) * 1e4) / 1e4;
-}
-
-interface ClaimsJudgement {
-  provenance: CallProvenance;
-  rationale: string;
-  score: number | null;
-  verdicts: ClaimVerdict[] | null;
 }
 
 function isFatal(error: unknown): boolean {
@@ -211,70 +147,6 @@ export function createEvalJudge({
     };
   }
 
-  /** One call answers every claim; the verdicts become the score. */
-  async function checkClaims({
-    judgeRegistryKey,
-    rowId,
-    spec,
-    variables,
-  }: JudgeClassifyInput): Promise<ClaimsJudgement> {
-    usedRubrics.set(spec.version, spec);
-    const prompt = `${renderTemplate(spec.promptTemplate, {
-      ...variables,
-      claims: renderClaims(spec),
-    })}\n${CLAIMS_SUFFIX}`;
-    const { provenance, response } = await meteredCall(
-      {
-        dispatcher,
-        ledger,
-        rowId,
-        rubricDigest: rubricDigest(spec),
-        rubricVersion: spec.version,
-      },
-      {
-        maxTokens: CLAIMS_JUDGE_MAX_TOKENS,
-        messages: [{ content: prompt, role: 'user' }],
-        model: judgeRegistryKey,
-        role: 'judge',
-        schema: claimsSchema(spec),
-        schemaName: CLAIMS_JUDGE_SCHEMA_NAME,
-        seed,
-        temperature: JUDGE_TEMPERATURE,
-      },
-    );
-    const verdicts = response.value.claims;
-    try {
-      return {
-        provenance,
-        rationale: verdicts
-          .map(
-            (entry) => `[${entry.claimId}] ${entry.verdict}: ${entry.reasons}`,
-          )
-          .join('\n'),
-        score: scoreClaimVerdicts(spec, verdicts),
-        verdicts,
-      };
-    } catch (error: unknown) {
-      // The call was charged; keep its provenance on the void.
-      throw new MeteredCallError(provenance, { cause: error });
-    }
-  }
-
-  async function judgePointwise(
-    input: JudgeClassifyInput,
-  ): Promise<ClaimsJudgement> {
-    if (isClaimRubric(input.spec)) {
-      return checkClaims(input);
-    }
-    const result = await classify(input);
-    return {
-      provenance: result.provenance,
-      rationale: result.reasons,
-      score: input.spec.choiceScores[result.choice] ?? null,
-      verdicts: null,
-    };
-  }
-
   return {
     async battle({
       first,
@@ -334,7 +206,7 @@ export function createEvalJudge({
     }: PointwiseJudgeRequest): Promise<PointwiseJudgement> {
       const spec = resolvePointwiseRubric(row.rubricVersion);
       try {
-        const result = await judgePointwise({
+        const result = await classify({
           judgeRegistryKey,
           rowId: row.id,
           spec,
@@ -344,17 +216,17 @@ export function createEvalJudge({
             output,
           },
         });
+        const score = spec.choiceScores[result.choice] ?? null;
 
         return {
           callId: result.provenance.callId,
-          claimVerdicts: result.verdicts,
           failure: null,
-          rationale: result.rationale,
-          score: result.score,
+          rationale: result.reasons,
+          score,
           vote: vote(judgeRegistryKey, result.provenance, {
             choice: null,
-            rationale: result.rationale,
-            score: result.score,
+            rationale: result.reasons,
+            score,
           }),
         };
       } catch (error: unknown) {
@@ -365,7 +237,6 @@ export function createEvalJudge({
         const failed = failedCall(error);
         return {
           callId: failed?.callId ?? null,
-          claimVerdicts: null,
           failure: describe(error),
           rationale: null,
           score: null,

@@ -7,10 +7,6 @@ import {
   RUN_SELECT,
 } from '@api/collections/content-runs/services/brand-remix-runs.types';
 import {
-  type StoryboardDraftActor,
-  StoryboardDraftBriefService,
-} from '@api/collections/content-runs/services/storyboard-draft-brief.service';
-import {
   type StoryboardStoredRunConfig,
   storyboardStoredRunConfigSchema,
 } from '@api/collections/content-runs/services/storyboard-imported-run-state.schema';
@@ -24,10 +20,7 @@ import {
   requiresStoryboardCapabilities,
   storyboardCapabilityError,
 } from '@api/collections/content-runs/services/storyboard-plan-capabilities';
-import {
-  STORYBOARD_DEFAULT_RUNTIME_BUDGET_SECONDS,
-  type StoryboardDraftBrand,
-} from '@api/collections/content-runs/services/storyboard-plan-draft';
+import { STORYBOARD_DEFAULT_RUNTIME_BUDGET_SECONDS } from '@api/collections/content-runs/services/storyboard-plan-draft';
 import { StoryboardPlanDraftService } from '@api/collections/content-runs/services/storyboard-plan-draft.service';
 import {
   approveStoryboardPlan,
@@ -106,7 +99,6 @@ export class StoryboardRunsService {
     private readonly capabilities: StoryboardRunCapabilitiesService,
     private readonly logger: LoggerService,
     private readonly drafter: StoryboardPlanDraftService,
-    private readonly draftBrief: StoryboardDraftBriefService,
   ) {}
 
   async create(
@@ -426,7 +418,6 @@ export class StoryboardRunsService {
     brandId: string,
     runId: string,
     body: unknown,
-    actor: StoryboardDraftActor,
   ): Promise<StoryboardRun> {
     const input = parseInput(draftStoryboardPlanSchema, body);
     const { config } = await this.store.read(
@@ -451,8 +442,15 @@ export class StoryboardRunsService {
         'Write a brief or give an instruction before drafting the plan.',
       );
     if (config.plan.longForm) {
+      const context = await this.planning.resolveBrandContext(
+        organizationId,
+        brandId,
+      );
       const plan = await this.drafter.draftLongForm({
-        brand: await this.draftBrand(organizationId, brandId, actor, selector),
+        brand: {
+          name: context.brand.label,
+          description: context.brand.description ?? undefined,
+        },
         brief: selector.brief,
         current: config.plan,
         instruction: input.instruction,
@@ -479,8 +477,15 @@ export class StoryboardRunsService {
         capabilities.reasonCode ?? 'MODEL_CAPABILITIES_UNAVAILABLE',
         HttpStatus.UNPROCESSABLE_ENTITY,
       );
+    const context = await this.planning.resolveBrandContext(
+      organizationId,
+      brandId,
+    );
     const plan = await this.drafter.draft({
-      brand: await this.draftBrand(organizationId, brandId, actor, selector),
+      brand: {
+        name: context.brand.label,
+        description: context.brand.description ?? undefined,
+      },
       brief: selector.brief,
       current: config.plan,
       instruction: input.instruction,
@@ -498,27 +503,6 @@ export class StoryboardRunsService {
       plan,
       isRevision,
     );
-  }
-
-  private async draftBrand(
-    organizationId: string,
-    brandId: string,
-    actor: StoryboardDraftActor,
-    selector: { brief: string },
-  ): Promise<StoryboardDraftBrand> {
-    const context = await this.planning.resolveBrandContext(
-      organizationId,
-      brandId,
-    );
-    return {
-      brief: await this.draftBrief.resolve(
-        organizationId,
-        brandId,
-        actor,
-        selector.brief,
-      ),
-      name: context.brand.label,
-    };
   }
 
   private async saveDraftedPlan(

@@ -41,10 +41,7 @@ function request(
   overrides: Partial<StoryboardDraftRequest> = {},
 ): StoryboardDraftRequest {
   return {
-    brand: {
-      brief: 'Voice: plain. Guardrails: no health claims.',
-      name: 'Acme',
-    },
+    brand: { name: 'Acme' },
     brief: 'Launch the new bottle.',
     current: emptyPlan,
     mode: 'draft',

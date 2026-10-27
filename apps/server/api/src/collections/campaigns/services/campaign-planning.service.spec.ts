@@ -1,5 +1,4 @@
 import {
-  CAMPAIGN_PLAN_BRAND_CONTEXT_UNAVAILABLE,
   CampaignPlanningService,
   campaignPlanSchema,
 } from '@api/collections/campaigns/services/campaign-planning.service';
@@ -15,7 +14,7 @@ describe('CampaignPlanningService', () => {
     brand: { findFirst: vi.fn() },
     campaign: { findFirst: vi.fn() },
   };
-  const harness = { formatBrief: vi.fn(), resolveBrief: vi.fn() };
+  const context = { assembleContext: vi.fn(), buildSystemPrompt: vi.fn() };
   const llm = { completeStructured: vi.fn() };
   const campaigns = new CampaignsService(prisma as unknown as PrismaService);
   const createCampaign = vi.spyOn(campaigns, 'create');
@@ -44,9 +43,12 @@ describe('CampaignPlanningService', () => {
     credits.checkOrganizationCreditsAvailable.mockResolvedValue(true);
     prisma.brand.findFirst.mockResolvedValue({ id: dto.brandId });
     prisma.campaign.findFirst.mockResolvedValue(null);
-    harness.resolveBrief.mockResolvedValue({ appliedPacks: [] });
-    harness.formatBrief.mockReturnValue(
-      'Voice: warm. Guardrails: no health claims.',
+    context.assembleContext.mockResolvedValue({
+      brandId: dto.brandId,
+      brandName: 'Our brand',
+    });
+    context.buildSystemPrompt.mockReturnValue(
+      'Scoped brand voice and guidance',
     );
     llm.completeStructured.mockResolvedValue(plan);
     createCampaign.mockResolvedValue({
@@ -63,12 +65,12 @@ describe('CampaignPlanningService', () => {
     });
     service = new CampaignPlanningService(
       prisma as never,
+      context as never,
       llm as never,
       campaigns,
       models as never,
       credits as never,
       cache as never,
-      harness as never,
     );
   });
   it('generates a brand-aware draft from just a name', async () => {
@@ -77,22 +79,16 @@ describe('CampaignPlanningService', () => {
       select: { id: true },
       where: { id: dto.brandId, organizationId: 'org-1', isDeleted: false },
     });
-    expect(harness.resolveBrief).toHaveBeenCalledWith(
-      expect.objectContaining({
-        brandId: dto.brandId,
-        contentType: 'post',
-        organizationId: 'org-1',
-        topic: 'Product launch',
-        userId: 'user-1',
-      }),
-    );
+    expect(context.assembleContext).toHaveBeenCalledWith({
+      brandId: dto.brandId,
+      organizationId: 'org-1',
+      query: 'Product launch',
+      userId: 'user-1',
+    });
     expect(llm.completeStructured).toHaveBeenCalledWith(
       expect.objectContaining({ schema: campaignPlanSchema }),
       'org-1',
     );
-    expect(
-      llm.completeStructured.mock.calls[0][0].messages[0].content,
-    ).toContain('Voice: warm. Guardrails: no health claims.');
     expect(campaigns.create).toHaveBeenCalledWith('org-1', 'user-1', {
       ...plan,
       ...dto,
@@ -106,14 +102,10 @@ describe('CampaignPlanningService', () => {
     expect(llm.completeStructured).not.toHaveBeenCalled();
     expect(campaigns.create).not.toHaveBeenCalled();
   });
-  it('refuses to plan without the harness brief, before the model', async () => {
-    harness.resolveBrief.mockResolvedValue(null);
-    harness.formatBrief.mockReturnValue('');
-    await expect(service.generate('org-1', 'user-1', dto)).rejects.toThrow(
-      CAMPAIGN_PLAN_BRAND_CONTEXT_UNAVAILABLE,
-    );
+  it('does not fall back to the selected brand when context is missing', async () => {
+    context.assembleContext.mockResolvedValue({ brandId: 'other-brand' });
+    await expect(service.generate('org-1', 'user-1', dto)).rejects.toThrow();
     expect(llm.completeStructured).not.toHaveBeenCalled();
-    expect(campaigns.create).not.toHaveBeenCalled();
   });
   it('keeps provider failures retryable without creating an empty campaign', async () => {
     llm.completeStructured.mockRejectedValue(new Error('Provider unavailable'));
@@ -153,7 +145,7 @@ describe('CampaignPlanningService', () => {
       });
     }
     expect(models.findOne).not.toHaveBeenCalled();
-    expect(harness.resolveBrief).not.toHaveBeenCalled();
+    expect(context.assembleContext).not.toHaveBeenCalled();
     expect(llm.completeStructured).not.toHaveBeenCalled();
     expect(onBilling).not.toHaveBeenCalled();
     expect(campaigns.create).not.toHaveBeenCalled();
