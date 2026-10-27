@@ -6,6 +6,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ASSET_ORIGIN_GENERATION_PENDING } from '@api/collections/assets/constants/asset-origin.constant';
 import { GenerateAssetDto } from '@api/collections/assets/dto/generate-asset.dto';
+import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
