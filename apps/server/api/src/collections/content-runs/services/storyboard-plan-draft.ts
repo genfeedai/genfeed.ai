@@ -50,7 +50,8 @@ export interface StoryboardDraftModel {
 }
 
 export interface StoryboardDraftBrand {
-  description?: string;
+  /** The composed harness brief: voice, audience, guardrails and memory. */
+  brief: string;
   name: string;
 }
 
@@ -138,6 +139,7 @@ export function buildStoryboardDraftMessages(
         `Return ${STORYBOARD_MIN_SHOTS}-${maxShots} shots in playback order. Each shot has a sectionLabel (a short name of at most 40 characters), an action (concrete, filmable, what the viewer sees), optional dialogue (null when nobody speaks), a speakerId taken only from castMembers (null when there is no dialogue or no cast), isSpokenOnScreen (true only when that character visibly speaks to camera), and a durationSeconds.`,
         'Choose each durationSeconds from allowedDurationsSeconds. The durations must add up to no more than runtimeBudgetSeconds.',
         'Invent no brand claims, prices or offers that the brief does not state.',
+        'Write in the voice brand.brief describes and keep to its audience and guardrails; never contradict them.',
         isRevision
           ? 'Apply the instruction to currentPlan. Keep shots the instruction does not touch as they are and give them their existingShotId. Use null for existingShotId on shots you add. Remove a shot by leaving it out.'
           : 'Draft a new plan from the brief. Use null for existingShotId on every shot.',
