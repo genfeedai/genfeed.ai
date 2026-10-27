@@ -4,6 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { GenerationHarnessSettingsPopoverProps } from '@genfeedai/props/ui/generation-setup/generation-harness.props';
 import { useGenerationHarnessSettings } from '@hooks/data/generation/use-generation-harness-settings';
+import { SHELL_ICON_CLASS } from '@ui/constants/shell-chrome.constant';
 import GenerationHarnessSettingsCard from '@ui/dropdowns/generation-setup/GenerationHarnessSettingsCard';
 import { Button } from '@ui/primitives/button';
 import {
@@ -43,7 +44,7 @@ export default function GenerationHarnessSettingsPopover({
           icon={
             <SlidersHorizontal
               aria-hidden="true"
-              className="size-4 stroke-[1.75]"
+              className={SHELL_ICON_CLASS}
             />
           }
           isDisabled={isDisabled}

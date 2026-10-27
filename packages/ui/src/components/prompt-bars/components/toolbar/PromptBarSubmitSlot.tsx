@@ -2,6 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { PromptBarSubmitSlotProps } from '@genfeedai/props/prompt-bars/prompt-bar-toolbar.props';
+import { PROMPT_BAR_ICON_BUTTON_CLASS } from '@ui/constants/shell-chrome.constant';
 import { Button } from '@ui/primitives/button';
 import PromptBarVoiceControl from '@ui/prompt-bars/components/toolbar/PromptBarVoiceControl';
 import { Square } from 'lucide-react';
@@ -69,7 +70,7 @@ export default function PromptBarSubmitSlot({
       {showStop && onStop ? (
         <Button
           ariaLabel={resolvedStopLabel}
-          className="size-8 shrink-0 min-h-0 min-w-0 p-0"
+          className={PROMPT_BAR_ICON_BUTTON_CLASS}
           icon={
             <Square aria-hidden className="size-2.5 fill-current stroke-none" />
           }
