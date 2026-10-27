@@ -29,6 +29,10 @@ import {
   removePostWithLearning,
 } from '@api/collections/posts/services/post-learning-mutation.util';
 import { POST_SCALAR_FIELDS } from '@api/collections/posts/services/post-patch-write.util';
+import {
+  OWNED_INBOX_POST_ORDER_BY,
+  publishedInboxPostStateFilter,
+} from '@api/collections/posts/services/post-publication-capture.filters';
 import { recordExternalPublicationWrite } from '@api/collections/posts/services/post-publication-capture.write';
 import { linkExternalPublicationCredentialWrite } from '@api/collections/posts/services/post-publication-credential-link.write';
 import {
@@ -62,6 +66,7 @@ import {
   CredentialPlatform,
   type PersistedReviewDecision,
   PostFormat,
+  PostStatus,
   PostVisibility,
   parsePlatform,
   TargetExecutionState,
@@ -635,6 +640,32 @@ export class PostsService extends BaseService<
     return this.prisma.post.count({
       where: scopedWhere(organizationId, filter),
     });
+  }
+
+  /**
+   * Text of the latest published root posts of a brand on one platform, newest
+   * first. Drafts and scheduled posts are not included: this is what the
+   * audience has already seen.
+   */
+  async listRecentPublishedTexts(
+    organizationId: string,
+    brandId: string,
+    platform: string,
+    limit: number,
+  ): Promise<string[]> {
+    const posts = await this.prisma.post.findMany({
+      orderBy: OWNED_INBOX_POST_ORDER_BY,
+      select: { description: true },
+      take: limit,
+      where: scopedWhere(organizationId, {
+        AND: [publishedInboxPostStateFilter([PostStatus.PUBLIC])],
+        brandId,
+        description: { not: '' },
+        parentId: null,
+        platform,
+      }),
+    });
+    return posts.map((post) => post.description);
   }
 
   /**
