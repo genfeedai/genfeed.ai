@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildPersonalOrganizationSlugSeed,
   deriveBrandNameFromDomain,
   extractBrandDomain,
   extractEmailDomain,
   isPersonalEmailDomain,
   resolveSignupBrandDomain,
-  buildPersonalOrganizationSlugSeed,
   resolveSignupOrganizationLabel,
   resolveSignupWorkspaceLabel,
 } from './signup-brand-domain.helper';
