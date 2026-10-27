@@ -22,14 +22,24 @@ const AGENT_TYPE_DEFAULTS: Record<string, readonly string[]> = {
 const CHANNEL_DEFAULTS: Record<string, readonly string[]> = {
   ads: ['ad-copy-creator'],
   blog: ['blog-content-creator'],
-  instagram: ['instagram-content-creator'],
-  linkedin: ['linkedin-content-creator'],
-  reels: ['instagram-content-creator'],
-  tiktok: ['tiktok-warmup'],
-  twitter: ['x-content-creator'],
-  x: ['x-content-creator'],
-  youtube: ['youtube-content-creator'],
 };
+
+/**
+ * Channels whose platform guidance comes from a built-in harness platform
+ * pack (`@genfeedai/harness` `platform-*`). A default turn on one of these
+ * channels injects no skill text: the pack already carries the platform rules
+ * in short form, and pasting the full product skill would duplicate them.
+ */
+const HARNESS_PLATFORM_CHANNELS = new Set([
+  'instagram',
+  'linkedin',
+  'reels',
+  'shorts',
+  'tiktok',
+  'twitter',
+  'x',
+  'youtube',
+]);
 
 const MODALITY_DEFAULTS: Record<string, readonly string[]> = {
   audio: ['model-selector'],
@@ -79,6 +89,7 @@ export function isDefaultFirstPartySkillSlug(slug: unknown): boolean {
 /**
  * Small first-party default set for a turn whose brand has empty `enabledSkills`.
  * Packs by agent type, then modality, then channel — never the full catalog.
+ * A channel served by a harness platform pack adds nothing on its own.
  */
 export function resolveDefaultFirstPartySkillSlugs(
   context: DefaultFirstPartySkillContext = {},
@@ -98,7 +109,10 @@ export function resolveDefaultFirstPartySkillSlugs(
     addUnique(slugs, CHANNEL_DEFAULTS[channel] ?? []);
   }
 
-  if (slugs.length === 0) {
+  if (
+    slugs.length === 0 &&
+    !(channel && HARNESS_PLATFORM_CHANNELS.has(channel))
+  ) {
     addUnique(slugs, GENERIC_DEFAULTS);
   }
 

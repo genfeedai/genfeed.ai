@@ -117,4 +117,16 @@ export function billingAccountRoleSatisfies(
 export enum BillingRevenueSource {
   CREDIT_PURCHASE = 'credit_purchase',
   SUBSCRIPTION_INVOICE = 'subscription_invoice',
+  /** Negative row: net-of-tax share of a refunded payment. */
+  REFUND = 'refund',
+  /** Negative row: net-of-tax share of a disputed (charged back) payment. */
+  DISPUTE = 'dispute',
+}
+
+/** Refund and dispute rows reduce revenue; they are not payments. */
+export function isRevenueAdjustmentSource(source: string): boolean {
+  return (
+    source === BillingRevenueSource.REFUND ||
+    source === BillingRevenueSource.DISPUTE
+  );
 }

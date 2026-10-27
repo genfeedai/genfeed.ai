@@ -1857,14 +1857,6 @@
       "workspace": "api"
     },
     {
-      "code": 2741,
-      "count": 1,
-      "file": "apps/server/api/src/collections/schedules/controllers/schedules.controller.spec.ts",
-      "fingerprint": "1c36b98296b117d2d8b6",
-      "message": "Property 'contentId' is missing in type '{ contentType: \"image\"; platform: string; }' but required in type 'GetOptimalTimeDto'.",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/collections/social-sources/services/social-sources.service.spec.ts",

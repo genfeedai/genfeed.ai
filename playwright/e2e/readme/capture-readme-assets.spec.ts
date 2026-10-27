@@ -212,7 +212,7 @@ const WEBSITE_PRODUCT_TARGETS: CaptureTarget[] = [
   { fileName: 'messages.png', path: brandPath('/messages') },
   {
     fileName: 'agent.png',
-    path: orgPath('/agent/readme-thread-2'),
+    path: brandPath('/agent/readme-thread-2'),
     prepare: async (page: Page) => {
       // The mocked API has no realtime socket; hide its connection banner.
       await page.evaluate(() => {
@@ -670,9 +670,14 @@ async function fulfillReadmeApi(route: Route, url: string): Promise<void> {
 function jsonApiCollection(
   type: string,
   items: Array<Record<string, unknown> & { id: string }>,
+  { hasPagination = false }: { hasPagination?: boolean } = {},
 ): Record<string, unknown> {
   return {
     data: items.map((item) => ({ attributes: item, id: item.id, type })),
+    // Paged lists read their footer total from the pagination links.
+    ...(hasPagination
+      ? { links: { pagination: { page: 1, pages: 1, total: items.length } } }
+      : {}),
     meta: { page: 1, pageSize: items.length, totalCount: items.length },
   };
 }
@@ -1153,8 +1158,44 @@ async function fulfillSurfaceApi(route: Route, url: string): Promise<boolean> {
   if (method === 'GET' && /\/editor-projects$/.test(pathname)) {
     await fulfillJson(
       route,
-      jsonApiCollection('editor-projects', EDITOR_PROJECTS),
+      jsonApiCollection('editor-projects', EDITOR_PROJECTS, {
+        hasPagination: true,
+      }),
     );
+    return true;
+  }
+  if (method === 'GET' && /\/corpus\/health$/.test(pathname)) {
+    await fulfillJson(route, {
+      generatedAt: '2026-10-26T08:00:00.000Z',
+      providerFailures: [],
+      refreshHealth: ['tiktok', 'instagram', 'youtube'].map((platform) => ({
+        completedAt: '2026-10-26T07:58:00.000Z',
+        dataset: 'trends',
+        lastAttemptAt: '2026-10-26T07:55:00.000Z',
+        lastSuccessfulRefreshAt: '2026-10-26T07:58:00.000Z',
+        outcome: 'native_available',
+        platform,
+        reason: null,
+        scope: 'global',
+      })),
+      segments: ['tiktok', 'instagram', 'youtube'].map((platform) => ({
+        id: `segment-${platform}`,
+        latestSeenAt: '2026-10-26T07:58:00.000Z',
+        platform,
+        provider: 'native',
+        status: 'healthy',
+      })),
+      status: 'healthy',
+      summary: {
+        activeTrends: 4200,
+        failingProviders: 0,
+        freshSegments: 3,
+        platforms: ['tiktok', 'instagram', 'youtube'],
+        referenceRecords: 4200,
+        staleSegments: 0,
+        totalSegments: 3,
+      },
+    });
     return true;
   }
   if (method === 'GET' && /\/trends\/discovery$/.test(pathname)) {

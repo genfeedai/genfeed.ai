@@ -6,6 +6,9 @@ import { ContextEmbeddingProviderService } from '@api/collections/contexts/servi
 import { ContextEmbeddingWriteService } from '@api/collections/contexts/services/context-embedding-write.service';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { KnowledgeCaptureService } from '@api/collections/contexts/services/knowledge-capture.service';
+import { KnowledgeConflictDetectionService } from '@api/collections/contexts/services/knowledge-conflict-detection.service';
+import type { KnowledgeConflictVerdict } from '@api/collections/contexts/services/knowledge-conflict-judge.service';
+import { KnowledgeConflictLookupService } from '@api/collections/contexts/services/knowledge-conflict-lookup.service';
 import { KnowledgeContentRetrievalService } from '@api/collections/contexts/services/knowledge-content-retrieval.service';
 import { KnowledgeEmbeddingCompletionService } from '@api/collections/contexts/services/knowledge-embedding-completion.service';
 import { KnowledgeReceiptVerifierService } from '@api/collections/contexts/services/knowledge-receipt-verifier.service';
@@ -23,6 +26,7 @@ import {
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import {
+  KnowledgeConflictStatus,
   KnowledgeMemoryScope,
   KnowledgeProcessingState,
   KnowledgeSourceKind,
@@ -62,6 +66,7 @@ const migrations = [
   '20260917180000_knowledge_refresh_and_transcripts',
   '20260918120000_knowledge_capture_request_hash',
   '20261022090000_context_embedding_queue',
+  '20261027060000_knowledge_source_conflicts',
 ].map((name) =>
   readFileSync(
     new URL(
@@ -1192,6 +1197,217 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
       });
 
       expect(await search(actorA, 'Zephyr-9 codename')).toEqual({ hits: [] });
+    });
+  });
+  describe('Brand Truth conflicts', () => {
+    const prices = (text: string) => text.match(/\$\d+/g) ?? [];
+    let isJudgeAvailable = true;
+    let judgeCalls = 0;
+    /** Two prices for the same plan contradict; anything else is consistent. */
+    const judge = {
+      modelId: 'test-judge',
+      judge: async (
+        _organizationId: string,
+        a: { text: string },
+        b: { text: string },
+      ): Promise<KnowledgeConflictVerdict> => {
+        judgeCalls++;
+        if (!isJudgeAvailable) return { kind: 'unavailable' };
+        const [priceA] = prices(a.text);
+        const [priceB] = prices(b.text);
+        return priceA && priceB && priceA !== priceB
+          ? {
+              conflict: {
+                excerptA: priceA,
+                excerptB: priceB,
+                summary: 'The two sources give different prices.',
+              },
+              kind: 'conflict',
+            }
+          : { kind: 'consistent' };
+      },
+    };
+    let detection: KnowledgeConflictDetectionService;
+
+    beforeEach(() => {
+      isJudgeAvailable = true;
+      judgeCalls = 0;
+      detection = new KnowledgeConflictDetectionService(
+        prisma as unknown as PrismaService,
+        judge as never,
+      );
+    });
+
+    const truth = (
+      actor: KnowledgeActor,
+      scope: KnowledgeMemoryScope,
+      title: string,
+      text: string,
+      purpose = KnowledgeSourcePurpose.BRAND_TRUTH,
+    ) =>
+      capture.capture(actor, {
+        kind: KnowledgeSourceKind.TEXT,
+        purpose,
+        scope,
+        text,
+        title,
+      });
+
+    it('stores each judged pair once, in id order, within organization and brand scope', async () => {
+      const orgPricing = await truth(
+        actorAOrgOnly,
+        KnowledgeMemoryScope.ORG,
+        'Org pricing',
+        'Plans start at $29 per month for the starter tier.',
+      );
+      const brandPricing = await truth(
+        actorA,
+        KnowledgeMemoryScope.BRAND,
+        'Brand pricing',
+        'Plans start at $49 per month for the starter tier.',
+      );
+      const otherBrandPricing = await truth(
+        actorA2,
+        KnowledgeMemoryScope.BRAND,
+        'Other brand pricing',
+        'Plans start at $99 per month for the starter tier.',
+      );
+      await truth(
+        actorAOrgOnly,
+        KnowledgeMemoryScope.ORG,
+        'Mission',
+        'We help independent creators publish every single day.',
+      );
+      await truth(
+        actorAOrgOnly,
+        KnowledgeMemoryScope.ORG,
+        'Inspiration pricing',
+        'Plans start at $7 per month for the starter tier.',
+        KnowledgeSourcePurpose.INSPIRATION,
+      );
+      await truth(
+        actorB,
+        KnowledgeMemoryScope.ORG,
+        'Other tenant pricing',
+        'Plans start at $5 per month for the starter tier.',
+      );
+
+      const first = await detection.sweep();
+      expect(first.failed).toBe(0);
+      expect(first.scanned).toBe(5);
+
+      const conflicts = await prisma.knowledgeSourceConflict.findMany({
+        where: { organizationId: 'org-a', isDeleted: false },
+      });
+      const open = conflicts.filter(
+        (row) => row.status === KnowledgeConflictStatus.OPEN,
+      );
+      const pairKey = (row: { sourceAId: string; sourceBId: string }) =>
+        [row.sourceAId, row.sourceBId].sort().join('|');
+      expect(new Set(open.map(pairKey))).toEqual(
+        new Set([
+          [orgPricing.source.id, brandPricing.source.id].sort().join('|'),
+          [orgPricing.source.id, otherBrandPricing.source.id].sort().join('|'),
+        ]),
+      );
+      // Two brands never share a retrieval, so they are never compared.
+      expect(
+        conflicts.some(
+          (row) =>
+            pairKey(row) ===
+            [brandPricing.source.id, otherBrandPricing.source.id]
+              .sort()
+              .join('|'),
+        ),
+      ).toBe(false);
+      for (const row of conflicts) {
+        expect(row.versionAId < row.versionBId).toBe(true);
+      }
+      for (const row of open) {
+        expect(row.summary).toBeTruthy();
+        expect(row.excerptA).toMatch(/^\$\d+$/);
+        expect(row.excerptB).toMatch(/^\$\d+$/);
+      }
+      expect(
+        await prisma.knowledgeSourceConflict.count({
+          where: { organizationId: 'org-b' },
+        }),
+      ).toBe(0);
+
+      // The chat read path sees both open conflicts of the org-wide source, and
+      // another tenant sees none of them.
+      const lookup = new KnowledgeConflictLookupService(
+        prisma as unknown as PrismaService,
+      );
+      const orgVersion = await records.getCurrentVersion(
+        actorAOrgOnly,
+        orgPricing.source.id,
+      );
+      expect(
+        (await lookup.findOpenForVersions('org-a', [orgVersion.id])).map(
+          (row) => row.summary,
+        ),
+      ).toEqual([
+        'The two sources give different prices.',
+        'The two sources give different prices.',
+      ]);
+      expect(
+        await lookup.findOpenForVersions('org-b', [orgVersion.id]),
+      ).toEqual([]);
+
+      // Marking the org-wide version contradicted removes it from retrieval, so
+      // its conflicts stop being shown too.
+      await prisma.knowledgeSourceVersion.update({
+        data: { retrievalState: 'CONTRADICTED' },
+        where: { id: orgVersion.id },
+      });
+      expect(
+        await lookup.findOpenForVersions('org-a', [orgVersion.id]),
+      ).toEqual([]);
+
+      const callsAfterFirst = judgeCalls;
+      expect(await detection.sweep()).toEqual({ failed: 0, scanned: 0 });
+      expect(judgeCalls).toBe(callsAfterFirst);
+    });
+
+    it('stores nothing while the judge is unavailable and judges the pair once it is back', async () => {
+      await truth(
+        actorAOrgOnly,
+        KnowledgeMemoryScope.ORG,
+        'Org pricing',
+        'Plans start at $29 per month for the starter tier.',
+      );
+      const brandPricing = await truth(
+        actorA,
+        KnowledgeMemoryScope.BRAND,
+        'Brand pricing',
+        'Plans start at $49 per month for the starter tier.',
+      );
+      const version = await records.getCurrentVersion(
+        actorA,
+        brandPricing.source.id,
+      );
+
+      isJudgeAvailable = false;
+      const failed = await detection.scanVersion('org-a', version.id);
+      expect(failed).toMatchObject({ conflicts: 0, isComplete: false });
+      expect(
+        await prisma.knowledgeSourceConflict.count({
+          where: { organizationId: 'org-a' },
+        }),
+      ).toBe(0);
+
+      isJudgeAvailable = true;
+      const retried = await detection.scanVersion('org-a', version.id);
+      expect(retried).toMatchObject({ conflicts: 1, isComplete: true });
+      expect(
+        await prisma.knowledgeSourceConflict.count({
+          where: {
+            organizationId: 'org-a',
+            status: KnowledgeConflictStatus.OPEN,
+          },
+        }),
+      ).toBe(1);
     });
   });
 });

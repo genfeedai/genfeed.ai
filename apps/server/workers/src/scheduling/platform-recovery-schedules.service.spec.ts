@@ -1,5 +1,6 @@
 import type { BrandRelocationJobsService } from '@api/collections/brands/services/brand-relocation-jobs.service';
 import type { ContextEmbeddingSweepService } from '@api/collections/contexts/services/context-embedding-sweep.service';
+import type { KnowledgeConflictDetectionService } from '@api/collections/contexts/services/knowledge-conflict-detection.service';
 import type { CronMediaDeliveryRecoveryService } from '@workers/crons/media-delivery-recovery/cron.media-delivery-recovery.service';
 import type { NotificationDeliveryRecoveryService } from '@workers/processors/api/queues/notification-delivery/notification-delivery-recovery.service';
 import { PlatformRecoverySchedulesService } from '@workers/scheduling/platform-recovery-schedules.service';
@@ -10,13 +11,22 @@ function fixture() {
   const brands = { recover: vi.fn().mockResolvedValue(undefined) };
   const embeddings = { sweep: vi.fn().mockResolvedValue(undefined) };
   const mediaDelivery = { recoverMedia: vi.fn().mockResolvedValue(undefined) };
+  const knowledgeConflicts = { sweep: vi.fn().mockResolvedValue(undefined) };
   const service = new PlatformRecoverySchedulesService(
     notifications as unknown as NotificationDeliveryRecoveryService,
     brands as unknown as BrandRelocationJobsService,
     embeddings as unknown as ContextEmbeddingSweepService,
     mediaDelivery as unknown as CronMediaDeliveryRecoveryService,
+    knowledgeConflicts as unknown as KnowledgeConflictDetectionService,
   );
-  return { service, notifications, brands, embeddings, mediaDelivery };
+  return {
+    service,
+    notifications,
+    brands,
+    embeddings,
+    mediaDelivery,
+    knowledgeConflicts,
+  };
 }
 describe('platform recovery delegation', () => {
   it('awaits one embedding sweep without dispatching unrelated recovery', async () => {

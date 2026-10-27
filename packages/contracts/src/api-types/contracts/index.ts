@@ -60,7 +60,6 @@ export * from './publish-webhook-events.contract';
 export * from './publishing-readiness.contract';
 export * from './recurrence-preview.contract';
 export * from './rss-sources.contract';
-export * from './schedule-optimal-time.contract';
 export * from './scheduler.contract';
 export * from './scheduler-analytics-collection.contract';
 export * from './scheduler-analytics-comparison.contract';

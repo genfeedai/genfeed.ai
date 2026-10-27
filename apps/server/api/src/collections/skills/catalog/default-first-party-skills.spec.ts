@@ -17,9 +17,29 @@ describe('resolveDefaultFirstPartySkillSlugs', () => {
     ).toEqual(['image-prompt-engineer', 'model-selector']);
   });
 
-  it('packs x-content-creator when the channel is X', () => {
+  it.each([
+    'x',
+    'twitter',
+    'linkedin',
+    'instagram',
+    'reels',
+    'tiktok',
+    'youtube',
+    'shorts',
+  ])(
+    'injects no skill on the %s channel, which a harness platform pack covers',
+    (channel) => {
+      expect(resolveDefaultFirstPartySkillSlugs({ channel })).toEqual([]);
+      expect(
+        resolveDefaultFirstPartySkillSlugs({ channel, modality: 'text' }),
+      ).toEqual([]);
+    },
+  );
+
+  it('keeps agent-type defaults on a harness platform channel', () => {
     expect(
       resolveDefaultFirstPartySkillSlugs({
+        agentType: AgentType.X_CONTENT,
         channel: 'x',
       }),
     ).toEqual(['x-content-creator']);
@@ -29,10 +49,18 @@ describe('resolveDefaultFirstPartySkillSlugs', () => {
     expect(
       resolveDefaultFirstPartySkillSlugs({
         agentType: AgentType.IMAGE_CREATOR,
-        channel: 'x',
+        channel: 'blog',
         modality: 'image',
       }),
-    ).toEqual(['image-prompt-engineer', 'model-selector', 'x-content-creator']);
+    ).toEqual([
+      'image-prompt-engineer',
+      'model-selector',
+      'blog-content-creator',
+    ]);
+  });
+
+  it('no longer reports tiktok-warmup as a default writing skill', () => {
+    expect(isDefaultFirstPartySkillSlug('tiktok-warmup')).toBe(false);
   });
 
   it('falls back to content-writing when no context is available', () => {
@@ -43,7 +71,7 @@ describe('resolveDefaultFirstPartySkillSlugs', () => {
     for (const context of [
       {},
       { agentType: AgentType.IMAGE_CREATOR, modality: 'image' },
-      { channel: 'tiktok' },
+      { channel: 'blog' },
       { modality: 'audio' },
     ]) {
       for (const slug of resolveDefaultFirstPartySkillSlugs(context)) {

@@ -6,6 +6,7 @@ import {
   type SkillExecutionContext,
   type SkillHandler,
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
+import { SkillBrandBriefService } from '@api/services/skill-executor/skill-brand-brief.service';
 import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -37,6 +38,7 @@ export class TrendRemixHandler implements SkillHandler {
     private readonly trendsService: TrendsService,
     private readonly llmDispatcherService: LlmDispatcherService,
     private readonly loggerService: LoggerService,
+    private readonly skillBrandBriefService: SkillBrandBriefService,
   ) {}
 
   async execute(
@@ -67,13 +69,19 @@ export class TrendRemixHandler implements SkillHandler {
     const tone =
       typeof params.tone === 'string' ? params.tone : 'engaging and authentic';
 
+    const harnessBrief = await this.skillBrandBriefService.resolve(context, {
+      contentType: 'post',
+      platform,
+      topic: trend.topic,
+    });
+
     const systemPrompt = [
       `You are a social media content expert specializing in trend-based content creation.`,
-      `Brand voice: ${context.brandVoice || 'professional and engaging'}.`,
+      harnessBrief,
       `Tone: ${tone}.`,
       `Platform: ${platform ?? 'social media'} (max ${charLimit} characters).`,
-      `Your task: create a remix of the given trend that feels native to the platform while matching the brand voice.`,
-    ].join(' ');
+      `Your task: create a remix of the given trend that feels native to the platform while matching the brand brief.`,
+    ].join('\n\n');
 
     const userPrompt = [
       `Create a ${platform ?? 'social media'} post that remixes the following trend:`,
@@ -83,7 +91,7 @@ export class TrendRemixHandler implements SkillHandler {
       ``,
       `Requirements:`,
       `- Stay within ${charLimit} characters`,
-      `- Match the brand voice: ${context.brandVoice || 'professional and engaging'}`,
+      `- Follow the brand brief`,
       `- Keep tone: ${tone}`,
       `- Include 2-3 relevant hashtags naturally`,
       `- Make it platform-native and engaging`,
