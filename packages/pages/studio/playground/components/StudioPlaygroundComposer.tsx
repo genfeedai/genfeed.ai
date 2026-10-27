@@ -71,6 +71,7 @@ import {
   presetToGenerationSetupValues,
   useStudioLooks,
 } from '@pages/studio/playground/hooks/useStudioLooks';
+import { useStudioRetryCreditBack } from '@pages/studio/playground/hooks/useStudioRetryCreditBack';
 import { useStudioSpendQuote } from '@pages/studio/playground/hooks/useStudioSpendQuote';
 import {
   buildStudioAvatarRequest,
@@ -560,6 +561,17 @@ export default function StudioPlaygroundComposer({
                     AgentGenerationQuoteUnavailableReason.MODEL_UNAVAILABLE,
                 }
               : serverEstimate;
+  // A draft render never counts as an attempt, and a BYOK render holds no credits.
+  const retryCreditBackCredits = useStudioRetryCreditBack({
+    credits:
+      !isDraftActive &&
+      estimate.status === 'estimated' &&
+      estimate.billingMode !== 'byok'
+        ? estimate.credits
+        : null,
+    modelKey: quoteModelKey,
+    prompt,
+  });
   // Admission refuses these outright, so Generate waits instead of failing after submit.
   // ERROR, loading, Auto and Crun never block.
   const isEstimateBlocking =
@@ -1466,6 +1478,7 @@ export default function StudioPlaygroundComposer({
                   type !== 'avatar'
                 }
                 model={selectedModel}
+                retryCreditBackCredits={retryCreditBackCredits}
                 type={type}
                 label={translate('generate')}
               >

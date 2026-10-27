@@ -1,4 +1,7 @@
-import type { ITopbarBalances } from '@genfeedai/contracts/interfaces';
+import type {
+  IRetryCreditBackPreview,
+  ITopbarBalances,
+} from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -101,5 +104,19 @@ export class CreditsService extends HTTPBaseService {
     );
 
     return deserializeResource<ITopbarBalances>(response.data);
+  }
+
+  /** What regenerating this brief now earns back (#7730); plain JSON, not JSON:API. */
+  public async previewRetryCreditBack(
+    request: { credits: number; modelKey: string; prompt: string },
+    signal?: AbortSignal,
+  ): Promise<IRetryCreditBackPreview> {
+    const response = await this.instance.post<IRetryCreditBackPreview>(
+      '/retry-credit-back/preview',
+      request,
+      { signal },
+    );
+
+    return response.data;
   }
 }

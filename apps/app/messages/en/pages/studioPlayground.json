@@ -119,6 +119,7 @@
     "estimateLoading": "Loading estimate…",
     "estimateUnavailable": "Estimate unavailable",
     "estimatedSeconds": "~{seconds} s",
+    "retryCreditBack": "Retry: 25% back (~{credits} credits)",
     "byokEstimate": "Your API key · 0 credits",
     "avatarEstimateNeedsInput": "Write a script and choose an avatar and a voice to see a price.",
     "estimateReasons": {
