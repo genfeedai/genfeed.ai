@@ -498,6 +498,8 @@ describe('WorkflowLibraryPage card semantics', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Disable schedules' }));
     expect(mocks.handleDisableSelected).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    expect(mocks.clearSelection).toHaveBeenCalledOnce();
   });
 
   it('does not label hosted SaaS workflows as local or synced', () => {
