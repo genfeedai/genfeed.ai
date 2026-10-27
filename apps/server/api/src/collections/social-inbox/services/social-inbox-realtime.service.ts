@@ -1,6 +1,9 @@
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import type { SocialInboxRealtimeEvent } from '@genfeedai/contracts/interfaces';
+import type {
+  SocialInboxRealtimeEvent,
+  SocialInboxSyncRealtimeEvent,
+} from '@genfeedai/contracts/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
 
 @Injectable()
@@ -32,6 +35,23 @@ export class SocialInboxRealtimeService {
       this.notificationsPublisher.emit(
         WebSocketPaths.socialConversation(conversationId),
         payload,
+      ),
+    ]);
+  }
+
+  /** Never throws: a lost progress notice must not fail the sync job. */
+  async emitSyncResult(
+    organizationId: string,
+    event: SocialInboxSyncRealtimeEvent,
+  ): Promise<void> {
+    if (!this.notificationsPublisher) {
+      return;
+    }
+
+    await Promise.allSettled([
+      this.notificationsPublisher.emit(
+        WebSocketPaths.socialInbox(organizationId),
+        { ...event, room: `org-${organizationId}` },
       ),
     ]);
   }

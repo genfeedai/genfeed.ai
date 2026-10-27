@@ -1,4 +1,5 @@
 import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
+import { SocialInboxRealtimeService } from '@api/collections/social-inbox/services/social-inbox-realtime.service';
 import {
   buildSocialInboxSyncWorkflowDefinition,
   SOCIAL_INBOX_SYNC_ACTION_IDS,
@@ -18,7 +19,8 @@ import {
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
-import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
+import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 
 const SOCIAL_INBOX_SYNC_SURFACES: ReadonlyArray<
   readonly [SocialInboxSyncPlatform, SocialInboxSyncConversationType]
@@ -63,6 +65,8 @@ export class SocialInboxSyncWorkflowService implements OnModuleInit {
     private readonly socialInboxService: SocialInboxService,
     private readonly workflowRunner: SystemWorkflowRunnerService,
     private readonly workflowQueue: WorkflowExecutionQueueService,
+    @Optional()
+    private readonly realtime?: SocialInboxRealtimeService,
   ) {}
 
   onModuleInit(): void {
@@ -169,7 +173,7 @@ export class SocialInboxSyncWorkflowService implements OnModuleInit {
     };
   }
 
-  private ingestAction(
+  private async ingestAction(
     action: SystemWorkflowActionRequest,
     executor: (
       scope: {
@@ -187,9 +191,34 @@ export class SocialInboxSyncWorkflowService implements OnModuleInit {
       userId: input.userId,
     };
     const options = { credentialId: input.credentialId, limit: input.limit };
-    return executor(scope, options).then((result) =>
-      assertSyncDiagnosable(result, input),
-    );
+    const surface = {
+      conversationType: (input.conversationType ??
+        SocialConversationType.COMMENT) as 'comment' | 'dm',
+      platform: String(input.platform ?? Platform.YOUTUBE),
+    };
+    try {
+      const result = assertSyncDiagnosable(
+        await executor(scope, options),
+        input,
+      );
+      await this.realtime?.emitSyncResult(input.organizationId, {
+        ...surface,
+        commentsSeen: result.commentsSeen,
+        conversationsCreated: result.conversationsCreated,
+        kind: 'sync-completed',
+        messagesCreated: result.messagesCreated,
+        postFailureCount: result.postFailures?.length,
+        postsScanned: result.postsScanned,
+      });
+      return result;
+    } catch (error: unknown) {
+      await this.realtime?.emitSyncResult(input.organizationId, {
+        ...surface,
+        kind: 'sync-failed',
+        message: getErrorMessage(error).slice(0, 200),
+      });
+      throw error;
+    }
   }
 
   private readInput(value: unknown): SocialInboxSyncInput {

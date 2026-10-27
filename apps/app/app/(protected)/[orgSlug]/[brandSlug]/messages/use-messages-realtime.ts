@@ -1,4 +1,7 @@
-import type { SocialInboxRealtimeEvent } from '@genfeedai/contracts/interfaces';
+import type {
+  SocialInboxRealtimeEvent,
+  SocialInboxSyncRealtimeEvent,
+} from '@genfeedai/contracts/interfaces';
 import type { UseMessagesRealtimeParams } from '@genfeedai/props/messages/messages-realtime.props';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { WebSocketPaths } from '@utils/network/websocket.util';
@@ -11,18 +14,27 @@ type MessagesConnectionState =
   | 'offline'
   | 'reconnecting';
 
+function isSyncResultEvent(
+  event: SocialInboxRealtimeEvent | SocialInboxSyncRealtimeEvent | undefined,
+): event is SocialInboxSyncRealtimeEvent {
+  return event?.kind === 'sync-completed' || event?.kind === 'sync-failed';
+}
+
 export function useMessagesRealtime({
   onRefresh,
+  onSyncResult,
   organizationId,
 }: UseMessagesRealtimeParams): MessagesConnectionState {
   const { connectionState, isReady, subscribe } = useSocketManager();
   const previousConnectionState = useRef<MessagesConnectionState | null>(null);
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestRefresh = useRef(onRefresh);
+  const latestSyncResult = useRef(onSyncResult);
 
   useEffect(() => {
     latestRefresh.current = onRefresh;
-  }, [onRefresh]);
+    latestSyncResult.current = onSyncResult;
+  }, [onRefresh, onSyncResult]);
 
   const refresh = useCallback(() => {
     Promise.resolve(latestRefresh.current()).catch(() => {
@@ -52,10 +64,14 @@ export function useMessagesRealtime({
         refresh();
       }, 250);
     };
-    const unsubscribe = subscribe<SocialInboxRealtimeEvent>(
-      WebSocketPaths.socialInbox(organizationId),
-      scheduleRefresh,
-    );
+    const unsubscribe = subscribe<
+      SocialInboxRealtimeEvent | SocialInboxSyncRealtimeEvent
+    >(WebSocketPaths.socialInbox(organizationId), (event) => {
+      if (isSyncResultEvent(event)) {
+        latestSyncResult.current?.(event);
+      }
+      scheduleRefresh();
+    });
 
     return () => {
       unsubscribe();

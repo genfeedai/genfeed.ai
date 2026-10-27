@@ -1,4 +1,5 @@
 import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
+import type { SocialInboxRealtimeService } from '@api/collections/social-inbox/services/social-inbox-realtime.service';
 import { SocialInboxSyncWorkflowService } from '@api/collections/social-inbox/services/social-inbox-sync-workflow.service';
 import {
   buildSocialInboxSyncWorkflowDefinition,
@@ -19,7 +20,9 @@ const SURFACES = [
   [Platform.LINKEDIN, SocialConversationType.DM],
 ] as const;
 
-function createService() {
+function createService(realtime?: {
+  emitSyncResult: ReturnType<typeof vi.fn>;
+}) {
   const registeredWorkflows: string[] = [];
   const registeredActions = new Map<
     string,
@@ -56,6 +59,7 @@ function createService() {
     socialInboxService as unknown as SocialInboxService,
     workflowRunner as unknown as SystemWorkflowRunnerService,
     workflowQueue as unknown as WorkflowExecutionQueueService,
+    realtime as unknown as SocialInboxRealtimeService | undefined,
   );
 
   return {
@@ -107,9 +111,10 @@ describe('SocialInboxSyncWorkflowService', () => {
     async function runYoutubeSync(
       result: Record<string, unknown>,
       credentialId?: string,
+      realtime?: { emitSyncResult: ReturnType<typeof vi.fn> },
     ) {
       const { registeredActions, service, socialInboxService } =
-        createService();
+        createService(realtime);
       service.onModuleInit();
       socialInboxService.ingestYoutubeComments.mockResolvedValue(result);
       const action = registeredActions.get(
@@ -161,6 +166,60 @@ describe('SocialInboxSyncWorkflowService', () => {
       };
 
       await expect(runYoutubeSync(result)).resolves.toEqual(result);
+    });
+
+    it('publishes the scan counters when the job completes', async () => {
+      const realtime = { emitSyncResult: vi.fn().mockResolvedValue(undefined) };
+      await runYoutubeSync(
+        {
+          commentsSeen: 2,
+          conversationsCreated: 1,
+          credentialsScanned: 1,
+          messagesCreated: 2,
+          postFailures: [],
+          postsScanned: 1,
+        },
+        undefined,
+        realtime,
+      );
+
+      expect(realtime.emitSyncResult).toHaveBeenCalledWith('org-1', {
+        commentsSeen: 2,
+        conversationType: 'comment',
+        conversationsCreated: 1,
+        kind: 'sync-completed',
+        messagesCreated: 2,
+        platform: 'youtube',
+        postFailureCount: 0,
+        postsScanned: 1,
+      });
+    });
+
+    it('publishes a failed sync and still fails the job', async () => {
+      const realtime = { emitSyncResult: vi.fn().mockResolvedValue(undefined) };
+      await expect(
+        runYoutubeSync(
+          {
+            commentsSeen: 0,
+            conversationsCreated: 0,
+            credentialsScanned: 0,
+            messagesCreated: 0,
+            postFailures: [],
+            postsScanned: 0,
+          },
+          'cred-1',
+          realtime,
+        ),
+      ).rejects.toThrow('no connected account');
+
+      expect(realtime.emitSyncResult).toHaveBeenCalledWith(
+        'org-1',
+        expect.objectContaining({
+          kind: 'sync-failed',
+          message: expect.stringContaining('no connected account'),
+          platform: 'youtube',
+        }),
+      );
     });
 
     it('fails the job when the selected credential is not connected', async () => {

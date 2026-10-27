@@ -17,7 +17,10 @@ import {
   MESSAGES_TYPE_QUERY_PARAM,
   resolveOrganizationModulePresentationAccess,
 } from '@genfeedai/contracts/constants';
-import type { SocialConversationStatus } from '@genfeedai/contracts/interfaces';
+import type {
+  SocialConversationStatus,
+  SocialInboxSyncRealtimeEvent,
+} from '@genfeedai/contracts/interfaces';
 import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
 import type { MessagesSurface } from '@genfeedai/props/messages/messages-conversation-sidebar.props';
@@ -41,7 +44,7 @@ import {
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
 import { useRefreshInboxIndicators } from '@/components/shell/use-messages-unread-count';
@@ -392,6 +395,9 @@ export default function MessagesPage() {
 
   const refreshInboxIndicators = useRefreshInboxIndicators();
 
+  const syncResultHandlerRef = useRef<
+    ((event: SocialInboxSyncRealtimeEvent) => void) | null
+  >(null);
   const {
     conversationPagination,
     conversations,
@@ -410,6 +416,8 @@ export default function MessagesPage() {
   } = useMessagesConversations({
     getMessagesService,
     onClearSelectedConversationParam: clearSelectedConversationParam,
+    // The actions hook owns the notice, but it is created after this one.
+    onSyncResult: (event) => syncResultHandlerRef.current?.(event),
     onUnreadStateChange: refreshInboxIndicators,
     query: filters.query,
     requestedConversationId,
@@ -446,6 +454,7 @@ export default function MessagesPage() {
     handleRejectDraft,
     handleStatusChange,
     handleSync,
+    handleSyncResult,
     handleToggleConversationReference,
     handleToggleMessageReference,
     isConversationReferenced,
@@ -465,6 +474,8 @@ export default function MessagesPage() {
     selectedId,
     syncCredentials,
   });
+
+  syncResultHandlerRef.current = handleSyncResult;
 
   const error = actionError ?? loadError;
 

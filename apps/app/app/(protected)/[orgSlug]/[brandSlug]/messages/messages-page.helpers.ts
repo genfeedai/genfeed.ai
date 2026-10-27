@@ -3,6 +3,7 @@ import type {
   IPaginatedResponse,
   SocialActionProvenance,
   SocialAutomationState,
+  SocialInboxSyncRealtimeEvent,
 } from '@genfeedai/contracts/interfaces';
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
 import type { MessagesSurface } from '@genfeedai/props/messages/messages-conversation-sidebar.props';
@@ -163,6 +164,54 @@ export function getMessagesSyncFeedback(params: {
   return {
     error: null,
     notice: `${started} Partial failure: ${params.failedPlatforms.join(', ')} failed to queue.`,
+  };
+}
+
+const SYNC_PLATFORM_LABELS: Record<string, string> = {
+  instagram: 'Instagram',
+  linkedin: 'LinkedIn',
+  twitter: 'X',
+  youtube: 'YouTube',
+};
+
+function pluralize(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? '' : 's'}`;
+}
+
+function describeSyncResult(event: SocialInboxSyncRealtimeEvent): string {
+  const label = SYNC_PLATFORM_LABELS[event.platform] ?? event.platform;
+  const surface =
+    event.conversationType === 'dm' ? 'direct messages' : 'comments';
+  if (event.kind === 'sync-failed') {
+    return `${label} ${surface} sync failed: ${event.message ?? 'unknown error'}`;
+  }
+
+  const imported = `${pluralize(event.messagesCreated ?? 0, 'new message')} in ${pluralize(event.conversationsCreated ?? 0, 'conversation')}`;
+  if (event.postsScanned === undefined) {
+    return `${label} ${surface} sync finished: ${imported}.`;
+  }
+  if (event.postsScanned === 0) {
+    return `${label} comments sync finished: no published video is eligible for this account, so nothing was imported.`;
+  }
+  const failed = event.postFailureCount
+    ? ` ${pluralize(event.postFailureCount, 'video')} could not be read.`
+    : '';
+  return `${label} comments sync finished: scanned ${pluralize(event.postsScanned, 'video')}, saw ${pluralize(event.commentsSeen ?? 0, 'comment')}, imported ${imported}.${failed}`;
+}
+
+/**
+ * Turns the end-of-job sync events for one Sync click into the screen's
+ * notice/error. A failed job is never reported as a finished sync.
+ */
+export function getMessagesSyncResultFeedback(
+  events: readonly SocialInboxSyncRealtimeEvent[],
+): MessagesSyncFeedback {
+  const failed = events.filter((event) => event.kind === 'sync-failed');
+  const completed = events.filter((event) => event.kind === 'sync-completed');
+  return {
+    error: failed.length > 0 ? failed.map(describeSyncResult).join(' ') : null,
+    notice:
+      completed.length > 0 ? completed.map(describeSyncResult).join(' ') : null,
   };
 }
 

@@ -152,6 +152,26 @@ export interface SocialInboxRealtimeEvent {
   kind: 'conversation-updated' | 'message-created' | 'message-updated';
 }
 
+/**
+ * Published on the org inbox room when a background inbox sync job ends, so the
+ * Messages screen can show what the sync did instead of only "started".
+ */
+export interface SocialInboxSyncRealtimeEvent {
+  kind: 'sync-completed' | 'sync-failed';
+  /** YouTube comment sync only: comments the listing returned (new or known). */
+  commentsSeen?: number;
+  conversationType: 'comment' | 'dm';
+  conversationsCreated?: number;
+  /** Sanitized failure reason, only on `sync-failed`. */
+  message?: string;
+  messagesCreated?: number;
+  platform: string;
+  /** YouTube comment sync only: owned videos that failed to list. */
+  postFailureCount?: number;
+  /** YouTube comment sync only: eligible owned videos listed. */
+  postsScanned?: number;
+}
+
 export interface SocialInboxAgentMessageContext {
   body: string;
   direction: SocialMessageDirection;
