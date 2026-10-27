@@ -8,6 +8,7 @@ import { ContextsService } from '@api/collections/contexts/services/contexts.ser
 import { KnowledgeCaptureService } from '@api/collections/contexts/services/knowledge-capture.service';
 import { KnowledgeConflictDetectionService } from '@api/collections/contexts/services/knowledge-conflict-detection.service';
 import type { KnowledgeConflictVerdict } from '@api/collections/contexts/services/knowledge-conflict-judge.service';
+import { KnowledgeConflictLookupService } from '@api/collections/contexts/services/knowledge-conflict-lookup.service';
 import { KnowledgeContentRetrievalService } from '@api/collections/contexts/services/knowledge-content-retrieval.service';
 import { KnowledgeEmbeddingCompletionService } from '@api/collections/contexts/services/knowledge-embedding-completion.service';
 import { KnowledgeReceiptVerifierService } from '@api/collections/contexts/services/knowledge-receipt-verifier.service';
@@ -1332,6 +1333,37 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
           where: { organizationId: 'org-b' },
         }),
       ).toBe(0);
+
+      // The chat read path sees both open conflicts of the org-wide source, and
+      // another tenant sees none of them.
+      const lookup = new KnowledgeConflictLookupService(
+        prisma as unknown as PrismaService,
+      );
+      const orgVersion = await records.getCurrentVersion(
+        actorAOrgOnly,
+        orgPricing.source.id,
+      );
+      expect(
+        (await lookup.findOpenForVersions('org-a', [orgVersion.id])).map(
+          (row) => row.summary,
+        ),
+      ).toEqual([
+        'The two sources give different prices.',
+        'The two sources give different prices.',
+      ]);
+      expect(
+        await lookup.findOpenForVersions('org-b', [orgVersion.id]),
+      ).toEqual([]);
+
+      // Marking the org-wide version contradicted removes it from retrieval, so
+      // its conflicts stop being shown too.
+      await prisma.knowledgeSourceVersion.update({
+        data: { retrievalState: 'CONTRADICTED' },
+        where: { id: orgVersion.id },
+      });
+      expect(
+        await lookup.findOpenForVersions('org-a', [orgVersion.id]),
+      ).toEqual([]);
 
       const callsAfterFirst = judgeCalls;
       expect(await detection.sweep()).toEqual({ failed: 0, scanned: 0 });

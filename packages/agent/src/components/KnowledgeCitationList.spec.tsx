@@ -76,4 +76,80 @@ describe('KnowledgeCitationList', () => {
     );
     expect(container).toBeEmptyDOMElement();
   });
+  it('shows both sides of a conflict, marking the one the answer does not cite', () => {
+    const citations: AgentKnowledgeCitations = {
+      citations: [{ marker: 1, receipt: receipt({ title: 'Pricing page' }) }],
+      conflicts: [
+        {
+          id: 'conflict-1',
+          sources: [
+            {
+              excerpt: 'Plans start at $29 per month.',
+              marker: 1,
+              sourceId: 'source-1',
+              title: 'Pricing page',
+              version: 2,
+              versionId: 'version-2',
+            },
+            {
+              excerpt: 'The starter plan costs $49 a month.',
+              sourceId: 'source-2',
+              title: 'Price list',
+              version: 1,
+              versionId: 'version-7',
+            },
+          ],
+          summary: 'The two sources give different starting prices.',
+        },
+      ],
+      unsupportedCount: 0,
+    };
+
+    render(<KnowledgeCitationList citations={citations} />);
+
+    const conflict = screen.getByTestId('knowledge-conflict-conflict-1');
+    expect(screen.getByText('Conflicting sources')).toBeInTheDocument();
+    expect(conflict).toHaveTextContent(
+      'The two sources give different starting prices.',
+    );
+    expect(conflict).toHaveTextContent('Plans start at $29 per month.');
+    expect(conflict).toHaveTextContent('Price list');
+    expect(conflict).toHaveTextContent('The starter plan costs $49 a month.');
+    expect(conflict).toHaveTextContent('not cited in this answer');
+    expect(conflict).toHaveTextContent('[1]');
+  });
+
+  it('renders conflicts even when no citation survived verification', () => {
+    render(
+      <KnowledgeCitationList
+        citations={{
+          citations: [],
+          conflicts: [
+            {
+              id: 'conflict-2',
+              sources: [
+                {
+                  excerpt: 'A',
+                  sourceId: 's1',
+                  title: 'One',
+                  version: 1,
+                  versionId: 'v1',
+                },
+                {
+                  excerpt: 'B',
+                  sourceId: 's2',
+                  title: 'Two',
+                  version: 1,
+                  versionId: 'v2',
+                },
+              ],
+              summary: 'They disagree.',
+            },
+          ],
+          unsupportedCount: 0,
+        }}
+      />,
+    );
+    expect(screen.getByTestId('knowledge-conflicts')).toBeInTheDocument();
+  });
 });
