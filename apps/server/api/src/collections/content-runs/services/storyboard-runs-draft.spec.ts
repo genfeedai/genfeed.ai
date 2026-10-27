@@ -85,6 +85,10 @@ function setup(config: StoryboardNativeRunConfig = emptyConfig()) {
   };
   const chatCompletion = vi.fn();
   const logger = { error: vi.fn(), warn: vi.fn() };
+  const harness = {
+    formatBrief: vi.fn(() => 'BRAND BRIEF'),
+    resolveBrief: vi.fn(async () => ({ id: 'brief-1' })),
+  };
   const source = { validatePlanAssets: vi.fn(async () => undefined) };
   const planning = {
     resolveBrandContext: vi.fn(async () => ({
@@ -100,6 +104,7 @@ function setup(config: StoryboardNativeRunConfig = emptyConfig()) {
     capabilities as never,
     logger as never,
     new StoryboardPlanDraftService(
+      harness as never,
       { chatCompletion } as never,
       logger as never,
     ),
@@ -108,7 +113,16 @@ function setup(config: StoryboardNativeRunConfig = emptyConfig()) {
     chatCompletion.mockResolvedValueOnce({
       choices: [{ message: { content: JSON.stringify(content) } }],
     });
-  return { service, store, chatCompletion, reply, planning, source, config };
+  return {
+    service,
+    store,
+    chatCompletion,
+    reply,
+    planning,
+    source,
+    config,
+    harness,
+  };
 }
 
 describe('Storyboard plan drafting', () => {
@@ -119,9 +133,15 @@ describe('Storyboard plan drafting', () => {
       logline: 'A bottle changes the day.',
       shots: [shotJson(1), shotJson(2), shotJson(3)],
     });
-    const run = (await service.draftPlan('org-1', 'brand-1', 'run-1', {
-      expectedRevision: 3,
-    })) as unknown as StoryboardNativeRunConfig;
+    const run = (await service.draftPlan(
+      'org-1',
+      'brand-1',
+      'run-1',
+      'user-1',
+      {
+        expectedRevision: 3,
+      },
+    )) as unknown as StoryboardNativeRunConfig;
     expect(run).toMatchObject({ revision: 4, state: 'storyboard' });
     expect(run.plan.title).toBe('Bottle launch');
     expect(run.plan.runtimeBudgetSeconds).toBe(30);
@@ -148,9 +168,15 @@ describe('Storyboard plan drafting', () => {
         shotJson(3, { durationSeconds: 5 }),
       ],
     });
-    const run = (await service.draftPlan('org-1', 'brand-1', 'run-1', {
-      expectedRevision: 3,
-    })) as unknown as StoryboardNativeRunConfig;
+    const run = (await service.draftPlan(
+      'org-1',
+      'brand-1',
+      'run-1',
+      'user-1',
+      {
+        expectedRevision: 3,
+      },
+    )) as unknown as StoryboardNativeRunConfig;
     const durations = run.plan.shots.map((shot) => shot.durationSeconds ?? 0);
     expect(durations.every((value) => [4, 6, 8].includes(value))).toBe(true);
     expect(
@@ -183,10 +209,16 @@ describe('Storyboard plan drafting', () => {
         shotJson(2, { existingShotId: 'shot-2', action: 'Action 2 reworked' }),
       ],
     });
-    const run = (await service.draftPlan('org-1', 'brand-1', 'run-1', {
-      expectedRevision: 3,
-      instruction: 'Make the second shot punchier',
-    })) as unknown as StoryboardNativeRunConfig;
+    const run = (await service.draftPlan(
+      'org-1',
+      'brand-1',
+      'run-1',
+      'user-1',
+      {
+        expectedRevision: 3,
+        instruction: 'Make the second shot punchier',
+      },
+    )) as unknown as StoryboardNativeRunConfig;
     expect(run.plan.shots[0]).toMatchObject({
       id: 'shot-1',
       stillAssetId: 'image-1',
@@ -206,7 +238,9 @@ describe('Storyboard plan drafting', () => {
   it('rejects a stale revision without calling the model', async () => {
     const { service, chatCompletion, store } = setup();
     await expect(
-      service.draftPlan('org-1', 'brand-1', 'run-1', { expectedRevision: 2 }),
+      service.draftPlan('org-1', 'brand-1', 'run-1', 'user-1', {
+        expectedRevision: 2,
+      }),
     ).rejects.toThrow('current revision is 3');
     expect(chatCompletion).not.toHaveBeenCalled();
     expect(store.save).not.toHaveBeenCalled();
@@ -217,7 +251,9 @@ describe('Storyboard plan drafting', () => {
     config.state = 'generating';
     const { service, chatCompletion } = setup(config);
     await expect(
-      service.draftPlan('org-1', 'brand-1', 'run-1', { expectedRevision: 3 }),
+      service.draftPlan('org-1', 'brand-1', 'run-1', 'user-1', {
+        expectedRevision: 3,
+      }),
     ).rejects.toThrow('Cancel and reconcile');
     expect(chatCompletion).not.toHaveBeenCalled();
   });
@@ -230,7 +266,9 @@ describe('Storyboard plan drafting', () => {
     };
     const { service } = setup(config);
     await expect(
-      service.draftPlan('org-1', 'brand-1', 'run-1', { expectedRevision: 3 }),
+      service.draftPlan('org-1', 'brand-1', 'run-1', 'user-1', {
+        expectedRevision: 3,
+      }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
@@ -247,7 +285,9 @@ describe('Storyboard plan drafting', () => {
     };
     const { service } = setup(config);
     await expect(
-      service.draftPlan('org-1', 'brand-1', 'run-1', { expectedRevision: 3 }),
+      service.draftPlan('org-1', 'brand-1', 'run-1', 'user-1', {
+        expectedRevision: 3,
+      }),
     ).rejects.toThrow('written brief');
   });
 
@@ -260,7 +300,9 @@ describe('Storyboard plan drafting', () => {
     if (value instanceof Error) chatCompletion.mockRejectedValueOnce(value);
     else reply(value);
     await expect(
-      service.draftPlan('org-1', 'brand-1', 'run-1', { expectedRevision: 3 }),
+      service.draftPlan('org-1', 'brand-1', 'run-1', 'user-1', {
+        expectedRevision: 3,
+      }),
     ).rejects.toBeInstanceOf(ServiceUnavailableException);
     expect(store.save).not.toHaveBeenCalled();
   });
@@ -268,10 +310,44 @@ describe('Storyboard plan drafting', () => {
   it('rejects unknown body fields', async () => {
     const { service } = setup();
     await expect(
-      service.draftPlan('org-1', 'brand-1', 'run-1', {
+      service.draftPlan('org-1', 'brand-1', 'run-1', 'user-1', {
         expectedRevision: 3,
         extra: true,
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('drafts against the harness brief resolved for the acting user', async () => {
+    const { service, harness, chatCompletion, reply } = setup();
+    reply({
+      title: 'Bottle launch',
+      logline: '',
+      shots: [shotJson(1), shotJson(2)],
+    });
+    await service.draftPlan('org-1', 'brand-1', 'run-1', 'user-9', {
+      expectedRevision: 3,
+    });
+    expect(harness.resolveBrief).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        userId: 'user-9',
+      }),
+    );
+    expect(chatCompletion.mock.calls[0][0].messages[0].content).toContain(
+      'BRAND BRIEF',
+    );
+  });
+
+  it('saves nothing and calls no model when the brand brief is unavailable', async () => {
+    const { service, harness, store, chatCompletion } = setup();
+    harness.formatBrief.mockReturnValue('');
+    await expect(
+      service.draftPlan('org-1', 'brand-1', 'run-1', 'user-1', {
+        expectedRevision: 3,
+      }),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    expect(chatCompletion).not.toHaveBeenCalled();
+    expect(store.save).not.toHaveBeenCalled();
   });
 });

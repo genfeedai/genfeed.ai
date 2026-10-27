@@ -14,11 +14,14 @@ import {
   assembleStoryboardDraft,
   buildStoryboardDraftMessages,
   STORYBOARD_MIN_SHOTS,
+  type StoryboardDraftActor,
   StoryboardDraftOutputError,
   type StoryboardDraftRequest,
   storyboardDraftOutputSchema,
   storyboardMaxShots,
 } from '@api/collections/content-runs/services/storyboard-plan-draft';
+import { BRAND_CONTEXT_CHARACTER_BUDGET } from '@api/services/agent-context-assembly/brand-context-budget.util';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
@@ -33,12 +36,51 @@ import { z } from 'zod';
 const RETRYABLE_MESSAGE =
   'The storyboard draft could not be generated. Nothing was changed; try again.';
 
+export const STORYBOARD_BRAND_CONTEXT_UNAVAILABLE =
+  'Brand context is unavailable for this storyboard. Nothing was changed; try again.';
+
 @Injectable()
 export class StoryboardPlanDraftService {
   constructor(
+    private readonly harness: HarnessGenerationService,
     private readonly openrouter: OpenRouterService,
     private readonly logger: LoggerService,
   ) {}
+
+  /**
+   * The composed harness brief (org directive, brand voice, guardrails,
+   * criteria, examples) the plan is written against. A plan is never drafted
+   * without it: a missing, empty or over-budget brief is a retryable 503
+   * before any model call, and a brand access refusal passes through.
+   */
+  private async resolveHarnessBrief(
+    request: StoryboardDraftActor & { brief: string },
+  ): Promise<string> {
+    const brief = await this.harness.resolveBrief({
+      brandId: request.brandId,
+      contentType: 'video-script',
+      includeContentMemory: true,
+      objective: 'retention',
+      organizationId: request.organizationId,
+      topic: request.brief,
+      userId: request.userId,
+    });
+    const formattedBrief = this.harness.formatBrief(brief).trim();
+    if (
+      !brief ||
+      !formattedBrief ||
+      formattedBrief.length > BRAND_CONTEXT_CHARACTER_BUDGET
+    ) {
+      this.logger.warn(`${this.constructor.name} harness brief unavailable`, {
+        brandId: request.brandId,
+        organizationId: request.organizationId,
+      });
+      throw new ServiceUnavailableException(
+        STORYBOARD_BRAND_CONTEXT_UNAVAILABLE,
+      );
+    }
+    return formattedBrief;
+  }
 
   /**
    * Ask the model for a plan and fit it to the video model's durations and the
@@ -55,6 +97,7 @@ export class StoryboardPlanDraftService {
       throw new ConflictException(
         'The runtime budget is too short for two shots with the selected video model. Increase the runtime budget.',
       );
+    const harnessBrief = await this.resolveHarnessBrief(request);
     try {
       const response = await this.openrouter.chatCompletion({
         // First-party OpenRouter calls send `zdr: true`; the background
@@ -62,7 +105,7 @@ export class StoryboardPlanDraftService {
         // This model reasons by default, so leave headroom in max_tokens.
         model: LLM_DEFAULTS.productTextFallback,
         max_tokens: 8192,
-        messages: buildStoryboardDraftMessages(request),
+        messages: buildStoryboardDraftMessages(request, harnessBrief),
         response_format: {
           type: 'json_schema',
           json_schema: {
@@ -88,13 +131,14 @@ export class StoryboardPlanDraftService {
   async draftLongForm(
     request: StoryboardLongFormDraftRequest,
   ): Promise<StoryboardPlan> {
+    const harnessBrief = await this.resolveHarnessBrief(request);
     try {
       const response = await this.openrouter.chatCompletion({
         model: LLM_DEFAULTS.productTextFallback,
         // A ten minute script is about 7,000 characters of narration plus
         // cutaway briefs; leave headroom for reasoning.
         max_tokens: 32_768,
-        messages: buildStoryboardLongFormDraftMessages(request),
+        messages: buildStoryboardLongFormDraftMessages(request, harnessBrief),
         response_format: {
           type: 'json_schema',
           json_schema: {
