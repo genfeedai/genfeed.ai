@@ -43,6 +43,10 @@ import { AgentQualityToolHandler } from '@api/services/agent-orchestrator/tools/
 import { AgentReviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-review-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { AgentSpawnToolHandler } from '@api/services/agent-orchestrator/tools/agent-spawn-tool-handler.service';
+import {
+  AgentStoryboardToolHandler,
+  isAgentStoryboardTool,
+} from '@api/services/agent-orchestrator/tools/agent-storyboard-tool-handler.service';
 import { AgentThreadToolHandler } from '@api/services/agent-orchestrator/tools/agent-thread-tool-handler.service';
 import { AgentToolCatalogHandler } from '@api/services/agent-orchestrator/tools/agent-tool-catalog-handler.service';
 import { dispatchRegisteredAgentTool } from '@api/services/agent-orchestrator/tools/agent-tool-dispatch.routes';
@@ -310,6 +314,9 @@ export class AgentToolExecutorService implements OnModuleInit {
 
   @Inject(BrandAccessService)
   private readonly brandAccessService!: BrandAccessService;
+
+  @Inject(AgentStoryboardToolHandler)
+  private readonly storyboardHandler!: AgentStoryboardToolHandler;
 
   constructor(
     private readonly loggerService: LoggerService,
@@ -764,6 +771,9 @@ export class AgentToolExecutorService implements OnModuleInit {
   ): Promise<AgentToolResult> {
     if (toolName === 'get_generation_options') {
       return this.dispatchGenerationOptions(toolName, params, ctx);
+    }
+    if (isAgentStoryboardTool(toolName)) {
+      return this.storyboardHandler.execute(toolName, params, ctx);
     }
     return Object.hasOwn(VISUAL_CODE_ACTION_ALIASES, toolName)
       ? this.dispatchVisualCode(toolName, params, ctx)

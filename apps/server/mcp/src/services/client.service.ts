@@ -57,10 +57,7 @@ import {
   type SocialMessageListParams,
   SocialMessagesClient,
 } from '@mcp/services/client/social-messages.client';
-import {
-  parseStoryboardRun,
-  StoryboardClient,
-} from '@mcp/services/client/storyboard.client';
+import { parseStoryboardRun } from '@mcp/services/client/storyboard.client';
 import { WorkflowClient } from '@mcp/services/client/workflow.client';
 import { WorkspaceClient } from '@mcp/services/client/workspace.client';
 import type {
@@ -143,7 +140,6 @@ export class ClientService {
   private readonly scheduler: SchedulerClient;
   private readonly campaigns: CampaignClient;
   private readonly remix: RemixClient;
-  private readonly storyboard: StoryboardClient;
   private readonly workflows: WorkflowClient;
   private readonly workspace: WorkspaceClient;
   private readonly ads: AdsClient;
@@ -168,7 +164,6 @@ export class ClientService {
     this.scheduler = new SchedulerClient(this.base);
     this.campaigns = new CampaignClient(this.base);
     this.remix = new RemixClient(this.base);
-    this.storyboard = new StoryboardClient(this.base);
     this.workflows = new WorkflowClient(this.base);
     this.workspace = new WorkspaceClient(this.base);
     this.ads = new AdsClient(this.base);
@@ -404,18 +399,6 @@ export class ClientService {
       },
       this.base.failWithDetail('Failed to create a storyboard remix'),
     );
-  }
-
-  /** Reads, edits, quotes and assembles a long-form storyboard (#8225). */
-  storyboardLongForm(input: StoryboardToolInput<'storyboard_long_form'>) {
-    return this.storyboard.storyboardLongForm(input);
-  }
-
-  /** Starts a quoted paid step; the API refuses it if the inputs changed. */
-  renderStoryboardLongForm(
-    input: StoryboardToolInput<'start_storyboard_long_form'>,
-  ) {
-    return this.storyboard.renderStoryboardLongForm(input);
   }
 
   replaceStoryboardCharacter(

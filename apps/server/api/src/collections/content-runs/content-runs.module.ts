@@ -83,6 +83,11 @@ import { Module } from '@nestjs/common';
   ],
   exports: [
     StoryboardRunsService,
+    StoryboardStillsService,
+    StoryboardARollService,
+    StoryboardLongFormAssemblyService,
+    StoryboardLongFormEstimateService,
+    StoryboardLongFormTranslationService,
     BrandRemixSceneService,
     BrandRemixRunsService,
     ContentRunsService,
