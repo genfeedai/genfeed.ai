@@ -11,6 +11,7 @@ export * from './fleet-evaluation-policy.interface';
 export * from './learning-prompt-slot-outcome.interface';
 export * from './outlier-baseline.interface';
 export * from './outlier-persistence.interface';
+export * from './posting-windows.interface';
 export * from './saved-ad.interface';
 export * from './training.interface';
 export * from './trend.interface';

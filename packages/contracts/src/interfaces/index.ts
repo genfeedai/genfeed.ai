@@ -57,6 +57,7 @@ export * from './analytics/outlier-baseline.interface';
 export * from './analytics/outlier-persistence.interface';
 export * from './analytics/performance-dataset.interface';
 export * from './analytics/platform-config.interface';
+export * from './analytics/posting-windows.interface';
 export * from './analytics/saved-ad.interface';
 export * from './analytics/training.interface';
 export * from './analytics/trend.interface';
