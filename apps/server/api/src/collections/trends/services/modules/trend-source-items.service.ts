@@ -217,9 +217,14 @@ export class TrendSourceItemsService {
     items: TRaw[],
     map: (item: TRaw) => TrendSourceItem | null,
   ): TrendSourceItem[] {
+    // A provider row without a string id is unusable: the stored preview
+    // reader drops it, and the preview state reads `id` of the first item.
     return items
       .map((item) => map(item))
-      .filter((item): item is TrendSourceItem => item !== null);
+      .filter(
+        (item): item is TrendSourceItem =>
+          item !== null && typeof item.id === 'string' && item.id !== '',
+      );
   }
 
   private getTrendSearchTerm(trend: TrendEntity): string | null {

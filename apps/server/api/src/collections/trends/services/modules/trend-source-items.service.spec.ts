@@ -163,6 +163,23 @@ describe('TrendSourceItemsService', () => {
       });
     });
 
+    it('drops a provider row that has no id instead of crashing the preview state', async () => {
+      apify.searchInstagramByHashtag.mockResolvedValue([
+        { caption: 'no id', imageUrl: 'https://img/0.jpg', shortCode: 'zzz' },
+        {
+          caption: 'has id',
+          id: 'ig-1',
+          imageUrl: 'https://img/1.jpg',
+          shortCode: 'abc',
+        },
+      ]);
+
+      const result = await service.fetchTrendSourceItems(makeTrend(), 5);
+
+      expect(result.map((item) => item.id)).toEqual(['ig-1']);
+      expect(service.getSourcePreviewState(result)).toBe('live');
+    });
+
     it('strips a leading # from the hashtag before searching', async () => {
       await service.fetchTrendSourceItems(
         makeTrend({ metadata: { hashtags: ['#ShortForm'] } }),
