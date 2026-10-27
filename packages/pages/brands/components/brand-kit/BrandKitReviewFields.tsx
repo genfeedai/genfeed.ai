@@ -126,13 +126,13 @@ export default function BrandKitReviewFields({
                             />
                           </div>
                         ) : (
-                          <span className="rounded-full bg-background-secondary px-2 py-1 text-xs text-muted-foreground">
+                          <Badge variant="secondary">
                             {isAssetField
                               ? 'Select images to import'
                               : isDeferred
                                 ? 'Safe import pending'
                                 : 'Review only'}
-                          </span>
+                          </Badge>
                         )}
                       </div>
 
