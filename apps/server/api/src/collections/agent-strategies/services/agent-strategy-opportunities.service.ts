@@ -1,8 +1,9 @@
 import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
 import type { AgentStrategyOpportunityDocument } from '@api/collections/agent-strategies/schemas/agent-strategy-opportunity.schema';
-import type {
-  AgentStrategyOpportunitySourceType,
-  AgentStrategyOpportunityStatus,
+import {
+  type AgentStrategyOpportunitySourceType,
+  type AgentStrategyOpportunityStatus,
+  CONVERSATION_OPPORTUNITY_SOURCE_TYPE,
 } from '@api/collections/agent-strategies/schemas/agent-strategy-policy.schema';
 import {
   buildPaginatedResult,
@@ -94,6 +95,8 @@ export class AgentStrategyOpportunitiesService {
     strategyId: string,
     organizationId: string,
     options: {
+      /** Read the conversation queue instead of the autopilot's opportunities. */
+      isConversationQueue?: boolean;
       includeDeleted?: boolean;
       statuses?: AgentStrategyOpportunityStatus[];
     } = {},
@@ -115,6 +118,11 @@ export class AgentStrategyOpportunitiesService {
     return records
       .map((record) =>
         this.normalizeOpportunity(record as unknown as Record<string, unknown>),
+      )
+      .filter(
+        (opportunity) =>
+          (opportunity.sourceType === CONVERSATION_OPPORTUNITY_SOURCE_TYPE) ===
+          Boolean(options.isConversationQueue),
       )
       .sort((left, right) => {
         const priorityDelta =
@@ -148,14 +156,8 @@ export class AgentStrategyOpportunitiesService {
     paging: { limit: number; page: number },
   ): Promise<PaginatedResult<AgentStrategyOpportunityDocument>> {
     const { limit, page } = paging;
-    const where = scopedWhere(organizationId, {
-      OR: OPEN_OPPORTUNITY_STATUSES.map((status) => ({
-        data: { equals: status, path: ['status'] },
-      })),
-      strategyId,
-    });
 
-    const [rankedIds, totalDocs] = await Promise.all([
+    const [rankedIds, [{ count: totalDocs }]] = await Promise.all([
       // sql-risk-audit: ignore raw-sql-review -- Tenant, strategy and soft-delete filters are in the WHERE clause, the read is bounded by LIMIT, and Prisma cannot ORDER BY a JSON path.
       this.prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
         SELECT "id"
@@ -164,6 +166,7 @@ export class AgentStrategyOpportunitiesService {
           AND "strategyId" = ${strategyId}
           AND "isDeleted" = false
           AND ("data" ->> 'status') = ANY(${OPEN_OPPORTUNITY_STATUSES}::text[])
+          AND ("data" ->> 'sourceType') IS DISTINCT FROM ${CONVERSATION_OPPORTUNITY_SOURCE_TYPE}
         ORDER BY
           COALESCE(
             CASE
@@ -177,7 +180,16 @@ export class AgentStrategyOpportunitiesService {
         LIMIT ${limit}
         OFFSET ${(page - 1) * limit}
       `),
-      this.prisma.agentStrategyOpportunity.count({ where }),
+      // sql-risk-audit: ignore raw-sql-review -- Same tenant, strategy and soft-delete filters as the ranked read above; the count matches its rows. Prisma's JSON NOT filter drops rows with no sourceType, so the exclusion is SQL.
+      this.prisma.$queryRaw<Array<{ count: number }>>(Prisma.sql`
+        SELECT COUNT(*)::int AS "count"
+        FROM "agent_strategy_opportunities"
+        WHERE "organizationId" = ${organizationId}
+          AND "strategyId" = ${strategyId}
+          AND "isDeleted" = false
+          AND ("data" ->> 'status') = ANY(${OPEN_OPPORTUNITY_STATUSES}::text[])
+          AND ("data" ->> 'sourceType') IS DISTINCT FROM ${CONVERSATION_OPPORTUNITY_SOURCE_TYPE}
+      `),
     ]);
 
     const ids = rankedIds.map((row) => row.id);
@@ -205,6 +217,55 @@ export class AgentStrategyOpportunitiesService {
       page,
       limit,
     );
+  }
+
+  async findById(
+    id: string,
+    organizationId: string,
+  ): Promise<AgentStrategyOpportunityDocument | null> {
+    const record = await this.prisma.agentStrategyOpportunity.findFirst({
+      where: scopedWhere(organizationId, { id }),
+    });
+
+    return record
+      ? this.normalizeOpportunity(record as unknown as Record<string, unknown>)
+      : null;
+  }
+
+  /**
+   * Moves an opportunity to `status` only while it is still in one of the
+   * `from` statuses. The write is guarded on the status it read, so two callers
+   * racing for the same transition cannot both win; the loser gets `null`.
+   */
+  async transitionStatus(
+    id: string,
+    organizationId: string,
+    from: AgentStrategyOpportunityStatus[],
+    status: AgentStrategyOpportunityStatus,
+    patch: Record<string, unknown> = {},
+  ): Promise<AgentStrategyOpportunityDocument | null> {
+    const existing = await this.prisma.agentStrategyOpportunity.findFirst({
+      where: scopedWhere(organizationId, { id }),
+    });
+    if (
+      !existing ||
+      !this.isPlainObject(existing.data) ||
+      !from.includes(existing.data.status as AgentStrategyOpportunityStatus)
+    ) {
+      return null;
+    }
+
+    const currentStatus = existing.data.status as string;
+    const result = await this.prisma.agentStrategyOpportunity.updateMany({
+      where: scopedWhere(organizationId, {
+        id,
+        data: { equals: currentStatus, path: ['status'] },
+      }),
+      data: {
+        data: this.toJsonValue({ ...existing.data, ...patch, status }),
+      },
+    });
+    return result.count === 1 ? this.findById(id, organizationId) : null;
   }
 
   async createIfMissing(
