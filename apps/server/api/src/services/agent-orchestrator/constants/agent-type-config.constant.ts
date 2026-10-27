@@ -59,6 +59,7 @@ const SHARED_READ_TOOLS: CuratedActionName[] = [
   'get_connection_status',
   'update_strategy_state',
   'get_approval_summary',
+  'list_stalled_items',
   'analyze_performance',
   'list_genfeed_tools',
   'capture_memory',

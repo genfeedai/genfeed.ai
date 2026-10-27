@@ -11,6 +11,11 @@ import {
   parseSaveContentAgentArgs,
   resolveContentAgentPrincipal,
 } from '@api/services/agent-orchestrator/tools/save-content-agent';
+import {
+  buildStalledItemsResult,
+  STALLED_DEFAULT_WINDOW_DAYS,
+  STALLED_MAX_WINDOW_DAYS,
+} from '@api/services/agent-orchestrator/utils/agent-stalled-items.util';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { mapTwitterApiError } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import { buildTwitterStatusUrl } from '@api/services/integrations/twitter/utils/twitter-post-id.util';
@@ -28,6 +33,11 @@ import { serializeAgentPost } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+
+const STALLED_DEFAULT_LIMIT = 20;
+const STALLED_MAX_LIMIT = 50;
+/** Oldest posts read per call; the result says when this cap was reached. */
+const STALLED_SCAN_LIMIT = 500;
 
 /**
  * Proactive agent tools: approval summary, performance, calendar, strategy bookkeeping.
@@ -171,6 +181,118 @@ export class AgentProactiveToolHandler {
         topPerformers,
         totalPosts: rows.length,
         samplingLimit: 250,
+      },
+      success: true,
+    };
+  }
+
+  async listStalledItems(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const windowDays = params.windowDays ?? STALLED_DEFAULT_WINDOW_DAYS;
+    if (
+      typeof windowDays !== 'number' ||
+      !Number.isInteger(windowDays) ||
+      windowDays < 1 ||
+      windowDays > STALLED_MAX_WINDOW_DAYS
+    ) {
+      return {
+        creditsUsed: 0,
+        error: `windowDays must be an integer from 1 to ${STALLED_MAX_WINDOW_DAYS}`,
+        success: false,
+      };
+    }
+    const limit = params.limit ?? STALLED_DEFAULT_LIMIT;
+    if (
+      typeof limit !== 'number' ||
+      !Number.isInteger(limit) ||
+      limit < 1 ||
+      limit > STALLED_MAX_LIMIT
+    ) {
+      return {
+        creditsUsed: 0,
+        error: `limit must be an integer from 1 to ${STALLED_MAX_LIMIT}`,
+        success: false,
+      };
+    }
+    if (!this.prisma) {
+      return {
+        creditsUsed: 0,
+        error: 'Stalled item detection unavailable',
+        success: false,
+      };
+    }
+    const requestedBrandId = readOptionalString(params.brandId);
+    if (ctx.brandId && requestedBrandId && ctx.brandId !== requestedBrandId) {
+      return {
+        creditsUsed: 0,
+        error: 'brandId does not match this conversation',
+        success: false,
+      };
+    }
+    const brandId = requestedBrandId ?? ctx.brandId;
+    if (brandId && !ctx.brandId) {
+      const brand = await this.prisma.brand.findFirst({
+        where: scopedWhere(ctx.organizationId, { id: brandId }),
+      });
+      if (!brand) {
+        return {
+          creditsUsed: 0,
+          error: 'Brand was not found in this organization',
+          success: false,
+        };
+      }
+    }
+
+    const now = new Date();
+    // Last activity is never older than creation, so a post created inside the
+    // window cannot be stalled. This keeps the read to the oldest candidates.
+    const cutoff = new Date(now.getTime() - windowDays * 86_400_000);
+    const rows = await this.prisma.post.findMany({
+      where: scopedWhere(ctx.organizationId, {
+        ...(brandId ? { brandId } : {}),
+        createdAt: { lte: cutoff },
+        parentId: null,
+        targetExecutionState: {
+          in: [
+            TargetExecutionState.DRAFT,
+            TargetExecutionState.SCHEDULED,
+            TargetExecutionState.FAILED,
+          ],
+        },
+      }),
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      select: {
+        brandId: true,
+        createdAt: true,
+        description: true,
+        id: true,
+        lastAttemptAt: true,
+        platform: true,
+        reviewDecision: true,
+        reviewedAt: true,
+        scheduledDate: true,
+        targetExecutionState: true,
+        userId: true,
+      },
+      take: STALLED_SCAN_LIMIT + 1,
+    });
+    const result = buildStalledItemsResult({
+      isScanLimited: rows.length > STALLED_SCAN_LIMIT,
+      limit,
+      now,
+      posts: rows.slice(0, STALLED_SCAN_LIMIT),
+      windowDays,
+    });
+    return {
+      creditsUsed: 0,
+      data: {
+        ...result,
+        message:
+          result.items.length === 0
+            ? `Nothing has been stalled for ${windowDays} days or more. Stale Knowledge is reported by get_context_coverage.`
+            : `${result.items.length} item${result.items.length === 1 ? '' : 's'} with no review, scheduling or publishing activity for ${windowDays} days or more. Edits do not count as activity. Stale Knowledge is reported by get_context_coverage.`,
       },
       success: true,
     };

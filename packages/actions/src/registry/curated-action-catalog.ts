@@ -399,6 +399,11 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'social-inbox',
   },
   {
+    name: 'list_stalled_items',
+    surfaces: ['agent', 'mcp'],
+    toolset: 'engagement',
+  },
+  {
     name: 'list_system_workflow_catalog',
     surfaces: ['agent', 'mcp'],
     toolset: 'workflows',
