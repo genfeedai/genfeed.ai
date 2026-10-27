@@ -32,7 +32,7 @@ const Card = memo(function Card({
   iconClassName,
   id,
   label,
-  labelAs: LabelTag = 'h3',
+  labelAs: LabelTag = 'h2',
   isLabelWrapped = false,
   description,
   isDisabled,
