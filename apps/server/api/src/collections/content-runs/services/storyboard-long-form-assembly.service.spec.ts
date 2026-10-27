@@ -150,8 +150,14 @@ describe('StoryboardLongFormAssemblyService', () => {
       config: { totalDurationFrames: number; settings: { width: number } };
       tracks: {
         name: string;
+        type: string;
         volume: number;
-        clips: { ingredientUrl: string; startFrame: number }[];
+        clips: {
+          ingredientUrl: string;
+          startFrame: number;
+          durationFrames: number;
+          textOverlay?: { text: string };
+        }[];
       }[];
     };
     expect(created.config.totalDurationFrames).toBe(42 * 30);
@@ -159,7 +165,25 @@ describe('StoryboardLongFormAssemblyService', () => {
     expect(created.tracks.map((track) => track.name)).toEqual([
       'Presenter',
       'B-roll',
+      'Captions',
     ]);
+    // Captions run back to back from the first word to the last frame.
+    const captions = created.tracks[2]?.clips ?? [];
+    expect(created.tracks[2]?.type).toBe('text');
+    expect(captions[0]?.startFrame).toBe(0);
+    for (let index = 1; index < captions.length; index++) {
+      const before = captions[index - 1];
+      expect(captions[index]?.startFrame).toBe(
+        (before?.startFrame ?? 0) + (before?.durationFrames ?? 0),
+      );
+    }
+    const last = captions.at(-1);
+    expect((last?.startFrame ?? 0) + (last?.durationFrames ?? 0)).toBe(42 * 30);
+    expect(
+      captions
+        .map((clip) => clip.textOverlay?.text.replace(/\n/g, ' '))
+        .join(' '),
+    ).toBe(NARRATION);
     expect(created.tracks[0]?.clips[0]?.ingredientUrl).toBe(
       'https://cdn.test/ingredients/avatars/presenter-1',
     );
@@ -330,7 +354,9 @@ describe('StoryboardLongFormAssemblyService', () => {
       ['Presenter', 1],
       ['B-roll', 0],
       ['Narration', 1],
+      ['Captions', created.tracks[3]?.clips.length],
     ]);
+    expect(created.tracks[3]?.clips.length).toBeGreaterThan(0);
     expect(created.tracks[0]?.clips[0]).toMatchObject({
       ingredientId: 'avatar-1',
       mediaType: 'image',

@@ -13,7 +13,10 @@ import {
   storyboardLongFormDraftOutputSchema,
   storyboardLongFormProblems,
 } from '@api/collections/content-runs/services/storyboard-long-form-draft';
-import { buildLongFormTimeline } from '@api/collections/content-runs/services/storyboard-long-form-timeline';
+import {
+  buildLongFormCaptions,
+  buildLongFormTimeline,
+} from '@api/collections/content-runs/services/storyboard-long-form-timeline';
 import draftedPlan from '@api-test/fixtures/long-form-benchmark/drafted-plan.json';
 import voiceNote from '@api-test/fixtures/long-form-benchmark/voice-note.json';
 import {
@@ -176,6 +179,23 @@ describe('long-form benchmark: voice note to presenter edit', () => {
         after.startSeconds + 0.01,
       );
     }
+  });
+
+  it('captions every word of the script for the whole video', () => {
+    const plan = draft();
+    const chunks = render(planStoryboardARollChunks(plan));
+    const captions = buildLongFormCaptions(chunks, 84);
+    const narration = (plan.longForm?.segments ?? [])
+      .map((segment) => segment.narration)
+      .join(' ');
+    const last = captions.at(-1);
+
+    expect(captions.map((caption) => caption.text).join(' ')).toBe(narration);
+    expect(captions.every((caption) => caption.text.length <= 84)).toBe(true);
+    expect(captions[0]?.startSeconds).toBe(0);
+    expect(
+      (last?.startSeconds ?? 0) + (last?.durationSeconds ?? 0),
+    ).toBeCloseTo(buildLongFormTimeline(plan, chunks).totalSeconds, 1);
   });
 
   it('re-renders only the chunk an edit touches', () => {
