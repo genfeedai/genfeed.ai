@@ -9,6 +9,7 @@ import { randomUUID } from 'node:crypto';
 import { AGENT_CREDIT_USD } from '@genfeedai/contracts/constants';
 import { z } from 'zod';
 import type {
+  CallProvenance,
   Contestant,
   ContestantAnswer,
   ContestantProvenance,
@@ -28,7 +29,10 @@ import type {
 } from '../contracts';
 import { CONTENT_EVAL_THRESHOLDS } from '../contracts';
 import { requireModelFamily, resolveModelFamily } from '../families';
-import { GRADE_TWICE_SAMPLE_SIZE } from '../noise/contracts';
+import {
+  CUT_OFF_VOID_PREFIX,
+  GRADE_TWICE_SAMPLE_SIZE,
+} from '../noise/contracts';
 import {
   canonicalJson,
   MeteredCallError,
@@ -145,6 +149,7 @@ async function generateViaProduct(
     costUsd: result.creditsCharged * AGENT_CREDIT_USD,
     credits: result.creditsCharged,
     family: family ?? requireModelFamily(contestant.registryKey),
+    finishReason: null,
     isFailed: result.status !== 'generated',
     kind: 'generation' as const,
     latencyMs: result.latencyMs,
@@ -191,6 +196,47 @@ async function generateViaProduct(
     });
   }
   return { callId, model, text: result.text };
+}
+
+/** A void row for a generation that produced no scoreable text. */
+function voidedGeneration(
+  base: Omit<
+    ScoredRow,
+    | 'callIds'
+    | 'contestant'
+    | 'costCredits'
+    | 'deterministicChecks'
+    | 'isAccepted'
+    | 'latencyMs'
+    | 'output'
+    | 'voidReason'
+    | 'votes'
+  >,
+  contestant: ContestantProvenance,
+  call: CallProvenance | null,
+  voidReason: string,
+): ContestantAnswer {
+  // The call was still charged; keep its cost on the void row.
+  return {
+    scoredRow: {
+      ...base,
+      callIds: call ? [call.callId] : [],
+      contestant,
+      costCredits: call?.credits ?? 0,
+      deterministicChecks: [],
+      isAccepted: null,
+      latencyMs: call?.latencyMs ?? 0,
+      output: null,
+      voidReason,
+      votes: [],
+    },
+    text: null,
+  };
+}
+
+function cutOffReason(detail: string | null): string {
+  const limit = `${CUT_OFF_VOID_PREFIX} at the ${GENERATION_MAX_TOKENS}-token limit`;
+  return detail ? `${limit}: ${detail}` : limit;
 }
 
 async function answerRow(
@@ -263,33 +309,35 @@ async function answerRow(
           temperature: GENERATION_TEMPERATURE,
         },
       );
-      text = generated.response.value.text;
-      generationCallId = generated.provenance.callId;
       provenance.modelVersion = generated.provenance.modelVersion;
       provenance.provider = generated.provenance.provider;
+      if (generated.provenance.finishReason === 'length') {
+        // Even when the fragment parsed, it is not the model's full answer.
+        return voidedGeneration(
+          base,
+          provenance,
+          generated.provenance,
+          cutOffReason(null),
+        );
+      }
+      text = generated.response.value.text;
+      generationCallId = generated.provenance.callId;
     }
   } catch (error: unknown) {
     if (isFatal(error)) {
       throw error;
     }
 
-    // A failed generation was still charged; keep its cost on the void row.
     const failed = error instanceof MeteredCallError ? error.provenance : null;
-    return {
-      scoredRow: {
-        ...base,
-        callIds: failed ? [failed.callId] : [],
-        contestant: provenance,
-        costCredits: failed?.credits ?? 0,
-        deterministicChecks: [],
-        isAccepted: null,
-        latencyMs: failed?.latencyMs ?? 0,
-        output: null,
-        voidReason: `generation failed: ${error instanceof Error ? error.message : String(error)}`,
-        votes: [],
-      },
-      text: null,
-    };
+    const detail = error instanceof Error ? error.message : String(error);
+    return voidedGeneration(
+      base,
+      provenance,
+      failed,
+      failed?.finishReason === 'length'
+        ? cutOffReason(detail)
+        : `generation failed: ${detail}`,
+    );
   }
 
   const checks = runDeterministicChecks(text, row);

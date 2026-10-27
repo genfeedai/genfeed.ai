@@ -67,7 +67,8 @@
     "**/*.spec.ts",
     "**/*.test.ts",
     "**/*.e2e-spec.ts",
-    "src/ui/preview-client.tsx"
+    "src/ui/preview-client.tsx",
+    "src/ui/next-image.tsx"
   ],
   "extends": "../tsconfig.typecheck.base.json",
   "include": ["src/**/*"]
