@@ -35,6 +35,71 @@ export const CONTENT_QUALITY_RUBRIC: EvalRubricSpec = {
   version: 'content-quality-v1',
 };
 
+/**
+ * Checkable claims instead of a 1-5 scale (#5604). Each claim is answered
+ * pass, fail or not-applicable; the score is the share of applicable claims
+ * that pass. It has no calibration report yet, so it can be judged in the
+ * judge suite but cannot gate or optimize.
+ */
+export const CONTENT_CLAIMS_RUBRIC: EvalRubricSpec = {
+  calibrationReport: null,
+  choiceScores: {},
+  claims: [
+    {
+      id: 'brief-ask',
+      text: 'The content does what the brief asks: its format, its topic and every explicit requirement.',
+    },
+    {
+      id: 'supported-facts',
+      text: 'Every fact, number, price, offer, date or quote in the content is stated in the brief or the brand guidance.',
+    },
+    {
+      id: 'banned-phrases',
+      text: 'The content uses none of the phrases or topics the brand guidance bans.',
+    },
+    {
+      id: 'voice',
+      text: 'The tone of the content matches the voice the brand guidance describes.',
+    },
+    {
+      id: 'audience',
+      text: 'The content speaks to the audience the brand guidance names.',
+    },
+    {
+      id: 'hook',
+      text: 'The first sentence gives the reader a concrete reason to keep reading.',
+    },
+    {
+      id: 'call-to-action',
+      text: 'When the brief asks for a next step, the content ends with one the reader can take.',
+    },
+    {
+      id: 'publishable',
+      text: 'A careful editor would publish the content without changing what it says.',
+    },
+  ],
+  id: 'content-claims',
+  promptTemplate: [
+    'You are checking a piece of social content written for a brand.',
+    '[BEGIN DATA]',
+    '***',
+    '[Brief]: {{input}}',
+    '***',
+    '[Brand guidance]: {{guidance}}',
+    '***',
+    '[Content]: {{output}}',
+    '***',
+    '[END DATA]',
+    'Check each claim below against the content only, never its length.',
+    'Answer pass when the claim holds, fail when it does not, and not-applicable',
+    'only when the brief and guidance give the claim nothing to check.',
+    '[Claims]:',
+    '{{claims}}',
+  ].join('\n'),
+  source: 'genfeed:content-eval',
+  version: 'content-claims-v1',
+};
+
 export const BATTLE_RUBRIC: EvalRubricSpec = {
   choiceScores: templates.battle.choice_scores,
   id: 'battle',
@@ -44,13 +109,42 @@ export const BATTLE_RUBRIC: EvalRubricSpec = {
 };
 
 export const RUBRICS_BY_VERSION = new Map(
-  [CONTENT_QUALITY_RUBRIC, BATTLE_RUBRIC].map((spec) => [spec.version, spec]),
+  [CONTENT_QUALITY_RUBRIC, CONTENT_CLAIMS_RUBRIC, BATTLE_RUBRIC].map((spec) => [
+    spec.version,
+    spec,
+  ]),
 );
 
+export function isClaimRubric(spec: EvalRubricSpec): boolean {
+  return (spec.claims?.length ?? 0) > 0;
+}
+
+/**
+ * A claim rubric scores a gating or optimizing suite only once a calibration
+ * report for its exact revision exists. The judge suite is exempt: it is the
+ * calibration run that produces that report.
+ */
+export function assertRubricMayGate(spec: EvalRubricSpec): void {
+  if (isClaimRubric(spec) && !spec.calibrationReport) {
+    throw new Error(
+      `Rubric ${spec.version} has no calibration report for digest ${rubricDigest(spec)}; run it in the judge suite (#4924) and link the report before it gates or optimizes.`,
+    );
+  }
+}
+
+/** The claim list as the judge sees it: one `- [id] text` line per claim. */
+export function renderClaims(spec: EvalRubricSpec): string {
+  return (spec.claims ?? [])
+    .map((claim) => `- [${claim.id}] ${claim.text}`)
+    .join('\n');
+}
+
 export function rubricDigest(spec: EvalRubricSpec): string {
+  // Choice rubrics keep the digest they had before claims existed.
   return sha256Digest(
     canonicalJson({
       choiceScores: spec.choiceScores,
+      ...(isClaimRubric(spec) ? { claims: spec.claims } : {}),
       promptTemplate: spec.promptTemplate,
     }),
   );
@@ -59,6 +153,7 @@ export function rubricDigest(spec: EvalRubricSpec): string {
 export function toRubricRecord(spec: EvalRubricSpec): RubricRecord {
   return {
     choiceScores: spec.choiceScores,
+    ...(isClaimRubric(spec) ? { claims: [...(spec.claims ?? [])] } : {}),
     digest: rubricDigest(spec),
     id: spec.id,
     source: spec.source,

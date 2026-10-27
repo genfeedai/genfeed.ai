@@ -285,6 +285,9 @@ const digestSchema = z.string().regex(/^sha256:[0-9a-f]{64}$/);
 
 export const rubricRecordSchema = z.object({
   choiceScores: z.record(z.string(), z.number()),
+  claims: z
+    .array(z.object({ id: z.string().min(1), text: z.string().min(1) }))
+    .optional(),
   digest: digestSchema,
   id: z.string().min(1),
   source: z.string().min(1),
@@ -388,8 +391,19 @@ export interface EvalSpendLedger {
   summary(): SpendSummary;
 }
 
+export const CLAIM_VERDICTS = ['pass', 'fail', 'not-applicable'] as const;
+export type ClaimVerdictValue = (typeof CLAIM_VERDICTS)[number];
+
+export interface ClaimVerdict {
+  claimId: string;
+  reasons: string;
+  verdict: ClaimVerdictValue;
+}
+
 export interface PointwiseJudgement {
   callId: string | null;
+  /** Per-claim verdicts when the rubric is a claim rubric; null otherwise. */
+  claimVerdicts: ClaimVerdict[] | null;
   /** Why the judge produced no score (provider or schema failure). */
   failure: string | null;
   rationale: string | null;
@@ -425,9 +439,26 @@ export interface EvalJudge {
   rubrics(): RubricRecord[];
 }
 
-/** Versioned rubric in autoevals' ModelGradedSpec shape. */
+/** One checkable statement a claim rubric asks the judge to verify. */
+export interface EvalRubricClaim {
+  id: string;
+  text: string;
+}
+
+/**
+ * Versioned rubric in autoevals' ModelGradedSpec shape. A claim rubric
+ * (#5604) has no choices: it lists checkable claims, the judge returns a
+ * verdict per claim, and the score is the share of applicable claims passed.
+ */
 export interface EvalRubricSpec {
+  /**
+   * Repo path of the live calibration summary for this rubric's digest. A
+   * claim rubric without one may be judged (that is how it gets calibrated)
+   * but cannot gate or optimize. Choice rubrics predate the requirement.
+   */
+  calibrationReport?: string | null;
   choiceScores: Record<string, number>;
+  claims?: readonly EvalRubricClaim[];
   id: string;
   promptTemplate: string;
   /** Where the prompt text comes from, e.g. `autoevals@0.3.0:battle`. */
