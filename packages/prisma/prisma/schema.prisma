@@ -820,6 +820,9 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   knowledgeCaptureRequests KnowledgeCaptureRequest[]
   id                        String                @id @default(cuid())
   authProviderLogoUrl       String?
+  // Better Auth organization-plugin `metadata` (JSON string). Unused by Genfeed
+  // today, but 1.7 validates that the column exists before serving any request.
+  metadata                  String?
   userId                    String
   user                      User                  @relation(fields: [userId], references: [id])
   billingAccountId          String?
@@ -1678,6 +1681,10 @@ model Jwks {
   privateKey String
   createdAt  DateTime  @default(now())
   expiresAt  DateTime?
+  // Signing algorithm and curve of the key (Better Auth 1.7 jwt plugin). Null on
+  // keys minted before 1.7, which Better Auth treats as the default algorithm.
+  alg        String?
+  crv        String?
 
   @@map("auth_jwks")
 }
