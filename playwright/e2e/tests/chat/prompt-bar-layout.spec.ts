@@ -90,7 +90,8 @@ test.describe('Agent prompt bar', () => {
     const toolbar = authenticatedPage.getByTestId('prompt-bar-toolbar').first();
     const metrics = await toolbar.locator('button').evaluateAll((buttons) =>
       buttons
-        .filter((button) => (button.textContent ?? '').trim() === '')
+        // innerText skips the labels a collapsed chip hides with display: none.
+        .filter((button) => (button as HTMLElement).innerText.trim() === '')
         .map((button) => {
           const box = button.getBoundingClientRect();
           const glyph = button.querySelector('svg')?.getBoundingClientRect();
