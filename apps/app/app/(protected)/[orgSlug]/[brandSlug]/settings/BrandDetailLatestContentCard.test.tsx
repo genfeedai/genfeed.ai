@@ -26,7 +26,7 @@ describe('BrandDetailLatestContentCard', () => {
       );
       expect(
         screen.getByRole('heading', { name: 'Latest content' }).tagName,
-      ).toBe('H2');
+      ).toBe('H3');
       const viewAll = screen.getByRole('link', { name: 'View all' });
       expect(viewAll).toHaveAttribute('href', '/all?type=example');
       expect(viewAll).toHaveAttribute('data-caller-link', 'preserved');
