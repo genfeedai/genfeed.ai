@@ -247,8 +247,12 @@ describe('image variant estimate / quote / admission parity', () => {
       },
     };
     const dto = { height: 1024, width: 1024, outputs: 1 };
-    const dispatchedQuality = MODEL_OUTPUT_CAPABILITIES[modelKey]
-      ?.defaultQuality as string;
+    const capability = MODEL_OUTPUT_CAPABILITIES[modelKey];
+    const dispatchedQuality =
+      capability?.category === ModelCategory.IMAGE
+        ? capability.defaultQuality
+        : undefined;
+    if (!dispatchedQuality) throw new Error(`No default quality ${modelKey}`);
     const priced = async (quality?: string) =>
       (
         await estimate.estimate({
