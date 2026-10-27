@@ -390,6 +390,8 @@ export interface StudioGenerationSummaryProps {
   /** Auto mode: the routed model is unknown, so only the balance is shown. */
   isEstimateHidden?: boolean;
   model?: IModel;
+  /** Credits a retry of this exact brief earns back; 0 or absent shows nothing. */
+  retryCreditBackCredits?: number;
   type: StudioPlaygroundType;
 }
 

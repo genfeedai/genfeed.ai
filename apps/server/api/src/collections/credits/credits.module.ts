@@ -6,6 +6,7 @@ and enforce usage limits.
 
 import { BillingAccountsModule } from '@api/collections/billing-accounts/billing-accounts.module';
 import { CreditsController } from '@api/collections/credits/controllers/credits.controller';
+import { RetryCreditBackController } from '@api/collections/credits/controllers/retry-credit-back.controller';
 import { EmailVerifiedCreditsListener } from '@api/collections/credits/listeners/email-verified-credits.listener';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
@@ -39,7 +40,7 @@ import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 
 @Module({
-  controllers: [CreditsController],
+  controllers: [CreditsController, RetryCreditBackController],
   exports: [
     OnboardingCreditGrantsService,
     CreditBalanceService,

@@ -26,6 +26,7 @@ export default function StudioGenerationSummary({
   estimate,
   crunQuote,
   model,
+  retryCreditBackCredits = 0,
   type,
 }: StudioGenerationSummaryProps) {
   const translate = useTranslations('pages.studioPlayground');
@@ -198,6 +199,13 @@ export default function StudioGenerationSummary({
                       runtime.status === 'switching'
                     ? translate('summary.costContextLoading')
                     : translate('summary.costContextUnavailable')}
+              </span>
+            ) : null}
+            {showCredits && !isEstimateHidden && retryCreditBackCredits > 0 ? (
+              <span role="status" data-testid="studio-retry-credit-back">
+                {translate('summary.retryCreditBack', {
+                  credits: formatCreditBalanceExact(retryCreditBackCredits),
+                })}
               </span>
             ) : null}
           </div>

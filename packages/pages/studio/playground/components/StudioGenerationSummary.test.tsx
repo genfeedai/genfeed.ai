@@ -137,4 +137,36 @@ describe('Studio submit credit tooltip', () => {
     const tooltip = await screen.findByRole('tooltip');
     expect(tooltip.textContent).toMatch(/~12\s*\/\s*5,397/);
   });
+
+  it('shows the retry credit-back only when a retry earns some', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <StudioGenerationSummary
+        label="Generate"
+        type="image"
+        estimate={{ status: 'estimated', credits: 40 }}
+        retryCreditBackCredits={10}
+      >
+        <Button withWrapper={false}>Generate</Button>
+      </StudioGenerationSummary>,
+    );
+    await user.tab();
+    expect(
+      await screen.findByTestId('studio-retry-credit-back'),
+    ).toHaveTextContent('Retry: 25% back (~10 credits)');
+
+    rerender(
+      <StudioGenerationSummary
+        label="Generate"
+        type="image"
+        estimate={{ status: 'estimated', credits: 40 }}
+        retryCreditBackCredits={0}
+      >
+        <Button withWrapper={false}>Generate</Button>
+      </StudioGenerationSummary>,
+    );
+    expect(
+      screen.queryByTestId('studio-retry-credit-back'),
+    ).not.toBeInTheDocument();
+  });
 });

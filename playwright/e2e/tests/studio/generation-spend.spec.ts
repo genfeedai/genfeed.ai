@@ -380,6 +380,38 @@ test.describe('Studio generation spend', () => {
     );
     await expectNoErrorOverlay(page);
   });
+
+  test('a pinned model quotes the retry credit-back beside the price', async ({
+    authenticatedPage: page,
+  }) => {
+    test.setTimeout(90_000);
+    const previewBodies: Record<string, unknown>[] = [];
+    // Registered before mountPlayground so the page never reaches a real server.
+    await page.route('**/v1/credits/retry-credit-back/preview', (route) => {
+      previewBodies.push(route.request().postDataJSON());
+      return route.fulfill({ json: { credits: 2, rate: 0.25 } });
+    });
+    const { editor, generationWrites } = await mountPlayground(page, {
+      isAdvancedMode: true,
+      models: EDIT_MODELS,
+      path: `${APP_ROUTES.STUDIO.PLAYGROUND}?editImage=${sourceId}`,
+    });
+    await editor.fill('Make the sky a deeper blue');
+
+    await page.getByRole('button', { name: 'Generate', exact: true }).hover();
+    await expect(page.getByTestId('studio-retry-credit-back')).toHaveText(
+      'Retry: 25% back (~2 credits)',
+    );
+    // The quote asks about the priced amount for the pinned model.
+    expect(previewBodies.at(-1)).toMatchObject({
+      credits: 8,
+      modelKey: editModel,
+      prompt: 'Make the sky a deeper blue',
+    });
+    // Quoting a refund never spends anything.
+    expect(generationWrites).toHaveLength(0);
+    await expectNoErrorOverlay(page);
+  });
 });
 
 test.describe('Studio edit mode', () => {

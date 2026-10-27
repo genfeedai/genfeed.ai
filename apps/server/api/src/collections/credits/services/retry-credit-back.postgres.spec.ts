@@ -354,4 +354,55 @@ describe.skipIf(!connectionString)('retry credit back (PostgreSQL)', () => {
       }),
     ).toBe(0);
   });
+
+  describe('preview for the Studio quote', () => {
+    const preview = (overrides: { prompt?: string; user?: string } = {}) =>
+      service.previewForBrief({
+        brandId,
+        chargedCredits: 40,
+        modelKey: MODEL,
+        organizationId,
+        prompt: overrides.prompt ?? PROMPT,
+        userId: overrides.user ?? userId,
+      });
+
+    it('shows a quarter back only once the brief has been generated before, and writes nothing', async () => {
+      await seedOrganization(true);
+      expect(await preview()).toBe(0);
+
+      await attempt({ createdAt: new Date(Date.now() - HOUR_MS) });
+      expect(await preview()).toBe(10);
+      expect(await preview({ prompt: `  ${PROMPT.toUpperCase()} ` })).toBe(10);
+      expect(await grants()).toHaveLength(0);
+    });
+
+    it('shows nothing for another prompt, another user, or an old attempt', async () => {
+      await seedOrganization(true);
+      await attempt({ createdAt: new Date(Date.now() - 2 * HOUR_MS) });
+      await attempt({
+        createdAt: new Date(Date.now() - RETRY_CREDIT_BACK_WINDOW_MS - HOUR_MS),
+        prompt: 'An old brief',
+      });
+
+      expect(await preview({ prompt: 'A different brief' })).toBe(0);
+      expect(await preview({ prompt: 'An old brief' })).toBe(0);
+      expect(await preview({ user: otherUserId })).toBe(0);
+    });
+
+    it('stops showing credit once the daily cap is used up', async () => {
+      await seedOrganization(true);
+      await attempt({ createdAt: new Date(Date.now() - HOUR_MS) });
+      await database().creditTransaction.create({
+        data: {
+          actorUserId: userId,
+          amount: RETRY_CREDIT_BACK_DAILY_CAP_CREDITS,
+          category: CreditTransactionCategory.ADD,
+          organizationId,
+          source: RETRY_CREDIT_BACK_SOURCE,
+        },
+      });
+
+      expect(await preview()).toBe(0);
+    });
+  });
 });

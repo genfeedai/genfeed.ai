@@ -41,3 +41,11 @@ export interface IApplyCreditDeltaInput {
   maxOverdraftCredits?: number;
   billingAccountId?: string | null;
 }
+
+/** What regenerating a brief now would earn back, for the Studio quote line (#7730). */
+export interface IRetryCreditBackPreview {
+  /** Whole credits the retry returns; 0 when it earns none. */
+  credits: number;
+  /** Share of the retry's price returned. */
+  rate: number;
+}

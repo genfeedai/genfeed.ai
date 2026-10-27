@@ -131,6 +131,51 @@ export class RetryCreditBackService {
     return credits;
   }
 
+  /**
+   * Credits a retry would earn back if the user generated this brief now, for
+   * the Studio quote line. Same rules as the grant, no ledger write. Zero for
+   * anything that earns nothing (first attempt, trial, cap reached).
+   */
+  async previewForBrief(input: {
+    brandId: string | null;
+    chargedCredits: number;
+    modelKey: string;
+    organizationId: string;
+    prompt: string;
+    userId: string;
+  }): Promise<number> {
+    if (
+      !usesMeteredCredits() ||
+      !(input.chargedCredits > 0) ||
+      !input.prompt.trim() ||
+      !input.modelKey
+    ) {
+      return 0;
+    }
+    const now = new Date();
+    const trial = await this.freeTrial.getState(input.organizationId);
+    const hasPriorAttempt = await this.hasPriorAttempt({
+      brandId: input.brandId,
+      createdAt: now,
+      modelUsed: input.modelKey,
+      organizationId: input.organizationId,
+      prompt: input.prompt,
+      since: new Date(now.getTime() - RETRY_CREDIT_BACK_WINDOW_MS),
+      userId: input.userId,
+    });
+    return decideRetryCreditBack({
+      chargedCredits: input.chargedCredits,
+      earnedInWindowCredits: await this.earnedSince(
+        input.organizationId,
+        input.userId,
+        new Date(now.getTime() - RETRY_CREDIT_BACK_WINDOW_MS),
+      ),
+      hasPriorAttempt,
+      isDraft: false,
+      isTrialSubject: trial.trialEndsAt !== null,
+    });
+  }
+
   /** The same, but a failure is logged and never thrown. */
   async grantBestEffort(input: {
     chargedCredits: number;
@@ -151,7 +196,7 @@ export class RetryCreditBackService {
   private async hasPriorAttempt(brief: {
     brandId: string | null;
     createdAt: Date;
-    ingredientId: string;
+    ingredientId?: string;
     modelUsed: string;
     organizationId: string;
     prompt: string;
@@ -165,7 +210,7 @@ export class RetryCreditBackService {
       where: {
         brandId: brief.brandId,
         createdAt: { gte: brief.since, lt: brief.createdAt },
-        id: { not: brief.ingredientId },
+        ...(brief.ingredientId ? { id: { not: brief.ingredientId } } : {}),
         isDeleted: false,
         isDraftRender: false,
         modelUsed: brief.modelUsed,
