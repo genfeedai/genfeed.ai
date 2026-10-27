@@ -89,7 +89,7 @@ export const AFFILIATE_FAQ: readonly AffiliateFaqItem[] = [
   },
   {
     answer:
-      'No. Affiliate rewards are part of Genfeed Cloud billing. Self-hosted Community installs have no affiliate program.',
+      'Only where billing is set up. Affiliate rewards come from credit purchases, so they work on Genfeed Cloud and on licensed self-hosted installs with organization billing. Community installs without organization billing have no affiliate program.',
     question: 'Does this work on a self-hosted install?',
   },
 ] as const;
