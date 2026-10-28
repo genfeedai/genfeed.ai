@@ -13,6 +13,8 @@ export const ONBOARDING_FUNNEL_STEPS: readonly OnboardingFunnelStep[] = [
   'draftsStarted',
   'draftsReady',
   'completed',
+  'accountConnected',
+  'published',
 ];
 
 export const ONBOARDING_FUNNEL_EMAIL_CLASSES: readonly OnboardingFunnelEmailClass[] =
@@ -50,10 +52,12 @@ export function readDraftsStatus(runConfig: unknown): string | null {
 function emptyBucket(): IOnboardingFunnelBucket {
   return {
     steps: {
+      accountConnected: 0,
       brandScanned: 0,
       completed: 0,
       draftsReady: 0,
       draftsStarted: 0,
+      published: 0,
       websiteLink: 0,
     },
     total: 0,
