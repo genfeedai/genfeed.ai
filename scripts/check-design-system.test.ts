@@ -7,6 +7,7 @@ import {
   type DesignSystemBaseline,
   type DesignSystemFinding,
   diffDesignSystemBaseline,
+  findDarkOnlyPaletteTextTokens,
   findPackageUiGuardFindings,
   findRawChromeColorTokens,
   formatDesignSystemRegressions,
@@ -254,5 +255,31 @@ describe('design evaluation seed', () => {
         'rubric[0].scoreAnchors.2 must be a non-empty string',
       ]),
     );
+  });
+});
+
+describe('findDarkOnlyPaletteTextTokens', () => {
+  it('flags light palette text that only reads on a dark surface', () => {
+    expect(
+      findDarkOnlyPaletteTextTokens(
+        "'bg-amber-500/12 text-amber-300 hover:text-rose-200 text-emerald-400/60'",
+      ),
+    ).toEqual(['text-amber-300', 'hover:text-rose-200', 'text-emerald-400/60']);
+  });
+
+  it('allows dark-theme pairs, deeper shades and semantic tokens', () => {
+    expect(
+      findDarkOnlyPaletteTextTokens(
+        'text-amber-700 dark:text-amber-300 text-red-600 text-warning',
+      ),
+    ).toEqual([]);
+  });
+
+  it('honours the content-color escape marker', () => {
+    expect(
+      findDarkOnlyPaletteTextTokens(
+        "'text-emerald-300' // design-system-allow-content-color -- terminal",
+      ),
+    ).toEqual([]);
   });
 });

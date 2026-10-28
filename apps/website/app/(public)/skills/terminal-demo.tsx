@@ -47,9 +47,9 @@ export default function TerminalDemo({
             <span
               className={
                 line.command.startsWith('#')
-                  ? 'text-emerald-400/60'
+                  ? 'text-success/60'
                   : line.command.startsWith('✓')
-                    ? 'text-emerald-400/40'
+                    ? 'text-success/40'
                     : line.command.startsWith('...')
                       ? 'text-foreground/30'
                       : 'text-foreground/80'

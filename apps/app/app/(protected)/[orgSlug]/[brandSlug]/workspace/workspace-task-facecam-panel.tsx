@@ -102,7 +102,7 @@ export function WorkspaceTaskFacecamPanel({
         onCheckedChange={(checked) => onSaveAsDefaultChange(checked === true)}
       />
 
-      {error ? <p className="text-2xs text-rose-300">{error}</p> : null}
+      {error ? <p className="text-2xs text-destructive">{error}</p> : null}
     </Card>
   );
 }

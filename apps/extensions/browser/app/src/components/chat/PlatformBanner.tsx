@@ -8,7 +8,7 @@ const PLATFORM_DISPLAY: Record<string, { name: string; color: string }> = {
   linkedin: { color: 'text-blue-500', name: 'LinkedIn' },
   reddit: { color: 'text-orange-500', name: 'Reddit' },
   tiktok: { color: 'text-foreground', name: 'TikTok' },
-  twitter: { color: 'text-sky-400', name: 'Twitter/X' },
+  twitter: { color: 'text-foreground', name: 'Twitter/X' },
   youtube: { color: 'text-red-500', name: 'YouTube' },
 };
 

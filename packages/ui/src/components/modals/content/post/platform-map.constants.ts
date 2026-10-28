@@ -15,10 +15,10 @@ export const platformIcons: Record<string, IconType> = {
 };
 
 export const platformColors: Record<string, string> = {
-  instagram: 'text-pink-500',
-  tiktok: 'text-black', // design-system-allow-content-color -- platform mark
-  twitter: 'text-blue-400',
-  youtube: 'text-red-500',
+  instagram: 'text-platform-instagram',
+  tiktok: 'text-foreground',
+  twitter: 'text-foreground',
+  youtube: 'text-platform-youtube',
 };
 
 export const PLATFORM_TO_CONTENT_CATEGORY: Record<string, PromptCategory> = {

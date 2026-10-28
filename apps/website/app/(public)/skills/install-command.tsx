@@ -31,7 +31,7 @@ export default function InstallCommand(): React.ReactElement {
         bunx skills add genfeedai/skills
       </span>
       {copied ? (
-        <Check className="size-4 text-emerald-400" />
+        <Check className="size-4 text-success" />
       ) : (
         <Copy className="size-4 text-foreground/30 group-hover:text-foreground/60 transition-colors" />
       )}

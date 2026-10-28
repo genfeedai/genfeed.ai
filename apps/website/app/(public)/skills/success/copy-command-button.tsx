@@ -42,7 +42,7 @@ export default function CopyCommandButton({
       className="shrink-0 p-2 text-foreground/55 hover:text-foreground transition-colors"
     >
       {isCopied ? (
-        <Check className="size-4 text-emerald-400" />
+        <Check className="size-4 text-success" />
       ) : (
         <Copy className="size-4" />
       )}

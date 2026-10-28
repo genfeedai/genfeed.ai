@@ -143,7 +143,7 @@ export function WorkspaceTaskInspectorBody({
         >
           <p className="flex items-center gap-2 font-semibold">
             {continuityQa.summary.driftClipCount > 0 ? (
-              <AlertTriangle className="size-4 text-amber-300" />
+              <AlertTriangle className="size-4 text-warning" />
             ) : null}
             {continuityQa.status.replace('_', ' ')} ·{' '}
             {translate('inspector.driftFindings', {
@@ -197,7 +197,7 @@ export function WorkspaceTaskInspectorBody({
               {clip.errors.map((error) => (
                 <p
                   key={`${clip.clipId}-${error.code}`}
-                  className="text-amber-200"
+                  className="text-warning"
                 >
                   {error.message}
                 </p>
@@ -265,7 +265,7 @@ export function WorkspaceTaskInspectorBody({
       {hasFailure ? (
         <Card
           label={translate('inspector.labels.failure')}
-          bodyClassName="border-l border-rose-400/35 p-4 text-sm text-rose-200"
+          bodyClassName="border-l border-destructive/35 p-4 text-sm text-destructive"
         >
           {task.failureReason}
         </Card>
@@ -274,7 +274,7 @@ export function WorkspaceTaskInspectorBody({
       {hasRequestedChanges ? (
         <Card
           label={translate('inspector.labels.requestedChanges')}
-          bodyClassName="border-l border-amber-400/35 p-4 text-sm text-amber-200"
+          bodyClassName="border-l border-warning/35 p-4 text-sm text-warning"
         >
           {task.requestedChangesReason}
         </Card>

@@ -326,7 +326,7 @@ export function TurboRunResultCard({
     >
       <div className="flex min-w-0 items-center gap-2 px-3 py-2.5">
         {activeStatus ? null : isAllFailed ? (
-          <CircleX className="size-4 shrink-0 text-rose-400" />
+          <CircleX className="size-4 shrink-0 text-destructive" />
         ) : isPartialFail ? (
           <Layers className="size-4 shrink-0 text-warning" />
         ) : (

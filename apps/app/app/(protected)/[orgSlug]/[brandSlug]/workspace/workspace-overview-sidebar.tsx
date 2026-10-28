@@ -174,7 +174,7 @@ export function WorkspaceOverviewSidebar({
                       >
                         <p className="flex items-center gap-1 text-xs font-semibold text-foreground/70">
                           {item.continuityQa.summary.driftClipCount > 0 ? (
-                            <AlertTriangle className="size-3.5 text-amber-300" />
+                            <AlertTriangle className="size-3.5 text-warning" />
                           ) : null}
                           {translate('continuityStatus', {
                             status: item.continuityQa.status.replace('_', ' '),
@@ -201,7 +201,7 @@ export function WorkspaceOverviewSidebar({
                             {clip.errors.map((error) => (
                               <p
                                 key={`${clip.clipId}-${error.code}`}
-                                className="text-amber-200/80"
+                                className="text-warning/80"
                               >
                                 {error.message}
                               </p>
@@ -226,10 +226,10 @@ export function WorkspaceOverviewSidebar({
                   </div>
                   {normalizeReviewDecision(item.reviewDecision) ===
                   ReviewDecision.APPROVED ? (
-                    <CircleCheck className="size-5 text-emerald-300" />
+                    <CircleCheck className="size-5 text-success" />
                   ) : normalizeReviewDecision(item.reviewDecision) ===
                     ReviewDecision.REQUEST_CHANGES ? (
-                    <ClipboardCheck className="size-5 text-amber-300" />
+                    <ClipboardCheck className="size-5 text-warning" />
                   ) : (
                     <Inbox className="size-5 text-muted-foreground" />
                   )}

@@ -120,7 +120,7 @@ export default function Modal({
                 <TriangleAlert
                   className={cn(
                     'size-5 shrink-0',
-                    isError ? 'text-amber-400' : 'text-muted-foreground',
+                    isError ? 'text-warning' : 'text-muted-foreground',
                   )}
                 />
                 <span>{error}</span>

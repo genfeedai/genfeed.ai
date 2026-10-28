@@ -85,7 +85,7 @@ export function WorkspaceTaskComposer({
             density="compact"
             banner={
               taskError ? (
-                <p role="alert" className="px-3.5 py-2 text-sm text-rose-300">
+                <p role="alert" className="px-3.5 py-2 text-sm text-destructive">
                   {taskError}
                 </p>
               ) : undefined

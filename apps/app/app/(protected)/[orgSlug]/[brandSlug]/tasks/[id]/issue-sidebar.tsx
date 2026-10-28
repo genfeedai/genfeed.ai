@@ -103,7 +103,7 @@ export default function IssueSidebar({
             {issue.checkoutAgentId ? (
               <div>
                 <DefinitionTerm variant="label">Checked Out By</DefinitionTerm>
-                <DefinitionDetail variant="inline" className="text-blue-400">
+                <DefinitionDetail variant="inline" className="text-info">
                   Agent
                 </DefinitionDetail>
               </div>

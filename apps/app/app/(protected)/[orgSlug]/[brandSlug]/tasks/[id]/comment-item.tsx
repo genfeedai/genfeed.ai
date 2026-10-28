@@ -13,7 +13,7 @@ export function CommentItem({ comment }: CommentItemProps) {
           className={cn(
             'flex h-6 w-6 shrink-0 items-center justify-center rounded-full',
             isAgent
-              ? 'bg-blue-500/15 text-blue-400'
+              ? 'bg-info/15 text-info'
               : 'bg-muted text-muted-foreground',
           )}
         >
@@ -26,7 +26,7 @@ export function CommentItem({ comment }: CommentItemProps) {
         <span
           className={cn(
             'text-xs font-medium',
-            isAgent ? 'text-blue-400' : 'text-muted-foreground',
+            isAgent ? 'text-info' : 'text-muted-foreground',
           )}
         >
           {isAgent ? 'Agent' : 'User'}

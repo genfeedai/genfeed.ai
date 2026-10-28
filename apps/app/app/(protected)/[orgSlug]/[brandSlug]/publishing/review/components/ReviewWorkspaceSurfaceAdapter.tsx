@@ -95,7 +95,7 @@ export default function ReviewWorkspaceSurfaceAdapter({
             ? [
                 {
                   icon: createElement(ClipboardCheck, {
-                    className: 'size-5 text-emerald-400',
+                    className: 'size-5 text-success',
                   }),
                   label: translate('decision.approve'),
                   prompt: translate('context.approvePrompt', {
@@ -105,7 +105,7 @@ export default function ReviewWorkspaceSurfaceAdapter({
                 },
                 {
                   icon: createElement(SquarePen, {
-                    className: 'size-5 text-amber-300',
+                    className: 'size-5 text-warning',
                   }),
                   label: translate('decision.requestChanges'),
                   prompt: translate('context.changesPrompt', {

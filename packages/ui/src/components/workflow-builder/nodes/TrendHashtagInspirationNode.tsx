@@ -240,7 +240,7 @@ function TrendHashtagInspirationNodeComponent({
 
       {/* Error */}
       {data.error && (
-        <div className="p-2 bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+        <div className="p-2 bg-destructive/10 border border-destructive/20 text-destructive text-sm">
           {data.error}
         </div>
       )}

@@ -54,7 +54,7 @@ export function WorkspaceTaskCard({
           </div>
         ) : null}
         {task.requestedChangesReason ? (
-          <div className="border-l border-amber-400/40 pl-3 text-sm text-amber-200">
+          <div className="border-l border-warning/40 pl-3 text-sm text-warning">
             {translate('requestedChangesReason', {
               reason: task.requestedChangesReason,
             })}

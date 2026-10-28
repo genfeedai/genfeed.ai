@@ -62,7 +62,7 @@ function GroupRow({
         className="flex w-full items-center gap-2.5 px-2 py-1.5 text-left transition-colors duration-150 hover:bg-foreground/[0.04]"
       >
         {isComplete ? (
-          <Check className="size-3.5 text-green-400/60 flex-shrink-0" />
+          <Check className="size-3.5 text-success/60 flex-shrink-0" />
         ) : (
           <ChevronDown
             className={cn(
