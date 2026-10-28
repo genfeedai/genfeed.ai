@@ -137,12 +137,19 @@ function show(patch: Partial<ReturnType<typeof usePublicationInsights>> = {}) {
 }
 beforeEach(() => vi.clearAllMocks());
 afterEach(cleanup);
+// The platform renders as its badge (logo + label) beside the capture source.
+function expectSourceLine(source: string) {
+  const line = screen.getByText(source);
+  expect(line.tagName).toBe('P');
+  expect(line).toHaveTextContent(`X ${source}`);
+}
+
 describe('publication detail and explicit recovery', () => {
   it('shows saved zero, timestamps, original source, unknown audience and safe permalink', () => {
     show();
     expect(screen.getByText('0')).toBeInTheDocument();
     expect(screen.getByText('Audience unavailable')).toBeInTheDocument();
-    expect(screen.getByText(/twitter · Extension/)).toBeInTheDocument();
+    expectSourceLine('Extension');
     expect(screen.getByText(/Sample date:/)).toHaveTextContent(
       new Date('2026-10-01T00:00:00.000Z').toLocaleString(),
     );
@@ -164,7 +171,7 @@ describe('publication detail and explicit recovery', () => {
           urlKind: 'context-only',
         }),
       });
-      expect(screen.getByText(`twitter · ${source}`)).toBeInTheDocument();
+      expectSourceLine(source);
       expect(screen.getByText('Private')).toBeInTheDocument();
       expect(
         screen.getByRole('link', { name: 'Open parent post' }),
@@ -189,9 +196,7 @@ describe('publication detail and explicit recovery', () => {
     expect(
       screen.getByRole('button', { name: 'Refresh analytics' }),
     ).toBeDisabled();
-    expect(
-      screen.getByText('twitter · Source unavailable'),
-    ).toBeInTheDocument();
+    expectSourceLine('Source unavailable');
   });
   it('shows awaiting analytics and never a live sample badge', () => {
     show({

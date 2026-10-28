@@ -51,6 +51,10 @@ export default defineConfig({
           extensionAppDir,
           '../../../../packages/ui/src/components/constants',
         ),
+        '@ui/display': path.resolve(
+          extensionAppDir,
+          '../../../../packages/ui/src/components/display',
+        ),
         '@ui/menus': path.resolve(
           extensionAppDir,
           '../../../../packages/ui/src/components/menus',
