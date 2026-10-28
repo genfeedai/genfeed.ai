@@ -12,7 +12,8 @@
     },
     "releases": {
       "title": "Releases",
-      "description": "On releases the item to every cloud organization. Off keeps it preview-only: only organizations on release preview (Admin → Organization) see it and can start work in it. Self-hosted always sees everything. New items start off."
+      "description": "On: live for every cloud organization. Off: only organizations with release preview turned on, or with this app opened for them individually, see it. Both are set per organization. Self-hosted always sees everything. New items start off.",
+      "organizationsLink": "Set release preview per organization"
     }
   },
   "flags": {

@@ -147,6 +147,16 @@ describe('AdminFlagsPage (#5468)', () => {
     ).toBeInTheDocument();
   });
 
+  it('links the releases section to per-organization release access', async () => {
+    render(<AdminFlagsPage />);
+
+    expect(
+      await screen.findByRole('link', {
+        name: 'Set release preview per organization',
+      }),
+    ).toHaveAttribute('href', '/admin/organization');
+  });
+
   it('lists releases off until an operator releases them', async () => {
     mocks.getSettings.mockResolvedValue({ flags: { release_turbo: true } });
     render(<AdminFlagsPage />);

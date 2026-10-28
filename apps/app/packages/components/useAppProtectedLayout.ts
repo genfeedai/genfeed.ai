@@ -464,22 +464,19 @@ export function useAppProtectedLayout(
   );
 
   // The rail picks the admin category; the sidebar lists only its pages.
-  const adminMenuGroup = ADMIN_RAIL_CATEGORIES.find(
-    (category) =>
-      category.id === getActiveAppId(ADMIN_RAIL_CATEGORIES, pathname),
-  )?.adminMenuGroup;
+  const adminCategoryId = getActiveAppId(ADMIN_RAIL_CATEGORIES, pathname);
   const adminMenuItems = useMemo(
     () =>
       ADMIN_MENU_ITEMS.filter(
-        (item) => !adminMenuGroup || item.group === adminMenuGroup,
+        (item) => !adminCategoryId || item.category === adminCategoryId,
       ).map(
-        (item): MenuItemConfig => ({
+        ({ category: _category, ...item }): MenuItemConfig => ({
           ...item,
           hrefScope: 'global',
           href: withTaskContextHref(item.href, taskContextSearchParams),
         }),
       ),
-    [adminMenuGroup, taskContextSearchParams],
+    [adminCategoryId, taskContextSearchParams],
   );
 
   const isWorkspaceRoute = isProtectedWorkspaceRoute(pathname);

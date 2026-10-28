@@ -65,4 +65,6 @@ export interface ProjectionCardProps {
 
 export interface AnalyticsOrganizationsListProps {
   basePath?: string;
+  /** Adds a release access column linking each organization to its config page. */
+  getReleaseAccessHref?: (organizationId: string) => string;
 }

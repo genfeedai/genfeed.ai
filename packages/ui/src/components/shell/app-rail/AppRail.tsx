@@ -272,7 +272,11 @@ export function AppRail({
   );
   const adminExitItem = items.find((item) => item.app.group === 'admin-exit');
   const adminCategoryItems = items.filter(
-    (item) => item.app.group === 'admin-category',
+    (item) => item.app.group === 'admin-category' && !item.app.isAdminSecondary,
+  );
+  // The superadmin section sits apart, at the bottom of the rail.
+  const adminSecondaryItems = items.filter(
+    (item) => item.app.group === 'admin-category' && item.app.isAdminSecondary,
   );
   // The rail is the core loop then the pins, in the member's saved order.
   // Apps the saved order does not list (a new pin) keep their default place
@@ -551,11 +555,20 @@ export function AppRail({
             {adminCategoryItems.map(renderItem)}
           </div>
         ) : null}
-        {admin || footer ? (
+        {admin || adminSecondaryItems.length > 0 || footer ? (
           <div
             className="mt-auto flex flex-col items-center gap-1 pt-2"
             data-testid="app-rail-bottom"
           >
+            {adminSecondaryItems.length > 0 ? (
+              <div
+                className="flex flex-col items-center gap-1"
+                data-testid="app-rail-admin-platform"
+              >
+                <Separator className="my-1 w-5" />
+                {adminSecondaryItems.map(renderItem)}
+              </div>
+            ) : null}
             {admin ? renderItem(admin) : null}
             {footer ? <div>{footer}</div> : null}
           </div>

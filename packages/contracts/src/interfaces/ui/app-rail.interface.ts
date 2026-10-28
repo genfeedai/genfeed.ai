@@ -1,16 +1,24 @@
 import type { AppRailFeatureFlagKey } from '../../constants/feature-flags.constant';
 import type { OrganizationModuleId } from '../../constants/organization-modules.constant';
 import type { IconComponent } from '../../types/icon';
-import type { AppContext } from './menu-config.interface';
+import type { AppContext, MenuItemConfig } from './menu-config.interface';
 
 export type AdminRailCategoryId =
   | 'admin-overview'
+  | 'admin-customers'
   | 'admin-content'
   | 'admin-automation'
   | 'admin-economics'
-  | 'admin-configuration'
-  | 'admin-administration'
-  | 'admin-settings';
+  | 'admin-platform';
+
+/**
+ * An Admin sidebar page. `category` is the rail icon that lists it; `group`
+ * (inherited) is the header it sits under inside that category's sidebar.
+ */
+export interface AdminMenuItemConfig extends MenuItemConfig {
+  category: AdminRailCategoryId;
+  href: string;
+}
 
 export type AdminRailExitId = 'admin-back';
 
@@ -30,8 +38,11 @@ export interface AppRailItemConfig {
   visibilityFlagKey?: AppRailFeatureFlagKey;
   organizationModule?: OrganizationModuleId;
   isBrandAware?: boolean;
-  /** Admin menu `group` whose items this category icon opens in the sidebar. */
-  adminMenuGroup?: string;
+  /**
+   * Admin chrome only: the superadmin section. Its icons sit below a divider
+   * at the bottom of the rail, apart from the day-to-day categories.
+   */
+  isAdminSecondary?: boolean;
   route: (orgSlug: string, brandSlug?: string) => string;
 }
 
