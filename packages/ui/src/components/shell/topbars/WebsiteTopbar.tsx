@@ -89,7 +89,7 @@ const USE_CASE_LINKS = [
 
 /**
  * What the platform is: one entry per app surface, in the order the app's rail
- * and Plugins page group them. Every surface has a page at /products/<slug>.
+ * and Apps page group them. Every surface has a page at /products/<slug>.
  */
 const PRODUCT_LINKS = [
   {

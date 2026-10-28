@@ -3,14 +3,14 @@ import { orgPath } from '../../utils/app-chrome';
 import { expectNoErrorOverlay } from '../../utils/route-assertions';
 
 // Uses the existing isolated auth/API fixture; no live installations or providers.
-test('organization Plugins browser keeps scope, search and previews usable on desktop and mobile', async ({
+test('organization Apps browser keeps scope, search and previews usable on desktop and mobile', async ({
   authenticatedPage: page,
 }, testInfo) => {
-  await page.goto(orgPath('/plugins'), { waitUntil: 'domcontentloaded' });
+  await page.goto(orgPath('/apps'), { waitUntil: 'domcontentloaded' });
   const apps = page.locator(
-    '[data-testid^="plugins-app-"]:not([data-testid="plugins-app-detail"])',
+    '[data-testid^="apps-app-"]:not([data-testid="apps-app-detail"])',
   );
-  const detail = page.getByTestId('plugins-app-detail');
+  const detail = page.getByTestId('apps-app-detail');
   await expect(apps).toHaveCount(9);
   await expect(detail).toHaveCount(0);
   await expect(
@@ -24,7 +24,7 @@ test('organization Plugins browser keeps scope, search and previews usable on de
   await expect(page.getByTestId('collapsible-search-trigger')).toBeVisible();
   await expect(page.getByTestId('organization-switcher-trigger')).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toHaveText(
-    'Plugins',
+    'Apps',
   );
   await expect(
     page.getByRole('button', { name: /select brand|brand 1/i }),
@@ -55,16 +55,16 @@ test('organization Plugins browser keeps scope, search and previews usable on de
     .toBe(true);
 
   await page.getByTestId('collapsible-search-trigger').click();
-  await page.getByPlaceholder('Search plugins').fill('trending');
+  await page.getByPlaceholder('Search apps').fill('trending');
   await expect(apps).toHaveCount(1);
   await expect(detail).toHaveCount(0);
-  await page.getByPlaceholder('Search plugins').fill('nothing-matches');
-  await expect(page.getByTestId('plugins-empty')).toBeVisible();
-  await page.getByRole('button', { name: 'Show all plugins' }).click();
+  await page.getByPlaceholder('Search apps').fill('nothing-matches');
+  await expect(page.getByTestId('apps-empty')).toBeVisible();
+  await page.getByRole('button', { name: 'Show all apps' }).click();
   await expect(apps).toHaveCount(9);
 
   await page.screenshot({
-    path: testInfo.outputPath('plugins-desktop.png'),
+    path: testInfo.outputPath('apps-desktop.png'),
     fullPage: true,
   });
   await page.setViewportSize({ width: 390, height: 844 });
@@ -83,12 +83,12 @@ test('organization Plugins browser keeps scope, search and previews usable on de
     )
     .toBe(true);
   await page.screenshot({
-    path: testInfo.outputPath('plugins-mobile.png'),
+    path: testInfo.outputPath('apps-mobile.png'),
     fullPage: true,
   });
   await page.getByRole('button', { name: 'Close panel' }).click();
   await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toHaveText(
-    'Plugins',
+    'Apps',
   );
   await expectNoErrorOverlay(page);
 });
@@ -110,11 +110,11 @@ test('app installation and removal update the real member-app provider', async (
     }
     await route.fulfill({ json: { installedAppIds } });
   });
-  await page.goto(orgPath('/plugins'), { waitUntil: 'domcontentloaded' });
+  await page.goto(orgPath('/apps'), { waitUntil: 'domcontentloaded' });
   await page
     .getByRole('button', { name: 'Select Storyboard', exact: true })
     .click();
-  const detail = page.getByTestId('plugins-app-detail');
+  const detail = page.getByTestId('apps-app-detail');
   await detail.getByRole('button', { name: 'Add Storyboard' }).click();
   await expect(
     detail.getByRole('link', { name: 'Open Storyboard' }),

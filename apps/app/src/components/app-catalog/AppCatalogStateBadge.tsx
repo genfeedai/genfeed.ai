@@ -1,11 +1,11 @@
-import type { PluginAppStateProps } from '@genfeedai/props/plugins/organization-plugins-page.props';
+import type { AppCatalogStateProps } from '@genfeedai/props/apps/organization-apps-page.props';
 import { Badge } from '@ui/primitives/badge';
 import { Check, LockKeyhole } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-/** Where one plugin stands for the member, as a badge. */
-export default function PluginAppStateBadge({ app }: PluginAppStateProps) {
-  const translate = useTranslations('common.plugins');
+/** Where one app stands for the member, as a badge. */
+export default function AppCatalogStateBadge({ app }: AppCatalogStateProps) {
+  const translate = useTranslations('common.apps');
 
   switch (app.state) {
     case 'pinned':

@@ -2,26 +2,26 @@
 
 import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { PluginAppItemProps } from '@genfeedai/props/plugins/organization-plugins-page.props';
+import type { AppCatalogItemProps } from '@genfeedai/props/apps/organization-apps-page.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
-import PluginAppStateBadge from './PluginAppStateBadge';
-import PluginAppThumbnail from './PluginAppThumbnail';
+import AppCatalogStateBadge from './AppCatalogStateBadge';
+import AppCatalogThumbnail from './AppCatalogThumbnail';
 
 /**
- * One plugin in the grid: artwork, name and state, what it does, and its
+ * One app in the grid: artwork, name and state, what it does, and its
  * actions. The card is picked through an overlay button so the actions inside
  * it stay real, separate controls.
  */
-export default function PluginAppCard({
+export default function AppCatalogCard({
   actions,
   app,
   categoryLabel,
   isSelected,
   onSelect,
-}: PluginAppItemProps) {
-  const translate = useTranslations('common.plugins');
+}: AppCatalogItemProps) {
+  const translate = useTranslations('common.apps');
 
   return (
     <Card
@@ -30,7 +30,7 @@ export default function PluginAppCard({
         'group h-full hover:border-border-strong',
         isSelected && 'border-foreground hover:border-foreground',
       )}
-      data-testid={`plugins-app-${app.appId}`}
+      data-testid={`apps-app-${app.appId}`}
       variant={CardVariant.BORDERED}
     >
       <Button
@@ -43,7 +43,7 @@ export default function PluginAppCard({
         variant={ButtonVariant.UNSTYLED}
         withWrapper={false}
       />
-      <PluginAppThumbnail
+      <AppCatalogThumbnail
         appId={app.appId}
         icon={app.icon}
         label={app.label}
@@ -54,7 +54,7 @@ export default function PluginAppCard({
           <h3 className="min-w-0 truncate text-sm font-semibold">
             {app.label}
           </h3>
-          <PluginAppStateBadge app={app} />
+          <AppCatalogStateBadge app={app} />
         </div>
         <p className="line-clamp-2 text-sm text-muted-foreground">
           {app.description}

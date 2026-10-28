@@ -2547,8 +2547,8 @@
     "insufficientCredits": "Not enough credits to rewrite the remaining items.",
     "cancelled": "Rewrite stopped. {count, plural, =0 {No captions were rewritten.} one {# caption was rewritten.} other {# captions were rewritten.}}"
   },
-  "plugins": {
-    "title": "Plugins",
+  "apps": {
+    "title": "Apps",
     "breadcrumbLabel": "Breadcrumb",
     "selectApp": "Select {app}",
     "selectedApp": "{app}, selected",
@@ -2556,7 +2556,7 @@
       "installed": "Installed",
       "available": "Available"
     },
-    "search": "Search plugins",
+    "search": "Search apps",
     "installedTitle": "Installed",
     "availableTitle": "Available to add",
     "whatYouCanDo": "What you can do",
@@ -2576,7 +2576,7 @@
       "publish": "Research what works and keep up with your audience.",
       "automate": "Run workflows and programs on your content."
     },
-    "apps": {
+    "catalog": {
       "playground": {
         "description": "Generate images, video, audio and text from a prompt.",
         "summary": "Your open canvas for one-off generation. Write a prompt, pick a model and refine the result until it fits. Everything you make is saved to your Library.",
@@ -2641,8 +2641,8 @@
         "highlightThree": "Combine generation and publishing steps"
       }
     },
-    "noMatches": "No plugins match your search.",
-    "showAll": "Show all plugins",
+    "noMatches": "No apps match your search.",
+    "showAll": "Show all apps",
     "workflowsTitle": "Workflows",
     "workflowsDescription": "Browse the workflow library and install a workflow for this brand.",
     "openWorkflows": "Open workflow library",
@@ -2651,7 +2651,7 @@
     "open": "Open",
     "installFailed": "Couldn't add {app}. Try again.",
     "uninstallFailed": "Couldn't remove {app}. Try again.",
-    "loadFailed": "Couldn't load your plugins. Reload the page to try again.",
+    "loadFailed": "Couldn't load your apps. Reload the page to try again.",
     "loadingApp": "Loading app",
     "organizationDisabled": "Hidden by your organization.",
     "manageModules": "Organization settings",
@@ -2661,7 +2661,7 @@
   },
   "appRail": {
     "apps": "Apps",
-    "launcher": "Plugins",
+    "launcher": "Apps",
     "search": "Search apps",
     "noApps": "No apps installed yet.",
     "noMatches": "No matching apps.",

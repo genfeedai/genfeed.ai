@@ -267,8 +267,8 @@ describe('AppProtectedBrandSwitcher', () => {
     expect(screen.queryByTestId('brand-switcher')).not.toBeInTheDocument();
   });
 
-  it('hides the brand selector only on the organization Plugins route', () => {
-    mockPathname.value = '/acme/~/plugins';
+  it('hides the brand selector only on the organization Apps route', () => {
+    mockPathname.value = '/acme/~/apps';
     render(<AppProtectedBrandSwitcher orgSlug="acme" />);
     expect(screen.queryByTestId('brand-switcher')).not.toBeInTheDocument();
   });

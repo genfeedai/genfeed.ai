@@ -61,11 +61,11 @@ function AppProtectedTopbarContent({
   // Settings routes (/:org/~/settings or /:org/:brand/settings) show
   // "Settings" as the breadcrumb root. Inspect the app-route segment so a
   // brand slug named "settings" cannot trigger the settings breadcrumb.
-  const isPluginsRoute = pathname?.split('/').filter(Boolean)[2] === 'plugins';
+  const isAppsRoute = pathname?.split('/').filter(Boolean)[2] === 'apps';
   const isSettingsRoute =
     pathname?.split('/').filter(Boolean)[2] === 'settings';
   const { settings } = useBrand();
-  const translatePlugins = useTranslations('common.plugins');
+  const translateApps = useTranslations('common.apps');
 
   const ToggleIcon = isMenuOpen ? X : Menu;
   const isAdminChrome = chrome === 'admin';
@@ -117,11 +117,11 @@ function AppProtectedTopbarContent({
               />
             </div>
 
-            <div className={cn('min-w-0 md:flex', !isPluginsRoute && 'hidden')}>
-              {isPluginsRoute ? (
-                <nav aria-label={translatePlugins('breadcrumbLabel')}>
+            <div className={cn('min-w-0 md:flex', !isAppsRoute && 'hidden')}>
+              {isAppsRoute ? (
+                <nav aria-label={translateApps('breadcrumbLabel')}>
                   <span className="text-sm font-semibold">
-                    {translatePlugins('title')}
+                    {translateApps('title')}
                   </span>
                 </nav>
               ) : (

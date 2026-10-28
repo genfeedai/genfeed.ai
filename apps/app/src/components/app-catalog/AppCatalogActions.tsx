@@ -1,23 +1,23 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { PluginAppActionsProps } from '@genfeedai/props/plugins/organization-plugins-page.props';
+import type { AppCatalogActionsProps } from '@genfeedai/props/apps/organization-apps-page.props';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { isPluginAppOpenable } from './plugin-app-state';
+import { isAppCatalogOpenable } from './app-catalog-state';
 
 /** Open or Add, with Pin and Remove in the overflow menu once installed. */
-export default function PluginAppActions({
+export default function AppCatalogActions({
   app,
   isPending,
   isPinned,
   onInstall,
   onTogglePin,
   onUninstall,
-}: PluginAppActionsProps) {
-  const translate = useTranslations('common.plugins');
+}: AppCatalogActionsProps) {
+  const translate = useTranslations('common.apps');
   const translateRail = useTranslations('common.appRail');
-  const isOpenable = isPluginAppOpenable(app);
+  const isOpenable = isAppCatalogOpenable(app);
   const isLocked = !isOpenable && app.state !== 'not-installed';
 
   return (

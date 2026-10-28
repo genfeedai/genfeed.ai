@@ -2,16 +2,16 @@
 
 ## What exists
 App chrome: the left rail and sidebars, context sidebar, organization/brand switching,
-notification inbox, agent dock, plugins browser (`/plugins`), and workspace pages
+notification inbox, agent dock, apps browser (`/apps`), and workspace pages
 (`overview`, `activity`, `inbox`, `tasks`).
 
 ## How a user reaches it
-Present on every authed page. The workspace pages and `/plugins` have their own routes.
+Present on every authed page. The workspace pages and `/apps` have their own routes.
 
 ## How to drive it
 Specs under `playwright/e2e/tests/shell/`: `chrome-interactions`,
 `navigation-interactions`, `context-sidebar`, `sidebar-compatibility`, `agent-dock`,
-`notification-inbox`, `organization-context`, `page-context-contract`, `plugins-browser`.
+`notification-inbox`, `organization-context`, `page-context-contract`, `apps-browser`.
 Whole-app route coverage: `playwright/e2e/tests/smoke/all-app-pages.spec.ts` (mocked) and
 `all-app-pages.authed.spec.ts` (real session), `protected-hydration.spec.ts`.
 
