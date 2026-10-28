@@ -25,7 +25,7 @@ import { readUsableCdnAssetUrl } from '@api/services/agent-orchestrator/tools/ag
 describe('OnboardingFirstDraftsService', () => {
   const user = { id: 'user_1', organizationId: 'org_1' } as unknown as User;
 
-  const logger = { error: vi.fn(), warn: vi.fn() };
+  const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
   const config = {
     get: vi.fn().mockReturnValue('test'),
     ingredientsEndpoint: 'https://cdn.example.com',
@@ -102,6 +102,21 @@ describe('OnboardingFirstDraftsService', () => {
         { brandId: 'brand_1', organizationId: 'org_1', userId: 'user_1' },
         expect.stringContaining('acme.co'),
       );
+    });
+
+    it('logs each scan outcome so the onboarding funnel can be counted', async () => {
+      signupPrefill.scanBrandUrl.mockResolvedValue({
+        scrapeReason: 'blocked',
+        scrapeStatus: 'failed',
+      });
+
+      await service.scan(user, 'brand_1', 'acme.co');
+
+      expect(logger.log).toHaveBeenCalledWith('Onboarding brand scan', {
+        brandId: 'brand_1',
+        outcome: 'failed',
+        reason: 'blocked',
+      });
     });
 
     it('reports an unreadable page instead of throwing', async () => {
