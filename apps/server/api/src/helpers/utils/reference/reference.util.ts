@@ -106,7 +106,8 @@ export async function buildReferenceImageUrl(params: {
         category,
         id: referenceId,
         isDeleted: false,
-        organizationId,
+        // Asset rows have no `organizationId`; the tenant is `parentOrgId`.
+        parentOrgId: organizationId,
       });
 
       if (asset?.id) {
