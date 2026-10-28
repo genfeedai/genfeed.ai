@@ -559,6 +559,24 @@ describe('FirstDraftsOnboarding', () => {
     expect(mocks.generateDrafts).not.toHaveBeenCalled();
   });
 
+  it('says the video needs credits instead of calling it unavailable', async () => {
+    mocks.readDrafts.mockResolvedValue({
+      ...savedRun(),
+      result: {
+        ...drafts('partial'),
+        videoUrl: null,
+        videoIngredientId: null,
+        videoStatus: 'needs_credits' as const,
+      },
+    });
+    render(<FirstDraftsOnboarding />);
+    await screen.findByText(/Video needs credits\./);
+    expect(screen.queryByText(/Video unavailable/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Retry media' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('offers no retry once the run has used them all', async () => {
     const missing = { ...drafts('partial'), imageUrl: null };
     mocks.readDrafts.mockResolvedValue({

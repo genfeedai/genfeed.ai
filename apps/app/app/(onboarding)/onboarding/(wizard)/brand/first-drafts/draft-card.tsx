@@ -54,10 +54,14 @@ export default function DraftCard({
               {t(
                 videoStatus === 'pending'
                   ? 'review.videoPending'
-                  : 'review.videoFailed',
+                  : videoStatus === 'needs_credits'
+                    ? 'review.videoNeedsCredits'
+                    : 'review.videoFailed',
               )}
             </p>
-            {onRetryMedia && videoStatus !== 'pending' ? (
+            {onRetryMedia &&
+            videoStatus !== 'pending' &&
+            videoStatus !== 'needs_credits' ? (
               <Button
                 size={ButtonSize.SM}
                 variant={ButtonVariant.SECONDARY}

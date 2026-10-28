@@ -48,7 +48,8 @@ export interface IOnboardingFirstDraftsResult {
   drafts: IOnboardingFirstDraft[];
   videoIngredientId?: string | null;
   videoUrl?: string | null;
-  videoStatus?: 'pending' | 'ready' | 'failed';
+  /** `needs_credits`: the organization cannot pay for video, so none was attempted. */
+  videoStatus?: 'pending' | 'ready' | 'failed' | 'needs_credits';
   /** Library id of the shared image, attached to a post when it is scheduled. */
   imageIngredientId: string | null;
   /** The one image shared by the X, Instagram and LinkedIn drafts. */
