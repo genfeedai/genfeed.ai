@@ -6,6 +6,7 @@ import {
   assertRealMigrationLedger,
   connectDedicated,
   deployRealMigrations,
+  EMBEDDING_MIGRATION,
   verifyPgvector,
 } from '@api-test/integration/context-embedding/context-embedding-migration.fixture';
 import { describe, expect, it } from 'vitest';
@@ -97,7 +98,9 @@ describe('actual predecessor migration upgrade', () => {
       );
       await deployRealMigrations('upgrade');
       const inventory = await assertRealMigrationLedger(client);
-      expect(inventory.length).toBe(predecessor.length + 1);
+      // The upgrade applies the embedding migration and every migration after it.
+      expect(inventory.slice(0, predecessor.length)).toEqual(predecessor);
+      expect(inventory[predecessor.length]?.name).toBe(EMBEDDING_MIGRATION);
       const after = await client.query<{
         bytes: string;
         embeddingGeneration: number;

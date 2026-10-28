@@ -275,7 +275,7 @@ export async function migrationInventory(
     .sort();
   const rows = [];
   for (const name of directories) {
-    if (!includeEmbedding && name === EMBEDDING_MIGRATION) continue;
+    if (!includeEmbedding && name >= EMBEDDING_MIGRATION) continue;
     const sql = await readFile(join(MIGRATION_ROOT, name, 'migration.sql'));
     rows.push({
       name,
@@ -298,7 +298,16 @@ export async function deployRealMigrations(
       : join(scratch, 'predecessors');
     if (!includeEmbedding) {
       await cp(MIGRATION_ROOT, migrationsPath, { recursive: true });
-      await rm(join(migrationsPath, EMBEDDING_MIGRATION), { recursive: true });
+      // The predecessor is the history before the embedding migration; later
+      // migrations may depend on it (for example on its unique indexes), so
+      // they are applied by the upgrade itself, as they are in production.
+      const directories = await readdir(migrationsPath, {
+        withFileTypes: true,
+      });
+      for (const entry of directories) {
+        if (entry.isDirectory() && entry.name >= EMBEDDING_MIGRATION)
+          await rm(join(migrationsPath, entry.name), { recursive: true });
+      }
     }
     const config = join(scratch, 'prisma.config.mjs');
     const { configModule, cli } = await resolvePrismaMigrationTools();
