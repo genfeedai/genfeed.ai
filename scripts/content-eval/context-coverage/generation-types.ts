@@ -183,6 +183,15 @@ export const GENERATION_TYPES: readonly GenerationTypeEntry[] = [
     source: `${API}/services/skill-executor/skill-brand-brief.service.ts`,
   },
   {
+    enumRefs: {},
+    id: 'x-engagement-drafts',
+    marker: 'resolveBrief',
+    note: 'X engagement drafts (replies, quote posts and original post ideas from trending posts) compose the harness brief for the caller (contentType reply, platform twitter) and fail with a retryable 503 before the workflow runs when it is empty or over budget; there is no voiceConfig-only fallback.',
+    path: 'harness',
+    smoke: null,
+    source: `${API}/services/twitter-pipeline/twitter-pipeline.service.ts`,
+  },
+  {
     enumRefs: { IngredientCategory: ['IMAGE', 'VIDEO'] },
     id: 'studio-media-ingredients',
     note: 'IngredientCategory.IMAGE/VIDEO are the stored output of the image and video rows above.',
