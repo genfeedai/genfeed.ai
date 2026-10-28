@@ -25,7 +25,7 @@ export default function ConnectedAvatars({
     <span className="flex shrink-0 items-center -space-x-1.5">
       {visible.map((connection) => (
         <Avatar
-          className="size-6 bg-muted ring-2 ring-background-secondary"
+          className="size-6 bg-muted ring-2 ring-card"
           key={connection.credentialId}
         >
           {connection.avatarUrl ? (
@@ -42,7 +42,7 @@ export default function ConnectedAvatars({
         </Avatar>
       ))}
       {overflow > 0 ? (
-        <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-muted pl-2 pr-1.5 text-2xs font-medium tabular-nums text-foreground/80 ring-2 ring-background-secondary">
+        <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-muted pl-2 pr-1.5 text-2xs font-medium tabular-nums text-foreground/80 ring-2 ring-card">
           +{overflow}
         </span>
       ) : null}

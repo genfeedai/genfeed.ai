@@ -64,7 +64,7 @@ export default function BrandDetailReferencesCard({
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          <div className="rounded-md bg-background-secondary/50 px-3 py-3 text-xs text-muted-foreground">
+          <div className="rounded-md bg-card/50 px-3 py-3 text-xs text-muted-foreground">
             No reference assets yet.
           </div>
           <Button

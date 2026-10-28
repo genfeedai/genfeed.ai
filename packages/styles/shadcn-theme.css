@@ -4,7 +4,7 @@
  * shadcn/ui CSS variable extensions
  *
  * Core semantic tokens now come from @genfeedai/ui.
- * This file only layers on effect, overlay, platform, and accent variables.
+ * This file only layers on effect, platform, and accent variables.
  */
 
 /* Invariant tokens — identical in all themes, hoisted above @layer base */
@@ -37,17 +37,6 @@
   --platform-wordpress: #21759b;
   --platform-youtube: #ff0000;
   --platform-discord: #5865f2;
-
-  --overlay-white-5: rgba(255, 255, 255, 0.05);
-  --overlay-white-8: rgba(255, 255, 255, 0.08);
-  --overlay-white-10: rgba(255, 255, 255, 0.1);
-  --overlay-white-15: rgba(255, 255, 255, 0.15);
-  --overlay-white-20: rgba(255, 255, 255, 0.2);
-  --overlay-black-5: rgba(0, 0, 0, 0.05);
-  --overlay-black-10: rgba(0, 0, 0, 0.1);
-  --overlay-black-20: rgba(0, 0, 0, 0.2);
-  --overlay-black-60: rgba(0, 0, 0, 0.6);
-  --overlay-black-90: rgba(0, 0, 0, 0.9);
 
   --accent-violet: #8b5cf6;
   --accent-purple: #a855f7;

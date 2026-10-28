@@ -320,7 +320,7 @@ export function UiActionRenderer({
     default:
       card = (
         <div
-          className="border border-border bg-background-secondary p-3 text-sm text-foreground"
+          className="border border-border bg-card p-3 text-sm text-foreground"
           role="status"
         >
           {translate('unsupportedCard')}

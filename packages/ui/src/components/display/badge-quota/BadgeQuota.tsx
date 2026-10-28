@@ -34,7 +34,7 @@ export default function BadgeQuota({
           {platform}:
         </span>
       )}
-      <Badge variant={variant} size={size} className="font-medium">
+      <Badge variant={variant} size={size}>
         <span
           className="tabular-nums"
           title={

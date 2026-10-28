@@ -26,8 +26,8 @@ import {
   type IBrandWithStats,
 } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
-import AnalyticsFilterMenu from '@ui/analytics/analytics-filter-menu/AnalyticsFilterMenu';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import BrandAvatar from '@ui/display/brand-avatar/BrandAvatar';
 import Table from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -187,7 +187,7 @@ export default function AnalyticsBrandsList({
     ];
 
     return (
-      <AnalyticsFilterMenu
+      <FilterMenu
         facets={facets}
         onClear={() => setFilter('sort', undefined)}
       />

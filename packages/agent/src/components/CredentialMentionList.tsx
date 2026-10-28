@@ -1,6 +1,7 @@
 import type { CredentialMentionItem } from '@genfeedai/agent/services/agent-api.service';
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import {
@@ -92,9 +93,12 @@ export function CredentialMentionList({
               <span className="text-xs text-muted-foreground">{item.name}</span>
             )}
           </div>
-          <span className="ml-auto text-2xs text-muted-foreground capitalize">
-            {item.platform}
-          </span>
+          <PlatformBadge
+            className="ml-auto"
+            platform={item.platform}
+            showLabel={false}
+            size={ComponentSize.SM}
+          />
         </Button>
       ))}
     </div>

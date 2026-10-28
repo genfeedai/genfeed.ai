@@ -1,7 +1,8 @@
 import type { ComponentSize } from '@genfeedai/contracts';
 
 export interface PlatformBadgeProps {
-  platform: string;
+  /** Platform value, OAuth path or name; empty renders a dash. */
+  platform?: string | null;
   className?: string;
   showLabel?: boolean;
   variant?: 'subtle' | 'solid';

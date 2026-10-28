@@ -1,5 +1,6 @@
 'use client';
 
+import { ComponentSize } from '@genfeedai/contracts';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
@@ -8,6 +9,7 @@ import { resolveCapturedAudience } from '@pages/posts/list/captured-post.helpers
 import type { AnalyticsPostCardProps } from '@props/analytics/analytics-posts-grid.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Copy, Play } from 'lucide-react';
 import Image from 'next/image';
@@ -54,7 +56,7 @@ function AnalyticsPostMedia({ item }: Pick<AnalyticsPostCardProps, 'item'>) {
   // No media on the row: the platform mark stands in for the thumbnail.
   return (
     <div
-      className="flex size-full items-center justify-center bg-background-secondary text-muted-foreground"
+      className="flex size-full items-center justify-center bg-card text-muted-foreground"
       data-testid="analytics-post-media-fallback"
     >
       {getPlatformIcon(item.platform, 'size-10') ?? (
@@ -127,8 +129,9 @@ function AnalyticsPostCard({
               {item.label}
             </Link>
           </h3>
-          <p className="mt-1 truncate text-xs text-foreground/60">
-            {item.brandName} · {item.platform}
+          <p className="mt-1 flex items-center gap-2 truncate text-xs text-foreground/60">
+            <PlatformBadge platform={item.platform} size={ComponentSize.SM} />
+            {item.brandName}
           </p>
         </div>
 

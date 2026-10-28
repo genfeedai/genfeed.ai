@@ -33,13 +33,13 @@ const STATE_COPY: Record<string, string> = {
 };
 
 const LABEL_CLASS =
-  'text-xs font-bold uppercase tracking-[0.16em] text-surface/55';
+  'text-xs font-bold uppercase tracking-[0.16em] text-foreground/55';
 
 function SeasonSignal({ data }: BenchmarkContentProps) {
   const runnableTasks = data?.tasks.filter((task) => !task.isDraft).length ?? 0;
 
   return (
-    <div className="w-full max-w-xl border-l border-edge/10 pl-7 sm:pl-10">
+    <div className="w-full max-w-xl border-l border-foreground/10 pl-7 sm:pl-10">
       <Text className={LABEL_CLASS}>
         {data ? STATE_COPY[data.season.state] : 'Season'}
       </Text>
@@ -51,22 +51,22 @@ function SeasonSignal({ data }: BenchmarkContentProps) {
             { label: 'Matches', value: data.season.matchCount },
           ].map((item) => (
             <div key={item.label}>
-              <Text className="text-4xl font-semibold tracking-[-0.05em] text-surface sm:text-5xl">
+              <Text className="text-4xl font-semibold tracking-[-0.05em] text-foreground sm:text-5xl">
                 {item.value}
               </Text>
-              <Text className="mt-2 text-xs uppercase tracking-[0.04em] text-surface/60 sm:tracking-[0.12em]">
+              <Text className="mt-2 text-xs uppercase tracking-[0.04em] text-foreground/60 sm:tracking-[0.12em]">
                 {item.label}
               </Text>
             </div>
           ))}
         </div>
       ) : (
-        <div className="mt-6 flex items-center gap-3 text-surface/65">
+        <div className="mt-6 flex items-center gap-3 text-foreground/65">
           <RefreshCw className="size-5" />
           <Text>Bench data unavailable</Text>
         </div>
       )}
-      <Text className="mt-7 max-w-md text-sm leading-6 text-surface/60">
+      <Text className="mt-7 max-w-md text-sm leading-6 text-foreground/60">
         Read from the public bench repository. Nothing on this page is
         maintained by hand.
       </Text>
@@ -81,15 +81,15 @@ function Ladder({ data }: { data: BenchmarkData }) {
 
   if (season.ladder.length === 0) {
     return (
-      <div className="max-w-3xl border-y border-edge/10 py-16">
+      <div className="max-w-3xl border-y border-foreground/10 py-16">
         <Text className={LABEL_CLASS}>No matches yet</Text>
         <Heading
           as="h2"
-          className="mt-5 text-4xl font-semibold tracking-[-0.04em] text-surface"
+          className="mt-5 text-4xl font-semibold tracking-[-0.04em] text-foreground"
         >
           The ladder is empty on purpose.
         </Heading>
-        <Text className="mt-5 max-w-xl text-base leading-7 text-surface/65">
+        <Text className="mt-5 max-w-xl text-base leading-7 text-foreground/65">
           {season.title} is announced with {season.contestantIds.length}{' '}
           contestants entered and no match recorded. Ranking models that have
           never met would be inventing a result, so there is nothing here until
@@ -120,11 +120,11 @@ function Ladder({ data }: { data: BenchmarkData }) {
               <TableRow key={entry.contestantId}>
                 <TableCell>{entry.rank}</TableCell>
                 <TableCell>
-                  <span className="font-medium text-surface">
+                  <span className="font-medium text-foreground">
                     {contestant?.label ?? entry.contestantId}
                   </span>
                   {contestant?.isCompiled ? (
-                    <span className="ml-2 rounded-full border border-edge/20 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-surface/60">
+                    <span className="ml-2 rounded-full border border-foreground/20 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-foreground/60">
                       Genfeed
                     </span>
                   ) : null}
@@ -146,33 +146,33 @@ function Ladder({ data }: { data: BenchmarkData }) {
 
 function TaskCard({ task }: { task: BenchmarkTask }) {
   return (
-    <div className="border-t border-edge/10 py-10">
+    <div className="border-t border-foreground/10 py-10">
       <div className="flex flex-wrap items-center gap-3">
         <Heading
           as="h3"
-          className="text-2xl font-semibold tracking-[-0.03em] text-surface"
+          className="text-2xl font-semibold tracking-[-0.03em] text-foreground"
         >
           {task.title}
         </Heading>
-        <span className="rounded-full border border-edge/20 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-surface/60">
+        <span className="rounded-full border border-foreground/20 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-foreground/60">
           {task.medium}
         </span>
         {task.isDraft ? (
-          <span className="rounded-full border border-edge/20 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-surface/60">
+          <span className="rounded-full border border-foreground/20 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-foreground/60">
             Season Two draft
           </span>
         ) : null}
       </div>
-      <Text className="mt-4 max-w-2xl text-base leading-7 text-surface/65">
+      <Text className="mt-4 max-w-2xl text-base leading-7 text-foreground/65">
         {task.rationale}
       </Text>
-      <Text className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-surface/40">
+      <Text className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-foreground/40">
         The prompt, in full
       </Text>
-      <Text className="mt-3 max-w-2xl whitespace-pre-line border-l border-edge/20 pl-5 font-mono text-sm leading-6 text-surface/70">
+      <Text className="mt-3 max-w-2xl whitespace-pre-line border-l border-foreground/20 pl-5 font-mono text-sm leading-6 text-foreground/70">
         {task.prompt}
       </Text>
-      <Text className="mt-5 text-sm text-surface/50">
+      <Text className="mt-5 text-sm text-foreground/50">
         {task.outputSpec.count}{' '}
         {task.outputSpec.count === 1 ? 'output' : 'outputs'} ·{' '}
         {task.outputSpec.aspectRatio}
@@ -228,15 +228,15 @@ export default function BenchmarkContent({ data }: BenchmarkContentProps) {
       >
         {data === null ? (
           <section className="container mx-auto px-6 pb-16 md:pb-32">
-            <div className="max-w-3xl border-y border-edge/10 py-16">
+            <div className="max-w-3xl border-y border-foreground/10 py-16">
               <Text className={LABEL_CLASS}>Bench unavailable</Text>
               <Heading
                 as="h2"
-                className="mt-5 text-4xl font-semibold tracking-[-0.04em] text-surface"
+                className="mt-5 text-4xl font-semibold tracking-[-0.04em] text-foreground"
               >
                 The bench could not be read.
               </Heading>
-              <Text className="mt-5 max-w-xl text-base leading-7 text-surface/65">
+              <Text className="mt-5 max-w-xl text-base leading-7 text-foreground/65">
                 This page never substitutes a cached or hand-written ladder. The
                 data lives in the public repository and will render again when
                 it can be reached.
@@ -246,17 +246,17 @@ export default function BenchmarkContent({ data }: BenchmarkContentProps) {
         ) : (
           <div className="container mx-auto px-6 pb-16 md:pb-32">
             <section className="mb-20">
-              <div className="mb-10 flex flex-col justify-between gap-6 border-b border-edge/10 pb-10 sm:flex-row sm:items-end">
+              <div className="mb-10 flex flex-col justify-between gap-6 border-b border-foreground/10 pb-10 sm:flex-row sm:items-end">
                 <div>
                   <Text className={LABEL_CLASS}>{data.season.title}</Text>
                   <Heading
                     as="h2"
-                    className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-surface sm:text-5xl"
+                    className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-foreground sm:text-5xl"
                   >
                     Standings.
                   </Heading>
                 </div>
-                <Text className="max-w-md text-sm leading-6 text-surface/60">
+                <Text className="max-w-md text-sm leading-6 text-foreground/60">
                   Elo from recorded pairwise matches only. A voided match is
                   counted and shown but never moves a rating.
                 </Text>
@@ -265,17 +265,17 @@ export default function BenchmarkContent({ data }: BenchmarkContentProps) {
             </section>
 
             <section className="mb-20">
-              <div className="mb-4 flex flex-col justify-between gap-6 border-b border-edge/10 pb-10 sm:flex-row sm:items-end">
+              <div className="mb-4 flex flex-col justify-between gap-6 border-b border-foreground/10 pb-10 sm:flex-row sm:items-end">
                 <div>
                   <Text className={LABEL_CLASS}>The suite</Text>
                   <Heading
                     as="h2"
-                    className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-surface sm:text-5xl"
+                    className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-foreground sm:text-5xl"
                   >
                     What we ask models to make.
                   </Heading>
                 </div>
-                <Text className="max-w-md text-sm leading-6 text-surface/60">
+                <Text className="max-w-md text-sm leading-6 text-foreground/60">
                   Chosen for where models differ in work people get paid for,
                   not where they demo well. Every prompt is public — there is no
                   hidden set.
@@ -288,17 +288,17 @@ export default function BenchmarkContent({ data }: BenchmarkContentProps) {
 
             {draftTasks.length > 0 ? (
               <section className="mb-20">
-                <div className="mb-4 flex flex-col justify-between gap-6 border-b border-edge/10 pb-10 sm:flex-row sm:items-end">
+                <div className="mb-4 flex flex-col justify-between gap-6 border-b border-foreground/10 pb-10 sm:flex-row sm:items-end">
                   <div>
                     <Text className={LABEL_CLASS}>Season Two</Text>
                     <Heading
                       as="h2"
-                      className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-surface sm:text-5xl"
+                      className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-foreground sm:text-5xl"
                     >
                       Video, not yet running.
                     </Heading>
                   </div>
-                  <Text className="max-w-md text-sm leading-6 text-surface/60">
+                  <Text className="max-w-md text-sm leading-6 text-foreground/60">
                     Published now so the tasks are fixed in public before anyone
                     knows which model they will favour. The harness refuses to
                     draw a draft into a match.
@@ -310,15 +310,15 @@ export default function BenchmarkContent({ data }: BenchmarkContentProps) {
               </section>
             ) : null}
 
-            <section className="border-t border-edge/10 pt-16">
+            <section className="border-t border-foreground/10 pt-16">
               <Text className={LABEL_CLASS}>Contestants</Text>
               <Heading
                 as="h2"
-                className="mt-4 max-w-2xl text-3xl font-semibold tracking-[-0.04em] text-surface"
+                className="mt-4 max-w-2xl text-3xl font-semibold tracking-[-0.04em] text-foreground"
               >
                 Genfeed is entered as a contestant, not as the scoreboard.
               </Heading>
-              <Text className="mt-5 max-w-xl text-base leading-7 text-surface/65">
+              <Text className="mt-5 max-w-xl text-base leading-7 text-foreground/65">
                 One route runs through Genfeed's brief compiler; the rest are
                 raw provider routes, including the same model the compiled route
                 wraps. If the compile step makes a task worse, the ladder says
@@ -327,12 +327,12 @@ export default function BenchmarkContent({ data }: BenchmarkContentProps) {
               <div className="mt-8 flex flex-wrap gap-3">
                 {data.contestants.map((contestant) => (
                   <span
-                    className="rounded-full border border-edge/15 px-4 py-2 text-sm text-surface/70"
+                    className="rounded-full border border-foreground/15 px-4 py-2 text-sm text-foreground/70"
                     key={contestant.id}
                   >
                     {contestant.label}
                     {contestant.isCompiled ? (
-                      <span className="ml-2 text-xs uppercase tracking-[0.12em] text-surface/45">
+                      <span className="ml-2 text-xs uppercase tracking-[0.12em] text-foreground/45">
                         Genfeed
                       </span>
                     ) : null}

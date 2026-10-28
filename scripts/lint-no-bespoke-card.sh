@@ -35,13 +35,13 @@ ALLOWLIST_FILE="$SCRIPT_DIR/lint-no-bespoke-card.allowlist"
 SCAN_DIRS=(apps/app packages/pages)
 
 # ─── Detector token classes (all must co-occur on one className line) ──────────
-#   surface  : bg-card (incl. bg-card/NN), bg-background-secondary|tertiary
+#   surface  : bg-card (incl. bg-card/NN), bg-tertiary
 #   rounded  : rounded-card|md|lg|xl|2xl
 #   border   : `border` as a standalone utility (NOT border-r/l/t/b/x/y/-color)
 #   padding  : p-N / px-N / py-N
 # The element must be a raw block (div/section/article/aside), so lines opening
 # an <input|textarea|button|Button|Card|Input|Textarea> are excluded.
-SURFACE_RE='className="[^"]*(bg-card|bg-background-secondary|bg-background-tertiary)[^"]*"'
+SURFACE_RE='className="[^"]*(bg-card|bg-tertiary)[^"]*"'
 ROUNDED_RE='rounded-(card|md|lg|xl|2xl)'
 # Standalone `border` = word-boundary emulation via non-[word/dash] neighbours.
 BORDER_RE='(^|[^-A-Za-z0-9_])border([^-A-Za-z0-9_]|$)'

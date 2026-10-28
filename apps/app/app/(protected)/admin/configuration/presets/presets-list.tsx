@@ -224,9 +224,7 @@ function PresetsListContent({
   const rowSidebar = createSummaryRowSidebar<Preset>({
     getBadges: (preset) => (
       <>
-        <Badge variant="outline" className="uppercase">
-          {preset.category}
-        </Badge>
+        <Badge variant="outline">{preset.category}</Badge>
         {preset.isActive ? null : (
           <Badge variant="warning">{rowSidebarT('inactive')}</Badge>
         )}

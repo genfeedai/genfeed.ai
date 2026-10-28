@@ -24,7 +24,7 @@ export default function ReviewInboxBulkBar({
     <Card
       // Card body defaults to flex-col — force a single horizontal row.
       bodyClassName="flex flex-row flex-wrap items-center justify-between gap-2 !p-3"
-      className="bg-background-secondary"
+      className="bg-card"
       variant={CardVariant.DEFAULT}
     >
       <p className="flex shrink-0 flex-wrap items-center gap-x-3 text-xs text-foreground/70">

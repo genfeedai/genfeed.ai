@@ -7,6 +7,12 @@ import {
   formatTooltipDateTime,
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { PostPerformanceChartProps } from '@genfeedai/props/analytics/charts.props';
+import {
+  ChartLoadingOverlay,
+  chartAxisStroke,
+  chartAxisTick,
+  chartGridStroke,
+} from '@ui/analytics/charts/chart-theme';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { Button } from '@ui/primitives/button';
 import dynamic from 'next/dynamic';
@@ -133,11 +139,7 @@ export function PostPerformanceChart({
 
       {/* Chart */}
       <div className="relative" style={{ height }}>
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-card/50 z-10">
-            <span className="animate-pulse size-12 rounded-full bg-primary/30" />
-          </div>
-        )}
+        {isLoading && <ChartLoadingOverlay />}
 
         {isEmpty && !isLoading && (
           <div className="absolute inset-0 flex items-center justify-center text-foreground/50">
@@ -183,19 +185,19 @@ export function PostPerformanceChart({
             </defs>
             <CartesianGrid
               strokeDasharray="0"
-              stroke="var(--overlay-white-5)"
+              stroke={chartGridStroke}
               vertical={false}
             />
             <XAxis
               dataKey="timestamp"
-              tick={{ fill: 'var(--overlay-white-20)', fontSize: 12 }}
+              tick={chartAxisTick}
               tickFormatter={formatTimestamp}
-              stroke="var(--overlay-white-20)"
+              stroke={chartAxisStroke}
             />
             <YAxis
-              tick={{ fill: 'var(--overlay-white-20)', fontSize: 12 }}
+              tick={chartAxisTick}
               tickFormatter={formatCompactNumberIntl}
-              stroke="var(--overlay-white-20)"
+              stroke={chartAxisStroke}
             />
             <Tooltip
               content={

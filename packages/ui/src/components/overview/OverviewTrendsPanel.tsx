@@ -1,6 +1,6 @@
-import { ButtonVariant } from '@genfeedai/contracts';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { TrendItem } from '@genfeedai/props/trends/trends-page.props';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { ArrowRight } from 'lucide-react';
@@ -11,23 +11,6 @@ import {
   WorkspaceSurface,
   type WorkspaceSurfaceTone,
 } from './WorkspaceSurface';
-
-const PLATFORM_BADGE_CLASSES: Record<string, string> = {
-  instagram: 'bg-fuchsia-500/12 text-fuchsia-300 border-fuchsia-500/20',
-  tiktok: 'bg-zinc-500/12 text-zinc-200 border-zinc-500/20',
-  twitter: 'bg-sky-500/12 text-sky-300 border-sky-500/20',
-  youtube: 'bg-rose-500/12 text-rose-300 border-rose-500/20',
-  linkedin: 'bg-blue-500/12 text-blue-300 border-blue-500/20',
-  reddit: 'bg-orange-500/12 text-orange-300 border-orange-500/20',
-  pinterest: 'bg-red-500/12 text-red-300 border-red-500/20',
-  facebook: 'bg-indigo-500/12 text-indigo-300 border-indigo-500/20',
-};
-
-const DEFAULT_BADGE_CLASS = 'bg-zinc-500/12 text-zinc-300 border-zinc-500/20';
-
-function getPlatformBadgeClass(platform: string): string {
-  return PLATFORM_BADGE_CLASSES[platform.toLowerCase()] ?? DEFAULT_BADGE_CLASS;
-}
 
 function formatViralityScore(score: number): string {
   if (score >= 1000) {
@@ -100,14 +83,10 @@ export function OverviewTrendsPanel({
               key={trend.id}
               className="flex items-center gap-3 rounded-card bg-background px-4 py-3 shadow-border"
             >
-              <span
-                className={cn(
-                  'shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 text-2xs font-semibold uppercase tracking-[0.12em]',
-                  getPlatformBadgeClass(trend.platform),
-                )}
-              >
-                {trend.platform}
-              </span>
+              <PlatformBadge
+                platform={trend.platform}
+                size={ComponentSize.SM}
+              />
 
               <span
                 className="min-w-0 flex-1 truncate text-sm font-medium text-foreground"

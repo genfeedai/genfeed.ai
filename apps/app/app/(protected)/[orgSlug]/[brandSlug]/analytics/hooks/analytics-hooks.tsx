@@ -17,8 +17,8 @@ import { useClientPagination } from '@hooks/data/pagination/use-client-paginatio
 import type { AnalyticsHooksProps } from '@props/analytics/analytics-hooks.props';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
-import AnalyticsFilterMenu from '@ui/analytics/analytics-filter-menu/AnalyticsFilterMenu';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
 import Pagination from '@ui/navigation/pagination/Pagination';
@@ -131,9 +131,7 @@ export default function AnalyticsHooks({
         value: minOutlierTier ?? '',
       },
     ];
-    return (
-      <AnalyticsFilterMenu facets={facets} onClear={() => setFilter('tier')} />
-    );
+    return <FilterMenu facets={facets} onClear={() => setFilter('tier')} />;
   }, [minOutlierTier, setFilter, translateFilter]);
 
   useAnalyticsToolbar(toolbar);

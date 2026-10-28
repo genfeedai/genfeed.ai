@@ -272,7 +272,7 @@ export default function CorpusContent() {
               className={`h-9 border px-3 text-xs font-medium transition ${
                 mode === option
                   ? 'border-border-strong bg-hover text-foreground'
-                  : 'border-border bg-background-tertiary text-muted-foreground hover:border-border-strong hover:text-foreground'
+                  : 'border-border bg-tertiary text-muted-foreground hover:border-border-strong hover:text-foreground'
               }`}
             />
           ))}

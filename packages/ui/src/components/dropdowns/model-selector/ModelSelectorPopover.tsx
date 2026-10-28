@@ -688,7 +688,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                           'flex min-h-7 cursor-pointer items-center gap-2 rounded-sm px-1.5 py-0.5 text-xs text-foreground transition-colors data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground',
                           isAutoSelected &&
                             priorityOption === prioritize &&
-                            'bg-background-tertiary',
+                            'bg-tertiary',
                         )}
                       >
                         <span className="flex size-5 shrink-0 items-center justify-center rounded border border-border bg-primary/10 text-primary">

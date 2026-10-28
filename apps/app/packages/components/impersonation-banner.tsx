@@ -50,7 +50,7 @@ export default function ImpersonationBanner() {
     <div
       role="alert"
       data-testid="impersonation-banner"
-      className="flex w-full items-center justify-center gap-3 bg-amber-500 px-4 py-2 text-sm font-bold text-amber-950"
+      className="flex w-full items-center justify-center gap-3 bg-warning px-4 py-2 text-sm font-bold text-warning-foreground"
     >
       <VenetianMask className="size-5 shrink-0" />
       <span>Viewing as {viewingAs}</span>
@@ -61,7 +61,7 @@ export default function ImpersonationBanner() {
           void handleExit();
         }}
         isDisabled={isExiting}
-        className="rounded-md border border-amber-950/30 px-2 py-0.5 font-bold transition-colors hover:bg-amber-950/10"
+        className="rounded-md border border-warning-foreground/30 px-2 py-0.5 font-bold transition-colors hover:bg-warning-foreground/10"
         label="Exit"
       />
       {exitError ? <span role="status">{exitError}</span> : null}

@@ -58,7 +58,7 @@ function CopyCodeButton({ code }: { code: string }): React.ReactElement {
       variant={ButtonVariant.SECONDARY}
       size={ButtonSize.XS}
       ariaLabel="Copy this prompt"
-      className="border border-edge/[0.08] bg-fill/10 text-surface backdrop-blur-sm transition-all hover:border-edge/20 hover:bg-fill/20"
+      className="border border-foreground/[0.08] bg-foreground/10 text-foreground backdrop-blur-sm transition-all hover:border-foreground/20 hover:bg-foreground/20"
       onClick={handleCopy}
     >
       {isCopied ? (
@@ -155,10 +155,10 @@ export default function ArticleContent({
 
   return (
     <div>
-      <div className="mb-8 border-y border-edge/[0.08] py-4">
+      <div className="mb-8 border-y border-foreground/[0.08] py-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0">
-            <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-surface/50">
+            <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-foreground/50">
               <ListTree className="size-3.5" aria-hidden="true" />
               Explore this article
             </div>
@@ -169,7 +169,7 @@ export default function ArticleContent({
               >
                 {headings.map((heading) => (
                   <Link
-                    className="text-left text-sm text-surface/60 hover:text-surface"
+                    className="text-left text-sm text-foreground/60 hover:text-foreground"
                     href={`#${heading.id}`}
                     key={heading.id}
                   >
@@ -178,7 +178,7 @@ export default function ArticleContent({
                 ))}
               </nav>
             ) : (
-              <p className="text-sm text-surface/60">
+              <p className="text-sm text-foreground/60">
                 Read the guide, then turn it into a concrete plan for your
                 brand.
               </p>

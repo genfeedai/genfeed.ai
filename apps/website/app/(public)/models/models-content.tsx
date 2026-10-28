@@ -68,8 +68,8 @@ function CatalogSignal({ models }: ModelsContentProps) {
   const providerCount = new Set(models?.map((model) => model.provider)).size;
 
   return (
-    <div className="w-full max-w-xl border-l border-edge/10 pl-7 sm:pl-10">
-      <Text className="text-xs font-bold uppercase tracking-[0.16em] text-surface/55">
+    <div className="w-full max-w-xl border-l border-foreground/10 pl-7 sm:pl-10">
+      <Text className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/55">
         Live catalog
       </Text>
       {models && models.length > 0 ? (
@@ -80,17 +80,17 @@ function CatalogSignal({ models }: ModelsContentProps) {
             { label: 'Providers', value: providerCount },
           ].map((item) => (
             <div key={item.label}>
-              <Text className="text-4xl font-semibold tracking-[-0.05em] text-surface sm:text-5xl">
+              <Text className="text-4xl font-semibold tracking-[-0.05em] text-foreground sm:text-5xl">
                 {item.value}
               </Text>
-              <Text className="mt-2 text-xs uppercase tracking-[0.04em] text-surface/60 sm:tracking-[0.12em]">
+              <Text className="mt-2 text-xs uppercase tracking-[0.04em] text-foreground/60 sm:tracking-[0.12em]">
                 {item.label}
               </Text>
             </div>
           ))}
         </div>
       ) : (
-        <div className="mt-6 flex items-center gap-3 text-surface/65">
+        <div className="mt-6 flex items-center gap-3 text-foreground/65">
           <RefreshCw className="size-5" />
           <Text>
             {models
@@ -99,7 +99,7 @@ function CatalogSignal({ models }: ModelsContentProps) {
           </Text>
         </div>
       )}
-      <Text className="mt-7 max-w-md text-sm leading-6 text-surface/60">
+      <Text className="mt-7 max-w-md text-sm leading-6 text-foreground/60">
         Read from the same public registry as the app and refreshed hourly.
       </Text>
       {/*
@@ -109,14 +109,14 @@ function CatalogSignal({ models }: ModelsContentProps) {
         a registry outage.
       */}
       <Link
-        className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-surface underline-offset-4 hover:underline"
+        className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-foreground underline-offset-4 hover:underline"
         href="/benchmark"
       >
         See how they compare on the benchmark
         <ArrowRight className="size-4" />
       </Link>
       <Link
-        className="mt-3 flex min-h-11 items-center gap-2 text-sm font-medium text-surface underline-offset-4 hover:underline"
+        className="mt-3 flex min-h-11 items-center gap-2 text-sm font-medium text-foreground underline-offset-4 hover:underline"
         href="/tools/ai-model-selector"
       >
         Find a model with the free AI model selector
@@ -166,17 +166,17 @@ export default function ModelsContent({ models }: ModelsContentProps) {
       >
         {models === null ? (
           <section className="container mx-auto px-6 pb-16 md:pb-32">
-            <div className="max-w-3xl border-y border-edge/10 py-16">
-              <Text className="text-xs font-bold uppercase tracking-[0.16em] text-surface/55">
+            <div className="max-w-3xl border-y border-foreground/10 py-16">
+              <Text className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/55">
                 Catalog unavailable
               </Text>
               <Heading
                 as="h2"
-                className="mt-5 text-4xl font-semibold tracking-[-0.04em] text-surface"
+                className="mt-5 text-4xl font-semibold tracking-[-0.04em] text-foreground"
               >
                 The registry could not be reached.
               </Heading>
-              <Text className="mt-5 max-w-xl text-base leading-7 text-surface/65">
+              <Text className="mt-5 max-w-xl text-base leading-7 text-foreground/65">
                 This page never substitutes a hardcoded list. Try again when the
                 public catalog connection is restored.
               </Text>
@@ -184,17 +184,17 @@ export default function ModelsContent({ models }: ModelsContentProps) {
           </section>
         ) : models.length === 0 ? (
           <section className="container mx-auto px-6 pb-16 md:pb-32">
-            <div className="max-w-3xl border-y border-edge/10 py-16">
-              <Text className="text-xs font-bold uppercase tracking-[0.16em] text-surface/55">
+            <div className="max-w-3xl border-y border-foreground/10 py-16">
+              <Text className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/55">
                 Catalog empty
               </Text>
               <Heading
                 as="h2"
-                className="mt-5 text-4xl font-semibold tracking-[-0.04em] text-surface"
+                className="mt-5 text-4xl font-semibold tracking-[-0.04em] text-foreground"
               >
                 No public models are listed yet.
               </Heading>
-              <Text className="mt-5 max-w-xl text-base leading-7 text-surface/65">
+              <Text className="mt-5 max-w-xl text-base leading-7 text-foreground/65">
                 The page is connected to the registry and will populate when a
                 model is published for public use.
               </Text>
@@ -202,19 +202,19 @@ export default function ModelsContent({ models }: ModelsContentProps) {
           </section>
         ) : (
           <div className="container mx-auto px-6 pb-16 md:pb-32">
-            <div className="mb-20 flex flex-col justify-between gap-6 border-b border-edge/10 pb-10 sm:flex-row sm:items-end">
+            <div className="mb-20 flex flex-col justify-between gap-6 border-b border-foreground/10 pb-10 sm:flex-row sm:items-end">
               <div>
-                <Text className="text-xs font-bold uppercase tracking-[0.16em] text-surface/55">
+                <Text className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/55">
                   Current availability
                 </Text>
                 <Heading
                   as="h2"
-                  className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-surface sm:text-5xl"
+                  className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-foreground sm:text-5xl"
                 >
                   Choose by output.
                 </Heading>
               </div>
-              <Text className="max-w-md text-sm leading-6 text-surface/60">
+              <Text className="max-w-md text-sm leading-6 text-foreground/60">
                 Availability, defaults, and capabilities update from the
                 registry. Nothing on this page is maintained by hand.
               </Text>
@@ -227,46 +227,46 @@ export default function ModelsContent({ models }: ModelsContentProps) {
                   key={category}
                 >
                   <div>
-                    <Text className="text-xs font-bold uppercase tracking-[0.16em] text-surface/45">
+                    <Text className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/45">
                       {String(groupIndex + 1).padStart(2, '0')}
                     </Text>
                     <Heading
                       as="h2"
-                      className="mt-4 text-3xl font-semibold tracking-[-0.035em] text-surface"
+                      className="mt-4 text-3xl font-semibold tracking-[-0.035em] text-foreground"
                     >
                       {titleCase(category)}
                     </Heading>
-                    <Text className="mt-3 text-sm text-surface/55">
+                    <Text className="mt-3 text-sm text-foreground/55">
                       {categoryModels.length}{' '}
                       {categoryModels.length === 1 ? 'model' : 'models'}
                     </Text>
                   </div>
 
-                  <ol className="border-t border-edge/10">
+                  <ol className="border-t border-foreground/10">
                     {categoryModels.map((model, index) => (
                       <li
-                        className="grid gap-5 border-b border-edge/10 py-7 sm:grid-cols-[3rem_minmax(0,1fr)_auto] sm:py-8"
+                        className="grid gap-5 border-b border-foreground/10 py-7 sm:grid-cols-[3rem_minmax(0,1fr)_auto] sm:py-8"
                         key={model.id}
                       >
-                        <Text className="text-xs font-bold tracking-[0.12em] text-surface/40">
+                        <Text className="text-xs font-bold tracking-[0.12em] text-foreground/40">
                           {String(index + 1).padStart(2, '0')}
                         </Text>
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <Heading
                               as="h3"
-                              className="text-xl font-semibold tracking-[-0.025em] text-surface"
+                              className="text-xl font-semibold tracking-[-0.025em] text-foreground"
                             >
                               {model.label}
                             </Heading>
                             {model.isDefault ? (
-                              <span className="rounded-full border border-edge/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-surface/55">
+                              <span className="rounded-full border border-foreground/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-foreground/55">
                                 Default
                               </span>
                             ) : null}
                           </div>
                           {model.description ? (
-                            <Text className="mt-3 max-w-2xl text-sm leading-6 text-surface/62">
+                            <Text className="mt-3 max-w-2xl text-sm leading-6 text-foreground/62">
                               {model.description}
                             </Text>
                           ) : null}
@@ -276,7 +276,7 @@ export default function ModelsContent({ models }: ModelsContentProps) {
                                 .slice(0, 4)
                                 .map((capability) => (
                                   <Text
-                                    className="text-[11px] uppercase tracking-[0.1em] text-surface/45"
+                                    className="text-[11px] uppercase tracking-[0.1em] text-foreground/45"
                                     key={capability}
                                   >
                                     {titleCase(capability)}
@@ -285,7 +285,7 @@ export default function ModelsContent({ models }: ModelsContentProps) {
                             </div>
                           ) : null}
                         </div>
-                        <Text className="text-xs font-bold uppercase tracking-[0.12em] text-surface/50 sm:pt-1">
+                        <Text className="text-xs font-bold uppercase tracking-[0.12em] text-foreground/50 sm:pt-1">
                           {titleCase(model.provider)}
                         </Text>
                       </li>

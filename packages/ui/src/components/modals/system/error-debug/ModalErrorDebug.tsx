@@ -59,7 +59,7 @@ function ErrorSection({
   return (
     <Card
       variant={CardVariant.DEFAULT}
-      className="rounded-lg border border-border bg-background-secondary hover:border-border"
+      className="rounded-lg border border-border bg-card hover:border-border"
       bodyClassName="gap-0 p-4"
     >
       <div className="flex items-center gap-2">

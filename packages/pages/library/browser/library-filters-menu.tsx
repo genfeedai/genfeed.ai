@@ -33,7 +33,7 @@ function CharacterAvatar({
 }) {
   if (!character.avatarIngredientId) {
     return (
-      <span className="flex size-4 items-center justify-center rounded-full bg-background-tertiary text-muted-foreground">
+      <span className="flex size-4 items-center justify-center rounded-full bg-tertiary text-muted-foreground">
         <UserRound className="size-2.5" />
       </span>
     );

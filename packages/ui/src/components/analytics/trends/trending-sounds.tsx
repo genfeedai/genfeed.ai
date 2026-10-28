@@ -42,7 +42,7 @@ export function TrendingSounds({
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <Music className="text-muted-foreground" />
           Trending Sounds
-          <Badge className="text-xs bg-transparent">
+          <Badge className="bg-transparent">
             <TiktokIcon className="size-3 mr-1" />
             TikTok
           </Badge>

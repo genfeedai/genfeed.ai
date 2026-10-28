@@ -73,7 +73,7 @@ export function AgentChatInputAttachmentTray({
               aria-label={`${assetName}: ${status}`}
               key={asset.id}
               className={cn(
-                'group relative size-16 overflow-hidden rounded-md border border-border bg-background-secondary',
+                'group relative size-16 overflow-hidden rounded-md border border-border bg-card',
                 isDisabled && 'opacity-60',
                 status === 'failed' && 'border-destructive/50',
               )}
@@ -136,7 +136,7 @@ export function AgentChatInputAttachmentTray({
             })}${reference.isSkipped ? ': Skipped' : ''}`}
             key={`content:${reference.id}`}
             className={cn(
-              'group relative size-16 overflow-hidden rounded-md border border-border bg-background-secondary',
+              'group relative size-16 overflow-hidden rounded-md border border-border bg-card',
               isDisabled && 'opacity-60',
               reference.isSkipped && 'border-destructive/50 opacity-60',
             )}
@@ -197,7 +197,7 @@ export function AgentChatInputAttachmentTray({
           return (
             <span
               className={cn(
-                'inline-flex max-w-48 items-center gap-1.5 rounded-lg border border-border bg-background-secondary px-2.5 py-1.5 text-xs text-foreground/78',
+                'inline-flex max-w-48 items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground/78',
                 isRemovableAsset && 'pr-1.5',
               )}
               key={`${reference.type}:${reference.id}`}

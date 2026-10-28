@@ -1,11 +1,13 @@
 import {
   ButtonSize,
   ButtonVariant,
+  ComponentSize,
   formatEnumLabel,
   formatPlatformLabel,
 } from '@genfeedai/contracts';
 import type { LongFormDeliveryHistoryProps } from '@props/edit/long-form-delivery.props';
 import Badge from '@ui/display/badge/Badge';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
 import { ExternalLink } from 'lucide-react';
 import NextLink from 'next/link';
@@ -48,7 +50,10 @@ export default function LongFormDeliveryHistory({
               >
                 <div className="min-w-0">
                   <p className="truncate font-medium">{accountLabel}</p>
-                  <p className="text-xs text-foreground/60">{platformLabel}</p>
+                  <PlatformBadge
+                    platform={target.platform}
+                    size={ComponentSize.SM}
+                  />
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge status={target.executionState}>

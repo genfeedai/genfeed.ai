@@ -331,7 +331,7 @@ function NeedsYouSurface({
                     density="compact"
                     leading={
                       item.mediaUrl ? (
-                        <span className="relative block size-10 overflow-hidden rounded-md bg-background-secondary shadow-border">
+                        <span className="relative block size-10 overflow-hidden rounded-md bg-card shadow-border">
                           {item.format === 'video' ||
                           item.format === 'short_video' ? (
                             <VideoPlayer

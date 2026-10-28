@@ -182,7 +182,9 @@ export default function DesktopContent({
                 detectedOs === DesktopOs.MAC_OS && 'bg-[var(--gen-accent-bg)]',
               )}
             >
-              <p className="mt-2 text-sm text-surface/65">{MAC_REQUIREMENT}</p>
+              <p className="mt-2 text-sm text-foreground/65">
+                {MAC_REQUIREMENT}
+              </p>
 
               <div className="mt-6">
                 {hasMacBuild ? (
@@ -204,9 +206,9 @@ export default function DesktopContent({
                 publishes the disk image, so it only exists once a build does.
               */}
               {hasMacBuild ? (
-                <p className="mt-4 text-xs text-surface/50">
+                <p className="mt-4 text-xs text-foreground/50">
                   Prefer Homebrew?{' '}
-                  <span className="font-mono text-surface/75">
+                  <span className="font-mono text-foreground/75">
                     brew install --cask genfeedai/tap/genfeed
                   </span>
                 </p>
@@ -220,7 +222,7 @@ export default function DesktopContent({
               padding="lg"
               className={cn(isWindows && 'bg-[var(--gen-accent-bg)]')}
             >
-              <p className="mt-2 text-sm text-surface/65">
+              <p className="mt-2 text-sm text-foreground/65">
                 Not built yet. Use Genfeed in the browser in the meantime, or
                 self-host the open-source core on your own machine.
               </p>
@@ -266,9 +268,9 @@ export default function DesktopContent({
                 key={item.step}
                 tierLabel={`0${index + 1} / ${item.step}`}
                 padding="lg"
-                className={cn(index === 0 && 'bg-fill/[0.02]')}
+                className={cn(index === 0 && 'bg-foreground/[0.02]')}
               >
-                <p className="text-sm leading-relaxed text-surface/60">
+                <p className="text-sm leading-relaxed text-foreground/60">
                   {item.description}
                 </p>
               </NeuralGridItem>
@@ -298,7 +300,7 @@ export default function DesktopContent({
                 ].map((item) => (
                   <li
                     key={item}
-                    className="border-b border-edge/5 pb-3 text-sm text-surface/60 last:border-b-0 last:pb-0"
+                    className="border-b border-foreground/5 pb-3 text-sm text-foreground/60 last:border-b-0 last:pb-0"
                   >
                     {item}
                   </li>
@@ -322,7 +324,7 @@ export default function DesktopContent({
                 ].map((item) => (
                   <li
                     key={item}
-                    className="border-b border-edge/5 pb-3 text-sm text-surface/60 last:border-b-0 last:pb-0"
+                    className="border-b border-foreground/5 pb-3 text-sm text-foreground/60 last:border-b-0 last:pb-0"
                   >
                     {item}
                   </li>

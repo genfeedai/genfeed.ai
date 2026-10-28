@@ -47,7 +47,7 @@ export default function BrandKitAssetTile({
   };
 
   const preview = (
-    <span className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-md bg-background-tertiary shadow-border">
+    <span className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-md bg-tertiary shadow-border">
       {hasPreview && previewUrl ? (
         <Image
           alt={caption}

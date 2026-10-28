@@ -17,7 +17,7 @@ export default function HomeAsks(): React.ReactElement {
   return (
     <section
       id="asks"
-      className="gen-section-spacing-lg border-b border-edge/5"
+      className="gen-section-spacing-lg border-b border-foreground/5"
     >
       <div className="container mx-auto px-6">
         <div className="mb-16 grid gap-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(320px,0.55fr)] lg:items-end">
@@ -48,26 +48,29 @@ export default function HomeAsks(): React.ReactElement {
           </div>
         </div>
 
-        <ul className="grid grid-cols-1 gap-x-12 border-t border-edge/5 sm:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-x-12 border-t border-foreground/5 sm:grid-cols-2">
           {AGENT_PROMPTS.map((prompt) => (
             <li
               key={prompt.ask}
-              className="border-b border-edge/5 py-8"
+              className="border-b border-foreground/5 py-8"
               data-reveal="up"
             >
               <Heading
                 as="h3"
-                className="text-xl font-semibold tracking-[-0.025em] text-surface"
+                className="text-xl font-semibold tracking-[-0.025em] text-foreground"
               >
                 &ldquo;{prompt.ask}&rdquo;
               </Heading>
               {/* `Text` is a span by default, so the result needs to be a
                   block or the destination link wraps onto the same line. */}
-              <Text as="p" className="mt-3 text-sm leading-6 text-surface/72">
+              <Text
+                as="p"
+                className="mt-3 text-sm leading-6 text-foreground/72"
+              >
                 {prompt.result}
               </Text>
               <Link
-                className="mt-4 inline-flex text-[13px] font-semibold text-surface/72 underline underline-offset-4 transition-colors hover:text-surface"
+                className="mt-4 inline-flex text-[13px] font-semibold text-foreground/72 underline underline-offset-4 transition-colors hover:text-foreground"
                 href={prompt.href}
               >
                 {prompt.hrefLabel}

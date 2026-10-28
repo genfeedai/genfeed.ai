@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { isPublishApprovalRequired } from '@genfeedai/contracts/constants';
 import type {
   AccountPublishingContext,
@@ -23,6 +23,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { CredentialsService } from '@services/organization/credentials.service';
 import { BrandsService } from '@services/social/brands.service';
 import Card from '@ui/card/Card';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Loading from '@ui/loading/default/Loading';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
@@ -83,7 +84,7 @@ function SettingsToggleRow({
   onCheckedChange: (checked: boolean) => void;
 }): ReactNode {
   return (
-    <div className="flex items-start justify-between gap-4 rounded-card bg-background-secondary/40 px-4 py-3 shadow-border">
+    <div className="flex items-start justify-between gap-4 rounded-card bg-card/40 px-4 py-3 shadow-border">
       <div className="min-w-0 space-y-1">
         <p className="text-sm font-medium text-foreground">{label}</p>
         <p className="text-xs leading-5 text-muted-foreground">{description}</p>
@@ -636,16 +637,17 @@ export default function BrandSettingsPublishingPage() {
                 return (
                   <div
                     key={credential.id}
-                    className="rounded-card bg-background-secondary p-4 shadow-border"
+                    className="rounded-card bg-card p-4 shadow-border"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="text-sm font-medium">
                           {getCredentialLabel(credential)}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          {credential.platform}
-                        </p>
+                        <PlatformBadge
+                          platform={credential.platform}
+                          size={ComponentSize.SM}
+                        />
                       </div>
                       <Badge variant={hasFailed ? 'destructive' : 'outline'}>
                         {hasFailed
@@ -668,15 +670,18 @@ export default function BrandSettingsPublishingPage() {
               return (
                 <div
                   key={credential.id}
-                  className="rounded-card bg-background-secondary p-4 shadow-border"
+                  className="rounded-card bg-card p-4 shadow-border"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-medium">
                         {context.account.label}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        {context.account.platform}
+                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <PlatformBadge
+                          platform={context.account.platform}
+                          size={ComponentSize.SM}
+                        />
                         {context.account.handle
                           ? ` · @${context.account.handle.replace(/^@/, '')}`
                           : ''}

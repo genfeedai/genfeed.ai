@@ -160,7 +160,7 @@ export default function PricingContent() {
                 >
                   {isFeatured ? (
                     <div className="absolute right-6 top-6">
-                      <span className="border border-edge/40 px-2.5 py-1 text-2xs font-bold uppercase tracking-widest text-surface/70">
+                      <span className="border border-foreground/40 px-2.5 py-1 text-2xs font-bold uppercase tracking-widest text-foreground/70">
                         Popular
                       </span>
                     </div>
@@ -172,12 +172,12 @@ export default function PricingContent() {
                         ? `$${CREDIT_VALUE_DOLLARS.toFixed(2)}`
                         : formatPrice(plan.price)}
                     </span>
-                    <span className="text-sm font-medium text-surface/55">
+                    <span className="text-sm font-medium text-foreground/55">
                       {isPayg ? '/credit' : '/mo'}
                     </span>
                   </div>
 
-                  <div className="mb-6 text-sm text-surface/60">
+                  <div className="mb-6 text-sm text-foreground/60">
                     {getPriceQualifier(plan)}
                     {isPayg
                       ? ` · ${ONBOARDING_STARTER_CREDITS} free credits after onboarding`
@@ -187,8 +187,8 @@ export default function PricingContent() {
                   <ul className="mb-auto space-y-3">
                     {plan.features.map((feature) => (
                       <li key={feature} className="flex items-start gap-3">
-                        <CircleCheck className="mt-0.5 size-4 shrink-0 text-surface/55" />
-                        <span className="text-sm text-surface/60">
+                        <CircleCheck className="mt-0.5 size-4 shrink-0 text-foreground/55" />
+                        <span className="text-sm text-foreground/60">
                           {feature}
                         </span>
                       </li>
@@ -220,30 +220,34 @@ export default function PricingContent() {
               aria-label={serviceOffering.name}
             >
               <div className="absolute right-6 top-6">
-                <span className="border border-edge/20 px-2.5 py-1 text-2xs font-bold uppercase tracking-widest text-surface/65">
+                <span className="border border-foreground/20 px-2.5 py-1 text-2xs font-bold uppercase tracking-widest text-foreground/65">
                   We run it
                 </span>
               </div>
 
               <div className="mb-2 flex items-baseline gap-1.5 whitespace-nowrap">
-                <span className="text-sm font-medium text-surface/55">
+                <span className="text-sm font-medium text-foreground/55">
                   From
                 </span>
                 <span className="text-4xl font-semibold tracking-[-0.03em] xl:text-5xl">
                   {formatPrice(serviceOffering.startingMonthlyPrice)}
                 </span>
-                <span className="text-sm font-medium text-surface/55">/mo</span>
+                <span className="text-sm font-medium text-foreground/55">
+                  /mo
+                </span>
               </div>
 
-              <div className="mb-6 text-sm text-surface/60">
+              <div className="mb-6 text-sm text-foreground/60">
                 {serviceOffering.priceNote}
               </div>
 
               <ul className="mb-auto space-y-3">
                 {serviceOffering.includes.map((feature) => (
                   <li key={feature} className="flex items-start gap-3">
-                    <CircleCheck className="mt-0.5 size-4 shrink-0 text-surface/55" />
-                    <span className="text-sm text-surface/60">{feature}</span>
+                    <CircleCheck className="mt-0.5 size-4 shrink-0 text-foreground/55" />
+                    <span className="text-sm text-foreground/60">
+                      {feature}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -268,16 +272,16 @@ export default function PricingContent() {
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl mb-4"
           />
 
-          <div className="grid gap-px bg-edge/5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-px bg-foreground/5 sm:grid-cols-2 lg:grid-cols-3">
             {OUTPUT_COSTS.map((row) => (
               <div
                 key={row.label}
                 className="flex items-baseline justify-between gap-4 bg-background px-5 py-4"
               >
-                <span className="text-sm text-surface/65">{row.label}</span>
-                <span className="text-sm font-semibold text-surface">
+                <span className="text-sm text-foreground/65">{row.label}</span>
+                <span className="text-sm font-semibold text-foreground">
                   {formatCredits(row.credits, row.maxCredits)}
-                  <span className="ml-2 font-normal text-surface/55">
+                  <span className="ml-2 font-normal text-foreground/55">
                     ≈ {formatCreditsDollars(row.credits, row.maxCredits)}
                     {row.suffix ?? ''}
                   </span>
@@ -285,24 +289,24 @@ export default function PricingContent() {
               </div>
             ))}
           </div>
-          <p className="mt-3 text-xs text-surface/55">
+          <p className="mt-3 text-xs text-foreground/55">
             Image prices are for FLUX.3. Other models are priced per model, and
             Studio shows the exact credits before you run.
           </p>
 
-          <p className="mt-8 mb-2 text-sm font-medium text-surface/70">
+          <p className="mt-8 mb-2 text-sm font-medium text-foreground/70">
             Top up from $10.
           </p>
-          <div className="grid gap-px bg-edge/5 sm:grid-cols-3">
+          <div className="grid gap-px bg-foreground/5 sm:grid-cols-3">
             {WEBSITE_CREDIT_PACKS.map((pack) => (
               <div
                 key={pack.label}
                 className="flex items-baseline justify-between gap-4 bg-background px-5 py-4"
               >
-                <span className="text-sm font-semibold text-surface">
+                <span className="text-sm font-semibold text-foreground">
                   ${formatNumberWithCommas(creditPackPrice(pack))}
                 </span>
-                <span className="text-sm text-surface/60">
+                <span className="text-sm text-foreground/60">
                   {formatNumberWithCommas(creditPackTotalCredits(pack))} credits
                 </span>
               </div>

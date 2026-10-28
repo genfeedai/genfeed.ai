@@ -5,7 +5,10 @@ import type { ITag } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { X } from 'lucide-react';
-import { resolveLibraryTagColors } from './library-tag-colors.util';
+import {
+  libraryTagStyle,
+  resolveLibraryTagColors,
+} from './library-tag-colors.util';
 
 export interface LibraryTagChipProps {
   className?: string;
@@ -36,11 +39,7 @@ export default function LibraryTagChip({
         onRemove ? 'pr-1' : null,
         className,
       )}
-      style={
-        colors
-          ? { backgroundColor: colors.backgroundColor, color: colors.textColor }
-          : undefined
-      }
+      style={libraryTagStyle(tag)}
       title={tag.label}
     >
       <span className="truncate">{tag.label}</span>

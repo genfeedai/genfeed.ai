@@ -178,29 +178,26 @@ export default function ClipperResultCard({
 
   return (
     <Card
-      className="group h-full transition-colors hover:bg-background-secondary"
+      className="group h-full transition-colors hover:bg-card"
       bodyClassName="h-full gap-0 p-4"
     >
       {/* Header */}
       <div className="mb-3 flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Badge
-            variant="outline"
-            className={`rounded-full px-2 py-0.5 text-2xs font-medium uppercase tracking-wider ${statusConfig.color}`}
-          >
+          <Badge variant="outline" className={statusConfig.color}>
             {statusConfig.label ?? t('reviewRequired')}
           </Badge>
           {clip.clipType && (
             <Badge
               variant="secondary"
-              className="rounded bg-secondary px-1.5 py-0.5 text-2xs text-muted-foreground"
+              className="bg-secondary text-muted-foreground"
             >
               {clip.clipType}
             </Badge>
           )}
           <Badge
             variant="secondary"
-            className="rounded bg-secondary px-1.5 py-0.5 text-2xs text-muted-foreground"
+            className="bg-secondary text-muted-foreground"
           >
             {(clip.mode ?? mode ?? 'avatar') === 'raw-cut'
               ? 'Raw cut'
@@ -209,7 +206,7 @@ export default function ClipperResultCard({
           {isInLibrary && (
             <Badge
               variant="secondary"
-              className="rounded bg-secondary px-1.5 py-0.5 text-2xs text-muted-foreground"
+              className="bg-secondary text-muted-foreground"
             >
               {t('inLibrary')}
             </Badge>
@@ -264,7 +261,7 @@ export default function ClipperResultCard({
             <Badge
               key={tag}
               variant="secondary"
-              className="rounded bg-secondary/50 px-1.5 py-0.5 text-2xs text-muted-foreground"
+              className="bg-secondary/50 text-muted-foreground"
             >
               #{tag}
             </Badge>

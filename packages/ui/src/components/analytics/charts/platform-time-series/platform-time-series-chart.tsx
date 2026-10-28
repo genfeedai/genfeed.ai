@@ -1,15 +1,16 @@
 'use client';
 
-import {
-  ButtonVariant,
-  formatPlatformLabel,
-  Platform,
-} from '@genfeedai/contracts';
+import { ButtonVariant, Platform } from '@genfeedai/contracts';
 import {
   formatChartDate,
   formatCompactNumberIntl,
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { PlatformTimeSeriesChartProps } from '@genfeedai/props/analytics/charts.props';
+import {
+  ChartLoadingOverlay,
+  chartPlatformColor,
+  chartPlatformLabel,
+} from '@ui/analytics/charts/chart-theme';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { Button } from '@ui/primitives/button';
@@ -35,26 +36,6 @@ const XAxis = dynamic(() => import('recharts').then((m) => m.XAxis), {
 const YAxis = dynamic(() => import('recharts').then((m) => m.YAxis), {
   ssr: false,
 });
-
-const PLATFORM_COLORS: Partial<Record<Platform, string>> = {
-  [Platform.FACEBOOK]: 'var(--platform-facebook)',
-  [Platform.INSTAGRAM]: 'var(--platform-instagram)',
-  [Platform.LINKEDIN]: 'var(--platform-linkedin)',
-  [Platform.MEDIUM]: 'hsl(var(--foreground))',
-  [Platform.PINTEREST]: 'var(--platform-pinterest)',
-  [Platform.REDDIT]: 'var(--platform-reddit)',
-  [Platform.TIKTOK]: 'var(--platform-tiktok)',
-  [Platform.TWITTER]: 'var(--platform-twitter)',
-  [Platform.YOUTUBE]: 'hsl(var(--destructive))',
-};
-
-function chartPlatformColor(platform: Platform): string {
-  return PLATFORM_COLORS[platform] ?? 'hsl(var(--foreground))';
-}
-
-function chartPlatformLabel(platform: Platform): string {
-  return formatPlatformLabel(platform) ?? platform;
-}
 
 interface PlatformSelectionOverride {
   sourcePlatforms: Platform[];
@@ -164,11 +145,7 @@ export function PlatformTimeSeriesChart({
 
       {/* Chart */}
       <div className="relative" style={{ height }}>
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-card/50 z-10">
-            <span className="animate-pulse size-12 rounded-full bg-primary/30" />
-          </div>
-        )}
+        {isLoading && <ChartLoadingOverlay />}
 
         {isEmpty && !isLoading ? (
           <CardEmptyContent

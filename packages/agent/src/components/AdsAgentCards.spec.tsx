@@ -78,7 +78,7 @@ describe('AdsAgentCards', () => {
 
     render(<CampaignLaunchPrepCard action={action} />);
 
-    expect(screen.getByText('Platform: google')).toBeTruthy();
+    expect(screen.getByText('Google')).toBeTruthy();
     expect(screen.getByText('Channel: youtube')).toBeTruthy();
     expect(
       screen.getByText('Review required before any publish action.'),

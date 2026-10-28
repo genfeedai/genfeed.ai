@@ -47,7 +47,7 @@ export default function MenuSharedPrimaryAction({
             prefetch={false}
             onFocus={prefetchPrimaryActionHref}
             onMouseEnter={prefetchPrimaryActionHref}
-            className="flex h-9 w-full items-center gap-3 rounded-md shadow-border bg-background-secondary px-3 py-1.5 text-left text-xs font-semibold transition-colors hover:shadow-border-strong hover:bg-background-tertiary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+            className="flex h-9 w-full items-center gap-3 rounded-md shadow-border bg-card px-3 py-1.5 text-left text-xs font-semibold transition-colors hover:shadow-border-strong hover:bg-tertiary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
             data-tone="accent"
           >
             {config.primaryAction.icon ? (
@@ -79,7 +79,7 @@ export default function MenuSharedPrimaryAction({
               handleLinkClick();
               config.primaryAction?.onClick?.();
             }}
-            className="flex h-9 w-full items-center gap-3 rounded-md shadow-border bg-background-secondary px-3 py-1.5 text-left text-xs font-semibold transition-colors hover:shadow-border-strong hover:bg-background-tertiary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+            className="flex h-9 w-full items-center gap-3 rounded-md shadow-border bg-card px-3 py-1.5 text-left text-xs font-semibold transition-colors hover:shadow-border-strong hover:bg-tertiary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
             data-tone="accent"
           >
             {config.primaryAction.icon ? (

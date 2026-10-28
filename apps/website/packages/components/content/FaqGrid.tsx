@@ -12,15 +12,15 @@ export interface FaqGridProps {
 export default function FaqGrid({ className, items }: FaqGridProps) {
   return (
     <div
-      className={`grid grid-cols-1 gap-px bg-edge/5 md:grid-cols-2 ${className ?? ''}`}
+      className={`grid grid-cols-1 gap-px bg-foreground/5 md:grid-cols-2 ${className ?? ''}`}
     >
       {items.map((item) => (
         <div
           key={item.question}
-          className="group bg-background p-6 sm:p-10 transition-colors hover:bg-fill/[0.02]"
+          className="group bg-background p-6 sm:p-10 transition-colors hover:bg-foreground/[0.02]"
         >
           <h3 className="text-lg font-semibold mb-3">{item.question}</h3>
-          <p className="text-surface/65 text-sm leading-relaxed">
+          <p className="text-foreground/65 text-sm leading-relaxed">
             {item.answer}
           </p>
         </div>

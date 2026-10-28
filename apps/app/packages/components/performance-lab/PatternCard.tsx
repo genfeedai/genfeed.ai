@@ -56,7 +56,7 @@ function ScoreBar({ score }: ScoreBarProps) {
           {clampedScore}
         </span>
       </div>
-      <div className="h-1 w-full bg-background-tertiary">
+      <div className="h-1 w-full bg-tertiary">
         <div
           className={cn('h-full transition-[width] duration-300', colorClass)}
           style={{ width: `${clampedScore}%` }}
@@ -73,7 +73,7 @@ export default function PatternCard({ pattern }: PatternCardProps) {
   const previewExamples = pattern.examples.slice(0, 3);
 
   return (
-    <div className="flex flex-col gap-4 border border-border bg-card p-4 transition-colors duration-200 hover:border-border-strong hover:bg-background-secondary">
+    <div className="flex flex-col gap-4 border border-border bg-card p-4 transition-colors duration-200 hover:border-border-strong hover:bg-card">
       {/* Header row: type badge + source badge + sample size */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
@@ -98,7 +98,7 @@ export default function PatternCard({ pattern }: PatternCardProps) {
       </div>
 
       {/* Formula block */}
-      <div className="bg-background-tertiary border border-border px-3 py-2">
+      <div className="bg-tertiary border border-border px-3 py-2">
         <p className="text-xs font-mono text-foreground/70 leading-relaxed break-words">
           {pattern.formula}
         </p>

@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import {
   AdsChannel,
   type AdsResearchItem,
@@ -11,6 +11,7 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import Badge from '@ui/display/badge/Badge';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
 import { Bookmark, Megaphone } from 'lucide-react';
@@ -21,7 +22,6 @@ import {
   formatMetric,
   getMetricLabel,
   getMetricValue,
-  getPlatformLabel,
 } from './ads-metric.helpers';
 
 type AdGridCardProps = {
@@ -65,7 +65,7 @@ export function AdGridCard({
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3">
-            <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-md border border-border bg-background-tertiary text-muted-foreground">
+            <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-md border border-border bg-tertiary text-muted-foreground">
               <Megaphone className="size-4" />
             </div>
 
@@ -77,7 +77,10 @@ export function AdGridCard({
                 <Badge variant={item.source === 'public' ? 'blue' : 'accent'}>
                   {item.source === 'public' ? 'Public' : 'Connected'}
                 </Badge>
-                <Badge variant="ghost">{getPlatformLabel(item.platform)}</Badge>
+                <PlatformBadge
+                  platform={item.platform}
+                  size={ComponentSize.SM}
+                />
                 {item.channel !== AdsChannel.ALL && (
                   <Badge variant="ghost">{item.channel}</Badge>
                 )}
@@ -92,7 +95,7 @@ export function AdGridCard({
             </div>
           </div>
 
-          <div className="rounded-md bg-background-tertiary px-3 py-2 text-right">
+          <div className="rounded-md bg-tertiary px-3 py-2 text-right">
             <div className="text-2xs uppercase tracking-[0.18em] text-muted-foreground">
               {getMetricLabel(metric)}
             </div>
@@ -128,15 +131,9 @@ export function AdGridCard({
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {item.accountName && (
-            <Badge className="normal-case" variant="secondary">
-              {item.accountName}
-            </Badge>
+            <Badge variant="secondary">{item.accountName}</Badge>
           )}
-          {item.industry && (
-            <Badge className="normal-case" variant="secondary">
-              {item.industry}
-            </Badge>
-          )}
+          {item.industry && <Badge variant="secondary">{item.industry}</Badge>}
         </div>
       </Button>
       <Button
@@ -258,7 +255,7 @@ export function AdsResearchAdTable({
       header: translate('platform'),
       key: 'platform',
       render: (item) => (
-        <Badge variant="ghost">{getPlatformLabel(item.platform)}</Badge>
+        <PlatformBadge platform={item.platform} size={ComponentSize.SM} />
       ),
     },
     {

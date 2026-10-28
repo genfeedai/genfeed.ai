@@ -252,7 +252,7 @@ describe('BrandPerformanceChart', () => {
       );
     });
 
-    it('uses overlay-white color for posts metric', () => {
+    it('uses the theme-aware neutral series color for posts metric', () => {
       render(
         <BrandPerformanceChart
           data={mockData}
@@ -261,7 +261,7 @@ describe('BrandPerformanceChart', () => {
       );
       expect(screen.getByTestId('bar')).toHaveAttribute(
         'data-fill',
-        'var(--overlay-white-20)',
+        'var(--gray-alpha-700)',
       );
     });
   });

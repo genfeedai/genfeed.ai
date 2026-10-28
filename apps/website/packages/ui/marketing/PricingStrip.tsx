@@ -23,7 +23,7 @@ const PILLAR_COLUMNS: {
 
 export default function PricingStrip({ className }: PricingStripProps) {
   return (
-    <div className={cn('mb-12 border border-edge/5', className)}>
+    <div className={cn('mb-12 border border-foreground/5', className)}>
       <div className="grid grid-cols-1 gap-px md:grid-cols-3">
         {PILLAR_COLUMNS.map((column) => {
           const isFeatured = column.tier === FEATURED_TIER;
@@ -38,27 +38,29 @@ export default function PricingStrip({ className }: PricingStripProps) {
                 isFeatured && 'bg-[var(--gen-accent-bg)]',
               )}
             >
-              <div className="mb-2 flex items-center justify-center gap-2 text-2xs font-black uppercase tracking-widest text-surface/50">
+              <div className="mb-2 flex items-center justify-center gap-2 text-2xs font-black uppercase tracking-widest text-foreground/50">
                 {column.subtitle}
                 {isFeatured ? (
-                  <span className="text-2xs font-bold text-surface/65">
+                  <span className="text-2xs font-bold text-foreground/65">
                     ★ Popular
                   </span>
                 ) : null}
               </div>
 
-              <div className="text-2xl font-semibold text-surface">{price}</div>
+              <div className="text-2xl font-semibold text-foreground">
+                {price}
+              </div>
 
-              <div className="mt-1 text-xs text-surface/60">{label}</div>
+              <div className="mt-1 text-xs text-foreground/60">{label}</div>
             </div>
           );
         })}
       </div>
 
-      <div className="border-t border-edge/5 py-3 text-center">
+      <div className="border-t border-foreground/5 py-3 text-center">
         <Link
           href="/pricing"
-          className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-surface/55 transition-colors hover:text-surface/80"
+          className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-foreground/55 transition-colors hover:text-foreground/80"
         >
           View all plans
         </Link>

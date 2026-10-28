@@ -5,6 +5,7 @@ import type {
 } from '@genfeedai/agent/models/clipper-run-card.model';
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { AgentClipperRunIdentity } from '@genfeedai/contracts/interfaces';
+import { Badge, type BadgeProps } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { CircleCheck, ExternalLink, Film, TriangleAlert } from 'lucide-react';
 import type { ReactElement } from 'react';
@@ -42,32 +43,32 @@ function stepStatusClass(status: ClipperRunStep['status']): string {
 
 function cardStatusBadge(status: ClipperRunCardState['status']): {
   label: string;
-  className: string;
+  variant: BadgeProps['variant'];
 } {
   switch (status) {
     case 'running':
       return {
-        className: 'bg-info/10 text-info',
+        variant: 'info',
         label: 'Running',
       };
     case 'paused':
       return {
-        className: 'bg-warning/10 text-warning',
+        variant: 'warning',
         label: 'Paused',
       };
     case 'done':
       return {
-        className: 'bg-success/10 text-success',
+        variant: 'success',
         label: 'Done',
       };
     case 'failed':
       return {
-        className: 'bg-destructive/10 text-destructive',
+        variant: 'destructive',
         label: 'Failed',
       };
     default:
       return {
-        className: 'bg-muted text-muted-foreground',
+        variant: 'secondary',
         label: 'Idle',
       };
   }
@@ -114,11 +115,7 @@ export function ClipperRunCard({
           <Film className="size-4 text-primary" />
           <span className="text-sm font-medium text-foreground">Clip Run</span>
         </div>
-        <span
-          className={`rounded-full px-2 py-0.5 text-2xs font-medium ${badge.className}`}
-        >
-          {badge.label}
-        </span>
+        <Badge variant={badge.variant}>{badge.label}</Badge>
       </div>
 
       <div className="space-y-3 p-3">

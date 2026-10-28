@@ -204,7 +204,7 @@ export default function BrandKitReviewCard(props: BrandKitReviewCardProps) {
         className="space-y-3"
         data-scale-role="product"
       >
-        <div className="flex min-w-0 items-center gap-1 rounded-lg bg-background-tertiary p-1 shadow-border">
+        <div className="flex min-w-0 items-center gap-1 rounded-lg bg-tertiary p-1 shadow-border">
           <Input
             aria-label={translate('websiteUrl')}
             className={INLINE_INPUT_CLASSNAME}
@@ -229,7 +229,7 @@ export default function BrandKitReviewCard(props: BrandKitReviewCardProps) {
 
         <Input
           aria-label={translate('socialUrls')}
-          className="h-8 border-0 bg-background-tertiary text-sm text-foreground shadow-border placeholder:text-muted-foreground/80 focus-visible:border-0"
+          className="h-8 border-0 bg-tertiary text-sm text-foreground shadow-border placeholder:text-muted-foreground/80 focus-visible:border-0"
           placeholder={translate('socialUrlsPlaceholder')}
           value={socialUrls}
           onChange={(event) => setSocialUrls(event.target.value)}
@@ -247,7 +247,7 @@ export default function BrandKitReviewCard(props: BrandKitReviewCardProps) {
         {draft ? (
           <div
             aria-live="polite"
-            className="rounded-md bg-background-secondary px-3 py-2 text-sm shadow-border"
+            className="rounded-md bg-card px-3 py-2 text-sm shadow-border"
             role="status"
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -351,7 +351,7 @@ export default function BrandKitReviewCard(props: BrandKitReviewCardProps) {
             {applyResult ? (
               <div
                 aria-live="polite"
-                className="rounded-md bg-background-secondary px-3 py-2 text-sm shadow-border"
+                className="rounded-md bg-card px-3 py-2 text-sm shadow-border"
                 role="status"
               >
                 {formatAppliedFieldsSummary(applyResult)}

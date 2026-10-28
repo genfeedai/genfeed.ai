@@ -95,7 +95,7 @@ export function WorkflowPromptPicker({ onSelect }: WorkflowPromptPickerProps) {
             ) : (
               visiblePrompts.map((prompt) => (
                 <Button
-                  className="h-auto w-full justify-start rounded-xl bg-background-secondary p-3 text-left shadow-border"
+                  className="h-auto w-full justify-start rounded-xl bg-card p-3 text-left shadow-border"
                   key={prompt.id}
                   onClick={() => handleSelect(prompt.text)}
                   textTransform="none"

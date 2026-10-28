@@ -52,7 +52,7 @@ export default function UploadFileList({
                   {fileStatus && (
                     <Badge
                       variant={getStatusBadgeVariant(fileStatus.status)}
-                      className="text-xs whitespace-nowrap"
+                      className="whitespace-nowrap"
                     >
                       {getStatusBadgeLabel(fileStatus)}
                     </Badge>

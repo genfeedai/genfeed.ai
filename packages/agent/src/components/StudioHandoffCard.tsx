@@ -45,7 +45,7 @@ export function StudioHandoffCard({
         )}
 
         <div className="mb-3">
-          <Badge className="normal-case">{editorType}</Badge>
+          <Badge>{editorType}</Badge>
         </div>
 
         <a

@@ -109,13 +109,13 @@ export default function PrivacyContent() {
         <section className="py-16 md:py-32 gsap-hero">
           <div className="container mx-auto px-6">
             <div className="max-w-4xl mx-auto">
-              <div className="grid gap-px bg-edge/5">
+              <div className="grid gap-px bg-foreground/5">
                 {privacyPolicySections.map((section, index) => (
                   <div
                     key={section.title}
-                    className="bg-background p-6 sm:p-12 group hover:bg-fill/[0.02] transition-colors"
+                    className="bg-background p-6 sm:p-12 group hover:bg-foreground/[0.02] transition-colors"
                   >
-                    <div className="text-surface/50 text-xs font-black uppercase tracking-widest mb-6">
+                    <div className="text-foreground/50 text-xs font-black uppercase tracking-widest mb-6">
                       {String(index + 1).padStart(2, '0')} /{' '}
                       {section.shortLabel}
                     </div>
@@ -128,7 +128,7 @@ export default function PrivacyContent() {
                         {section.content.map((paragraph) => (
                           <p
                             key={`${section.shortLabel}-${paragraph}`}
-                            className="text-surface/60 text-sm leading-relaxed"
+                            className="text-foreground/60 text-sm leading-relaxed"
                           >
                             {paragraph}
                           </p>
@@ -138,8 +138,8 @@ export default function PrivacyContent() {
                       <ul className="space-y-3">
                         {section.listItems.map((item) => (
                           <li key={item} className="flex items-start gap-3">
-                            <Check className="size-4 text-surface/65 mt-0.5 shrink-0" />
-                            <span className="text-surface/60 text-sm">
+                            <Check className="size-4 text-foreground/65 mt-0.5 shrink-0" />
+                            <span className="text-foreground/60 text-sm">
                               {item}
                             </span>
                           </li>
@@ -155,7 +155,7 @@ export default function PrivacyContent() {
                               href={link.href}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-surface/80 text-sm underline underline-offset-4 hover:text-surface transition-colors"
+                              className="text-foreground/80 text-sm underline underline-offset-4 hover:text-foreground transition-colors"
                             >
                               {link.label}
                             </Link>
@@ -171,35 +171,35 @@ export default function PrivacyContent() {
         </section>
 
         {/* Privacy Rights */}
-        <section className="py-16 md:py-32 bg-fill/[0.02] gsap-section">
+        <section className="py-16 md:py-32 bg-foreground/[0.02] gsap-section">
           <div className="container mx-auto px-6">
             <div className="text-center mb-16">
               <h2 className="text-5xl font-semibold mb-6">
                 Your Privacy Rights
               </h2>
-              <p className="text-surface/65 max-w-xl mx-auto">
+              <p className="text-foreground/65 max-w-xl mx-auto">
                 We believe in transparency and your right to control your data.
               </p>
             </div>
 
             <div className="max-w-4xl mx-auto">
-              <div className="grid grid-cols-1 gap-px bg-edge/5 md:grid-cols-3">
+              <div className="grid grid-cols-1 gap-px bg-foreground/5 md:grid-cols-3">
                 {privacyRights.map((right, index) => {
                   const Icon = right.icon;
                   return (
                     <div
                       key={right.title}
-                      className="bg-background p-6 sm:p-10 group hover:bg-fill/[0.02] transition-colors"
+                      className="bg-background p-6 sm:p-10 group hover:bg-foreground/[0.02] transition-colors"
                     >
-                      <div className="text-surface/50 text-xs font-black uppercase tracking-widest mb-6">
+                      <div className="text-foreground/50 text-xs font-black uppercase tracking-widest mb-6">
                         {String(index + 1).padStart(2, '0')} /{' '}
                         {right.shortLabel}
                       </div>
-                      <Icon className="size-8 text-surface/65 mb-4 group-hover:text-surface transition-colors" />
+                      <Icon className="size-8 text-foreground/65 mb-4 group-hover:text-foreground transition-colors" />
                       <h3 className="text-lg font-semibold mb-3">
                         {right.title}
                       </h3>
-                      <p className="text-surface/65 text-sm leading-relaxed">
+                      <p className="text-foreground/65 text-sm leading-relaxed">
                         {right.description}
                       </p>
                     </div>
@@ -214,9 +214,9 @@ export default function PrivacyContent() {
         <section className="py-20 md:py-40 gsap-section">
           <div className="container mx-auto px-6">
             <div className="text-center max-w-3xl mx-auto">
-              <Mail className="size-12 mx-auto text-surface/55 mb-8" />
+              <Mail className="size-12 mx-auto text-foreground/55 mb-8" />
               <h2 className="text-5xl font-semibold mb-10">Questions?</h2>
-              <p className="text-surface/65 text-xl mb-12 font-medium">
+              <p className="text-foreground/65 text-xl mb-12 font-medium">
                 If you have any questions about our privacy practices, please
                 contact our privacy team.
               </p>

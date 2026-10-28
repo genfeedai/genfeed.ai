@@ -64,8 +64,8 @@ describe('publishing account sections', () => {
       'healthHold',
     ]) {
       expect(within(list).getByText(label)).toHaveClass(
-        'rounded-full',
-        'normal-case',
+        'rounded-sm',
+        'uppercase',
       );
     }
     expect(
@@ -106,10 +106,7 @@ describe('publishing account sections', () => {
       'cadenceReconnect',
       'cadenceHold',
     ]) {
-      expect(screen.getByText(label)).toHaveClass(
-        'rounded-full',
-        'normal-case',
-      );
+      expect(screen.getByText(label)).toHaveClass('rounded-sm', 'uppercase');
     }
     expect(screen.getByText('cadenceNeverPublished')).toBeInTheDocument();
     expect(

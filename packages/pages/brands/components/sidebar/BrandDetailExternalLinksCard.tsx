@@ -63,7 +63,7 @@ export default function BrandDetailExternalLinksCard({
     >
       <div className="flex flex-col gap-3">
         {social ? (
-          <div className="rounded-md bg-background-secondary/50 px-3 py-2.5">
+          <div className="rounded-md bg-card/50 px-3 py-2.5">
             <p className={SECTION_LABEL_CLASSNAME}>Accounts</p>
             <p className="mt-1 text-sm text-foreground/90">
               {formatConnected(

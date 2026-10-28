@@ -9,7 +9,7 @@ export default function ProfileSkeleton(): React.ReactElement {
           variant="circular"
           width={96}
           height={96}
-          className="absolute left-1/2 -translate-x-1/2 -bottom-12 ring-4 ring-inv/50"
+          className="absolute left-1/2 -translate-x-1/2 -bottom-12 ring-4 ring-primary/50"
         />
       </div>
 

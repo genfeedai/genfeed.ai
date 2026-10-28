@@ -127,7 +127,7 @@ export default function ReviewItemsTable({
                 onSelectItem(item.id);
               }}
             >
-              <span className="relative block size-10 overflow-hidden rounded-md bg-background-secondary shadow-border">
+              <span className="relative block size-10 overflow-hidden rounded-md bg-card shadow-border">
                 <Image
                   alt=""
                   className="object-cover outline-media"

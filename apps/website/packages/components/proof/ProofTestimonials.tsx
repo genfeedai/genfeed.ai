@@ -60,14 +60,14 @@ export default function ProofTestimonials({
             padding="lg"
             tierLabel={testimonial.metricLabel}
           >
-            <p className="text-lg font-medium leading-8 text-surface">
+            <p className="text-lg font-medium leading-8 text-foreground">
               &ldquo;{testimonial.quote}&rdquo;
             </p>
-            <div className="mt-auto border-t border-edge/5 pt-5">
-              <div className="text-sm font-semibold text-surface">
+            <div className="mt-auto border-t border-foreground/5 pt-5">
+              <div className="text-sm font-semibold text-foreground">
                 {testimonial.attribution}
               </div>
-              <div className="mt-1 text-sm text-surface/55">
+              <div className="mt-1 text-sm text-foreground/55">
                 {testimonial.role}
               </div>
               <div className="mt-4 text-xs font-bold uppercase tracking-widest text-success">

@@ -8,10 +8,10 @@ import type { ViralVideoLeaderboardProps } from '@genfeedai/props/analytics/tren
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
-import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
 import { Flame, Play } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
@@ -158,20 +158,7 @@ export function ViralVideoLeaderboard({
             className: 'min-w-28',
             header: 'Platform',
             key: 'platform',
-            render: (video) => {
-              const config = PLATFORM_CONFIGS[video.platform];
-              const Icon = config?.icon;
-              return (
-                <div className="flex items-center gap-2">
-                  {Icon && (
-                    <Icon className="size-4" style={{ color: config?.color }} />
-                  )}
-                  <span className="font-medium text-sm">
-                    {config?.label || video.platform}
-                  </span>
-                </div>
-              );
-            },
+            render: (video) => <PlatformBadge platform={video.platform} />,
           },
           {
             className: 'min-w-20',
@@ -238,7 +225,7 @@ export function ViralVideoLeaderboard({
               return (
                 <Badge
                   value={Math.round(video.viralScore)}
-                  className={`${badgeClass} text-xs`}
+                  className={badgeClass}
                 />
               );
             },

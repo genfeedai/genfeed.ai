@@ -23,7 +23,7 @@ export default function OnboardingProgress({
         aria-valuemin={0}
         aria-valuemax={Math.max(totalSteps - 1, 1)}
         aria-valuenow={Math.min(currentStep, Math.max(totalSteps - 1, 1))}
-        className="h-1 bg-background-tertiary rounded-full overflow-hidden mb-6"
+        className="h-1 bg-tertiary rounded-full overflow-hidden mb-6"
       />
 
       <div
@@ -50,7 +50,7 @@ export default function OnboardingProgress({
                     ? 'bg-primary text-primary-foreground'
                     : isCurrent
                       ? 'bg-hover text-foreground border border-border-strong'
-                      : 'bg-background-tertiary text-gray-800 border border-border'
+                      : 'bg-tertiary text-gray-800 border border-border'
                 }`}
               >
                 {isCompleted ? <Check className="size-3.5" /> : index + 1}

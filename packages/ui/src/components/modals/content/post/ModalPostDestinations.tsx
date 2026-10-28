@@ -81,7 +81,7 @@ export default function ModalPostDestinations({
                   className={cn(CARD_CLASS, isSelected ? SELECTED : IDLE)}
                 >
                   <span className="relative shrink-0">
-                    <Avatar className="size-10 bg-background-secondary">
+                    <Avatar className="size-10 bg-card">
                       {credential.externalAvatar ? (
                         <AvatarImage
                           src={credential.externalAvatar}
@@ -136,7 +136,7 @@ export default function ModalPostDestinations({
                   onClick={() => onSelectDestination(value)}
                   className={cn(CARD_CLASS, isSelected ? SELECTED : IDLE)}
                 >
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-background-secondary">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-card">
                     <Icon className="size-4" />
                   </span>
                   <span className="flex min-w-0 flex-1 flex-col leading-tight">

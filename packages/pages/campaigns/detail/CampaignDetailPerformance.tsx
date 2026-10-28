@@ -1,10 +1,12 @@
 'use client';
 
+import { ComponentSize } from '@genfeedai/contracts';
 import type { ICampaignMetricAvailability } from '@genfeedai/contracts/interfaces';
 import { useCampaignPerformance } from '@hooks/data/campaigns/use-campaign-performance';
 import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import LoadingState from '@ui/feedback/LoadingState';
 import { useTranslations } from 'next-intl';
@@ -108,8 +110,12 @@ export default function CampaignDetailPerformance({
         <Card label={translate('performanceByPlatform')}>
           <ul className="grid gap-3 text-sm">
             {performance.byPlatform.map((row) => (
-              <li key={row.platform}>
-                {row.platform}: {formatMetric(row.views)}{' '}
+              <li key={row.platform} className="flex items-center gap-2">
+                <PlatformBadge
+                  platform={row.platform}
+                  size={ComponentSize.SM}
+                />
+                {formatMetric(row.views)}{' '}
                 {translate('performanceViews').toLowerCase()}
               </li>
             ))}

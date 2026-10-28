@@ -314,7 +314,7 @@ export default function SummaryContent() {
 
       <div className="space-y-5">
         {readiness.ui.showBilling ? (
-          <div className="summary-card opacity-0 border border-border bg-background-secondary p-5 md:p-6">
+          <div className="summary-card opacity-0 border border-border bg-card p-5 md:p-6">
             <h2 className="text-lg font-semibold text-foreground">Your plan</h2>
             <div className="mt-5 space-y-3 text-sm">
               <div className="flex items-start justify-between gap-4 border-t border-border pt-3 first:border-t-0 first:pt-0">
@@ -349,7 +349,7 @@ export default function SummaryContent() {
           </div>
         ) : null}
 
-        <div className="summary-card opacity-0 border border-border bg-background-secondary p-5 md:p-6">
+        <div className="summary-card opacity-0 border border-border bg-card p-5 md:p-6">
           <h2 className="text-lg font-semibold text-foreground">
             Install summary
           </h2>
@@ -434,7 +434,7 @@ export default function SummaryContent() {
           </div>
         </div>
 
-        <div className="summary-card opacity-0 flex flex-col gap-4 border border-border bg-background-secondary p-5 md:flex-row md:items-center md:justify-between md:p-6">
+        <div className="summary-card opacity-0 flex flex-col gap-4 border border-border bg-card p-5 md:flex-row md:items-center md:justify-between md:p-6">
           <div className="max-w-2xl text-sm leading-6 text-muted-foreground">
             Want Genfeed Cloud to manage provider keys, credits, and infra for
             you? Start with the managed path instead and carry this brand setup

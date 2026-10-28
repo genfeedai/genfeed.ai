@@ -186,7 +186,7 @@ const PostsGrid = memo(
             const title = getPostTitle(post);
             const heading = (
               <>
-                <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-md border border-border bg-background-secondary text-muted-foreground">
+                <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-md border border-border bg-card text-muted-foreground">
                   <PlatformIcon className="size-4" />
                 </div>
                 <div className="min-w-0">
@@ -279,7 +279,7 @@ const PostsGrid = memo(
                               size: ButtonSize.ICON,
                               variant: ButtonVariant.GHOST,
                             }),
-                            'h-8 w-8 rounded-full border border-border bg-background-secondary text-muted-foreground hover:bg-hover hover:text-foreground',
+                            'h-8 w-8 rounded-full border border-border bg-card text-muted-foreground hover:bg-hover hover:text-foreground',
                           )}
                           aria-label="More post actions"
                           onClick={(event) => event.stopPropagation()}
@@ -403,7 +403,7 @@ const PostsGrid = memo(
                   </Badge>
 
                   {post.scheduledDate && (
-                    <Badge className="normal-case" variant="secondary">
+                    <Badge variant="secondary">
                       {formatDateInTimezone(
                         post.scheduledDate,
                         browserTimezone,

@@ -13,8 +13,8 @@ import type {
   PatternLabFilters,
   PatternLabPageProps,
 } from '@props/analytics/performance-lab.props';
-import AnalyticsFilterMenu from '@ui/analytics/analytics-filter-menu/AnalyticsFilterMenu';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import Alert from '@ui/feedback/alert/Alert';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Skeleton } from '@ui/primitives/skeleton';
@@ -169,7 +169,7 @@ export default function PatternLabPage({ className }: PatternLabPageProps) {
     ];
 
     return (
-      <AnalyticsFilterMenu
+      <FilterMenu
         facets={facets}
         onClear={() => {
           handlePlatformChange('');

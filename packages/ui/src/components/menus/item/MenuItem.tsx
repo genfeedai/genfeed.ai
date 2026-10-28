@@ -71,7 +71,7 @@ export default function MenuItem({
               : 'text-muted-foreground group-hover:text-foreground/78',
           ]
         : [
-            'size-8 rounded border border-border bg-background-secondary text-foreground/78',
+            'size-8 rounded border border-border bg-card text-foreground/78',
             'group-hover:border-foreground/[0.14] group-hover:bg-foreground/[0.07] group-hover:text-foreground',
             isActive &&
               'border-foreground/[0.14] bg-foreground text-background',
@@ -137,7 +137,7 @@ export default function MenuItem({
           />
         ) : shouldRenderBadge ? (
           <Badge
-            className="ml-auto min-w-5 justify-center px-1.5"
+            className="ml-auto min-w-5 justify-center"
             size={ComponentSize.SM}
             variant="error"
           >
@@ -189,7 +189,7 @@ export default function MenuItem({
         />
       ) : shouldRenderBadge && isIconVariant && !isHorizontalLayout ? (
         <Badge
-          className="absolute right-1 top-1 min-w-5 justify-center px-1.5"
+          className="absolute right-1 top-1 min-w-5 justify-center"
           size={ComponentSize.SM}
           variant="error"
         >

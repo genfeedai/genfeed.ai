@@ -161,25 +161,19 @@ export default function HighlightReviewCard({
 
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {/* Virality score */}
-            <Badge
-              variant="outline"
-              className={`rounded-full px-2 py-0.5 text-2xs font-medium ${viralityColor}`}
-            >
+            <Badge variant="outline" className={viralityColor}>
               {highlight.virality_score}
             </Badge>
 
             {/* Clip type */}
-            <Badge
-              variant="outline"
-              className={`rounded-full px-2 py-0.5 text-2xs font-medium capitalize ${CLIP_TYPE_BADGE_CLASSES}`}
-            >
+            <Badge variant="outline" className={CLIP_TYPE_BADGE_CLASSES}>
               {highlight.clip_type}
             </Badge>
 
             {/* Duration */}
             <Badge
               variant="outline"
-              className="rounded-full border-transparent bg-secondary px-2 py-0.5 text-2xs font-medium text-muted-foreground"
+              className="border-transparent bg-secondary text-muted-foreground"
             >
               {duration}
             </Badge>
@@ -276,7 +270,7 @@ export default function HighlightReviewCard({
             <Badge
               key={tag}
               variant="secondary"
-              className="rounded bg-secondary px-1.5 py-0.5 text-2xs text-muted-foreground"
+              className="bg-secondary text-muted-foreground"
             >
               #{tag}
             </Badge>

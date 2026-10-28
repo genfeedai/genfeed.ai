@@ -28,7 +28,7 @@ export default function ReviewRewriteProgress({
   return (
     <Card
       bodyClassName="flex flex-col gap-2 !p-3"
-      className="bg-background-secondary"
+      className="bg-card"
       variant={CardVariant.DEFAULT}
     >
       <div className="flex flex-row flex-wrap items-center justify-between gap-2">

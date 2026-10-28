@@ -203,18 +203,18 @@ describe('VideoCompletionFunnel', () => {
   });
 
   describe('Height Configuration', () => {
-    it('uses default height of 350', () => {
+    it('reserves a default minimum height of 350', () => {
       const { container } = render(<VideoCompletionFunnel data={mockData} />);
       const chartContainer = container.querySelector('[style*="height"]');
-      expect(chartContainer).toHaveStyle({ height: '350px' });
+      expect(chartContainer).toHaveStyle({ minHeight: '350px' });
     });
 
-    it('accepts custom height', () => {
+    it('accepts a custom minimum height', () => {
       const { container } = render(
         <VideoCompletionFunnel data={mockData} height={500} />,
       );
       const chartContainer = container.querySelector('[style*="height"]');
-      expect(chartContainer).toHaveStyle({ height: '500px' });
+      expect(chartContainer).toHaveStyle({ minHeight: '500px' });
     });
   });
 
@@ -316,5 +316,20 @@ describe('VideoCompletionFunnel', () => {
       render(<VideoCompletionFunnel data={smallData} />);
       expect(screen.getByText('10')).toBeInTheDocument();
     });
+  });
+
+  it('reports no drop-off instead of NaN when a stage has no viewers', () => {
+    render(
+      <VideoCompletionFunnel
+        data={{
+          completed100: 0,
+          completed25: 0,
+          completed50: 0,
+          completed75: 0,
+          started: 10,
+        }}
+      />,
+    );
+    expect(screen.queryByText(/NaN/)).not.toBeInTheDocument();
   });
 });

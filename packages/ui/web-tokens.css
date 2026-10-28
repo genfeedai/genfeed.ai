@@ -66,22 +66,17 @@
     --accent: 0 0% 93%;
     --accent-foreground: 0 0% 9%;
     --background: 0 0% 98%;
-    --background-secondary: 0 0% 100%;
-    --background-tertiary: 0 0% 93%;
+    --tertiary: 0 0% 93%;
     --border: 0 0% 90%;
     --border-strong: 0 0% 82%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 9%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --edge: 23 23 23;
-    --fill: 23 23 23;
     --foreground: 0 0% 9%;
     --info: 214 100% 44%;
     --info-foreground: 0 0% 100%;
     --input: 0 0% 85%;
-    --inv: 23 23 23;
-    --inv-fg: 250 250 250;
     --muted: 0 0% 96%;
     --muted-foreground: 0 0% 32%;
     --popover: 0 0% 100%;
@@ -93,7 +88,6 @@
     --secondary-foreground: 0 0% 9%;
     --success: 163 94% 24%;
     --success-foreground: 0 0% 100%;
-    --surface: 23 23 23;
     --warning: 26 90% 37%;
     --warning-foreground: 0 0% 100%;
     --gray-100: 0 0% 96%;
@@ -116,8 +110,6 @@
     --gray-alpha-800: rgba(0, 0, 0, 0.54);
     --gray-alpha-900: rgba(0, 0, 0, 0.67);
     --gray-alpha-1000: rgba(0, 0, 0, 0.91);
-    --background-100: 0 0% 98%;
-    --background-200: 0 0% 100%;
     --shadow-border: 0 0 0 1px rgba(0, 0, 0, 0.09);
     --shadow-border-inset: inset 0 0 0 1px rgba(0, 0, 0, 0.09);
     --shadow-lg: 0 2px 2px rgba(0, 0, 0, 0.04), 0 8px 16px -4px rgba(0, 0, 0, 0.06);
@@ -125,7 +117,6 @@
     --shadow-menu: 0 0 0 1px rgba(0, 0, 0, 0.09), 0 1px 1px rgba(0, 0, 0, 0.02), 0 4px 8px -4px rgba(0, 0, 0, 0.04), 0 16px 24px -8px rgba(0, 0, 0, 0.06);
     --shadow-modal: 0 0 0 1px rgba(0, 0, 0, 0.09), 0 1px 1px rgba(0, 0, 0, 0.02), 0 8px 16px -4px rgba(0, 0, 0, 0.04), 0 24px 32px -8px rgba(0, 0, 0, 0.06);
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-    --shadow-sidebar-footer: 0 -8px 16px -8px rgba(0, 0, 0, 0.08);
     --shadow-tooltip: 0 0 0 1px rgba(0, 0, 0, 0.09), 0 1px 1px rgba(0, 0, 0, 0.02), 0 4px 8px rgba(0, 0, 0, 0.04);
   }
 
@@ -134,22 +125,17 @@
       --accent: 0 0% 12%;
       --accent-foreground: 0 0% 93%;
       --background: 0 0% 0%;
-      --background-secondary: 0 0% 4%;
-      --background-tertiary: 0 0% 9%;
+      --tertiary: 0 0% 9%;
       --border: 0 0% 15%;
       --border-strong: 0 0% 24%;
       --card: 0 0% 4%;
       --card-foreground: 0 0% 93%;
       --destructive: 358 100% 69%;
       --destructive-foreground: 0 0% 4%;
-      --edge: 237 237 237;
-      --fill: 237 237 237;
       --foreground: 0 0% 93%;
       --info: 210 100% 66%;
       --info-foreground: 0 0% 4%;
       --input: 0 0% 20%;
-      --inv: 237 237 237;
-      --inv-fg: 10 10 10;
       --muted: 0 0% 4%;
       --muted-foreground: 0 0% 63%;
       --popover: 0 0% 9%;
@@ -161,7 +147,6 @@
       --secondary-foreground: 0 0% 93%;
       --success: 160 84% 39%;
       --success-foreground: 0 0% 4%;
-      --surface: 237 237 237;
       --warning: 38 92% 50%;
       --warning-foreground: 0 0% 4%;
       --gray-100: 0 0% 4%;
@@ -184,8 +169,6 @@
       --gray-alpha-800: rgba(255, 255, 255, 0.56);
       --gray-alpha-900: rgba(255, 255, 255, 0.62);
       --gray-alpha-1000: rgba(255, 255, 255, 0.93);
-      --background-100: 0 0% 0%;
-      --background-200: 0 0% 4%;
       --shadow-border: 0 0 0 1px rgba(255, 255, 255, 0.13);
       --shadow-border-inset: inset 0 0 0 1px rgba(255, 255, 255, 0.09);
       --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.4), 0 16px 32px -8px rgba(0, 0, 0, 0.44);
@@ -193,8 +176,6 @@
       --shadow-menu: 0 0 0 1px rgba(255, 255, 255, 0.13), 0 1px 1px rgba(0, 0, 0, 0.28), 0 4px 8px -4px rgba(0, 0, 0, 0.36), 0 16px 24px -8px rgba(0, 0, 0, 0.44);
       --shadow-modal: 0 0 0 1px rgba(255, 255, 255, 0.13), 0 1px 1px rgba(0, 0, 0, 0.28), 0 8px 16px -4px rgba(0, 0, 0, 0.36), 0 24px 32px -8px rgba(0, 0, 0, 0.52);
       --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.36);
-    --shadow-sidebar-footer: 0 -8px 16px -8px rgba(0, 0, 0, 0.6);
-      --shadow-sidebar-footer: 0 -8px 16px -8px rgba(0, 0, 0, 0.6);
       --shadow-tooltip: 0 0 0 1px rgba(255, 255, 255, 0.13), 0 1px 1px rgba(0, 0, 0, 0.28), 0 4px 8px rgba(0, 0, 0, 0.36);
     }
   }
@@ -203,22 +184,17 @@
     --accent: 0 0% 12%;
     --accent-foreground: 0 0% 93%;
     --background: 0 0% 0%;
-    --background-secondary: 0 0% 4%;
-    --background-tertiary: 0 0% 9%;
+    --tertiary: 0 0% 9%;
     --border: 0 0% 15%;
     --border-strong: 0 0% 24%;
     --card: 0 0% 4%;
     --card-foreground: 0 0% 93%;
     --destructive: 358 100% 69%;
     --destructive-foreground: 0 0% 4%;
-    --edge: 237 237 237;
-    --fill: 237 237 237;
     --foreground: 0 0% 93%;
     --info: 210 100% 66%;
     --info-foreground: 0 0% 4%;
     --input: 0 0% 20%;
-    --inv: 237 237 237;
-    --inv-fg: 10 10 10;
     --muted: 0 0% 4%;
     --muted-foreground: 0 0% 63%;
     --popover: 0 0% 9%;
@@ -230,7 +206,6 @@
     --secondary-foreground: 0 0% 93%;
     --success: 160 84% 39%;
     --success-foreground: 0 0% 4%;
-    --surface: 237 237 237;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 4%;
     --gray-100: 0 0% 4%;
@@ -253,8 +228,6 @@
     --gray-alpha-800: rgba(255, 255, 255, 0.56);
     --gray-alpha-900: rgba(255, 255, 255, 0.62);
     --gray-alpha-1000: rgba(255, 255, 255, 0.93);
-    --background-100: 0 0% 0%;
-    --background-200: 0 0% 4%;
     --shadow-border: 0 0 0 1px rgba(255, 255, 255, 0.13);
     --shadow-border-inset: inset 0 0 0 1px rgba(255, 255, 255, 0.09);
     --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.4), 0 16px 32px -8px rgba(0, 0, 0, 0.44);
@@ -262,7 +235,6 @@
     --shadow-menu: 0 0 0 1px rgba(255, 255, 255, 0.13), 0 1px 1px rgba(0, 0, 0, 0.28), 0 4px 8px -4px rgba(0, 0, 0, 0.36), 0 16px 24px -8px rgba(0, 0, 0, 0.44);
     --shadow-modal: 0 0 0 1px rgba(255, 255, 255, 0.13), 0 1px 1px rgba(0, 0, 0, 0.28), 0 8px 16px -4px rgba(0, 0, 0, 0.36), 0 24px 32px -8px rgba(0, 0, 0, 0.52);
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.36);
-    --shadow-sidebar-footer: 0 -8px 16px -8px rgba(0, 0, 0, 0.6);
     --shadow-tooltip: 0 0 0 1px rgba(255, 255, 255, 0.13), 0 1px 1px rgba(0, 0, 0, 0.28), 0 4px 8px rgba(0, 0, 0, 0.36);
   }
 }

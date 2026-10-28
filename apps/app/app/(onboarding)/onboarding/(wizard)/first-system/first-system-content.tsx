@@ -177,7 +177,7 @@ export default function FirstSystemContent() {
       />
 
       {readiness && !readiness.isReady && !hasPlan ? (
-        <div className="max-w-2xl space-y-3 border border-border bg-background-tertiary p-6">
+        <div className="max-w-2xl space-y-3 border border-border bg-tertiary p-6">
           <p className="text-sm font-medium text-foreground">
             {translate('firstSystem.missingTitle')}
           </p>

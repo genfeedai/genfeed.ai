@@ -8,6 +8,10 @@ import { useState } from 'react';
 import { Button } from './button';
 import { Calendar } from './calendar';
 import Field from './field';
+import {
+  fieldControlClassName,
+  fieldControlTriggerClassName,
+} from './field-control';
 import { Popover, PopoverContent, PopoverTrigger } from './popover';
 
 export interface DatepickerProps {
@@ -98,16 +102,18 @@ export default function Datepicker({
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
-            variant={ButtonVariant.SECONDARY}
+            variant={ButtonVariant.UNSTYLED}
             disabled={isDisabled}
             ariaLabel={ariaLabel}
             className={cn(
-              'w-full justify-start text-left font-normal',
+              fieldControlClassName,
+              fieldControlTriggerClassName,
+              'cursor-pointer justify-start text-left font-normal',
               !selectedDate && 'text-muted-foreground',
               className,
             )}
           >
-            <CalendarIcon className="mr-2 size-4" />
+            <CalendarIcon className="mr-2 size-4 shrink-0 text-muted-foreground" />
             {selectedDate ? format(selectedDate, dateFormat) : placeholderText}
           </Button>
         </PopoverTrigger>

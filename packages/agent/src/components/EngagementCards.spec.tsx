@@ -148,7 +148,7 @@ describe('LivestreamBotCard', () => {
 
     expect(screen.getByText('Livestream assistant')).toBeInTheDocument();
     expect(screen.getByText('StreamBot')).toBeInTheDocument();
-    expect(screen.getByText('youtube')).toBeInTheDocument();
+    expect(screen.getByText('YouTube')).toBeInTheDocument();
     expect(screen.getByText('connected')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /open session/i })).toHaveAttribute(
       'href',

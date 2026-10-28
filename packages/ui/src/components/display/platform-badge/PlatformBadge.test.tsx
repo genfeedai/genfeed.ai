@@ -10,12 +10,28 @@ describe('PlatformBadge', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('renders a dash for an unknown or missing platform', () => {
-    const { rerender } = render(<PlatformBadge platform="not-a-platform" />);
+  it('renders a dash for a missing platform', () => {
+    const { rerender } = render(<PlatformBadge />);
     expect(screen.getByText('-')).toBeInTheDocument();
 
-    rerender(<PlatformBadge />);
+    rerender(<PlatformBadge platform="  " />);
     expect(screen.getByText('-')).toBeInTheDocument();
+  });
+
+  it('keeps the name of a platform without a logo', () => {
+    const { container } = render(<PlatformBadge platform="bluesky" />);
+    expect(screen.getByText('Bluesky')).toBeInTheDocument();
+    expect(container.querySelector('svg')).toBeInTheDocument();
+  });
+
+  it('resolves OAuth paths and the platforms that had no badge', () => {
+    const { rerender } = render(<PlatformBadge platform="google-ads" />);
+    expect(screen.getByText('Google Ads')).toBeInTheDocument();
+
+    rerender(<PlatformBadge platform="discord" />);
+    expect(screen.getByText('Discord').parentElement).toHaveClass(
+      'bg-platform-discord/10',
+    );
   });
 
   it('maps twitter and x to the same X label', () => {

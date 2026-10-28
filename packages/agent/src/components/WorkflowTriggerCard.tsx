@@ -4,6 +4,7 @@ import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { Badge, type BadgeProps } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 import { CircleCheck, Zap } from 'lucide-react';
@@ -18,11 +19,11 @@ interface WorkflowTriggerCardProps {
 
 type CardStatus = 'idle' | 'triggering' | 'done' | 'error';
 
-const STATUS_BADGE: Record<string, string> = {
-  active: 'bg-success/10 text-success ',
-  draft: 'bg-muted text-muted-foreground',
-  inactive: 'bg-warning/10 text-warning ',
-  paused: 'bg-warning/10 text-warning ',
+const STATUS_BADGE: Record<string, BadgeProps['variant']> = {
+  active: 'success',
+  draft: 'secondary',
+  inactive: 'warning',
+  paused: 'warning',
 };
 
 export function WorkflowTriggerCard({
@@ -132,11 +133,11 @@ export function WorkflowTriggerCard({
                   {wf.name}
                 </span>
                 {wf.status && (
-                  <span
-                    className={`rounded-full px-1.5 py-0.5 text-2xs font-medium ${STATUS_BADGE[wf.status] ?? STATUS_BADGE.draft}`}
+                  <Badge
+                    variant={STATUS_BADGE[wf.status] ?? STATUS_BADGE.draft}
                   >
                     {wf.status}
-                  </span>
+                  </Badge>
                 )}
               </div>
               {wf.description && (

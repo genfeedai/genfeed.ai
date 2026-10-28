@@ -18,9 +18,9 @@ function staticSurfaceThemeVariables(theme: StaticSurfaceTheme): string {
   return `
   --gf-bg-primary: ${colors.background.hex};
   --gf-bg-secondary: ${colors.card.hex};
-  --gf-bg-tertiary: ${colors.backgroundSecondary.hex};
+  --gf-bg-tertiary: ${colors.card.hex};
   --gf-bg-elevated: ${colors.popover.hex};
-  --gf-bg-hover: ${colors.backgroundTertiary.hex};
+  --gf-bg-hover: ${colors.tertiary.hex};
   --gf-border: ${colors.border.hex};
   --gf-border-strong: ${alpha['500']};
   --gf-divider-subtle: ${alpha['200']};

@@ -242,7 +242,7 @@ export default function TopbarPublic({
         that one *is* a state change, so it keeps its transition.
       */}
       <header
-        className="fixed inset-x-0 top-0 z-50 w-full border-b border-[rgb(var(--edge)/calc(var(--topbar-surface,0)*0.12))] bg-[hsl(var(--background)/calc(var(--topbar-surface,0)*0.92))]"
+        className="fixed inset-x-0 top-0 z-50 w-full border-b border-[hsl(var(--foreground)/calc(var(--topbar-surface,0)*0.12))] bg-[hsl(var(--background)/calc(var(--topbar-surface,0)*0.92))]"
         ref={headerRef}
       >
         <div className="container mx-auto flex items-center justify-between h-20 px-6">

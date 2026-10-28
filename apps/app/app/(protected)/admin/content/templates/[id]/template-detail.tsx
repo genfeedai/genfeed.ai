@@ -106,17 +106,15 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
 
               <div className="flex flex-wrap gap-2">
                 {template.category && (
-                  <Badge variant="outline" className="capitalize">
+                  <Badge variant="outline">
                     {template.category.replace(/-/g, ' ')}
                   </Badge>
                 )}
                 {template.type && (
-                  <Badge variant="outline" className="capitalize">
-                    {template.type}
-                  </Badge>
+                  <Badge variant="outline">{template.type}</Badge>
                 )}
                 {(template.industry ?? []).map((ind) => (
-                  <Badge key={ind} variant="outline" className="capitalize">
+                  <Badge key={ind} variant="outline">
                     {ind.replace(/-/g, ' ')}
                   </Badge>
                 ))}

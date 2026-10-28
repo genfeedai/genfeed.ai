@@ -1,15 +1,16 @@
 'use client';
 
+import { ComponentSize } from '@genfeedai/contracts';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import type { TrendRowSummaryProps } from '@props/trends/trend-row-summary.props';
 import Badge from '@ui/display/badge/Badge';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import { useTranslations } from 'next-intl';
 
 /** Right-sidebar body for a trend row in the trend tables. */
 export default function TrendRowSummary({
   trend,
-  platformLabel,
   openHref,
   openLabel,
 }: TrendRowSummaryProps) {
@@ -24,7 +25,9 @@ export default function TrendRowSummary({
 
   return (
     <TableRowSummary
-      badges={<Badge variant="secondary">{platformLabel}</Badge>}
+      badges={
+        <PlatformBadge platform={trend.platform} size={ComponentSize.SM} />
+      }
       facts={[
         {
           id: 'mentions',

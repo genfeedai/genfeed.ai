@@ -2,6 +2,11 @@
 
 import { formatFullNumber } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { PlatformBreakdownChartProps } from '@genfeedai/props/analytics/analytics.props';
+import {
+  ChartLoadingOverlay,
+  chartPlatformColor,
+  chartPlatformLabel,
+} from '@ui/analytics/charts/chart-theme';
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
@@ -22,44 +27,10 @@ const Tooltip = dynamic(() => import('recharts').then((m) => m.Tooltip), {
   ssr: false,
 });
 
-const PLATFORM_COLORS: Record<string, string> = {
-  facebook: 'var(--platform-facebook)',
-  instagram: 'var(--platform-instagram)',
-  linkedin: 'var(--platform-linkedin)',
-  medium: 'hsl(var(--foreground))',
-  pinterest: 'var(--platform-pinterest)',
-  reddit: 'var(--platform-reddit)',
-  tiktok: 'var(--platform-tiktok)',
-  twitter: 'var(--platform-twitter)',
-  youtube: 'hsl(var(--destructive))',
-};
-
-const PLATFORM_LABELS: Record<string, string> = {
-  facebook: 'Facebook',
-  instagram: 'Instagram',
-  linkedin: 'LinkedIn',
-  medium: 'Medium',
-  pinterest: 'Pinterest',
-  reddit: 'Reddit',
-  tiktok: 'TikTok',
-  twitter: 'Twitter',
-  youtube: 'YouTube',
-};
-
 type PlatformBreakdownLabelEntry = {
   payload?: { total?: number };
   value: number;
 };
-
-function getColor(platform: string): string {
-  return (
-    PLATFORM_COLORS[platform.toLowerCase()] || 'hsl(var(--muted-foreground))'
-  );
-}
-
-function getLabel(platform: string): string {
-  return PLATFORM_LABELS[platform.toLowerCase()] || platform;
-}
 
 function renderLabel(entry: PieLabelRenderProps): string {
   const { payload, value } = entry as PlatformBreakdownLabelEntry;
@@ -88,11 +59,7 @@ export function PlatformBreakdownChart({
     <WorkspaceSurface density="compact" framed={false} title={title}>
       <Card className={className} bodyClassName="gap-3 p-4">
         <div className="relative" style={{ height }}>
-          {isLoading && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/50">
-              <span className="size-12 animate-pulse rounded-full bg-primary/30" />
-            </div>
-          )}
+          {isLoading && <ChartLoadingOverlay />}
 
           {isEmpty && !isLoading ? (
             <CardEmptyContent
@@ -107,8 +74,8 @@ export function PlatformBreakdownChart({
                 dataWithTotal.map((item) => [
                   item.platform,
                   {
-                    color: getColor(item.platform),
-                    label: getLabel(item.platform),
+                    color: chartPlatformColor(item.platform),
+                    label: chartPlatformLabel(item.platform),
                   },
                 ]),
               )}
@@ -130,7 +97,7 @@ export function PlatformBreakdownChart({
                   {dataWithTotal.map((entry) => (
                     <Cell
                       key={entry.platform}
-                      fill={getColor(entry.platform)}
+                      fill={chartPlatformColor(entry.platform)}
                     />
                   ))}
                 </Pie>
@@ -139,7 +106,9 @@ export function PlatformBreakdownChart({
                   content={
                     <ChartTooltipContent
                       labelFormatter={(_label, payload) =>
-                        getLabel(String(payload?.[0]?.payload?.platform ?? ''))
+                        chartPlatformLabel(
+                          String(payload?.[0]?.payload?.platform ?? ''),
+                        )
                       }
                       valueFormatter={(value) =>
                         formatFullNumber(

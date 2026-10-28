@@ -586,7 +586,8 @@ describe('SocialMessagesPage', () => {
     expect(screen.getByText('workflow-run-1')).toBeInTheDocument();
     expect(screen.getByText('user-1')).toBeInTheDocument();
     expect(screen.getByText('Draft')).toBeInTheDocument();
-    expect(screen.getByText('Comment · youtube')).toBeInTheDocument();
+    expect(screen.getAllByText('Comment').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('YouTube').length).toBeGreaterThan(0);
     expect(screen.getByText('Reply composer')).toBeInTheDocument();
     const conversationButton = screen.getByRole('button', {
       name: 'Open social conversation with Taylor',

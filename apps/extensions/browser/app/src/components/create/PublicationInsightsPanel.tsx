@@ -1,9 +1,10 @@
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createBrandAppRoute,
 } from '@genfeedai/contracts/constants';
 import type { PublicationInsightDetailsProps } from '@genfeedai/props/extension/publication-insights.props';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
 import {
   Select,
@@ -56,8 +57,8 @@ function PublicationInsightDetails({
   return (
     <div className="min-w-0 space-y-3 break-words text-xs">
       <p className="whitespace-pre-wrap">{insight.description}</p>
-      <p>
-        {insight.platform} ·{' '}
+      <p className="flex flex-wrap items-center gap-1">
+        <PlatformBadge platform={insight.platform} size={ComponentSize.SM} />{' '}
         {insight.source === 'extension'
           ? 'Extension'
           : insight.source?.trim() || 'Source unavailable'}

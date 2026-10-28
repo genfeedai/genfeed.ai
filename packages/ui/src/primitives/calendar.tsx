@@ -3,9 +3,27 @@
 import { cn } from '@genfeedai/helpers';
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { ComponentProps } from 'react';
-import { DayPicker } from 'react-day-picker';
+import { type ChevronProps, DayPicker } from 'react-day-picker';
 
 export type CalendarProps = ComponentProps<typeof DayPicker>;
+
+function CalendarChevron({ className, orientation, size }: ChevronProps) {
+  const iconClass = cn('size-4', className);
+  const iconSize = typeof size === 'number' ? size : 16;
+  if (orientation === 'left') {
+    return <ChevronLeft className={iconClass} size={iconSize} />;
+  }
+  if (orientation === 'down') {
+    return <ChevronDown className={iconClass} size={iconSize} />;
+  }
+  if (orientation === 'up') {
+    // Match stroke weight with Down rather than a different icon.
+    return (
+      <ChevronDown className={cn(iconClass, 'rotate-180')} size={iconSize} />
+    );
+  }
+  return <ChevronRight className={iconClass} size={iconSize} />;
+}
 
 /**
  * Shared calendar chrome for Datepicker / DateRangePicker.
@@ -29,13 +47,13 @@ function Calendar({
       className={cn('p-3 text-foreground', className)}
       classNames={{
         button_next: cn(
-          'size-7 bg-transparent p-0 text-muted-foreground hover:text-foreground',
+          'size-7 rounded-md bg-transparent p-0 text-muted-foreground hover:text-foreground',
           'inline-flex items-center justify-center',
           'border border-border hover:border-border-strong',
           'hover:bg-accent transition-colors',
         ),
         button_previous: cn(
-          'size-7 bg-transparent p-0 text-muted-foreground hover:text-foreground',
+          'size-7 rounded-md bg-transparent p-0 text-muted-foreground hover:text-foreground',
           'inline-flex items-center justify-center',
           'border border-border hover:border-border-strong',
           'hover:bg-accent transition-colors',
@@ -47,12 +65,12 @@ function Calendar({
         ),
         chevron: 'size-4 shrink-0 text-muted-foreground',
         day: cn(
-          'relative p-0 text-center text-sm focus-within:relative focus-within:z-20',
+          'relative rounded-md p-0 text-center text-sm focus-within:relative focus-within:z-20',
           'size-9',
           '[&:has([aria-selected])]:bg-muted',
         ),
         day_button: cn(
-          'size-9 p-0 font-normal',
+          'size-9 rounded-md p-0 font-normal',
           'inline-flex items-center justify-center',
           'hover:bg-accent hover:text-accent-foreground',
           'focus:outline-none focus:ring-2 focus:ring-ring',
@@ -72,18 +90,19 @@ function Calendar({
         month_caption:
           'relative flex h-10 w-full items-center justify-center pr-16 pt-1',
         month_grid: 'w-full border-collapse',
-        months: 'flex flex-col sm:flex-row gap-4',
+        months: 'relative flex flex-col sm:flex-row gap-4',
         // Higher than `dropdown`'s z-[2]: react-day-picker renders the
         // month/year caption after nav in the DOM. `months` is a flex
         // container, so its flex-item children (nav and each `month`)
         // paint in DOM order when z-index is auto on both -- without an
         // explicit z-index here, a later `month` div can visually and
         // hit-test above nav, swallowing clicks meant for these buttons.
-        nav: 'absolute right-1 top-0 z-[3] flex h-10 items-center gap-1',
+        nav: 'absolute right-0 top-0 z-[3] flex h-10 items-center gap-1',
         outside:
           'text-muted-foreground/60 aria-selected:bg-muted aria-selected:text-muted-foreground',
         range_end: '',
-        range_middle: 'aria-selected:bg-muted aria-selected:text-foreground',
+        range_middle:
+          'rounded-none aria-selected:bg-muted aria-selected:text-foreground',
         range_start: '',
         selected:
           'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground',
@@ -95,26 +114,7 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        Chevron: ({ className: chevronClassName, orientation, size }) => {
-          const iconClass = cn('size-4', chevronClassName);
-          const iconSize = typeof size === 'number' ? size : 16;
-          if (orientation === 'left') {
-            return <ChevronLeft className={iconClass} size={iconSize} />;
-          }
-          if (orientation === 'down') {
-            return <ChevronDown className={iconClass} size={iconSize} />;
-          }
-          if (orientation === 'up') {
-            // Match stroke weight with Down rather than a different icon.
-            return (
-              <ChevronDown
-                className={cn(iconClass, 'rotate-180')}
-                size={iconSize}
-              />
-            );
-          }
-          return <ChevronRight className={iconClass} size={iconSize} />;
-        },
+        Chevron: CalendarChevron,
         ...components,
       }}
       {...props}

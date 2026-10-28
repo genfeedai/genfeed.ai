@@ -49,7 +49,7 @@ function ConnectedAccountChip({
   const label = getConnectionLabel(connection);
 
   return (
-    <div className="flex min-w-0 items-center gap-2.5 rounded-md bg-background-secondary px-2.5 py-1.5 shadow-border">
+    <div className="flex min-w-0 items-center gap-2.5 rounded-md bg-card px-2.5 py-1.5 shadow-border">
       <span className="relative shrink-0">
         <Avatar className="size-8 bg-background shadow-border">
           {connection.avatarUrl ? (
@@ -152,7 +152,7 @@ export function AgentSetupPanel({
               ))}
             </div>
           ) : (
-            <div className="mb-3 flex items-center gap-2 rounded-md bg-background-secondary px-3 py-2.5 text-2xs text-muted-foreground shadow-border">
+            <div className="mb-3 flex items-center gap-2 rounded-md bg-card px-3 py-2.5 text-2xs text-muted-foreground shadow-border">
               <LayoutGrid className="size-4 shrink-0 text-muted-foreground" />
               No channels connected yet.
             </div>

@@ -147,11 +147,7 @@ export default function PostsListToolbar({
 
   return (
     <FilterMenu
-      allLabel={translateMenu('all')}
-      clearLabel={translateMenu('clear')}
       facets={facets}
-      getActiveCountLabel={(count) => translateMenu('activeCount', { count })}
-      label={translateMenu('menu')}
       onClear={() => {
         onSourceChange?.(undefined);
         onPlatformChange?.('all');

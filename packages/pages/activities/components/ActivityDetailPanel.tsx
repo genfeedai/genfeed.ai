@@ -148,7 +148,7 @@ export default function ActivityDetailPanel({
 
       <div className="flex flex-col gap-5 p-4">
         {previewUrl && failedPreviewSrc !== previewUrl ? (
-          <div className="relative aspect-video w-full overflow-hidden bg-background-secondary">
+          <div className="relative aspect-video w-full overflow-hidden bg-card">
             <Image
               alt={activity.label || translate('detailPreviewAlt')}
               className="object-contain"

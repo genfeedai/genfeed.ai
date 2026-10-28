@@ -35,18 +35,18 @@ export default function ProfileArticles({ articles }: ProfileArticlesProps) {
           )}
 
           <div className="p-4">
-            <h3 className="text-surface font-semibold mb-2 line-clamp-2">
+            <h3 className="text-foreground font-semibold mb-2 line-clamp-2">
               {article.label}
             </h3>
 
             {article.summary && (
-              <p className="text-surface/70 text-sm line-clamp-2">
+              <p className="text-foreground/70 text-sm line-clamp-2">
                 {article.summary}
               </p>
             )}
 
             {article.readingTime && (
-              <div className="text-surface/50 text-xs mt-2">
+              <div className="text-foreground/50 text-xs mt-2">
                 {article.readingTime} min read
               </div>
             )}
@@ -56,7 +56,7 @@ export default function ProfileArticles({ articles }: ProfileArticlesProps) {
 
       <Link
         href="/articles"
-        className="block text-center text-sm text-surface/70 hover:text-surface"
+        className="block text-center text-sm text-foreground/70 hover:text-foreground"
       >
         View all articles
       </Link>

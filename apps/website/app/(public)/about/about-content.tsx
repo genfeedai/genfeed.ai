@@ -33,7 +33,7 @@ const CONTACT_EMAIL = 'hello@genfeed.ai';
 const FOUNDED_YEAR = '2026';
 
 const LINK_CLASS =
-  'text-surface underline underline-offset-4 hover:text-surface/80';
+  'text-foreground underline underline-offset-4 hover:text-foreground/80';
 
 function ExternalLink(props: ComponentProps<'a'>) {
   return (
@@ -322,7 +322,7 @@ export default function AboutContent() {
           <NeuralGrid columns={2}>
             {DIFFERENTIATORS.map((item) => (
               <NeuralGridItem key={item.title} title={item.title} padding="lg">
-                <p className="text-sm leading-relaxed text-surface/65">
+                <p className="text-sm leading-relaxed text-foreground/65">
                   {item.body}
                 </p>
               </NeuralGridItem>
@@ -340,7 +340,7 @@ export default function AboutContent() {
             {AUDIENCES.map((item) => (
               <li
                 key={item}
-                className="border-b border-edge/5 pb-3 text-surface/65 last:border-b-0 last:pb-0"
+                className="border-b border-foreground/5 pb-3 text-foreground/65 last:border-b-0 last:pb-0"
               >
                 {item}
               </li>
@@ -360,12 +360,12 @@ export default function AboutContent() {
               tierLabel="@VincentShipsIt"
               padding="lg"
             >
-              <p className="text-sm leading-relaxed text-surface/65">
+              <p className="text-sm leading-relaxed text-foreground/65">
                 Genfeed is a one-person company. {FOUNDER.name} founded it in{' '}
                 {FOUNDED_YEAR} and builds it remotely and in public, working
                 with AI agents across code and content.
               </p>
-              <p className="mt-4 text-sm text-surface/65">
+              <p className="mt-4 text-sm text-foreground/65">
                 <ExternalLink href={FOUNDER.x}>X</ExternalLink> ·{' '}
                 <ExternalLink href={FOUNDER.linkedin}>LinkedIn</ExternalLink> ·{' '}
                 <ExternalLink href={FOUNDER.github}>GitHub</ExternalLink>
@@ -373,7 +373,7 @@ export default function AboutContent() {
             </NeuralGridItem>
 
             <NeuralGridItem title="Why Genfeed exists" padding="lg">
-              <p className="text-sm leading-relaxed text-surface/65">
+              <p className="text-sm leading-relaxed text-foreground/65">
                 Genfeed started from a builder&apos;s problem: shipping products
                 nobody sees, because every hour spent making content is an hour
                 taken from the product. Genfeed is used to market Genfeed,
@@ -407,16 +407,16 @@ export default function AboutContent() {
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
-          <DefinitionList className="space-y-0 divide-y divide-edge/5 border-y border-edge/5">
+          <DefinitionList className="space-y-0 divide-y divide-foreground/5 border-y border-foreground/5">
             {KEY_FACTS.map((fact) => (
               <div
                 key={fact.label}
                 className="grid gap-1 py-4 sm:grid-cols-[12rem_1fr] sm:gap-6"
               >
-                <DefinitionTerm className="font-semibold text-surface">
+                <DefinitionTerm className="font-semibold text-foreground">
                   {fact.label}
                 </DefinitionTerm>
-                <DefinitionDetail className="leading-relaxed text-surface/65">
+                <DefinitionDetail className="leading-relaxed text-foreground/65">
                   {fact.value}
                 </DefinitionDetail>
               </div>

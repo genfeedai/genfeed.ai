@@ -187,7 +187,7 @@ function ConversationRow({
       onClick={() => onSelect(conversation.id)}
     >
       <span className="relative mt-0.5 shrink-0">
-        <Avatar className="size-8 bg-background-secondary shadow-border">
+        <Avatar className="size-8 bg-card shadow-border">
           {conversation.participantAvatarUrl ? (
             <AvatarImage
               alt={`${participantLabel} profile picture`}
@@ -369,7 +369,7 @@ export function MessagesConversationSidebar({
         <PopoverTrigger asChild>
           <Button
             ariaLabel={translate('sidebar.filterAria')}
-            className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background-secondary text-foreground/70 hover:bg-foreground/[0.07] hover:text-foreground"
+            className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-card text-foreground/70 hover:bg-foreground/[0.07] hover:text-foreground"
             icon={<ListFilter className="size-4" />}
             size={ButtonSize.ICON}
             textTransform="none"

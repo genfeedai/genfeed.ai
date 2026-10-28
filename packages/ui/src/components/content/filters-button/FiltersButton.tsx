@@ -138,11 +138,7 @@ export default function FiltersButton({
       ) : null}
       {facets.length > 0 ? (
         <FilterMenu
-          allLabel={translate('all')}
-          clearLabel={translate('clear')}
           facets={facets}
-          getActiveCountLabel={(count) => translate('activeCount', { count })}
-          label={translate('menu')}
           onClear={() => notifyFilterChange({ ...filters, ...EMPTY_FILTERS })}
         />
       ) : null}

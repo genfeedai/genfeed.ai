@@ -44,7 +44,7 @@ export function ComposerFollowUpQueue({
     <div
       aria-label={translate('count', { count: queue.length })}
       aria-live="polite"
-      className="mb-1.5 rounded-lg border border-border/70 bg-background-secondary/90 px-1.5 py-1"
+      className="mb-1.5 rounded-lg border border-border/70 bg-card/90 px-1.5 py-1"
       data-queue-state={queueState}
       data-testid="composer-follow-up-queue"
       role="region"

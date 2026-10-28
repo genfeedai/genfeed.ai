@@ -67,7 +67,7 @@ export default function BrandIdentityVoiceField({
       </Select>
       {previewVoice ? (
         <div
-          className="mt-3 rounded-md bg-background-secondary p-3 shadow-border"
+          className="mt-3 rounded-md bg-card p-3 shadow-border"
           data-testid="brand-default-voice-preview"
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
