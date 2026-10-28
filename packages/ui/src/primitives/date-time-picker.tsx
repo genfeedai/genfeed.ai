@@ -419,7 +419,7 @@ export default function DateTimePicker({
           >
             <SelectTrigger
               aria-label="Time"
-              className="h-10 w-full"
+              className="w-full"
               disabled={isDisabled || !selectedDate}
             >
               <Clock className="mr-2 size-4 shrink-0 text-muted-foreground" />
