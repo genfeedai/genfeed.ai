@@ -28,6 +28,8 @@ import {
 
 interface ActionSchemaFieldsProps {
   disabled?: boolean;
+  /** Controls the host renders beside a field's label, keyed by field name. */
+  fieldActions?: Readonly<Record<string, ReactNode>>;
   hiddenFields?: ReadonlySet<string>;
   hideDescriptions?: boolean;
   idPrefix?: string;
@@ -37,6 +39,7 @@ interface ActionSchemaFieldsProps {
 }
 
 interface ActionFieldProps {
+  action?: ReactNode;
   disabled: boolean;
   field: string;
   fieldId: string;
@@ -98,6 +101,7 @@ function JsonField({
 }
 
 function ActionField({
+  action,
   disabled,
   field,
   fieldId,
@@ -233,6 +237,7 @@ function ActionField({
             </>
           ) : null}
         </Label>
+        {action}
       </div>
       {control}
       {description && !hideDescriptions ? (
@@ -246,6 +251,7 @@ function ActionField({
 
 export function ActionSchemaFields({
   disabled = false,
+  fieldActions,
   hiddenFields,
   hideDescriptions = false,
   idPrefix = '',
@@ -272,6 +278,7 @@ export function ActionSchemaFields({
       {entries.map(([field, property]) => (
         <ActionField
           key={field}
+          action={fieldActions?.[field]}
           disabled={disabled}
           field={field}
           fieldId={`action-field-${idPrefix}${field}`}

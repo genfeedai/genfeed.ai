@@ -20,11 +20,14 @@ import {
 import { Textarea } from '@ui/primitives/textarea';
 import { X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
+import { WorkflowModelField } from '@/features/workflows/components/editor/WorkflowModelField';
+import { WorkflowPromptPicker } from '@/features/workflows/components/editor/WorkflowPromptPicker';
 import {
   useWorkflowActionDefaults,
   useWorkflowActionScope,
 } from '@/features/workflows/hooks/useWorkflowActionDefaults';
+import { getWorkflowActionModelCategories } from '@/features/workflows/utils/workflow-model-categories';
 
 const SCOPED_FIELDS = new Set([
   'agentStrategyId',
@@ -94,6 +97,30 @@ export function CloudActionNodeInspector() {
       });
     },
     [node, parameters, updateNodeData],
+  );
+
+  const modelCategories = action
+    ? getWorkflowActionModelCategories(action.id)
+    : undefined;
+  const hasModelPicker = Boolean(modelCategories && properties.model);
+  const hiddenFields = useMemo(
+    () =>
+      hasModelPicker ? new Set([...SCOPED_FIELDS, 'model']) : SCOPED_FIELDS,
+    [hasModelPicker],
+  );
+  const hasPromptField = readRecord(properties.prompt).type === 'string';
+  const fieldActions = useMemo(
+    () =>
+      hasPromptField
+        ? {
+            prompt: (
+              <WorkflowPromptPicker
+                onSelect={(text) => handleChange('prompt', text)}
+              />
+            ),
+          }
+        : undefined,
+    [handleChange, hasPromptField],
   );
 
   useEffect(() => {
@@ -382,9 +409,18 @@ export function CloudActionNodeInspector() {
           </div>
         ) : null}
 
-        {Object.keys(properties).some((field) => !SCOPED_FIELDS.has(field)) ? (
+        {hasModelPicker && modelCategories ? (
+          <WorkflowModelField
+            categories={modelCategories}
+            onChange={(modelKey) => handleChange('model', modelKey)}
+            value={typeof parameters.model === 'string' ? parameters.model : ''}
+          />
+        ) : null}
+
+        {Object.keys(properties).some((field) => !hiddenFields.has(field)) ? (
           <ActionSchemaFields
-            hiddenFields={SCOPED_FIELDS}
+            fieldActions={fieldActions}
+            hiddenFields={hiddenFields}
             onChange={handleChange}
             schema={action.inputSchema}
             values={parameters}

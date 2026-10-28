@@ -124,4 +124,20 @@ describe('ActionSchemaFields with shared controls', () => {
     fireEvent.keyDown(live, { key: 'Enter' });
     expect(onChange).toHaveBeenCalledWith('mode', 'live');
   });
+  it('renders host controls beside the matching field label only', () => {
+    render(
+      <ActionSchemaFields
+        fieldActions={{ prompt: <button type="button">Pick prompt</button> }}
+        schema={schema}
+        values={{}}
+        onChange={vi.fn()}
+      />,
+    );
+    expect(screen.getAllByRole('button', { name: 'Pick prompt' })).toHaveLength(
+      1,
+    );
+    expect(
+      screen.getByLabelText('Prompt').parentElement?.querySelector('button'),
+    ).toBeTruthy();
+  });
 });
