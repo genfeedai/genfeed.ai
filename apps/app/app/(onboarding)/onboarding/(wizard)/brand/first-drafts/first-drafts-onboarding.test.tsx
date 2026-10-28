@@ -402,6 +402,20 @@ describe('FirstDraftsOnboarding', () => {
     expect(mocks.patchPost).not.toHaveBeenCalled();
   });
 
+  it('finishes from the connect step onto the drafts they just reviewed', async () => {
+    mocks.readDrafts.mockResolvedValue(savedRun());
+    render(<FirstDraftsOnboarding />);
+    await screen.findByText('twitter draft text');
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await screen.findByTestId('connect-card-instagram');
+    fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
+    await waitFor(() =>
+      expect(mocks.completeOnboarding).toHaveBeenCalledWith({
+        isLandingOnDrafts: true,
+      }),
+    );
+  });
+
   it('shows existing connections without offering another connect', async () => {
     mocks.readDrafts.mockResolvedValue(savedRun());
     mocks.listReadiness.mockResolvedValue([

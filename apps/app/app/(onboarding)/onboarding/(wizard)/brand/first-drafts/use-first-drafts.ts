@@ -347,14 +347,26 @@ export function useFirstDrafts(): FirstDraftsState {
     setIsContinuing(true);
     setError(null);
 
+    // Someone who just read their first drafts should land on them: the
+    // workspace has no pointer to the drafts, so they never reach a publish.
     const finish =
-      steps.length > 1 ? handleStepComplete('brand') : completeOnboarding();
+      steps.length > 1
+        ? handleStepComplete('brand')
+        : completeOnboarding({
+            isLandingOnDrafts: (result?.drafts.length ?? 0) > 0,
+          });
     void finish.catch((caught: unknown) => {
       logger.error('Failed to finish onboarding', caught);
       setError('continue');
       setIsContinuing(false);
     });
-  }, [completeOnboarding, handleStepComplete, isContinuing, steps.length]);
+  }, [
+    completeOnboarding,
+    handleStepComplete,
+    isContinuing,
+    result?.drafts.length,
+    steps.length,
+  ]);
 
   return {
     canRetry: round < ONBOARDING_MAX_DRAFT_ROUNDS,

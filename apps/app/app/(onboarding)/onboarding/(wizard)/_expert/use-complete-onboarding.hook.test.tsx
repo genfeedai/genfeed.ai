@@ -8,6 +8,9 @@ const mocks = vi.hoisted(() => ({
   patch: vi.fn(),
   reload: vi.fn(),
   isCompleted: false,
+  brand: undefined as
+    | { organization: { slug: string }; slug: string }
+    | undefined,
 }));
 vi.mock('@contexts/user/user-context/user-context', () => ({
   useCurrentUser: () => ({
@@ -15,7 +18,7 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
   }),
 }));
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({ selectedBrand: undefined }),
+  useBrand: () => ({ selectedBrand: mocks.brand }),
 }));
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => ({ getToken: vi.fn() }),
@@ -38,6 +41,7 @@ describe('useCompleteOnboarding', () => {
     vi.clearAllMocks();
     mocks.token = 'token';
     mocks.isCompleted = false;
+    mocks.brand = undefined;
     localStorage.setItem('gf_onboarding_brand_domain', 'acme.co');
   });
   it('keeps onboarding open when the authenticated completion write fails', async () => {
@@ -63,6 +67,26 @@ describe('useCompleteOnboarding', () => {
     expect(mocks.patch).not.toHaveBeenCalled();
     expect(mocks.reload).not.toHaveBeenCalled();
     expect(assign).toHaveBeenCalledTimes(1);
+    vi.unstubAllGlobals();
+  });
+  it('lands on the brand workspace by default', async () => {
+    mocks.brand = { organization: { slug: 'acme' }, slug: 'main' };
+    const assign = vi.fn();
+    vi.stubGlobal('location', { ...window.location, assign });
+    const { result } = renderHook(() => useCompleteOnboarding());
+    await result.current();
+    expect(assign).toHaveBeenCalledWith('/acme/main/workspace');
+    vi.unstubAllGlobals();
+  });
+  it('lands on the draft posts when asked to', async () => {
+    mocks.brand = { organization: { slug: 'acme' }, slug: 'main' };
+    const assign = vi.fn();
+    vi.stubGlobal('location', { ...window.location, assign });
+    const { result } = renderHook(() => useCompleteOnboarding());
+    await result.current({ isLandingOnDrafts: true });
+    expect(assign).toHaveBeenCalledWith(
+      '/acme/main/publishing/posts?status=draft',
+    );
     vi.unstubAllGlobals();
   });
 });

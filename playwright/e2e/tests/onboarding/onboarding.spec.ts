@@ -29,6 +29,21 @@ test.describe('Output-first onboarding', () => {
     expect(draftRequests).toHaveLength(1);
   });
 
+  test('finishes onto the drafts that were just reviewed', async ({
+    onboardingPage: page,
+  }) => {
+    await setupOnboardingFirstDraftsMocks(page);
+    await page.reload();
+    await page.getByRole('button', { name: 'Submit brand link' }).click();
+    await expect(page.getByText('Round 1 twitter draft')).toBeVisible();
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await expect(page.getByTestId('connect-card-twitter')).toBeVisible();
+    await page.getByRole('button', { name: 'Finish', exact: true }).click();
+    await expect(page).toHaveURL(
+      /\/test-org\/brand-1\/publishing\/posts\?status=draft$/,
+    );
+  });
+
   test('falls back to brand context when a public profile is blocked', async ({
     personalEmailOnboardingPage: page,
   }) => {
