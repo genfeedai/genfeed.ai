@@ -1,7 +1,11 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
 import type { ServerModelRecord } from '@api/index';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
-import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
+import {
+  ModelCategory,
+  ModelLifecycle,
+  ModelProvider,
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@workers/config/config.service';
@@ -383,6 +387,41 @@ describe('CronModelWatcherService', () => {
           ),
         ]),
       );
+    });
+
+    it('never syncs, fetches or re-drafts a retired row, listed or not', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValueOnce({
+        json: () =>
+          Promise.resolve({
+            next: null,
+            results: [
+              {
+                description: 'Retired but still listed',
+                latest_version: { id: 'v1', openapi_schema: {} },
+                name: 'imagen-4',
+                owner: 'google',
+                url: 'https://replicate.com/google/imagen-4',
+              },
+            ],
+          }),
+        ok: true,
+      } as Response);
+      const modelsService = Reflect.get(service, 'modelsService');
+      modelsService.prisma.model.findMany.mockResolvedValueOnce([
+        { ...mockExistingModels[0], lifecycle: ModelLifecycle.RETIRED },
+        { ...mockExistingModels[1], lifecycle: ModelLifecycle.RETIRED },
+      ]);
+
+      const result = await service.discoverNewModels();
+
+      // imagen-4 is listed, veo-3 is not: neither is synced or fetched.
+      expect(
+        replicateContractSyncService.synchronizeModel,
+      ).not.toHaveBeenCalled();
+      expect(modelDiscoveryService.fetchReplicateModel).not.toHaveBeenCalled();
+      expect(modelDiscoveryService.createDraftModel).not.toHaveBeenCalled();
+      expect(result.newModelsFound).toBe(0);
+      expect(result.errors).toBe(0);
     });
 
     it('refreshes the FLUX.3 Edit alias row from the model Replicate hosts', async () => {

@@ -1,6 +1,6 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
-import { ModelProvider } from '@genfeedai/contracts';
+import { ModelLifecycle, ModelProvider } from '@genfeedai/contracts';
 import { resolveFlux3ReplicateEndpoint } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -109,6 +109,7 @@ export class CronModelWatcherService {
           isActive: true,
           isFree: true,
           key: true,
+          lifecycle: true,
           pricingType: true,
           provider: true,
           providerCostUsd: true,
@@ -181,6 +182,10 @@ export class CronModelWatcherService {
       // pinned until an operator explicitly promotes the candidate.
       const syncedEndpoints: string[] = [];
       for (const [endpoint, listedModel] of candidates) {
+        // A retired row is a closed chapter. Syncing it would only record
+        // pending rates and price alerts nobody can act on.
+        if (existingModels.get(endpoint)?.lifecycle === ModelLifecycle.RETIRED)
+          continue;
         if (
           await this.syncListedModel(
             endpoint,
@@ -425,6 +430,8 @@ export class CronModelWatcherService {
     let attempted = 0;
     for (const endpoint of existingModels.keys()) {
       if (candidates.has(endpoint)) continue;
+      if (existingModels.get(endpoint)?.lifecycle === ModelLifecycle.RETIRED)
+        continue;
       // An alias row (FLUX.3 Edit) refreshes from the model Replicate hosts.
       const [owner, name] = resolveFlux3ReplicateEndpoint(endpoint).split('/');
       if (!owner || !name) {
