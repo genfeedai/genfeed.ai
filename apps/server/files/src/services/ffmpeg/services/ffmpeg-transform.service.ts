@@ -148,7 +148,8 @@ export class FFmpegTransformService {
         '-i',
         validatedInputPath,
         '-t',
-        duration.toFixed(3),
+        // A frame sitting exactly on the end is left out, not kept.
+        (duration - 0.001).toFixed(3),
         '-c:v',
         'libx264',
         '-preset',

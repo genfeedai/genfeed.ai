@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { SecurityUtil } from '@files/helpers/utils/security/security.util';
+import { parseFrameRate } from '@files/services/ffmpeg/helpers/frame-rate.helper';
 import { buildTransitionFilterGraph } from '@files/services/ffmpeg/helpers/transition-filter-graph.helper';
 import { FFmpegCoreService } from '@files/services/ffmpeg/services/ffmpeg-core.service';
 import {
@@ -424,7 +425,7 @@ export class FFmpegMergeService {
     }
     const width = videoStream.width - (videoStream.width % 2);
     const height = videoStream.height - (videoStream.height % 2);
-    const fps = this.parseFrameRate(videoStream.avg_frame_rate);
+    const fps = parseFrameRate(videoStream.avg_frame_rate);
     const hasAudio = probe.streams.some(
       (stream: FFprobeStream) => stream.codec_type === 'audio',
     );
@@ -489,15 +490,6 @@ export class FFmpegMergeService {
       width,
     });
     await this.core.executeFFmpeg(args, onProgress);
-  }
-
-  /** `30000/1001` style rates; an unreadable rate falls back to 30 fps. */
-  private parseFrameRate(rate: string | undefined): number {
-    const [numerator, denominator = '1'] = (rate ?? '').split('/');
-    const value = Number(numerator) / Number(denominator);
-    return Number.isFinite(value) && value >= 1 && value <= 120
-      ? Math.round(value * 1000) / 1000
-      : 30;
   }
 
   /**

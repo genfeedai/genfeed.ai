@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { ConfigService } from '@files/config/config.service';
+import { parseFrameRate } from '@files/services/ffmpeg/helpers/frame-rate.helper';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { FFmpegBeatDetectionService } from '@files/services/ffmpeg/services/ffmpeg-beat-detection.service';
 import { S3Service } from '@files/services/s3/s3.service';
@@ -329,9 +330,14 @@ export class VideoMergeJobService {
     }
 
     const durations: number[] = [];
+    const frameSeconds: number[] = [];
     for (const inputPath of inputPaths) {
       const probe = await this.ffmpegService.probe(inputPath);
       durations.push(Number(probe.format.duration));
+      const videoStream = probe.streams.find(
+        (stream) => stream.codec_type === 'video',
+      );
+      frameSeconds.push(1 / parseFrameRate(videoStream?.avg_frame_rate));
     }
     const plan = planBeatSyncedCuts(
       durations,
@@ -339,6 +345,8 @@ export class VideoMergeJobService {
         analysis,
         beatSyncCutStrategy ?? BeatSyncCutStrategy.EVERY_BEAT,
       ),
+      undefined,
+      frameSeconds,
     );
 
     const paths: string[] = [];

@@ -53,15 +53,21 @@ export function selectCutBeats(
  * clip still reaches, so every clip keeps its start and loses at most the
  * time to its previous beat. A clip no beat fits (all too close to its start,
  * or the music has run out) stays whole and is reported as off the beat.
+ *
+ * Video ends on a whole frame, so a cut can only land within half a frame of
+ * its beat. With `frameSeconds` (one frame length per clip) each cut snaps to
+ * the nearest frame and the next clip starts from where the video really
+ * ends, so the error never builds up over the edit.
  */
 export function planBeatSyncedCuts(
   clipDurations: readonly number[],
   cutBeats: readonly number[],
   minClipSeconds: number = BEAT_SYNC_MIN_CLIP_SECONDS,
+  frameSeconds: readonly number[] = [],
 ): IBeatSyncedClip[] {
   const plan: IBeatSyncedClip[] = [];
   let cursor = 0;
-  for (const naturalDuration of clipDurations) {
+  for (const [index, naturalDuration] of clipDurations.entries()) {
     const earliest = cursor + Math.min(minClipSeconds, naturalDuration);
     const latest = cursor + naturalDuration;
     let cut: number | undefined;
@@ -69,7 +75,14 @@ export function planBeatSyncedCuts(
       if (beat > latest) break;
       if (beat >= earliest) cut = beat;
     }
-    const endSeconds = cut ?? latest;
+    const frame = frameSeconds[index];
+    const endSeconds =
+      cut !== undefined && frame && frame > 0
+        ? Math.min(
+            latest,
+            cursor + Math.max(1, Math.round((cut - cursor) / frame)) * frame,
+          )
+        : (cut ?? latest);
     plan.push({
       durationSeconds: endSeconds - cursor,
       endSeconds,

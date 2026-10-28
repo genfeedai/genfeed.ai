@@ -97,6 +97,37 @@ describe('planBeatSyncedCuts', () => {
     expect(planBeatSyncedCuts([], beats)).toEqual([]);
   });
 
+  it('snaps each cut to a whole frame without the error building up', () => {
+    const frame = 1 / 30;
+    const offBeats = Array.from(
+      { length: 240 },
+      (_, index) => 0.5 * index + 0.4837,
+    );
+    const durations = Array.from(
+      { length: 12 },
+      (_, index) => 4.7 + index * 0.13,
+    );
+    const plan = planBeatSyncedCuts(
+      durations,
+      offBeats,
+      undefined,
+      durations.map(() => frame),
+    );
+
+    let videoEnd = 0;
+    plan.forEach((clip) => {
+      const frames = clip.durationSeconds / frame;
+      expect(Math.abs(frames - Math.round(frames))).toBeLessThan(1e-6);
+      videoEnd += clip.durationSeconds;
+      // The video's real end, not a running estimate, sits within half a frame of a beat.
+      const nearest = Math.min(
+        ...offBeats.map((beat) => Math.abs(beat - videoEnd)),
+      );
+      expect(nearest).toBeLessThanOrEqual(frame / 2 + 1e-9);
+      expect(videoEnd).toBeCloseTo(clip.endSeconds, 9);
+    });
+  });
+
   it('keeps cuts monotonic for any clip lengths', () => {
     let seed = 7;
     const random = () => {
