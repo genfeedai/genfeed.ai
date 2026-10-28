@@ -188,11 +188,22 @@ describe('OrganizationModulesCard', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('lets an owner hide Playground; work through the API keeps running', async () => {
+  it('has no in-page title, description or footer under the breadcrumb', () => {
     render(<OrganizationModulesCard />);
     expect(
-      screen.getByText(/Work through the API and MCP keeps running/),
-    ).toBeInTheDocument();
+      screen.queryByText("Choose which apps your organization's members see."),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Hiding a module removes/),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/All paid plans unlock/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Manage subscription' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('lets an owner hide Playground', async () => {
+    render(<OrganizationModulesCard />);
     fireEvent.click(toggle('Playground'));
     await waitFor(() =>
       expect(mocks.patchSettings).toHaveBeenCalledWith('org-1', {
@@ -237,9 +248,9 @@ describe('OrganizationModulesCard', () => {
           moduleOverrides: { analytics: false, messages: true, motion: true },
         }),
       );
-      await screen.findByText('Module settings saved.');
+      await waitFor(() => expect(mocks.refresh).toHaveBeenCalledTimes(1));
       expect(mocks.clearBootstrap).toHaveBeenCalledTimes(1);
-      expect(mocks.refresh).toHaveBeenCalledTimes(1);
+      expect(screen.queryByText('Module settings saved.')).toBeNull();
     },
   );
 
@@ -330,8 +341,8 @@ describe('OrganizationModulesCard', () => {
       expect(control).toBeDisabled();
     expect(toggle('Motion')).not.toBeChecked();
     await act(async () => save.resolve({}));
-    await screen.findByText('Module settings saved.');
-    expect(toggle('Motion')).toBeEnabled();
+    await waitFor(() => expect(toggle('Motion')).toBeEnabled());
+    expect(screen.queryByText('Module settings saved.')).toBeNull();
   });
 
   it('retains the stored value on rejected writes without invalidating the cache', async () => {

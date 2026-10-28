@@ -226,3 +226,28 @@ describe('buildSettingsMenuItems', () => {
     }
   });
 });
+
+describe('collapsible sidebar groups', () => {
+  const firstItems = (items: ReturnType<typeof buildSettingsMenuItems>) =>
+    items.filter((item, index) => items[index - 1]?.group !== item.group);
+
+  it.each([
+    [SettingsSurface.ORGANIZATION, ['Organization', 'Billing', 'Developer']],
+    [SettingsSurface.BRAND, ['Brand', 'Automation', 'Usage']],
+  ])('lets every %s group header collapse', (scope, groups) => {
+    const items = buildSettingsMenuItems({ isEnterprise: true, scope });
+    const heads = firstItems(items);
+    expect(heads.map((item) => item.group)).toEqual(groups);
+    expect(heads.every((item) => item.isCollapsible === true)).toBe(true);
+    expect(
+      items
+        .filter((item) => !heads.includes(item))
+        .some((i) => i.isCollapsible),
+    ).toBe(false);
+  });
+
+  it('keeps the single personal group open', () => {
+    const items = buildSettingsMenuItems({ scope: SettingsSurface.PERSONAL });
+    expect(items.some((item) => item.isCollapsible)).toBe(false);
+  });
+});
