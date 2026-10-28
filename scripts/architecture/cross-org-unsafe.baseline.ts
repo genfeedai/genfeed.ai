@@ -479,7 +479,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // when grantedOwners.has(id).
     {
       file: 'apps/server/api/src/helpers/utils/reference/reference.util.ts',
-      line: 138,
+      line: 139,
     },
     // #6120: platform maintenance sweep that expires stale recommendations
     // across every organization; each write is scoped to the row's own
