@@ -1,7 +1,6 @@
+'use client';
+
 import { ButtonVariant } from '@genfeedai/contracts';
-
-('use client');
-
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import { libraryTagStyle } from '@ui/tags/library-tag-picker/library-tag-colors.util';
