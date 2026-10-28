@@ -220,6 +220,21 @@ describe('AgentOrchestratorPlanModeService — #4672 mode field', () => {
     );
   });
 
+  it('fails the turn instead of proposing a plan with nothing in it', async () => {
+    agentThreadsService.findOne.mockResolvedValue({ mode: 'plan' });
+    llmDispatcher.chatCompletion.mockResolvedValue({
+      choices: [{ message: { content: '  ' } }],
+      model: 'test-model',
+    });
+
+    await expect(
+      service.tryHandlePlanModeTurn(baseParams as never, host),
+    ).rejects.toThrow('empty plan');
+
+    expect(threadEventRecorder.recordPlanUpserted).not.toHaveBeenCalled();
+    expect(agentMessagesService.addMessage).not.toHaveBeenCalled();
+  });
+
   it('treats a thread with no mode field as not plan-enabled', async () => {
     agentThreadsService.findOne.mockResolvedValue({});
 

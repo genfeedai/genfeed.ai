@@ -26,6 +26,30 @@ export function groupTimelineTurns(
   return turns;
 }
 
+/**
+ * How long the turn worked: the longest run recorded in it, or the span from
+ * its first entry to its last when no run reports a duration.
+ */
+export function getTurnWorkDurationMs(turn: TimelineTurnGroup): number | null {
+  const candidates: number[] = [];
+  const times: number[] = [];
+
+  for (const { entry } of turn.items) {
+    if (entry.kind === 'work-group' && entry.totalDurationMs != null) {
+      candidates.push(entry.totalDurationMs);
+    }
+    const time = Date.parse(entry.createdAt);
+    if (Number.isFinite(time)) {
+      times.push(time);
+    }
+  }
+  if (times.length > 1) {
+    candidates.push(Math.max(...times) - Math.min(...times));
+  }
+
+  return candidates.length > 0 ? Math.max(...candidates) : null;
+}
+
 /** Keep final copy and every structured result/action outside the activity fold. */
 export function splitCompletedTimelineTurn(turn: TimelineTurnGroup): {
   activity: TimelineTurnGroup['items'];
@@ -51,6 +75,7 @@ export function splitCompletedTimelineTurn(turn: TimelineTurnGroup): {
       item === finalAssistant ||
       (entry.kind === 'assistant-message' &&
         ((entry.message.metadata?.uiActions?.length ?? 0) > 0 ||
+          Boolean(entry.message.metadata?.proposedPlan) ||
           Boolean(entry.message.metadata?.generatedContent) ||
           Boolean(entry.message.metadata?.agentTransfer?.transfer)))
     ) {

@@ -1,6 +1,6 @@
 import {
-  SCHEDULE_TODAYS_TWEETS_LABEL,
-  SCHEDULE_TODAYS_TWEETS_PROMPT,
+  PLAN_TODAYS_TWEETS_LABEL,
+  PLAN_TODAYS_TWEETS_PROMPT,
 } from '@genfeedai/agent/constants/agent-quick-prompts.constant';
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
@@ -46,13 +46,13 @@ interface PageContextConfig {
 }
 
 // Pinned so a brand with personalized suggestions still gets the one-click
-// "schedule today" shortcut on the surfaces where it is offered.
-function createScheduleTodaysTweetsAction(iconClassName: string) {
+// "plan today" shortcut on the surfaces where it is offered.
+function createPlanTodaysTweetsAction(iconClassName: string) {
   return {
     icon: createElement(Send, { className: iconClassName }),
     isPinned: true,
-    label: SCHEDULE_TODAYS_TWEETS_LABEL,
-    prompt: SCHEDULE_TODAYS_TWEETS_PROMPT,
+    label: PLAN_TODAYS_TWEETS_LABEL,
+    prompt: PLAN_TODAYS_TWEETS_PROMPT,
   } satisfies SuggestedAction;
 }
 
@@ -199,7 +199,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
   [APP_ROUTES.PUBLISHING.CALENDAR]: {
     placeholder: 'Ask about your calendar...',
     suggestedActions: [
-      createScheduleTodaysTweetsAction('size-5 text-foreground/50'),
+      createPlanTodaysTweetsAction('size-5 text-foreground/50'),
       {
         icon: createElement(Calendar, {
           className: 'size-5 text-foreground/50',
@@ -232,7 +232,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
         label: 'Generate posts for this week',
         prompt: 'Generate 20 posts for this week across my connected platforms',
       },
-      createScheduleTodaysTweetsAction('size-5 text-info'),
+      createPlanTodaysTweetsAction('size-5 text-info'),
       {
         icon: createElement(ClipboardCheck, {
           className: 'size-5 text-primary',
@@ -435,7 +435,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
   [APP_ROUTES.PUBLISHING.ROOT]: {
     placeholder: 'Ask about your posts...',
     suggestedActions: [
-      createScheduleTodaysTweetsAction('size-5 text-foreground/50'),
+      createPlanTodaysTweetsAction('size-5 text-foreground/50'),
       {
         icon: createElement(Calendar, {
           className: 'size-5 text-foreground/50',
@@ -462,7 +462,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
   [`${APP_ROUTES.PUBLISHING.ROOT}/`]: {
     placeholder: 'Ask about this post...',
     suggestedActions: [
-      createScheduleTodaysTweetsAction('size-5 text-foreground/50'),
+      createPlanTodaysTweetsAction('size-5 text-foreground/50'),
       {
         icon: createElement(ChartColumn, {
           className: 'size-5 text-foreground/50',
@@ -600,7 +600,7 @@ const DEFAULT_CONTEXT: PageContextConfig = {
       label: 'Generate posts for this week',
       prompt: 'Generate 20 posts for this week across my connected platforms',
     },
-    createScheduleTodaysTweetsAction('size-5 text-info'),
+    createPlanTodaysTweetsAction('size-5 text-info'),
     {
       icon: createElement(ClipboardCheck, {
         className: 'size-5 text-primary',

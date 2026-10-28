@@ -19,6 +19,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -2497,7 +2498,7 @@ describe('AgentChatContainer', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the latest proposed plan inline for review', () => {
+  it('renders the latest proposed plan in the conversation and its decision in the prompt bar', () => {
     const apiService = createApiService();
 
     storeState.pendingInputRequest = null;
@@ -2512,9 +2513,22 @@ describe('AgentChatContainer', () => {
 
     render(<AgentChatContainer apiService={apiService as never} />);
 
-    expect(screen.getByTestId('agent-plan-review-card')).toBeInTheDocument();
-    expect(screen.getByText('Approve')).toBeInTheDocument();
-    expect(screen.getByText('Request changes')).toBeInTheDocument();
+    const card = screen.getByTestId('agent-plan-card');
+    expect(card).toBeInTheDocument();
+    expect(card).toHaveTextContent('Add a toggle');
+    // The decision is not part of the conversation.
+    expect(within(card).queryByRole('button')).toBeNull();
+    const decision = screen.getByTestId('agent-plan-decision');
+    expect(
+      within(decision).getByRole('button', { name: 'approve' }),
+    ).toBeInTheDocument();
+    expect(
+      within(decision).getByRole('button', { name: 'requestChanges' }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Composer paste')).toHaveAttribute(
+      'placeholder',
+      'revisePlaceholder',
+    );
   });
 
   it('locks the plan controls while an approval of that plan is still running', () => {
@@ -2545,11 +2559,11 @@ describe('AgentChatContainer', () => {
 
     render(<AgentChatContainer apiService={apiService as never} />);
 
-    expect(screen.getByRole('button', { name: 'Approve' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'approve' })).toBeDisabled();
     expect(
-      screen.getByRole('button', { name: 'Request changes' }),
+      screen.getByRole('button', { name: 'requestChanges' }),
     ).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
+    fireEvent.click(screen.getByRole('button', { name: 'approve' }));
     expect(apiService.respondToUiAction).not.toHaveBeenCalled();
   });
 
@@ -2582,7 +2596,7 @@ describe('AgentChatContainer', () => {
       <AgentChatContainer apiService={apiService as never} />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
+    fireEvent.click(screen.getByRole('button', { name: 'approve' }));
     await waitFor(() =>
       expect(apiService.respondToUiAction).toHaveBeenCalledTimes(1),
     );
@@ -2641,7 +2655,7 @@ describe('AgentChatContainer', () => {
       />,
     );
 
-    fireEvent.click(screen.getByText('Create Follow-up Tasks'));
+    fireEvent.click(screen.getByText('createFollowUpTasks'));
 
     await waitFor(() => {
       expect(onCreateFollowUpTasks).toHaveBeenCalledWith('workspace-task-42');
@@ -2674,7 +2688,7 @@ describe('AgentChatContainer', () => {
       />,
     );
 
-    expect(screen.getByTestId('agent-plan-review-card')).toBeInTheDocument();
+    expect(screen.getByTestId('agent-plan-card')).toBeInTheDocument();
     expect(screen.queryByText('Start a chat')).not.toBeInTheDocument();
   });
 

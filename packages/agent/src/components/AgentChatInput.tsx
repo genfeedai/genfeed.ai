@@ -34,7 +34,9 @@ import { useTranslations } from 'next-intl';
 import {
   type ReactElement,
   type ReactNode,
+  type RefObject,
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -99,6 +101,10 @@ interface AgentChatInputProps {
   knowledgeSelection?: KnowledgeSelection;
   /** Host-provided picker rendered above the attachment tray. */
   knowledgeSection?: ReactNode;
+  /** Reports whether the composer holds nothing to send. */
+  onDraftEmptyChange?: (isEmpty: boolean) => void;
+  /** Filled with a function that sends the composer's current draft. */
+  submitRef?: RefObject<(() => void) | null>;
 }
 
 function mapAttachmentToTrayAsset(
@@ -141,6 +147,8 @@ export function AgentChatInput({
   willQueueFollowUp = false,
   knowledgeSelection,
   knowledgeSection,
+  onDraftEmptyChange,
+  submitRef,
 }: AgentChatInputProps): ReactElement {
   const isCompact = density === 'compact';
   const isDock = density === 'dock';
@@ -212,6 +220,18 @@ export function AgentChatInput({
   const handleToolbarSend = useCallback(() => {
     void handleSend();
   }, [handleSend]);
+  useEffect(() => {
+    onDraftEmptyChange?.(isEmptyComposer);
+  }, [isEmptyComposer, onDraftEmptyChange]);
+  useEffect(() => {
+    if (!submitRef) {
+      return;
+    }
+    submitRef.current = handleToolbarSend;
+    return () => {
+      submitRef.current = null;
+    };
+  }, [handleToolbarSend, submitRef]);
   // Enhance swaps the editor's document for plain text. The document it
   // replaced is kept so Undo brings its mention nodes (and their ids) back.
   const preEnhanceDocRef = useRef<{ doc: JSONContent; text: string } | null>(

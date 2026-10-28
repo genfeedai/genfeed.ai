@@ -280,6 +280,13 @@ export function AgentChatContainer({
         isSubmittingInputRequest={container.isSubmittingInputRequest}
         isTurnStalled={container.isTurnStalled}
         latestProposedPlan={container.latestProposedPlan}
+        isPlanReviewBusy={
+          container.isBusy ||
+          container.isPlanReviewPending ||
+          Boolean(container.activeUiAction)
+        }
+        onApprovePlan={container.handleApprovePlan}
+        onRequestPlanChanges={container.handleRequestPlanChanges}
         layoutMode={promptBarLayoutMode}
         onClearError={() => container.setError(null)}
         onKeepWaiting={container.handleKeepWaiting}
@@ -394,7 +401,6 @@ export function AgentChatContainer({
             isAtBottom={container.isAtBottom}
             isBusy={container.isBusy}
             isCreatingFollowUpTasks={container.isCreatingFollowUpTasks}
-            isPlanReviewPending={container.isPlanReviewPending}
             isGenerating={container.isGenerating}
             isWideLayout={isWideLayout}
             isReadOnly={isReadOnly}
@@ -402,7 +408,6 @@ export function AgentChatContainer({
             isSubmittingInputRequest={container.isSubmittingInputRequest}
             latestProposedPlan={container.latestProposedPlan}
             messagesEndRef={container.messagesEndRef}
-            onApprovePlan={container.handleApprovePlan}
             onBrandCreate={onBrandCreate}
             onCopy={container.handleCopy}
             onCreateFollowUpTasks={container.handleCreateFollowUpTasks}
@@ -410,7 +415,6 @@ export function AgentChatContainer({
             onOAuthConnect={onOAuthConnect}
             onOpenInStudio={onOpenInStudio}
             onRegenerate={onRegenerate}
-            onRequestPlanChanges={container.handleRequestPlanChanges}
             onRetry={container.handleRetry}
             onRetryLastFailedRun={handleRetryLastFailedRun}
             onSubmitInputRequest={container.handleSubmitInputRequest}

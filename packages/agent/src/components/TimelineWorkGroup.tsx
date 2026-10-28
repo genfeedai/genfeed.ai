@@ -8,6 +8,7 @@ import {
   isGenericRunLifecycleEvent,
   type TimelineWorkGroup as TimelineWorkGroupEntry,
 } from '@genfeedai/agent/utils/derive-timeline';
+import { formatWorkDuration } from '@genfeedai/agent/utils/format-work-duration.util';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
@@ -16,6 +17,11 @@ import { memo, type ReactElement, useEffect, useMemo, useState } from 'react';
 
 interface TimelineWorkGroupProps {
   entry: TimelineWorkGroupEntry;
+  /**
+   * Inside a turn's "Worked for …" disclosure: the disclosure owns the
+   * duration and the fold, so only the steps render.
+   */
+  isEmbedded?: boolean;
 }
 
 /**
@@ -26,6 +32,7 @@ interface TimelineWorkGroupProps {
  */
 function TimelineWorkGroupInner({
   entry,
+  isEmbedded = false,
 }: TimelineWorkGroupProps): ReactElement {
   const visibleEvents = useMemo(
     () => entry.events.filter((event) => !isGenericRunLifecycleEvent(event)),
@@ -116,7 +123,7 @@ function TimelineWorkGroupInner({
   }
 
   const liveElapsedLabel = useLiveElapsedLabel(entry.createdAt, !isTerminal);
-  const settledDurationLabel = formatDurationMs(entry.totalDurationMs);
+  const settledDurationLabel = formatWorkDuration(entry.totalDurationMs);
   const durationPhrase = isTerminal
     ? settledDurationLabel
       ? `Worked for ${settledDurationLabel}`
@@ -142,6 +149,19 @@ function TimelineWorkGroupInner({
   // Lifecycle-only residue with no tools is not a product row.
   if (stepCount === 0 && isTerminal) {
     return <></>;
+  }
+
+  if (isEmbedded) {
+    return (
+      <div
+        className="flex flex-col gap-0 px-0.5 pb-1"
+        data-testid="timeline-work-group"
+      >
+        {stepEvents.map((event) => (
+          <TimelineWorkEntry key={event.id} event={event} />
+        ))}
+      </div>
+    );
   }
 
   const durationFooter = (
@@ -260,26 +280,6 @@ function TimelineWorkGroupInner({
 // settled work group bail out while the live turn streams tokens.
 export const TimelineWorkGroup = memo(TimelineWorkGroupInner);
 
-function formatDurationMs(durationMs: number | null): string | null {
-  if (durationMs == null || !Number.isFinite(durationMs) || durationMs < 0) {
-    return null;
-  }
-
-  if (durationMs < 1000) {
-    return `${Math.max(0, Math.round(durationMs))}ms`;
-  }
-
-  const totalSeconds = Math.max(1, Math.round(durationMs / 1000));
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-
-  if (minutes <= 0) {
-    return `${totalSeconds}s`;
-  }
-
-  return `${minutes}m ${seconds}s`;
-}
-
 function useLiveElapsedLabel(startIso: string, isLive: boolean): string | null {
   const [nowMs, setNowMs] = useState(() => Date.now());
 
@@ -304,5 +304,5 @@ function useLiveElapsedLabel(startIso: string, isLive: boolean): string | null {
     return null;
   }
 
-  return formatDurationMs(Math.max(0, nowMs - startMs));
+  return formatWorkDuration(Math.max(0, nowMs - startMs));
 }

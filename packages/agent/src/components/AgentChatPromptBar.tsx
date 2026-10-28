@@ -6,6 +6,7 @@ import {
   AgentComposerStatusStack,
   hasRenderableComposerTasks,
 } from '@genfeedai/agent/components/AgentComposerStatusStack';
+import { AgentPlanDecisionBar } from '@genfeedai/agent/components/AgentPlanDecisionBar';
 import { ComposerFollowUpQueue } from '@genfeedai/agent/components/ComposerFollowUpQueue';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import type {
@@ -17,6 +18,7 @@ import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/co
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { AgentSocketConnectionState } from '@genfeedai/agent/stores/agent-chat.store';
 import type { ComposerFollowUp } from '@genfeedai/agent/utils/composer-follow-up-queue.util';
+import { hasProposedPlanBody } from '@genfeedai/agent/utils/proposed-plan.util';
 import type { AgentThreadMode } from '@genfeedai/contracts';
 import type { KnowledgeSelection } from '@genfeedai/contracts/interfaces';
 import type {
@@ -27,7 +29,14 @@ import type {
 } from '@genfeedai/props/ui/attachments.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
-import type { ReactElement, ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
+import {
+  type ReactElement,
+  type ReactNode,
+  useCallback,
+  useRef,
+  useState,
+} from 'react';
 import { createPortal } from 'react-dom';
 
 type AgentChatPromptBarProps = {
@@ -79,6 +88,13 @@ type AgentChatPromptBarProps = {
   error: string | null;
   isSubmittingInputRequest: boolean;
   latestProposedPlan: AgentProposedPlan | null;
+  /**
+   * A decision on the plan is being sent; Approve and Request changes lock.
+   * Both plan callbacks together turn the prompt bar into the plan's decision.
+   */
+  isPlanReviewBusy?: boolean;
+  onApprovePlan?: () => void | Promise<void>;
+  onRequestPlanChanges?: (revisionNote: string) => void | Promise<void>;
   onClearError: () => void;
   onSubmitInputRequest: (
     answer: string,
@@ -132,6 +148,9 @@ export function AgentChatPromptBar({
   error,
   isSubmittingInputRequest,
   latestProposedPlan,
+  isPlanReviewBusy = false,
+  onApprovePlan,
+  onRequestPlanChanges,
   onClearError,
   onSubmitInputRequest,
   pendingInputRequest,
@@ -141,6 +160,25 @@ export function AgentChatPromptBar({
   onExpandResting,
 }: AgentChatPromptBarProps): ReactElement {
   const composerShell = useConversationComposerShell();
+  const translatePlan = useTranslations('agent.plan');
+  // A plan waiting on a decision turns the prompt bar into its answer: what
+  // is typed here is the requested change, and Approve sits above it.
+  const isPlanDecisionOpen =
+    Boolean(onApprovePlan && onRequestPlanChanges) &&
+    !isReadOnly &&
+    latestProposedPlan?.status === 'awaiting_approval' &&
+    hasProposedPlanBody(latestProposedPlan);
+  const [isDraftEmpty, setIsDraftEmpty] = useState(true);
+  const submitDraftRef = useRef<(() => void) | null>(null);
+  const handleSend = useCallback<AgentChatPromptBarProps['onSend']>(
+    (content, mentions, attachments, options) => {
+      if (isPlanDecisionOpen && onRequestPlanChanges && !isPlanReviewBusy) {
+        return Promise.resolve(onRequestPlanChanges(content)).then(() => true);
+      }
+      return onSend(content, mentions, attachments, options);
+    },
+    [isPlanDecisionOpen, isPlanReviewBusy, onRequestPlanChanges, onSend],
+  );
   const isDockComposer = composerShell?.placement === 'dock';
   const isPortaled = Boolean(composerShell?.portalTarget);
   // Full-page agent threads render the bar as a column footer. Absolute
@@ -201,6 +239,16 @@ export function AgentChatPromptBar({
         />
       ) : null}
       {statusStack}
+      {isPlanDecisionOpen && onApprovePlan ? (
+        <div className="pb-2">
+          <AgentPlanDecisionBar
+            isBusy={isPlanReviewBusy}
+            isDraftEmpty={isDraftEmpty}
+            onApprove={onApprovePlan}
+            onRequestChanges={() => submitDraftRef.current?.()}
+          />
+        </div>
+      ) : null}
       {hasFollowUpChips ? (
         // The row owns no surface or shadow. Each action button owns its own
         // elevation, and the padding keeps it visually separate from composer.
@@ -240,7 +288,9 @@ export function AgentChatPromptBar({
       <AgentChatInput
         agentMode={agentMode}
         onAgentModeChange={onAgentModeChange}
-        onSend={onSend}
+        onSend={handleSend}
+        onDraftEmptyChange={setIsDraftEmpty}
+        submitRef={submitDraftRef}
         // A failure notice is its own compact surface. Preserve the prompt's
         // top radius so the two controls do not read as one fused card.
         isTopAttached={!isReadOnly && hasRunningTasks && !error}
@@ -258,7 +308,9 @@ export function AgentChatPromptBar({
             ? 'Archived threads are read-only'
             : composerShell?.isConsequentiallyBlocked
               ? 'Synchronize the conversation scope before continuing'
-              : placeholder
+              : isPlanDecisionOpen
+                ? translatePlan('revisePlaceholder')
+                : placeholder
         }
         onStop={onStop}
         apiService={apiService}

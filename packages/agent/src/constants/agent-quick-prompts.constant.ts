@@ -3,12 +3,12 @@
  * (`use-agent-page-context`) and the `/` slash palette, so both entry points
  * send the same concrete request.
  *
- * The prompt is explicit enough for the agent to call
- * `generate_turbo_content` without follow-up questions: the window is
- * resolved against the "Current Time" section the client sends as page
- * context (browser timezone), and slots are spaced one hour apart.
+ * Today's tweets run in three beats so the user stays in the loop without
+ * being asked to review a wall of posts: topics from the brand, then drafts
+ * for the topics the user kept, then the posts themselves once the drafts are
+ * accepted. Volume stays small (three), never an hourly batch.
  */
-export const SCHEDULE_TODAYS_TWEETS_LABEL = "Schedule today's tweets";
+export const PLAN_TODAYS_TWEETS_LABEL = "Plan today's tweets";
 
-export const SCHEDULE_TODAYS_TWEETS_PROMPT =
-  "Schedule today's X posts: generate one post per hour for my X account for the rest of today, from the next full hour through 23:00 in my timezone, in a single batch scheduled at those times. Mix tips, opinions and questions, each under 280 characters. Do not ask follow-up questions; if no hours are left today, tell me instead of scheduling into tomorrow.";
+export const PLAN_TODAYS_TWEETS_PROMPT =
+  "Plan today's X posts, three at most. First read my brand context and suggest three topics that fit my brand's voice and audience, as options I can pick from. Wait for my pick. Then write one tweet per topic I kept, each under 280 characters, and show the drafts to me. Only after I accept the drafts, create the posts for my X account.";

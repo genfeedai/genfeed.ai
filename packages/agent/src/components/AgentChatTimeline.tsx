@@ -2,6 +2,7 @@ import {
   AgentChatMessage,
   UiActionRenderer,
 } from '@genfeedai/agent/components/AgentChatMessage';
+import { AgentPlanCard } from '@genfeedai/agent/components/AgentPlanCard';
 import { AgentRunFailureCard } from '@genfeedai/agent/components/AgentRunFailureCard';
 import { AnimatedStatusText } from '@genfeedai/agent/components/AnimatedStatusText';
 import { TimelineStreamingRow } from '@genfeedai/agent/components/TimelineStreamingRow';
@@ -9,6 +10,7 @@ import { TimelineWorkGroup } from '@genfeedai/agent/components/TimelineWorkGroup
 import { AGENT_TIMELINE_DEFERRED_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
 import type {
   AgentChatMessage as AgentChatMessageType,
+  AgentProposedPlan,
   AgentUiAction,
   AgentUiActionHandler,
 } from '@genfeedai/agent/models/agent-chat.model';
@@ -16,17 +18,26 @@ import { AgentWorkEventStatus } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { TimelineEntry } from '@genfeedai/agent/utils/derive-timeline';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
+import { formatWorkDuration } from '@genfeedai/agent/utils/format-work-duration.util';
 import {
+  getTurnWorkDurationMs,
   groupTimelineTurns,
   splitCompletedTimelineTurn,
 } from '@genfeedai/agent/utils/group-timeline-turns.util';
+import { resolvePlanAnchors } from '@genfeedai/agent/utils/resolve-plan-anchors.util';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@ui/primitives/collapsible';
 import { useTranslations } from 'next-intl';
-import { type ReactElement, type RefObject, useMemo } from 'react';
+import {
+  Fragment,
+  type ReactElement,
+  type ReactNode,
+  type RefObject,
+  useMemo,
+} from 'react';
 
 type AgentChatTimelineProps = {
   timeline: TimelineEntry[];
@@ -61,6 +72,11 @@ type AgentChatTimelineProps = {
    * (or a live streaming row) already owns busy chrome (T3 density).
    */
   suppressThinkingPlaceholder?: boolean;
+  /** The thread's current plan; its card sits under the message that proposed it. */
+  latestProposedPlan?: AgentProposedPlan | null;
+  /** Right-aligned actions on the current plan's card. */
+  planActions?: ReactNode;
+  planFooterMessage?: string | null;
 };
 
 export function AgentChatTimeline({
@@ -84,6 +100,9 @@ export function AgentChatTimeline({
   isReadOnly = false,
   hasDockedGenerationCard = false,
   suppressThinkingPlaceholder = true,
+  latestProposedPlan = null,
+  planActions,
+  planFooterMessage = null,
 }: AgentChatTimelineProps): ReactElement {
   const translate = useTranslations('agent.timeline');
   // Only the terminal timeline entry may own the failure card / retry context.
@@ -129,41 +148,70 @@ export function AgentChatTimeline({
       ? retryableUserEntry.message.id
       : null;
 
+  const planAnchors = useMemo(
+    () => resolvePlanAnchors(timeline, latestProposedPlan),
+    [latestProposedPlan, timeline],
+  );
+  const renderPlanCard = (plan: AgentProposedPlan): ReactElement => {
+    const isCurrentPlan = plan.id === latestProposedPlan?.id;
+    return (
+      <AgentPlanCard
+        actions={isCurrentPlan ? planActions : undefined}
+        footerMessage={isCurrentPlan ? planFooterMessage : null}
+        plan={plan}
+      />
+    );
+  };
+
   const renderTimelineEntry = (
     entry: TimelineEntry,
     index: number,
     isLiveTurn = false,
+    isEmbedded = false,
   ): ReactElement | null => {
     switch (entry.kind) {
       case 'user-message':
-      case 'assistant-message':
+      case 'assistant-message': {
+        const anchoredPlan =
+          entry.kind === 'assistant-message'
+            ? planAnchors.byMessageId.get(entry.message.id)
+            : undefined;
         return (
-          <AgentChatMessage
+          <Fragment key={entry.id}>
+            <AgentChatMessage
+              messageIndex={index}
+              message={entry.message}
+              messageAnchorId={`agent-message-${entry.message.id}`}
+              isHighlighted={highlightedMessageId === entry.message.id}
+              isRetryableUserPrompt={
+                entry.kind === 'user-message' &&
+                entry.message.id === retryableUserMessageId
+              }
+              isBusy={isBusy}
+              deferNextSteps={isLiveTurn}
+              isReadOnly={isReadOnly}
+              apiService={apiService}
+              onCopy={onCopy}
+              onRetry={onRetry}
+              onRegenerate={onRegenerate}
+              onOAuthConnect={onOAuthConnect}
+              onBrandCreate={onBrandCreate}
+              onOpenInStudio={onOpenInStudio}
+              onSelectIngredient={onSelectIngredient}
+              onUiAction={onUiAction}
+            />
+            {anchoredPlan ? renderPlanCard(anchoredPlan) : null}
+          </Fragment>
+        );
+      }
+      case 'work-group':
+        return (
+          <TimelineWorkGroup
             key={entry.id}
-            messageIndex={index}
-            message={entry.message}
-            messageAnchorId={`agent-message-${entry.message.id}`}
-            isHighlighted={highlightedMessageId === entry.message.id}
-            isRetryableUserPrompt={
-              entry.kind === 'user-message' &&
-              entry.message.id === retryableUserMessageId
-            }
-            isBusy={isBusy}
-            deferNextSteps={isLiveTurn}
-            isReadOnly={isReadOnly}
-            apiService={apiService}
-            onCopy={onCopy}
-            onRetry={onRetry}
-            onRegenerate={onRegenerate}
-            onOAuthConnect={onOAuthConnect}
-            onBrandCreate={onBrandCreate}
-            onOpenInStudio={onOpenInStudio}
-            onSelectIngredient={onSelectIngredient}
-            onUiAction={onUiAction}
+            entry={entry}
+            isEmbedded={isEmbedded}
           />
         );
-      case 'work-group':
-        return <TimelineWorkGroup key={entry.id} entry={entry} />;
       case 'streaming':
         return <TimelineStreamingRow key={entry.id} entry={entry} />;
       default:
@@ -189,38 +237,72 @@ export function AgentChatTimeline({
             entry.kind === 'assistant-message' &&
             entry.message.id === highlightedMessageId,
         );
-        const renderItem = ({ entry, index }: (typeof turn.items)[number]) =>
+        const renderItem = (
+          { entry, index }: (typeof turn.items)[number],
+          isEmbedded = false,
+        ) =>
           entry.kind === 'user-message' ? (
             renderTimelineEntry(entry, index, isLiveTurn)
           ) : (
             <div className={AGENT_TIMELINE_DEFERRED_CLASS} key={entry.id}>
-              {renderTimelineEntry(entry, index, isLiveTurn)}
+              {renderTimelineEntry(entry, index, isLiveTurn, isEmbedded)}
             </div>
           );
+        // A settled turn folds into one "Worked for …" disclosure: the steps
+        // and the model's thinking live inside it, the result stays outside.
+        const reasoning = isLiveTurn
+          ? ''
+          : turn.items
+              .flatMap(({ entry }) =>
+                entry.kind === 'assistant-message' &&
+                entry.message.metadata?.reasoning?.trim()
+                  ? [entry.message.metadata.reasoning.trim()]
+                  : [],
+              )
+              .join('\n\n');
+        const turnDurationMs = getTurnWorkDurationMs(turn);
+        const workedFor =
+          turnDurationMs != null && turnDurationMs >= 1000
+            ? formatWorkDuration(turnDurationMs)
+            : null;
         return (
           <div className="relative" key={turn.id}>
             {visible
               .filter(({ entry }) => entry.kind === 'user-message')
-              .map(renderItem)}
-            {activity.length > 0 ? (
+              .map((item) => renderItem(item))}
+            {activity.length > 0 || reasoning ? (
               <Collapsible
                 key={isActivityHighlighted ? 'highlighted' : 'settled'}
                 defaultOpen={isActivityHighlighted}
               >
                 <CollapsibleTrigger className="w-auto gap-2 py-2 text-xs text-muted-foreground">
-                  {translate('steps')}
+                  {workedFor
+                    ? translate('workedFor', { duration: workedFor })
+                    : translate('worked')}
                 </CollapsibleTrigger>
                 <CollapsibleContent>
-                  {activity.map(renderItem)}
+                  {reasoning ? (
+                    <div className="py-1">
+                      <p className="text-2xs font-medium uppercase tracking-wide text-muted-foreground">
+                        {translate('thinking')}
+                      </p>
+                      <p className="mt-1 whitespace-pre-wrap break-words text-xs leading-5 text-muted-foreground">
+                        {reasoning}
+                      </p>
+                    </div>
+                  ) : null}
+                  {activity.map((item) => renderItem(item, true))}
                 </CollapsibleContent>
               </Collapsible>
             ) : null}
             {visible
               .filter(({ entry }) => entry.kind !== 'user-message')
-              .map(renderItem)}
+              .map((item) => renderItem(item))}
           </div>
         );
       })}
+
+      {planAnchors.trailing ? renderPlanCard(planAnchors.trailing) : null}
 
       {isTerminalFailedRunWithoutAssistant && !hasDockedGenerationCard ? (
         <AgentRunFailureCard
