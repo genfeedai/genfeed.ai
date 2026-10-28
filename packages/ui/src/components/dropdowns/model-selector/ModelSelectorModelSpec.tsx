@@ -103,7 +103,7 @@ const ModelSelectorModelSpec = memo(function ModelSelectorModelSpec({
             return (
               <span
                 key={capability.id}
-                className="flex items-center gap-1 rounded-full border border-border bg-background-tertiary px-1.5 py-0.5 text-2xs font-medium text-foreground/70"
+                className="flex items-center gap-1 rounded-full border border-border bg-tertiary px-1.5 py-0.5 text-2xs font-medium text-foreground/70"
               >
                 <CapabilityIcon className="size-3" aria-hidden />
                 {capability.label}

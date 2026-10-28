@@ -433,7 +433,7 @@ export default function AppTable<T>({
                 !enableDragScroll && 'sticky',
                 hasPinnedHeader
                   ? 'z-20 bg-background'
-                  : 'top-0 z-10 bg-background-secondary/60',
+                  : 'top-0 z-10 bg-card/60',
                 hideHeader && 'sr-only',
               )}
               style={
@@ -575,7 +575,7 @@ export default function AppTable<T>({
                     ) : null}
                     <tr
                       className={cn(
-                        'group transition-colors duration-200 odd:bg-background-secondary/50 hover:bg-accent/60',
+                        'group transition-colors duration-200 odd:bg-card/50 hover:bg-accent/60',
                         (isSelected || isSidebarRow) && 'bg-accent',
                         // A linked row positions the overlay anchor below; the
                         // click affordance comes from the anchor, not the row.
@@ -783,7 +783,7 @@ export default function AppTable<T>({
                       )}
                     </tr>
                     {expandedContent === undefined ? null : (
-                      <tr className="bg-background-secondary/50">
+                      <tr className="bg-card/50">
                         <td
                           className="px-4 pb-4 align-top"
                           colSpan={

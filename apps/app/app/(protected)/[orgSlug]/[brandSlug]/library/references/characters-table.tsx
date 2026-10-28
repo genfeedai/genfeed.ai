@@ -64,7 +64,7 @@ export default function CharactersTable({
                 size={40}
               />
             ) : (
-              <span className="flex size-10 items-center justify-center rounded bg-background-tertiary text-muted-foreground">
+              <span className="flex size-10 items-center justify-center rounded bg-tertiary text-muted-foreground">
                 <UserRound className="size-4" />
               </span>
             )}

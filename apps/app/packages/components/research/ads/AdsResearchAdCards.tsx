@@ -65,7 +65,7 @@ export function AdGridCard({
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3">
-            <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-md border border-border bg-background-tertiary text-muted-foreground">
+            <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-md border border-border bg-tertiary text-muted-foreground">
               <Megaphone className="size-4" />
             </div>
 
@@ -92,7 +92,7 @@ export function AdGridCard({
             </div>
           </div>
 
-          <div className="rounded-md bg-background-tertiary px-3 py-2 text-right">
+          <div className="rounded-md bg-tertiary px-3 py-2 text-right">
             <div className="text-2xs uppercase tracking-[0.18em] text-muted-foreground">
               {getMetricLabel(metric)}
             </div>

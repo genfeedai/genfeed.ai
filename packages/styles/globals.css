@@ -25,13 +25,9 @@
   --color-surface: rgb(var(--surface));
   --color-fill: rgb(var(--fill));
   --color-edge: rgb(var(--edge));
-  --color-inv: rgb(var(--inv));
-  --color-inv-fg: rgb(var(--inv-fg));
 
   /* shadcn/ui color tokens — maps CSS vars from shadcn-theme to Tailwind v4 utilities */
   --color-background: hsl(var(--background));
-  --color-background-secondary: hsl(var(--background-secondary));
-  --color-background-tertiary: hsl(var(--background-tertiary));
   --color-foreground: hsl(var(--foreground));
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
@@ -134,10 +130,6 @@
   --color-gray-alpha-900: var(--gray-alpha-900);
   --color-gray-alpha-1000: var(--gray-alpha-1000);
 
-  /* Two-step canvas: 100 is the page, 200 the raised content plane. */
-  --color-background-100: hsl(var(--background-100));
-  --color-background-200: hsl(var(--background-200));
-
   /* Surfaces that DESIGN.md names without a shadcn counterpart. */
   --color-tertiary: hsl(var(--background-tertiary));
   --color-elevated: hsl(var(--popover));
@@ -145,9 +137,7 @@
 
   --color-border-strong: hsl(var(--border-strong));
   --color-accent-hover: var(--accent-hover);
-  --color-danger: hsl(var(--destructive));
   --color-agent: var(--agent);
-  --color-done: var(--done);
 
   /* 11px is the hard floor for product type: below it Satoshi's low x-height
      stops resolving at 1x. `text-2xs` replaces every text-[10px] / text-[11px]
@@ -167,7 +157,6 @@
   --shadow-sm: var(--shadow-sm);
   --shadow-md: var(--shadow-md);
   --shadow-lg: var(--shadow-lg);
-  --shadow-sidebar-footer: var(--shadow-sidebar-footer);
 
   /* Control + icon rhythm (32 / 36 / 40 and 14 / 16 / 20). Every control that
      sits on a toolbar row should pick one of these instead of a bare h-[34px]. */

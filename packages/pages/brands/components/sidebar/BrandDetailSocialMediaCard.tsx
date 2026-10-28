@@ -102,7 +102,7 @@ function ConnectedAccount({
   const className = `flex min-w-0 items-center gap-3 rounded-md px-3 py-2 shadow-border transition-colors ${
     isSelected
       ? 'bg-background ring-1 ring-primary/40'
-      : 'bg-background-secondary hover:bg-background'
+      : 'bg-card hover:bg-background'
   }`;
 
   const profileLink = connection.url ? (
@@ -893,7 +893,7 @@ export default function BrandDetailSocialMediaCard({
             ))}
           </div>
         ) : (
-          <div className="rounded-md bg-background-secondary/50 px-3 py-3 text-xs text-muted-foreground">
+          <div className="rounded-md bg-card/50 px-3 py-3 text-xs text-muted-foreground">
             {translate('empty')}
           </div>
         )}

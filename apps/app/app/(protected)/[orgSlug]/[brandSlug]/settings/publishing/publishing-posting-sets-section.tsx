@@ -209,7 +209,7 @@ export default function PublishingPostingSetsSection({
             return (
               <div
                 key={postingSet.id}
-                className="space-y-3 rounded-card bg-background-secondary/40 p-4 shadow-border"
+                className="space-y-3 rounded-card bg-card/40 p-4 shadow-border"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>

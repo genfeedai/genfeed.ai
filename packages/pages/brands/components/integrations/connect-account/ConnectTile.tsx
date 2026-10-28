@@ -66,9 +66,9 @@ export default function ConnectTile({
   return (
     <Button
       className={cn(
-        'group flex w-full flex-col gap-3 rounded-xl bg-background-secondary p-3 text-left shadow-border transition-colors',
+        'group flex w-full flex-col gap-3 rounded-xl bg-card p-3 text-left shadow-border transition-colors',
         'hover:bg-hover focus-visible:ring-2 focus-visible:ring-ring',
-        'disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-background-secondary',
+        'disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-card',
       )}
       isDisabled={!item.isConnectAvailable || connectingPlatform !== null}
       onClick={() => onConnect(item)}
@@ -77,7 +77,7 @@ export default function ConnectTile({
       withWrapper={false}
     >
       <span className="flex items-center justify-between gap-2">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-background-tertiary">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-tertiary">
           <Icon className={cn('size-4', item.iconClassName)} />
         </span>
         {trailing}

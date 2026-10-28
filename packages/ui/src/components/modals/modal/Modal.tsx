@@ -114,7 +114,7 @@ export default function Modal({
 
             {error && (
               <div
-                className="mt-4 flex items-center gap-3 rounded-lg border border-border bg-background-secondary px-4 py-3 text-sm font-medium text-foreground"
+                className="mt-4 flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 text-sm font-medium text-foreground"
                 role={isError ? 'alert' : undefined}
               >
                 <TriangleAlert

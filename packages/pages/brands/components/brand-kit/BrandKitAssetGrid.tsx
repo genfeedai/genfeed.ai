@@ -18,7 +18,7 @@ export default function BrandKitAssetGrid({
 }: BrandKitAssetGridProps) {
   if (assets.length === 0) {
     return (
-      <div className="min-h-12 rounded-md bg-background-secondary p-2 text-xs text-muted-foreground">
+      <div className="min-h-12 rounded-md bg-card p-2 text-xs text-muted-foreground">
         {emptyLabel}
       </div>
     );

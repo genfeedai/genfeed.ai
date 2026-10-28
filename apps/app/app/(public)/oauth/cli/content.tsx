@@ -616,7 +616,7 @@ function CliAuthPageContent() {
     <AuthFormLayout>
       <div className="w-full max-w-md mx-auto">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center size-12 rounded-xl bg-background-tertiary border border-border mb-5">
+          <div className="inline-flex items-center justify-center size-12 rounded-xl bg-tertiary border border-border mb-5">
             <Terminal className="size-5 text-muted-foreground" />
           </div>
           <h1 className="text-xl font-semibold tracking-tight mb-1.5 text-balance">
@@ -667,7 +667,7 @@ function CliAuthPageContent() {
                 />
                 {user?.primaryEmailAddress?.emailAddress && (
                   <div className="text-center">
-                    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-background-tertiary border border-border text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-tertiary border border-border text-xs text-muted-foreground">
                       {translate('requesting.signedInAs', {
                         email: user.primaryEmailAddress.emailAddress,
                       })}

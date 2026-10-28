@@ -196,7 +196,7 @@ export default function ReleaseEngagementRules({
       {rules.map((rule) => (
         <div
           key={rule.id}
-          className="space-y-2 rounded-card bg-background-secondary/40 p-3"
+          className="space-y-2 rounded-card bg-card/40 p-3"
         >
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">{metricLabel(rule.metric)}</Badge>

@@ -174,16 +174,9 @@
   cursor: pointer;
 
   &:hover {
-    border-color: var(--overlay-white-20);
+    border-color: var(--gray-alpha-500);
     transform: scale(1.05);
     z-index: 60;
-  }
-
-  :root[data-theme="light"] &,
-  .light & {
-    &:hover {
-      border-color: var(--overlay-black-20);
-    }
   }
 }
 

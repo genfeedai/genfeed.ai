@@ -234,7 +234,7 @@ describe('Table', () => {
     expect(head).toHaveClass(
       'border-b',
       'border-border',
-      'bg-background-secondary/60',
+      'bg-card/60',
     );
     expect(body).toHaveClass('divide-y', 'divide-border');
     expect(container.querySelector('thead tr')).not.toHaveClass('border-b');

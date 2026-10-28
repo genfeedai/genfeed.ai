@@ -88,7 +88,7 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
           aria-disabled={isLocked || undefined}
           className={cn(
             'flex min-h-9 cursor-pointer items-center gap-2 rounded-sm px-1.5 py-0.5 text-xs text-foreground transition-colors data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground',
-            isSelected && 'bg-background-tertiary',
+            isSelected && 'bg-tertiary',
             isLocked && 'cursor-not-allowed opacity-50',
           )}
         >

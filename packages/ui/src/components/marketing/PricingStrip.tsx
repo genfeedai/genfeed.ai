@@ -31,7 +31,7 @@ export default function PricingStrip({
     <div
       className={cn(
         'mb-12 border',
-        inverted ? 'border-inv-fg/10' : 'border-edge/5',
+        inverted ? 'border-primary-foreground/10' : 'border-edge/5',
         className,
       )}
     >
@@ -44,13 +44,13 @@ export default function PricingStrip({
               key={column.label}
               className={cn(
                 'px-6 py-5 text-center',
-                isFeatured && (inverted ? 'bg-inv-fg/[0.03]' : 'bg-fill/5'),
+                isFeatured && (inverted ? 'bg-primary-foreground/[0.03]' : 'bg-fill/5'),
               )}
             >
               <div
                 className={cn(
                   'mb-2 flex items-center justify-center gap-2 text-2xs font-black uppercase tracking-widest',
-                  inverted ? 'text-inv-fg/30' : 'text-surface/30',
+                  inverted ? 'text-primary-foreground/30' : 'text-surface/30',
                 )}
               >
                 {column.subtitle}
@@ -58,7 +58,7 @@ export default function PricingStrip({
                   <span
                     className={cn(
                       'text-2xs font-bold',
-                      inverted ? 'text-inv-fg/50' : 'text-surface/50',
+                      inverted ? 'text-primary-foreground/50' : 'text-surface/50',
                     )}
                   >
                     ★ Popular
@@ -69,7 +69,7 @@ export default function PricingStrip({
               <div
                 className={cn(
                   'text-2xl font-serif',
-                  inverted ? 'text-inv-fg' : 'text-surface',
+                  inverted ? 'text-primary-foreground' : 'text-surface',
                 )}
               >
                 {column.price}
@@ -78,7 +78,7 @@ export default function PricingStrip({
               <div
                 className={cn(
                   'mt-1 text-xs',
-                  inverted ? 'text-inv-fg/40' : 'text-surface/40',
+                  inverted ? 'text-primary-foreground/40' : 'text-surface/40',
                 )}
               >
                 {column.label}
@@ -91,7 +91,7 @@ export default function PricingStrip({
       <div
         className={cn(
           'border-t py-3 text-center',
-          inverted ? 'border-inv-fg/10' : 'border-edge/5',
+          inverted ? 'border-primary-foreground/10' : 'border-edge/5',
         )}
       >
         <Link
@@ -99,7 +99,7 @@ export default function PricingStrip({
           className={cn(
             'inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest transition-[gap,color] hover:gap-3',
             inverted
-              ? 'text-inv-fg/50 hover:text-inv-fg/70'
+              ? 'text-primary-foreground/50 hover:text-primary-foreground/70'
               : 'text-surface/40 hover:text-surface/60',
           )}
         >

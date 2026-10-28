@@ -653,7 +653,7 @@ export default function FollowSourceModal({
                         <div
                           className={[
                             'flex w-full items-start gap-3 rounded-card border border-border px-3 py-3 text-left opacity-80',
-                            'bg-background-secondary/40',
+                            'bg-card/40',
                           ].join(' ')}
                         >
                           {rowBody}

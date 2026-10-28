@@ -178,7 +178,7 @@ export default function ClipperResultCard({
 
   return (
     <Card
-      className="group h-full transition-colors hover:bg-background-secondary"
+      className="group h-full transition-colors hover:bg-card"
       bodyClassName="h-full gap-0 p-4"
     >
       {/* Header */}

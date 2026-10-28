@@ -2,17 +2,13 @@ import { semanticColorTokens } from '@ui/core/colors';
 import { elevationTokens, focusTokens } from '@ui/core/elevation';
 import { motionTokens } from '@ui/core/motion';
 import { radiusTokens } from '@ui/core/radius';
-import {
-  backgroundScale,
-  neutralAlphaScale,
-  neutralScale,
-} from '@ui/core/scales';
+import { neutralAlphaScale, neutralScale } from '@ui/core/scales';
 import { sizingTokens } from '@ui/core/sizing';
 import { spacingTokens } from '@ui/core/spacing';
 import { typographyTokens } from '@ui/core/typography';
 
-/** `invFg` is the one role whose CSS name is not a plain kebab-case of the key. */
-const RGB_TRIPLE_ROLES = new Set(['surface', 'fill', 'edge', 'inv', 'invFg']);
+/** Roles emitted as RGB triples so Tailwind alpha modifiers can composite them. */
+const RGB_TRIPLE_ROLES = new Set(['surface', 'fill', 'edge']);
 
 function kebab(tokenName: string): string {
   return tokenName.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
@@ -27,11 +23,7 @@ function themedVariables(theme: 'light' | 'dark', indent: string): string {
   const semanticEntries = Object.entries(semanticColorTokens[theme]).map(
     ([tokenName, value]) =>
       declaration(
-        RGB_TRIPLE_ROLES.has(tokenName)
-          ? tokenName === 'invFg'
-            ? 'inv-fg'
-            : tokenName
-          : kebab(tokenName),
+        RGB_TRIPLE_ROLES.has(tokenName) ? tokenName : kebab(tokenName),
         value.hsl,
         indent,
       ),
@@ -43,9 +35,6 @@ function themedVariables(theme: 'light' | 'dark', indent: string): string {
   const alphaScaleEntries = Object.entries(neutralAlphaScale[theme]).map(
     ([step, value]) => declaration(`gray-alpha-${step}`, value, indent),
   );
-  const backgroundScaleEntries = Object.entries(backgroundScale[theme]).map(
-    ([step, value]) => declaration(`background-${step}`, value.hsl, indent),
-  );
   const elevationEntries = Object.entries(elevationTokens[theme]).map(
     ([tokenName, value]) => declaration(kebab(tokenName), value, indent),
   );
@@ -54,7 +43,6 @@ function themedVariables(theme: 'light' | 'dark', indent: string): string {
     ...semanticEntries,
     ...scaleEntries,
     ...alphaScaleEntries,
-    ...backgroundScaleEntries,
     ...elevationEntries,
   ].join('\n');
 }

@@ -17,7 +17,6 @@ import {
 import { motionTokens } from '../packages/ui/src/core/motion';
 import { radiusTokens } from '../packages/ui/src/core/radius';
 import {
-  backgroundScale,
   neutralAlphaScale,
   neutralScale,
 } from '../packages/ui/src/core/scales';
@@ -75,10 +74,6 @@ function readRepoFile(filePath: string): string {
 }
 
 function cssName(tokenName: string): string {
-  if (tokenName === 'invFg') {
-    return 'inv-fg';
-  }
-
   return tokenName.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
 }
 
@@ -754,15 +749,6 @@ function checkWebTokenDrift(failures: string[]): void {
       assertContains(
         webTokens,
         `--gray-alpha-${step}: ${value};`,
-        failures,
-        'packages/ui/web-tokens.css',
-      );
-    }
-
-    for (const [step, value] of Object.entries(backgroundScale[theme])) {
-      assertContains(
-        webTokens,
-        `--background-${step}: ${value.hsl};`,
         failures,
         'packages/ui/web-tokens.css',
       );

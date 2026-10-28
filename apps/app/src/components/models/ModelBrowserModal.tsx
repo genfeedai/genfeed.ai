@@ -59,7 +59,7 @@ function ModelTile({
   return (
     <Button
       aria-pressed={isSelected}
-      className="h-auto w-full justify-start rounded-xl bg-background-secondary p-3 text-left shadow-border"
+      className="h-auto w-full justify-start rounded-xl bg-card p-3 text-left shadow-border"
       onClick={() => onSelect(model)}
       textTransform="none"
       variant={ButtonVariant.UNSTYLED}

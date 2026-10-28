@@ -183,7 +183,7 @@ export default function GenerationSetupModelSection({
                   <CommandItem
                     className={cn(
                       'flex min-h-7 cursor-pointer items-center gap-2 px-1.5 py-0.5 text-xs text-foreground data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground',
-                      isRowSelected && 'bg-background-tertiary',
+                      isRowSelected && 'bg-tertiary',
                     )}
                     disabled={isDisabled}
                     key={priorityOption}

@@ -74,7 +74,7 @@ function NewsletterPreview({
   return (
     <article
       aria-label="Newsletter reader preview"
-      className="overflow-hidden rounded-lg bg-background-secondary shadow-border"
+      className="overflow-hidden rounded-lg bg-card shadow-border"
     >
       <header className="space-y-2 border-b border-border px-4 py-3">
         <div className="flex items-center gap-2 text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
@@ -147,7 +147,7 @@ function ArtifactPreviewBody({
   return (
     <article
       aria-label="Text artifact preview"
-      className="rounded-lg bg-background-secondary p-4 shadow-border"
+      className="rounded-lg bg-card p-4 shadow-border"
     >
       <SafeMarkdown
         className="max-w-none text-sm leading-7 text-foreground/88"

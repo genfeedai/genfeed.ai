@@ -22,7 +22,7 @@ export default function ClipperProjectCard({
 
   return (
     <Card className="h-full" data-testid="clipper-project-card">
-      <div className="relative mb-3 aspect-video overflow-hidden bg-background-secondary">
+      <div className="relative mb-3 aspect-video overflow-hidden bg-card">
         {thumbnailUrl ? (
           <Image
             src={thumbnailUrl}

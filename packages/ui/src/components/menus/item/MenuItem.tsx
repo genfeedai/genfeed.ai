@@ -71,7 +71,7 @@ export default function MenuItem({
               : 'text-muted-foreground group-hover:text-foreground/78',
           ]
         : [
-            'size-8 rounded border border-border bg-background-secondary text-foreground/78',
+            'size-8 rounded border border-border bg-card text-foreground/78',
             'group-hover:border-foreground/[0.14] group-hover:bg-foreground/[0.07] group-hover:text-foreground',
             isActive &&
               'border-foreground/[0.14] bg-foreground text-background',

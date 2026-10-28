@@ -163,7 +163,7 @@ export default function SuccessContent() {
                 className={`inline-flex items-center gap-2 px-4 py-2 border text-sm transition-colors ${
                   isSelected
                     ? 'ring-1 ring-border-strong bg-hover text-foreground border-transparent'
-                    : 'border-border bg-background-tertiary text-muted-foreground hover:border-border-strong'
+                    : 'border-border bg-tertiary text-muted-foreground hover:border-border-strong'
                 }`}
               >
                 <Icon className="size-4" />

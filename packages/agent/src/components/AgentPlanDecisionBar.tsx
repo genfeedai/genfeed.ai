@@ -28,7 +28,7 @@ export function AgentPlanDecisionBar({
   return (
     <div
       aria-label={translate('decisionLabel')}
-      className="flex min-w-0 items-center gap-2 rounded-lg border bg-background-secondary/95 px-2.5 py-1.5 shadow-sm backdrop-blur-sm"
+      className="flex min-w-0 items-center gap-2 rounded-lg border bg-card/95 px-2.5 py-1.5 shadow-sm backdrop-blur-sm"
       data-testid="agent-plan-decision"
       role="group"
     >

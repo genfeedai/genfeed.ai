@@ -137,7 +137,7 @@ export function ContentLibraryPicker({
                       onSelect(item);
                     }}
                     className={cn(
-                      'group flex flex-col overflow-hidden rounded-lg border border-border bg-background-secondary text-left transition-colors',
+                      'group flex flex-col overflow-hidden rounded-lg border border-border bg-card text-left transition-colors',
                       isSelected
                         ? 'opacity-50'
                         : 'hover:border-primary/40 hover:bg-foreground/[0.04]',

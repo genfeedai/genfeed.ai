@@ -646,7 +646,7 @@ export default function BrandDetailManualKitCard({
           />
         </div>
 
-        <div className="rounded-md bg-background-secondary p-3 text-sm shadow-border">
+        <div className="rounded-md bg-card p-3 text-sm shadow-border">
           <div className="flex items-center justify-between gap-3">
             <span className="font-medium">Attached assets</span>
             <span className="text-muted-foreground">{attachedAssetCount}</span>
@@ -684,7 +684,7 @@ export default function BrandDetailManualKitCard({
 
         {draft ? (
           <div
-            className="space-y-3 rounded-md bg-background-secondary p-3 shadow-border"
+            className="space-y-3 rounded-md bg-card p-3 shadow-border"
             data-testid="manual-kit-draft-review"
           >
             <div className="flex items-center justify-between gap-3">
@@ -705,7 +705,7 @@ export default function BrandDetailManualKitCard({
                 }
 
                 return (
-                  // The draft panel is already `bg-background-secondary`; a row
+                  // The draft panel is already `bg-card`; a row
                   // painted the same colour reads as one flat block separated
                   // only by `shadow-border`. Step it back down to the base
                   // surface so each selectable field is legible as its own row.

@@ -127,7 +127,7 @@ export function AgentWorkObjectEditor({
   return (
     <div
       ref={rootRef}
-      className="my-3 min-w-0 space-y-3 rounded-lg border border-border bg-background-secondary p-3"
+      className="my-3 min-w-0 space-y-3 rounded-lg border border-border bg-card p-3"
       data-work-object-viewed={object.viewedInSession}
       data-work-object-id={object.id}
     >

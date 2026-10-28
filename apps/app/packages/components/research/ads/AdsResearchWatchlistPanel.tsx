@@ -106,7 +106,7 @@ function AdvertiserRow({
   const lastRun = advertiser.lastSuccessfulAt || advertiser.lastAttemptedAt;
 
   return (
-    <li className="flex items-center justify-between gap-3 rounded-md bg-background-tertiary px-3 py-2">
+    <li className="flex items-center justify-between gap-3 rounded-md bg-tertiary px-3 py-2">
       <div className="min-w-0 space-y-0.5">
         <div className="truncate text-sm font-medium text-foreground">
           {advertiser.advertiserName || advertiser.advertiserHandle}

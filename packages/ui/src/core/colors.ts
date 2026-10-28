@@ -51,8 +51,6 @@ export const semanticColorRoles = [
   'surface',
   'fill',
   'edge',
-  'inv',
-  'invFg',
 ] as const;
 
 export type SemanticColorRole = (typeof semanticColorRoles)[number];
@@ -92,8 +90,6 @@ export const semanticColorTokens = {
     info: { hex: '#52A8FF', hsl: '210 100% 66%' },
     infoForeground: { hex: '#0A0A0A', hsl: '0 0% 4%' },
     input: { hex: '#333333', hsl: '0 0% 20%' },
-    inv: { hex: '#EDEDED', hsl: '237 237 237' },
-    invFg: { hex: '#0A0A0A', hsl: '10 10 10' },
     muted: { hex: '#0A0A0A', hsl: '0 0% 4%' },
     // gray-900 — 7.66:1, comfortably past AAA for body copy.
     mutedForeground: { hex: '#A1A1A1', hsl: '0 0% 63%' },
@@ -133,8 +129,6 @@ export const semanticColorTokens = {
     info: { hex: '#0060DF', hsl: '214 100% 44%' },
     infoForeground: { hex: '#FFFFFF', hsl: '0 0% 100%' },
     input: { hex: '#D9D9D9', hsl: '0 0% 85%' },
-    inv: { hex: '#171717', hsl: '23 23 23' },
-    invFg: { hex: '#FAFAFA', hsl: '250 250 250' },
     muted: { hex: '#F5F5F5', hsl: '0 0% 96%' },
     // gray-900 — 7.49:1. The old #707070 sat at 4.74:1, barely legal.
     mutedForeground: { hex: '#525252', hsl: '0 0% 32%' },

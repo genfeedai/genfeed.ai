@@ -83,7 +83,7 @@ function SettingsToggleRow({
   onCheckedChange: (checked: boolean) => void;
 }): ReactNode {
   return (
-    <div className="flex items-start justify-between gap-4 rounded-card bg-background-secondary/40 px-4 py-3 shadow-border">
+    <div className="flex items-start justify-between gap-4 rounded-card bg-card/40 px-4 py-3 shadow-border">
       <div className="min-w-0 space-y-1">
         <p className="text-sm font-medium text-foreground">{label}</p>
         <p className="text-xs leading-5 text-muted-foreground">{description}</p>
@@ -636,7 +636,7 @@ export default function BrandSettingsPublishingPage() {
                 return (
                   <div
                     key={credential.id}
-                    className="rounded-card bg-background-secondary p-4 shadow-border"
+                    className="rounded-card bg-card p-4 shadow-border"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
@@ -668,7 +668,7 @@ export default function BrandSettingsPublishingPage() {
               return (
                 <div
                   key={credential.id}
-                  className="rounded-card bg-background-secondary p-4 shadow-border"
+                  className="rounded-card bg-card p-4 shadow-border"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>

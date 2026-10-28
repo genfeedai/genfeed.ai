@@ -228,7 +228,7 @@ export function WorkflowScheduleDialog({
               </div>
             ) : null}
 
-            <div className="flex items-start justify-between gap-4 rounded-card bg-background-secondary/40 px-4 py-3 shadow-border">
+            <div className="flex items-start justify-between gap-4 rounded-card bg-card/40 px-4 py-3 shadow-border">
               <div className="min-w-0 space-y-1">
                 <p className="text-sm font-medium text-foreground">
                   {translate('recurring.title')}

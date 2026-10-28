@@ -16,7 +16,7 @@ type AgentProfileSummaryCardProps = {
 
 function SummaryItem({ label, value }: SummaryItemData) {
   return (
-    <div className="rounded-md bg-background-secondary/50 px-3 py-2.5">
+    <div className="rounded-md bg-card/50 px-3 py-2.5">
       <p className="text-2xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
         {label}
       </p>

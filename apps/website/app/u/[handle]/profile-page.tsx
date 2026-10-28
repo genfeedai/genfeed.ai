@@ -71,7 +71,7 @@ function ProfileContent({
         {brand.logoUrl && (
           <div
             className={cn(
-              'size-24 rounded-full overflow-hidden flex-shrink-0 ring-4 ring-inv/50 bg-zinc-950',
+              'size-24 rounded-full overflow-hidden flex-shrink-0 ring-4 ring-primary/50 bg-zinc-950',
               brand.bannerUrl
                 ? 'absolute left-1/2 -translate-x-1/2 -bottom-12'
                 : 'mx-auto',

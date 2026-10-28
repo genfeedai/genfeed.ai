@@ -55,7 +55,7 @@ export function AgentPlanCard({
   return (
     <section
       aria-label={translate('title')}
-      className="my-3 min-w-0 rounded-lg border border-border bg-background-secondary p-4"
+      className="my-3 min-w-0 rounded-lg border border-border bg-card p-4"
       data-testid="agent-plan-card"
     >
       <div className="flex items-center justify-between gap-3">

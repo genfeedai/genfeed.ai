@@ -20,7 +20,7 @@ export default function ExpertStepHeader({
 
   return (
     <div className="max-w-2xl space-y-4">
-      <div className="inline-flex items-center gap-2 rounded-full border border-border bg-background-tertiary px-4 py-1.5 text-2xs font-black uppercase tracking-[0.2em] text-muted-foreground">
+      <div className="inline-flex items-center gap-2 rounded-full border border-border bg-tertiary px-4 py-1.5 text-2xs font-black uppercase tracking-[0.2em] text-muted-foreground">
         <GraduationCap className="size-3" />
         {translate('badge', { current, total })}
       </div>

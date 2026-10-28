@@ -88,7 +88,7 @@ function StatusPill({ status }: { status: string }) {
     <span
       className={cn(
         'inline-flex items-center rounded px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider',
-        STATUS_STYLES[status] ?? 'bg-background-tertiary text-muted-foreground',
+        STATUS_STYLES[status] ?? 'bg-tertiary text-muted-foreground',
       )}
     >
       {STATUS_LABELS[status] ?? status}
@@ -132,7 +132,7 @@ function MessageBubble({
           'max-w-[78%] rounded border px-3 py-2',
           isOutbound
             ? 'border-primary/20 bg-primary/10 text-foreground'
-            : 'border-border bg-background-tertiary text-foreground',
+            : 'border-border bg-tertiary text-foreground',
         )}
       >
         <div className="mb-1 flex items-center gap-2 text-2xs uppercase tracking-wider text-muted-foreground">
@@ -627,7 +627,7 @@ export default function MessagesPage() {
         <div
           role="status"
           data-testid="messages-module-notice"
-          className="mx-4 mt-3 shrink-0 rounded border border-border bg-background-secondary px-3 py-2 text-sm"
+          className="mx-4 mt-3 shrink-0 rounded border border-border bg-card px-3 py-2 text-sm"
         >
           <p>{writeBlockedReason}</p>
           {blockedHelp ? (
@@ -839,7 +839,7 @@ export default function MessagesPage() {
 
               {isReadOnly ? (
                 <div
-                  className="flex shrink-0 items-center gap-3 border-t border-border bg-background-secondary px-5 py-4"
+                  className="flex shrink-0 items-center gap-3 border-t border-border bg-card px-5 py-4"
                   data-testid="messages-read-only-notice"
                 >
                   <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-warning/10 text-warning ring-1 ring-inset ring-warning/20">

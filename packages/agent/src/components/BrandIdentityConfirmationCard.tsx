@@ -147,7 +147,7 @@ export function BrandIdentityConfirmationCard({
   if (isConfirmed) {
     return (
       <div
-        className="my-2 bg-background-secondary p-4 shadow-border"
+        className="my-2 bg-card p-4 shadow-border"
         role="status"
       >
         <div className="flex items-center gap-2 text-success">
@@ -168,7 +168,7 @@ export function BrandIdentityConfirmationCard({
       : translate('renameBrand');
 
   return (
-    <div className="my-2 bg-background-secondary p-4 shadow-border">
+    <div className="my-2 bg-card p-4 shadow-border">
       <div className="mb-3 flex items-start gap-2">
         <Building2
           className="mt-0.5 size-5 shrink-0 text-muted-foreground"
@@ -194,7 +194,7 @@ export function BrandIdentityConfirmationCard({
       ) : null}
 
       {operation === 'rename' && readStringOrEmpty(currentIdentity.label) ? (
-        <p className="mb-3 bg-background-tertiary px-3 py-2 text-xs text-muted-foreground">
+        <p className="mb-3 bg-tertiary px-3 py-2 text-xs text-muted-foreground">
           {translate('currentBrand')}{' '}
           <span className="font-medium text-foreground">
             {readStringOrEmpty(currentIdentity.label)}

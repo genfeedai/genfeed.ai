@@ -52,7 +52,7 @@ function EvidenceItem({ evidence }: { evidence: Evidence }) {
       <Pre
         variant="ghost"
         size="xs"
-        className="max-h-40 overflow-y-auto bg-background-secondary text-foreground/50"
+        className="max-h-40 overflow-y-auto bg-card text-foreground/50"
       >
         {evidence.content}
       </Pre>

@@ -40,7 +40,7 @@ export default function Next24hQueueSection({
             <div className="flex flex-col">
               {groups.map((group) => (
                 <div key={group.bucket}>
-                  <p className="border-b border-border bg-background-secondary/40 px-4 py-2 text-2xs font-bold uppercase tracking-[0.16em] text-muted-foreground sm:px-5">
+                  <p className="border-b border-border bg-card/40 px-4 py-2 text-2xs font-bold uppercase tracking-[0.16em] text-muted-foreground sm:px-5">
                     {translate(BUCKET_LABEL_KEYS[group.bucket])}
                   </p>
                   <div>

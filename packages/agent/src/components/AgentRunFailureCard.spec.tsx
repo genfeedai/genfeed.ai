@@ -77,7 +77,7 @@ describe('AgentRunFailureCard', () => {
 
     const card = screen.getByRole('alert');
     expect(card).toHaveClass('max-w-2xl');
-    expect(card).toHaveClass('bg-background-secondary');
+    expect(card).toHaveClass('bg-card');
     expect(card).toHaveClass('shadow-border');
     expect(card).not.toHaveClass('bg-destructive/15');
   });

@@ -122,7 +122,7 @@ export function GenerationActionCanvas({
   }
 
   return (
-    <div className="space-y-2 border border-border bg-background-secondary/40 p-2.5">
+    <div className="space-y-2 border border-border bg-card/40 p-2.5">
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1.5">
           <LayoutGrid className="size-3.5 shrink-0 text-muted-foreground" />

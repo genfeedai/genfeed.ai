@@ -195,7 +195,7 @@ function ManagedCreditsSuccessContentInner() {
     <AuthFormLayout>
       <div className="mx-auto w-full max-w-xl">
         <div className="mb-8 text-center">
-          <div className="mb-5 inline-flex size-12 items-center justify-center rounded-xl border border-border bg-background-tertiary">
+          <div className="mb-5 inline-flex size-12 items-center justify-center rounded-xl border border-border bg-tertiary">
             <Key className="size-5 text-muted-foreground" />
           </div>
           <h1 className="mb-1.5 text-xl font-semibold tracking-tight text-balance">

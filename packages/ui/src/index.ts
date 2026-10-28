@@ -4,7 +4,6 @@ import { elevationTokens, focusTokens } from '@ui/core/elevation';
 import { motionTokens } from '@ui/core/motion';
 import { radiusTokens } from '@ui/core/radius';
 import {
-  backgroundScale,
   neutralAlphaScale,
   neutralScale,
   neutralScaleJobs,
@@ -37,8 +36,6 @@ export type {
 export type { MotionTokenName } from '@ui/core/motion';
 export type { RadiusTokenName } from '@ui/core/radius';
 export type {
-  BackgroundScale,
-  BackgroundScaleStep,
   NeutralAlphaScale,
   NeutralScale,
   NeutralScaleStep,
@@ -50,7 +47,6 @@ export type { TypographyTokenName } from '@ui/core/typography';
 export type { NativeThemeColors } from '@ui/semantic/mobile';
 
 export interface DesignTokens {
-  backgroundScale: typeof backgroundScale;
   colors: typeof semanticColorTokens;
   elevation: typeof elevationTokens;
   focus: typeof focusTokens;
@@ -64,7 +60,6 @@ export interface DesignTokens {
 }
 
 export const designTokens: DesignTokens = {
-  backgroundScale,
   colors: semanticColorTokens,
   elevation: elevationTokens,
   focus: focusTokens,
@@ -82,7 +77,6 @@ export {
   staticSurfaceCss,
 } from './static/surface';
 export {
-  backgroundScale,
   elevationTokens,
   focusTokens,
   generateNativeTokens,

@@ -131,7 +131,7 @@ export function AuthorRow({
         <AuthorAvatar target={target} />
         {showPlatformBadge ? (
           <span
-            className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full border border-border bg-background-secondary text-foreground"
+            className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full border border-border bg-card text-foreground"
             role="img"
             aria-label={target.platformLabel}
             title={target.platformLabel}

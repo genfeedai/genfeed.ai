@@ -573,7 +573,7 @@ export default function BrandOSContent(): React.ReactElement {
                       className="flex gap-3 text-sm leading-6 text-surface/65"
                       key={item}
                     >
-                      <span className="mt-2 size-1.5 shrink-0 rounded-full bg-danger" />
+                      <span className="mt-2 size-1.5 shrink-0 rounded-full bg-destructive" />
                       {item}
                     </li>
                   ))}

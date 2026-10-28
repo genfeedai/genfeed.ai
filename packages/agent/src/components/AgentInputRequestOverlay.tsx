@@ -101,7 +101,7 @@ export function AgentInputRequestOverlay({
     >
       <div
         className={cn(
-          'w-full border border-border bg-background-secondary shadow-border',
+          'w-full border border-border bg-card shadow-border',
           isComposer
             ? 'max-h-[min(50dvh,24rem)] overflow-y-auto rounded-lg p-3'
             : variant === 'inline'

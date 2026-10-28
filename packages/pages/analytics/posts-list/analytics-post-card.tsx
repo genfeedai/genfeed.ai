@@ -54,7 +54,7 @@ function AnalyticsPostMedia({ item }: Pick<AnalyticsPostCardProps, 'item'>) {
   // No media on the row: the platform mark stands in for the thumbnail.
   return (
     <div
-      className="flex size-full items-center justify-center bg-background-secondary text-muted-foreground"
+      className="flex size-full items-center justify-center bg-card text-muted-foreground"
       data-testid="analytics-post-media-fallback"
     >
       {getPlatformIcon(item.platform, 'size-10') ?? (

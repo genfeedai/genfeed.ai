@@ -53,7 +53,7 @@ export default function ReviewHistoryPanel({
               </p>
             ) : null}
             <div className="flex items-center gap-2">
-              <Avatar className="size-7 bg-background-secondary">
+              <Avatar className="size-7 bg-card">
                 {event.reviewer?.avatar ? (
                   <AvatarImage
                     alt={translate('history.avatarAlt', {

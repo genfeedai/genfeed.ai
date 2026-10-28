@@ -91,7 +91,7 @@ export default function AdminPostsTable({
         render: (post: IPost) => {
           const thumbnailUrl = getPostThumbnailUrl(post);
           return (
-            <div className="relative flex size-12 items-center justify-center overflow-hidden bg-background-secondary text-muted-foreground">
+            <div className="relative flex size-12 items-center justify-center overflow-hidden bg-card text-muted-foreground">
               {thumbnailUrl ? (
                 <Image
                   alt=""
