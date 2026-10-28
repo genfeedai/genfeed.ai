@@ -8,13 +8,6 @@ description: >
   Chrome is grayscale by design — the generated media is the only colour.
 
 colors:
-  # ── Canvas ────────────────────────────────────────────────────────────────
-  # Two steps, and only two. 100 is the page; 200 is the raised content plane.
-  # Dark is Codex/Vercel: a pure-black page and a near-black plane (app chrome,
-  # cards, panels). Type stays capped at #EDEDED so it does not bloom on black.
-  background-100: "#000000"
-  background-200: "#0A0A0A"
-
   # ── Neutral ladder ────────────────────────────────────────────────────────
   # Ten steps, each with one job. Values below are the Dark reference; Light
   # mirrors the same jobs with inverted values (packages/ui/src/core/scales.ts).
@@ -34,22 +27,24 @@ colors:
   gray-1000: "#EDEDED"  # primary text
 
   # ── Surfaces (semantic aliases onto the ladder) ───────────────────────────
-  # Four planes, one step apart: canvas -> card -> nested fill -> hover.
-  bg-primary: "#000000"
-  bg-secondary: "#0A0A0A"
-  bg-tertiary: "#161616"
-  bg-elevated: "#161616"
-  bg-hover: "#2A2A2A"
+  # Four planes, one step apart: canvas -> card -> nested fill -> hover. Each
+  # name is the Tailwind colour it ships as (bg-background, bg-card, ...).
+  # Dark is Codex/Vercel: a pure-black page and a near-black plane (app chrome,
+  # cards, panels). Type stays capped at #EDEDED so it does not bloom on black.
+  background: "#000000"
   card: "#0A0A0A"
+  tertiary: "#161616"
+  elevated: "#161616"
+  hover: "#2A2A2A"
 
   # ── Structure ─────────────────────────────────────────────────────────────
   border: "#333333"
   border-strong: "#4A4A4A"
 
   # ── Text — three tiers, all AA or better on their own canvas ──────────────
-  text-primary: "#EDEDED"
-  text-secondary: "#A1A1A1"
-  text-muted: "#949494"
+  # The third tier is the ladder step itself: text-gray-800.
+  foreground: "#EDEDED"
+  muted-foreground: "#A1A1A1"
 
   # ── Primary action — inverts with the theme ───────────────────────────────
   primary: "#EDEDED"
@@ -63,12 +58,11 @@ colors:
   # lifted and light values are darkened so both sides clear AA.
   success: "#10B981"
   warning: "#F59E0B"
-  danger: "#FF6166"
+  destructive: "#FF6166"
   info: "#52A8FF"
 
   # ── Domain-specific ───────────────────────────────────────────────────────
   agent: "#38BDF8"
-  done: "#C084FC"
 
   # ── Platform brand identifiers ────────────────────────────────────────────
   beehiiv: "#FCD34D"
@@ -190,7 +184,7 @@ components:
   # row actions and compact rails; it is never used for a labeled button.
   button-micro:
     backgroundColor: transparent
-    textColor: "{colors.text-secondary}"
+    textColor: "{colors.muted-foreground}"
     typography: "{typography.label}"
     rounded: "{rounded.md}"
     height: 28px
@@ -204,22 +198,22 @@ components:
     backgroundColor: "{colors.accent-hover}"
     textColor: "{colors.primary-foreground}"
   button-secondary:
-    backgroundColor: "{colors.bg-tertiary}"
-    textColor: "{colors.text-primary}"
+    backgroundColor: "{colors.tertiary}"
+    textColor: "{colors.foreground}"
     typography: "{typography.label}"
     rounded: "{rounded.md}"
     height: 32px
   button-ghost:
     backgroundColor: transparent
-    textColor: "{colors.text-secondary}"
+    textColor: "{colors.muted-foreground}"
     typography: "{typography.label}"
     rounded: "{rounded.md}"
     height: 32px
   button-ghost-hover:
-    backgroundColor: "{colors.bg-hover}"
-    textColor: "{colors.text-primary}"
+    backgroundColor: "{colors.hover}"
+    textColor: "{colors.foreground}"
   button-destructive:
-    backgroundColor: "{colors.danger}"
+    backgroundColor: "{colors.destructive}"
     textColor: "{colors.primary-foreground}"
     typography: "{typography.label}"
     rounded: "{rounded.md}"
@@ -236,32 +230,32 @@ components:
     height: 40px
   card:
     backgroundColor: "{colors.card}"
-    textColor: "{colors.text-primary}"
+    textColor: "{colors.foreground}"
     typography: "{typography.body-md}"
     rounded: "{rounded.card}"
   card-nested:
-    backgroundColor: "{colors.bg-tertiary}"
-    textColor: "{colors.text-primary}"
+    backgroundColor: "{colors.tertiary}"
+    textColor: "{colors.foreground}"
     rounded: "{rounded.md}"
   stat-card:
     backgroundColor: "{colors.card}"
-    textColor: "{colors.text-primary}"
+    textColor: "{colors.foreground}"
     rounded: "{rounded.card}"
   dialog:
-    backgroundColor: "{colors.bg-elevated}"
-    textColor: "{colors.text-primary}"
+    backgroundColor: "{colors.elevated}"
+    textColor: "{colors.foreground}"
     rounded: "{rounded.xl}"
   popover:
-    backgroundColor: "{colors.bg-elevated}"
-    textColor: "{colors.text-primary}"
+    backgroundColor: "{colors.elevated}"
+    textColor: "{colors.foreground}"
     rounded: "{rounded.md}"
   dropdown-menu:
-    backgroundColor: "{colors.bg-elevated}"
-    textColor: "{colors.text-primary}"
+    backgroundColor: "{colors.elevated}"
+    textColor: "{colors.foreground}"
     rounded: "{rounded.md}"
   dropdown-item:
     backgroundColor: transparent
-    textColor: "{colors.text-secondary}"
+    textColor: "{colors.muted-foreground}"
     rounded: "{rounded.sm}"
     height: 32px
   dropdown-item-active:
@@ -269,34 +263,34 @@ components:
     textColor: "{colors.accent-foreground}"
     rounded: "{rounded.sm}"
   tooltip:
-    backgroundColor: "{colors.bg-tertiary}"
-    textColor: "{colors.text-primary}"
+    backgroundColor: "{colors.tertiary}"
+    textColor: "{colors.foreground}"
     typography: "{typography.caption}"
     rounded: "{rounded.md}"
   input:
-    backgroundColor: "{colors.bg-tertiary}"
-    textColor: "{colors.text-primary}"
+    backgroundColor: "{colors.tertiary}"
+    textColor: "{colors.foreground}"
     typography: "{typography.body-md}"
     rounded: "{rounded.md}"
     height: 32px
   input-placeholder:
-    backgroundColor: "{colors.bg-tertiary}"
-    textColor: "{colors.text-muted}"
+    backgroundColor: "{colors.tertiary}"
+    textColor: "{colors.gray-800}"
   select:
-    backgroundColor: "{colors.bg-tertiary}"
-    textColor: "{colors.text-primary}"
+    backgroundColor: "{colors.tertiary}"
+    textColor: "{colors.foreground}"
     rounded: "{rounded.md}"
     height: 32px
   sidebar:
     backgroundColor: "{colors.gray-100}"
-    textColor: "{colors.text-secondary}"
+    textColor: "{colors.muted-foreground}"
   table-head:
-    backgroundColor: "{colors.bg-secondary}"
-    textColor: "{colors.text-muted}"
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.gray-800}"
     typography: "{typography.caption}"
   table-row-hover:
     backgroundColor: "{colors.gray-300}"
-    textColor: "{colors.text-primary}"
+    textColor: "{colors.foreground}"
   divider:
     backgroundColor: "{colors.border}"
     height: 1px
@@ -318,52 +312,48 @@ components:
     backgroundColor: "{colors.gray-100}"
     rounded: "{rounded.md}"
   icon-muted:
-    backgroundColor: "{colors.bg-secondary}"
+    backgroundColor: "{colors.card}"
     textColor: "{colors.gray-700}"
     size: 16px
   badge-default:
-    backgroundColor: "{colors.bg-tertiary}"
-    textColor: "{colors.text-secondary}"
+    backgroundColor: "{colors.tertiary}"
+    textColor: "{colors.muted-foreground}"
     typography: "{typography.caption}"
     rounded: "{rounded.full}"
   badge-success:
-    backgroundColor: "{colors.bg-secondary}"
+    backgroundColor: "{colors.card}"
     textColor: "{colors.success}"
     rounded: "{rounded.full}"
   badge-warning:
-    backgroundColor: "{colors.bg-secondary}"
+    backgroundColor: "{colors.card}"
     textColor: "{colors.warning}"
     rounded: "{rounded.full}"
   badge-info:
-    backgroundColor: "{colors.bg-secondary}"
+    backgroundColor: "{colors.card}"
     textColor: "{colors.info}"
     rounded: "{rounded.full}"
-  badge-danger:
-    backgroundColor: "{colors.danger}"
+  badge-destructive:
+    backgroundColor: "{colors.destructive}"
     textColor: "{colors.primary-foreground}"
     rounded: "{rounded.full}"
   badge-agent:
-    backgroundColor: "{colors.bg-secondary}"
+    backgroundColor: "{colors.card}"
     textColor: "{colors.agent}"
     rounded: "{rounded.full}"
-  badge-done:
-    backgroundColor: "{colors.bg-secondary}"
-    textColor: "{colors.done}"
-    rounded: "{rounded.full}"
   workspace-composer:
-    backgroundColor: "{colors.bg-secondary}"
-    textColor: "{colors.text-primary}"
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.foreground}"
     rounded: "{rounded.xl}"
   workspace-overlay:
-    backgroundColor: "{colors.bg-elevated}"
-    textColor: "{colors.text-primary}"
+    backgroundColor: "{colors.elevated}"
+    textColor: "{colors.foreground}"
     rounded: "{rounded.2xl}"
   canvas-page:
-    backgroundColor: "{colors.background-100}"
-    textColor: "{colors.text-primary}"
+    backgroundColor: "{colors.background}"
+    textColor: "{colors.foreground}"
   canvas-plane:
-    backgroundColor: "{colors.background-200}"
-    textColor: "{colors.text-primary}"
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.foreground}"
   fill-selected:
     backgroundColor: "{colors.gray-300}"
     textColor: "{colors.gray-1000}"
@@ -371,10 +361,10 @@ components:
     backgroundColor: "{colors.gray-500}"
     height: 1px
   text-secondary-sample:
-    backgroundColor: "{colors.bg-primary}"
+    backgroundColor: "{colors.background}"
     textColor: "{colors.gray-900}"
   text-muted-sample:
-    backgroundColor: "{colors.bg-primary}"
+    backgroundColor: "{colors.background}"
     textColor: "{colors.gray-800}"
   fill-hover:
     backgroundColor: "{colors.gray-200}"
@@ -505,12 +495,12 @@ solid step everywhere else. They are interchangeable by design.
 
 Four planes, one step apart, and no fifth:
 
-1. `bg-primary` — the page canvas (`background-100`). The app rail and the
-   topbar sit on the `gray-100` window plane; the menu shares that step inside
-   the page block — see Shell Layout.
-2. `bg-secondary` / `card` / `bg-elevated` — the raised content plane: cards,
-   panels, dropdowns, dialogs, the composer (`gray-100` in Dark,
-   `background-200` in Light).
+1. `bg-background` — the page canvas. The app rail and the topbar sit on the
+   `gray-100` window plane; the menu shares that step inside the page block —
+   see Shell Layout.
+2. `bg-card` / `bg-elevated` — the raised content plane: cards, panels,
+   dropdowns, dialogs, the composer (`gray-100` in Dark, white in Light).
+   `bg-elevated` is the overlay member of this plane (`popover`).
 3. `bg-tertiary` / `accent` — one step above the card: fills nested *inside* a
    card, inputs, chips, and the hover state of a row that sits on a card
    (`gray-200`).
@@ -523,8 +513,9 @@ Reach for the relative move before reaching for a named token.
 ### Text
 
 Three tiers, all AA or better against their own canvas:
-`text-primary` (`gray-1000`, 16.9:1 dark / 17.2:1 light), `text-secondary`
-(`gray-900`, 7.7:1 / 7.5:1), `text-muted` (`gray-800`, 6.5:1 / 4.5:1).
+`text-foreground` (`gray-1000`, 16.9:1 dark / 17.2:1 light),
+`text-muted-foreground` (`gray-900`, 7.7:1 / 7.5:1), and `text-gray-800`
+(6.5:1 / 4.5:1) for placeholders and the quietest labels.
 
 ### Accent
 
@@ -542,10 +533,10 @@ lifted and Light values darkened so both sides clear AA:
 |-----------|-----------|----------|-----------|----------|
 | `success` | `#10B981` | 7.80:1   | `#047857` | 5.48:1   |
 | `warning` | `#F59E0B` | 9.22:1   | `#B45309` | 5.02:1   |
-| `danger`  | `#FF6166` | 6.74:1   | `#DC2626` | 4.83:1   |
+| `destructive` | `#FF6166` | 6.74:1 | `#DC2626` | 4.83:1 |
 | `info`    | `#52A8FF` | 7.92:1   | `#0060DF` | 5.62:1   |
 
-Dark `danger` is lifted from `#DC2626` on purpose: that red only reaches 4.1:1 on
+Dark `destructive` is lifted from `#DC2626` on purpose: that red only reaches 4.1:1 on
 `#0A0A0A` and fails AA as text.
 
 Status **fills** are the hue at low alpha over the current surface —
@@ -555,9 +546,8 @@ There is no `success-subtle`, and there must not be one.
 ### Domain colors
 
 - **Agent** `#38BDF8` dark / `#0369A1` light — AI agent activity states.
-- **Done** `#C084FC` dark / `#7C3AED` light — completed workflows.
 
-Both are checked as text: 9.25:1 and 7.49:1 on the dark canvas. The previous light
+It is checked as text: 9.25:1 on the dark card plane. The previous light
 agent blue (`#0284C7`) was 3.9:1 and failed AA.
 
 ### Platform colors
@@ -711,7 +701,7 @@ inherit a text button's asymmetric icon padding.
 
 ### Card
 
-`bg-secondary` plane with an edge — `shadow-border` (`default`) or a `border-border`
+`bg-card` plane with an edge — `shadow-border` (`default`) or a `border-border`
 CSS border (`bordered`). Hover lifts the edge to `shadow-border-strong` (or
 `border-border-strong`) and nothing else — no hover fill, no second edge stacked on
 the first. Stat cards tint with `bg-{color}/5`. Cards are `rounded-card` (8px, the content
@@ -724,7 +714,7 @@ are omitted, never shown as "Set…" placeholders), and **one visible primary
 action**. Every other action — including every destructive one — lives in the
 overflow menu. An overflow item that navigates is a real link (`href`), never a
 command that pushes a route, so open-in-new-tab and copy-link keep working. Nothing inside a card gets its own filled box; use type and spacing,
-not a nested `bg-secondary`/`bg-muted` panel.
+not a nested `bg-tertiary`/`bg-muted` panel.
 
 ### Collections
 
@@ -790,7 +780,7 @@ activity timeline with a single filter instead of a tab per record type.
 ### Input
 
 `bg-tertiary` fill (one step above the card it sits on), `border-border`, 32px tall,
-`rounded-md`, `body-md` type. Placeholders use `text-muted` (`gray-800`), never
+`rounded-md`, `body-md` type. Placeholders use `text-gray-800`, never
 lower. Focus applies `--focus-ring` and lifts the border to `border-strong`.
 
 ### Dropdown
@@ -811,7 +801,7 @@ The menu and the page share one block directly beside the app rail, flush with
 the window's right edge and inset by `--shell-inset` (8px, desktop) at the bottom.
 The top of the block sits on the bottom of the topbar: `rounded-lg` and
 `border border-border`. The menu
-is `gray-100`, one step off the page (`bg-primary`; pure black in Dark), with
+is `gray-100`, one step off the page (`bg-background`; pure black in Dark), with
 `border-r border-border` while expanded. The page owns scrolling, so
 `sticky top-0` inside a page sticks under the block's top. The topbar sits on
 the rail plane, outside that block, in the band above it. Its leading edge
@@ -839,7 +829,7 @@ navigation drawer.
 Inside the rounded block (see Shell Layout), on `gray-100`, with `border-r`
 against the page. Menu items use ghost semantics: transparent,
 `hover:bg-hover`, active is `bg-hover text-foreground`.
-Section labels are `caption` type, uppercase, `text-muted`.
+Section labels are `caption` type, uppercase, `text-gray-800`.
 
 The contextual agent panel has one header: Chat, Context, and History tabs,
 a labeled More menu for conversation commands, and Close. Context includes the
@@ -952,7 +942,7 @@ Colour enters through exactly four doors:
 1. **User content** — generated media is the primary colour source. Render it
    borderless and full-bleed wherever possible; chrome recedes behind it.
 2. **Platform brand identifiers** — scoped to badges and icons only.
-3. **Semantic status** — success/warning/danger/info, for state, never decoration.
+3. **Semantic status** — success/warning/destructive/info, for state, never decoration.
 4. **Categorical palettes** — workflow-node and tag colours, for identification,
    never chrome.
 
