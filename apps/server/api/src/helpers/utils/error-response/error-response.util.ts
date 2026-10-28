@@ -141,12 +141,20 @@ const errorResponseMethods = {
       error instanceof Error ? error.message : 'An unexpected error occurred';
     logger.error(`[${context}] ${message}`, { context, error });
 
-    ErrorResponse.throw({
-      code: ErrorCode.INTERNAL_ERROR,
-      detail: message,
-      status: HttpStatus.INTERNAL_SERVER_ERROR,
-      title: 'Internal server error',
-    });
+    const wrapped = new HttpException(
+      ErrorResponse.create({
+        code: ErrorCode.INTERNAL_ERROR,
+        detail: message,
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        title: 'Internal server error',
+      }),
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      { cause: error },
+    );
+    // HttpException derives "Http Exception" from an object body, which is all
+    // Sentry and the worker's failure text showed for these 500s.
+    wrapped.message = message;
+    throw wrapped;
   },
 };
 

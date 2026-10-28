@@ -50,6 +50,34 @@ describe('ErrorResponse util', () => {
     }
   });
 
+  it('handle wraps an unexpected error with its message and cause', () => {
+    const logger = { error: vi.fn() };
+    const original = new Error('relation "warmup_accounts" does not exist');
+    let caught: unknown;
+    try {
+      ErrorResponse.handle(original, logger, 'createWarmup');
+    } catch (ex: unknown) {
+      caught = ex;
+    }
+
+    expect(caught).toBeInstanceOf(HttpException);
+    const exception = caught as HttpException;
+    expect(exception.getStatus()).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
+    expect(exception.message).toBe('relation "warmup_accounts" does not exist');
+    expect(exception.cause).toBe(original);
+    expect(exception.getResponse()).toMatchObject({
+      detail: 'relation "warmup_accounts" does not exist',
+      title: 'Internal server error',
+    });
+  });
+
+  it('handle rethrows an HttpException untouched', () => {
+    const original = new HttpException('Nope', HttpStatus.FORBIDDEN);
+    expect(() =>
+      ErrorResponse.handle(original, { error: vi.fn() }, 'ctx'),
+    ).toThrow(original);
+  });
+
   it('common helpers throw expected HttpExceptions', () => {
     expect(() => ErrorResponse.unauthorized()).toThrow(HttpException);
     expect(() => ErrorResponse.forbidden()).toThrow(HttpException);
