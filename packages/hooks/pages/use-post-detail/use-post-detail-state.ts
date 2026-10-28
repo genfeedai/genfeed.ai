@@ -21,6 +21,7 @@ import { validateCarouselCount } from '@genfeedai/utils/carousel-validation';
 import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { isServiceOperationError } from '@services/core/operation-error';
 import { Eye, Heart, MessageSquare, TrendingUp, Zap } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -362,6 +363,16 @@ export function usePostDetailState({
           setPost(data);
         }
       } catch (err: unknown) {
+        // A post the API cannot find (deleted, or outside the viewer's scope)
+        // is an expected state: leave `post` empty so the page shows its
+        // not-found card, and keep the Sentry error for real failures.
+        if (isServiceOperationError(err) && err.status === 404) {
+          logger.info(`${url} not found`);
+          if (!isRefresh) {
+            setPost(null);
+          }
+          return;
+        }
         logger.error('Failed to fetch post', err);
         const message =
           err instanceof Error ? err.message : 'Failed to load post';

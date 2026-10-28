@@ -6,6 +6,8 @@ import { AdminHarnessActivationModule } from '@api/endpoints/admin/harness/harne
 import { AdminModelPricingModule } from '@api/endpoints/admin/model-pricing/model-pricing.module';
 import { AdminOnboardingFunnelModule } from '@api/endpoints/admin/onboarding-funnel/onboarding-funnel.module';
 import { AdminOrganizationAppsReportModule } from '@api/endpoints/admin/organization-apps-report/organization-apps-report.module';
+import { AdminOrganizationBrandsModule } from '@api/endpoints/admin/organization-brands/organization-brands.module';
+import { AdminOrganizationCreditsModule } from '@api/endpoints/admin/organization-credits/organization-credits.module';
 import { AdminOrganizationsReportModule } from '@api/endpoints/admin/organizations-report/organizations-report.module';
 import { AdminPlatformSettingsModule } from '@api/endpoints/admin/platform-settings/platform-settings.module';
 import { AdminSeedsModule } from '@api/endpoints/admin/seeds/seeds.module';
@@ -32,6 +34,8 @@ import { Module } from '@nestjs/common';
     AdminSeedsModule,
     AdminSystemBrandModule,
     AdminOrganizationAppsReportModule,
+    AdminOrganizationBrandsModule,
+    AdminOrganizationCreditsModule,
     AdminOrganizationsReportModule,
     AdminUnitEconomicsModule,
   ],

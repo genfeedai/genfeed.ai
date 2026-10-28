@@ -10,6 +10,10 @@ import type {
   StudioPlaygroundType,
 } from '@pages/studio/playground/types';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
+import {
+  readStoredPromptRow,
+  readStoredSlotText,
+} from './studio-playground-prompt-slots';
 import { STUDIO_ASPECT_RATIOS } from './studio-playground-settings';
 import { getStudioPlaygroundTypeConfig } from './studio-playground-types';
 
@@ -347,10 +351,28 @@ export function recipeFromIngredient(
     typeof ingredient.metadata === 'object' && ingredient.metadata !== null
       ? (ingredient.metadata as unknown as Record<string, unknown>)
       : {};
+  // Ingredient metadata keeps the look fields only for some generations; the
+  // prompt row stores every slot, so it fills in what metadata left out.
+  const storedPrompt = readStoredPromptRow(ingredient);
   const optional = (key: string): string | undefined => {
     const value = metadata[key];
     return typeof value === 'string' && value.trim() ? value.trim() : undefined;
   };
+  const optionalSlot = (
+    key:
+      | 'action'
+      | 'camera'
+      | 'cameraMovement'
+      | 'lens'
+      | 'lighting'
+      | 'mood'
+      | 'scene'
+      | 'speech'
+      | 'style'
+      | 'subject',
+  ): string | undefined =>
+    optional(key) ?? readStoredSlotText(storedPrompt, key);
+  const metadataBlacklist = stringList(metadata.blacklist);
   const width = ingredient.metadataWidth || ingredient.width || 0;
   const height = ingredient.metadataHeight || ingredient.height || 0;
 
@@ -360,24 +382,27 @@ export function recipeFromIngredient(
     aspectRatio:
       ingredient.imageEdit?.aspectRatio ??
       resolveAspectRatioFromDimensions(width, height),
-    blacklist: stringList(metadata.blacklist),
+    blacklist:
+      metadataBlacklist.length > 0
+        ? metadataBlacklist
+        : stringList(storedPrompt?.blacklists),
     brandingMode: resolveRecipeBrandingMode(
       type,
       metadataIsBrandingApplied(metadata.brandingMode),
     ),
-    camera: optional('camera'),
-    cameraMovement: optional('cameraMovement'),
+    camera: optionalSlot('camera'),
+    cameraMovement: optionalSlot('cameraMovement'),
     duration:
       typeof metadata.duration === 'number' ? metadata.duration : undefined,
     folder: optional('folder'),
     isAudioEnabled: metadata.isAudioEnabled === true,
-    lens: optional('lens'),
-    lighting: optional('lighting'),
+    lens: optionalSlot('lens'),
+    lighting: optionalSlot('lighting'),
     modelKey:
       optionalText(ingredient.metadataModel) ||
       optional('model') ||
       optionalText(ingredient.model),
-    mood: optional('mood'),
+    mood: optionalSlot('mood'),
     outputs: ingredient.imageEdit?.outputs ?? 1,
     promptTemplate: optional('promptTemplate') || optional('prompt_template'),
     references:
@@ -388,9 +413,11 @@ export function recipeFromIngredient(
           )
         : []),
     resolution: ingredient.imageEdit?.resolution ?? optional('resolution'),
-    scene: optional('scene'),
-    speech: optional('speech'),
-    style: optional('style') ?? '',
+    scene: optionalSlot('scene'),
+    speech: optionalSlot('speech'),
+    style: optionalSlot('style') ?? '',
+    subject: optionalSlot('subject'),
+    action: optionalSlot('action'),
     tags: Array.isArray(ingredient.tags)
       ? ingredient.tags
           .map((tag) => tag.key || tag.label || tag.id)

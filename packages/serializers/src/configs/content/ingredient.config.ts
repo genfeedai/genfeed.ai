@@ -7,6 +7,30 @@ import { serializeGenerationEntry } from '@serializers/helpers/generation-entry.
 import { serializeImageEdit } from '@serializers/helpers/image-edit.helper';
 import { CONTENT_ENTITY_RELS } from '@serializers/relationships';
 
+/**
+ * The prompt row behind a generation: the text the person wrote, its structured
+ * slots, and the prose the model was sent for them. Studio shows these in the
+ * inspector and restores them when a generation is edited and run again.
+ */
+export const ingredientPromptAttributes = [
+  'original',
+  'enhanced',
+  'subject',
+  'action',
+  'scene',
+  'style',
+  'mood',
+  'camera',
+  'cameraMovement',
+  'lens',
+  'lighting',
+  'sounds',
+  'speech',
+  'blacklists',
+  'renderedPrompt',
+  'renderTarget',
+];
+
 export const ingredientSerializerConfig = {
   attributes: ingredientAttributes,
   attributeDerivations: {
@@ -18,7 +42,7 @@ export const ingredientSerializerConfig = {
   type: 'ingredient',
   ...CONTENT_ENTITY_RELS,
   metadata: rel('metadata', metadataAttributes),
-  prompt: rel('prompt', ['original', 'enhanced']),
+  prompt: rel('prompt', ingredientPromptAttributes),
 };
 
 export const ingredientBulkDeleteSerializerConfig = simpleConfig(
