@@ -3,6 +3,7 @@ export * from './admin/credit-holds.interface';
 export * from './admin/email-performance.interface';
 export * from './admin/fleet.interface';
 export * from './admin/harness-activation-report.interface';
+export * from './admin/onboarding-funnel.interface';
 export * from './admin/organization-apps-report.interface';
 export * from './admin/organizations-report.interface';
 export * from './admin/warmup-accounts.interface';

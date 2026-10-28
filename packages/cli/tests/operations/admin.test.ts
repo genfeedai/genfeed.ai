@@ -11,6 +11,7 @@ import {
   findPricingFixTargets,
   fixModelPricing,
   readHarnessActivation,
+  readOnboardingFunnel,
   readOrganizationAppsReport,
   readOrganizationsReport,
   seedArticles,
@@ -111,6 +112,15 @@ describe('operations/admin', () => {
       2,
       '/admin/organizations?page=2&limit=100&includeDeleted=true'
     );
+  });
+
+  it('reads the onboarding funnel for the requested window', async () => {
+    mockAdminGet.mockResolvedValueOnce({ data: { windowDays: 7 } });
+
+    const result = await readOnboardingFunnel(7);
+
+    expect(result).toEqual({ windowDays: 7 });
+    expect(mockAdminGet).toHaveBeenCalledWith('/admin/onboarding-funnel?days=7');
   });
 
   const rows = [

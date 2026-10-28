@@ -7,6 +7,7 @@ export * from '@serializers/attributes/organizations/credential.attributes';
 export * from '@serializers/attributes/organizations/fleet-capabilities.attributes';
 export * from '@serializers/attributes/organizations/harness-profile.attributes';
 export * from '@serializers/attributes/organizations/member.attributes';
+export * from '@serializers/attributes/organizations/onboarding-funnel.attributes';
 export * from '@serializers/attributes/organizations/organization.attributes';
 export * from '@serializers/attributes/organizations/organization-apps-report.attributes';
 export * from '@serializers/attributes/organizations/organization-settings.attributes';

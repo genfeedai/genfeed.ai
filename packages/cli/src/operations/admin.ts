@@ -2,6 +2,7 @@ import type {
   AdminModelPricingReport,
   AdminModelPricingRow,
   IHarnessActivationReport,
+  IOnboardingFunnelReport,
   IOrganizationAppsReport,
   IOrganizationsReport,
   ModelPricingAttentionLevel,
@@ -93,6 +94,12 @@ export async function readOrganizationAppsReport(): Promise<IOrganizationAppsRep
   }
 
   return { ...first, organizations };
+}
+
+export async function readOnboardingFunnel(days: number): Promise<IOnboardingFunnelReport> {
+  return flattenSingle<IOnboardingFunnelReport>(
+    await adminGet<JsonApiDocument>(`/admin/onboarding-funnel?days=${days}`)
+  );
 }
 
 const ORGANIZATIONS_PAGE_SIZE = 100;

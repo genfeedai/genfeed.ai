@@ -11,6 +11,7 @@ export * from '@serializers/server/organizations/harness-profile.serializer';
 export * from '@serializers/server/organizations/ingredient-export.serializer';
 export * from '@serializers/server/organizations/member.serializer';
 export * from '@serializers/server/organizations/member-invitation.serializer';
+export * from '@serializers/server/organizations/onboarding-funnel.serializer';
 export * from '@serializers/server/organizations/organization.serializer';
 export * from '@serializers/server/organizations/organization-apps-report.serializer';
 export * from '@serializers/server/organizations/organization-settings.serializer';
