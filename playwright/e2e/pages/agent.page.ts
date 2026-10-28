@@ -16,10 +16,10 @@ export class AgentPage {
   readonly heading: Locator;
   readonly chatInput: Locator;
   readonly planModeButton: Locator;
-  readonly planReviewCard: Locator;
+  readonly planCard: Locator;
+  readonly planDecision: Locator;
   readonly approvePlanButton: Locator;
   readonly requestPlanChangesButton: Locator;
-  readonly revisionNoteInput: Locator;
   readonly sendButton: Locator;
   readonly publishCaption: Locator;
   readonly publishSchedule: Locator;
@@ -35,14 +35,15 @@ export class AgentPage {
     this.planModeButton = page.getByRole('button', {
       name: /^Agent mode:/,
     });
-    this.planReviewCard = page.getByTestId('agent-plan-review-card');
-    this.approvePlanButton = page.getByRole('button', { name: 'Approve' });
-    this.requestPlanChangesButton = page.getByRole('button', {
+    this.planCard = page.getByTestId('agent-plan-card');
+    // The decision lives in the prompt bar, not in the conversation.
+    this.planDecision = page.getByTestId('agent-plan-decision');
+    this.approvePlanButton = this.planDecision.getByRole('button', {
+      name: 'Approve',
+    });
+    this.requestPlanChangesButton = this.planDecision.getByRole('button', {
       name: 'Request changes',
     });
-    this.revisionNoteInput = page.getByPlaceholder(
-      'Add feedback if you want the plan revised',
-    );
     this.sendButton = page
       .getByTestId('app-main-content')
       .getByRole('button', { name: 'Generate' });
@@ -96,6 +97,12 @@ export class AgentPage {
     await this.chatInput.click();
     await this.chatInput.pressSequentially(prompt);
     await this.chatInput.press('Enter');
+  }
+
+  /** Types the requested plan changes into the prompt bar. */
+  async typePlanFeedback(feedback: string): Promise<void> {
+    await this.chatInput.click();
+    await this.chatInput.pressSequentially(feedback);
   }
 
   async enablePlanMode(): Promise<void> {

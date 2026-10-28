@@ -3,7 +3,9 @@
     "start": "Start"
   },
   "timeline": {
-    "steps": "Steps"
+    "thinking": "Thinking",
+    "worked": "Worked",
+    "workedFor": "Worked for {duration}"
   },
   "markdownCodeBlock": {
     "copied": "Copied",
@@ -554,6 +556,22 @@
   },
   "runFailureCard": {
     "getCredits": "Get credits"
+  },
+  "plan": {
+    "title": "Plan",
+    "statusApproved": "Approved",
+    "statusAwaitingApproval": "Awaiting review",
+    "statusDraft": "Draft",
+    "statusSuperseded": "Superseded",
+    "empty": "This plan came back empty. Ask the agent to try again.",
+    "decisionLabel": "Plan decision",
+    "decisionPrompt": "Plan ready. Type changes below to revise it.",
+    "approve": "Approve",
+    "requestChanges": "Request changes",
+    "requestChangesHint": "Type the changes in the prompt bar first.",
+    "revisePlaceholder": "Describe what to change in the plan",
+    "createFollowUpTasks": "Create follow-up tasks",
+    "creatingFollowUpTasks": "Creating tasks..."
   },
   "stalledTurn": {
     "title": "This is taking longer than expected.",

@@ -1,6 +1,6 @@
 import {
-  SCHEDULE_TODAYS_TWEETS_LABEL,
-  SCHEDULE_TODAYS_TWEETS_PROMPT,
+  PLAN_TODAYS_TWEETS_LABEL,
+  PLAN_TODAYS_TWEETS_PROMPT,
 } from '@genfeedai/agent/constants/agent-quick-prompts.constant';
 import { useAgentPageContext } from '@genfeedai/agent/hooks/use-agent-page-context';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
@@ -255,7 +255,7 @@ describe('useAgentPageContext', () => {
 
     expect(result.current.placeholder).toBe('Ask about your calendar...');
     expect(result.current.suggestedActions.map((a) => a.label)).toEqual([
-      SCHEDULE_TODAYS_TWEETS_LABEL,
+      PLAN_TODAYS_TWEETS_LABEL,
       'Fill gaps',
       'Plan',
     ]);
@@ -267,18 +267,18 @@ describe('useAgentPageContext', () => {
     ['publishing', `/acme/main${APP_ROUTES.PUBLISHING.ROOT}`],
     ['the post editor', `/acme/main${APP_ROUTES.PUBLISHING.POSTS}/post-1`],
     ['the calendar', `/acme/main${APP_ROUTES.PUBLISHING.CALENDAR}`],
-  ])('offers the schedule-today chip on %s', (_surface, pathname) => {
+  ])('offers the plan-today chip on %s', (_surface, pathname) => {
     const { result } = renderAt(pathname);
 
     expect(result.current.suggestedActions).toContainEqual(
       expect.objectContaining({
-        label: SCHEDULE_TODAYS_TWEETS_LABEL,
-        prompt: SCHEDULE_TODAYS_TWEETS_PROMPT,
+        label: PLAN_TODAYS_TWEETS_LABEL,
+        prompt: PLAN_TODAYS_TWEETS_PROMPT,
       }),
     );
   });
 
-  it('keeps the pinned schedule-today chip ahead of brand-personalized suggestions', () => {
+  it('keeps the pinned plan-today chip ahead of brand-personalized suggestions', () => {
     brandRef.current = {
       agentConfig: {
         strategy: { topics: ['launch week', 'pricing'] },
@@ -292,7 +292,7 @@ describe('useAgentPageContext', () => {
     const labels = result.current.suggestedActions.map((a) => a.label);
 
     expect(labels).toHaveLength(3);
-    expect(labels[0]).toBe(SCHEDULE_TODAYS_TWEETS_LABEL);
+    expect(labels[0]).toBe(PLAN_TODAYS_TWEETS_LABEL);
     expect(labels.slice(1)).toEqual([
       'Review brand fit',
       'Improve launch week',

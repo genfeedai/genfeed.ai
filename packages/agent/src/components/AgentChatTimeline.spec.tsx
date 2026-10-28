@@ -81,6 +81,10 @@ vi.mock('./TimelineWorkGroup', () => ({
   },
 }));
 
+vi.mock('./SafeMarkdown', () => ({
+  SafeMarkdown: ({ content }: { content: string }) => <div>{content}</div>,
+}));
+
 vi.mock('./TimelineStreamingRow', () => ({
   TimelineStreamingRow: () => null,
 }));
@@ -352,7 +356,7 @@ describe('AgentChatTimeline failure card', () => {
 });
 
 describe('completed turn output focus', () => {
-  it('hides intermediate copy and work until Steps is expanded, preserving all outputs', () => {
+  it('hides intermediate copy and work until Worked for is expanded, preserving all outputs', () => {
     const output = buildAssistantMessage('output', 'Generated image');
     output.message.metadata = {
       uiActions: [
@@ -376,7 +380,7 @@ describe('completed turn output focus', () => {
     expect(screen.getByText('Your images are ready')).toBeVisible();
     expect(screen.queryByText('Checking references')).toBeNull();
     expect(screen.queryByTestId('work-group-work')).toBeNull();
-    const steps = screen.getByRole('button', { name: 'Steps' });
+    const steps = screen.getByRole('button', { name: 'Worked for 3m 0s' });
     expect(steps).toHaveAttribute('aria-expanded', 'false');
     fireEvent.click(steps);
     expect(screen.getByText('Checking references')).toBeVisible();
@@ -393,7 +397,7 @@ describe('completed turn output focus', () => {
       <AgentChatTimeline {...baseProps} isBusy timeline={timeline} />,
     );
     expect(screen.getByText('Preparing')).toBeVisible();
-    expect(screen.queryByRole('button', { name: 'Steps' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Worked/ })).toBeNull();
     view.rerender(<AgentChatTimeline {...baseProps} timeline={timeline} />);
     expect(screen.queryByText('Preparing')).toBeNull();
     expect(screen.getByText('Ready')).toBeVisible();
@@ -411,7 +415,7 @@ describe('completed turn output focus', () => {
     );
     expect(screen.getByTestId('work-group-failure')).toBeVisible();
     expect(screen.getByRole('alert')).toBeVisible();
-    expect(screen.queryByRole('button', { name: 'Steps' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Worked/ })).toBeNull();
   });
 });
 
@@ -451,10 +455,9 @@ describe('completed turn result preservation', () => {
       />,
     );
     expect(screen.getByText('Working')).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Steps' })).toHaveAttribute(
-      'aria-expanded',
-      'true',
-    );
+    expect(
+      screen.getByRole('button', { name: 'Worked for 3m 0s' }),
+    ).toHaveAttribute('aria-expanded', 'true');
   });
 
   it('keeps progress visible if work fails after an intermediate assistant message', () => {
@@ -566,5 +569,47 @@ describe('next-step availability', () => {
       'schedule_post_card',
     );
     expect(screen.getByTestId('ui-action-busy')).toHaveAttribute('inert');
+  });
+});
+
+describe('proposed plan placement', () => {
+  const plan = {
+    content: 'Draft three tweets',
+    createdAt: '2026-03-18T10:02:00.000Z',
+    id: 'plan-1',
+    status: 'awaiting_approval' as const,
+    updatedAt: '2026-03-18T10:02:00.000Z',
+  };
+
+  it('shows the plan under the message that proposed it, after the prompt', () => {
+    const proposal = buildAssistantMessage('proposal', 'I drafted a plan');
+    proposal.message.metadata = { proposedPlan: plan };
+    render(
+      <AgentChatTimeline
+        {...baseProps}
+        latestProposedPlan={plan}
+        timeline={[buildUserMessage('prompt', 'Plan my tweets'), proposal]}
+      />,
+    );
+
+    const prompt = screen.getByText('Plan my tweets');
+    const card = screen.getByTestId('agent-plan-card');
+    expect(screen.getByText('Draft three tweets')).toBeVisible();
+    expect(
+      prompt.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull();
+  });
+
+  it('closes the timeline with a plan only the snapshot carries', () => {
+    render(
+      <AgentChatTimeline
+        {...baseProps}
+        latestProposedPlan={plan}
+        timeline={[buildUserMessage('prompt', 'Plan my tweets')]}
+      />,
+    );
+
+    expect(screen.getByTestId('agent-plan-card')).toBeVisible();
   });
 });

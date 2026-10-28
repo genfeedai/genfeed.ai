@@ -74,17 +74,6 @@ export function TimelineStreamingRow({
   }));
   const nonToolWorkEvents = workEvents.filter((event) => !event.toolCallId);
 
-  // A stalled turn swaps the endless timer for the composer's notice.
-  const durationFooter = isStalled
-    ? null
-    : runDurationLabel != null && runDurationLabel.length > 0
-      ? streamState.isStreaming
-        ? `Working for ${runDurationLabel}`
-        : `Worked for ${runDurationLabel}`
-      : streamState.isStreaming
-        ? 'Working…'
-        : null;
-
   const meaningfulNonToolEvents = nonToolWorkEvents.filter(
     (event) => event.toolName || event.toolCallId || event.detail,
   );
@@ -96,6 +85,23 @@ export function TimelineStreamingRow({
     toolCallEvents.length === 0 &&
     meaningfulNonToolEvents.length === 0;
 
+  // One status line per live turn. The header names what is happening and
+  // carries the timer; the "Working for …" footer only exists when tools or
+  // text already own the turn, so the two never show together. A stalled turn
+  // swaps the endless timer for the composer's notice.
+  const hasRunDuration =
+    !isStalled && runDurationLabel != null && runDurationLabel.length > 0;
+  const durationFooter =
+    isStalled || showStatusHeader
+      ? null
+      : hasRunDuration
+        ? streamState.isStreaming
+          ? `Working for ${runDurationLabel}`
+          : `Worked for ${runDurationLabel}`
+        : streamState.isStreaming
+          ? 'Working…'
+          : null;
+
   return (
     <div className="mb-2 flex min-w-0 w-full justify-start motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out">
       <div className="w-full min-w-0 max-w-full space-y-1.5 border-0 bg-transparent px-0.5 py-1">
@@ -106,6 +112,11 @@ export function TimelineStreamingRow({
               text={progressSummary.label}
               className="min-w-0 font-medium tracking-[0.01em]"
             />
+            {hasRunDuration && streamState.isStreaming ? (
+              <span className="shrink-0 tabular-nums text-gray-800">
+                {runDurationLabel}
+              </span>
+            ) : null}
           </div>
         ) : null}
 

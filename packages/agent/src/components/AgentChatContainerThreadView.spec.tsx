@@ -27,10 +27,6 @@ vi.mock('@genfeedai/agent/components/AgentWorkObjects', () => ({
   AgentWorkObjects: () => null,
 }));
 
-vi.mock('@genfeedai/agent/components/AgentPlanReviewSection', () => ({
-  AgentPlanReviewSection: () => null,
-}));
-
 vi.mock('@genfeedai/agent/components/AgentInputRequestOverlay', () => ({
   AgentInputRequestOverlay: () => <div>pending card</div>,
 }));
@@ -154,7 +150,6 @@ describe('AgentChatContainerThreadView', () => {
         isAtBottom={false}
         isBusy={false}
         isCreatingFollowUpTasks={false}
-        isPlanReviewPending={false}
         isGenerating={false}
         isWideLayout={false}
         isReadOnly={false}
@@ -162,11 +157,9 @@ describe('AgentChatContainerThreadView', () => {
         isSubmittingInputRequest={false}
         latestProposedPlan={null}
         messagesEndRef={createRef<HTMLDivElement>()}
-        onApprovePlan={vi.fn()}
         onCopy={vi.fn()}
         onCreateFollowUpTasks={vi.fn()}
         onIngredientSelect={vi.fn()}
-        onRequestPlanChanges={vi.fn()}
         onRetry={vi.fn()}
         onRetryLastFailedRun={vi.fn()}
         onSubmitInputRequest={vi.fn()}

@@ -424,13 +424,11 @@ export function AgentComposerStatusStack({
   const assetType = visibleTasks.find((task) => task.assetType)?.assetType;
   const progressTitle = assetType ? `Creating ${assetType}` : 'Working';
   const hasConnectionWarning = socketConnectionState !== 'connected';
-  const hasPlanReview = latestProposedPlan?.status === 'awaiting_approval';
 
   if (
     visibleTasks.length === 0 &&
     !error &&
     !hasConnectionWarning &&
-    !hasPlanReview &&
     !hasStalledNotice &&
     !pendingInputRequest
   ) {
@@ -683,19 +681,6 @@ export function AgentComposerStatusStack({
               ) : null}
             </ol>
           ) : null}
-        </div>
-      ) : null}
-
-      {hasPlanReview ? (
-        <div
-          className={cn(
-            STATUS_SURFACE_CLASS,
-            'border-border text-muted-foreground text-xs leading-5',
-          )}
-          role="status"
-        >
-          A plan is ready for explicit review in the conversation. This notice
-          does not approve or execute it.
         </div>
       ) : null}
     </div>

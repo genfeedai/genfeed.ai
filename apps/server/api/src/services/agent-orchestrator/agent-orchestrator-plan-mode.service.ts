@@ -235,8 +235,11 @@ export class AgentOrchestratorPlanModeService {
       organizationId: params.context.organizationId,
       pricer: this.agentChatModelRegistry,
       requestedModel: dispatchedModel,
-      run: () =>
-        this.llmDispatcher.chatCompletion(
+      // A blank completion would persist a plan with nothing to review and
+      // still ask for approval. Failing inside the round releases the hold,
+      // so an empty answer is not billed.
+      run: async () => {
+        const response = await this.llmDispatcher.chatCompletion(
           chatParams,
           params.context.organizationId,
           {
@@ -245,7 +248,17 @@ export class AgentOrchestratorPlanModeService {
             threadId: params.threadId,
             userId: params.context.userId,
           },
-        ),
+        );
+        const planText = sanitizeAgentOutputText(
+          response.choices[0]?.message.content || '',
+        );
+        if (!planText.trim()) {
+          throw new Error(
+            'The planner returned an empty plan. Send the request again.',
+          );
+        }
+        return response;
+      },
       waived: params.turnCost === 0,
     });
   }

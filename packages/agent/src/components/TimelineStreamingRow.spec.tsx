@@ -138,11 +138,12 @@ describe('TimelineStreamingRow', () => {
     );
   });
 
-  it('renders thinking status with Working for duration at the end', () => {
+  it('renders one status line with the timer while nothing else paints the turn', () => {
     render(<TimelineStreamingRow entry={buildEntry()} />);
 
     expect(screen.getByLabelText('Thinking')).toBeTruthy();
-    expect(screen.getByText('Working for 4s')).toBeTruthy();
+    expect(screen.getByText('4s')).toBeTruthy();
+    expect(screen.queryByText(/Working for/)).toBeNull();
   });
 
   it('does not render tool work events twice when active tool calls exist', () => {
@@ -192,13 +193,13 @@ describe('TimelineStreamingRow', () => {
         entry={buildEntry({ runDurationLabel: '1m 25s' })}
       />,
     );
-    expect(screen.getByText('Working for 1m 25s')).toBeInTheDocument();
+    expect(screen.getByText('1m 25s')).toBeInTheDocument();
 
     rerender(
       <TimelineStreamingRow
         entry={buildEntry({ isStalled: true, runDurationLabel: '1m 25s' })}
       />,
     );
-    expect(screen.queryByText(/Working for/)).not.toBeInTheDocument();
+    expect(screen.queryByText('1m 25s')).not.toBeInTheDocument();
   });
 });

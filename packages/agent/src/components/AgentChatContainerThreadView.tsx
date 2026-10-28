@@ -3,7 +3,6 @@
 import { AgentChatTimeline } from '@genfeedai/agent/components/AgentChatTimeline';
 import { AgentConversationTurnNavigator } from '@genfeedai/agent/components/AgentConversationTurnNavigator';
 import { AgentInputRequestOverlay } from '@genfeedai/agent/components/AgentInputRequestOverlay';
-import { AgentPlanReviewSection } from '@genfeedai/agent/components/AgentPlanReviewSection';
 import { AgentWorkObjects } from '@genfeedai/agent/components/AgentWorkObjects';
 import {
   AGENT_CONVERSATION_SCROLL_CLASS,
@@ -42,8 +41,6 @@ export type AgentChatContainerThreadViewProps = {
   highlightedMessageId: string | null;
   isBusy: boolean;
   isCreatingFollowUpTasks: boolean;
-  /** A review of the shown plan is awaiting its result; its controls lock. */
-  isPlanReviewPending: boolean;
   isGenerating: boolean;
   isWideLayout: boolean;
   isReadOnly: boolean;
@@ -52,7 +49,6 @@ export type AgentChatContainerThreadViewProps = {
   isAtBottom: boolean;
   latestProposedPlan: AgentProposedPlan | null;
   messagesEndRef: RefObject<HTMLDivElement | null>;
-  onApprovePlan: () => Promise<void>;
   onBrandCreate?: (payload: {
     name: string;
     description: string;
@@ -64,7 +60,6 @@ export type AgentChatContainerThreadViewProps = {
   /** #4670 Open in Studio: navigates to the ready-to-use Studio generate URL. */
   onOpenInStudio?: (studioUrl: string) => void;
   onRegenerate?: (message: AgentChatMessageType) => void | Promise<void>;
-  onRequestPlanChanges: (revisionNote: string) => Promise<void>;
   onRetry: (message: AgentChatMessageType) => Promise<void>;
   onRetryLastFailedRun: () => void | Promise<void>;
   onSubmitInputRequest: (
@@ -91,7 +86,7 @@ export type AgentChatContainerThreadViewProps = {
 
 /**
  * Active (non-empty) conversation column: scroll region,
- * plan review, timeline, input-request overlay, and jump-to-latest control.
+ * timeline, input-request overlay, and jump-to-latest control.
  */
 export function AgentChatContainerThreadView({
   activeThreadTitle,
@@ -102,7 +97,6 @@ export function AgentChatContainerThreadView({
   isAtBottom,
   isBusy,
   isCreatingFollowUpTasks,
-  isPlanReviewPending,
   isGenerating,
   isWideLayout,
   isReadOnly,
@@ -110,7 +104,6 @@ export function AgentChatContainerThreadView({
   isSubmittingInputRequest,
   latestProposedPlan,
   messagesEndRef,
-  onApprovePlan,
   onBrandCreate,
   onCopy,
   onCreateFollowUpTasks,
@@ -118,7 +111,6 @@ export function AgentChatContainerThreadView({
   onOAuthConnect,
   onOpenInStudio,
   onRegenerate,
-  onRequestPlanChanges,
   onRetry,
   onRetryLastFailedRun,
   onSubmitInputRequest,
@@ -136,6 +128,25 @@ export function AgentChatContainerThreadView({
   columnFooter,
 }: AgentChatContainerThreadViewProps): ReactElement {
   const translate = useTranslations('agent.threadView');
+  const translatePlan = useTranslations('agent.plan');
+  const planActions: ReactNode =
+    showFollowUpButton && !isReadOnly ? (
+      <Button
+        variant={ButtonVariant.SECONDARY}
+        withWrapper={false}
+        onClick={() => {
+          void onCreateFollowUpTasks();
+        }}
+        isDisabled={
+          Boolean(activeUiAction) || isBusy || isCreatingFollowUpTasks
+        }
+        label={
+          isCreatingFollowUpTasks
+            ? translatePlan('creatingFollowUpTasks')
+            : translatePlan('createFollowUpTasks')
+        }
+      />
+    ) : null;
   const columnFooterRef = useRef<HTMLDivElement>(null);
   const [hasContentBehindComposer, setHasContentBehindComposer] =
     useState(false);
@@ -204,24 +215,13 @@ export function AgentChatContainerThreadView({
           ) : null}
           {inputCard}
 
-          {latestProposedPlan ? (
-            <AgentPlanReviewSection
-              plan={latestProposedPlan}
-              isBusy={isBusy || isReadOnly || isPlanReviewPending}
-              activeUiAction={activeUiAction}
-              isCreatingFollowUpTasks={isCreatingFollowUpTasks}
-              followUpTaskMessage={followUpTaskMessage}
-              showFollowUpButton={showFollowUpButton && !isReadOnly}
-              onApprove={onApprovePlan}
-              onRequestChanges={onRequestPlanChanges}
-              onCreateFollowUpTasks={onCreateFollowUpTasks}
-            />
-          ) : null}
-
           <AgentWorkObjects apiService={apiService} isReadOnly={isReadOnly} />
 
           <AgentChatTimeline
             timeline={timeline}
+            latestProposedPlan={latestProposedPlan}
+            planActions={planActions}
+            planFooterMessage={followUpTaskMessage}
             pendingUiActions={pendingUiActions}
             isGenerating={isGenerating}
             isStreamingActive={isStreamingActive}

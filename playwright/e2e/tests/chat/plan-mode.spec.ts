@@ -325,10 +325,19 @@ test.describe('Agent Plan Mode', () => {
     await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
     await assertNoErrorBoundaryFallback(authenticatedPage, threadUrl);
 
-    await expect(agentPage.planReviewCard).toBeVisible();
-    await expect(agentPage.planReviewCard).toContainText(
+    await expect(agentPage.planCard).toBeVisible();
+    await expect(agentPage.planCard).toContainText(
       'Pause execution after the plan is proposed',
     );
+
+    // The decision sits above the prompt bar, never inside the conversation.
+    await expect(agentPage.planDecision).toBeVisible();
+    await expect(
+      agentPage.planCard.getByRole('button', { name: 'Approve' }),
+    ).toHaveCount(0);
+    await expect(
+      authenticatedPage.getByText('A plan is ready for explicit review'),
+    ).toHaveCount(0);
 
     await agentPage.approvePlanButton.click();
 
@@ -428,8 +437,8 @@ test.describe('Agent Plan Mode', () => {
     // mechanism production relies on when a socket reconnect is needed. A
     // regression in that reconciliation path fails only this test, not the
     // "(reload)" one above, which bypasses it entirely.
-    await expect(agentPage.planReviewCard).toBeVisible({ timeout: 15_000 });
-    await expect(agentPage.planReviewCard).toContainText(
+    await expect(agentPage.planCard).toBeVisible({ timeout: 15_000 });
+    await expect(agentPage.planCard).toContainText(
       'Pause execution after the plan is proposed',
     );
   });
@@ -530,13 +539,14 @@ test.describe('Agent Plan Mode', () => {
     await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
     await assertNoErrorBoundaryFallback(authenticatedPage, threadUrl);
 
-    await expect(agentPage.planReviewCard).toBeVisible();
-    await agentPage.revisionNoteInput.fill(
+    await expect(agentPage.planCard).toBeVisible();
+    await expect(agentPage.planDecision).toBeVisible();
+    await agentPage.typePlanFeedback(
       'Show clearer plan status in the conversation and keep execution paused.',
     );
     await agentPage.requestPlanChangesButton.click();
 
-    await expect(agentPage.planReviewCard).toContainText(
+    await expect(agentPage.planCard).toContainText(
       'Keep execution paused until explicit approval',
       { timeout: 20_000 },
     );
@@ -548,7 +558,7 @@ test.describe('Agent Plan Mode', () => {
           'I revised the plan and kept execution paused for another review.',
         ),
     ).toBeVisible();
-    await expect(agentPage.planReviewCard).toContainText('Awaiting approval');
+    await expect(agentPage.planCard).toContainText('Awaiting review');
 
     // respondToUiAction sends the thread's brandId/contextVersion alongside
     // the action (see agent-chat-container.ui-actions.ts).
