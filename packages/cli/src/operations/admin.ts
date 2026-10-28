@@ -73,6 +73,123 @@ export interface PricingReportFilter {
   provider?: string;
 }
 
+export interface OrganizationCreditGrantInput {
+  amount: number;
+  expiresInDays?: number;
+  idempotencyKey?: string;
+  reason: string;
+}
+
+export interface OrganizationCreditGrant {
+  balance: number;
+  creditsGranted: number;
+  expiresAt: string | null;
+  organizationId: string;
+}
+
+export interface OrganizationBrandInput {
+  backgroundColor?: string;
+  description?: string;
+  fontFamily?: string;
+  label: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+}
+
+export interface OrganizationBrandCreated {
+  id: string;
+  label: string;
+  organizationId: string;
+  slug: string;
+}
+
+export interface OrganizationBrandScan {
+  brandId: string;
+  organizationId: string;
+  scrapeReason?: string;
+  scrapeStatus: 'failed' | 'scraped';
+  summary?: unknown;
+}
+
+export interface WarmupAccountInput {
+  brandName: string;
+  guidance?: string;
+  leadEmail: string;
+  leadFirstName?: string;
+  leadLastName?: string;
+  organizationName: string;
+  websiteUrl?: string;
+}
+
+export interface WarmupPrepareInput {
+  action: string;
+  amount?: number;
+  publicProfileUrl?: string;
+  reason?: string;
+  sourceUrl?: string;
+}
+
+export type WarmupAccountRecord = Record<string, unknown> & { id: string };
+
+interface DataEnvelope<T> {
+  data: T;
+}
+
+/** Grant credits to an organization the operator is not a member of. */
+export async function grantOrganizationCredits(
+  organizationId: string,
+  input: OrganizationCreditGrantInput
+): Promise<OrganizationCreditGrant> {
+  const response = await adminPost<DataEnvelope<OrganizationCreditGrant>>(
+    `/admin/organizations/${encodeURIComponent(organizationId)}/credits`,
+    input
+  );
+  return response.data;
+}
+
+/** Create a brand inside any organization, independent of the operator's own orgs. */
+export async function createOrganizationBrand(
+  organizationId: string,
+  input: OrganizationBrandInput
+): Promise<OrganizationBrandCreated> {
+  const response = await adminPost<DataEnvelope<OrganizationBrandCreated>>(
+    `/admin/organizations/${encodeURIComponent(organizationId)}/brands`,
+    input
+  );
+  return response.data;
+}
+
+/** Scan a website or social profile into the brand kit (logo, banner, colors, voice). */
+export async function scanOrganizationBrand(
+  organizationId: string,
+  brandId: string,
+  url: string
+): Promise<OrganizationBrandScan> {
+  const response = await adminPost<DataEnvelope<OrganizationBrandScan>>(
+    `/admin/organizations/${encodeURIComponent(organizationId)}/brands/${encodeURIComponent(brandId)}/scan`,
+    { url }
+  );
+  return response.data;
+}
+
+export async function createWarmupAccount(input: WarmupAccountInput): Promise<WarmupAccountRecord> {
+  return flattenSingle<WarmupAccountRecord>(
+    await adminPost<JsonApiDocument>('/admin/warmup-accounts', input)
+  );
+}
+
+export async function prepareWarmupAccount(
+  accountId: string,
+  input: WarmupPrepareInput
+): Promise<WarmupAccountRecord> {
+  return flattenSingle<WarmupAccountRecord>(
+    await adminPost<JsonApiDocument>(
+      `/admin/warmup-accounts/${encodeURIComponent(accountId)}/prepare`,
+      input
+    )
+  );
+}
+
 const ORGANIZATION_APPS_PAGE_SIZE = 100;
 
 async function readOrganizationAppsPage(page: number): Promise<IOrganizationAppsReport> {

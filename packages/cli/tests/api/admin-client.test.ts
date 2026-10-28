@@ -111,6 +111,19 @@ describe('api/admin-client', () => {
     expect((error as ApiError).suggestion).toContain('ADMIN_ALLOWED_IPS');
   });
 
+  it('surfaces the detail of a JSON:API error body', async () => {
+    mockFetch
+      .mockResolvedValueOnce(jsonResponse({ token: jwt(Math.floor(Date.now() / 1000) + 900) }))
+      .mockResolvedValueOnce(
+        jsonResponse({ errors: [{ detail: 'Brand not found', title: 'Not Found' }] }, 404)
+      );
+
+    const error = await adminGet('/admin/organizations/o/brands').catch(
+      (caught: unknown) => caught
+    );
+    expect((error as ApiError).message).toContain('Brand not found');
+  });
+
   it('reports whether the server revoked the session', async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ status: true }));
     await expect(revokeAdminSession('https://api.genfeed.ai/v1', 'c=v')).resolves.toBe(true);

@@ -8,22 +8,30 @@ import { getAdminSession, getApiUrl, getLoginEndpoints, setAdminSession } from '
 import {
   approvePricingRates,
   approveSystemBrand,
+  createOrganizationBrand,
+  createWarmupAccount,
   filterPricingRows,
   findMissingExternalPacks,
   findPendingVersion,
   findPricingFixTargets,
   fixModelPricing,
+  grantOrganizationCredits,
+  type OrganizationBrandInput,
   type PriceSyncProvider,
+  prepareWarmupAccount,
   readHarnessActivation,
   readOrganizationAppsReport,
   readOrganizationsReport,
   readPricingReport,
   readSystemBrand,
+  scanOrganizationBrand,
   seedArticles,
   seedTemplates,
   seedWorkflows,
   syncProviderPrices,
   updateSystemBrand,
+  type WarmupAccountInput,
+  type WarmupPrepareInput,
 } from '@/operations/admin';
 import {
   formatHeader,
@@ -35,6 +43,52 @@ import {
 } from '@/ui/theme';
 import { GenfeedError, handleError } from '@/utils/errors';
 import { wantsJson } from '@/utils/options';
+
+interface OrganizationBrandCreateOptions {
+  backgroundColor?: string;
+  description?: string;
+  fontFamily?: string;
+  label: string;
+  org: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  yes?: boolean;
+}
+
+interface OrganizationBrandScanOptions {
+  brand: string;
+  org: string;
+  url: string;
+  yes?: boolean;
+}
+
+interface CreditsGrantOptions {
+  amount: number;
+  expiresInDays?: number;
+  idempotencyKey?: string;
+  reason: string;
+  yes?: boolean;
+}
+
+interface WarmupCreateOptions {
+  brand: string;
+  email: string;
+  firstName?: string;
+  guidance?: string;
+  lastName?: string;
+  organization: string;
+  website?: string;
+  yes?: boolean;
+}
+
+interface WarmupPrepareOptions {
+  action: string;
+  amount?: number;
+  publicProfileUrl?: string;
+  reason?: string;
+  sourceUrl?: string;
+  yes?: boolean;
+}
 
 async function runAdminLogin(): Promise<void> {
   const endpoints = await getLoginEndpoints();
@@ -523,8 +577,8 @@ function createSeedCommand(): Command {
 }
 
 function createBrandCommand(): Command {
-  return new Command('brand')
-    .description('Review the Genfeed system brand kit')
+  const brand = new Command('brand')
+    .description('Review the system brand kit; create and scan brands inside any organization')
     .addCommand(
       new Command('show')
         .description('Show the system brand revision (created on first use)')
@@ -570,6 +624,198 @@ function createBrandCommand(): Command {
           try {
             await approveSystemBrand(revisionId, options.updatedAt);
             print(formatSuccess('System brand approved'));
+          } catch (error) {
+            handleError(error);
+          }
+        })
+    );
+  for (const subcommand of createOrganizationBrandSubcommands()) brand.addCommand(subcommand);
+  return brand;
+}
+
+function createOrganizationBrandSubcommands(): Command[] {
+  return [
+    new Command('create')
+      .description('Create a brand inside any organization (preview unless --yes)')
+      .requiredOption('--org <organizationId>', 'Organization id')
+      .requiredOption('--label <label>', 'Brand name')
+      .option('--description <text>', 'Brand description')
+      .option('--font-family <fontFamily>', 'FontFamily enum value (default INTER_BOLD)')
+      .option('--primary-color <hex>', 'Primary color')
+      .option('--secondary-color <hex>', 'Secondary color')
+      .option('--background-color <hex>', 'Background color')
+      .option('--yes', 'Create the brand')
+      .action(async (options: OrganizationBrandCreateOptions) => {
+        try {
+          const input: OrganizationBrandInput = {
+            backgroundColor: options.backgroundColor,
+            description: options.description,
+            fontFamily: options.fontFamily,
+            label: options.label,
+            primaryColor: options.primaryColor,
+            secondaryColor: options.secondaryColor,
+          };
+          if (!options.yes) {
+            print(formatHeader('Brand create (preview)\n'));
+            print(formatLabel('Organization', options.org));
+            print(formatLabel('Label', options.label));
+            print(formatWarning('Re-run with --yes to create the brand.'));
+            return;
+          }
+          const brand = await createOrganizationBrand(options.org, input);
+          print(formatSuccess(`Created brand ${brand.label} (${brand.id}, slug ${brand.slug})`));
+        } catch (error) {
+          handleError(error);
+        }
+      }),
+    new Command('scan')
+      .description('Scan a website or social profile into the brand kit (preview unless --yes)')
+      .requiredOption('--org <organizationId>', 'Organization id')
+      .requiredOption('--brand <brandId>', 'Brand id')
+      .requiredOption('--url <url>', 'Website or social profile URL to scan')
+      .option('--yes', 'Run the scan')
+      .option('--json', 'Output as JSON')
+      .action(async (options: OrganizationBrandScanOptions, command: Command) => {
+        try {
+          if (!options.yes) {
+            print(formatHeader('Brand scan (preview)\n'));
+            print(formatLabel('Organization', options.org));
+            print(formatLabel('Brand', options.brand));
+            print(formatLabel('URL', options.url));
+            print(formatWarning('Re-run with --yes to scan and overwrite scraped brand fields.'));
+            return;
+          }
+          const scan = await scanOrganizationBrand(options.org, options.brand, options.url);
+          if (wantsJson(command)) {
+            printJson(scan);
+            return;
+          }
+          print(formatLabel('Status', scan.scrapeStatus));
+          if (scan.scrapeReason) print(formatLabel('Reason', scan.scrapeReason));
+        } catch (error) {
+          handleError(error);
+        }
+      }),
+  ];
+}
+
+function createCreditsCommand(): Command {
+  return new Command('credits').description('Grant credits to an organization').addCommand(
+    new Command('grant')
+      .description('Grant credits to an organization (preview unless --yes)')
+      .argument('<organizationId>', 'Organization id')
+      .requiredOption('--amount <credits>', 'Credits to grant (1-100000)', Number)
+      .requiredOption('--reason <text>', 'Audit reason (8-500 characters)')
+      .option('--expires-in-days <days>', 'Expire the grant after N days', Number)
+      .option('--idempotency-key <key>', 'Stable key so a retry cannot double-grant')
+      .option('--yes', 'Apply the grant')
+      .action(async (organizationId: string, options: CreditsGrantOptions) => {
+        try {
+          if (!options.yes) {
+            print(formatHeader('Credit grant (preview)\n'));
+            print(formatLabel('Organization', organizationId));
+            print(formatLabel('Amount', String(options.amount)));
+            print(formatLabel('Reason', options.reason));
+            print(formatWarning('Re-run with --yes to grant the credits.'));
+            return;
+          }
+          const grant = await grantOrganizationCredits(organizationId, {
+            amount: options.amount,
+            expiresInDays: options.expiresInDays,
+            idempotencyKey: options.idempotencyKey,
+            reason: options.reason,
+          });
+          print(
+            formatSuccess(`Granted ${grant.creditsGranted} credits (balance ${grant.balance})`)
+          );
+        } catch (error) {
+          handleError(error);
+        }
+      })
+  );
+}
+
+function createWarmupCommand(): Command {
+  return new Command('warmup')
+    .description('Create and prepare concierge accounts (never sends the invitation email)')
+    .addCommand(
+      new Command('create')
+        .description('Create the lead user, organization and first brand (preview unless --yes)')
+        .requiredOption('--email <email>', 'Lead email')
+        .requiredOption('--organization <name>', 'Organization name')
+        .requiredOption('--brand <name>', 'First brand name')
+        .option('--first-name <name>', 'Lead first name')
+        .option('--last-name <name>', 'Lead last name')
+        .option('--website <url>', 'Brand website URL')
+        .option('--guidance <text>', 'Notes for the account (max 2000 characters)')
+        .option('--yes', 'Create the account')
+        .option('--json', 'Output as JSON')
+        .action(async (options: WarmupCreateOptions, command: Command) => {
+          try {
+            const input: WarmupAccountInput = {
+              brandName: options.brand,
+              guidance: options.guidance,
+              leadEmail: options.email,
+              leadFirstName: options.firstName,
+              leadLastName: options.lastName,
+              organizationName: options.organization,
+              websiteUrl: options.website,
+            };
+            if (!options.yes) {
+              print(formatHeader('Warm-up account (preview)\n'));
+              print(formatLabel('Lead', options.email));
+              print(formatLabel('Organization', options.organization));
+              print(formatLabel('Brand', options.brand));
+              print(formatWarning('Re-run with --yes to create. No email is sent.'));
+              return;
+            }
+            const account = await createWarmupAccount(input);
+            if (wantsJson(command)) {
+              printJson(account);
+              return;
+            }
+            print(formatSuccess(`Warm-up account ${account.id} ready`));
+          } catch (error) {
+            handleError(error);
+          }
+        })
+    )
+    .addCommand(
+      new Command('prepare')
+        .description('Run a prepare action on a warm-up account (preview unless --yes)')
+        .argument('<accountId>', 'Warm-up account id')
+        .requiredOption(
+          '--action <action>',
+          'repair | fund | preview-context | apply-context | starter-content | attach-starters | archive'
+        )
+        .option('--amount <credits>', 'Credits for the fund action', Number)
+        .option('--reason <text>', 'Audit reason')
+        .option('--source-url <url>', 'Source URL for context actions')
+        .option('--public-profile-url <url>', 'Public profile URL for context actions')
+        .option('--yes', 'Run the action')
+        .option('--json', 'Output as JSON')
+        .action(async (accountId: string, options: WarmupPrepareOptions, command: Command) => {
+          try {
+            const input: WarmupPrepareInput = {
+              action: options.action,
+              amount: options.amount,
+              publicProfileUrl: options.publicProfileUrl,
+              reason: options.reason,
+              sourceUrl: options.sourceUrl,
+            };
+            if (!options.yes) {
+              print(formatHeader('Warm-up prepare (preview)\n'));
+              print(formatLabel('Account', accountId));
+              print(formatLabel('Action', options.action));
+              print(formatWarning('Re-run with --yes to run the action.'));
+              return;
+            }
+            const account = await prepareWarmupAccount(accountId, input);
+            if (wantsJson(command)) {
+              printJson(account);
+              return;
+            }
+            print(formatSuccess(`Ran ${options.action} on ${account.id}`));
           } catch (error) {
             handleError(error);
           }
@@ -651,4 +897,6 @@ export const adminCommand = new Command('admin')
   )
   .addCommand(createPricingCommand())
   .addCommand(createSeedCommand())
-  .addCommand(createBrandCommand());
+  .addCommand(createBrandCommand())
+  .addCommand(createCreditsCommand())
+  .addCommand(createWarmupCommand());

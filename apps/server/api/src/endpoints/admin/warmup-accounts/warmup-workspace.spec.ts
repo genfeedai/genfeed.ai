@@ -153,6 +153,10 @@ describe('warm-up workspace handoff', () => {
     expect(tx.organizationSetting.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ where: { organizationId: 'org-1' } }),
     );
+    // OrganizationSetting has no isDeleted column; passing it makes Prisma reject the call.
+    expect(tx.organizationSetting.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ update: {} }),
+    );
     expect(tx.billingAccountMember.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         create: {
