@@ -30,7 +30,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
 import { useCompleteOnboarding } from '../../_expert/use-complete-onboarding.hook';
-import { toOnboardingLink } from './first-drafts.util';
+import { isValidOnboardingLink, toOnboardingLink } from './first-drafts.util';
 
 export function useFirstDrafts(): FirstDraftsState {
   const { getToken } = useAuthIdentity();
@@ -400,12 +400,16 @@ export function useFirstDrafts(): FirstDraftsState {
     onStart: () => {
       if (result) setPhase('review');
       else if (isGenerating) setPhase('working');
+      else if (!isValidOnboardingLink(url)) setError('invalidUrl');
       else void startGeneration();
     },
     onSubmitContext: (context) => {
       void startGeneration(context);
     },
-    onUrlChange: setUrl,
+    onUrlChange: (value: string) => {
+      setUrl(value);
+      setError((current) => (current === 'invalidUrl' ? null : current));
+    },
     phase,
     result,
     round,

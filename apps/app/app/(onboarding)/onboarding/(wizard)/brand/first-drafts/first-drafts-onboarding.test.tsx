@@ -296,6 +296,19 @@ describe('FirstDraftsOnboarding', () => {
     expect(mocks.generateDrafts).not.toHaveBeenCalled();
   });
 
+  it('asks for a real web address instead of scanning a typo', async () => {
+    render(<FirstDraftsOnboarding />);
+    await startFromLink('na');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /doesn.t look like a web address/i,
+    );
+    expect(mocks.scanBrand).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: 'acme.co' },
+    });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('normalizes an X handle before scanning', async () => {
     render(<FirstDraftsOnboarding />);
     await startFromLink('@acme');

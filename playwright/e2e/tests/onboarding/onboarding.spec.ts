@@ -64,6 +64,18 @@ test.describe('Output-first onboarding', () => {
     await expect(page.getByText('Tell us what we missed')).toBeVisible();
   });
 
+  test('asks for a real web address instead of scanning a typo', async ({
+    personalEmailOnboardingPage: page,
+  }) => {
+    const { draftRequests } = await setupOnboardingFirstDraftsMocks(page);
+    await page.getByRole('textbox').fill('na');
+    await page.getByRole('button', { name: 'Submit brand link' }).click();
+    await expect(page.getByRole('alert')).toContainText(
+      'doesn’t look like a web address',
+    );
+    expect(draftRequests).toHaveLength(0);
+  });
+
   test('keeps the onboarding entry route', async ({ onboardingPage: page }) => {
     await page.goto(APP_ROUTES.ONBOARDING.ROOT);
     await expect(page).toHaveURL(new RegExp(`${APP_ROUTES.ONBOARDING.BRAND}$`));
