@@ -5,6 +5,7 @@ export const TOOL_LABELS: Record<string, string> = {
   generate_reply_variants: 'Drafting replies',
   refine_text: 'Editing your draft',
   request_input: 'Choosing the next step',
+  update_task_list: 'Updating the task list',
   present_work_object: 'Preparing your draft',
   ingest_source_media: 'Adding source to Library',
   review_turbo_items: 'Batch Review Action',

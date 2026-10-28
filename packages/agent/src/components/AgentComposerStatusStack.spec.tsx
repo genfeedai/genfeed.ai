@@ -419,6 +419,157 @@ describe('AgentComposerStatusStack', () => {
 
     expect(container).toBeEmptyDOMElement();
   });
+  describe('agent task list', () => {
+    function taskListEvent(
+      id: string,
+      tasks: unknown,
+      status = AgentWorkEventStatus.COMPLETED,
+    ) {
+      return {
+        createdAt: '2026-07-13T00:00:00.000Z',
+        event: AgentWorkEventType.TOOL_COMPLETED,
+        id,
+        label: 'update_task_list',
+        parameters: { tasks },
+        status,
+        threadId: 'thread-1',
+        toolCallId: id,
+        toolName: 'update_task_list',
+      };
+    }
+
+    const generateEvent = {
+      createdAt: '2026-07-13T00:00:00.000Z',
+      event: AgentWorkEventType.TOOL_STARTED,
+      id: 'generate-1',
+      label: 'generate',
+      parameters: { generationType: 'video' },
+      status: AgentWorkEventStatus.RUNNING,
+      threadId: 'thread-1',
+      toolCallId: 'generate-1',
+      toolName: 'generate',
+    };
+
+    it('shows the named phases with the one that is running', () => {
+      render(
+        <AgentComposerStatusStack
+          {...baseProps}
+          activeWorkEvent={null}
+          isRunActive
+          workEvents={[
+            taskListEvent('call-1', [
+              { id: 'script', label: 'Write the script', status: 'completed' },
+              { id: 'shots', label: 'Generate the shots', status: 'active' },
+              { id: 'grade', label: 'Colour grade', status: 'pending' },
+            ]),
+            generateEvent,
+          ]}
+        />,
+      );
+
+      const items = screen
+        .getByTestId('agent-composer-tasks')
+        .querySelectorAll('li');
+      expect(
+        Array.from(items).map((item) => [
+          item.textContent,
+          item.getAttribute('data-task-status'),
+        ]),
+      ).toEqual([
+        ['Write the script', 'completed'],
+        ['Generate the shots', 'active'],
+        ['Colour grade', 'pending'],
+      ]);
+      expect(screen.queryByText('Generate Media')).not.toBeInTheDocument();
+    });
+
+    it('follows the latest call, since each call sends the whole list', () => {
+      render(
+        <AgentComposerStatusStack
+          {...baseProps}
+          activeWorkEvent={null}
+          isRunActive
+          workEvents={[
+            taskListEvent('call-1', [
+              { id: 'script', label: 'Write the script', status: 'active' },
+              { id: 'shots', label: 'Generate the shots', status: 'pending' },
+            ]),
+            taskListEvent('call-2', [
+              { id: 'script', label: 'Write the script', status: 'completed' },
+              { id: 'shots', label: 'Generate the shots', status: 'active' },
+            ]),
+          ]}
+        />,
+      );
+
+      expect(
+        screen.getByTestId('agent-composer-tasks').querySelectorAll('li'),
+      ).toHaveLength(2);
+      expect(
+        screen.getByText('Write the script').closest('li'),
+      ).toHaveAttribute('data-task-status', 'completed');
+    });
+
+    it('ignores a call that failed or sent a malformed list', () => {
+      render(
+        <AgentComposerStatusStack
+          {...baseProps}
+          activeWorkEvent={null}
+          isRunActive
+          workEvents={[
+            taskListEvent('call-1', [
+              { id: 'script', label: 'Write the script', status: 'active' },
+            ]),
+            taskListEvent(
+              'call-2',
+              [{ id: 'shots', label: 'Generate the shots', status: 'active' }],
+              AgentWorkEventStatus.FAILED,
+            ),
+            taskListEvent('call-3', [
+              { id: 'grade', label: 'Colour grade', status: 'running' },
+            ]),
+          ]}
+        />,
+      );
+
+      expect(screen.getByText('Write the script')).toBeInTheDocument();
+      expect(screen.queryByText('Generate the shots')).not.toBeInTheDocument();
+      expect(screen.queryByText('Colour grade')).not.toBeInTheDocument();
+    });
+
+    it('does not list the update call itself as a step', () => {
+      const { container } = render(
+        <AgentComposerStatusStack
+          {...baseProps}
+          activeWorkEvent={null}
+          isRunActive
+          workEvents={[
+            taskListEvent('call-1', 'not a list', AgentWorkEventStatus.RUNNING),
+          ]}
+        />,
+      );
+
+      expect(container).toBeEmptyDOMElement();
+    });
+
+    it('hides the list once the run is no longer active', () => {
+      const { container } = render(
+        <AgentComposerStatusStack
+          {...baseProps}
+          activeWorkEvent={null}
+          isRunActive={false}
+          workEvents={[
+            taskListEvent('call-1', [
+              { id: 'script', label: 'Write the script', status: 'active' },
+            ]),
+          ]}
+        />,
+      );
+
+      expect(container).toBeEmptyDOMElement();
+    });
+  });
+
   describe('stalled turn notice', () => {
     it('offers keep waiting and stop and retry when the turn is stalled', () => {
       const onKeepWaiting = vi.fn();

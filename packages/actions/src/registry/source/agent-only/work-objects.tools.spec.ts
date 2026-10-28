@@ -24,6 +24,7 @@ describe('Agent work-object contracts', () => {
       'request_input',
       'present_work_object',
       'ingest_source_media',
+      'update_task_list',
     ]);
     for (const tool of AGENT_WORK_OBJECT_TOOLS) {
       expect(names.filter((name) => name === tool.name)).toHaveLength(1);

@@ -10,6 +10,7 @@ import type { AgentSocketConnectionState } from '@genfeedai/agent/stores/agent-c
 import { isGenericRunLifecycleEvent } from '@genfeedai/agent/utils/derive-timeline';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { readAgentTaskList } from '@genfeedai/contracts/constants';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
@@ -78,6 +79,8 @@ const GENERIC_TOOL_LABELS = new Set([
   'tool started',
   'tool running',
 ]);
+
+const TASK_LIST_TOOL_NAME = 'update_task_list';
 
 const GENERATION_TOOL_NAMES = new Set([
   'generate',
@@ -251,10 +254,40 @@ function buildPlanTasks(
   return tasks;
 }
 
+// The agent reports its own named phases through `update_task_list`; each call
+// sends the whole list, so the latest usable call is the current state. A call
+// that failed validation reported nothing the person should see.
+function buildAgentTaskListTasks(
+  workEvents: readonly AgentWorkEvent[],
+): ComposerTask[] {
+  for (let index = workEvents.length - 1; index >= 0; index -= 1) {
+    const event = workEvents[index];
+    if (
+      event.toolName !== TASK_LIST_TOOL_NAME ||
+      event.status === AgentWorkEventStatus.FAILED
+    ) {
+      continue;
+    }
+    const tasks = readAgentTaskList(event.parameters?.tasks);
+    if (tasks) {
+      return tasks.map((task) => ({
+        detail: task.detail,
+        id: `task-list:${task.id}`,
+        label: task.label,
+        status: task.status,
+      }));
+    }
+  }
+  return [];
+}
+
 function buildWorkTasks(workEvents: readonly AgentWorkEvent[]): ComposerTask[] {
   const tasks = new Map<string, ComposerTask>();
 
   for (const event of workEvents) {
+    if (event.toolName === TASK_LIST_TOOL_NAME) {
+      continue;
+    }
     const label = getWorkTaskLabel(event);
     if (isGenericRunLifecycleEvent(event) || !label) {
       continue;
@@ -290,6 +323,11 @@ function buildComposerTasks(
   plan: AgentProposedPlan | null,
   isRunActive: boolean,
 ): ComposerTask[] {
+  const agentTasks = buildAgentTaskListTasks(workEvents);
+  if (agentTasks.length > 0) {
+    return agentTasks;
+  }
+
   const generationTasks = buildWorkTasks(
     workEvents.filter(isGenerationWorkEvent),
   );

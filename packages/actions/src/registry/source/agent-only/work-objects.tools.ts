@@ -88,4 +88,38 @@ export const AGENT_WORK_OBJECT_TOOLS: SourceTool[] = [
       },
     },
   },
+  {
+    name: 'update_task_list',
+    creditCost: 0,
+    requiredRole: 'user',
+    description:
+      'Show the person the named phases of a multi-step build (three or more steps) and which one is running. Send the whole list each time with a status per task. Call it before the first step, send it in the same round as the next tool call when a phase finishes, and mark every task completed at the end. Skip it for a single quick action.',
+    parameters: {
+      type: 'object',
+      required: ['tasks'],
+      properties: {
+        tasks: {
+          type: 'array',
+          maxItems: 12,
+          minItems: 1,
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              label: {
+                type: 'string',
+                description: 'Short phase name, such as "Write the script".',
+              },
+              status: {
+                type: 'string',
+                enum: ['pending', 'active', 'completed', 'failed', 'cancelled'],
+              },
+              detail: { type: 'string' },
+            },
+            required: ['id', 'label', 'status'],
+          },
+        },
+      },
+    },
+  },
 ];
