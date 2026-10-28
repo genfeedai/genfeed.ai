@@ -6,6 +6,8 @@ import RepliesWarmupTargets from './replies-warmup-targets';
 const service = {
   addWarmupTarget: vi.fn(),
   discoverWarmupTargets: vi.fn(),
+  listWarmupTargets: vi.fn(),
+  removeWarmupTarget: vi.fn(),
 };
 
 // Stable mocks: unstable ones would re-run effects on every render.
@@ -36,6 +38,8 @@ describe('RepliesWarmupTargets', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     service.discoverWarmupTargets.mockResolvedValue([SUGGESTION]);
+    service.listWarmupTargets.mockResolvedValue([]);
+    service.removeWarmupTarget.mockResolvedValue(undefined);
     service.addWarmupTarget.mockResolvedValue({
       botConfigId: 'bot-1',
       monitoredAccountId: 'acc-1',
@@ -78,6 +82,49 @@ describe('RepliesWarmupTargets', () => {
         username: 'target',
       }),
     );
+    expect(
+      await screen.findByRole('button', { name: 'monitoring' }),
+    ).toBeDisabled();
+  });
+
+  it('lists the monitored accounts and removes one', async () => {
+    service.listWarmupTargets.mockResolvedValue([
+      {
+        followersCount: 4200,
+        isActive: true,
+        monitoredAccountId: 'acc-9',
+        username: 'peer',
+      },
+    ]);
+    render(<RepliesWarmupTargets brandId="brand-1" />);
+
+    expect(await screen.findByText('@peer')).toBeInTheDocument();
+    expect(service.listWarmupTargets).toHaveBeenCalledWith('brand-1');
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'removeLabel {"username":"peer"}',
+      }),
+    );
+
+    await waitFor(() => expect(screen.queryByText('@peer')).toBeNull());
+    expect(service.removeWarmupTarget).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      monitoredAccountId: 'acc-9',
+    });
+    expect(screen.getByText('monitoredEmpty')).toBeInTheDocument();
+  });
+
+  it('shows an already monitored suggestion as monitoring', async () => {
+    service.listWarmupTargets.mockResolvedValue([
+      { isActive: true, monitoredAccountId: 'acc-1', username: 'Target' },
+    ]);
+    render(<RepliesWarmupTargets brandId="brand-1" />);
+    await screen.findByText('@Target');
+    fireEvent.change(screen.getByLabelText('queryLabel'), {
+      target: { value: 'indie hackers' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'search' }));
+
     expect(
       await screen.findByRole('button', { name: 'monitoring' }),
     ).toBeDisabled();

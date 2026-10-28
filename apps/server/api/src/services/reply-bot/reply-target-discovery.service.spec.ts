@@ -24,7 +24,7 @@ describe('ReplyTargetDiscoveryService', () => {
   const monitoredAccountsService = { create: vi.fn() };
   const prisma = {
     credential: { findFirst: vi.fn(), findMany: vi.fn() },
-    monitoredAccount: { findMany: vi.fn() },
+    monitoredAccount: { findMany: vi.fn(), updateMany: vi.fn() },
   };
   const logger = { warn: vi.fn() };
   let service: ReplyTargetDiscoveryService;
@@ -208,6 +208,83 @@ describe('ReplyTargetDiscoveryService', () => {
 
       await expect(service.addTarget(params)).rejects.toThrow('up to');
       expect(twitterService.getUserByUsername).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('listTargets', () => {
+    it('lists the brand accounts with their stored profile, skipping rows without a username', async () => {
+      prisma.monitoredAccount.findMany.mockResolvedValue([
+        {
+          config: {
+            displayName: 'Peer',
+            followersCount: 4200,
+            username: 'peer',
+          },
+          id: 'acc-1',
+          isActive: true,
+        },
+        { config: {}, id: 'acc-2', isActive: true },
+        { config: { username: 'paused' }, id: 'acc-3', isActive: false },
+      ]);
+
+      const result = await service.listTargets({
+        brandId: 'b',
+        organizationId: 'o',
+      });
+
+      expect(result).toEqual([
+        {
+          displayName: 'Peer',
+          followersCount: 4200,
+          isActive: true,
+          monitoredAccountId: 'acc-1',
+          username: 'peer',
+        },
+        {
+          displayName: undefined,
+          followersCount: undefined,
+          isActive: false,
+          monitoredAccountId: 'acc-3',
+          username: 'paused',
+        },
+      ]);
+      expect(prisma.monitoredAccount.findMany.mock.calls[0]?.[0].where).toEqual(
+        { brandId: 'b', isDeleted: false, organizationId: 'o' },
+      );
+    });
+  });
+
+  describe('removeTarget', () => {
+    it('soft deletes only an account of this brand and organization', async () => {
+      prisma.monitoredAccount.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.removeTarget({
+        brandId: 'b',
+        monitoredAccountId: 'acc-1',
+        organizationId: 'o',
+      });
+
+      expect(prisma.monitoredAccount.updateMany.mock.calls[0]?.[0]).toEqual({
+        data: { isDeleted: true },
+        where: {
+          brandId: 'b',
+          id: 'acc-1',
+          isDeleted: false,
+          organizationId: 'o',
+        },
+      });
+    });
+
+    it('is a 404 when the account is not one of the brand monitored accounts', async () => {
+      prisma.monitoredAccount.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.removeTarget({
+          brandId: 'b',
+          monitoredAccountId: 'other-org-account',
+          organizationId: 'o',
+        }),
+      ).rejects.toMatchObject({ status: 404 });
     });
   });
 });

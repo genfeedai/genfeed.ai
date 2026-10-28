@@ -1,6 +1,7 @@
 import type { Platform } from '@genfeedai/contracts';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
+  IReplyTarget,
   IReplyTargetAddResult,
   IReplyTargetSuggestion,
 } from '@genfeedai/contracts/interfaces';
@@ -88,6 +89,29 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
       params,
     );
     return response.data;
+  }
+
+  /**
+   * The X accounts the brand's warm-up monitor follows.
+   */
+  async listWarmupTargets(brandId: string): Promise<IReplyTarget[]> {
+    const response = await this.instance.get<IReplyTarget[]>('warmup/targets', {
+      params: { brandId },
+    });
+    return response.data;
+  }
+
+  /**
+   * Stop monitoring an X account for warm-up. Queued drafts stay.
+   */
+  async removeWarmupTarget(params: {
+    brandId: string;
+    monitoredAccountId: string;
+  }): Promise<void> {
+    await this.instance.delete(
+      `warmup/targets/${encodeURIComponent(params.monitoredAccountId)}`,
+      { params: { brandId: params.brandId } },
+    );
   }
 
   /**
