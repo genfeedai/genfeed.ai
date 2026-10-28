@@ -22,7 +22,7 @@
   --text-2xs: var(--font-size-xs);
   --text-2xs--line-height: var(--line-height-caption);
   --color-background: hsl(var(--background));
-  --color-tertiary: hsl(var(--background-tertiary));
+  --color-tertiary: hsl(var(--tertiary));
   --color-elevated: hsl(var(--popover));
   --color-hover: hsl(var(--accent));
   --color-foreground: hsl(var(--foreground));

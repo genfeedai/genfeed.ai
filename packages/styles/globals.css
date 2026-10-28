@@ -128,7 +128,7 @@
   --color-gray-alpha-1000: var(--gray-alpha-1000);
 
   /* Surfaces that DESIGN.md names without a shadcn counterpart. */
-  --color-tertiary: hsl(var(--background-tertiary));
+  --color-tertiary: hsl(var(--tertiary));
   --color-elevated: hsl(var(--popover));
   --color-hover: hsl(var(--gray-300));
 
@@ -471,7 +471,7 @@ a {
 }
 
 .gen-shell-segmented-button[data-active="true"] {
-  background: hsl(var(--background-tertiary) / 0.96);
+  background: hsl(var(--tertiary) / 0.96);
   color: hsl(var(--foreground));
   box-shadow:
     var(--shadow-md),
@@ -492,13 +492,13 @@ a {
 .gen-shell-control:hover,
 .gen-shell-control:focus-visible {
   border-color: hsl(var(--foreground) / 0.16);
-  background: hsl(var(--background-tertiary));
+  background: hsl(var(--tertiary));
   color: hsl(var(--foreground));
 }
 
 .gen-shell-control[data-active="true"] {
   border-color: hsl(var(--foreground) / 0.16);
-  background: hsl(var(--background-tertiary) / 0.94);
+  background: hsl(var(--tertiary) / 0.94);
   color: hsl(var(--foreground));
   box-shadow:
     var(--shadow-sm),
@@ -583,7 +583,7 @@ a {
 }
 
 [data-agent-console="true"] .gen-shell-segmented-button[data-active="true"] {
-  background: hsl(var(--background-secondary) / 0.94);
+  background: hsl(var(--card) / 0.94);
   color: hsl(var(--foreground));
   box-shadow:
     var(--shadow-md),
@@ -592,13 +592,13 @@ a {
 
 [data-agent-console="true"] .gen-shell-control {
   border-color: hsl(var(--border));
-  background: hsl(var(--background-secondary));
+  background: hsl(var(--card));
 }
 
 [data-agent-console="true"] .gen-shell-control:hover,
 [data-agent-console="true"] .gen-shell-control:focus-visible {
   border-color: hsl(var(--foreground) / 0.14);
-  background: hsl(var(--background-tertiary));
+  background: hsl(var(--tertiary));
 }
 
 [data-agent-console="true"] .gen-shell-empty-state {

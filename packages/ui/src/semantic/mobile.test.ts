@@ -10,8 +10,8 @@ describe('nativeThemeColors', () => {
       const native = nativeThemeColors[theme];
 
       expect(native.bgPrimary).toBe(semantic.background.hex);
-      expect(native.bgSecondary).toBe(semantic.backgroundSecondary.hex);
-      expect(native.bgTertiary).toBe(semantic.backgroundTertiary.hex);
+      expect(native.bgSecondary).toBe(semantic.card.hex);
+      expect(native.bgTertiary).toBe(semantic.tertiary.hex);
       expect(native.bgBorder).toBe(semantic.border.hex);
       expect(native.textPrimary).toBe(semantic.foreground.hex);
       expect(native.textMuted).toBe(semantic.mutedForeground.hex);

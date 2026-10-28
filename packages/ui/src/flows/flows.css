@@ -36,7 +36,7 @@
       color-mix(in srgb, hsl(var(--accent)) 8%, transparent),
       transparent 42%
     ),
-    hsl(var(--background-secondary));
+    hsl(var(--card));
 }
 
 .react-flow__node {

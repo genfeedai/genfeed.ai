@@ -163,7 +163,7 @@
 
 /* Raised node surfaces retain category identity against the canvas grid. */
 .workflow-scope .workflow-node {
-  background-color: hsl(var(--background-secondary));
+  background-color: hsl(var(--card));
   box-shadow: 0 2px 8px hsl(var(--foreground) / 0.08);
 }
 

@@ -66,8 +66,7 @@
     --accent: 0 0% 93%;
     --accent-foreground: 0 0% 9%;
     --background: 0 0% 98%;
-    --background-secondary: 0 0% 100%;
-    --background-tertiary: 0 0% 93%;
+    --tertiary: 0 0% 93%;
     --border: 0 0% 90%;
     --border-strong: 0 0% 82%;
     --card: 0 0% 100%;
@@ -126,8 +125,7 @@
       --accent: 0 0% 12%;
       --accent-foreground: 0 0% 93%;
       --background: 0 0% 0%;
-      --background-secondary: 0 0% 4%;
-      --background-tertiary: 0 0% 9%;
+      --tertiary: 0 0% 9%;
       --border: 0 0% 15%;
       --border-strong: 0 0% 24%;
       --card: 0 0% 4%;
@@ -186,8 +184,7 @@
     --accent: 0 0% 12%;
     --accent-foreground: 0 0% 93%;
     --background: 0 0% 0%;
-    --background-secondary: 0 0% 4%;
-    --background-tertiary: 0 0% 9%;
+    --tertiary: 0 0% 9%;
     --border: 0 0% 15%;
     --border-strong: 0 0% 24%;
     --card: 0 0% 4%;

@@ -21,8 +21,7 @@
  */
 export const semanticColorRoles = [
   'background',
-  'backgroundSecondary',
-  'backgroundTertiary',
+  'tertiary',
   'foreground',
   'card',
   'cardForeground',
@@ -70,8 +69,7 @@ export const semanticColorTokens = {
     // capped at #EDEDED so it does not bloom on #000.
     background: { hex: '#000000', hsl: '0 0% 0%' },
     // background-200 — the near-black content plane (app chrome, panels, cards).
-    backgroundSecondary: { hex: '#0A0A0A', hsl: '0 0% 4%' },
-    backgroundTertiary: { hex: '#161616', hsl: '0 0% 9%' },
+    tertiary: { hex: '#161616', hsl: '0 0% 9%' },
     border: { hex: '#262626', hsl: '0 0% 15%' },
     borderStrong: { hex: '#3D3D3D', hsl: '0 0% 24%' },
     // The near-black plane, one step above the pure-black canvas.
@@ -109,8 +107,7 @@ export const semanticColorTokens = {
     // True neutral. Every hue angle here is 0 by design — a warm canvas tints
     // every screenshot, thumbnail, and brand colour the product renders on it.
     background: { hex: '#FAFAFA', hsl: '0 0% 98%' },
-    backgroundSecondary: { hex: '#FFFFFF', hsl: '0 0% 100%' },
-    backgroundTertiary: { hex: '#EDEDED', hsl: '0 0% 93%' },
+    tertiary: { hex: '#EDEDED', hsl: '0 0% 93%' },
     border: { hex: '#E6E6E6', hsl: '0 0% 90%' },
     borderStrong: { hex: '#D1D1D1', hsl: '0 0% 82%' },
     card: { hex: '#FFFFFF', hsl: '0 0% 100%' },
