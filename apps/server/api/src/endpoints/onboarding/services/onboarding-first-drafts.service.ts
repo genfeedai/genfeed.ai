@@ -113,11 +113,18 @@ export class OnboardingFirstDraftsService {
         sourceUrl,
       );
       if (state.scrapeStatus !== 'scraped' || !state.summary) {
-        return {
-          reason: state.scrapeReason ?? 'scrape_failed',
-          status: 'failed',
-        };
+        const reason = state.scrapeReason ?? 'scrape_failed';
+        this.loggerService.log('Onboarding brand scan', {
+          brandId,
+          outcome: 'failed',
+          reason,
+        });
+        return { reason, status: 'failed' };
       }
+      this.loggerService.log('Onboarding brand scan', {
+        brandId,
+        outcome: 'scanned',
+      });
       return { status: 'scanned', summary: state.summary };
     } catch (error: unknown) {
       this.loggerService.warn('Onboarding brand scan failed', {

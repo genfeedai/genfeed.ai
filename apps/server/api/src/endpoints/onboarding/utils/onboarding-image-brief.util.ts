@@ -120,6 +120,7 @@ const FIRST_RUN_AVOID = [
   'logos',
   'text overlays',
   'captions',
+  'signage and packaging text',
   'watermarks',
   'invented claims',
   'stock-photo cliches',
