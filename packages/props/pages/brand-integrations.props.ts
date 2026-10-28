@@ -118,7 +118,9 @@ export interface ConnectAccountModalProps {
   onConnect: (item: ConnectAccountPlatform) => void;
   onOpenChange: (open: boolean) => void;
   open: boolean;
-  /** Live connected-account count per platform, shown as "N connected" per tile. */
-  platformConnectedCounts: Partial<Record<CredentialPlatform, number>>;
+  /** Live connected accounts per platform: the count and avatars on each tile. */
+  platformConnections: Partial<
+    Record<CredentialPlatform, BrandDetailSocialConnection[]>
+  >;
   platformGroups: ConnectAccountPlatformGroup[];
 }

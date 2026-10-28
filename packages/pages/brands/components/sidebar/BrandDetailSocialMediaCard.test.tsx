@@ -230,14 +230,6 @@ Object.defineProperty(window, 'open', {
   writable: true,
 });
 
-// The page variant's Connect account modal is a cmdk Command, which measures
-// its list with ResizeObserver — unimplemented in jsdom.
-class MockResizeObserver {
-  disconnect = vi.fn();
-  observe = vi.fn();
-  unobserve = vi.fn();
-}
-
 describe('BrandDetailSocialMediaCard', () => {
   beforeEach(() => {
     warmupConnection.isConnected = true;
@@ -245,9 +237,6 @@ describe('BrandDetailSocialMediaCard', () => {
     useOAuthConnectPlatforms.mockReturnValue(
       resolveOAuthConnectPlatformCatalog({ threads: 'available' }),
     );
-    globalThis.ResizeObserver =
-      MockResizeObserver as unknown as typeof ResizeObserver;
-    Element.prototype.scrollIntoView = vi.fn();
   });
 
   it.each(['unknown', 'unavailable'] as const)(
@@ -326,9 +315,7 @@ describe('BrandDetailSocialMediaCard', () => {
     expect(screen.getByText('Social networks')).toBeInTheDocument();
     expect(screen.getByText('Video')).toBeInTheDocument();
     expect(screen.getByText('Advertising')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /twitter/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^X/ })).toBeInTheDocument();
     expect(
       screen.getAllByRole('button', { name: /youtube/i }).length,
     ).toBeGreaterThan(0);

@@ -136,7 +136,7 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
     category: 'social',
     Icon: XTwitterIcon,
     iconClassName: 'text-foreground',
-    label: 'Twitter',
+    label: 'X',
     platform: CredentialPlatform.TWITTER,
   },
   {
