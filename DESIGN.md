@@ -18,7 +18,7 @@ colors:
   gray-100: "#0A0A0A"   # subtle fill · raised surface (card, panel, sidebar)
   gray-200: "#1F1F1F"   # nested fill · hover on a raised surface
   gray-300: "#2A2A2A"   # active / selected fill
-  gray-400: "#333333"   # border
+  gray-400: "#333333"   # border step for hand-built edges
   gray-500: "#4A4A4A"   # border strong · hover border
   gray-600: "#666666"   # disabled foreground
   gray-700: "#808080"   # muted icon (>= 3:1)
@@ -38,8 +38,10 @@ colors:
   hover: "#2A2A2A"
 
   # ── Structure ─────────────────────────────────────────────────────────────
-  border: "#333333"
-  border-strong: "#4A4A4A"
+  # The shipped hairlines (web-tokens.css), half a step quieter than the
+  # gray-400 / gray-500 ladder steps used for hover and hand-built edges.
+  border: "#262626"
+  border-strong: "#3D3D3D"
 
   # ── Text — three tiers, all AA or better on their own canvas ──────────────
   # The third tier is the ladder step itself: text-gray-800.
@@ -436,7 +438,7 @@ later OS changes keep applying.
 
 One idea holds the whole system together: **a single ten-step neutral ladder, where
 step N does the same job in both themes.** A card is `gray-100` in Dark and
-`gray-100` in Light. A border is `gray-400` in both. Because the *roles* are
+`gray-100` in Light. A border is the `border` token in both. Because the *roles* are
 parallel, a component is authored once and never branches on theme — and the light
 theme is not a second design to maintain, it is the same design with the ladder
 turned over.
