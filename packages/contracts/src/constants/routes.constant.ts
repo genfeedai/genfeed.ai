@@ -69,7 +69,6 @@ export const APP_ROUTES = {
     },
     ECONOMICS: {
       COSTS: '/admin/economics/costs',
-      COVERAGE: '/admin/economics/coverage',
       ORGANIZATIONS: '/admin/economics/organizations',
       OVERVIEW: '/admin/economics/overview',
       REVENUE: '/admin/economics/revenue',

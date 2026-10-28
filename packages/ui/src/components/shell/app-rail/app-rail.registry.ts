@@ -15,19 +15,20 @@ import {
   ArrowLeft,
   Bot,
   BotMessageSquare,
+  Brain,
+  BriefcaseBusiness,
   CalendarDays,
   ChartPie,
   Clapperboard,
-  FileStack,
   Gauge,
   HandCoins,
   LayoutGrid,
   LibraryBig,
   MessageSquare,
+  Newspaper,
   Radar,
   Rocket,
   Scissors,
-  Settings,
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
@@ -253,14 +254,15 @@ export const ADMIN_RAIL_BACK_APP: AppRailItemConfig = {
 
 /**
  * Admin chrome swaps the app loop for these: one icon per admin category, each
- * opening that category's pages in the sidebar. `activePathRoots` mirror the
- * pages of the matching group in `ADMIN_MENU_ITEMS`; the longest root wins, so
- * Organizations (an `/admin/overview/...` URL) still lands in Administration.
+ * opening that category's pages in the sidebar (`category` on the matching
+ * `ADMIN_MENU_ITEMS`). The longest root wins, so Organizations (an
+ * `/admin/overview/analytics/...` URL) still lands in Customers. Categories
+ * with `isAdminSecondary` form the superadmin section: below a divider, at the
+ * bottom of the rail.
  */
 export const ADMIN_RAIL_CATEGORIES: readonly AppRailItemConfig[] = [
   {
     activePathRoots: [APP_ROUTES.ADMIN.ROOT, '/admin/overview'],
-    adminMenuGroup: 'Overview',
     description: 'adminOverview.description',
     group: 'admin-category',
     icon: Gauge,
@@ -269,36 +271,54 @@ export const ADMIN_RAIL_CATEGORIES: readonly AppRailItemConfig[] = [
     route: () => APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
   },
   {
+    activePathRoots: [
+      APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS,
+      APP_ROUTES.ADMIN.ORGANIZATION,
+      APP_ROUTES.ADMIN.ADMINISTRATION.USERS,
+      APP_ROUTES.ADMIN.ADMINISTRATION.CONCIERGE_ACCOUNTS,
+      APP_ROUTES.ADMIN.ADMINISTRATION.SUBSCRIPTIONS,
+      APP_ROUTES.ADMIN.ADMINISTRATION.REFERRALS,
+    ],
+    description: 'adminCustomers.description',
+    group: 'admin-category',
+    icon: BriefcaseBusiness,
+    id: 'admin-customers',
+    label: 'adminCustomers.label',
+    route: () => APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS,
+  },
+  {
     // Ingredient detail (`/admin/images/:id`, `/admin/videos/:id`) and folders
     // sit outside `/admin/content` but belong with it; unclaimed, the sidebar
     // falls back to listing every admin page.
     activePathRoots: [
       '/admin/content',
+      '/admin/configuration',
       APP_ROUTES.ADMIN.IMAGES,
       APP_ROUTES.ADMIN.VIDEOS,
       APP_ROUTES.ADMIN.FOLDERS,
+      APP_ROUTES.ADMIN.LIBRARY.VOICES,
     ],
-    adminMenuGroup: 'Content',
     description: 'adminContent.description',
     group: 'admin-category',
-    icon: FileStack,
+    icon: Newspaper,
     id: 'admin-content',
     label: 'adminContent.label',
     route: () => APP_ROUTES.ADMIN.CONTENT.POSTS,
   },
   {
-    activePathRoots: ['/admin/automation', '/admin/library'],
-    adminMenuGroup: 'AI & Automation',
+    activePathRoots: [
+      '/admin/automation',
+      APP_ROUTES.ADMIN.ADMINISTRATION.LEARNING,
+    ],
     description: 'adminAutomation.description',
     group: 'admin-category',
-    icon: Bot,
+    icon: Brain,
     id: 'admin-automation',
     label: 'adminAutomation.label',
     route: () => APP_ROUTES.ADMIN.AUTOMATION.MODELS,
   },
   {
     activePathRoots: ['/admin/economics'],
-    adminMenuGroup: 'Economics',
     description: 'adminEconomics.description',
     group: 'admin-category',
     icon: HandCoins,
@@ -307,38 +327,19 @@ export const ADMIN_RAIL_CATEGORIES: readonly AppRailItemConfig[] = [
     route: () => APP_ROUTES.ADMIN.ECONOMICS.OVERVIEW,
   },
   {
-    activePathRoots: ['/admin/configuration'],
-    adminMenuGroup: 'Configuration',
-    description: 'adminConfiguration.description',
+    activePathRoots: [
+      APP_ROUTES.ADMIN.SETTINGS.ROOT,
+      APP_ROUTES.ADMIN.FLAGS,
+      APP_ROUTES.ADMIN.ADMINISTRATION.ROLES,
+      APP_ROUTES.ADMIN.ADMINISTRATION.ANNOUNCEMENTS,
+      APP_ROUTES.ADMIN.ADMINISTRATION.SYSTEM_EMAILS,
+    ],
+    description: 'adminPlatform.description',
     group: 'admin-category',
     icon: SlidersHorizontal,
-    id: 'admin-configuration',
-    label: 'adminConfiguration.label',
-    route: () => APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS_BLACKLISTS,
-  },
-  {
-    activePathRoots: [
-      '/admin/administration',
-      '/admin/flags',
-      '/admin/organization',
-      APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS,
-    ],
-    adminMenuGroup: 'Administration',
-    description: 'adminAdministration.description',
-    group: 'admin-category',
-    icon: ShieldCheck,
-    id: 'admin-administration',
-    label: 'adminAdministration.label',
-    route: () => APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS,
-  },
-  {
-    activePathRoots: [APP_ROUTES.ADMIN.SETTINGS.ROOT],
-    adminMenuGroup: 'Settings',
-    description: 'adminSettings.description',
-    group: 'admin-category',
-    icon: Settings,
-    id: 'admin-settings',
-    label: 'adminSettings.label',
+    id: 'admin-platform',
+    isAdminSecondary: true,
+    label: 'adminPlatform.label',
     route: () => APP_ROUTES.ADMIN.SETTINGS.BILLING,
   },
 ];

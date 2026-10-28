@@ -40,6 +40,8 @@ const SAME_MEANING: Record<string, string> = {
   members: 'users',
   'affiliate rewards': 'affiliates',
   subscriptions: 'subscription',
+  // Economics opens on a summary, the same kind of page as an overview.
+  summary: 'overview',
 };
 
 const RAIL_MEANING: Record<string, string> = {
