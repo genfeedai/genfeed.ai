@@ -128,7 +128,11 @@ const CONTEXT_COVERAGE_PROPERTIES = {
   families: arraySchema(
     closedObjectSchema(
       {
-        family: enumSchema(['knowledge', 'social_connections'] as const),
+        family: enumSchema([
+          'agent_memory',
+          'knowledge',
+          'social_connections',
+        ] as const),
         lastSuccessAt: nullableSchema(STRING_SCHEMA),
         purpose: KNOWLEDGE_PURPOSE,
         recoveries: arraySchema(

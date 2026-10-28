@@ -13,6 +13,7 @@ import { KnowledgeConflictDetectionService } from '@api/collections/contexts/ser
 import type { KnowledgeConflictVerdict } from '@api/collections/contexts/services/knowledge-conflict-judge.service';
 import { KnowledgeConflictLookupService } from '@api/collections/contexts/services/knowledge-conflict-lookup.service';
 import { KnowledgeContentRetrievalService } from '@api/collections/contexts/services/knowledge-content-retrieval.service';
+import { KnowledgeContextCoverageService } from '@api/collections/contexts/services/knowledge-context-coverage.service';
 import { KnowledgeEmbeddingCompletionService } from '@api/collections/contexts/services/knowledge-embedding-completion.service';
 import { KnowledgeReceiptVerifierService } from '@api/collections/contexts/services/knowledge-receipt-verifier.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
@@ -167,6 +168,7 @@ let agentContextAssembly: AgentContextAssemblyService;
 let memories: AgentMemoriesService;
 let memoryRevisions: AgentMemoryRevisionsService;
 let memoryWriter: ContextEmbeddingWriteService;
+let coverage: KnowledgeContextCoverageService;
 
 /** Minimal brand identity the fixture brands table names — just enough for
  * `AgentContextAssemblyService.assembleContext` to render identity without a
@@ -343,6 +345,12 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
     memoryWriter = writer;
     memories = new AgentMemoriesService(prismaService, logger as never);
     memoryRevisions = new AgentMemoryRevisionsService(prismaService, writer);
+    coverage = new KnowledgeContextCoverageService(
+      prismaService,
+      policy,
+      records,
+      logger as never,
+    );
     contexts = new ContextsService(
       prismaService,
       logger as never,
@@ -832,7 +840,7 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
     ).toBe(failed.id);
     await expect(
       capture.createVersion(actorA, captured.source.id, {
-        contentHash: 'sha256:' + 'c'.repeat(64),
+        contentHash: `sha256:${'c'.repeat(64)}`,
         observedAt: new Date().toISOString(),
         payload: { referenceUrl: 'https://research.example/report' },
         provenance: {
@@ -1739,6 +1747,115 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
       await expect(
         memoryRevisions.get(actorA, String(memory.id), current),
       ).rejects.toMatchObject({ status: 404 });
+    });
+  });
+
+  describe('agent memory coverage', () => {
+    /** A saved memory plus its derived context entry; the embedding job stays queued. */
+    async function seedQueuedMemory(
+      actor: KnowledgeActor,
+      scope: KnowledgeMemoryScope,
+    ) {
+      const content = `Coverage memory ${randomUUID()}`;
+      const memory = await memories.createMemory(
+        actor.userId,
+        actor.organizationId,
+        {
+          brandId:
+            scope === KnowledgeMemoryScope.BRAND ? actor.brandId : undefined,
+          content,
+          kind: 'reference',
+          scope,
+        },
+      );
+      const base = await prisma.contextBase.create({
+        data: {
+          createdById: actor.userId,
+          data: {},
+          organizationId: actor.organizationId,
+          sourceBrandId: actor.brandId,
+        },
+      });
+      await memoryWriter.write({
+        contextBaseId: base.id,
+        dto: { content, metadata: { source: 'agent-save' } },
+        organizationId: actor.organizationId,
+        principal: {
+          actor: toWorkflowActor(actor),
+          origin: 'ACTOR',
+          sourceMemoryId: String(memory.id),
+        },
+      });
+      return String(memory.id);
+    }
+
+    async function memoryFamily(actor: KnowledgeActor) {
+      const result = await coverage.forActor(actor, { usage: 'search' });
+      return result.families.find((family) => family.family === 'agent_memory');
+    }
+
+    async function processJobsOf(memoryId: string, organizationId: string) {
+      const jobs = await prisma.contextEmbeddingJob.findMany({
+        where: { isDeleted: false, organizationId, sourceMemoryId: memoryId },
+      });
+      for (const job of jobs)
+        await embeddingExecution.process({
+          generation: job.generation,
+          jobId: job.id,
+          organizationId,
+        });
+    }
+
+    it('is empty without memories, partial while a derived copy is queued, available once indexed', async () => {
+      expect(await memoryFamily(actorA)).toMatchObject({
+        lastSuccessAt: null,
+        state: 'empty',
+      });
+
+      const memoryId = await seedQueuedMemory(
+        actorA,
+        KnowledgeMemoryScope.BRAND,
+      );
+      expect(await memoryFamily(actorA)).toMatchObject({ state: 'partial' });
+
+      await processJobsOf(memoryId, 'org-a');
+      const indexed = await memoryFamily(actorA);
+      expect(indexed?.state).toBe('available');
+      expect(indexed?.lastSuccessAt).not.toBeNull();
+    });
+
+    it('reports failed when every queued copy ended without a vector', async () => {
+      const memoryId = await seedQueuedMemory(
+        actorA,
+        KnowledgeMemoryScope.BRAND,
+      );
+      await prisma.contextEmbeddingJob.updateMany({
+        data: { safeFailureCode: 'provider_unavailable', status: 'FAILED' },
+        where: { organizationId: 'org-a', sourceMemoryId: memoryId },
+      });
+
+      expect(await memoryFamily(actorA)).toMatchObject({ state: 'failed' });
+    });
+
+    it('counts only the memories this actor and brand can read', async () => {
+      await seedQueuedMemory(actorB, KnowledgeMemoryScope.BRAND);
+      await seedQueuedMemory(actorA2, KnowledgeMemoryScope.BRAND);
+      await seedQueuedMemory(actorAOther, KnowledgeMemoryScope.PERSONAL);
+
+      expect(await memoryFamily(actorA)).toMatchObject({ state: 'empty' });
+      expect(await memoryFamily(actorA2)).toMatchObject({ state: 'partial' });
+      expect(await memoryFamily(actorAOther)).toMatchObject({
+        state: 'partial',
+      });
+    });
+
+    it('leaves memory out of the automatic answer context coverage', async () => {
+      await seedQueuedMemory(actorA, KnowledgeMemoryScope.BRAND);
+      const result = await coverage.forActor(actorA, { usage: 'context' });
+
+      expect(result.families.map((family) => family.family)).toEqual([
+        'knowledge',
+      ]);
     });
   });
 });

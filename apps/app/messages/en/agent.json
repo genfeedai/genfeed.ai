@@ -17,6 +17,7 @@
     "unsupportedCard": "This card type is not supported yet."
   },
   "contextCoverage": {
+    "agentMemory": "Agent memory",
     "complete": "Every source listed here is readable. An empty search still does not prove something does not exist.",
     "description": "What the agent can read for this chat.",
     "error": "Coverage could not be loaded.",

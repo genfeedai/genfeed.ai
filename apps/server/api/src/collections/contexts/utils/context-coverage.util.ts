@@ -10,6 +10,7 @@ import type {
   ContextCoverageRecovery,
   ContextCoverageState,
 } from '@genfeedai/contracts/interfaces';
+import type { ContextEmbeddingJobStatus } from '@genfeedai/prisma';
 
 export const CONTEXT_COVERAGE_MAX_RECOVERIES = 5;
 
@@ -35,6 +36,22 @@ export interface SocialCoverageCredentialRow {
   isConnected: boolean;
   platform: string;
   refreshTokenExpiry: Date | null;
+}
+
+/**
+ * Only the indexing facts coverage needs from an agent memory. An entry is a
+ * context-memory copy derived from the memory; `latestJob` is its newest
+ * embedding job.
+ */
+export interface AgentMemoryCoverageRow {
+  derivedEntries: {
+    embeddingGeneration: number;
+    embeddingStoredGeneration: number;
+    latestJob: {
+      completedAt: Date | null;
+      status: `${ContextEmbeddingJobStatus}`;
+    } | null;
+  }[];
 }
 
 function classifyKnowledgeSource(
@@ -189,6 +206,41 @@ export function deriveSocialConnectionsCoverageFamily(
   };
 }
 
+/**
+ * A memory is read from its own record, so it is usable even without a derived
+ * context-memory copy. A derived copy whose vector is not stored yet is pending,
+ * or failed when its newest embedding job ended without a vector.
+ */
+export function deriveAgentMemoryCoverageFamily(
+  rows: readonly AgentMemoryCoverageRow[],
+  options: { isInventoryComplete: boolean },
+): ContextCoverageFamily {
+  const states: MemberState[] = [];
+  const successes: (Date | null)[] = [];
+  for (const row of rows) {
+    let state: MemberState = 'usable';
+    for (const entry of row.derivedEntries) {
+      if (entry.embeddingStoredGeneration >= entry.embeddingGeneration) {
+        if (entry.latestJob?.status === 'SUCCEEDED')
+          successes.push(entry.latestJob.completedAt);
+        continue;
+      }
+      const isFailed =
+        entry.latestJob?.status === 'FAILED' ||
+        entry.latestJob?.status === 'CANCELLED';
+      if (isFailed) state = 'failed';
+      else if (state !== 'failed') state = 'pending';
+    }
+    states.push(state);
+  }
+  return {
+    family: 'agent_memory',
+    lastSuccessAt: latest(successes),
+    recoveries: [],
+    state: reduceMemberStates(states, options.isInventoryComplete),
+  };
+}
+
 export function isContextCoverageIncomplete(
   families: readonly ContextCoverageFamily[],
 ): boolean {
@@ -207,11 +259,13 @@ export function describeContextCoverage(
     return 'Coverage is complete for the requested sources. Zero results still do not prove a fact does not exist.';
   }
   const names = incomplete
-    .map((family) =>
-      family.family === 'knowledge'
-        ? `${family.purpose?.toLowerCase().replace('_', ' ') ?? 'knowledge'} knowledge (${family.state})`
-        : `social connections (${family.state})`,
-    )
+    .map((family) => {
+      if (family.family === 'knowledge')
+        return `${family.purpose?.toLowerCase().replace('_', ' ') ?? 'knowledge'} knowledge (${family.state})`;
+      if (family.family === 'agent_memory')
+        return `agent memory (${family.state})`;
+      return `social connections (${family.state})`;
+    })
     .join(', ');
   return `Coverage is incomplete: ${names}. Do not tell the user nothing exists; say which sources could not be fully read.`;
 }

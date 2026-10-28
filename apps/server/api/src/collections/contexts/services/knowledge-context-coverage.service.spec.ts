@@ -35,6 +35,7 @@ function readySource(id: string) {
 
 function build() {
   const prisma = {
+    agentMemory: { findMany: vi.fn().mockResolvedValue([]) },
     credential: { findMany: vi.fn().mockResolvedValue([]) },
     knowledgeSource: {
       findMany: vi.fn().mockResolvedValue([readySource('a')]),
@@ -78,6 +79,7 @@ describe('KnowledgeContextCoverageService', () => {
       ['knowledge', KnowledgeSourcePurpose.BRAND_TRUTH],
       ['knowledge', KnowledgeSourcePurpose.INSPIRATION],
       ['knowledge', KnowledgeSourcePurpose.RESEARCH],
+      ['agent_memory', undefined],
       ['social_connections', undefined],
     ]);
     expect(coverage.isIncomplete).toBe(false);
@@ -100,6 +102,7 @@ describe('KnowledgeContextCoverageService', () => {
       purpose: KnowledgeSourcePurpose.BRAND_TRUTH,
     });
     expect(prisma.credential.findMany).not.toHaveBeenCalled();
+    expect(prisma.agentMemory.findMany).not.toHaveBeenCalled();
     expect(coverage.families).toHaveLength(1);
   });
 
@@ -130,8 +133,15 @@ describe('KnowledgeContextCoverageService', () => {
     expect(prisma.credential.findMany).not.toHaveBeenCalled();
     expect(brandAccess.assert).not.toHaveBeenCalled();
     expect(
-      coverage.families.every((family) => family.family === 'knowledge'),
-    ).toBe(true);
+      coverage.families.filter((family) => family.family !== 'knowledge'),
+    ).toEqual([
+      {
+        family: 'agent_memory',
+        lastSuccessAt: null,
+        recoveries: [],
+        state: 'empty',
+      },
+    ]);
   });
 
   it('lets authorization failures propagate instead of reporting empty', async () => {
@@ -148,6 +158,7 @@ describe('KnowledgeContextCoverageService', () => {
     const { logger, prisma, service } = build();
     prisma.knowledgeSource.findMany.mockRejectedValueOnce(new Error('db down'));
     prisma.credential.findMany.mockRejectedValue(new Error('db down'));
+    prisma.agentMemory.findMany.mockRejectedValue(new Error('db down'));
 
     const coverage = await service.forActor(actor, { usage: 'search' }, now);
 
@@ -156,11 +167,15 @@ describe('KnowledgeContextCoverageService', () => {
       state: 'failed',
     });
     expect(coverage.families[3]).toMatchObject({
+      family: 'agent_memory',
+      state: 'failed',
+    });
+    expect(coverage.families[4]).toMatchObject({
       family: 'social_connections',
       state: 'failed',
     });
     expect(coverage.isIncomplete).toBe(true);
-    expect(logger.warn).toHaveBeenCalledTimes(2);
+    expect(logger.warn).toHaveBeenCalledTimes(3);
   });
 
   it('treats a source list longer than the limit as partial', async () => {

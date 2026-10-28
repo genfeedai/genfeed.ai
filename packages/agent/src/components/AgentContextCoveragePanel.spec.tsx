@@ -38,6 +38,12 @@ const partialCoverage: ContextCoverage = {
       state: 'empty',
     },
     {
+      family: 'agent_memory',
+      lastSuccessAt: null,
+      recoveries: [],
+      state: 'partial',
+    },
+    {
       family: 'social_connections',
       lastSuccessAt: null,
       recoveries: [
@@ -94,6 +100,10 @@ describe('AgentContextCoveragePanel', () => {
     expect(
       screen.getByTestId('coverage-family-knowledge-RESEARCH'),
     ).toHaveTextContent('Success time unavailable');
+
+    expect(
+      screen.getByTestId('coverage-family-agent_memory'),
+    ).toHaveTextContent('Agent memory');
 
     const social = screen.getByTestId('coverage-family-social_connections');
     expect(social).toHaveTextContent('Disconnected');

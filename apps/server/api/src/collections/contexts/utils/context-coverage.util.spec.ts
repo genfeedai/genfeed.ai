@@ -1,4 +1,6 @@
 import {
+  type AgentMemoryCoverageRow,
+  deriveAgentMemoryCoverageFamily,
   deriveKnowledgeCoverageFamily,
   deriveSocialConnectionsCoverageFamily,
   describeContextCoverage,
@@ -284,6 +286,72 @@ describe('deriveSocialConnectionsCoverageFamily', () => {
   });
 });
 
+describe('deriveAgentMemoryCoverageFamily', () => {
+  const indexed = {
+    embeddingGeneration: 1,
+    embeddingStoredGeneration: 1,
+    latestJob: {
+      completedAt: new Date('2026-10-25T08:00:00.000Z'),
+      status: 'SUCCEEDED' as const,
+    },
+  };
+  const queued = {
+    embeddingGeneration: 2,
+    embeddingStoredGeneration: 1,
+    latestJob: { completedAt: null, status: 'RETRYABLE' as const },
+  };
+  const failed = {
+    embeddingGeneration: 1,
+    embeddingStoredGeneration: 0,
+    latestJob: { completedAt: null, status: 'FAILED' as const },
+  };
+  const family = (rows: AgentMemoryCoverageRow[], isInventoryComplete = true) =>
+    deriveAgentMemoryCoverageFamily(rows, { isInventoryComplete });
+
+  it('is empty with no memories and available when every copy is indexed or absent', () => {
+    expect(family([]).state).toBe('empty');
+    expect(family([{ derivedEntries: [] }]).state).toBe('available');
+    expect(family([{ derivedEntries: [indexed] }])).toMatchObject({
+      family: 'agent_memory',
+      lastSuccessAt: '2026-10-25T08:00:00.000Z',
+      recoveries: [],
+      state: 'available',
+    });
+  });
+
+  it('is partial while a copy is queued and failed only when all copies failed', () => {
+    expect(family([{ derivedEntries: [indexed, queued] }]).state).toBe(
+      'partial',
+    );
+    expect(
+      family([{ derivedEntries: [failed] }, { derivedEntries: [failed] }])
+        .state,
+    ).toBe('failed');
+    expect(
+      family([{ derivedEntries: [failed] }, { derivedEntries: [indexed] }])
+        .state,
+    ).toBe('partial');
+  });
+
+  it('counts a copy with no job as queued and never reports a success it did not see', () => {
+    const noJob = {
+      embeddingGeneration: 1,
+      embeddingStoredGeneration: 0,
+      latestJob: null,
+    };
+    expect(family([{ derivedEntries: [noJob] }])).toMatchObject({
+      lastSuccessAt: null,
+      state: 'partial',
+    });
+  });
+
+  it('never lets a truncated list read as available', () => {
+    expect(family([{ derivedEntries: [indexed] }], false).state).toBe(
+      'partial',
+    );
+  });
+});
+
 describe('coverage summary', () => {
   it('flags only unhealthy families as incomplete', () => {
     const available = knowledge([source('a')]);
@@ -306,5 +374,15 @@ describe('coverage summary', () => {
     expect(describeContextCoverage([knowledge([source('a')])])).toContain(
       'Coverage is complete',
     );
+    expect(
+      describeContextCoverage([
+        {
+          family: 'agent_memory',
+          lastSuccessAt: null,
+          recoveries: [],
+          state: 'partial',
+        },
+      ]),
+    ).toContain('agent memory (partial)');
   });
 });
