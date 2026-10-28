@@ -18,7 +18,7 @@ import {
   resolveOrganizationModulePresentationAccess,
 } from '@genfeedai/contracts/constants';
 import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
-import type { PluginAppEntry } from '@genfeedai/props/plugins/organization-plugins-page.props';
+import type { AppCatalogEntry } from '@genfeedai/props/apps/organization-apps-page.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import CollectionSection from '@ui/collection/CollectionSection';
@@ -35,29 +35,29 @@ import { Puzzle } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
-import PluginAppAccessNote from '@/components/plugins/PluginAppAccessNote';
-import PluginAppActions from '@/components/plugins/PluginAppActions';
-import PluginAppCard from '@/components/plugins/PluginAppCard';
-import PluginAppDetailsPanel from '@/components/plugins/PluginAppDetailsPanel';
-import { PLUGIN_APP_CATALOG } from '@/components/plugins/plugin-app-catalog';
-import { isPluginAppOpenable } from '@/components/plugins/plugin-app-state';
+import AppCatalogAccessNote from '@/components/app-catalog/AppCatalogAccessNote';
+import AppCatalogActions from '@/components/app-catalog/AppCatalogActions';
+import AppCatalogCard from '@/components/app-catalog/AppCatalogCard';
+import AppCatalogDetailsPanel from '@/components/app-catalog/AppCatalogDetailsPanel';
+import { APP_CATALOG } from '@/components/app-catalog/app-catalog';
+import { isAppCatalogOpenable } from '@/components/app-catalog/app-catalog-state';
 import { useInstalledApps } from '@/components/shell/installed-apps.provider';
 import { useRailPreferencesContext } from '@/components/shell/rail-preferences.provider';
 
 /**
- * Plugins at `/:orgSlug/~/plugins` (#5502): the native apps a member installs
+ * Apps at `/:orgSlug/~/apps` (#5502): the native apps a member installs
  * into their own setup. Installing is a presentation preference;
  * organization, subscription and release access still decide what the member
  * can open, and the server rechecks every new piece of work. Apps switched off
  * for the platform or not released to the organization are not listed.
  */
-export default function OrganizationPluginsPage() {
+export default function OrganizationAppsPage() {
   const { orgSlug } = useOrgUrl();
-  return <OrganizationPluginsCatalog key={orgSlug} />;
+  return <OrganizationAppsCatalog key={orgSlug} />;
 }
 
-function OrganizationPluginsCatalog() {
-  const translate = useTranslations('common.plugins');
+function OrganizationAppsCatalog() {
+  const translate = useTranslations('common.apps');
   const translateRail = useTranslations('common.appRail');
   const { selectedBrand, settings, settingsLoading } = useBrand();
   const { flags, isConfigured } = useFeatureFlagContext();
@@ -73,7 +73,7 @@ function OrganizationPluginsCatalog() {
   const brandSlug = selectedBrand?.slug?.trim() || undefined;
   const isLoading = settingsLoading || installedApps.status === 'loading';
 
-  const apps = useMemo<PluginAppEntry[]>(
+  const apps = useMemo<AppCatalogEntry[]>(
     () =>
       APP_RAIL_REGISTRY.flatMap((app) => {
         const appId = app.id;
@@ -100,11 +100,11 @@ function OrganizationPluginsCatalog() {
         return [
           {
             appId,
-            description: translate(`apps.${appId}.description`),
+            description: translate(`catalog.${appId}.description`),
             highlights: [
-              translate(`apps.${appId}.highlightOne`),
-              translate(`apps.${appId}.highlightTwo`),
-              translate(`apps.${appId}.highlightThree`),
+              translate(`catalog.${appId}.highlightOne`),
+              translate(`catalog.${appId}.highlightTwo`),
+              translate(`catalog.${appId}.highlightThree`),
             ],
             icon: app.icon,
             isInstalled: installedApps.installedAppIds.includes(appId),
@@ -114,7 +114,7 @@ function OrganizationPluginsCatalog() {
               orgSlug,
             }),
             state,
-            summary: translate(`apps.${appId}.summary`),
+            summary: translate(`catalog.${appId}.summary`),
           },
         ];
       }),
@@ -154,7 +154,7 @@ function OrganizationPluginsCatalog() {
         : pinnedAppIds.length + installedApps.installedAppIds.indexOf(appId);
     };
     return visibleApps
-      .filter((app) => app.isInstalled && isPluginAppOpenable(app))
+      .filter((app) => app.isInstalled && isAppCatalogOpenable(app))
       .sort((left, right) => rank(left.appId) - rank(right.appId));
   }, [installedApps.installedAppIds, pinnedAppIds, visibleApps]);
   // The catalog lists what is left to add, plus apps the member installed but
@@ -186,10 +186,10 @@ function OrganizationPluginsCatalog() {
 
   const selectedApp =
     visibleApps.find((app) => app.appId === selectedAppId) ?? null;
-  const getCategoryLabel = (app: PluginAppEntry): string =>
-    translate(`categories.${PLUGIN_APP_CATALOG[app.appId].category}`);
-  const renderActions = (app: PluginAppEntry) => (
-    <PluginAppActions
+  const getCategoryLabel = (app: AppCatalogEntry): string =>
+    translate(`categories.${APP_CATALOG[app.appId].category}`);
+  const renderActions = (app: AppCatalogEntry) => (
+    <AppCatalogActions
       app={app}
       isPending={installedApps.pendingAppIds.includes(app.appId)}
       isPinned={pinnedAppIds.includes(app.appId)}
@@ -198,7 +198,7 @@ function OrganizationPluginsCatalog() {
       onUninstall={(appId) => void runAction(appId, 'uninstall')}
     />
   );
-  const getItemProps = (app: PluginAppEntry) => ({
+  const getItemProps = (app: AppCatalogEntry) => ({
     actions: renderActions(app),
     app,
     categoryLabel: getCategoryLabel(app),
@@ -244,7 +244,7 @@ function OrganizationPluginsCatalog() {
           aria-busy="true"
           aria-label={translate('loadingApp')}
         >
-          <CollectionView<PluginAppEntry>
+          <CollectionView<AppCatalogEntry>
             getItemKey={(app) => app.appId}
             isLoading
             items={[]}
@@ -255,7 +255,7 @@ function OrganizationPluginsCatalog() {
           />
         </div>
       ) : visibleApps.length > 0 ? (
-        <div className="flex flex-col gap-8" data-testid="plugins-browser">
+        <div className="flex flex-col gap-8" data-testid="apps-browser">
           {failedApps.map((app) => (
             <p
               className="text-sm text-destructive"
@@ -272,7 +272,7 @@ function OrganizationPluginsCatalog() {
           ))}
           {sections.map((section) => (
             <CollectionSection
-              data-testid={`plugins-section-${section.id}`}
+              data-testid={`apps-section-${section.id}`}
               isCountVisible
               itemCount={section.apps.length}
               key={section.id}
@@ -281,7 +281,7 @@ function OrganizationPluginsCatalog() {
               {section.apps.length > 0 ? (
                 <CollectionGrid maxColumns={3}>
                   {section.apps.map((app) => (
-                    <PluginAppCard key={app.appId} {...getItemProps(app)} />
+                    <AppCatalogCard key={app.appId} {...getItemProps(app)} />
                   ))}
                 </CollectionGrid>
               ) : null}
@@ -291,7 +291,7 @@ function OrganizationPluginsCatalog() {
       ) : (
         <div
           className="flex flex-col items-center gap-3 py-12"
-          data-testid="plugins-empty"
+          data-testid="apps-empty"
         >
           <p className="text-sm text-muted-foreground">
             {translate('noMatches')}
@@ -305,10 +305,10 @@ function OrganizationPluginsCatalog() {
           </Button>
         </div>
       )}
-      <PluginAppDetailsPanel
+      <AppCatalogDetailsPanel
         accessNote={
           selectedApp ? (
-            <PluginAppAccessNote
+            <AppCatalogAccessNote
               manageModulesHref={createOrganizationAppRoute(
                 orgSlug,
                 APP_ROUTES.SETTINGS.MODULES,
@@ -327,7 +327,7 @@ function OrganizationPluginsCatalog() {
         onClose={() => setSelectedAppId(null)}
       >
         {selectedApp?.appId === 'automation' && isWorkflowLibraryShown ? (
-          <div data-testid="plugins-workflows">
+          <div data-testid="apps-workflows">
             <Button
               asChild
               size={ButtonSize.SM}
@@ -352,7 +352,7 @@ function OrganizationPluginsCatalog() {
             </Button>
           </div>
         ) : null}
-      </PluginAppDetailsPanel>
+      </AppCatalogDetailsPanel>
     </AdminPageShell>
   );
 }

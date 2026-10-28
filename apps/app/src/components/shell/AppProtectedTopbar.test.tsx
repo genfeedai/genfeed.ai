@@ -90,8 +90,8 @@ vi.mock('@genfeedai/contracts/constants', async (importOriginal) => ({
       PUBLISHING: '/settings/publishing',
     },
     SIGN_UP: '/signup',
-    PLUGINS: {
-      ROOT: '/plugins',
+    APPS: {
+      ROOT: '/apps',
     },
     WORKSPACE: {
       ACTIVITY: '/workspace/activity',
@@ -208,9 +208,9 @@ vi.mock('next-intl', () => ({
   useTranslations: (namespace: string) => (key: string) =>
     (
       ({
-        'common.plugins': { title: 'Plugins', breadcrumbLabel: 'Breadcrumb' },
+        'common.apps': { title: 'Apps', breadcrumbLabel: 'Breadcrumb' },
         'common.appRail': {
-          launcher: 'Plugins',
+          launcher: 'Apps',
         },
         'common.agentDock': {
           close: 'Close agent',
@@ -375,13 +375,13 @@ describe('AppProtectedTopbar', () => {
     ).toBeTruthy();
   });
 
-  it('links Plugins to the app catalog, right before the activity menu', () => {
+  it('links Apps to the app catalog, right before the activity menu', () => {
     render(<AppProtectedTopbar orgSlug="acme" brandSlug="brand" />);
 
-    const apps = screen.getByRole('link', { name: 'Plugins' });
+    const apps = screen.getByRole('link', { name: 'Apps' });
     const activityMenu = screen.getByTestId('notification-inbox');
 
-    expect(apps).toHaveAttribute('href', '/acme/~/plugins');
+    expect(apps).toHaveAttribute('href', '/acme/~/apps');
     expect(apps).toHaveAttribute('data-testid', 'topbar-apps-link');
     expect(apps).not.toHaveAttribute('aria-current');
     expect(
@@ -390,23 +390,23 @@ describe('AppProtectedTopbar', () => {
     ).toBeTruthy();
   });
 
-  it('marks the Plugins link as current on its page', () => {
-    mockPathname.value = '/acme/~/plugins';
+  it('marks the Apps link as current on its page', () => {
+    mockPathname.value = '/acme/~/apps';
 
     render(<AppProtectedTopbar orgSlug="acme" brandSlug="brand" />);
 
-    expect(screen.getByRole('link', { name: 'Plugins' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Apps' })).toHaveAttribute(
       'aria-current',
       'page',
     );
   });
 
-  it('shows a single Plugins breadcrumb with organization selection and no brand selector', () => {
-    mockPathname.value = '/acme/~/plugins';
+  it('shows a single Apps breadcrumb with organization selection and no brand selector', () => {
+    mockPathname.value = '/acme/~/apps';
     render(<AppProtectedTopbar orgSlug="acme" currentApp="workspace" />);
     expect(
       screen.getByRole('navigation', { name: 'Breadcrumb' }),
-    ).toHaveTextContent(/^Plugins$/);
+    ).toHaveTextContent(/^Apps$/);
     expect(screen.queryByTestId('brand-switcher')).toBeNull();
   });
 

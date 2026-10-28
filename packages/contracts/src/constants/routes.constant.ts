@@ -353,8 +353,8 @@ export const APP_ROUTES = {
     WEBHOOKS: '/settings/webhooks',
   },
   /** #5502 native app catalog; installation is per organization membership. */
-  PLUGINS: {
-    ROOT: '/plugins',
+  APPS: {
+    ROOT: '/apps',
   },
   /**
    * The former Studio apps. Each is its own top-level product root

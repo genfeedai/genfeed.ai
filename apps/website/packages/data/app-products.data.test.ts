@@ -73,9 +73,9 @@ describe('app products', () => {
     const access = (slug: string) => getAppProductBySlug(slug)?.access;
 
     expect(access('playground')).toBe('included');
-    expect(access('clipper')).toBe('plugin');
-    expect(access('automation')).toBe('plugin-paid');
-    expect(access('messages')).toBe('plugin-paid');
+    expect(access('clipper')).toBe('optional');
+    expect(access('automation')).toBe('optional-paid');
+    expect(access('messages')).toBe('optional-paid');
     expect(access('discovery')).toBe('included-paid');
   });
 });

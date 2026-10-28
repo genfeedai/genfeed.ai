@@ -1,22 +1,22 @@
 'use client';
 
 import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
-import type { PluginAppDetailsPanelProps } from '@genfeedai/props/plugins/organization-plugins-page.props';
+import type { AppCatalogDetailsPanelProps } from '@genfeedai/props/apps/organization-apps-page.props';
 import { Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import PluginAppStateBadge from './PluginAppStateBadge';
-import PluginAppThumbnail from './PluginAppThumbnail';
+import AppCatalogStateBadge from './AppCatalogStateBadge';
+import AppCatalogThumbnail from './AppCatalogThumbnail';
 
-/** The selected plugin in the right sidebar: preview, what it does, actions. */
-export default function PluginAppDetailsPanel({
+/** The selected app in the right sidebar: preview, what it does, actions. */
+export default function AppCatalogDetailsPanel({
   accessNote,
   actions,
   app,
   categoryLabel,
   children,
   onClose,
-}: PluginAppDetailsPanelProps) {
-  const translate = useTranslations('common.plugins');
+}: AppCatalogDetailsPanelProps) {
+  const translate = useTranslations('common.apps');
 
   if (app === null) {
     return (
@@ -31,15 +31,15 @@ export default function PluginAppDetailsPanel({
       onClose={onClose}
       selection={{
         id: app.appId,
-        kind: 'plugin',
+        kind: 'app',
         origin: 'user',
         subtitle: categoryLabel,
         title: app.label,
       }}
     >
-      <div className="flex flex-col gap-4 p-4" data-testid="plugins-app-detail">
+      <div className="flex flex-col gap-4 p-4" data-testid="apps-app-detail">
         <div className="overflow-hidden rounded-card border border-border">
-          <PluginAppThumbnail
+          <AppCatalogThumbnail
             appId={app.appId}
             icon={app.icon}
             label={app.label}
@@ -47,7 +47,7 @@ export default function PluginAppDetailsPanel({
           />
         </div>
         <div className="flex items-center justify-between gap-3">
-          <PluginAppStateBadge app={app} />
+          <AppCatalogStateBadge app={app} />
           {actions}
         </div>
         <p className="text-sm text-foreground/80">{app.summary}</p>

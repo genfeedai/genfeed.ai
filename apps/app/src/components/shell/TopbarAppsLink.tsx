@@ -15,7 +15,7 @@ import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
 /**
- * Plugins: goes straight to the full-page home for every app. It sits in the
+ * Apps: goes straight to the full-page home for every app. It sits in the
  * topbar so the rail holds only the core loop and the apps the member pinned.
  */
 export default function TopbarAppsLink({ orgSlug }: TopbarAppsLinkProps) {
@@ -26,12 +26,12 @@ export default function TopbarAppsLink({ orgSlug }: TopbarAppsLinkProps) {
 
   if (!effectiveOrgSlug) return null;
 
-  const pluginsHref = createOrganizationAppRoute(
+  const appsHref = createOrganizationAppRoute(
     effectiveOrgSlug,
-    APP_ROUTES.PLUGINS.ROOT,
+    APP_ROUTES.APPS.ROOT,
   );
   const isActive =
-    pathname === pluginsHref || pathname?.startsWith(`${pluginsHref}/`);
+    pathname === appsHref || pathname?.startsWith(`${appsHref}/`);
 
   return (
     <Button
@@ -47,7 +47,7 @@ export default function TopbarAppsLink({ orgSlug }: TopbarAppsLinkProps) {
       <Link
         aria-current={isActive ? 'page' : undefined}
         aria-label={translate('launcher')}
-        href={pluginsHref}
+        href={appsHref}
         prefetch={false}
       >
         <Puzzle aria-hidden="true" className="size-4" />

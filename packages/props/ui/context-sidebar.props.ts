@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 export type ContextSidebarSelectionKind =
   | 'account'
   | 'activity'
+  | 'app'
   | 'asset'
   | 'brand'
   | 'campaign'
@@ -13,7 +14,6 @@ export type ContextSidebarSelectionKind =
   | 'model'
   | 'organization'
   | 'outlier'
-  | 'plugin'
   | 'post'
   | 'record'
   | 'run'

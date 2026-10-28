@@ -1520,18 +1520,18 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('gives Plugins no module nav column', () => {
-    mockPathname.value = '/org-123/~/plugins';
+  it('gives Apps no module nav column', () => {
+    mockPathname.value = '/org-123/~/apps';
 
     render(
       <AppProtectedLayout>
-        <div>Plugins content</div>
+        <div>Apps content</div>
       </AppProtectedLayout>,
     );
 
     expect(appSidebarSpy).not.toHaveBeenCalled();
     expect(screen.queryByTestId('app-sidebar')).not.toBeInTheDocument();
-    expect(screen.getByText('Plugins content')).toBeInTheDocument();
+    expect(screen.getByText('Apps content')).toBeInTheDocument();
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({ railComponent: expect.anything() }),
     );

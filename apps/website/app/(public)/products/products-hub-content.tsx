@@ -102,7 +102,7 @@ export default function ProductsHubContent() {
           <Text className="mx-auto mt-4 max-w-xl text-base leading-7 text-surface/65">
             Playground, Storyboard, Publishing, Analytics, Discovery, Agent and
             Library are ready from the start. Add Clipper, Motion, Turbo,
-            Editor, Automation and Messages from Plugins when you need them.
+            Editor, Automation and Messages from Apps when you need them.
           </Text>
           <div className="mt-8 flex flex-row flex-wrap items-center justify-center gap-4">
             <AgentFirstActions trackingName="products_cta_click" />

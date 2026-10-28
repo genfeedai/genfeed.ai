@@ -1,13 +1,13 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
-  PluginAppThumbnailProps,
+  AppCatalogThumbnailProps,
   PluginThumbnailArt,
   PluginThumbnailSize,
   PluginThumbnailTone,
-} from '@genfeedai/props/plugins/organization-plugins-page.props';
+} from '@genfeedai/props/apps/organization-apps-page.props';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import Image from 'next/image';
-import { PLUGIN_APP_CATALOG } from './plugin-app-catalog';
+import { APP_CATALOG } from './app-catalog';
 
 const TONE_SURFACE_CLASSES: Record<PluginThumbnailTone, string> = {
   info: 'from-info/20 via-info/5 to-transparent',
@@ -226,17 +226,17 @@ function ThumbnailArt({
 }
 
 /**
- * Designed thumbnail for a plugin app or organization module. Draws a tinted tile with the app icon
+ * Designed thumbnail for an app or organization module. Draws a tinted tile with the app icon
  * and a small abstract illustration; once the app's catalog entry carries a
  * `thumbnailSrc`, that image replaces the tile.
  */
-export default function PluginAppThumbnail({
+export default function AppCatalogThumbnail({
   appId,
   icon: Icon,
   label,
   size,
-}: PluginAppThumbnailProps) {
-  const entry = PLUGIN_APP_CATALOG[appId];
+}: AppCatalogThumbnailProps) {
+  const entry = APP_CATALOG[appId];
   const { thumbnailSrc } = entry;
 
   if (thumbnailSrc) {
@@ -246,7 +246,7 @@ export default function PluginAppThumbnail({
           'relative shrink-0 overflow-hidden bg-muted',
           SIZE_CLASSES[size],
         )}
-        data-testid={`plugins-thumbnail-${appId}`}
+        data-testid={`apps-thumbnail-${appId}`}
       >
         <Image
           alt={label}
@@ -279,7 +279,7 @@ export default function PluginAppThumbnail({
         TONE_SURFACE_CLASSES[entry.tone],
         SIZE_CLASSES[size],
       )}
-      data-testid={`plugins-thumbnail-${appId}`}
+      data-testid={`apps-thumbnail-${appId}`}
     >
       <div
         className={cn(

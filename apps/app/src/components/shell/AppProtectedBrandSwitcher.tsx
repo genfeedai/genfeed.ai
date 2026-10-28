@@ -133,7 +133,7 @@ export default function AppProtectedBrandSwitcher({
   // so no brand switcher appears there even with a brand in session (#4659).
   if (
     (pathname.split('/').filter(Boolean)[1] === '~' &&
-      pathname.split('/').filter(Boolean)[2] === 'plugins') ||
+      pathname.split('/').filter(Boolean)[2] === 'apps') ||
     isAdminChrome ||
     brands.length === 0 ||
     isOrganizationSettingsRoute ||

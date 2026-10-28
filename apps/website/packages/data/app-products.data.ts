@@ -1,7 +1,7 @@
 /**
  * The Genfeed app surfaces, one marketing page each at /products/<slug>.
  *
- * The list mirrors the app's rail and the Plugins page: every organization
+ * The list mirrors the app's rail and the Apps page: every organization
  * module in `packages/contracts/src/constants/organization-modules.constant.ts`
  * plus the two core surfaces that are not modules (Agent and Library). Names,
  * one-line descriptions, highlights and access rules come from the app itself
@@ -15,10 +15,10 @@ export type AppProductGroup = 'Create' | 'Publish & grow' | 'Operate';
 export type AppProductAccess =
   /** On for every workspace. */
   | 'included'
-  /** Off until the organization adds it from Plugins. */
-  | 'plugin'
-  /** Added from Plugins and needs a paid plan to start new work. */
-  | 'plugin-paid'
+  /** Off until the organization adds it from Apps. */
+  | 'optional'
+  /** Added from Apps and needs a paid plan to start new work. */
+  | 'optional-paid'
   /** On by default, needs a paid plan to start new work. */
   | 'included-paid';
 
@@ -64,8 +64,8 @@ export interface AppProduct {
 export const APP_PRODUCT_ACCESS_LABELS: Record<AppProductAccess, string> = {
   included: 'Included in every workspace',
   'included-paid': 'On by default, paid plan to start new work',
-  plugin: 'Add from Plugins',
-  'plugin-paid': 'Add from Plugins, paid plan to start new work',
+  optional: 'Add from Apps',
+  'optional-paid': 'Add from Apps, paid plan to start new work',
 };
 
 export const APP_PRODUCT_GROUPS: readonly AppProductGroup[] = [
@@ -278,7 +278,7 @@ export const appProducts: AppProduct[] = [
     ],
   },
   {
-    access: 'plugin',
+    access: 'optional',
     definition:
       'Clipper is the Genfeed app that turns long videos and audio into short clips. You bring in a recording or a link, pick the highlights, and export captioned clips that are ready for social.',
     description:
@@ -301,7 +301,7 @@ export const appProducts: AppProduct[] = [
       },
       {
         answer:
-          'Clipper is added from Plugins in your organization settings. Its generation uses credits.',
+          'Clipper is added from Apps in your organization settings. Its generation uses credits.',
         question: 'How do I turn Clipper on?',
       },
     ],
@@ -374,7 +374,7 @@ export const appProducts: AppProduct[] = [
     ],
   },
   {
-    access: 'plugin',
+    access: 'optional',
     definition:
       'Motion is the Genfeed app for animated visuals. You describe an animated title, caption or branded graphic, preview it, and render it to video or still frames that land in your Library.',
     description:
@@ -397,7 +397,7 @@ export const appProducts: AppProduct[] = [
       },
       {
         answer:
-          'Motion is added from Plugins in your organization settings. Rendering uses credits and unused credits from the quote are released.',
+          'Motion is added from Apps in your organization settings. Rendering uses credits and unused credits from the quote are released.',
         question: 'How do I turn Motion on?',
       },
     ],
@@ -464,7 +464,7 @@ export const appProducts: AppProduct[] = [
     ],
   },
   {
-    access: 'plugin',
+    access: 'optional',
     definition:
       'Turbo is the Genfeed app for creating content in bulk. It drafts content ideas from your brand, generates them in one batch, and lines up the ones you keep to publish.',
     description:
@@ -486,7 +486,7 @@ export const appProducts: AppProduct[] = [
         question: 'Can I run my own workflow over a batch?',
       },
       {
-        answer: 'Turbo is added from Plugins in your organization settings.',
+        answer: 'Turbo is added from Apps in your organization settings.',
         question: 'How do I turn Turbo on?',
       },
     ],
@@ -559,7 +559,7 @@ export const appProducts: AppProduct[] = [
     ],
   },
   {
-    access: 'plugin',
+    access: 'optional',
     definition:
       'Editor is the Genfeed app for assembling and finishing video on a timeline. You combine clips, images and audio, trim and arrange them, apply effects, and export the finished video.',
     description:
@@ -576,7 +576,7 @@ export const appProducts: AppProduct[] = [
         question: 'Can I add music and voice?',
       },
       {
-        answer: 'Editor is added from Plugins in your organization settings.',
+        answer: 'Editor is added from Apps in your organization settings.',
         question: 'How do I turn Editor on?',
       },
     ],
@@ -899,7 +899,7 @@ export const appProducts: AppProduct[] = [
     ],
   },
   {
-    access: 'plugin-paid',
+    access: 'optional-paid',
     definition:
       'Messages is the Genfeed app for your audience inbox. It brings comments and messages from connected channels into one place so you can read and reply without leaving Genfeed.',
     description:
@@ -917,7 +917,7 @@ export const appProducts: AppProduct[] = [
       },
       {
         answer:
-          'Messages is added from Plugins and needs a paid plan to start new work.',
+          'Messages is added from Apps and needs a paid plan to start new work.',
         question: 'How do I turn Messages on?',
       },
     ],
@@ -1059,7 +1059,7 @@ export const appProducts: AppProduct[] = [
     ],
   },
   {
-    access: 'plugin-paid',
+    access: 'optional-paid',
     definition:
       'Automation is the Genfeed app for workflows and recurring tasks. You build or install workflows that generate, schedule and publish content on their own, so recurring work happens without you starting it.',
     description:
@@ -1077,7 +1077,7 @@ export const appProducts: AppProduct[] = [
       },
       {
         answer:
-          'Automation is added from Plugins and needs a paid plan to run workflows.',
+          'Automation is added from Apps and needs a paid plan to run workflows.',
         question: 'How do I turn Automation on?',
       },
     ],

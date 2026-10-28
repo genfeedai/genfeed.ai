@@ -70,7 +70,7 @@ vi.mock('next/link', () => ({
   ),
 }));
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/acme/~/plugins',
+  usePathname: () => '/acme/~/apps',
   useSearchParams: () => new URLSearchParams(),
   useRouter: () => ({ push: vi.fn() }),
 }));
@@ -79,13 +79,13 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-const { default: PluginsPage } = await import('./OrganizationPluginsPage');
+const { default: AppsPage } = await import('./OrganizationAppsPage');
 
-/** The page puts a selected plugin's details in the shell's context sidebar. */
-function OrganizationPluginsPage() {
+/** The page puts a selected app's details in the shell's context sidebar. */
+function OrganizationAppsPage() {
   return (
     <ContextSidebarProvider>
-      <PluginsPage />
+      <AppsPage />
       <ContextSidebarOutlet />
     </ContextSidebarProvider>
   );
@@ -100,14 +100,14 @@ const RELEASED_FLAGS = {
 };
 
 function card(appId: string): HTMLElement {
-  return screen.getByTestId(`plugins-app-${appId}`);
+  return screen.getByTestId(`apps-app-${appId}`);
 }
 
 function detail(): HTMLElement {
-  return screen.getByTestId('plugins-app-detail');
+  return screen.getByTestId('apps-app-detail');
 }
 
-/** Picks a plugin the way a member does: the overlay button on its card. */
+/** Picks an app the way a member does: the overlay button on its card. */
 async function selectApp(
   user: ReturnType<typeof userEvent.setup>,
   appId: string,
@@ -126,7 +126,7 @@ function appState(appId: string): string | null {
   );
 }
 
-describe('OrganizationPluginsPage (#7842)', () => {
+describe('OrganizationAppsPage (#7842)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.orgSlug = 'acme';
@@ -151,22 +151,22 @@ describe('OrganizationPluginsPage (#7842)', () => {
   });
 
   it('lists released apps for customers and omits unreleased ones', () => {
-    render(<OrganizationPluginsPage />);
+    render(<OrganizationAppsPage />);
 
     expect(
       screen
-        .getAllByTestId(/^plugins-app-(?!detail)/)
+        .getAllByTestId(/^apps-app-(?!detail)/)
         .map((element) => element.dataset.testid),
     ).toEqual([
-      'plugins-app-playground',
-      'plugins-app-storyboard',
-      'plugins-app-turbo',
-      'plugins-app-discovery',
+      'apps-app-playground',
+      'apps-app-storyboard',
+      'apps-app-turbo',
+      'apps-app-discovery',
     ]);
   });
 
   it('shows the search and the grid without filters or a view toggle', () => {
-    render(<OrganizationPluginsPage />);
+    render(<OrganizationAppsPage />);
     expect(screen.queryByRole('tablist')).toBeNull();
     expect(screen.queryByRole('combobox')).toBeNull();
     expect(screen.queryByRole('button', { name: /^Filters/ })).toBeNull();
@@ -174,35 +174,33 @@ describe('OrganizationPluginsPage (#7842)', () => {
     expect(
       screen.getByTestId('collapsible-search-trigger'),
     ).toBeInTheDocument();
-    expect(
-      screen.getByTestId('plugins-thumbnail-playground'),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('apps-thumbnail-playground')).toBeInTheDocument();
   });
 
-  it('groups installed plugins above the ones left to add, each with its description', () => {
-    render(<OrganizationPluginsPage />);
+  it('groups installed apps above the ones left to add, each with its description', () => {
+    render(<OrganizationAppsPage />);
 
     expect(
-      within(screen.getByTestId('plugins-section-installed')).getAllByTestId(
-        /^plugins-app-/,
+      within(screen.getByTestId('apps-section-installed')).getAllByTestId(
+        /^apps-app-/,
       ),
     ).toHaveLength(1);
     expect(
-      within(screen.getByTestId('plugins-section-installed')).getByText(
+      within(screen.getByTestId('apps-section-installed')).getByText(
         'Generate images, video, audio and text from a prompt.',
       ),
     ).toBeInTheDocument();
     expect(
-      within(screen.getByTestId('plugins-section-available')).getByText(
+      within(screen.getByTestId('apps-section-available')).getByText(
         'Plan a story scene by scene, then generate it.',
       ),
     ).toBeInTheDocument();
-    expect(screen.queryByTestId('plugins-app-detail')).toBeNull();
+    expect(screen.queryByTestId('apps-app-detail')).toBeNull();
   });
 
-  it('opens the selected plugin in the right sidebar and closes it again', async () => {
+  it('opens the selected app in the right sidebar and closes it again', async () => {
     const user = userEvent.setup();
-    render(<OrganizationPluginsPage />);
+    render(<OrganizationAppsPage />);
     await selectApp(user, 'storyboard');
 
     expect(detail()).toHaveTextContent(
@@ -227,22 +225,22 @@ describe('OrganizationPluginsPage (#7842)', () => {
 
   it('narrows the list with the search box', async () => {
     const user = userEvent.setup();
-    render(<OrganizationPluginsPage />);
+    render(<OrganizationAppsPage />);
 
-    await user.type(screen.getByPlaceholderText('Search plugins'), 'story');
+    await user.type(screen.getByPlaceholderText('Search apps'), 'story');
 
     expect(
       screen
-        .getAllByTestId(/^plugins-app-(?!detail)/)
+        .getAllByTestId(/^apps-app-(?!detail)/)
         .map((element) => element.dataset.testid),
-    ).toEqual(['plugins-app-storyboard']);
+    ).toEqual(['apps-app-storyboard']);
 
-    await user.clear(screen.getByPlaceholderText('Search plugins'));
-    await user.type(screen.getByPlaceholderText('Search plugins'), 'zzzz');
+    await user.clear(screen.getByPlaceholderText('Search apps'));
+    await user.type(screen.getByPlaceholderText('Search apps'), 'zzzz');
 
-    expect(screen.queryAllByTestId(/^plugins-app-(?!detail)/)).toHaveLength(0);
-    expect(screen.getByTestId('plugins-empty')).toHaveTextContent(
-      'No plugins match your search.',
+    expect(screen.queryAllByTestId(/^apps-app-(?!detail)/)).toHaveLength(0);
+    expect(screen.getByTestId('apps-empty')).toHaveTextContent(
+      'No apps match your search.',
     );
   });
 
@@ -253,14 +251,14 @@ describe('OrganizationPluginsPage (#7842)', () => {
       isReleasePreviewEnabled: true,
       moduleOverrides: {},
     };
-    render(<OrganizationPluginsPage />);
+    render(<OrganizationAppsPage />);
 
-    expect(screen.getAllByTestId(/^plugins-app-(?!detail)/)).toHaveLength(9);
+    expect(screen.getAllByTestId(/^apps-app-(?!detail)/)).toHaveLength(9);
   });
 
   it('opens an installed app and installs one that is not installed', async () => {
     const user = userEvent.setup();
-    render(<OrganizationPluginsPage />);
+    render(<OrganizationAppsPage />);
 
     expect(
       within(card('playground')).getByRole('link', {
@@ -278,7 +276,7 @@ describe('OrganizationPluginsPage (#7842)', () => {
 
   it('opens through the organization route when no brand is selected', () => {
     mocks.brand.selectedBrand = undefined;
-    render(<OrganizationPluginsPage />);
+    render(<OrganizationAppsPage />);
     expect(
       screen.getByRole('link', { name: 'Open Playground' }),
     ).toHaveAttribute('href', '/acme/~/playground');
@@ -287,7 +285,7 @@ describe('OrganizationPluginsPage (#7842)', () => {
   it('explains a failed install without showing the app as installed', async () => {
     mocks.install.mockResolvedValue(false);
     const user = userEvent.setup();
-    render(<OrganizationPluginsPage />);
+    render(<OrganizationAppsPage />);
 
     await selectApp(user, 'storyboard');
     await user.click(
@@ -310,7 +308,7 @@ describe('OrganizationPluginsPage (#7842)', () => {
       hasPaidModuleSubscription: false,
       moduleOverrides: { turbo: false },
     };
-    render(<OrganizationPluginsPage />);
+    render(<OrganizationAppsPage />);
 
     await selectApp(user, 'turbo');
     expect(appState('turbo')).toBe('organization-disabled');
@@ -335,24 +333,24 @@ describe('OrganizationPluginsPage (#7842)', () => {
 
   it('does not list apps switched off by the platform', () => {
     mocks.flags = { ...RELEASED_FLAGS, studio: true, storyboard: false };
-    render(<OrganizationPluginsPage />);
+    render(<OrganizationAppsPage />);
 
-    expect(screen.queryByTestId('plugins-app-storyboard')).toBeNull();
+    expect(screen.queryByTestId('apps-app-storyboard')).toBeNull();
     expect(appState('playground')).toBe('installed');
   });
 
   it('lists an app once it is released in Admin → Flags', () => {
     mocks.flags = { ...RELEASED_FLAGS, release_clipper: true };
-    render(<OrganizationPluginsPage />);
+    render(<OrganizationAppsPage />);
 
     expect(card('clipper')).toBeInTheDocument();
-    expect(screen.queryByTestId('plugins-app-motion')).toBeNull();
+    expect(screen.queryByTestId('apps-app-motion')).toBeNull();
   });
 
   it('offers the workflow library in the eligible installed Automation preview', async () => {
     const user = userEvent.setup();
-    const { rerender } = render(<OrganizationPluginsPage />);
-    expect(screen.queryByTestId('plugins-workflows')).toBeNull();
+    const { rerender } = render(<OrganizationAppsPage />);
+    expect(screen.queryByTestId('apps-workflows')).toBeNull();
 
     mocks.brand.settings = {
       hasOrganizationBilling: true,
@@ -361,11 +359,11 @@ describe('OrganizationPluginsPage (#7842)', () => {
       moduleOverrides: { automation: true },
     };
     mocks.installed.installedAppIds = ['playground', 'automation'];
-    rerender(<OrganizationPluginsPage />);
-    expect(screen.queryByTestId('plugins-workflows')).toBeNull();
+    rerender(<OrganizationAppsPage />);
+    expect(screen.queryByTestId('apps-workflows')).toBeNull();
     await selectApp(user, 'automation');
     expect(
-      within(screen.getByTestId('plugins-workflows')).getByRole('link', {
+      within(screen.getByTestId('apps-workflows')).getByRole('link', {
         name: 'Open workflow library',
       }),
     ).toHaveAttribute('href', '/acme/moonrise/automation/workflows/templates');
@@ -376,52 +374,52 @@ describe('OrganizationPluginsPage (#7842)', () => {
       isReleasePreviewEnabled: true,
       moduleOverrides: { automation: true },
     };
-    rerender(<OrganizationPluginsPage />);
-    expect(screen.queryByTestId('plugins-workflows')).toBeNull();
+    rerender(<OrganizationAppsPage />);
+    expect(screen.queryByTestId('apps-workflows')).toBeNull();
   });
 
   it('reports a failed read instead of inventing installations', () => {
     mocks.installed.status = 'error';
     mocks.installed.installedAppIds = [];
-    render(<OrganizationPluginsPage />);
+    render(<OrganizationAppsPage />);
 
     expect(
       screen.getByText(
-        "Couldn't load your plugins. Reload the page to try again.",
+        "Couldn't load your apps. Reload the page to try again.",
       ),
     ).toBeInTheDocument();
-    expect(screen.queryByTestId('plugins-browser')).toBeNull();
+    expect(screen.queryByTestId('apps-browser')).toBeNull();
     expect(screen.queryByRole('button', { name: /^Add / })).toBeNull();
   });
 
   it('closes details when the search leaves the selection out of the results', async () => {
     const user = userEvent.setup();
-    render(<OrganizationPluginsPage />);
+    render(<OrganizationAppsPage />);
     await selectApp(user, 'storyboard');
     expect(detail()).toBeInTheDocument();
 
-    await user.type(screen.getByPlaceholderText('Search plugins'), 'prompt');
+    await user.type(screen.getByPlaceholderText('Search apps'), 'prompt');
 
     expect(card('playground')).toBeInTheDocument();
-    expect(screen.queryByTestId('plugins-app-storyboard')).toBeNull();
-    expect(screen.queryByTestId('plugins-app-detail')).toBeNull();
+    expect(screen.queryByTestId('apps-app-storyboard')).toBeNull();
+    expect(screen.queryByTestId('apps-app-detail')).toBeNull();
   });
 
-  it('shows every plugin again from the empty state', async () => {
+  it('shows every app again from the empty state', async () => {
     const user = userEvent.setup();
-    render(<OrganizationPluginsPage />);
+    render(<OrganizationAppsPage />);
 
-    await user.type(screen.getByPlaceholderText('Search plugins'), 'zzzz');
-    await user.click(screen.getByRole('button', { name: 'Show all plugins' }));
+    await user.type(screen.getByPlaceholderText('Search apps'), 'zzzz');
+    await user.click(screen.getByRole('button', { name: 'Show all apps' }));
 
-    expect(screen.queryByTestId('plugins-empty')).toBeNull();
-    expect(screen.getAllByTestId(/^plugins-app-(?!detail)/)).toHaveLength(4);
+    expect(screen.queryByTestId('apps-empty')).toBeNull();
+    expect(screen.getAllByTestId(/^apps-app-(?!detail)/)).toHaveLength(4);
   });
 
   it('blocks repeat installs and removals while saving', async () => {
     const user = userEvent.setup();
     mocks.installed.pendingAppIds = ['storyboard', 'playground'];
-    render(<OrganizationPluginsPage />);
+    render(<OrganizationAppsPage />);
     await user.click(screen.getByRole('button', { name: 'Playground' }));
     expect(screen.getByRole('menuitem', { name: 'Remove' })).toHaveAttribute(
       'aria-disabled',
@@ -440,7 +438,7 @@ describe('OrganizationPluginsPage (#7842)', () => {
   it('uses the saved pin/remove actions and reports a failed removal', async () => {
     const user = userEvent.setup();
     mocks.uninstall.mockResolvedValue(false);
-    render(<OrganizationPluginsPage />);
+    render(<OrganizationAppsPage />);
     await user.click(screen.getByRole('button', { name: 'Playground' }));
     await user.click(screen.getByRole('menuitem', { name: /Pin Playground/ }));
     expect(mocks.togglePin).toHaveBeenCalledWith('playground');
@@ -455,13 +453,13 @@ describe('OrganizationPluginsPage (#7842)', () => {
 
   it('keeps apps out of the chooser while access/installations are loading', () => {
     mocks.installed.status = 'loading';
-    render(<OrganizationPluginsPage />);
+    render(<OrganizationAppsPage />);
     expect(
       screen
         .getAllByRole('status', { name: 'Loading app' })
         .find((element) => element.getAttribute('aria-busy') === 'true'),
     ).toHaveAttribute('aria-busy', 'true');
-    expect(screen.queryByTestId('plugins-browser')).toBeNull();
+    expect(screen.queryByTestId('apps-browser')).toBeNull();
   });
 
   it('resets selection and ignores an old organization action after switching scope', async () => {
@@ -473,15 +471,15 @@ describe('OrganizationPluginsPage (#7842)', () => {
           finishInstall = resolve;
         }),
     );
-    const { rerender } = render(<OrganizationPluginsPage />);
+    const { rerender } = render(<OrganizationAppsPage />);
     await selectApp(user, 'storyboard');
     await user.click(
       within(detail()).getByRole('button', { name: 'Add Storyboard' }),
     );
     mocks.orgSlug = 'other';
-    rerender(<OrganizationPluginsPage />);
+    rerender(<OrganizationAppsPage />);
     await act(async () => finishInstall(false));
-    expect(screen.queryByTestId('plugins-app-detail')).toBeNull();
+    expect(screen.queryByTestId('apps-app-detail')).toBeNull();
     await selectApp(user, 'storyboard');
     expect(screen.queryByRole('alert')).toBeNull();
   });
@@ -494,8 +492,8 @@ describe('OrganizationPluginsPage (#7842)', () => {
       isReleasePreviewEnabled: true,
       moduleOverrides: {},
     };
-    render(<OrganizationPluginsPage />);
-    const rows = screen.getAllByTestId(/^plugins-app-(?!detail)/);
+    render(<OrganizationAppsPage />);
+    const rows = screen.getAllByTestId(/^apps-app-(?!detail)/);
     expect(rows).toHaveLength(9);
     for (const row of rows) {
       await user.click(within(row).getByRole('button', { name: /^Select / }));
@@ -503,7 +501,7 @@ describe('OrganizationPluginsPage (#7842)', () => {
         decodeURIComponent(
           within(detail()).getByRole('img').getAttribute('src') ?? '',
         ),
-      ).toContain('/plugins/');
+      ).toContain('/app-catalog/');
     }
   });
 });

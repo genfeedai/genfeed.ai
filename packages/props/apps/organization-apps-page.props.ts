@@ -6,8 +6,8 @@ import type {
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type { ReactNode } from 'react';
 
-/** One native app in Plugins (#5502), with its resolved state for the member. */
-export interface PluginAppEntry {
+/** One native app in Apps (#5502), with its resolved state for the member. */
+export interface AppCatalogEntry {
   appId: NativeSecondaryAppId;
   /** One line shown on the card. */
   description: string;
@@ -25,7 +25,7 @@ export interface PluginAppEntry {
 }
 
 /** Categories an app is filed under. */
-export type PluginCategoryId = 'create' | 'publish' | 'automate';
+export type AppCatalogCategoryId = 'create' | 'publish' | 'automate';
 
 /** Abstract mini-illustration drawn on an app's thumbnail. */
 export type PluginThumbnailArt =
@@ -45,24 +45,24 @@ export type PluginThumbnailTone = 'info' | 'primary' | 'success' | 'warning';
 
 export type PluginThumbnailSize = 'card' | 'standard' | 'preview';
 
-/** Plugins-only presentation data for one native app, keyed by app id. */
-export interface PluginAppCatalogEntry {
+/** Apps-only presentation data for one native app, keyed by app id. */
+export interface AppCatalogPresentation {
   art: PluginThumbnailArt;
-  category: PluginCategoryId;
+  category: AppCatalogCategoryId;
   /** Real artwork; replaces the designed tile once an image exists. */
   thumbnailSrc?: string;
   tone: PluginThumbnailTone;
 }
 
-export interface PluginAppThumbnailProps {
+export interface AppCatalogThumbnailProps {
   appId: OrganizationModuleId;
   icon: IconComponent;
   label: string;
   size: PluginThumbnailSize;
 }
 
-export interface PluginAppActionsProps {
-  app: PluginAppEntry;
+export interface AppCatalogActionsProps {
+  app: AppCatalogEntry;
   isPending: boolean;
   isPinned: boolean;
   onInstall: (appId: NativeSecondaryAppId) => void;
@@ -70,29 +70,29 @@ export interface PluginAppActionsProps {
   onUninstall: (appId: NativeSecondaryAppId) => void;
 }
 
-export type PluginAppStateProps = Pick<PluginAppActionsProps, 'app'>;
+export type AppCatalogStateProps = Pick<AppCatalogActionsProps, 'app'>;
 
-export interface PluginAppAccessNoteProps {
+export interface AppCatalogAccessNoteProps {
   manageModulesHref: string;
   subscriptionHref: string;
-  state: PluginAppEntry['state'];
+  state: AppCatalogEntry['state'];
 }
 
-/** Props for the grid card of one plugin app. */
-export interface PluginAppItemProps {
+/** Props for the grid card of one app. */
+export interface AppCatalogItemProps {
   actions: ReactNode;
-  app: PluginAppEntry;
+  app: AppCatalogEntry;
   categoryLabel: string;
   isSelected: boolean;
   onSelect: (appId: NativeSecondaryAppId) => void;
 }
 
-export interface PluginAppDetailsPanelProps {
+export interface AppCatalogDetailsPanelProps {
   /** Access explanation for an app the member cannot open. */
   accessNote: ReactNode;
   actions: ReactNode;
   /** `null` clears the selection and renders nothing. */
-  app: PluginAppEntry | null;
+  app: AppCatalogEntry | null;
   categoryLabel: string;
   /** App-specific extras, such as the workflow library link. */
   children?: ReactNode;
