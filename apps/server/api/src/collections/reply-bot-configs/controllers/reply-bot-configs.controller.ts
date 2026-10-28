@@ -266,6 +266,7 @@ export class ReplyBotConfigsController extends BaseCRUDController<
   /**
    * The accounts the brand's warm-up monitor follows.
    */
+  @TenantReadPolicy('selected')
   @Get('warmup/targets')
   @ApiOperation({ summary: 'List X accounts monitored for warm-up replies' })
   listReplyTargets(
@@ -274,7 +275,7 @@ export class ReplyBotConfigsController extends BaseCRUDController<
   ) {
     return this.replyTargetDiscoveryService.listTargets({
       brandId: query.brandId,
-      organizationId: user.organizationId,
+      organizationId: resolveTenantReadScope(user).organizationId,
     });
   }
 
