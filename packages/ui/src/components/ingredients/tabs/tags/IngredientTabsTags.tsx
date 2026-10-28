@@ -159,7 +159,7 @@ export default function IngredientTabsTags({
                 className="gap-2"
                 style={libraryTagStyle(tag)}
               >
-                <Tag className="text-sm" />
+                <Tag className="size-3" />
                 <span>{tag.label}</span>
                 <Button
                   withWrapper={false}
@@ -169,7 +169,7 @@ export default function IngredientTabsTags({
                   className="ml-1 hover:opacity-70 transition-opacity"
                   ariaLabel={`Remove tag ${tag.label}`}
                 >
-                  <X className="text-sm" />
+                  <X className="size-3" />
                 </Button>
               </Badge>
             ))}
@@ -268,7 +268,7 @@ export default function IngredientTabsTags({
                     }}
                     ariaLabel={`Add tag ${tag.label}`}
                   >
-                    <Tag className="text-sm" />
+                    <Tag className="size-3" />
                     <span className="truncate">{tag.label}</span>
                     <Plus className="text-sm ml-auto" />
                   </Button>

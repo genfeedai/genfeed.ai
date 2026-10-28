@@ -1,4 +1,6 @@
-'use client';
+import { ButtonVariant } from '@genfeedai/contracts';
+
+('use client');
 
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
@@ -37,12 +39,15 @@ export default function TagsList({
 
           {!isReadOnly && (
             <Button
-              label={''}
-              icon={<X className="size-3" />}
+              withWrapper={false}
+              variant={ButtonVariant.UNSTYLED}
               onClick={() => onRemoveTag(tagDisplay.id)}
               isDisabled={isSaving}
               className="hover:opacity-70 transition-opacity"
-            />
+              ariaLabel={`Remove tag ${tagDisplay.label}`}
+            >
+              <X className="size-3" />
+            </Button>
           )}
         </Badge>
       ))}
