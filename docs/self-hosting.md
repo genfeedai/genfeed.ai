@@ -4,7 +4,7 @@
 
 - Docker Engine 28+ with the Docker Compose v2 plugin (`docker compose version`), or
   Docker Desktop. Both the release bundle and `npx @genfeedai/create` need it.
-- Node.js 24 (`>=24 <25`), only for `npx @genfeedai/create`
+- Node.js 24 or newer (`>=24`), only for `npx @genfeedai/create`
 - Free host ports 3000 (web), 3010 (API), 3011 (WebSocket) and 3014 (MCP);
   override them with `SELFHOSTED_APP_PORT`, `SELFHOSTED_API_PORT`,
   `SELFHOSTED_WS_PORT` and `SELFHOSTED_MCP_PORT` in `.env`

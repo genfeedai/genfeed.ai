@@ -37,7 +37,7 @@ hosted product at [genfeed.ai](https://genfeed.ai) (**SaaS**). Same code, three
 - Docker Engine with the Docker Compose v2 plugin (`docker compose version`), or
   Docker Desktop. Both `npx @genfeedai/create` and the release bundle below
   need it.
-- Node.js 24 (`>=24 <25`), only for `npx @genfeedai/create`.
+- Node.js 24 or newer (`>=24`), only for `npx @genfeedai/create`.
 - Free host ports 3000 (web), 3010 (API), 3011 (WebSocket) and 3014 (MCP).
 - Plan for at least 15 GB of free disk, plus room for media, backups, and upgrades.
   This is capacity guidance based on the reported v0.2.15 image footprint; see

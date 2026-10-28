@@ -31,9 +31,9 @@ const RELEASE_ARCHIVE_NAME = 'genfeed-selfhosted.tar.gz';
 const RELEASE_CHECKSUM_NAME = `${RELEASE_ARCHIVE_NAME}.sha256`;
 const RELEASE_MANIFEST_NAME = 'release.json';
 const EXPECTED_IMAGE_REPOSITORY = 'ghcr.io/genfeedai/genfeed.ai';
-// Keep in sync with "engines.node" (>=24 <25) in package.json.
+// Keep in sync with "engines.node" (>=24) in package.json. There is no upper
+// bound: this CLI only uses stable node:* modules, so a newer Node must work.
 const MIN_NODE_MAJOR = 24;
-const MAX_NODE_MAJOR_EXCLUSIVE = 25;
 
 interface CliOptions {
   release?: string;
@@ -286,13 +286,9 @@ export function assertSupportedNodeVersion(
 ): void {
   const major = Number.parseInt(nodeVersion.split('.')[0] ?? '', 10);
 
-  if (
-    !Number.isInteger(major) ||
-    major < MIN_NODE_MAJOR ||
-    major >= MAX_NODE_MAJOR_EXCLUSIVE
-  ) {
+  if (!Number.isInteger(major) || major < MIN_NODE_MAJOR) {
     throw new Error(
-      `Node.js ${MIN_NODE_MAJOR} is required (supported range: >=${MIN_NODE_MAJOR} <${MAX_NODE_MAJOR_EXCLUSIVE}); found ${nodeVersion}. Install Node.js ${MIN_NODE_MAJOR} and run again.`,
+      `Node.js ${MIN_NODE_MAJOR} or newer is required (supported range: >=${MIN_NODE_MAJOR}); found ${nodeVersion}. Install Node.js ${MIN_NODE_MAJOR} or newer and run again.`,
     );
   }
 }

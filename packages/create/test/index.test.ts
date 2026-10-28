@@ -95,15 +95,18 @@ describe('package metadata', () => {
 });
 
 describe('assertSupportedNodeVersion', () => {
-  it.each(['24.0.0', '24.13.1'])('accepts Node %s', (version) => {
-    expect(() => assertSupportedNodeVersion(version)).not.toThrow();
-  });
+  it.each(['24.0.0', '24.13.1', '25.0.0', '26.12.1', '30.1.0'])(
+    'accepts Node %s',
+    (version) => {
+      expect(() => assertSupportedNodeVersion(version)).not.toThrow();
+    },
+  );
 
-  it.each(['20.19.0', '22.12.0', '23.9.0', '25.0.0', 'unknown'])(
+  it.each(['20.19.0', '22.12.0', '23.9.0', 'unknown'])(
     'rejects Node %s with a clear message',
     (version) => {
       expect(() => assertSupportedNodeVersion(version)).toThrow(
-        `Node.js 24 is required (supported range: >=24 <25); found ${version}.`,
+        `Node.js 24 or newer is required (supported range: >=24); found ${version}.`,
       );
     },
   );
@@ -113,6 +116,6 @@ describe('assertSupportedNodeVersion', () => {
       await readFile(new URL('../package.json', import.meta.url), 'utf8'),
     ) as { engines: { node: string } };
 
-    expect(manifest.engines.node).toBe('>=24 <25');
+    expect(manifest.engines.node).toBe('>=24');
   });
 });
