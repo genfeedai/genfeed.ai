@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OnboardingFirstDraftsService } from '@api/endpoints/onboarding/services/onboarding-first-drafts.service';
+import type { IOnboardingFirstDraftsResult } from '@genfeedai/contracts/interfaces';
 import { BadRequestException } from '@nestjs/common';
 
 vi.mock(
@@ -41,6 +42,7 @@ describe('OnboardingFirstDraftsService', () => {
   const postGeneration = { generateDraftText: vi.fn() };
   const signupPrefill = { scanBrandUrl: vi.fn() };
   const gateway = { generateImage: vi.fn(), generateVideo: vi.fn() };
+  const runs = { execute: vi.fn(), retryMedia: vi.fn() };
 
   let service: OnboardingFirstDraftsService;
   let counter = 0;
@@ -79,11 +81,10 @@ describe('OnboardingFirstDraftsService', () => {
       postGeneration as never,
       signupPrefill as never,
       gateway as never,
-      {
-        execute: vi.fn(async (_user, _brand, _previous, generate) =>
-          generate(vi.fn()),
-        ),
-      } as never,
+      runs as never,
+    );
+    runs.execute.mockImplementation(
+      async (_user, _brand, _previous, generate) => generate(vi.fn()),
     );
   });
 
@@ -310,5 +311,80 @@ describe('OnboardingFirstDraftsService', () => {
     expect(result.drafts).toHaveLength(4);
     expect(result.imageIngredientId).toBe('ing_1');
     expect(result.status).toBe('partial');
+  });
+
+  describe('retryMedia', () => {
+    const saved = (): IOnboardingFirstDraftsResult => ({
+      drafts: (['twitter', 'instagram', 'tiktok', 'linkedin'] as const).map(
+        (platform, index) => ({
+          isProvisional: false,
+          platform,
+          postId: `post_${index}`,
+          receiptId: `receipt_${index}`,
+          requestKey: `key_${index}`,
+          text: `${platform} saved text`,
+        }),
+      ),
+      imageIngredientId: null,
+      imageUrl: null,
+      requestKey: 'key_0',
+      status: 'partial',
+      videoIngredientId: null,
+      videoStatus: 'pending',
+      videoUrl: null,
+    });
+    const run = (missing: { image: boolean; video: boolean }) => {
+      const result = saved();
+      runs.retryMedia.mockImplementation(async (_user, _brand, generate) =>
+        generate(missing, result, vi.fn()),
+      );
+      return service.retryMedia(user, 'brand_1');
+    };
+
+    it('regenerates a missing image and video without writing any text again', async () => {
+      const result = await run({ image: true, video: true });
+      expect(postGeneration.generateDraftText).not.toHaveBeenCalled();
+      expect(gateway.generateImage).toHaveBeenCalledTimes(1);
+      expect(gateway.generateVideo).toHaveBeenCalledTimes(1);
+      expect(result.drafts.map((draft) => draft.text)).toEqual([
+        'twitter saved text',
+        'instagram saved text',
+        'tiktok saved text',
+        'linkedin saved text',
+      ]);
+      expect(result.imageIngredientId).toBe('ing_1');
+      expect(result.videoStatus).toBe('ready');
+      expect(result.status).toBe('ready');
+    });
+
+    it('references the new image in the new video', async () => {
+      await run({ image: true, video: true });
+      expect(gateway.generateVideo.mock.calls[0][0].body.references).toEqual([
+        'ing_1',
+      ]);
+    });
+
+    it('leaves a finished image alone when only the video is missing', async () => {
+      const result = await run({ image: false, video: true });
+      expect(gateway.generateImage).not.toHaveBeenCalled();
+      expect(gateway.generateVideo).toHaveBeenCalledTimes(1);
+      expect(result.videoStatus).toBe('ready');
+    });
+
+    it('stays partial and keeps the drafts when the image fails again', async () => {
+      gateway.generateImage.mockRejectedValueOnce(new Error('provider failed'));
+      const result = await run({ image: true, video: false });
+      expect(result.imageUrl).toBeNull();
+      expect(result.drafts).toHaveLength(4);
+      expect(result.status).toBe('partial');
+    });
+
+    it('scopes the brand lookup to the caller organization', async () => {
+      await run({ image: true, video: false });
+      expect(brandsService.findOne).toHaveBeenCalledWith(
+        { id: 'brand_1', isDeleted: false, organizationId: 'org_1' },
+        'none',
+      );
+    });
   });
 });

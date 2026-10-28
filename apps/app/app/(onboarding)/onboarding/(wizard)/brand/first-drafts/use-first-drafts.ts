@@ -5,6 +5,7 @@ import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import {
   APP_ROUTES,
   ONBOARDING_MAX_DRAFT_ROUNDS,
+  ONBOARDING_MAX_MEDIA_RETRIES,
 } from '@genfeedai/contracts/constants';
 import type {
   IOnboardingDraftContext,
@@ -56,6 +57,9 @@ export function useFirstDrafts(): FirstDraftsState {
   const [resolvedScope, setResolvedScope] = useState('');
   const [isRestoring, setIsRestoring] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [mediaRetriesRemaining, setMediaRetriesRemaining] = useState(
+    ONBOARDING_MAX_MEDIA_RETRIES,
+  );
   const [verdicts, setVerdicts] = useState<
     Readonly<Record<string, FirstDraftVerdict>>
   >({});
@@ -74,6 +78,7 @@ export function useFirstDrafts(): FirstDraftsState {
 
   const acceptRun = useCallback((run: IOnboardingDraftRun, initial = false) => {
     setResult(run.result);
+    setMediaRetriesRemaining(run.mediaRetriesRemaining);
     setIsGenerating(run.status === 'running');
     if (initial) setVerdicts(run.verdicts);
     if (run.result) {
@@ -106,6 +111,7 @@ export function useFirstDrafts(): FirstDraftsState {
     setError(null);
     setPhase('url');
     setIsGenerating(false);
+    setMediaRetriesRemaining(ONBOARDING_MAX_MEDIA_RETRIES);
     void (async () => {
       try {
         let requestedDomain = searchParams.get('brandDomain');
@@ -295,6 +301,51 @@ export function useFirstDrafts(): FirstDraftsState {
     ],
   );
 
+  const retryMedia = useCallback(async () => {
+    if (!brandId || isRestoring || isGenerating || isReplay) return;
+    const epoch = scopeKey;
+    const controller = new AbortController();
+    controllerRef.current?.abort();
+    controllerRef.current = controller;
+    setError(null);
+    setIsGenerating(true);
+    try {
+      const next = await (await getService()).retryDraftMedia(
+        brandId,
+        controller.signal,
+      );
+      if (controller.signal.aborted || liveScope.current !== epoch) return;
+      setResult(next);
+    } catch (caught) {
+      if (controller.signal.aborted || liveScope.current !== epoch) return;
+      logger.error('Failed to retry onboarding media', caught);
+      setError('mediaRetry');
+    }
+    // The saved run is the truth after a retry: it carries the retries left and,
+    // if the request was cut off, whether the server is still working.
+    try {
+      const run = await (await getService()).readDrafts(
+        brandId,
+        controller.signal,
+      );
+      if (controller.signal.aborted || liveScope.current !== epoch) return;
+      if (run) acceptRun(run);
+      else setIsGenerating(false);
+    } catch (caught) {
+      if (controller.signal.aborted || liveScope.current !== epoch) return;
+      logger.error('Failed to reconcile onboarding media retry', caught);
+      setIsGenerating(false);
+    }
+  }, [
+    acceptRun,
+    brandId,
+    getService,
+    isGenerating,
+    isReplay,
+    isRestoring,
+    scopeKey,
+  ]);
+
   const onVerdict = useCallback(
     (item: IOnboardingFirstDraft, verdict: FirstDraftVerdict | null) => {
       if (!brandId || pendingFeedback.current.has(item.postId)) return;
@@ -339,6 +390,9 @@ export function useFirstDrafts(): FirstDraftsState {
     [brandId, scopeKey, verdicts],
   );
 
+  const hasMissingMedia = (result?.drafts ?? []).some((draft) =>
+    draft.platform === 'tiktok' ? !result?.videoUrl : !result?.imageUrl,
+  );
   const likedDrafts = (result?.drafts ?? []).filter(
     (item) => verdicts[item.postId] === 'up',
   );
@@ -370,6 +424,13 @@ export function useFirstDrafts(): FirstDraftsState {
 
   return {
     canRetry: round < ONBOARDING_MAX_DRAFT_ROUNDS,
+    canRetryMedia:
+      hasMissingMedia &&
+      mediaRetriesRemaining > 0 &&
+      !isReplay &&
+      !isRestoring &&
+      !isGenerating &&
+      !isContinuing,
     isReady:
       isBrandScopeResolved && Boolean(brandId) && resolvedScope === scopeKey,
     isRestoring,
@@ -407,6 +468,7 @@ export function useFirstDrafts(): FirstDraftsState {
       if (!brandId || !result) return;
       setPhase('schedule');
     },
+    onRetryMedia: () => void retryMedia(),
     onVerdict,
     onSkipLink: () => setPhase('context'),
     onStart: () => {

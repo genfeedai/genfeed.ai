@@ -82,3 +82,9 @@ export interface OnboardingImageBrief {
   prompt: string;
   slots: FirstRunImageSlots;
 }
+
+/** Which first-run media a retry has to generate again. */
+export interface OnboardingMissingMedia {
+  image: boolean;
+  video: boolean;
+}

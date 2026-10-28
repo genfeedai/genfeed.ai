@@ -21,10 +21,13 @@ export type FirstDraftsError =
   | 'recovery'
   | 'feedback'
   | 'invalidUrl'
+  | 'mediaRetry'
   | 'replay';
 
 export interface FirstDraftsState {
   canRetry: boolean;
+  /** A missing image or video can be generated again for this run. */
+  canRetryMedia: boolean;
   error: FirstDraftsError | null;
   isContinuing: boolean;
   isReady: boolean;
@@ -40,6 +43,7 @@ export interface FirstDraftsState {
   url: string;
   verdicts: Readonly<Record<string, FirstDraftVerdict>>;
   workingStep: FirstDraftsWorkingStep;
+  onRetryMedia: () => void;
   onNavigate: (step: number) => void;
   onBack: () => void;
   onContinue: () => void;
@@ -72,6 +76,10 @@ export interface FirstDraftCardProps {
   brandName?: string;
   avatarUrl?: string;
   isSaving?: boolean;
+  /** Set while the missing media is being generated again. */
+  isMediaGenerating?: boolean;
+  /** Offered only when the draft's media is missing and a retry is left. */
+  onRetryMedia?: () => void;
   onVerdict: (
     draft: IOnboardingFirstDraft,
     verdict: FirstDraftVerdict | null,

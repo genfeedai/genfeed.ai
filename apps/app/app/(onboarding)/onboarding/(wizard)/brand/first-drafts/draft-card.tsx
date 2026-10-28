@@ -13,6 +13,8 @@ export default function DraftCard({
   brandName,
   avatarUrl,
   isSaving,
+  isMediaGenerating,
+  onRetryMedia,
   onVerdict,
   verdict,
 }: FirstDraftCardProps) {
@@ -47,13 +49,24 @@ export default function DraftCard({
           showValidation={false}
         />
         {isVideo && !videoUrl ? (
-          <p role="status" className="mt-2 text-xs text-muted-foreground">
-            {t(
-              videoStatus === 'pending'
-                ? 'review.videoPending'
-                : 'review.videoFailed',
-            )}
-          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <p role="status" className="text-xs text-muted-foreground">
+              {t(
+                videoStatus === 'pending'
+                  ? 'review.videoPending'
+                  : 'review.videoFailed',
+              )}
+            </p>
+            {onRetryMedia && videoStatus !== 'pending' ? (
+              <Button
+                size={ButtonSize.SM}
+                variant={ButtonVariant.SECONDARY}
+                label={t('review.retryMedia')}
+                isDisabled={isMediaGenerating}
+                onClick={onRetryMedia}
+              />
+            ) : null}
+          </div>
         ) : null}
       </div>
       <div className="mt-2 flex items-center gap-2">

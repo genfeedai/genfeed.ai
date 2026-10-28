@@ -364,4 +364,103 @@ describe('OnboardingDraftRunsService', () => {
     expect(run?.verdicts).toEqual({ 'post-legacy': 'up' });
     expect(prisma.contentRun.findFirst).toHaveBeenCalledTimes(1);
   });
+
+  describe('retryMedia', () => {
+    const updatedAt = new Date();
+    const row = (
+      config: Record<string, unknown> = {},
+      status = 'completed',
+    ) => ({
+      id: 'run-1',
+      status,
+      updatedAt,
+      config: { surface: 'onboarding', result, ...config },
+    });
+    const withImage = { ...result, imageIngredientId: 'img-2', imageUrl: 'u' };
+
+    it('generates only the missing media, spends one retry and finishes the run', async () => {
+      prisma.contentRun.findFirst.mockResolvedValue(row());
+      const generate = vi.fn().mockResolvedValue(withImage);
+      await expect(
+        service.retryMedia(user, 'brand-1', generate),
+      ).resolves.toEqual(withImage);
+      expect(generate).toHaveBeenCalledWith(
+        { image: true, video: false },
+        result,
+        expect.any(Function),
+      );
+      const writes = prisma.contentRun.updateMany.mock.calls.map(
+        ([args]) => args,
+      );
+      expect(writes[0]).toMatchObject({
+        where: {
+          id: 'run-1',
+          organizationId: 'org-1',
+          brandId: 'brand-1',
+          updatedAt,
+        },
+        data: { status: 'running', config: { mediaRetries: 1 } },
+      });
+      expect(writes.at(-1)).toMatchObject({ data: { status: 'completed' } });
+    });
+
+    it('does not start a second retry from a tab that read the run earlier', async () => {
+      prisma.contentRun.findFirst.mockResolvedValue(row());
+      prisma.contentRun.updateMany.mockResolvedValue({ count: 0 });
+      const generate = vi.fn();
+      await expect(
+        service.retryMedia(user, 'brand-1', generate),
+      ).rejects.toThrow('still being created');
+      expect(generate).not.toHaveBeenCalled();
+    });
+
+    it('refuses while the run is still working', async () => {
+      prisma.contentRun.findFirst.mockResolvedValue(row({}, 'running'));
+      const generate = vi.fn();
+      await expect(
+        service.retryMedia(user, 'brand-1', generate),
+      ).rejects.toThrow('still being created');
+      expect(generate).not.toHaveBeenCalled();
+    });
+
+    it('refuses once the run has used its retries', async () => {
+      prisma.contentRun.findFirst.mockResolvedValue(row({ mediaRetries: 2 }));
+      const generate = vi.fn();
+      await expect(
+        service.retryMedia(user, 'brand-1', generate),
+      ).rejects.toThrow('media retries');
+      expect(generate).not.toHaveBeenCalled();
+    });
+
+    it('returns the saved run untouched when no media is missing', async () => {
+      prisma.contentRun.findFirst.mockResolvedValue(row({ result: withImage }));
+      prisma.ingredient.findFirst.mockResolvedValue({
+        status: 'GENERATED',
+        s3Key: 'image/saved.png',
+      });
+      const generate = vi.fn();
+      const returned = await service.retryMedia(user, 'brand-1', generate);
+      expect(returned.imageUrl).toBe('https://cdn.example.com/image/saved.png');
+      expect(generate).not.toHaveBeenCalled();
+      expect(prisma.contentRun.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('marks the run finished, not interrupted, when generation throws', async () => {
+      prisma.contentRun.findFirst.mockResolvedValue(row());
+      const generate = vi.fn().mockRejectedValue(new Error('provider down'));
+      await expect(
+        service.retryMedia(user, 'brand-1', generate),
+      ).rejects.toThrow('provider down');
+      expect(prisma.contentRun.updateMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({ data: { status: 'completed' } }),
+      );
+    });
+
+    it('reports the retries left when reading a run', async () => {
+      prisma.contentRun.findFirst.mockResolvedValue(row({ mediaRetries: 1 }));
+      await expect(service.latest(user, 'brand-1')).resolves.toMatchObject({
+        mediaRetriesRemaining: 1,
+      });
+    });
+  });
 });
