@@ -32,6 +32,7 @@ export interface ReplicateSyncModelRecord {
   isActive: boolean;
   isFree?: boolean;
   key?: string;
+  lifecycle?: string | null;
   pricingType?: string | null;
   providerCostUsd?: number | null;
   reviewedProviderContractVersion?: string | null;
