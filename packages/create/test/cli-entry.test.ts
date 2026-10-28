@@ -72,7 +72,7 @@ describe('CLI entry point', () => {
       expect(process.exitCode).toBe(1);
     });
     expect(consolaMock.error).toHaveBeenCalledWith(
-      expect.stringContaining('Node.js 24 is required'),
+      expect.stringContaining('Node.js 24 or newer is required'),
     );
     expect(childProcessMock.spawnSync).not.toHaveBeenCalled();
   });
