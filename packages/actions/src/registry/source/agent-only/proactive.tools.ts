@@ -113,6 +113,39 @@ export const AGENT_PROACTIVE_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
+      'Build a cited preparation brief for a brand, a campaign or a topic. Every fact comes from a stored record and carries its citation: Knowledge passages (source and version), memories, recent published posts and recent performance totals. Evidence it could not find is listed as missing, and follow-up suggestions only point to existing screens. It writes nothing and changes nothing.',
+    name: 'build_prep_brief',
+    parameters: {
+      properties: {
+        brandId: {
+          description:
+            'The brand to brief on. Defaults to the brand of this conversation; pass an id from get_brands otherwise.',
+          type: 'string',
+        },
+        campaignId: {
+          description:
+            'Narrow posts, memories and performance to one campaign of the brand',
+          type: 'string',
+        },
+        topic: {
+          description:
+            'What the brief is for, for example a product launch or a review meeting (up to 200 characters). Defaults to the campaign name, then the brand name.',
+          type: 'string',
+        },
+        windowDays: {
+          description:
+            'Days of posts and performance to cover, 1 to 90 (default 30)',
+          type: 'number',
+        },
+      },
+      required: [],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
       'Internal bookkeeping tool — records what the proactive agent accomplished during this run. Call this at the end of a proactive session.',
     name: 'update_strategy_state',
     parameters: {

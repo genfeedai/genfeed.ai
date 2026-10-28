@@ -53,6 +53,11 @@ export const AGENT_NEXT_STEP_DESTINATIONS = {
     href: APP_ROUTES.SETTINGS.CREDITS,
     label: 'Credits',
   },
+  knowledge: {
+    ctaLabel: 'Open Knowledge',
+    href: APP_ROUTES.SETTINGS.KNOWLEDGE,
+    label: 'Brand Knowledge',
+  },
   library: {
     ctaLabel: 'Open library',
     href: APP_ROUTES.LIBRARY.ASSETS,

@@ -52,6 +52,7 @@ const READ_ONLY_NAMES = new Set<string>([
   'storyboard_run_capabilities',
   'quote_visual_code_generation',
   'analyze_performance',
+  'build_prep_brief',
   'export_skill',
   'read_knowledge_source',
   'open_studio_handoff',

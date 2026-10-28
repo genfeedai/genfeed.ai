@@ -23,6 +23,7 @@ const SUGGEST_NEXT_STEP_PROPERTIES = {
       'calendar',
       'connect_accounts',
       'credits',
+      'knowledge',
       'library',
       'members',
       'models',
