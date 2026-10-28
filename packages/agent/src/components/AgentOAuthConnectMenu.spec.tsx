@@ -63,12 +63,12 @@ describe('AgentOAuthConnectMenu', () => {
     await user.click(
       screen.getByRole('button', { name: 'Connect a social channel' }),
     );
-    await user.click(screen.getByRole('button', { exact: true, name: 'X' }));
+    await user.click(screen.getByRole('button', { name: 'X' }));
 
     expect(onOAuthConnect).toHaveBeenCalledWith('twitter');
     await waitFor(() => {
       expect(
-        screen.queryByRole('button', { exact: true, name: 'X' }),
+        screen.queryByRole('button', { name: 'X' }),
       ).not.toBeInTheDocument();
     });
   });
@@ -82,17 +82,15 @@ describe('AgentOAuthConnectMenu', () => {
       name: 'Connect a social channel',
     });
     await user.click(trigger);
-    await user.click(screen.getByRole('button', { exact: true, name: 'X' }));
+    await user.click(screen.getByRole('button', { name: 'X' }));
     await waitFor(() => {
       expect(
-        screen.queryByRole('button', { exact: true, name: 'X' }),
+        screen.queryByRole('button', { name: 'X' }),
       ).not.toBeInTheDocument();
     });
     await user.click(trigger);
 
-    expect(
-      screen.getByRole('button', { exact: true, name: 'X' }),
-    ).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'X' })).toBeEnabled();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
@@ -110,7 +108,6 @@ describe('AgentOAuthConnectMenu', () => {
       screen.getByRole('button', { name: 'Connect a social channel' }),
     );
     const twitterButton = screen.getByRole('button', {
-      exact: true,
       name: 'X',
     });
     await user.click(twitterButton);
@@ -133,7 +130,6 @@ describe('AgentOAuthConnectMenu', () => {
       screen.getByRole('button', { name: 'Connect a social channel' }),
     );
     const twitterButton = screen.getByRole('button', {
-      exact: true,
       name: 'X',
     });
     await user.click(twitterButton);
@@ -155,7 +151,6 @@ describe('AgentOAuthConnectMenu', () => {
       screen.getByRole('button', { name: 'Connect a social channel' }),
     );
     const twitterButton = screen.getByRole('button', {
-      exact: true,
       name: 'X',
     });
     await user.click(twitterButton);
@@ -179,9 +174,7 @@ describe('AgentOAuthConnectMenu', () => {
       screen.getByRole('button', { name: 'Connect a social channel' }),
     );
 
-    expect(
-      screen.queryByRole('button', { exact: true, name: 'X' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'X' })).not.toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Instagram' }),
     ).toBeInTheDocument();
