@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useCompleteOnboarding } from './use-complete-onboarding.hook';
@@ -89,6 +90,14 @@ describe('useCompleteOnboarding', () => {
     expect(assign).toHaveBeenCalledWith(
       '/acme/main/publishing/posts?status=draft',
     );
+    vi.unstubAllGlobals();
+  });
+  it('falls back to the workspace when the brand slugs are not known yet', async () => {
+    const assign = vi.fn();
+    vi.stubGlobal('location', { ...window.location, assign });
+    const { result } = renderHook(() => useCompleteOnboarding());
+    await result.current({ isLandingOnDrafts: true });
+    expect(assign).toHaveBeenCalledWith(APP_ROUTES.WORKSPACE.OVERVIEW);
     vi.unstubAllGlobals();
   });
 });

@@ -87,9 +87,7 @@ export function useCompleteOnboarding(): (
       window.location.assign(
         orgSlug && brandSlug
           ? createBrandAppRoute(orgSlug, brandSlug, scopedPath)
-          : options.isLandingOnDrafts
-            ? scopedPath
-            : APP_ROUTES.WORKSPACE.OVERVIEW,
+          : APP_ROUTES.WORKSPACE.OVERVIEW,
       );
     },
     [getToken, isReplay, selectedBrand, user],
