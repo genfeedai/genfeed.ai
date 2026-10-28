@@ -123,6 +123,51 @@ export class FFmpegTransformService {
   }
 
   /**
+   * Keep the first `duration` seconds, frame-accurately. `trimVideo` copies
+   * streams and so cuts on keyframes; a cut that must land on a beat is
+   * re-encoded instead.
+   */
+  async trimVideoToDuration(
+    inputPath: string,
+    outputPath: string,
+    duration: number,
+  ): Promise<void> {
+    const validatedInputPath = SecurityUtil.validateFilePath(inputPath);
+    const validatedOutputPath = SecurityUtil.validateFilePath(outputPath);
+
+    SecurityUtil.validateFileExtension(validatedInputPath);
+    await SecurityUtil.validateFileExists(validatedInputPath);
+    await SecurityUtil.validateFileSize(validatedInputPath);
+
+    if (!Number.isFinite(duration) || duration <= 0) {
+      throw new Error('Duration must be positive');
+    }
+
+    await this.core.executeFFmpeg(
+      SecurityUtil.sanitizeCommandArgs([
+        '-i',
+        validatedInputPath,
+        '-t',
+        duration.toFixed(3),
+        '-c:v',
+        'libx264',
+        '-preset',
+        'veryfast',
+        '-crf',
+        '18',
+        '-pix_fmt',
+        'yuv420p',
+        '-c:a',
+        'aac',
+        '-movflags',
+        '+faststart',
+        '-y',
+        validatedOutputPath,
+      ]),
+    );
+  }
+
+  /**
    * Compress video with specified options
    */
   async compressVideo(

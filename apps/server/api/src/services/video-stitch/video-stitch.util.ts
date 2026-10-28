@@ -9,6 +9,7 @@ import type {
   VideoStitchState,
 } from '@api/services/video-stitch/video-stitch.types';
 import {
+  BeatSyncCutStrategy,
   IngredientCategory,
   IngredientStatus,
   VideoTransition,
@@ -18,6 +19,7 @@ import {
   VIDEO_STITCH_LIMITS,
 } from '@genfeedai/contracts/constants';
 import {
+  BEAT_SYNC_CUT_STRATEGIES,
   type IVideoMergeSettings,
   VIDEO_STITCH_CALLER_KINDS,
   VIDEO_STITCH_GENERATION_SOURCE_PREFIX,
@@ -117,6 +119,7 @@ export function validateVideoStitchRequest(request: VideoStitchRequest): void {
     );
   }
   for (const field of [
+    'isBeatSyncEnabled',
     'isCaptionsEnabled',
     'isEndCardEnabled',
     'isMuteVideoAudio',
@@ -127,6 +130,29 @@ export function validateVideoStitchRequest(request: VideoStitchRequest): void {
   }
   if (settings.music !== undefined && !isNonEmptyString(settings.music)) {
     throw stitchRequestError('music', 'Music must be a music asset id');
+  }
+  const beatStrategies: string[] = [...BEAT_SYNC_CUT_STRATEGIES];
+  if (
+    settings.beatSyncCutStrategy !== undefined &&
+    !beatStrategies.includes(settings.beatSyncCutStrategy)
+  ) {
+    throw stitchRequestError(
+      'beatSyncCutStrategy',
+      'Unsupported beat sync cut strategy',
+    );
+  }
+  if (settings.isBeatSyncEnabled) {
+    // Beats are the music's, and a transition overlaps clips so a cut has no
+    // single moment to land on.
+    if (!settings.music) {
+      throw stitchRequestError(
+        'isBeatSyncEnabled',
+        'Beat sync needs music to cut to',
+      );
+    }
+    if (settings.transition && settings.transition !== VideoTransition.NONE) {
+      throw stitchRequestError('transition', 'Beat sync joins with cuts only');
+    }
   }
   if (
     settings.musicVolume !== undefined &&
@@ -159,6 +185,12 @@ export function validateVideoStitchRequest(request: VideoStitchRequest): void {
   }
   // The worker's per-clip normalization joins with plain cuts and no music.
   if (output.resize === 'per_clip') {
+    if (settings.isBeatSyncEnabled) {
+      throw stitchRequestError(
+        'isBeatSyncEnabled',
+        'Per-clip normalized stitching cannot be beat synced',
+      );
+    }
     if (settings.music) {
       throw stitchRequestError(
         'music',
@@ -235,6 +267,13 @@ export function buildVideoStitchJobParams(
           endCardBackgroundColor: plan.endCard.backgroundColor,
           endCardDuration: plan.endCard.durationSeconds,
           endCardStorageKey: plan.endCard.storageKey,
+        }
+      : {}),
+    ...(settings.isBeatSyncEnabled
+      ? {
+          beatSyncCutStrategy:
+            settings.beatSyncCutStrategy ?? BeatSyncCutStrategy.EVERY_BEAT,
+          isBeatSyncEnabled: true,
         }
       : {}),
     ...(settings.music ? { music: settings.music } : {}),

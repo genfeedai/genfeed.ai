@@ -43,6 +43,7 @@ describe('VideoMergeJobService', () => {
       (type: string, ingredientId: string) => `/tmp/${type}-${ingredientId}`,
     ),
     mergeVideos: vi.fn().mockResolvedValue(undefined),
+    trimVideoToDuration: vi.fn().mockResolvedValue(undefined),
     mergeVideosWithMusic: vi.fn().mockResolvedValue(undefined),
     mergeVideosWithTransitions: vi.fn().mockResolvedValue(undefined),
   };
@@ -69,7 +70,10 @@ describe('VideoMergeJobService', () => {
   };
   const logger = {
     error: vi.fn(),
+    log: vi.fn(),
+    warn: vi.fn(),
   };
+  const beatDetectionService = { analyzeBeat: vi.fn() };
   let service: VideoMergeJobService;
 
   beforeEach(() => {
@@ -80,6 +84,8 @@ describe('VideoMergeJobService', () => {
       webSocketService as never,
       redisService as never,
       logger as never,
+      undefined,
+      beatDetectionService as never,
     );
   });
 
@@ -123,6 +129,136 @@ describe('VideoMergeJobService', () => {
       expect.stringMatching(/^[a-f0-9-]{36}$/),
     );
     expect(result.s3Key).toBe('ingredients/videos/actual-merged-object');
+  });
+
+  describe('beat sync', () => {
+    const steadyBeat = {
+      beatTimestamps: Array.from(
+        { length: 80 },
+        (_, index) => 0.5 * index + 0.5,
+      ),
+      confidence: 0.9,
+      downbeats: Array.from({ length: 20 }, (_, index) => 2 * index + 0.5),
+      tempo: 120,
+    };
+    const beatSyncParams = {
+      isBeatSyncEnabled: true,
+      music: 'music-123',
+      sourceIds: ['source-1', 'source-2'],
+    };
+
+    beforeEach(() => {
+      ffmpegService.probe
+        .mockResolvedValueOnce({ format: { duration: '6.2' }, streams: [] })
+        .mockResolvedValueOnce({ format: { duration: '6.2' }, streams: [] });
+    });
+
+    it('trims each clip so the cuts land on the beat and reports the edit as synced', async () => {
+      beatDetectionService.analyzeBeat.mockResolvedValueOnce(steadyBeat);
+
+      const result = await service.process(
+        createJob(createJobData({ params: beatSyncParams })),
+      );
+
+      expect(beatDetectionService.analyzeBeat).toHaveBeenCalledWith(
+        '/tmp/merge-ingredient-123/music.mp3',
+      );
+      // 6.2 s clips on a 0.5 s grid: cuts at 6.0 s and 12.0 s.
+      expect(ffmpegService.trimVideoToDuration).toHaveBeenCalledTimes(2);
+      for (const call of ffmpegService.trimVideoToDuration.mock.calls) {
+        expect(call[2]).toBeCloseTo(6, 3);
+      }
+      expect(ffmpegService.mergeVideosWithMusic).toHaveBeenCalledWith(
+        [
+          '/tmp/merge-ingredient-123/beat_0.mp4',
+          '/tmp/merge-ingredient-123/beat_1.mp4',
+        ],
+        expect.any(String),
+        expect.objectContaining({
+          musicPath: '/tmp/merge-ingredient-123/music.mp3',
+        }),
+        expect.any(Function),
+      );
+      expect(ffmpegService.cleanupTempFiles.mock.calls.flat()).toEqual(
+        expect.arrayContaining([
+          '/tmp/merge-ingredient-123/beat_0.mp4',
+          '/tmp/merge-ingredient-123/beat_1.mp4',
+        ]),
+      );
+      expect(result.isBeatSynced).toBe(true);
+    });
+
+    it('leaves a clip alone when it already ends on a beat', async () => {
+      ffmpegService.probe.mockReset();
+      ffmpegService.probe.mockResolvedValue({
+        format: { duration: '6', size: '100' },
+        streams: [],
+      });
+      beatDetectionService.analyzeBeat.mockResolvedValueOnce(steadyBeat);
+
+      await service.process(
+        createJob(createJobData({ params: beatSyncParams })),
+      );
+
+      expect(ffmpegService.trimVideoToDuration).not.toHaveBeenCalled();
+    });
+
+    it('joins the clips as they are when the music has no steady beat', async () => {
+      beatDetectionService.analyzeBeat.mockResolvedValueOnce({
+        ...steadyBeat,
+        confidence: 0.1,
+      });
+
+      const result = await service.process(
+        createJob(createJobData({ params: beatSyncParams })),
+      );
+
+      expect(ffmpegService.trimVideoToDuration).not.toHaveBeenCalled();
+      expect(result.isBeatSynced).toBe(false);
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
+    it('joins the clips as they are when the beat analysis fails', async () => {
+      beatDetectionService.analyzeBeat.mockRejectedValueOnce(
+        new Error('ffmpeg exited with code 1'),
+      );
+
+      const result = await service.process(
+        createJob(createJobData({ params: beatSyncParams })),
+      );
+
+      expect(ffmpegService.trimVideoToDuration).not.toHaveBeenCalled();
+      expect(result.isBeatSynced).toBe(false);
+    });
+
+    it('does not analyze anything unless the job asks for beat sync', async () => {
+      const result = await service.process(
+        createJob(
+          createJobData({
+            params: { music: 'music-123', sourceIds: ['source-1', 'source-2'] },
+          }),
+        ),
+      );
+
+      expect(beatDetectionService.analyzeBeat).not.toHaveBeenCalled();
+      expect(result.isBeatSynced).toBe(false);
+    });
+
+    it('does not analyze anything when there is no music to cut to', async () => {
+      const result = await service.process(
+        createJob(
+          createJobData({
+            params: {
+              isBeatSyncEnabled: true,
+              sourceIds: ['source-1', 'source-2'],
+            },
+          }),
+        ),
+      );
+
+      expect(beatDetectionService.analyzeBeat).not.toHaveBeenCalled();
+      expect(result.isBeatSynced).toBe(false);
+    });
   });
 
   describe('brand end card', () => {

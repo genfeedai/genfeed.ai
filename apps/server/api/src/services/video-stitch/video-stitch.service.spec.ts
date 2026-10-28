@@ -2,6 +2,7 @@ import { VideoStitchFixture } from '@api/services/video-stitch/video-stitch.fixt
 import type { VideoStitchRequest } from '@api/services/video-stitch/video-stitch.types';
 import {
   ActivityKey,
+  BeatSyncCutStrategy,
   IngredientStatus,
   JobState,
   VideoTransition,
@@ -249,6 +250,42 @@ describe('VideoStitchService', () => {
     });
   });
 
+  describe('beat sync', () => {
+    it('asks the worker to sync cuts to the music, on every beat by default', async () => {
+      await fixture.service.stitch(
+        request({ settings: { isBeatSyncEnabled: true, music: 'music-1' } }),
+      );
+      expect(fixture.queued[0]?.params).toMatchObject({
+        beatSyncCutStrategy: BeatSyncCutStrategy.EVERY_BEAT,
+        isBeatSyncEnabled: true,
+        music: 'music-1',
+      });
+    });
+
+    it('passes the chosen cut strategy through', async () => {
+      await fixture.service.stitch(
+        request({
+          settings: {
+            beatSyncCutStrategy: BeatSyncCutStrategy.DOWNBEATS_ONLY,
+            isBeatSyncEnabled: true,
+            music: 'music-1',
+          },
+        }),
+      );
+      expect(fixture.queued[0]?.params).toMatchObject({
+        beatSyncCutStrategy: BeatSyncCutStrategy.DOWNBEATS_ONLY,
+      });
+    });
+
+    it('leaves the job untouched when beat sync is off', async () => {
+      await fixture.service.stitch(request({ settings: { music: 'music-1' } }));
+      expect(fixture.queued[0]?.params).not.toHaveProperty('isBeatSyncEnabled');
+      expect(fixture.queued[0]?.params).not.toHaveProperty(
+        'beatSyncCutStrategy',
+      );
+    });
+  });
+
   describe('brand end card', () => {
     it('adds no end card until the brand turns one on', async () => {
       await fixture.service.stitch(request());
@@ -337,6 +374,40 @@ describe('VideoStitchService', () => {
         request({ settings: { transition: 'morph' as VideoTransition } }),
       ],
       ['transitionDuration', request({ settings: { transitionDuration: 3 } })],
+      ['isBeatSyncEnabled', request({ settings: { isBeatSyncEnabled: true } })],
+      [
+        'isBeatSyncEnabled',
+        request({
+          settings: { isBeatSyncEnabled: 'yes' as unknown as boolean },
+        }),
+      ],
+      [
+        'transition',
+        request({
+          settings: {
+            isBeatSyncEnabled: true,
+            music: 'music-1',
+            transition: VideoTransition.FADE,
+          },
+        }),
+      ],
+      [
+        'beatSyncCutStrategy',
+        request({
+          settings: {
+            beatSyncCutStrategy: BeatSyncCutStrategy.CUSTOM,
+            isBeatSyncEnabled: true,
+            music: 'music-1',
+          },
+        }),
+      ],
+      [
+        'isBeatSyncEnabled',
+        request({
+          output: { height: 1024, resize: 'per_clip', width: 576 },
+          settings: { isBeatSyncEnabled: true, music: 'music-1' },
+        }),
+      ],
       ['musicVolume', request({ settings: { musicVolume: 101 } })],
       ['brandId', request({ brandId: '' })],
       ['idempotencyKey', request({ idempotencyKey: ' ' })],

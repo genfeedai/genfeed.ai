@@ -1,4 +1,4 @@
-import type { VideoTransition } from '../..';
+import type { BeatSyncCutStrategy, VideoTransition } from '../..';
 
 /** Surfaces that join clips through the single stitch service (#5460). */
 export const VIDEO_STITCH_CALLER_KINDS = [
@@ -35,6 +35,13 @@ export function videoStitchGenerationSource(
  * applies the settings captured when the batch started.
  */
 export interface IVideoMergeSettings {
+  /** Which beats of the music a cut may land on. Defaults to every beat. */
+  beatSyncCutStrategy?: BeatSyncCutStrategy;
+  /**
+   * Trim each clip so the cuts land on the beat of the music. Needs music and
+   * plain cuts; when the music has no steady beat the clips are joined as is.
+   */
+  isBeatSyncEnabled?: boolean;
   isCaptionsEnabled?: boolean;
   /**
    * Set to `false` to skip the brand end card for an output that is not the

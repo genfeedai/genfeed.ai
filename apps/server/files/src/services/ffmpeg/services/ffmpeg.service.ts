@@ -182,6 +182,14 @@ export class FFmpegService {
     );
   }
 
+  async trimVideoToDuration(
+    inputPath: string,
+    outputPath: string,
+    duration: number,
+  ): Promise<void> {
+    return this.transform.trimVideoToDuration(inputPath, outputPath, duration);
+  }
+
   async trimVideo(
     inputPath: string,
     outputPath: string,

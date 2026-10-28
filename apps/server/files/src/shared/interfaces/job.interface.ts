@@ -1,4 +1,8 @@
-import type { VideoEaseCurve, VideoTransition } from '@genfeedai/contracts';
+import type {
+  BeatSyncCutStrategy,
+  VideoEaseCurve,
+  VideoTransition,
+} from '@genfeedai/contracts';
 import type {
   ClipperReferenceFrameSet,
   IEditorRenderCorrelation,
@@ -123,6 +127,8 @@ export interface VideoProcessingParams {
   endCardStorageKey?: string; // Brand end card image appended after the merge
   endCardDuration?: number; // Seconds the end card stays on screen
   endCardBackgroundColor?: string; // #RRGGBB behind a card that does not fill the frame
+  isBeatSyncEnabled?: boolean; // Trim clips so every cut lands on a beat of the music
+  beatSyncCutStrategy?: BeatSyncCutStrategy;
 
   // Caption params
   captionContent?: string;
@@ -278,4 +284,6 @@ export interface JobResult {
   error?: string;
   frameCount?: number;
   metadata?: unknown;
+  /** Merge: whether the clips were trimmed onto the music's beats. */
+  isBeatSynced?: boolean;
 }

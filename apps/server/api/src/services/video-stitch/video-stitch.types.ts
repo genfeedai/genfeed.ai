@@ -1,3 +1,4 @@
+import type { BeatSyncCutStrategy } from '@genfeedai/contracts';
 import type {
   IVideoMergeSettings,
   VideoStitchCallerKind,
@@ -87,10 +88,12 @@ export interface VideoStitchPlan {
 }
 
 export interface VideoStitchJobParams {
+  beatSyncCutStrategy?: BeatSyncCutStrategy;
   endCardBackgroundColor?: string;
   endCardDuration?: number;
   endCardStorageKey?: string;
   height?: number;
+  isBeatSyncEnabled?: boolean;
   isMuteVideoAudio?: boolean;
   isPersistedOutputOnly: true;
   isResizeEnabled?: boolean;

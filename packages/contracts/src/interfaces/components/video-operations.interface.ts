@@ -1,10 +1,16 @@
-import type { IngredientFormat, VideoTransition } from '../..';
+import type {
+  BeatSyncCutStrategy,
+  IngredientFormat,
+  VideoTransition,
+} from '../..';
 
 export interface IVideoMergeParams {
   category: string;
   ids: string[];
   voice?: string;
   music?: string;
+  isBeatSyncEnabled?: boolean;
+  beatSyncCutStrategy?: BeatSyncCutStrategy;
   isCaptionsEnabled?: boolean;
   transition?: VideoTransition;
   transitionDuration?: number;

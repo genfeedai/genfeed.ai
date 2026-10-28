@@ -79,7 +79,7 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
   {
     name: 'transform_media',
     description:
-      'Change existing media or join clips. operation edit: apply an exact instruction to a Library image (the original stays unchanged; imageId is the primary source, references adds up to four ordered images for Ideogram or nine for FLUX.3; FLUX.3 supports one output, resolution and aspectRatio, with no mask or seed; optional maskId must match the primary dimensions, black changes and white stays; uses the image-editing category default, never the generation model; do not enhance or rewrite the instruction). operation reframe: re-crop an image to a new aspect ratio. operation upscale: upscale an image to higher resolution from its URL. operation merge: join two or more existing videos into one clip with transitions, captions, resizing, mute and background music; slideshow zoom (zoomEaseCurve and zoomConfigs) is not supported and is rejected before any merge starts. Each field lists the operations it applies to; a field for another operation is rejected. Edit, reframe and upscale spend credits through the shared generation settlement; merge runs locally and is free.',
+      'Change existing media or join clips. operation edit: apply an exact instruction to a Library image (the original stays unchanged; imageId is the primary source, references adds up to four ordered images for Ideogram or nine for FLUX.3; FLUX.3 supports one output, resolution and aspectRatio, with no mask or seed; optional maskId must match the primary dimensions, black changes and white stays; uses the image-editing category default, never the generation model; do not enhance or rewrite the instruction). operation reframe: re-crop an image to a new aspect ratio. operation upscale: upscale an image to higher resolution from its URL. operation merge: join two or more existing videos into one clip with transitions, captions, resizing, mute and background music (with music, isBeatSyncEnabled trims each clip so every cut lands on a beat; the brand end card, when the brand has one switched on, is appended automatically); slideshow zoom (zoomEaseCurve and zoomConfigs) is not supported and is rejected before any merge starts. Each field lists the operations it applies to; a field for another operation is rejected. Edit, reframe and upscale spend credits through the shared generation settlement; merge runs locally and is free.',
     creditCost: 0,
     requiredRole: 'user',
     parameters: {
@@ -171,6 +171,17 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
           items: { type: 'string' },
           description:
             'merge. Ordered video ingredient ids to join (at least two). Required for merge.',
+        },
+        isBeatSyncEnabled: {
+          type: 'boolean',
+          description:
+            'merge. Trim each clip so the cuts land on the beat of the music. Needs music and no transition; if the music has no steady beat the clips are joined as they are.',
+        },
+        beatSyncCutStrategy: {
+          type: 'string',
+          enum: ['everyBeat', 'everyOtherBeat', 'downbeatsOnly'],
+          description:
+            'merge. Which beats a cut may land on when isBeatSyncEnabled is set. Defaults to everyBeat.',
         },
         isCaptionsEnabled: {
           type: 'boolean',

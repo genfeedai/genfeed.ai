@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { ConfigService } from '@files/config/config.service';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
+import { FFmpegBeatDetectionService } from '@files/services/ffmpeg/services/ffmpeg-beat-detection.service';
 import { S3Service } from '@files/services/s3/s3.service';
 import { WebSocketService } from '@files/services/websocket/websocket.service';
 import type { FFmpegProgress } from '@files/shared/interfaces/ffmpeg.interfaces';
@@ -10,6 +11,12 @@ import type {
   JobResult,
   VideoJobData,
 } from '@files/shared/interfaces/job.interface';
+import { BeatSyncCutStrategy } from '@genfeedai/contracts';
+import {
+  BEAT_SYNC_MIN_CONFIDENCE,
+  planBeatSyncedCuts,
+  selectCutBeats,
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { assertSafeObjectKey } from '@libs/security';
@@ -20,6 +27,8 @@ import { Injectable, Optional } from '@nestjs/common';
 import type { Job } from 'bullmq';
 import sharp from 'sharp';
 
+/** Below one frame at 30 fps a trim is not worth a re-encode. */
+const BEAT_SYNC_MIN_TRIM_SECONDS = 1 / 30;
 const END_CARD_MAX_BYTES = 20 * 1024 * 1024;
 const END_CARD_MAX_PIXELS = 40_000_000;
 
@@ -35,6 +44,8 @@ export class VideoMergeJobService {
     private readonly redisService: RedisService,
     private readonly logger: LoggerService,
     @Optional() private readonly configService?: ConfigService,
+    @Optional()
+    private readonly beatDetectionService?: FFmpegBeatDetectionService,
   ) {}
 
   async process(job: Job<VideoJobData>): Promise<JobResult> {
@@ -48,7 +59,13 @@ export class VideoMergeJobService {
       const musicPath = await this.downloadMusic(job, tempPath);
       const outputPath = path.join(tempPath, 'merged.mp4');
 
-      await this.mergeVideos(job, inputPaths, outputPath, musicPath);
+      const beatSync = await this.applyBeatSync(
+        job,
+        inputPaths,
+        musicPath,
+        tempPath,
+      );
+      await this.mergeVideos(job, beatSync.paths, outputPath, musicPath);
       const mergedOutput = await this.resizeVideo(job, outputPath, tempPath);
       const finalOutput = await this.appendEndCard(job, mergedOutput, tempPath);
       const probe = await this.ffmpegService.probe(finalOutput);
@@ -59,6 +76,7 @@ export class VideoMergeJobService {
 
       await this.ffmpegService.cleanupTempFiles(
         ...inputPaths,
+        ...beatSync.trimmedPaths,
         ...(job.data.params.isPersistedOutputOnly ? [finalOutput] : []),
         ...(mergedOutput !== outputPath ? [outputPath] : []),
         ...(finalOutput !== mergedOutput ? [mergedOutput] : []),
@@ -88,6 +106,7 @@ export class VideoMergeJobService {
         s3Key,
         url: this.s3Service.getPublicUrl(s3Key),
         success: true,
+        isBeatSynced: beatSync.isSynced,
         duration: Number(probe.format.duration),
         size: Number(probe.format.size),
         width: videoStream?.width,
@@ -253,6 +272,99 @@ export class VideoMergeJobService {
       );
       return undefined;
     }
+  }
+
+  /**
+   * Trims the end of each clip so every cut lands on a beat of the music.
+   * Without music, or when the music has no steady pulse to cut on, the clips
+   * are joined as they are: a synced edit is a refinement, not a reason to
+   * fail the merge.
+   */
+  private async applyBeatSync(
+    job: Job<VideoJobData>,
+    inputPaths: string[],
+    musicPath: string | undefined,
+    tempPath: string,
+  ): Promise<{
+    isSynced: boolean;
+    paths: string[];
+    trimmedPaths: string[];
+  }> {
+    const { isBeatSyncEnabled, beatSyncCutStrategy } = job.data.params;
+    const unsynced = { isSynced: false, paths: inputPaths, trimmedPaths: [] };
+    if (!isBeatSyncEnabled) {
+      return unsynced;
+    }
+    if (!musicPath) {
+      this.logger.warn('Beat sync needs music; joining the clips as they are');
+      return unsynced;
+    }
+    if (!this.beatDetectionService) {
+      throw new Error('Beat sync is not available on this worker');
+    }
+
+    this.emitStepProgress(
+      job,
+      'merging',
+      0,
+      35,
+      'Finding the beat of the music',
+    );
+    let analysis: Awaited<
+      ReturnType<FFmpegBeatDetectionService['analyzeBeat']>
+    >;
+    try {
+      analysis = await this.beatDetectionService.analyzeBeat(musicPath);
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Beat analysis failed; joining the clips as they are: ${getErrorMessage(error)}`,
+      );
+      return unsynced;
+    }
+    if (!analysis || analysis.confidence < BEAT_SYNC_MIN_CONFIDENCE) {
+      this.logger.warn(
+        'The music has no steady beat to cut on; joining the clips as they are',
+      );
+      return unsynced;
+    }
+
+    const durations: number[] = [];
+    for (const inputPath of inputPaths) {
+      const probe = await this.ffmpegService.probe(inputPath);
+      durations.push(Number(probe.format.duration));
+    }
+    const plan = planBeatSyncedCuts(
+      durations,
+      selectCutBeats(
+        analysis,
+        beatSyncCutStrategy ?? BeatSyncCutStrategy.EVERY_BEAT,
+      ),
+    );
+
+    const paths: string[] = [];
+    const trimmedPaths: string[] = [];
+    for (const [index, clip] of plan.entries()) {
+      // Under a frame of difference is not worth a re-encode.
+      if (
+        durations[index] - clip.durationSeconds <
+        BEAT_SYNC_MIN_TRIM_SECONDS
+      ) {
+        paths.push(inputPaths[index]);
+        continue;
+      }
+      const trimmedPath = path.join(tempPath, `beat_${index}.mp4`);
+      await this.ffmpegService.trimVideoToDuration(
+        inputPaths[index],
+        trimmedPath,
+        clip.durationSeconds,
+      );
+      paths.push(trimmedPath);
+      trimmedPaths.push(trimmedPath);
+    }
+    this.logger.log(
+      `Beat sync: ${analysis.tempo} BPM, ${trimmedPaths.length}/${plan.length} clips trimmed, ${plan.filter((clip) => !clip.isOnBeat).length} off the beat`,
+    );
+    return { isSynced: true, paths, trimmedPaths };
   }
 
   private async mergeVideos(

@@ -4,12 +4,14 @@ import { CreateMetadataDto } from '@api/collections/metadata/dto/create-metadata
 import { CrunVideoQuoteControlsDto } from '@api/collections/videos/dto/create-crun-video-quote.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
+  BeatSyncCutStrategy,
   IngredientCategory,
   RouterPriority,
   VideoTransition,
 } from '@genfeedai/contracts';
 import type { AdPresetSubmission } from '@genfeedai/contracts/api-types/contracts/ad-preset.contract';
 import {
+  BEAT_SYNC_CUT_STRATEGIES,
   GENERATION_PROMPT_AUTHORS,
   type GenerationPromptAuthor,
 } from '@genfeedai/contracts/interfaces';
@@ -60,6 +62,26 @@ export class CreateMergedVideoDto {
   @IsOptional()
   @ApiProperty({ required: false })
   readonly music?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'Trim each clip so the cuts land on the beat of the music. Needs music and plain cuts.',
+    required: false,
+  })
+  readonly isBeatSyncEnabled?: boolean;
+
+  @IsIn(BEAT_SYNC_CUT_STRATEGIES)
+  @IsOptional()
+  @ApiProperty({
+    default: BeatSyncCutStrategy.EVERY_BEAT,
+    description: 'Which beats a cut may land on',
+    enum: [...BEAT_SYNC_CUT_STRATEGIES],
+    enumName: 'BeatSyncCutStrategy',
+    required: false,
+  })
+  readonly beatSyncCutStrategy?: BeatSyncCutStrategy;
 
   @IsBoolean()
   @IsOptional()

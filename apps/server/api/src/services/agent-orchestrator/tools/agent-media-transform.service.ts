@@ -24,6 +24,8 @@ import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { Inject, Injectable } from '@nestjs/common';
 
 const MERGE_OPTIONAL_PARAMETERS = [
+  'beatSyncCutStrategy',
+  'isBeatSyncEnabled',
   'isCaptionsEnabled',
   'isMuteVideoAudio',
   'isResizeEnabled',
