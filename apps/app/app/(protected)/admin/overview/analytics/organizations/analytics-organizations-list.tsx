@@ -224,7 +224,12 @@ export default function AnalyticsOrganizationsList({
                   size={ButtonSize.SM}
                   variant={ButtonVariant.SECONDARY}
                 >
-                  <Link href={getReleaseAccessHref(org.id)}>
+                  <Link
+                    aria-label={translate('releaseAccessLinkLabel', {
+                      name: org.name || rowSidebarT('unknown'),
+                    })}
+                    href={getReleaseAccessHref(org.id)}
+                  >
                     {translate('releaseAccessLink')}
                   </Link>
                 </Button>

@@ -125,10 +125,11 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
     expect(
       await screen.findByRole('columnheader', { name: 'Release access' }),
     ).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Open' })).toHaveAttribute(
-      'href',
-      '/admin/organization?id=org-1',
-    );
+    expect(
+      screen.getByRole('link', {
+        name: 'Open release access for Acme Inc',
+      }),
+    ).toHaveAttribute('href', '/admin/organization?id=org-1');
   });
 
   it('opens an organization summary in the sidebar from the row while the name stays a link', async () => {

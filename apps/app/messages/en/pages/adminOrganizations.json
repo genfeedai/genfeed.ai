@@ -1,5 +1,6 @@
 {
   "title": "Organizations",
   "releaseAccessColumn": "Release access",
-  "releaseAccessLink": "Open"
+  "releaseAccessLink": "Open",
+  "releaseAccessLinkLabel": "Open release access for {name}"
 }
