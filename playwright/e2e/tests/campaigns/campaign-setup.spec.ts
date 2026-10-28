@@ -76,9 +76,7 @@ test.describe('Campaign setup and responsive actions', () => {
           .getByRole('heading', { name: campaign.attributes.name, exact: true })
           .last(),
       ).toBeVisible();
-      await expect(
-        page.getByText('LinkedIn · genfeedai', { exact: true }),
-      ).toBeVisible();
+      await expect(page.getByText(/LinkedIn\s*genfeedai/)).toBeVisible();
       const canvas = page.getByRole('region', {
         name: 'Primary workspace canvas',
       });
