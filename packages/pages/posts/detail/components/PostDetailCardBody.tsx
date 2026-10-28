@@ -184,7 +184,7 @@ export default function PostDetailCardBody({
                 )}
                 {post.totalComments !== undefined && (
                   <div className="flex items-center gap-1.5 text-xs text-foreground/60">
-                    <MessageSquare className="size-3.5 text-secondary" />
+                    <MessageSquare className="size-3.5 text-muted-foreground" />
                     <span>{formatCompactNumber(post.totalComments)}</span>
                   </div>
                 )}

@@ -419,7 +419,7 @@ export function NodePalette({
       <div className="border-b border-border p-3">
         <FormSearchbar
           ariaLabel="Search nodes"
-          inputClassName="h-9 bg-secondary"
+          inputClassName="h-9 bg-muted"
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search nodes..."
           size={ComponentSize.MD}

@@ -304,7 +304,7 @@ describe('AgentCampaignsPage', () => {
 
     const card = within(all).getAllByTestId('campaign-card')[0];
     expect(card).toHaveTextContent('Launch sequence');
-    expect(card.querySelector('[class*="bg-secondary"]')).toBeNull();
+    expect(card.querySelector('[class*="bg-muted"]')).toBeNull();
     expect(card.querySelector('[class*="bg-muted"]')).toBeNull();
     expect(card.querySelector('[class~="rounded"]')).toBeNull();
   });

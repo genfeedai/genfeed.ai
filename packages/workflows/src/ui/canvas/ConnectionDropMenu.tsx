@@ -240,7 +240,7 @@ function ConnectionDropMenuComponent() {
         <div className="px-3 py-2">
           <FormSearchbar
             ariaLabel="Search compatible nodes"
-            inputClassName="text-xs bg-secondary border-border outline-none focus:ring-2 focus:ring-ring"
+            inputClassName="text-xs bg-muted border-border outline-none focus:ring-2 focus:ring-ring"
             inputRef={inputRef}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search compatible nodes..."
@@ -274,7 +274,7 @@ function ConnectionDropMenuComponent() {
                         className={`w-full text-left px-2 py-1.5 rounded text-xs h-auto justify-start ${
                           currentIndex === selectedIndex
                             ? 'bg-primary/10 text-foreground'
-                            : 'text-foreground hover:bg-secondary'
+                            : 'text-foreground hover:bg-muted'
                         }`}
                       >
                         {node.label}

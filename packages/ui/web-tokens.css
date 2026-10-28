@@ -72,8 +72,6 @@
     --primary: 0 0% 9%;
     --primary-foreground: 0 0% 98%;
     --ring: 0 0% 9%;
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 9%;
     --success: 163 94% 24%;
     --success-foreground: 0 0% 100%;
     --warning: 26 90% 37%;
@@ -131,8 +129,6 @@
       --primary: 0 0% 93%;
       --primary-foreground: 0 0% 4%;
       --ring: 0 0% 93%;
-      --secondary: 0 0% 4%;
-      --secondary-foreground: 0 0% 93%;
       --success: 160 84% 39%;
       --success-foreground: 0 0% 4%;
       --warning: 38 92% 50%;
@@ -190,8 +186,6 @@
     --primary: 0 0% 93%;
     --primary-foreground: 0 0% 4%;
     --ring: 0 0% 93%;
-    --secondary: 0 0% 4%;
-    --secondary-foreground: 0 0% 93%;
     --success: 160 84% 39%;
     --success-foreground: 0 0% 4%;
     --warning: 38 92% 50%;

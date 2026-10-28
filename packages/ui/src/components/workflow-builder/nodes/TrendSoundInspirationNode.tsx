@@ -125,7 +125,7 @@ function TrendSoundInspirationNodeComponent({
 
       {/* Sound Result */}
       {data.soundId && (
-        <div className="p-3 bg-secondary border border-border">
+        <div className="p-3 bg-muted border border-border">
           <div className="flex items-start gap-3">
             {/* Cover Art */}
             {data.coverUrl && (

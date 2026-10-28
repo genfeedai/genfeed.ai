@@ -155,7 +155,7 @@ function VideoGenNodeComponent(props: NodeProps) {
             )}
           </div>
         ) : (
-          <div className="relative flex aspect-video w-full flex-col items-center justify-center gap-1 border border-dashed border-border/50 bg-secondary/20">
+          <div className="relative flex aspect-video w-full flex-col items-center justify-center gap-1 border border-dashed border-border/50 bg-muted/20">
             <Video className="size-6 text-muted-foreground/50" />
             {nodeData.status === 'processing' && (
               <ProcessingOverlay onStop={handleStop} />

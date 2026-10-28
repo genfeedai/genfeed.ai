@@ -6,15 +6,16 @@ import {
 } from '@genfeedai/contracts';
 import type { CadenceFormSheetProps } from '@props/publishing/cadence-form-sheet.props';
 import { Button } from '@ui/primitives/button';
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@ui/primitives/dialog';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@ui/primitives/sheet';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
@@ -107,7 +108,7 @@ export default function CadenceFormSheet({
   }, [cadence, isOpen]);
 
   return (
-    <Sheet
+    <Dialog
       open={isOpen}
       onOpenChange={(nextOpen) => {
         if (!nextOpen) {
@@ -115,14 +116,14 @@ export default function CadenceFormSheet({
         }
       }}
     >
-      <SheetContent>
-        <SheetHeader>
-          <SheetTitle>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
             {isEditing ? translate('editCadence') : translate('newCadence')}
-          </SheetTitle>
-          <SheetDescription>{translate('description')}</SheetDescription>
-        </SheetHeader>
-        <div className="mt-4 space-y-3">
+          </DialogTitle>
+          <DialogDescription>{translate('description')}</DialogDescription>
+        </DialogHeader>
+        <DialogBody className="space-y-3">
           <SelectField
             label="Format"
             name="cadence-format"
@@ -227,8 +228,8 @@ export default function CadenceFormSheet({
               </Button>
             ) : null}
           </div>
-        </div>
-      </SheetContent>
-    </Sheet>
+        </DialogBody>
+      </DialogContent>
+    </Dialog>
   );
 }

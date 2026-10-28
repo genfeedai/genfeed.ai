@@ -133,7 +133,7 @@ function NodeDetailHeader({
     <div className="flex items-center justify-between px-4 py-3 border-b border-border">
       <div className="flex items-center gap-3">
         <h2 className="text-lg font-medium text-foreground">{nodeLabel}</h2>
-        <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded">
+        <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
           {nodeTypeLabel}
         </span>
       </div>

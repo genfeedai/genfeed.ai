@@ -101,7 +101,7 @@ function AnalyticsPostCard({
       data-testid="analytics-post-card"
       onClick={() => onSelectPost(item.postId)}
     >
-      <div className="relative aspect-video w-full overflow-hidden bg-secondary">
+      <div className="relative aspect-video w-full overflow-hidden bg-muted">
         <AnalyticsPostMedia item={item} />
 
         <span className="absolute left-2 top-2 rounded-full bg-background/85 px-2 py-0.5 text-xs font-semibold tabular-nums text-foreground backdrop-blur">

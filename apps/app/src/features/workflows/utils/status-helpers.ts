@@ -46,7 +46,7 @@ export function getStatusColor(status: WorkflowExecutionStatus): string {
     case WorkflowExecutionStatus.RUNNING:
       return 'text-warning bg-warning/10';
     case WorkflowExecutionStatus.CANCELLED:
-      return 'text-muted-foreground bg-secondary';
+      return 'text-muted-foreground bg-muted';
     default:
       return 'text-muted-foreground bg-muted';
   }
@@ -64,7 +64,7 @@ export function getStatusBorderColor(status: WorkflowExecutionStatus): string {
     case WorkflowExecutionStatus.RUNNING:
       return 'border-warning/30 bg-warning/10';
     case WorkflowExecutionStatus.CANCELLED:
-      return 'border-border bg-secondary';
+      return 'border-border bg-muted';
     default:
       return 'border-border bg-card';
   }

@@ -209,7 +209,7 @@ describe('AgentOAuthConnectMenu', () => {
     const panel = screen
       .getByText('Connect a channel')
       .closest('div[class*="w-[20rem]"]');
-    expect(panel).toHaveClass('bg-secondary');
+    expect(panel).toHaveClass('bg-muted');
     expect(panel).toHaveClass('shadow-dropdown');
     expect(document.querySelector('.gen-shell-panel')).toBeNull();
   });

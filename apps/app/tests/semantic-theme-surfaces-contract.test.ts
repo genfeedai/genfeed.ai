@@ -212,7 +212,7 @@ describe('semantic theme surface contracts', () => {
     (relativePath) => {
       const source = readSource(relativePath);
 
-      expect(source).toContain('bg-secondary');
+      expect(source).toContain('bg-muted');
       expect(source).toContain('shadow-dropdown');
     },
   );

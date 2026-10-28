@@ -60,7 +60,7 @@ export default function ModalTwitterThread({
         <DialogBody className="max-h-96">
           <div className="space-y-3">
             {thread.tweets.map((tweet) => (
-              <div key={tweet.order} className="p-4 bg-secondary shadow-border">
+              <div key={tweet.order} className="p-4 bg-muted shadow-border">
                 <div className="flex justify-between items-start mb-2">
                   <Badge size={ComponentSize.SM} variant="outline">
                     Tweet {tweet.order}

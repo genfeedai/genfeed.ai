@@ -66,7 +66,7 @@ export function WorkspaceTaskComposer({
 
   return (
     <Dialog open={open} onOpenChange={handleModalOpenChange}>
-      <DialogContent size="lg" className="border-border bg-secondary">
+      <DialogContent size="lg" className="border-border bg-muted">
         <DialogHeader>
           <DialogTitle>{translate('title')}</DialogTitle>
           <DialogDescription>{translate('description')}</DialogDescription>

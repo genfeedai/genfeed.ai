@@ -55,7 +55,7 @@ const ModelSelectorFilterPills = memo(function ModelSelectorFilterPills({
     <div
       className={cn(
         'flex shrink-0 items-center gap-1 overflow-x-auto overflow-y-hidden',
-        'border-b border-border bg-secondary px-1.5 py-1',
+        'border-b border-border bg-muted px-1.5 py-1',
         '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
       )}
     >

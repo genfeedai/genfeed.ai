@@ -27,10 +27,10 @@ export function ThreadItem({ thread, onOpen }: ThreadItemProps): ReactElement {
       type="button"
       variant={ButtonVariant.UNSTYLED}
       onClick={onOpen}
-      className="flex w-full items-start gap-3 px-4 py-2.5 text-left transition-colors hover:bg-secondary/50"
+      className="flex w-full items-start gap-3 px-4 py-2.5 text-left transition-colors hover:bg-muted/50"
     >
       {platformIcon && (
-        <span className="flex size-7 shrink-0 items-center justify-center rounded bg-secondary text-2xs font-bold text-muted-foreground">
+        <span className="flex size-7 shrink-0 items-center justify-center rounded bg-muted text-2xs font-bold text-muted-foreground">
           {platformIcon}
         </span>
       )}

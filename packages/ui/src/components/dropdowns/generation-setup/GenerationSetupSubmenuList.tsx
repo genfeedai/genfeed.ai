@@ -178,7 +178,7 @@ export default function GenerationSetupSubmenuList({
                   />
                 </div>
               ) : (
-                <div className="flex aspect-square items-center justify-center rounded-md bg-secondary text-muted-foreground">
+                <div className="flex aspect-square items-center justify-center rounded-md bg-muted text-muted-foreground">
                   <ImageIcon aria-hidden="true" className="size-8" />
                 </div>
               )}

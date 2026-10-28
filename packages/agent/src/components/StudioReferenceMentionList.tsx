@@ -90,7 +90,7 @@ export default function StudioReferenceMentionList({
               variant={ButtonVariant.UNSTYLED}
               withWrapper={false}
             >
-              <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-md bg-secondary text-muted-foreground">
+              <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted text-muted-foreground">
                 {reference?.previewUrl ? (
                   <Image
                     alt=""

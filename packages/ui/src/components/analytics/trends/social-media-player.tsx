@@ -48,7 +48,7 @@ export default function SocialMediaPlayer({
   }, []);
   return (
     <div ref={container} className={`space-y-2 ${className}`}>
-      <div className="relative aspect-video overflow-hidden rounded-lg bg-secondary">
+      <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
         {isPlaying && isVisible && !hasError ? (
           activeDirect ? (
             <VideoPlayer

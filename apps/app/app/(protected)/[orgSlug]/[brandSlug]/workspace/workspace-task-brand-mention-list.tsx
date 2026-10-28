@@ -44,14 +44,14 @@ export function WorkspaceBrandMentionList({
 
   if (items.length === 0) {
     return (
-      <div className="rounded-md bg-secondary px-3 py-2 text-xs text-muted-foreground shadow-dropdown">
+      <div className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground shadow-dropdown">
         No brands found
       </div>
     );
   }
 
   return (
-    <div className="max-h-48 overflow-y-auto rounded-md bg-secondary shadow-dropdown">
+    <div className="max-h-48 overflow-y-auto rounded-md bg-muted shadow-dropdown">
       {items.map((item, index) => (
         <Button
           variant={ButtonVariant.UNSTYLED}

@@ -283,7 +283,7 @@ describe('workspace dashboard sections', () => {
       // One visible action per card, and nothing nested in a filled box.
       expect(within(card).getAllByRole('link')).toHaveLength(1);
       expect(card.querySelector('[class*="bg-muted"]')).toBeNull();
-      expect(card.querySelector('[class*="bg-secondary"]')).toBeNull();
+      expect(card.querySelector('[class*="bg-muted"]')).toBeNull();
       expect(card.querySelector('[class~="rounded"]')).toBeNull();
     }
 

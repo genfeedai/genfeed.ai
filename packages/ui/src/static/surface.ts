@@ -27,7 +27,7 @@ function staticSurfaceThemeVariables(theme: StaticSurfaceTheme): string {
   --gf-grid-line: ${alpha['300']};
   --gf-fill-subtle: ${alpha['100']};
   --gf-text-primary: ${colors.foreground.hex};
-  --gf-text-secondary: ${colors.secondaryForeground.hex};
+  --gf-text-secondary: ${colors.foreground.hex};
   --gf-text-muted: ${colors.mutedForeground.hex};
   --gf-text-faint: ${alpha['800']};
   --gf-accent: ${colors.primary.hex};

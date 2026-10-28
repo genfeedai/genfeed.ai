@@ -48,7 +48,7 @@ export default function LazyLoadingFallback({
   return (
     <div
       className={cn(
-        'relative bg-secondary overflow-hidden',
+        'relative bg-muted overflow-hidden',
         aspectClass,
         className,
       )}

@@ -160,7 +160,7 @@
 }
 
 .react-flow__controls-button:hover {
-  background: var(--secondary);
+  background: var(--muted);
   fill: var(--foreground);
   color: var(--foreground);
 }

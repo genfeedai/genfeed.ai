@@ -43,7 +43,7 @@ describe('ControlNode', () => {
   it('should apply gray color scheme for control nodes', () => {
     const { container } = render(<ControlNode {...defaultProps} />);
     expect(
-      container.querySelector('.bg-secondary') ||
+      container.querySelector('.bg-muted') ||
         container.querySelector('[class*="bg-"]'),
     ).toBeInTheDocument();
   });
@@ -66,7 +66,7 @@ describe('ControlNode', () => {
     const { container } = render(<ControlNode {...defaultProps} />);
 
     expect(
-      container.querySelector('.bg-secondary') ||
+      container.querySelector('.bg-muted') ||
         container.querySelector('[class*="bg-"]'),
     ).toBeInTheDocument();
     expect(

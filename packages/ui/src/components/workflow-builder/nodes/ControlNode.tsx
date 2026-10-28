@@ -18,7 +18,7 @@ function ControlNode(props: ControlNodeProps): React.ReactElement {
   return (
     <BaseNode
       {...props}
-      bgColor="bg-secondary"
+      bgColor="bg-muted"
       borderColor="border-muted-foreground"
       icon={icon}
     />

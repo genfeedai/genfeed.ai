@@ -13,8 +13,7 @@ const variantStyles: Partial<Record<ButtonVariant, string>> = {
     'bg-primary text-primary-foreground hover:bg-primary/90',
   [ButtonVariant.GHOST]: 'hover:bg-accent hover:text-accent-foreground',
   [ButtonVariant.LINK]: 'text-primary underline-offset-4 hover:underline',
-  [ButtonVariant.SECONDARY]:
-    'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+  [ButtonVariant.SECONDARY]: 'bg-muted text-foreground hover:bg-muted/80',
 };
 
 const sizeStyles: Partial<Record<ButtonSize, string>> = {

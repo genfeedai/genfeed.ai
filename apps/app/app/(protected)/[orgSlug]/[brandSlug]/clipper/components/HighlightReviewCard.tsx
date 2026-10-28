@@ -21,7 +21,7 @@ import { Textarea } from '@ui/primitives/textarea';
 import { useCallback, useReducer, useRef } from 'react';
 
 const CLIP_TYPE_BADGE_CLASSES =
-  'bg-secondary text-muted-foreground border-transparent';
+  'bg-muted text-muted-foreground border-transparent';
 
 const PLATFORM_OPTIONS = [
   { label: 'TikTok', value: 'tiktok' },
@@ -143,7 +143,7 @@ export default function HighlightReviewCard({
     <Card
       bodyClassName="gap-0 p-4"
       className={`border transition-[background-color,border-color,box-shadow] ${
-        selected ? 'border-primary/50 bg-primary/5' : 'bg-secondary opacity-60'
+        selected ? 'border-primary/50 bg-primary/5' : 'bg-muted opacity-60'
       }`}
     >
       {/* Header: checkbox + title + badges */}
@@ -173,7 +173,7 @@ export default function HighlightReviewCard({
             {/* Duration */}
             <Badge
               variant="outline"
-              className="border-transparent bg-secondary text-muted-foreground"
+              className="border-transparent bg-muted text-muted-foreground"
             >
               {duration}
             </Badge>
@@ -270,7 +270,7 @@ export default function HighlightReviewCard({
             <Badge
               key={tag}
               variant="secondary"
-              className="bg-secondary text-muted-foreground"
+              className="bg-muted text-muted-foreground"
             >
               #{tag}
             </Badge>

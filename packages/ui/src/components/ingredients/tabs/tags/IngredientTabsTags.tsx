@@ -261,7 +261,7 @@ export default function IngredientTabsTags({
                     variant={ButtonVariant.UNSTYLED}
                     onClick={() => handleAddTag(tag)}
                     isDisabled={isUpdating}
-                    className="inline-flex items-center justify-start gap-2 px-3 h-8 text-sm bg-secondary text-secondary-foreground border"
+                    className="inline-flex items-center justify-start gap-2 px-3 h-8 text-sm bg-muted text-foreground border"
                     style={{
                       borderColor: tag.backgroundColor || 'hsl(var(--muted))',
                       color: tag.textColor || 'hsl(var(--muted-foreground))',

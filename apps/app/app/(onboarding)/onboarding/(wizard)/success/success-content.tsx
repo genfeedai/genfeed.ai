@@ -112,7 +112,7 @@ export default function SuccessContent() {
   return (
     <div ref={sectionRef} className="max-w-lg mx-auto text-center pt-24">
       <div className="success-icon opacity-0 flex justify-center mb-8">
-        <div className="size-20 bg-secondary shadow-border rounded-full flex items-center justify-center">
+        <div className="size-20 bg-muted shadow-border rounded-full flex items-center justify-center">
           <CircleCheck className="size-10 text-success" />
         </div>
       </div>
@@ -121,7 +121,7 @@ export default function SuccessContent() {
         Welcome to Genfeed!
       </h1>
 
-      <div className="success-credit-reveal opacity-0 mb-8 inline-flex items-center gap-3 rounded-full bg-secondary shadow-border px-5 py-3 text-left">
+      <div className="success-credit-reveal opacity-0 mb-8 inline-flex items-center gap-3 rounded-full bg-muted shadow-border px-5 py-3 text-left">
         <Sparkles className="size-5 text-foreground" />
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">

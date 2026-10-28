@@ -78,7 +78,7 @@ export function ContextMenuItem({
         disabled={disabled}
         className={`
           w-full flex items-center gap-3 px-3 py-2 text-left text-sm h-auto justify-start
-          ${isSelected || showSubmenu ? 'bg-secondary' : ''}
+          ${isSelected || showSubmenu ? 'bg-muted' : ''}
           ${danger && !disabled ? 'text-red-400 hover:text-red-300' : 'text-foreground'}
         `}
       >

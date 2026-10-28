@@ -64,7 +64,7 @@ function LibraryCanvasNodeComponent({
 
   return (
     <div
-      className="group relative cursor-pointer overflow-hidden rounded-xl border border-border bg-secondary shadow-sm transition-colors hover:border-border-strong gen-contact-sheet"
+      className="group relative cursor-pointer overflow-hidden rounded-xl border border-border bg-muted shadow-sm transition-colors hover:border-border-strong gen-contact-sheet"
       style={{ aspectRatio, width: MOOD_BOARD_TILE_WIDTH }}
     >
       {showPreview && src ? (

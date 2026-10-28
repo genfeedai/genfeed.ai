@@ -471,7 +471,7 @@ function DeskContentCell({
           onPointerLeave={() => onPreview(null)}
         >
           {item.thumbnailUrl ? (
-            <span className="relative block size-10 shrink-0 overflow-hidden rounded-md bg-secondary">
+            <span className="relative block size-10 shrink-0 overflow-hidden rounded-md bg-muted">
               <Image
                 alt=""
                 className="object-cover"

@@ -150,7 +150,7 @@ export default function ModelDetailPanel({ model }: ModelDetailPanelProps) {
           <h4 className="text-sm font-medium text-foreground/70 mb-2">
             {translate('supportedDimensions')}
           </h4>
-          <div className="text-sm text-foreground bg-secondary shadow-border p-3">
+          <div className="text-sm text-foreground bg-muted shadow-border p-3">
             {model.minDimensions && (
               <div>
                 {translate('minDimensions', {

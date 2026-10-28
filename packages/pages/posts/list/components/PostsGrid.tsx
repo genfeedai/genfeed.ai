@@ -343,7 +343,7 @@ const PostsGrid = memo(
                 {view === 'grid' && mediaUrls.length > 0 && (
                   <div
                     className={cn(
-                      'mt-4 grid aspect-[16/9] overflow-hidden rounded-lg bg-secondary',
+                      'mt-4 grid aspect-[16/9] overflow-hidden rounded-lg bg-muted',
                       mediaUrls.length > 1 && 'grid-cols-2',
                     )}
                   >

@@ -76,7 +76,7 @@ export default function MasonryFailureNotice({
     <div
       aria-live="polite"
       className={cn(
-        'pointer-events-none absolute inset-x-3 bottom-3 rounded-lg bg-secondary/90 px-3 py-2 text-center text-xs font-medium text-foreground/70 shadow-dropdown',
+        'pointer-events-none absolute inset-x-3 bottom-3 rounded-lg bg-muted/90 px-3 py-2 text-center text-xs font-medium text-foreground/70 shadow-dropdown',
         reasonClassName,
       )}
       data-testid={`asset-failure-reason-${ingredientId}`}

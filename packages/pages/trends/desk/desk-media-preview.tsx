@@ -61,7 +61,7 @@ export default function DeskMediaPreview({
   return (
     <div
       ref={containerRef}
-      className={`relative aspect-video w-full overflow-hidden rounded-lg bg-secondary ${className}`}
+      className={`relative aspect-video w-full overflow-hidden rounded-lg bg-muted ${className}`}
     >
       {thumbnail && failedThumbnail !== thumbnail ? (
         <Image

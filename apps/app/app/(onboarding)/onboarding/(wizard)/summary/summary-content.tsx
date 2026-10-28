@@ -382,7 +382,7 @@ export default function SummaryContent() {
             </div>
           </div>
 
-          <div className="mt-5 rounded-2xl border border-border bg-secondary p-4 text-sm text-muted-foreground">
+          <div className="mt-5 rounded-2xl border border-border bg-muted p-4 text-sm text-muted-foreground">
             Default behavior: use the providers configured on this server. Add
             your own key later in{' '}
             <span className="text-foreground">
@@ -402,7 +402,7 @@ export default function SummaryContent() {
                 onClick={(event) => {
                   void handleByokClick(event);
                 }}
-                className={`inline-flex w-full items-center justify-center rounded-full border border-border bg-secondary px-4 py-2.5 text-sm font-medium text-foreground/80 transition hover:border-border-strong hover:bg-hover hover:text-foreground md:w-auto ${
+                className={`inline-flex w-full items-center justify-center rounded-full border border-border bg-muted px-4 py-2.5 text-sm font-medium text-foreground/80 transition hover:border-border-strong hover:bg-hover hover:text-foreground md:w-auto ${
                   readiness.access.selectedMode === 'byok' ? CURRENT_RING : ''
                 }`}
               >
@@ -458,7 +458,7 @@ export default function SummaryContent() {
               }
               icon={<ArrowUpRight className="size-4" />}
               disabled={loading || pendingMode !== null}
-              className={`w-full rounded-full border border-border bg-secondary text-foreground/80 hover:border-border-strong hover:bg-hover hover:text-foreground md:w-auto ${
+              className={`w-full rounded-full border border-border bg-muted text-foreground/80 hover:border-border-strong hover:bg-hover hover:text-foreground md:w-auto ${
                 readiness.access.selectedMode === 'cloud' ? CURRENT_RING : ''
               }`}
             />
@@ -472,7 +472,7 @@ export default function SummaryContent() {
             withWrapper={false}
             onClick={() => push(APP_ROUTES.ONBOARDING.PROVIDERS)}
             icon={<ArrowLeft className="size-4" />}
-            className="h-8 rounded-full border border-border bg-secondary px-4 text-muted-foreground hover:border-border-strong hover:bg-hover hover:text-foreground"
+            className="h-8 rounded-full border border-border bg-muted px-4 text-muted-foreground hover:border-border-strong hover:bg-hover hover:text-foreground"
           >
             Back
           </Button>

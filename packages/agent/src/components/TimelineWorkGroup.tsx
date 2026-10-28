@@ -173,7 +173,7 @@ function TimelineWorkGroupInner({
     >
       <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden whitespace-nowrap text-xs text-gray-900">
         <Clock className="size-3.5 shrink-0 text-gray-800" />
-        {/* Duration is secondary type — never text-muted/text-secondary fill tokens */}
+        {/* Duration is secondary type — never the text-muted fill token */}
         <span className="shrink-0 font-medium text-gray-900">
           {durationPhrase}
         </span>

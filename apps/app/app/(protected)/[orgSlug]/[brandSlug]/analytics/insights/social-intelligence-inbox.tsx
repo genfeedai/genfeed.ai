@@ -117,7 +117,7 @@ function StateCard({
   onRetry?: () => void;
 }) {
   return (
-    <Card className="border-border bg-secondary/40">
+    <Card className="border-border bg-muted/40">
       <div className="flex items-center justify-between gap-4">
         <p className="text-sm text-muted-foreground" role="status">
           {message}

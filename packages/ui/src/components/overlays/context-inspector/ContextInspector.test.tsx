@@ -4,8 +4,8 @@ import ContextInspector from '@ui/overlays/context-inspector/ContextInspector';
 import type { PropsWithChildren } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@ui/primitives/sheet', () => ({
-  Sheet: ({
+vi.mock('@ui/primitives/dialog', () => ({
+  Dialog: ({
     children,
     onOpenChange,
     open,
@@ -21,7 +21,7 @@ vi.mock('@ui/primitives/sheet', () => ({
         </button>
       </div>
     ) : null,
-  SheetContent: ({
+  DialogContent: ({
     children,
     className,
     'aria-describedby': ariaDescribedBy,
@@ -38,11 +38,11 @@ vi.mock('@ui/primitives/sheet', () => ({
       {children}
     </div>
   ),
-  SheetDescription: ({ children, id }: PropsWithChildren<{ id?: string }>) => (
+  DialogDescription: ({ children, id }: PropsWithChildren<{ id?: string }>) => (
     <p id={id}>{children}</p>
   ),
-  SheetHeader: ({ children }: PropsWithChildren) => <div>{children}</div>,
-  SheetTitle: ({ children }: PropsWithChildren) => <h2>{children}</h2>,
+  DialogHeader: ({ children }: PropsWithChildren) => <div>{children}</div>,
+  DialogTitle: ({ children }: PropsWithChildren) => <h2>{children}</h2>,
 }));
 
 describe('ContextInspector', () => {

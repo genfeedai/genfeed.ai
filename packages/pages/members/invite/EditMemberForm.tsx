@@ -68,10 +68,7 @@ export default function EditMemberForm({
 
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {brands.map((brand: IBrand) => (
-                <div
-                  key={brand.id}
-                  className="p-3 hover:bg-secondary rounded-lg"
-                >
+                <div key={brand.id} className="p-3 hover:bg-muted rounded-lg">
                   <Checkbox
                     name={`account-${brand.id}`}
                     label={

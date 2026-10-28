@@ -165,7 +165,7 @@ function getStepClasses(state: TimelineStep['state']): string {
     return 'bg-destructive/10 text-destructive shadow-border';
   }
 
-  return 'bg-secondary text-foreground/65 shadow-border';
+  return 'bg-muted text-foreground/65 shadow-border';
 }
 
 function Panel({
@@ -178,7 +178,7 @@ function Panel({
   className?: string;
 }) {
   return (
-    <Tag className={`rounded-md bg-secondary shadow-border ${className ?? ''}`}>
+    <Tag className={`rounded-md bg-muted shadow-border ${className ?? ''}`}>
       {children}
     </Tag>
   );
@@ -572,7 +572,7 @@ export default function ContentRunDetailPage({
   if (state === 'loading' || state === 'idle') {
     return (
       <Container>
-        <div className="rounded-lg bg-secondary p-8 text-sm text-foreground/60 shadow-border">
+        <div className="rounded-lg bg-muted p-8 text-sm text-foreground/60 shadow-border">
           Loading content run…
         </div>
       </Container>

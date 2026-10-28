@@ -71,4 +71,17 @@ describe('Dialog scrolling', () => {
     );
     expect(screen.getByRole('dialog')).toHaveClass('max-w-4xl');
   });
+
+  it('docks a right panel to the viewport edge without a size cap', () => {
+    render(
+      <Dialog defaultOpen>
+        <DialogContent placement="right" size="xl">
+          <DialogTitle>Inspector</DialogTitle>
+        </DialogContent>
+      </Dialog>,
+    );
+    const panel = screen.getByRole('dialog');
+    expect(panel).toHaveClass('gen-dialog-panel-right', 'right-0', 'h-full');
+    expect(panel).not.toHaveClass('max-w-4xl', 'top-1/2');
+  });
 });

@@ -29,7 +29,7 @@ function getViralityBadgeClass(score: number): string {
     return 'bg-primary text-primary-foreground';
   }
   if (score >= 40) {
-    return 'bg-secondary text-secondary-foreground';
+    return 'bg-muted text-foreground';
   }
   return 'bg-muted text-muted-foreground';
 }

@@ -231,7 +231,7 @@ export default function AiModelSelectorContent({
                   className="grid min-w-0 grid-cols-[7rem_minmax(0,1fr)] gap-3 sm:block"
                   key={model.id}
                 >
-                  <div className="relative aspect-square overflow-hidden rounded-lg bg-secondary sm:aspect-[4/3]">
+                  <div className="relative aspect-square overflow-hidden rounded-lg bg-muted sm:aspect-[4/3]">
                     {example && !failedImages[model.key] ? (
                       <Image
                         alt={example.alt}

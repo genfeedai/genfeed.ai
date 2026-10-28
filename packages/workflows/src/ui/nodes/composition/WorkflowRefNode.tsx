@@ -243,7 +243,7 @@ function WorkflowRefMessages({
       )}
 
       {childExecutionId && (
-        <div className="text-2xs text-muted-foreground bg-secondary/50 rounded px-2 py-1">
+        <div className="text-2xs text-muted-foreground bg-muted/50 rounded px-2 py-1">
           Child execution: {childExecutionId.substring(0, 8)}...
         </div>
       )}

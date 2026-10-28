@@ -102,7 +102,7 @@ function RunOptionsDropdown({
       />
       <div
         ref={dropdownRef}
-        className="absolute bottom-full left-0 z-50 mb-1.5 min-w-[180px] bg-secondary py-0.5 shadow-dropdown"
+        className="absolute bottom-full left-0 z-50 mb-1.5 min-w-[180px] bg-muted py-0.5 shadow-dropdown"
       >
         <Button
           withWrapper={false}
@@ -430,7 +430,7 @@ export function BottomBar() {
 
   return (
     <div className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2">
-      <div className="flex items-center gap-1 bg-secondary/95 px-2 py-1 shadow-dropdown backdrop-blur-sm">
+      <div className="flex items-center gap-1 bg-muted/95 px-2 py-1 shadow-dropdown backdrop-blur-sm">
         <BatchCounter
           batchCount={batchCount}
           isActive={isActive}

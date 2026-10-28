@@ -383,7 +383,7 @@ function ClipperProjectControls({
               ))}
             </div>
 
-            <div className="mt-6 rounded-md bg-secondary p-4 shadow-border">
+            <div className="mt-6 rounded-md bg-muted p-4 shadow-border">
               <ClipperModeSelector
                 mode={generationMode}
                 onModeChange={setGenerationMode}
@@ -391,7 +391,7 @@ function ClipperProjectControls({
             </div>
 
             {generationMode === 'avatar' ? (
-              <div className="mt-4 space-y-4 rounded-md bg-secondary p-4 shadow-border">
+              <div className="mt-4 space-y-4 rounded-md bg-muted p-4 shadow-border">
                 <h3 className="text-sm font-medium text-foreground">
                   Avatar Configuration
                 </h3>
@@ -454,7 +454,7 @@ function ClipperProjectControls({
                           ? 'border-primary bg-primary/10'
                           : opt.disabled
                             ? 'cursor-not-allowed border-border bg-muted/30 opacity-50'
-                            : 'border-border bg-secondary hover:border-primary/60'
+                            : 'border-border bg-muted hover:border-primary/60'
                       }`}
                     >
                       <div className="text-xs font-medium text-foreground">

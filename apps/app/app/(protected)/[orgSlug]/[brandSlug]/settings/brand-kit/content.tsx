@@ -33,11 +33,12 @@ import {
   CollapsibleTrigger,
 } from '@ui/primitives/collapsible';
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@ui/primitives/sheet';
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@ui/primitives/dialog';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -213,24 +214,24 @@ export default function BrandKitPage() {
           />
         )}
       />
-      <Sheet
+      <Dialog
         open={workflow !== null}
         onOpenChange={(open) => {
           if (!open) setWorkflow(null);
         }}
       >
-        <SheetContent className="w-full overflow-y-auto shadow-ambient-lg outline-none sm:max-w-2xl">
+        <DialogContent size="lg">
           <BrandKitReviewActionsProvider>
-            <SheetHeader className="flex-row flex-wrap items-center gap-3 space-y-0 pr-10 text-left">
-              <SheetTitle className="shrink-0">
+            <DialogHeader className="flex-row flex-wrap items-center gap-3 pr-10 text-left">
+              <DialogTitle className="shrink-0">
                 {workflow === 'scan' ? t('scan') : t('manualImport')}
-              </SheetTitle>
+              </DialogTitle>
               {workflow === 'scan' ? <BrandKitReviewApplyBar /> : null}
-            </SheetHeader>
-            <div className="pt-4">{workflow === 'scan' ? scan : manual}</div>
+            </DialogHeader>
+            <DialogBody>{workflow === 'scan' ? scan : manual}</DialogBody>
           </BrandKitReviewActionsProvider>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

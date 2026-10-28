@@ -172,7 +172,7 @@ export default function TagsEditable({
               withWrapper={false}
               variant={ButtonVariant.UNSTYLED}
               onClick={handleCancel}
-              className="h-8 px-3 inline-flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              className="h-8 px-3 inline-flex items-center justify-center bg-muted text-foreground hover:bg-muted/80"
               isDisabled={isDisabled}
             >
               Cancel

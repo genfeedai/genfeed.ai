@@ -39,7 +39,7 @@ interface ColorDoor {
 
 const BACKGROUND_LAYERS: Swatch[] = [
   { hex: '#0A0A0A', name: 'bg-primary', role: 'Main canvas, sidebar' },
-  { hex: '#161616', name: 'bg-secondary', role: 'Cards, panels' },
+  { hex: '#161616', name: 'bg-muted', role: 'Cards, panels' },
   { hex: '#1F1F1F', name: 'bg-tertiary', role: 'Inputs, nested surfaces' },
   {
     hex: '#161616',
@@ -51,7 +51,11 @@ const BACKGROUND_LAYERS: Swatch[] = [
 
 const TEXT_TIERS: Swatch[] = [
   { hex: '#EDEDED', name: 'text-primary', role: 'Primary content — 16.9:1' },
-  { hex: '#A1A1A1', name: 'text-secondary', role: 'Secondary labels — 7.7:1' },
+  {
+    hex: '#A1A1A1',
+    name: 'text-muted-foreground',
+    role: 'Secondary labels — 7.7:1',
+  },
   { hex: '#949494', name: 'text-muted', role: 'Muted / metadata — 6.5:1' },
 ];
 

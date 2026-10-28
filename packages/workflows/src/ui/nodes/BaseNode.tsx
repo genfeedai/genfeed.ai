@@ -421,7 +421,7 @@ function BaseNodeContent({
         {nodeData.status === 'processing' &&
           nodeData.progress !== undefined && (
             <div className="mt-3">
-              <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
+              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                 <div
                   className="h-full bg-primary transition-all duration-300"
                   style={{ width: `${nodeData.progress}%` }}

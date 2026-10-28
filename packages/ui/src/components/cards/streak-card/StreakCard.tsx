@@ -97,7 +97,7 @@ export default function StreakCard() {
 
       <Link
         href={APP_ROUTES.SETTINGS.ROOT}
-        className="flex items-center justify-between bg-secondary px-2.5 py-2 text-xs text-foreground/80 shadow-border transition-colors duration-150 hover:bg-accent"
+        className="flex items-center justify-between bg-muted px-2.5 py-2 text-xs text-foreground/80 shadow-border transition-colors duration-150 hover:bg-accent"
       >
         <span>
           {currentStreak > 0 ? 'Open streak view' : 'Start your streak today'}

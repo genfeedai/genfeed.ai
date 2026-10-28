@@ -195,7 +195,7 @@ export function TrendingHashtags({
                         hashtag.viralityScore >= 70
                           ? 'bg-primary text-primary-foreground'
                           : hashtag.viralityScore >= 40
-                            ? 'bg-secondary text-secondary-foreground'
+                            ? 'bg-muted text-foreground'
                             : 'bg-muted text-muted-foreground'
                       }`}
                     />

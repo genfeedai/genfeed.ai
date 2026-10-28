@@ -111,7 +111,7 @@ export default function ClipperReferenceFrameSelector({
                 className={`group relative overflow-hidden rounded-lg border p-0 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                   isSelected
                     ? 'border-primary bg-primary/10'
-                    : 'border-border bg-secondary hover:border-primary/60'
+                    : 'border-border bg-muted hover:border-primary/60'
                 }`}
                 isDisabled={!isAvailable || pendingCandidateId !== null}
                 onClick={() => onSelect(candidate.id)}
