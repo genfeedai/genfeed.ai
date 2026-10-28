@@ -3,7 +3,6 @@
 // Selectors
 export { Checkbox } from '@ui/primitives/checkbox';
 // Pickers
-export { default as FormColorPicker } from '@ui/primitives/color-picker';
 export { default as FormDateRangePicker } from '@ui/primitives/date-range-picker';
 export { default as FormDateTimePicker } from '@ui/primitives/date-time-picker';
 export { default as FormDatepicker } from '@ui/primitives/datepicker';
