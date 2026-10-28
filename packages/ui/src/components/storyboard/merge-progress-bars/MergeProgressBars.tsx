@@ -23,7 +23,7 @@ export default function MergeProgressBars({
           </div>
           <div className="w-full bg-background rounded-full h-4 overflow-hidden shadow-inner">
             <div
-              className="h-full bg-gradient-to-r from-primary to-secondary transition-[width] duration-300 ease-out"
+              className="h-full bg-gradient-to-r from-primary to-muted transition-[width] duration-300 ease-out"
               style={{
                 width: `${Math.min(100, Math.max(0, overallProgress))}%`,
               }}

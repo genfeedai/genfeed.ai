@@ -142,7 +142,7 @@ export default function GenerationSetupModelFlyout({
         sideOffset={isPhoneViewport ? -(rowRef.current?.offsetWidth ?? 0) : 8}
       >
         <Command
-          className="flex min-h-0 flex-col bg-secondary text-foreground outline-none"
+          className="flex min-h-0 flex-col bg-muted text-foreground outline-none"
           label={label}
           ref={flyoutRef}
           shouldFilter={false}

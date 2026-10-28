@@ -74,7 +74,7 @@ function GridPositionSelectorComponent({
                 'size-5 border p-0 min-w-0',
                 isSelected(pos)
                   ? 'bg-primary border-primary hover:bg-primary/90'
-                  : 'bg-secondary border-input hover:border-primary',
+                  : 'bg-muted border-input hover:border-primary',
               )}
               title={getPositionTitle(pos)}
             />

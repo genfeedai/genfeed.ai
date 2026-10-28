@@ -133,7 +133,7 @@ export function NodeSearch() {
           <FormSearchbar
             ariaLabel="Search nodes"
             className="mb-3"
-            inputClassName="bg-secondary border-border outline-none focus:ring-2 focus:ring-ring"
+            inputClassName="bg-muted border-border outline-none focus:ring-2 focus:ring-ring"
             inputRef={inputRef}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search nodes by name, type, or comment..."
@@ -167,10 +167,10 @@ export function NodeSearch() {
                     className={`w-full flex items-center gap-3 p-2 rounded text-left h-auto justify-start ${
                       index === selectedIndex
                         ? 'bg-primary/10 border border-primary/30'
-                        : 'hover:bg-secondary/50 border border-transparent'
+                        : 'hover:bg-muted/50 border border-transparent'
                     }`}
                   >
-                    <div className="flex-shrink-0 size-8 rounded bg-secondary flex items-center justify-center text-xs font-medium">
+                    <div className="flex-shrink-0 size-8 rounded bg-muted flex items-center justify-center text-xs font-medium">
                       {nodeDef?.label?.charAt(0) || '?'}
                     </div>
                     <div className="flex-1 min-w-0">

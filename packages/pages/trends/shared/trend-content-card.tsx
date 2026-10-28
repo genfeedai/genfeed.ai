@@ -322,7 +322,7 @@ export default function TrendContentCard({
       )}
     >
       {previewMediaUrl ? (
-        <div className="relative aspect-[16/9] overflow-hidden bg-secondary">
+        <div className="relative aspect-[16/9] overflow-hidden bg-muted">
           <Image
             alt={previewTitle}
             className="object-cover"

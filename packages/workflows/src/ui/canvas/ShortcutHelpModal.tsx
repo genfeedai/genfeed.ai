@@ -151,7 +151,7 @@ export function ShortcutHelpModal() {
           <FormSearchbar
             ariaLabel="Search shortcuts"
             className="mb-4"
-            inputClassName="bg-secondary border-border outline-none focus:ring-2 focus:ring-ring"
+            inputClassName="bg-muted border-border outline-none focus:ring-2 focus:ring-ring"
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search shortcuts..."
             size={ComponentSize.MD}
@@ -168,7 +168,7 @@ export function ShortcutHelpModal() {
                   {shortcuts.map((shortcut) => (
                     <div
                       key={shortcut.keys}
-                      className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-secondary/50"
+                      className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50"
                     >
                       <span className="text-sm">{shortcut.description}</span>
                       <Kbd

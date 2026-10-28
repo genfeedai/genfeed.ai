@@ -53,7 +53,7 @@ export default function ModalPostBatchResultsView({
                 case 'submitting':
                   return 'bg-info/10 border border-info/20';
                 default:
-                  return 'bg-secondary/50 shadow-border';
+                  return 'bg-muted/50 shadow-border';
               }
             };
 

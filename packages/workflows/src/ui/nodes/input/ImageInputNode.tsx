@@ -176,7 +176,7 @@ function ImageInputNodeComponent(props: NodeProps) {
           variant={ButtonVariant.GHOST}
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
-          className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-1 border border-dashed border-border/50 bg-secondary/20 hover:border-primary/50 hover:bg-secondary/40 h-auto"
+          className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-1 border border-dashed border-border/50 bg-muted/20 hover:border-primary/50 hover:bg-muted/40 h-auto"
         >
           {isUploading ? (
             <>

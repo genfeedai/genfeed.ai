@@ -324,7 +324,7 @@ describe('Tabs', () => {
     const inactiveTab = screen.getByRole('link', { name: /settings/i });
 
     expect(inactiveTab).toHaveClass('text-foreground/70');
-    expect(inactiveTab).not.toHaveClass('text-secondary');
+    expect(inactiveTab).not.toHaveClass('text-muted-foreground');
   });
 
   it('marks the active navigation tab with aria-current instead of tab semantics', () => {

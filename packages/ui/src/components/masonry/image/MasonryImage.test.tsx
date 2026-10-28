@@ -357,7 +357,7 @@ describe('MasonryImage', () => {
       screen.getByTestId('asset-media-fallback-img-123'),
     ).toHaveTextContent('Preview unavailable');
     expect(screen.getByTestId('asset-media-fallback-img-123')).toHaveClass(
-      'bg-secondary/90',
+      'bg-muted/90',
     );
     expect(screen.getByRole('img')).toHaveAttribute(
       'src',

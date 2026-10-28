@@ -105,7 +105,7 @@ function ResizeNodeComponent(props: NodeProps) {
         </div>
 
         {/* Model Display */}
-        <div className="flex items-center gap-2 px-2 py-1.5 bg-secondary/50 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 px-2 py-1.5 bg-muted/50 text-xs text-muted-foreground">
           {mediaType === 'image' ? (
             <ImageIcon className="size-3.5" />
           ) : (

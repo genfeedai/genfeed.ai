@@ -16,7 +16,7 @@ import { useUIStore } from '../stores/uiStore';
 
 const typeStyles = {
   error: 'bg-destructive/10 border-destructive/30 text-destructive',
-  info: 'bg-secondary border-border text-foreground',
+  info: 'bg-muted border-border text-foreground',
   success: 'bg-success/10 border-success/30 text-success',
   warning: 'bg-warning/10 border-warning/30 text-warning',
 } as const;

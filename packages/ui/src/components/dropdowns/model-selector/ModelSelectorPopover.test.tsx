@@ -352,7 +352,7 @@ describe('ModelSelectorPopover', () => {
     await openPicker(user);
 
     expect(screen.getByTestId('model-selector-popover')).toHaveClass(
-      'bg-secondary',
+      'bg-muted',
       'shadow-dropdown',
     );
     expect(container.querySelector('.bg-card')).toBeNull();

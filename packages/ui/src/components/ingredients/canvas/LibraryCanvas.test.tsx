@@ -83,7 +83,7 @@ describe('LibraryCanvas', () => {
     renderCanvas();
 
     expect(screen.getByTestId('library-canvas-minimap').className).toContain(
-      'bg-secondary',
+      'bg-muted',
     );
     expect(
       screen.queryByTestId('library-canvas-controls'),

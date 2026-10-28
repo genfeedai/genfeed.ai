@@ -77,7 +77,7 @@ export default function ReleaseRailRow({
         style={{ backgroundColor: tagColor }}
       />
 
-      <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-secondary text-[10px] text-muted-foreground">
+      <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted text-[10px] text-muted-foreground">
         {thumbnail ? (
           <Image
             unoptimized

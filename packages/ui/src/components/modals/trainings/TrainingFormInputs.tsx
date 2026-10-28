@@ -108,7 +108,7 @@ export default function TrainingFormInputs({
             icon={<Tag className="size-4" />}
             label="Category"
             value={watch('category')}
-            className="h-10 px-3 gap-2 text-sm flex-shrink-0 bg-secondary text-secondary-foreground"
+            className="h-10 px-3 gap-2 text-sm flex-shrink-0 bg-muted text-foreground"
             isDisabled={isSubmitting}
             options={[
               { key: TrainingCategory.SUBJECT, label: 'Subject' },
@@ -130,7 +130,7 @@ export default function TrainingFormInputs({
             icon={<SlidersHorizontal className="size-4" />}
             label="Steps"
             value={watch('steps')}
-            className="h-10 px-3 gap-2 text-sm flex-shrink-0 bg-secondary text-secondary-foreground"
+            className="h-10 px-3 gap-2 text-sm flex-shrink-0 bg-muted text-foreground"
             isDisabled={isSubmitting}
             options={[
               { key: 1000, label: '1,000 (Low)' },

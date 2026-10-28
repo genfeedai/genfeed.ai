@@ -73,7 +73,7 @@ export function ChartContainer({
       <div
         data-chart={chartId}
         className={cn(
-          'rounded-xl bg-secondary p-4 text-foreground shadow-dropdown',
+          'rounded-xl bg-muted p-4 text-foreground shadow-dropdown',
           className,
         )}
         style={chartStyle}

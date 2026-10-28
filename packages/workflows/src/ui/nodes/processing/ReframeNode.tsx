@@ -111,13 +111,13 @@ function ReframeNodeComponent(props: NodeProps) {
     <BaseNode {...props}>
       <div className="flex flex-col gap-3">
         {!hasInput && (
-          <div className="text-2xs text-muted-foreground bg-secondary/50 rounded px-2 py-1.5 text-center">
+          <div className="text-2xs text-muted-foreground bg-muted/50 rounded px-2 py-1.5 text-center">
             Connect an image or video input
           </div>
         )}
 
         {hasInput && (
-          <div className="text-2xs text-muted-foreground bg-secondary/50 rounded px-2 py-1">
+          <div className="text-2xs text-muted-foreground bg-muted/50 rounded px-2 py-1">
             Mode: <span className="font-medium capitalize">{inputType}</span>
           </div>
         )}
@@ -194,7 +194,7 @@ function ReframeNodeComponent(props: NodeProps) {
 
         {/* Video Limits Notice */}
         {inputType === 'video' && (
-          <div className="text-2xs text-muted-foreground bg-secondary/50 rounded px-2 py-1">
+          <div className="text-2xs text-muted-foreground bg-muted/50 rounded px-2 py-1">
             Max: 10 seconds, 100MB. Output: 720p @ $0.06/sec
           </div>
         )}

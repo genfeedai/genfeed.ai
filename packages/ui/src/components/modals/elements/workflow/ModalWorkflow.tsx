@@ -173,7 +173,7 @@ export default function ModalWorkflow({
 
         <FormControl label="Tasks">
           <div className="space-y-2">
-            <div className="bg-secondary shadow-border p-4">
+            <div className="bg-muted shadow-border p-4">
               <div className="text-sm text-foreground/60 mb-3">
                 Available Tasks
               </div>

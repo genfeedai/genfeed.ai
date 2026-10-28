@@ -38,7 +38,7 @@ export default function AgentCampaignAgentsList({
             return (
               <div
                 key={agentId}
-                className="flex items-center justify-between gap-4 bg-secondary p-3"
+                className="flex items-center justify-between gap-4 bg-muted p-3"
               >
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-medium text-foreground">

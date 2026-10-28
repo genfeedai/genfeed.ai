@@ -120,7 +120,7 @@ function LLMNodeComponent(props: NodeProps) {
         {nodeData.inputPrompt ? (
           <div>
             <div className="text-xs text-muted-foreground">Input Prompt</div>
-            <div className="mt-1 p-2 bg-secondary/30 border border-border rounded text-xs text-muted-foreground max-h-16 overflow-hidden line-clamp-3">
+            <div className="mt-1 p-2 bg-muted/30 border border-border rounded text-xs text-muted-foreground max-h-16 overflow-hidden line-clamp-3">
               {nodeData.inputPrompt}
             </div>
           </div>

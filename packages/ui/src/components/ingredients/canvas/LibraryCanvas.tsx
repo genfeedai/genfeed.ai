@@ -127,11 +127,11 @@ function LibraryCanvasInner({
             pannable
             zoomable
             nodeStrokeWidth={1}
-            nodeColor="hsl(var(--secondary))"
+            nodeColor="hsl(var(--muted))"
             nodeStrokeColor="hsl(var(--border-strong, var(--border)))"
             maskColor="hsl(var(--background) / 0.55)"
-            style={{ backgroundColor: 'hsl(var(--secondary))' }}
-            className="!m-3 overflow-hidden rounded-lg !bg-secondary !shadow-dropdown"
+            style={{ backgroundColor: 'hsl(var(--muted))' }}
+            className="!m-3 overflow-hidden rounded-lg !bg-muted !shadow-dropdown"
           />
         </ReactFlow>
       </MediaCanvasShell>

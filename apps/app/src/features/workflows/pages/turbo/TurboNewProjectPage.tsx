@@ -209,7 +209,7 @@ export default function TurboNewProjectPage() {
                 setKind(TurboProjectKind.IDEAS);
                 setError(null);
               }}
-              className={`flex w-full items-start gap-3 rounded-lg border p-4 text-left ${kind === TurboProjectKind.IDEAS ? 'border-primary bg-primary/10' : 'border-border bg-secondary hover:border-primary/60'}`}
+              className={`flex w-full items-start gap-3 rounded-lg border p-4 text-left ${kind === TurboProjectKind.IDEAS ? 'border-primary bg-primary/10' : 'border-border bg-muted hover:border-primary/60'}`}
             >
               <Lightbulb
                 aria-hidden="true"
@@ -232,7 +232,7 @@ export default function TurboNewProjectPage() {
                 setKind(TurboProjectKind.WORKFLOW);
                 setError(null);
               }}
-              className={`flex w-full items-start gap-3 rounded-lg border p-4 text-left ${kind === TurboProjectKind.WORKFLOW ? 'border-primary bg-primary/10' : 'border-border bg-secondary hover:border-primary/60'}`}
+              className={`flex w-full items-start gap-3 rounded-lg border p-4 text-left ${kind === TurboProjectKind.WORKFLOW ? 'border-primary bg-primary/10' : 'border-border bg-muted hover:border-primary/60'}`}
             >
               <Workflow aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
               <span className="min-w-0 whitespace-normal">

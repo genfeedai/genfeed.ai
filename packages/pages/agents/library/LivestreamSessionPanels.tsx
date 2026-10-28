@@ -45,7 +45,7 @@ export default function LivestreamSessionPanels({
             recentDeliveries.map((delivery) => (
               <div
                 key={delivery.id}
-                className="rounded-lg bg-secondary p-3 text-sm"
+                className="rounded-lg bg-muted p-3 text-sm"
               >
                 <div className="flex items-center justify-between gap-3">
                   <span className="font-medium">

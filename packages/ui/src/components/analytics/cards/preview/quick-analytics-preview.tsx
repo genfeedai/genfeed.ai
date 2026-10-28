@@ -172,7 +172,7 @@ export function QuickAnalyticsPreview({
       </div>
 
       {/* Mini Trend Chart */}
-      <div className="mb-6 rounded-lg bg-secondary p-4">
+      <div className="mb-6 rounded-lg bg-muted p-4">
         <p className="text-sm font-medium text-foreground/80 mb-3">
           Views Trend
         </p>
@@ -223,7 +223,7 @@ export function QuickAnalyticsPreview({
             {data.activePlatforms.map((platform) => (
               <span
                 key={platform}
-                className="px-3 py-1 rounded-full text-xs font-medium bg-secondary text-secondary-foreground"
+                className="px-3 py-1 rounded-full text-xs font-medium bg-muted text-foreground"
               >
                 {platform.charAt(0).toUpperCase() + platform.slice(1)}
               </span>
@@ -234,7 +234,7 @@ export function QuickAnalyticsPreview({
 
       {/* Best Performing Platform */}
       {data.bestPerformingPlatform && (
-        <div className="mb-6 rounded-lg bg-secondary p-3">
+        <div className="mb-6 rounded-lg bg-muted p-3">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-foreground">
               Best Performing Platform

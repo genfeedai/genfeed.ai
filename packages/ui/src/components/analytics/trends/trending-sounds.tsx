@@ -186,7 +186,7 @@ export function TrendingSounds({
                         sound.viralityScore >= 70
                           ? 'bg-primary text-primary-foreground'
                           : sound.viralityScore >= 40
-                            ? 'bg-secondary text-secondary-foreground'
+                            ? 'bg-muted text-foreground'
                             : 'bg-muted text-muted-foreground'
                       }`}
                     />

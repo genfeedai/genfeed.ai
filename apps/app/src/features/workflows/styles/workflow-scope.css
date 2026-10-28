@@ -43,9 +43,6 @@
 .workflow-scope .bg-\[var\(--primary\)\] {
   background-color: hsl(var(--primary));
 }
-.workflow-scope .bg-\[var\(--secondary\)\] {
-  background-color: hsl(var(--secondary));
-}
 
 /* Border token utilities */
 .workflow-scope .border-\[var\(--border\)\] {
@@ -141,7 +138,7 @@
 }
 
 .workflow-scope .react-flow__controls-button:hover {
-  background: hsl(var(--secondary));
+  background: hsl(var(--muted));
   color: hsl(var(--foreground));
   fill: hsl(var(--foreground));
 }

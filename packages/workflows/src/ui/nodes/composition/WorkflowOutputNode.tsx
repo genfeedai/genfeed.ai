@@ -80,7 +80,7 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
   return (
     <BaseNode {...props}>
       <div className="flex flex-col gap-3">
-        <div className="text-2xs text-muted-foreground bg-secondary/50 rounded px-2 py-1.5 text-center">
+        <div className="text-2xs text-muted-foreground bg-muted/50 rounded px-2 py-1.5 text-center">
           Defines an output port when this workflow is used as a subworkflow
         </div>
 
@@ -175,7 +175,7 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
               />
             )}
             {outputType === 'text' && (
-              <div className="mt-1 p-2 bg-secondary/50 text-xs max-h-20 overflow-auto">
+              <div className="mt-1 p-2 bg-muted/50 text-xs max-h-20 overflow-auto">
                 {String(nodeData.inputValue).substring(0, 200)}
                 {String(nodeData.inputValue).length > 200 && '...'}
               </div>
@@ -189,7 +189,7 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
               />
             )}
             {outputType === 'number' && (
-              <div className="mt-1 p-2 bg-secondary/50 text-sm font-mono">
+              <div className="mt-1 p-2 bg-muted/50 text-sm font-mono">
                 {String(nodeData.inputValue)}
               </div>
             )}

@@ -188,7 +188,7 @@ export function GrowthTrendsCard({
       </div>
 
       {/* Best Day */}
-      <div className="rounded-lg bg-secondary p-4">
+      <div className="rounded-lg bg-muted p-4">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-foreground mb-1">

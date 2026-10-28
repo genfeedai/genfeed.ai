@@ -562,11 +562,11 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
             an aria-activedescendant, so a focus-triggered panel never fires
             during arrow-key navigation. */}
         <TooltipProvider delayDuration={400} disableHoverableContent>
-          <div className="flex max-h-[inherit] min-h-0 w-full flex-col bg-secondary">
+          <div className="flex max-h-[inherit] min-h-0 w-full flex-col bg-muted">
             {contextLabel && contextOptions.length > 0 ? (
               <div
                 aria-label={contextLabel}
-                className="grid shrink-0 grid-cols-3 gap-1 border-b border-border bg-secondary p-1.5"
+                className="grid shrink-0 grid-cols-3 gap-1 border-b border-border bg-muted p-1.5"
                 role="group"
               >
                 {contextOptions.map((option) => {
@@ -617,7 +617,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
             ) : null}
             {/* No flex-1 on Command — that forced the panel to the max-h shell. */}
             <Command
-              className="flex min-h-0 flex-col bg-secondary text-foreground"
+              className="flex min-h-0 flex-col bg-muted text-foreground"
               shouldFilter={false}
             >
               {shouldShowManualCatalog && (
@@ -628,7 +628,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                   className={cn(
                     // Ship CommandInput defaults to muted-on-muted and reads as
                     // empty grey chrome on dark agent surfaces — force tokens.
-                    'h-8 border-0 border-b border-border bg-secondary px-2 text-foreground',
+                    'h-8 border-0 border-b border-border bg-muted px-2 text-foreground',
                     'placeholder:text-muted-foreground',
                     '[&_input]:h-8 [&_input]:px-1.5 [&_input]:!text-foreground',
                     '[&_input]:placeholder:!text-muted-foreground',

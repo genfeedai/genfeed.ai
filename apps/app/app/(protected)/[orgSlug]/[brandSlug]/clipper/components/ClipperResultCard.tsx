@@ -42,7 +42,7 @@ const STATUS_CONFIG: Record<ClipStatus, { label?: string; color: string }> = {
     label: 'Failed',
   },
   pending: {
-    color: 'bg-secondary text-muted-foreground border-transparent',
+    color: 'bg-muted text-muted-foreground border-transparent',
     label: 'Queued',
   },
   reframing: {
@@ -190,15 +190,12 @@ export default function ClipperResultCard({
           {clip.clipType && (
             <Badge
               variant="secondary"
-              className="bg-secondary text-muted-foreground"
+              className="bg-muted text-muted-foreground"
             >
               {clip.clipType}
             </Badge>
           )}
-          <Badge
-            variant="secondary"
-            className="bg-secondary text-muted-foreground"
-          >
+          <Badge variant="secondary" className="bg-muted text-muted-foreground">
             {(clip.mode ?? mode ?? 'avatar') === 'raw-cut'
               ? 'Raw cut'
               : 'AI avatar'}
@@ -206,7 +203,7 @@ export default function ClipperResultCard({
           {isInLibrary && (
             <Badge
               variant="secondary"
-              className="bg-secondary text-muted-foreground"
+              className="bg-muted text-muted-foreground"
             >
               {t('inLibrary')}
             </Badge>
@@ -261,7 +258,7 @@ export default function ClipperResultCard({
             <Badge
               key={tag}
               variant="secondary"
-              className="bg-secondary/50 text-muted-foreground"
+              className="bg-muted/50 text-muted-foreground"
             >
               #{tag}
             </Badge>
@@ -280,7 +277,7 @@ export default function ClipperResultCard({
           {canEdit && (
             <Button
               variant={ButtonVariant.UNSTYLED}
-              className="flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg bg-secondary px-3 py-2 text-xs font-medium text-secondary-foreground transition-colors hover:bg-accent sm:min-h-8"
+              className="flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg bg-muted px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent sm:min-h-8"
               onClick={handleEdit}
               title="Edit in Studio"
             >
@@ -302,7 +299,7 @@ export default function ClipperResultCard({
           {canDownload && (
             <Button
               variant={ButtonVariant.UNSTYLED}
-              className="flex min-h-11 min-w-11 items-center justify-center rounded-lg bg-secondary px-2.5 py-2 text-secondary-foreground transition-colors hover:bg-accent sm:min-h-8 sm:min-w-8"
+              className="flex min-h-11 min-w-11 items-center justify-center rounded-lg bg-muted px-2.5 py-2 text-foreground transition-colors hover:bg-accent sm:min-h-8 sm:min-w-8"
               onClick={handleDownload}
               aria-label="Download video"
               title="Download video"
@@ -326,7 +323,7 @@ export default function ClipperResultCard({
         <div className="mt-2">
           <Button
             variant={ButtonVariant.UNSTYLED}
-            className="flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-secondary px-3 py-2 text-xs font-medium text-secondary-foreground transition-colors hover:bg-accent sm:min-h-8"
+            className="flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-muted px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent sm:min-h-8"
             onClick={handleRetryLibraryLink}
             title="Retry saving this clip to Library"
           >

@@ -220,7 +220,7 @@ export function ViralVideoLeaderboard({
                 rank <= 3
                   ? 'bg-primary text-primary-foreground'
                   : rank <= 10
-                    ? 'bg-secondary text-secondary-foreground'
+                    ? 'bg-muted text-foreground'
                     : 'bg-muted text-muted-foreground';
               return (
                 <Badge

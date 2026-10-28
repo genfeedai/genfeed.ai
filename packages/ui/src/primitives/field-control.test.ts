@@ -6,7 +6,7 @@ import {
 
 describe('overlayMenuSurfaceClassName', () => {
   it('uses the secondary overlay surface, not elevated or canvas', () => {
-    expect(overlayMenuSurfaceClassName).toContain('bg-secondary');
+    expect(overlayMenuSurfaceClassName).toContain('bg-muted');
     expect(overlayMenuSurfaceClassName).toContain('shadow-dropdown');
     expect(overlayMenuSurfaceClassName).not.toContain('bg-card');
     expect(overlayMenuSurfaceClassName).not.toContain('bg-elevated');

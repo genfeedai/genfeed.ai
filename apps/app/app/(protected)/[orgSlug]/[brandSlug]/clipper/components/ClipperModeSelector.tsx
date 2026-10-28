@@ -52,7 +52,7 @@ export default function ClipperModeSelector({
               className={`flex min-h-24 rounded-lg border p-4 text-left transition-colors ${
                 isSelected
                   ? 'border-primary bg-primary/10'
-                  : 'border-border bg-secondary hover:border-primary/60'
+                  : 'border-border bg-muted hover:border-primary/60'
               }`}
             >
               <span className="flex items-start gap-3">

@@ -60,7 +60,7 @@ export default function ModalBrandCreate({
     >
       <DialogContent
         size="md"
-        className="border-white/10 bg-secondary"
+        className="border-white/10 bg-muted"
         aria-describedby="brand-create-description"
       >
         <DialogHeader>

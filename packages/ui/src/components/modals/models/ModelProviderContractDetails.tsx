@@ -77,7 +77,7 @@ function SchemaFields({
           {properties.map(([name, property]) => (
             <div
               key={name}
-              className="rounded-md border border-white/[0.08] bg-secondary/50 p-2"
+              className="rounded-md border border-white/[0.08] bg-muted/50 p-2"
             >
               <div className="flex flex-wrap items-center gap-2">
                 <code className="text-xs text-foreground">{name}</code>

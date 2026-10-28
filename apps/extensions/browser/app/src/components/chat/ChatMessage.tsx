@@ -19,7 +19,7 @@ export function ChatMessage({ message }: ChatMessageProps): ReactElement {
         className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${
           isUser
             ? 'bg-primary text-primary-foreground'
-            : 'bg-secondary text-secondary-foreground'
+            : 'bg-muted text-foreground'
         }`}
       >
         {hasGeneratedContent ? (

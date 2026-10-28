@@ -274,7 +274,7 @@ function ImageGenNodeComponent(props: NodeProps) {
             {nodeData.status === 'processing' && <ProcessingOverlay />}
           </div>
         ) : (
-          <div className="relative flex aspect-[4/3] w-full flex-col items-center justify-center gap-1 border border-dashed border-border/50 bg-secondary/20">
+          <div className="relative flex aspect-[4/3] w-full flex-col items-center justify-center gap-1 border border-dashed border-border/50 bg-muted/20">
             <ImageIcon className="size-6 text-muted-foreground/50" />
             {nodeData.status === 'processing' && <ProcessingOverlay />}
           </div>

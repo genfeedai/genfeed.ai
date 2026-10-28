@@ -641,7 +641,7 @@ export default function StudioIdentityFields({
                 listClassName="mx-3"
                 onTabChange={(tab) => changeTab(tab as IdentityTab)}
               >
-                <div className="sticky top-0 z-10 bg-secondary pb-3">
+                <div className="sticky top-0 z-10 bg-muted pb-3">
                   {searchInput}
                 </div>
                 {errorNotice}

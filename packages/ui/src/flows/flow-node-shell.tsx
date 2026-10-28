@@ -82,7 +82,7 @@ export function FlowNodeShell({
     <div
       data-selected={selected}
       className={cn(
-        'relative min-w-[220px] rounded-xl border bg-secondary text-foreground shadow-ambient-md transition-[border-color,box-shadow,opacity] duration-200',
+        'relative min-w-[220px] rounded-xl border bg-muted text-foreground shadow-ambient-md transition-[border-color,box-shadow,opacity] duration-200',
         toneClassName[tone],
         selected && 'ring-1 ring-foreground/25',
         dimmed && 'opacity-60',

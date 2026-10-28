@@ -54,7 +54,7 @@ vi.mock('@genfeedai/ui/primitives/button', () => ({
     const variantClasses: Record<string, string> = {
       default: 'bg-primary text-primary-foreground',
       ghost: 'hover:bg-accent',
-      secondary: 'bg-secondary text-secondary-foreground',
+      secondary: 'bg-muted text-foreground',
     };
     return (
       <button
@@ -378,7 +378,7 @@ describe('AnnotationNode', () => {
       render(<AnnotationNode {...propsWithImage} />);
 
       const button = screen.getByText('Add Annotations');
-      expect(button.closest('button')).toHaveClass('bg-secondary');
+      expect(button.closest('button')).toHaveClass('bg-muted');
     });
 
     it('should use default variant with annotations', () => {

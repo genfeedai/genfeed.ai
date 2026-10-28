@@ -130,7 +130,7 @@ function HistorySidebar({
   return createPortal(
     <div
       ref={sidebarRef}
-      className="w-80 max-h-[420px] bg-secondary shadow-dropdown flex flex-col"
+      className="w-80 max-h-[420px] bg-muted shadow-dropdown flex flex-col"
       style={sidebarStyle}
     >
       <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0">
@@ -195,7 +195,7 @@ function HistorySidebar({
         ))}
       </div>
 
-      <div className="px-4 py-2 border-t border-border bg-secondary/50 shrink-0">
+      <div className="px-4 py-2 border-t border-border bg-muted/50 shrink-0">
         <span className="text-2xs text-muted-foreground">
           Drag images to canvas to create nodes
         </span>
@@ -299,7 +299,7 @@ export function GlobalImageHistory() {
         variant={ButtonVariant.SECONDARY}
         size={ButtonSize.ICON}
         onClick={() => setIsOpen(!isOpen)}
-        className="relative bg-secondary hover:bg-accent border-border text-muted-foreground hover:text-foreground shadow-ambient-md"
+        className="relative bg-muted hover:bg-accent border-border text-muted-foreground hover:text-foreground shadow-ambient-md"
         title={`${history.length} image${history.length > 1 ? 's' : ''} in history`}
       >
         <Clock3 className="size-4" />
@@ -337,7 +337,7 @@ export function GlobalImageHistory() {
                   variant={ButtonVariant.SECONDARY}
                   size={ButtonSize.SM}
                   onClick={handleShowAll}
-                  className="absolute animate-fan-enter bg-secondary hover:bg-accent border-border text-2xs text-foreground hover:text-foreground shadow-ambient-md whitespace-nowrap px-2 py-1 h-auto"
+                  className="absolute animate-fan-enter bg-muted hover:bg-accent border-border text-2xs text-foreground hover:text-foreground shadow-ambient-md whitespace-nowrap px-2 py-1 h-auto"
                   style={
                     {
                       '--fan-x': `${topItemPos.x}px`,

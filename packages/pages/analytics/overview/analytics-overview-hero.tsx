@@ -38,7 +38,7 @@ export default function AnalyticsOverviewHero({
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-        <div className="inline-flex w-fit shrink-0 items-center gap-2 rounded-full bg-secondary px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-foreground/60 shadow-border">
+        <div className="inline-flex w-fit shrink-0 items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-foreground/60 shadow-border">
           {dashboardState === 'active' ? (
             <CircleCheck className="size-4 text-success" />
           ) : dashboardState === 'warming_up' ? (

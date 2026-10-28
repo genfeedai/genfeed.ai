@@ -48,7 +48,7 @@ const TREND_KPI_METRICS = [
   },
   {
     icon: Sparkles,
-    iconClassName: 'bg-secondary/10 text-secondary',
+    iconClassName: 'bg-muted/10 text-muted-foreground',
     key: 'viralityScore',
   },
   {
@@ -172,9 +172,9 @@ export default function TrendDetail({
         {
           ...metricCopy('viralityScore'),
           icon: Sparkles,
-          iconClassName: 'bg-secondary/10 text-secondary',
+          iconClassName: 'bg-muted/10 text-muted-foreground',
           value: `${trend.viralityScore}/100`,
-          valueClassName: 'text-secondary',
+          valueClassName: 'text-muted-foreground',
         },
         {
           ...metricCopy('engagementRate'),

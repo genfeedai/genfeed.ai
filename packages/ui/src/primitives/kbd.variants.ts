@@ -11,7 +11,7 @@ export const kbdVariants = cva(
       variant: {
         default: 'bg-background border border-white/[0.08]',
         subtle: 'bg-tertiary font-medium text-muted-foreground',
-        muted: 'bg-secondary',
+        muted: 'bg-muted',
         ghost: 'bg-transparent text-muted-foreground',
       },
       size: {

@@ -392,7 +392,7 @@ export function buildModelsTableColumns({
     }
 
     return {
-      className: 'bg-secondary text-foreground/70 shadow-border',
+      className: 'bg-muted text-foreground/70 shadow-border',
       label: translate('table.seededStatus'),
     };
   };

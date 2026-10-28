@@ -62,7 +62,7 @@ export function SaveIndicator({
       <div
         className={
           isPill
-            ? 'flex items-center gap-1.5 rounded-full border border-border bg-secondary/40 px-2.5 py-1 text-xs text-muted-foreground'
+            ? 'flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground'
             : 'flex items-center gap-1.5 text-xs text-muted-foreground'
         }
       >

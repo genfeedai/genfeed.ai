@@ -300,7 +300,7 @@ export function usePostDetailState({
       comments === undefined
         ? null
         : {
-            accent: 'text-secondary',
+            accent: 'text-muted-foreground',
             icon: MessageSquare,
             label: 'Comments',
             value: formatCompactNumber(comments),
