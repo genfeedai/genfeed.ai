@@ -20,6 +20,7 @@ export type FirstDraftsError =
   | 'continue'
   | 'recovery'
   | 'feedback'
+  | 'invalidUrl'
   | 'replay';
 
 export interface FirstDraftsState {

@@ -245,6 +245,7 @@
       "schedule": "We couldn't schedule some posts. Try again, or finish in your workspace.",
       "recovery": "We couldn’t recover the complete run. Your saved content won’t be generated again.",
       "feedback": "We couldn’t save your choice. Try again.",
+      "invalidUrl": "That doesn’t look like a web address. Try something like yourbrand.com, or skip the link.",
       "replay": "You already finished onboarding, so this replay shows your saved posts and doesn’t generate anything new."
     },
     "loading": "Setting up your workspace",
