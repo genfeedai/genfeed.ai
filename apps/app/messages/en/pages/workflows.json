@@ -7,10 +7,13 @@
     "connectAccounts": "Connect X or LinkedIn for this brand to choose accounts.",
     "minScore": "Minimum score",
     "minScorePlaceholder": "Hold below this score",
+    "model": "Model",
     "noStrategy": "No strategy",
+    "promptFromRecent": "Use a recent prompt",
     "selectAccount": "Select an account",
     "selectAccounts": "Select connected accounts",
     "selectBrand": "Select a brand",
+    "selectModel": "Choose a model",
     "selectTimezone": "Select a timezone",
     "strategy": "Strategy",
     "timezone": "Timezone",
@@ -162,5 +165,32 @@
   "surfaceInspector": {
     "executionNotFound": "Execution Not Found",
     "executionNotFoundDescription": "The execution run you're looking for doesn't exist."
+  },
+  "modelPicker": {
+    "all": "All models",
+    "close": "Close",
+    "description": "Pick the model this step runs.",
+    "empty": "No models match your search.",
+    "error": "Models could not be loaded. Try again in a moment.",
+    "loading": "Loading models…",
+    "recent": "Recent",
+    "search": "Search models…",
+    "searchLabel": "Search models",
+    "tier": {
+      "basic": "Basic",
+      "standard": "Standard",
+      "high": "Premium",
+      "ultra": "Ultra"
+    },
+    "title": "Choose a model"
+  },
+  "promptPicker": {
+    "description": "Reuse a prompt from your earlier generations.",
+    "empty": "No earlier prompts yet. Prompts you generate with appear here.",
+    "error": "Prompts could not be loaded. Try again in a moment.",
+    "loading": "Loading prompts…",
+    "search": "Search prompts…",
+    "searchLabel": "Search prompts",
+    "title": "Recent prompts"
   }
 }

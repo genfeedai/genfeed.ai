@@ -1,365 +1,168 @@
-import type { ProviderModel } from '@genfeedai/contracts/types';
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+// @vitest-environment jsdom
+
+import { ModelCategory, QualityTier } from '@genfeedai/contracts';
+import type { IModel } from '@genfeedai/contracts/interfaces';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ModelBrowserModal } from './ModelBrowserModal';
 
-const { mockAddRecentModel } = vi.hoisted(() => ({
-  mockAddRecentModel: vi.fn(),
+const mocks = vi.hoisted(() => ({
+  addRecentModel: vi.fn(),
 }));
 
-// The component calls useSettingsStore with individual selectors:
-vi.mock('@genfeedai/workflows/ui/stores', () => {
-  const state = {
-    addRecentModel: mockAddRecentModel,
-    providers: {
-      fal: { apiKey: null },
-      openrouter: { apiKey: null },
-      replicate: { apiKey: 'test-key' },
-    },
-    recentModels: [
-      { displayName: 'FLUX.1-dev', id: 'flux-dev', provider: 'replicate' },
-    ],
-  };
-
-  return {
-    useSettingsStore: vi.fn((selector: (s: unknown) => unknown) =>
-      selector(state),
-    ),
-  };
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
 });
 
-// Mock logger to prevent console output in tests
-vi.mock('@services/core/logger.service', () => ({
-  logger: { debug: vi.fn(), error: vi.fn(), info: vi.fn(), warn: vi.fn() },
+vi.mock('@genfeedai/workflows/ui/stores', () => ({
+  useSettingsStore: (selector: (state: object) => unknown) =>
+    selector({
+      addRecentModel: mocks.addRecentModel,
+      recentModels: [
+        {
+          displayName: 'Veo 3',
+          id: 'google/veo-3',
+          provider: 'genfeed-ai',
+          timestamp: 1,
+        },
+      ],
+    }),
 }));
 
-vi.mock('@ui/primitives/input', () => ({
-  Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => (
-    <input {...props} />
-  ),
-}));
+function buildModel(overrides: Partial<IModel>): IModel {
+  return {
+    category: ModelCategory.IMAGE,
+    key: 'google/nano-banana-pro',
+    label: 'Nano Banana Pro',
+    ...overrides,
+  } as IModel;
+}
+
+const MODELS: IModel[] = [
+  buildModel({
+    description: 'Photoreal, text in image',
+    qualityTier: QualityTier.ULTRA,
+  }),
+  buildModel({
+    category: ModelCategory.VIDEO,
+    key: 'google/veo-3',
+    label: 'Veo 3',
+    qualityTier: QualityTier.HIGH,
+  }),
+  buildModel({ key: 'black-forest-labs/flux-2-pro', label: 'Flux 2 Pro' }),
+];
+
+function renderModal(props: Partial<Parameters<typeof ModelBrowserModal>[0]>) {
+  const onClose = vi.fn();
+  const onSelect = vi.fn();
+  render(
+    <ModelBrowserModal
+      hasError={false}
+      isLoading={false}
+      isOpen
+      models={MODELS}
+      onClose={onClose}
+      onSelect={onSelect}
+      {...props}
+    />,
+  );
+  return { onClose, onSelect };
+}
 
 describe('ModelBrowserModal', () => {
-  const originalFetch = global.fetch;
-  const defaultProps = {
-    isOpen: true,
-    onClose: vi.fn(),
-    onSelect: vi.fn(),
-  };
-
-  const mockModels: ProviderModel[] = [
-    {
-      capabilities: ['text-to-image'],
-      description: 'High quality image generation',
-      displayName: 'FLUX.1-dev',
-      id: 'flux-dev',
-      pricing: '$0.05/image',
-      provider: 'replicate',
-    },
-    {
-      capabilities: ['text-to-image', 'image-to-image'],
-      description: 'Fast image generation',
-      displayName: 'Stable Diffusion XL',
-      id: 'stable-diffusion-xl',
-      pricing: '$0.02/image',
-      provider: 'replicate',
-    },
-  ];
-
-  const mockFetchResponse = {
-    json: () =>
-      Promise.resolve({
-        configuredProviders: ['replicate', 'openrouter'],
-        models: mockModels,
-      }),
-    ok: true,
-  };
-
   beforeEach(() => {
-    vi.clearAllMocks();
-    global.fetch = vi
-      .fn()
-      .mockResolvedValue(mockFetchResponse) as unknown as typeof fetch;
+    mocks.addRecentModel.mockClear();
   });
 
-  afterEach(() => {
-    global.fetch = originalFetch;
+  it('lists catalog models with their quality tier and never shows a provider', () => {
+    renderModal({});
+
+    expect(screen.getByRole('dialog', { name: 'Choose a model' })).toBeTruthy();
+    expect(screen.getAllByText('Nano Banana Pro')).toHaveLength(1);
+    expect(screen.getByText('Photoreal, text in image')).toBeTruthy();
+    expect(screen.getByText('Ultra')).toBeTruthy();
+    expect(screen.queryByText(/replicate|openrouter|\.env/i)).toBeNull();
   });
 
-  describe('rendering', () => {
-    it('should not render when not open', () => {
-      const { container } = render(
-        <ModelBrowserModal {...defaultProps} isOpen={false} />,
-      );
+  it('shows recently used models that are in the catalog first', () => {
+    renderModal({});
 
-      expect(container.firstChild).toBeNull();
-    });
-
-    it('should render modal when open', () => {
-      render(<ModelBrowserModal {...defaultProps} />);
-
-      expect(screen.getByText('Browse Models')).toBeInTheDocument();
-    });
-
-    it('should render custom title', () => {
-      render(
-        <ModelBrowserModal {...defaultProps} title="Select Image Model" />,
-      );
-
-      expect(screen.getByText('Select Image Model')).toBeInTheDocument();
-    });
-
-    it('should render search input', () => {
-      render(<ModelBrowserModal {...defaultProps} />);
-
-      expect(
-        screen.getByPlaceholderText('Search models...'),
-      ).toBeInTheDocument();
-    });
-
-    it('should render provider filter buttons after fetch', async () => {
-      render(<ModelBrowserModal {...defaultProps} />);
-
-      await waitFor(() => {
-        expect(screen.getByText('All')).toBeInTheDocument();
-      });
-
-      expect(screen.getAllByText('Replicate').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getByText('OpenRouter')).toBeInTheDocument();
-    });
+    expect(screen.getByText('Recent')).toBeTruthy();
+    // Veo 3 is listed once under Recent and once under All models.
+    expect(screen.getAllByText('Veo 3')).toHaveLength(2);
   });
 
-  describe('model loading', () => {
-    it('should fetch models on open', async () => {
-      render(<ModelBrowserModal {...defaultProps} />);
+  it('filters by search and hides the recent section while searching', () => {
+    renderModal({});
 
-      await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalled();
-      });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search models' }), {
+      target: { value: 'flux' },
     });
 
-    it('should display models after loading', async () => {
-      render(<ModelBrowserModal {...defaultProps} />);
-
-      await waitFor(() => {
-        expect(screen.getAllByText('FLUX.1-dev').length).toBeGreaterThanOrEqual(
-          1,
-        );
-      });
-
-      expect(screen.getByText('Stable Diffusion XL')).toBeInTheDocument();
-    });
-
-    it('should show loading spinner during fetch', async () => {
-      let resolveFetch: ((value: Response) => void) | undefined;
-      global.fetch = vi.fn().mockImplementation(
-        () =>
-          new Promise((resolve) => {
-            resolveFetch = resolve;
-          }),
-      ) as unknown as typeof fetch;
-
-      render(<ModelBrowserModal {...defaultProps} />);
-
-      await waitFor(() => {
-        expect(document.querySelector('.genfeed-spinner')).toBeInTheDocument();
-      });
-
-      await act(async () => {
-        resolveFetch?.(mockFetchResponse as Response);
-      });
-
-      await waitFor(() => {
-        expect(screen.getAllByText('FLUX.1-dev').length).toBeGreaterThanOrEqual(
-          1,
-        );
-      });
-    });
+    expect(screen.getByText('Flux 2 Pro')).toBeTruthy();
+    expect(screen.queryByText('Nano Banana Pro')).toBeNull();
+    expect(screen.queryByText('Recent')).toBeNull();
   });
 
-  describe('search functionality', () => {
-    it('should pass search query to API', async () => {
-      render(<ModelBrowserModal {...defaultProps} />);
+  it('selects a model, records it as recent and closes', () => {
+    const { onClose, onSelect } = renderModal({});
 
-      // Wait for initial fetch
-      await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalled();
-      });
+    fireEvent.click(screen.getByRole('button', { name: /Flux 2 Pro/ }));
 
-      const searchInput = screen.getByPlaceholderText('Search models...');
-      fireEvent.change(searchInput, { target: { value: 'flux' } });
-
-      await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining('query=flux'),
-          expect.any(Object),
-        );
-      });
+    expect(onSelect).toHaveBeenCalledWith(MODELS[2]);
+    expect(mocks.addRecentModel).toHaveBeenCalledWith({
+      displayName: 'Flux 2 Pro',
+      id: 'black-forest-labs/flux-2-pro',
+      provider: 'genfeed-ai',
     });
+    expect(onClose).toHaveBeenCalled();
   });
 
-  describe('provider filtering', () => {
-    it('should filter by provider when clicked', async () => {
-      render(<ModelBrowserModal {...defaultProps} />);
+  it('marks the current model as pressed', () => {
+    renderModal({ selectedKey: 'black-forest-labs/flux-2-pro' });
 
-      await waitFor(() => {
-        expect(screen.getByText('OpenRouter')).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByText('OpenRouter'));
-
-      await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining('provider=openrouter'),
-          expect.any(Object),
-        );
-      });
-    });
+    expect(
+      screen
+        .getByRole('button', { name: /Flux 2 Pro/ })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
   });
 
-  describe('model selection', () => {
-    it('should call onSelect when model is clicked', async () => {
-      render(<ModelBrowserModal {...defaultProps} />);
+  it('shows loading, error and empty states', () => {
+    const { unmount } = render(
+      <ModelBrowserModal
+        hasError={false}
+        isLoading
+        isOpen
+        models={[]}
+        onClose={vi.fn()}
+        onSelect={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByRole('status', { name: 'Loading models…' }),
+    ).toBeTruthy();
+    unmount();
 
-      await waitFor(() => {
-        expect(screen.getAllByText('FLUX.1-dev').length).toBeGreaterThanOrEqual(
-          1,
-        );
-      });
-
-      const fluxElements = screen.getAllByText('FLUX.1-dev');
-      const modelCard = fluxElements[0].closest('button');
-      if (modelCard) fireEvent.click(modelCard);
-
-      expect(defaultProps.onSelect).toHaveBeenCalledWith(mockModels[0]);
-    });
-
-    it('should add model to recent models', async () => {
-      render(<ModelBrowserModal {...defaultProps} />);
-
-      await waitFor(() => {
-        expect(screen.getAllByText('FLUX.1-dev').length).toBeGreaterThanOrEqual(
-          1,
-        );
-      });
-
-      const fluxElements = screen.getAllByText('FLUX.1-dev');
-      const modelCard = fluxElements[0].closest('button');
-      if (modelCard) fireEvent.click(modelCard);
-
-      expect(mockAddRecentModel).toHaveBeenCalledWith({
-        displayName: 'FLUX.1-dev',
-        id: 'flux-dev',
-        provider: 'replicate',
-      });
-    });
-
-    it('should close modal after selection', async () => {
-      render(<ModelBrowserModal {...defaultProps} />);
-
-      await waitFor(() => {
-        expect(screen.getAllByText('FLUX.1-dev').length).toBeGreaterThanOrEqual(
-          1,
-        );
-      });
-
-      const fluxElements = screen.getAllByText('FLUX.1-dev');
-      const modelCard = fluxElements[0].closest('button');
-      if (modelCard) fireEvent.click(modelCard);
-
-      expect(defaultProps.onClose).toHaveBeenCalled();
-    });
+    render(
+      <ModelBrowserModal
+        hasError
+        isLoading={false}
+        isOpen
+        models={[]}
+        onClose={vi.fn()}
+        onSelect={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByText('Models could not be loaded. Try again in a moment.'),
+    ).toBeTruthy();
   });
 
-  describe('close modal', () => {
-    it('should close on backdrop click', () => {
-      render(<ModelBrowserModal {...defaultProps} />);
+  it('renders nothing while closed', () => {
+    renderModal({ isOpen: false });
 
-      const backdrop = document.querySelector('.bg-black\\/50');
-      if (backdrop) fireEvent.click(backdrop);
-
-      expect(defaultProps.onClose).toHaveBeenCalled();
-    });
-
-    it('should close on X button click', () => {
-      render(<ModelBrowserModal {...defaultProps} />);
-
-      const buttons = screen.getAllByRole('button');
-      const closeButton = buttons.find((btn) => {
-        const svg = btn.querySelector('svg');
-        return svg !== null && btn.textContent === '';
-      });
-      if (closeButton) fireEvent.click(closeButton);
-
-      expect(defaultProps.onClose).toHaveBeenCalled();
-    });
-  });
-
-  describe('capability filtering', () => {
-    it('should pass capabilities to API', async () => {
-      render(
-        <ModelBrowserModal
-          {...defaultProps}
-          capabilities={['text-to-image', 'image-to-image']}
-        />,
-      );
-
-      await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining(
-            'capabilities=text-to-image%2Cimage-to-image',
-          ),
-          expect.any(Object),
-        );
-      });
-    });
-  });
-
-  describe('empty state', () => {
-    it('should show empty state when no models found', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
-        json: () => Promise.resolve({ configuredProviders: [], models: [] }),
-        ok: true,
-      }) as unknown as typeof fetch;
-
-      render(<ModelBrowserModal {...defaultProps} />);
-
-      await waitFor(() => {
-        expect(screen.getByText('No models found')).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('model count', () => {
-    it('should show model count in footer', async () => {
-      render(<ModelBrowserModal {...defaultProps} />);
-
-      await waitFor(() => {
-        expect(screen.getByText('2 models available')).toBeInTheDocument();
-      });
-    });
-
-    it('should use singular form for one model', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
-        json: () =>
-          Promise.resolve({
-            configuredProviders: ['replicate'],
-            models: [mockModels[0]],
-          }),
-        ok: true,
-      }) as unknown as typeof fetch;
-
-      render(<ModelBrowserModal {...defaultProps} />);
-
-      await waitFor(() => {
-        expect(screen.getByText('1 model available')).toBeInTheDocument();
-      });
-    });
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 });

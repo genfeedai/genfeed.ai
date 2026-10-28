@@ -2412,6 +2412,76 @@ export async function mockWorkflowCrud(
   });
 }
 
+export interface MockCatalogModel {
+  category: string;
+  description?: string;
+  id: string;
+  key: string;
+  label: string;
+  qualityTier?: string;
+}
+
+/** Callable model catalog rows the workflow model picker lists (`GET /models`). */
+export async function mockModelCatalog(
+  page: Page,
+  models: MockCatalogModel[],
+): Promise<void> {
+  const handler = async (route: Route) => {
+    if (route.request().method() !== 'GET') {
+      await route.fallback();
+      return;
+    }
+    const resources = models.map((model) => ({
+      attributes: {
+        cost: 1,
+        isActive: true,
+        isDefault: false,
+        lifecycle: 'AVAILABLE',
+        provider: 'replicate',
+        ...model,
+      },
+      id: model.id,
+    }));
+    await route.fulfill({
+      body: JSON.stringify(buildJsonApiCollection('models', resources)),
+      contentType: 'application/json',
+      status: 200,
+    });
+  };
+  await routeApiPattern(page, '/models', handler);
+  await routeApiPattern(page, '/models?*', handler);
+}
+
+/** The caller's earlier prompts the workflow prompt picker lists (`GET /prompts`). */
+export async function mockPromptHistory(
+  page: Page,
+  prompts: Array<{ id: string; original: string }>,
+): Promise<void> {
+  const handler = async (route: Route) => {
+    if (route.request().method() !== 'GET') {
+      await route.fallback();
+      return;
+    }
+    const resources = prompts.map((prompt) => ({
+      attributes: {
+        category: 'image',
+        enhanced: prompt.original,
+        isSkipEnhancement: false,
+        original: prompt.original,
+        status: 'generated',
+      },
+      id: prompt.id,
+    }));
+    await route.fulfill({
+      body: JSON.stringify(buildJsonApiCollection('prompts', resources)),
+      contentType: 'application/json',
+      status: 200,
+    });
+  };
+  await routeApiPattern(page, '/prompts', handler);
+  await routeApiPattern(page, '/prompts?*', handler);
+}
+
 /**
  * `GET /workflow-executions?view=statistics` is a summary object, not a
  * JSON:API collection. Returning the collection makes `data` an array and

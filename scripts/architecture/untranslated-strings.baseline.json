@@ -184,7 +184,6 @@
     "apps/app/packages/components/research/ads/AdsResearchPageClient.tsx": 4,
     "apps/app/packages/components/research/ads/AdsResearchWatchlistPanel.tsx": 9,
     "apps/app/src/components/desktop/DesktopLocalProviderSettings.tsx": 7,
-    "apps/app/src/components/models/ModelBrowserModal.tsx": 10,
     "apps/app/src/components/version/DeploymentVersionWatcher.tsx": 2,
     "apps/app/src/components/workspace-shell/UniversalWorkspaceShell.tsx": 3,
     "apps/app/src/components/workspace-shell/use-conversation-scope-controls.tsx": 3,

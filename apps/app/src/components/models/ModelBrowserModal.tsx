@@ -1,254 +1,221 @@
 'use client';
 
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
-import type {
-  ModelCapability,
-  ProviderModel,
-  ProviderType,
-} from '@genfeedai/contracts/types';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
-import CollectionGrid from '@ui/collection/CollectionGrid';
+import {
+  ButtonVariant,
+  ComponentSize,
+  QualityTier,
+} from '@genfeedai/contracts';
+import type { IModel } from '@genfeedai/contracts/interfaces';
+import type { ModelBrowserModalProps } from '@genfeedai/props/workflows/workflow-model-picker.props';
+import { useSettingsStore } from '@genfeedai/workflows/ui/stores';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import FormSearchbar from '@ui/primitives/searchbar';
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@ui/primitives/dialog';
+import Searchbar from '@ui/primitives/searchbar';
 import Spinner from '@ui/primitives/spinner';
-import { ExternalLink, Sparkles, TriangleAlert, X } from 'lucide-react';
-import { memo } from 'react';
-import { createPortal } from 'react-dom';
-import { ModelCard } from './ModelCard';
-import { USE_CASE_CONFIG } from './model-browser-badges.constants';
-import { useModelBrowserModal } from './useModelBrowserModal';
+import { Clock, Sparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { memo, useCallback, useMemo, useState } from 'react';
 
-interface ModelBrowserModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSelect: (model: ProviderModel) => void;
-  capabilities?: ModelCapability[];
-  title?: string;
+const RECENT_LIMIT = 4;
+
+const TIER_VARIANT: Record<QualityTier, 'default' | 'secondary'> = {
+  [QualityTier.BASIC]: 'secondary',
+  [QualityTier.STANDARD]: 'secondary',
+  [QualityTier.HIGH]: 'secondary',
+  [QualityTier.ULTRA]: 'default',
+};
+
+function matchesQuery(model: IModel, query: string): boolean {
+  if (!query) {
+    return true;
+  }
+  const needle = query.toLowerCase();
+  return [model.label, model.key, model.description ?? ''].some((field) =>
+    field.toLowerCase().includes(needle),
+  );
+}
+
+function ModelTile({
+  isRecent = false,
+  isSelected,
+  model,
+  onSelect,
+}: {
+  isRecent?: boolean;
+  isSelected: boolean;
+  model: IModel;
+  onSelect: (model: IModel) => void;
+}) {
+  const translate = useTranslations('pages.workflows.modelPicker');
+
+  return (
+    <Button
+      aria-pressed={isSelected}
+      className="h-auto w-full justify-start rounded-xl bg-background-secondary p-3 text-left shadow-border"
+      onClick={() => onSelect(model)}
+      textTransform="none"
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
+    >
+      <span className="flex w-full items-center gap-3">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+          <Sparkles className="size-4" />
+        </span>
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="truncate text-sm font-medium">{model.label}</span>
+          {model.description ? (
+            <span className="truncate text-xs text-muted-foreground">
+              {model.description}
+            </span>
+          ) : null}
+        </span>
+        <span className="flex shrink-0 items-center gap-1.5">
+          {isRecent ? (
+            <Clock className="size-3.5 text-muted-foreground" />
+          ) : null}
+          {model.qualityTier ? (
+            <Badge variant={TIER_VARIANT[model.qualityTier]}>
+              {translate(`tier.${model.qualityTier}`)}
+            </Badge>
+          ) : null}
+        </span>
+      </span>
+    </Button>
+  );
 }
 
 function ModelBrowserModalComponent({
+  hasError,
+  isLoading,
   isOpen,
+  models,
   onClose,
   onSelect,
-  capabilities,
-  title = 'Browse Models',
+  selectedKey,
 }: ModelBrowserModalProps) {
-  const {
-    searchQuery,
-    setSearchQuery,
-    providerFilter,
-    setProviderFilter,
-    useCaseFilter,
-    setUseCaseFilter,
-    models,
-    configuredProviders,
-    isLoading,
-    hasFetched,
-    filteredRecentModels,
-    availableUseCases,
-    handleSelect,
-  } = useModelBrowserModal({ isOpen, onClose, onSelect, capabilities });
+  const translate = useTranslations('pages.workflows.modelPicker');
+  const recentModels = useSettingsStore((state) => state.recentModels);
+  const addRecentModel = useSettingsStore((state) => state.addRecentModel);
+  const [query, setQuery] = useState('');
 
-  if (!isOpen) return null;
+  const visibleModels = useMemo(
+    () => models.filter((model) => matchesQuery(model, query.trim())),
+    [models, query],
+  );
+  const recent = useMemo(() => {
+    if (query.trim()) {
+      return [];
+    }
+    return recentModels
+      .map((entry) => models.find((model) => model.key === entry.id))
+      .filter((model): model is IModel => model !== undefined)
+      .slice(0, RECENT_LIMIT);
+  }, [models, query, recentModels]);
 
-  return createPortal(
-    <>
-      <Button
-        variant={ButtonVariant.UNSTYLED}
-        withWrapper={false}
-        aria-label="Close model browser"
-        className={
-          'fixed inset-0 z-50 bg-black/50' // design-system-allow-content-color
-        }
-        onClick={onClose}
-      />
+  const handleSelect = useCallback(
+    (model: IModel) => {
+      addRecentModel({
+        displayName: model.label,
+        id: model.key,
+        provider: 'genfeed-ai',
+      });
+      onSelect(model);
+      onClose();
+    },
+    [addRecentModel, onClose, onSelect],
+  );
 
-      <div className="fixed inset-4 z-50 flex flex-col overflow-hidden rounded-xl bg-card shadow-xl md:inset-10">
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <div className="flex items-center gap-3">
-            <Sparkles className="size-5 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-          </div>
-          <Button
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-secondary transition"
-            icon={<X className="size-5" />}
-          />
-        </div>
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen) {
+        setQuery('');
+        onClose();
+      }
+    },
+    [onClose],
+  );
 
-        <div className="space-y-0 border-b border-border">
-          <div className="flex items-center gap-4 px-6 py-4">
-            <FormSearchbar
-              className="max-w-md flex-1"
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search models..."
-              size={ComponentSize.MD}
-              value={searchQuery}
-            />
-
-            {/* Provider filter - only show configured providers */}
-            {configuredProviders.length > 0 && (
-              <div className="flex items-center gap-2">
-                {(
-                  ['all', ...configuredProviders] as (ProviderType | 'all')[]
-                ).map((provider) => (
-                  <Button
-                    key={provider}
-                    variant={ButtonVariant.UNSTYLED}
-                    withWrapper={false}
-                    onClick={() => setProviderFilter(provider)}
-                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                      providerFilter === provider
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-                    }`}
-                  >
-                    {provider === 'all'
-                      ? 'All'
-                      : provider === 'replicate'
-                        ? 'Replicate'
-                        : provider === 'openrouter'
-                          ? 'OpenRouter'
-                          : 'Genfeed AI'}
-                  </Button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Use-case filter chips */}
-          {availableUseCases.length > 0 && (
-            <div className="flex items-center gap-2 overflow-x-auto px-6 pb-4">
-              <Button
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-                onClick={() => setUseCaseFilter('all')}
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                  useCaseFilter === 'all'
-                    ? 'bg-primary text-primary-foreground border border-transparent'
-                    : 'bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-transparent'
-                }`}
-                icon={<Sparkles className="size-3" />}
-              >
-                All
-              </Button>
-              {availableUseCases.map((uc) => {
-                const config = USE_CASE_CONFIG[uc];
-                const Icon = config.icon;
-                return (
-                  <Button
-                    key={uc}
-                    variant={ButtonVariant.UNSTYLED}
-                    withWrapper={false}
-                    onClick={() => setUseCaseFilter(uc)}
-                    className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                      useCaseFilter === uc
-                        ? 'bg-primary text-primary-foreground border border-transparent'
-                        : 'bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-transparent'
-                    }`}
-                    icon={<Icon className="size-3" />}
-                  >
-                    {config.label}
-                  </Button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-auto p-6">
-          {/* Warning when no providers configured */}
-          {!isLoading && hasFetched && configuredProviders.length === 0 && (
-            <div className="mb-6 flex items-start gap-3 rounded-lg border border-warning/20 bg-warning/10 p-4">
-              <TriangleAlert className="mt-0.5 size-5 shrink-0 text-warning" />
-              <div>
-                <p className="text-sm font-medium text-warning">
-                  No AI providers configured
-                </p>
-                <p className="mt-1 text-xs text-warning/80">
-                  Add API keys to your .env file to enable model selection.
-                  Supported providers: REPLICATE_API_TOKEN, OPENROUTER_API_KEY
-                </p>
-              </div>
-            </div>
-          )}
-
+  return (
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-w-3xl" size="xl">
+        <DialogHeader>
+          <DialogTitle>{translate('title')}</DialogTitle>
+          <DialogDescription className="sr-only">
+            {translate('description')}
+          </DialogDescription>
+        </DialogHeader>
+        <Searchbar
+          ariaLabel={translate('searchLabel')}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={translate('search')}
+          size={ComponentSize.MD}
+          value={query}
+        />
+        <DialogBody className="flex max-h-[24rem] flex-col gap-5">
           {isLoading ? (
-            <div className="flex h-full items-center justify-center">
-              <Spinner className="size-8 text-primary" />
+            <div
+              aria-label={translate('loading')}
+              className="flex justify-center py-10"
+              role="status"
+            >
+              <Spinner className="size-6 text-primary" />
             </div>
+          ) : hasError ? (
+            <p className="py-10 text-center text-sm text-muted-foreground">
+              {translate('error')}
+            </p>
+          ) : visibleModels.length === 0 ? (
+            <p className="py-10 text-center text-sm text-muted-foreground">
+              {translate('empty')}
+            </p>
           ) : (
-            <div className="space-y-6">
-              {/* Recent models */}
-              {filteredRecentModels.length > 0 && !searchQuery && (
-                <div>
-                  <h3 className="mb-3 text-sm font-medium text-muted-foreground">
-                    Recently Used
+            <>
+              {recent.length > 0 ? (
+                <section className="flex flex-col gap-2">
+                  <h3 className="text-xs font-medium text-muted-foreground">
+                    {translate('recent')}
                   </h3>
-                  <CollectionGrid maxColumns={4}>
-                    {filteredRecentModels.map((recent) => {
-                      const model = models.find(
-                        (m) =>
-                          m.id === recent.id && m.provider === recent.provider,
-                      );
-                      if (!model) return null;
-                      return (
-                        <ModelCard
-                          key={`${recent.provider}-${recent.id}`}
-                          model={model}
-                          onSelect={handleSelect}
-                          isRecent
-                        />
-                      );
-                    })}
-                  </CollectionGrid>
-                </div>
-              )}
-
-              {/* All models */}
-              <div>
-                <h3 className="mb-3 text-sm font-medium text-muted-foreground">
-                  {searchQuery ? `Results for "${searchQuery}"` : 'All Models'}
-                </h3>
-                {models.length === 0 ? (
-                  <CardEmptyContent icon={Sparkles} label="No models found" />
-                ) : (
-                  <CollectionGrid maxColumns={2}>
-                    {models.map((model) => (
-                      <ModelCard
-                        key={`${model.provider}-${model.id}`}
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {recent.map((model) => (
+                      <ModelTile
+                        isRecent
+                        isSelected={model.key === selectedKey}
+                        key={model.key}
                         model={model}
                         onSelect={handleSelect}
                       />
                     ))}
-                  </CollectionGrid>
-                )}
-              </div>
-            </div>
+                  </div>
+                </section>
+              ) : null}
+              <section className="flex flex-col gap-2">
+                <h3 className="text-xs font-medium text-muted-foreground">
+                  {translate('all')}
+                </h3>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {visibleModels.map((model) => (
+                    <ModelTile
+                      isSelected={model.key === selectedKey}
+                      key={model.key}
+                      model={model}
+                      onSelect={handleSelect}
+                    />
+                  ))}
+                </div>
+              </section>
+            </>
           )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between border-t border-border px-6 py-3">
-          <p className="text-xs text-muted-foreground">
-            {models.length} model{models.length !== 1 ? 's' : ''} available
-          </p>
-          <a
-            href="https://replicate.com/explore"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-xs text-primary hover:underline"
-          >
-            Explore more on Replicate
-            <ExternalLink className="size-3" />
-          </a>
-        </div>
-      </div>
-    </>,
-    document.body,
+        </DialogBody>
+      </DialogContent>
+    </Dialog>
   );
 }
 
