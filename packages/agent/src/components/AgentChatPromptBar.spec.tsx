@@ -5,7 +5,7 @@ import type {
 } from '@genfeedai/agent/models/agent-chat.model';
 import { AgentThreadMode } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-intl', () => ({
@@ -66,7 +66,7 @@ function renderPromptBar(
     latestProposedPlan: AgentProposedPlan;
     onApprovePlan: () => void;
     onRequestPlanChanges: (note: string) => void;
-    onSend: () => void;
+    onSend: ComponentProps<typeof AgentChatPromptBar>['onSend'];
     onMoveFollowUp: () => void;
     onRemoveFollowUp: () => void;
     onSendFollowUpNow: () => void;
