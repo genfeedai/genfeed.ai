@@ -30,19 +30,19 @@ import { type ChangeEvent, useEffect, useMemo } from 'react';
 
 export const BOT_PLATFORMS_LIST = [
   {
-    color: 'text-blue-400',
+    color: 'text-foreground',
     icon: XTwitterIcon,
     label: 'X (Twitter)',
     platform: Platform.TWITTER,
   },
   {
-    color: 'text-red-500',
+    color: 'text-platform-youtube',
     icon: YoutubeIcon,
     label: 'YouTube',
     platform: Platform.YOUTUBE,
   },
   {
-    color: 'text-purple-500',
+    color: 'text-platform-twitch',
     icon: TwitchIcon,
     label: 'Twitch',
     platform: Platform.TWITCH,

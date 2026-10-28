@@ -228,7 +228,7 @@ function SoundOverlayNodeComponent({
       {/* Output */}
       {data.outputVideoUrl && (
         <div className="p-2 bg-green-500/10 border border-green-500/20">
-          <div className="text-xs text-green-400 font-medium mb-1">
+          <div className="text-xs text-success font-medium mb-1">
             Processing Complete
           </div>
           <VideoPlayer
@@ -241,7 +241,7 @@ function SoundOverlayNodeComponent({
 
       {/* Error */}
       {data.error && (
-        <div className="p-2 bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+        <div className="p-2 bg-destructive/10 border border-destructive/20 text-destructive text-sm">
           {data.error}
         </div>
       )}

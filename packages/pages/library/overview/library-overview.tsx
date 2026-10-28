@@ -68,7 +68,7 @@ export default function LibraryOverview({
 
   const cards: OverviewCard[] = [
     {
-      color: 'bg-emerald-500/12 text-emerald-300',
+      color: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300',
       cta: translate('cards.review.cta'),
       description:
         needsReview > 0
@@ -82,7 +82,7 @@ export default function LibraryOverview({
     ...(failed > 0
       ? [
           {
-            color: 'bg-rose-500/12 text-rose-300',
+            color: 'bg-rose-500/12 text-rose-700 dark:text-rose-300',
             cta: translate('cards.failed.cta'),
             description: translate('cards.failed.description', {
               count: failed,
@@ -95,7 +95,7 @@ export default function LibraryOverview({
         ]
       : []),
     {
-      color: 'bg-sky-500/12 text-sky-300',
+      color: 'bg-sky-500/12 text-sky-700 dark:text-sky-300',
       cta: translate('cards.recent.cta'),
       href: href(RECENT_ROUTE),
       icon: Clock,
@@ -103,7 +103,7 @@ export default function LibraryOverview({
       label: translate('cards.recent.label'),
     },
     {
-      color: 'bg-amber-500/12 text-amber-300',
+      color: 'bg-amber-500/12 text-amber-700 dark:text-amber-300',
       cta: translate('cards.starred.cta'),
       description:
         starred > 0
@@ -117,7 +117,7 @@ export default function LibraryOverview({
     ...(scope === PageScope.BRAND
       ? [
           {
-            color: 'bg-violet-500/12 text-violet-300',
+            color: 'bg-violet-500/12 text-violet-700 dark:text-violet-300',
             cta: translate('cards.references.cta'),
             href: href(APP_ROUTES.LIBRARY.REFERENCES),
             icon: ScanFace,

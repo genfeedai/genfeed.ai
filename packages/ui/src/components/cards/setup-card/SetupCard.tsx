@@ -46,7 +46,7 @@ export default function SetupCard() {
             )}
           >
             {step.isCompleted ? (
-              <Check className="size-3.5 text-green-400/60 flex-shrink-0" />
+              <Check className="size-3.5 text-success/60 flex-shrink-0" />
             ) : (
               <ChevronRight className="size-3.5 flex-shrink-0 text-foreground/20" />
             )}

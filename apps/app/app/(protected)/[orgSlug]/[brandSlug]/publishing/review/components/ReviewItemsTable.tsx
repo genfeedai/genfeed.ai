@@ -221,10 +221,10 @@ export default function ReviewItemsTable({
                   className={cn(
                     'inline-flex items-center rounded-md border px-1.5 py-0.5 text-2xs font-medium',
                     performanceSignal === 'winning'
-                      ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300'
+                      ? 'border-success/30 bg-success/15 text-success'
                       : performanceSignal === 'underperforming'
-                        ? 'border-rose-500/30 bg-rose-500/15 text-rose-300'
-                        : 'border-amber-500/30 bg-amber-500/15 text-amber-200',
+                        ? 'border-destructive/30 bg-destructive/15 text-destructive'
+                        : 'border-warning/30 bg-warning/15 text-warning',
                   )}
                 >
                   {performanceLabel}

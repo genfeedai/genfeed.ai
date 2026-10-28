@@ -40,6 +40,7 @@ const DESIGN_SYSTEM_BASELINE_PATH = path.join(
 );
 
 export type DesignSystemFindingKind =
+  | 'dark-only-palette-text'
   | 'raw-chrome-color'
   | 'sub-11-text'
   | 'undersized-control-height';
@@ -240,6 +241,73 @@ function findAppChromeRawColorFindings(): DesignSystemFinding[] {
   return findings;
 }
 
+/**
+ * Light palette shades (`text-amber-300`) only read on a dark surface, so
+ * used bare they vanish in the light theme. Status text takes a semantic
+ * token (text-success, text-warning, text-destructive, text-info); a genuine
+ * categorical hue pairs a light-theme shade with a `dark:` one.
+ */
+const DARK_ONLY_PALETTE_TEXT_ROOTS = [
+  'apps/app',
+  'apps/website',
+  'apps/extensions',
+  'packages/agent',
+  'packages/pages',
+  'packages/ui/src',
+];
+const DARK_ONLY_PALETTE_TEXT_PATTERN =
+  /^text-(?:red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-(?:50|100|200|300|400)(?:\/(?:\d+|\[[^\]]+\]))?$/u;
+
+export function findDarkOnlyPaletteTextTokens(line: string): string[] {
+  if (line.includes(APP_CHROME_COLOR_ALLOW_MARKER)) {
+    return [];
+  }
+
+  return line.split(/[\s"'`{}]+/u).filter((rawToken) => {
+    const token = rawToken.replace(/^[,;()!]+/u, '').replace(/[,;()]+$/u, '');
+    const variants = token.split(':');
+    const baseToken = variants.pop() ?? token;
+    return (
+      !variants.includes('dark') &&
+      DARK_ONLY_PALETTE_TEXT_PATTERN.test(baseToken)
+    );
+  });
+}
+
+function findDarkOnlyPaletteTextFindings(): DesignSystemFinding[] {
+  const findings: DesignSystemFinding[] = [];
+
+  for (const root of DARK_ONLY_PALETTE_TEXT_ROOTS) {
+    const files = collectFiles(
+      path.join(rootDir, root),
+      new Set(['.ts', '.tsx', '.js', '.jsx']),
+    );
+
+    for (const filePath of files) {
+      const relativePath = path.relative(rootDir, filePath);
+      if (isExcludedSourceFile(relativePath)) {
+        continue;
+      }
+
+      readFileSync(filePath, 'utf8')
+        .split('\n')
+        .forEach((line, index) => {
+          for (const token of findDarkOnlyPaletteTextTokens(line)) {
+            findings.push({
+              file: relativePath,
+              kind: 'dark-only-palette-text',
+              line: index + 1,
+              source: line.trim(),
+              token,
+            });
+          }
+        });
+    }
+  }
+
+  return findings;
+}
+
 const CONTROL_HEIGHT_TOKENS = new Set(['h-6', 'h-7']);
 const CONTROL_COMPONENT_NAME_PATTERN =
   /(?:Action|Button|Combobox|CommandItem|Control|Input|Link|MenuItem|SearchBar|Searchbar|Select|Tab|TabsTrigger|Textarea|Toggle|Trigger)$/u;
@@ -254,6 +322,7 @@ const NATIVE_CONTROL_NAMES = new Set([
 ]);
 const PACKAGE_UI_EXTENSIONS = new Set(['.js', '.jsx', '.ts', '.tsx']);
 const DESIGN_SYSTEM_FINDING_KINDS: readonly DesignSystemFindingKind[] = [
+  'dark-only-palette-text',
   'raw-chrome-color',
   'sub-11-text',
   'undersized-control-height',
@@ -605,6 +674,7 @@ export function serializeDesignSystemBaseline(
 export function scanDesignSystemFindings(): DesignSystemFinding[] {
   return [
     ...findAppChromeRawColorFindings(),
+    ...findDarkOnlyPaletteTextFindings(),
     ...findPackageUiGuardFindingsInRepo(),
   ];
 }
@@ -621,11 +691,13 @@ export function formatDesignSystemRegressions(
   return findings
     .map((finding) => {
       const remedy =
-        finding.kind === 'raw-chrome-color'
-          ? `use a semantic foreground/background token, or mark genuine content color with ${APP_CHROME_COLOR_ALLOW_MARKER}`
-          : finding.kind === 'undersized-control-height'
-            ? 'use h-control-sm (the 32px minimum control-scale token)'
-            : 'use text-2xs (the 11px typography floor) or a larger semantic text token';
+        finding.kind === 'dark-only-palette-text'
+          ? 'use text-success/warning/destructive/info, or pair a light-theme shade with a dark: one'
+          : finding.kind === 'raw-chrome-color'
+            ? `use a semantic foreground/background token, or mark genuine content color with ${APP_CHROME_COLOR_ALLOW_MARKER}`
+            : finding.kind === 'undersized-control-height'
+              ? 'use h-control-sm (the 32px minimum control-scale token)'
+              : 'use text-2xs (the 11px typography floor) or a larger semantic text token';
       return `${finding.file}:${finding.line}: ${finding.token} — ${remedy}\n  ${finding.source}`;
     })
     .join('\n');

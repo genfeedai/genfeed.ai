@@ -47,7 +47,7 @@ export function WorkspaceTaskOutputsCard({
       {linkedOutputSummary.isLoading ? <p>Loading linked outputs…</p> : null}
 
       {linkedOutputSummary.error ? (
-        <p className="text-amber-200">{linkedOutputSummary.error}</p>
+        <p className="text-warning">{linkedOutputSummary.error}</p>
       ) : null}
 
       {linkedOutputGroups.length > 0 ? (

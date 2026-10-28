@@ -127,7 +127,7 @@ export default function ProductInterfacePreview({
                       {useCase.description}
                     </p>
                   </div>
-                  <div className="flex items-start gap-1.5 pt-0.5 text-[9px] uppercase tracking-[0.1em] text-emerald-400/75">
+                  <div className="flex items-start gap-1.5 pt-0.5 text-[9px] uppercase tracking-[0.1em] text-success/75">
                     <Check className="size-3" />
                     <span className="hidden sm:inline">Ready</span>
                   </div>

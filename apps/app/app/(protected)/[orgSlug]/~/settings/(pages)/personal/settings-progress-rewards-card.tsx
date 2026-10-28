@@ -46,8 +46,8 @@ export default function SettingsProgressRewardsCard({
             key={milestone.days}
             className={cn(
               'py-4 first:pt-0 last:pb-0',
-              milestone.isAchieved && 'text-emerald-100',
-              milestone.isNext && 'text-orange-100',
+              milestone.isAchieved && 'text-emerald-700 dark:text-emerald-100',
+              milestone.isNext && 'text-orange-700 dark:text-orange-100',
             )}
           >
             <div className="flex items-start justify-between gap-3">
@@ -57,11 +57,11 @@ export default function SettingsProgressRewardsCard({
                     {milestone.days} days
                   </span>
                   {milestone.days === 7 ? (
-                    <ShieldCheck className="size-4 text-sky-300" />
+                    <ShieldCheck className="size-4 text-info" />
                   ) : milestone.rewardCredits > 0 ? (
-                    <Gift className="size-4 text-emerald-300" />
+                    <Gift className="size-4 text-success" />
                   ) : (
-                    <Flame className="size-4 text-orange-300" />
+                    <Flame className="size-4 text-warning" />
                   )}
                 </div>
                 <p className="mt-1 text-sm text-foreground/65">

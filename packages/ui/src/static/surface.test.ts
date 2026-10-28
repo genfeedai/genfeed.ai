@@ -12,7 +12,7 @@ describe('static surface primitives', () => {
   });
 
   it('drives every surface from the single sharp-radius knob', () => {
-    // Sharp borders: one knob, mirroring the canonical --radius-card (0px).
+    // Sharp borders: one knob for every HTML-only surface.
     expect(staticSurfaceCss).toContain('--gf-surface-radius: 0px');
     expect(staticSurfaceCss).toContain(
       'border-radius: var(--gf-surface-radius)',

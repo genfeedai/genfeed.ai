@@ -241,7 +241,7 @@ export default function ArticleDetail({
 
         {isPreview && (
           <div className="mb-6 flex items-start gap-3 border border-yellow-500/30 bg-yellow-500/20 p-4 backdrop-blur-sm md:mb-8">
-            <TriangleAlert className="size-4 flex-shrink-0 text-yellow-300" />
+            <TriangleAlert className="size-4 flex-shrink-0 text-warning" />
             <span className="text-sm text-foreground md:text-base">
               You are viewing a preview of this article. This article may not be
               published or publicly visible yet.

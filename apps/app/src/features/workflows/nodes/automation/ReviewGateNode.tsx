@@ -380,7 +380,7 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
       )}
 
       {data.error && !isErrorShownAsRejectionReason && (
-        <div className="rounded border border-red-500/20 bg-red-500/10 px-2 py-1 text-xs text-red-300">
+        <div className="rounded border border-destructive/20 bg-destructive/10 px-2 py-1 text-xs text-destructive">
           {data.error}
         </div>
       )}
