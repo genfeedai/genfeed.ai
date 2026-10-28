@@ -238,6 +238,7 @@ export default function Badge({
   variant = 'default',
   size = ComponentSize.MD,
   status,
+  style,
 }: BadgeProps) {
   // Don't render badge if value is 0
   if (value === 0) {
@@ -284,6 +285,7 @@ export default function Badge({
         ] ?? 'default'
       }
       icon={effectiveIcon}
+      style={style}
     >
       {value !== undefined ? (
         <span className="font-semibold">{value}</span>

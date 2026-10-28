@@ -18,6 +18,7 @@ import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import Spinner from '@ui/primitives/spinner';
+import { libraryTagStyle } from '@ui/tags/library-tag-picker/library-tag-colors.util';
 import { LIBRARY_TAGS_QUERY_KEY } from '@ui/tags/library-tag-picker/library-tags-query-key';
 import TagsManager from '@ui/tags/manager/TagsManager';
 import { Plus, Tag, X } from 'lucide-react';
@@ -156,8 +157,7 @@ export default function IngredientTabsTags({
                 key={tag.id}
                 size={ComponentSize.LG}
                 className="gap-2"
-                backgroundColor={tag.backgroundColor || 'hsl(var(--muted))'}
-                textColor={tag.textColor || 'hsl(var(--muted-foreground))'}
+                style={libraryTagStyle(tag)}
               >
                 <Tag className="text-sm" />
                 <span>{tag.label}</span>
