@@ -12,6 +12,7 @@ import type { AgentMediaGenerationToolHandler } from '@api/services/agent-orches
 import type { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
 import type { AgentOnboardingBrandSetupToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-brand-setup-tool-handler.service';
 import type { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
+import type { AgentPrepBriefToolHandler } from '@api/services/agent-orchestrator/tools/agent-prep-brief-tool-handler.service';
 import type { AgentPrepareToolHandler } from '@api/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
 import type { AgentProactiveToolHandler } from '@api/services/agent-orchestrator/tools/agent-proactive-tool-handler.service';
 import type { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
@@ -43,6 +44,7 @@ export type AgentToolDispatchHandlers = {
   memoryGoalsHandler: AgentMemoryGoalsToolHandler;
   onboardingBrandSetupHandler: AgentOnboardingBrandSetupToolHandler;
   onboardingHandler: AgentOnboardingToolHandler;
+  prepBriefHandler: AgentPrepBriefToolHandler;
   prepareHandler: AgentPrepareToolHandler;
   proactiveHandler: AgentProactiveToolHandler;
   publishHandler: AgentPublishToolHandler;
@@ -356,6 +358,8 @@ function dispatchGrowthFamily(
       return handlers.proactiveHandler.draftEngagementReply(params, ctx);
     case 'get_approval_summary':
       return handlers.proactiveHandler.getApprovalSummary(ctx);
+    case 'build_prep_brief':
+      return handlers.prepBriefHandler.buildPrepBrief(params, ctx);
     case 'list_stalled_items':
       return handlers.proactiveHandler.listStalledItems(params, ctx);
     case 'analyze_performance':

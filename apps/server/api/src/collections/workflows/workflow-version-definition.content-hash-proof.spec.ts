@@ -107,6 +107,7 @@ const EXPECTED_SYSTEM_WORKFLOW_IDS: readonly string[] = [
   'agent.tool.analyze_performance',
   'agent.tool.archive_knowledge_source',
   'agent.tool.assign_knowledge_purpose',
+  'agent.tool.build_prep_brief',
   'agent.tool.cancel_visual_code_project',
   'agent.tool.capture_knowledge',
   'agent.tool.capture_memory',

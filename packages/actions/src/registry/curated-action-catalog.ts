@@ -55,6 +55,11 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'inspiration',
   },
   {
+    name: 'build_prep_brief',
+    surfaces: ['agent', 'mcp'],
+    toolset: 'engagement',
+  },
+  {
     name: 'cancel_visual_code_project',
     surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'visual-code',

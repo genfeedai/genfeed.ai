@@ -122,6 +122,7 @@ import { AgentMediaTurboRunService } from '@api/services/agent-orchestrator/tool
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
 import { AgentOnboardingBrandSetupToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-brand-setup-tool-handler.service';
 import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
+import { AgentPrepBriefToolHandler } from '@api/services/agent-orchestrator/tools/agent-prep-brief-tool-handler.service';
 import { AgentPrepareToolHandler } from '@api/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
 import { AgentProactiveToolHandler } from '@api/services/agent-orchestrator/tools/agent-proactive-tool-handler.service';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
@@ -296,6 +297,7 @@ import { Module } from '@nestjs/common';
     AgentBrandInterviewToolHandler,
     RolesGuard,
     AgentPrepareToolHandler,
+    AgentPrepBriefToolHandler,
     AgentSpawnToolHandler,
     AgentToolCatalogHandler,
     AgentCampaignToolHandler,

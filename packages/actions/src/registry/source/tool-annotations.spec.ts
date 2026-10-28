@@ -382,6 +382,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     false,
     false,
   ],
+  ['build_prep_brief', 'Build Prep Brief', true, false, true, false],
   [
     'cancel_visual_code_project',
     'Cancel Visual Code Project',
@@ -1046,7 +1047,7 @@ describe('MCP tool annotations', () => {
         tool?.annotations?.openWorldHint,
       ]).toEqual(row);
     }
-    expect(rows).toHaveLength(148);
+    expect(rows).toHaveLength(149);
     expect(rows.map((row) => row[0])).toEqual(expected.map((row) => row[0]));
     expect(rows).toEqual(expected);
   });

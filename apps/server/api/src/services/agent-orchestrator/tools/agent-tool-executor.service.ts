@@ -36,6 +36,7 @@ import { AgentMediaGenerationToolHandler } from '@api/services/agent-orchestrato
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
 import { AgentOnboardingBrandSetupToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-brand-setup-tool-handler.service';
 import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
+import { AgentPrepBriefToolHandler } from '@api/services/agent-orchestrator/tools/agent-prep-brief-tool-handler.service';
 import { AgentPrepareToolHandler } from '@api/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
 import { AgentProactiveToolHandler } from '@api/services/agent-orchestrator/tools/agent-proactive-tool-handler.service';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
@@ -316,6 +317,9 @@ export class AgentToolExecutorService implements OnModuleInit {
 
   @Inject(AgentBrandContextToolHandler)
   private readonly brandContextHandler!: AgentBrandContextToolHandler;
+
+  @Inject(AgentPrepBriefToolHandler)
+  private readonly prepBriefHandler!: AgentPrepBriefToolHandler;
 
   @Inject(AgentOnboardingBrandSetupToolHandler)
   private readonly onboardingBrandSetupHandler!: AgentOnboardingBrandSetupToolHandler;
@@ -844,6 +848,7 @@ export class AgentToolExecutorService implements OnModuleInit {
         memoryGoalsHandler: this.memoryGoalsHandler,
         onboardingBrandSetupHandler: this.onboardingBrandSetupHandler,
         onboardingHandler: this.onboardingHandler,
+        prepBriefHandler: this.prepBriefHandler,
         prepareHandler: this.prepareHandler,
         proactiveHandler: this.proactiveHandler,
         publishHandler: this.publishHandler,
