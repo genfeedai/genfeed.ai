@@ -43,6 +43,12 @@ describe('page help routing', () => {
     );
   });
 
+  it('explains the org Modules page from its settings route', () => {
+    expect(resolvePageHelpKey('/acme/~/settings/modules')).toBe(
+      'settingsModules',
+    );
+  });
+
   it('returns null for pages without help copy', () => {
     expect(resolvePageHelpKey('/acme/brand/settings/general')).toBeNull();
   });

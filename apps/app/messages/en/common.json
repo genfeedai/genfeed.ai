@@ -1117,8 +1117,6 @@
       }
     },
     "organizationModules": {
-      "title": "Modules",
-      "description": "Choose which apps your organization's members see.",
       "adminOnly": "Only owners and admins can change module settings.",
       "paidPlan": "Paid plan",
       "subscriptionRequired": "Needs a monthly subscription. It stays out of the rail until you subscribe.",
@@ -1127,15 +1125,11 @@
       "hidden": "Hidden",
       "loading": "Loading module settings…",
       "saving": "Saving module settings…",
-      "saved": "Module settings saved.",
       "saveFailed": "Could not save module settings. Try again.",
       "savedRefreshFailed": "Module settings were saved. Reload to see the latest values.",
       "loadFailed": "Could not load module settings. Try again.",
       "unavailable": "Module settings are unavailable. Reload before making changes.",
       "retry": "Retry loading",
-      "dataHelp": "Hiding a module removes its app for everyone in your organization. Work through the API and MCP keeps running, and existing projects stay readable and exportable.",
-      "paidHelp": "All paid plans unlock subscription modules. Credits still cover usage.",
-      "subscription": "Manage subscription",
       "modules": {
         "playground": {
           "label": "Playground",

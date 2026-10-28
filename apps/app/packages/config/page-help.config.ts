@@ -36,6 +36,7 @@ export const PAGE_HELP_ROUTES: PageHelpRoute[] = [
   },
   { key: 'library', prefix: APP_ROUTES.LIBRARY.ROOT },
   { key: 'libraryTrash', prefix: APP_ROUTES.LIBRARY.TRASH },
+  { key: 'settingsModules', prefix: APP_ROUTES.SETTINGS.MODULES },
   { key: 'studioPlayground', prefix: APP_ROUTES.STUDIO.PLAYGROUND },
   { key: 'studioStoryboard', prefix: APP_ROUTES.STUDIO.STORYBOARD },
   { key: 'studioClipper', prefix: APP_ROUTES.STUDIO.CLIPPER },

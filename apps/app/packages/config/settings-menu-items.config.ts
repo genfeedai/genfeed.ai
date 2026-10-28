@@ -331,6 +331,21 @@ function buildBrandMenuItems(): MenuItemConfig[] {
 }
 
 /**
+ * Sidebar group headers collapse when the group's first item carries
+ * `isCollapsible`. A scope with a single group has nothing to fold away.
+ */
+function withCollapsibleGroups(items: MenuItemConfig[]): MenuItemConfig[] {
+  const groups = new Set(items.map((item) => item.group));
+  if (groups.size < 2) return items;
+  const seen = new Set<string | undefined>();
+  return items.map((item) => {
+    if (seen.has(item.group)) return item;
+    seen.add(item.group);
+    return { ...item, isCollapsible: true };
+  });
+}
+
+/**
  * Builds the Settings sidebar menu for a single scope. The sidebar is
  * scope-specific: brand → brand pages, org → org pages, personal → personal.
  * Scope switching is the gear dropdown / org + brand switchers, not this list.
@@ -341,11 +356,13 @@ export function buildSettingsMenuItems({
   showCredits = true,
 }: BuildSettingsMenuItemsParams): MenuItemConfig[] {
   if (scope === 'brand') {
-    return buildBrandMenuItems();
+    return withCollapsibleGroups(buildBrandMenuItems());
   }
 
   if (scope === 'organization') {
-    return buildOrganizationMenuItems(isEnterprise, showCredits);
+    return withCollapsibleGroups(
+      buildOrganizationMenuItems(isEnterprise, showCredits),
+    );
   }
 
   return buildPersonalMenuItems();

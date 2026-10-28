@@ -26,7 +26,6 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
 import { APP_RAIL_REGISTRY } from '@ui/shell/app-rail/app-rail.registry';
-import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -68,7 +67,6 @@ export default function OrganizationModulesCard() {
   );
   const [pending, setPending] = useState<OrganizationModuleId | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const scope = useRef(organizationId);
   const operation = useRef<symbol | null>(null);
   const mounted = useRef(true);
@@ -86,7 +84,6 @@ export default function OrganizationModulesCard() {
     operation.current = null;
     setPending(null);
     setError(null);
-    setNotice(null);
   }, [organizationId]);
 
   const offeredModuleIds = useMemo(
@@ -118,7 +115,6 @@ export default function OrganizationModulesCard() {
     operation.current = current;
     setPending(moduleId);
     setError(null);
-    setNotice(null);
     let isSaved = false;
     try {
       const service = await getService();
@@ -130,7 +126,6 @@ export default function OrganizationModulesCard() {
       clearClientProtectedBootstrapCache();
       if (!isCurrent()) return;
       await refresh();
-      if (isCurrent()) setNotice(translate('saved'));
     } catch (failure: unknown) {
       logger.error('Failed to update organization module settings', failure);
       if (isCurrent())
@@ -166,27 +161,21 @@ export default function OrganizationModulesCard() {
 
   return (
     <div className="flex flex-col gap-8" aria-busy={Boolean(pending)}>
-      <div className="flex flex-col gap-1">
-        <Heading size="md">{translate('title')}</Heading>
-        <Text as="p" color="muted" size="sm">
-          {translate('description')}
+      {!canManage ? (
+        <Text as="p" color="muted" size="xs">
+          {translate('adminOnly')}
         </Text>
-        {!canManage ? (
-          <Text as="p" color="muted" size="xs">
-            {translate('adminOnly')}
-          </Text>
-        ) : null}
-      </div>
+      ) : null}
 
       {isLoading ? (
-        <p role="status" className="text-xs text-muted-foreground">
+        <Text as="p" color="muted" role="status" size="xs">
           {translate('loading')}
-        </p>
+        </Text>
       ) : !isAvailable ? (
         <div className="flex flex-col items-start gap-2">
-          <p className="text-sm text-muted-foreground">
+          <Text as="p" color="muted" size="sm">
             {translate('unavailable')}
-          </p>
+          </Text>
           <Button
             isDisabled={!organizationId || isLoading}
             onClick={() => {
@@ -252,37 +241,15 @@ export default function OrganizationModulesCard() {
       )}
 
       {pending ? (
-        <p role="status" className="text-xs text-muted-foreground">
+        <Text as="p" color="muted" role="status" size="xs">
           {translate('saving')}
-        </p>
+        </Text>
       ) : null}
       {error ? (
-        <p role="alert" className="text-sm text-destructive">
+        <Text as="p" color="destructive" role="alert" size="sm">
           {error}
-        </p>
+        </Text>
       ) : null}
-      {notice ? (
-        <p role="status" className="text-sm text-muted-foreground">
-          {notice}
-        </p>
-      ) : null}
-
-      <div className="flex flex-col gap-1 border-t border-border pt-4">
-        <p className="text-xs text-muted-foreground">{translate('dataHelp')}</p>
-        {isBillingEnabled ? (
-          <>
-            <p className="text-xs text-muted-foreground">
-              {translate('paidHelp')}
-            </p>
-            <Link
-              className="text-sm underline underline-offset-4"
-              href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}
-            >
-              {translate('subscription')}
-            </Link>
-          </>
-        ) : null}
-      </div>
     </div>
   );
 }

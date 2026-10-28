@@ -111,6 +111,10 @@
     "title": "Trash",
     "body": "Deleted assets stay here until they are purged. Restore anything you still need."
   },
+  "settingsModules": {
+    "title": "Modules",
+    "body": "Hiding a module removes its app for everyone in your organization. Work through the API and MCP keeps running, and existing projects stay readable and exportable."
+  },
   "studioPlayground": {
     "title": "Playground",
     "body": "Create images, video, audio, and copy from a prompt. Results land in the Library and can go straight to a post."
