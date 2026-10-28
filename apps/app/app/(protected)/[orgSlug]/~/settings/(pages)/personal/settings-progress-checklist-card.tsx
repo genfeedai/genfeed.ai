@@ -18,7 +18,7 @@ export default function SettingsProgressChecklistCard({
       label="Setup checklist"
       bodyClassName="gap-3 p-4"
       headerAction={
-        <Badge variant="outline" className="px-3 py-1 text-xs font-medium">
+        <Badge variant="outline">
           {completedCount}/{totalCount} complete
         </Badge>
       }

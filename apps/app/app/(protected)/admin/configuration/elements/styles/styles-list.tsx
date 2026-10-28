@@ -108,7 +108,7 @@ function StylesListContent({
           {style.models?.map((model) => (
             <Badge
               key={model}
-              className={`text-xs border border-border bg-transparent uppercase ${model ? 'text-primary' : 'text-warning'}`}
+              className={`border border-border bg-transparent ${model ? 'text-primary' : 'text-warning'}`}
             >
               {model}
             </Badge>

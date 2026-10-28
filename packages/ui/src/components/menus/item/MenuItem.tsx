@@ -137,7 +137,7 @@ export default function MenuItem({
           />
         ) : shouldRenderBadge ? (
           <Badge
-            className="ml-auto min-w-5 justify-center px-1.5"
+            className="ml-auto min-w-5 justify-center"
             size={ComponentSize.SM}
             variant="error"
           >
@@ -189,7 +189,7 @@ export default function MenuItem({
         />
       ) : shouldRenderBadge && isIconVariant && !isHorizontalLayout ? (
         <Badge
-          className="absolute right-1 top-1 min-w-5 justify-center px-1.5"
+          className="absolute right-1 top-1 min-w-5 justify-center"
           size={ComponentSize.SM}
           variant="error"
         >

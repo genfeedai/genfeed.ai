@@ -164,7 +164,7 @@ export default function TrendingTopicsSection({
               render: (item) => (
                 <Badge
                   value={item.viralityScore}
-                  className={`text-xs ${getViralityBadgeClass(item.viralityScore)}`}
+                  className={getViralityBadgeClass(item.viralityScore)}
                 />
               ),
             },

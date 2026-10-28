@@ -180,11 +180,7 @@ export default function AnalyticsOutliers({
         header: translate('tier'),
         key: 'outlierTier',
         render: (post) =>
-          post.outlierTier ? (
-            <Badge value={post.outlierTier} className="text-xs capitalize" />
-          ) : (
-            '-'
-          ),
+          post.outlierTier ? <Badge value={post.outlierTier} /> : '-',
       },
     ],
     [translate],

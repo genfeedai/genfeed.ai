@@ -155,7 +155,7 @@ export default function IngredientTabsTags({
               <Badge
                 key={tag.id}
                 size={ComponentSize.LG}
-                className="gap-2 px-3 py-2"
+                className="gap-2"
                 backgroundColor={tag.backgroundColor || 'hsl(var(--muted))'}
                 textColor={tag.textColor || 'hsl(var(--muted-foreground))'}
               >

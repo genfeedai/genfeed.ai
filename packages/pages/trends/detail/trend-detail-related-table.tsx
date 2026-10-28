@@ -105,9 +105,7 @@ export default function TrendDetailRelatedTable({
             {
               header: translate('columns.virality'),
               key: 'viralityScore',
-              render: (item) => (
-                <Badge value={item.viralityScore} className="text-xs" />
-              ),
+              render: (item) => <Badge value={item.viralityScore} />,
             },
           ]}
         />

@@ -111,7 +111,7 @@ function DeskLightCard({
               <span className="truncate text-sm text-foreground/80">
                 {item.authorHandle ? `@${item.authorHandle}` : item.platform}
               </span>
-              <Badge className="ml-auto capitalize" variant="ghost">
+              <Badge className="ml-auto" variant="ghost">
                 {item.source}
               </Badge>
             </div>

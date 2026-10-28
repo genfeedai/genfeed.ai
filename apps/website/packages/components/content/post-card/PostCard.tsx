@@ -98,9 +98,7 @@ export default function PostCard({ post, className = '' }: PostCardProps) {
         </div>
 
         <div className="absolute top-3 right-3">
-          <Badge status={post.status} className="text-xs">
-            {post.status}
-          </Badge>
+          <Badge status={post.status}>{post.status}</Badge>
         </div>
 
         {primaryIngredient?.metadataDuration && (

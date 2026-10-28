@@ -255,7 +255,7 @@ export default function ArticleDetail({
               {article.category && (
                 <Badge
                   variant="primary"
-                  className="mb-3 bg-fill/20 text-xs text-surface border-edge/30 md:mb-4 md:text-sm"
+                  className="mb-3 bg-fill/20 text-surface border-edge/30 md:mb-4 md:text-sm"
                 >
                   {article.category}
                 </Badge>

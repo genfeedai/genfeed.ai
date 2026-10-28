@@ -238,7 +238,7 @@ export function ViralVideoLeaderboard({
               return (
                 <Badge
                   value={Math.round(video.viralScore)}
-                  className={`${badgeClass} text-xs`}
+                  className={badgeClass}
                 />
               );
             },

@@ -171,7 +171,7 @@ export default function BrandTopVideosSection() {
               return (
                 <Badge
                   value={Math.round(video.viralScore || 0)}
-                  className={`${badgeTone} text-xs`}
+                  className={badgeTone}
                 />
               );
             },
@@ -185,7 +185,7 @@ export default function BrandTopVideosSection() {
                 <div className="max-w-sm space-y-2 break-words">
                   <Badge
                     value={`${video.persuasionHighlight.label} · ${video.persuasionHighlight.score}`}
-                    className="bg-secondary/10 text-secondary text-xs"
+                    className="bg-secondary/10 text-secondary"
                   />
                   {video.persuasionHighlight.analysisNote ? (
                     <Collapsible>

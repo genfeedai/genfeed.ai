@@ -70,19 +70,19 @@ export default function TrainingFileList({
         {files.length > 0 && (
           <div className="flex gap-2">
             {completedCount > 0 && (
-              <Badge variant="success" className="text-xs tabular-nums">
+              <Badge variant="success" className="tabular-nums">
                 {completedCount} completed
               </Badge>
             )}
 
             {uploadingCount > 0 && (
-              <Badge variant="info" className="text-xs tabular-nums">
+              <Badge variant="info" className="tabular-nums">
                 {uploadingCount} uploading
               </Badge>
             )}
 
             {failedCount > 0 && (
-              <Badge variant="error" className="text-xs tabular-nums">
+              <Badge variant="error" className="tabular-nums">
                 {failedCount} failed
               </Badge>
             )}
@@ -125,7 +125,7 @@ export default function TrainingFileList({
                     {fileStatus && (
                       <Badge
                         variant={getStatusBadgeVariant(fileStatus.status)}
-                        className="text-xs whitespace-nowrap tabular-nums"
+                        className="whitespace-nowrap tabular-nums"
                       >
                         {getStatusBadgeLabel(fileStatus)}
                       </Badge>
