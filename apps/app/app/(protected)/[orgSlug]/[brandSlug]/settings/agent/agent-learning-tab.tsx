@@ -2,6 +2,7 @@
 
 import {
   ButtonVariant,
+  ComponentSize,
   ContentLearningMode,
   MemberRole,
 } from '@genfeedai/contracts';
@@ -19,6 +20,7 @@ import type {
 } from '@props/settings/agent/learning.props';
 import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 import Card from '@ui/card/Card';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -351,7 +353,12 @@ function LearningStatus({
                   <h4>{translate('scopedEvidence')}</h4>
                   <dl className="grid gap-2">
                     <dt>{translate('platform')}</dt>
-                    <dd>{cell.descriptor.platform}</dd>
+                    <dd>
+                      <PlatformBadge
+                        platform={cell.descriptor.platform}
+                        size={ComponentSize.SM}
+                      />
+                    </dd>
                     <dt>{translate('format')}</dt>
                     <dd>{cell.descriptor.format}</dd>
                     <dt>{translate('objective')}</dt>

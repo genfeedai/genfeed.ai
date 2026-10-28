@@ -67,7 +67,7 @@ function AdPackPanel({ adPack }: AdPackPanelProps) {
           {adPack.headlines.map((headline) => (
             <div
               key={headline}
-              className="rounded-md bg-background-tertiary px-3 py-2 text-sm text-foreground"
+              className="rounded-md bg-tertiary px-3 py-2 text-sm text-foreground"
             >
               {headline}
             </div>
@@ -193,10 +193,7 @@ function LaunchPrepPanel({ prep }: LaunchPrepPanelProps) {
         </div>
         <ul className="space-y-2 text-sm text-foreground/85">
           {prep.notes.map((note) => (
-            <li
-              key={note}
-              className="rounded-md bg-background-tertiary px-3 py-2"
-            >
+            <li key={note} className="rounded-md bg-tertiary px-3 py-2">
               {note}
             </li>
           ))}
@@ -349,7 +346,7 @@ export function DetailSidebar({
                   {detail.patternSummary.map((pattern) => (
                     <div
                       key={`${pattern.id}-${pattern.label}`}
-                      className="rounded-md bg-background-tertiary p-3"
+                      className="rounded-md bg-tertiary p-3"
                     >
                       <div className="mb-1 flex items-center justify-between gap-2">
                         <span className="text-sm font-medium text-foreground">

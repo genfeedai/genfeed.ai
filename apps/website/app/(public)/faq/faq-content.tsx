@@ -83,7 +83,7 @@ export default function FAQContent() {
                       <AccordionItem
                         key={item.question}
                         value={item.question}
-                        className="bg-fill/5 border border-edge/10 px-2 data-[state=open]:bg-fill/[0.07]"
+                        className="bg-foreground/5 border border-foreground/10 px-2 data-[state=open]:bg-foreground/[0.07]"
                       >
                         <AccordionTrigger className="p-4 text-base font-medium hover:no-underline text-left">
                           {item.question}
@@ -111,7 +111,7 @@ export default function FAQContent() {
                       <a
                         key={category.category}
                         href={`#${categorySlug(category.category)}`}
-                        className="flex items-center gap-3 w-full px-3 py-2.5 text-left text-sm text-muted-foreground hover:text-surface hover:bg-fill/10 transition-colors"
+                        className="flex items-center gap-3 w-full px-3 py-2.5 text-left text-sm text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-colors"
                       >
                         {category.icon}
                         <span>{category.category}</span>
@@ -144,7 +144,7 @@ export default function FAQContent() {
                   </h3>
                   <a
                     href="mailto:hello@genfeed.ai"
-                    className="flex items-center gap-3 text-sm text-muted-foreground hover:text-surface transition-colors"
+                    className="flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     <Mail className="size-5" />
                     hello@genfeed.ai

@@ -24,7 +24,7 @@ describe('InsetSurface', () => {
     const surface = container.firstElementChild;
 
     expect(surface).toHaveClass('p-3');
-    expect(surface).toHaveClass('bg-background-secondary');
+    expect(surface).toHaveClass('bg-card');
     expect(surface).not.toHaveClass('bg-black/20');
   });
 });

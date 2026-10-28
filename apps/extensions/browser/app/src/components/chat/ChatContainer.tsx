@@ -94,7 +94,7 @@ export function ChatContainer({
           />
         ) : messages.length === 0 ? (
           <div className="flex h-full flex-col justify-center gap-5 pb-8">
-            <div className="flex size-10 items-center justify-center rounded-xl border border-border bg-background-secondary">
+            <div className="flex size-10 items-center justify-center rounded-xl border border-border bg-card">
               <Icon className="size-5 text-muted-foreground" />
             </div>
             <div>
@@ -110,7 +110,7 @@ export function ChatContainer({
               </p>
             </div>
             {initialContent ? (
-              <div className="rounded-lg border border-border bg-background-secondary p-3">
+              <div className="rounded-lg border border-border bg-card p-3">
                 <p className="mb-2 text-2xs font-medium text-muted-foreground">
                   From this page
                 </p>

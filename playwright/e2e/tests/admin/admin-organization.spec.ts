@@ -89,6 +89,23 @@ test.describe('Admin Organization', () => {
     ).toHaveCount(0);
   });
 
+  test('flags releases card points to per-organization release access', async ({
+    adminPage,
+  }) => {
+    await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.FLAGS);
+
+    const link = adminPage
+      .getByRole('main')
+      .getByRole('link', { name: 'Set release preview per organization' });
+    await expect(link).toHaveAttribute('href', APP_ROUTES.ADMIN.ORGANIZATION);
+    await link.click();
+
+    await expect(adminPage).toHaveURL(
+      new RegExp(`${APP_ROUTES.ADMIN.ORGANIZATION}$`),
+    );
+    await expect(organizationsListSurface(adminPage)).toBeVisible();
+  });
+
   test('folders view stays interactive', async ({ adminPage }) => {
     await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.FOLDERS);
 

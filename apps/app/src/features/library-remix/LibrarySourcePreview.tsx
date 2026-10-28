@@ -44,7 +44,7 @@ export default function LibrarySourcePreview({
 
   return (
     <div
-      className={`relative aspect-[4/3] min-h-0 overflow-hidden bg-background-secondary ${className}`}
+      className={`relative aspect-[4/3] min-h-0 overflow-hidden bg-card ${className}`}
       data-library-record-id={record.id}
       data-library-reference={
         reference ? `${reference.kind}:${reference.recordId}` : undefined

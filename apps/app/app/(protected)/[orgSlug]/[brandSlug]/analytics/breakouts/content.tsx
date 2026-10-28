@@ -11,6 +11,7 @@ import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-c
 import type { BreakoutResponsesContentProps } from '@props/analytics/breakout-response-detail.props';
 import { BreakoutResponsesService } from '@services/analytics/breakout-responses.service';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -129,8 +130,8 @@ function ScopedBreakoutResponses({
               className="space-y-3 rounded-lg border border-border p-4"
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <Heading as="h2" size="md">
-                  {response.platform} ·{' '}
+                <Heading as="h2" size="md" className="flex items-center gap-2">
+                  <PlatformBadge platform={response.platform} />
                   {response.source.format ?? t('unknownFormat')}
                 </Heading>
                 <Badge>

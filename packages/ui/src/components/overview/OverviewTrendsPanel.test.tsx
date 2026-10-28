@@ -195,7 +195,7 @@ describe('OverviewTrendsPanel', () => {
       />,
     );
 
-    expect(screen.getAllByText('instagram')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Instagram')[0]).toBeInTheDocument();
     expect(screen.getByText('950')).toBeInTheDocument();
   });
 

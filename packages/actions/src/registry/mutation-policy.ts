@@ -195,6 +195,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   update_goal: 'direct',
   update_scheduled_release: 'approval-required',
   update_strategy_state: 'direct',
+  update_task_list: 'direct',
 };
 
 export function isReadOnlyToolName(name: string): boolean {

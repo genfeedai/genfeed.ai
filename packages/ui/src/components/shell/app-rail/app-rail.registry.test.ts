@@ -185,11 +185,14 @@ describe('app rail registry', () => {
     ).toEqual(['workspace']);
   });
 
-  it('keeps ingredient detail and folders under the Content category', () => {
+  it('keeps ingredient detail, folders, voices and the catalog under Content', () => {
     for (const path of [
       '/admin/images/abc',
       '/admin/videos/abc',
       '/admin/folders',
+      '/admin/library/voices',
+      '/admin/configuration/tags',
+      '/admin/configuration/elements/moods',
     ]) {
       expect(getActiveAppId(ADMIN_RAIL_CATEGORIES, path)).toBe('admin-content');
     }
@@ -208,24 +211,38 @@ describe('app rail registry', () => {
     expect(getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/content/posts')).toBe(
       'admin-content',
     );
-    expect(getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/library/voices')).toBe(
-      'admin-automation',
-    );
     expect(
-      getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/configuration/tags'),
-    ).toBe('admin-configuration');
-    expect(getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/flags')).toBe(
-      'admin-administration',
-    );
+      getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/administration/learning'),
+    ).toBe('admin-automation');
+    expect(
+      getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/administration/users/u1'),
+    ).toBe('admin-customers');
     expect(
       getActiveAppId(
         ADMIN_RAIL_CATEGORIES,
         '/admin/overview/analytics/organizations',
       ),
-    ).toBe('admin-administration');
-    expect(getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/settings/ai')).toBe(
-      'admin-settings',
+    ).toBe('admin-customers');
+    expect(
+      getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/economics/costs'),
+    ).toBe('admin-economics');
+    expect(getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/flags')).toBe(
+      'admin-platform',
     );
+    expect(getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/settings/ai')).toBe(
+      'admin-platform',
+    );
+    expect(
+      getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/administration/roles'),
+    ).toBe('admin-platform');
+  });
+
+  it('sets only the Platform category apart as the superadmin section', () => {
+    expect(
+      ADMIN_RAIL_CATEGORIES.filter((category) => category.isAdminSecondary).map(
+        (category) => category.id,
+      ),
+    ).toEqual(['admin-platform']);
   });
 
   describe('getRailAppRoute', () => {

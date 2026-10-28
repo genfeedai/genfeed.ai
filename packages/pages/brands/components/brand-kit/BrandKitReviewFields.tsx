@@ -84,7 +84,7 @@ export default function BrandKitReviewFields({
 
                 return (
                   <Collapsible key={key}>
-                    <div className="rounded-md bg-background-secondary p-3 shadow-border">
+                    <div className="rounded-md bg-card p-3 shadow-border">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
@@ -153,7 +153,7 @@ export default function BrandKitReviewFields({
                                 value={field.currentValue}
                               />
                             ) : (
-                              <pre className="min-h-12 whitespace-pre-wrap rounded-md bg-background-secondary p-2 text-xs">
+                              <pre className="min-h-12 whitespace-pre-wrap rounded-md bg-card p-2 text-xs">
                                 {currentValue || translate('empty')}
                               </pre>
                             )}

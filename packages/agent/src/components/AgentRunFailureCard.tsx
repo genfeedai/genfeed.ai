@@ -75,7 +75,7 @@ export function AgentRunFailureCard({
   return (
     <div
       className={cn(
-        'mx-auto mb-4 w-full max-w-2xl rounded-lg bg-background-secondary px-4 py-3 text-foreground shadow-border',
+        'mx-auto mb-4 w-full max-w-2xl rounded-lg bg-card px-4 py-3 text-foreground shadow-border',
         className,
       )}
       role="alert"

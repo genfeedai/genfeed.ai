@@ -32,10 +32,12 @@ export default function ArticleResource({
   return (
     <section
       aria-label="Use this workflow"
-      className="mt-10 space-y-4 border border-edge/20 bg-fill/10 p-6"
+      className="mt-10 space-y-4 border border-foreground/20 bg-foreground/10 p-6"
     >
-      <h2 className="text-xl font-semibold text-surface">{resource.label}</h2>
-      <p className="text-sm text-surface/70">
+      <h2 className="text-xl font-semibold text-foreground">
+        {resource.label}
+      </h2>
+      <p className="text-sm text-foreground/70">
         Install the free {resource.skill} skill in your coding agent and use
         this workflow with your own brief.
       </p>
@@ -57,10 +59,10 @@ export default function ArticleResource({
           {isCopied ? 'Copied install command' : 'Copy install command'}
         </Button>
       </div>
-      <code className="block overflow-x-auto text-xs text-surface/70">
+      <code className="block overflow-x-auto text-xs text-foreground/70">
         {command}
       </code>
-      <p className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-surface/70">
+      <p className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-foreground/70">
         <a
           className="underline underline-offset-4"
           href="/skills"
@@ -83,7 +85,7 @@ export default function ArticleResource({
           Connect through MCP
         </a>
       </p>
-      <p className="text-xs text-surface/50" role="status">
+      <p className="text-xs text-foreground/50" role="status">
         {isCopied
           ? 'Run the copied command in your terminal to install this skill.'
           : 'Already connected? Use the skill in your existing agent.'}

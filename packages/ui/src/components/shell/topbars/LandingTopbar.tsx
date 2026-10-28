@@ -62,7 +62,7 @@ export default function LandingTopbar({
   }, [hideActionWhileVisible]);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 w-full border-b border-edge/10 bg-background/90 backdrop-blur-2xl">
+    <header className="fixed inset-x-0 top-0 z-50 w-full border-b border-foreground/10 bg-background/90 backdrop-blur-2xl">
       <div className="container mx-auto flex h-20 items-center justify-between px-6">
         <TopbarLogo logoHref={logoHref} />
 

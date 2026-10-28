@@ -330,9 +330,7 @@ export default function WorkflowsPage() {
       key: 'trigger',
       render: (workflow) =>
         workflow.trigger ? (
-          <Badge variant="outline" className="capitalize">
-            {workflow.trigger}
-          </Badge>
+          <Badge variant="outline">{workflow.trigger}</Badge>
         ) : null,
     },
     {

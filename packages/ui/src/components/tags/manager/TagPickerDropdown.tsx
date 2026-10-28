@@ -5,7 +5,7 @@ import type { ITag } from '@genfeedai/contracts/interfaces';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { THEME_COLORS } from '@ui-constants/theme.constant';
+import { libraryTagStyle } from '@ui/tags/library-tag-picker/library-tag-colors.util';
 
 type TagPickerDropdownProps = {
   availableTags: ITag[];
@@ -62,13 +62,7 @@ export default function TagPickerDropdown({
                   onClick={() => onAddTag(tag)}
                   className="w-full text-left px-2 py-1.5 hover:bg-background transition-colors flex items-center gap-2"
                 >
-                  <Badge
-                    size={ComponentSize.SM}
-                    backgroundColor={
-                      tag.backgroundColor || THEME_COLORS.PRIMARY
-                    }
-                    textColor={tag.textColor || THEME_COLORS.SECONDARY}
-                  >
+                  <Badge size={ComponentSize.SM} style={libraryTagStyle(tag)}>
                     {tag.label}
                   </Badge>
                 </Button>

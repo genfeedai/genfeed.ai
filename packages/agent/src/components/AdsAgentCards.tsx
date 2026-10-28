@@ -1,4 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { ComponentSize } from '@genfeedai/contracts';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { ChartColumn, ExternalLink, Megaphone, Rocket } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactElement } from 'react';
@@ -110,7 +112,10 @@ export function CampaignLaunchPrepCard({
       ) : null}
       <div className="space-y-2 border border-border bg-card/40 p-3 text-xs text-muted-foreground">
         {typeof data.platform === 'string' ? (
-          <div>Platform: {data.platform}</div>
+          <div className="flex items-center gap-2">
+            Platform:{' '}
+            <PlatformBadge platform={data.platform} size={ComponentSize.SM} />
+          </div>
         ) : null}
         {typeof data.channel === 'string' ? (
           <div>Channel: {data.channel}</div>

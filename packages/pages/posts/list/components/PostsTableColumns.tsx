@@ -202,9 +202,7 @@ export function buildPostsTableColumns({
           post.status === PostStatus.UNLISTED ? 'UNLISTED' : post.status;
         return (
           <div className="max-w-48">
-            <Badge status={post.status} className="text-xs">
-              {displayStatus}
-            </Badge>
+            <Badge status={post.status}>{displayStatus}</Badge>
             {post.status === PostStatus.FAILED && post.targetError?.message && (
               <p
                 className="mt-1 truncate text-xs text-destructive"

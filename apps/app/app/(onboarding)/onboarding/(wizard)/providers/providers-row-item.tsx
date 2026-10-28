@@ -18,7 +18,7 @@ export default function ProvidersRowItem({
         className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-xs ${
           enabled
             ? 'bg-hover text-foreground'
-            : 'bg-background-tertiary text-muted-foreground'
+            : 'bg-tertiary text-muted-foreground'
         }`}
       >
         {enabled ? (

@@ -217,7 +217,7 @@ export default function LocalDesktopContent() {
 
         {isBusy && !bootstrap && !error ? (
           <div
-            className="flex min-h-48 flex-col items-center justify-center gap-3 rounded-xl border border-border bg-background-secondary/40"
+            className="flex min-h-48 flex-col items-center justify-center gap-3 rounded-xl border border-border bg-card/40"
             role="status"
           >
             <Spinner size={ComponentSize.LG} />

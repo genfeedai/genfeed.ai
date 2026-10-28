@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCampaignActivations } from '@hooks/data/campaigns/use-campaign-activations';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
@@ -8,6 +8,7 @@ import { CampaignsService } from '@services/content/campaigns.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import LoadingState from '@ui/feedback/LoadingState';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -111,8 +112,12 @@ export default function CampaignDetailAds({
         ) : (
           <ul className="grid gap-3 text-sm">
             {activations.map((activation) => (
-              <li key={activation.id}>
-                {activation.platform} · {activation.status}
+              <li key={activation.id} className="flex items-center gap-2">
+                <PlatformBadge
+                  platform={activation.platform}
+                  size={ComponentSize.SM}
+                />
+                {activation.status}
                 {activation.externalCampaignId
                   ? ` · ${activation.externalCampaignId}`
                   : ''}

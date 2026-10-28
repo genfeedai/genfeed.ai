@@ -21,9 +21,7 @@ export function PresetOrganizationCell({ preset }: { preset: Preset }) {
 
   return (
     <Badge
-      className={`text-xs border border-border bg-transparent uppercase ${
-        isSystemPreset ? 'text-muted-foreground' : 'text-primary'
-      }`}
+      className={`border border-border bg-transparent ${isSystemPreset ? 'text-muted-foreground' : 'text-primary'}`}
     >
       {isSystemPreset ? 'System' : organization?.label || 'Organization'}
     </Badge>
@@ -40,7 +38,7 @@ export function PresetCategoryCell({ preset }: { preset: Preset }) {
   }
 
   return (
-    <Badge className="text-xs border border-border bg-transparent uppercase">
+    <Badge className="border border-border bg-transparent">
       {preset.category}
     </Badge>
   );
@@ -61,7 +59,7 @@ export function PresetDefaultsCell({ preset }: { preset: Preset }) {
       {defaults.map((def) => (
         <Badge
           key={def}
-          className="max-w-full overflow-hidden text-2xs border border-border bg-transparent font-mono"
+          className="max-w-full overflow-hidden border border-border bg-transparent font-mono"
         >
           <span className="truncate" title={def}>
             {def}

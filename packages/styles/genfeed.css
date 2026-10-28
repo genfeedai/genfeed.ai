@@ -119,10 +119,6 @@
   background: hsl(var(--gray-700));
 }
 
-.gen-dot-processing {
-  background: var(--done);
-}
-
 .gen-dot-pulse {
   animation: gen-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
@@ -174,16 +170,9 @@
   cursor: pointer;
 
   &:hover {
-    border-color: var(--overlay-white-20);
+    border-color: var(--gray-alpha-500);
     transform: scale(1.05);
     z-index: 60;
-  }
-
-  :root[data-theme="light"] &,
-  .light & {
-    &:hover {
-      border-color: var(--overlay-black-20);
-    }
   }
 }
 

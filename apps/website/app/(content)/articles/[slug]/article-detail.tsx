@@ -60,7 +60,7 @@ function SocialLinkItem({
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center gap-2 py-1 text-xs text-surface transition-colors active:scale-95 hover:text-surface/80 md:text-sm"
+      className="flex items-center gap-2 py-1 text-xs text-foreground transition-colors active:scale-95 hover:text-foreground/80 md:text-sm"
     >
       <Icon className="size-4 flex-shrink-0" />
       <span className="truncate">{label}</span>
@@ -130,8 +130,8 @@ export function ArticleAbout({
   );
 
   return (
-    <div className="border border-edge/[0.08] bg-fill/10 p-4 backdrop-blur-sm md:p-6">
-      <h2 className="mb-4 text-base font-semibold text-surface md:text-lg">
+    <div className="border border-foreground/[0.08] bg-foreground/10 p-4 backdrop-blur-sm md:p-6">
+      <h2 className="mb-4 text-base font-semibold text-foreground md:text-lg">
         About {label}
       </h2>
 
@@ -140,7 +140,7 @@ export function ArticleAbout({
           <div className="flex justify-center lg:justify-start">
             <Image
               alt={`${label} logo`}
-              className="size-20 rounded-full object-cover ring-4 ring-edge/20 md:size-24"
+              className="size-20 rounded-full object-cover ring-4 ring-foreground/20 md:size-24"
               height={96}
               priority
               src={logoUrl}
@@ -149,12 +149,12 @@ export function ArticleAbout({
           </div>
         )}
 
-        <p className="text-center text-xs leading-5 text-surface/70 lg:text-left md:text-sm">
+        <p className="text-center text-xs leading-5 text-foreground/70 lg:text-left md:text-sm">
           {description}
         </p>
 
         <Link
-          className="flex items-center justify-center gap-2 border border-edge/[0.08] bg-fill/10 px-3 py-2 text-xs text-surface transition-colors hover:border-edge/20 hover:bg-fill/20 hover:text-surface/80 lg:justify-start md:text-sm"
+          className="flex items-center justify-center gap-2 border border-foreground/[0.08] bg-foreground/10 px-3 py-2 text-xs text-foreground transition-colors hover:border-foreground/20 hover:bg-foreground/20 hover:text-foreground/80 lg:justify-start md:text-sm"
           href={href}
         >
           <span>{linkLabel}</span>
@@ -162,7 +162,7 @@ export function ArticleAbout({
         </Link>
 
         {visibleSocialLinks.length > 0 && (
-          <div className="space-y-2 border-t border-edge/20 pt-3 md:space-y-2.5">
+          <div className="space-y-2 border-t border-foreground/20 pt-3 md:space-y-2.5">
             {visibleSocialLinks.map((socialLink) => (
               <SocialLinkItem
                 icon={socialLink.icon}
@@ -193,7 +193,7 @@ export default function ArticleDetail({
           actions={
             <Link
               href="/articles"
-              className="text-sm font-medium text-surface underline underline-offset-4 hover:text-surface/80"
+              className="text-sm font-medium text-foreground underline underline-offset-4 hover:text-foreground/80"
             >
               Read articles
             </Link>
@@ -218,12 +218,12 @@ export default function ArticleDetail({
       <div className="mx-auto w-full max-w-7xl">
         <div className="mb-6 flex items-center justify-between md:mb-8">
           <div>
-            <h1 className="mb-2 text-3xl font-semibold text-surface md:text-4xl">
+            <h1 className="mb-2 text-3xl font-semibold text-foreground md:text-4xl">
               {article.label}
             </h1>
 
             {article.summary && (
-              <p className="text-base text-surface/70 md:text-lg">
+              <p className="text-base text-foreground/70 md:text-lg">
                 {article.summary}
               </p>
             )}
@@ -242,7 +242,7 @@ export default function ArticleDetail({
         {isPreview && (
           <div className="mb-6 flex items-start gap-3 border border-yellow-500/30 bg-yellow-500/20 p-4 backdrop-blur-sm md:mb-8">
             <TriangleAlert className="size-4 flex-shrink-0 text-yellow-300" />
-            <span className="text-sm text-surface md:text-base">
+            <span className="text-sm text-foreground md:text-base">
               You are viewing a preview of this article. This article may not be
               published or publicly visible yet.
             </span>
@@ -255,13 +255,13 @@ export default function ArticleDetail({
               {article.category && (
                 <Badge
                   variant="primary"
-                  className="mb-3 bg-fill/20 text-xs text-surface border-edge/30 md:mb-4 md:text-sm"
+                  className="mb-3 bg-foreground/20 text-foreground border-foreground/30 md:mb-4 md:text-sm"
                 >
                   {article.category}
                 </Badge>
               )}
 
-              <div className="flex flex-wrap items-center gap-3 border-b border-edge/20 pb-4 text-xs text-surface/60 md:gap-4 md:pb-6 md:text-sm">
+              <div className="flex flex-wrap items-center gap-3 border-b border-foreground/20 pb-4 text-xs text-foreground/60 md:gap-4 md:pb-6 md:text-sm">
                 {authorLabel && (
                   <div className="flex items-center gap-2.5">
                     <User className="size-3.5 flex-shrink-0 md:h-4 md:w-4" />

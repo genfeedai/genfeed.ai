@@ -15,7 +15,7 @@ export default function AgentProfilePlatformOverride({
   showHeader = true,
 }: AgentProfilePlatformOverrideProps) {
   return (
-    <div className="space-y-4 rounded-lg bg-background-secondary p-4 shadow-border">
+    <div className="space-y-4 rounded-lg bg-card p-4 shadow-border">
       {showHeader ? (
         <div className="flex items-center justify-between gap-3">
           <h4 className="text-sm font-medium">{label}</h4>

@@ -54,9 +54,7 @@ export default function ProductPage({ product }: { product: Product }) {
         <div className="flex flex-wrap items-center gap-2">
           <Badge>{product.category}</Badge>
           {product.status ? (
-            <Badge variant="warning" className="capitalize">
-              {product.status.replace('-', ' ')}
-            </Badge>
+            <Badge variant="warning">{product.status.replace('-', ' ')}</Badge>
           ) : null}
         </div>
       }

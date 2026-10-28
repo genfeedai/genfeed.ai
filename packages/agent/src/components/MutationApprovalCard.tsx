@@ -196,7 +196,7 @@ export function MutationApprovalCard({
     );
   return (
     <div
-      className="my-2 rounded-lg border border-border bg-background-secondary p-4"
+      className="my-2 rounded-lg border border-border bg-card p-4"
       aria-busy={isPending}
     >
       <p className="whitespace-pre-wrap break-words text-sm font-medium text-foreground">

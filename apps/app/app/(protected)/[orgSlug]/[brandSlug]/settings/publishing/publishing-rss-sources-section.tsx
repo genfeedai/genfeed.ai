@@ -1,6 +1,7 @@
 import {
   ButtonSize,
   ButtonVariant,
+  ComponentSize,
   RssApprovalMode,
   RssImportPolicy,
 } from '@genfeedai/contracts';
@@ -10,7 +11,7 @@ import type { PublishingRssSourcesSectionProps } from '@props/scheduler/rss-sour
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
-import { Badge } from '@ui/primitives/badge';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
@@ -191,7 +192,7 @@ export default function PublishingRssSourcesSection({
           {sources.map((source) => (
             <div
               key={source.id}
-              className="space-y-3 rounded-card bg-background-secondary/40 p-4 shadow-border"
+              className="space-y-3 rounded-card bg-card/40 p-4 shadow-border"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -324,7 +325,10 @@ export default function PublishingRssSourcesSection({
                     onChange={() => toggleChannel(credential.id)}
                   />
                   <span>{getCredentialLabel(credential)}</span>
-                  <Badge variant="outline">{credential.platform}</Badge>
+                  <PlatformBadge
+                    platform={credential.platform}
+                    size={ComponentSize.SM}
+                  />
                 </Label>
               ))}
             </div>

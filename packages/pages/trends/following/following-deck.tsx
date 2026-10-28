@@ -258,7 +258,7 @@ function FollowingDeckPost({
       ) : null}
 
       {previewMediaUrl ? (
-        <div className="relative aspect-video w-full overflow-hidden rounded-md bg-background-tertiary">
+        <div className="relative aspect-video w-full overflow-hidden rounded-md bg-tertiary">
           <Image
             alt=""
             className="object-cover"
@@ -353,7 +353,7 @@ function FollowingDeckColumnView({
   return (
     <section
       aria-label={label}
-      className={`flex min-w-80 flex-1 flex-col bg-background-secondary shadow-border ${DECK_COLUMN_FRAME}`}
+      className={`flex min-w-80 flex-1 flex-col bg-card shadow-border ${DECK_COLUMN_FRAME}`}
       data-testid="following-deck-column"
     >
       <header className="flex items-center gap-2 border-b border-border px-3 py-2.5">

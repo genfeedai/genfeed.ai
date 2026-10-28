@@ -18,7 +18,7 @@ export default function SettingsProgressChecklistCard({
       label="Setup checklist"
       bodyClassName="gap-3 p-4"
       headerAction={
-        <Badge variant="outline" className="px-3 py-1 text-xs font-medium">
+        <Badge variant="outline">
           {completedCount}/{totalCount} complete
         </Badge>
       }
@@ -37,7 +37,7 @@ export default function SettingsProgressChecklistCard({
               'flex items-center justify-between gap-3 rounded-2xl border px-4 py-4',
               step.isCompleted
                 ? 'border-success/20 bg-success/[0.06]'
-                : 'border-border bg-background-secondary',
+                : 'border-border bg-card',
             )}
           >
             <div className="min-w-0">

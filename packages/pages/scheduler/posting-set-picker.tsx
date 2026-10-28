@@ -1,5 +1,6 @@
 'use client';
 
+import { ComponentSize } from '@genfeedai/contracts';
 import type {
   IPostingSet,
   IPostingSetTarget,
@@ -17,6 +18,7 @@ import { PostingSignaturesService } from '@services/content/posting-signatures.s
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { isCancelledRequest } from '@services/core/operation-error';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Badge } from '@ui/primitives/badge';
 import {
   Select,
@@ -335,7 +337,10 @@ export default function PostingSetPicker({
                 key={`${target.credentialId}:${target.platform}`}
                 className="flex flex-wrap items-center gap-2"
               >
-                <Badge variant="outline">{target.platform}</Badge>
+                <PlatformBadge
+                  platform={target.platform}
+                  size={ComponentSize.SM}
+                />
                 {isUnhealthy ? (
                   <Badge
                     variant={unhealthyBadgeVariant(target.validationState)}

@@ -56,8 +56,8 @@ describe('PlatformAnalyticsBreakdown', () => {
 
   it('should render each platform', () => {
     render(<PlatformAnalyticsBreakdown analytics={mockAnalytics} />);
-    expect(screen.getByText('twitter')).toBeInTheDocument();
-    expect(screen.getByText('instagram')).toBeInTheDocument();
+    expect(screen.getByText('X')).toBeInTheDocument();
+    expect(screen.getByText('Instagram')).toBeInTheDocument();
   });
 
   it('should display views for each platform', () => {

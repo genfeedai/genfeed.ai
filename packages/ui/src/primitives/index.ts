@@ -39,10 +39,6 @@ export { Code, type CodeProps } from './code';
 export { codeVariants } from './code.variants';
 export { ColorInput, type ColorInputProps } from './color-input';
 export {
-  type ColorPickerProps,
-  default as ColorPicker,
-} from './color-picker';
-export {
   Command,
   CommandDialog,
   CommandEmpty,

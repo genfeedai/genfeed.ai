@@ -105,14 +105,14 @@ export default function SitemapContent(): React.ReactElement {
         <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-4">
           {SITE_DIRECTORY.map((section) => (
             <div key={section.title}>
-              <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-surface/50">
+              <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-foreground/50">
                 {section.title}
               </h2>
               <ul className="mt-5 space-y-3">
                 {section.links.map((link) => (
                   <li key={link.href}>
                     <Link
-                      className="text-sm text-surface/75 transition-colors hover:text-primary"
+                      className="text-sm text-foreground/75 transition-colors hover:text-primary"
                       href={link.href}
                     >
                       {link.label}

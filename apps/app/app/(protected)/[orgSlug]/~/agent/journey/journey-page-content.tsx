@@ -138,7 +138,7 @@ export default function JourneyPageContent() {
                 className={`rounded-2xl border p-5 ${
                   isRecommended
                     ? 'border-primary/40 bg-primary/5'
-                    : 'border-border bg-background-secondary'
+                    : 'border-border bg-card'
                 }`}
               >
                 <div className="flex flex-wrap items-start justify-between gap-4">

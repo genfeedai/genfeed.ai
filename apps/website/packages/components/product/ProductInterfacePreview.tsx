@@ -27,29 +27,29 @@ export default function ProductInterfacePreview({
   const recentWork = product.useCases.slice(0, 3);
 
   return (
-    <div className="w-full max-w-[720px] overflow-hidden rounded-2xl border border-edge/15 bg-background shadow-[0_32px_100px_rgba(0,0,0,0.35)]">
-      <div className="flex h-11 items-center justify-between border-b border-edge/10 px-4">
+    <div className="w-full max-w-[720px] overflow-hidden rounded-2xl border border-foreground/15 bg-background shadow-[0_32px_100px_rgba(0,0,0,0.35)]">
+      <div className="flex h-11 items-center justify-between border-b border-foreground/10 px-4">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-surface text-[10px] font-black text-background">
+          <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-foreground text-[10px] font-black text-background">
             G
           </div>
-          <span className="truncate text-xs font-semibold text-surface">
+          <span className="truncate text-xs font-semibold text-foreground">
             {product.name}
           </span>
-          <span className="text-xs text-surface/30">/</span>
-          <span className="hidden truncate text-xs text-surface/50 sm:block">
+          <span className="text-xs text-foreground/30">/</span>
+          <span className="hidden truncate text-xs text-foreground/50 sm:block">
             {product.category}
           </span>
         </div>
-        <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.12em] text-surface/45">
+        <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.12em] text-foreground/45">
           <span className="size-1.5 rounded-full bg-emerald-400" />
           Live workspace
         </div>
       </div>
 
       <div className="grid min-h-[430px] grid-cols-[126px_minmax(0,1fr)] sm:min-h-[480px] sm:grid-cols-[170px_minmax(0,1fr)]">
-        <aside className="border-r border-edge/10 p-3">
-          <p className="px-2 pb-3 pt-1 text-[9px] font-bold uppercase tracking-[0.16em] text-surface/35">
+        <aside className="border-r border-foreground/10 p-3">
+          <p className="px-2 pb-3 pt-1 text-[9px] font-bold uppercase tracking-[0.16em] text-foreground/35">
             Product
           </p>
           <div className="space-y-1">
@@ -57,7 +57,9 @@ export default function ProductInterfacePreview({
               <Button
                 ariaLabel={feature.title}
                 className={`h-auto w-full justify-start px-2.5 py-2 text-left text-[10px] leading-4 sm:text-[11px] ${
-                  index === 0 ? 'bg-surface/8 text-surface' : 'text-surface/45'
+                  index === 0
+                    ? 'bg-foreground/8 text-foreground'
+                    : 'text-foreground/45'
                 }`}
                 key={feature.title}
                 type="button"
@@ -69,27 +71,27 @@ export default function ProductInterfacePreview({
               </Button>
             ))}
           </div>
-          <div className="mt-8 border-t border-edge/10 px-2 pt-4">
-            <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-surface/30">
+          <div className="mt-8 border-t border-foreground/10 px-2 pt-4">
+            <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-foreground/30">
               Workspace
             </p>
-            <p className="mt-2 text-[11px] text-surface/60">Campaign HQ</p>
+            <p className="mt-2 text-[11px] text-foreground/60">Campaign HQ</p>
           </div>
         </aside>
 
-        <div className="flex min-w-0 flex-col bg-surface/[0.018] p-3 sm:p-5">
+        <div className="flex min-w-0 flex-col bg-foreground/[0.018] p-3 sm:p-5">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="truncate text-base font-semibold text-surface sm:text-lg">
+              <p className="truncate text-base font-semibold text-foreground sm:text-lg">
                 {product.name}
               </p>
-              <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-surface/45 sm:text-xs">
+              <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-foreground/45 sm:text-xs">
                 {product.headline}
               </p>
             </div>
             <Button
               ariaLabel={`Create in ${product.name}`}
-              className="shrink-0 gap-1.5 bg-surface px-2.5 text-[10px] text-background sm:px-3"
+              className="shrink-0 gap-1.5 bg-foreground px-2.5 text-[10px] text-background sm:px-3"
               size={ButtonSize.SM}
               type="button"
               withWrapper={false}
@@ -99,14 +101,14 @@ export default function ProductInterfacePreview({
             </Button>
           </div>
 
-          <div className="mt-5 min-h-0 flex-1 overflow-hidden rounded-xl border border-edge/10 bg-background/55">
-            <div className="flex items-center justify-between border-b border-edge/10 px-3 py-2.5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-surface/45">
+          <div className="mt-5 min-h-0 flex-1 overflow-hidden rounded-xl border border-foreground/10 bg-background/55">
+            <div className="flex items-center justify-between border-b border-foreground/10 px-3 py-2.5">
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-foreground/45">
                 Active work
               </p>
-              <MoreHorizontal className="size-4 text-surface/35" />
+              <MoreHorizontal className="size-4 text-foreground/35" />
             </div>
-            <div className="divide-y divide-edge/10">
+            <div className="divide-y divide-foreground/10">
               {recentWork.map((useCase, index) => (
                 <div
                   className="grid grid-cols-[1fr_auto] gap-3 px-3 py-3.5 sm:px-4 sm:py-4"
@@ -114,14 +116,14 @@ export default function ProductInterfacePreview({
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-surface/[0.06] text-[9px] font-semibold text-surface/45">
+                      <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-foreground/[0.06] text-[9px] font-semibold text-foreground/45">
                         {String(index + 1).padStart(2, '0')}
                       </span>
-                      <p className="truncate text-xs font-semibold text-surface sm:text-sm">
+                      <p className="truncate text-xs font-semibold text-foreground sm:text-sm">
                         {useCase.title}
                       </p>
                     </div>
-                    <p className="mt-2 line-clamp-2 pl-7 text-[10px] leading-4 text-surface/42 sm:text-[11px]">
+                    <p className="mt-2 line-clamp-2 pl-7 text-[10px] leading-4 text-foreground/42 sm:text-[11px]">
                       {useCase.description}
                     </p>
                   </div>
@@ -135,16 +137,16 @@ export default function ProductInterfacePreview({
           </div>
 
           <PromptBarComposer className="mt-3 border border-white/10 bg-black/55">
-            <div className="flex min-h-12 items-center px-3 text-xs text-surface/55 sm:text-sm">
+            <div className="flex min-h-12 items-center px-3 text-xs text-foreground/55 sm:text-sm">
               Tell Genfeed what to do in {product.name}
             </div>
             <div className="flex items-center justify-between border-t border-white/[0.06] px-2 py-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-edge/10 px-2 py-1 text-[9px] text-surface/45">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-foreground/10 px-2 py-1 text-[9px] text-foreground/45">
                 <Command className="size-3" /> Product agent
               </span>
               <Button
                 ariaLabel="Run command"
-                className="size-7 rounded-full bg-surface text-background"
+                className="size-7 rounded-full bg-foreground text-background"
                 size={ButtonSize.ICON}
                 type="button"
                 withWrapper={false}

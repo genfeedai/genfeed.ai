@@ -110,7 +110,7 @@ function BlacklistsListContent({
       header: 'Category',
       key: 'category',
       render: (blacklist: IElementBlacklist) => (
-        <Badge variant="outline" size={ComponentSize.SM} className="uppercase">
+        <Badge variant="outline" size={ComponentSize.SM}>
           {blacklist.category ?? 'Undefined'}
         </Badge>
       ),
@@ -278,11 +278,7 @@ function BlacklistsListContent({
     getBadges: (blacklist) => (
       <>
         {blacklist.category ? (
-          <Badge
-            variant="outline"
-            size={ComponentSize.SM}
-            className="uppercase"
-          >
+          <Badge variant="outline" size={ComponentSize.SM}>
             {blacklist.category}
           </Badge>
         ) : null}

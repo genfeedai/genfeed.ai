@@ -27,7 +27,7 @@ export default function ReviewInboxPreview({
   return (
     <span className="flex min-w-0 items-start gap-3">
       {mediaUrl ? (
-        <span className="relative block h-24 w-24 shrink-0 overflow-hidden rounded-md bg-background-secondary shadow-border">
+        <span className="relative block h-24 w-24 shrink-0 overflow-hidden rounded-md bg-card shadow-border">
           {isReviewInboxVideoUrl(mediaUrl) ? (
             <VideoPlayer
               ariaLabel={translate('previewVideo')}

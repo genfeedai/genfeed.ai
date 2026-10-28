@@ -14,6 +14,7 @@ import type {
 } from '@api/endpoints/onboarding/onboarding.interfaces';
 import { OnboardingDraftRunsService } from '@api/endpoints/onboarding/services/onboarding-draft-runs.service';
 import { buildOnboardingImageBrief } from '@api/endpoints/onboarding/utils/onboarding-image-brief.util';
+import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { buildFirstRunOnboardingImageBody } from '@api/helpers/utils/first-run-image-generation/first-run-image-generation.util';
 import {
@@ -46,10 +47,21 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Inject,
   Injectable,
   RequestTimeoutException,
 } from '@nestjs/common';
+
+function isInsufficientCredits(error: unknown): boolean {
+  if (!(error instanceof HttpException)) return false;
+  return (
+    error.getStatus() === HttpStatus.PAYMENT_REQUIRED ||
+    (error instanceof BusinessLogicException &&
+      error.errorCode === 'INSUFFICIENT_CREDITS')
+  );
+}
 
 const PLATFORM_BY_DRAFT: Record<OnboardingDraftPlatform, Platform> = {
   instagram: Platform.INSTAGRAM,
@@ -436,6 +448,16 @@ export class OnboardingFirstDraftsService {
             ? 'pending'
             : 'failed';
       } catch (error) {
+        // Credits are checked before any charge, so a short wallet means the
+        // video was never started: say so instead of calling it a failure.
+        if (isInsufficientCredits(error)) {
+          this.loggerService.warn('Onboarding video skipped: no credits', {
+            brandId,
+          });
+          result.videoIngredientId = null;
+          result.videoStatus = 'needs_credits';
+          return;
+        }
         this.loggerService.error('Onboarding video generation failed', error, {
           brandId,
         });

@@ -117,23 +117,3 @@ export const neutralAlphaScale = {
     '1000': 'rgba(0, 0, 0, 0.91)',
   },
 } as const satisfies Record<'dark' | 'light', NeutralAlphaScale>;
-
-export const backgroundScaleSteps = ['100', '200'] as const;
-export type BackgroundScaleStep = (typeof backgroundScaleSteps)[number];
-export type BackgroundScale = Record<BackgroundScaleStep, ScaleValue>;
-
-/**
- * Page planes. `100` is the canvas the app paints on; `200` is the plane that
- * carries content (cards, sidebars, popovers). In both themes `200` is the
- * *lighter* of the pair, so a card always reads as raised toward the light.
- */
-export const backgroundScale = {
-  dark: {
-    '100': { hex: '#000000', hsl: '0 0% 0%' },
-    '200': { hex: '#0A0A0A', hsl: '0 0% 4%' },
-  },
-  light: {
-    '100': { hex: '#FAFAFA', hsl: '0 0% 98%' },
-    '200': { hex: '#FFFFFF', hsl: '0 0% 100%' },
-  },
-} as const satisfies Record<'dark' | 'light', BackgroundScale>;

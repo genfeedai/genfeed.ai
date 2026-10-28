@@ -52,7 +52,7 @@ export default function PostMediaStrip({
         <li
           key={item.id}
           className={cn(
-            'group relative size-16 overflow-hidden rounded-md border border-border bg-background-tertiary',
+            'group relative size-16 overflow-hidden rounded-md border border-border bg-tertiary',
             !isDisabled && 'cursor-grab',
             draggedIndex === index && 'opacity-50',
             overIndex === index &&

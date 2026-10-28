@@ -3,7 +3,8 @@ import type {
   AgentUiAction,
   AgentUiActionHandler,
 } from '@genfeedai/agent/models/agent-chat.model';
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
 import { CircleCheck, ExternalLink, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
@@ -61,9 +62,11 @@ export function LivestreamBotCard({
             {action.botName || 'Livestream bot'}
           </div>
           {action.platform ? (
-            <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">
-              {action.platform}
-            </p>
+            <PlatformBadge
+              className="mt-1"
+              platform={action.platform}
+              size={ComponentSize.SM}
+            />
           ) : null}
           {action.sessionStatus ? (
             <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-1 text-2xs font-medium text-muted-foreground">

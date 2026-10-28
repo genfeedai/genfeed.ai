@@ -70,7 +70,7 @@ export default function ReviewProposedValue({
     );
   }
   return (
-    <pre className="min-h-12 whitespace-pre-wrap rounded-md bg-background-secondary p-2 text-xs">
+    <pre className="min-h-12 whitespace-pre-wrap rounded-md bg-card p-2 text-xs">
       {proposedValue || noProposalLabel}
     </pre>
   );
@@ -83,14 +83,14 @@ export function SocialLinkReadout({
   const links = readSocialProposals(value);
   if (links.length === 0) {
     return (
-      <p className="min-h-12 rounded-md bg-background-secondary p-2 text-xs text-muted-foreground">
+      <p className="min-h-12 rounded-md bg-card p-2 text-xs text-muted-foreground">
         {emptyLabel}
       </p>
     );
   }
 
   return (
-    <ul className="min-h-12 space-y-2 rounded-md bg-background-secondary p-2">
+    <ul className="min-h-12 space-y-2 rounded-md bg-card p-2">
       {links.map((link) => (
         <li
           className="flex min-w-0 items-center gap-2 text-xs"

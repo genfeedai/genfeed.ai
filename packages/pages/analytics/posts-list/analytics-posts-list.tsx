@@ -28,7 +28,7 @@ import {
   parsePostsSource,
 } from '@pages/posts/list/posts-list-query';
 import type { AnalyticsPostGridItem } from '@props/analytics/analytics-posts-grid.props';
-import AnalyticsFilterMenu from '@ui/analytics/analytics-filter-menu/AnalyticsFilterMenu';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
@@ -244,7 +244,7 @@ export default function AnalyticsPostsList() {
 
     return (
       <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <AnalyticsFilterMenu
+        <FilterMenu
           facets={facets}
           onClear={() => {
             setFilter('show', undefined);

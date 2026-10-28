@@ -1,10 +1,12 @@
 'use client';
 
+import { ComponentSize } from '@genfeedai/contracts';
 import type { TrendRefreshHealth } from '@genfeedai/contracts/interfaces';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import type { CorpusHealthPanelProps } from '@props/trends/corpus-health-panel.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { useTranslations } from 'next-intl';
 
 function timestamp(value: string | null | undefined, fallback: string): string {
@@ -135,8 +137,12 @@ export default function CorpusHealthPanel({
                 className="space-y-1 py-3"
               >
                 <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <PlatformBadge
+                    platform={receipt.platform}
+                    size={ComponentSize.SM}
+                  />
                   <span>
-                    {receipt.platform} · {receipt.dataset} ·{' '}
+                    {receipt.dataset} ·{' '}
                     {receipt.scope === 'global'
                       ? translate('publicMarketTitle')
                       : translate('connectedAccount')}{' '}
@@ -189,9 +195,13 @@ export default function CorpusHealthPanel({
               {previewFailures.map((failure) => (
                 <li
                   key={`${failure.platform}:${failure.provider}:${failure.reason}`}
-                  className="text-xs text-muted-foreground"
+                  className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground"
                 >
-                  {failure.platform} · {failure.provider}:{' '}
+                  <PlatformBadge
+                    platform={failure.platform}
+                    size={ComponentSize.SM}
+                  />
+                  {failure.provider}:{' '}
                   {translate(`previewReasons.${failure.reason}`)} ·{' '}
                   {timestamp(
                     failure.latestObservedAt,

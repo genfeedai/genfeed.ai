@@ -7,20 +7,20 @@ const PRODUCT_OUTPUTS = HOME_OUTPUT_CAROUSEL_ASSETS.slice(0, 5);
 
 export default function HomeProduct(): React.ReactElement {
   return (
-    <section className="gen-section-spacing-lg border-b border-edge/5">
+    <section className="gen-section-spacing-lg border-b border-foreground/5">
       <div className="container mx-auto px-6">
         <div className="grid items-center gap-16 lg:grid-cols-[minmax(0,0.72fr)_minmax(520px,1.28fr)] lg:gap-24 xl:gap-32">
           <div className="max-w-xl" data-reveal="up">
-            <Text className="text-xs font-bold uppercase tracking-[0.16em] text-surface/72">
+            <Text className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/72">
               The product
             </Text>
             <Heading
               as="h2"
-              className="mt-5 text-5xl font-semibold leading-[0.98] tracking-[-0.045em] text-surface sm:text-6xl"
+              className="mt-5 text-5xl font-semibold leading-[0.98] tracking-[-0.045em] text-foreground sm:text-6xl"
             >
               One prompt. <span className="block">Every feed.</span>
             </Heading>
-            <Text className="mt-7 max-w-lg text-base leading-7 text-surface/72 md:text-lg">
+            <Text className="mt-7 max-w-lg text-base leading-7 text-foreground/72 md:text-lg">
               Give Genfeed the idea, the audience and the goal. It makes the
               images, videos and posts for your campaign, ready for review.
             </Text>
@@ -31,17 +31,17 @@ export default function HomeProduct(): React.ReactElement {
             data-reveal="up"
             data-testid="home-product-workspace"
           >
-            <div className="rounded-lg border border-edge/5 bg-background p-4 sm:p-5">
-              <div className="flex items-center justify-between border-b border-edge/5 pb-4">
+            <div className="rounded-lg border border-foreground/5 bg-background p-4 sm:p-5">
+              <div className="flex items-center justify-between border-b border-foreground/5 pb-4">
                 <div>
-                  <Text className="text-[11px] font-bold uppercase tracking-[0.14em] text-surface/55">
+                  <Text className="text-[11px] font-bold uppercase tracking-[0.14em] text-foreground/55">
                     New campaign
                   </Text>
-                  <Text className="mt-1 text-sm text-surface">
+                  <Text className="mt-1 text-sm text-foreground">
                     Hydrate. Brighten. Repeat.
                   </Text>
                 </div>
-                <span className="rounded-md border border-edge/5 px-3 py-1.5 text-[11px] font-semibold text-surface/72">
+                <span className="rounded-md border border-foreground/5 px-3 py-1.5 text-[11px] font-semibold text-foreground/72">
                   5 outputs ready
                 </span>
               </div>

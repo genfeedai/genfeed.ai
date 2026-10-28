@@ -1,5 +1,5 @@
 import type { ComponentSize } from '@genfeedai/contracts';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
 export interface BadgeBrandProps {
   brandLogoUrl?: string;
@@ -11,6 +11,8 @@ export interface BadgeProps {
   icon?: ReactNode;
   size?: ComponentSize.SM | ComponentSize.MD | ComponentSize.LG;
   className?: string;
+  /** Inline colors for member-chosen values, such as tag colors, that no class can express. */
+  style?: CSSProperties;
   /**
    * Badge variant - directly sets the badge color
    */

@@ -28,6 +28,7 @@ import { ImagesService } from '@genfeedai/services/ingredients/images.service';
 import { VideosService } from '@genfeedai/services/ingredients/videos.service';
 import { badgeVariants } from '@ui/display/badge/badge.variants';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
+import { badgeVariants as badgeShapeVariants } from '@ui/primitives/badge.variants';
 import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
 import { getStatusMeta } from '@ui-constants/status.constant';
@@ -359,7 +360,8 @@ export default function DropdownStatus({
       <div className={className}>
         <div
           className={cn(
-            'inline-flex items-center border opacity-75 cursor-not-allowed',
+            badgeShapeVariants({ variant: null }),
+            'border opacity-75 cursor-not-allowed',
             badgeVariants({
               size: 'sm',
               variant: getStatusBadgeVariant(currentMeta.variant),
@@ -392,7 +394,8 @@ export default function DropdownStatus({
             isIconOnly
               ? cn(className)
               : cn(
-                  'inline-flex items-center border cursor-pointer transition-opacity hover:opacity-80',
+                  badgeShapeVariants({ variant: null }),
+                  'border cursor-pointer transition-opacity hover:opacity-80',
                   badgeVariants({
                     size: 'sm',
                     variant: getStatusBadgeVariant(currentMeta.variant),

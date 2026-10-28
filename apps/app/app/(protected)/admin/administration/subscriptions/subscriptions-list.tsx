@@ -51,15 +51,9 @@ function PlanBadges({
 
   return (
     <span className="flex items-center gap-1">
-      {row.tier ? (
-        <Badge variant="outline" className="uppercase">
-          {row.tier}
-        </Badge>
-      ) : null}
+      {row.tier ? <Badge variant="outline">{row.tier}</Badge> : null}
       {row.hasPaygPurchase ? (
-        <Badge variant="outline" className="uppercase">
-          {paygLabel}
-        </Badge>
+        <Badge variant="outline">{paygLabel}</Badge>
       ) : null}
     </span>
   );

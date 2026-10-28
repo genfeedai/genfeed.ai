@@ -6,6 +6,7 @@ import type { TrendItem } from '@props/trends/trends-page.props';
 import type { TableRowLink } from '@props/ui/display/table.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
 import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
 import { Globe } from 'lucide-react';
@@ -48,9 +49,6 @@ export default function TrendDetailRelatedTable({
                 <TrendRowSummary
                   openHref={rowLink.href}
                   openLabel={rowLink.label}
-                  platformLabel={
-                    PLATFORM_CONFIGS[item.platform]?.label || item.platform
-                  }
                   trend={item}
                 />
               );
@@ -67,21 +65,7 @@ export default function TrendDetailRelatedTable({
             {
               header: translate('columns.platform'),
               key: 'platform',
-              render: (item) => {
-                const config = PLATFORM_CONFIGS[item.platform];
-                const Icon = config?.icon;
-                return (
-                  <div className="flex items-center gap-2">
-                    {Icon && (
-                      <Icon
-                        className="size-4"
-                        style={{ color: config?.color }}
-                      />
-                    )}
-                    <span>{config?.label || item.platform}</span>
-                  </div>
-                );
-              },
+              render: (item) => <PlatformBadge platform={item.platform} />,
             },
             {
               header: translate('columns.mentions'),
@@ -105,9 +89,7 @@ export default function TrendDetailRelatedTable({
             {
               header: translate('columns.virality'),
               key: 'viralityScore',
-              render: (item) => (
-                <Badge value={item.viralityScore} className="text-xs" />
-              ),
+              render: (item) => <Badge value={item.viralityScore} />,
             },
           ]}
         />

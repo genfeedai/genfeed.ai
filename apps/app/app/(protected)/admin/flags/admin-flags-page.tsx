@@ -1,6 +1,8 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
+  APP_ROUTES,
   DEFAULT_PLATFORM_FLAGS,
   getPlatformFlagChildren,
   PLATFORM_FLAG_KEYS,
@@ -20,9 +22,11 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
+import { Button } from '@ui/primitives/button';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { ToggleRight } from 'lucide-react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import { useCallback, useEffect, useState } from 'react';
@@ -176,6 +180,19 @@ export default function AdminFlagsPage() {
               <Text as="p" color="muted" size="sm">
                 {translate(`sections.${section.id}.description`)}
               </Text>
+              {section.id === 'releases' ? (
+                <div>
+                  <Button
+                    asChild
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.SECONDARY}
+                  >
+                    <Link href={APP_ROUTES.ADMIN.ORGANIZATION}>
+                      {translate('sections.releases.organizationsLink')}
+                    </Link>
+                  </Button>
+                </div>
+              ) : null}
             </div>
             {/* Columns pack cards of different heights with no empty rows. */}
             <div className="gap-4 lg:columns-2 2xl:columns-3">

@@ -358,7 +358,7 @@ export default function SocialWarmupProgram({
       </div>
 
       {model.nextAction ? (
-        <div className="rounded-md bg-background-secondary px-3 py-2">
+        <div className="rounded-md bg-card px-3 py-2">
           <p className="text-2xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             {translate('nextAction')}
           </p>

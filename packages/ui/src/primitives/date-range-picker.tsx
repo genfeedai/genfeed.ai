@@ -157,7 +157,7 @@ export default function DateRangePicker({
               !dateRange && 'text-muted-foreground',
             )}
           >
-            <CalendarIcon className="mr-2 size-4" />
+            <CalendarIcon className="mr-2 size-4 shrink-0 text-muted-foreground" />
             {formatSelectedDateRange(dateRange)}
           </Button>
         </PopoverTrigger>

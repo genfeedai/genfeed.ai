@@ -59,12 +59,7 @@ export default function StudioPlaygroundFailureDetailsDialog({
         <DialogHeader className="text-left">
           <DialogTitle>{translate('failure.dialog.title')}</DialogTitle>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge
-              className="text-2xs uppercase tracking-wide"
-              variant="secondary"
-            >
-              {typeLabel}
-            </Badge>
+            <Badge variant="secondary">{typeLabel}</Badge>
             <DialogDescription>{modelLabel}</DialogDescription>
           </div>
         </DialogHeader>

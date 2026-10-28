@@ -21,8 +21,7 @@
  */
 export const semanticColorRoles = [
   'background',
-  'backgroundSecondary',
-  'backgroundTertiary',
+  'tertiary',
   'foreground',
   'card',
   'cardForeground',
@@ -48,11 +47,6 @@ export const semanticColorRoles = [
   'warningForeground',
   'info',
   'infoForeground',
-  'surface',
-  'fill',
-  'edge',
-  'inv',
-  'invFg',
 ] as const;
 
 export type SemanticColorRole = (typeof semanticColorRoles)[number];
@@ -75,8 +69,7 @@ export const semanticColorTokens = {
     // capped at #EDEDED so it does not bloom on #000.
     background: { hex: '#000000', hsl: '0 0% 0%' },
     // background-200 — the near-black content plane (app chrome, panels, cards).
-    backgroundSecondary: { hex: '#0A0A0A', hsl: '0 0% 4%' },
-    backgroundTertiary: { hex: '#161616', hsl: '0 0% 9%' },
+    tertiary: { hex: '#161616', hsl: '0 0% 9%' },
     border: { hex: '#262626', hsl: '0 0% 15%' },
     borderStrong: { hex: '#3D3D3D', hsl: '0 0% 24%' },
     // The near-black plane, one step above the pure-black canvas.
@@ -85,15 +78,11 @@ export const semanticColorTokens = {
     // #DC2626 only reaches 4.10:1 on this canvas — fails AA as text.
     destructive: { hex: '#FF6166', hsl: '358 100% 69%' },
     destructiveForeground: { hex: '#0A0A0A', hsl: '0 0% 4%' },
-    edge: { hex: '#EDEDED', hsl: '237 237 237' },
-    fill: { hex: '#EDEDED', hsl: '237 237 237' },
     // gray-1000 — capped short of #FFF to keep 13-16px type from blooming.
     foreground: { hex: '#EDEDED', hsl: '0 0% 93%' },
     info: { hex: '#52A8FF', hsl: '210 100% 66%' },
     infoForeground: { hex: '#0A0A0A', hsl: '0 0% 4%' },
     input: { hex: '#333333', hsl: '0 0% 20%' },
-    inv: { hex: '#EDEDED', hsl: '237 237 237' },
-    invFg: { hex: '#0A0A0A', hsl: '10 10 10' },
     muted: { hex: '#0A0A0A', hsl: '0 0% 4%' },
     // gray-900 — 7.66:1, comfortably past AAA for body copy.
     mutedForeground: { hex: '#A1A1A1', hsl: '0 0% 63%' },
@@ -109,7 +98,6 @@ export const semanticColorTokens = {
     secondaryForeground: { hex: '#EDEDED', hsl: '0 0% 93%' },
     success: { hex: '#10B981', hsl: '160 84% 39%' },
     successForeground: { hex: '#0A0A0A', hsl: '0 0% 4%' },
-    surface: { hex: '#EDEDED', hsl: '237 237 237' },
     warning: { hex: '#F59E0B', hsl: '38 92% 50%' },
     warningForeground: { hex: '#0A0A0A', hsl: '0 0% 4%' },
   },
@@ -119,22 +107,17 @@ export const semanticColorTokens = {
     // True neutral. Every hue angle here is 0 by design — a warm canvas tints
     // every screenshot, thumbnail, and brand colour the product renders on it.
     background: { hex: '#FAFAFA', hsl: '0 0% 98%' },
-    backgroundSecondary: { hex: '#FFFFFF', hsl: '0 0% 100%' },
-    backgroundTertiary: { hex: '#EDEDED', hsl: '0 0% 93%' },
+    tertiary: { hex: '#EDEDED', hsl: '0 0% 93%' },
     border: { hex: '#E6E6E6', hsl: '0 0% 90%' },
     borderStrong: { hex: '#D1D1D1', hsl: '0 0% 82%' },
     card: { hex: '#FFFFFF', hsl: '0 0% 100%' },
     cardForeground: { hex: '#171717', hsl: '0 0% 9%' },
     destructive: { hex: '#DC2626', hsl: '0 72% 51%' },
     destructiveForeground: { hex: '#FFFFFF', hsl: '0 0% 100%' },
-    edge: { hex: '#171717', hsl: '23 23 23' },
-    fill: { hex: '#171717', hsl: '23 23 23' },
     foreground: { hex: '#171717', hsl: '0 0% 9%' },
     info: { hex: '#0060DF', hsl: '214 100% 44%' },
     infoForeground: { hex: '#FFFFFF', hsl: '0 0% 100%' },
     input: { hex: '#D9D9D9', hsl: '0 0% 85%' },
-    inv: { hex: '#171717', hsl: '23 23 23' },
-    invFg: { hex: '#FAFAFA', hsl: '250 250 250' },
     muted: { hex: '#F5F5F5', hsl: '0 0% 96%' },
     // gray-900 — 7.49:1. The old #707070 sat at 4.74:1, barely legal.
     mutedForeground: { hex: '#525252', hsl: '0 0% 32%' },
@@ -148,7 +131,6 @@ export const semanticColorTokens = {
     // Status hues darken in light mode so they stay legible as text on #FAFAFA.
     success: { hex: '#047857', hsl: '163 94% 24%' },
     successForeground: { hex: '#FFFFFF', hsl: '0 0% 100%' },
-    surface: { hex: '#171717', hsl: '23 23 23' },
     warning: { hex: '#B45309', hsl: '26 90% 37%' },
     warningForeground: { hex: '#FFFFFF', hsl: '0 0% 100%' },
   },

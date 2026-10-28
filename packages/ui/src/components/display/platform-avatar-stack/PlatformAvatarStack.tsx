@@ -15,7 +15,7 @@ import {
 const DEFAULT_MAX = 3;
 
 const AVATAR_CLASS =
-  'flex size-6 shrink-0 items-center justify-center rounded-full bg-background-tertiary ring-2 ring-background';
+  'flex size-6 shrink-0 items-center justify-center rounded-full bg-tertiary ring-2 ring-background';
 
 /**
  * Connected platforms as overlapping avatars: the first `max` icons, then a

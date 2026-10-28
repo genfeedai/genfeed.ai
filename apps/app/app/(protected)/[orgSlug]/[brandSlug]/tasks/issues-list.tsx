@@ -107,7 +107,7 @@ function KanbanColumn({
   return (
     <section
       aria-label={statusLabels[status]}
-      className="flex h-full w-72 shrink-0 flex-col rounded-lg bg-background-secondary"
+      className="flex h-full w-72 shrink-0 flex-col rounded-lg bg-card"
     >
       <div className="flex shrink-0 items-center gap-2 px-3 py-2.5">
         <TaskStatusBadge status={status} />

@@ -89,11 +89,11 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
             className="gsap-section"
           >
             <div className="text-center mb-16">
-              <div className="text-surface/50 text-xs font-black uppercase tracking-widest mb-6">
+              <div className="text-foreground/50 text-xs font-black uppercase tracking-widest mb-6">
                 {category.label}
               </div>
               <h2 className="text-5xl font-semibold mb-6">{category.title}</h2>
-              <p className="text-surface/65 max-w-xl mx-auto">
+              <p className="text-foreground/65 max-w-xl mx-auto">
                 {category.subtitle}
               </p>
             </div>
@@ -121,7 +121,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
             </NeuralGrid>
 
             <div className="text-center mt-8">
-              <Code className="bg-transparent text-surface/55">
+              <Code className="bg-transparent text-foreground/55">
                 bunx skills add genfeedai/skills/{category.skills[0]?.slug}
               </Code>
             </div>
@@ -132,11 +132,11 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
         {registry && registry.skills.length > 0 && (
           <WebSection bg="bordered" className="gsap-section">
             <div className="text-center mb-16">
-              <div className="text-surface/50 text-xs font-black uppercase tracking-widest mb-6">
+              <div className="text-foreground/50 text-xs font-black uppercase tracking-widest mb-6">
                 Premium
               </div>
               <h2 className="text-5xl font-semibold mb-6">Pro Skills</h2>
-              <p className="text-surface/65 max-w-xl mx-auto">
+              <p className="text-foreground/65 max-w-xl mx-auto">
                 Paid operating systems for source-to-brief, brand voice,
                 production queues, performance loops, and platform warmup. All
                 included in the bundle.
@@ -181,29 +181,29 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
           <WebSection maxWidth="lg" className="gsap-section">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
               <div className="flex flex-col justify-center">
-                <div className="text-surface/50 text-xs font-black uppercase tracking-widest mb-6">
+                <div className="text-foreground/50 text-xs font-black uppercase tracking-widest mb-6">
                   Quick Start
                 </div>
                 <h2 className="text-4xl font-semibold mb-4">One Command</h2>
-                <p className="text-surface/65 text-sm leading-relaxed mb-6">
+                <p className="text-foreground/65 text-sm leading-relaxed mb-6">
                   Install all {FREE_SKILL_COUNT} free skills with a single
                   command. Your agent loads each skill and activates it at
                   exactly the right moment.
                 </p>
-                <div className="space-y-3 text-sm text-surface/65">
+                <div className="space-y-3 text-sm text-foreground/65">
                   <p>
-                    <span className="text-surface/60 font-medium">
+                    <span className="text-foreground/60 font-medium">
                       Install all:
                     </span>{' '}
-                    <Code className="text-surface/50 bg-fill/5">
+                    <Code className="text-foreground/50 bg-foreground/5">
                       bunx skills add genfeedai/skills
                     </Code>
                   </p>
                   <p>
-                    <span className="text-surface/60 font-medium">
+                    <span className="text-foreground/60 font-medium">
                       Install one:
                     </span>{' '}
-                    <Code className="text-surface/50 bg-fill/5">
+                    <Code className="text-foreground/50 bg-foreground/5">
                       bunx skills add genfeedai/skills/x-content-creator
                     </Code>
                   </p>

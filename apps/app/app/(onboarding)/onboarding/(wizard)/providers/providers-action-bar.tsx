@@ -68,7 +68,7 @@ export default function ProvidersActionBar({
                 onClick={(event) => {
                   onByokClick(event);
                 }}
-                className={`inline-flex w-full items-center justify-center rounded-full border border-border bg-background-tertiary px-4 py-2.5 text-sm font-medium text-foreground transition hover:border-border-strong hover:bg-hover md:w-auto ${
+                className={`inline-flex w-full items-center justify-center rounded-full border border-border bg-tertiary px-4 py-2.5 text-sm font-medium text-foreground transition hover:border-border-strong hover:bg-hover md:w-auto ${
                   selectedMode === 'byok' ? CURRENT_RING : ''
                 }`}
               >
@@ -119,7 +119,7 @@ export default function ProvidersActionBar({
               }
               disabled={loading || pendingMode !== null}
               wrapperClassName="w-full md:w-auto"
-              className={`w-full rounded-full border border-border bg-background-tertiary text-foreground hover:border-border-strong hover:bg-hover md:w-auto ${
+              className={`w-full rounded-full border border-border bg-tertiary text-foreground hover:border-border-strong hover:bg-hover md:w-auto ${
                 selectedMode === 'cloud' ? CURRENT_RING : ''
               }`}
             />
@@ -134,12 +134,12 @@ export default function ProvidersActionBar({
           withWrapper={false}
           onClick={onBack}
           icon={<ArrowLeft className="size-4" />}
-          className="h-8 rounded-full border border-border bg-background-tertiary px-4 text-muted-foreground hover:border-border-strong hover:bg-hover hover:text-foreground"
+          className="h-8 rounded-full border border-border bg-tertiary px-4 text-muted-foreground hover:border-border-strong hover:bg-hover hover:text-foreground"
         >
           Back
         </Button>
 
-        <div className="step-badge inline-flex h-8 shrink-0 items-center gap-2 rounded-full border border-border bg-background-tertiary px-4 text-2xs font-black uppercase tracking-[0.2em] text-muted-foreground">
+        <div className="step-badge inline-flex h-8 shrink-0 items-center gap-2 rounded-full border border-border bg-tertiary px-4 text-2xs font-black uppercase tracking-[0.2em] text-muted-foreground">
           <Sparkles className="size-3" />
           Step 2 of 3
         </div>

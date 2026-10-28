@@ -63,7 +63,7 @@ function ActivityTypeIcon({ activity }: { activity: IActivity }) {
   }[getActivityTypeKind(activity)];
 
   return (
-    <div className="flex size-10 shrink-0 items-center justify-center bg-background-secondary text-foreground/70">
+    <div className="flex size-10 shrink-0 items-center justify-center bg-card text-foreground/70">
       <TypeIcon aria-hidden="true" className="size-4" />
     </div>
   );

@@ -48,7 +48,7 @@ export default function ModelAvatar({
       data-testid={testId}
     >
       <span
-        className="flex size-7 items-center justify-center rounded-full border border-border bg-background-secondary"
+        className="flex size-7 items-center justify-center rounded-full border border-border bg-tertiary"
         role="img"
         aria-label={providerLabel}
       >
@@ -62,7 +62,7 @@ export default function ModelAvatar({
       </span>
       {isCategoryVisible ? (
         <span
-          className="absolute bottom-0 right-0 flex size-4.5 items-center justify-center rounded-full border border-border bg-background-secondary"
+          className="absolute bottom-0 right-0 flex size-4.5 items-center justify-center rounded-full border border-border bg-tertiary"
           role="img"
           aria-label={categoryLabel}
         >

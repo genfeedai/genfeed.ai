@@ -98,6 +98,40 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('links each row to its release access page when asked', async () => {
+    mocks.getOrganizationsWithStats.mockResolvedValue({
+      data: [
+        {
+          avgEngagementRate: 3.5,
+          growth: 4.2,
+          id: 'org-1',
+          name: 'Acme Inc',
+          totalBrands: 3,
+          totalEngagement: 900,
+          totalMembers: 7,
+          totalPosts: 31,
+          totalViews: 4200,
+        },
+      ],
+      pagination: { limit: 10, page: 1, total: 1, totalPages: 1 },
+    });
+
+    render(
+      <AnalyticsOrganizationsList
+        getReleaseAccessHref={(id) => `/admin/organization?id=${id}`}
+      />,
+    );
+
+    expect(
+      await screen.findByRole('columnheader', { name: 'Release access' }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('link', {
+        name: 'Open release access for Acme Inc',
+      }),
+    ).toHaveAttribute('href', '/admin/organization?id=org-1');
+  });
+
   it('opens an organization summary in the sidebar from the row while the name stays a link', async () => {
     mocks.getOrganizationsWithStats.mockResolvedValue({
       data: [

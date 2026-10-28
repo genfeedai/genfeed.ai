@@ -23,16 +23,16 @@ export default function TerminalDemo({
   return (
     <div
       className={
-        'overflow-hidden border border-edge/10 bg-black/40' /* design-system-allow-content-color -- terminal content */
+        'overflow-hidden border border-foreground/10 bg-black/40' /* design-system-allow-content-color -- terminal content */
       }
     >
-      <div className="flex items-center gap-2 px-4 py-3 bg-fill/5 border-b border-edge/10">
+      <div className="flex items-center gap-2 px-4 py-3 bg-foreground/5 border-b border-foreground/10">
         <div className="flex gap-2">
-          <div className="size-3 rounded-full bg-fill/20" />
-          <div className="size-3 rounded-full bg-fill/20" />
-          <div className="size-3 rounded-full bg-fill/20" />
+          <div className="size-3 rounded-full bg-foreground/20" />
+          <div className="size-3 rounded-full bg-foreground/20" />
+          <div className="size-3 rounded-full bg-foreground/20" />
         </div>
-        <div className="flex-1 text-center text-xs text-surface/30 font-mono uppercase tracking-widest">
+        <div className="flex-1 text-center text-xs text-foreground/30 font-mono uppercase tracking-widest">
           terminal
         </div>
       </div>
@@ -41,9 +41,9 @@ export default function TerminalDemo({
         {lines.slice(0, currentLine).map((line) => (
           <div key={line.command} className="flex flex-wrap gap-2">
             {line.prompt && (
-              <span className="text-surface/30">{line.prompt}</span>
+              <span className="text-foreground/30">{line.prompt}</span>
             )}
-            {line.prompt && <span className="text-surface/40">$</span>}
+            {line.prompt && <span className="text-foreground/40">$</span>}
             <span
               className={
                 line.command.startsWith('#')
@@ -51,8 +51,8 @@ export default function TerminalDemo({
                   : line.command.startsWith('✓')
                     ? 'text-emerald-400/40'
                     : line.command.startsWith('...')
-                      ? 'text-surface/30'
-                      : 'text-surface/80'
+                      ? 'text-foreground/30'
+                      : 'text-foreground/80'
               }
             >
               {line.command}
@@ -61,13 +61,13 @@ export default function TerminalDemo({
         ))}
         {isTyping && (
           <div className="flex items-center gap-2">
-            <span className="text-surface/30">
+            <span className="text-foreground/30">
               {lines[currentLine]?.prompt || ''}
             </span>
             {lines[currentLine]?.prompt && (
-              <span className="text-surface/40">$</span>
+              <span className="text-foreground/40">$</span>
             )}
-            <span className="w-2 h-4 bg-fill/40 animate-pulse" />
+            <span className="w-2 h-4 bg-foreground/40 animate-pulse" />
           </div>
         )}
       </div>

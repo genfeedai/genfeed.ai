@@ -111,14 +111,14 @@ export default function HireAgentsContent() {
             <div className="flex flex-col items-center gap-8 md:flex-row">
               <div className="flex-shrink-0">
                 <div className="flex size-20 items-center justify-center bg-card shadow-border">
-                  <Users className="size-10 text-surface" />
+                  <Users className="size-10 text-foreground" />
                 </div>
               </div>
               <div className="flex w-full min-w-0 flex-col gap-3">
                 <Heading as="h3" className="text-2xl font-bold">
                   A Content Team on Your Terms
                 </Heading>
-                <Text as="p" className="text-surface/65">
+                <Text as="p" className="text-foreground/65">
                   Hire agents for research, creative, and publishing. Set goals
                   and guardrails, then let them execute campaigns on schedule
                   while you stay in control of approvals.
@@ -134,9 +134,9 @@ export default function HireAgentsContent() {
             {AGENT_ROLES.map((role) => (
               <div
                 key={role}
-                className="gen-contact-sheet aspect-square flex items-center justify-center p-6 bg-fill/[0.02]"
+                className="gen-contact-sheet aspect-square flex items-center justify-center p-6 bg-foreground/[0.02]"
               >
-                <Text className="text-center text-sm font-semibold tracking-[-0.01em] text-surface/70">
+                <Text className="text-center text-sm font-semibold tracking-[-0.01em] text-foreground/70">
                   {role}
                 </Text>
               </div>
@@ -164,10 +164,13 @@ export default function HireAgentsContent() {
                       <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
                     </div>
                   </div>
-                  <Heading as="h4" className="font-semibold mb-2 text-surface">
+                  <Heading
+                    as="h4"
+                    className="font-semibold mb-2 text-foreground"
+                  >
                     {feature.title}
                   </Heading>
-                  <Text className="text-sm text-surface/65">
+                  <Text className="text-sm text-foreground/65">
                     {feature.description}
                   </Text>
                 </div>
@@ -187,12 +190,12 @@ export default function HireAgentsContent() {
               return (
                 <div
                   key={step.label}
-                  className="gen-contact-sheet flex flex-col items-center gap-3 bg-fill/[0.02] p-6 text-center"
+                  className="gen-contact-sheet flex flex-col items-center gap-3 bg-foreground/[0.02] p-6 text-center"
                 >
                   <div className="flex size-14 items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
                     <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
                   </div>
-                  <Text as="p" className="text-lg font-bold text-surface">
+                  <Text as="p" className="text-lg font-bold text-foreground">
                     {step.label}
                   </Text>
                   <Text as="p" color="muted" className="text-sm">
@@ -208,9 +211,12 @@ export default function HireAgentsContent() {
         <section className="max-w-4xl mx-auto pb-16 px-6">
           <div className="gen-card-spotlight p-6 sm:p-12 text-center">
             <div className="flex justify-center mb-4">
-              <Users className="size-8 text-surface" />
+              <Users className="size-8 text-foreground" />
             </div>
-            <Heading as="h3" className="text-2xl font-bold mb-6 text-surface">
+            <Heading
+              as="h3"
+              className="text-2xl font-bold mb-6 text-foreground"
+            >
               Hire Your Content Team Today
             </Heading>
             <PricingStrip className="mb-6" />

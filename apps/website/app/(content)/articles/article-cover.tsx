@@ -96,7 +96,7 @@ export default function ArticleCover({
             </span>
           )}
 
-          <span className="gen-label-sm uppercase tracking-[0.2em] text-surface/50">
+          <span className="gen-label-sm uppercase tracking-[0.2em] text-foreground/50">
             genfeed.ai
           </span>
         </div>

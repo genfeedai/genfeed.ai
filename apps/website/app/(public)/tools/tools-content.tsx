@@ -20,7 +20,7 @@ export default function ToolsContent(): React.ReactElement {
             <Cpu aria-hidden="true" className="size-5" />
             <div>
               <h2 className="text-xl font-semibold">AI model selector</h2>
-              <p className="mt-2 text-sm leading-6 text-surface/65">
+              <p className="mt-2 text-sm leading-6 text-foreground/65">
                 Find AI models for images, video, writing, voice, and music.
                 Compare live catalog matches instantly. No signup or API key.
               </p>
@@ -33,14 +33,14 @@ export default function ToolsContent(): React.ReactElement {
             </Link>
           </Card>
           <Card className="flex flex-col gap-5 p-8">
-            <div className="flex size-11 items-center justify-center bg-fill/[0.05]">
+            <div className="flex size-11 items-center justify-center bg-foreground/[0.05]">
               <FileText aria-hidden="true" className="size-5" />
             </div>
             <div>
               <h2 className="text-xl font-semibold">
                 YouTube to long-form text
               </h2>
-              <p className="mt-2 text-sm leading-6 text-surface/65">
+              <p className="mt-2 text-sm leading-6 text-foreground/65">
                 Turn one video into a standard article, LinkedIn article, X
                 article, or newsletter.
               </p>
@@ -53,14 +53,14 @@ export default function ToolsContent(): React.ReactElement {
             </Link>
           </Card>
           <Card className="flex flex-col gap-5 p-8">
-            <div className="flex size-11 items-center justify-center bg-fill/[0.05]">
+            <div className="flex size-11 items-center justify-center bg-foreground/[0.05]">
               <Scissors aria-hidden="true" className="size-5" />
             </div>
             <div>
               <h2 className="text-xl font-semibold">
                 YouTube transcript to clips
               </h2>
-              <p className="mt-2 text-sm leading-6 text-surface/65">
+              <p className="mt-2 text-sm leading-6 text-foreground/65">
                 Extract a timestamped transcript, find three short-form clip
                 opportunities, and render one preview free.
               </p>

@@ -127,30 +127,30 @@ export default function IntegrationsContent() {
       >
         {/* Platform Grid */}
         <section className="gsap-hero max-w-6xl mx-auto py-16 px-6">
-          <div className="gsap-grid grid grid-cols-1 gap-px bg-edge/5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="gsap-grid grid grid-cols-1 gap-px bg-foreground/5 sm:grid-cols-2 lg:grid-cols-3">
             {integrations.map((integration) => {
               const Icon = ICON_MAP[integration.icon];
               return (
                 <Link
                   key={integration.slug}
                   href={`/integrations/${integration.slug}`}
-                  className="gsap-card group relative flex flex-col bg-background p-8 transition-colors hover:bg-fill/[0.02]"
+                  className="gsap-card group relative flex flex-col bg-background p-8 transition-colors hover:bg-foreground/[0.02]"
                 >
-                  <div className="mb-5 flex size-14 items-center justify-center rounded-xl border border-edge/10 bg-fill/[0.06] transition-colors group-hover:border-[var(--gen-accent-border)] group-hover:bg-[var(--gen-accent-bg)]">
+                  <div className="mb-5 flex size-14 items-center justify-center rounded-xl border border-foreground/10 bg-foreground/[0.06] transition-colors group-hover:border-[var(--gen-accent-border)] group-hover:bg-[var(--gen-accent-bg)]">
                     {Icon && (
-                      <Icon className="size-7 text-surface/50 transition-colors group-hover:text-[color:hsl(var(--gen-accent))]" />
+                      <Icon className="size-7 text-foreground/50 transition-colors group-hover:text-[color:hsl(var(--gen-accent))]" />
                     )}
                   </div>
                   <Heading
                     as="h3"
-                    className="mb-2 text-lg font-semibold text-surface"
+                    className="mb-2 text-lg font-semibold text-foreground"
                   >
                     {integration.name}
                   </Heading>
-                  <Text className="mb-6 flex-1 text-sm leading-relaxed text-surface/55">
+                  <Text className="mb-6 flex-1 text-sm leading-relaxed text-foreground/55">
                     {integration.tagline}
                   </Text>
-                  <div className="flex flex-row items-center gap-1.5 text-xs font-medium text-surface/55 transition-colors group-hover:text-[color:hsl(var(--gen-accent))]">
+                  <div className="flex flex-row items-center gap-1.5 text-xs font-medium text-foreground/55 transition-colors group-hover:text-[color:hsl(var(--gen-accent))]">
                     <Text>Explore</Text>
                     <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
                   </div>
@@ -164,12 +164,15 @@ export default function IntegrationsContent() {
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
           <div className="gen-card-spotlight p-6 sm:p-12 text-center">
             <div className="flex justify-center mb-4">
-              <Sparkles className="size-8 text-surface" />
+              <Sparkles className="size-8 text-foreground" />
             </div>
-            <Heading as="h3" className="text-2xl font-bold mb-2 text-surface">
+            <Heading
+              as="h3"
+              className="text-2xl font-bold mb-2 text-foreground"
+            >
               One Platform, Every Channel
             </Heading>
-            <Text as="p" className="text-surface/70 mb-6 max-w-lg mx-auto">
+            <Text as="p" className="text-foreground/70 mb-6 max-w-lg mx-auto">
               Generate AI content and publish to all your platforms from a
               single dashboard. Start free with Core.
             </Text>

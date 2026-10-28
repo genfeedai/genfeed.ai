@@ -39,4 +39,15 @@ describe('analytics chart theme contract', () => {
     expect(source).not.toContain('border-white');
     expect(source).toContain('border-border');
   });
+
+  it.each([
+    ...TOGGLE_CHART_SOURCES,
+    'platform-breakdown/platform-breakdown-chart.tsx',
+    'video-completion-funnel/video-completion-funnel.tsx',
+  ])(
+    'never paints with the dark-only overlay-white ladder in %s',
+    (relativePath) => {
+      expect(readChart(relativePath)).not.toContain('--overlay-white-');
+    },
+  );
 });

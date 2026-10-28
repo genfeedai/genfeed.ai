@@ -5,6 +5,7 @@ import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format
 import type { PlatformAnalyticsBreakdownProps } from '@genfeedai/props/analytics/analytics.props';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Card from '@ui/card/Card';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 
 export default function PlatformAnalyticsBreakdown({
   analytics,
@@ -44,7 +45,9 @@ export default function PlatformAnalyticsBreakdown({
               key={platform}
               className="border-l border-primary/40 pl-4 shadow-[inset_2px_0_0_hsl(var(--primary)/0.28)]"
             >
-              <h4 className="font-semibold capitalize mb-2">{platform}</h4>
+              <h4 className="mb-2">
+                <PlatformBadge platform={platform} />
+              </h4>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                 <div>
                   <span className="text-muted-foreground">

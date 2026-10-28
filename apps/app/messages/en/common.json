@@ -2758,29 +2758,25 @@
       "label": "Overview",
       "description": "Dashboard, analytics and activity."
     },
+    "adminCustomers": {
+      "label": "Customers",
+      "description": "Organizations, users, subscriptions and affiliate rewards."
+    },
     "adminContent": {
       "label": "Content",
-      "description": "Posts, templates, prompts and generations."
+      "description": "Posts, generations, templates and the element catalog."
     },
     "adminAutomation": {
       "label": "AI & Automation",
-      "description": "Models, trainings, bots and workflows."
+      "description": "Models, trainings, learning, agents and workflows."
     },
     "adminEconomics": {
       "label": "Economics",
-      "description": "Revenue, provider cost, margins and tracking coverage."
+      "description": "Revenue, provider cost and margins."
     },
-    "adminConfiguration": {
-      "label": "Configuration",
-      "description": "Elements, presets, fonts and tags."
-    },
-    "adminAdministration": {
-      "label": "Administration",
-      "description": "Organizations, users, billing and flags."
-    },
-    "adminSettings": {
-      "label": "Settings",
-      "description": "Platform billing, AI, agent, media and provider settings."
+    "adminPlatform": {
+      "label": "Platform",
+      "description": "Superadmin settings, access, flags and messaging."
     }
   },
   "windowChrome": {

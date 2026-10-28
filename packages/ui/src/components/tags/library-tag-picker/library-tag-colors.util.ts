@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+
 /** WCAG AA contrast for normal text. */
 const MIN_CONTRAST = 4.5;
 
@@ -78,4 +80,16 @@ export function resolveLibraryTagColors(tag: {
         ? '#000000'
         : '#ffffff',
   };
+}
+
+/** Inline style for a chip painted in the tag's own colors, or `undefined` to keep the theme surface. */
+export function libraryTagStyle(tag: {
+  backgroundColor?: string | null;
+  textColor?: string | null;
+}): CSSProperties | undefined {
+  const colors = resolveLibraryTagColors(tag);
+
+  return colors
+    ? { backgroundColor: colors.backgroundColor, color: colors.textColor }
+    : undefined;
 }

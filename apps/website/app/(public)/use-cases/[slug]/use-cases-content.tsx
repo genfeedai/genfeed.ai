@@ -41,7 +41,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
       heroVisual={<MarketingArtwork page={`/use-cases/${useCase.slug}`} />}
     >
       <section className="max-w-6xl mx-auto pb-20">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-edge/5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-foreground/5">
           <div className="bg-background p-8">
             <Heading as="h3" className="text-sm font-bold mb-6">
               Problems
@@ -50,7 +50,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
               {useCase.painPoints.map((pain: string) => (
                 <li key={pain} className="flex items-start gap-3">
                   <X className="size-4 text-destructive mt-0.5 shrink-0" />
-                  <Text className="text-sm text-surface/65">{pain}</Text>
+                  <Text className="text-sm text-foreground/65">{pain}</Text>
                 </li>
               ))}
             </ul>
@@ -63,7 +63,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
               {useCase.solutions.map((solution: string) => (
                 <li key={solution} className="flex items-start gap-3">
                   <Check className="size-4 text-success mt-0.5 shrink-0" />
-                  <Text className="text-sm text-surface/65">{solution}</Text>
+                  <Text className="text-sm text-foreground/65">{solution}</Text>
                 </li>
               ))}
             </ul>
@@ -79,19 +79,19 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
           {useCase.workflow.map((step, index) => (
             <div
               key={step.step}
-              className={`flex items-start gap-5 p-6 ${index > 0 ? 'border-t border-edge/5' : ''}`}
+              className={`flex items-start gap-5 p-6 ${index > 0 ? 'border-t border-foreground/5' : ''}`}
             >
-              <div className="shrink-0 size-8 flex items-center justify-center bg-fill/10 text-sm font-bold text-surface/50">
+              <div className="shrink-0 size-8 flex items-center justify-center bg-foreground/10 text-sm font-bold text-foreground/50">
                 {step.step}
               </div>
               <div>
                 <Heading as="h4" className="font-semibold mb-1">
                   {step.title}
                 </Heading>
-                <Text className="text-sm text-surface/55">
+                <Text className="text-sm text-foreground/55">
                   {step.description}
                 </Text>
-                <Text className="text-sm text-surface/60 mt-1">
+                <Text className="text-sm text-foreground/60 mt-1">
                   {step.example}
                 </Text>
               </div>
@@ -105,14 +105,14 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
           <Heading as="h2" className="text-3xl font-bold text-center mb-10">
             Results
           </Heading>
-          <div className="grid grid-cols-1 gap-px bg-edge/5 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-px bg-foreground/5 md:grid-cols-2">
             {useCase.results.map((result) => (
               <div
                 key={result}
                 className="flex items-start gap-3 bg-background p-5"
               >
                 <Check className="size-4 text-success mt-0.5 shrink-0" />
-                <Text className="text-sm text-surface/65">{result}</Text>
+                <Text className="text-sm text-foreground/65">{result}</Text>
               </div>
             ))}
           </div>
@@ -124,7 +124,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
           <Heading as="h3" className="text-3xl font-bold mb-2">
             {recommendedPlan}
           </Heading>
-          <Text className="text-surface/65 mb-6">{useCase.pricing.why}</Text>
+          <Text className="text-foreground/65 mb-6">{useCase.pricing.why}</Text>
           <ButtonRequestAccess />
           <Link href="/pricing" className="link mt-4 block">
             View All Pricing

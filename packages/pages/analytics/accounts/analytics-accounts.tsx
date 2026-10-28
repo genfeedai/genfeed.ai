@@ -34,8 +34,8 @@ import AccountCell from '@pages/brands/components/integrations/AccountCell';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
-import AnalyticsFilterMenu from '@ui/analytics/analytics-filter-menu/AnalyticsFilterMenu';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import Badge from '@ui/display/badge/Badge';
 import BrandAvatar from '@ui/display/brand-avatar/BrandAvatar';
 import Table from '@ui/display/table/Table';
@@ -267,7 +267,7 @@ export default function AnalyticsAccounts() {
 
     return (
       <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <AnalyticsFilterMenu
+        <FilterMenu
           facets={facets}
           onClear={() => {
             setMetric(AnalyticsMetric.VIEWS);

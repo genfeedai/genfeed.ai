@@ -644,11 +644,7 @@ export default function DeskTableView({
       {
         header: translateDesk('tableHeaders.source'),
         key: 'source',
-        render: (item) => (
-          <Badge className="capitalize" variant="ghost">
-            {item.source}
-          </Badge>
-        ),
+        render: (item) => <Badge variant="ghost">{item.source}</Badge>,
       },
       {
         className: 'text-xs text-foreground/70',

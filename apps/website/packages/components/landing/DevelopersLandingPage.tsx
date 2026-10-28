@@ -152,15 +152,15 @@ export default function DevelopersLandingPage(): React.ReactElement {
         }
         heroVisual={
           <div className="overflow-hidden rounded-lg bg-card shadow-border-strong">
-            <p className="border-b border-edge/5 bg-background/95 px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-surface/60">
+            <p className="border-b border-foreground/5 bg-background/95 px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-foreground/60">
               Connect your agent
             </p>
             <Pre className="overflow-x-auto bg-background/80 p-6 text-sm leading-6">
-              <Code className="bg-transparent text-surface/70">
+              <Code className="bg-transparent text-foreground/70">
                 {MCP_SNIPPET}
               </Code>
             </Pre>
-            <p className="border-t border-edge/5 bg-background/95 px-4 py-3 text-xs text-surface/55">
+            <p className="border-t border-foreground/5 bg-background/95 px-4 py-3 text-xs text-foreground/55">
               Connect Claude for drafts, scheduling and analytics, then open
               Genfeed Studio for media creation. Cursor and other MCP clients
               can also generate assets through the standard connector.
@@ -177,7 +177,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
               <Heading as="h3" className="text-2xl font-bold">
                 Distribution As Tool Calls
               </Heading>
-              <Text as="p" className="text-surface/65">
+              <Text as="p" className="text-foreground/65">
                 Your agent calls Genfeed over MCP: read brand context, create
                 drafts, check publishing readiness and schedule approved posts.
                 Read available analytics before the next run. Use the hosted
@@ -215,10 +215,13 @@ export default function DevelopersLandingPage(): React.ReactElement {
                       <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
                     </div>
                   </div>
-                  <Heading as="h4" className="font-semibold mb-2 text-surface">
+                  <Heading
+                    as="h4"
+                    className="font-semibold mb-2 text-foreground"
+                  >
                     {feature.title}
                   </Heading>
-                  <Text className="text-sm text-surface/65">
+                  <Text className="text-sm text-foreground/65">
                     {feature.description}
                   </Text>
                 </div>
@@ -242,10 +245,10 @@ export default function DevelopersLandingPage(): React.ReactElement {
                       <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
                     </div>
                     <div className="flex flex-col gap-1">
-                      <Text className="text-lg font-bold text-surface">
+                      <Text className="text-lg font-bold text-foreground">
                         {step.label}
                       </Text>
-                      <Text className="text-sm text-surface/65">
+                      <Text className="text-sm text-foreground/65">
                         {step.sublabel}
                       </Text>
                     </div>
@@ -272,12 +275,12 @@ export default function DevelopersLandingPage(): React.ReactElement {
                 className="gsap-card gen-card-spotlight relative p-6"
               >
                 <Link
-                  className="text-sm font-semibold text-surface transition-colors after:absolute after:inset-0 hover:text-primary"
+                  className="text-sm font-semibold text-foreground transition-colors after:absolute after:inset-0 hover:text-primary"
                   href={`/${client.slug}`}
                 >
                   {client.name}
                 </Link>
-                <Text className="mt-2 text-sm text-surface/65">
+                <Text className="mt-2 text-sm text-foreground/65">
                   {client.description}
                 </Text>
               </div>
@@ -297,12 +300,15 @@ export default function DevelopersLandingPage(): React.ReactElement {
         <section className="max-w-4xl mx-auto pb-16 px-6">
           <div className="gen-card-spotlight p-6 text-center sm:p-12">
             <div className="flex justify-center mb-4">
-              <Terminal className="size-8 text-surface" />
+              <Terminal className="size-8 text-foreground" />
             </div>
-            <Heading as="h3" className="text-2xl font-bold mb-2 text-surface">
+            <Heading
+              as="h3"
+              className="text-2xl font-bold mb-2 text-foreground"
+            >
               Connect Your Agent To Genfeed
             </Heading>
-            <Text as="p" className="text-surface/70 mb-6 max-w-lg mx-auto">
+            <Text as="p" className="text-foreground/70 mb-6 max-w-lg mx-auto">
               Connect your agent for a first draft, or explore the source to run
               and adapt Genfeed yourself. Start for $0 on managed cloud.
             </Text>

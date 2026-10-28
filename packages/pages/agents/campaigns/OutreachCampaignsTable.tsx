@@ -3,32 +3,21 @@
 import {
   ButtonSize,
   ButtonVariant,
-  CampaignPlatform,
   CampaignStatus,
   CampaignType,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import {
-  InstagramIcon,
-  RedditIcon,
-  XTwitterIcon,
-} from '@genfeedai/helpers/ui/icons/brands';
 import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { OutreachCampaign } from '@services/automation/outreach-campaigns.service';
 import Badge from '@ui/display/badge/Badge';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import { Progress } from '@ui/primitives/progress';
 import { Check, Pause, Play, RefreshCw, Settings, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
-
-const platformIcons: Record<CampaignPlatform, React.ReactNode> = {
-  [CampaignPlatform.TWITTER]: <XTwitterIcon className="text-foreground/70" />,
-  [CampaignPlatform.REDDIT]: <RedditIcon className="text-orange-500" />,
-  [CampaignPlatform.INSTAGRAM]: <InstagramIcon className="text-pink-500" />,
-};
 
 const typeLabels: Record<CampaignType, string> = {
   [CampaignType.MANUAL]: 'Manual',
@@ -101,10 +90,7 @@ export default function OutreachCampaignsTable({
         header: 'Platform',
         key: 'platform',
         render: (campaign: OutreachCampaign) => (
-          <div className="flex items-center gap-2">
-            {platformIcons[campaign.platform]}
-            <span className="text-sm capitalize">{campaign.platform}</span>
-          </div>
+          <PlatformBadge platform={campaign.platform} />
         ),
       },
       {

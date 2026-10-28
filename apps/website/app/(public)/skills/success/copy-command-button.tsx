@@ -39,7 +39,7 @@ export default function CopyCommandButton({
       type="button"
       aria-label="Copy install command"
       title="Copy install command"
-      className="shrink-0 p-2 text-surface/55 hover:text-surface transition-colors"
+      className="shrink-0 p-2 text-foreground/55 hover:text-foreground transition-colors"
     >
       {isCopied ? (
         <Check className="size-4 text-emerald-400" />

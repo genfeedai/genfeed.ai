@@ -3,7 +3,7 @@ import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 
 const EYEBROW_CLASS =
-  'text-xs font-bold uppercase tracking-widest text-surface/72';
+  'text-xs font-bold uppercase tracking-widest text-foreground/72';
 
 const HOW_STEPS: HowStep[] = [
   {
@@ -26,7 +26,10 @@ const HOW_STEPS: HowStep[] = [
 
 export default function HomeHow(): React.ReactElement {
   return (
-    <section id="how" className="gen-section-spacing border-b border-edge/5">
+    <section
+      id="how"
+      className="gen-section-spacing border-b border-foreground/5"
+    >
       <div className="container mx-auto px-6">
         <div className="flex flex-col mb-10 max-w-3xl gap-4" data-reveal="up">
           <Text className={EYEBROW_CLASS}>How it works</Text>
@@ -45,7 +48,7 @@ export default function HomeHow(): React.ReactElement {
 
         <ol
           aria-labelledby="home-workflow-heading"
-          className="grid grid-cols-1 gap-px bg-edge/5 sm:grid-cols-3"
+          className="grid grid-cols-1 gap-px bg-foreground/5 sm:grid-cols-3"
         >
           {HOW_STEPS.map((item) => (
             <li
@@ -53,13 +56,16 @@ export default function HomeHow(): React.ReactElement {
               className="flex flex-col gap-3 bg-background p-8"
               data-reveal="up"
             >
-              <Text className="text-sm font-black tracking-[-0.02em] text-surface/72">
+              <Text className="text-sm font-black tracking-[-0.02em] text-foreground/72">
                 {item.step}
               </Text>
-              <Heading as="h3" className="text-xl font-semibold text-surface">
+              <Heading
+                as="h3"
+                className="text-xl font-semibold text-foreground"
+              >
                 {item.title}
               </Heading>
-              <Text className="text-sm leading-6 text-surface/72">
+              <Text className="text-sm leading-6 text-foreground/72">
                 {item.description}
               </Text>
             </li>

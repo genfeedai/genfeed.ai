@@ -42,6 +42,7 @@ const SHARED_READ_TOOLS: CuratedActionName[] = [
   // accepts fields this conversation asked on such a card.
   'save_onboarding_answers',
   'present_work_object',
+  'update_task_list',
   'ingest_source_media',
   'get_analytics',
   'get_brand_context',

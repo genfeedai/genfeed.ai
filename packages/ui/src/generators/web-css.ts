@@ -2,17 +2,10 @@ import { semanticColorTokens } from '@ui/core/colors';
 import { elevationTokens, focusTokens } from '@ui/core/elevation';
 import { motionTokens } from '@ui/core/motion';
 import { radiusTokens } from '@ui/core/radius';
-import {
-  backgroundScale,
-  neutralAlphaScale,
-  neutralScale,
-} from '@ui/core/scales';
+import { neutralAlphaScale, neutralScale } from '@ui/core/scales';
 import { sizingTokens } from '@ui/core/sizing';
 import { spacingTokens } from '@ui/core/spacing';
 import { typographyTokens } from '@ui/core/typography';
-
-/** `invFg` is the one role whose CSS name is not a plain kebab-case of the key. */
-const RGB_TRIPLE_ROLES = new Set(['surface', 'fill', 'edge', 'inv', 'invFg']);
 
 function kebab(tokenName: string): string {
   return tokenName.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
@@ -25,16 +18,7 @@ function declaration(name: string, value: string, indent: string): string {
 /** Values that change with the theme. Emitted once per theme block. */
 function themedVariables(theme: 'light' | 'dark', indent: string): string {
   const semanticEntries = Object.entries(semanticColorTokens[theme]).map(
-    ([tokenName, value]) =>
-      declaration(
-        RGB_TRIPLE_ROLES.has(tokenName)
-          ? tokenName === 'invFg'
-            ? 'inv-fg'
-            : tokenName
-          : kebab(tokenName),
-        value.hsl,
-        indent,
-      ),
+    ([tokenName, value]) => declaration(kebab(tokenName), value.hsl, indent),
   );
 
   const scaleEntries = Object.entries(neutralScale[theme]).map(
@@ -42,9 +26,6 @@ function themedVariables(theme: 'light' | 'dark', indent: string): string {
   );
   const alphaScaleEntries = Object.entries(neutralAlphaScale[theme]).map(
     ([step, value]) => declaration(`gray-alpha-${step}`, value, indent),
-  );
-  const backgroundScaleEntries = Object.entries(backgroundScale[theme]).map(
-    ([step, value]) => declaration(`background-${step}`, value.hsl, indent),
   );
   const elevationEntries = Object.entries(elevationTokens[theme]).map(
     ([tokenName, value]) => declaration(kebab(tokenName), value, indent),
@@ -54,7 +35,6 @@ function themedVariables(theme: 'light' | 'dark', indent: string): string {
     ...semanticEntries,
     ...scaleEntries,
     ...alphaScaleEntries,
-    ...backgroundScaleEntries,
     ...elevationEntries,
   ].join('\n');
 }

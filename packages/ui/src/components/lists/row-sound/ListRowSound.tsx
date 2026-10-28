@@ -76,8 +76,8 @@ export default function ListRowSound({
     <li>
       <div
         className={cn(
-          'group grid min-h-20 grid-cols-[auto_minmax(0,1fr)] items-center gap-4 rounded-2xl bg-background-secondary px-4 py-3 shadow-border transition-colors duration-200 lg:grid-cols-[auto_minmax(0,1fr)_auto]',
-          'hover:bg-background-tertiary hover:shadow-border-strong',
+          'group grid min-h-20 grid-cols-[auto_minmax(0,1fr)] items-center gap-4 rounded-2xl bg-card px-4 py-3 shadow-border transition-colors duration-200 lg:grid-cols-[auto_minmax(0,1fr)_auto]',
+          'hover:bg-tertiary hover:shadow-border-strong',
           (isActive ?? isSelected) && 'bg-accent shadow-border-strong',
           onRowClick && 'cursor-pointer',
           className,
@@ -85,7 +85,7 @@ export default function ListRowSound({
       >
         <div className="flex min-w-0 items-center gap-3">
           {leading ?? (
-            <div className="flex size-11 items-center justify-center rounded-full border border-border bg-background-tertiary text-sm font-medium text-foreground/70 lg:size-10">
+            <div className="flex size-11 items-center justify-center rounded-full border border-border bg-tertiary text-sm font-medium text-foreground/70 lg:size-10">
               {typeof index === 'number' ? (
                 <span className="tabular-nums">{index + 1}</span>
               ) : (

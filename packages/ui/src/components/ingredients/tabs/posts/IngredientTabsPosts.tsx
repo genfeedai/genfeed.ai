@@ -115,11 +115,7 @@ export default function IngredientTabsPosts({
     {
       header: 'Status',
       key: 'status',
-      render: (p: IPost) => (
-        <Badge variant="ghost" className="uppercase">
-          {p.status}
-        </Badge>
-      ),
+      render: (p: IPost) => <Badge variant="ghost">{p.status}</Badge>,
     },
   ];
 

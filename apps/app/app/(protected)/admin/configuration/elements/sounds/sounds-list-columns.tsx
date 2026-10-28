@@ -9,7 +9,7 @@ import { Checkbox } from '@ui/primitives/checkbox';
 
 export function SoundCategoryCell({ sound }: SoundCellProps) {
   return (
-    <Badge variant="outline" size={ComponentSize.SM} className="uppercase">
+    <Badge variant="outline" size={ComponentSize.SM}>
       {(sound as ISound).category ?? 'Undefined'}
     </Badge>
   );

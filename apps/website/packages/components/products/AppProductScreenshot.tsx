@@ -16,7 +16,7 @@ export default function AppProductScreenshot({
   src,
 }: AppProductScreenshotProps): React.ReactElement {
   return (
-    <figure className="w-full max-w-[760px] overflow-hidden rounded-2xl border border-edge/15 bg-background shadow-[0_32px_100px_rgba(0,0,0,0.35)]">
+    <figure className="w-full max-w-[760px] overflow-hidden rounded-2xl border border-foreground/15 bg-background shadow-[0_32px_100px_rgba(0,0,0,0.35)]">
       <Image
         alt={alt}
         className="h-auto w-full"

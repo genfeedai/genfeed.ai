@@ -164,10 +164,10 @@ export default function ExpertsContent() {
       >
         {/* Six-step path */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
-          <Heading as="h2" className="text-2xl font-bold mb-2 text-surface">
+          <Heading as="h2" className="text-2xl font-bold mb-2 text-foreground">
             The six-step path
           </Heading>
-          <Text as="p" className="text-surface/65 mb-8">
+          <Text as="p" className="text-foreground/65 mb-8">
             One workflow, from your first interview to a running weekly
             operation.
           </Text>
@@ -175,16 +175,19 @@ export default function ExpertsContent() {
             {PATH_STEPS.map((item, index) => (
               <div
                 key={item.step}
-                className={`flex items-start gap-5 p-6 ${index > 0 ? 'border-t border-edge/5' : ''}`}
+                className={`flex items-start gap-5 p-6 ${index > 0 ? 'border-t border-foreground/5' : ''}`}
               >
-                <div className="shrink-0 size-8 flex items-center justify-center bg-fill/10 text-sm font-bold text-surface/50">
+                <div className="shrink-0 size-8 flex items-center justify-center bg-foreground/10 text-sm font-bold text-foreground/50">
                   {item.step}
                 </div>
                 <div>
-                  <Heading as="h3" className="font-semibold mb-1 text-surface">
+                  <Heading
+                    as="h3"
+                    className="font-semibold mb-1 text-foreground"
+                  >
                     {item.title}
                   </Heading>
-                  <Text className="text-sm text-surface/60">
+                  <Text className="text-sm text-foreground/60">
                     {item.description}
                   </Text>
                 </div>
@@ -195,10 +198,10 @@ export default function ExpertsContent() {
 
         {/* Positioning scorecard breakdown */}
         <section className="gsap-section max-w-6xl mx-auto pb-16 px-6">
-          <Heading as="h2" className="text-2xl font-bold mb-2 text-surface">
+          <Heading as="h2" className="text-2xl font-bold mb-2 text-foreground">
             The positioning scorecard
           </Heading>
-          <Text as="p" className="text-surface/65 mb-8">
+          <Text as="p" className="text-foreground/65 mb-8">
             Step 04 scores your profile against six dimensions before Genfeed
             drafts anything.
           </Text>
@@ -208,10 +211,10 @@ export default function ExpertsContent() {
                 key={dimension.title}
                 className="gsap-card gen-card-spotlight p-6"
               >
-                <Heading as="h3" className="font-semibold mb-2 text-surface">
+                <Heading as="h3" className="font-semibold mb-2 text-foreground">
                   {dimension.title}
                 </Heading>
-                <Text className="text-sm text-surface/60">
+                <Text className="text-sm text-foreground/60">
                   {dimension.description}
                 </Text>
               </div>
@@ -221,23 +224,23 @@ export default function ExpertsContent() {
 
         {/* Before / after — illustrative example, not a customer testimonial */}
         <section className="gsap-section max-w-6xl mx-auto pb-16 px-6">
-          <Heading as="h2" className="text-2xl font-bold mb-2 text-surface">
+          <Heading as="h2" className="text-2xl font-bold mb-2 text-foreground">
             Grounded in your corpus, not a prompt
           </Heading>
-          <Text as="p" className="text-surface/65 mb-2">
+          <Text as="p" className="text-foreground/65 mb-2">
             An illustrative example — not a real customer post — of the
             difference between a prompt with no source and a post pulled from an
             expert&apos;s own material.
           </Text>
-          <div className="grid grid-cols-1 gap-px bg-edge/5 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-px bg-foreground/5 md:grid-cols-2">
             <div className="bg-background p-8">
               <div className="mb-4 flex items-center gap-2">
                 <X className="size-4 text-destructive" />
-                <Text className="text-sm font-bold text-surface">
+                <Text className="text-sm font-bold text-foreground">
                   Generic AI post
                 </Text>
               </div>
-              <Text className="text-sm leading-6 text-surface/65">
+              <Text className="text-sm leading-6 text-foreground/65">
                 &ldquo;Consistency is everything. The best founders show up
                 every day and share value with their audience.&rdquo;
               </Text>
@@ -245,20 +248,20 @@ export default function ExpertsContent() {
             <div className="bg-background p-8">
               <div className="mb-4 flex items-center gap-2">
                 <Check className="size-4 text-success" />
-                <Text className="text-sm font-bold text-surface">
+                <Text className="text-sm font-bold text-foreground">
                   Grounded in your corpus
                 </Text>
               </div>
-              <Text className="text-sm leading-6 text-surface/65">
+              <Text className="text-sm leading-6 text-foreground/65">
                 &ldquo;I used to think consistency meant posting daily. Then I
                 watched three clients burn out chasing a schedule instead of a
                 point of view. The founders who compound aren&apos;t the ones
                 who post the most — they&apos;re the ones whose last ten posts
                 you&apos;d recognize as theirs blindfolded.&rdquo;
               </Text>
-              <div className="mt-4 flex items-center gap-2 border-t border-edge/10 pt-4">
-                <Quote className="size-3.5 shrink-0 text-surface/45" />
-                <Text className="text-xs font-medium text-surface/55">
+              <div className="mt-4 flex items-center gap-2 border-t border-foreground/10 pt-4">
+                <Quote className="size-3.5 shrink-0 text-foreground/45" />
+                <Text className="text-xs font-medium text-foreground/55">
                   Source: your 2024 keynote transcript
                 </Text>
               </div>
@@ -276,10 +279,10 @@ export default function ExpertsContent() {
                 </div>
               </div>
               <div className="flex flex-col gap-2">
-                <Heading as="h2" className="text-xl font-bold text-surface">
+                <Heading as="h2" className="text-xl font-bold text-foreground">
                   Nothing publishes without your approval
                 </Heading>
-                <Text as="p" className="text-sm text-surface/65">
+                <Text as="p" className="text-sm text-foreground/65">
                   Publish approval is on by default for every expert account.
                   Genfeed drafts the positioning scorecard and the first content
                   system from your corpus and interview; you review and approve
@@ -295,10 +298,13 @@ export default function ExpertsContent() {
         {/* Final CTA */}
         <section className="max-w-4xl mx-auto pb-16 px-6">
           <div className="gen-card-spotlight p-6 sm:p-12 text-center">
-            <Heading as="h2" className="text-2xl font-bold mb-2 text-surface">
+            <Heading
+              as="h2"
+              className="text-2xl font-bold mb-2 text-foreground"
+            >
               Build your Brand OS
             </Heading>
-            <Text as="p" className="text-surface/70 mb-6 max-w-lg mx-auto">
+            <Text as="p" className="text-foreground/70 mb-6 max-w-lg mx-auto">
               Start with the positioning interview. Your corpus, your scorecard,
               and your first reviewable content plan follow from there.
             </Text>

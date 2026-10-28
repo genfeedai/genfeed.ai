@@ -176,7 +176,10 @@ export function BrandOsFunnel(): React.ReactElement {
           />
         </Field>
 
-        <div aria-hidden="true" className="text-center text-xs text-surface/55">
+        <div
+          aria-hidden="true"
+          className="text-center text-xs text-foreground/55"
+        >
           or
         </div>
 
@@ -232,7 +235,7 @@ export function BrandOsFunnel(): React.ReactElement {
           className="flex flex-col gap-3 bg-background p-5 shadow-border sm:p-6"
           data-brand-os-state="conversion-prompted"
         >
-          <Text className="text-sm leading-6 text-surface/70">
+          <Text className="text-sm leading-6 text-foreground/70">
             Save this source-backed draft to a workspace. Only the short-lived
             opaque handoff token crosses authentication.
           </Text>

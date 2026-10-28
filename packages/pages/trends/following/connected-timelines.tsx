@@ -296,7 +296,7 @@ export default function ConnectedTimelines() {
             <section
               key={account.credentialId}
               aria-label={`${account.platform} ${account.label}`}
-              className="flex h-[calc(100dvh-16rem)] min-h-80 w-80 shrink-0 snap-start flex-col rounded-lg border border-border bg-background-secondary"
+              className="flex h-[calc(100dvh-16rem)] min-h-80 w-80 shrink-0 snap-start flex-col rounded-lg border border-border bg-card"
             >
               <div className="space-y-2 border-b border-border p-4">
                 <div className="flex items-center gap-2">

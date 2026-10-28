@@ -94,7 +94,7 @@ describe('CredentialMentionList', () => {
 
     expect(screen.getByText('!acme_official')).toBeInTheDocument();
     expect(screen.getByText('Acme Official')).toBeInTheDocument();
-    expect(screen.getByText('instagram')).toBeInTheDocument();
+    expect(screen.getByText('Instagram')).toBeInTheDocument();
     expect(screen.getByAltText('acme_official')).toBeInTheDocument();
     // Same name/handle renders only the handle line.
     expect(screen.getByText('!acme')).toBeInTheDocument();

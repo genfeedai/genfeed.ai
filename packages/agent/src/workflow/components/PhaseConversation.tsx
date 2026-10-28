@@ -110,7 +110,7 @@ function PhaseConversationInner() {
   return (
     <div
       ref={scrollRef}
-      className="flex max-h-[400px] flex-col gap-4 overflow-y-auto rounded-xl border border-foreground/5 bg-background-secondary p-3"
+      className="flex max-h-[400px] flex-col gap-4 overflow-y-auto rounded-xl border border-foreground/5 bg-card p-3"
     >
       {messages.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-6">

@@ -1,6 +1,7 @@
 export * from './agent-auto-routing.interface';
 export * from './agent-input-request.interface';
 export * from './agent-publish.interface';
+export * from './agent-task-list.interface';
 export * from './agent-thread-status-event.interface';
 export * from './agent-ui-block.interface';
 export * from './agent-untrusted-content-gate.interface';

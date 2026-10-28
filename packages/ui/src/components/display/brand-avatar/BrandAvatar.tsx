@@ -30,7 +30,7 @@ export default function BrandAvatar({
     <Avatar
       className={cn(
         AVATAR_SIZE_CLASSNAME[size],
-        'bg-background-secondary shadow-border',
+        'bg-card shadow-border',
         className,
       )}
     >

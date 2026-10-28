@@ -80,7 +80,7 @@ describe('Calendar', () => {
       />,
     );
 
-    const nav = container.querySelector('[class*="absolute right-1 top-0"]');
+    const nav = container.querySelector('[class*="absolute right-0 top-0"]');
     expect(nav).toBeTruthy();
     expect(nav?.className).toMatch(/z-\[3\]/);
 

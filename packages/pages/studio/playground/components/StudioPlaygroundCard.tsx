@@ -412,10 +412,7 @@ export default function StudioPlaygroundCard({
       >
         <div className="flex min-w-0 items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-1">
-            <Badge
-              className="w-fit shrink-0 text-2xs uppercase tracking-wide"
-              variant="secondary"
-            >
+            <Badge className="w-fit shrink-0" variant="secondary">
               {label}
             </Badge>
             {unbrandedMode ? (

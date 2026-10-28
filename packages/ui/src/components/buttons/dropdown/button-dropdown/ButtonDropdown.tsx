@@ -108,7 +108,7 @@ export default function ButtonDropdown({
             className={cn(
               'min-h-8 cursor-pointer rounded-sm px-2.5 py-1.5 text-xs text-foreground hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground',
               option.value === value &&
-                'bg-background-tertiary font-medium text-foreground',
+                'bg-tertiary font-medium text-foreground',
             )}
           >
             {option.icon && (

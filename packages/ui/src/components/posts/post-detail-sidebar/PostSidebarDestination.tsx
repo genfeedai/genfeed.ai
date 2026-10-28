@@ -126,7 +126,7 @@ export default function PostSidebarDestination({
           ) : null}
         </div>
 
-        <Badge status={post.status} className="shrink-0 text-xs">
+        <Badge status={post.status} className="shrink-0">
           {post.status}
         </Badge>
       </div>

@@ -240,6 +240,7 @@ const EXPECTED_SYSTEM_WORKFLOW_IDS: readonly string[] = [
   'agent.tool.transform_media',
   'agent.tool.update_goal',
   'agent.tool.update_strategy_state',
+  'agent.tool.update_task_list',
   'agent.turn.execute',
   'ai-influencer.daily-post',
   'ai-influencer.daily-posts',

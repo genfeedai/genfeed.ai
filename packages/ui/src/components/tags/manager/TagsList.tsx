@@ -1,7 +1,9 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/contracts';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
+import { libraryTagStyle } from '@ui/tags/library-tag-picker/library-tag-colors.util';
 import { X } from 'lucide-react';
 
 type TagDisplayItem = {
@@ -31,21 +33,20 @@ export default function TagsList({
       )}
 
       {tagDisplayItems.map((tagDisplay) => (
-        <Badge
-          key={tagDisplay.id}
-          backgroundColor={tagDisplay.backgroundColor}
-          textColor={tagDisplay.textColor}
-        >
+        <Badge key={tagDisplay.id} style={libraryTagStyle(tagDisplay)}>
           <span>{tagDisplay.label}</span>
 
           {!isReadOnly && (
             <Button
-              label={''}
-              icon={<X className="size-3" />}
+              withWrapper={false}
+              variant={ButtonVariant.UNSTYLED}
               onClick={() => onRemoveTag(tagDisplay.id)}
               isDisabled={isSaving}
               className="hover:opacity-70 transition-opacity"
-            />
+              ariaLabel={`Remove tag ${tagDisplay.label}`}
+            >
+              <X className="size-3" />
+            </Button>
           )}
         </Badge>
       ))}

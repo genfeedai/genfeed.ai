@@ -34,7 +34,7 @@ export default function ArticleShareButton(): React.ReactElement {
   return (
     <Button
       variant={ButtonVariant.SECONDARY}
-      className="border border-edge/[0.08] bg-fill/10 text-surface backdrop-blur-sm transition-all hover:border-edge/20 hover:bg-fill/20"
+      className="border border-foreground/[0.08] bg-foreground/10 text-foreground backdrop-blur-sm transition-all hover:border-foreground/20 hover:bg-foreground/20"
       onClick={handleShare}
     >
       <Share2 className="size-4" />

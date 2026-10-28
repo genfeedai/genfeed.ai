@@ -174,7 +174,7 @@ export default function TopbarPublicDesktopDropdown({
         </div>
       ))}
       {panel.footer ? (
-        <div className="col-span-3 mt-7 flex items-center justify-between border-t border-edge/10 px-3 pt-5">
+        <div className="col-span-3 mt-7 flex items-center justify-between border-t border-foreground/10 px-3 pt-5">
           <p className="text-xs text-foreground/55">
             {panel.footer.description}
           </p>

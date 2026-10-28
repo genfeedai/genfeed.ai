@@ -114,7 +114,7 @@ export default function BrandKitReviewAssets({
       {assetImportResult ? (
         <div
           aria-live="polite"
-          className="rounded-md bg-background-secondary px-3 py-2 text-sm shadow-border"
+          className="rounded-md bg-card px-3 py-2 text-sm shadow-border"
           role="status"
         >
           {`Imported ${assetImportResult.importedAssetIds.length} assets; skipped ${assetImportResult.skippedCandidateIds.length}; failed ${assetImportResult.failedCandidateIds.length}. Status: ${assetImportResult.status}.`}

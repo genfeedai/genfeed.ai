@@ -251,8 +251,8 @@ describe('workspace dashboard sections', () => {
 
     // Regression (#1229): execution cards must use the shared Card tokens,
     // never the lighter bespoke background-secondary/tertiary grays.
-    expect(container.querySelector('.bg-background-secondary')).toBeNull();
-    expect(container.querySelector('.bg-background-tertiary')).toBeNull();
+    expect(container.querySelector('.bg-card')).toBeNull();
+    expect(container.querySelector('.bg-tertiary')).toBeNull();
   });
 
   it('renders flat run cards with one fact line and a single Open action', () => {

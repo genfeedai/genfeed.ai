@@ -136,7 +136,7 @@ export default function ModalModelFormContent({
               {modelProviders.map((provider) => (
                 <SelectItem key={provider} value={provider}>
                   <Badge
-                    className={`border text-xs uppercase ${getModelProviderBadgeClass(provider)}`}
+                    className={`border ${getModelProviderBadgeClass(provider)}`}
                   >
                     {getModelProviderLabel(provider)}
                   </Badge>
@@ -165,7 +165,7 @@ export default function ModalModelFormContent({
               {modelCategories.map((category) => (
                 <SelectItem key={category} value={category}>
                   <Badge
-                    className={`border text-xs uppercase ${getModelCategoryBadgeClass(category)}`}
+                    className={`border ${getModelCategoryBadgeClass(category)}`}
                   >
                     {category}
                   </Badge>

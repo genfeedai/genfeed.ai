@@ -34,7 +34,7 @@ export default function IngredientThumbnail({
       <span
         aria-label={alt}
         className={cn(
-          'flex items-center justify-center bg-background-tertiary text-muted-foreground',
+          'flex items-center justify-center bg-tertiary text-muted-foreground',
           size === undefined ? 'absolute inset-0' : 'aspect-square shrink-0',
           className,
         )}

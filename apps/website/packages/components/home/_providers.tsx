@@ -7,7 +7,7 @@ import { Text } from '@ui/typography/text';
 import Link from 'next/link';
 
 const EYEBROW_CLASS =
-  'text-xs font-bold uppercase tracking-widest text-surface/72';
+  'text-xs font-bold uppercase tracking-widest text-foreground/72';
 
 const FEATURED_PROVIDER_COUNT = 5;
 
@@ -29,7 +29,7 @@ export default function HomeProviders(): React.ReactElement {
   return (
     <section
       id="providers"
-      className="gen-section-spacing border-b border-edge/5"
+      className="gen-section-spacing border-b border-foreground/5"
     >
       <div className="container mx-auto px-6">
         <div
@@ -64,7 +64,7 @@ export default function HomeProviders(): React.ReactElement {
 
         <ul
           aria-labelledby="home-providers-heading"
-          className="mt-10 flex flex-wrap items-center gap-x-10 gap-y-4 border-t border-edge/5 pt-8"
+          className="mt-10 flex flex-wrap items-center gap-x-10 gap-y-4 border-t border-foreground/5 pt-8"
         >
           {featuredBrands.map((brand) => {
             const Icon = getModelBrandIcon(brand.iconKey);
@@ -85,7 +85,7 @@ export default function HomeProviders(): React.ReactElement {
                     {brand.label.charAt(0)}
                   </span>
                 )}
-                <Text className="text-base font-semibold text-surface">
+                <Text className="text-base font-semibold text-foreground">
                   {brand.label}
                 </Text>
               </li>

@@ -30,7 +30,7 @@ export function ConversationSidebarSearch({
       <Searchbar
         ariaLabel={ariaLabel}
         className="min-w-0 flex-1"
-        inputClassName="rounded-md border-border bg-background-secondary text-xs placeholder:text-muted-foreground"
+        inputClassName="rounded-md border-border bg-card text-xs placeholder:text-muted-foreground"
         onChange={(event: ChangeEvent<HTMLInputElement>) =>
           onChange(event.target.value)
         }

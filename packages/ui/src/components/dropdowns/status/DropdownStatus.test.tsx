@@ -162,7 +162,7 @@ describe('DropdownStatus', () => {
     expect(rootElement).toBeInTheDocument();
   });
 
-  it('paints the trigger as a muted status pill, not a raw variant name', () => {
+  it('paints the trigger as the shared uppercase status badge', () => {
     render(<DropdownStatus {...baseProps} />);
 
     const trigger = within(screen.getByTestId('dropdown-trigger')).getByText(
@@ -171,7 +171,8 @@ describe('DropdownStatus', () => {
 
     expect(trigger).toHaveClass('bg-success/10');
     expect(trigger).toHaveClass('text-success');
-    expect(trigger.className).not.toMatch(/\buppercase\b/);
+    expect(trigger.className).toMatch(/\buppercase\b/);
+    expect(trigger.className).not.toMatch(/bg-primary\/15/);
   });
 
   it('patches posts with canonical execution state and visibility', async () => {

@@ -356,11 +356,11 @@ describe('AppRail', () => {
     expect(screen.queryByTestId('app-rail-item-workspace')).toBeNull();
     for (const id of [
       'admin-overview',
+      'admin-customers',
       'admin-content',
       'admin-automation',
-      'admin-configuration',
-      'admin-administration',
-      'admin-settings',
+      'admin-economics',
+      'admin-platform',
     ]) {
       expect(screen.getByTestId(`app-rail-item-${id}`)).toBeInTheDocument();
     }
@@ -404,10 +404,18 @@ describe('AppRail', () => {
     );
     const nav = screen.getByTestId('app-rail');
     const categories = screen.getByTestId('app-rail-admin-categories');
-    // The divider is the group's first child, followed by the seven categories.
-    expect(categories.querySelectorAll('a')).toHaveLength(7);
+    // The divider is the group's first child, followed by the five day-to-day
+    // categories; the superadmin section (Platform) is set apart below.
+    expect(categories.querySelectorAll('a')).toHaveLength(5);
     expect(categories.firstElementChild?.tagName).toBe('DIV');
     expect(categories.firstElementChild).toHaveClass('my-1', 'w-5');
+    const platform = screen.getByTestId('app-rail-admin-platform');
+    expect(platform.querySelectorAll('a')).toHaveLength(1);
+    expect(platform.firstElementChild).toHaveClass('my-1', 'w-5');
+    expect(
+      platform.contains(screen.getByTestId('app-rail-item-admin-platform')),
+    ).toBe(true);
+    expect(screen.getByTestId('app-rail-bottom')).toContainElement(platform);
     // No empty app-loop group between the back button and the categories.
     expect(
       Array.from(nav.children).filter((child) => child.childElementCount === 0),

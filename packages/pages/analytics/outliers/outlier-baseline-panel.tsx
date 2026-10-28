@@ -90,9 +90,7 @@ export default function OutlierBaselinePanel({
     <div data-testid="outlier-baseline-panel">
       <TableRowSummary
         badges={
-          post.outlierTier ? (
-            <Badge value={post.outlierTier} className="text-xs capitalize" />
-          ) : undefined
+          post.outlierTier ? <Badge value={post.outlierTier} /> : undefined
         }
         facts={[
           {

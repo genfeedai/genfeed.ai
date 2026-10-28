@@ -145,11 +145,7 @@ export default function StreaksPage() {
               {badgeMilestones.length > 0 && (
                 <div className="mb-4 flex flex-wrap gap-2">
                   {badgeMilestones.map((milestone) => (
-                    <Badge
-                      className="px-3 py-1 text-xs font-semibold"
-                      key={milestone}
-                      variant="success"
-                    >
+                    <Badge key={milestone} variant="success">
                       <Gift className="size-3.5" />
                       {milestone}-day badge
                     </Badge>
@@ -190,7 +186,6 @@ export default function StreaksPage() {
                       </div>
 
                       <Badge
-                        className="px-2.5 py-1 text-xs font-semibold"
                         variant={
                           milestone.isAchieved
                             ? 'success'

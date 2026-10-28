@@ -47,13 +47,13 @@ export default function ModelDetailPanel({ model }: ModelDetailPanelProps) {
     <div className="space-y-6 p-4" data-testid="model-detail-panel">
       <div className="flex flex-wrap gap-2">
         <Badge
-          className={`border text-xs uppercase ${getModelProviderBadgeClass(model.provider)}`}
+          className={`border ${getModelProviderBadgeClass(model.provider)}`}
           size={ComponentSize.SM}
         >
           {getModelProviderLabel(model.provider)}
         </Badge>
         <Badge
-          className={`border text-xs uppercase ${getModelCategoryBadgeClass(model.category)}`}
+          className={`border ${getModelCategoryBadgeClass(model.category)}`}
           size={ComponentSize.SM}
         >
           {model.category}

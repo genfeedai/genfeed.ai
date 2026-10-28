@@ -70,10 +70,7 @@ export default function SkillsTable({
           header: translate('table.source'),
           key: 'source',
           render: (skill) => (
-            <Badge
-              className="px-2 py-1 text-2xs uppercase tracking-[0.14em]"
-              variant={getSourceBadgeVariant(skill.source)}
-            >
+            <Badge variant={getSourceBadgeVariant(skill.source)}>
               {skill.source.replace('_', ' ')}
             </Badge>
           ),
@@ -85,7 +82,6 @@ export default function SkillsTable({
             <div className="flex flex-wrap gap-1.5">
               {skill.modalities.map((modality) => (
                 <Badge
-                  className="px-2 py-1 text-2xs uppercase tracking-[0.14em]"
                   key={`${skill.id}-${modality}`}
                   variant={getModalityBadgeVariant(modality)}
                 >
@@ -99,12 +95,7 @@ export default function SkillsTable({
           header: translate('table.stage'),
           key: 'workflowStage',
           render: (skill) => (
-            <Badge
-              className="px-2 py-1 text-2xs uppercase tracking-[0.14em]"
-              variant="ghost"
-            >
-              {skill.workflowStage}
-            </Badge>
+            <Badge variant="ghost">{skill.workflowStage}</Badge>
           ),
         },
         {

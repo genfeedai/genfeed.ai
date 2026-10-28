@@ -337,9 +337,7 @@ export function TurboRunResultCard({
             <span className="truncate text-sm font-medium text-foreground">
               {title}
             </span>
-            {view.status ? (
-              <Badge status={view.status} className="h-5 text-2xs" />
-            ) : null}
+            {view.status ? <Badge status={view.status} /> : null}
           </div>
           {activeStatus ? (
             <GenerationStatus

@@ -12,14 +12,29 @@ import type {
   AgentChatRequest,
   AgentChatResult,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
-import type { PlanModeResponseParams } from '@api/services/agent-orchestrator/interfaces/agent-orchestrator-plan-mode.interface';
+import type {
+  PlanModeQuestion,
+  PlanModeResponseParams,
+} from '@api/services/agent-orchestrator/interfaces/agent-orchestrator-plan-mode.interface';
 import type { AgentPlanReviewMetadata } from '@api/services/agent-orchestrator/interfaces/agent-plan-review-metadata.interface';
 import {
   type AgentAutoRoutingRound,
   resolveAgentAutoRoutingRound,
 } from '@api/services/agent-orchestrator/utils/agent-auto-routing-round.util';
+import {
+  formatBriefLabels,
+  IMAGE_OR_POST_BRIEF_LABELS,
+  VIDEO_BRIEF_CHECKLIST,
+} from '@api/services/agent-orchestrator/utils/agent-generation-brief.util';
 import { runReservedAgentLlmRound } from '@api/services/agent-orchestrator/utils/agent-llm-round-reservation.util';
 import { buildPersistedAgentResponseMetadata } from '@api/services/agent-orchestrator/utils/agent-persisted-response-metadata.util';
+import {
+  countTrailingPlanQuestions,
+  MAX_PLAN_QUESTION_ROUNDS,
+  PLAN_QUESTION_METADATA_KEY,
+  parsePlanQuestion,
+  parsePlanResponse,
+} from '@api/services/agent-orchestrator/utils/agent-plan-question.util';
 import { buildResolvedModelMetadata } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
 import {
   buildAgentRoutingMetadata,
@@ -60,6 +75,19 @@ export type AgentOrchestratorPlanModeHost = {
     title: string | null;
   }) => Promise<string | null>;
 };
+
+const PLAN_MODE_INSTRUCTION =
+  'Plan mode is enabled. Do not call tools or execute work. Respond with valid JSON only: {"title":"optional thread title","summary":"one short summary sentence","explanation":"brief rationale","content":"markdown plan","steps":[{"step":"...", "status":"pending"}]}. Keep the plan concise and execution-ready. Plan motion graphics, animated logos or titles, kinetic typography and visual-code or Remotion requests as a coded visual project (quote_visual_code_generation, then generate_visual_code after approval), never as a provider video model.';
+
+/**
+ * Plan mode runs one round with no tools, so the planner asks through the same
+ * input-request card as `request_input` by answering with a `question` instead
+ * of a plan. The answer arrives as the next turn and the planner runs again.
+ */
+const PLAN_MODE_QUESTION_INSTRUCTION = `If the request leaves out something that would change the plan, ask one question instead of planning. Respond with valid JSON only: {"title":"optional thread title","question":{"title":"short card title","prompt":"the question","options":[{"id":"short-id","label":"Choice","description":"optional"}],"recommendedOptionId":"optional option id","allowFreeText":true}}. Offer two to five options and ask one question per turn. Ask only for what you cannot infer from the request, the brand context or earlier answers. For a video check the ${formatBriefLabels(VIDEO_BRIEF_CHECKLIST.map((field) => field.label))}. For an image or a post check the ${formatBriefLabels(IMAGE_OR_POST_BRIEF_LABELS)}. When nothing important is missing, plan.`;
+
+const PLAN_MODE_NO_QUESTION_INSTRUCTION =
+  'You have already asked the questions you are allowed. Do not ask another one: plan now and state each assumption you made in the plan.';
 
 @Injectable()
 export class AgentOrchestratorPlanModeService {
@@ -185,11 +213,14 @@ export class AgentOrchestratorPlanModeService {
       dispatchedModel,
       resolution: autoRouting,
     } = await this.resolvePlanModeAutoRouting(params);
+    const canAskQuestions =
+      countTrailingPlanQuestions(recentMessages) < MAX_PLAN_QUESTION_ROUNDS;
     const reservedRound = await this.runPlanningRound(
       params,
       history,
       autoRouting,
       dispatchedModel,
+      canAskQuestions,
     );
     const response = reservedRound.response;
 
@@ -198,15 +229,25 @@ export class AgentOrchestratorPlanModeService {
       throw new Error('No planning response from LLM');
     }
 
-    return this.persistPlanProposal({
+    const assistantContent = sanitizeAgentOutputText(
+      choice.message.content || '',
+    );
+    const question = canAskQuestions
+      ? parsePlanQuestion(parsePlanResponse(assistantContent).parsed)
+      : null;
+    const persistInput = {
       autoRouting,
-      assistantContent: sanitizeAgentOutputText(choice.message.content || ''),
+      assistantContent,
       defaultModelKey,
       host,
       params,
       reservedRound,
       resolvedModel: response.model ?? params.model,
-    });
+    };
+
+    return question
+      ? this.persistPlanQuestion({ ...persistInput, question })
+      : this.persistPlanProposal(persistInput);
   }
 
   private async runPlanningRound(
@@ -214,9 +255,11 @@ export class AgentOrchestratorPlanModeService {
     history: OpenRouterMessage[],
     autoRouting: AgentAutoRoutingResolution | undefined,
     dispatchedModel: string,
+    canAskQuestions: boolean,
   ) {
     const chatParams = await this.buildPlanningChatCompletionParams({
       autoRouting,
+      canAskQuestions,
       messages: history,
       model: params.model,
       prompt: params.request.content,
@@ -357,6 +400,115 @@ export class AgentOrchestratorPlanModeService {
     };
   }
 
+  /**
+   * The planner needs an answer before it can plan. The question goes out as
+   * an input-request card and the run ends; the answer starts the next turn,
+   * which plans again with it in the thread history.
+   */
+  private async persistPlanQuestion(input: {
+    autoRouting: AgentAutoRoutingResolution | undefined;
+    assistantContent: string;
+    defaultModelKey: string;
+    host: AgentOrchestratorPlanModeHost;
+    params: PlanModeResponseParams;
+    question: PlanModeQuestion;
+    reservedRound: { credits: number };
+    resolvedModel: string;
+  }): Promise<AgentChatResult> {
+    const { params, question } = input;
+    const runId = params.context.executionId;
+    const inputRequestId = `plan-question:${runId ?? `${params.threadId}:${Date.now()}`}`;
+    const envelope = this.extractPlanEnvelope({
+      assistantContent: input.assistantContent,
+      prompt: params.request.content,
+      reviewMetadata: params.reviewMetadata,
+      seedTitle: params.seedTitle,
+    });
+
+    await input.host.maybeUpdateThreadTitle({
+      context: params.context,
+      seedTitle: params.seedTitle,
+      threadId: params.threadId,
+      title: envelope.title,
+    });
+
+    await this.streamEffects.publishStreamInputRequestEvent({
+      allowFreeText: question.allowFreeText,
+      inputRequestId,
+      metadata: {
+        brandId: params.context.scope?.brandId,
+        contextVersion: params.context.scope?.contextVersion,
+        kind: 'plan_question',
+      },
+      options: question.options,
+      prompt: question.prompt,
+      recommendedOptionId: question.recommendedOptionId,
+      runId,
+      threadId: params.threadId,
+      title: question.title,
+      userId: params.context.userId,
+    });
+
+    const creditsRemaining =
+      await this.creditsUtilsService.getOrganizationCreditsBalance(
+        params.context.organizationId,
+      );
+    const assistantMetadata = {
+      ...buildAgentScopeMetadata(params.context),
+      ...buildAgentRoutingMetadata({
+        autoRouting: input.autoRouting,
+        defaultModelKey: input.defaultModelKey,
+        model: params.model,
+        prompt: params.request.content,
+      }),
+      ...buildResolvedModelMetadata(params.model, [input.resolvedModel]),
+      [PLAN_QUESTION_METADATA_KEY]: inputRequestId,
+      totalCreditsUsed: input.reservedRound.credits,
+    };
+    // The prompt is the message so the next planning round reads the question
+    // beside the answer.
+    const content = question.prompt;
+
+    await this.agentMessagesService.addMessage({
+      brandId: params.context.scope?.brandId,
+      content,
+      metadata: buildPersistedAgentResponseMetadata(
+        assistantMetadata,
+        creditsRemaining,
+        runId,
+      ),
+      organizationId: params.context.organizationId,
+      role: AgentMessageRole.ASSISTANT,
+      room: params.threadId,
+      userId: params.context.userId,
+    });
+    await this.threadEventRecorder.recordAssistantFinalized({
+      content,
+      context: params.context,
+      metadata: assistantMetadata,
+      runId,
+      threadId: params.threadId,
+    });
+    await this.threadEventRecorder.recordRunCompleted({
+      context: params.context,
+      detail: 'Plan paused for an answer',
+      runId,
+      threadId: params.threadId,
+    });
+
+    return {
+      creditsRemaining,
+      creditsUsed: input.reservedRound.credits,
+      message: {
+        content,
+        metadata: assistantMetadata,
+        role: 'assistant',
+      },
+      threadId: params.threadId,
+      toolCalls: [],
+    };
+  }
+
   private async isPlanModeEnabledForThread(
     threadId: string,
     organizationId: string,
@@ -396,6 +548,7 @@ export class AgentOrchestratorPlanModeService {
 
   private async buildPlanningChatCompletionParams(params: {
     autoRouting?: AgentAutoRoutingResolution;
+    canAskQuestions: boolean;
     messages: OpenRouterMessage[];
     model: string;
     prompt: string;
@@ -435,8 +588,11 @@ export class AgentOrchestratorPlanModeService {
         ]
       : routingPlugins;
     const planInstruction = {
-      content:
-        'Plan mode is enabled. Do not call tools or execute work. Respond with valid JSON only: {"title":"optional thread title","summary":"one short summary sentence","explanation":"brief rationale","content":"markdown plan","steps":[{"step":"...", "status":"pending"}]}. Keep the plan concise and execution-ready. Plan motion graphics, animated logos or titles, kinetic typography and visual-code or Remotion requests as a coded visual project (quote_visual_code_generation, then generate_visual_code after approval), never as a provider video model.',
+      content: `${PLAN_MODE_INSTRUCTION} ${
+        params.canAskQuestions
+          ? PLAN_MODE_QUESTION_INSTRUCTION
+          : PLAN_MODE_NO_QUESTION_INSTRUCTION
+      }`,
       role: 'system' as const,
     };
 
@@ -472,23 +628,17 @@ export class AgentOrchestratorPlanModeService {
       revisionNote?: string;
     };
   } {
-    const trimmed = params.assistantContent.trim();
-    const fencedJsonMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-    const candidate = fencedJsonMatch?.[1]?.trim() ?? trimmed;
-    let parsed: Record<string, unknown> | null = null;
-
-    if (candidate.startsWith('{') && candidate.endsWith('}')) {
-      try {
-        parsed = JSON.parse(candidate) as Record<string, unknown>;
-      } catch {
-        parsed = null;
-      }
-    }
+    const { candidate, parsed } = parsePlanResponse(params.assistantContent);
+    // A question the planner was no longer allowed to ask is shown in the plan
+    // as an open point instead of raw JSON.
+    const openQuestion = parsePlanQuestion(parsed);
 
     const content =
       typeof parsed?.content === 'string' && parsed.content.trim()
         ? parsed.content.trim()
-        : candidate;
+        : openQuestion
+          ? `Open question: ${openQuestion.prompt}`
+          : candidate;
     const explanation =
       typeof parsed?.explanation === 'string' && parsed.explanation.trim()
         ? parsed.explanation.trim()

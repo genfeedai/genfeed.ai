@@ -81,7 +81,7 @@ export const STATUS_LABELS: Record<string, string> = {
 };
 
 export const STATUS_STYLES: Record<string, string> = {
-  archived: 'bg-background-tertiary text-gray-800',
+  archived: 'bg-tertiary text-gray-800',
   needs_review: 'bg-warning/10 text-warning',
   open: 'bg-info/10 text-info',
   resolved: 'bg-success/10 text-success',

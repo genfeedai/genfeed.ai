@@ -30,11 +30,7 @@ export default function SettingsProgressRewardsCard({
       <div className="flex flex-wrap gap-2">
         {badgeMilestones.length > 0 ? (
           badgeMilestones.map((milestone) => (
-            <Badge
-              className="px-3 py-1 text-xs font-semibold"
-              key={milestone}
-              variant="success"
-            >
+            <Badge key={milestone} variant="success">
               <Gift className="size-3.5" />
               {milestone}-day badge
             </Badge>
@@ -74,7 +70,6 @@ export default function SettingsProgressRewardsCard({
               </div>
 
               <Badge
-                className="px-2.5 py-1 text-2xs font-medium"
                 variant={
                   milestone.isAchieved
                     ? 'success'

@@ -4,6 +4,7 @@ import {
   formatCompactNumberIntl,
   formatPercentageSimple,
 } from '@genfeedai/helpers/formatting/format/format.helper';
+import { ChartLoadingOverlay } from '@ui/analytics/charts/chart-theme';
 
 export interface VideoCompletionData {
   started: number; // 100% of viewers
@@ -18,6 +19,11 @@ export interface VideoCompletionFunnelProps {
   isLoading?: boolean;
   height?: number;
   className?: string;
+}
+
+/** Share of `from` that did not reach `to`; a stage nobody reached drops nobody. */
+function getDropOffRate(from: number, to: number): number {
+  return from > 0 ? ((from - to) / from) * 100 : 0;
 }
 
 function getBarColor(percentage: number): string {
@@ -66,22 +72,22 @@ export function VideoCompletionFunnel({
   const dropOffs = [
     {
       from: 'Started',
-      rate: ((data.started - data.completed25) / data.started) * 100,
+      rate: getDropOffRate(data.started, data.completed25),
       to: '25%',
     },
     {
       from: '25%',
-      rate: ((data.completed25 - data.completed50) / data.completed25) * 100,
+      rate: getDropOffRate(data.completed25, data.completed50),
       to: '50%',
     },
     {
       from: '50%',
-      rate: ((data.completed50 - data.completed75) / data.completed50) * 100,
+      rate: getDropOffRate(data.completed50, data.completed75),
       to: '75%',
     },
     {
       from: '75%',
-      rate: ((data.completed75 - data.completed100) / data.completed75) * 100,
+      rate: getDropOffRate(data.completed75, data.completed100),
       to: '100%',
     },
   ];
@@ -90,12 +96,8 @@ export function VideoCompletionFunnel({
 
   return (
     <div className={className}>
-      <div className="relative" style={{ height }}>
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-card/50 z-10">
-            <span className="animate-pulse size-12 rounded-full bg-primary/30" />
-          </div>
-        )}
+      <div className="relative" style={{ minHeight: height }}>
+        {isLoading && <ChartLoadingOverlay />}
 
         {isEmpty && !isLoading && (
           <div className="absolute inset-0 flex items-center justify-center text-foreground/50">

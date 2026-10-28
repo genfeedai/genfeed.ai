@@ -439,11 +439,7 @@ export function buildModelsTableColumns({
             sortable: true,
             render: (model: IModel) => {
               const status = getRegistryStatus(model);
-              return (
-                <Badge className={`text-xs uppercase ${status.className}`}>
-                  {status.label}
-                </Badge>
-              );
+              return <Badge className={status.className}>{status.label}</Badge>;
             },
           },
         ]
