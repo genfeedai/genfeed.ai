@@ -183,4 +183,20 @@ export class OnboardingController {
     await verifyBrandAccess(this.brandsService, brandId, user);
     return this.firstDraftsService.generate(user, brandId, dto);
   }
+
+  /** Regenerate the image or video a saved run is missing. */
+  @Post('brands/:brandId/drafts/media')
+  @HttpCode(200)
+  @ApiOperation({
+    description:
+      'Generates again only the image or video the latest onboarding run is missing. Saved drafts and media that came back are kept. A run has a small number of retries, and nothing is published.',
+    summary: 'Retry missing onboarding media',
+  })
+  async retryDraftMedia(
+    @CurrentUser() user: User,
+    @Param('brandId') brandId: string,
+  ) {
+    await verifyBrandAccess(this.brandsService, brandId, user);
+    return this.firstDraftsService.retryMedia(user, brandId);
+  }
 }

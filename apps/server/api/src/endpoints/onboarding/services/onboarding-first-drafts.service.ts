@@ -8,7 +8,10 @@ import type {
   OnboardingDraftContextDto,
   OnboardingDraftsDto,
 } from '@api/endpoints/onboarding/dto/onboarding-first-drafts.dto';
-import type { OnboardingImageBriefInput } from '@api/endpoints/onboarding/onboarding.interfaces';
+import type {
+  OnboardingImageBriefInput,
+  OnboardingMissingMedia,
+} from '@api/endpoints/onboarding/onboarding.interfaces';
 import { OnboardingDraftRunsService } from '@api/endpoints/onboarding/services/onboarding-draft-runs.service';
 import { buildOnboardingImageBrief } from '@api/endpoints/onboarding/utils/onboarding-image-brief.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -184,24 +187,10 @@ export class OnboardingFirstDraftsService {
     if (dto.context)
       await this.saveContext(brand, brandId, organizationId, dto.context);
     const direction = this.describeContext(dto.context);
-    const brandName =
-      typeof brand.label === 'string' && brand.label
-        ? brand.label
-        : 'your brand';
-    const description =
-      typeof brand.description === 'string' ? brand.description : '';
-    const savedConfig = this.brandDataMapper.readBrandAgentConfig(
-      brand.agentConfig,
+    const { brandName, description, imageContext } = this.readBrandContext(
+      brand,
+      dto.context,
     );
-    const imageContext = {
-      audience: dto.context?.audience ?? savedConfig.voice?.audience?.[0],
-      goals: dto.context?.goals ?? savedConfig.strategy?.goals,
-      offer: dto.context?.offer ?? savedConfig.strategy?.offers?.[0],
-      tone:
-        dto.context?.tone && dto.context.tone !== 'keep'
-          ? dto.context.tone
-          : savedConfig.voice?.tone,
-    };
     const identity = { brandId, organizationId, userId };
 
     const xDraft = await this.generateDraft({
@@ -302,9 +291,102 @@ export class OnboardingFirstDraftsService {
         : 'partial';
     await checkpoint();
     await this.generateVideo(identity, brandName, result, checkpoint);
-    if (result.videoStatus !== 'ready' && result.status === 'ready')
-      result.status = 'partial';
+    result.status = this.resolveStatus(result);
     return result;
+  }
+
+  /** Regenerates only the image or video a finished run is missing. */
+  async retryMedia(
+    user: User,
+    brandId: string,
+  ): Promise<IOnboardingFirstDraftsResult> {
+    return this.runs.retryMedia(user, brandId, (missing, result, save) =>
+      this.retryMediaOnce(user, brandId, missing, result, save),
+    );
+  }
+
+  private async retryMediaOnce(
+    user: User,
+    brandId: string,
+    missing: OnboardingMissingMedia,
+    result: IOnboardingFirstDraftsResult,
+    save: (result: IOnboardingFirstDraftsResult) => Promise<void>,
+  ): Promise<IOnboardingFirstDraftsResult> {
+    const organizationId = String(user.organizationId);
+    const brand = await this.brandsService.findOne(
+      { id: brandId, isDeleted: false, organizationId },
+      'none',
+    );
+    if (!brand) throw new NotFoundException('Brand');
+    const { brandName, description, imageContext } =
+      this.readBrandContext(brand);
+    const identity = { brandId, organizationId, userId: String(user.id) };
+    let writes = Promise.resolve();
+    const checkpoint = () => {
+      const snapshot = structuredClone(result);
+      writes = writes.then(() => save(snapshot));
+      return writes;
+    };
+    await checkpoint();
+    if (missing.image) {
+      const image = await this.generateImage({
+        brandName,
+        description,
+        identity,
+        imageContext,
+        tweet: (
+          result.drafts.find((draft) => draft.platform === 'twitter') ??
+          result.drafts[0]
+        ).text,
+        onPlaceholderCreated: async (ingredientId) => {
+          result.imageIngredientId = ingredientId;
+          await checkpoint();
+        },
+      });
+      result.imageIngredientId = image.ingredientId ?? result.imageIngredientId;
+      result.imageUrl = image.url;
+      await checkpoint();
+    }
+    if (missing.video)
+      await this.generateVideo(identity, brandName, result, checkpoint);
+    result.status = this.resolveStatus(result);
+    return result;
+  }
+
+  private readBrandContext(
+    brand: { agentConfig?: unknown; description?: unknown; label?: unknown },
+    context?: OnboardingDraftContextDto,
+  ) {
+    const savedConfig = this.brandDataMapper.readBrandAgentConfig(
+      brand.agentConfig,
+    );
+    return {
+      brandName:
+        typeof brand.label === 'string' && brand.label
+          ? brand.label
+          : 'your brand',
+      description:
+        typeof brand.description === 'string' ? brand.description : '',
+      imageContext: {
+        audience: context?.audience ?? savedConfig.voice?.audience?.[0],
+        goals: context?.goals ?? savedConfig.strategy?.goals,
+        offer: context?.offer ?? savedConfig.strategy?.offers?.[0],
+        tone:
+          context?.tone && context.tone !== 'keep'
+            ? context.tone
+            : savedConfig.voice?.tone,
+      },
+    };
+  }
+
+  private resolveStatus(
+    result: IOnboardingFirstDraftsResult,
+  ): IOnboardingFirstDraftsResult['status'] {
+    return result.drafts.length === ONBOARDING_DRAFT_PLATFORMS.length &&
+      result.imageUrl &&
+      result.videoStatus === 'ready'
+      ? 'ready'
+      : 'partial';
   }
 
   private async generateVideo(

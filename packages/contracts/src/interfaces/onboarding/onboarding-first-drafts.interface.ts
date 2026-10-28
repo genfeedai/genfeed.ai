@@ -61,6 +61,8 @@ export interface IOnboardingFirstDraftsResult {
 /** Server-owned onboarding outputs; reads never create or charge for content. */
 export interface IOnboardingDraftRun {
   id: string;
+  /** Retries left for a missing image or video; the run's own bounded allowance. */
+  mediaRetriesRemaining: number;
   status: 'running' | 'complete' | 'interrupted';
   result: IOnboardingFirstDraftsResult | null;
   verdicts: Record<string, 'up' | 'down'>;

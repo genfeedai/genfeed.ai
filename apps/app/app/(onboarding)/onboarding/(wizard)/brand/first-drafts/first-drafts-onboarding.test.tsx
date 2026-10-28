@@ -27,6 +27,7 @@ const mocks = vi.hoisted(() => ({
   readDrafts: vi.fn(),
   withdrawFeedback: vi.fn(),
   generateDrafts: vi.fn(),
+  retryDraftMedia: vi.fn(),
   scanBrand: vi.fn(),
   rateFeedback: vi.fn(),
   listReadiness: vi.fn(),
@@ -74,6 +75,7 @@ vi.mock('@services/onboarding/onboarding.service', () => ({
     getInstance: () => ({
       readDrafts: mocks.readDrafts,
       generateDrafts: mocks.generateDrafts,
+      retryDraftMedia: mocks.retryDraftMedia,
       scanBrand: mocks.scanBrand,
     }),
   },
@@ -178,6 +180,7 @@ async function startFromLink(link = 'acme.co') {
 function savedRun() {
   return {
     id: 'run-1',
+    mediaRetriesRemaining: 2,
     status: 'complete' as const,
     result: drafts(),
     verdicts: {},
@@ -527,5 +530,59 @@ describe('FirstDraftsOnboarding', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
     await screen.findByText('twitter draft text');
     expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
+  });
+
+  it('retries a missing image and video without generating new drafts', async () => {
+    const missing = {
+      ...drafts('partial'),
+      imageUrl: null,
+      imageIngredientId: null,
+      videoStatus: 'failed' as const,
+    };
+    mocks.readDrafts
+      .mockResolvedValueOnce({ ...savedRun(), result: missing })
+      .mockResolvedValue({ ...savedRun(), mediaRetriesRemaining: 1 });
+    mocks.retryDraftMedia.mockResolvedValue({
+      ...drafts(),
+      videoUrl: 'https://cdn.example.com/v.mp4',
+      videoStatus: 'ready',
+    });
+    render(<FirstDraftsOnboarding />);
+    await screen.findByText('twitter draft text');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Retry media' })[0]);
+    await waitFor(() => expect(mocks.retryDraftMedia).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(
+        screen.queryByText('Image unavailable. Your text drafts are saved.'),
+      ).not.toBeInTheDocument(),
+    );
+    expect(mocks.generateDrafts).not.toHaveBeenCalled();
+  });
+
+  it('offers no retry once the run has used them all', async () => {
+    const missing = { ...drafts('partial'), imageUrl: null };
+    mocks.readDrafts.mockResolvedValue({
+      ...savedRun(),
+      mediaRetriesRemaining: 0,
+      result: missing,
+    });
+    render(<FirstDraftsOnboarding />);
+    await screen.findByText('Image unavailable. Your text drafts are saved.');
+    expect(
+      screen.queryByRole('button', { name: 'Retry media' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps the drafts and says so when the media retry fails', async () => {
+    const missing = { ...drafts('partial'), imageUrl: null };
+    mocks.readDrafts.mockResolvedValue({ ...savedRun(), result: missing });
+    mocks.retryDraftMedia.mockRejectedValue(new Error('provider failed'));
+    render(<FirstDraftsOnboarding />);
+    await screen.findByText('twitter draft text');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Retry media' })[0]);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'We couldn’t create the media',
+    );
+    expect(screen.getByText('twitter draft text')).toBeInTheDocument();
   });
 });

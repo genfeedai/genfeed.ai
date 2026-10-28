@@ -212,6 +212,10 @@ export default function FirstDraftsOnboarding() {
                           state.scan?.summary?.logoUrl || selectedBrand?.logoUrl
                         }
                         isSaving={state.savingPostIds.includes(draft.postId)}
+                        isMediaGenerating={state.isGenerating}
+                        onRetryMedia={
+                          state.canRetryMedia ? state.onRetryMedia : undefined
+                        }
                         onVerdict={state.onVerdict}
                         verdict={state.verdicts[draft.postId]}
                       />
@@ -220,12 +224,22 @@ export default function FirstDraftsOnboarding() {
                 {!state.isGenerating &&
                   !result.imageUrl &&
                   result.drafts.length > 0 && (
-                    <p
-                      role="status"
-                      className="mt-4 text-sm text-muted-foreground"
-                    >
-                      {t('review.imageFailed')}
-                    </p>
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                      <p
+                        role="status"
+                        className="text-sm text-muted-foreground"
+                      >
+                        {t('review.imageFailed')}
+                      </p>
+                      {state.canRetryMedia && (
+                        <Button
+                          size={ButtonSize.SM}
+                          variant={ButtonVariant.SECONDARY}
+                          label={t('review.retryMedia')}
+                          onClick={state.onRetryMedia}
+                        />
+                      )}
+                    </div>
                   )}
                 {!state.isGenerating &&
                   result.drafts.length < ONBOARDING_DRAFT_PLATFORMS.length && (

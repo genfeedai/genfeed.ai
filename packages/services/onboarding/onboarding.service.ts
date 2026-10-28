@@ -162,4 +162,22 @@ export class OnboardingService extends HTTPBaseService {
       throw error;
     }
   }
+
+  /** Generate again only the image or video a saved run is missing. */
+  async retryDraftMedia(
+    brandId: string,
+    signal?: AbortSignal,
+  ): Promise<IOnboardingFirstDraftsResult> {
+    try {
+      const response = await this.instance.post<IOnboardingFirstDraftsResult>(
+        `brands/${brandId}/drafts/media`,
+        undefined,
+        { signal },
+      );
+      return response.data;
+    } catch (error) {
+      logger.error('POST /brands/:brandId/drafts/media failed', error);
+      throw error;
+    }
+  }
 }

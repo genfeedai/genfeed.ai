@@ -1,13 +1,17 @@
 import { createHash } from 'node:crypto';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { toContentRunJsonValue } from '@api/collections/content-runs/utils/content-run-data.util';
+import type { OnboardingMissingMedia } from '@api/endpoints/onboarding/onboarding.interfaces';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { readUsableCdnAssetUrl } from '@api/services/agent-orchestrator/tools/agent-media-generation-response-readers';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentRunStatus } from '@genfeedai/contracts';
+import { ONBOARDING_MAX_MEDIA_RETRIES } from '@genfeedai/contracts/constants';
 import type {
   IOnboardingDraftRun,
   IOnboardingFirstDraftsResult,
 } from '@genfeedai/contracts/interfaces';
+import type { ContentRun } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { ConflictException, Injectable } from '@nestjs/common';
 import { z } from 'zod';
@@ -36,6 +40,7 @@ const legacyArtifactSchema = z.object({
 });
 const configSchema = z.object({
   surface: z.literal('onboarding'),
+  mediaRetries: z.number().int().min(0).default(0),
   result: resultSchema.nullable(),
 });
 
@@ -46,9 +51,13 @@ export class OnboardingDraftRunsService {
     private readonly config: ConfigService,
   ) {}
 
-  private configFor(result: IOnboardingFirstDraftsResult | null) {
+  private configFor(
+    result: IOnboardingFirstDraftsResult | null,
+    mediaRetries = 0,
+  ) {
     return toContentRunJsonValue({
       surface: 'onboarding',
+      mediaRetries,
       brief: { angle: 'First posts' },
       variants: (result?.drafts ?? []).map((draft) => ({
         id: draft.postId,
@@ -79,7 +88,13 @@ export class OnboardingDraftRunsService {
     user: AuthenticatedUser,
     brandId: string,
   ): Promise<IOnboardingDraftRun | null> {
-    const row = await this.prisma.contentRun.findFirst({
+    const row = await this.findLatestRow(user, brandId);
+    if (!row) return this.recoverLegacy(user, brandId);
+    return this.project(user, brandId, row);
+  }
+
+  private findLatestRow(user: AuthenticatedUser, brandId: string) {
+    return this.prisma.contentRun.findFirst({
       where: {
         organizationId: String(user.organizationId),
         brandId,
@@ -88,7 +103,14 @@ export class OnboardingDraftRunsService {
       },
       orderBy: { createdAt: 'desc' },
     });
-    if (!row) return this.recoverLegacy(user, brandId);
+  }
+
+  /** The run as the client sees it: media state is read from the assets themselves. */
+  private async project(
+    user: AuthenticatedUser,
+    brandId: string,
+    row: ContentRun,
+  ): Promise<IOnboardingDraftRun> {
     const config = configSchema.parse(row.config);
     let isImageProcessing = false;
     if (config.result?.imageIngredientId) {
@@ -142,6 +164,10 @@ export class OnboardingDraftRunsService {
     const verdicts = await this.readVerdicts(user, brandId, config.result);
     return {
       id: row.id,
+      mediaRetriesRemaining: Math.max(
+        0,
+        ONBOARDING_MAX_MEDIA_RETRIES - config.mediaRetries,
+      ),
       result: config.result,
       verdicts,
       status:
@@ -290,6 +316,7 @@ export class OnboardingDraftRunsService {
     });
     return {
       id,
+      mediaRetriesRemaining: ONBOARDING_MAX_MEDIA_RETRIES,
       status: 'complete',
       result,
       verdicts: await this.readVerdicts(user, brandId, result),
@@ -348,6 +375,102 @@ export class OnboardingDraftRunsService {
           ],
           skipDuplicates: true,
         });
+    }
+  }
+
+  /**
+   * Regenerates the image or video a finished run is missing, once per call and
+   * at most ONBOARDING_MAX_MEDIA_RETRIES times per run. The text drafts and any
+   * media that came back are never touched. The run row is claimed by comparing
+   * the `updatedAt` just read, so two tabs cannot both start the same retry.
+   */
+  async retryMedia(
+    user: AuthenticatedUser,
+    brandId: string,
+    generate: (
+      missing: OnboardingMissingMedia,
+      result: IOnboardingFirstDraftsResult,
+      save: (result: IOnboardingFirstDraftsResult) => Promise<void>,
+    ) => Promise<IOnboardingFirstDraftsResult>,
+  ): Promise<IOnboardingFirstDraftsResult> {
+    const organizationId = String(user.organizationId);
+    const row = await this.findLatestRow(user, brandId);
+    if (!row) throw new NotFoundException('Onboarding run');
+    const run = await this.project(user, brandId, row);
+    const result = run.result;
+    if (!result?.drafts.length)
+      throw new ConflictException('There are no saved drafts to add media to.');
+    if (run.status === 'running')
+      throw new ConflictException('Your media is still being created.');
+    const missing: OnboardingMissingMedia = {
+      image:
+        !result.imageUrl &&
+        result.drafts.some((draft) => draft.platform !== 'tiktok'),
+      video:
+        !result.videoUrl &&
+        result.drafts.some((draft) => draft.platform === 'tiktok'),
+    };
+    if (!missing.image && !missing.video) return result;
+    if (!run.mediaRetriesRemaining)
+      throw new ConflictException(
+        'This run has used all of its media retries.',
+      );
+
+    const mediaRetries =
+      ONBOARDING_MAX_MEDIA_RETRIES - run.mediaRetriesRemaining + 1;
+    const next = structuredClone(result);
+    if (missing.image) {
+      next.imageIngredientId = null;
+      next.imageUrl = null;
+    }
+    if (missing.video) {
+      next.videoIngredientId = null;
+      next.videoUrl = null;
+      next.videoStatus = 'pending';
+    }
+    const claimed = await this.prisma.contentRun.updateMany({
+      where: {
+        id: row.id,
+        organizationId,
+        brandId,
+        isDeleted: false,
+        updatedAt: row.updatedAt,
+      },
+      data: {
+        status: ContentRunStatus.RUNNING,
+        config: this.configFor(next, mediaRetries),
+      },
+    });
+    if (!claimed.count)
+      throw new ConflictException('Your media is still being created.');
+
+    let saved = next;
+    const save = async (current: IOnboardingFirstDraftsResult) => {
+      saved = current;
+      await this.prisma.contentRun.updateMany({
+        where: { id: row.id, organizationId, brandId, isDeleted: false },
+        data: { config: this.configFor(current, mediaRetries) },
+      });
+      await this.attachReadyAssets(user, brandId, row.id, current);
+    };
+    // A retry that ends without media is a finished run, not an interrupted
+    // one: the drafts are intact and a retry may remain.
+    const finish = async (current: IOnboardingFirstDraftsResult) => {
+      if (current.videoStatus === 'pending' && !current.videoUrl)
+        current.videoStatus = 'failed';
+      await save(current);
+      await this.prisma.contentRun.updateMany({
+        where: { id: row.id, organizationId, brandId, isDeleted: false },
+        data: { status: ContentRunStatus.COMPLETED },
+      });
+    };
+    try {
+      const finished = await generate(missing, next, save);
+      await finish(finished);
+      return finished;
+    } catch (error) {
+      await finish(saved);
+      throw error;
     }
   }
 

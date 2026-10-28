@@ -58,6 +58,7 @@ export async function setupOnboardingFirstDraftsMocks(
     const round = draftRequests.length;
     saved = {
       id: 'saved-onboarding-run',
+      mediaRetriesRemaining: 2,
       status: 'complete',
       verdicts: {},
       result: {
