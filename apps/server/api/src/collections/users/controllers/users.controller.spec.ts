@@ -156,6 +156,7 @@ describe('UsersController', () => {
         usersService as unknown as UsersService,
         userAccessCacheService,
         eventEmitter as never,
+        organizationsService as never,
         serverFunnelCaptureService as never,
       ),
     );
