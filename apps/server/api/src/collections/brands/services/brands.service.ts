@@ -48,6 +48,7 @@ import {
 import { normalizeBrandIdentityDefaults } from '@api/collections/brands/utils/brand-identity-defaults.util';
 import { toBrandKitAssetRelations } from '@api/collections/brands/utils/brand-kit-asset-relations.util';
 import { resolveCreateAgentConfig } from '@api/collections/brands/utils/expert-brand-defaults.util';
+import { withPersistedFontFamily } from '@api/collections/brands/utils/persisted-font-family';
 import {
   isSlugUniqueConstraintError,
   MAX_SLUG_ALLOCATION_ATTEMPTS,
@@ -162,8 +163,8 @@ export class BrandsService extends BaseService<
           false,
         )
       : undefined;
-    const sanitizedBrandFields = omitUndefinedFields(
-      brandFields as Record<string, unknown>,
+    const sanitizedBrandFields = withPersistedFontFamily(
+      omitUndefinedFields(brandFields as Record<string, unknown>),
     );
 
     const label =

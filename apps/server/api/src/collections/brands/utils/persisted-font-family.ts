@@ -37,3 +37,18 @@ export function toPersistedFontFamilyOrDefault(
 ): FontFamily {
   return toPersistedFontFamily(value) ?? FontFamily.MONTSERRAT_BLACK;
 }
+
+/**
+ * The create DTO takes any string for `fontFamily`; Prisma accepts only a
+ * FontFamily member. Fields without a string `fontFamily` pass through.
+ */
+export function withPersistedFontFamily(
+  fields: Record<string, unknown>,
+): Record<string, unknown> {
+  return typeof fields.fontFamily === 'string'
+    ? {
+        ...fields,
+        fontFamily: toPersistedFontFamilyOrDefault(fields.fontFamily),
+      }
+    : fields;
+}
