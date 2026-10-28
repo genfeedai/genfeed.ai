@@ -32,6 +32,12 @@ export interface IBrand extends IBaseEntity {
   watermarkOpacity?: number;
   watermarkPosition?: WatermarkPosition;
 
+  /** Brand image asset appended to the end of finished videos. */
+  endCardAssetId?: string | null;
+  /** Seconds the end card stays on screen. */
+  endCardDurationSeconds?: number;
+  isEndCardEnabled?: boolean;
+
   logo?: IAsset;
   banner?: IAsset;
   references?: IAsset[];

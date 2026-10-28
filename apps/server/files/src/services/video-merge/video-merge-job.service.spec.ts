@@ -1,3 +1,4 @@
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { VideoMergeJobService } from '@files/services/video-merge/video-merge-job.service';
 import type { VideoJobData } from '@files/shared/interfaces/job.interface';
 import { VideoTransition } from '@genfeedai/contracts';
@@ -6,6 +7,7 @@ import {
   type FileJobType as JobType,
 } from '@genfeedai/contracts/queue';
 import type { Job } from 'bullmq';
+import sharp from 'sharp';
 
 const createJobData = (
   overrides: Partial<VideoJobData> = {},
@@ -30,6 +32,7 @@ const createJob = (data: VideoJobData): Job<VideoJobData> =>
 
 describe('VideoMergeJobService', () => {
   const ffmpegService = {
+    appendEndCard: vi.fn().mockResolvedValue(undefined),
     cleanupTempFiles: vi.fn(),
     probe: vi.fn().mockResolvedValue({
       format: { duration: '6', size: '100' },
@@ -120,6 +123,100 @@ describe('VideoMergeJobService', () => {
       expect.stringMatching(/^[a-f0-9-]{36}$/),
     );
     expect(result.s3Key).toBe('ingredients/videos/actual-merged-object');
+  });
+
+  describe('brand end card', () => {
+    const tempDirectory = '/tmp/merge-ingredient-123';
+    const endCardParams = {
+      endCardBackgroundColor: '#112233',
+      endCardDuration: 3,
+      endCardStorageKey: 'logos/brand-logo',
+      sourceIds: ['source-1'],
+      sourceStorageKeys: ['ingredients/videos/source-1'],
+    };
+
+    beforeEach(async () => {
+      await mkdir(tempDirectory, { recursive: true });
+      // A transparent logo, as brand kits store them.
+      const logo = await sharp({
+        create: {
+          background: { alpha: 0, b: 0, g: 0, r: 0 },
+          channels: 4,
+          height: 20,
+          width: 40,
+        },
+      })
+        .png()
+        .toBuffer();
+      s3Service.downloadFile.mockImplementation(
+        async (key: string, localPath: string) => {
+          if (key === 'logos/brand-logo') {
+            await writeFile(localPath, logo);
+          }
+        },
+      );
+    });
+
+    afterEach(async () => {
+      s3Service.downloadFile.mockReset().mockResolvedValue(undefined);
+      await rm(tempDirectory, { force: true, recursive: true });
+    });
+
+    it('fits the card to the video frame and delivers the joined file', async () => {
+      await service.process(
+        createJob(createJobData({ params: endCardParams })),
+      );
+
+      expect(ffmpegService.appendEndCard).toHaveBeenCalledWith(
+        `${tempDirectory}/merged.mp4`,
+        `${tempDirectory}/end-card.png`,
+        `${tempDirectory}/with-end-card.mp4`,
+        { durationSeconds: 3 },
+        expect.any(Function),
+      );
+      // The 40x20 transparent logo became an opaque card at the video's size.
+      const card = await sharp(`${tempDirectory}/end-card.png`).metadata();
+      expect(card).toMatchObject({ hasAlpha: false, height: 64, width: 64 });
+      const { data } = await sharp(`${tempDirectory}/end-card.png`)
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      expect([...data.subarray(0, 3)]).toEqual([0x11, 0x22, 0x33]);
+      expect(s3Service.uploadFile).toHaveBeenCalledWith(
+        expect.any(String),
+        `${tempDirectory}/with-end-card.mp4`,
+        'video/mp4',
+      );
+    });
+
+    it('adds no card when the brand has none', async () => {
+      await service.process(createJob(createJobData()));
+      expect(ffmpegService.appendEndCard).not.toHaveBeenCalled();
+    });
+
+    it('fails the job instead of delivering a video without the card', async () => {
+      ffmpegService.appendEndCard.mockRejectedValueOnce(new Error('ffmpeg'));
+      await expect(
+        service.process(createJob(createJobData({ params: endCardParams }))),
+      ).rejects.toThrow('ffmpeg');
+      expect(s3Service.uploadFile).not.toHaveBeenCalled();
+      expect(webSocketService.emitError).toHaveBeenCalled();
+    });
+
+    it.each(['red', '#12', '#112233; drawtext', undefined])(
+      'refuses a card background of %s',
+      async (endCardBackgroundColor) => {
+        await expect(
+          service.process(
+            createJob(
+              createJobData({
+                params: { ...endCardParams, endCardBackgroundColor },
+              }),
+            ),
+          ),
+        ).rejects.toThrow('background color');
+        expect(ffmpegService.appendEndCard).not.toHaveBeenCalled();
+      },
+    );
   });
 
   it('fails before downloading when activated source keys are absent', async () => {

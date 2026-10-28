@@ -4,6 +4,7 @@ import type {
   BrandReferenceImage,
 } from '@api/collections/brands/schemas/brand.schema';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
+import { BRAND_END_CARD_LIMITS } from '@genfeedai/contracts/constants';
 import { ApiHideProperty, ApiProperty, PartialType } from '@nestjs/swagger';
 import {
   Equals,
@@ -50,6 +51,31 @@ export class UpdateBrandDto extends PartialType(CreateBrandDto) {
     enum: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
   })
   readonly watermarkPosition?: string;
+
+  @IsOptional()
+  @IsEntityId()
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    description: 'Brand image asset appended to the end of finished videos',
+  })
+  readonly endCardAssetId?: string | null;
+
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsNumber()
+  @Min(BRAND_END_CARD_LIMITS.MIN_DURATION_SECONDS)
+  @Max(BRAND_END_CARD_LIMITS.MAX_DURATION_SECONDS)
+  @ApiProperty({
+    required: false,
+    minimum: BRAND_END_CARD_LIMITS.MIN_DURATION_SECONDS,
+    maximum: BRAND_END_CARD_LIMITS.MAX_DURATION_SECONDS,
+  })
+  readonly endCardDurationSeconds?: number;
+
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsBoolean()
+  @ApiProperty({ required: false })
+  readonly isEndCardEnabled?: boolean;
 
   // isDeleted is deliberately not a settable field here (#5295). A plain
   // PATCH bypassed remove()'s last-brand guard and member reassignment,

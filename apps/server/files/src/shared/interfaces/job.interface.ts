@@ -120,6 +120,9 @@ export interface VideoProcessingParams {
   musicStorageKey?: string; // Canonical object key resolved by the scoped API producer
   musicVolume?: number; // 0-1 (converted from 0-100)
   isMuteVideoAudio?: boolean;
+  endCardStorageKey?: string; // Brand end card image appended after the merge
+  endCardDuration?: number; // Seconds the end card stays on screen
+  endCardBackgroundColor?: string; // #RRGGBB behind a card that does not fill the frame
 
   // Caption params
   captionContent?: string;
@@ -250,6 +253,7 @@ export interface JobProgress {
     | 'downloading-music'
     | 'merging'
     | 'resizing'
+    | 'adding-end-card'
     | 'uploading';
   stepProgress?: number; // 0-100 progress within current step
   currentStepLabel?: string; // Human-readable label like "Downloading videos (2/3)"

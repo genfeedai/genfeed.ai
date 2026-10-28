@@ -23,6 +23,34 @@ describe('UpdateBrandDto', () => {
       },
     );
 
+    it.each([
+      ['endCardDurationSeconds', 0.5],
+      ['endCardDurationSeconds', 11],
+      ['endCardDurationSeconds', null],
+      ['isEndCardEnabled', 'yes'],
+      ['isEndCardEnabled', null],
+    ])('rejects %s of %s', async (field, value) => {
+      await expect(
+        pipe.transform({ [field]: value }, metadata),
+      ).rejects.toMatchObject({ status: 400 });
+    });
+
+    it('accepts end card boundaries and clearing the image', async () => {
+      const result = await pipe.transform(
+        {
+          endCardAssetId: null,
+          endCardDurationSeconds: 10,
+          isEndCardEnabled: false,
+        },
+        metadata,
+      );
+      expect(result).toMatchObject({
+        endCardAssetId: null,
+        endCardDurationSeconds: 10,
+        isEndCardEnabled: false,
+      });
+    });
+
     it('allows clearing text and logo while preserving omitted watermark settings', async () => {
       const result = await pipe.transform(
         { watermarkText: null, watermarkLogoId: null },

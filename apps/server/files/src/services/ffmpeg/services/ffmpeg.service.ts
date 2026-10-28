@@ -355,6 +355,22 @@ export class FFmpegService {
     return this.merge.mergeVideos(videoPaths, outputPath, options, onProgress);
   }
 
+  async appendEndCard(
+    videoPath: string,
+    cardImagePath: string,
+    outputPath: string,
+    options: { durationSeconds: number },
+    onProgress?: (progress: FFmpegProgress) => void,
+  ): Promise<void> {
+    return this.merge.appendEndCard(
+      videoPath,
+      cardImagePath,
+      outputPath,
+      options,
+      onProgress,
+    );
+  }
+
   async mergeVideosWithTransitions(
     videoPaths: string[],
     outputPath: string,

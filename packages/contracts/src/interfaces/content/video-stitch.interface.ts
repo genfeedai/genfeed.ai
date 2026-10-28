@@ -36,6 +36,11 @@ export function videoStitchGenerationSource(
  */
 export interface IVideoMergeSettings {
   isCaptionsEnabled?: boolean;
+  /**
+   * Set to `false` to skip the brand end card for an output that is not the
+   * final deliverable. Left unset, the brand's own setting decides.
+   */
+  isEndCardEnabled?: boolean;
   isMuteVideoAudio?: boolean;
   /** Music ingredient id. */
   music?: string;

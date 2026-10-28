@@ -249,6 +249,77 @@ describe('VideoStitchService', () => {
     });
   });
 
+  describe('brand end card', () => {
+    it('adds no end card until the brand turns one on', async () => {
+      await fixture.service.stitch(request());
+      expect(fixture.queued[0]?.params).not.toHaveProperty('endCardStorageKey');
+    });
+
+    it('hands the worker the brand image, duration and background', async () => {
+      fixture.addBrandWithEndCard();
+      await fixture.service.stitch(request());
+      expect(fixture.queued[0]?.params).toMatchObject({
+        endCardBackgroundColor: '#112233',
+        endCardDuration: 3,
+        endCardStorageKey: 'logos/asset-1',
+      });
+    });
+
+    it('resolves a brand kit image without a stored key under its category folder', async () => {
+      fixture.addBrandWithEndCard(
+        {},
+        { category: 'BANNER', cloudObjectKey: null },
+      );
+      await fixture.service.stitch(request());
+      expect(fixture.queued[0]?.params).toMatchObject({
+        endCardStorageKey: 'banners/asset-1',
+      });
+    });
+
+    it('skips the card for an output the caller marks as not final', async () => {
+      fixture.addBrandWithEndCard();
+      await fixture.service.stitch(
+        request({ settings: { isEndCardEnabled: false } }),
+      );
+      expect(fixture.queued[0]?.params).not.toHaveProperty('endCardStorageKey');
+    });
+
+    it('skips the card while the brand switch is off', async () => {
+      fixture.addBrandWithEndCard({ isEndCardEnabled: false });
+      await fixture.service.stitch(request());
+      expect(fixture.queued[0]?.params).not.toHaveProperty('endCardStorageKey');
+    });
+
+    it('falls back to black and caps the duration', async () => {
+      fixture.addBrandWithEndCard({
+        backgroundColor: 'transparent',
+        endCardDurationSeconds: 30,
+      });
+      await fixture.service.stitch(request());
+      expect(fixture.queued[0]?.params).toMatchObject({
+        endCardBackgroundColor: '#000000',
+        endCardDuration: 10,
+      });
+    });
+
+    it.each([
+      ['not an image', { mimeType: 'application/pdf' }],
+      ['deleted', { isDeleted: true }],
+      ['another brand’s', { parentBrandId: 'brand-2' }],
+      ['not uploaded', { category: 'FONT', cloudObjectKey: null }],
+    ])(
+      'refuses to ship without the card when the asset is %s',
+      async (_label, asset) => {
+        fixture.addBrandWithEndCard({}, asset);
+        expect(await failingField(fixture.service.stitch(request()))).toBe(
+          'endCard',
+        );
+        expect(fixture.outputs()).toHaveLength(0);
+        expect(fixture.queued).toHaveLength(0);
+      },
+    );
+  });
+
   describe('shared validation', () => {
     it.each([
       ['clipIds', request({ clipIds: ['clip-1'] })],

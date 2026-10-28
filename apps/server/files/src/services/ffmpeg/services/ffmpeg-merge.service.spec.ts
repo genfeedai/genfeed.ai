@@ -145,6 +145,103 @@ describe('FFmpegMergeService', () => {
     });
   });
 
+  describe('appendEndCard', () => {
+    const probeWith = (hasAudio: boolean, rate = '30000/1001') => ({
+      format: { duration: '5' },
+      streams: [
+        {
+          avg_frame_rate: rate,
+          codec_type: 'video',
+          height: 1921,
+          width: 1080,
+        },
+        ...(hasAudio ? [{ codec_type: 'audio' }] : []),
+      ],
+    });
+
+    it('joins a still card after a video with sound, over silence', async () => {
+      coreService.probe.mockResolvedValue(probeWith(true));
+      await service.appendEndCard(
+        '/tmp/in.mp4',
+        '/tmp/card.png',
+        '/tmp/out.mp4',
+        {
+          durationSeconds: 3,
+        },
+      );
+      const [args] = coreService.executeFFmpeg.mock.calls[0] as [string[]];
+      const filters = args[args.indexOf('-filter_complex') + 1];
+      expect(args).toEqual(
+        expect.arrayContaining([
+          '-loop',
+          '1',
+          '-framerate',
+          '29.97',
+          '-t',
+          '3.000',
+        ]),
+      );
+      expect(args.join(' ')).toContain(
+        'anullsrc=channel_layout=stereo:sample_rate=48000',
+      );
+      // Odd source heights are rounded down so the encoder accepts the frame.
+      expect(filters).toContain('scale=1080:1920,setsar=1,fps=29.97');
+      expect(filters).toContain(
+        '[v0][a0][v1][a1]concat=n=2:v=1:a=1[outv][outa]',
+      );
+      expect(args).toEqual(expect.arrayContaining(['-map', '[outa]']));
+    });
+
+    it('adds no audio track to a silent video', async () => {
+      coreService.probe.mockResolvedValue(probeWith(false));
+      await service.appendEndCard(
+        '/tmp/in.mp4',
+        '/tmp/card.png',
+        '/tmp/out.mp4',
+        {
+          durationSeconds: 2,
+        },
+      );
+      const [args] = coreService.executeFFmpeg.mock.calls[0] as [string[]];
+      expect(args.join(' ')).not.toContain('anullsrc');
+      expect(args).not.toContain('[outa]');
+      expect(args[args.indexOf('-filter_complex') + 1]).toContain(
+        '[v0][v1]concat=n=2:v=1:a=0[outv]',
+      );
+    });
+
+    it('falls back to 30 fps when the frame rate is unreadable', async () => {
+      coreService.probe.mockResolvedValue(probeWith(true, '0/0'));
+      await service.appendEndCard(
+        '/tmp/in.mp4',
+        '/tmp/card.png',
+        '/tmp/out.mp4',
+        {
+          durationSeconds: 3,
+        },
+      );
+      const [args] = coreService.executeFFmpeg.mock.calls[0] as [string[]];
+      expect(args).toEqual(expect.arrayContaining(['-framerate', '30']));
+    });
+
+    it.each([0.5, 11, Number.NaN])(
+      'rejects an end card duration of %s seconds',
+      async (durationSeconds) => {
+        await expect(
+          service.appendEndCard(
+            '/tmp/in.mp4',
+            '/tmp/card.png',
+            '/tmp/out.mp4',
+            {
+              durationSeconds,
+            },
+          ),
+        ).rejects.toThrow('between 1 and 10 seconds');
+        expect(coreService.executeFFmpeg).not.toHaveBeenCalled();
+      },
+    );
+  });
+
   describe('mergeVideos', () => {
     it('drops the source audio when muting without music', async () => {
       await service.mergeVideos(['/tmp/a.mp4', '/tmp/b.mp4'], '/tmp/out.mp4', {

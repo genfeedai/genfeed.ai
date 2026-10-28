@@ -196,6 +196,12 @@ export class BrandsController extends BaseCRUDController<
       );
     }
 
+    await this.brandWatermarkLogoService.validateEndCardSettings(
+      id,
+      user.organizationId.toString(),
+      rest,
+    );
+
     const requestedOrgId = (rest as { organizationId?: string }).organizationId;
     // A relocation checks the handle itself, after authorizing both orgs.
     const handleCheck = {

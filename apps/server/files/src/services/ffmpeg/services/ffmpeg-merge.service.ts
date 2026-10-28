@@ -387,6 +387,120 @@ export class FFmpegMergeService {
   }
 
   /**
+   * Close a finished video with a still end card. The card is shown at the
+   * video's own size and frame rate, with silence under it when the video
+   * has sound, so the join needs no re-timing of the original.
+   */
+  async appendEndCard(
+    videoPath: string,
+    cardImagePath: string,
+    outputPath: string,
+    options: { durationSeconds: number },
+    onProgress?: (progress: FFmpegProgress) => void,
+  ): Promise<void> {
+    const { durationSeconds } = options;
+    if (
+      !Number.isFinite(durationSeconds) ||
+      durationSeconds < 1 ||
+      durationSeconds > 10
+    ) {
+      throw new Error('End card duration must be between 1 and 10 seconds');
+    }
+    const video = SecurityUtil.validateFilePath(videoPath);
+    SecurityUtil.validateFileExtension(video);
+    await SecurityUtil.validateFileExists(video);
+    const card = SecurityUtil.validateFilePath(cardImagePath);
+    SecurityUtil.validateFileExtension(card);
+    await SecurityUtil.validateFileExists(card);
+    const output = SecurityUtil.validateFilePath(outputPath);
+    await this.core.ensureOutputDir(output);
+
+    const probe = await this.core.probe(video);
+    const videoStream = probe.streams.find(
+      (stream: FFprobeStream) => stream.codec_type === 'video',
+    );
+    if (!videoStream?.width || !videoStream.height) {
+      throw new Error('End card needs a video with dimensions');
+    }
+    const width = videoStream.width - (videoStream.width % 2);
+    const height = videoStream.height - (videoStream.height % 2);
+    const fps = this.parseFrameRate(videoStream.avg_frame_rate);
+    const hasAudio = probe.streams.some(
+      (stream: FFprobeStream) => stream.codec_type === 'audio',
+    );
+
+    const duration = durationSeconds.toFixed(3);
+    const args = [
+      '-y',
+      '-i',
+      video,
+      '-loop',
+      '1',
+      '-framerate',
+      String(fps),
+      '-t',
+      duration,
+      '-i',
+      card,
+    ];
+    const filters = [
+      `[0:v]scale=${width}:${height},setsar=1,fps=${fps},format=yuv420p,setpts=PTS-STARTPTS[v0]`,
+      `[1:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=${fps},format=yuv420p,setpts=PTS-STARTPTS[v1]`,
+    ];
+    if (hasAudio) {
+      args.push(
+        '-f',
+        'lavfi',
+        '-t',
+        duration,
+        '-i',
+        'anullsrc=channel_layout=stereo:sample_rate=48000',
+      );
+      filters.push(
+        '[0:a]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo,asetpts=PTS-STARTPTS[a0]',
+        '[2:a]aformat=sample_fmts=fltp:channel_layouts=stereo,asetpts=PTS-STARTPTS[a1]',
+        '[v0][a0][v1][a1]concat=n=2:v=1:a=1[outv][outa]',
+      );
+    } else {
+      filters.push('[v0][v1]concat=n=2:v=1:a=0[outv]');
+    }
+    args.push('-filter_complex', filters.join(';'), '-map', '[outv]');
+    if (hasAudio) {
+      args.push('-map', '[outa]', '-c:a', 'aac', '-b:a', '192k');
+    }
+    args.push(
+      '-c:v',
+      'libx264',
+      '-preset',
+      'veryfast',
+      '-crf',
+      '20',
+      '-pix_fmt',
+      'yuv420p',
+      '-movflags',
+      '+faststart',
+      output,
+    );
+
+    this.loggerService.debug(`${this.constructorName} appending end card`, {
+      durationSeconds,
+      hasAudio,
+      height,
+      width,
+    });
+    await this.core.executeFFmpeg(args, onProgress);
+  }
+
+  /** `30000/1001` style rates; an unreadable rate falls back to 30 fps. */
+  private parseFrameRate(rate: string | undefined): number {
+    const [numerator, denominator = '1'] = (rate ?? '').split('/');
+    const value = Number(numerator) / Number(denominator);
+    return Number.isFinite(value) && value >= 1 && value <= 120
+      ? Math.round(value * 1000) / 1000
+      : 30;
+  }
+
+  /**
    * Merge multiple video clips with background music
    */
   async mergeVideosWithMusic(

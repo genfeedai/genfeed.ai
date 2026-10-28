@@ -8,6 +8,7 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type {
   VideoStitchContext,
+  VideoStitchEndCard,
   VideoStitchFinalFile,
   VideoStitchHandle,
   VideoStitchOutcome,
@@ -33,6 +34,10 @@ import {
   videoStitchHandle,
   videoStitchOutcome,
 } from '@api/services/video-stitch/video-stitch.util';
+import {
+  isBrandEndCardRequested,
+  resolveVideoStitchEndCard,
+} from '@api/services/video-stitch/video-stitch-end-card.util';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
@@ -57,6 +62,7 @@ import {
   videoStitchJobId,
 } from '@genfeedai/contracts/interfaces';
 import { FILE_JOB_TYPES } from '@genfeedai/contracts/queue';
+import { AssetParent } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { assertSafeObjectKey } from '@libs/security';
@@ -495,9 +501,12 @@ export class VideoStitchService {
       }
     }
 
+    const endCard = await this.resolveEndCard(request);
+
     const byId = new Map(clips.map((clip) => [clip.id, clip]));
     return {
       clipIds: request.clipIds,
+      ...(endCard ? { endCard } : {}),
       ...(musicStorageKey ? { musicStorageKey } : {}),
       ...(request.output ? { output: request.output } : {}),
       settings,
@@ -512,6 +521,40 @@ export class VideoStitchService {
         );
       }),
     };
+  }
+
+  /** The brand's closing frame when the brand turned it on for this output. */
+  private async resolveEndCard(
+    request: VideoStitchRequest,
+  ): Promise<VideoStitchEndCard | undefined> {
+    const brand = await this.prisma.brand.findFirst({
+      select: {
+        backgroundColor: true,
+        endCardAssetId: true,
+        endCardDurationSeconds: true,
+        isEndCardEnabled: true,
+      },
+      where: scopedWhere(request.organizationId, { id: request.brandId }),
+    });
+    if (!brand || !isBrandEndCardRequested(brand, request.settings)) {
+      return undefined;
+    }
+    const asset = await this.prisma.asset.findFirst({
+      select: {
+        category: true,
+        cloudObjectKey: true,
+        id: true,
+        mimeType: true,
+      },
+      where: {
+        id: brand.endCardAssetId ?? undefined,
+        isDeleted: false,
+        parentBrandId: request.brandId,
+        parentOrgId: request.organizationId,
+        parentType: AssetParent.BRAND,
+      },
+    });
+    return resolveVideoStitchEndCard(brand, asset);
   }
 
   private async enqueue(

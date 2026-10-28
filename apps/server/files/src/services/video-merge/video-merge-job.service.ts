@@ -18,6 +18,10 @@ import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable, Optional } from '@nestjs/common';
 import type { Job } from 'bullmq';
+import sharp from 'sharp';
+
+const END_CARD_MAX_BYTES = 20 * 1024 * 1024;
+const END_CARD_MAX_PIXELS = 40_000_000;
 
 type MergeStep = NonNullable<JobProgress['step']>;
 type BackgroundTaskStatus = 'pending' | 'processing' | 'completed' | 'failed';
@@ -45,7 +49,8 @@ export class VideoMergeJobService {
       const outputPath = path.join(tempPath, 'merged.mp4');
 
       await this.mergeVideos(job, inputPaths, outputPath, musicPath);
-      const finalOutput = await this.resizeVideo(job, outputPath, tempPath);
+      const mergedOutput = await this.resizeVideo(job, outputPath, tempPath);
+      const finalOutput = await this.appendEndCard(job, mergedOutput, tempPath);
       const probe = await this.ffmpegService.probe(finalOutput);
       const videoStream = probe.streams.find(
         (stream) => stream.codec_type === 'video',
@@ -55,7 +60,8 @@ export class VideoMergeJobService {
       await this.ffmpegService.cleanupTempFiles(
         ...inputPaths,
         ...(job.data.params.isPersistedOutputOnly ? [finalOutput] : []),
-        ...(finalOutput !== outputPath ? [outputPath] : []),
+        ...(mergedOutput !== outputPath ? [outputPath] : []),
+        ...(finalOutput !== mergedOutput ? [mergedOutput] : []),
         ...(musicPath ? [musicPath] : []),
       );
       this.webSocketService.emitSuccess(
@@ -352,6 +358,98 @@ export class VideoMergeJobService {
     return resizedPath;
   }
 
+  /**
+   * Closes the finished video with the brand's end card. The API resolved and
+   * validated the stored image; here it is fitted to the video's own frame so
+   * the join keeps the original untouched.
+   */
+  private async appendEndCard(
+    job: Job<VideoJobData>,
+    videoPath: string,
+    tempPath: string,
+  ): Promise<string> {
+    const { endCardBackgroundColor, endCardDuration, endCardStorageKey } =
+      job.data.params;
+    if (!endCardStorageKey) {
+      return videoPath;
+    }
+    if (
+      !Number.isFinite(endCardDuration) ||
+      !/^#[0-9a-fA-F]{6}$/.test(endCardBackgroundColor ?? '')
+    ) {
+      throw new Error('End card needs a duration and a background color');
+    }
+
+    this.emitStepProgress(
+      job,
+      'adding-end-card',
+      0,
+      95,
+      'Adding the brand end card',
+    );
+    const storageKey = this.configService?.isAuthorizedMediaDeliveryEnabled
+      ? assertStoredObjectKey(
+          endCardStorageKey,
+          (message) => new Error(message),
+        )
+      : assertSafeObjectKey(endCardStorageKey, (message) => new Error(message));
+    const downloadedPath = path.join(tempPath, 'end-card-source');
+    if (this.configService?.isAuthorizedMediaDeliveryEnabled) {
+      const url = await this.s3Service.getPresignedDownloadUrlForStoredKey(
+        storageKey,
+        300,
+      );
+      await this.s3Service.downloadFromUrl(
+        url,
+        downloadedPath,
+        END_CARD_MAX_BYTES,
+      );
+    } else {
+      await this.s3Service.downloadFile(storageKey, downloadedPath);
+    }
+
+    const probe = await this.ffmpegService.probe(videoPath);
+    const videoStream = probe.streams.find(
+      (stream) => stream.codec_type === 'video',
+    );
+    if (!videoStream?.width || !videoStream.height) {
+      throw new Error('End card needs a video with dimensions');
+    }
+    const width = videoStream.width - (videoStream.width % 2);
+    const height = videoStream.height - (videoStream.height % 2);
+
+    // Flatten transparency and fix orientation here, once, so the encoder only
+    // ever sees an opaque image at the video's own size.
+    const cardPath = path.join(tempPath, 'end-card.png');
+    await sharp(downloadedPath, { limitInputPixels: END_CARD_MAX_PIXELS })
+      .rotate()
+      .resize(width, height, {
+        background: endCardBackgroundColor,
+        fit: 'contain',
+      })
+      .flatten({ background: endCardBackgroundColor })
+      .png()
+      .toFile(cardPath);
+
+    const outputPath = path.join(tempPath, 'with-end-card.mp4');
+    await this.ffmpegService.appendEndCard(
+      videoPath,
+      cardPath,
+      outputPath,
+      { durationSeconds: endCardDuration as number },
+      this.createProgressCallback(
+        job,
+        'adding-end-card',
+        95,
+        96,
+        'Adding the brand end card',
+      ),
+    );
+    await this.ffmpegService.cleanupTempFiles(downloadedPath, cardPath);
+    this.emitStepProgress(job, 'adding-end-card', 100, 96, 'End card added');
+    return outputPath;
+  }
+
   private async uploadVideo(
     job: Job<VideoJobData>,
     outputPath: string,
@@ -406,7 +504,8 @@ export class VideoMergeJobService {
         percent: overallProgress,
         step,
         stepProgress,
-        totalSteps: params.isResizeEnabled ? 5 : 4,
+        totalSteps:
+          (params.isResizeEnabled ? 5 : 4) + (params.endCardStorageKey ? 1 : 0),
       },
       userId,
       room,

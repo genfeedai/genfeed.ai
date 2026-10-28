@@ -20,6 +20,7 @@ import BrandOsSettingsCard from '@pages/brands/components/brand-kit/BrandOsSetti
 import BrandWritingVoiceEditor from '@pages/brands/components/brand-kit/writing-voice/BrandWritingVoiceEditor';
 import BrandDetailManualKitCard from '@pages/brands/components/sidebar/BrandDetailManualKitCard';
 import BrandDetailReferencesCard from '@pages/brands/components/sidebar/BrandDetailReferencesCard';
+import BrandEndCardSettings from '@pages/brands/components/sidebar/BrandEndCardSettings';
 import BrandWatermarkSettings from '@pages/brands/components/sidebar/BrandWatermarkSettings';
 import { BrandsService } from '@services/social/brands.service';
 import BrandCompletenessCard from '@ui/cards/brand-completeness-card/BrandCompletenessCard';
@@ -190,6 +191,11 @@ export default function BrandKitPage() {
                   </Button>
                 </div>
                 <BrandWatermarkSettings
+                  brand={brand}
+                  brandId={brandId}
+                  onRefreshBrand={() => handleRefreshBrand(true)}
+                />
+                <BrandEndCardSettings
                   brand={brand}
                   brandId={brandId}
                   onRefreshBrand={() => handleRefreshBrand(true)}

@@ -116,7 +116,11 @@ export function validateVideoStitchRequest(request: VideoStitchRequest): void {
       `Transition duration must be ${VIDEO_STITCH_LIMITS.MIN_TRANSITION_DURATION}–${VIDEO_STITCH_LIMITS.MAX_TRANSITION_DURATION} seconds`,
     );
   }
-  for (const field of ['isCaptionsEnabled', 'isMuteVideoAudio'] as const) {
+  for (const field of [
+    'isCaptionsEnabled',
+    'isEndCardEnabled',
+    'isMuteVideoAudio',
+  ] as const) {
     if (settings[field] !== undefined && typeof settings[field] !== 'boolean') {
       throw stitchRequestError(field, `${field} must be a boolean`);
     }
@@ -225,6 +229,13 @@ export function buildVideoStitchJobParams(
     ...(settings.isMuteVideoAudio !== undefined &&
     !isMuteDeferredToCaptions(settings)
       ? { isMuteVideoAudio: settings.isMuteVideoAudio }
+      : {}),
+    ...(plan.endCard
+      ? {
+          endCardBackgroundColor: plan.endCard.backgroundColor,
+          endCardDuration: plan.endCard.durationSeconds,
+          endCardStorageKey: plan.endCard.storageKey,
+        }
       : {}),
     ...(settings.music ? { music: settings.music } : {}),
     ...(plan.musicStorageKey ? { musicStorageKey: plan.musicStorageKey } : {}),

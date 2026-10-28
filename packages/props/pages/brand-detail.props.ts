@@ -384,6 +384,12 @@ export interface UseBrandDetailReturn {
   setGenerateModalType: (type: 'banner' | 'logo' | null) => void;
 }
 
+export interface BrandEndCardSettingsProps {
+  brand: IBrand;
+  brandId: string;
+  onRefreshBrand: () => Promise<void>;
+}
+
 export interface BrandWatermarkSettingsProps {
   brand: IBrand;
   brandId: string;
