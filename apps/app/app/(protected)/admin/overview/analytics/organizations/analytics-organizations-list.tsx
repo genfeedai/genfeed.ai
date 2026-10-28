@@ -238,7 +238,7 @@ export default function AnalyticsOrganizationsList({
           ]
         : []),
     ],
-    [basePath, getReleaseAccessHref, translate],
+    [basePath, getReleaseAccessHref, rowSidebarT, translate],
   );
 
   return (
