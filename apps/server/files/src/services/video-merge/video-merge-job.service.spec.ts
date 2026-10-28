@@ -1,3 +1,4 @@
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { VideoMergeJobService } from '@files/services/video-merge/video-merge-job.service';
 import type { VideoJobData } from '@files/shared/interfaces/job.interface';
 import { VideoTransition } from '@genfeedai/contracts';
@@ -6,6 +7,7 @@ import {
   type FileJobType as JobType,
 } from '@genfeedai/contracts/queue';
 import type { Job } from 'bullmq';
+import sharp from 'sharp';
 
 const createJobData = (
   overrides: Partial<VideoJobData> = {},
@@ -28,18 +30,22 @@ const createJob = (data: VideoJobData): Job<VideoJobData> =>
     name: JOB_TYPES.MERGE_VIDEOS,
   }) as unknown as Job<VideoJobData>;
 
+const probeResult = (duration: string) => ({
+  format: { duration, size: '100' },
+  streams: [{ codec_type: 'video', width: 64, height: 64 }],
+});
+
 describe('VideoMergeJobService', () => {
   const ffmpegService = {
+    appendEndCard: vi.fn().mockResolvedValue(undefined),
     cleanupTempFiles: vi.fn(),
-    probe: vi.fn().mockResolvedValue({
-      format: { duration: '6', size: '100' },
-      streams: [{ codec_type: 'video', width: 64, height: 64 }],
-    }),
+    probe: vi.fn(),
     convertToPortrait: vi.fn().mockResolvedValue(undefined),
     getTempPath: vi.fn(
       (type: string, ingredientId: string) => `/tmp/${type}-${ingredientId}`,
     ),
     mergeVideos: vi.fn().mockResolvedValue(undefined),
+    trimVideoToDuration: vi.fn().mockResolvedValue(undefined),
     mergeVideosWithMusic: vi.fn().mockResolvedValue(undefined),
     mergeVideosWithTransitions: vi.fn().mockResolvedValue(undefined),
   };
@@ -66,17 +72,24 @@ describe('VideoMergeJobService', () => {
   };
   const logger = {
     error: vi.fn(),
+    log: vi.fn(),
+    warn: vi.fn(),
   };
+  const beatDetectionService = { analyzeBeat: vi.fn() };
   let service: VideoMergeJobService;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    ffmpegService.probe.mockReset();
+    ffmpegService.probe.mockResolvedValue(probeResult('6'));
     service = new VideoMergeJobService(
       ffmpegService as never,
       s3Service as never,
       webSocketService as never,
       redisService as never,
       logger as never,
+      undefined,
+      beatDetectionService as never,
     );
   });
 
@@ -120,6 +133,224 @@ describe('VideoMergeJobService', () => {
       expect.stringMatching(/^[a-f0-9-]{36}$/),
     );
     expect(result.s3Key).toBe('ingredients/videos/actual-merged-object');
+  });
+
+  describe('beat sync', () => {
+    const steadyBeat = {
+      beatTimestamps: Array.from(
+        { length: 80 },
+        (_, index) => 0.5 * index + 0.5,
+      ),
+      confidence: 0.9,
+      downbeats: Array.from({ length: 20 }, (_, index) => 2 * index + 0.5),
+      tempo: 120,
+    };
+    const beatSyncParams = {
+      isBeatSyncEnabled: true,
+      music: 'music-123',
+      sourceIds: ['source-1', 'source-2'],
+    };
+
+    beforeEach(() => {
+      ffmpegService.probe.mockResolvedValue(probeResult('6.2'));
+    });
+
+    it('trims each clip so the cuts land on the beat and reports the edit as synced', async () => {
+      beatDetectionService.analyzeBeat.mockResolvedValueOnce(steadyBeat);
+
+      const result = await service.process(
+        createJob(createJobData({ params: beatSyncParams })),
+      );
+
+      expect(beatDetectionService.analyzeBeat).toHaveBeenCalledWith(
+        '/tmp/merge-ingredient-123/music.mp3',
+      );
+      // 6.2 s clips on a 0.5 s grid: cuts at 6.0 s and 12.0 s.
+      expect(ffmpegService.trimVideoToDuration).toHaveBeenCalledTimes(2);
+      for (const call of ffmpegService.trimVideoToDuration.mock.calls) {
+        expect(call[2]).toBeCloseTo(6, 3);
+      }
+      expect(ffmpegService.mergeVideosWithMusic).toHaveBeenCalledWith(
+        [
+          '/tmp/merge-ingredient-123/beat_0.mp4',
+          '/tmp/merge-ingredient-123/beat_1.mp4',
+        ],
+        expect.any(String),
+        expect.objectContaining({
+          musicPath: '/tmp/merge-ingredient-123/music.mp3',
+        }),
+        expect.any(Function),
+      );
+      expect(ffmpegService.cleanupTempFiles.mock.calls.flat()).toEqual(
+        expect.arrayContaining([
+          '/tmp/merge-ingredient-123/beat_0.mp4',
+          '/tmp/merge-ingredient-123/beat_1.mp4',
+        ]),
+      );
+      expect(result.isBeatSynced).toBe(true);
+    });
+
+    it('leaves a clip alone when it already ends on a beat', async () => {
+      ffmpegService.probe.mockResolvedValue(probeResult('6'));
+      beatDetectionService.analyzeBeat.mockResolvedValueOnce(steadyBeat);
+
+      await service.process(
+        createJob(createJobData({ params: beatSyncParams })),
+      );
+
+      expect(ffmpegService.trimVideoToDuration).not.toHaveBeenCalled();
+    });
+
+    it('joins the clips as they are when the music has no steady beat', async () => {
+      beatDetectionService.analyzeBeat.mockResolvedValueOnce({
+        ...steadyBeat,
+        confidence: 0.1,
+      });
+
+      const result = await service.process(
+        createJob(createJobData({ params: beatSyncParams })),
+      );
+
+      expect(ffmpegService.trimVideoToDuration).not.toHaveBeenCalled();
+      expect(result.isBeatSynced).toBe(false);
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
+    it('joins the clips as they are when the beat analysis fails', async () => {
+      beatDetectionService.analyzeBeat.mockRejectedValueOnce(
+        new Error('ffmpeg exited with code 1'),
+      );
+
+      const result = await service.process(
+        createJob(createJobData({ params: beatSyncParams })),
+      );
+
+      expect(ffmpegService.trimVideoToDuration).not.toHaveBeenCalled();
+      expect(result.isBeatSynced).toBe(false);
+    });
+
+    it('does not analyze anything unless the job asks for beat sync', async () => {
+      const result = await service.process(
+        createJob(
+          createJobData({
+            params: { music: 'music-123', sourceIds: ['source-1', 'source-2'] },
+          }),
+        ),
+      );
+
+      expect(beatDetectionService.analyzeBeat).not.toHaveBeenCalled();
+      expect(result.isBeatSynced).toBe(false);
+    });
+
+    it('does not analyze anything when there is no music to cut to', async () => {
+      const result = await service.process(
+        createJob(
+          createJobData({
+            params: {
+              isBeatSyncEnabled: true,
+              sourceIds: ['source-1', 'source-2'],
+            },
+          }),
+        ),
+      );
+
+      expect(beatDetectionService.analyzeBeat).not.toHaveBeenCalled();
+      expect(result.isBeatSynced).toBe(false);
+    });
+  });
+
+  describe('brand end card', () => {
+    const tempDirectory = '/tmp/merge-ingredient-123';
+    const endCardParams = {
+      endCardBackgroundColor: '#112233',
+      endCardDuration: 3,
+      endCardStorageKey: 'logos/brand-logo',
+      sourceIds: ['source-1'],
+      sourceStorageKeys: ['ingredients/videos/source-1'],
+    };
+
+    beforeEach(async () => {
+      await mkdir(tempDirectory, { recursive: true });
+      // A transparent logo, as brand kits store them.
+      const logo = await sharp({
+        create: {
+          background: { alpha: 0, b: 0, g: 0, r: 0 },
+          channels: 4,
+          height: 20,
+          width: 40,
+        },
+      })
+        .png()
+        .toBuffer();
+      s3Service.downloadFile.mockImplementation(
+        async (key: string, localPath: string) => {
+          if (key === 'logos/brand-logo') {
+            await writeFile(localPath, logo);
+          }
+        },
+      );
+    });
+
+    afterEach(async () => {
+      s3Service.downloadFile.mockReset().mockResolvedValue(undefined);
+      await rm(tempDirectory, { force: true, recursive: true });
+    });
+
+    it('fits the card to the video frame and delivers the joined file', async () => {
+      await service.process(
+        createJob(createJobData({ params: endCardParams })),
+      );
+
+      expect(ffmpegService.appendEndCard).toHaveBeenCalledWith(
+        `${tempDirectory}/merged.mp4`,
+        `${tempDirectory}/end-card.png`,
+        `${tempDirectory}/with-end-card.mp4`,
+        { durationSeconds: 3 },
+        expect.any(Function),
+      );
+      // The 40x20 transparent logo became an opaque card at the video's size.
+      const card = await sharp(`${tempDirectory}/end-card.png`).metadata();
+      expect(card).toMatchObject({ hasAlpha: false, height: 64, width: 64 });
+      const { data } = await sharp(`${tempDirectory}/end-card.png`)
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      expect([...data.subarray(0, 3)]).toEqual([0x11, 0x22, 0x33]);
+      expect(s3Service.uploadFile).toHaveBeenCalledWith(
+        expect.any(String),
+        `${tempDirectory}/with-end-card.mp4`,
+        'video/mp4',
+      );
+    });
+
+    it('adds no card when the brand has none', async () => {
+      await service.process(createJob(createJobData()));
+      expect(ffmpegService.appendEndCard).not.toHaveBeenCalled();
+    });
+
+    it('fails the job instead of delivering a video without the card', async () => {
+      ffmpegService.appendEndCard.mockRejectedValueOnce(new Error('ffmpeg'));
+      await expect(
+        service.process(createJob(createJobData({ params: endCardParams }))),
+      ).rejects.toThrow('ffmpeg');
+      expect(s3Service.uploadFile).not.toHaveBeenCalled();
+      expect(webSocketService.emitError).toHaveBeenCalled();
+    });
+
+    it.each(['red', '#12', '#112233; drawtext', undefined])(
+      'refuses a card background of %s',
+      async (endCardBackgroundColor) => {
+        await expect(
+          service.process(
+            createJob(
+              createJobData({
+                params: { ...endCardParams, endCardBackgroundColor },
+              }),
+            ),
+          ),
+        ).rejects.toThrow('background color');
+        expect(ffmpegService.appendEndCard).not.toHaveBeenCalled();
+      },
+    );
   });
 
   it('fails before downloading when activated source keys are absent', async () => {
@@ -195,6 +426,7 @@ describe('VideoMergeJobService', () => {
       url: 'https://cdn.example.com/videos/ingredient-123.mp4',
       s3Key: 'videos/ingredient-123.mp4',
       success: true,
+      isBeatSynced: false,
     });
   });
 

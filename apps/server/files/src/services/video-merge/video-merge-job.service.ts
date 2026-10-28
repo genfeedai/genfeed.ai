@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { ConfigService } from '@files/config/config.service';
+import { parseFrameRate } from '@files/services/ffmpeg/helpers/frame-rate.helper';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
+import { FFmpegBeatDetectionService } from '@files/services/ffmpeg/services/ffmpeg-beat-detection.service';
 import { S3Service } from '@files/services/s3/s3.service';
 import { WebSocketService } from '@files/services/websocket/websocket.service';
 import type { FFmpegProgress } from '@files/shared/interfaces/ffmpeg.interfaces';
@@ -10,6 +12,12 @@ import type {
   JobResult,
   VideoJobData,
 } from '@files/shared/interfaces/job.interface';
+import { BeatSyncCutStrategy } from '@genfeedai/contracts';
+import {
+  BEAT_SYNC_MIN_CONFIDENCE,
+  planBeatSyncedCuts,
+  selectCutBeats,
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { assertSafeObjectKey } from '@libs/security';
@@ -18,6 +26,12 @@ import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable, Optional } from '@nestjs/common';
 import type { Job } from 'bullmq';
+import sharp from 'sharp';
+
+/** Below one frame at 30 fps a trim is not worth a re-encode. */
+const BEAT_SYNC_MIN_TRIM_SECONDS = 1 / 30;
+const END_CARD_MAX_BYTES = 20 * 1024 * 1024;
+const END_CARD_MAX_PIXELS = 40_000_000;
 
 type MergeStep = NonNullable<JobProgress['step']>;
 type BackgroundTaskStatus = 'pending' | 'processing' | 'completed' | 'failed';
@@ -31,6 +45,8 @@ export class VideoMergeJobService {
     private readonly redisService: RedisService,
     private readonly logger: LoggerService,
     @Optional() private readonly configService?: ConfigService,
+    @Optional()
+    private readonly beatDetectionService?: FFmpegBeatDetectionService,
   ) {}
 
   async process(job: Job<VideoJobData>): Promise<JobResult> {
@@ -44,8 +60,15 @@ export class VideoMergeJobService {
       const musicPath = await this.downloadMusic(job, tempPath);
       const outputPath = path.join(tempPath, 'merged.mp4');
 
-      await this.mergeVideos(job, inputPaths, outputPath, musicPath);
-      const finalOutput = await this.resizeVideo(job, outputPath, tempPath);
+      const beatSync = await this.applyBeatSync(
+        job,
+        inputPaths,
+        musicPath,
+        tempPath,
+      );
+      await this.mergeVideos(job, beatSync.paths, outputPath, musicPath);
+      const mergedOutput = await this.resizeVideo(job, outputPath, tempPath);
+      const finalOutput = await this.appendEndCard(job, mergedOutput, tempPath);
       const probe = await this.ffmpegService.probe(finalOutput);
       const videoStream = probe.streams.find(
         (stream) => stream.codec_type === 'video',
@@ -54,8 +77,10 @@ export class VideoMergeJobService {
 
       await this.ffmpegService.cleanupTempFiles(
         ...inputPaths,
+        ...beatSync.trimmedPaths,
         ...(job.data.params.isPersistedOutputOnly ? [finalOutput] : []),
-        ...(finalOutput !== outputPath ? [outputPath] : []),
+        ...(mergedOutput !== outputPath ? [outputPath] : []),
+        ...(finalOutput !== mergedOutput ? [mergedOutput] : []),
         ...(musicPath ? [musicPath] : []),
       );
       this.webSocketService.emitSuccess(
@@ -82,6 +107,7 @@ export class VideoMergeJobService {
         s3Key,
         url: this.s3Service.getPublicUrl(s3Key),
         success: true,
+        isBeatSynced: beatSync.isSynced,
         duration: Number(probe.format.duration),
         size: Number(probe.format.size),
         width: videoStream?.width,
@@ -249,6 +275,106 @@ export class VideoMergeJobService {
     }
   }
 
+  /**
+   * Trims the end of each clip so every cut lands on a beat of the music.
+   * Without music, or when the music has no steady pulse to cut on, the clips
+   * are joined as they are: a synced edit is a refinement, not a reason to
+   * fail the merge.
+   */
+  private async applyBeatSync(
+    job: Job<VideoJobData>,
+    inputPaths: string[],
+    musicPath: string | undefined,
+    tempPath: string,
+  ): Promise<{
+    isSynced: boolean;
+    paths: string[];
+    trimmedPaths: string[];
+  }> {
+    const { isBeatSyncEnabled, beatSyncCutStrategy } = job.data.params;
+    const unsynced = { isSynced: false, paths: inputPaths, trimmedPaths: [] };
+    if (!isBeatSyncEnabled) {
+      return unsynced;
+    }
+    if (!musicPath) {
+      this.logger.warn('Beat sync needs music; joining the clips as they are');
+      return unsynced;
+    }
+    if (!this.beatDetectionService) {
+      throw new Error('Beat sync is not available on this worker');
+    }
+
+    this.emitStepProgress(
+      job,
+      'merging',
+      0,
+      35,
+      'Finding the beat of the music',
+    );
+    let analysis: Awaited<
+      ReturnType<FFmpegBeatDetectionService['analyzeBeat']>
+    >;
+    try {
+      analysis = await this.beatDetectionService.analyzeBeat(musicPath);
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Beat analysis failed; joining the clips as they are: ${getErrorMessage(error)}`,
+      );
+      return unsynced;
+    }
+    if (!analysis || analysis.confidence < BEAT_SYNC_MIN_CONFIDENCE) {
+      this.logger.warn(
+        'The music has no steady beat to cut on; joining the clips as they are',
+      );
+      return unsynced;
+    }
+
+    const durations: number[] = [];
+    const frameSeconds: number[] = [];
+    for (const inputPath of inputPaths) {
+      const probe = await this.ffmpegService.probe(inputPath);
+      durations.push(Number(probe.format.duration));
+      const videoStream = probe.streams.find(
+        (stream) => stream.codec_type === 'video',
+      );
+      frameSeconds.push(1 / parseFrameRate(videoStream?.avg_frame_rate));
+    }
+    const plan = planBeatSyncedCuts(
+      durations,
+      selectCutBeats(
+        analysis,
+        beatSyncCutStrategy ?? BeatSyncCutStrategy.EVERY_BEAT,
+      ),
+      undefined,
+      frameSeconds,
+    );
+
+    const paths: string[] = [];
+    const trimmedPaths: string[] = [];
+    for (const [index, clip] of plan.entries()) {
+      // Under a frame of difference is not worth a re-encode.
+      if (
+        durations[index] - clip.durationSeconds <
+        BEAT_SYNC_MIN_TRIM_SECONDS
+      ) {
+        paths.push(inputPaths[index]);
+        continue;
+      }
+      const trimmedPath = path.join(tempPath, `beat_${index}.mp4`);
+      await this.ffmpegService.trimVideoToDuration(
+        inputPaths[index],
+        trimmedPath,
+        clip.durationSeconds,
+      );
+      paths.push(trimmedPath);
+      trimmedPaths.push(trimmedPath);
+    }
+    this.logger.log(
+      `Beat sync: ${analysis.tempo} BPM, ${trimmedPaths.length}/${plan.length} clips trimmed, ${plan.filter((clip) => !clip.isOnBeat).length} off the beat`,
+    );
+    return { isSynced: true, paths, trimmedPaths };
+  }
+
   private async mergeVideos(
     job: Job<VideoJobData>,
     inputPaths: string[],
@@ -352,6 +478,98 @@ export class VideoMergeJobService {
     return resizedPath;
   }
 
+  /**
+   * Closes the finished video with the brand's end card. The API resolved and
+   * validated the stored image; here it is fitted to the video's own frame so
+   * the join keeps the original untouched.
+   */
+  private async appendEndCard(
+    job: Job<VideoJobData>,
+    videoPath: string,
+    tempPath: string,
+  ): Promise<string> {
+    const { endCardBackgroundColor, endCardDuration, endCardStorageKey } =
+      job.data.params;
+    if (!endCardStorageKey) {
+      return videoPath;
+    }
+    if (
+      !Number.isFinite(endCardDuration) ||
+      !/^#[0-9a-fA-F]{6}$/.test(endCardBackgroundColor ?? '')
+    ) {
+      throw new Error('End card needs a duration and a background color');
+    }
+
+    this.emitStepProgress(
+      job,
+      'adding-end-card',
+      0,
+      95,
+      'Adding the brand end card',
+    );
+    const storageKey = this.configService?.isAuthorizedMediaDeliveryEnabled
+      ? assertStoredObjectKey(
+          endCardStorageKey,
+          (message) => new Error(message),
+        )
+      : assertSafeObjectKey(endCardStorageKey, (message) => new Error(message));
+    const downloadedPath = path.join(tempPath, 'end-card-source');
+    if (this.configService?.isAuthorizedMediaDeliveryEnabled) {
+      const url = await this.s3Service.getPresignedDownloadUrlForStoredKey(
+        storageKey,
+        300,
+      );
+      await this.s3Service.downloadFromUrl(
+        url,
+        downloadedPath,
+        END_CARD_MAX_BYTES,
+      );
+    } else {
+      await this.s3Service.downloadFile(storageKey, downloadedPath);
+    }
+
+    const probe = await this.ffmpegService.probe(videoPath);
+    const videoStream = probe.streams.find(
+      (stream) => stream.codec_type === 'video',
+    );
+    if (!videoStream?.width || !videoStream.height) {
+      throw new Error('End card needs a video with dimensions');
+    }
+    const width = videoStream.width - (videoStream.width % 2);
+    const height = videoStream.height - (videoStream.height % 2);
+
+    // Flatten transparency and fix orientation here, once, so the encoder only
+    // ever sees an opaque image at the video's own size.
+    const cardPath = path.join(tempPath, 'end-card.png');
+    await sharp(downloadedPath, { limitInputPixels: END_CARD_MAX_PIXELS })
+      .rotate()
+      .resize(width, height, {
+        background: endCardBackgroundColor,
+        fit: 'contain',
+      })
+      .flatten({ background: endCardBackgroundColor })
+      .png()
+      .toFile(cardPath);
+
+    const outputPath = path.join(tempPath, 'with-end-card.mp4');
+    await this.ffmpegService.appendEndCard(
+      videoPath,
+      cardPath,
+      outputPath,
+      { durationSeconds: endCardDuration as number },
+      this.createProgressCallback(
+        job,
+        'adding-end-card',
+        95,
+        96,
+        'Adding the brand end card',
+      ),
+    );
+    await this.ffmpegService.cleanupTempFiles(downloadedPath, cardPath);
+    this.emitStepProgress(job, 'adding-end-card', 100, 96, 'End card added');
+    return outputPath;
+  }
+
   private async uploadVideo(
     job: Job<VideoJobData>,
     outputPath: string,
@@ -406,7 +624,8 @@ export class VideoMergeJobService {
         percent: overallProgress,
         step,
         stepProgress,
-        totalSteps: params.isResizeEnabled ? 5 : 4,
+        totalSteps:
+          (params.isResizeEnabled ? 5 : 4) + (params.endCardStorageKey ? 1 : 0),
       },
       userId,
       room,

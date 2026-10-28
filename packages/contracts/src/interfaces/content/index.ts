@@ -3,6 +3,7 @@ export * from './agent-mention.interface';
 export * from './article.interface';
 export * from './article-extended.interface';
 export * from './avatar-video-provider.interface';
+export * from './beat-sync.interface';
 export type * from './branded-generation.interface';
 export * from './campaign.interface';
 export * from './campaign-lifecycle.interface';

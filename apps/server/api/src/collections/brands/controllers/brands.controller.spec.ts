@@ -233,7 +233,7 @@ describe('BrandsController', () => {
         {
           provide: BrandWatermarkLogoService,
           useValue: {
-            validateWatermarkLogo: vi.fn(),
+            validateKitSettings: vi.fn(),
           },
         },
       ],
@@ -873,10 +873,13 @@ describe('BrandsController', () => {
           defaultMusicModel: null,
           defaultVideoModel: null,
           deletedSlug: null,
+          endCardAssetId: null,
+          endCardDurationSeconds: 3,
           fontFamily: 'MONTSERRAT_BLACK',
           isActive: true,
           isDefault: false,
           isFleetEnabled: false,
+          isEndCardEnabled: false,
           isHighlighted: false,
           isPromptEnhancementEnabled: null,
           label: mockBrand.name,

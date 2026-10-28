@@ -1083,6 +1083,9 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   watermarkLogoId          String?
   watermarkOpacity         Float        @default(0.35)
   watermarkPosition        String       @default("bottom-right")
+  endCardAssetId           String?
+  endCardDurationSeconds   Float        @default(3)
+  isEndCardEnabled         Boolean      @default(false)
   knowledgeSources KnowledgeSource[]
   knowledgeSpaces KnowledgeSpace[]
   id                       String       @id @default(cuid())

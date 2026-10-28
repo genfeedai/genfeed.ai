@@ -43,6 +43,27 @@ export interface StitchFixtureRow {
   workflowExecutionId?: string | null;
 }
 
+export interface StitchFixtureBrand {
+  backgroundColor: string;
+  endCardAssetId: string | null;
+  endCardDurationSeconds: number;
+  id: string;
+  isDeleted: boolean;
+  isEndCardEnabled: boolean;
+  organizationId: string;
+}
+
+export interface StitchFixtureAsset {
+  category: string;
+  cloudObjectKey: string | null;
+  id: string;
+  isDeleted: boolean;
+  mimeType: string | null;
+  parentBrandId: string;
+  parentOrgId: string;
+  parentType: string;
+}
+
 export interface StitchFixtureEvent {
   args: unknown[];
   name: string;
@@ -111,6 +132,8 @@ export class VideoStitchFixture {
   readonly knownJobs = new Set<string>();
   readonly queued: IFileProcessingJob[] = [];
   readonly rows = new Map<string, StitchFixtureRow>();
+  readonly brands = new Map<string, StitchFixtureBrand>();
+  readonly assets = new Map<string, StitchFixtureAsset>();
   readonly service: VideoStitchService;
   /** Makes caption transcription fail, as Whisper does on silent input. */
   isTranscriptionFailing = false;
@@ -149,6 +172,35 @@ export class VideoStitchFixture {
       status: IngredientStatus.GENERATED,
       transformations: [],
       userId: 'user-1',
+      ...overrides,
+    });
+  }
+
+  /** A brand that closes finished videos with an end card from its kit. */
+  addBrandWithEndCard(
+    overrides: Partial<StitchFixtureBrand> = {},
+    asset: Partial<StitchFixtureAsset> = {},
+  ): void {
+    const assetId = overrides.endCardAssetId ?? 'asset-1';
+    this.assets.set(assetId, {
+      category: 'LOGO',
+      cloudObjectKey: `logos/${assetId}`,
+      id: assetId,
+      isDeleted: false,
+      mimeType: 'image/png',
+      parentBrandId: 'brand-1',
+      parentOrgId: 'org-1',
+      parentType: 'BRAND',
+      ...asset,
+    });
+    this.brands.set('brand-1', {
+      backgroundColor: '#112233',
+      endCardAssetId: assetId,
+      endCardDurationSeconds: 3,
+      id: 'brand-1',
+      isDeleted: false,
+      isEndCardEnabled: true,
+      organizationId: 'org-1',
       ...overrides,
     });
   }
@@ -252,6 +304,32 @@ export class VideoStitchFixture {
             Object.assign(hit, data, { updatedAt: new Date() });
           return { count: hits.length };
         },
+      },
+      brand: {
+        findFirst: async ({
+          select,
+          where,
+        }: {
+          select?: Record<string, unknown>;
+          where: Where;
+        }) => {
+          const brand = [...this.brands.values()].find((candidate) =>
+            matches(candidate, where),
+          );
+          if (!brand || !select) return brand ?? null;
+          return Object.fromEntries(
+            Object.keys(select).map((key) => [
+              key,
+              (brand as unknown as Record<string, unknown>)[key],
+            ]),
+          );
+        },
+      },
+      asset: {
+        findFirst: async ({ where }: { where: Where }) =>
+          [...this.assets.values()].find((candidate) =>
+            matches(candidate, where),
+          ) ?? null,
       },
       metadata: {
         updateMany: async ({ data, where }: { data: Where; where: Where }) => {

@@ -188,13 +188,11 @@ export class BrandsController extends BaseCRUDController<
         syncOrganizationName?: boolean;
       };
 
-    if (rest.watermarkLogoId) {
-      await this.brandWatermarkLogoService.validateWatermarkLogo(
-        id,
-        user.organizationId.toString(),
-        rest.watermarkLogoId,
-      );
-    }
+    await this.brandWatermarkLogoService.validateKitSettings(
+      id,
+      user.organizationId.toString(),
+      rest,
+    );
 
     const requestedOrgId = (rest as { organizationId?: string }).organizationId;
     // A relocation checks the handle itself, after authorizing both orgs.

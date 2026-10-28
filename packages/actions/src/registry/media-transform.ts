@@ -68,7 +68,9 @@ export const MEDIA_TRANSFORM_OPERATION_PARAMETERS: Readonly<
   ]),
   merge: new Set([
     ...SHARED_PARAMETERS,
+    'beatSyncCutStrategy',
     'ids',
+    'isBeatSyncEnabled',
     'isCaptionsEnabled',
     'isMuteVideoAudio',
     'isResizeEnabled',

@@ -139,6 +139,7 @@ export * from './content/agent-mention.interface';
 export * from './content/article.interface';
 export * from './content/article-extended.interface';
 export * from './content/avatar-video-provider.interface';
+export * from './content/beat-sync.interface';
 export type * from './content/brand-render-evidence.interface';
 export type * from './content/branded-generation.interface';
 export * from './content/campaign.interface';

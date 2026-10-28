@@ -182,6 +182,14 @@ export class FFmpegService {
     );
   }
 
+  async trimVideoToDuration(
+    inputPath: string,
+    outputPath: string,
+    duration: number,
+  ): Promise<void> {
+    return this.transform.trimVideoToDuration(inputPath, outputPath, duration);
+  }
+
   async trimVideo(
     inputPath: string,
     outputPath: string,
@@ -353,6 +361,22 @@ export class FFmpegService {
     onProgress?: (progress: FFmpegProgress) => void,
   ): Promise<void> {
     return this.merge.mergeVideos(videoPaths, outputPath, options, onProgress);
+  }
+
+  async appendEndCard(
+    videoPath: string,
+    cardImagePath: string,
+    outputPath: string,
+    options: { durationSeconds: number },
+    onProgress?: (progress: FFmpegProgress) => void,
+  ): Promise<void> {
+    return this.merge.appendEndCard(
+      videoPath,
+      cardImagePath,
+      outputPath,
+      options,
+      onProgress,
+    );
   }
 
   async mergeVideosWithTransitions(

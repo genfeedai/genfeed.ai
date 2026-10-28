@@ -32,6 +32,20 @@ export const VIDEO_STITCH_LIMITS = {
   MIN_TRANSITION_DURATION: 0.1,
 } as const;
 
+/** Bounds for the brand end card appended to finished videos. */
+export const BRAND_END_CARD_LIMITS = {
+  DEFAULT_DURATION_SECONDS: 3,
+  MAX_DURATION_SECONDS: 10,
+  MIN_DURATION_SECONDS: 1,
+} as const;
+
+/** Image formats the files worker can turn into a brand's closing frame. */
+export const BRAND_END_CARD_MIME_TYPES: readonly string[] = [
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+];
+
 export const CLIPPER_REFERENCE_FRAME_MAX_CANDIDATES = 5;
 /** Minimum source duration accepted when a Library asset starts a clip project. */
 export const CLIPPER_SOURCE_MIN_DURATION_SECONDS = 15;

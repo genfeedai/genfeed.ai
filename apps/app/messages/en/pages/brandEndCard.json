@@ -1,0 +1,15 @@
+{
+  "title": "Brand end card",
+  "description": "Close every finished video with your brand's end card. Pick an image from your brand kit and how long it stays on screen.",
+  "enabled": "Add the end card to finished videos",
+  "image": "End card image",
+  "noImage": "Choose an image",
+  "currentLogo": "Current brand logo",
+  "currentBanner": "Current brand banner",
+  "reference": "Brand reference {number}",
+  "savedImage": "Saved end card image",
+  "duration": "Duration (seconds)",
+  "save": "Save end card",
+  "saved": "End card settings saved.",
+  "error": "Could not save end card settings. Please try again."
+}

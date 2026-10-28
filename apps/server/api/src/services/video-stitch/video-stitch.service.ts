@@ -33,6 +33,7 @@ import {
   videoStitchHandle,
   videoStitchOutcome,
 } from '@api/services/video-stitch/video-stitch.util';
+import { loadVideoStitchEndCard } from '@api/services/video-stitch/video-stitch-end-card.util';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
@@ -495,9 +496,12 @@ export class VideoStitchService {
       }
     }
 
+    const endCard = await loadVideoStitchEndCard(this.prisma, request);
+
     const byId = new Map(clips.map((clip) => [clip.id, clip]));
     return {
       clipIds: request.clipIds,
+      ...(endCard ? { endCard } : {}),
       ...(musicStorageKey ? { musicStorageKey } : {}),
       ...(request.output ? { output: request.output } : {}),
       settings,

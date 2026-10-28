@@ -2,6 +2,7 @@ import { VideoStitchFixture } from '@api/services/video-stitch/video-stitch.fixt
 import type { VideoStitchRequest } from '@api/services/video-stitch/video-stitch.types';
 import {
   ActivityKey,
+  BeatSyncCutStrategy,
   IngredientStatus,
   JobState,
   VideoTransition,
@@ -249,6 +250,113 @@ describe('VideoStitchService', () => {
     });
   });
 
+  describe('beat sync', () => {
+    it('asks the worker to sync cuts to the music, on every beat by default', async () => {
+      await fixture.service.stitch(
+        request({ settings: { isBeatSyncEnabled: true, music: 'music-1' } }),
+      );
+      expect(fixture.queued[0]?.params).toMatchObject({
+        beatSyncCutStrategy: BeatSyncCutStrategy.EVERY_BEAT,
+        isBeatSyncEnabled: true,
+        music: 'music-1',
+      });
+    });
+
+    it('passes the chosen cut strategy through', async () => {
+      await fixture.service.stitch(
+        request({
+          settings: {
+            beatSyncCutStrategy: BeatSyncCutStrategy.DOWNBEATS_ONLY,
+            isBeatSyncEnabled: true,
+            music: 'music-1',
+          },
+        }),
+      );
+      expect(fixture.queued[0]?.params).toMatchObject({
+        beatSyncCutStrategy: BeatSyncCutStrategy.DOWNBEATS_ONLY,
+      });
+    });
+
+    it('leaves the job untouched when beat sync is off', async () => {
+      await fixture.service.stitch(request({ settings: { music: 'music-1' } }));
+      expect(fixture.queued[0]?.params).not.toHaveProperty('isBeatSyncEnabled');
+      expect(fixture.queued[0]?.params).not.toHaveProperty(
+        'beatSyncCutStrategy',
+      );
+    });
+  });
+
+  describe('brand end card', () => {
+    it('adds no end card until the brand turns one on', async () => {
+      await fixture.service.stitch(request());
+      expect(fixture.queued[0]?.params).not.toHaveProperty('endCardStorageKey');
+    });
+
+    it('hands the worker the brand image, duration and background', async () => {
+      fixture.addBrandWithEndCard();
+      await fixture.service.stitch(request());
+      expect(fixture.queued[0]?.params).toMatchObject({
+        endCardBackgroundColor: '#112233',
+        endCardDuration: 3,
+        endCardStorageKey: 'logos/asset-1',
+      });
+    });
+
+    it('resolves a brand kit image without a stored key under its category folder', async () => {
+      fixture.addBrandWithEndCard(
+        {},
+        { category: 'BANNER', cloudObjectKey: null },
+      );
+      await fixture.service.stitch(request());
+      expect(fixture.queued[0]?.params).toMatchObject({
+        endCardStorageKey: 'banners/asset-1',
+      });
+    });
+
+    it('skips the card for an output the caller marks as not final', async () => {
+      fixture.addBrandWithEndCard();
+      await fixture.service.stitch(
+        request({ settings: { isEndCardEnabled: false } }),
+      );
+      expect(fixture.queued[0]?.params).not.toHaveProperty('endCardStorageKey');
+    });
+
+    it('skips the card while the brand switch is off', async () => {
+      fixture.addBrandWithEndCard({ isEndCardEnabled: false });
+      await fixture.service.stitch(request());
+      expect(fixture.queued[0]?.params).not.toHaveProperty('endCardStorageKey');
+    });
+
+    it('falls back to black and caps the duration', async () => {
+      fixture.addBrandWithEndCard({
+        backgroundColor: 'transparent',
+        endCardDurationSeconds: 30,
+      });
+      await fixture.service.stitch(request());
+      expect(fixture.queued[0]?.params).toMatchObject({
+        endCardBackgroundColor: '#000000',
+        endCardDuration: 10,
+      });
+    });
+
+    it.each([
+      ['not an image', { mimeType: 'application/pdf' }],
+      ['deleted', { isDeleted: true }],
+      ['another brand’s', { parentBrandId: 'brand-2' }],
+      ['not uploaded', { category: 'FONT', cloudObjectKey: null }],
+    ])(
+      'refuses to ship without the card when the asset is %s',
+      async (_label, asset) => {
+        fixture.addBrandWithEndCard({}, asset);
+        expect(await failingField(fixture.service.stitch(request()))).toBe(
+          'endCard',
+        );
+        expect(fixture.outputs()).toHaveLength(0);
+        expect(fixture.queued).toHaveLength(0);
+      },
+    );
+  });
+
   describe('shared validation', () => {
     it.each([
       ['clipIds', request({ clipIds: ['clip-1'] })],
@@ -266,6 +374,40 @@ describe('VideoStitchService', () => {
         request({ settings: { transition: 'morph' as VideoTransition } }),
       ],
       ['transitionDuration', request({ settings: { transitionDuration: 3 } })],
+      ['isBeatSyncEnabled', request({ settings: { isBeatSyncEnabled: true } })],
+      [
+        'isBeatSyncEnabled',
+        request({
+          settings: { isBeatSyncEnabled: 'yes' as unknown as boolean },
+        }),
+      ],
+      [
+        'transition',
+        request({
+          settings: {
+            isBeatSyncEnabled: true,
+            music: 'music-1',
+            transition: VideoTransition.FADE,
+          },
+        }),
+      ],
+      [
+        'beatSyncCutStrategy',
+        request({
+          settings: {
+            beatSyncCutStrategy: BeatSyncCutStrategy.CUSTOM,
+            isBeatSyncEnabled: true,
+            music: 'music-1',
+          },
+        }),
+      ],
+      [
+        'isBeatSyncEnabled',
+        request({
+          output: { height: 1024, resize: 'per_clip', width: 576 },
+          settings: { isBeatSyncEnabled: true, music: 'music-1' },
+        }),
+      ],
       ['musicVolume', request({ settings: { musicVolume: 101 } })],
       ['brandId', request({ brandId: '' })],
       ['idempotencyKey', request({ idempotencyKey: ' ' })],

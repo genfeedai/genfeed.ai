@@ -47,6 +47,12 @@ export function toManualStitchRequest(
       : {}),
     roomUserId: user.id,
     settings: {
+      ...(dto.isBeatSyncEnabled !== undefined
+        ? { isBeatSyncEnabled: dto.isBeatSyncEnabled }
+        : {}),
+      ...(dto.beatSyncCutStrategy !== undefined
+        ? { beatSyncCutStrategy: dto.beatSyncCutStrategy }
+        : {}),
       isCaptionsEnabled: dto.isCaptionsEnabled ?? false,
       ...(dto.isMuteVideoAudio !== undefined
         ? { isMuteVideoAudio: dto.isMuteVideoAudio }

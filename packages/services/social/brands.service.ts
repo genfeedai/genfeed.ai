@@ -657,6 +657,18 @@ export class BrandsService extends BaseService<Brand> {
       .then((res) => this.mapOne(res.data));
   }
 
+  public async updateEndCard(
+    id: string,
+    settings: Pick<
+      IBrand,
+      'endCardAssetId' | 'endCardDurationSeconds' | 'isEndCardEnabled'
+    >,
+  ): Promise<Brand> {
+    return this.instance
+      .patch<JsonApiResponseDocument>(`/${id}`, settings)
+      .then((res) => this.mapOne(res.data));
+  }
+
   /**
    * Add reference images (face, product, style, logo) to a brand. Backs
    * `POST /brands/:id/reference-images` (dissolves the onboarding route,

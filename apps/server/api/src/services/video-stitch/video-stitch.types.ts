@@ -1,3 +1,4 @@
+import type { BeatSyncCutStrategy } from '@genfeedai/contracts';
 import type {
   IVideoMergeSettings,
   VideoStitchCallerKind,
@@ -68,9 +69,18 @@ export interface VideoStitchOutcome {
   state: VideoStitchState;
 }
 
+/** The brand's closing frame, resolved to its stored image. */
+export interface VideoStitchEndCard {
+  /** #RRGGBB shown around a card image that does not fill the frame. */
+  backgroundColor: string;
+  durationSeconds: number;
+  storageKey: string;
+}
+
 /** A validated request resolved to the clips' stored objects. */
 export interface VideoStitchPlan {
   clipIds: string[];
+  endCard?: VideoStitchEndCard;
   musicStorageKey?: string;
   output?: VideoStitchOutput;
   settings: IVideoMergeSettings;
@@ -78,7 +88,12 @@ export interface VideoStitchPlan {
 }
 
 export interface VideoStitchJobParams {
+  beatSyncCutStrategy?: BeatSyncCutStrategy;
+  endCardBackgroundColor?: string;
+  endCardDuration?: number;
+  endCardStorageKey?: string;
   height?: number;
+  isBeatSyncEnabled?: boolean;
   isMuteVideoAudio?: boolean;
   isPersistedOutputOnly: true;
   isResizeEnabled?: boolean;
