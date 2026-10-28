@@ -271,6 +271,30 @@ describe('BrandsService', () => {
       });
     });
 
+    it.each([
+      ['Inter', 'MONTSERRAT_BLACK'],
+      ['inter-bold', 'INTER_BOLD'],
+    ])('writes only a Prisma font family: %s -> %s', async (sent, stored) => {
+      delegate.create.mockResolvedValueOnce({
+        ...createBrandDto,
+        id: 'brand-font',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+
+      await service.create({
+        ...createBrandDto,
+        fontFamily: sent,
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+
+      const createInput = delegate.create.mock.calls[0]?.[0] as {
+        data: { fontFamily?: string };
+      };
+      expect(createInput.data.fontFamily).toBe(stored);
+    });
+
     it('leaves the agent config untouched for other account types', async () => {
       delegate.create.mockResolvedValueOnce({
         ...createBrandDto,

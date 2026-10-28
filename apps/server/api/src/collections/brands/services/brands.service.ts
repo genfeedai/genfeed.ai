@@ -48,6 +48,7 @@ import {
 import { normalizeBrandIdentityDefaults } from '@api/collections/brands/utils/brand-identity-defaults.util';
 import { toBrandKitAssetRelations } from '@api/collections/brands/utils/brand-kit-asset-relations.util';
 import { resolveCreateAgentConfig } from '@api/collections/brands/utils/expert-brand-defaults.util';
+import { toPersistedFontFamilyOrDefault } from '@api/collections/brands/utils/persisted-font-family';
 import {
   isSlugUniqueConstraintError,
   MAX_SLUG_ALLOCATION_ATTEMPTS,
@@ -165,6 +166,12 @@ export class BrandsService extends BaseService<
     const sanitizedBrandFields = omitUndefinedFields(
       brandFields as Record<string, unknown>,
     );
+    // The DTO takes any string; Prisma accepts only a FontFamily member.
+    if (typeof sanitizedBrandFields.fontFamily === 'string') {
+      sanitizedBrandFields.fontFamily = toPersistedFontFamilyOrDefault(
+        sanitizedBrandFields.fontFamily,
+      );
+    }
 
     const label =
       typeof createBrandDto.label === 'string' && createBrandDto.label.trim()
