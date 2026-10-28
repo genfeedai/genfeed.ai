@@ -16,10 +16,12 @@ function organization(
     id: 'org',
     scanStatus: null,
     steps: {
+      accountConnected: false,
       brandScanned: false,
       completed: false,
       draftsReady: false,
       draftsStarted: false,
+      published: false,
       websiteLink: false,
     },
     ...overrides,
@@ -70,10 +72,12 @@ describe('summarizeOnboardingFunnel', () => {
       organization({
         id: 'b',
         steps: {
+          accountConnected: false,
           brandScanned: false,
           completed: false,
           draftsReady: true,
           draftsStarted: true,
+          published: false,
           websiteLink: false,
         },
       }),
@@ -81,10 +85,12 @@ describe('summarizeOnboardingFunnel', () => {
         emailClass: 'company',
         id: 'c',
         steps: {
+          accountConnected: true,
           brandScanned: true,
           completed: true,
           draftsReady: true,
           draftsStarted: true,
+          published: true,
           websiteLink: true,
         },
       }),
@@ -92,10 +98,12 @@ describe('summarizeOnboardingFunnel', () => {
 
     expect(totals.total).toBe(3);
     expect(totals.steps).toEqual({
+      accountConnected: 1,
       brandScanned: 1,
       completed: 1,
       draftsReady: 2,
       draftsStarted: 2,
+      published: 1,
       websiteLink: 1,
     });
     expect(byEmailClass.personal.total).toBe(2);

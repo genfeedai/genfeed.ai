@@ -361,10 +361,12 @@ async function runOrganizationsList(options: {
 }
 
 const FUNNEL_STEP_LABELS: Record<OnboardingFunnelStep, string> = {
+  accountConnected: 'social account connected',
   brandScanned: 'brand scanned',
   completed: 'onboarding completed',
   draftsReady: 'drafts ready',
   draftsStarted: 'drafts started',
+  published: 'post published',
   websiteLink: 'website saved',
 };
 

@@ -4,7 +4,9 @@ export type OnboardingFunnelStep =
   | 'brandScanned'
   | 'draftsStarted'
   | 'draftsReady'
-  | 'completed';
+  | 'completed'
+  | 'accountConnected'
+  | 'published';
 
 export type OnboardingFunnelEmailClass = 'company' | 'personal' | 'unknown';
 

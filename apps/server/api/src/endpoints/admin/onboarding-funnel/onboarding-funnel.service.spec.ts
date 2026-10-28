@@ -24,9 +24,11 @@ describe('OnboardingFunnelService', () => {
         brands: [],
         contentRuns: [],
         createdAt: new Date('2026-10-20T00:00:00.000Z'),
+        credentials: [],
         id: 'org_personal',
         onboardingCompleted: false,
-        user: { email: 'owner@gmail.com' },
+        posts: [],
+        user: { email: 'owner@gmail.com', isOnboardingCompleted: true },
       },
       {
         brands: [
@@ -39,9 +41,11 @@ describe('OnboardingFunnelService', () => {
         ],
         contentRuns: [{ config: { result: { status: 'ready' } } }],
         createdAt: new Date('2026-10-21T00:00:00.000Z'),
+        credentials: [{ id: 'cred_1' }],
         id: 'org_company',
         onboardingCompleted: true,
-        user: { email: 'founder@acme.co' },
+        posts: [{ id: 'post_1' }],
+        user: { email: 'founder@acme.co', isOnboardingCompleted: true },
       },
     ]);
 
@@ -55,12 +59,20 @@ describe('OnboardingFunnelService', () => {
       emailClass: 'company',
       scanStatus: 'completed',
       steps: {
+        accountConnected: true,
         brandScanned: true,
         completed: true,
         draftsReady: true,
         draftsStarted: true,
+        published: true,
         websiteLink: true,
       },
+    });
+    // The classic wizard only sets the owner's flag, so that counts as completed.
+    expect(report.organizations[0]?.steps).toMatchObject({
+      accountConnected: false,
+      completed: true,
+      published: false,
     });
     expect(JSON.stringify(report)).not.toContain('@');
   });
