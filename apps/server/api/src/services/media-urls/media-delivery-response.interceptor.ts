@@ -7,6 +7,7 @@ import {
   projectMediaResponse,
 } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
+import { getTenantContext } from '@libs/prisma/tenant-context';
 import {
   type CallHandler,
   type ExecutionContext,
@@ -41,9 +42,17 @@ export class MediaDeliveryResponseInterceptor implements NestInterceptor {
             false,
           );
         }
+        // Authorize against the organization this request is pinned to. A
+        // superadmin reading another organization (`?organizationId=`) runs
+        // under that tenant, and a read under the session organization would
+        // trip the tenant guard. The session's brand belongs to the session
+        // organization, so it applies only when the two are the same.
+        const organizationId =
+          getTenantContext()?.organizationId ?? user.organizationId;
         const scope = {
-          brandId: user.brandId,
-          organizationId: user.organizationId,
+          brandId:
+            organizationId === user.organizationId ? user.brandId : undefined,
+          organizationId,
           userId: user.userId || user.id,
         };
         const [projections, assets] = await Promise.all([

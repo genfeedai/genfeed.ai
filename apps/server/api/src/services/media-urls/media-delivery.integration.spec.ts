@@ -231,6 +231,15 @@ describe('media issuer production module HTTP boundary', () => {
     });
   });
 
+  it('authorizes the response projection under the superadmin tenant override', async () => {
+    await request(app.getHttpServer())
+      .get('/fixture')
+      .query({ organizationId: testId('foreignorg') })
+      .set('Authorization', 'Bearer admin')
+      .expect(200);
+    expect(ingredientReads).toEqual([testId('foreignorg')]);
+  });
+
   it('requires real global authentication on the original-grant route', async () => {
     await request(app.getHttpServer())
       .post(`/ingredients/${ingredientId}/original-grant`)
