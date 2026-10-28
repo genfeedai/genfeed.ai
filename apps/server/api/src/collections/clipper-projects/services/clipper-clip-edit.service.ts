@@ -20,12 +20,8 @@ import type {
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
-function readTranscriptSegments(project: {
-  transcriptSegments?: unknown;
-}): TranscriptSegment[] {
-  return Array.isArray(project.transcriptSegments)
-    ? project.transcriptSegments.filter(isTranscriptSegment)
-    : [];
+function readTranscriptSegments(value: unknown): TranscriptSegment[] {
+  return Array.isArray(value) ? value.filter(isTranscriptSegment) : [];
 }
 
 /**
@@ -72,7 +68,7 @@ export class ClipperClipEditService {
     const transcript =
       summary.startTime !== null && summary.endTime !== null
         ? selectTranscriptWindow(
-            readTranscriptSegments(project),
+            readTranscriptSegments(project.transcriptSegments),
             summary.startTime,
             summary.endTime,
           )
@@ -142,7 +138,9 @@ export class ClipperClipEditService {
       );
     }
 
-    const transcriptSegments = readTranscriptSegments(project);
+    const transcriptSegments = readTranscriptSegments(
+      project.transcriptSegments,
+    );
     const plan = planClipEdit({
       request,
       sourceDurationSeconds: project.source?.durationSeconds,

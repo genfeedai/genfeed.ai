@@ -216,9 +216,13 @@ describe('selectTranscriptWindow', () => {
   it('includes the padding either side of the clip', () => {
     const lines = selectTranscriptWindow(TRANSCRIPT, 40, 50);
 
-    expect(lines.map((line) => line.text)).toEqual([
-      'Here is exactly what happened next.',
-    ]);
+    expect(lines.map((line) => line.start)).toEqual([10, 12, 20]);
+  });
+
+  it('leaves out lines beyond the padding', () => {
+    const lines = selectTranscriptWindow(TRANSCRIPT, 70, 80);
+
+    expect(lines.map((line) => line.text)).toEqual(['Thanks for watching.']);
   });
 
   it('caps the number of lines handed to the agent', () => {
