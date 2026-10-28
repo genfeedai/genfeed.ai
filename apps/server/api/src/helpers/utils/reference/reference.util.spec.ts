@@ -23,6 +23,7 @@ type ReferenceLookupQuery = {
   id?: string;
   isDeleted?: boolean;
   organizationId?: string;
+  parentOrgId?: string;
 };
 
 type TenantMediaRow = {
@@ -86,9 +87,11 @@ function resolveTenantRow(
   if (!row) {
     return Promise.resolve(null);
   }
+  // Ingredients are scoped by `organizationId`, assets by `parentOrgId`.
+  const queriedOrganization = query.organizationId ?? query.parentOrgId;
   if (
-    query.organizationId !== undefined &&
-    row.organizationId !== query.organizationId
+    queriedOrganization !== undefined &&
+    row.organizationId !== queriedOrganization
   ) {
     return Promise.resolve(null);
   }
@@ -194,7 +197,7 @@ describe('buildReferenceImageUrl', () => {
       category: AssetCategory.REFERENCE,
       id: referenceId,
       isDeleted: false,
-      organizationId: ORGANIZATION_ID,
+      parentOrgId: ORGANIZATION_ID,
     });
   });
 
@@ -219,13 +222,13 @@ describe('buildReferenceImageUrl', () => {
       category: AssetCategory.REFERENCE,
       id: referenceId,
       isDeleted: false,
-      organizationId: ORGANIZATION_ID,
+      parentOrgId: ORGANIZATION_ID,
     });
     expect(assetsService.findOne).toHaveBeenNthCalledWith(2, {
       category: AssetCategory.LOGO,
       id: referenceId,
       isDeleted: false,
-      organizationId: ORGANIZATION_ID,
+      parentOrgId: ORGANIZATION_ID,
     });
   });
 
@@ -251,7 +254,7 @@ describe('buildReferenceImageUrl', () => {
       category: AssetCategory.BANNER,
       id: referenceId,
       isDeleted: false,
-      organizationId: ORGANIZATION_ID,
+      parentOrgId: ORGANIZATION_ID,
     });
   });
 
