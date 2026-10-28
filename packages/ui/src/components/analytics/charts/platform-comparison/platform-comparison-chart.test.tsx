@@ -289,16 +289,13 @@ describe('PlatformComparisonChart', () => {
       expect(likesBar).toHaveAttribute('data-fill', 'var(--accent-violet)');
     });
 
-    it('uses overlay-white color for comments', () => {
+    it('uses the theme-aware neutral series color for comments', () => {
       render(<PlatformComparisonChart data={mockData} />);
 
       fireEvent.click(getMetricButton('comments'));
 
       const commentsBar = screen.getByTestId('bar-comments');
-      expect(commentsBar).toHaveAttribute(
-        'data-fill',
-        'var(--overlay-white-20)',
-      );
+      expect(commentsBar).toHaveAttribute('data-fill', 'var(--gray-alpha-700)');
     });
 
     it('uses accent-orange color for shares', () => {

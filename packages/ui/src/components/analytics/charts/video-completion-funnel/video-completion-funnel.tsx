@@ -4,6 +4,7 @@ import {
   formatCompactNumberIntl,
   formatPercentageSimple,
 } from '@genfeedai/helpers/formatting/format/format.helper';
+import { ChartLoadingOverlay } from '@ui/analytics/charts/chart-theme';
 
 export interface VideoCompletionData {
   started: number; // 100% of viewers
@@ -96,11 +97,7 @@ export function VideoCompletionFunnel({
   return (
     <div className={className}>
       <div className="relative" style={{ minHeight: height }}>
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-card/50 z-10">
-            <span className="animate-pulse size-12 rounded-full bg-primary/30" />
-          </div>
-        )}
+        {isLoading && <ChartLoadingOverlay />}
 
         {isEmpty && !isLoading && (
           <div className="absolute inset-0 flex items-center justify-center text-foreground/50">

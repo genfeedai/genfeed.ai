@@ -7,6 +7,12 @@ import {
   formatPercentageSimple,
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { TimeSeriesChartProps } from '@genfeedai/props/analytics/analytics.props';
+import {
+  chartAxisStroke,
+  chartAxisTick,
+  chartGridStroke,
+  chartNeutralSeries,
+} from '@ui/analytics/charts/chart-theme';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { Button } from '@ui/primitives/button';
@@ -35,11 +41,11 @@ const YAxis = dynamic(() => import('recharts').then((m) => m.YAxis), {
 });
 
 const METRIC_COLORS = {
-  comments: 'var(--overlay-white-20)',
-  engagementRate: 'var(--overlay-white-15)',
+  comments: chartNeutralSeries[0],
+  engagementRate: chartNeutralSeries[1],
   likes: 'hsl(var(--foreground))',
-  saves: 'var(--overlay-white-10)',
-  shares: 'var(--overlay-white-15)',
+  saves: chartNeutralSeries[2],
+  shares: chartNeutralSeries[1],
   views: 'hsl(var(--foreground))',
 };
 
@@ -191,19 +197,19 @@ export function TimeSeriesChart({
           </defs>
           <CartesianGrid
             strokeDasharray="0"
-            stroke="var(--overlay-white-5)"
+            stroke={chartGridStroke}
             vertical={false}
           />
           <XAxis
             dataKey="date"
             tickFormatter={formatChartDate}
-            stroke="var(--overlay-white-20)"
-            tick={{ fill: 'var(--overlay-white-20)' }}
+            stroke={chartAxisStroke}
+            tick={chartAxisTick}
             style={{ fontSize: '12px' }}
           />
           <YAxis
-            stroke="var(--overlay-white-20)"
-            tick={{ fill: 'var(--overlay-white-20)' }}
+            stroke={chartAxisStroke}
+            tick={chartAxisTick}
             style={{ fontSize: '12px' }}
           />
 

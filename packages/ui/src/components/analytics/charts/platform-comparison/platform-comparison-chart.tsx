@@ -7,6 +7,14 @@ import {
   formatFullNumber,
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { PlatformComparisonChartProps } from '@genfeedai/props/analytics/analytics.props';
+import {
+  ChartLoadingOverlay,
+  chartAxisStroke,
+  chartAxisTick,
+  chartGridStroke,
+  chartNeutralSeries,
+  chartPlatformLabel,
+} from '@ui/analytics/charts/chart-theme';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { Button } from '@ui/primitives/button';
 import dynamic from 'next/dynamic';
@@ -32,25 +40,12 @@ const YAxis = dynamic(() => import('recharts').then((m) => m.YAxis), {
   ssr: false,
 });
 
-const PLATFORM_LABELS: Record<string, string> = {
-  facebook: 'Facebook',
-  instagram: 'Instagram',
-  linkedin: 'LinkedIn',
-  tiktok: 'TikTok',
-  twitter: 'Twitter',
-  youtube: 'YouTube',
-};
-
 const METRIC_COLORS = {
-  comments: 'var(--overlay-white-20)',
+  comments: chartNeutralSeries[0],
   likes: 'var(--accent-violet)',
   shares: 'var(--accent-orange)',
   views: 'hsl(var(--foreground))',
 };
-
-function getPlatformLabel(platform: string): string {
-  return PLATFORM_LABELS[platform.toLowerCase()] || platform;
-}
 
 export function PlatformComparisonChart({
   data,
@@ -120,11 +115,7 @@ export function PlatformComparisonChart({
 
       {/* Chart */}
       <div className="relative" style={{ height }}>
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-card/50 z-10">
-            <span className="animate-pulse size-12 rounded-full bg-primary/30" />
-          </div>
-        )}
+        {isLoading && <ChartLoadingOverlay />}
 
         {isEmpty && !isLoading && (
           <div className="absolute inset-0 flex items-center justify-center text-foreground/50">
@@ -145,24 +136,26 @@ export function PlatformComparisonChart({
             >
               <CartesianGrid
                 strokeDasharray="0"
-                stroke="var(--overlay-white-5)"
+                stroke={chartGridStroke}
                 vertical={false}
               />
               <XAxis
                 dataKey="platform"
-                tick={{ fill: 'var(--overlay-white-20)', fontSize: 12 }}
-                tickFormatter={getPlatformLabel}
-                stroke="var(--overlay-white-20)"
+                tick={chartAxisTick}
+                tickFormatter={chartPlatformLabel}
+                stroke={chartAxisStroke}
               />
               <YAxis
-                tick={{ fill: 'var(--overlay-white-20)', fontSize: 12 }}
+                tick={chartAxisTick}
                 tickFormatter={formatCompactNumberIntl}
-                stroke="var(--overlay-white-20)"
+                stroke={chartAxisStroke}
               />
               <Tooltip
                 content={
                   <ChartTooltipContent
-                    labelFormatter={(label) => getPlatformLabel(String(label))}
+                    labelFormatter={(label) =>
+                      chartPlatformLabel(String(label))
+                    }
                     valueFormatter={(value) =>
                       formatFullNumber(
                         typeof value === 'number'

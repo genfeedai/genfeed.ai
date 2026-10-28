@@ -6,6 +6,13 @@ import {
   formatFullNumber,
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { BrandPerformanceChartProps } from '@genfeedai/props/analytics/charts.props';
+import {
+  ChartLoadingOverlay,
+  chartAxisStroke,
+  chartAxisTick,
+  chartGridStroke,
+  chartNeutralSeries,
+} from '@ui/analytics/charts/chart-theme';
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
@@ -36,7 +43,7 @@ const YAxis = dynamic(() => import('recharts').then((m) => m.YAxis), {
 
 const METRIC_COLORS = {
   engagement: 'var(--accent-rose)',
-  posts: 'var(--overlay-white-20)',
+  posts: chartNeutralSeries[0],
   views: 'hsl(var(--foreground))',
 };
 
@@ -121,11 +128,7 @@ export function BrandPerformanceChart({
         ) : null}
 
         <div className="relative" style={{ height }}>
-          {isLoading && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/50">
-              <span className="size-12 animate-pulse rounded-full bg-primary/30" />
-            </div>
-          )}
+          {isLoading && <ChartLoadingOverlay />}
 
           {isEmpty && !isLoading ? (
             <CardEmptyContent
@@ -147,7 +150,7 @@ export function BrandPerformanceChart({
               >
                 <CartesianGrid
                   strokeDasharray="0"
-                  stroke="var(--overlay-white-5)"
+                  stroke={chartGridStroke}
                   vertical={false}
                 />
                 <XAxis
@@ -155,14 +158,14 @@ export function BrandPerformanceChart({
                   angle={-45}
                   textAnchor="end"
                   height={80}
-                  tick={{ fill: 'var(--overlay-white-20)', fontSize: 12 }}
+                  tick={chartAxisTick}
                   tickFormatter={formatBrandName}
-                  stroke="var(--overlay-white-20)"
+                  stroke={chartAxisStroke}
                 />
                 <YAxis
-                  tick={{ fill: 'var(--overlay-white-20)', fontSize: 12 }}
+                  tick={chartAxisTick}
                   tickFormatter={formatCompactNumberIntl}
-                  stroke="var(--overlay-white-20)"
+                  stroke={chartAxisStroke}
                 />
                 <Tooltip
                   content={
