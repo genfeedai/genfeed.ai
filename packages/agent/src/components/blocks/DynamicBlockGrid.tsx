@@ -5,7 +5,11 @@ import CompositeLayout from '@genfeedai/agent/components/blocks/CompositeLayout'
 import DynamicChart from '@genfeedai/agent/components/blocks/DynamicChart';
 import DynamicTable from '@genfeedai/agent/components/blocks/DynamicTable';
 import { formatAnimatedValue } from '@genfeedai/agent/components/blocks/metric-value-format.util';
-import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardVariant,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import type {
   AgentUIBlock,
   AgentUIBlockWidth,
@@ -26,6 +30,7 @@ import type {
 import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import Card from '@ui/card/Card';
 import MetricCardUI from '@ui/cards/metric-card/MetricCard';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import type { ReactElement } from 'react';
@@ -265,7 +270,12 @@ function TopPosts({ block }: { block: TopPostsBlock }): ReactElement {
               </p>
             )}
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              {post.platform && <span>{post.platform}</span>}
+              {post.platform && (
+                <PlatformBadge
+                  platform={post.platform}
+                  size={ComponentSize.SM}
+                />
+              )}
               {post.views != null && (
                 <span>{post.views.toLocaleString()} views</span>
               )}

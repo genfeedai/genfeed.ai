@@ -1,6 +1,10 @@
 'use client';
 
-import { BotStatus, formatEnumLabel } from '@genfeedai/contracts';
+import {
+  BotStatus,
+  ComponentSize,
+  formatEnumLabel,
+} from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Bot } from '@models/automation/bot.model';
@@ -10,6 +14,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -159,13 +164,19 @@ export default function BotsPage() {
                             Targets:
                           </span>
                           {bot.targets.map((target) => (
-                            <code
+                            <span
                               key={`${target.platform}:${target.channelId}:${target.channelLabel ?? ''}`}
-                              className="text-xs bg-background px-2 py-1"
+                              className="inline-flex items-center gap-1 bg-background px-2 py-1 text-xs"
                             >
-                              {target.platform}:{' '}
-                              {target.channelLabel || target.channelId}
-                            </code>
+                              <PlatformBadge
+                                platform={target.platform}
+                                showLabel={false}
+                                size={ComponentSize.SM}
+                              />
+                              <code>
+                                {target.channelLabel || target.channelId}
+                              </code>
+                            </span>
                           ))}
                         </div>
                       )}

@@ -1,8 +1,10 @@
 'use client';
 
+import { ComponentSize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { BreakoutResponseDetailProps } from '@props/analytics/breakout-response-detail.props';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Badge } from '@ui/primitives/badge';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
@@ -31,8 +33,9 @@ export default function BreakoutResponseDetail({
         <Heading as="h3" size="md">
           {t('sourceHeading')}
         </Heading>
-        <Text as="p">
-          {response.platform} · {source.format ?? t('unknownFormat')}
+        <Text as="p" className="flex items-center gap-2">
+          <PlatformBadge platform={response.platform} size={ComponentSize.SM} />
+          {source.format ?? t('unknownFormat')}
         </Text>
         <Text as="p" size="sm" className="break-all">
           {t('originalPost', { externalId: source.externalId })}

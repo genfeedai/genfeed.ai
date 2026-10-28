@@ -1,7 +1,9 @@
 import type { Winner } from '@data/winners.data';
 import { getPublishedWinners } from '@data/winners.data';
+import { ComponentSize } from '@genfeedai/contracts';
 import { LinkedinIcon } from '@genfeedai/helpers/ui/icons/brands';
 import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import SectionHeader from '@ui/marketing/SectionHeader';
 import { WebSection } from '@web-components/content/NeuralGrid';
 import { ExternalLink, MessageCircle, Repeat2, ThumbsUp } from 'lucide-react';
@@ -111,8 +113,9 @@ function PublishedOutputPreview({ winner }: { winner: Winner }) {
         </div>
       )}
       <div className="p-6 sm:p-8">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/55">
-          {winner.platform} &middot; {winner.mediaType}
+        <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-foreground/55">
+          <PlatformBadge platform={winner.platform} size={ComponentSize.SM} />
+          {winner.mediaType}
         </p>
         <p className="mt-4 text-xl font-medium leading-8 text-foreground">
           {winner.title}
@@ -169,8 +172,12 @@ export default function ProofWinners(): React.ReactElement | null {
                 <p className="mt-4 text-sm leading-6 text-foreground/65">
                   {winner.provenance}
                 </p>
-                <p className="mt-2 text-sm text-foreground/60">
-                  {winner.platform} &middot; {winner.mediaType}
+                <p className="mt-2 flex items-center gap-2 text-sm text-foreground/60">
+                  <PlatformBadge
+                    platform={winner.platform}
+                    size={ComponentSize.SM}
+                  />
+                  {winner.mediaType}
                 </p>
               </div>
 

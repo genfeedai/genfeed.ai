@@ -1,11 +1,12 @@
 'use client';
 
-import { ButtonVariant, formatPlatformLabel } from '@genfeedai/contracts';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useCampaignAccounts } from '@hooks/data/campaigns/use-campaign-accounts';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { CampaignAccountsProps } from '@props/content/campaign-setup.props';
 import Card from '@ui/card/Card';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -40,8 +41,11 @@ export default function CampaignAccounts({ brandId }: CampaignAccountsProps) {
                 key={account.id}
                 className="flex flex-wrap items-center justify-between gap-2 text-sm"
               >
-                <span>
-                  {formatPlatformLabel(account.platform)} ·{' '}
+                <span className="flex items-center gap-2">
+                  <PlatformBadge
+                    platform={account.platform}
+                    size={ComponentSize.SM}
+                  />
                   {account.externalHandle ||
                     account.externalName ||
                     account.label ||

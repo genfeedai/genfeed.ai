@@ -1,4 +1,8 @@
-import { ButtonVariant, formatEnumLabel } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  ComponentSize,
+  formatEnumLabel,
+} from '@genfeedai/contracts';
 import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import { getPublishingPostsHref } from '@helpers/content/posts.helper';
 import type { Ingredient } from '@models/content/ingredient.model';
@@ -6,6 +10,7 @@ import type { Post } from '@models/content/post.model';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import HtmlContent from '@ui/display/html-content/HtmlContent';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
@@ -126,7 +131,10 @@ export default function IngredientPosts({
 
                   <div className="flex items-center gap-2 text-xs text-foreground/50">
                     {post.platform && (
-                      <span className="capitalize">{post.platform}</span>
+                      <PlatformBadge
+                        platform={post.platform}
+                        size={ComponentSize.SM}
+                      />
                     )}
                     {(post.totalViews ?? 0) > 0 && (
                       <>

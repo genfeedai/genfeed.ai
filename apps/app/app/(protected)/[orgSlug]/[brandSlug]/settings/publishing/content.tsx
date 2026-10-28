@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { isPublishApprovalRequired } from '@genfeedai/contracts/constants';
 import type {
   AccountPublishingContext,
@@ -23,6 +23,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { CredentialsService } from '@services/organization/credentials.service';
 import { BrandsService } from '@services/social/brands.service';
 import Card from '@ui/card/Card';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Loading from '@ui/loading/default/Loading';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
@@ -643,9 +644,10 @@ export default function BrandSettingsPublishingPage() {
                         <p className="text-sm font-medium">
                           {getCredentialLabel(credential)}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          {credential.platform}
-                        </p>
+                        <PlatformBadge
+                          platform={credential.platform}
+                          size={ComponentSize.SM}
+                        />
                       </div>
                       <Badge variant={hasFailed ? 'destructive' : 'outline'}>
                         {hasFailed
@@ -675,8 +677,11 @@ export default function BrandSettingsPublishingPage() {
                       <p className="text-sm font-medium">
                         {context.account.label}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        {context.account.platform}
+                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <PlatformBadge
+                          platform={context.account.platform}
+                          size={ComponentSize.SM}
+                        />
                         {context.account.handle
                           ? ` · @${context.account.handle.replace(/^@/, '')}`
                           : ''}

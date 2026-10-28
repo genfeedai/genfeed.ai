@@ -1,6 +1,11 @@
 'use client';
 
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  AlertCategory,
+  ButtonSize,
+  ButtonVariant,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import {
   AdsPlatform,
   type AdWatchedAdvertiser,
@@ -8,6 +13,7 @@ import {
   type AdWatchlistPlatformReadiness,
 } from '@genfeedai/contracts/interfaces';
 import Card from '@ui/card/Card';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -112,9 +118,10 @@ function AdvertiserRow({
           {advertiser.advertiserName || advertiser.advertiserHandle}
         </div>
         <div className="flex flex-wrap items-center gap-x-2 text-2xs text-foreground/50">
-          <span className="uppercase tracking-[0.14em]">
-            {advertiser.platform}
-          </span>
+          <PlatformBadge
+            platform={advertiser.platform}
+            size={ComponentSize.SM}
+          />
           <span>{describeFreshness(advertiser)}</span>
           {typeof advertiser.lastSnapshotRecordCount === 'number' ? (
             <span>
@@ -263,9 +270,10 @@ export function AdsResearchWatchlistPanel({
             <ul className="space-y-0.5 text-foreground/70">
               {blockedPlatforms.map((entry) => (
                 <li key={entry.platform}>
-                  <span className="uppercase tracking-[0.14em]">
-                    {entry.platform}
-                  </span>
+                  <PlatformBadge
+                    platform={entry.platform}
+                    size={ComponentSize.SM}
+                  />
                   {' — '}
                   {entry.blockers.map(describeBlocker).join(' ')}
                 </li>

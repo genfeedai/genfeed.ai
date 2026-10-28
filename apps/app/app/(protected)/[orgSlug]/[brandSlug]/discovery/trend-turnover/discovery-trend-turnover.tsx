@@ -1,6 +1,11 @@
 'use client';
 
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  AlertCategory,
+  ButtonSize,
+  ButtonVariant,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -12,6 +17,7 @@ import type {
 import { TrendsService } from '@services/social/trends.service';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
 import Alert from '@ui/feedback/alert/Alert';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
@@ -19,7 +25,6 @@ import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { Text } from '@ui/typography/text';
-import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
 import {
   Activity,
   Clock,
@@ -217,23 +222,7 @@ export default function DiscoveryTrendTurnover() {
                 {
                   header: translate('breakdown.columns.platform'),
                   key: 'platform',
-                  render: (item) => {
-                    const config = PLATFORM_CONFIGS[item.platform];
-                    const Icon = config?.icon;
-                    return (
-                      <div className="flex items-center gap-2">
-                        {Icon && (
-                          <Icon
-                            className="size-4"
-                            style={{ color: config?.color }}
-                          />
-                        )}
-                        <span className="font-medium capitalize">
-                          {config?.label ?? item.platform}
-                        </span>
-                      </div>
-                    );
-                  },
+                  render: (item) => <PlatformBadge platform={item.platform} />,
                 },
                 {
                   className: 'text-right',
@@ -297,22 +286,13 @@ export default function DiscoveryTrendTurnover() {
             </Text>
             <div className="space-y-3">
               {(data?.byPlatform ?? []).map((item) => {
-                const config = PLATFORM_CONFIGS[item.platform];
-                const Icon = config?.icon;
                 return (
                   <div key={item.platform} className="space-y-1">
                     <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
-                        {Icon && (
-                          <Icon
-                            className="size-3.5"
-                            style={{ color: config?.color }}
-                          />
-                        )}
-                        <span className="font-medium capitalize">
-                          {config?.label ?? item.platform}
-                        </span>
-                      </div>
+                      <PlatformBadge
+                        platform={item.platform}
+                        size={ComponentSize.SM}
+                      />
                       <span className="font-mono text-xs text-foreground/60">
                         {item.turnoverRate}%
                       </span>

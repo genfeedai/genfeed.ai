@@ -1,11 +1,17 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, Timeframe } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  ComponentSize,
+  Timeframe,
+} from '@genfeedai/contracts';
 import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { TrendVideoGalleryProps } from '@genfeedai/props/analytics/trends.props';
 import SocialMediaPlayer from '@ui/analytics/trends/social-media-player';
 import Card from '@ui/card/Card';
 import CollectionGrid from '@ui/collection/CollectionGrid';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 
@@ -91,8 +97,12 @@ export default function TrendVideoGallery({
                 <p className="line-clamp-2 text-sm font-medium">
                   {video.title || video.hook}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  {video.platform} · @{video.creatorHandle}
+                <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <PlatformBadge
+                    platform={video.platform}
+                    size={ComponentSize.SM}
+                  />
+                  <span>@{video.creatorHandle}</span>
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {formatCompactNumber(video.viewCount ?? video.views ?? 0)}{' '}

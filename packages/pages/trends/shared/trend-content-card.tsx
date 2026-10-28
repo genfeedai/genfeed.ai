@@ -1,11 +1,10 @@
 'use client';
 
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
-import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useOptionalDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
@@ -25,6 +24,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import Badge from '@ui/display/badge/Badge';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
 import {
   buildSourcePostVariationsHref,
@@ -347,8 +347,7 @@ export default function TrendContentCard({
 
       <div className="space-y-4 p-4">
         <div className="flex flex-wrap items-center gap-2 text-xs text-foreground/60">
-          {getPlatformIcon(item.platform, 'h-4 w-4')}
-          <span className="capitalize">{item.platform}</span>
+          <PlatformBadge platform={item.platform} size={ComponentSize.SM} />
           {item.authorHandle ? <span>@{item.authorHandle}</span> : null}
           {item.publishedAt ? (
             <span>{getRelativeTime(item.publishedAt)}</span>

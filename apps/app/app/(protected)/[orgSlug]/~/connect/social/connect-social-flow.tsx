@@ -11,6 +11,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { ServicesService } from '@services/external/services.service';
 import Card from '@ui/card/Card';
 import { resolveOAuthServicePath } from '@ui/constants/oauth-connect-platforms';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { useSearchParams } from 'next/navigation';
@@ -84,8 +85,9 @@ export default function ConnectSocialFlow() {
           <h1 className="text-xl font-semibold">{translate('title')}</h1>
           <p className="text-muted-foreground">{translate('description')}</p>
           {platform ? (
-            <p>
-              {translate('platformLabel')}: <strong>{platform}</strong>
+            <p className="flex items-center gap-2">
+              {translate('platformLabel')}:{' '}
+              <PlatformBadge platform={platform} />
             </p>
           ) : null}
           {errorMessage ? (

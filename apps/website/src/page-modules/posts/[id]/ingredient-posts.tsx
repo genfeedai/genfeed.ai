@@ -1,4 +1,4 @@
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import { getPublishingPostsHref } from '@helpers/content/posts.helper';
 import type { Ingredient } from '@models/content/ingredient.model';
@@ -7,6 +7,7 @@ import type { PublicListPageProps } from '@props/website/public-list-page.props'
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import HtmlContent from '@ui/display/html-content/HtmlContent';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
 import PublicListPage from '@web-components/content/PublicListPage';
 import { ArrowLeft, Eye, FileText, ImageIcon } from 'lucide-react';
@@ -133,7 +134,10 @@ export default function IngredientPosts({
 
                   <div className="flex items-center gap-2 text-xs text-foreground/50">
                     {post.platform && (
-                      <span className="capitalize">{post.platform}</span>
+                      <PlatformBadge
+                        platform={post.platform}
+                        size={ComponentSize.SM}
+                      />
                     )}
                     {(post.totalViews ?? 0) > 0 && (
                       <>

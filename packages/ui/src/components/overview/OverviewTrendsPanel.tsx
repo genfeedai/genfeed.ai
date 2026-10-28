@@ -1,6 +1,6 @@
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { TrendItem } from '@genfeedai/props/trends/trends-page.props';
-import { Badge } from '@ui/primitives/badge';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { ArrowRight } from 'lucide-react';
@@ -83,9 +83,10 @@ export function OverviewTrendsPanel({
               key={trend.id}
               className="flex items-center gap-3 rounded-card bg-background px-4 py-3 shadow-border"
             >
-              <Badge className="shrink-0" variant="secondary">
-                {trend.platform}
-              </Badge>
+              <PlatformBadge
+                platform={trend.platform}
+                size={ComponentSize.SM}
+              />
 
               <span
                 className="min-w-0 flex-1 truncate text-sm font-medium text-foreground"

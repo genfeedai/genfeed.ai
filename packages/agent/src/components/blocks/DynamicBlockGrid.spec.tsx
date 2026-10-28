@@ -199,7 +199,7 @@ describe('DynamicBlockGrid', () => {
       ]);
 
       expect(screen.getByText('First post')).toBeInTheDocument();
-      expect(screen.getByText('instagram')).toBeInTheDocument();
+      expect(screen.getByText('Instagram')).toBeInTheDocument();
       expect(screen.getByText('1,000 views')).toBeInTheDocument();
       expect(screen.getByText('250 eng.')).toBeInTheDocument();
       expect(screen.getByAltText('First post')).toHaveAttribute(

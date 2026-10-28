@@ -1,5 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
 import { Flame, SquarePen, TrendingUp } from 'lucide-react';
 import type { ReactElement } from 'react';
@@ -49,9 +50,10 @@ export function TrendingTopicsCard({
                   </span>
                   <div className="flex items-center gap-1.5">
                     {trend.platform && (
-                      <span className="text-2xs text-muted-foreground">
-                        {trend.platform}
-                      </span>
+                      <PlatformBadge
+                        platform={trend.platform}
+                        size={ComponentSize.SM}
+                      />
                     )}
                     {trend.score != null && (
                       <span className="text-2xs text-muted-foreground">

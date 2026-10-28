@@ -1,3 +1,4 @@
+import { ComponentSize } from '@genfeedai/contracts';
 import { getSafeExternalUrl } from '@genfeedai/helpers/media/social-media-source.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import TrendRowSummary from '@pages/trends/detail/trend-row-summary';
@@ -7,6 +8,7 @@ import SocialMediaPlayer from '@ui/analytics/trends/social-media-player';
 import Card from '@ui/card/Card';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import Badge from '@ui/display/badge/Badge';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { Flame } from 'lucide-react';
@@ -92,9 +94,6 @@ export default function TrendingTopicsSection({
                 <TrendRowSummary
                   openHref={rowLink.href}
                   openLabel={rowLink.label}
-                  platformLabel={
-                    platformConfigLookup[item.platform]?.label || item.platform
-                  }
                   trend={item}
                 />
               );
@@ -115,23 +114,7 @@ export default function TrendingTopicsSection({
               className: 'min-w-32',
               header: translate('columns.platform'),
               key: 'platform',
-              render: (item) => {
-                const config = platformConfigLookup[item.platform];
-                const Icon = config?.icon;
-                return (
-                  <div className="flex items-center gap-2">
-                    {Icon && (
-                      <Icon
-                        className="size-4"
-                        style={{ color: config?.color }}
-                      />
-                    )}
-                    <span className="font-medium">
-                      {config?.label || item.platform}
-                    </span>
-                  </div>
-                );
-              },
+              render: (item) => <PlatformBadge platform={item.platform} />,
             },
             {
               className: 'min-w-24',
@@ -178,8 +161,12 @@ export default function TrendingTopicsSection({
               key={`${source.platform}:${source.sourceUrl}`}
               bodyClassName="space-y-3 p-4"
             >
-              <p className="text-xs text-muted-foreground">
-                {topic} · {source.platform}
+              <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                <PlatformBadge
+                  platform={source.platform}
+                  size={ComponentSize.SM}
+                />
+                {topic}
               </p>
               {source.contentType === 'video' ||
               source.thumbnailUrl ||

@@ -257,7 +257,7 @@ describe('DiscoveryTrendTurnover', () => {
       'chart rows 2',
     );
     expect(screen.getAllByText('Instagram').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('unknown').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Unknown').length).toBeGreaterThan(0);
     expect(screen.getByText('4.3d')).toBeVisible();
     expect(screen.getByText('8.0d')).toBeVisible();
 

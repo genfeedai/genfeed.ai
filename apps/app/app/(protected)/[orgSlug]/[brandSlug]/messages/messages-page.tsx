@@ -8,6 +8,7 @@ import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-c
 import {
   ButtonSize,
   ButtonVariant,
+  ComponentSize,
   Platform,
   SocialConversationType,
 } from '@genfeedai/contracts';
@@ -29,6 +30,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { usePlatformOAuthConnect } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { SocialMessagesService } from '@services/social/messages.service';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import PaginationStepper from '@ui/navigation/pagination/PaginationStepper';
 import { Badge } from '@ui/primitives/badge';
@@ -94,10 +96,6 @@ function StatusPill({ status }: { status: string }) {
       {STATUS_LABELS[status] ?? status}
     </span>
   );
-}
-
-function PlatformPill({ platform }: { platform: string }) {
-  return <Badge variant="secondary">{platform}</Badge>;
 }
 
 function MessageBubble({
@@ -689,7 +687,10 @@ export default function MessagesPage() {
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0">
                     <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <PlatformPill platform={selectedConversation.platform} />
+                      <PlatformBadge
+                        platform={selectedConversation.platform}
+                        size={ComponentSize.SM}
+                      />
                       <StatusPill status={selectedConversation.status} />
                       {isReadOnly ? (
                         <Badge
@@ -709,8 +710,7 @@ export default function MessagesPage() {
                       {getParticipantLabel(selectedConversation)}
                     </h2>
                     <p className="mt-1 text-xs font-medium text-primary/70">
-                      {isDmThread ? 'Direct message' : 'Comment'} ·{' '}
-                      {selectedConversation.platform}
+                      {isDmThread ? 'Direct message' : 'Comment'}
                     </p>
                     {isDmThread ? null : (
                       <p className="mt-1 truncate text-xs text-gray-800">

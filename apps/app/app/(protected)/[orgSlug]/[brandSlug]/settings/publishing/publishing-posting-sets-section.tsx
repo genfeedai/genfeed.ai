@@ -1,4 +1,4 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { ICredential, IPostingSet } from '@genfeedai/contracts/interfaces';
 import { isRecord, readString } from '@genfeedai/utils/data/extract.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -9,6 +9,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { isCancelledRequest } from '@services/core/operation-error';
 import Card from '@ui/card/Card';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -260,8 +261,15 @@ export default function PublishingPostingSetsSection({
                 {preview.length > 0 ? (
                   <ul className="space-y-1 text-xs text-muted-foreground">
                     {preview.map((target) => (
-                      <li key={`${target.credentialId}-${target.platform}`}>
-                        {target.platform} · {target.credentialId}
+                      <li
+                        key={`${target.credentialId}-${target.platform}`}
+                        className="flex items-center gap-2"
+                      >
+                        <PlatformBadge
+                          platform={target.platform}
+                          size={ComponentSize.SM}
+                        />
+                        {target.credentialId}
                       </li>
                     ))}
                   </ul>

@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import {
   AdsChannel,
   type AdsResearchItem,
@@ -11,6 +11,7 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import Badge from '@ui/display/badge/Badge';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
 import { Bookmark, Megaphone } from 'lucide-react';
@@ -21,7 +22,6 @@ import {
   formatMetric,
   getMetricLabel,
   getMetricValue,
-  getPlatformLabel,
 } from './ads-metric.helpers';
 
 type AdGridCardProps = {
@@ -77,7 +77,10 @@ export function AdGridCard({
                 <Badge variant={item.source === 'public' ? 'blue' : 'accent'}>
                   {item.source === 'public' ? 'Public' : 'Connected'}
                 </Badge>
-                <Badge variant="ghost">{getPlatformLabel(item.platform)}</Badge>
+                <PlatformBadge
+                  platform={item.platform}
+                  size={ComponentSize.SM}
+                />
                 {item.channel !== AdsChannel.ALL && (
                   <Badge variant="ghost">{item.channel}</Badge>
                 )}
@@ -252,7 +255,7 @@ export function AdsResearchAdTable({
       header: translate('platform'),
       key: 'platform',
       render: (item) => (
-        <Badge variant="ghost">{getPlatformLabel(item.platform)}</Badge>
+        <PlatformBadge platform={item.platform} size={ComponentSize.SM} />
       ),
     },
     {

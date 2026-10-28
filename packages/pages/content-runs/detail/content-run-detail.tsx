@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   ContentRunAnalyticsSummary,
@@ -16,6 +16,7 @@ import type { ContentRunRecord } from '@services/content/content-runs.service';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Container from '@ui/layout/container/Container';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -268,7 +269,10 @@ function VariantsSection({ variants }: { variants?: ContentRunVariant[] }) {
         <Panel as="article" key={variant.id} className="p-4">
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <Pill>{variant.format ?? variant.type}</Pill>
-            <Pill>{variant.platform}</Pill>
+            <PlatformBadge
+              platform={variant.platform}
+              size={ComponentSize.SM}
+            />
             {variant.status ? <Pill>{variant.status}</Pill> : null}
           </div>
           <h3 className="text-sm font-medium">{variant.angle ?? variant.id}</h3>

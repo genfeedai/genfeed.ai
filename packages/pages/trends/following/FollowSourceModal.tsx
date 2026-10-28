@@ -4,6 +4,7 @@ import {
   ButtonSize,
   ButtonVariant,
   CardVariant,
+  ComponentSize,
   formatPlatformLabel,
   parseSocialPostUrl,
   SocialSourcePlatform,
@@ -22,6 +23,7 @@ import { SocialSourcesService } from '@services/social/social-sources.service';
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import {
@@ -595,7 +597,10 @@ export default function FollowSourceModal({
                           <span className="text-sm font-medium text-foreground">
                             @{candidate.handle}
                           </span>
-                          <Badge variant="ghost">{platformLabel}</Badge>
+                          <PlatformBadge
+                            platform={candidate.platform}
+                            size={ComponentSize.SM}
+                          />
                           {candidate.isAlreadyFollowed ? (
                             <Badge variant="secondary">
                               {translate('following')}

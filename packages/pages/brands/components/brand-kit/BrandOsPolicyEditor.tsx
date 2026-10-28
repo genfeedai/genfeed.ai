@@ -18,6 +18,7 @@ import type {
   BrandOsPolicyEditorProps,
   BrandOsPolicyListFieldProps,
 } from '@props/pages/brand-os-settings.props';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import Field from '@ui/primitives/field';
@@ -229,7 +230,7 @@ export default function BrandOsPolicyEditor({
             key={platform}
             className="flex flex-wrap items-center justify-between gap-2"
           >
-            <span className="text-sm capitalize">{platform}</span>
+            <PlatformBadge platform={platform} />
             {autonomySelect(
               t('platformLabel', { platform }),
               current.autonomy.platforms[platform] ?? 'earned',

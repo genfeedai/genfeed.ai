@@ -356,7 +356,7 @@ describe('AnalyticsPostsList', () => {
 
     renderPostsList();
 
-    fireEvent.click(screen.getByText('Acme · twitter'));
+    fireEvent.click(screen.getByText('X'));
 
     expect(screen.getByTestId('post-detail-overlay')).toHaveTextContent(
       'post-3',
@@ -419,7 +419,7 @@ describe('AnalyticsPostsList', () => {
     });
     renderPostsList();
 
-    fireEvent.click(screen.getByText('Acme · twitter'));
+    fireEvent.click(screen.getByText('X'));
 
     expect(
       screen.queryByText(/Focused on a single post/),
@@ -461,7 +461,8 @@ describe('AnalyticsPostsList', () => {
 
     expect(within(cards[0]).getByText('#1')).toBeInTheDocument();
     expect(within(cards[0]).getByText('Launch reel')).toBeInTheDocument();
-    expect(within(cards[0]).getByText('Acme · instagram')).toBeInTheDocument();
+    expect(within(cards[0]).getByText('Acme')).toBeInTheDocument();
+    expect(within(cards[0]).getByText('Instagram')).toBeInTheDocument();
     expect(within(cards[0]).getByText('Views')).toBeInTheDocument();
     expect(within(cards[0]).getByText('1.2M')).toBeInTheDocument();
     expect(within(cards[0]).getByText('Engagement')).toBeInTheDocument();
