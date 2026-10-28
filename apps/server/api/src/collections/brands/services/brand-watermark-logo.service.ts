@@ -13,6 +13,26 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 export class BrandWatermarkLogoService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** Checks every brand kit asset an update points the brand at. */
+  async validateKitSettings(
+    brandId: string,
+    organizationId: string,
+    update: {
+      endCardAssetId?: string | null;
+      isEndCardEnabled?: boolean;
+      watermarkLogoId?: string | null;
+    },
+  ): Promise<void> {
+    if (update.watermarkLogoId) {
+      await this.validateWatermarkLogo(
+        brandId,
+        organizationId,
+        update.watermarkLogoId,
+      );
+    }
+    await this.validateEndCardSettings(brandId, organizationId, update);
+  }
+
   async validateWatermarkLogo(
     brandId: string,
     organizationId: string,

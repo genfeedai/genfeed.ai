@@ -1,11 +1,16 @@
-import type { VideoStitchEndCard } from '@api/services/video-stitch/video-stitch.types';
+import { scopedWhere } from '@api/index';
+import type {
+  VideoStitchEndCard,
+  VideoStitchRequest,
+} from '@api/services/video-stitch/video-stitch.types';
 import { stitchRequestError } from '@api/services/video-stitch/video-stitch.util';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BRAND_END_CARD_LIMITS,
   BRAND_END_CARD_MIME_TYPES,
 } from '@genfeedai/contracts/constants';
 import type { IVideoMergeSettings } from '@genfeedai/contracts/interfaces';
-import { AssetCategory } from '@genfeedai/prisma';
+import { AssetCategory, AssetParent } from '@genfeedai/prisma';
 import { assertStoredObjectKey } from '@libs/security/stored-object-key';
 
 /** Folder a brand kit asset without a stored key resolves under. */
@@ -86,4 +91,39 @@ export function resolveVideoStitchEndCard(
       stitchRequestError('endCard', message, 'Brand end card unavailable'),
     ),
   };
+}
+
+/** The brand's closing frame when the brand turned it on for this output. */
+export async function loadVideoStitchEndCard(
+  prisma: PrismaService,
+  request: VideoStitchRequest,
+): Promise<VideoStitchEndCard | undefined> {
+  const brand = await prisma.brand.findFirst({
+    select: {
+      backgroundColor: true,
+      endCardAssetId: true,
+      endCardDurationSeconds: true,
+      isEndCardEnabled: true,
+    },
+    where: scopedWhere(request.organizationId, { id: request.brandId }),
+  });
+  if (!brand || !isBrandEndCardRequested(brand, request.settings)) {
+    return undefined;
+  }
+  const asset = await prisma.asset.findFirst({
+    select: {
+      category: true,
+      cloudObjectKey: true,
+      id: true,
+      mimeType: true,
+    },
+    where: {
+      id: brand.endCardAssetId ?? undefined,
+      isDeleted: false,
+      parentBrandId: request.brandId,
+      parentOrgId: request.organizationId,
+      parentType: AssetParent.BRAND,
+    },
+  });
+  return resolveVideoStitchEndCard(brand, asset);
 }

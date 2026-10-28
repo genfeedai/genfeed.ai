@@ -233,8 +233,7 @@ describe('BrandsController', () => {
         {
           provide: BrandWatermarkLogoService,
           useValue: {
-            validateWatermarkLogo: vi.fn(),
-            validateEndCardSettings: vi.fn(),
+            validateKitSettings: vi.fn(),
           },
         },
       ],

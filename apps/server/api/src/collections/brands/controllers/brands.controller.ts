@@ -188,15 +188,7 @@ export class BrandsController extends BaseCRUDController<
         syncOrganizationName?: boolean;
       };
 
-    if (rest.watermarkLogoId) {
-      await this.brandWatermarkLogoService.validateWatermarkLogo(
-        id,
-        user.organizationId.toString(),
-        rest.watermarkLogoId,
-      );
-    }
-
-    await this.brandWatermarkLogoService.validateEndCardSettings(
+    await this.brandWatermarkLogoService.validateKitSettings(
       id,
       user.organizationId.toString(),
       rest,
