@@ -73,7 +73,7 @@ import {
 } from '@api/services/agent-orchestrator/tools/knowledge-workflow-execution.util';
 import {
   buildUnresolvedBriefMessage,
-  findUnresolvedVideoBriefFields,
+  findUnresolvedBrief,
 } from '@api/services/agent-orchestrator/utils/agent-generation-brief.util';
 import {
   type AgentInitiatingPrincipal,
@@ -550,20 +550,17 @@ export class AgentToolExecutorService implements OnModuleInit {
 
   /**
    * Plan threads settle the brief while planning. Auto and Manual threads must
-   * ask before a chat-driven video, so the call fails until the format and
-   * length are settled. Manual still confirms the spend afterwards.
+   * ask before a chat-driven video, image or post, so the call fails until the
+   * gated fields (format and length, format, platform) are settled. Manual still
+   * confirms the spend afterwards.
    */
-  private async assertVideoBriefAsked(
+  private async assertBriefAsked(
     toolName: CuratedActionName,
     parameters: Record<string, unknown>,
     context: ToolExecutionContext,
   ): Promise<void> {
-    const unresolved = findUnresolvedVideoBriefFields(
-      toolName,
-      parameters,
-      context,
-    );
-    if (unresolved.length === 0) return;
+    const unresolved = findUnresolvedBrief(toolName, parameters, context);
+    if (!unresolved) return;
     const agentMode =
       await this.mutationAuthorizationService.resolveAgentModeForContext(
         context,
@@ -609,7 +606,7 @@ export class AgentToolExecutorService implements OnModuleInit {
 
       await this.assertToolBrandScope(toolName, parameters, context);
       await this.workObjects.assertReady(context, toolName);
-      await this.assertVideoBriefAsked(toolName, parameters, context);
+      await this.assertBriefAsked(toolName, parameters, context);
       const policyResult = await this.mutationAuthorizationService.authorize(
         toolName,
         parameters,
