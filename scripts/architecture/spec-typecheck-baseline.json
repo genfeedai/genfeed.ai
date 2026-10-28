@@ -4467,38 +4467,6 @@
     {
       "code": 18048,
       "count": 1,
-      "file": "apps/app/packages/config/admin-menu-items.config.test.ts",
-      "fingerprint": "7d8fbc8922238b9f37d6",
-      "message": "'href' is possibly 'undefined'.",
-      "workspace": "app"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/app/packages/config/admin-menu-items.config.test.ts",
-      "fingerprint": "88e4e64b93b5e4bee9d2",
-      "message": "'item.href' is possibly 'undefined'.",
-      "workspace": "app"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/app/packages/config/admin-menu-items.config.test.ts",
-      "fingerprint": "b264c489a6e85d2cbe4c",
-      "message": "'item.href' is possibly 'undefined'.",
-      "workspace": "app"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/app/packages/config/admin-menu-items.config.test.ts",
-      "fingerprint": "e6168a1aa88fd415559e",
-      "message": "'href' is possibly 'undefined'.",
-      "workspace": "app"
-    },
-    {
-      "code": 18048,
-      "count": 1,
       "file": "apps/app/packages/config/menu-items.config.test.ts",
       "fingerprint": "ba63201f19f0ff993ca3",
       "message": "'item.group' is possibly 'undefined'.",
