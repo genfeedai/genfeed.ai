@@ -146,10 +146,7 @@ export function BrandIdentityConfirmationCard({
 
   if (isConfirmed) {
     return (
-      <div
-        className="my-2 bg-card p-4 shadow-border"
-        role="status"
-      >
+      <div className="my-2 bg-card p-4 shadow-border" role="status">
         <div className="flex items-center gap-2 text-success">
           <CircleCheck className="size-5" aria-hidden />
           <span className="text-sm font-medium">

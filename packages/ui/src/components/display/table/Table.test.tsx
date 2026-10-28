@@ -231,11 +231,7 @@ describe('Table', () => {
       'bg-card',
     );
     expect(card).not.toHaveClass('shadow-border');
-    expect(head).toHaveClass(
-      'border-b',
-      'border-border',
-      'bg-card/60',
-    );
+    expect(head).toHaveClass('border-b', 'border-border', 'bg-card/60');
     expect(body).toHaveClass('divide-y', 'divide-border');
     expect(container.querySelector('thead tr')).not.toHaveClass('border-b');
   });

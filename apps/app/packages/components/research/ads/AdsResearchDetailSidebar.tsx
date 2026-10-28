@@ -193,10 +193,7 @@ function LaunchPrepPanel({ prep }: LaunchPrepPanelProps) {
         </div>
         <ul className="space-y-2 text-sm text-foreground/85">
           {prep.notes.map((note) => (
-            <li
-              key={note}
-              className="rounded-md bg-tertiary px-3 py-2"
-            >
+            <li key={note} className="rounded-md bg-tertiary px-3 py-2">
               {note}
             </li>
           ))}
