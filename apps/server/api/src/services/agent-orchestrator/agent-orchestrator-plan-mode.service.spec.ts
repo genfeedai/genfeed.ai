@@ -20,7 +20,10 @@ describe('AgentOrchestratorPlanModeService — #4672 mode field', () => {
     recordAssistantFinalized: ReturnType<typeof vi.fn>;
     recordRunCompleted: ReturnType<typeof vi.fn>;
   };
-  let streamEffects: { publishStreamDoneOnly: ReturnType<typeof vi.fn> };
+  let streamEffects: {
+    publishStreamDoneOnly: ReturnType<typeof vi.fn>;
+    publishStreamInputRequestEvent: ReturnType<typeof vi.fn>;
+  };
   let contextService: {
     resolveThreadMessages: ReturnType<typeof vi.fn>;
     buildMessageHistory: ReturnType<typeof vi.fn>;
@@ -66,7 +69,10 @@ describe('AgentOrchestratorPlanModeService — #4672 mode field', () => {
       recordAssistantFinalized: vi.fn(),
       recordRunCompleted: vi.fn(),
     };
-    streamEffects = { publishStreamDoneOnly: vi.fn() };
+    streamEffects = {
+      publishStreamDoneOnly: vi.fn(),
+      publishStreamInputRequestEvent: vi.fn(),
+    };
     contextService = {
       resolveThreadMessages: vi
         .fn()
@@ -256,5 +262,123 @@ describe('AgentOrchestratorPlanModeService — #4672 mode field', () => {
 
     expect(handled).toBe(false);
     expect(streamEffects.publishStreamDoneOnly).not.toHaveBeenCalled();
+  });
+
+  describe('asking before planning', () => {
+    const questionReply = JSON.stringify({
+      title: 'Launch video',
+      question: {
+        title: 'Where does it take place?',
+        prompt: 'Where does the opening scene take place?',
+        options: [
+          { id: 'studio', label: 'In a studio' },
+          { id: 'street', label: 'On the street', description: 'Outdoors' },
+        ],
+        recommendedOptionId: 'studio',
+      },
+    });
+
+    it('lets the planner ask a question and does not propose a plan', async () => {
+      llmDispatcher.chatCompletion.mockResolvedValue({
+        choices: [{ message: { content: questionReply } }],
+        model: 'test-model',
+      });
+
+      const result = await service.generatePlanModeResponse(
+        {
+          ...baseParams,
+          context: { ...baseParams.context, executionId: 'run-q1' },
+        },
+        host,
+      );
+
+      expect(result.message.content).toBe(
+        'Where does the opening scene take place?',
+      );
+      expect(result.message.metadata).not.toHaveProperty('proposedPlan');
+      expect(result.message.metadata).not.toHaveProperty('reviewRequired');
+      expect(result.message.metadata.planQuestionRequestId).toBe(
+        'plan-question:run-q1',
+      );
+      expect(threadEventRecorder.recordPlanUpserted).not.toHaveBeenCalled();
+      expect(streamEffects.publishStreamInputRequestEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          allowFreeText: true,
+          inputRequestId: 'plan-question:run-q1',
+          recommendedOptionId: 'studio',
+          threadId,
+          title: 'Where does it take place?',
+          userId,
+        }),
+      );
+    });
+
+    it('plans instead when the question card is unusable', async () => {
+      llmDispatcher.chatCompletion.mockResolvedValue({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                question: { prompt: 'Which one?', options: [] },
+                summary: 'Plan drafted',
+                content: 'Do the thing',
+              }),
+            },
+          },
+        ],
+        model: 'test-model',
+      });
+
+      const result = await service.generatePlanModeResponse(baseParams, host);
+
+      expect(result.message.metadata).toHaveProperty('proposedPlan');
+      expect(
+        streamEffects.publishStreamInputRequestEvent,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('tells the planner what to check for a video before it plans', async () => {
+      await service.generatePlanModeResponse(baseParams, host);
+
+      const [request] = llmDispatcher.chatCompletion.mock.calls[0];
+      const instruction = request.messages[0].content as string;
+      expect(instruction).toContain('ask one question instead of planning');
+      expect(instruction).toContain('scene or setting');
+      expect(instruction).not.toContain('Do not ask another one');
+    });
+
+    it('stops asking after three questions in a row and plans with assumptions', async () => {
+      const asked = {
+        metadata: { planQuestionRequestId: 'plan-question:run-x' },
+        role: 'assistant',
+      };
+      contextService.resolveThreadMessages.mockResolvedValue({
+        compressedContext: undefined,
+        messages: [
+          asked,
+          { role: 'user' },
+          asked,
+          { role: 'user' },
+          asked,
+          { role: 'user' },
+        ],
+      });
+      llmDispatcher.chatCompletion.mockResolvedValue({
+        choices: [{ message: { content: questionReply } }],
+        model: 'test-model',
+      });
+
+      const result = await service.generatePlanModeResponse(baseParams, host);
+
+      const [request] = llmDispatcher.chatCompletion.mock.calls[0];
+      expect(request.messages[0].content).toContain('Do not ask another one');
+      expect(result.message.metadata).toHaveProperty('proposedPlan');
+      expect(
+        (result.message.metadata.proposedPlan as { content: string }).content,
+      ).toBe('Open question: Where does the opening scene take place?');
+      expect(
+        streamEffects.publishStreamInputRequestEvent,
+      ).not.toHaveBeenCalled();
+    });
   });
 });
