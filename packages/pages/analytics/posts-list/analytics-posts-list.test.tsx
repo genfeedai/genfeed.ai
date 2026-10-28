@@ -50,7 +50,7 @@ vi.mock('next/navigation', () => ({
   useSearchParams: vi.fn(() => new URLSearchParams()),
 }));
 
-vi.mock('@ui/analytics/analytics-filter-menu/AnalyticsFilterMenu', () => ({
+vi.mock('@ui/content/filter-menu/FilterMenu', () => ({
   default: ({
     facets,
   }: {

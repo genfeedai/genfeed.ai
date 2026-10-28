@@ -13,7 +13,7 @@ import {
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import AnalyticsOutliers from '@pages/analytics/outliers/analytics-outliers';
 import { DiscoveryRemixProvider } from '@pages/research/remix/DiscoveryRemixProvider';
-import AnalyticsFilterMenu from '@ui/analytics/analytics-filter-menu/AnalyticsFilterMenu';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
@@ -78,7 +78,7 @@ export default function OutliersContent() {
     ];
 
     return (
-      <AnalyticsFilterMenu
+      <FilterMenu
         facets={facets}
         onClear={() => {
           setFilter('platform');

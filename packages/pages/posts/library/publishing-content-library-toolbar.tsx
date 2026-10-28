@@ -185,14 +185,5 @@ export default function PublishingContentLibraryToolbar({
     },
   ];
 
-  return (
-    <FilterMenu
-      allLabel={translateMenu('all')}
-      clearLabel={translateMenu('clear')}
-      facets={facets}
-      getActiveCountLabel={(count) => translateMenu('activeCount', { count })}
-      label={translateMenu('menu')}
-      onClear={onClear}
-    />
-  );
+  return <FilterMenu facets={facets} onClear={onClear} />;
 }

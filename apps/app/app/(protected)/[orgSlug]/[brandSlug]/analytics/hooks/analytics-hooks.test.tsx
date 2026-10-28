@@ -76,7 +76,7 @@ vi.mock('next-intl', () => {
   return { useTranslations: () => translate };
 });
 
-vi.mock('@ui/analytics/analytics-filter-menu/AnalyticsFilterMenu', () => ({
+vi.mock('@ui/content/filter-menu/FilterMenu', () => ({
   default: ({
     facets,
   }: {
