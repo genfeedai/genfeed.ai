@@ -320,7 +320,7 @@ function EvidencePreview({ draft }: { draft?: IBrandKitDraft | undefined }) {
   );
 
   return (
-    <div className="grid gap-px bg-edge/10 lg:grid-cols-[1.15fr_0.85fr]">
+    <div className="grid gap-px bg-foreground/10 lg:grid-cols-[1.15fr_0.85fr]">
       <section
         className="bg-background p-5 sm:p-6"
         aria-labelledby={evidenceHeadingId}
@@ -333,30 +333,30 @@ function EvidencePreview({ draft }: { draft?: IBrandKitDraft | undefined }) {
           >
             Evidence ledger
           </Heading>
-          <Text className="text-sm leading-6 text-surface/60">
+          <Text className="text-sm leading-6 text-foreground/60">
             Every recommendation declares what it knows and how well it knows
             it.
           </Text>
         </div>
 
         {evidenceItems.length > 0 ? (
-          <dl className="mt-5 divide-y divide-edge/10">
+          <dl className="mt-5 divide-y divide-foreground/10">
             {evidenceItems.map((item) => (
               <div
                 className="grid gap-2 py-4 sm:grid-cols-[9rem_1fr]"
                 key={item.label}
               >
                 <dt className="flex flex-col items-start gap-2">
-                  <Text className="text-xs font-semibold text-surface">
+                  <Text className="text-xs font-semibold text-foreground">
                     {item.label}
                   </Text>
                   <EvidenceLabel kind={item.kind} />
                 </dt>
                 <dd className="flex flex-col gap-1">
-                  <Text className="text-sm leading-6 text-surface/75">
+                  <Text className="text-sm leading-6 text-foreground/75">
                     {item.detail}
                   </Text>
-                  <Text className="font-mono text-2xs uppercase text-surface/55">
+                  <Text className="font-mono text-2xs uppercase text-foreground/55">
                     {formatConfidence(item.confidence)}
                   </Text>
                 </dd>
@@ -364,13 +364,13 @@ function EvidencePreview({ draft }: { draft?: IBrandKitDraft | undefined }) {
             ))}
           </dl>
         ) : (
-          <Text className="mt-5 text-sm text-surface/60">
+          <Text className="mt-5 text-sm text-foreground/60">
             No supported recommendation was inferred from this source.
           </Text>
         )}
       </section>
 
-      <div className="grid gap-px bg-edge/10">
+      <div className="grid gap-px bg-foreground/10">
         <section
           className="bg-background p-5 sm:p-6"
           aria-labelledby={sourcesHeadingId}
@@ -383,19 +383,19 @@ function EvidencePreview({ draft }: { draft?: IBrandKitDraft | undefined }) {
             Source rows
           </Heading>
           {sourceRows.length > 0 ? (
-            <ul className="mt-4 divide-y divide-edge/10">
+            <ul className="mt-4 divide-y divide-foreground/10">
               {sourceRows.map((source) => (
                 <li className="py-3 first:pt-0 last:pb-0" key={source.href}>
                   <Link
-                    className="group flex flex-col gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-surface focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    className="group flex flex-col gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                     href={source.href}
                     rel="noopener noreferrer"
                     target="_blank"
                   >
-                    <span className="text-xs font-semibold text-surface group-hover:underline">
+                    <span className="text-xs font-semibold text-foreground group-hover:underline">
                       {source.label}
                     </span>
-                    <span className="text-xs leading-5 text-surface/55">
+                    <span className="text-xs leading-5 text-foreground/55">
                       {source.detail}
                     </span>
                   </Link>
@@ -403,7 +403,7 @@ function EvidencePreview({ draft }: { draft?: IBrandKitDraft | undefined }) {
               ))}
             </ul>
           ) : (
-            <Text className="mt-4 text-xs leading-5 text-surface/55">
+            <Text className="mt-4 text-xs leading-5 text-foreground/55">
               No source receipt was available.
             </Text>
           )}
@@ -436,10 +436,10 @@ function EvidencePreview({ draft }: { draft?: IBrandKitDraft | undefined }) {
                     />
                   )}
                   <div className="flex flex-col gap-0.5">
-                    <Text className="text-2xs font-black uppercase tracking-[0.12em] text-surface/55">
+                    <Text className="text-2xs font-black uppercase tracking-[0.12em] text-foreground/55">
                       {diagnostic.severity}
                     </Text>
-                    <Text className="text-xs leading-5 text-surface/70">
+                    <Text className="text-xs leading-5 text-foreground/70">
                       {diagnostic.message}
                     </Text>
                   </div>
@@ -447,7 +447,7 @@ function EvidencePreview({ draft }: { draft?: IBrandKitDraft | undefined }) {
               ))}
             </ul>
           ) : (
-            <Text className="mt-4 text-xs leading-5 text-surface/55">
+            <Text className="mt-4 text-xs leading-5 text-foreground/55">
               No additional diagnostics.
             </Text>
           )}
@@ -482,14 +482,14 @@ export function BrandOSPreviewState({
       <div className="flex flex-col gap-5 p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-start gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-fill/[0.04] shadow-border">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-foreground/[0.04] shadow-border">
               <Icon
                 aria-hidden="true"
                 className={`size-5 ${definition.toneClassName} ${state === 'scanning' ? 'animate-spin motion-reduce:animate-none' : ''}`}
               />
             </span>
             <div className="flex flex-col gap-1">
-              <Text className="font-mono text-2xs uppercase tracking-[0.15em] text-surface/55">
+              <Text className="font-mono text-2xs uppercase tracking-[0.15em] text-foreground/55">
                 {state}
               </Text>
               <Heading as="h3" className="text-lg font-semibold" id={headingId}>
@@ -505,10 +505,10 @@ export function BrandOSPreviewState({
         </div>
 
         <div className="grid gap-2">
-          <Text className="text-sm leading-6 text-surface/65">
+          <Text className="text-sm leading-6 text-foreground/65">
             {definition.description}
           </Text>
-          <Text className="text-xs font-medium leading-5 text-surface/85">
+          <Text className="text-xs font-medium leading-5 text-foreground/85">
             Next: {definition.action}
           </Text>
         </div>

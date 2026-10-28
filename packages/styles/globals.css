@@ -22,9 +22,6 @@
 
 @theme inline {
   /* Semantic surface tokens */
-  --color-surface: rgb(var(--surface));
-  --color-fill: rgb(var(--fill));
-  --color-edge: rgb(var(--edge));
 
   /* shadcn/ui color tokens — maps CSS vars from shadcn-theme to Tailwind v4 utilities */
   --color-background: hsl(var(--background));

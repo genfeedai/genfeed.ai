@@ -95,12 +95,12 @@ function ProfileContent({
           brand.bannerUrl && brand.logoUrl ? 'pt-14' : 'pt-4',
         )}
       >
-        <h1 className="text-xl font-semibold mb-2 text-center text-surface">
+        <h1 className="text-xl font-semibold mb-2 text-center text-foreground">
           @{handle}
         </h1>
 
         {brand.description && (
-          <p className="text-surface/70 text-sm text-center px-4">
+          <p className="text-foreground/70 text-sm text-center px-4">
             {brand.description}
           </p>
         )}
@@ -122,7 +122,7 @@ function ProfileContent({
               href={addUTMParameters(link.url, handle)}
               target="_blank"
               rel="noopener noreferrer"
-              className="block w-full bg-fill/10 hover:bg-fill/20 backdrop-blur-sm text-surface rounded-full py-4 px-6 text-center font-medium transition-all border border-edge/[0.08] hover:border-edge/20"
+              className="block w-full bg-foreground/10 hover:bg-foreground/20 backdrop-blur-sm text-foreground rounded-full py-4 px-6 text-center font-medium transition-all border border-foreground/[0.08] hover:border-foreground/20"
             >
               {link.label}
             </a>

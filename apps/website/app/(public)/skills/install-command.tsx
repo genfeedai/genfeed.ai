@@ -24,16 +24,16 @@ export default function InstallCommand(): React.ReactElement {
       withWrapper={false}
       textTransform="none"
       onClick={handleCopy}
-      className="group inline-flex max-w-full items-center gap-3 px-4 py-3 bg-fill/5 border border-edge/10 hover:border-edge/20 transition-all font-mono text-xs cursor-pointer sm:px-6 sm:text-sm"
+      className="group inline-flex max-w-full items-center gap-3 px-4 py-3 bg-foreground/5 border border-foreground/10 hover:border-foreground/20 transition-all font-mono text-xs cursor-pointer sm:px-6 sm:text-sm"
     >
-      <Terminal className="size-4 text-surface/30" />
-      <span className="min-w-0 text-surface/70">
+      <Terminal className="size-4 text-foreground/30" />
+      <span className="min-w-0 text-foreground/70">
         bunx skills add genfeedai/skills
       </span>
       {copied ? (
         <Check className="size-4 text-emerald-400" />
       ) : (
-        <Copy className="size-4 text-surface/30 group-hover:text-surface/60 transition-colors" />
+        <Copy className="size-4 text-foreground/30 group-hover:text-foreground/60 transition-colors" />
       )}
     </Button>
   );

@@ -137,7 +137,7 @@ export default function AgentConnectDialog({
                     : undefined
                 }
                 aria-pressed={client ? family?.name === option.name : undefined}
-                className="h-auto min-h-10 w-full justify-start gap-2 rounded-md px-2 py-2 text-left whitespace-normal aria-pressed:bg-fill/10 focus-visible:outline-offset-[-2px]"
+                className="h-auto min-h-10 w-full justify-start gap-2 rounded-md px-2 py-2 text-left whitespace-normal aria-pressed:bg-foreground/10 focus-visible:outline-offset-[-2px]"
                 key={option.name}
                 onClick={() => {
                   if (family?.name !== option.name)
@@ -160,7 +160,7 @@ export default function AgentConnectDialog({
                   </span>
                   {!client ? (
                     <span
-                      className="block text-xs leading-5 text-surface/60"
+                      className="block text-xs leading-5 text-foreground/60"
                       id={`agent-family-${option.slugs[0]}-description`}
                     >
                       {option.description}
@@ -172,7 +172,7 @@ export default function AgentConnectDialog({
           </nav>
           {client ? (
             <DialogBody
-              className="min-w-0 py-0 sm:border-l sm:border-edge/10 sm:pl-5"
+              className="min-w-0 py-0 sm:border-l sm:border-foreground/10 sm:pl-5"
               key={family?.name}
             >
               <Tabs
@@ -208,7 +208,7 @@ export default function AgentConnectDialog({
                         1. Add Genfeed
                       </AccordionTrigger>
                       <AccordionContent className="space-y-4">
-                        <p className="text-sm leading-6 text-surface/75">
+                        <p className="text-sm leading-6 text-foreground/75">
                           {client.connectInstruction}
                         </p>
                         {client.installation.command ? (
@@ -260,7 +260,7 @@ export default function AgentConnectDialog({
                           CLI setup
                         </AccordionTrigger>
                         <AccordionContent className="space-y-4">
-                          <p className="text-sm leading-6 text-surface/75">
+                          <p className="text-sm leading-6 text-foreground/75">
                             {client.oauth.authorizationInstruction}
                           </p>
                           {getAgentClientMcpBlocks(client).map((block) => (
@@ -287,7 +287,7 @@ export default function AgentConnectDialog({
                         2. Approve and check the connection
                       </AccordionTrigger>
                       <AccordionContent>
-                        <p className="text-sm leading-6 text-surface/75">
+                        <p className="text-sm leading-6 text-foreground/75">
                           Sign in or create your free Genfeed account when
                           prompted, then approve access. Ask {client.name} to
                           show your brands. Generation in Genfeed uses your
@@ -301,7 +301,7 @@ export default function AgentConnectDialog({
                           Skills-only alternative
                         </AccordionTrigger>
                         <AccordionContent className="space-y-4">
-                          <p className="text-sm leading-6 text-surface/75">
+                          <p className="text-sm leading-6 text-foreground/75">
                             {AGENT_CLIENT_SKILLS_ONLY_COPY}
                           </p>
                           <CommandBlock
@@ -317,7 +317,7 @@ export default function AgentConnectDialog({
                           Setup prompt
                         </AccordionTrigger>
                         <AccordionContent className="space-y-4">
-                          <p className="text-sm leading-6 text-surface/75">
+                          <p className="text-sm leading-6 text-foreground/75">
                             To let {client.name} configure the connector with
                             local shell access, paste this setup prompt.
                           </p>

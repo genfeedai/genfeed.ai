@@ -76,7 +76,7 @@ export default function TurboContent() {
         heroActions={
           <div className="flex flex-col items-start gap-3">
             <TurboSignupButton />
-            <Text className="text-sm text-surface/65">
+            <Text className="text-sm text-foreground/65">
               No credit card needed.
             </Text>
           </div>
@@ -98,7 +98,7 @@ export default function TurboContent() {
         title="Your brand in. On-brand content out."
       >
         <section className="gsap-section max-w-6xl mx-auto pb-16 px-6">
-          <Heading as="h2" className="text-2xl font-bold mb-8 text-surface">
+          <Heading as="h2" className="text-2xl font-bold mb-8 text-foreground">
             How it works
           </Heading>
           <div className="gsap-grid grid grid-cols-1 gap-1.5 md:grid-cols-2">
@@ -107,10 +107,10 @@ export default function TurboContent() {
                 key={step.title}
                 className="gsap-card gen-card-spotlight p-8"
               >
-                <Heading as="h3" className="font-semibold mb-2 text-surface">
+                <Heading as="h3" className="font-semibold mb-2 text-foreground">
                   {step.title}
                 </Heading>
-                <Text className="text-sm text-surface/65">
+                <Text className="text-sm text-foreground/65">
                   {step.description}
                 </Text>
               </div>
@@ -118,19 +118,19 @@ export default function TurboContent() {
           </div>
         </section>
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
-          <Heading as="h2" className="text-2xl font-bold mb-2 text-surface">
+          <Heading as="h2" className="text-2xl font-bold mb-2 text-foreground">
             Nothing posts without you.
           </Heading>
-          <Text className="text-surface/65">
+          <Text className="text-foreground/65">
             Every draft waits for your approval. Reject one and tell us why; the
             next batch learns from it.
           </Text>
         </section>
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
-          <Heading as="h2" className="text-2xl font-bold mb-2 text-surface">
+          <Heading as="h2" className="text-2xl font-bold mb-2 text-foreground">
             Gets sharper every batch.
           </Heading>
-          <Text className="text-surface/65">
+          <Text className="text-foreground/65">
             Turbo learns from what you approve and what performs, so each batch
             fits your brand better.
           </Text>
@@ -144,14 +144,17 @@ export default function TurboContent() {
           </div>
         </section>
         <section className="gsap-section max-w-6xl mx-auto pb-16 px-6">
-          <Heading as="h2" className="text-2xl font-bold mb-8 text-surface">
+          <Heading as="h2" className="text-2xl font-bold mb-8 text-foreground">
             Frequently asked questions
           </Heading>
           <FaqGrid items={FAQS} />
         </section>
         <section className="max-w-4xl mx-auto pb-16 px-6">
           <div className="gen-card-spotlight p-6 sm:p-12 text-center">
-            <Heading as="h2" className="text-2xl font-bold mb-6 text-surface">
+            <Heading
+              as="h2"
+              className="text-2xl font-bold mb-6 text-foreground"
+            >
               Ready when you are.
             </Heading>
             <div className="flex justify-center">

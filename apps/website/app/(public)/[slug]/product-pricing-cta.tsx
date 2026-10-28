@@ -34,7 +34,7 @@ export default function ProductPricingCTA({
         <div className="text-4xl font-bold mb-4">
           {getPlanLabel(pricing.recommended)}
         </div>
-        <Text as="p" size="lg" className="mb-6 text-surface/70">
+        <Text as="p" size="lg" className="mb-6 text-foreground/70">
           {pricing.why}
         </Text>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">

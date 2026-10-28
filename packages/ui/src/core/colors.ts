@@ -48,9 +48,6 @@ export const semanticColorRoles = [
   'warningForeground',
   'info',
   'infoForeground',
-  'surface',
-  'fill',
-  'edge',
 ] as const;
 
 export type SemanticColorRole = (typeof semanticColorRoles)[number];
@@ -83,8 +80,6 @@ export const semanticColorTokens = {
     // #DC2626 only reaches 4.10:1 on this canvas — fails AA as text.
     destructive: { hex: '#FF6166', hsl: '358 100% 69%' },
     destructiveForeground: { hex: '#0A0A0A', hsl: '0 0% 4%' },
-    edge: { hex: '#EDEDED', hsl: '237 237 237' },
-    fill: { hex: '#EDEDED', hsl: '237 237 237' },
     // gray-1000 — capped short of #FFF to keep 13-16px type from blooming.
     foreground: { hex: '#EDEDED', hsl: '0 0% 93%' },
     info: { hex: '#52A8FF', hsl: '210 100% 66%' },
@@ -105,7 +100,6 @@ export const semanticColorTokens = {
     secondaryForeground: { hex: '#EDEDED', hsl: '0 0% 93%' },
     success: { hex: '#10B981', hsl: '160 84% 39%' },
     successForeground: { hex: '#0A0A0A', hsl: '0 0% 4%' },
-    surface: { hex: '#EDEDED', hsl: '237 237 237' },
     warning: { hex: '#F59E0B', hsl: '38 92% 50%' },
     warningForeground: { hex: '#0A0A0A', hsl: '0 0% 4%' },
   },
@@ -123,8 +117,6 @@ export const semanticColorTokens = {
     cardForeground: { hex: '#171717', hsl: '0 0% 9%' },
     destructive: { hex: '#DC2626', hsl: '0 72% 51%' },
     destructiveForeground: { hex: '#FFFFFF', hsl: '0 0% 100%' },
-    edge: { hex: '#171717', hsl: '23 23 23' },
-    fill: { hex: '#171717', hsl: '23 23 23' },
     foreground: { hex: '#171717', hsl: '0 0% 9%' },
     info: { hex: '#0060DF', hsl: '214 100% 44%' },
     infoForeground: { hex: '#FFFFFF', hsl: '0 0% 100%' },
@@ -142,7 +134,6 @@ export const semanticColorTokens = {
     // Status hues darken in light mode so they stay legible as text on #FAFAFA.
     success: { hex: '#047857', hsl: '163 94% 24%' },
     successForeground: { hex: '#FFFFFF', hsl: '0 0% 100%' },
-    surface: { hex: '#171717', hsl: '23 23 23' },
     warning: { hex: '#B45309', hsl: '26 90% 37%' },
     warningForeground: { hex: '#FFFFFF', hsl: '0 0% 100%' },
   },

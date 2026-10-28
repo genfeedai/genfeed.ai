@@ -173,42 +173,42 @@ export default function SelfHostedContent() {
 
           <div className="space-y-8">
             <div className="space-y-3">
-              <h3 className="text-lg font-semibold text-surface">
+              <h3 className="text-lg font-semibold text-foreground">
                 One command
               </h3>
-              <p className="text-sm leading-relaxed text-surface/60">
+              <p className="text-sm leading-relaxed text-foreground/60">
                 Downloads and verifies the release bundle, asks for your
                 OpenRouter API key, then starts the stack.
               </p>
-              <pre className="overflow-x-auto rounded-sm border gen-border bg-card p-4 text-sm text-surface">
+              <pre className="overflow-x-auto rounded-sm border gen-border bg-card p-4 text-sm text-foreground">
                 {NPX_COMMAND}
               </pre>
             </div>
 
             <div className="space-y-3">
-              <h3 className="text-lg font-semibold text-surface">
+              <h3 className="text-lg font-semibold text-foreground">
                 Release bundle
               </h3>
-              <p className="text-sm leading-relaxed text-surface/60">
+              <p className="text-sm leading-relaxed text-foreground/60">
                 A checksummed tarball of the latest stable release that runs as
                 one container alongside PostgreSQL. No git clone, no build. On
                 macOS, use{' '}
                 <code>shasum -a 256 -c genfeed-selfhosted.tar.gz.sha256</code>{' '}
                 for the checksum step.
               </p>
-              <pre className="overflow-x-auto rounded-sm border gen-border bg-card p-4 text-sm text-surface">
+              <pre className="overflow-x-auto rounded-sm border gen-border bg-card p-4 text-sm text-foreground">
                 {BUNDLE_COMMANDS}
               </pre>
-              <p className="text-sm leading-relaxed text-surface/60">
+              <p className="text-sm leading-relaxed text-foreground/60">
                 Then open http://localhost:3000.
               </p>
             </div>
 
             <div className="space-y-3">
-              <h3 className="text-lg font-semibold text-surface">
+              <h3 className="text-lg font-semibold text-foreground">
                 Requirements
               </h3>
-              <ul className="space-y-2 text-sm text-surface/60">
+              <ul className="space-y-2 text-sm text-foreground/60">
                 {REQUIREMENTS.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
@@ -216,10 +216,10 @@ export default function SelfHostedContent() {
             </div>
 
             <div className="space-y-3">
-              <h3 className="text-lg font-semibold text-surface">
+              <h3 className="text-lg font-semibold text-foreground">
                 Model provider keys
               </h3>
-              <p className="text-sm leading-relaxed text-surface/60">
+              <p className="text-sm leading-relaxed text-foreground/60">
                 Self-hosting does not include Genfeed credits. To generate
                 content, add your own keys ({PROVIDER_KEYS.join(', ')}) to{' '}
                 <code>.env</code> and pay those providers directly. An
@@ -281,7 +281,7 @@ export default function SelfHostedContent() {
                 ].map((item) => (
                   <li
                     key={item}
-                    className="border-b border-edge/5 pb-3 text-sm text-surface/60 last:border-b-0 last:pb-0"
+                    className="border-b border-foreground/5 pb-3 text-sm text-foreground/60 last:border-b-0 last:pb-0"
                   >
                     {item}
                   </li>
@@ -306,7 +306,7 @@ export default function SelfHostedContent() {
                 ].map((item) => (
                   <li
                     key={item}
-                    className="border-b border-edge/5 pb-3 text-sm text-surface/60 last:border-b-0 last:pb-0"
+                    className="border-b border-foreground/5 pb-3 text-sm text-foreground/60 last:border-b-0 last:pb-0"
                   >
                     {item}
                   </li>

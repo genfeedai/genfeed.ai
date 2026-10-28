@@ -32,20 +32,20 @@ export default function FeatureGrid({
     <section className="py-16 md:py-32">
       <div className="container mx-auto px-6">
         <div
-          className={`grid grid-cols-1 ${GRID_COLUMNS[columns]} overflow-hidden border border-edge/5 bg-fill/5 gap-px`}
+          className={`grid grid-cols-1 ${GRID_COLUMNS[columns]} overflow-hidden border border-foreground/5 bg-foreground/5 gap-px`}
         >
           {features.map((feature) => {
             const Icon = feature.icon;
             const content = (
               <>
-                <div className="mb-12 text-xs font-semibold uppercase tracking-widest text-surface/55">
+                <div className="mb-12 text-xs font-semibold uppercase tracking-widest text-foreground/55">
                   {feature.number} / {feature.label}
                 </div>
-                <Icon className="mb-8 size-10 text-surface/55 transition-colors group-hover:text-surface" />
+                <Icon className="mb-8 size-10 text-foreground/55 transition-colors group-hover:text-foreground" />
                 <h3 className="mb-4 text-xl font-semibold uppercase tracking-tight">
                   {feature.title}
                 </h3>
-                <p className="mb-8 text-sm leading-relaxed text-surface/55">
+                <p className="mb-8 text-sm leading-relaxed text-foreground/55">
                   {feature.description}
                 </p>
                 {feature.href ? (
@@ -61,7 +61,7 @@ export default function FeatureGrid({
                 <Link
                   key={feature.number}
                   href={feature.href}
-                  className="group flex flex-col bg-background p-6 sm:p-12 transition-colors hover:bg-fill/[0.02]"
+                  className="group flex flex-col bg-background p-6 sm:p-12 transition-colors hover:bg-foreground/[0.02]"
                 >
                   {content}
                 </Link>
@@ -71,7 +71,7 @@ export default function FeatureGrid({
             return (
               <div
                 key={feature.number}
-                className="group flex flex-col bg-background p-6 sm:p-12 transition-colors hover:bg-fill/[0.02]"
+                className="group flex flex-col bg-background p-6 sm:p-12 transition-colors hover:bg-foreground/[0.02]"
               >
                 {content}
               </div>

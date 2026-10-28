@@ -67,17 +67,19 @@ function NeuralGridItem({
       {...props}
     >
       {tierLabel && (
-        <div className="text-xs font-black uppercase tracking-widest mb-6 text-surface/55">
+        <div className="text-xs font-black uppercase tracking-widest mb-6 text-foreground/55">
           {tierLabel}
         </div>
       )}
       {Icon && (
-        <Icon className="size-8 mb-4 text-surface/60 group-hover:text-surface transition-colors" />
+        <Icon className="size-8 mb-4 text-foreground/60 group-hover:text-foreground transition-colors" />
       )}
       {title && (
-        <h3 className="text-lg font-bold mb-2 text-surface">{title}</h3>
+        <h3 className="text-lg font-bold mb-2 text-foreground">{title}</h3>
       )}
-      {description && <p className="text-sm text-surface/65">{description}</p>}
+      {description && (
+        <p className="text-sm text-foreground/65">{description}</p>
+      )}
       {children}
     </div>
   );
@@ -87,9 +89,9 @@ NeuralGridItem.displayName = 'NeuralGridItem';
 /* ─── WebSection ─── */
 
 const bgClasses = {
-  bordered: 'border-t border-edge/5',
+  bordered: 'border-t border-foreground/5',
   default: '',
-  subtle: 'bg-fill/[0.02]',
+  subtle: 'bg-foreground/[0.02]',
 } as const;
 
 /**
@@ -160,7 +162,7 @@ function CtaSection({
     <section
       className={cn(
         'py-20 md:py-40',
-        bg === 'subtle' && 'bg-fill/[0.02]',
+        bg === 'subtle' && 'bg-foreground/[0.02]',
         className,
       )}
       ref={ref}
@@ -172,7 +174,7 @@ function CtaSection({
             {title}
           </h2>
           {description && (
-            <p className="mb-8 text-lg font-medium text-surface/65 sm:mb-12 sm:text-xl">
+            <p className="mb-8 text-lg font-medium text-foreground/65 sm:mb-12 sm:text-xl">
               {description}
             </p>
           )}

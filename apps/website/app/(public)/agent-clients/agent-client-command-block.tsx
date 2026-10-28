@@ -13,9 +13,9 @@ export default function CommandBlock({
   value,
 }: AgentClientCommandBlock): React.ReactElement {
   return (
-    <div className="overflow-hidden rounded-lg border border-edge/10 bg-card">
-      <div className="flex items-center justify-between gap-3 border-b border-edge/10 px-4 py-2">
-        <p className="text-xs font-semibold text-surface/75">{label}</p>
+    <div className="overflow-hidden rounded-lg border border-foreground/10 bg-card">
+      <div className="flex items-center justify-between gap-3 border-b border-foreground/10 px-4 py-2">
+        <p className="text-xs font-semibold text-foreground/75">{label}</p>
         <Button
           ariaLabel={`Copy ${label}`}
           onClick={() => ClipboardService.getInstance().copyToClipboard(value)}
@@ -28,7 +28,7 @@ export default function CommandBlock({
         </Button>
       </div>
       <Pre className="max-h-80 overflow-auto bg-background/80 p-5 text-sm leading-6">
-        <Code className="whitespace-pre-wrap bg-transparent text-surface/85 [overflow-wrap:anywhere]">
+        <Code className="whitespace-pre-wrap bg-transparent text-foreground/85 [overflow-wrap:anywhere]">
           {value}
         </Code>
       </Pre>

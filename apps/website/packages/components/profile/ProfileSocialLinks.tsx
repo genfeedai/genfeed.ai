@@ -44,7 +44,7 @@ export default function ProfileSocialLinks({
           href={addUTMParameters(url, handle)}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-surface/60 hover:text-surface transition-colors"
+          className="text-foreground/60 hover:text-foreground transition-colors"
           aria-label={label}
         >
           <Icon className="text-2xl" />

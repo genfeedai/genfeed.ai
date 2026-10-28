@@ -7,9 +7,6 @@ import { sizingTokens } from '@ui/core/sizing';
 import { spacingTokens } from '@ui/core/spacing';
 import { typographyTokens } from '@ui/core/typography';
 
-/** Roles emitted as RGB triples so Tailwind alpha modifiers can composite them. */
-const RGB_TRIPLE_ROLES = new Set(['surface', 'fill', 'edge']);
-
 function kebab(tokenName: string): string {
   return tokenName.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
 }
@@ -21,12 +18,7 @@ function declaration(name: string, value: string, indent: string): string {
 /** Values that change with the theme. Emitted once per theme block. */
 function themedVariables(theme: 'light' | 'dark', indent: string): string {
   const semanticEntries = Object.entries(semanticColorTokens[theme]).map(
-    ([tokenName, value]) =>
-      declaration(
-        RGB_TRIPLE_ROLES.has(tokenName) ? tokenName : kebab(tokenName),
-        value.hsl,
-        indent,
-      ),
+    ([tokenName, value]) => declaration(kebab(tokenName), value.hsl, indent),
   );
 
   const scaleEntries = Object.entries(neutralScale[theme]).map(

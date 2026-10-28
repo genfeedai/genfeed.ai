@@ -131,14 +131,14 @@ export default function ResearchContent() {
             <div className="flex flex-col items-center gap-8 md:flex-row">
               <div className="flex-shrink-0">
                 <div className="flex size-20 items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-tint)]">
-                  <Sparkles className="size-10 text-surface" />
+                  <Sparkles className="size-10 text-foreground" />
                 </div>
               </div>
               <div className="flex w-full min-w-0 flex-col gap-3">
                 <Heading as="h3" className="text-2xl font-bold">
                   Every Signal, One Workspace
                 </Heading>
-                <Text as="p" className="text-surface/65">
+                <Text as="p" className="text-foreground/65">
                   Track trending content, competitor social accounts, and
                   winning ad creative from a single interface. Turn any
                   discovery into a ready brief without switching tabs.
@@ -188,10 +188,13 @@ export default function ResearchContent() {
                       <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
                     </div>
                   </div>
-                  <Heading as="h4" className="font-semibold mb-2 text-surface">
+                  <Heading
+                    as="h4"
+                    className="font-semibold mb-2 text-foreground"
+                  >
                     {feature.title}
                   </Heading>
-                  <Text className="text-sm text-surface/65">
+                  <Text className="text-sm text-foreground/65">
                     {feature.description}
                   </Text>
                 </div>
@@ -211,12 +214,12 @@ export default function ResearchContent() {
               return (
                 <div
                   key={step.label}
-                  className="gen-contact-sheet flex flex-col items-center gap-3 bg-fill/[0.02] p-6 text-center"
+                  className="gen-contact-sheet flex flex-col items-center gap-3 bg-foreground/[0.02] p-6 text-center"
                 >
                   <div className="flex size-14 items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
                     <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
                   </div>
-                  <Text as="p" className="text-lg font-bold text-surface">
+                  <Text as="p" className="text-lg font-bold text-foreground">
                     {step.label}
                   </Text>
                 </div>
@@ -229,9 +232,12 @@ export default function ResearchContent() {
         <section className="max-w-4xl mx-auto pb-16 px-6">
           <div className="border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)] p-6 sm:p-12 text-center">
             <div className="flex justify-center mb-4">
-              <Sparkles className="size-8 text-surface" />
+              <Sparkles className="size-8 text-foreground" />
             </div>
-            <Heading as="h3" className="text-2xl font-bold mb-6 text-surface">
+            <Heading
+              as="h3"
+              className="text-2xl font-bold mb-6 text-foreground"
+            >
               Start Discovering Today
             </Heading>
             <PricingStrip className="mb-6" />

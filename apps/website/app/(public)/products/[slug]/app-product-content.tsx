@@ -28,12 +28,12 @@ function SectionHeading({
 }) {
   return (
     <div className="mb-10 max-w-2xl">
-      <Text className="text-xs font-bold uppercase tracking-[0.16em] text-surface/55">
+      <Text className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/55">
         {eyebrow}
       </Text>
       <Heading
         as="h2"
-        className="mt-4 text-3xl font-semibold tracking-[-0.03em] text-surface sm:text-4xl"
+        className="mt-4 text-3xl font-semibold tracking-[-0.03em] text-foreground sm:text-4xl"
       >
         {title}
       </Heading>
@@ -70,26 +70,26 @@ export default function AppProductContent({ product }: AppProductContentProps) {
         title={`Genfeed ${product.name}`}
       >
         <section className="gsap-section mx-auto max-w-6xl px-6 pb-24">
-          <div className="grid gap-12 border-y border-edge/10 py-14 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-24 lg:py-20">
+          <div className="grid gap-12 border-y border-foreground/10 py-14 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-24 lg:py-20">
             <div>
-              <Text className="text-xs font-bold uppercase tracking-[0.16em] text-surface/55">
+              <Text className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/55">
                 What it is
               </Text>
               <Heading
                 as="h2"
-                className="mt-5 text-4xl font-semibold leading-[1.05] tracking-[-0.04em] text-surface sm:text-5xl"
+                className="mt-5 text-4xl font-semibold leading-[1.05] tracking-[-0.04em] text-foreground sm:text-5xl"
               >
                 What is {product.name}?
               </Heading>
             </div>
             <div className="flex flex-col gap-8">
-              <Text className="max-w-xl text-base leading-7 text-surface/75">
+              <Text className="max-w-xl text-base leading-7 text-foreground/75">
                 {product.definition}
               </Text>
               <ul className="flex flex-col gap-3">
                 {product.highlights.map((highlight) => (
                   <li
-                    className="flex items-start gap-3 text-sm text-surface/75"
+                    className="flex items-start gap-3 text-sm text-foreground/75"
                     key={highlight}
                   >
                     <Check className="mt-0.5 size-4 shrink-0 text-[color:hsl(var(--gen-accent))]" />
@@ -99,7 +99,7 @@ export default function AppProductContent({ product }: AppProductContentProps) {
               </ul>
               {product.learnMore ? (
                 <Link
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-surface underline underline-offset-4"
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-foreground underline underline-offset-4"
                   href={product.learnMore.href}
                 >
                   {product.learnMore.label}
@@ -112,19 +112,19 @@ export default function AppProductContent({ product }: AppProductContentProps) {
 
         <section className="gsap-section mx-auto max-w-6xl px-6 pb-24">
           <SectionHeading eyebrow="How it works" title="From idea to result" />
-          <ol className="gsap-grid grid grid-cols-1 border-t border-edge/10 md:grid-cols-2 lg:grid-cols-4">
+          <ol className="gsap-grid grid grid-cols-1 border-t border-foreground/10 md:grid-cols-2 lg:grid-cols-4">
             {product.steps.map((step, index) => (
               <li
-                className="gsap-card border-b border-edge/10 py-8 md:px-6 md:first:pl-0 lg:border-b-0 lg:border-r lg:last:border-r-0 lg:last:pr-0"
+                className="gsap-card border-b border-foreground/10 py-8 md:px-6 md:first:pl-0 lg:border-b-0 lg:border-r lg:last:border-r-0 lg:last:pr-0"
                 key={step.title}
               >
-                <Text className="text-xs font-bold tabular-nums text-surface/40">
+                <Text className="text-xs font-bold tabular-nums text-foreground/40">
                   {String(index + 1).padStart(2, '0')}
                 </Text>
-                <Heading as="h3" className="mt-3 font-semibold text-surface">
+                <Heading as="h3" className="mt-3 font-semibold text-foreground">
                   {step.title}
                 </Heading>
-                <Text className="mt-2 text-sm leading-6 text-surface/65">
+                <Text className="mt-2 text-sm leading-6 text-foreground/65">
                   {step.description}
                 </Text>
               </li>
@@ -137,16 +137,16 @@ export default function AppProductContent({ product }: AppProductContentProps) {
             eyebrow="Use cases"
             title={`What teams use ${product.name} for`}
           />
-          <div className="gsap-grid grid grid-cols-1 border-t border-edge/10 md:grid-cols-3">
+          <div className="gsap-grid grid grid-cols-1 border-t border-foreground/10 md:grid-cols-3">
             {product.useCases.map((useCase) => (
               <div
-                className="gsap-card border-b border-edge/10 py-8 md:border-r md:px-8 md:first:pl-0 md:last:border-r-0 md:last:pr-0"
+                className="gsap-card border-b border-foreground/10 py-8 md:border-r md:px-8 md:first:pl-0 md:last:border-r-0 md:last:pr-0"
                 key={useCase.title}
               >
-                <Heading as="h3" className="font-semibold text-surface">
+                <Heading as="h3" className="font-semibold text-foreground">
                   {useCase.title}
                 </Heading>
-                <Text className="mt-3 text-sm leading-6 text-surface/65">
+                <Text className="mt-3 text-sm leading-6 text-foreground/65">
                   {useCase.description}
                 </Text>
               </div>
@@ -159,16 +159,16 @@ export default function AppProductContent({ product }: AppProductContentProps) {
             eyebrow="Outputs"
             title={`What ${product.name} produces`}
           />
-          <div className="gsap-grid grid grid-cols-1 gap-px bg-edge/5 md:grid-cols-2 lg:grid-cols-3">
+          <div className="gsap-grid grid grid-cols-1 gap-px bg-foreground/5 md:grid-cols-2 lg:grid-cols-3">
             {product.outputs.map((output) => (
               <div
                 className="gsap-card bg-background p-6 sm:p-8"
                 key={output.title}
               >
-                <Heading as="h3" className="font-semibold text-surface">
+                <Heading as="h3" className="font-semibold text-foreground">
                   {output.title}
                 </Heading>
-                <Text className="mt-3 text-sm leading-6 text-surface/65">
+                <Text className="mt-3 text-sm leading-6 text-foreground/65">
                   {output.description}
                 </Text>
               </div>
@@ -181,7 +181,7 @@ export default function AppProductContent({ product }: AppProductContentProps) {
             eyebrow="Access and pricing"
             title="Start free, pay for output"
           />
-          <Text className="mb-8 max-w-xl text-base leading-7 text-surface/65">
+          <Text className="mb-8 max-w-xl text-base leading-7 text-foreground/65">
             {APP_PRODUCT_ACCESS_LABELS[product.access]}. Generation spends
             credits, and the open source Community build is free to self-host.
           </Text>
@@ -202,17 +202,17 @@ export default function AppProductContent({ product }: AppProductContentProps) {
             <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
               {related.map((item) => (
                 <Link
-                  className="group flex flex-col rounded-lg border border-edge/10 p-6 transition-colors hover:border-edge/25"
+                  className="group flex flex-col rounded-lg border border-foreground/10 p-6 transition-colors hover:border-foreground/25"
                   href={`/products/${item.slug}`}
                   key={item.slug}
                 >
-                  <Heading as="h3" className="font-semibold text-surface">
+                  <Heading as="h3" className="font-semibold text-foreground">
                     {item.name}
                   </Heading>
-                  <Text className="mt-2 text-sm leading-6 text-surface/65">
+                  <Text className="mt-2 text-sm leading-6 text-foreground/65">
                     {item.tagline}
                   </Text>
-                  <span className="mt-auto inline-flex items-center gap-2 pt-4 text-sm font-semibold text-surface">
+                  <span className="mt-auto inline-flex items-center gap-2 pt-4 text-sm font-semibold text-foreground">
                     Learn more
                     <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
                   </span>
@@ -220,7 +220,7 @@ export default function AppProductContent({ product }: AppProductContentProps) {
               ))}
             </div>
             <Link
-              className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-surface underline underline-offset-4"
+              className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-foreground underline underline-offset-4"
               href="/products"
             >
               See every Genfeed product
@@ -231,10 +231,13 @@ export default function AppProductContent({ product }: AppProductContentProps) {
 
         <section className="mx-auto max-w-4xl px-6 pb-16">
           <div className="border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)] p-6 text-center sm:p-12">
-            <Heading as="h2" className="mb-2 text-2xl font-bold text-surface">
+            <Heading
+              as="h2"
+              className="mb-2 text-2xl font-bold text-foreground"
+            >
               Try {product.name}
             </Heading>
-            <Text as="p" className="mx-auto mb-6 max-w-lg text-surface/70">
+            <Text as="p" className="mx-auto mb-6 max-w-lg text-foreground/70">
               {product.tagline}.
             </Text>
             <div className="flex flex-row flex-wrap items-center justify-center gap-4">

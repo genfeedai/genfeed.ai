@@ -161,10 +161,10 @@ export default function ServiceLandingPage({
           heroDetails={
             isBookingPage ? (
               <div>
-                <p className="text-3xl font-semibold tracking-[-0.02em] text-surface">
+                <p className="text-3xl font-semibold tracking-[-0.02em] text-foreground">
                   {config.priceLabel}
                 </p>
-                <p className="mt-2 text-sm text-surface/60">
+                <p className="mt-2 text-sm text-foreground/60">
                   {config.priceNote}
                 </p>
               </div>
@@ -175,28 +175,28 @@ export default function ServiceLandingPage({
           <WebSection maxWidth="md" className="pt-0">
             <div className="gen-card-spotlight grid gap-8 p-8 md:grid-cols-[1.4fr_0.8fr] md:p-12">
               <div>
-                <p className="mb-6 text-lg leading-relaxed text-surface/70">
+                <p className="mb-6 text-lg leading-relaxed text-foreground/70">
                   {config.intro}
                 </p>
 
-                <div className="flex flex-wrap items-center gap-3 text-sm text-surface/65">
-                  <span className="border border-edge/10 px-3 py-2 text-surface/70">
+                <div className="flex flex-wrap items-center gap-3 text-sm text-foreground/65">
+                  <span className="border border-foreground/10 px-3 py-2 text-foreground/70">
                     {config.isAgentFirst
                       ? 'Start for $0'
                       : 'Self-serve: start free'}
                   </span>
-                  <span className="border border-edge/10 px-3 py-2 text-surface/70">
+                  <span className="border border-foreground/10 px-3 py-2 text-foreground/70">
                     {config.priceLabel ??
                       (config.isAgentFirst
                         ? 'Use the agent you already have'
                         : 'Custom, scoped on a call')}
                   </span>
                   {config.priceNote ? (
-                    <span className="border border-edge/10 px-3 py-2">
+                    <span className="border border-foreground/10 px-3 py-2">
                       {config.priceNote}
                     </span>
                   ) : null}
-                  <span className="border border-edge/10 px-3 py-2">
+                  <span className="border border-foreground/10 px-3 py-2">
                     {config.priceCtaHint ??
                       (config.isAgentFirst
                         ? 'Approve before publishing'
@@ -206,7 +206,7 @@ export default function ServiceLandingPage({
               </div>
 
               <div className="bg-background/60 p-6">
-                <div className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-surface/65">
+                <div className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-foreground/65">
                   <CalendarRange className="size-4" />
                   {config.fitLabel}
                 </div>
@@ -214,9 +214,9 @@ export default function ServiceLandingPage({
                   {config.fitSignals.map((signal) => (
                     <li
                       key={signal}
-                      className="flex gap-3 text-sm text-surface/65"
+                      className="flex gap-3 text-sm text-foreground/65"
                     >
-                      <BadgeCheck className="mt-0.5 size-4 shrink-0 text-surface/50" />
+                      <BadgeCheck className="mt-0.5 size-4 shrink-0 text-foreground/50" />
                       <span>{signal}</span>
                     </li>
                   ))}
@@ -264,7 +264,7 @@ export default function ServiceLandingPage({
                     {bucket.items.map((item) => (
                       <li
                         key={item}
-                        className="border-b border-edge/5 pb-3 text-sm text-surface/60 last:border-b-0 last:pb-0"
+                        className="border-b border-foreground/5 pb-3 text-sm text-foreground/60 last:border-b-0 last:pb-0"
                       >
                         {item}
                       </li>
@@ -274,11 +274,11 @@ export default function ServiceLandingPage({
               ))}
             </NeuralGrid>
 
-            <div className="mt-8 grid gap-px bg-edge/5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-8 grid gap-px bg-foreground/5 sm:grid-cols-2 lg:grid-cols-4">
               {config.includes.map((item) => (
                 <div
                   key={item}
-                  className="bg-background p-4 text-sm text-surface/60"
+                  className="bg-background p-4 text-sm text-foreground/60"
                 >
                   {item}
                 </div>
@@ -303,7 +303,7 @@ export default function ServiceLandingPage({
                   tierLabel={`0${index + 1} / ${step.step}`}
                   padding="lg"
                 >
-                  <p className="text-sm leading-relaxed text-surface/60">
+                  <p className="text-sm leading-relaxed text-foreground/60">
                     {step.description}
                   </p>
                 </NeuralGridItem>

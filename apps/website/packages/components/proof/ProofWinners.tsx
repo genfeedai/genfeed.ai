@@ -18,21 +18,21 @@ function PublishedLinkedInPost({ winner }: { winner: Winner }) {
   return (
     <article
       aria-label={`Published LinkedIn post by ${proof.authorName}`}
-      className="overflow-hidden rounded-2xl border border-edge/10 bg-background shadow-border-strong"
+      className="overflow-hidden rounded-2xl border border-foreground/10 bg-background shadow-border-strong"
     >
       <div className="flex items-start justify-between gap-5 px-5 pb-4 pt-5 sm:px-7 sm:pt-7">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-surface text-sm font-bold text-background">
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-foreground text-sm font-bold text-background">
             VT
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-surface">
+            <p className="truncate text-sm font-semibold text-foreground">
               {proof.authorName}
             </p>
-            <p className="truncate text-xs text-surface/55">
+            <p className="truncate text-xs text-foreground/55">
               {proof.authorHeadline}
             </p>
-            <p className="mt-0.5 truncate text-xs text-surface/60">
+            <p className="mt-0.5 truncate text-xs text-foreground/60">
               @{proof.authorHandle} &middot;{' '}
               <time dateTime={winner.publishedAt}>
                 {formatDate(winner.publishedAt, DATE_FORMATS.DISPLAY_DATE)}
@@ -43,12 +43,12 @@ function PublishedLinkedInPost({ winner }: { winner: Winner }) {
         <LinkedinIcon className="size-6 shrink-0 text-platform-linkedin" />
       </div>
 
-      <p className="px-5 pb-5 text-[15px] leading-7 text-surface/88 sm:px-7 sm:text-base">
+      <p className="px-5 pb-5 text-[15px] leading-7 text-foreground/88 sm:px-7 sm:text-base">
         {proof.captionExcerpt}
       </p>
 
       {winner.previewSrc && (
-        <div className="relative aspect-[5/2] overflow-hidden border-y border-edge/10 bg-card">
+        <div className="relative aspect-[5/2] overflow-hidden border-y border-foreground/10 bg-card">
           <Image
             alt={winner.previewAlt ?? winner.title}
             className="object-cover"
@@ -59,7 +59,7 @@ function PublishedLinkedInPost({ winner }: { winner: Winner }) {
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-xs text-surface/55 sm:px-7">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-xs text-foreground/55 sm:px-7">
         <span className="inline-flex items-center gap-2">
           <span className="flex size-5 items-center justify-center rounded-full bg-platform-linkedin text-white">
             <ThumbsUp className="size-3" />
@@ -71,7 +71,7 @@ function PublishedLinkedInPost({ winner }: { winner: Winner }) {
         </span>
       </div>
 
-      <div className="grid grid-cols-3 border-t border-edge/10 px-3 py-3 text-xs font-medium text-surface/55 sm:px-5">
+      <div className="grid grid-cols-3 border-t border-foreground/10 px-3 py-3 text-xs font-medium text-foreground/55 sm:px-5">
         <span className="inline-flex items-center justify-center gap-2">
           <ThumbsUp className="size-4" />
           Like
@@ -97,10 +97,10 @@ function PublishedOutputPreview({ winner }: { winner: Winner }) {
   return (
     <article
       aria-label={`Published ${winner.platform} output`}
-      className="overflow-hidden rounded-2xl border border-edge/10 bg-background shadow-border-strong"
+      className="overflow-hidden rounded-2xl border border-foreground/10 bg-background shadow-border-strong"
     >
       {winner.previewSrc && (
-        <div className="relative aspect-[16/10] overflow-hidden border-b border-edge/10 bg-card">
+        <div className="relative aspect-[16/10] overflow-hidden border-b border-foreground/10 bg-card">
           <Image
             alt={winner.previewAlt ?? winner.title}
             className="object-cover"
@@ -111,10 +111,10 @@ function PublishedOutputPreview({ winner }: { winner: Winner }) {
         </div>
       )}
       <div className="p-6 sm:p-8">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-surface/55">
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/55">
           {winner.platform} &middot; {winner.mediaType}
         </p>
-        <p className="mt-4 text-xl font-medium leading-8 text-surface">
+        <p className="mt-4 text-xl font-medium leading-8 text-foreground">
           {winner.title}
         </p>
       </div>
@@ -148,34 +148,34 @@ export default function ProofWinners(): React.ReactElement | null {
         {publishedWinners.map((winner) => (
           <div
             key={winner.id}
-            className="grid overflow-hidden rounded-2xl border border-edge/10 bg-card lg:grid-cols-[minmax(0,1.45fr)_minmax(20rem,0.55fr)]"
+            className="grid overflow-hidden rounded-2xl border border-foreground/10 bg-card lg:grid-cols-[minmax(0,1.45fr)_minmax(20rem,0.55fr)]"
             data-reveal="up"
           >
             <div className="p-4 sm:p-6 lg:p-8">
               <PublishedOutputPreview winner={winner} />
             </div>
 
-            <div className="flex flex-col justify-between border-t border-edge/10 p-7 lg:border-l lg:border-t-0 lg:p-10">
+            <div className="flex flex-col justify-between border-t border-foreground/10 p-7 lg:border-l lg:border-t-0 lg:p-10">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-surface/55">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/55">
                   {winner.metricLabel}
                 </p>
                 <p className="mt-5 text-5xl font-semibold tracking-[-0.05em] text-success sm:text-6xl">
                   {winner.metricValue}
                 </p>
-                <p className="mt-6 text-xl font-medium leading-8 text-surface">
+                <p className="mt-6 text-xl font-medium leading-8 text-foreground">
                   {winner.title}
                 </p>
-                <p className="mt-4 text-sm leading-6 text-surface/65">
+                <p className="mt-4 text-sm leading-6 text-foreground/65">
                   {winner.provenance}
                 </p>
-                <p className="mt-2 text-sm text-surface/60">
+                <p className="mt-2 text-sm text-foreground/60">
                   {winner.platform} &middot; {winner.mediaType}
                 </p>
               </div>
 
               <Link
-                className="mt-10 inline-flex items-center gap-2 text-sm font-semibold text-surface underline underline-offset-4 transition-colors hover:text-surface/80"
+                className="mt-10 inline-flex items-center gap-2 text-sm font-semibold text-foreground underline underline-offset-4 transition-colors hover:text-foreground/80"
                 href={winner.canonicalUrl}
                 rel="noopener noreferrer"
                 target="_blank"

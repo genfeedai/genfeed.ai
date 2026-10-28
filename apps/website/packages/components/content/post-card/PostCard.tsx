@@ -105,7 +105,7 @@ export default function PostCard({ post, className = '' }: PostCardProps) {
           <div className="absolute bottom-3 right-3">
             <div
               className={
-                'bg-black/70 backdrop-blur-sm px-2 py-1 text-surface text-xs' /* design-system-allow-content-color -- media overlay */
+                'bg-black/70 backdrop-blur-sm px-2 py-1 text-foreground text-xs' /* design-system-allow-content-color -- media overlay */
               }
             >
               {Math.floor(primaryIngredient.metadataDuration / 60)}:

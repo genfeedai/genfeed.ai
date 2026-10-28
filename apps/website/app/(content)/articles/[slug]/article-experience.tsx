@@ -164,10 +164,10 @@ function EffectPreview({
   const preview = getPreviewStyle(effect.kind, intensity, isApplied);
 
   return (
-    <figure className="m-0 overflow-hidden border border-edge/[0.08] bg-background">
+    <figure className="m-0 overflow-hidden border border-foreground/[0.08] bg-background">
       <div
         aria-label={`${effect.label} ${isApplied ? 'applied' : 'before'} preview`}
-        className="relative aspect-video overflow-hidden bg-gradient-to-b from-fill/20 via-fill/10 to-background"
+        className="relative aspect-video overflow-hidden bg-gradient-to-b from-foreground/20 via-foreground/10 to-background"
         role="img"
         style={{ filter: preview.sceneFilter }}
       >
@@ -178,16 +178,16 @@ function EffectPreview({
             transform: `translateX(${preview.backgroundTranslate}%) scale(${preview.backgroundScale})`,
           }}
         >
-          <div className="absolute left-[12%] top-[16%] size-20 rounded-full bg-surface/10 md:size-28" />
+          <div className="absolute left-[12%] top-[16%] size-20 rounded-full bg-foreground/10 md:size-28" />
           <div
-            className="absolute inset-x-[-10%] bottom-[22%] h-[48%] bg-fill/20"
+            className="absolute inset-x-[-10%] bottom-[22%] h-[48%] bg-foreground/20"
             style={{
               clipPath:
                 'polygon(0 82%, 18% 38%, 34% 72%, 53% 20%, 72% 68%, 88% 34%, 100% 78%, 100% 100%, 0 100%)',
             }}
           />
-          <div className="absolute inset-x-0 bottom-0 h-[28%] bg-fill/30" />
-          <div className="absolute right-[15%] top-[30%] h-24 w-10 bg-surface/15 md:h-32 md:w-14" />
+          <div className="absolute inset-x-0 bottom-0 h-[28%] bg-foreground/30" />
+          <div className="absolute right-[15%] top-[30%] h-24 w-10 bg-foreground/15 md:h-32 md:w-14" />
         </div>
 
         <div
@@ -197,8 +197,8 @@ function EffectPreview({
             transform: `translateX(calc(-50% + ${preview.foregroundTranslate}%)) scale(${preview.foregroundScale})`,
           }}
         >
-          <div className="mx-auto size-10 rounded-full bg-surface/90 md:size-14" />
-          <div className="mx-auto h-[72%] w-full rounded-t-full bg-surface/80" />
+          <div className="mx-auto size-10 rounded-full bg-foreground/90 md:size-14" />
+          <div className="mx-auto h-[72%] w-full rounded-t-full bg-foreground/80" />
         </div>
 
         <div
@@ -220,11 +220,11 @@ function EffectPreview({
           }}
         />
 
-        <div className="absolute left-3 top-3 bg-background/80 px-2 py-1 text-2xs font-medium uppercase tracking-[0.14em] text-surface/70 backdrop-blur-sm">
+        <div className="absolute left-3 top-3 bg-background/80 px-2 py-1 text-2xs font-medium uppercase tracking-[0.14em] text-foreground/70 backdrop-blur-sm">
           {isApplied ? effect.label : 'Before'}
         </div>
       </div>
-      <figcaption className="border-t border-edge/[0.08] px-4 py-3 text-sm text-surface/60">
+      <figcaption className="border-t border-foreground/[0.08] px-4 py-3 text-sm text-foreground/60">
         A simplified preview isolates the visual principle. Real output also
         depends on the source, model, duration, and shot composition.
       </figcaption>
@@ -249,23 +249,23 @@ function FilmmakingEffectLab(): React.ReactElement {
   return (
     <section
       aria-labelledby="filmmaking-effect-lab-title"
-      className="mb-8 border-y border-edge/[0.08] bg-fill/[0.04] py-6 md:px-6"
+      className="mb-8 border-y border-foreground/[0.08] bg-foreground/[0.04] py-6 md:px-6"
     >
       <div className="mb-5 flex items-start gap-3 px-4 md:px-0">
-        <div className="mt-0.5 bg-fill/10 p-2 text-surface">
+        <div className="mt-0.5 bg-foreground/10 p-2 text-foreground">
           <Sparkles className="size-4" aria-hidden="true" />
         </div>
         <div>
-          <p className="mb-1 text-xs font-medium uppercase tracking-[0.16em] text-surface/50">
+          <p className="mb-1 text-xs font-medium uppercase tracking-[0.16em] text-foreground/50">
             Interactive filmmaking lexicon
           </p>
           <h2
-            className="text-xl font-semibold text-surface md:text-2xl"
+            className="text-xl font-semibold text-foreground md:text-2xl"
             id="filmmaking-effect-lab-title"
           >
             See the effect, then apply it
           </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-surface/65">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-foreground/65">
             Select a term, change its strength, and compare the untreated frame
             with the effect. The handoff opens Genfeed with a production-ready
             starting prompt.
@@ -288,7 +288,7 @@ function FilmmakingEffectLab(): React.ReactElement {
             {FILMMAKING_EFFECTS.map((effect) => (
               <Button
                 aria-pressed={selectedKind === effect.kind}
-                className="justify-start border border-edge/[0.08] px-3 py-2 text-left text-sm text-surface/60 transition-colors hover:bg-fill/10 hover:text-surface aria-pressed:bg-fill/15 aria-pressed:text-surface"
+                className="justify-start border border-foreground/[0.08] px-3 py-2 text-left text-sm text-foreground/60 transition-colors hover:bg-foreground/10 hover:text-foreground aria-pressed:bg-foreground/15 aria-pressed:text-foreground"
                 key={effect.kind}
                 onClick={() => {
                   setSelectedKind(effect.kind);
@@ -304,16 +304,16 @@ function FilmmakingEffectLab(): React.ReactElement {
           </fieldset>
 
           <div aria-live="polite">
-            <h3 className="text-base font-semibold text-surface">
+            <h3 className="text-base font-semibold text-foreground">
               {selectedEffect.label}
             </h3>
-            <p className="mt-1 text-sm leading-6 text-surface/65">
+            <p className="mt-1 text-sm leading-6 text-foreground/65">
               {selectedEffect.description}
             </p>
           </div>
 
           <div>
-            <div className="mb-2 flex items-center justify-between text-xs text-surface/60">
+            <div className="mb-2 flex items-center justify-between text-xs text-foreground/60">
               <span>{selectedEffect.controlLabel}</span>
               <span>{intensity}%</span>
             </div>
