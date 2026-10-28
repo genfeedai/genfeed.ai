@@ -23,7 +23,8 @@ import {
 } from '@api/services/agent-orchestrator/utils/agent-auto-routing-round.util';
 import {
   formatBriefLabels,
-  IMAGE_OR_POST_BRIEF_LABELS,
+  IMAGE_BRIEF_CHECKLIST,
+  POST_BRIEF_CHECKLIST,
   VIDEO_BRIEF_CHECKLIST,
 } from '@api/services/agent-orchestrator/utils/agent-generation-brief.util';
 import { runReservedAgentLlmRound } from '@api/services/agent-orchestrator/utils/agent-llm-round-reservation.util';
@@ -84,7 +85,7 @@ const PLAN_MODE_INSTRUCTION =
  * input-request card as `request_input` by answering with a `question` instead
  * of a plan. The answer arrives as the next turn and the planner runs again.
  */
-const PLAN_MODE_QUESTION_INSTRUCTION = `If the request leaves out something that would change the plan, ask one question instead of planning. Respond with valid JSON only: {"title":"optional thread title","question":{"title":"short card title","prompt":"the question","options":[{"id":"short-id","label":"Choice","description":"optional"}],"recommendedOptionId":"optional option id","allowFreeText":true}}. Offer two to five options and ask one question per turn. Ask only for what you cannot infer from the request, the brand context or earlier answers. For a video check the ${formatBriefLabels(VIDEO_BRIEF_CHECKLIST.map((field) => field.label))}. For an image or a post check the ${formatBriefLabels(IMAGE_OR_POST_BRIEF_LABELS)}. When nothing important is missing, plan.`;
+const PLAN_MODE_QUESTION_INSTRUCTION = `If the request leaves out something that would change the plan, ask one question instead of planning. Respond with valid JSON only: {"title":"optional thread title","question":{"title":"short card title","prompt":"the question","options":[{"id":"short-id","label":"Choice","description":"optional"}],"recommendedOptionId":"optional option id","allowFreeText":true}}. Offer two to five options and ask one question per turn. Ask only for what you cannot infer from the request, the brand context or earlier answers. For a video check the ${formatBriefLabels(VIDEO_BRIEF_CHECKLIST.map((field) => field.label))}. For an image check the ${formatBriefLabels(IMAGE_BRIEF_CHECKLIST.map((field) => field.label))}. For a post check the ${formatBriefLabels(POST_BRIEF_CHECKLIST.map((field) => field.label))}. When nothing important is missing, plan.`;
 
 const PLAN_MODE_NO_QUESTION_INSTRUCTION =
   'You have already asked the questions you are allowed. Do not ask another one: plan now and state each assumption you made in the plan.';

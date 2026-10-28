@@ -427,4 +427,91 @@ describe('AgentToolExecutorService — #4672 agent-mode confirmation matrix', ()
       expect(mediaGenerationHandler.generate).not.toHaveBeenCalled();
     });
   });
+
+  describe('asks before building — a chat image or post that leaves out its format or platform', () => {
+    const chat = () =>
+      context({ hostSupportsApproval: true, threadId: testId('thread') });
+
+    it.each(['auto', 'manual'])(
+      'refuses an image without a format in a %s thread',
+      async (mode) => {
+        agentThreadsService.findOne.mockResolvedValue({ mode });
+
+        const result = await service.executeTool(
+          'generate',
+          { prompt: 'a red car', type: 'image' },
+          chat(),
+        );
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('Ask before building this image');
+        expect(result.error).toContain('request_input');
+        expect(mediaGenerationHandler.generate).not.toHaveBeenCalled();
+        expect(prepareHandler.prepareGeneration).not.toHaveBeenCalled();
+      },
+    );
+
+    it('builds the image once the format is given', async () => {
+      agentThreadsService.findOne.mockResolvedValue({ mode: 'auto' });
+      mediaGenerationHandler.generate.mockResolvedValue({
+        creditsUsed: 50,
+        data: { id: 'img-5' },
+        success: true,
+      });
+
+      const result = await service.executeTool(
+        'generate',
+        { aspectRatio: '1:1', prompt: 'a red car', type: 'image' },
+        chat(),
+      );
+
+      expect(result.success).toBe(true);
+      expect(mediaGenerationHandler.generate).toHaveBeenCalledTimes(1);
+    });
+
+    it('refuses a video without a format and length in an auto thread', async () => {
+      agentThreadsService.findOne.mockResolvedValue({ mode: 'auto' });
+
+      const result = await service.executeTool(
+        'generate',
+        { prompt: 'a launch teaser', type: 'video' },
+        chat(),
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Ask before building this video');
+      expect(mediaGenerationHandler.generate).not.toHaveBeenCalled();
+    });
+
+    it('refuses a post without a platform', async () => {
+      agentThreadsService.findOne.mockResolvedValue({ mode: 'auto' });
+
+      const result = await service.executeTool(
+        'generate_content',
+        { topic: 'Our launch', type: 'post' },
+        chat(),
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Ask before building this post');
+      expect(result.error).toContain('call generate_content again');
+    });
+
+    it('leaves a plan thread running its approved steps alone', async () => {
+      agentThreadsService.findOne.mockResolvedValue({ mode: 'plan' });
+      mediaGenerationHandler.generate.mockResolvedValue({
+        creditsUsed: 50,
+        data: { id: 'img-6' },
+        success: true,
+      });
+
+      const result = await service.executeTool(
+        'generate',
+        { prompt: 'a red car', type: 'image' },
+        chat(),
+      );
+
+      expect(result.success).toBe(true);
+    });
+  });
 });
