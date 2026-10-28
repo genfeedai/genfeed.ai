@@ -81,6 +81,7 @@ import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.st
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { StripePaymentRevenueReferenceService } from '@api/services/integrations/stripe/services/stripe-payment-revenue-reference.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { WorkflowNotificationQueueService } from '@api/services/notifications/workflow-notifications/workflow-notification-queue.service';
@@ -271,6 +272,7 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
           useValue: { recordStripeEvent },
         },
         StripeService,
+        StripePaymentRevenueReferenceService,
         {
           provide: SubscriptionCreditGrantService,
           useFactory: buildCreditGrantServiceStub,
