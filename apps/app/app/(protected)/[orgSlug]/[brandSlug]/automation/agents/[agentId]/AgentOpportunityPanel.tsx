@@ -102,9 +102,7 @@ export default function AgentOpportunityPanel({
                 })}
                 title={opportunity.topic}
                 trailing={
-                  <Badge className="capitalize" variant="secondary">
-                    {opportunity.status}
-                  </Badge>
+                  <Badge variant="secondary">{opportunity.status}</Badge>
                 }
               />
             ))}

@@ -132,9 +132,7 @@ export default function BotsPage() {
                           {formatEnumLabel(bot.status)}
                         </Badge>
 
-                        <Badge variant="outline" className="capitalize">
-                          {bot.category}
-                        </Badge>
+                        <Badge variant="outline">{bot.category}</Badge>
                       </div>
 
                       {bot.description && (

@@ -403,7 +403,7 @@ const PostsGrid = memo(
                   </Badge>
 
                   {post.scheduledDate && (
-                    <Badge className="normal-case" variant="secondary">
+                    <Badge variant="secondary">
                       {formatDateInTimezone(
                         post.scheduledDate,
                         browserTimezone,

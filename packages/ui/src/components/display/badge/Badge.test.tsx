@@ -18,8 +18,20 @@ describe('Badge', () => {
     const { container } = render(<Badge status="draft" />);
     const rootElement = container.firstChild as HTMLElement;
     expect(rootElement).toBeInTheDocument();
-    expect(rootElement).toHaveClass('rounded-full');
+    expect(rootElement).toHaveClass('rounded-sm');
+    expect(rootElement).toHaveClass('uppercase');
     expect(rootElement).toHaveClass('inline-flex');
+  });
+
+  it('shows a dash instead of an empty chip when there is no label', () => {
+    render(<Badge />);
+    expect(screen.getByText('—')).toBeInTheDocument();
+  });
+
+  it('keeps the casing of explicit children in the DOM and uppercases visually', () => {
+    const { container } = render(<Badge>Medium</Badge>);
+    expect(screen.getByText('Medium')).toBeInTheDocument();
+    expect(container.firstElementChild).toHaveClass('uppercase');
   });
 
   it('prefers explicit children over statusConfig label', () => {

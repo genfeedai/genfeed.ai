@@ -128,15 +128,9 @@ export function AdGridCard({
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {item.accountName && (
-            <Badge className="normal-case" variant="secondary">
-              {item.accountName}
-            </Badge>
+            <Badge variant="secondary">{item.accountName}</Badge>
           )}
-          {item.industry && (
-            <Badge className="normal-case" variant="secondary">
-              {item.industry}
-            </Badge>
-          )}
+          {item.industry && <Badge variant="secondary">{item.industry}</Badge>}
         </div>
       </Button>
       <Button

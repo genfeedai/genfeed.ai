@@ -11,6 +11,9 @@ import type { VariantProps } from 'class-variance-authority';
 
 import { badgeVariants } from './badge.variants';
 
+/** A badge with nothing to say still reads as "no value", never blank. */
+const EMPTY_BADGE_LABEL = '—';
+
 const PRIMITIVE_VARIANT_MAP = {
   accent: 'default',
   amber: 'warning',
@@ -235,12 +238,7 @@ export default function Badge({
   variant = 'default',
   size = ComponentSize.MD,
   status,
-  backgroundColor,
-  textColor,
-}: BadgeProps & {
-  backgroundColor?: string;
-  textColor?: string;
-}) {
+}: BadgeProps) {
   // Don't render badge if value is 0
   if (value === 0) {
     return null;
@@ -270,11 +268,12 @@ export default function Badge({
       >['variant'],
     }),
     statusConfig?.canonicalStatus && statusBadge[statusConfig.canonicalStatus],
-    status && 'uppercase tracking-wide',
     className,
-    backgroundColor && `bg-${backgroundColor}`,
-    textColor && `text-${textColor}`,
   );
+  const hasLabel =
+    effectiveLabel !== undefined &&
+    effectiveLabel !== null &&
+    effectiveLabel !== '';
 
   return (
     <PrimitiveBadge
@@ -288,8 +287,10 @@ export default function Badge({
     >
       {value !== undefined ? (
         <span className="font-semibold">{value}</span>
-      ) : (
+      ) : hasLabel || effectiveIcon ? (
         effectiveLabel
+      ) : (
+        EMPTY_BADGE_LABEL
       )}
     </PrimitiveBadge>
   );
