@@ -12,7 +12,7 @@ import { CORE_TOOLSET_NAME, isToolsetName } from './toolsets';
 
 describe('curated action catalog', () => {
   it('retains internal targets while listing only the two consolidated MCP envelopes', () => {
-    expect(ALL_TOOLS).toHaveLength(223);
+    expect(ALL_TOOLS).toHaveLength(224);
     expect(ALL_TOOLS.filter((tool) => tool.surfaces.mcp)).toHaveLength(153);
     const listed = getToolsForSurface('mcp').map((tool) => tool.name);
     expect(listed).toHaveLength(149);

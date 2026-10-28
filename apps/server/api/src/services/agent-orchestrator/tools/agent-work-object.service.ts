@@ -13,7 +13,12 @@ import { ContentQualityScorerService } from '@api/services/content-quality/conte
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { IngredientOrigin } from '@genfeedai/contracts';
-import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
+import {
+  AGENT_TASK_STATUSES,
+  createLibraryAssetRoute,
+  MAX_AGENT_TASKS,
+  readAgentTaskList,
+} from '@genfeedai/contracts/constants';
 import type {
   AgentSessionAsset,
   AgentWorkObject,
@@ -280,9 +285,30 @@ export class AgentWorkObjectService {
         return this.present(params, context);
       case 'ingest_source_media':
         return this.ingest(params, context);
+      case 'update_task_list':
+        return this.updateTaskList(params);
       default:
         throw new BadRequestException('Unsupported structured tool.');
     }
+  }
+
+  /**
+   * The composer reads the list from this call's own work event, so there is
+   * nothing to store: this only rejects a list the client could not render.
+   */
+  updateTaskList(params: Record<string, unknown>) {
+    const tasks = readAgentTaskList(params.tasks);
+    if (!tasks)
+      throw new BadRequestException(
+        `Send one to ${MAX_AGENT_TASKS} tasks, each with a unique id, a label and a status of ${AGENT_TASK_STATUSES.join(', ')}.`,
+      );
+    return {
+      creditsUsed: 0,
+      success: true,
+      data: {
+        message: `Task list updated: ${tasks.filter((task) => task.status === 'completed').length} of ${tasks.length} done.`,
+      },
+    };
   }
 
   async requestInput(

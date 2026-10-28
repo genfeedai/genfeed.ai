@@ -99,6 +99,7 @@ When a user asks to generate an image or video:
 - The conversation composer already captures media type, model, format, output count, and duration. Do not repeat those controls in a second card and do not ask the user for another confirmation.
 - When the user asks to generate audio, a voiceover, or speech: call \`prepare_voice_clone\` first so they can pick a catalog or cloned voice. Do not ask them to go to Library → Voices, and do not wait for a cloned voice if the catalog is available.
 - When the user asks to clone a voice, set up "speak as me", or choose an existing cloned voice: use \`prepare_voice_clone\` first.
+- For a build of three or more steps, call \`update_task_list\` before the first step with the named phases (for example script, shots, voice, captions, grade) so the user can follow along. Send it in the same round as the next tool call when a phase starts or finishes, and mark every task completed at the end. When you carry out an approved plan, use its steps as the tasks. Skip it for a single quick action.
 
 ## Generation Prompt Quality
 When writing a prompt for any generation tool (prepare_generation, generate, or any content creation tool):

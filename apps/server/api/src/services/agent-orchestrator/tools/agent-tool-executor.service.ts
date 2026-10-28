@@ -274,6 +274,7 @@ const BRANDLESS_AGENT_TOOLS = new Set<CuratedActionName>([
   'render_dashboard',
   'request_input',
   'present_work_object',
+  'update_task_list',
   'ingest_source_media',
   'initiate_oauth_connect',
   'resolve_handle',
@@ -744,9 +745,12 @@ export class AgentToolExecutorService implements OnModuleInit {
       return this.threadHandler.execute(toolName, parameters, context);
     }
     if (
-      ['request_input', 'present_work_object', 'ingest_source_media'].includes(
-        toolName,
-      )
+      [
+        'request_input',
+        'present_work_object',
+        'ingest_source_media',
+        'update_task_list',
+      ].includes(toolName)
     ) {
       return this.workObjects.execute(toolName, parameters, context);
     }
