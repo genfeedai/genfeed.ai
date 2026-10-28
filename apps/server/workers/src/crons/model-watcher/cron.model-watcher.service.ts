@@ -182,10 +182,6 @@ export class CronModelWatcherService {
       // pinned until an operator explicitly promotes the candidate.
       const syncedEndpoints: string[] = [];
       for (const [endpoint, listedModel] of candidates) {
-        // A retired row is a closed chapter. Syncing it would only record
-        // pending rates and price alerts nobody can act on.
-        if (existingModels.get(endpoint)?.lifecycle === ModelLifecycle.RETIRED)
-          continue;
         if (
           await this.syncListedModel(
             endpoint,
@@ -326,6 +322,9 @@ export class CronModelWatcherService {
   ): Promise<boolean> {
     // relation-alias-ok: `model` is the Replicate API payload, not a Prisma model.
     let registryModel = existingModels.get(modelKey);
+    // A retired row is a closed chapter. Syncing it would only record pending
+    // rates and price alerts nobody can act on.
+    if (registryModel?.lifecycle === ModelLifecycle.RETIRED) return false;
     try {
       const model = await this.hydrateReplicateSchema(listedModel);
       const decision = await this.decideModelCategory(model);
