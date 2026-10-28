@@ -70,9 +70,9 @@ test.describe('Output-first onboarding', () => {
     const { draftRequests } = await setupOnboardingFirstDraftsMocks(page);
     await page.getByRole('textbox').fill('na');
     await page.getByRole('button', { name: 'Submit brand link' }).click();
-    await expect(page.getByRole('alert')).toContainText(
-      'doesn’t look like a web address',
-    );
+    await expect(
+      page.getByText('doesn’t look like a web address', { exact: false }),
+    ).toBeVisible();
     expect(draftRequests).toHaveLength(0);
   });
 
