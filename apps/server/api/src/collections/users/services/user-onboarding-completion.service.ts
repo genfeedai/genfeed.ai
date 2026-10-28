@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ORGANIZATION_ONBOARDING_FINISHED_EVENT } from '@api/collections/organizations/constants/organization-events.constants';
 import type { OrganizationOnboardingFinishedEvent } from '@api/collections/organizations/organization-events.types';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { UpdateUserDto } from '@api/collections/users/dto/update-user.dto';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
@@ -31,6 +32,7 @@ export class UserOnboardingCompletionService {
     private readonly usersService: UsersService,
     private readonly userAccessCacheService: UserAccessCacheService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly organizationsService: OrganizationsService,
     // Depends on the leaf-level ServerFunnelCaptureService rather than
     // OnboardingCreditGrantsService: importing CreditsModule into UsersModule
     // to reach it would risk the same circular dependency UserSetupModule
@@ -79,6 +81,13 @@ export class UserOnboardingCompletionService {
     // Emitted on every call, not only the first transition, so a listener
     // that failed once is retried by the next completion call.
     if (user.organizationId) {
+      // Nothing listens for the event below, and the lifecycle emails read the
+      // organization flag: without this write a wizard-completed organization
+      // keeps getting the setup reminder and never the first-generation nudge.
+      // Idempotent, so it also repairs an organization on a retry.
+      await this.organizationsService.patch(user.organizationId, {
+        onboardingCompleted: true,
+      });
       const event: OrganizationOnboardingFinishedEvent = {
         organizationId: user.organizationId,
         outcome: 'completed',
