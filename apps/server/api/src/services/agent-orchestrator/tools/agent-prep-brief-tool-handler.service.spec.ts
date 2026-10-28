@@ -180,9 +180,13 @@ function snapshot(postId: string, views: number, overrides: Row = {}): Row {
 
 const context: ToolExecutionContext = { organizationId: ORG, userId: 'user-1' };
 
+function asBrief(data: unknown): AgentPrepBrief {
+  return data as AgentPrepBrief;
+}
+
 function briefOf(result: AgentToolResult): AgentPrepBrief {
   expect(result.success).toBe(true);
-  return result.data as AgentPrepBrief;
+  return asBrief(result.data);
 }
 
 const citation = {
