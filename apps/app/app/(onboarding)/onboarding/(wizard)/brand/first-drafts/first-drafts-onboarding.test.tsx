@@ -109,8 +109,6 @@ vi.mock(
   () => ({ usePlatformOAuthConnect: () => mocks.connectPlatform }),
 );
 vi.mock('next/navigation', () => ({
-  useParams: () => ({ orgSlug: 'acme' }),
-  usePathname: () => '/onboarding/brand',
   useRouter: () => ({ replace: mocks.replace }),
   useSearchParams: () => mocks.search,
 }));
@@ -561,7 +559,7 @@ describe('FirstDraftsOnboarding', () => {
     expect(mocks.generateDrafts).not.toHaveBeenCalled();
   });
 
-  it('says the video needs credits and links to the plan page', async () => {
+  it('says the video needs credits instead of calling it unavailable', async () => {
     mocks.readDrafts.mockResolvedValue({
       ...savedRun(),
       result: {
@@ -572,11 +570,11 @@ describe('FirstDraftsOnboarding', () => {
       },
     });
     render(<FirstDraftsOnboarding />);
-    await screen.findByText('Video needs credits. Your script is saved.');
+    await screen.findByText(/Video needs credits\./);
     expect(screen.queryByText(/Video unavailable/)).not.toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: 'Upgrade to add video' }),
-    ).toHaveAttribute('href', '/acme/~/settings/subscription');
+      screen.queryByRole('button', { name: 'Retry media' }),
+    ).not.toBeInTheDocument();
   });
 
   it('offers no retry once the run has used them all', async () => {

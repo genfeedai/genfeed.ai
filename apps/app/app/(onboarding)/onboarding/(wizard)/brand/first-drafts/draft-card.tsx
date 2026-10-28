@@ -3,7 +3,6 @@ import type { FirstDraftCardProps } from '@genfeedai/props/onboarding/first-draf
 import PlatformPreview from '@ui/posts/platform-preview/PlatformPreview';
 import { Button } from '@ui/primitives/button';
 import { Check } from 'lucide-react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
 export default function DraftCard({
@@ -15,7 +14,6 @@ export default function DraftCard({
   avatarUrl,
   isSaving,
   isMediaGenerating,
-  upgradeHref,
   onRetryMedia,
   onVerdict,
   verdict,
@@ -61,15 +59,9 @@ export default function DraftCard({
                     : 'review.videoFailed',
               )}
             </p>
-            {videoStatus === 'needs_credits' && upgradeHref ? (
-              <Link
-                href={upgradeHref}
-                className="text-xs underline underline-offset-4"
-              >
-                {t('review.upgradeForVideo')}
-              </Link>
-            ) : null}
-            {onRetryMedia && videoStatus !== 'pending' ? (
+            {onRetryMedia &&
+            videoStatus !== 'pending' &&
+            videoStatus !== 'needs_credits' ? (
               <Button
                 size={ButtonSize.SM}
                 variant={ButtonVariant.SECONDARY}

@@ -2,11 +2,7 @@
 import OnboardingProgress from '@app/(onboarding)/onboarding/components/onboarding-progress';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import {
-  APP_ROUTES,
-  ONBOARDING_DRAFT_PLATFORMS,
-} from '@genfeedai/contracts/constants';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { ONBOARDING_DRAFT_PLATFORMS } from '@genfeedai/contracts/constants';
 import { useThemeLogo } from '@hooks/ui/use-theme-logo/use-theme-logo';
 import OrderedMasonry from '@ui/display/masonry/OrderedMasonry';
 import DesktopSidebar from '@ui/layouts/app/DesktopSidebar';
@@ -37,7 +33,6 @@ export default function FirstDraftsOnboarding() {
   const t = useTranslations('pages.onboarding.firstDrafts');
   const state = useFirstDrafts();
   const { brandId, selectedBrand } = useBrand();
-  const { orgHref, orgSlug } = useOrgUrl();
   const logoUrl = useThemeLogo();
   const [skipOpen, setSkipOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
@@ -218,11 +213,6 @@ export default function FirstDraftsOnboarding() {
                         }
                         isSaving={state.savingPostIds.includes(draft.postId)}
                         isMediaGenerating={state.isGenerating}
-                        upgradeHref={
-                          orgSlug
-                            ? orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)
-                            : undefined
-                        }
                         onRetryMedia={
                           state.canRetryMedia ? state.onRetryMedia : undefined
                         }
