@@ -81,15 +81,13 @@ describe('AgentSetupPanel', () => {
     expect(
       screen.getByRole('button', { name: 'Connect a social channel' }),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Twitter' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'X' })).not.toBeInTheDocument();
 
     await user.click(
       screen.getByRole('button', { name: 'Connect a social channel' }),
     );
 
-    expect(screen.getByRole('button', { name: 'Twitter' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'X' })).toBeInTheDocument();
     for (const unsupportedPlatform of [
       'Reddit',
       'Shopify',
@@ -117,7 +115,7 @@ describe('AgentSetupPanel', () => {
     await user.click(
       screen.getByRole('button', { name: 'Connect a social channel' }),
     );
-    await user.click(screen.getByRole('button', { name: 'Twitter' }));
+    await user.click(screen.getByRole('button', { name: 'X' }));
 
     expect(onOAuthConnect).toHaveBeenCalledWith('twitter');
   });
@@ -151,9 +149,7 @@ describe('AgentSetupPanel', () => {
       screen.getByRole('button', { name: 'Connect a social channel' }),
     );
 
-    expect(
-      screen.queryByRole('button', { name: 'Twitter' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'X' })).not.toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Instagram' }),
     ).toBeInTheDocument();
@@ -171,7 +167,7 @@ describe('AgentSetupPanel', () => {
     expect(
       screen.queryByRole('button', { name: 'Connect a social channel' }),
     ).not.toBeInTheDocument();
-    expect(screen.queryByText('Twitter')).not.toBeInTheDocument();
+    expect(screen.queryByText('X')).not.toBeInTheDocument();
     expect(screen.getByText('No channels connected yet.')).toBeInTheDocument();
   });
 });

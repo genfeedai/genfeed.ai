@@ -247,15 +247,19 @@ export default function BrandDetailSocialMediaCard({
       ),
     [oauthConnectPlatforms],
   );
-  const platformConnectedCounts = useMemo(() => {
-    const counts: Partial<Record<CredentialPlatform, number>> = {};
+  const platformConnections = useMemo(() => {
+    const byPlatform: Partial<Record<CredentialPlatform, SocialConnection[]>> =
+      {};
     for (const connection of connectedConnections) {
       if (getAccountConnectionStatus(connection) !== 'connected') {
         continue;
       }
-      counts[connection.platform] = (counts[connection.platform] ?? 0) + 1;
+      byPlatform[connection.platform] = [
+        ...(byPlatform[connection.platform] ?? []),
+        connection,
+      ];
     }
-    return counts;
+    return byPlatform;
   }, [connectedConnections]);
   // The header count and the compact card's own description must agree with
   // what each row actually shows — a lapsed or identity-less credential
@@ -829,7 +833,7 @@ export default function BrandDetailSocialMediaCard({
           onConnect={(item) => void handleConnectPlatform(item)}
           onOpenChange={setIsConnectAccountModalOpen}
           open={isConnectAccountModalOpen}
-          platformConnectedCounts={platformConnectedCounts}
+          platformConnections={platformConnections}
           platformGroups={allPlatformGroups}
         />
 
