@@ -16,6 +16,7 @@ import type {
   BrandKitSocialProposal,
   EvidenceKind,
 } from '@props/pages/brand-kit-review.props';
+import type { BadgeProps } from '@ui/primitives/badge';
 
 /** Readable field inside the scan strip — light surface, not invisible ghost. */
 export const INLINE_INPUT_CLASSNAME =
@@ -89,11 +90,14 @@ export const COLOR_FIELD_KEYS = new Set<BrandKitFieldKey>([
   'secondaryColor',
 ]);
 
-export const EVIDENCE_KIND_CLASSNAMES: Record<EvidenceKind, string> = {
-  candidate: 'bg-warning/10 text-warning',
-  extracted: 'bg-success/10 text-success',
-  inferred: 'bg-info/10 text-info',
-  missing: 'bg-destructive/10 text-destructive',
+export const EVIDENCE_KIND_BADGE_VARIANTS: Record<
+  EvidenceKind,
+  BadgeProps['variant']
+> = {
+  candidate: 'warning',
+  extracted: 'success',
+  inferred: 'info',
+  missing: 'destructive',
 };
 
 const STRING_LIST_FIELDS = new Set<BrandKitFieldKey>([

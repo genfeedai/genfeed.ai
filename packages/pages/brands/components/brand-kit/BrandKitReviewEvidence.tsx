@@ -2,20 +2,15 @@ import type {
   EvidenceLabelProps,
   SourceEvidenceRowsProps,
 } from '@props/pages/brand-kit-review.props';
+import { Badge } from '@ui/primitives/badge';
 import { useTranslations } from 'next-intl';
 import {
-  EVIDENCE_KIND_CLASSNAMES,
+  EVIDENCE_KIND_BADGE_VARIANTS,
   formatConfidence,
 } from './brand-kit-review.helpers';
 
 export function EvidenceLabel({ kind }: EvidenceLabelProps) {
-  return (
-    <span
-      className={`inline-flex rounded-sm px-2 py-0.5 text-2xs font-black uppercase tracking-[0.12em] ${EVIDENCE_KIND_CLASSNAMES[kind]}`}
-    >
-      {kind}
-    </span>
-  );
+  return <Badge variant={EVIDENCE_KIND_BADGE_VARIANTS[kind]}>{kind}</Badge>;
 }
 
 export default function SourceEvidenceRows({

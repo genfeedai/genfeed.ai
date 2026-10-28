@@ -6,6 +6,7 @@ import type {
   IBrandKitDraft,
   IBrandKitSourceEvidence,
 } from '@genfeedai/contracts/interfaces';
+import { Badge, type BadgeProps } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
@@ -236,11 +237,14 @@ const DIAGNOSTICS: readonly DiagnosticItem[] = [
   },
 ];
 
-const EVIDENCE_KIND_CLASSNAMES: Record<EvidenceKind, string> = {
-  candidate: 'bg-warning/10 text-warning',
-  extracted: 'bg-success/10 text-success',
-  inferred: 'bg-info/10 text-info',
-  missing: 'bg-destructive/10 text-destructive',
+const EVIDENCE_KIND_BADGE_VARIANTS: Record<
+  EvidenceKind,
+  BadgeProps['variant']
+> = {
+  candidate: 'warning',
+  extracted: 'success',
+  inferred: 'info',
+  missing: 'destructive',
 };
 
 function formatConfidence(confidence: number | null): string {
@@ -250,13 +254,7 @@ function formatConfidence(confidence: number | null): string {
 }
 
 function EvidenceLabel({ kind }: { kind: EvidenceKind }) {
-  return (
-    <span
-      className={`inline-flex rounded-sm px-2 py-1 text-2xs font-black uppercase tracking-[0.14em] ${EVIDENCE_KIND_CLASSNAMES[kind]}`}
-    >
-      {kind}
-    </span>
-  );
+  return <Badge variant={EVIDENCE_KIND_BADGE_VARIANTS[kind]}>{kind}</Badge>;
 }
 
 function formatDraftValue(value: unknown): string {

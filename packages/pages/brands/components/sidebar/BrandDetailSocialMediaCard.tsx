@@ -39,6 +39,7 @@ import {
   type ResolvedOAuthConnectPlatform,
   resolveOAuthServicePath,
 } from '@ui/constants/oauth-connect-platforms';
+import { Badge, type BadgeProps } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -157,16 +158,18 @@ function ConnectedAccount({
   );
 }
 
-function getHealthToneClass(summary: AccountHealthSummary): string {
+function getHealthBadgeVariant(
+  summary: AccountHealthSummary,
+): BadgeProps['variant'] {
   if (summary.override.isActive) {
-    return 'border-info/30 bg-info/10 text-info';
+    return 'info';
   }
 
   if (summary.holdPublishing || summary.riskLevel === 'high') {
-    return 'border-warning/30 bg-warning/10 text-warning';
+    return 'warning';
   }
 
-  return 'border-success/30 bg-success/10 text-success';
+  return 'success';
 }
 
 export default function BrandDetailSocialMediaCard({
@@ -629,11 +632,12 @@ export default function BrandDetailSocialMediaCard({
                       })}
                     </p>
                   </div>
-                  <span
-                    className={`shrink-0 rounded-sm border px-2 py-1 text-2xs font-semibold uppercase ${getHealthToneClass(summary)}`}
+                  <Badge
+                    className="shrink-0"
+                    variant={getHealthBadgeVariant(summary)}
                   >
                     {translate(STATE_MESSAGE_KEYS[summary.state])}
-                  </span>
+                  </Badge>
                 </div>
                 <p className="text-xs leading-5 text-muted-foreground">
                   {formatHealthDetail(summary)}
