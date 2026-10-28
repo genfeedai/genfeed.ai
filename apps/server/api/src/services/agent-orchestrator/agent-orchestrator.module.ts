@@ -15,6 +15,7 @@ import { BotsLivestreamService } from '@api/collections/bots/services/bots-lives
 import { BrandInterviewModule } from '@api/collections/brands/brand-interview/brand-interview.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { ClipperProjectsCoreModule } from '@api/collections/clipper-projects/clipper-projects-core.module';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
 import { ContentRunsModule } from '@api/collections/content-runs/content-runs.module';
 import { ContextsModule } from '@api/collections/contexts/contexts.module';
@@ -218,6 +219,7 @@ import { Module } from '@nestjs/common';
     BrandInterviewModule,
     RequestContextModule,
     BrandsCoreModule,
+    ClipperProjectsCoreModule,
     BotsModule,
     MembersModule,
     ModelsModule,
