@@ -30,7 +30,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export default function AnalyticsOrganizationsList({
   basePath = APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS,
+  getReleaseAccessHref,
 }: AnalyticsOrganizationsListProps) {
+  const translate = useTranslations('pages.adminOrganizations');
   const rowSidebarT = useTranslations('ui.rowSidebar');
   const fieldsT = useTranslations('ui.rowSidebar.fields');
   const analyticsT = useTranslations('ui.rowSidebar.analytics');
@@ -210,8 +212,28 @@ export default function AnalyticsOrganizationsList({
         key: 'totalMembers',
         render: (org) => <span className="font-mono">{org.totalMembers}</span>,
       },
+      ...(getReleaseAccessHref
+        ? [
+            {
+              className: 'text-right',
+              header: translate('releaseAccessColumn'),
+              key: 'releaseAccess',
+              render: (org: IOrgWithStats) => (
+                <Button
+                  asChild
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.SECONDARY}
+                >
+                  <Link href={getReleaseAccessHref(org.id)}>
+                    {translate('releaseAccessLink')}
+                  </Link>
+                </Button>
+              ),
+            },
+          ]
+        : []),
     ],
-    [basePath],
+    [basePath, getReleaseAccessHref, translate],
   );
 
   return (

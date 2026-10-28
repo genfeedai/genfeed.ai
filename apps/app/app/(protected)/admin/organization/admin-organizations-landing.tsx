@@ -12,6 +12,11 @@ import DateRangePicker from '@ui/primitives/date-range-picker';
 import { Building2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+/** Per-organization config page: release preview, released apps, settings. */
+function getReleaseAccessHref(organizationId: string): string {
+  return `${APP_ROUTES.ADMIN.ORGANIZATION}?id=${organizationId}`;
+}
+
 function AdminOrganizationsLandingContent() {
   const translate = useTranslations('pages.adminOrganizations');
   const { setDateRange, triggerRefresh, isRefreshing, toolbarNode } =
@@ -35,6 +40,7 @@ function AdminOrganizationsLandingContent() {
     >
       <AnalyticsOrganizationsList
         basePath={APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS}
+        getReleaseAccessHref={getReleaseAccessHref}
       />
     </AdminPageShell>
   );
