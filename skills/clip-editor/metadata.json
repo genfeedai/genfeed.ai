@@ -1,0 +1,17 @@
+{
+  "name": "clip-editor",
+  "version": "1.0.0",
+  "description": "Edit a finished clip from the agent: read the transcript, propose a window, re-cut with edit_clip",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "edit this clip",
+    "cut the intro off this clip",
+    "this clip ends mid-sentence",
+    "make this clip shorter",
+    "change where this clip starts",
+    "retitle this clip"
+  ],
+  "outputs": ["text"],
+  "tags": ["clipper", "editing", "video", "captions"]
+}

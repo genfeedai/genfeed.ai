@@ -30,6 +30,17 @@ const firstPartyMigration = readFileSync(
   'utf8',
 );
 
+// Skills added after the original provisioning migration was applied get their
+// own `provision_<slug>_skill` migration; the applied one is immutable.
+const laterSkillProvisioningSql = readdirSync(join(prismaDir, 'migrations'))
+  .filter((entry) => /^\d+_provision_[a-z0-9_]+_skill$/.test(entry))
+  .sort()
+  .map((entry) =>
+    readFileSync(join(prismaDir, 'migrations', entry, 'migration.sql'), 'utf8'),
+  )
+  .join('\n');
+const catalogProvisioningSql = `${firstPartyMigration}\n${laterSkillProvisioningSql}`;
+
 function compactBuiltInSkillId(slug: string): string {
   return `cskillbuiltin${slug.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
 }
@@ -65,8 +76,10 @@ describe('first-party skill catalog migration', () => {
         continue;
       }
 
-      expect(firstPartyMigration).toContain(`'slug', '${slug}'`);
-      expect(firstPartyMigration).toContain(`'${compactBuiltInSkillId(slug)}'`);
+      expect(catalogProvisioningSql).toContain(`'slug', '${slug}'`);
+      expect(catalogProvisioningSql).toContain(
+        `'${compactBuiltInSkillId(slug)}'`,
+      );
     }
   });
 

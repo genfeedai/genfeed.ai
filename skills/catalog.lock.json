@@ -222,6 +222,31 @@
       "excludedReferences": []
     },
     {
+      "slug": "clip-editor",
+      "ownership": "application",
+      "reason": "Application procedure retained",
+      "sourceRepository": "https://github.com/genfeedai/genfeed.ai",
+      "sourcePath": "skills/clip-editor",
+      "declaredVersion": "1.0.0",
+      "files": [
+        {
+          "path": "README.md",
+          "sha256": "60f4971b1a6ed7f103cfc196a3f8ddb33caac08d5b114e85b7af5c1b4c8d8170"
+        },
+        {
+          "path": "SKILL.md",
+          "sha256": "e893bc263c326a15f321f16ad01c360a55b1fe99232daab95767d2914ac5c655"
+        },
+        {
+          "path": "metadata.json",
+          "sha256": "3c72971b855236331dbbc9ca04aed8f16047b9925daeccaabd09338df9a50e10"
+        }
+      ],
+      "packageHash": "16c85dac36d49055c48e8844d60be55f30ecce8e836d420c18aaffcd79d5ea50",
+      "instructionsHash": "1266646c7c6f486353ac62c01864a0aba136f70f6b6c01dafb6659780910add6",
+      "excludedReferences": []
+    },
+    {
       "slug": "competitor-analyzer",
       "ownership": "upstream",
       "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",

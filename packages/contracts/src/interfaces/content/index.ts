@@ -8,6 +8,7 @@ export type * from './branded-generation.interface';
 export * from './campaign.interface';
 export * from './campaign-lifecycle.interface';
 export * from './character-sheet.interface';
+export * from './clipper-clip-edit.interface';
 export * from './clipper-draft-handoff.interface';
 export * from './clipper-reference-frame.interface';
 export * from './clipper-reference-generation.interface';

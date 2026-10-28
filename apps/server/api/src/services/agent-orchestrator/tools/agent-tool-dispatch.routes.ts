@@ -4,6 +4,7 @@ import type { AgentBrandContentToolHandler } from '@api/services/agent-orchestra
 import type { AgentBrandContextToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-context-tool-handler.service';
 import type { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-interview-tool-handler.service';
 import type { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
+import type { AgentClipperToolHandler } from '@api/services/agent-orchestrator/tools/agent-clipper-tool-handler.service';
 import type { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
 import type { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import type { AgentKnowledgeToolHandler } from '@api/services/agent-orchestrator/tools/agent-knowledge-tool-handler.service';
@@ -36,6 +37,7 @@ export type AgentToolDispatchHandlers = {
   brandInterviewHandler: AgentBrandInterviewToolHandler;
   campaignHandler: AgentCampaignToolHandler;
   catalogHandler: AgentToolCatalogHandler;
+  clipperHandler: AgentClipperToolHandler;
   connectionHandler: AgentConnectionToolHandler;
   dashboardHandler: AgentDashboardToolHandler;
   knowledgeHandler: AgentKnowledgeToolHandler;
@@ -394,6 +396,10 @@ function dispatchStudioFamily(
       return handlers.prepareHandler.prepareVoiceClone(ctx, params);
     case 'prepare_clipper_workflow_run':
       return handlers.prepareHandler.prepareClipperWorkflowRun(params, ctx);
+    case 'edit_clip':
+      return handlers.clipperHandler.editClip(params, ctx);
+    case 'get_clip_context':
+      return handlers.clipperHandler.getClipContext(params, ctx);
     case 'suggest_next_steps':
       return handlers.prepareHandler.suggestNextSteps(params);
     case 'suggest_ingredient_alternatives':

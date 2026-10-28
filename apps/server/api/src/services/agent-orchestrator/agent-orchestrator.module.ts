@@ -15,6 +15,7 @@ import { BotsLivestreamService } from '@api/collections/bots/services/bots-lives
 import { BrandInterviewModule } from '@api/collections/brands/brand-interview/brand-interview.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { ClipperProjectsCoreModule } from '@api/collections/clipper-projects/clipper-projects-core.module';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
 import { ContentRunsModule } from '@api/collections/content-runs/content-runs.module';
 import { ContextsModule } from '@api/collections/contexts/contexts.module';
@@ -104,6 +105,7 @@ import { AgentBrandContextAskService } from '@api/services/agent-orchestrator/to
 import { AgentBrandContextToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-context-tool-handler.service';
 import { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-interview-tool-handler.service';
 import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
+import { AgentClipperToolHandler } from '@api/services/agent-orchestrator/tools/agent-clipper-tool-handler.service';
 import { AgentConnectionRequestService } from '@api/services/agent-orchestrator/tools/agent-connection-request.service';
 import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
@@ -217,6 +219,7 @@ import { Module } from '@nestjs/common';
     BrandInterviewModule,
     RequestContextModule,
     BrandsCoreModule,
+    ClipperProjectsCoreModule,
     BotsModule,
     MembersModule,
     ModelsModule,
@@ -298,6 +301,7 @@ import { Module } from '@nestjs/common';
     RolesGuard,
     AgentPrepareToolHandler,
     AgentPrepBriefToolHandler,
+    AgentClipperToolHandler,
     AgentSpawnToolHandler,
     AgentToolCatalogHandler,
     AgentCampaignToolHandler,

@@ -156,6 +156,60 @@ export const AGENT_UI_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
+      'Read a clip before editing it. With clipperResultId it returns the clip (title, source-video start and end in seconds, mode, status, whether edit_clip can re-cut it) and the transcript lines around it with their source-video times, so a new window can start and end on sentence boundaries. With projectId it lists the clips of that clip project so you can find the one the user means. Pass exactly one of the two.',
+    name: 'get_clip_context',
+    parameters: {
+      properties: {
+        clipperResultId: {
+          description:
+            'The clip result to read (its id, not the project id). Returns the clip and its transcript.',
+          type: 'string',
+        },
+        projectId: {
+          description:
+            'A clip project id. Returns the clips of that project, without transcript.',
+          type: 'string',
+        },
+      },
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
+      'Re-cut a finished raw-cut clip to a new window of its source video. The original clip is kept and the edit is queued as a new version on the same clip project, with its captions rebuilt from the transcript for the new window. Use it when the user wants a clip to start or end somewhere else, or to retitle it. Read the clip and its transcript first with get_clip_context so the new times land on sentence boundaries, and tell the user the exact new window before you call this. Times are source-video seconds. Only raw-cut clips can be edited; avatar clips are regenerated from their script. An edited clip runs 1 to 180 seconds and must contain speech. Local video processing, no credits.',
+    name: 'edit_clip',
+    parameters: {
+      properties: {
+        clipperResultId: {
+          description: 'The clip result to edit (its id, not the project id).',
+          type: 'string',
+        },
+        endTime: {
+          description:
+            "Source-video seconds where the new cut ends. Omit to keep the clip's own end.",
+          type: 'number',
+        },
+        startTime: {
+          description:
+            "Source-video seconds where the new cut starts. Omit to keep the clip's own start.",
+          type: 'number',
+        },
+        title: {
+          description:
+            'New title for the edited version. Defaults to the clip title plus "(edited)".',
+          type: 'string',
+        },
+      },
+      required: ['clipperResultId'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
       'Suggest 2–3 alternative generation prompts for a different angle, style, or variation. Each alternative has a short label and a full prompt. Returns an ingredient_alternatives_card so the user can click one to generate inline.',
     name: 'suggest_ingredient_alternatives',
     parameters: {
