@@ -629,7 +629,7 @@ test.describe('Analytics Deep Pages', () => {
 
       const firstCard = cards.filter({ hasText: 'Launch day recap' });
       await expect(firstCard).toContainText('Brand 1');
-      await expect(firstCard).toContainText('tiktok');
+      await expect(firstCard).toContainText('TikTok');
       await expect(firstCard).toContainText('12.0k');
       await expect(firstCard).toContainText('887');
       await expect(firstCard).toContainText('7.40%');
@@ -670,7 +670,7 @@ test.describe('Analytics Deep Pages', () => {
         .toBe(true);
       await expect(cards).toHaveCount(1);
       await expect(cards).toContainText('Behind the scenes');
-      await expect(cards).toContainText('instagram');
+      await expect(cards).toContainText('Instagram');
       // The menu reports the applied filter: a count badge on the trigger and
       // the chosen option in the facet's summary.
       await expect(analyticsPage.filtersButton).toContainText(

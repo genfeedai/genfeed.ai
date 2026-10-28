@@ -950,7 +950,7 @@ export default function StudioPlaygroundInspector({
       <PanelTabs
         activeTab={activeTab}
         ariaLabel={translate('inspector.title')}
-        className="h-auto min-h-48 flex-1"
+        className="h-auto min-h-[32rem] flex-1"
         footer={actions}
         items={[
           {
