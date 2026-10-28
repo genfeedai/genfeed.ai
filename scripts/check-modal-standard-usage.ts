@@ -24,7 +24,6 @@ const EXCLUDE_GLOBS = [
 
 const ALLOWED_DIALOG_IMPORT_PATH_SEGMENTS = [
   '/packages/ui/src/primitives/dialog.tsx',
-  '/packages/ui/src/primitives/sheet.tsx',
   '/packages/ui/src/primitives/command.tsx',
 ];
 

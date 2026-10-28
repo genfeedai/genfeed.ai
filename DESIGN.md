@@ -653,7 +653,7 @@ at a fraction of the opacity. Values live in `packages/ui/src/core/elevation.ts`
 | `shadow-border`        | inset hairline, `border`                          | cards, resting surfaces    |
 | `shadow-border-strong` | inset hairline, `border-strong`                   | hover and focus-within     |
 | `shadow-dropdown`      | inset hairline + `--shadow-md`                    | menus, popovers, selects   |
-| `shadow-dialog`        | inset hairline + `--shadow-lg`                    | dialogs, sheets            |
+| `shadow-dialog`        | inset hairline + `--shadow-lg`                    | dialogs, docked panels     |
 | `shadow-tooltip`       | `--shadow-tooltip` (ring + direct + ambient)      | tooltips                   |
 
 A card may carry a CSS `border` *or* an inset hairline; both are legal and they

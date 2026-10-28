@@ -11,17 +11,18 @@ import {
   CollapsibleTrigger,
 } from '@ui/primitives/collapsible';
 import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@ui/primitives/dialog';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@ui/primitives/sheet';
 import { Ellipsis } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -171,14 +172,14 @@ export default function BrandKitWorkspace({
             />
           </div>
         </div>
-        <Sheet open={isReviewOpen} onOpenChange={setIsReviewOpen}>
-          <SheetContent className="w-full overflow-y-auto shadow-ambient-lg outline-none sm:max-w-2xl">
-            <SheetHeader>
-              <SheetTitle>{t('review')}</SheetTitle>
-            </SheetHeader>
-            <div className="pt-4">{review}</div>
-          </SheetContent>
-        </Sheet>
+        <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
+          <DialogContent size="lg">
+            <DialogHeader>
+              <DialogTitle>{t('review')}</DialogTitle>
+            </DialogHeader>
+            <DialogBody>{review}</DialogBody>
+          </DialogContent>
+        </Dialog>
       </div>
     </Container>
   );

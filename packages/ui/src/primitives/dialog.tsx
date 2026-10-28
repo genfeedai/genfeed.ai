@@ -48,8 +48,18 @@ const DIALOG_SIZE_CLASSES: Record<DialogSize, string> = {
   xl: 'max-w-4xl',
 };
 
+type DialogPlacement = 'center' | 'right';
+
+const DIALOG_PLACEMENT_CLASSES: Record<DialogPlacement, string> = {
+  center:
+    'top-1/2 left-1/2 max-h-[90dvh] w-full -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto overscroll-contain rounded-xl p-6 duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]',
+  right: 'gen-dialog-panel-right inset-y-0 right-0 h-full w-full',
+};
+
 interface DialogContentProps
   extends ComponentPropsWithRef<typeof DialogPrimitive.Content> {
+  /** `right` docks a full-height panel to the viewport edge; the caller sets its width. */
+  placement?: DialogPlacement;
   showCloseButton?: boolean;
   /** Width preset; `full` also fixes the height so a body can own the scroll. */
   size?: DialogSize;
@@ -61,6 +71,7 @@ function DialogContent({
   ref,
   className,
   children,
+  placement = 'center',
   showCloseButton = true,
   size = 'md',
   ...props
@@ -77,9 +88,9 @@ function DialogContent({
           className={cn(
             // The content stacks its header, body blocks, and footer with one gap,
             // so neither DialogHeader nor DialogFooter carries a margin.
-            'fixed top-1/2 left-1/2 z-50 flex max-h-[90dvh] w-full -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-y-auto overscroll-contain rounded-xl bg-elevated p-6 text-foreground shadow-dialog outline-none',
-            DIALOG_SIZE_CLASSES[size],
-            'duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]',
+            'fixed z-50 flex flex-col bg-elevated text-foreground shadow-dialog outline-none',
+            DIALOG_PLACEMENT_CLASSES[placement],
+            placement === 'center' && DIALOG_SIZE_CLASSES[size],
             className,
           )}
           {...props}
@@ -184,7 +195,7 @@ function DialogDescription({
 DialogDescription.displayName =
   DialogPrimitive.Description.displayName ?? 'DialogDescription';
 
-export type { DialogContentProps, DialogSize };
+export type { DialogContentProps, DialogPlacement, DialogSize };
 export {
   Dialog,
   DialogBody,

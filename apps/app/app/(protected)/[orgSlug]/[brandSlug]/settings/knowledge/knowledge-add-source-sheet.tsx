@@ -8,6 +8,15 @@ import {
 } from '@genfeedai/contracts';
 import type { KnowledgeAddSourceSheetProps } from '@props/content/knowledge-library.props';
 import { Button } from '@ui/primitives/button';
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@ui/primitives/dialog';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import {
@@ -17,14 +26,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from '@ui/primitives/sheet';
 import { Switch } from '@ui/primitives/switch';
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
@@ -130,7 +131,7 @@ export default function KnowledgeAddSourceSheet({
   };
 
   return (
-    <Sheet
+    <Dialog
       onOpenChange={(open) => {
         if (!open) {
           onClose();
@@ -138,12 +139,12 @@ export default function KnowledgeAddSourceSheet({
       }}
       open={isOpen}
     >
-      <SheetContent>
-        <SheetHeader>
-          <SheetTitle>{translate('title')}</SheetTitle>
-          <SheetDescription>{translate('description')}</SheetDescription>
-        </SheetHeader>
-        <div className="flex flex-col gap-4 py-4">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{translate('title')}</DialogTitle>
+          <DialogDescription>{translate('description')}</DialogDescription>
+        </DialogHeader>
+        <DialogBody className="flex flex-col gap-4">
           <Field label={translate('sourceType')}>
             <Select
               onValueChange={(value) => setMode(value as CaptureMode)}
@@ -250,8 +251,8 @@ export default function KnowledgeAddSourceSheet({
               )}
             </p>
           </Field>
-        </div>
-        <SheetFooter>
+        </DialogBody>
+        <DialogFooter>
           <Button
             label={translate('cancel')}
             onClick={onClose}
@@ -265,8 +266,8 @@ export default function KnowledgeAddSourceSheet({
               void handleSubmit();
             }}
           />
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
