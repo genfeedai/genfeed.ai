@@ -8,6 +8,7 @@ export * from '@serializers/configs/organizations/fleet-capabilities.config';
 export * from '@serializers/configs/organizations/harness-profile.config';
 export * from '@serializers/configs/organizations/member.config';
 export * from '@serializers/configs/organizations/member-invitation.config';
+export * from '@serializers/configs/organizations/onboarding-funnel.config';
 export * from '@serializers/configs/organizations/organization.config';
 export * from '@serializers/configs/organizations/organization-apps-report.config';
 export * from '@serializers/configs/organizations/organization-settings.config';
