@@ -5,15 +5,20 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  createOrganizationBrand,
+  createWarmupAccount,
   filterPricingRows,
   findMissingExternalPacks,
   findPendingVersion,
   findPricingFixTargets,
   fixModelPricing,
+  grantOrganizationCredits,
+  prepareWarmupAccount,
   readHarnessActivation,
   readOnboardingFunnel,
   readOrganizationAppsReport,
   readOrganizationsReport,
+  scanOrganizationBrand,
   seedArticles,
   seedTemplates,
   seedWorkflows,
@@ -273,6 +278,73 @@ describe('operations/admin', () => {
         external: [{ specifier: 'private-pack', state: 'unresolvable' }],
       };
       expect(findMissingExternalPacks(failed, ['brand-pack'])).toEqual(['brand-pack']);
+    });
+  });
+
+  describe('organization operator writes', () => {
+    it('grants credits to an organization through the admin session', async () => {
+      adminPost.mockResolvedValue({
+        data: { balance: 500, creditsGranted: 500, expiresAt: null, organizationId: 'org/1' },
+      });
+
+      const grant = await grantOrganizationCredits('org/1', {
+        amount: 500,
+        reason: 'Customer setup',
+      });
+
+      expect(adminPost).toHaveBeenCalledWith('/admin/organizations/org%2F1/credits', {
+        amount: 500,
+        reason: 'Customer setup',
+      });
+      expect(grant.balance).toBe(500);
+    });
+
+    it('creates a brand inside the given organization', async () => {
+      adminPost.mockResolvedValue({
+        data: { id: 'brand-1', label: 'Gobl', organizationId: 'org-1', slug: 'gobl' },
+      });
+
+      const brand = await createOrganizationBrand('org-1', { label: 'Gobl' });
+
+      expect(adminPost).toHaveBeenCalledWith('/admin/organizations/org-1/brands', {
+        label: 'Gobl',
+      });
+      expect(brand.slug).toBe('gobl');
+    });
+
+    it('scans a url into the brand kit of the given brand', async () => {
+      adminPost.mockResolvedValue({
+        data: { brandId: 'brand-1', organizationId: 'org-1', scrapeStatus: 'scraped' },
+      });
+
+      const scan = await scanOrganizationBrand('org-1', 'brand-1', 'https://www.gobl.world/');
+
+      expect(adminPost).toHaveBeenCalledWith('/admin/organizations/org-1/brands/brand-1/scan', {
+        url: 'https://www.gobl.world/',
+      });
+      expect(scan.scrapeStatus).toBe('scraped');
+    });
+
+    it('creates and prepares warm-up accounts without any invitation route', async () => {
+      adminPost.mockResolvedValue({ data: { id: 'warm-1' } });
+
+      await createWarmupAccount({
+        brandName: 'vitae.ai',
+        leadEmail: 'poya@vitae.ai',
+        organizationName: 'Gateway Ventures',
+      });
+      await prepareWarmupAccount('warm-1', { action: 'fund', amount: 500, reason: 'Setup' });
+
+      expect(adminPost).toHaveBeenNthCalledWith(1, '/admin/warmup-accounts', {
+        brandName: 'vitae.ai',
+        leadEmail: 'poya@vitae.ai',
+        organizationName: 'Gateway Ventures',
+      });
+      expect(adminPost).toHaveBeenNthCalledWith(2, '/admin/warmup-accounts/warm-1/prepare', {
+        action: 'fund',
+        amount: 500,
+        reason: 'Setup',
+      });
     });
   });
 });

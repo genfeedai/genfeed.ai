@@ -12,6 +12,7 @@ interface CachedAdminToken {
 }
 
 interface AdminErrorBody {
+  errors?: Array<{ detail?: string; title?: string }>;
   message?: string | string[];
 }
 
@@ -40,7 +41,9 @@ function readJwtExpiryMs(token: string): number {
 
 function readErrorMessage(body: AdminErrorBody | undefined, fallback: string): string {
   if (Array.isArray(body?.message)) return body.message.join(', ');
-  return body?.message ?? fallback;
+  if (body?.message) return body.message;
+  const [first] = body?.errors ?? [];
+  return first?.detail ?? first?.title ?? fallback;
 }
 
 async function readJson<T>(response: Response): Promise<T | undefined> {

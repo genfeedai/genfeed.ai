@@ -88,7 +88,7 @@ export async function reconcileWarmupWorkspace(
   await tx.organizationSetting.upsert({
     where: { organizationId },
     create: { organizationId },
-    update: { isDeleted: false },
+    update: {},
   });
   await tx.setting.upsert({
     where: { userId: customerUserId },
@@ -244,7 +244,7 @@ export async function creditWarmupWallet(
   });
   await recordCreditTransactionActivity(tx, transaction);
   await tx.organizationSetting.update({
-    where: { organizationId, isDeleted: false },
+    where: { organizationId },
     data: { hasEverHadCredits: true },
   });
   return transaction;
@@ -350,7 +350,7 @@ export async function warmupReadiness(
         where: { id: brandId, organizationId, isDeleted: false },
       }),
       tx.organizationSetting.findFirst({
-        where: { organizationId, isDeleted: false },
+        where: { organizationId },
       }),
       tx.setting.findFirst({
         where: { userId: customerUserId, isDeleted: false },
@@ -502,7 +502,7 @@ export async function warmupReadinessBatch(
       },
     }),
     tx.organizationSetting.findMany({
-      where: { organizationId: { in: organizationIds }, isDeleted: false },
+      where: { organizationId: { in: organizationIds } },
     }),
     tx.setting.findMany({
       where: { userId: { in: customerIds }, isDeleted: false },
@@ -739,7 +739,7 @@ export async function claimWarmupWorkspace(
     data: { onboardingCompleted: true },
   });
   await tx.organizationSetting.update({
-    where: { organizationId, isDeleted: false },
+    where: { organizationId },
     data: { isFirstLogin: false },
   });
   await tx.setting.update({
