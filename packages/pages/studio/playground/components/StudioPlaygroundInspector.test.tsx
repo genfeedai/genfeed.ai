@@ -663,6 +663,109 @@ describe('StudioPlaygroundInspector', () => {
     expect(mocks.ingredientsFindOne).not.toHaveBeenCalled();
   });
 
+  it('shows the stored slots and the text the model was sent, and reopens them to edit', async () => {
+    const user = userEvent.setup();
+    const onVary = vi.fn();
+    mocks.findOne.mockResolvedValue({
+      id: 'ing-1',
+      brandId: 'brand-1',
+      prompt: {
+        lighting: 'soft window light',
+        original: 'A founder',
+        renderedPrompt: 'A founder beside a window in soft window light.',
+        renderTarget: 'prose',
+        sounds: ['rain'],
+        speech: 'Welcome back',
+        subject: 'a founder',
+      },
+    });
+    render(
+      <StudioPlaygroundInspector
+        job={recipeJob}
+        onRemix={vi.fn()}
+        onUseInPost={vi.fn()}
+        onSelect={vi.fn()}
+        onVary={onVary}
+        runJobs={[recipeJob]}
+      />,
+    );
+
+    const slots = await screen.findByTestId('studio-inspector-prompt-slots');
+    expect(within(slots).getByText('Subject')).toBeInTheDocument();
+    expect(within(slots).getByText('a founder')).toBeInTheDocument();
+    expect(within(slots).getByText('soft window light')).toBeInTheDocument();
+    // An image has no audio, so sounds and speech are not offered.
+    expect(within(slots).queryByText('Sounds')).not.toBeInTheDocument();
+    expect(within(slots).queryByText('Speech')).not.toBeInTheDocument();
+
+    const sent = screen.getByTestId('studio-inspector-sent-text');
+    expect(
+      within(sent).getByText('A founder beside a window in soft window light.'),
+    ).toBeInTheDocument();
+    expect(within(sent).getByText('Written as prose')).toBeInTheDocument();
+
+    await user.click(
+      within(slots).getByRole('button', { name: 'Edit slots and run again' }),
+    );
+    expect(onVary).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ingredient: expect.objectContaining({
+          prompt: expect.objectContaining({ subject: 'a founder' }),
+        }),
+      }),
+    );
+  });
+
+  it('hides sounds and speech on a video until audio is turned on', async () => {
+    mocks.findOne.mockResolvedValue({
+      id: 'ing-1',
+      brandId: 'brand-1',
+      prompt: {
+        original: 'A founder',
+        sounds: ['rain'],
+        speech: 'Welcome back',
+        subject: 'a founder',
+      },
+    });
+    const silent = { ...recipeJob, type: 'video' as const };
+    const view = render(
+      <StudioPlaygroundInspector
+        job={silent}
+        onRemix={vi.fn()}
+        onUseInPost={vi.fn()}
+        onSelect={vi.fn()}
+        onVary={vi.fn()}
+        runJobs={[silent]}
+      />,
+    );
+
+    const slots = await screen.findByTestId('studio-inspector-prompt-slots');
+    expect(within(slots).queryByText('Sounds')).not.toBeInTheDocument();
+    expect(within(slots).queryByText('Speech')).not.toBeInTheDocument();
+    view.unmount();
+
+    const withAudio = {
+      ...silent,
+      recipe: { ...silent.recipe, isAudioEnabled: true },
+    };
+    render(
+      <StudioPlaygroundInspector
+        job={withAudio}
+        onRemix={vi.fn()}
+        onUseInPost={vi.fn()}
+        onSelect={vi.fn()}
+        onVary={vi.fn()}
+        runJobs={[withAudio]}
+      />,
+    );
+
+    const audioSlots = await screen.findByTestId(
+      'studio-inspector-prompt-slots',
+    );
+    expect(within(audioSlots).getByText('rain')).toBeInTheDocument();
+    expect(within(audioSlots).getByText('Welcome back')).toBeInTheDocument();
+  });
+
   it('prices a job that only has an ingredient id from the loaded receipt asset', async () => {
     mocks.findOne.mockResolvedValue({
       brandId: 'brand-1',

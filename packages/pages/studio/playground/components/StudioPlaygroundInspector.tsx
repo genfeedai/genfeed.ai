@@ -22,6 +22,7 @@ import {
   resolveStudioAssetFacts,
   resolveStudioAssetUrl,
 } from '@pages/studio/playground/utils/studio-playground-asset';
+import { readStoredPrompt } from '@pages/studio/playground/utils/studio-playground-prompt-slots';
 import {
   formatStudioRecipePrompt,
   resolveRecipeForJob,
@@ -47,6 +48,7 @@ import {
   ImagePlus,
   Maximize2,
   MessageSquare,
+  Pencil,
   RotateCcw,
   Scissors,
   Send,
@@ -206,6 +208,13 @@ export default function StudioPlaygroundInspector({
   const recipe = resolveRecipeForJob(continuationJob);
   const recipeText = recipe ? formatStudioRecipePrompt(recipe) : '';
   const promptText = recipeText || job.prompt.trim();
+  // The slots and sent text come from the prompt row the receipt read loaded;
+  // a list row may carry only the written prompt, which reads as no slots.
+  const storedPrompt = readStoredPrompt(
+    currentReceipt ?? ingredient,
+    job.type,
+    recipe?.isAudioEnabled === true,
+  );
   const [receiptError, setReceiptError] = useState(false);
   const [storedPosts, setPosts] = useState<IPost[]>([]);
   const [storedChildren, setChildren] = useState<IIngredient[]>([]);
@@ -551,6 +560,59 @@ export default function StudioPlaygroundInspector({
       <p className="whitespace-pre-wrap text-xs text-muted-foreground">
         {recipe?.originalText ?? translate('continuation.originalUnavailable')}
       </p>
+      {storedPrompt && storedPrompt.slots.length > 0 ? (
+        <section
+          aria-label={translate('inspector.promptSlots.title')}
+          className="flex flex-col gap-2"
+          data-testid="studio-inspector-prompt-slots"
+        >
+          <p className="text-xs font-medium">
+            {translate('inspector.promptSlots.title')}
+          </p>
+          <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-xs">
+            {storedPrompt.slots.map((slot) => (
+              <div className="contents" key={slot.key}>
+                <dt className="text-muted-foreground">
+                  {translate(`inspector.promptSlots.labels.${slot.key}`)}
+                </dt>
+                <dd className="whitespace-pre-wrap break-words text-foreground/80">
+                  {slot.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <Button
+            className="self-start"
+            icon={<Pencil className="size-3.5" />}
+            label={translate('inspector.promptSlots.edit')}
+            onClick={() => onVary(continuationJob)}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          />
+        </section>
+      ) : null}
+      {storedPrompt?.renderedPrompt ? (
+        <section
+          aria-label={translate('inspector.sentText.title')}
+          className="flex flex-col gap-1.5"
+          data-testid="studio-inspector-sent-text"
+        >
+          <p className="text-xs font-medium">
+            {translate('inspector.sentText.title')}
+          </p>
+          {storedPrompt.renderTarget ? (
+            <p className="text-2xs text-muted-foreground">
+              {translate('inspector.sentText.renderedFor', {
+                target: storedPrompt.renderTarget,
+              })}
+            </p>
+          ) : null}
+          <pre className="whitespace-pre-wrap font-sans text-xs leading-relaxed text-foreground/80">
+            {storedPrompt.renderedPrompt}
+          </pre>
+        </section>
+      ) : null}
       <p className="text-xs font-medium">
         {translate('continuation.effectiveRecipe')}
       </p>

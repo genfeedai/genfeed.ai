@@ -219,7 +219,29 @@
     "title": "Generation details",
     "useInPost": "Use in post",
     "usedIn": "Used in",
-    "vary": "Vary"
+    "vary": "Vary",
+    "promptSlots": {
+      "title": "Prompt slots",
+      "edit": "Edit slots and run again",
+      "labels": {
+        "subject": "Subject",
+        "action": "Action",
+        "scene": "Scene",
+        "style": "Style",
+        "mood": "Mood",
+        "camera": "Camera",
+        "cameraMovement": "Camera movement",
+        "lens": "Lens",
+        "lighting": "Lighting",
+        "sounds": "Sounds",
+        "speech": "Speech",
+        "blacklists": "Avoid"
+      }
+    },
+    "sentText": {
+      "title": "Sent to the model",
+      "renderedFor": "Written as {target}"
+    }
   },
   "generationRemoved": "Generation removed",
   "generating": "Generating…",
