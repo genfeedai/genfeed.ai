@@ -5,6 +5,7 @@ import type {
   OnboardingFunnelStep,
 } from '@genfeedai/contracts/interfaces';
 import { extractEmailDomain, isPersonalEmailDomain } from '@genfeedai/helpers';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 
 export const ONBOARDING_FUNNEL_STEPS: readonly OnboardingFunnelStep[] = [
   'websiteLink',
@@ -23,10 +24,6 @@ export function classifyOwnerEmail(
   const domain = extractEmailDomain(email);
   if (!domain) return 'unknown';
   return isPersonalEmailDomain(domain) ? 'personal' : 'company';
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 /** The signup prefill marker saved on a brand's agent config, when it has one. */
