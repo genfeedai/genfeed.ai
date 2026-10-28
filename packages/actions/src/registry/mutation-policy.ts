@@ -123,6 +123,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   draft_thread: 'direct',
   draft_x_quote: 'direct',
   draft_x_repost: 'direct',
+  edit_clip: 'direct',
   duplicate_workflow: 'direct',
   fork_skill: 'direct',
   execute_workflow: 'direct',

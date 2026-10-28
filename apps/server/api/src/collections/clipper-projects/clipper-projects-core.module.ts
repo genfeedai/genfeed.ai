@@ -16,6 +16,7 @@ import { ClipperProjectsService } from '@api/collections/clipper-projects/clippe
 import { ClipperAnalysisWorkflowService } from '@api/collections/clipper-projects/services/clipper-analysis-workflow.service';
 import { ClipperAnalysisWorkflowQueueService } from '@api/collections/clipper-projects/services/clipper-analysis-workflow-queue.service';
 import { ClipperAvatarBillingService } from '@api/collections/clipper-projects/services/clipper-avatar-billing.service';
+import { ClipperClipEditService } from '@api/collections/clipper-projects/services/clipper-clip-edit.service';
 import { ClipperContinuityWorkflowService } from '@api/collections/clipper-projects/services/clipper-continuity-workflow.service';
 import { ClipperFactoryWorkflowService } from '@api/collections/clipper-projects/services/clipper-factory-workflow.service';
 import { ClipperFactoryWorkflowQueueService } from '@api/collections/clipper-projects/services/clipper-factory-workflow-queue.service';
@@ -47,6 +48,7 @@ import { Module } from '@nestjs/common';
 @Module({
   exports: [
     ClipperAvatarBillingService,
+    ClipperClipEditService,
     ClipperAnalysisWorkflowQueueService,
     ClipperAnalysisWorkflowService,
     ClipperProjectsService,
@@ -85,6 +87,7 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     ClipperAvatarBillingService,
+    ClipperClipEditService,
     ClipperAnalysisWorkflowQueueService,
     ClipperAnalysisWorkflowService,
     ClipperProjectsService,

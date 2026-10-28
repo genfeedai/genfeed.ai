@@ -104,6 +104,7 @@ import { AgentBrandContextAskService } from '@api/services/agent-orchestrator/to
 import { AgentBrandContextToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-context-tool-handler.service';
 import { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-interview-tool-handler.service';
 import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
+import { AgentClipperToolHandler } from '@api/services/agent-orchestrator/tools/agent-clipper-tool-handler.service';
 import { AgentConnectionRequestService } from '@api/services/agent-orchestrator/tools/agent-connection-request.service';
 import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
@@ -298,6 +299,7 @@ import { Module } from '@nestjs/common';
     RolesGuard,
     AgentPrepareToolHandler,
     AgentPrepBriefToolHandler,
+    AgentClipperToolHandler,
     AgentSpawnToolHandler,
     AgentToolCatalogHandler,
     AgentCampaignToolHandler,

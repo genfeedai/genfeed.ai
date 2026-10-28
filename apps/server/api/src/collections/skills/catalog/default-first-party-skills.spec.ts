@@ -17,6 +17,15 @@ describe('resolveDefaultFirstPartySkillSlugs', () => {
     ).toEqual(['image-prompt-engineer', 'model-selector']);
   });
 
+  it('gives the video agent the clip editor beside its prompting skills', () => {
+    expect(
+      resolveDefaultFirstPartySkillSlugs({
+        agentType: AgentType.VIDEO_CREATOR,
+        modality: 'video',
+      }),
+    ).toEqual(['model-selector', 'image-prompt-engineer', 'clip-editor']);
+  });
+
   it.each([
     'x',
     'twitter',
@@ -71,6 +80,7 @@ describe('resolveDefaultFirstPartySkillSlugs', () => {
     for (const context of [
       {},
       { agentType: AgentType.IMAGE_CREATOR, modality: 'image' },
+      { agentType: AgentType.VIDEO_CREATOR, modality: 'video' },
       { channel: 'blog' },
       { modality: 'audio' },
     ]) {

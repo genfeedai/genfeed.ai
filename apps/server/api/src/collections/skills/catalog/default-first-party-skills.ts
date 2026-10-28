@@ -14,7 +14,11 @@ const AGENT_TYPE_DEFAULTS: Record<string, readonly string[]> = {
   [AgentType.IMAGE_CREATOR]: ['image-prompt-engineer', 'model-selector'],
   [AgentType.LINKEDIN_CONTENT]: ['linkedin-content-creator'],
   [AgentType.SHORT_FORM_WRITER]: ['instagram-content-creator'],
-  [AgentType.VIDEO_CREATOR]: ['model-selector', 'image-prompt-engineer'],
+  [AgentType.VIDEO_CREATOR]: [
+    'model-selector',
+    'image-prompt-engineer',
+    'clip-editor',
+  ],
   [AgentType.X_CONTENT]: ['x-content-creator'],
   [AgentType.YOUTUBE_SCRIPT]: ['youtube-content-creator'],
 };

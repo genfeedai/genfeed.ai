@@ -25,6 +25,7 @@ import { AgentBrandContextToolHandler } from '@api/services/agent-orchestrator/t
 import { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-interview-tool-handler.service';
 import { applyAgentBriefTargets } from '@api/services/agent-orchestrator/tools/agent-brief-targets.util';
 import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
+import { AgentClipperToolHandler } from '@api/services/agent-orchestrator/tools/agent-clipper-tool-handler.service';
 import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentGenerationOptionsToolHandler } from '@api/services/agent-orchestrator/tools/agent-generation-options-tool-handler.service';
@@ -320,6 +321,9 @@ export class AgentToolExecutorService implements OnModuleInit {
 
   @Inject(AgentPrepBriefToolHandler)
   private readonly prepBriefHandler!: AgentPrepBriefToolHandler;
+
+  @Inject(AgentClipperToolHandler)
+  private readonly clipperHandler!: AgentClipperToolHandler;
 
   @Inject(AgentOnboardingBrandSetupToolHandler)
   private readonly onboardingBrandSetupHandler!: AgentOnboardingBrandSetupToolHandler;
@@ -840,6 +844,7 @@ export class AgentToolExecutorService implements OnModuleInit {
         brandInterviewHandler: this.brandInterviewHandler,
         campaignHandler: this.campaignHandler,
         catalogHandler: this.catalogHandler,
+        clipperHandler: this.clipperHandler,
         connectionHandler: this.connectionHandler,
         dashboardHandler: this.dashboardHandler,
         knowledgeHandler: this.knowledgeHandler,

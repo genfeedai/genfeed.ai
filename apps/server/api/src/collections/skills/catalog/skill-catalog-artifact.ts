@@ -33,6 +33,7 @@ export const UPSTREAM_SLUGS = [
   'youtube-warmup',
 ];
 const APPLICATION_PROCEDURES = new Set([
+  'clip-editor',
   'brand-interview',
   'node-creator',
   'workflow-creator',

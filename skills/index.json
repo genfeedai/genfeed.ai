@@ -32,6 +32,11 @@
       "slug": "cinematic-prompting"
     },
     {
+      "description": "Edit a finished clip directly from the agent. Read the clip and its transcript, propose an exact new window, then re-cut it with edit_clip once the user agrees. Triggers on \"edit this clip\", \"cut the intro\", \"make this clip shorter\", \"this clip ends mid-sentence\", \"change where this clip starts\", \"retitle this clip\".",
+      "path": "skills/clip-editor/SKILL.md",
+      "slug": "clip-editor"
+    },
+    {
       "description": "Audit competitors' content strategy across platforms, formats, topics, engagement patterns, and content gaps. Triggers on competitor content audits, social/content gap analysis, posting analysis, and competitive content reports.",
       "path": "skills/competitor-analyzer/SKILL.md",
       "slug": "competitor-analyzer"
@@ -167,5 +172,5 @@
       "slug": "youtube-warmup"
     }
   ],
-  "total": 33
+  "total": 34
 }

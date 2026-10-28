@@ -53,6 +53,18 @@ describe('getAgentActionClass', () => {
     );
   });
 
+  it('asks before re-cutting a clip in Manual mode and not in Auto', () => {
+    expect(getAgentActionClass('edit_clip')).toBe(
+      AGENT_ACTION_CLASS.CREDIT_SPENDING,
+    );
+    expect(
+      resolveEffectiveMutationPolicy('edit_clip', 'manual', 'direct'),
+    ).toBe('approval-required');
+    expect(resolveEffectiveMutationPolicy('edit_clip', 'auto', 'direct')).toBe(
+      'direct',
+    );
+  });
+
   it('classifies brand voice/memory/knowledge/strategy writes as brand-context', () => {
     expect(getAgentActionClass('save_brand_voice_profile')).toBe(
       AGENT_ACTION_CLASS.BRAND_CONTEXT,

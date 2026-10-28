@@ -61,6 +61,8 @@ const CREDIT_SPENDING_TOOL_NAMES = new Set<string>([
   'generate_turbo_content',
   'generate_monthly_content',
   'transform_media',
+  // Free, but it queues a render, so Manual mode asks before it builds.
+  'edit_clip',
   'execute_workflow',
   // Starts a quoted storyboard render; chat approves it outside Auto mode.
   'start_storyboard_long_form',
