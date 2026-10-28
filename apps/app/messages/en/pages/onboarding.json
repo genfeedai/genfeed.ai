@@ -201,6 +201,8 @@
       "skipScheduling": "Skip scheduling, continue",
       "videoPending": "Creating your video…",
       "videoFailed": "Video unavailable. Your script is saved.",
+      "videoNeedsCredits": "Video needs credits. Your script is saved.",
+      "upgradeForVideo": "Upgrade to add video",
       "retryMedia": "Retry media"
     },
     "platforms": {

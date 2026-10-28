@@ -33,7 +33,9 @@ const resultSchema = z.object({
   status: z.enum(['ready', 'partial', 'unavailable']),
   videoIngredientId: z.string().nullable().optional(),
   videoUrl: z.string().nullable().optional(),
-  videoStatus: z.enum(['pending', 'ready', 'failed']).optional(),
+  videoStatus: z
+    .enum(['pending', 'ready', 'failed', 'needs_credits'])
+    .optional(),
 });
 const legacyArtifactSchema = z.object({
   artifact: z.object({ kind: z.literal('post'), id: z.string() }),

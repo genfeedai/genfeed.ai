@@ -78,6 +78,8 @@ export interface FirstDraftCardProps {
   isSaving?: boolean;
   /** Set while the missing media is being generated again. */
   isMediaGenerating?: boolean;
+  /** Where to add credits; shown when the video was skipped for lack of them. */
+  upgradeHref?: string;
   /** Offered only when the draft's media is missing and a retry is left. */
   onRetryMedia?: () => void;
   onVerdict: (

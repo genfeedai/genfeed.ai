@@ -1,6 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OnboardingFirstDraftsService } from '@api/endpoints/onboarding/services/onboarding-first-drafts.service';
 import type { IOnboardingFirstDraftsResult } from '@genfeedai/contracts/interfaces';
+import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
+import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
 import { BadRequestException } from '@nestjs/common';
 
 vi.mock(
@@ -311,6 +313,29 @@ describe('OnboardingFirstDraftsService', () => {
     expect(result.drafts).toHaveLength(4);
     expect(result.imageIngredientId).toBe('ing_1');
     expect(result.status).toBe('partial');
+  });
+
+  describe.each([
+    ['a deferred-credits payment error', () => createInsufficientCreditsException(30, 0)],
+    ['an insufficient-credits business error', () => new InsufficientCreditsException(30, 0)],
+  ])('when the organization cannot pay for video (%s)', (_label, buildError) => {
+    it('records needs_credits and drops the placeholder instead of failing', async () => {
+      gateway.generateVideo.mockImplementationOnce(
+        async (input: {
+          onPlaceholderCreated: (id: string) => Promise<void>;
+        }) => {
+          await input.onPlaceholderCreated('video_placeholder');
+          throw buildError();
+        },
+      );
+      const result = await service.generate(user, 'brand_1', {});
+      expect(result.videoStatus).toBe('needs_credits');
+      expect(result.videoIngredientId).toBeNull();
+      expect(result.videoUrl).toBeNull();
+      expect(result.drafts).toHaveLength(4);
+      expect(result.imageIngredientId).toBe('ing_1');
+      expect(result.status).toBe('partial');
+    });
   });
 
   describe('retryMedia', () => {
