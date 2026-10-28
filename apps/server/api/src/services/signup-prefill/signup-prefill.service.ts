@@ -806,10 +806,10 @@ export class SignupPrefillService {
     }
 
     if (currentDescription?.trim() === PLACEHOLDER_BRAND_DESCRIPTION) {
+      // No site and no tagline leaves the description empty: `brand.text`
+      // already names the brand, and filler copy here reads as real context.
       update.description =
-        scrapedData?.tagline?.trim() ||
-        scrapedData?.description?.trim() ||
-        `Content brand for ${brandLabel}.`;
+        scrapedData?.tagline?.trim() || scrapedData?.description?.trim() || '';
     }
 
     if (Object.keys(update).length > 0) {

@@ -101,6 +101,24 @@ describe('buildFirstRunOnboardingImageBody', () => {
     expect(body).not.toHaveProperty('quality');
   });
 
+  it('carries the structured slots next to the lead prompt', async () => {
+    const body = await buildFirstRunOnboardingImageBody({
+      height: 1024,
+      nodeEnv: 'test',
+      organizationId: 'org-1',
+      prompt: 'first post',
+      slots: { blacklist: ['logos'], camera: 'eye-level', subject: 'a bowl' },
+      width: 1024,
+    });
+
+    expect(body).toMatchObject({
+      blacklist: ['logos'],
+      camera: 'eye-level',
+      prompt: 'first post',
+      subject: 'a bowl',
+    });
+  });
+
   it('pins lowest-cost routing and omits references when none resolve', async () => {
     vi.mocked(isCloudDeployment).mockReturnValue(false);
 

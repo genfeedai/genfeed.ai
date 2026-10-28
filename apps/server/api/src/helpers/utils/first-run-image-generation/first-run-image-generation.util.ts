@@ -1,3 +1,4 @@
+import type { FirstRunImageSlots } from '@api/helpers/utils/first-run-image-generation/first-run-image-generation.interfaces';
 import { isCloudDeployment } from '@genfeedai/config';
 import { RouterPriority } from '@genfeedai/contracts';
 import { getFallbackImageModelKey } from '@genfeedai/contracts/constants';
@@ -60,6 +61,7 @@ export type FirstRunOnboardingImageBodyInput = {
     organizationId: string,
   ) => Promise<IBrandKitResolvedAssets>;
   runId?: string;
+  slots?: FirstRunImageSlots;
   strategyId?: string;
   width: number;
 };
@@ -92,6 +94,7 @@ export async function buildFirstRunOnboardingImageBody(
   return {
     ...routing,
     height: input.height,
+    ...input.slots,
     prompt: input.prompt,
     text: input.prompt,
     waitForCompletion: true,

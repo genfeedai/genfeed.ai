@@ -11,10 +11,21 @@ import { readStringList } from './string-list.util';
 export const PLACEHOLDER_BRAND_DESCRIPTION =
   'Default description. Use it as a pre-prompt';
 
+/**
+ * The description earlier signups were given when nothing better existed
+ * ("Content brand for Acme."). It says nothing about the brand, so it counts
+ * as no description.
+ */
+const LEGACY_FILLER_DESCRIPTION = /^content brand for [^\n]{1,80}\.*$/i;
+
 export function isPlaceholderBrandText(value?: string | null): boolean {
   const normalized = value?.trim();
 
-  return !normalized || normalized === PLACEHOLDER_BRAND_DESCRIPTION;
+  return (
+    !normalized ||
+    normalized === PLACEHOLDER_BRAND_DESCRIPTION ||
+    LEGACY_FILLER_DESCRIPTION.test(normalized)
+  );
 }
 
 /**

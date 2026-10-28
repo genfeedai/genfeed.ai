@@ -25,6 +25,15 @@ describe('isPlaceholderBrandText', () => {
     expect(isPlaceholderBrandText(PLACEHOLDER_BRAND_DESCRIPTION)).toBe(true);
   });
 
+  it('treats the old "Content brand for X." filler as absent', () => {
+    expect(isPlaceholderBrandText('Content brand for Aryansh Stark.')).toBe(
+      true,
+    );
+    expect(isPlaceholderBrandText('Content brand for Ytgibson182..')).toBe(
+      true,
+    );
+  });
+
   it('leaves real copy alone', () => {
     expect(isPlaceholderBrandText('We write for operators.')).toBe(false);
   });

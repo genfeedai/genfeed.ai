@@ -8,7 +8,9 @@ import type {
   OnboardingDraftContextDto,
   OnboardingDraftsDto,
 } from '@api/endpoints/onboarding/dto/onboarding-first-drafts.dto';
+import type { OnboardingImageBriefInput } from '@api/endpoints/onboarding/onboarding.interfaces';
 import { OnboardingDraftRunsService } from '@api/endpoints/onboarding/services/onboarding-draft-runs.service';
+import { buildOnboardingImageBrief } from '@api/endpoints/onboarding/utils/onboarding-image-brief.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { buildFirstRunOnboardingImageBody } from '@api/helpers/utils/first-run-image-generation/first-run-image-generation.util';
 import {
@@ -181,6 +183,18 @@ export class OnboardingFirstDraftsService {
         : 'your brand';
     const description =
       typeof brand.description === 'string' ? brand.description : '';
+    const savedConfig = this.brandDataMapper.readBrandAgentConfig(
+      brand.agentConfig,
+    );
+    const imageContext = {
+      audience: dto.context?.audience ?? savedConfig.voice?.audience?.[0],
+      goals: dto.context?.goals ?? savedConfig.strategy?.goals,
+      offer: dto.context?.offer ?? savedConfig.strategy?.offers?.[0],
+      tone:
+        dto.context?.tone && dto.context.tone !== 'keep'
+          ? dto.context.tone
+          : savedConfig.voice?.tone,
+    };
     const identity = { brandId, organizationId, userId };
 
     const xDraft = await this.generateDraft({
@@ -231,8 +245,8 @@ export class OnboardingFirstDraftsService {
       this.generateImage({
         brandName,
         description,
-        direction,
         identity,
+        imageContext,
         tweet: xDraft.text,
         onPlaceholderCreated: async (ingredientId) => {
           result.imageIngredientId = ingredientId;
@@ -435,8 +449,11 @@ export class OnboardingFirstDraftsService {
   private async generateImage(input: {
     brandName: string;
     description: string;
-    direction: string;
     identity: { brandId: string; organizationId: string; userId: string };
+    imageContext: Pick<
+      OnboardingImageBriefInput,
+      'audience' | 'goals' | 'offer' | 'tone'
+    >;
     tweet: string;
     onPlaceholderCreated?: (ingredientId: string) => Promise<void>;
   }): Promise<{ ingredientId: string | null; url: string | null }> {
@@ -444,6 +461,12 @@ export class OnboardingFirstDraftsService {
       DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
     );
     try {
+      const brief = buildOnboardingImageBrief({
+        ...input.imageContext,
+        brandName: input.brandName,
+        description: input.description,
+        post: input.tweet,
+      });
       const body = await buildFirstRunOnboardingImageBody({
         brandId: input.identity.brandId,
         height: dimensions.height,
@@ -454,10 +477,11 @@ export class OnboardingFirstDraftsService {
             error: error instanceof Error ? error.message : String(error),
           }),
         organizationId: input.identity.organizationId,
-        prompt: `Create one distinctive social image for ${input.brandName}. Brand context: ${input.description}. Illustrate this post: ${input.tweet}. Match the brand's subject and audience. ${input.direction ? `Requested creative direction: ${input.direction}` : ''} Use a clear focal point and intentional composition. Avoid invented logos, text overlays, claims, and stock-photo cliches.`,
+        prompt: brief.prompt,
         resolveBrandKitAssets: this.brandsService.resolveBrandKitAssets.bind(
           this.brandsService,
         ),
+        slots: brief.slots,
         width: dimensions.width,
       });
       const response = toMediaResponseRecord(
