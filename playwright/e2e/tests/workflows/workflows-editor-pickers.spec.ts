@@ -106,8 +106,8 @@ test.describe('Workflow editor pickers', () => {
     await dialog.getByRole('button', { name: 'A neon alley at night' }).click();
 
     await expect(dialog).toBeHidden();
-    await expect(inspector.getByLabel('Prompt')).toHaveValue(
-      'A neon alley at night',
-    );
+    await expect(
+      inspector.getByRole('textbox', { name: 'Prompt', exact: true }),
+    ).toHaveValue('A neon alley at night');
   });
 });
