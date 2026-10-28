@@ -466,6 +466,32 @@ test.describe('Agent Plan Mode', () => {
     await mockThreadView(authenticatedPage, threadId, initialPlan);
     await mockTurnAck(authenticatedPage, threadId);
 
+    // Requested changes are typed in the prompt bar, which stays disabled until
+    // the agent socket connects. Complete only the socket.io handshake; no
+    // event is ever emitted, so the run still resolves through the watchdog.
+    await authenticatedPage.addInitScript(() =>
+      Object.assign(window, { __playwright_socket_fixture: true }),
+    );
+    await authenticatedPage.routeWebSocket('**/socket.io/**', (connection) => {
+      connection.send(
+        `0${JSON.stringify({
+          maxPayload: 1000000,
+          pingInterval: 25000,
+          pingTimeout: 20000,
+          sid: 'plan-mode-revise',
+          upgrades: [],
+        })}`,
+      );
+      connection.onMessage((message) => {
+        if (typeof message === 'string' && message.startsWith('40')) {
+          connection.send('40{"sid":"plan-mode-revise"}');
+        }
+        if (message === '2') {
+          connection.send('3');
+        }
+      });
+    });
+
     // `POST .../ui-actions` only acks the enqueued workflow -- the run's
     // reply arrives as its `agent:done`, or here, with no socket double,
     // through the run completion watchdog reading `GET .../messages`. This
