@@ -39,6 +39,8 @@ vi.mock('@services/organization/users.service', () => ({
 describe('useCompleteOnboarding', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.patch.mockReset();
+    mocks.patch.mockResolvedValue(undefined);
     mocks.token = 'token';
     mocks.isCompleted = false;
     mocks.brand = undefined;
