@@ -47,3 +47,9 @@ export class AddReplyTargetDto {
   })
   username!: string;
 }
+
+export class ReplyTargetsQueryDto {
+  @IsEntityId()
+  @ApiProperty({ description: 'Brand whose X account is being warmed up' })
+  brandId!: string;
+}

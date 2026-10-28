@@ -2,6 +2,7 @@ import { MonitoredAccountsService } from '@api/collections/monitored-accounts/se
 import type { ReplyBotConfigDocument } from '@api/collections/reply-bot-configs/schemas/reply-bot-config.schema';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
@@ -19,6 +20,7 @@ import {
   WARMUP_TARGET_MIN_FOLLOWERS,
 } from '@genfeedai/contracts/constants';
 import type {
+  IReplyTarget,
   IReplyTargetAddResult,
   IReplyTargetSuggestion,
 } from '@genfeedai/contracts/interfaces';
@@ -197,6 +199,64 @@ export class ReplyTargetDiscoveryService {
       monitoredAccountId: account.id,
       username: user.username,
     };
+  }
+
+  /**
+   * The accounts the brand's warm-up monitor follows, newest first. These are
+   * the accounts counted against the monitored-account limit.
+   */
+  async listTargets(params: {
+    brandId: string;
+    organizationId: string;
+  }): Promise<IReplyTarget[]> {
+    const accounts = await this.prisma.monitoredAccount.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: { config: true, id: true, isActive: true },
+      where: scopedWhere(params.organizationId, { brandId: params.brandId }),
+    });
+    return accounts.flatMap((account) => {
+      const config = (account.config ?? {}) as Record<string, unknown>;
+      if (typeof config.username !== 'string') return [];
+      return [
+        {
+          displayName:
+            typeof config.displayName === 'string'
+              ? config.displayName
+              : undefined,
+          followersCount:
+            typeof config.followersCount === 'number'
+              ? config.followersCount
+              : undefined,
+          isActive: account.isActive,
+          monitoredAccountId: account.id,
+          username: config.username,
+        },
+      ];
+    });
+  }
+
+  /**
+   * Stops monitoring an account for the brand, freeing a slot under the
+   * limit. Drafts already in the queue stay there.
+   */
+  async removeTarget(params: {
+    brandId: string;
+    monitoredAccountId: string;
+    organizationId: string;
+  }): Promise<void> {
+    const result = await this.prisma.monitoredAccount.updateMany({
+      data: { isDeleted: true },
+      where: scopedWhere(params.organizationId, {
+        brandId: params.brandId,
+        id: params.monitoredAccountId,
+      }),
+    });
+    if (result.count === 0) {
+      throw new NotFoundException(
+        'MonitoredAccount',
+        params.monitoredAccountId,
+      );
+    }
   }
 
   private async ensureMonitor(params: {

@@ -1733,7 +1733,14 @@
         "monitoring": "Monitoring",
         "added": "Now monitoring @{username}",
         "searchFailed": "Could not search X right now",
-        "addFailed": "Could not monitor that account"
+        "addFailed": "Could not monitor that account",
+        "monitoredTitle": "Accounts you monitor ({count} of {limit})",
+        "monitoredEmpty": "You are not monitoring any accounts yet.",
+        "loadFailed": "Could not load the accounts you monitor",
+        "remove": "Remove",
+        "removeLabel": "Stop monitoring @{username}",
+        "removed": "Stopped monitoring @{username}",
+        "removeFailed": "Could not stop monitoring that account"
       }
     },
     "workflowBinding": {

@@ -11,6 +11,7 @@ import { ReplyBotConfigsQueryDto } from '@api/collections/reply-bot-configs/dto/
 import {
   AddReplyTargetDto,
   DiscoverReplyTargetsDto,
+  ReplyTargetsQueryDto,
 } from '@api/collections/reply-bot-configs/dto/reply-target.dto';
 import { UpdateReplyBotConfigDto } from '@api/collections/reply-bot-configs/dto/update-reply-bot-config.dto';
 import type { ReplyBotConfigDocument } from '@api/collections/reply-bot-configs/schemas/reply-bot-config.schema';
@@ -35,6 +36,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -258,6 +260,40 @@ export class ReplyBotConfigsController extends BaseCRUDController<
       organizationId: user.organizationId,
       userId: user.id,
       username: body.username,
+    });
+  }
+
+  /**
+   * The accounts the brand's warm-up monitor follows.
+   */
+  @TenantReadPolicy('selected')
+  @Get('warmup/targets')
+  @ApiOperation({ summary: 'List X accounts monitored for warm-up replies' })
+  listReplyTargets(
+    @CurrentUser() user: User,
+    @Query() query: ReplyTargetsQueryDto,
+  ) {
+    return this.replyTargetDiscoveryService.listTargets({
+      brandId: query.brandId,
+      organizationId: resolveTenantReadScope(user).organizationId,
+    });
+  }
+
+  /**
+   * Stop monitoring an account for warm-up replies. Queued drafts stay.
+   */
+  @Delete('warmup/targets/:monitoredAccountId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Stop monitoring an X account for warm-up' })
+  async removeReplyTarget(
+    @CurrentUser() user: User,
+    @Param('monitoredAccountId') monitoredAccountId: string,
+    @Query() query: ReplyTargetsQueryDto,
+  ): Promise<void> {
+    await this.replyTargetDiscoveryService.removeTarget({
+      brandId: query.brandId,
+      monitoredAccountId,
+      organizationId: user.organizationId,
     });
   }
 

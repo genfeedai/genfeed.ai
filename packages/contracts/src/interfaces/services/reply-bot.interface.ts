@@ -232,6 +232,15 @@ export interface IReplyTargetSuggestion {
   username: string;
 }
 
+/** An X account the brand's warm-up monitor drafts replies for. */
+export interface IReplyTarget {
+  displayName?: string;
+  followersCount?: number;
+  isActive: boolean;
+  monitoredAccountId: string;
+  username: string;
+}
+
 export interface IReplyTargetAddResult {
   botConfigId: string;
   monitoredAccountId: string;
