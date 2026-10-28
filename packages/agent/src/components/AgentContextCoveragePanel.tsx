@@ -61,10 +61,13 @@ export function AgentContextCoveragePanel({
     isActive,
   });
 
-  const familyName = (family: ContextCoverageFamily): string =>
-    family.family === 'knowledge' && family.purpose
-      ? translate(`purpose.${family.purpose}`)
+  const familyName = (family: ContextCoverageFamily): string => {
+    if (family.family === 'knowledge' && family.purpose)
+      return translate(`purpose.${family.purpose}`);
+    return family.family === 'agent_memory'
+      ? translate('agentMemory')
       : translate('socialConnections');
+  };
 
   const recoveryLink = (
     recovery: ContextCoverageRecovery,

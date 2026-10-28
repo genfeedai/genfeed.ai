@@ -3,7 +3,10 @@ import type { KnowledgeSourcePurpose } from '../../enums/knowledge-source.enum';
 /** What the coverage describes: an explicit search or the automatic answer context. */
 export type ContextCoverageUsage = 'context' | 'search';
 
-export type ContextCoverageFamilyName = 'knowledge' | 'social_connections';
+export type ContextCoverageFamilyName =
+  | 'agent_memory'
+  | 'knowledge'
+  | 'social_connections';
 
 /**
  * `empty` means a complete, authorized inventory with no members; it never
