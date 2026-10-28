@@ -92,7 +92,7 @@ const KIND_CUES: ReadonlyArray<
 > = [
   [
     'product',
-    /\b(shop|store|supply|supplies|boutique|retail|product|merch|kibble|treat|pet|food|coffee|tea|bak(?:e|ery)|restaurant|cafe|menu|skincare|candle|jewel|apparel|cloth|ecommerce|e-commerce|handmade|organic|grocery|furniture|decor|fashion|beauty)/g,
+    /\b(?:(?:pet|tea|treat|food|shop|store|menu|cafe|product)s?\b|supply|supplies|boutique|retail|merch|kibble|coffee|bak(?:e|ery)|restaurant|skincare|candle|jewel|apparel|cloth|ecommerce|e-commerce|handmade|organic|grocery|furniture|decor|fashion|beauty)/g,
   ],
   [
     'wellness',
@@ -211,7 +211,7 @@ export function buildOnboardingImageBrief(
   const idea = readPostIdea(input.post);
   const focus = readFocus(input);
   const goals = (input.goals ?? []).join(' ');
-  const context = [input.brandName, focus, input.audience, idea, goals]
+  const context = [input.brandName, focus, input.audience, idea]
     .filter(Boolean)
     .join(' ')
     .toLowerCase();

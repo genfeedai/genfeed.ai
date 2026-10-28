@@ -128,6 +128,16 @@ describe('buildOnboardingImageBrief', () => {
     expect(brief.slots.style).toBe('natural sports photography');
   });
 
+  it('does not read a name, a stem inside a longer word or a goal as a product', () => {
+    const brief = buildOnboardingImageBrief({
+      brandName: 'Peter Team',
+      goals: ['Sell my product'],
+      post: 'Our workflow software gives teams back their week.',
+    });
+
+    expect(brief.slots.style).toContain('3D render');
+  });
+
   it('always avoids logos, text and watermarks through the negative prompt', () => {
     const brief = buildOnboardingImageBrief({
       brandName: 'Acme',
