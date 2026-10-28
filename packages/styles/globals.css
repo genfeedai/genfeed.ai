@@ -169,16 +169,14 @@
   /* One notch off a full-strength foreground fill — the only place the product
      dims `gray-1000`, so it has no scale step of its own. */
   --accent-hover: #cccccc;
-  /* Agent + done are the only two product hues outside the status set. Both are
-     checked as text against their own canvas: 9.25:1 and 7.49:1 on #0A0A0A. */
+  /* Agent is the only product hue outside the status set. It is checked as
+     text against its own canvas: 9.25:1 on #0A0A0A. */
   --agent: #38bdf8;
-  --done: #c084fc;
 }
 
 [data-theme="light"] {
   --accent-hover: #383838;
   --agent: #0369a1; /* #0284c7 is 3.92:1 on #FAFAFA — fails AA as text */
-  --done: #7c3aed;
 }
 
 /* ──────────────────────────────────────────────────────────────────────────

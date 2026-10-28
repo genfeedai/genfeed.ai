@@ -119,10 +119,6 @@
   background: hsl(var(--gray-700));
 }
 
-.gen-dot-processing {
-  background: var(--done);
-}
-
 .gen-dot-pulse {
   animation: gen-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
