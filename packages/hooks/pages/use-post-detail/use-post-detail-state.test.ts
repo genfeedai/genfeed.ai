@@ -15,9 +15,14 @@ import {
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockFindOne, mockGetPostsService } = vi.hoisted(() => ({
+const { mockFindOne, mockGetPostsService, mockLogger } = vi.hoisted(() => ({
   mockFindOne: vi.fn(),
   mockGetPostsService: vi.fn(),
+  mockLogger: { debug: vi.fn(), error: vi.fn(), info: vi.fn(), warn: vi.fn() },
+}));
+
+vi.mock('@genfeedai/services/core/logger.service', () => ({
+  logger: mockLogger,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -92,6 +97,44 @@ describe('usePostDetailState', () => {
       findAll: vi.fn().mockResolvedValue([]),
       findOne: mockFindOne,
     });
+  });
+
+  function serviceOperationError(status: number, message: string) {
+    return Object.assign(new Error(message), {
+      name: 'ServiceOperationError',
+      status,
+    });
+  }
+
+  it('treats a 404 as a missing post without reporting an error', async () => {
+    mockFindOne.mockRejectedValue(serviceOperationError(404, 'Post not found'));
+
+    const { result } = renderHook(() =>
+      usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.post).toBeNull();
+    expect(result.current.error).toBeNull();
+    expect(mockLogger.error).not.toHaveBeenCalled();
+  });
+
+  it('still reports and surfaces an unexpected fetch failure', async () => {
+    mockFindOne.mockRejectedValue(
+      serviceOperationError(500, 'Internal server error'),
+    );
+
+    const { result } = renderHook(() =>
+      usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
+    );
+
+    await waitFor(() =>
+      expect(result.current.error).toBe('Internal server error'),
+    );
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'Failed to fetch post',
+      expect.objectContaining({ status: 500 }),
+    );
   });
 
   async function renderWithEngagementRate(
