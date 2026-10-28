@@ -48,6 +48,8 @@ interface Harness {
   patches: Array<{ id: string; patch: Record<string, unknown> }>;
   projectPatches: Array<Record<string, unknown>>;
   queuedCount: { value: number };
+  reconciled: string[];
+  shouldGenerationFail: { value: boolean };
 }
 
 function buildHarness(): Harness {
@@ -56,6 +58,8 @@ function buildHarness(): Harness {
   const patches: Harness['patches'] = [];
   const projectPatches: Harness['projectPatches'] = [];
   const queuedCount = { value: 1 };
+  const reconciled: string[] = [];
+  const shouldGenerationFail = { value: false };
 
   const resultsService = {
     findByProject: vi.fn(async (projectId: string, organizationId: string) =>
@@ -86,7 +90,9 @@ function buildHarness(): Harness {
     patch: vi.fn(async (_id: string, patch: Record<string, unknown>) => {
       projectPatches.push(patch);
     }),
-    reconcileTerminalState: vi.fn(async () => undefined),
+    reconcileTerminalState: vi.fn(async (projectId: string) => {
+      reconciled.push(projectId);
+    }),
   } as unknown as ClipperProjectsService;
 
   const generationService = {
@@ -98,6 +104,9 @@ function buildHarness(): Harness {
           title: string;
         }>;
       }) => {
+        if (shouldGenerationFail.value) {
+          throw new Error('Clip generation workflow failed');
+        }
         for (const highlight of input.highlights) {
           generated.push({
             endTime: highlight.end_time,
@@ -125,6 +134,8 @@ function buildHarness(): Harness {
     patches,
     projectPatches,
     queuedCount,
+    reconciled,
+    shouldGenerationFail,
   };
 }
 
@@ -290,6 +301,20 @@ describe('AgentClipperToolHandler', () => {
 
       expect(result.success).toBe(false);
       expect(harness.generated).toEqual([]);
+    });
+
+    it('puts the project back to its finished state when generation throws', async () => {
+      harness.shouldGenerationFail.value = true;
+
+      await expect(
+        harness.handler.editClip(
+          { clipperResultId: 'clip-1', endTime: 28 },
+          ctx,
+        ),
+      ).rejects.toThrow('Clip generation workflow failed');
+
+      expect(harness.reconciled).toEqual(['project-1']);
+      expect(harness.patches).toEqual([]);
     });
 
     it('says the original is unchanged when nothing could be queued', async () => {

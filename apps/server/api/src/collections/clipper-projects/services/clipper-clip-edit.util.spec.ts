@@ -148,6 +148,20 @@ describe('planClipEdit', () => {
     expect(plan.endTime).toBe(95.4);
   });
 
+  it.each([null, 0, Number.NaN])(
+    'treats an unusable source length (%s) as unknown instead of failing',
+    (sourceDurationSeconds) => {
+      const plan = planClipEdit({
+        request: { startTime: 12, endTime: 30 },
+        sourceDurationSeconds,
+        subject: FINISHED_CLIP,
+        transcriptSegments: TRANSCRIPT,
+      });
+
+      expect(plan.endTime).toBe(30);
+    },
+  );
+
   it('refuses a window where nobody speaks', () => {
     expect(
       messageOf(() =>

@@ -10,6 +10,7 @@ const MAX_DEFAULT_SKILLS = 4;
 
 const AGENT_TYPE_DEFAULTS: Record<string, readonly string[]> = {
   [AgentType.ADS_SCRIPT_WRITER]: ['ad-copy-creator'],
+  [AgentType.AI_AVATAR]: ['clip-editor'],
   [AgentType.ARTICLE_WRITER]: ['blog-content-creator'],
   [AgentType.IMAGE_CREATOR]: ['image-prompt-engineer', 'model-selector'],
   [AgentType.LINKEDIN_CONTENT]: ['linkedin-content-creator'],

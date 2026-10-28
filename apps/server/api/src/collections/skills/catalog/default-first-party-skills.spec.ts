@@ -26,6 +26,12 @@ describe('resolveDefaultFirstPartySkillSlugs', () => {
     ).toEqual(['model-selector', 'image-prompt-engineer', 'clip-editor']);
   });
 
+  it('gives the AI avatar agent the clip editor, since it can edit clips too', () => {
+    expect(
+      resolveDefaultFirstPartySkillSlugs({ agentType: AgentType.AI_AVATAR }),
+    ).toContain('clip-editor');
+  });
+
   it.each([
     'x',
     'twitter',

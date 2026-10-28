@@ -53,7 +53,7 @@ function countCaptionCues(srt: string): number {
  */
 export function planClipEdit(input: {
   request: Pick<IClipperClipEditRequest, 'endTime' | 'startTime' | 'title'>;
-  sourceDurationSeconds?: number;
+  sourceDurationSeconds?: number | null;
   subject: ClipEditSubject;
   transcriptSegments: TranscriptSegment[];
 }): ClipEditPlan {
@@ -95,12 +95,15 @@ export function planClipEdit(input: {
       `An edited clip runs ${MIN_DURATION_SECONDS} to ${MAX_DURATION_SECONDS} seconds; this one would run ${duration.toFixed(1)}.`,
     );
   }
+  // A persisted source length that is missing, zero or not a number is unknown.
+  const knownSourceDuration = readFiniteNumber(sourceDurationSeconds);
   if (
-    sourceDurationSeconds !== undefined &&
-    endTime > sourceDurationSeconds + SOURCE_END_TOLERANCE_SECONDS
+    knownSourceDuration !== undefined &&
+    knownSourceDuration > 0 &&
+    endTime > knownSourceDuration + SOURCE_END_TOLERANCE_SECONDS
   ) {
     throw new BadRequestException(
-      `endTime is past the end of the source video (${sourceDurationSeconds.toFixed(1)} seconds).`,
+      `endTime is past the end of the source video (${knownSourceDuration.toFixed(1)} seconds).`,
     );
   }
 

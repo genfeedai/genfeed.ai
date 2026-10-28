@@ -104,6 +104,24 @@ export class ClipperClipEditService {
     };
   }
 
+  /** Undo the 'generating' flip when no edit was queued; the failure itself is reported. */
+  private async restoreProjectStatus(
+    projectId: string,
+    organizationId: string,
+  ): Promise<void> {
+    try {
+      await this.clipperProjectsService.reconcileTerminalState(
+        projectId,
+        organizationId,
+      );
+    } catch (error: unknown) {
+      this.logger.error(`${this.logContext} could not restore project status`, {
+        error: error instanceof Error ? error.message : String(error),
+        projectId,
+      });
+    }
+  }
+
   async editClip(
     organizationId: string,
     userId: string,
@@ -155,43 +173,51 @@ export class ClipperClipEditService {
       organizationId,
     );
 
-    const generated = await this.clipperGenerationService.generateClips({
-      highlights: [
-        {
-          clip_type:
-            typeof original.clipType === 'string' ? original.clipType : 'edit',
-          end_time: plan.endTime,
-          start_time: plan.startTime,
-          summary: typeof original.summary === 'string' ? original.summary : '',
-          tags: Array.isArray(original.tags)
-            ? original.tags.filter(
-                (tag): tag is string => typeof tag === 'string',
-              )
-            : [],
-          title: plan.title,
-          virality_score:
-            typeof original.viralityScore === 'number'
-              ? original.viralityScore
-              : 0,
-        },
-      ],
-      hookApprovalRequired: false,
-      mode: 'raw-cut',
-      orgId: organizationId,
-      projectId,
-      resultIndex: typeof original.index === 'number' ? original.index : 0,
-      sourceVideoS3Key,
-      sourceVideoUrl,
-      transcriptSegments,
-      userId,
-    });
+    let generated: Awaited<
+      ReturnType<ClipperGenerationService['generateClips']>
+    >;
+    try {
+      generated = await this.clipperGenerationService.generateClips({
+        highlights: [
+          {
+            clip_type:
+              typeof original.clipType === 'string'
+                ? original.clipType
+                : 'edit',
+            end_time: plan.endTime,
+            start_time: plan.startTime,
+            summary:
+              typeof original.summary === 'string' ? original.summary : '',
+            tags: Array.isArray(original.tags)
+              ? original.tags.filter(
+                  (tag): tag is string => typeof tag === 'string',
+                )
+              : [],
+            title: plan.title,
+            virality_score:
+              typeof original.viralityScore === 'number'
+                ? original.viralityScore
+                : 0,
+          },
+        ],
+        hookApprovalRequired: false,
+        mode: 'raw-cut',
+        orgId: organizationId,
+        projectId,
+        resultIndex: typeof original.index === 'number' ? original.index : 0,
+        sourceVideoS3Key,
+        sourceVideoUrl,
+        transcriptSegments,
+        userId,
+      });
+    } catch (error: unknown) {
+      await this.restoreProjectStatus(projectId, organizationId);
+      throw error;
+    }
 
     const [editedId] = generated.clipperResultIds;
     if (!editedId || generated.queuedClipCount === 0) {
-      await this.clipperProjectsService.reconcileTerminalState(
-        projectId,
-        organizationId,
-      );
+      await this.restoreProjectStatus(projectId, organizationId);
       throw new BadRequestException(
         'The edit could not be queued. The original clip is unchanged.',
       );
