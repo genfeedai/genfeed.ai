@@ -1,6 +1,9 @@
 'use client';
 
-import { BRAND_END_CARD_LIMITS } from '@genfeedai/contracts/constants';
+import {
+  BRAND_END_CARD_LIMITS,
+  BRAND_END_CARD_MIME_TYPES,
+} from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { BrandEndCardSettingsProps } from '@props/pages/brand-detail.props';
 import { BrandsService } from '@services/social/brands.service';
@@ -44,7 +47,9 @@ export default function BrandEndCardSettings({
     ...(brand.references ?? []),
   ].filter(
     (asset, index, all) =>
-      all.findIndex((item) => item.id === asset.id) === index,
+      all.findIndex((item) => item.id === asset.id) === index &&
+      (asset.id === brand.endCardAssetId ||
+        BRAND_END_CARD_MIME_TYPES.includes(asset.mimeType ?? '')),
   );
   const isDurationValid =
     duration.trim() !== '' &&

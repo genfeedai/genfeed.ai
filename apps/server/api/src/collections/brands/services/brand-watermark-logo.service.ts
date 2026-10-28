@@ -87,6 +87,8 @@ export class BrandWatermarkLogoService {
         );
       return;
     }
+    // A disabled card keeps its stored image; only a new image needs a check.
+    if (!isEnabled && assetId === brand.endCardAssetId) return;
     const asset = await this.prisma.asset.findFirst({
       where: {
         id: assetId,

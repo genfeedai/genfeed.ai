@@ -191,6 +191,35 @@ describe('BrandWatermarkLogoService', () => {
       expect(assetDelegate.findFirst).not.toHaveBeenCalled();
     });
 
+    it('lets a disabled card keep a stored image that is no longer valid', async () => {
+      delegate.findFirst.mockResolvedValue({
+        ...brand,
+        endCardAssetId: 'asset-1',
+        isEndCardEnabled: true,
+      });
+      assetDelegate.findFirst.mockResolvedValue(null);
+      await expect(
+        service.validateEndCardSettings('brand-1', 'org-1', {
+          endCardAssetId: 'asset-1',
+          isEndCardEnabled: false,
+        }),
+      ).resolves.toBeUndefined();
+    });
+
+    it('still checks a new image while the card is off', async () => {
+      delegate.findFirst.mockResolvedValue({
+        ...brand,
+        endCardAssetId: 'asset-1',
+      });
+      assetDelegate.findFirst.mockResolvedValue(null);
+      await expect(
+        service.validateEndCardSettings('brand-1', 'org-1', {
+          endCardAssetId: 'asset-2',
+          isEndCardEnabled: false,
+        }),
+      ).rejects.toThrow('must be a PNG, JPEG or WebP');
+    });
+
     it.each([
       ['another brand’s asset', null],
       ['a GIF', { id: 'asset-1', mimeType: 'image/gif' }],
