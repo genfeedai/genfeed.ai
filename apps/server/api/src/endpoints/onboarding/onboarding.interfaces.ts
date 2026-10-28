@@ -1,3 +1,4 @@
+import type { FirstRunImageSlots } from '@api/helpers/utils/first-run-image-generation/first-run-image-generation.interfaces';
 import type {
   IBrandScrapeWarning,
   IExtractedBrandData,
@@ -62,4 +63,22 @@ export interface OnboardingWorkspaceContext {
   brandId: string | null;
   organizationId: string;
   userId: string;
+}
+
+/** What the first-run image brief is derived from. */
+export interface OnboardingImageBriefInput {
+  audience?: string;
+  brandName: string;
+  description?: string;
+  goals?: string[];
+  offer?: string;
+  /** The X post the image illustrates. */
+  post: string;
+  tone?: string;
+}
+
+/** A lead sentence plus the structured slots, ready for the image request body. */
+export interface OnboardingImageBrief {
+  prompt: string;
+  slots: FirstRunImageSlots;
 }

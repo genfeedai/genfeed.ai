@@ -19,6 +19,7 @@ vi.mock(
   }),
 );
 
+import { buildFirstRunOnboardingImageBody } from '@api/helpers/utils/first-run-image-generation/first-run-image-generation.util';
 import { readUsableCdnAssetUrl } from '@api/services/agent-orchestrator/tools/agent-media-generation-response-readers';
 
 describe('OnboardingFirstDraftsService', () => {
@@ -174,6 +175,40 @@ describe('OnboardingFirstDraftsService', () => {
         parentRequestId: '3f6b1e0a-2b8c-4f06-9d34-5a0f8c1d2e7b',
         surface: 'onboarding',
       });
+    });
+
+    it('sends the image a structured brief, not the form answers', async () => {
+      brandsService.findOne.mockResolvedValue({
+        agentConfig: {},
+        description: 'Content brand for Acme.',
+        label: 'Acme',
+      });
+      postGeneration.generateDraftText.mockImplementation(
+        async (input: { platform: string }) => ({
+          brandedReceipt: { id: 'receipt', state: 'ready' },
+          description:
+            input.platform === 'twitter'
+              ? 'I build AI agents that automate follow-ups. Follow along. 🤖'
+              : 'draft',
+          postId: 'post',
+        }),
+      );
+
+      await service.generate(user, 'brand_1', {
+        context: { audience: 'Aryan', goals: ['Grow my audience'] },
+      });
+
+      const [input] = vi.mocked(buildFirstRunOnboardingImageBody).mock.calls[0];
+      expect(input.prompt).toBe('I build AI agents that automate follow-ups');
+      expect(input.slots).toMatchObject({
+        camera: expect.any(String),
+        lens: expect.any(String),
+        lighting: expect.any(String),
+        subject: expect.stringContaining('connected nodes'),
+      });
+      expect(JSON.stringify(input)).not.toMatch(
+        /Content brand for|Write for this audience|Aryan/,
+      );
     });
 
     it('is partial when the image fails', async () => {
