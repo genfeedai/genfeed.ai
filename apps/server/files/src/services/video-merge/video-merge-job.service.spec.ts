@@ -30,14 +30,16 @@ const createJob = (data: VideoJobData): Job<VideoJobData> =>
     name: JOB_TYPES.MERGE_VIDEOS,
   }) as unknown as Job<VideoJobData>;
 
+const probeResult = (duration: string) => ({
+  format: { duration, size: '100' },
+  streams: [{ codec_type: 'video', width: 64, height: 64 }],
+});
+
 describe('VideoMergeJobService', () => {
   const ffmpegService = {
     appendEndCard: vi.fn().mockResolvedValue(undefined),
     cleanupTempFiles: vi.fn(),
-    probe: vi.fn().mockResolvedValue({
-      format: { duration: '6', size: '100' },
-      streams: [{ codec_type: 'video', width: 64, height: 64 }],
-    }),
+    probe: vi.fn(),
     convertToPortrait: vi.fn().mockResolvedValue(undefined),
     getTempPath: vi.fn(
       (type: string, ingredientId: string) => `/tmp/${type}-${ingredientId}`,
@@ -78,6 +80,8 @@ describe('VideoMergeJobService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    ffmpegService.probe.mockReset();
+    ffmpegService.probe.mockResolvedValue(probeResult('6'));
     service = new VideoMergeJobService(
       ffmpegService as never,
       s3Service as never,
@@ -148,9 +152,7 @@ describe('VideoMergeJobService', () => {
     };
 
     beforeEach(() => {
-      ffmpegService.probe
-        .mockResolvedValueOnce({ format: { duration: '6.2' }, streams: [] })
-        .mockResolvedValueOnce({ format: { duration: '6.2' }, streams: [] });
+      ffmpegService.probe.mockResolvedValue(probeResult('6.2'));
     });
 
     it('trims each clip so the cuts land on the beat and reports the edit as synced', async () => {
@@ -189,11 +191,7 @@ describe('VideoMergeJobService', () => {
     });
 
     it('leaves a clip alone when it already ends on a beat', async () => {
-      ffmpegService.probe.mockReset();
-      ffmpegService.probe.mockResolvedValue({
-        format: { duration: '6', size: '100' },
-        streams: [],
-      });
+      ffmpegService.probe.mockResolvedValue(probeResult('6'));
       beatDetectionService.analyzeBeat.mockResolvedValueOnce(steadyBeat);
 
       await service.process(
@@ -428,6 +426,7 @@ describe('VideoMergeJobService', () => {
       url: 'https://cdn.example.com/videos/ingredient-123.mp4',
       s3Key: 'videos/ingredient-123.mp4',
       success: true,
+      isBeatSynced: false,
     });
   });
 

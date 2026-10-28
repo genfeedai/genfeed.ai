@@ -18,7 +18,10 @@ vi.mock('@files/helpers/utils/security/security.util', () => ({
 const spawnMock = vi.hoisted(() => vi.fn());
 vi.mock('node:child_process', () => ({ spawn: spawnMock }));
 
-/** An ffmpeg process that streams `pcm` on stdout, then exits with `code`. */
+/**
+ * An ffmpeg process that streams `pcm` on stdout, then exits with `code`.
+ * Build it inside the spawn mock: events fire right after listeners attach.
+ */
 function decoderProcess(pcm: Buffer, code = 0, stderr = '') {
   const process = new EventEmitter() as EventEmitter & {
     stderr: EventEmitter;
@@ -67,7 +70,7 @@ describe('FFmpegBeatDetectionService', () => {
       seconds: 30,
       tempo: 120,
     });
-    spawnMock.mockReturnValue(decoderProcess(toPcm(samples)));
+    spawnMock.mockImplementation(() => decoderProcess(toPcm(samples)));
 
     const result = await service.analyzeBeat('/tmp/music.mp3');
 
@@ -85,14 +88,14 @@ describe('FFmpegBeatDetectionService', () => {
   });
 
   it('returns null for audio without a pulse', async () => {
-    spawnMock.mockReturnValue(
+    spawnMock.mockImplementation(() =>
       decoderProcess(toPcm(new Float32Array(22_050 * 5))),
     );
     await expect(service.analyzeBeat('/tmp/silence.mp3')).resolves.toBeNull();
   });
 
   it('fails with the decoder output when ffmpeg cannot read the file', async () => {
-    spawnMock.mockReturnValue(
+    spawnMock.mockImplementation(() =>
       decoderProcess(Buffer.alloc(0), 1, 'Invalid data found'),
     );
     await expect(service.analyzeBeat('/tmp/broken.mp3')).rejects.toThrow(
