@@ -1,27 +1,15 @@
 :root {
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-serif: Georgia, 'Times New Roman', serif;
-  --font-size-h1: 30px;
-  --font-size-h2: 24px;
-  --font-size-h3: 20px;
-  --font-size-hero: 36px;
   --font-size-lg: 15px;
   --font-size-md: 14px;
-  --font-size-sm: 12px;
-  --font-size-xl: 16px;
   --font-size-xs: 11px;
-  --font-size-xxl: 18px;
-  --font-size-xxxl: 20px;
   --font-weight-medium: 500;
   --font-weight-regular: 400;
   --font-weight-semibold: 600;
   --line-height-body: 20px;
   --line-height-caption: 14px;
-  --line-height-compact: 16px;
-  --line-height-display: 40px;
-  --line-height-heading: 28px;
   --line-height-lede: 24px;
-  --line-height-title: 32px;
   --tracking-normal: -0.011em;
   --tracking-tight: -0.02em;
   --tracking-wide: 0.02em;
@@ -35,7 +23,7 @@
   --space-xxxxl: 48px;
   --radius-2xl: 12px;
   --radius-3xl: 16px;
-  --radius-card: 8px;
+  --radius-card: var(--radius-lg);
   --radius-full: 9999px;
   --radius-lg: 8px;
   --radius-md: 6px;

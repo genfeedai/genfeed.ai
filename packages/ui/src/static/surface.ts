@@ -78,9 +78,9 @@ ${lightThemeVariables}
   --gf-radius-md: ${radiusTokens.md};
   --gf-radius-lg: ${radiusTokens.lg};
   --gf-radius-xl: ${radiusTokens.xl};
-  /* Single knob for the editorial "sharp border" surface language. Mirrors the
-     canonical --radius-card (sharp 0px). Raise to a token (e.g. ${radiusTokens.xs})
-     to soften every surface at once. */
+  /* Single knob for the editorial "sharp border" surface language of the
+     HTML-only pages. Raise to a token (e.g. ${radiusTokens.xs}) to soften every
+     surface at once. */
   --gf-surface-radius: ${radiusTokens.none};
   --gf-shadow-border: inset 0 0 0 1px var(--gf-border);
   --gf-shadow-border-strong: inset 0 0 0 1px var(--gf-border-strong);

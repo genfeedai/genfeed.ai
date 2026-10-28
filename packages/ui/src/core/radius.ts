@@ -5,7 +5,8 @@
  * `lg` control inside an `md` container makes the inner corner bulge — pick the
  * step *below* the parent for anything inset by a single padding step.
  *
- * `card` is `lg` (8px), the same radius as the workspace content block.
+ * `card` is the `lg` step (8px), the same radius as the workspace content block.
+ * It is an alias so a card's radius can never drift from `lg`.
  */
 export type RadiusTokenName =
   | 'none'
@@ -24,7 +25,7 @@ export type RadiusTokenName =
 export const radiusTokens = {
   '2xl': '12px',
   '3xl': '16px',
-  card: '8px',
+  card: 'var(--radius-lg)',
   full: '9999px',
   lg: '8px',
   md: '6px',

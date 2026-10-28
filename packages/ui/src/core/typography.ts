@@ -7,30 +7,21 @@
  * leading is a token, not a per-component guess, because inconsistent leading is
  * what makes a dense dark UI feel unreadable long before contrast does.
  *
- * Pairings: xs → caption · sm → compact · md → body · lg/xl → lede ·
- * xxl/h3 → heading · xxxl/h2 → title · h1/hero → display.
+ * Only the steps Tailwind has no slot for live here: `xs` (11px, `text-2xs`),
+ * `md` (14px body) and `lg` (15px, `text-md`). Every other size is a stock
+ * Tailwind class (`text-xs` … `text-4xl`), so it is not duplicated as a token.
+ *
+ * Pairings: xs → caption · md → body · lg → lede.
  */
 export type TypographyTokenName =
   | 'fontSans'
   | 'fontSerif'
   | 'fontSizeXs'
-  | 'fontSizeSm'
   | 'fontSizeMd'
   | 'fontSizeLg'
-  | 'fontSizeXl'
-  | 'fontSizeXxl'
-  | 'fontSizeXxxl'
-  | 'fontSizeHero'
-  | 'fontSizeH1'
-  | 'fontSizeH2'
-  | 'fontSizeH3'
   | 'lineHeightCaption'
-  | 'lineHeightCompact'
   | 'lineHeightBody'
   | 'lineHeightLede'
-  | 'lineHeightHeading'
-  | 'lineHeightTitle'
-  | 'lineHeightDisplay'
   | 'fontWeightRegular'
   | 'fontWeightMedium'
   | 'fontWeightSemibold'
@@ -41,29 +32,17 @@ export type TypographyTokenName =
 export const typographyTokens = {
   fontSans: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   fontSerif: "Georgia, 'Times New Roman', serif",
-  fontSizeH1: '30px',
-  fontSizeH2: '24px',
-  fontSizeH3: '20px',
-  fontSizeHero: '36px',
   fontSizeLg: '15px',
   // Body. Was 13px — the single biggest readability complaint in the app.
   fontSizeMd: '14px',
-  fontSizeSm: '12px',
-  fontSizeXl: '16px',
   // Hard floor. Anything that wants to be smaller wants to be uppercase instead.
   fontSizeXs: '11px',
-  fontSizeXxl: '18px',
-  fontSizeXxxl: '20px',
   fontWeightMedium: '500',
   fontWeightRegular: '400',
   fontWeightSemibold: '600',
   lineHeightBody: '20px',
   lineHeightCaption: '14px',
-  lineHeightCompact: '16px',
-  lineHeightDisplay: '40px',
-  lineHeightHeading: '28px',
   lineHeightLede: '24px',
-  lineHeightTitle: '32px',
   // Optical correction: large type needs negative tracking to avoid looking loose.
   trackingNormal: '-0.011em',
   trackingTight: '-0.02em',
