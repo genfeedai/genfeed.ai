@@ -235,6 +235,24 @@ describe('IngredientExportService', () => {
     },
   );
 
+  it('sends the brand watermark size and insets to the renderer', async () => {
+    prisma.brand.findFirst.mockResolvedValue({
+      ...brand,
+      watermarkInsetXRatio: 0.096,
+      watermarkInsetYRatio: 0.235,
+      watermarkPosition: 'top-right',
+      watermarkSizeRatio: 0.0667,
+    });
+    files.watermarkExport.mockClear();
+    await service.export('image-1', 'org-1');
+    expect(files.watermarkExport.mock.calls[0][0].layers[0]).toMatchObject({
+      insetXRatio: 0.096,
+      insetYRatio: 0.235,
+      position: 'top-right',
+      sizeRatio: 0.0667,
+    });
+  });
+
   it('addresses the stored copy by source and watermark settings', async () => {
     const keyFor = async (overrides: Record<string, unknown>) => {
       files.watermarkExport.mockClear();
@@ -246,6 +264,9 @@ describe('IngredientExportService', () => {
     expect(await keyFor({})).toBe(base);
     expect(await keyFor({ watermarkText: 'Other' })).not.toBe(base);
     expect(await keyFor({ watermarkOpacity: 0.5 })).not.toBe(base);
+    expect(await keyFor({ watermarkSizeRatio: 0.0667 })).not.toBe(base);
+    expect(await keyFor({ watermarkInsetXRatio: 0.096 })).not.toBe(base);
+    expect(await keyFor({ watermarkInsetYRatio: 0.235 })).not.toBe(base);
     prisma.ingredient.findFirst.mockResolvedValue({
       ...ingredient,
       version: 2,

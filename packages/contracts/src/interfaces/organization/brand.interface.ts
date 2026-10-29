@@ -31,6 +31,12 @@ export interface IBrand extends IBaseEntity {
   watermarkLogoId?: string | null;
   watermarkOpacity?: number;
   watermarkPosition?: WatermarkPosition;
+  /** Watermark width as a share of the canvas width. Empty keeps the fit-inside default. */
+  watermarkSizeRatio?: number | null;
+  /** Distance from the left or right edge as a share of the canvas width. */
+  watermarkInsetXRatio?: number | null;
+  /** Distance from the top or bottom edge as a share of the canvas width. */
+  watermarkInsetYRatio?: number | null;
 
   /** Brand image asset appended to the end of finished videos. */
   endCardAssetId?: string | null;

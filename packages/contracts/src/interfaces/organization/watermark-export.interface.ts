@@ -9,6 +9,12 @@ export interface IWatermarkLayer {
   logoStorageKey?: string;
   opacity: number;
   position: WatermarkPosition;
+  /** Width of the mark as a share of the canvas width. */
+  sizeRatio?: number;
+  /** Distance from the left or right edge as a share of the canvas width. */
+  insetXRatio?: number;
+  /** Distance from the top or bottom edge as a share of the canvas width. */
+  insetYRatio?: number;
 }
 
 export interface IWatermarkExportRequest {

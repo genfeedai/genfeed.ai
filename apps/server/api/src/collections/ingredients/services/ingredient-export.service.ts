@@ -105,6 +105,15 @@ export class IngredientExportService {
         logoStorageKey,
         opacity: brand.watermarkOpacity,
         position: brand.watermarkPosition as WatermarkPosition,
+        ...(brand.watermarkSizeRatio != null
+          ? { sizeRatio: brand.watermarkSizeRatio }
+          : {}),
+        ...(brand.watermarkInsetXRatio != null
+          ? { insetXRatio: brand.watermarkInsetXRatio }
+          : {}),
+        ...(brand.watermarkInsetYRatio != null
+          ? { insetYRatio: brand.watermarkInsetYRatio }
+          : {}),
       },
     ];
     const result = await this.files.watermarkExport({

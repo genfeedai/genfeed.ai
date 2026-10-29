@@ -53,6 +53,47 @@ export class UpdateBrandDto extends PartialType(CreateBrandDto) {
   readonly watermarkPosition?: string;
 
   @IsOptional()
+  @IsNumber()
+  @Min(0.01)
+  @Max(0.5)
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    minimum: 0.01,
+    maximum: 0.5,
+    description: 'Watermark width as a share of the canvas width',
+  })
+  readonly watermarkSizeRatio?: number | null;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(0.5)
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    minimum: 0,
+    maximum: 0.5,
+    description:
+      'Distance from the left or right edge as a share of the canvas width',
+  })
+  readonly watermarkInsetXRatio?: number | null;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(0.5)
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    minimum: 0,
+    maximum: 0.5,
+    description:
+      'Distance from the top or bottom edge as a share of the canvas width',
+  })
+  readonly watermarkInsetYRatio?: number | null;
+
+  @IsOptional()
   @IsEntityId()
   @ApiProperty({
     required: false,

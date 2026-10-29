@@ -30,6 +30,9 @@ export class BrandEntity extends BaseEntity implements Brand {
   declare readonly watermarkLogoId: BrandDocument['watermarkLogoId'];
   declare readonly watermarkOpacity: BrandDocument['watermarkOpacity'];
   declare readonly watermarkPosition: BrandDocument['watermarkPosition'];
+  declare readonly watermarkSizeRatio: BrandDocument['watermarkSizeRatio'];
+  declare readonly watermarkInsetXRatio: BrandDocument['watermarkInsetXRatio'];
+  declare readonly watermarkInsetYRatio: BrandDocument['watermarkInsetYRatio'];
   declare readonly endCardAssetId: BrandDocument['endCardAssetId'];
   declare readonly endCardDurationSeconds: BrandDocument['endCardDurationSeconds'];
   declare readonly isEndCardEnabled: BrandDocument['isEndCardEnabled'];

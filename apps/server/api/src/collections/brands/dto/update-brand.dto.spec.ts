@@ -73,6 +73,33 @@ describe('UpdateBrandDto', () => {
       });
     });
 
+    it('accepts watermark size and insets, or null to clear them', async () => {
+      const result = await pipe.transform(
+        {
+          watermarkInsetXRatio: 0.096,
+          watermarkInsetYRatio: null,
+          watermarkSizeRatio: 0.0667,
+        },
+        metadata,
+      );
+      expect(result).toMatchObject({
+        watermarkInsetXRatio: 0.096,
+        watermarkInsetYRatio: null,
+        watermarkSizeRatio: 0.0667,
+      });
+    });
+
+    it.each([
+      ['watermarkSizeRatio', 0],
+      ['watermarkSizeRatio', 0.9],
+      ['watermarkInsetXRatio', -0.1],
+      ['watermarkInsetYRatio', 0.6],
+    ])('rejects %s = %s', async (field, value) => {
+      await expect(
+        pipe.transform({ [field]: value }, metadata),
+      ).rejects.toMatchObject({ status: 400 });
+    });
+
     it('should create an instance', () => {
       const dto = new UpdateBrandDto();
       expect(dto).toBeInstanceOf(UpdateBrandDto);
