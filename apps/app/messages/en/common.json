@@ -1386,6 +1386,11 @@
       "approvePost": "Approve post",
       "workflowFailed": "Workflow execution failed."
     },
+    "connect": {
+      "action": "Connect Genfeed",
+      "dismiss": "Dismiss connect card",
+      "title": "Connect Claude Code, Codex, or another AI client"
+    },
     "credentials": {
       "addBrand": "Add a brand",
       "empty": "No accounts are connected yet.",

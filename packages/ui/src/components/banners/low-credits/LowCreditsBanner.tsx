@@ -5,7 +5,6 @@ import {
   shouldShowCreditsNav,
 } from '@genfeedai/config/license';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
-import { ButtonVariant } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   formatCreditBalanceExact,
@@ -16,9 +15,9 @@ import { useSubscription } from '@genfeedai/hooks/data/subscription/use-subscrip
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import { getDesktopCreditsVisibility } from '@genfeedai/services/core/desktop-runtime.service';
+import NoticeBanner from '@ui/banners/notice-banner/NoticeBanner';
 import { Badge } from '@ui/primitives/badge';
-import { Button } from '@ui/primitives/button';
-import { TriangleAlert, X } from 'lucide-react';
+import { TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -189,77 +188,47 @@ function LowCreditsContent({
 
   return (
     <div
-      className={cn('@container w-full', isInline ? '' : 'px-4 pt-3')}
+      className={cn('w-full', isInline ? '' : 'px-4 pt-3')}
       data-testid={isInline ? 'library-credit-notice' : 'shell-credit-notice'}
     >
-      <div
-        role="alert"
-        className={cn(
-          'mx-auto flex w-full flex-col gap-3 rounded-lg border border-border bg-card px-4 py-3 text-sm',
-          'items-stretch @2xl:flex-row @2xl:items-center @2xl:justify-between',
-          !isInline && 'max-w-6xl',
-        )}
-      >
-        <div className="flex min-w-0 items-start gap-3 @2xl:items-center">
-          <div
-            className={cn(
-              'flex size-8 shrink-0 items-center justify-center rounded-md border',
-              isCritical
-                ? 'border-destructive/30 bg-destructive/10 text-destructive'
-                : 'border-warning/30 bg-warning/10 text-warning',
-            )}
-          >
-            <TriangleAlert className="size-4" />
-          </div>
-
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm font-semibold leading-5 text-foreground">
-                {title}
-              </p>
-              {balanceLabel ? (
-                <Badge
-                  className="whitespace-nowrap tabular-nums"
-                  variant="secondary"
-                >
-                  {balanceLabel}
-                </Badge>
-              ) : null}
-            </div>
-
-            <p className="text-sm leading-5 text-foreground/70">
-              {description}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex w-full shrink-0 items-center gap-2 @2xl:w-auto">
-          <Link
-            href={ctaHref}
-            className="inline-flex h-9 flex-1 items-center justify-center whitespace-nowrap rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 @2xl:flex-none"
-          >
-            {isTrialUsedUp ? translate('buyCredits') : ctaLabel}
-          </Link>
-
-          {isTrialUsedUp ? (
-            <Link
-              href={plansHref}
-              className="inline-flex h-9 flex-1 items-center justify-center whitespace-nowrap rounded-lg border border-border-strong px-3.5 text-sm font-semibold text-foreground transition-colors hover:bg-accent @2xl:flex-none"
+      <NoticeBanner
+        className={cn('mx-auto', !isInline && 'max-w-6xl')}
+        tone={isCritical ? 'destructive' : 'warning'}
+        icon={<TriangleAlert />}
+        title={title}
+        badge={
+          balanceLabel ? (
+            <Badge
+              className="whitespace-nowrap tabular-nums"
+              variant="secondary"
             >
-              {translate('seePlans')}
+              {balanceLabel}
+            </Badge>
+          ) : null
+        }
+        description={description}
+        dismissLabel="Dismiss low credits banner"
+        onDismiss={isTrialUsedUp ? undefined : handleDismiss}
+        actions={
+          <>
+            <Link
+              href={ctaHref}
+              className="inline-flex h-9 flex-1 items-center justify-center whitespace-nowrap rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 @2xl:flex-none"
+            >
+              {isTrialUsedUp ? translate('buyCredits') : ctaLabel}
             </Link>
-          ) : (
-            <Button
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              onClick={handleDismiss}
-              className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-border-strong text-foreground/70 transition-colors hover:bg-accent hover:text-foreground"
-              ariaLabel="Dismiss low credits banner"
-              icon={<X className="size-4" />}
-            />
-          )}
-        </div>
-      </div>
+
+            {isTrialUsedUp ? (
+              <Link
+                href={plansHref}
+                className="inline-flex h-9 flex-1 items-center justify-center whitespace-nowrap rounded-lg border border-border-strong px-3.5 text-sm font-semibold text-foreground transition-colors hover:bg-accent @2xl:flex-none"
+              >
+                {translate('seePlans')}
+              </Link>
+            ) : null}
+          </>
+        }
+      />
     </div>
   );
 }
