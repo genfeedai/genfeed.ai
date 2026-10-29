@@ -1,15 +1,11 @@
 // @vitest-environment jsdom
 
+import { selectView, viewMenuTrigger } from '@app-tests/view-menu.helpers';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom/vitest';
 import { MemberRole, ViewType } from '@genfeedai/contracts';
 import { getCollectionViewStorageKey } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -400,25 +396,22 @@ describe('OrgLandingContent', () => {
     expect(solar).not.toHaveTextContent('platform');
   });
 
-  it('defaults to logo cards with a list toggle for up to 6 brands', () => {
+  it('defaults to logo cards with a list toggle for up to 6 brands', async () => {
     mocks.brandState.brands = createBrands(6);
 
     render(<OrgLandingContent />);
 
     expect(screen.getAllByTestId('org-brand-card')).toHaveLength(6);
     expect(screen.queryByTestId('org-brand-row')).toBeNull();
-    expect(screen.getByRole('radio', { name: 'Grid' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
+    expect(viewMenuTrigger('Grid')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('radio', { name: 'List' }));
+    await selectView(userEvent.setup(), 'List');
 
     expect(screen.getAllByTestId('org-brand-row')).toHaveLength(6);
     expect(screen.queryByTestId('org-brand-card')).toBeNull();
   });
 
-  it('defaults to the list view above 6 brands and keeps the grid toggle', () => {
+  it('defaults to the list view above 6 brands and keeps the grid toggle', async () => {
     mocks.brandState.brands = createBrands(7);
 
     render(<OrgLandingContent />);
@@ -427,12 +420,9 @@ describe('OrgLandingContent', () => {
     expect(rows).toHaveLength(7);
     expect(rows[0]).toHaveAttribute('href', '/acme/brand-1/workspace');
     expect(screen.queryByTestId('org-brand-card')).toBeNull();
-    expect(screen.getByRole('radio', { name: 'List' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
+    expect(viewMenuTrigger('List')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('radio', { name: 'Grid' }));
+    await selectView(userEvent.setup(), 'Grid');
 
     expect(screen.getAllByTestId('org-brand-card')).toHaveLength(7);
   });
@@ -466,10 +456,7 @@ describe('OrgLandingContent', () => {
 
     expect(await screen.findByTestId('list-rows-skeleton')).toBeVisible();
     expect(screen.queryByTestId('skeleton-card')).toBeNull();
-    expect(screen.getByRole('radio', { name: 'List' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
+    expect(viewMenuTrigger('List')).toBeInTheDocument();
   });
 
   it('keeps the skeleton while the user loads for a multi-brand organization', () => {

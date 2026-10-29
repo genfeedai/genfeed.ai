@@ -1,3 +1,4 @@
+import { selectView } from '@app-tests/view-menu.helpers';
 import {
   fireEvent,
   render,
@@ -18,7 +19,7 @@ const mocks = vi.hoisted(() => {
   };
   const notifications = { error: vi.fn(), success: vi.fn() };
   const translate = (key: string, values?: Record<string, unknown>) =>
-    values?.name ? `${key} ${values.name}` : key;
+    key === 'label' ? 'View' : values?.name ? `${key} ${values.name}` : key;
   return {
     service,
     notifications,
@@ -107,7 +108,7 @@ describe('admin templates collection', () => {
     expect(screen.getByTestId('templates-list')).toBeInTheDocument();
     expect(screen.getAllByRole('link')).toHaveLength(15);
     expect(screen.queryByTestId('template-card')).not.toBeInTheDocument();
-    await user.click(screen.getByRole('radio', { name: 'grid' }));
+    await selectView(user, 'grid');
     expect(screen.getByTestId('templates-grid')).toHaveClass('@container');
     expect(screen.getAllByTestId('template-card')).toHaveLength(15);
     first.unmount();
@@ -122,10 +123,12 @@ describe('admin templates collection', () => {
     const content = screen.getByTestId('content');
     expect(within(content).queryAllByRole('heading')).toHaveLength(0);
     expect(
-      within(screen.getByTestId('subbar')).getByRole('radio', { name: 'grid' }),
+      within(screen.getByTestId('subbar')).getByRole('button', {
+        name: /^View: /,
+      }),
     ).toBeInTheDocument();
     expect(
-      within(content).queryByRole('radio', { name: 'grid' }),
+      within(content).queryByRole('button', { name: /^View: / }),
     ).not.toBeInTheDocument();
   });
 

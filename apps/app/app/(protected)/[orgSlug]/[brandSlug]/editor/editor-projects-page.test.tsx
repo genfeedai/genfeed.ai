@@ -1,3 +1,4 @@
+import { selectView } from '@app-tests/view-menu.helpers';
 import '@testing-library/jest-dom/vitest';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import {
@@ -266,7 +267,7 @@ describe('EditorProjectsPage', () => {
     ).not.toBeInTheDocument();
     expect(all.getByText('30m ago')).toBeVisible();
     expect(all.getByText('2d ago')).toBeVisible();
-    await userEvent.click(screen.getByRole('radio', { name: 'Grid' }));
+    await selectView(userEvent.setup(), 'Grid');
     expect(all.getByTestId('editor-project-thumbnail-project-1')).toBeVisible();
     expect(
       within(screen.getByTestId('editor-projects-recent')).getByTestId(

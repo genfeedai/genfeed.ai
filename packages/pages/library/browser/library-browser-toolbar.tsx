@@ -1,18 +1,13 @@
 'use client';
 
-import {
-  ButtonSize,
-  ButtonVariant,
-  ComponentSize,
-  ViewType,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
 import {
   LIBRARY_CANVAS_FEATURE_FLAG,
   type LibraryViewMode,
 } from '@genfeedai/contracts/constants';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag/use-feature-flag';
 import type { LibraryBrowserToolbarProps } from '@props/pages/library-browser.props';
-import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
+import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Button } from '@ui/primitives/button';
 import LibraryTagManagerDialog from '@ui/tags/library-tag-picker/LibraryTagManagerDialog';
 import {
@@ -92,13 +87,12 @@ export default function LibraryBrowserToolbar({
       <LibraryFiltersMenu {...filterProps} />
 
       {!isRecoveryView ? (
-        <ViewToggle
+        <ViewMenu
           activeView={MODE_TO_VIEW_TYPE[viewMode]}
           onChange={(view) =>
             onViewModeChange(VIEW_TYPE_TO_MODE[view] ?? 'grid')
           }
           options={viewOptions}
-          size={ComponentSize.SM}
         />
       ) : null}
     </div>

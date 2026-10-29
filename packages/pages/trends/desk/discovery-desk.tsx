@@ -45,14 +45,14 @@ import type {
   DiscoveryDeskSort,
   DiscoveryDeskSource,
 } from '@props/trends/discovery-desk.props';
-import type { ViewOption } from '@props/ui/navigation/view-toggle.props';
+import type { ViewOption } from '@props/ui/navigation/view-option.props';
 import { NotificationsService } from '@services/core/notifications.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import CollectionView from '@ui/collection/CollectionView';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
-import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
+import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
 import { LayoutGrid, TableProperties, TrendingUp } from 'lucide-react';
@@ -410,11 +410,10 @@ export default function DiscoveryDesk() {
                   })}
             </Badge>
             {!isFollowingView ? (
-              <ViewToggle
+              <ViewMenu
                 activeView={view}
                 onChange={setView}
                 options={viewOptions}
-                size={ComponentSize.SM}
               />
             ) : null}
             <DeskSourcesMenu

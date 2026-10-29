@@ -6,6 +6,7 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { openFilterFacet } from '../../utils/filter-menu';
+import { chooseView, viewMenuTrigger } from '../../utils/view-menu';
 
 /**
  * E2E Tests for Content Library
@@ -76,16 +77,11 @@ test.describe('Content Library', () => {
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(
-        authenticatedPage.getByRole('radio', {
-          name: 'Contact sheet',
-          exact: true,
-        }),
-      ).toBeChecked();
-      await authenticatedPage.getByRole('radio', { name: 'List' }).click();
+        viewMenuTrigger(authenticatedPage, 'Contact sheet'),
+      ).toBeVisible();
+      await chooseView(authenticatedPage, 'List');
       await expect(authenticatedPage).toHaveURL(/view=list/);
-      await authenticatedPage
-        .getByRole('radio', { name: 'Contact sheet', exact: true })
-        .click();
+      await chooseView(authenticatedPage, 'Contact sheet');
       await expect(authenticatedPage).toHaveURL(/view=grid/);
     });
 

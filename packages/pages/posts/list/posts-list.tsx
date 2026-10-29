@@ -26,7 +26,7 @@ import CollectionSection from '@ui/collection/CollectionSection';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Loading from '@ui/loading/default/Loading';
 import Pagination from '@ui/navigation/pagination/Pagination';
-import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
+import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { LayoutGrid, Table } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef } from 'react';
@@ -125,7 +125,7 @@ export default function PostsList({
   useEffect(() => {
     if (isAdminScope) return;
     setViewToggleNode(
-      <ViewToggle
+      <ViewMenu
         options={[
           {
             icon: <LayoutGrid />,

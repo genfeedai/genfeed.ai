@@ -1,3 +1,4 @@
+import { selectView } from '@app-tests/view-menu.helpers';
 import {
   ContextSidebarOutlet,
   ContextSidebarProvider,
@@ -50,6 +51,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import {
   getGenerationSetup,
   useGenerationSetupStore,
@@ -1584,7 +1586,7 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(mocks.rehydratePending).toHaveBeenCalledWith(storedJobs);
   });
 
-  it('defaults to the masonry grid and toggles the results into a list', () => {
+  it('defaults to the masonry grid and toggles the results into a list', async () => {
     mocks.gallery.mockReturnValue({
       isLoadingGallery: false,
       refresh: vi.fn(),
@@ -1608,7 +1610,7 @@ describe('StudioPlaygroundWorkspace', () => {
       expect.objectContaining({ view: 'grid' }),
     );
 
-    fireEvent.click(screen.getByRole('radio', { name: 'viewList' }));
+    await selectView(userEvent.setup(), 'viewList');
 
     expect(mocks.results.mock.calls.at(-1)?.[0]).toEqual(
       expect.objectContaining({ view: 'list' }),
