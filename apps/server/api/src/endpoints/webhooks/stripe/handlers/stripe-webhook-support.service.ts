@@ -18,8 +18,12 @@ import { getEmailLogMetadata } from '@api/endpoints/webhooks/stripe/stripe-webho
 import { scopedWhere } from '@api/index';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { CacheService } from '@api/services/cache/cache.service';
-import type { StripeCheckoutSession } from '@api/services/integrations/stripe/services/stripe.service';
+import type {
+  StripeCheckoutSession,
+  StripeSubscription,
+} from '@api/services/integrations/stripe/services/stripe.service';
 import { StripePaymentRevenueReferenceService } from '@api/services/integrations/stripe/services/stripe-payment-revenue-reference.service';
+import { selectSoftwareSubscriptionItem } from '@api/services/integrations/stripe/services/stripe-software-item.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivityKey,
@@ -725,6 +729,13 @@ export class StripeWebhookSupportService {
    * Resolve the SubscriptionPlan from a Stripe price ID.
    * Supports tier-based pricing: Scale, Enterprise.
    */
+  softwareItem(subscription: StripeSubscription) {
+    return selectSoftwareSubscriptionItem(subscription, [
+      this.configService.get('STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY'),
+      this.configService.get('STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY'),
+    ]);
+  }
+
   resolveSubscriptionPlan(
     stripePriceId: string,
     recurringInterval?: StripeRecurringInterval | null,
