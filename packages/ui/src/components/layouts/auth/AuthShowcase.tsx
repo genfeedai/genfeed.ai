@@ -123,7 +123,8 @@ export default function AuthShowcase({
       />
       {isVideoEnabled ? (
         <>
-          <div className="absolute inset-0">
+          {/* isolate keeps the player's own z-10 error overlay below the labels and controls */}
+          <div className="absolute inset-0 isolate">
             <VideoPlayer
               key={activeSlide.id}
               config={{
