@@ -1,6 +1,8 @@
 -- Agent master thread (#8526). Additive: one new column with a constant
 -- default (catalog-only on PG11+), two indexes and one foreign key. There is
--- no backfill: a user's master thread is created on first open.
+-- no backfill: a user's master thread is created on first open. Both
+-- constraints are added NOT VALID and validated by the next migration, which
+-- keeps the table scan out of this transaction's lock.
 
 ALTER TABLE "agent_threads"
   ADD COLUMN "kind" TEXT NOT NULL DEFAULT 'thread';
@@ -29,7 +31,7 @@ ALTER TABLE "agent_threads"
   ADD CONSTRAINT "agent_threads_parentThreadId_organizationId_fkey"
   FOREIGN KEY ("parentThreadId", "organizationId")
   REFERENCES "agent_threads"("id", "organizationId")
-  ON DELETE RESTRICT ON UPDATE CASCADE;
+  ON DELETE RESTRICT ON UPDATE CASCADE NOT VALID;
 
 -- At most one live master per user per organization. Concurrent
 -- get-or-create calls race on this index; the loser reads the winner's row.

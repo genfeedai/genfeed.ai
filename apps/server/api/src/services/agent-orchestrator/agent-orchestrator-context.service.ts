@@ -318,9 +318,12 @@ export class AgentOrchestratorContextService {
       return composeAgentGuardrails(BRAND_INTERVIEW_SYSTEM_PROMPT);
     }
 
-    const generationModePrompt = buildGenerationModePrompt(
-      request.generationMode,
-    );
+    // The master delegates instead of generating, so a selected image/video
+    // mode must not tell it to generate directly.
+    const generationModePrompt =
+      input.threadKind === AgentThreadKind.MASTER
+        ? ''
+        : buildGenerationModePrompt(request.generationMode);
     const pageContextPrompt = buildPageContextPrompt(
       request.pageContext,
       request.artifactReferences,

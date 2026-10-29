@@ -14,6 +14,10 @@ import {
   assertThreadArchivable,
   parseAgentThreadKind,
 } from '@api/collections/agent-threads/utils/agent-thread-kind.util';
+import {
+  type AgentThreadMetadataBody,
+  pickAgentThreadMetadata,
+} from '@api/collections/agent-threads/utils/agent-thread-metadata.util';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
@@ -439,16 +443,7 @@ export class AgentThreadsController {
   async updateThread(
     @Req() req: Request,
     @Param('threadId') threadId: string,
-    @Body() body: {
-      isPinned?: boolean;
-      mode?: AgentThreadMode;
-      requestedModel?: string;
-      runtimeKey?: string;
-      title?: string;
-      systemPrompt?: string;
-      memoryEntryIds?: string[];
-      status?: AgentThreadStatus;
-    },
+    @Body() body: AgentThreadMetadataBody & { status?: AgentThreadStatus },
     @CurrentUser() user: User,
   ) {
     try {
@@ -482,7 +477,7 @@ export class AgentThreadsController {
             : await this.agentThreadsService.updateThreadMetadata(
                 threadId,
                 organizationId,
-                body,
+                pickAgentThreadMetadata(body),
               );
       return serializeSingle(req, AgentThreadSerializer, updated);
     } catch (error: unknown) {

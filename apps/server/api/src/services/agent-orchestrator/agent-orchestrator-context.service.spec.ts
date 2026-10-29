@@ -590,6 +590,23 @@ describe('AgentOrchestratorContextService master thread prompt (#8526)', () => {
     expect(result.systemPrompt).toContain('## Master thread');
   });
 
+  it('ignores a selected generation mode on the master but not on a plain thread', async () => {
+    const turn = {
+      content: 'Make a launch visual',
+      generationMode: 'image' as const,
+      threadId: THREAD_ID,
+    };
+    const master = await createService({
+      thread: { kind: AgentThreadKind.MASTER },
+    }).resolveSystemPromptAndModel(turn, CONTEXT);
+    const plain = await createService({
+      thread: { kind: AgentThreadKind.THREAD },
+    }).resolveSystemPromptAndModel(turn, CONTEXT);
+
+    expect(master.systemPrompt).not.toContain('generationType=image');
+    expect(plain.systemPrompt).toContain('generationType=image');
+  });
+
   it('leaves plain threads without the brief', async () => {
     const result = await createService({
       thread: { kind: AgentThreadKind.THREAD },
