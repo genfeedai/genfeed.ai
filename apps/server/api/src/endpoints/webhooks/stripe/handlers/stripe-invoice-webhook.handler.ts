@@ -66,6 +66,10 @@ export class StripeInvoiceWebhookHandler {
   ) {}
 
   async handleInvoicePaid(invoice: StripeInvoice, url: string): Promise<void> {
+    if (
+      extractInvoiceSubscriptionMetadata(invoice)?.billing_scope === 'service'
+    )
+      return;
     try {
       const billingReason = invoice.billing_reason;
       if (!isSubscriptionInvoiceBillingReason(billingReason)) {
@@ -242,6 +246,10 @@ export class StripeInvoiceWebhookHandler {
     invoice: StripeInvoice,
     url: string,
   ): Promise<void> {
+    if (
+      extractInvoiceSubscriptionMetadata(invoice)?.billing_scope === 'service'
+    )
+      return;
     try {
       const stripeSubscriptionId = extractInvoiceSubscriptionId(invoice);
 

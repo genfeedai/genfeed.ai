@@ -34,6 +34,7 @@ export default function AgentOutputShell({
   agent,
   agentTitle,
   children,
+  defaultMobileView,
   headerActions,
   mode,
   outputLabel,
@@ -132,6 +133,7 @@ export default function AgentOutputShell({
         output: translate('output'),
         views: translate('views'),
       }}
+      defaultMobileView={defaultMobileView}
       mode={mode}
       onTabChange={setActiveTabId}
       tabs={tabs}

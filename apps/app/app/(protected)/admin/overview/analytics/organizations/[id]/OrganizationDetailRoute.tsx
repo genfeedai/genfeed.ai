@@ -15,6 +15,7 @@ export default function OrganizationDetailRoute() {
     <AnalyticsOrganizationOverview
       organizationId={id}
       basePath={APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS}
+      brandsBasePath={APP_ROUTES.ADMIN.ROOT}
     />
   );
 }

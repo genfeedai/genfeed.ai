@@ -421,7 +421,7 @@ describe('workspace shell trusted registry', () => {
       resolveWorkspaceShellRoute('/acme/~/analytics')?.adapter.status,
     ).toBe('placeholder');
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/workspace/inbox/all')?.adapter
+      resolveWorkspaceShellRoute('/acme/moonrise/workspace/inbox')?.adapter
         .status,
     ).toBe('placeholder');
   });

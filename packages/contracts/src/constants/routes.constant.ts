@@ -11,6 +11,7 @@ export const APP_ROUTES = {
   SIGN_UP: '/sign-up',
   ADMIN: {
     ROOT: '/admin',
+    BRANDS: '/admin/brands',
     FLAGS: '/admin/flags',
     SETTINGS: {
       ACCOUNTS: '/admin/settings/accounts',
@@ -84,7 +85,6 @@ export const APP_ROUTES = {
       ACTIVITIES: '/admin/overview/activities',
       ANALYTICS: '/admin/overview/analytics',
       ANALYTICS_ALL: '/admin/overview/analytics/all',
-      ANALYTICS_BRANDS: '/admin/overview/analytics/brands',
       ANALYTICS_BUSINESS: '/admin/overview/analytics/business',
       ANALYTICS_ORGANIZATIONS: '/admin/overview/analytics/organizations',
       ROOT: '/admin/overview',
@@ -380,9 +380,6 @@ export const APP_ROUTES = {
   WORKSPACE: {
     ACTIVITY: '/workspace/activity',
     INBOX: '/workspace/inbox',
-    INBOX_ALL: '/workspace/inbox/all',
-    INBOX_RECENT: '/workspace/inbox/recent',
-    INBOX_UNREAD: '/workspace/inbox/unread',
     /**
      * Canonical workspace home. Bare ROOT (`/workspace`) redirects here so the
      * Overview nav item is a complete path that does not prefix-match

@@ -14,6 +14,7 @@ import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.st
 import { HttpExceptionFilter } from '@api/helpers/filters/http-exception/http-exception.filter';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { selectSoftwareSubscriptionItem } from '@api/services/integrations/stripe/services/stripe-software-item.util';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { SystemEventsService } from '@api/services/system-events/system-events.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -61,6 +62,7 @@ describe('Stripe billing HTTP composition', () => {
   const support = {
     recordProcessingFee: vi.fn(),
     recordRevenueEvent: vi.fn(),
+    softwareItem: selectSoftwareSubscriptionItem,
     resolveSubscriptionPlan: vi.fn(() => 'monthly'),
     resolveTierFromPriceId: vi.fn(() => null),
     updateOrganizationTierAndModels: vi.fn(),

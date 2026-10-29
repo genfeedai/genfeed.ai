@@ -122,8 +122,8 @@ test('list to detail navigation preserves resolved record parameters', async ({
       });
     },
   );
-  await adminPage.goto(APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BRANDS);
-  const destination = `${APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BRANDS}/brand-1`;
+  await adminPage.goto(APP_ROUTES.ADMIN.BRANDS);
+  const destination = `${APP_ROUTES.ADMIN.BRANDS}/brand-1`;
   const link = adminPage.getByRole('link', {
     name: 'Open Brand 1 analytics',
     exact: true,

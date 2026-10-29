@@ -7,6 +7,7 @@ import {
   mockWorkspaceTasks,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { chooseFilterOption } from '../../utils/filter-menu';
 import {
   assertRouteRenders,
   expectNoErrorOverlay,
@@ -65,32 +66,18 @@ test.describe('Workspace — deep interactions', () => {
     });
   });
 
-  test('switches between workspace inbox views and opens an item', async ({
+  test('switches the workspace inbox status filter and opens an item', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(
-      authenticatedPage,
-      APP_ROUTES.WORKSPACE.INBOX_UNREAD,
-    );
+    await assertRouteRenders(authenticatedPage, APP_ROUTES.WORKSPACE.INBOX);
 
     const inbox = authenticatedPage.getByTestId('workspace-inbox');
     await expect(inbox).toBeVisible();
 
-    const tabs = authenticatedPage.getByTestId('workspace-inbox-tabs');
-    if (await tabs.isVisible().catch(() => false)) {
-      await tryClick(
-        authenticatedPage,
-        '[data-testid="workspace-inbox-tab-all"]',
-      );
-      await tryClick(
-        authenticatedPage,
-        '[data-testid="workspace-inbox-tab-recent"]',
-      );
-      await tryClick(
-        authenticatedPage,
-        '[data-testid="workspace-inbox-tab-unread"]',
-      );
-    }
+    await chooseFilterOption(authenticatedPage, 'Status', /^All/);
+    await chooseFilterOption(authenticatedPage, 'Status', /^Recent/);
+    await chooseFilterOption(authenticatedPage, 'Status', /^Unread/);
+    await expect(authenticatedPage).not.toHaveURL(/status=/);
 
     const firstRow = inbox.getByTestId('workspace-task-row').first();
     if (await firstRow.isVisible().catch(() => false)) {
@@ -105,11 +92,14 @@ test.describe('Workspace — deep interactions', () => {
     await expectNoErrorOverlay(authenticatedPage);
   });
 
-  test('navigates each workspace inbox view route directly', async ({
+  test('opens each workspace inbox status directly from the query', async ({
     authenticatedPage,
   }) => {
-    for (const view of ['unread', 'recent', 'all']) {
-      await assertRouteRenders(authenticatedPage, `/workspace/inbox/${view}`);
+    for (const status of ['', 'recent', 'all']) {
+      await assertRouteRenders(
+        authenticatedPage,
+        status ? `/workspace/inbox?status=${status}` : '/workspace/inbox',
+      );
       await expect(
         authenticatedPage.getByTestId('workspace-inbox'),
       ).toBeVisible();
@@ -146,7 +136,7 @@ test.describe('Workspace — deep interactions', () => {
 
     await assertRouteRenders(
       authenticatedPage,
-      brandPath(APP_ROUTES.WORKSPACE.INBOX_UNREAD),
+      brandPath(APP_ROUTES.WORKSPACE.INBOX),
     );
 
     const historyRow = authenticatedPage
@@ -202,10 +192,7 @@ test.describe('Workspace — deep interactions', () => {
   test('renders the task inspector with review actions from the inbox', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(
-      authenticatedPage,
-      APP_ROUTES.WORKSPACE.INBOX_UNREAD,
-    );
+    await assertRouteRenders(authenticatedPage, APP_ROUTES.WORKSPACE.INBOX);
 
     const firstRow = authenticatedPage
       .getByTestId('workspace-inbox')

@@ -393,7 +393,7 @@
     "allDetailsCount": "All details ({count})",
     "needsYou": "Needs you",
     "activity": "Activity",
-    "activityFilterAria": "Filter activity",
+    "activityFilterType": "Type",
     "activityFilterAll": "All activity",
     "activityFilterContent": "Content",
     "activityFilterRuns": "Runs",
@@ -521,6 +521,23 @@
     "trialEndedBody": "Free credits expired. Everything you made stays in your Library.",
     "buyCredits": "Buy credits",
     "seePlans": "See plans"
+  },
+  "uploadModal": {
+    "title": "Upload {category}",
+    "cloneVoiceTitle": "Clone voice",
+    "dropPrompt": "Drop files here or",
+    "browse": "browse",
+    "singleFile": "Single file",
+    "upToFiles": "Up to {count}",
+    "maxSizeEach": "{size} MB each",
+    "uploadingFile": "Uploading {name}",
+    "statusWaiting": "Waiting",
+    "statusUploaded": "Uploaded",
+    "statusFailed": "Upload failed",
+    "fileCount": "{count} of {max} files",
+    "cancel": "Cancel",
+    "upload": "{count, plural, =0 {Upload} one {Upload # file} other {Upload # files}}",
+    "cloneVoice": "Clone voice"
   },
   "tiktokPublishing": {
     "connectAccount": "Connect a TikTok account before posting.",

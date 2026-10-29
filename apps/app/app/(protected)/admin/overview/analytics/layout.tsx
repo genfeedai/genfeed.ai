@@ -32,7 +32,7 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
             href: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS,
             label: 'Organizations',
           },
-          { href: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BRANDS, label: 'Brands' },
+          { href: APP_ROUTES.ADMIN.BRANDS, label: 'Brands' },
           {
             href: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BUSINESS,
             label: 'Business',

@@ -35,6 +35,7 @@ import { useAnalyticsOverview } from './use-analytics-overview';
 export interface AnalyticsOverviewProps {
   scope?: PageScope;
   basePath?: string;
+  brandsBasePath?: string;
   analytics?: Partial<IAnalytics>;
   brandsLeaderboard?: IBrandWithStats[];
   cachedAt?: string;
@@ -65,6 +66,7 @@ const AnalyticsAgentDashboard = dynamic(
 export default function AnalyticsOverview({
   scope = PageScope.ORGANIZATION,
   basePath = '/analytics',
+  brandsBasePath,
   analytics: initialAnalytics,
   brandsLeaderboard: initialBrandsLeaderboard,
   cachedAt: initialCachedAt = '',
@@ -239,6 +241,7 @@ export default function AnalyticsOverview({
 
         <AnalyticsOverviewLeaderboards
           basePath={basePath}
+          brandsBasePath={brandsBasePath}
           brandsLeaderboard={brandsLeaderboard}
           hasBrandLeaderboard={hasBrandLeaderboard}
           hasOrgLeaderboard={hasOrgLeaderboard}
