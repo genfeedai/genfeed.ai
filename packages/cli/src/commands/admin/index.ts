@@ -25,12 +25,15 @@ import {
   fixModelPricing,
   grantOrganizationCredits,
   type OrganizationBrandInput,
+  type OrganizationBrandSummary,
+  type OrganizationBrandUpdate,
   type PriceSyncProvider,
   prepareWarmupAccount,
   readHarnessActivation,
   readNotificationStatus,
   readOnboardingFunnel,
   readOrganizationAppsReport,
+  readOrganizationBrand,
   readOrganizationsReport,
   readPricingReport,
   readSystemBrand,
@@ -40,6 +43,7 @@ import {
   seedTemplates,
   seedWorkflows,
   syncProviderPrices,
+  updateOrganizationBrand,
   updateSystemBrand,
   type WarmupAccountInput,
   type WarmupPrepareInput,
@@ -63,6 +67,27 @@ interface OrganizationBrandCreateOptions {
   org: string;
   primaryColor?: string;
   secondaryColor?: string;
+  yes?: boolean;
+}
+
+interface OrganizationBrandShowOptions {
+  brand: string;
+  json?: boolean;
+  org: string;
+}
+
+interface OrganizationBrandUpdateOptions {
+  backgroundColor?: string;
+  brand: string;
+  description?: string;
+  fontFamily?: string;
+  label?: string;
+  org: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  watermarkOpacity?: number;
+  watermarkPosition?: OrganizationBrandUpdate['watermarkPosition'];
+  watermarkText?: string;
   yes?: boolean;
 }
 
@@ -726,7 +751,9 @@ function createSeedCommand(): Command {
 
 function createBrandCommand(): Command {
   const brand = new Command('brand')
-    .description('Review the system brand kit; create and scan brands inside any organization')
+    .description(
+      'Review the system brand kit; create, read, update and scan brands inside any organization'
+    )
     .addCommand(
       new Command('show')
         .description('Show the system brand revision (created on first use)')
@@ -781,6 +808,43 @@ function createBrandCommand(): Command {
   return brand;
 }
 
+function toBrandUpdate(options: OrganizationBrandUpdateOptions): OrganizationBrandUpdate {
+  const fields: OrganizationBrandUpdate = {
+    backgroundColor: options.backgroundColor,
+    description: options.description,
+    fontFamily: options.fontFamily,
+    label: options.label,
+    primaryColor: options.primaryColor,
+    secondaryColor: options.secondaryColor,
+    watermarkOpacity: options.watermarkOpacity,
+    watermarkPosition: options.watermarkPosition,
+    watermarkText: options.watermarkText === undefined ? undefined : options.watermarkText || null,
+  };
+  return Object.fromEntries(
+    Object.entries(fields).filter(([, value]) => value !== undefined)
+  ) as OrganizationBrandUpdate;
+}
+
+function printBrandSummary(brand: OrganizationBrandSummary): void {
+  print(formatLabel('Brand', `${brand.label} (${brand.id}, slug ${brand.slug})`));
+  print(formatLabel('Font', brand.fontFamily ?? '-'));
+  print(
+    formatLabel(
+      'Colors',
+      [brand.primaryColor, brand.secondaryColor, brand.backgroundColor].filter(Boolean).join(' ')
+    )
+  );
+  print(formatLabel('Watermark text', brand.watermarkText ?? '-'));
+  print(formatLabel('Watermark logo', brand.watermarkLogoId ?? '-'));
+  print(
+    formatLabel(
+      'Watermark',
+      `${brand.watermarkPosition ?? '-'} at opacity ${brand.watermarkOpacity ?? '-'}`
+    )
+  );
+  print(formatLabel('End card', brand.isEndCardEnabled ? (brand.endCardAssetId ?? 'on') : 'off'));
+}
+
 function createOrganizationBrandSubcommands(): Command[] {
   return [
     new Command('create')
@@ -812,6 +876,60 @@ function createOrganizationBrandSubcommands(): Command[] {
           }
           const brand = await createOrganizationBrand(options.org, input);
           print(formatSuccess(`Created brand ${brand.label} (${brand.id}, slug ${brand.slug})`));
+        } catch (error) {
+          handleError(error);
+        }
+      }),
+    new Command('kit')
+      .description('Show the kit fields of a brand in any organization')
+      .requiredOption('--org <organizationId>', 'Organization id')
+      .requiredOption('--brand <brandId>', 'Brand id')
+      .option('--json', 'Output as JSON')
+      .action(async (options: OrganizationBrandShowOptions, command: Command) => {
+        try {
+          const brand = await readOrganizationBrand(options.org, options.brand);
+          if (wantsJson(command)) {
+            printJson(brand);
+            return;
+          }
+          printBrandSummary(brand);
+        } catch (error) {
+          handleError(error);
+        }
+      }),
+    new Command('set-kit')
+      .description('Update the kit fields of a brand in any organization (preview unless --yes)')
+      .requiredOption('--org <organizationId>', 'Organization id')
+      .requiredOption('--brand <brandId>', 'Brand id')
+      .option('--label <label>', 'Brand name')
+      .option('--description <text>', 'Brand description')
+      .option('--font-family <fontFamily>', 'FontFamily enum value')
+      .option('--primary-color <hex>', 'Primary color')
+      .option('--secondary-color <hex>', 'Secondary color')
+      .option('--background-color <hex>', 'Background color')
+      .option('--watermark-text <text>', 'Watermark text (empty string clears it)')
+      .option('--watermark-opacity <0.05-1>', 'Watermark opacity', Number)
+      .option('--watermark-position <corner>', 'top-left, top-right, bottom-left or bottom-right')
+      .option('--yes', 'Apply the update')
+      .action(async (options: OrganizationBrandUpdateOptions) => {
+        try {
+          const input = toBrandUpdate(options);
+          if (Object.keys(input).length === 0) {
+            throw new Error('Pass at least one field to update.');
+          }
+          if (!options.yes) {
+            print(formatHeader('Brand update (preview)\n'));
+            print(formatLabel('Organization', options.org));
+            print(formatLabel('Brand', options.brand));
+            for (const [field, value] of Object.entries(input)) {
+              print(formatLabel(field, String(value)));
+            }
+            print(formatWarning('Re-run with --yes to apply the update.'));
+            return;
+          }
+          const brand = await updateOrganizationBrand(options.org, options.brand, input);
+          print(formatSuccess(`Updated brand ${brand.label} (${brand.id})`));
+          printBrandSummary(brand);
         } catch (error) {
           handleError(error);
         }
