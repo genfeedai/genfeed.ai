@@ -19,11 +19,6 @@ test.describe('Admin Organization', () => {
   const routes = [
     {
       hasOrganizationsList: true,
-      route: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS,
-      title: 'Analytics',
-    },
-    {
-      hasOrganizationsList: true,
       route: APP_ROUTES.ADMIN.ORGANIZATIONS,
       title: 'Organizations',
     },
@@ -71,8 +66,7 @@ test.describe('Admin Organization', () => {
     expect(new URL(adminPage.url()).pathname).toBe(
       APP_ROUTES.ADMIN.ORGANIZATIONS,
     );
-    // The organizations list itself, without the analytics tab bar that
-    // ANALYTICS_ORGANIZATIONS wraps it in.
+    // The organizations list itself, without the analytics tab bar.
     await expect(
       adminPage
         .getByRole('main')

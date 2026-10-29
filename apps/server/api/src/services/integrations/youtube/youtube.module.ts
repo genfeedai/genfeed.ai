@@ -3,6 +3,7 @@ import { CredentialsCoreModule } from '@api/collections/credentials/credentials-
 import { SocialSourceHistoryImportModule } from '@api/collections/social-sources/social-source-history-import.module';
 import { SocialWarmupEnrollmentsModule } from '@api/collections/social-warmup-enrollments/social-warmup-enrollments.module';
 import { SERVER_TOKENS } from '@api/server.dependencies';
+import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { YoutubeController } from '@api/services/integrations/youtube/controllers/youtube.controller';
 import { YoutubeAnalyticsService } from '@api/services/integrations/youtube/services/modules/youtube-analytics.service';
@@ -27,6 +28,7 @@ const BaseModule = createServiceModule(YoutubeService, {
   additionalImports: [
     MediaUrlsModule,
     FileQueueModule,
+    FilesClientModule,
     TagResolutionModule,
     BrandsCoreModule,
     CredentialsCoreModule,

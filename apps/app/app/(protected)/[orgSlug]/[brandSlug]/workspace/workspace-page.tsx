@@ -4,24 +4,20 @@ import { useTaskStatusLabels } from '@app/(protected)/[orgSlug]/[brandSlug]/task
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { createPathViewHref } from '@helpers/navigation/filter-href.helper';
 import { useTrends } from '@hooks/data/trends/use-trends/use-trends';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { TabsProps } from '@props/ui/navigation/tabs.props';
 import type { WorkspacePageContentProps } from '@props/workspace/workspace-page.props';
 import type { Task } from '@services/management/tasks.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
-import { Skeleton } from '@ui/display/skeleton/skeleton';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import AppTable from '@ui/display/table/Table';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
-import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Check, Inbox, LayoutGrid } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   Suspense,
@@ -45,8 +41,10 @@ import {
 } from './workspace-inbox-groups';
 import { WorkspaceOverviewSidebar } from './workspace-overview-sidebar';
 import {
+  DEFAULT_INBOX_VIEW,
   DEFAULT_REVIEW_INBOX,
-  useInboxViewOptions,
+  INBOX_VIEW_ORDER,
+  parseInboxView,
   WORKSPACE_SECTION_STACK_CLASS,
 } from './workspace-task.helpers';
 import { WorkspaceTaskQueueCard } from './workspace-task-queue-card';
@@ -61,7 +59,6 @@ const WorkspaceTaskComposer = dynamic(
 );
 
 function WorkspacePageContentContent({
-  defaultInboxView = 'unread',
   initialAnalytics,
   initialReviewInbox = DEFAULT_REVIEW_INBOX,
   initialTimeSeriesData,
@@ -70,16 +67,15 @@ function WorkspacePageContentContent({
   const translate = useTranslations('pages.workspaceOverview');
   const statusTranslate = useTranslations('pages.tasks.status');
   const statusLabels = useTaskStatusLabels();
-  const inboxViewOptions = useInboxViewOptions();
   const { brandId, organizationId } = useBrand();
   const { href } = useOrgUrl();
-  const inboxSearch = useSearchParams()?.toString() ?? '';
   const surfaceSelection = useWorkspaceSurfaceSelection();
   const { trends: trendItems, isLoading: isTrendsLoading } = useTrends();
   const {
     activeExecutions,
     activityItems,
     inboxRead,
+    inboxView,
     busyTaskId,
     historyPreviewItems,
     inProgressTasks,
@@ -99,6 +95,7 @@ function WorkspacePageContentContent({
     reviewInboxTasks,
     executionStats,
     selectedTask,
+    setInboxView,
     setSelectedTaskId,
     setTaskComposerOpen,
     setWorkspaceTasks,
@@ -111,7 +108,6 @@ function WorkspacePageContentContent({
     workspaceLoadWarning,
     workspaceTasks,
   } = useWorkspacePageContent({
-    defaultInboxView,
     initialAnalytics,
     initialReviewInbox,
     initialTimeSeriesData,
@@ -184,59 +180,50 @@ function WorkspacePageContentContent({
     };
   }, [isOverviewSection, selectedArtifactReferences, surfaceSelection]);
 
-  const inboxHeaderTabs = useMemo<TabsProps | undefined>(() => {
+  const inboxFilters = useMemo(() => {
     if (!isInboxSection) {
       return undefined;
     }
 
-    return {
-      activeTab: defaultInboxView,
-      ariaLabel: translate('inbox.viewsAriaLabel'),
-      fullWidth: false,
-      items: inboxViewOptions.map((option) => {
-        const count =
-          option.id === 'unread'
-            ? unreadInboxTasks.length
-            : option.id === 'recent'
-              ? recentInboxTasks.length
-              : queueTasks.length;
-
-        return {
-          badge: isWorkspaceTasksLoading ? (
-            <Skeleton
-              variant="text"
-              width={14}
-              height={12}
-              className="opacity-70"
-            />
-          ) : (
-            <Badge variant="outline">{count}</Badge>
-          ),
-          href: createPathViewHref(
-            href(`/workspace/inbox/${option.id}`),
-            inboxSearch,
-            'view',
-          ),
-          id: option.id,
-          label: option.label,
-        };
-      }),
+    const counts = {
+      all: queueTasks.length,
+      recent: recentInboxTasks.length,
+      unread: unreadInboxTasks.length,
     };
+
+    return (
+      <FilterMenu
+        facets={[
+          {
+            defaultValue: DEFAULT_INBOX_VIEW,
+            key: 'status',
+            label: translate('inbox.statusLabel'),
+            onChange: (value) => setInboxView(parseInboxView(value)),
+            options: INBOX_VIEW_ORDER.map((view) => ({
+              count: isWorkspaceTasksLoading ? undefined : counts[view],
+              label: translate(`inbox.views.${view}.label`),
+              value: view,
+            })),
+            selection: 'single',
+            value: inboxView,
+          },
+        ]}
+        onClear={() => setInboxView(DEFAULT_INBOX_VIEW)}
+      />
+    );
   }, [
-    defaultInboxView,
-    href,
-    inboxViewOptions,
-    inboxSearch,
+    inboxView,
     isInboxSection,
     isWorkspaceTasksLoading,
     queueTasks.length,
     recentInboxTasks.length,
+    setInboxView,
     translate,
     unreadInboxTasks.length,
   ]);
 
-  // Order contract (SectionTopbar): Help, Refresh, tabs, ghost actions
-  // (Mark All Read), controls, primary action (New Task) last.
+  // Order contract (SectionTopbar): Help, Refresh, ghost actions
+  // (Mark All Read), controls (Filters), primary action (New Task) last.
   const workspaceRefresh = useMemo(
     () => (
       <ButtonRefresh
@@ -281,16 +268,9 @@ function WorkspacePageContentContent({
     [setTaskComposerOpen, shouldShowComposer],
   );
 
-  const inboxEmptyKey =
-    section === 'inbox' && defaultInboxView === 'unread'
-      ? 'unread'
-      : section === 'inbox' && defaultInboxView === 'recent'
-        ? 'recent'
-        : 'all';
+  const inboxEmptyKey = section === 'inbox' ? inboxView : 'all';
   const inboxReadFailed =
-    section === 'inbox' &&
-    defaultInboxView === 'unread' &&
-    inboxRead.state.isError;
+    section === 'inbox' && inboxView === 'unread' && inboxRead.state.isError;
   const inboxEmpty = inboxReadFailed
     ? {
         description: translate('inbox.readError'),
@@ -378,10 +358,16 @@ function WorkspacePageContentContent({
       icon={LayoutGrid}
       fullWidth
       titleVisibility="sr-only"
-      headerTabs={inboxHeaderTabs}
       refresh={isOverviewSection ? undefined : workspaceRefresh}
       iconActions={isOverviewSection ? undefined : workspaceGhostActions}
-      right={isOverviewSection ? undefined : workspaceHeaderActions}
+      right={
+        isOverviewSection ? undefined : (
+          <>
+            {inboxFilters}
+            {workspaceHeaderActions}
+          </>
+        )
+      }
     >
       {inboxRead.state.isError || inboxRead.read.isError ? (
         <Alert type={AlertCategory.ERROR} className="mb-4">

@@ -102,7 +102,6 @@
     "noScopedSounds": "No TikTok sounds observed for these filters. Try another platform, period, or Market.",
     "platformFilter": "Trend platform",
     "timeframeFilter": "Trend timeframe",
-    "hashtagPlatformFilter": "Hashtag platform",
     "allPlatforms": "All platforms"
   },
   "promptBarSubmitSlot": {

@@ -3,9 +3,8 @@
 import {
   useAnalyticsContext,
   useAnalyticsSearch,
-  useAnalyticsToolbar,
 } from '@contexts/analytics/analytics-context';
-import { AnalyticsMetric, ComponentSize } from '@genfeedai/contracts';
+import { AnalyticsMetric } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import {
@@ -28,10 +27,10 @@ import {
 import { logger } from '@services/core/logger.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
+import SearchField from '@ui/content/search-field/SearchField';
 import BrandAvatar from '@ui/display/brand-avatar/BrandAvatar';
 import Table from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import FormSearchbar from '@ui/primitives/searchbar';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -171,7 +170,7 @@ export default function AnalyticsBrandsList({
     getAnalyticsService,
   ]);
 
-  const toolbar = useMemo(() => {
+  const filterMenu = useMemo(() => {
     const facets: FilterMenuFacet[] = [
       {
         defaultValue: AnalyticsMetric.ENGAGEMENT,
@@ -189,6 +188,7 @@ export default function AnalyticsBrandsList({
     return (
       <FilterMenu
         facets={facets}
+        isAttached
         onClear={() => setFilter('sort', undefined)}
       />
     );
@@ -196,19 +196,18 @@ export default function AnalyticsBrandsList({
 
   const search = useMemo(
     () => (
-      <FormSearchbar
+      <SearchField
         ariaLabel="Search brands"
-        isCollapsible
         onChange={(e) => setFilter('query', e.target.value)}
         placeholder="Search brands..."
-        size={ComponentSize.SM}
         value={searchTerm}
-      />
+      >
+        {filterMenu}
+      </SearchField>
     ),
-    [searchTerm, setFilter],
+    [filterMenu, searchTerm, setFilter],
   );
 
-  useAnalyticsToolbar(toolbar);
   useAnalyticsSearch(search);
 
   return (

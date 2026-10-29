@@ -229,7 +229,7 @@ describe('AnalyticsBrandsList', () => {
     render(<AnalyticsBrandsList />);
 
     await waitFor(() => {
-      expect(setToolbarNodeMock).toHaveBeenCalled();
+      expect(setSearchNodeMock).toHaveBeenCalled();
     });
     expect(getBrandsWithStatsMock).not.toHaveBeenCalled();
   });

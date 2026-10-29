@@ -83,7 +83,6 @@ vi.mock('@ui/analytics/trends', () => ({
     selectedPlatform,
   }: {
     hashtags: Array<{ hashtag: string }>;
-    onPlatformChange: (platform: string) => void;
     onHashtagClick: (hashtag: { hashtag: string }) => void;
     selectedPlatform: string;
   }) => (

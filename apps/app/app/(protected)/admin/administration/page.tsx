@@ -7,5 +7,5 @@ import { permanentRedirect } from 'next/navigation';
  * Administration sidebar item, instead of 404ing the bare path.
  */
 export default function AdminAdministrationIndexPage() {
-  permanentRedirect(APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS);
+  permanentRedirect(APP_ROUTES.ADMIN.ORGANIZATIONS);
 }

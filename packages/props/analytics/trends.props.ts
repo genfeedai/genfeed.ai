@@ -20,7 +20,6 @@ export interface TrendingHashtagsProps {
   hashtags: ITrendHashtag[];
   isLoading?: boolean;
   selectedPlatform?: string;
-  onPlatformChange?: (platform: string) => void;
   onHashtagClick?: (hashtag: ITrendHashtag) => void;
   className?: string;
 }

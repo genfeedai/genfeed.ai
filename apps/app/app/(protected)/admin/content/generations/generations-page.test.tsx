@@ -160,8 +160,9 @@ describe('admin Generations page', () => {
     await screen.findByText('empty');
 
     const subbar = within(screen.getByTestId('subbar'));
-    expect(subbar.getByPlaceholderText('search')).toBeInTheDocument();
-    expect(subbar.getByRole('button', { name: 'search' })).toBeInTheDocument();
+    // The search is a persistent field with the Filters menu inside it.
+    expect(subbar.getByPlaceholderText('search')).toBeVisible();
+    expect(subbar.queryByTestId('collapsible-search')).toBeNull();
     // Status, type and model are facets of the one nested Filters menu.
     await userEvent.click(subbar.getByRole('button', { name: 'menu' }));
     expect(

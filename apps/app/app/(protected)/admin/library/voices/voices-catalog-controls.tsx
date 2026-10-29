@@ -1,16 +1,11 @@
-import {
-  ButtonSize,
-  ButtonVariant,
-  ComponentSize,
-  VoiceProvider,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, VoiceProvider } from '@genfeedai/contracts';
 import type {
   ProviderFilter,
-  VoicesCatalogFiltersProps,
   VoicesCatalogSearchProps,
   VoicesSyncControlsProps,
 } from '@props/admin/voices.props';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
+import SearchField from '@ui/content/search-field/SearchField';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -18,32 +13,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
-import FormSearchbar from '@ui/primitives/searchbar';
 import { ChevronDown, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+/** The voice search, with the provider filter attached inside it. */
 export function VoicesCatalogSearch({
   search,
   onSearchChange,
-}: VoicesCatalogSearchProps) {
-  const translate = useTranslations('pages.adminVoices');
-
-  return (
-    <FormSearchbar
-      ariaLabel={translate('searchPlaceholder')}
-      isCollapsible
-      onSearch={onSearchChange}
-      placeholder={translate('searchPlaceholder')}
-      size={ComponentSize.SM}
-      value={search}
-    />
-  );
-}
-
-export function VoicesCatalogFilters({
   providerFilter,
   onProviderFilterChange,
-}: VoicesCatalogFiltersProps) {
+}: VoicesCatalogSearchProps) {
   const translate = useTranslations('pages.adminVoices');
   const providerFilters: Array<{ label: string; value: ProviderFilter }> = [
     { label: translate('providerAll'), value: 'all' },
@@ -52,20 +31,29 @@ export function VoicesCatalogFilters({
   ];
 
   return (
-    <FilterMenu
-      facets={[
-        {
-          defaultValue: 'all',
-          key: 'provider',
-          label: translate('providerLabel'),
-          onChange: (value) => onProviderFilterChange(value as ProviderFilter),
-          options: providerFilters,
-          selection: 'single',
-          value: providerFilter,
-        },
-      ]}
-      onClear={() => onProviderFilterChange('all')}
-    />
+    <SearchField
+      ariaLabel={translate('searchPlaceholder')}
+      onSearch={onSearchChange}
+      placeholder={translate('searchPlaceholder')}
+      value={search}
+    >
+      <FilterMenu
+        facets={[
+          {
+            defaultValue: 'all',
+            key: 'provider',
+            label: translate('providerLabel'),
+            onChange: (value) =>
+              onProviderFilterChange(value as ProviderFilter),
+            options: providerFilters,
+            selection: 'single',
+            value: providerFilter,
+          },
+        ]}
+        isAttached
+        onClear={() => onProviderFilterChange('all')}
+      />
+    </SearchField>
   );
 }
 

@@ -16,6 +16,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { LibraryBrowserProps } from '@props/pages/library-browser.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import AdminOrgBrandUrlFilter from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
+import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
 import Container from '@ui/layout/container/Container';
 import FormSearchbar from '@ui/primitives/searchbar';
 import { useLibraryTags } from '@ui/tags/library-tag-picker/use-library-tags';
@@ -38,7 +39,9 @@ import { useLibraryCharacterOptions } from './use-library-character-options';
  * Places, shelves, type and folder are query filters; legacy props provide
  * defaults only when the URL does not specify them. The list itself is the existing
  * ingredients engine pointed at the unified `GET /ingredients` endpoint — the
- * redesign changes what gets asked for, not how results are rendered.
+ * redesign changes what gets asked for, not how results are rendered. On the
+ * split routes (`agent-output-routes.ts`) the browser is the output half, with
+ * the agent beside it; the folder tree stays in the shell nav.
  *
  * `PageScope.SUPERADMIN` is the admin Library: every organization, narrowed by
  * the organization and brand pickers (`?organization=`, `?brand=`). It has the
@@ -143,116 +146,121 @@ export default function LibraryBrowser({
   return (
     <IngredientsHeaderProvider value={headerContextValue}>
       <IngredientsProvider value={contextValue}>
-        <Container
-          className="@container/library"
-          icon={Library}
-          isTopbarPinned
-          label={destination.label}
-          titleVisibility="sr-only"
-          leading={
-            <FormSearchbar
-              isCollapsible
-              onSearch={handleSearchChange}
-              placeholder={
-                isAdminScope
-                  ? 'Search all assets'
-                  : scope === PageScope.ORGANIZATION
-                    ? 'Search organization assets'
-                    : "Search this brand's assets"
-              }
-              size={ComponentSize.SM}
-              value={search}
-            />
-          }
-          right={
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              {/* Subbar order: the organization picker first, then filters. */}
-              {isAdminScope ? <AdminOrgBrandUrlFilter /> : null}
-              <LibraryBrowserToolbar
-                isAdminScope={isAdminScope}
-                isRecoveryView={isRecoveryView}
-                categories={categories}
-                characterOptions={characterOptions}
-                characters={characters}
-                onCategoriesChange={handleCategoriesChange}
-                onCharactersChange={handleCharactersChange}
-                onClearAllFilters={handleClearAllFilters}
-                onOriginsChange={handleOriginsChange}
-                onPlaceChange={handlePlaceChange}
-                onStatusChange={handleStatusChange}
-                origins={origins}
-                place={place}
-                shelf={shelf}
-                shelfCounts={summary?.byShelf}
-                trashedCount={summary?.trashedCount}
-                onSortChange={handleSortChange}
-                onTagMatchChange={handleTagMatchChange}
-                onTagsChange={handleTagsChange}
-                onViewModeChange={handleViewModeChange}
-                sort={sort}
-                sortOptions={[...LIBRARY_SORT_OPTIONS]}
-                tagMatch={tagMatch}
-                tagOptions={tagOptions}
-                tags={tags}
-                viewMode={viewMode}
+        <AgentOutputShell
+          defaultMobileView="output"
+          outputLabel={destination.label}
+        >
+          <Container
+            className="@container/library"
+            icon={Library}
+            isTopbarPinned
+            label={destination.label}
+            titleVisibility="sr-only"
+            leading={
+              <FormSearchbar
+                isCollapsible
+                onSearch={handleSearchChange}
+                placeholder={
+                  isAdminScope
+                    ? 'Search all assets'
+                    : scope === PageScope.ORGANIZATION
+                      ? 'Search organization assets'
+                      : "Search this brand's assets"
+                }
+                size={ComponentSize.SM}
+                value={search}
               />
-              {isRecoveryView ? (
+            }
+            right={
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                {/* Subbar order: the organization picker first, then filters. */}
+                {isAdminScope ? <AdminOrgBrandUrlFilter /> : null}
+                <LibraryBrowserToolbar
+                  isAdminScope={isAdminScope}
+                  isRecoveryView={isRecoveryView}
+                  categories={categories}
+                  characterOptions={characterOptions}
+                  characters={characters}
+                  onCategoriesChange={handleCategoriesChange}
+                  onCharactersChange={handleCharactersChange}
+                  onClearAllFilters={handleClearAllFilters}
+                  onOriginsChange={handleOriginsChange}
+                  onPlaceChange={handlePlaceChange}
+                  onStatusChange={handleStatusChange}
+                  origins={origins}
+                  place={place}
+                  shelf={shelf}
+                  shelfCounts={summary?.byShelf}
+                  trashedCount={summary?.trashedCount}
+                  onSortChange={handleSortChange}
+                  onTagMatchChange={handleTagMatchChange}
+                  onTagsChange={handleTagsChange}
+                  onViewModeChange={handleViewModeChange}
+                  sort={sort}
+                  sortOptions={[...LIBRARY_SORT_OPTIONS]}
+                  tagMatch={tagMatch}
+                  tagOptions={tagOptions}
+                  tags={tags}
+                  viewMode={viewMode}
+                />
+                {isRecoveryView ? (
+                  <div
+                    className="empty:hidden"
+                    ref={setActionSlot}
+                    data-testid="library-recovery-action-slot"
+                  />
+                ) : null}
+              </div>
+            }
+            iconActionsPlacement="before-controls"
+            refresh={
+              <ButtonRefresh
+                isRefreshing={isRefreshing}
+                onClick={handleRefresh}
+              />
+            }
+            iconActions={
+              isAdminScope ? undefined : (
+                <LibraryBrowserIconActions
+                  reviewUnsortedHref={reviewUnsortedHref}
+                  onUpload={handleUpload}
+                />
+              )
+            }
+            topbarFooter={
+              <>
+                <LibraryActiveFilters
+                  categories={categories}
+                  characterOptions={characterOptions}
+                  characters={characters}
+                  onCategoriesChange={handleCategoriesChange}
+                  onCharactersChange={handleCharactersChange}
+                  onClearAllFilters={handleClearAllFilters}
+                  onOriginsChange={handleOriginsChange}
+                  onPlaceChange={handlePlaceChange}
+                  onStatusChange={handleStatusChange}
+                  onTagMatchChange={handleTagMatchChange}
+                  onTagsChange={handleTagsChange}
+                  origins={origins}
+                  place={place}
+                  shelf={shelf}
+                  shelfCounts={summary?.byShelf}
+                  tagMatch={tagMatch}
+                  tagOptions={tagOptions}
+                  tags={tags}
+                  trashedCount={summary?.trashedCount}
+                />
                 <div
                   className="empty:hidden"
-                  ref={setActionSlot}
-                  data-testid="library-recovery-action-slot"
+                  data-testid="library-selection-slot"
+                  ref={setSelectionSlot}
                 />
-              ) : null}
-            </div>
-          }
-          iconActionsPlacement="before-controls"
-          refresh={
-            <ButtonRefresh
-              isRefreshing={isRefreshing}
-              onClick={handleRefresh}
-            />
-          }
-          iconActions={
-            isAdminScope ? undefined : (
-              <LibraryBrowserIconActions
-                reviewUnsortedHref={reviewUnsortedHref}
-                onUpload={handleUpload}
-              />
-            )
-          }
-          topbarFooter={
-            <>
-              <LibraryActiveFilters
-                categories={categories}
-                characterOptions={characterOptions}
-                characters={characters}
-                onCategoriesChange={handleCategoriesChange}
-                onCharactersChange={handleCharactersChange}
-                onClearAllFilters={handleClearAllFilters}
-                onOriginsChange={handleOriginsChange}
-                onPlaceChange={handlePlaceChange}
-                onStatusChange={handleStatusChange}
-                onTagMatchChange={handleTagMatchChange}
-                onTagsChange={handleTagsChange}
-                origins={origins}
-                place={place}
-                shelf={shelf}
-                shelfCounts={summary?.byShelf}
-                tagMatch={tagMatch}
-                tagOptions={tagOptions}
-                tags={tags}
-                trashedCount={summary?.trashedCount}
-              />
-              <div
-                className="empty:hidden"
-                data-testid="library-selection-slot"
-                ref={setSelectionSlot}
-              />
-            </>
-          }
-        >
-          {children}
-        </Container>
+              </>
+            }
+          >
+            {children}
+          </Container>
+        </AgentOutputShell>
       </IngredientsProvider>
     </IngredientsHeaderProvider>
   );
