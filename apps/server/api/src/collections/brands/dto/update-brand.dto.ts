@@ -53,6 +53,24 @@ export class UpdateBrandDto extends PartialType(CreateBrandDto) {
   readonly watermarkPosition?: string;
 
   @IsOptional()
+  @IsEntityId()
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    description: 'Brand image asset used as the mark on light footage',
+  })
+  readonly watermarkLightLogoId?: string | null;
+
+  @IsOptional()
+  @IsEntityId()
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    description: 'Brand image asset used as the mark on livestreams',
+  })
+  readonly watermarkLiveLogoId?: string | null;
+
+  @IsOptional()
   @IsNumber()
   @Min(0.01)
   @Max(0.5)

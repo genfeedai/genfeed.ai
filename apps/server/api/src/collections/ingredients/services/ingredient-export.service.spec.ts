@@ -200,6 +200,32 @@ describe('IngredientExportService', () => {
     expect(files.watermarkExport).not.toHaveBeenCalled();
   });
 
+  it('uses the mark made for the background, and the default when there is none', async () => {
+    prisma.brand.findFirst.mockResolvedValue({
+      ...brand,
+      watermarkLightLogoId: 'logo-light',
+      watermarkLogoId: 'logo-default',
+    });
+    prisma.asset.findFirst.mockImplementation(
+      async ({ where }: { where: { id: string } }) => ({
+        category: 'LOGO',
+        cloudObjectKey: `logos/${where.id}`,
+        id: where.id,
+        mimeType: 'image/png',
+        updatedAt: new Date('2026-10-29T00:00:00Z'),
+      }),
+    );
+    const logoKey = async (variant?: 'default' | 'light' | 'live') => {
+      files.watermarkExport.mockClear();
+      await service.export('image-1', 'org-1', variant);
+      return files.watermarkExport.mock.calls[0][0].layers[0].logoStorageKey;
+    };
+    expect(await logoKey()).toBe('logos/logo-default');
+    expect(await logoKey('light')).toBe('logos/logo-light');
+    // No live mark set: the default one is used.
+    expect(await logoKey('live')).toBe('logos/logo-default');
+  });
+
   it('rejects brand logos without an image MIME type', async () => {
     prisma.brand.findFirst.mockResolvedValue({
       ...brand,

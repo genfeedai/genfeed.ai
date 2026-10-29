@@ -4,6 +4,15 @@ export type WatermarkPosition =
   | 'bottom-left'
   | 'bottom-right';
 
+/** Which of a brand's marks an export uses: the default, one for light footage or one for livestreams. */
+export type WatermarkVariant = 'default' | 'light' | 'live';
+
+export const WATERMARK_VARIANTS: readonly WatermarkVariant[] = [
+  'default',
+  'light',
+  'live',
+];
+
 export interface IWatermarkLayer {
   text?: string;
   logoStorageKey?: string;

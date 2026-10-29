@@ -651,6 +651,8 @@ export class BrandsService extends BaseService<Brand> {
       | 'watermarkOpacity'
       | 'watermarkPosition'
       | 'watermarkSizeRatio'
+      | 'watermarkLightLogoId'
+      | 'watermarkLiveLogoId'
       | 'watermarkInsetXRatio'
       | 'watermarkInsetYRatio'
     >,

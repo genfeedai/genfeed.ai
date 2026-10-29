@@ -11,6 +11,8 @@ export const brandAttributes = createEntityAttributes([
   'watermarkOpacity',
   'watermarkPosition',
   'watermarkSizeRatio',
+  'watermarkLightLogoId',
+  'watermarkLiveLogoId',
   'watermarkInsetXRatio',
   'watermarkInsetYRatio',
   'endCardAssetId',
