@@ -43,7 +43,10 @@ function isGenerationWrite(request: Request): boolean {
   return /\/v1\/(images|videos|audios|musics|avatars)(\/|$)/.test(pathname);
 }
 
-function image(id: string) {
+function image(
+  id: string,
+  prompt: Record<string, unknown> = { original: id },
+) {
   return {
     id,
     type: 'ingredients',
@@ -57,7 +60,7 @@ function image(id: string) {
       width: 1024,
       height: 768,
       createdAt: '2026-10-10T00:00:00Z',
-      prompt: { original: id },
+      prompt,
       generationHarness: {
         brandId: 'brand-1',
         originalPrompt: id,
@@ -118,11 +121,14 @@ async function mountPlayground(
     models = IMAGE_MODELS,
     path = APP_ROUTES.STUDIO.PLAYGROUND,
     routedModelKey,
+    sourcePrompt,
   }: {
     isAdvancedMode?: boolean;
     models?: IModelRow[];
     path?: string;
     routedModelKey?: string;
+    /** The prompt row stored on the source image, such as its slots. */
+    sourcePrompt?: Record<string, unknown>;
   } = {},
 ) {
   const wallet = { balance: startingBalance, requests: 0 };
@@ -261,9 +267,9 @@ async function mountPlayground(
     return route.fulfill({
       json:
         id && id !== 'ingredients' && id !== 'batch'
-          ? { data: image(id) }
+          ? { data: image(id, id === sourceId ? sourcePrompt : undefined) }
           : {
-              data: [image(sourceId)],
+              data: [image(sourceId, sourcePrompt)],
               meta: { page: 1, pageSize: 100, totalCount: 1 },
             },
     });
@@ -274,7 +280,11 @@ async function mountPlayground(
     const request = route.request();
     if (request.method() === 'GET') {
       const id = new URL(request.url()).pathname.split('/').at(-1) ?? '';
-      return route.fulfill({ json: { data: image(id) } });
+      return route.fulfill({
+        json: {
+          data: image(id, id === sourceId ? sourcePrompt : undefined),
+        },
+      });
     }
     generationBodies.push(request.postDataJSON());
     // The server reserves credits at admission, so the wallet has moved by the
@@ -480,6 +490,46 @@ test.describe('Studio edit mode', () => {
 
     await expect(editor).toHaveText(removeBackground?.prompt ?? '');
     expect(generationWrites).toEqual([]);
+    await expectNoErrorOverlay(page);
+  });
+
+  test('Edit slots and run again sends the edited slot, not the stored one', async ({
+    authenticatedPage: page,
+  }) => {
+    test.setTimeout(90_000);
+    const { generationBodies, generationWrites } = await mountPlayground(page, {
+      isAdvancedMode: true,
+      sourcePrompt: {
+        original: 'A founder at a desk',
+        renderTarget: 'prose',
+        renderedPrompt: 'A founder at a desk in soft window light.',
+        subject: 'a founder at a desk',
+      },
+    });
+
+    await page.getByTestId(`studio-asset-${sourceId}`).click();
+    await page
+      .getByTestId('studio-inspector-prompt-slots')
+      .getByRole('button', { name: 'Edit slots and run again' })
+      .click();
+    // Reopening submits nothing: the person edits the slots first.
+    expect(generationWrites).toEqual([]);
+
+    await page
+      .getByTestId('generation-setup-section-chips')
+      .getByRole('button', { name: 'Configure Look', exact: true })
+      .click();
+    const subject = page.getByRole('textbox', { name: /subject/i });
+    await expect(subject).toHaveValue('a founder at a desk');
+    await subject.fill('a barista behind a counter');
+    await page.keyboard.press('Escape');
+
+    await page.getByRole('button', { name: 'Generate', exact: true }).click();
+
+    await expect.poll(() => generationBodies.length).toBe(1);
+    expect(generationBodies[0]).toMatchObject({
+      data: { attributes: { subject: 'a barista behind a counter' } },
+    });
     await expectNoErrorOverlay(page);
   });
 });
