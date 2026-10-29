@@ -1,3 +1,4 @@
+import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
@@ -10,7 +11,9 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   Param,
+  Patch,
   Post,
   Req,
   UnauthorizedException,
@@ -32,6 +35,25 @@ const createBrandSchema = z
     secondaryColor: color.optional(),
   })
   .strict();
+
+const updateBrandSchema = z
+  .object({
+    backgroundColor: color.optional(),
+    description: z.string().trim().max(2000).optional(),
+    fontFamily: z.nativeEnum(FontFamily).optional(),
+    label: z.string().trim().min(1).max(120).optional(),
+    primaryColor: color.optional(),
+    secondaryColor: color.optional(),
+    watermarkOpacity: z.number().min(0.05).max(1).optional(),
+    watermarkPosition: z
+      .enum(['top-left', 'top-right', 'bottom-left', 'bottom-right'])
+      .optional(),
+    watermarkText: z.string().trim().max(120).nullable().optional(),
+  })
+  .strict()
+  .refine((value) => Object.keys(value).length > 0, {
+    message: 'Nothing to update',
+  });
 
 const scanBrandSchema = z
   .object({ url: z.string().trim().min(3).max(2048) })
@@ -98,6 +120,80 @@ export class AdminOrganizationBrandsController {
         },
       };
     });
+  }
+
+  @Get(':brandId')
+  async read(
+    @Param('organizationId') organizationId: string,
+    @Param('brandId') brandId: string,
+  ) {
+    if (
+      !identifier.safeParse(organizationId).success ||
+      !identifier.safeParse(brandId).success
+    ) {
+      throw new BadRequestException('Invalid identifier');
+    }
+    const brand = await this.findBrand(organizationId, brandId);
+    return { data: this.toSummary(brand, organizationId) };
+  }
+
+  @Patch(':brandId')
+  @RateLimit({ limit: 20, scope: 'user', windowMs: 60_000 })
+  async update(
+    @Param('organizationId') organizationId: string,
+    @Param('brandId') brandId: string,
+    @Body() body: unknown,
+  ) {
+    if (
+      !identifier.safeParse(organizationId).success ||
+      !identifier.safeParse(brandId).success
+    ) {
+      throw new BadRequestException('Invalid identifier');
+    }
+    const parsed = updateBrandSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException('Invalid brand update');
+    }
+    await this.findBrand(organizationId, brandId);
+    const updated = await runWithTenantContext({ organizationId }, () =>
+      this.brandsService.patch(brandId, parsed.data),
+    );
+    return { data: this.toSummary(updated, organizationId) };
+  }
+
+  private async findBrand(organizationId: string, brandId: string) {
+    const brand = await runWithTenantContext({ organizationId }, () =>
+      this.brandsService.findOne({
+        id: brandId,
+        isDeleted: false,
+        organizationId,
+      }),
+    );
+    if (!brand) {
+      throw new NotFoundException('Brand', brandId);
+    }
+    return brand;
+  }
+
+  /** The kit fields an operator checks; never the raw record. */
+  private toSummary(brand: BrandDocument, organizationId: string) {
+    return {
+      backgroundColor: brand.backgroundColor,
+      description: brand.description,
+      endCardAssetId: brand.endCardAssetId ?? null,
+      fontFamily: brand.fontFamily,
+      id: brand.id,
+      isEndCardEnabled: brand.isEndCardEnabled,
+      label: brand.label,
+      organizationId,
+      primaryColor: brand.primaryColor,
+      secondaryColor: brand.secondaryColor,
+      slug: brand.slug,
+      watermarkLogoId: brand.watermarkLogoId ?? null,
+      watermarkOpacity: brand.watermarkOpacity,
+      watermarkPosition: brand.watermarkPosition,
+      watermarkText: brand.watermarkText ?? null,
+    };
   }
 
   @Post(':brandId/scan')
