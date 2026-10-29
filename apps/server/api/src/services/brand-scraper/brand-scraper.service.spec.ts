@@ -1041,6 +1041,67 @@ describe('BrandScraperService', () => {
       );
     });
 
+    describe('Shopify storefronts', () => {
+      const page = makeHtml({
+        body: '<img src="/reference.jpg" />',
+        head: '<link rel="stylesheet" href="https://acme.com/cdn/shop/t/1/assets/theme.css" />',
+      });
+      const serve = (feed: () => Response) =>
+        fetchMock.mockImplementation(async (input: string | URL) => {
+          const url = String(input);
+          if (url.includes('/products.json')) return feed();
+          if (url.endsWith('.css'))
+            return new Response('', {
+              headers: { 'content-type': 'text/css' },
+            });
+          return makeResponse(page);
+        });
+
+      it('adds product photos from the collection feed ahead of page images', async () => {
+        serve(
+          () =>
+            new Response(
+              JSON.stringify({
+                products: [
+                  { images: [{ src: 'https://cdn.shopify.com/s/tote.jpg' }] },
+                  {
+                    images: [{ src: 'http://cdn.shopify.com/s/insecure.jpg' }],
+                  },
+                ],
+              }),
+              { headers: { 'content-type': 'application/json' } },
+            ),
+        );
+
+        const result = await service.scrapeWebsite(
+          'https://acme.com/collections/new-arrivals',
+        );
+
+        expect(fetchMock.mock.calls.map(([url]) => String(url))).toContain(
+          'https://acme.com/collections/new-arrivals/products.json?limit=16',
+        );
+        expect(result.referenceImageUrls?.[0]).toBe(
+          'https://cdn.shopify.com/s/tote.jpg',
+        );
+        expect(result.referenceImageUrls).toContain(
+          'https://acme.com/reference.jpg',
+        );
+        expect(result.referenceImageUrls).not.toContain(
+          'http://cdn.shopify.com/s/insecure.jpg',
+        );
+      });
+
+      it('keeps the page images when the product feed is unavailable', async () => {
+        serve(() => new Response('nope', { status: 404 }));
+
+        const result = await service.scrapeWebsite('https://acme.com');
+
+        expect(result.referenceImageUrls).toContain(
+          'https://acme.com/reference.jpg',
+        );
+      });
+    });
+
     it('uses Logo.dev only when the website scraper finds no logo', async () => {
       mockConfigService.get.mockReturnValue('pk_test');
       fetchMock.mockResolvedValue(

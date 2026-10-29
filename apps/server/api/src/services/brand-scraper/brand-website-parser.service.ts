@@ -1,3 +1,10 @@
+import {
+  isLogoImage,
+  isShopifyStorefront,
+  type ParsedDomNode,
+  readImageSource,
+  upgradeSameHostHttp,
+} from '@api/services/brand-scraper/brand-image-source.util';
 import { BRAND_SOCIAL_HOSTS } from '@api/services/brand-scraper/brand-social-hosts.constant';
 import type {
   WebsiteScrapingResult,
@@ -28,12 +35,6 @@ const MAX_SECTION_HEADINGS = 2;
 const THIRD_PARTY_ASSET_PATH =
   /\/(?:(?:[a-z0-9]+[-_])*(?:clients?|customers?|partners?)(?:[-_]logos?)?|trusted)(?:\/|$)/u;
 const LOGO_DIRECTORY_PATH = /\/(?:[a-z0-9]+[-_])*logos(?:\/|$)/u;
-
-function selectedDomNodes(api: cheerio.CheerioAPI, selector: string) {
-  return api(selector).toArray();
-}
-
-type ParsedDomNode = ReturnType<typeof selectedDomNodes>[number];
 
 @Injectable()
 export class BrandWebsiteParserService {
@@ -71,7 +72,7 @@ export class BrandWebsiteParserService {
       undefined;
     const ogImage =
       ogImageRaw && !this.isThirdPartyAssetUrl(ogImageRaw)
-        ? ogImageRaw
+        ? upgradeSameHostHttp(ogImageRaw, sourceUrl)
         : undefined;
     const ogImageType =
       $('meta[property="og:image:type"]').attr('content')?.trim() || undefined;
@@ -135,6 +136,7 @@ export class BrandWebsiteParserService {
       icons,
       images,
       isLogoFromIcon: !pageLogoUrl && Boolean(logoUrl),
+      isShopify: isShopifyStorefront($),
       logoUrl,
       ogDescription,
       ogImage,
@@ -697,17 +699,17 @@ export class BrandWebsiteParserService {
       },
     );
 
-    $('img[src], img[data-src], img[srcset]').each((_i, el) => {
-      if (this.isThirdPartyMark($, el)) {
-        return;
-      }
-      const direct = $(el).attr('src') ?? $(el).attr('data-src');
-      if (direct) {
-        addImage(direct, $(el).attr('alt'));
-      } else {
-        addImage($(el).attr('srcset'), $(el).attr('alt'), true);
-      }
-    });
+    $('img[src], img[data-src], img[srcset], img[data-srcset]').each(
+      (_i, el) => {
+        if (this.isThirdPartyMark($, el) || isLogoImage($, el)) {
+          return;
+        }
+        const source = readImageSource($, el);
+        if (source) {
+          addImage(source.value, $(el).attr('alt'), source.isSrcSet);
+        }
+      },
+    );
 
     return images.slice(0, MAX_IMAGE_CANDIDATES);
   }
@@ -764,9 +766,14 @@ export class BrandWebsiteParserService {
       if (this.isThirdPartyMark($, element)) {
         continue;
       }
-      const src = $(element).attr('src') ?? $(element).attr('data-src');
-      if (src) {
-        return this.resolveUrl(src, sourceUrl);
+      const source = readImageSource($, element);
+      if (source) {
+        return this.resolveUrl(
+          source.isSrcSet
+            ? this.extractSrcFromSrcSet(source.value)
+            : source.value,
+          sourceUrl,
+        );
       }
     }
     return undefined;
@@ -794,7 +801,7 @@ export class BrandWebsiteParserService {
     ) {
       return true;
     }
-    const src = $(node).attr('src') ?? $(node).attr('data-src') ?? '';
+    const src = readImageSource($, node)?.value ?? '';
     if (!src) return false;
     if (this.isThirdPartyAssetUrl(src)) return true;
     return this.isLogoDirectoryUrl(src) && !this.isSiteChromeImage($, node);
@@ -862,7 +869,7 @@ export class BrandWebsiteParserService {
    */
   private resolveUrl(href: string, base: string): string {
     try {
-      return new URL(href, base).href;
+      return upgradeSameHostHttp(new URL(href, base).href, base);
     } catch {
       return href;
     }

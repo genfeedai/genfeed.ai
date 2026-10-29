@@ -430,3 +430,77 @@ describe('website CSS evidence', () => {
     ).toBeUndefined();
   });
 });
+
+describe('BrandWebsiteParserService storefront images', () => {
+  const service = new BrandWebsiteParserService();
+  const shopifyHead =
+    '<link rel="shortcut icon" href="//acme.example/cdn/shop/files/fav_32x.png">';
+
+  it('reads the lazy-loaded file when src holds a data: placeholder', () => {
+    const parsed = service.parseHtml(
+      `<body><img src="data:image/svg+xml,%3Csvg%3E%3C/svg%3E" data-src="//acme.example/cdn/shop/files/bag_{width}x.jpg" alt="Tote"></body>`,
+      'https://acme.example',
+    );
+
+    expect(parsed.images).toEqual([
+      { alt: 'Tote', src: 'https://acme.example/cdn/shop/files/bag_1024x.jpg' },
+    ]);
+  });
+
+  it('falls back to data-srcset when no src attribute is usable', () => {
+    const parsed = service.parseHtml(
+      '<body><img data-srcset="/a_360.jpg 360w, /a_720.jpg 720w"></body>',
+      'https://acme.example',
+    );
+
+    expect(parsed.images.map((image) => image.src)).toEqual([
+      'https://acme.example/a_360.jpg',
+    ]);
+  });
+
+  it('keeps logo images out of the reference photos', () => {
+    const parsed = service.parseHtml(
+      '<body><img class="logo_sticky" src="/logo-135.png"><img src="/tote.jpg"></body>',
+      'https://acme.example',
+    );
+
+    expect(parsed.images.map((image) => image.src)).toEqual([
+      'https://acme.example/tote.jpg',
+    ]);
+  });
+
+  it('keeps a logo out of the references when only its file name says so', () => {
+    const parsed = service.parseHtml(
+      '<body><img src="/cdn/shop/files/Brand_-_Black_Logo_-_vertical.png"><img src="/tote.jpg"></body>',
+      'https://acme.example',
+    );
+
+    expect(parsed.images.map((image) => image.src)).toEqual([
+      'https://acme.example/tote.jpg',
+    ]);
+  });
+
+  it('upgrades a same-host http og:image on an https page, and only that', () => {
+    const upgraded = service.parseHtml(
+      '<meta property="og:image" content="http://acme.example/cover.jpg">',
+      'https://acme.example',
+    );
+    const thirdParty = service.parseHtml(
+      '<meta property="og:image" content="http://cdn.other.example/cover.jpg">',
+      'https://acme.example',
+    );
+
+    expect(upgraded.ogImage).toBe('https://acme.example/cover.jpg');
+    expect(thirdParty.ogImage).toBe('http://cdn.other.example/cover.jpg');
+  });
+
+  it('flags Shopify storefronts from their asset URLs', () => {
+    expect(
+      service.parseHtml(`<head>${shopifyHead}</head>`, 'https://acme.example')
+        .isShopify,
+    ).toBe(true);
+    expect(
+      service.parseHtml('<head></head>', 'https://acme.example').isShopify,
+    ).toBe(false);
+  });
+});

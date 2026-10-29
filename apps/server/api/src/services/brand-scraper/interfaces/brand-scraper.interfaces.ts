@@ -167,6 +167,8 @@ export interface WebsiteScrapingResult {
   logoUrl?: string;
   /** `logoUrl` fell back to a touch icon or favicon, not a logo on the page. */
   isLogoFromIcon?: boolean;
+  /** The page is a Shopify storefront, which serves `/products.json`. */
+  isShopify?: boolean;
   bannerUrl?: string;
   images: Array<{
     src: string;
@@ -186,6 +188,13 @@ export interface WebsiteScrapingResult {
   technologies?: string[];
   scrapedAt: Date;
   sourceUrl: string;
+}
+
+/** The slice of Shopify's public `/products.json` feed the scraper reads. */
+export interface ShopifyProductsFeed {
+  products?: Array<{
+    images?: Array<{ src?: string }>;
+  }>;
 }
 
 export interface WebsiteResponseState {

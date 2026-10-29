@@ -15,6 +15,7 @@ import type {
   LinkedInScrapedData,
   MergedBrandAnalysis,
   MetaTagFallbackData,
+  ShopifyProductsFeed,
   WebsiteBrandScrapeEvidence,
   WebsiteFetchBudget,
   WebsiteScrapingResult,
@@ -47,6 +48,9 @@ const LINKEDIN_POST_MIN_LENGTH = 20;
 const LINKEDIN_POST_MAX_LENGTH = 500;
 const LINKEDIN_MAX_RECENT_POSTS = 10;
 const MAX_STYLESHEETS = 5;
+const MAX_SHOPIFY_PRODUCT_IMAGES = 8;
+const MAX_SHOPIFY_FEED_BYTES = 1_048_576;
+const MAX_REFERENCE_IMAGES = 12;
 
 const BROWSER_USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -112,6 +116,15 @@ export class BrandScraperService {
         normalizedUrl,
       );
       await this.expandShortLinks(scrapedData, budget);
+      rawContent.diagnostics ??= [];
+      if (rawContent.isShopify) {
+        await this.addShopifyProductImages(
+          scrapedData,
+          rawContent.sourceUrl,
+          budget,
+          rawContent.diagnostics,
+        );
+      }
       scrapedData.logoUrl = this.resolveWebsiteLogoUrl(
         scrapedData.logoUrl,
         normalizedUrl,
@@ -652,6 +665,71 @@ export class BrandScraperService {
     enriched.diagnostics = [...(enriched.diagnostics ?? []), ...diagnostics];
     enriched.stylesheetUrls = stylesheetUrls.slice(0, MAX_STYLESHEETS);
     return enriched;
+  }
+
+  /**
+   * Shopify themes draw their product grids client-side, so the page HTML has
+   * no product photos. The storefront's public product feed lists them, and
+   * real product photos are what reference-based image generation needs.
+   * Best-effort: a missing or blocked feed leaves the page images untouched.
+   */
+  private async addShopifyProductImages(
+    data: IScrapedBrandData,
+    pageUrl: string,
+    budget: WebsiteFetchBudget,
+    diagnostics: IBrandKitDiagnostic[],
+  ): Promise<void> {
+    const page = new URL(pageUrl);
+    const collection = page.pathname.match(/^\/collections\/([^/]+)/)?.[1];
+    const feedPaths =
+      collection && collection !== 'all'
+        ? [`/collections/${collection}/products.json`, '/products.json']
+        : ['/products.json'];
+
+    for (const feedPath of feedPaths) {
+      let response: Response | undefined;
+      try {
+        response = await this.fetchWithRetry(
+          `${page.origin}${feedPath}?limit=${MAX_SHOPIFY_PRODUCT_IMAGES * 2}`,
+          {
+            headers: {
+              Accept: 'application/json',
+              'User-Agent': BROWSER_USER_AGENT,
+            },
+          },
+          budget,
+        );
+        if (!response.ok) continue;
+        const feed = JSON.parse(
+          await this.readWebsiteBody(
+            response,
+            budget,
+            undefined,
+            MAX_SHOPIFY_FEED_BYTES,
+          ),
+        ) as ShopifyProductsFeed;
+        const productImages = (feed.products ?? [])
+          .map((product) => product.images?.[0]?.src)
+          .filter((src): src is string => /^https:\/\//i.test(src ?? ''))
+          .slice(0, MAX_SHOPIFY_PRODUCT_IMAGES);
+        if (productImages.length === 0) continue;
+
+        data.referenceImageUrls = [
+          ...new Set([...productImages, ...(data.referenceImageUrls ?? [])]),
+        ].slice(0, MAX_REFERENCE_IMAGES);
+        return;
+      } catch {
+        diagnostics.push(
+          this.diagnostic(
+            'shopify_products_failed',
+            'The Shopify product feed could not be read.',
+          ),
+        );
+        return;
+      } finally {
+        if (response) await this.releaseWebsiteResponse(response);
+      }
+    }
   }
 
   private diagnostic(code: string, message: string): IBrandKitDiagnostic {
