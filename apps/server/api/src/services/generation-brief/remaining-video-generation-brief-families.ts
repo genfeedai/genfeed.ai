@@ -333,12 +333,7 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
       profiles: [
         profile('kling-v4-capability', MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V4, {
           maxReferences: 10,
-          nativeFields: [
-            'start_image',
-            'end_image',
-            'reference_images',
-            'reference_videos',
-          ],
+          nativeFields: ['start_image', 'end_image', 'reference_images'],
         }),
       ],
       spec: {
@@ -349,7 +344,6 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
         lastFrameField: 'end_image',
         modelLabel: 'Kling',
         resolutionField: 'resolution',
-        videoReferenceField: 'reference_videos',
       },
     },
     {

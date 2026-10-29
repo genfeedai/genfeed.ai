@@ -2839,84 +2839,17 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
   {
     endpoint: 'kwaivgi/kling-v4.0',
     provider: 'replicate',
-    // Replicate bills $0.157/s (720p) and $0.235/s (1080p) for text, keyframe
-    // or reference-image input, and $0.094/s and $0.141/s with any video
-    // input (`base_video` or `reference_videos`).
+    // Replicate bills $0.157/s (720p) and $0.235/s (1080p) for text, keyframe or
+    // reference-image input. Video input is a separate, higher-billed tier that
+    // the request builder never reaches, so it has no rate here.
     rates: [
-      {
-        component: 'output',
-        unit: 'second',
-        unitPriceUsd: 0.094,
-        when: {
-          base_video_input: 'with_base_video',
-          reference_videos_input: 'with_reference_videos',
-          resolution: '720p',
-        },
-        isPerOutput: true,
-      },
-      {
-        component: 'output',
-        unit: 'second',
-        unitPriceUsd: 0.094,
-        when: {
-          base_video_input: 'without_base_video',
-          reference_videos_input: 'with_reference_videos',
-          resolution: '720p',
-        },
-        isPerOutput: true,
-      },
-      {
-        component: 'output',
-        unit: 'second',
-        unitPriceUsd: 0.094,
-        when: {
-          base_video_input: 'with_base_video',
-          reference_videos_input: 'without_reference_videos',
-          resolution: '720p',
-        },
-        isPerOutput: true,
-      },
       {
         component: 'output',
         unit: 'second',
         unitPriceUsd: 0.157,
         when: {
-          base_video_input: 'without_base_video',
-          reference_videos_input: 'without_reference_videos',
+          model_variant: 'no-video-input',
           resolution: '720p',
-        },
-        isPerOutput: true,
-      },
-      {
-        component: 'output',
-        unit: 'second',
-        unitPriceUsd: 0.141,
-        when: {
-          base_video_input: 'with_base_video',
-          reference_videos_input: 'with_reference_videos',
-          resolution: '1080p',
-        },
-        isPerOutput: true,
-      },
-      {
-        component: 'output',
-        unit: 'second',
-        unitPriceUsd: 0.141,
-        when: {
-          base_video_input: 'without_base_video',
-          reference_videos_input: 'with_reference_videos',
-          resolution: '1080p',
-        },
-        isPerOutput: true,
-      },
-      {
-        component: 'output',
-        unit: 'second',
-        unitPriceUsd: 0.141,
-        when: {
-          base_video_input: 'with_base_video',
-          reference_videos_input: 'without_reference_videos',
-          resolution: '1080p',
         },
         isPerOutput: true,
       },
@@ -2925,8 +2858,7 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
         unit: 'second',
         unitPriceUsd: 0.235,
         when: {
-          base_video_input: 'without_base_video',
-          reference_videos_input: 'without_reference_videos',
+          model_variant: 'no-video-input',
           resolution: '1080p',
         },
         isPerOutput: true,
@@ -2934,25 +2866,40 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     ],
     variantRules: [
       {
-        criterionTitle: 'reference videos input',
-        selectorKey: 'reference_videos_input',
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
         derive: {
-          kind: 'presence',
-          field: 'reference_videos',
-          whenPresent: 'with_reference_videos',
-          whenAbsent: 'without_reference_videos',
-          fieldType: 'array',
-        },
-      },
-      {
-        criterionTitle: 'base video input',
-        selectorKey: 'base_video_input',
-        derive: {
-          kind: 'presence',
-          field: 'base_video',
-          whenPresent: 'with_base_video',
-          whenAbsent: 'without_base_video',
-          fieldType: 'string',
+          kind: 'composite',
+          parts: [
+            {
+              field: 'reference_videos',
+              mode: 'presence',
+              fieldType: 'array',
+            },
+            {
+              field: 'base_video',
+              mode: 'presence',
+              fieldType: 'string',
+            },
+          ],
+          cases: [
+            {
+              when: [false, false],
+              selector: 'no-video-input',
+            },
+            {
+              when: [true, false],
+              selector: 'video-input',
+            },
+            {
+              when: [false, true],
+              selector: 'video-input',
+            },
+            {
+              when: [true, true],
+              selector: 'video-input',
+            },
+          ],
         },
       },
     ],
