@@ -23,7 +23,7 @@ describe('curated action catalog', () => {
     },
   );
   it('retains internal targets while listing only the two consolidated MCP envelopes', () => {
-    expect(ALL_TOOLS).toHaveLength(226);
+    expect(ALL_TOOLS).toHaveLength(228);
     expect(ALL_TOOLS.filter((tool) => tool.surfaces.mcp)).toHaveLength(155);
     const listed = getToolsForSurface('mcp').map((tool) => tool.name);
     expect(listed).toHaveLength(151);
