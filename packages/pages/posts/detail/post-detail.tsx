@@ -9,7 +9,7 @@ import {
   ButtonVariant,
   CredentialPlatform,
   normalizeReviewDecision,
-  type PageScope,
+  PageScope,
   PostRepurposeMode,
 } from '@genfeedai/contracts';
 import {
@@ -76,6 +76,10 @@ export default function PostDetail({
   const { openPostRepurposeModal } = usePostRepurposeModal();
   const hookData = usePostDetail({ postId, scope });
   const translate = useTranslations('pages.posts.detail');
+  const postsListHref =
+    scope === PageScope.SUPERADMIN
+      ? APP_ROUTES.ADMIN.CONTENT.POSTS
+      : href(APP_ROUTES.PUBLISHING.POSTS);
 
   const {
     post,
@@ -509,6 +513,13 @@ export default function PostDetail({
       <div className={wrapperClassName}>
         <Card className="p-4">
           <div className="text-destructive mb-4">{translate('notFound')}</div>
+          <Button
+            asChild
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+          >
+            <Link href={postsListHref}>{translate('backToPosts')}</Link>
+          </Button>
         </Card>
       </div>
     );

@@ -219,6 +219,28 @@ describe('PostDetail', () => {
     expect(screen.getByText('Post not found')).toBeInTheDocument();
   });
 
+  it('links a missing admin post back to the admin content list', () => {
+    mockUsePostDetail.mockReturnValue(buildHookData({ post: null }));
+
+    render(<PostDetail postId="post-1" scope={PageScope.SUPERADMIN} />);
+
+    expect(screen.getByRole('link', { name: 'Back to posts' })).toHaveAttribute(
+      'href',
+      '/admin/content/posts',
+    );
+  });
+
+  it('links a missing publishing post back to the publishing posts list', () => {
+    mockUsePostDetail.mockReturnValue(buildHookData({ post: null }));
+
+    render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
+
+    expect(screen.getByRole('link', { name: 'Back to posts' })).toHaveAttribute(
+      'href',
+      '/publishing/posts',
+    );
+  });
+
   it('warns when the post failed to publish', () => {
     mockUsePostDetail.mockReturnValue(
       buildHookData({ post: buildPost({ status: PostStatus.FAILED }) }),
