@@ -29,6 +29,15 @@ import {
 
 const LOCKED_ID = 'composition-project-1';
 const COPY_ID = 'composition-project-1-copy';
+/** The inspector (Add text, effects, properties) lives in the output pane's Context tab. */
+async function openInspector(page: Page) {
+  const addText = page.getByRole('button', { exact: true, name: '+ Add Text' });
+  if (!(await addText.isVisible())) {
+    await page.getByRole('button', { exact: true, name: 'Context' }).click();
+  }
+  return addText;
+}
+
 const EDITOR_PROJECTS_PATTERN = '**/api.genfeed.ai/*/editor-projects**';
 
 type StoredProject = Pick<
@@ -209,9 +218,7 @@ test.describe('Studio Editor — locked template projects', () => {
     await expect(
       page.getByRole('button', { exact: true, name: 'Render' }),
     ).toBeDisabled();
-    await expect(
-      page.getByRole('button', { exact: true, name: '+ Add Text' }),
-    ).toBeDisabled();
+    await expect(await openInspector(page)).toBeDisabled();
 
     // The save shortcut never reaches the server.
     await page.keyboard.press('ControlOrMeta+s');
@@ -227,7 +234,7 @@ test.describe('Studio Editor — locked template projects', () => {
     await expect(banner).toHaveCount(0);
 
     // The copy is editable and saves.
-    await page.getByRole('button', { exact: true, name: '+ Add Text' }).click();
+    await (await openInspector(page)).click();
     const save = page.getByRole('button', { exact: true, name: 'Save' });
     await expect(save).toBeEnabled();
     await save.click();
