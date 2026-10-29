@@ -172,14 +172,14 @@ export function validateContextEmbeddingRuntime(input: {
   if (
     input.platform !== 'linux' ||
     input.architecture !== 'x64' ||
-    !/^24\.\d+\.\d+$/.test(node) ||
+    !/^26\.\d+\.\d+$/.test(node) ||
     !stableVersion.test(bun) ||
     (selector !== 'latest' &&
       (!stableVersion.test(selector) || selector !== bun)) ||
     input.ciCheckRuntime !== 'Linux/X64/' + bun + '/v' + node
   )
     throw new Error(
-      'Context embedding acceptance requires the declared selector and exact canonical Linux/X64 Node 24 CI runtime identity',
+      'Context embedding acceptance requires the declared selector and exact canonical Linux/X64 Node 26 CI runtime identity',
     );
   return {
     node,

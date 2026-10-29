@@ -2783,7 +2783,7 @@ export async function createState(options, env) {
     env.RUNTIME_ACCEPTANCE_JOB_STARTED_MS,
   );
   requireThat(
-    process.platform === 'linux' && /^v24\./.test(process.version),
+    process.platform === 'linux' && /^v26\./.test(process.version),
     'HOST_PREREQUISITE',
   );
   const repo = await realpath(options.repo);
