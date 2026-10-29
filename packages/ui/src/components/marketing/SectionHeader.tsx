@@ -23,7 +23,7 @@ export default function SectionHeader({
           {tierLabel}
         </div>
       ) : null}
-      <h2 className="mb-6 text-6xl font-semibold leading-tight tracking-[-0.03em]">
+      <h2 className="mb-6 text-6xl font-semibold leading-tight tracking-[-0.02em]">
         {title}
       </h2>
       {description ? (

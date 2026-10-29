@@ -36,7 +36,7 @@ export default function HomeHow(): React.ReactElement {
           <Heading
             id="home-workflow-heading"
             as="h2"
-            className="text-4xl font-semibold leading-tight tracking-[-0.03em] sm:text-5xl"
+            className="text-4xl font-semibold leading-tight tracking-[-0.02em] sm:text-5xl"
           >
             Watch it work.
           </Heading>
