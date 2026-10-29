@@ -66,6 +66,8 @@ export const videoGenerationRequestAttributes = [
   'outputs',
   'crunControls',
   'crunQuoteId',
+  'subject',
+  'action',
   'style',
   'mood',
   'camera',

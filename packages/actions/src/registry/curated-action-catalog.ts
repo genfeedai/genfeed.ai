@@ -331,7 +331,7 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'workflows',
   },
   { name: 'get_workflow_status', surfaces: ['mcp'], toolset: 'workflows' },
-  { name: 'get_x_posts', surfaces: ['agent', 'mcp'], toolset: 'content' },
+  { name: 'get_x_posts', surfaces: ['agent', 'mcp'], toolset: 'analytics' },
   { name: 'import_source_post', surfaces: ['mcp'], toolset: 'inspiration' },
   { name: 'ingest_source_media', surfaces: ['agent'], toolset: 'ui' },
   {

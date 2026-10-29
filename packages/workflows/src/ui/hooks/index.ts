@@ -1,3 +1,7 @@
+export {
+  type CatalogNodeEntry,
+  useAddCatalogNode,
+} from './useAddCatalogNode';
 export { useCanGenerate } from './useCanGenerate';
 export { useCanvasKeyboardShortcuts } from './useCanvasKeyboardShortcuts';
 export type { CommentNavigation } from './useCommentNavigation';

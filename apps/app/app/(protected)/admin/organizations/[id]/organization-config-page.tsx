@@ -2,18 +2,19 @@
 
 import { AlertCategory } from '@genfeedai/contracts';
 import { isReleaseItemId } from '@genfeedai/contracts/constants';
-import OrganizationReleaseGrants from '@protected/organization/components/organization-release-grants';
-import { OrganizationSettingsTable } from '@protected/organization/components/organization-settings-table';
-import { useOrganizationSettings } from '@protected/organization/hooks/use-organization-settings';
+import OrganizationReleaseGrants from '@protected/organizations/components/organization-release-grants';
+import { OrganizationSettingsTable } from '@protected/organizations/components/organization-settings-table';
+import { useOrganizationSettings } from '@protected/organizations/hooks/use-organization-settings';
 import Alert from '@ui/feedback/alert/Alert';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Settings } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { Suspense } from 'react';
+import { readRouteParam } from '@/lib/route-params';
 
 function OrganizationConfigPageContent() {
-  const searchParams = useSearchParams();
-  const organizationId = searchParams.get('id');
+  const params = useParams<{ id?: string | string[] }>();
+  const organizationId = readRouteParam(params?.id);
 
   const { settings, isLoading, isRefreshing, error, refresh, updateSettings } =
     useOrganizationSettings(organizationId);
@@ -24,8 +25,8 @@ function OrganizationConfigPageContent() {
     return (
       <AdminPageShell title="Organization Configuration" icon={Settings}>
         <Alert type={AlertCategory.WARNING}>
-          Organization ID is required. Please provide an organization ID in the
-          URL query parameters (e.g., /organization?id=...).
+          Organization ID is required. Open an organization from the
+          organizations list (/admin/organizations/:id).
         </Alert>
       </AdminPageShell>
     );

@@ -1,10 +1,9 @@
 import type { EditorLayoutProps } from '@props/studio/editor-layout.props';
 import EditorEffectsPanel from './EditorEffectsPanel';
 import EditorLockedBanner from './EditorLockedBanner';
-import EditorPreview from './EditorPreview';
+import EditorOutputPane from './EditorOutputPane';
 import EditorPropertiesPanel from './EditorPropertiesPanel';
 import EditorTextPanel from './EditorTextPanel';
-import EditorTimeline from './EditorTimeline';
 import EditorToolbar from './EditorToolbar';
 
 export default function EditorLayout({
@@ -102,42 +101,21 @@ export default function EditorLayout({
           />
         </div>
 
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <div className="flex-1 p-4 bg-muted/30">
-            <div className="h-full flex items-center justify-center">
-              <div className="w-full max-w-4xl">
-                <EditorPreview
-                  ref={previewRef}
-                  backgroundColor={project.settings.backgroundColor}
-                  tracks={project.tracks}
-                  width={project.settings.width}
-                  height={project.settings.height}
-                  fps={project.settings.fps}
-                  totalFrames={project.totalDurationFrames}
-                  onFrameChange={onFrameChange}
-                  onPlayingChange={onPlayingChange}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="h-64 shrink-0 border-t border-border overflow-hidden">
-            <EditorTimeline
-              tracks={project.tracks}
-              currentFrame={currentFrame}
-              totalFrames={project.totalDurationFrames}
-              fps={project.settings.fps}
-              zoom={zoom}
-              isReadOnly={isReadOnly}
-              onSeek={onSeek}
-              onTrackUpdate={onTrackUpdate}
-              onClipMove={onClipMove}
-              onClipResize={onClipResize}
-              onClipSelect={onClipSelect}
-              selectedClipId={selectedClipId}
-            />
-          </div>
-        </div>
+        <EditorOutputPane
+          project={project}
+          previewRef={previewRef}
+          currentFrame={currentFrame}
+          zoom={zoom}
+          isReadOnly={isReadOnly}
+          selectedClipId={selectedClipId}
+          onSeek={onSeek}
+          onTrackUpdate={onTrackUpdate}
+          onClipMove={onClipMove}
+          onClipResize={onClipResize}
+          onClipSelect={onClipSelect}
+          onFrameChange={onFrameChange}
+          onPlayingChange={onPlayingChange}
+        />
 
         <div className="w-64 shrink-0 overflow-y-auto flex flex-col">
           <EditorEffectsPanel

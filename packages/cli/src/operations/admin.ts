@@ -261,18 +261,34 @@ function toTrainingRow(training: ITraining): AdminTrainingRow {
   };
 }
 
-/** Every training across organizations, newest first: the API pages the list, so walk the pages. */
-export async function readTrainingsReport(): Promise<AdminTrainingsReport> {
+async function readOrganizationTrainings(organizationId: string): Promise<AdminTrainingRow[]> {
   const trainings: AdminTrainingRow[] = [];
   let pages = 1;
 
   for (let page = 1; page <= pages; page += 1) {
     const document = await adminGet<JsonApiDocument>(
-      `/trainings?page=${page}&limit=${TRAININGS_PAGE_SIZE}`
+      `/trainings?organizationId=${encodeURIComponent(organizationId)}&page=${page}&limit=${TRAININGS_PAGE_SIZE}`
     );
     pages = extractPagination(document)?.pages ?? 1;
     trainings.push(...flattenCollection<ITraining>(document).map(toTrainingRow));
   }
+
+  return trainings;
+}
+
+/**
+ * Every training across organizations, newest first. `GET /trainings` only widens to
+ * all orgs for a super admin when the query names one, so ask once per organization.
+ */
+export async function readTrainingsReport(): Promise<AdminTrainingsReport> {
+  const { organizations } = await readOrganizationsReport();
+  const trainings: AdminTrainingRow[] = [];
+
+  for (const organization of organizations) {
+    trainings.push(...(await readOrganizationTrainings(organization.id)));
+  }
+
+  trainings.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
 
   const byStatus: Record<string, number> = {};
   for (const training of trainings) {

@@ -21,7 +21,6 @@ import { PanelLeft } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import '@xyflow/react/dist/style.css';
 
-import { getActionDefinition } from '@genfeedai/actions';
 import type {
   ImageGenNodeData,
   NodeType,
@@ -34,6 +33,7 @@ import { ContextMenu } from '../components/context-menu/ContextMenu';
 import { GlobalImageHistory } from '../components/GlobalImageHistory';
 import { MultiSelectToolbar } from '../components/MultiSelectToolbar';
 import { NotificationToast } from '../components/NotificationToast';
+import { useAddCatalogNode } from '../hooks/useAddCatalogNode';
 import { useCanvasKeyboardShortcuts } from '../hooks/useCanvasKeyboardShortcuts';
 import { useContextMenu } from '../hooks/useContextMenu';
 import {
@@ -49,7 +49,6 @@ import {
 import { resolveWorkflowNodeDefinition } from '../lib/workflowNodeHandles';
 import { nodeTypes as defaultNodeTypes } from '../nodes';
 import { NodeDetailModal } from '../nodes/NodeDetailModal';
-import { useWorkflowUIConfig } from '../provider/WorkflowUIProvider';
 import { useExecutionStore } from '../stores/execution';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useUIStore } from '../stores/uiStore';
@@ -360,7 +359,7 @@ function useWorkflowCanvasHandlers({
   togglePalette,
   unlockAllNodes,
 }: WorkflowCanvasHandlersOptions) {
-  const { actionParameterDefaults } = useWorkflowUIConfig();
+  const addCatalogNode = useAddCatalogNode();
   const selectedNodeIdLookup = useMemo(
     () => createIdLookup(selectedNodeIds),
     [selectedNodeIds],
@@ -508,30 +507,16 @@ function useWorkflowCanvasHandlers({
         event.dataTransfer.getData(WORKFLOW_NODE_TRANSFER_TYPE),
       );
       if (!transfer) return;
-      const nodeType = transfer.type;
 
-      if (nodeType === 'genfeedAction') {
-        const action = transfer.actionId
-          ? getActionDefinition(transfer.actionId)
-          : undefined;
-        if (action?.visibility !== 'workflow') return;
-      }
-
-      const position = reactFlow.screenToFlowPosition({
-        x: event.clientX,
-        y: event.clientY,
-      });
-
-      const nodeId = addNode(nodeType, position);
-      if (nodeId && transfer.actionId) {
-        useWorkflowStore.getState().updateNodeData(nodeId, {
-          actionId: transfer.actionId,
-          label: transfer.label,
-          parameters: actionParameterDefaults?.(transfer.actionId) ?? {},
-        });
-      }
+      addCatalogNode(
+        transfer,
+        reactFlow.screenToFlowPosition({
+          x: event.clientX,
+          y: event.clientY,
+        }),
+      );
     },
-    [actionParameterDefaults, addNode, reactFlow],
+    [addCatalogNode, addNode, reactFlow],
   );
 
   const handleDragOver = useCallback((event: React.DragEvent) => {

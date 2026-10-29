@@ -259,7 +259,9 @@ describe('MCP setup page', () => {
         expect(html).toContain(
           `claude mcp add --transport http genfeed --scope user ${identifier}`,
         );
-        expect(html).toContain(`codex mcp add genfeed --url ${identifier}`);
+        expect(html).toContain(
+          `codex mcp add genfeed --url &#39;${identifier}?profile=studio&#39;`,
+        );
         expect(html).toContain(`var baseMcpUrl = "${identifier}";`);
         expect(html).not.toContain(`${identifier}/mcp`);
         expect(html).toContain(`${identifier}/claude`);
@@ -327,7 +329,10 @@ describe('MCP setup page', () => {
       'claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp',
     );
     expect(promptHtml).toContain(
-      'codex mcp add genfeed --url https://mcp.genfeed.ai/mcp',
+      'codex mcp add genfeed --url &#39;https://mcp.genfeed.ai/mcp?profile=studio&#39;',
+    );
+    expect(promptHtml).toContain(
+      'url = &quot;https://mcp.genfeed.ai/mcp?profile=studio&quot;',
     );
     expect(promptHtml).toContain('~/.codex/config.toml');
     expect(promptHtml).not.toContain('gf_live_');
@@ -521,8 +526,25 @@ describe('MCP setup page', () => {
       );
       expect(text('codex-command')).toContain(`--url '${selectedUrl}'`);
       expect(text('agent-setup-prompt')).toContain(`Endpoint: ${selectedUrl}`);
+      expect(text('agent-setup-prompt')).toContain(
+        `codex mcp add genfeed --url '${selectedUrl}'`,
+      );
+      expect(text('agent-setup-prompt')).toContain(`url = "${selectedUrl}"`);
 
       toggle(false);
+
+      expect(text('codex-command')).toContain(
+        "--url 'https://mcp.genfeed.ai/mcp?profile=studio'",
+      );
+      expect(text('agent-setup-prompt')).toContain(
+        "codex mcp add genfeed --url 'https://mcp.genfeed.ai/mcp?profile=studio'",
+      );
+      expect(text('agent-setup-prompt')).toContain(
+        'url = "https://mcp.genfeed.ai/mcp?profile=studio"',
+      );
+      expect(text('agent-setup-prompt')).toContain(
+        'Endpoint: https://mcp.genfeed.ai/mcp\n',
+      );
 
       expect(text('mcp-url')).toBe('https://mcp.genfeed.ai/mcp');
       expect(JSON.parse(text('generic-client-config')).url).toBe(
@@ -566,7 +588,7 @@ describe('MCP setup page', () => {
           nextUrl: string,
           nextShellUrl: string,
         ) => string
-      >(html, 'replaceAll', 'rewriteAgentPrompt');
+      >(html, 'shellQuote', 'replaceAll', 'rewriteAgentPrompt');
 
       const currentUrl = 'https://mcp.genfeed.ai/mcp';
       const nextUrl = 'https://mcp.genfeed.ai/mcp?toolsets=content';

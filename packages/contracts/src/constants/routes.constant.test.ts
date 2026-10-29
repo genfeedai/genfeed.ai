@@ -269,7 +269,7 @@ describe('routes.constant', () => {
       brandSlug: '',
       orgSlug: 'demo',
     });
-    expect(parseScopedAppPath('/admin/organization')).toEqual({
+    expect(parseScopedAppPath('/admin/organizations')).toEqual({
       brandSlug: '',
       orgSlug: '',
     });

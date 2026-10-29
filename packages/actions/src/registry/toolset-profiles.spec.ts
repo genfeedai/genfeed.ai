@@ -1,14 +1,19 @@
 import { describe, expect, it } from 'vitest';
+import { CLAUDE_MCP_TOOL_NAMES } from './mcp-access-modes';
+import { getToolsForSurface } from './tool-registry';
 import type { ToolsetName } from './toolset-names';
 import {
   BARE_MCP_URL_TOOL_CAP,
   BARE_URL_MCP_PROFILE,
+  CONNECTOR_MCP_TOOL_CAP,
   DEFAULT_MCP_PROFILE_TOOLSETS,
   DIRECTORY_EXCLUDED_TOOLSETS,
   DIRECTORY_MCP_PROFILE_TOOLSETS,
   isMcpToolsetProfileName,
   MCP_PROFILE_NAMES,
   resolveMcpProfile,
+  STUDIO_MCP_PROFILE_TOOL_CAP,
+  STUDIO_MCP_PROFILE_TOOLSETS,
 } from './toolset-profiles';
 import { getToolsForToolsets } from './toolsets';
 
@@ -31,20 +36,63 @@ describe('MCP toolset profiles', () => {
     expect(names).toContain('create_scheduled_release');
   });
 
-  it('pins truthful canonical maximum and ordinary role profile counts', () => {
-    const defaults = getToolsForToolsets('mcp', DEFAULT_MCP_PROFILE_TOOLSETS);
-    expect(BARE_MCP_URL_TOOL_CAP).toBe(27);
-    expect(defaults).toHaveLength(27);
-    expect(
-      defaults.filter((tool) => tool.requiredRole === 'user'),
-    ).toHaveLength(26);
-    expect(
-      getToolsForToolsets('mcp', DIRECTORY_MCP_PROFILE_TOOLSETS),
-    ).toHaveLength(21);
+  it('pins the ordinary-role counts of every profile against its cap', () => {
+    const userCount = (toolsets: readonly ToolsetName[]) =>
+      getToolsForToolsets('mcp', toolsets).filter(
+        (tool) => tool.requiredRole === 'user',
+      ).length;
+    expect(BARE_MCP_URL_TOOL_CAP).toBe(25);
+    expect(userCount(DEFAULT_MCP_PROFILE_TOOLSETS)).toBe(25);
+    expect(userCount(DIRECTORY_MCP_PROFILE_TOOLSETS)).toBe(19);
+    expect(userCount(STUDIO_MCP_PROFILE_TOOLSETS)).toBe(40);
+    expect(userCount(DEFAULT_MCP_PROFILE_TOOLSETS)).toBeLessThanOrEqual(
+      BARE_MCP_URL_TOOL_CAP,
+    );
+    expect(userCount(DIRECTORY_MCP_PROFILE_TOOLSETS)).toBeLessThanOrEqual(
+      CONNECTOR_MCP_TOOL_CAP,
+    );
+    expect(userCount(STUDIO_MCP_PROFILE_TOOLSETS)).toBeLessThanOrEqual(
+      STUDIO_MCP_PROFILE_TOOL_CAP,
+    );
   });
-  it('uses default for the bare URL and exposes the three profile names', () => {
+
+  it('keeps the Claude connector inside the connector cap and free of generation', () => {
+    const listed = getToolsForSurface('mcp').filter(
+      (tool) =>
+        tool.requiredRole === 'user' && CLAUDE_MCP_TOOL_NAMES.has(tool.name),
+    );
+    expect(listed.length).toBeLessThanOrEqual(CONNECTOR_MCP_TOOL_CAP);
+    expect(listed.map((tool) => tool.name)).not.toContain('generate');
+    expect(listed.map((tool) => tool.name)).not.toContain('transform_media');
+  });
+
+  it('adds brand and analytics to the default for the studio profile', () => {
+    expect(STUDIO_MCP_PROFILE_TOOLSETS).toEqual([
+      ...DEFAULT_MCP_PROFILE_TOOLSETS,
+      'brand',
+      'analytics',
+    ]);
+    expect(resolveMcpProfile('studio')).toEqual({
+      kind: 'toolsets',
+      toolsets: STUDIO_MCP_PROFILE_TOOLSETS,
+    });
+    const names = getToolsForToolsets('mcp', STUDIO_MCP_PROFILE_TOOLSETS).map(
+      (tool) => tool.name,
+    );
+    expect(names).toEqual(expect.arrayContaining(['generate', 'list_assets']));
+    expect(names).toEqual(
+      expect.arrayContaining(['get_analytics', 'get_x_posts']),
+    );
+  });
+
+  it('uses default for the bare URL and exposes the four profile names', () => {
     expect(BARE_URL_MCP_PROFILE).toBe('default');
-    expect(MCP_PROFILE_NAMES).toEqual(['default', 'directory', 'full']);
+    expect(MCP_PROFILE_NAMES).toEqual([
+      'default',
+      'directory',
+      'studio',
+      'full',
+    ]);
     expect(isMcpToolsetProfileName('default')).toBe(true);
     expect(isMcpToolsetProfileName('not-a-profile')).toBe(false);
   });
@@ -64,7 +112,10 @@ describe('MCP toolset profiles', () => {
   });
 
   it('keeps the bare-URL profile within the tool cap', () => {
-    const tools = getToolsForToolsets('mcp', DEFAULT_MCP_PROFILE_TOOLSETS);
+    const tools = getToolsForToolsets(
+      'mcp',
+      DEFAULT_MCP_PROFILE_TOOLSETS,
+    ).filter((tool) => tool.requiredRole === 'user');
 
     expect(tools.length).toBeLessThanOrEqual(BARE_MCP_URL_TOOL_CAP);
     expect(tools.length).toBeGreaterThan(0);

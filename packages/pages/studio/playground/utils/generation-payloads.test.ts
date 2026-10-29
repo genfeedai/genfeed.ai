@@ -355,6 +355,37 @@ describe('buildRepromptData', () => {
     expect(data.width).toBe(810);
   });
 
+  it('restores the slots stored on the prompt row, which metadata never held', () => {
+    const ingredient = {
+      metadata: { mood: 'metadata mood' },
+      prompt: {
+        action: 'typing',
+        blacklists: ['blur'],
+        lighting: 'soft window light',
+        mood: 'row mood',
+        sounds: ['rain'],
+        style: 'noir',
+        subject: 'a founder at a desk',
+      },
+    } as unknown as IIngredient;
+
+    const data = buildRepromptData(
+      ingredient,
+      IngredientCategory.IMAGE,
+      'brand-1',
+      models,
+    );
+
+    expect(data.subject).toBe('a founder at a desk');
+    expect(data.action).toBe('typing');
+    expect(data.lighting).toBe('soft window light');
+    expect(data.style).toBe('noir');
+    expect(data.sounds).toEqual(['rain']);
+    expect(data.blacklist).toEqual(['blur']);
+    // Metadata, when it has the field, still wins.
+    expect(data.mood).toBe('metadata mood');
+  });
+
   it('falls back to defaults when metadata is missing', () => {
     const ingredient = {} as IIngredient;
 

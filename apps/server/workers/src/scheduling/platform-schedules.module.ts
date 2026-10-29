@@ -1,3 +1,4 @@
+import { AgentTransferRollupModule } from '@api/collections/agent-transfers/agent-transfer-rollup.module';
 import { BrandRelocationJobsModule } from '@api/collections/brands/brand-relocation-jobs.module';
 import { ContextEmbeddingCoreModule } from '@api/collections/contexts/context-embedding-core.module';
 import { KnowledgeConflictCoreModule } from '@api/collections/contexts/knowledge-conflict-core.module';
@@ -79,6 +80,7 @@ import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
     VideoCompletionCoreModule,
     WebhooksCoreModule,
     WorkspaceTaskRollupModule,
+    AgentTransferRollupModule,
     BullModule.registerQueue(
       {
         defaultJobOptions: {

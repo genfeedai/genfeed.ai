@@ -29,6 +29,11 @@ import type {
   BuildStudioCrunQuoteRequestProps,
   BuildStudioCrunVideoQuoteRequestProps,
 } from '@genfeedai/props/studio/studio-playground.props';
+import {
+  readStoredPromptRow,
+  readStoredSlotText,
+  type StudioPromptSlotKey,
+} from '@pages/studio/playground/utils/studio-playground-prompt-slots';
 
 /**
  * Also read by `useStudioGenerationSetupLookOptions` to build the Look tab's
@@ -198,6 +203,26 @@ export function buildRepromptData(
     return typeof value === 'string' && value ? value : undefined;
   };
 
+  // Slots are stored on the prompt row (#8161); metadata only holds what older
+  // generations recorded, so it wins and the prompt row fills in the rest.
+  const storedPrompt = readStoredPromptRow(ingredient);
+  const getSlot = (key: StudioPromptSlotKey): string | undefined =>
+    getOptionalString(key) ?? readStoredSlotText(storedPrompt, key);
+  const metadataSounds = Array.isArray(metadata.sounds)
+    ? metadata.sounds.filter(
+        (sound: unknown): sound is string => typeof sound === 'string',
+      )
+    : [];
+  const metadataBlacklist = Array.isArray(metadata.blacklist)
+    ? metadata.blacklist.filter(
+        (item: unknown): item is string => typeof item === 'string',
+      )
+    : [];
+  const storedList = (value: unknown): string[] =>
+    Array.isArray(value)
+      ? value.filter((entry): entry is string => typeof entry === 'string')
+      : [];
+
   const isImageOrVideo =
     categoryType === IngredientCategory.IMAGE ||
     categoryType === IngredientCategory.VIDEO;
@@ -209,14 +234,14 @@ export function buildRepromptData(
     '';
 
   return {
-    blacklist: Array.isArray(metadata.blacklist)
-      ? metadata.blacklist.filter(
-          (item: unknown): item is string => typeof item === 'string',
-        )
-      : [],
+    action: getSlot('action'),
+    blacklist:
+      metadataBlacklist.length > 0
+        ? metadataBlacklist
+        : storedList(storedPrompt?.blacklists),
     brand: brandId,
-    camera: getOptionalString('camera'),
-    cameraMovement: getOptionalString('cameraMovement'),
+    camera: getSlot('camera'),
+    cameraMovement: getSlot('cameraMovement'),
     category: String(categoryType),
     duration:
       typeof metadata.duration === 'number' ? metadata.duration : undefined,
@@ -227,10 +252,10 @@ export function buildRepromptData(
     height: ingredient.metadataHeight || ingredient.height || 1920,
     isAudioEnabled: Boolean(metadata.isAudioEnabled),
     isValid: true,
-    lens: getOptionalString('lens'),
-    lighting: getOptionalString('lighting'),
+    lens: getSlot('lens'),
+    lighting: getSlot('lighting'),
     models: [modelKey],
-    mood: getOptionalString('mood'),
+    mood: getSlot('mood'),
     outputs: 1,
     quality: 'premium',
     references: Array.isArray(ingredient.references)
@@ -239,14 +264,14 @@ export function buildRepromptData(
         )
       : [],
     resolution: getOptionalString('resolution'),
-    scene: getOptionalString('scene'),
-    sounds: Array.isArray(metadata.sounds)
-      ? metadata.sounds.filter(
-          (sound: unknown): sound is string => typeof sound === 'string',
-        )
-      : [],
-    speech: getOptionalString('speech'),
-    style: getMetadataValue('style', ''),
+    scene: getSlot('scene'),
+    sounds:
+      metadataSounds.length > 0
+        ? metadataSounds
+        : storedList(storedPrompt?.sounds),
+    speech: getSlot('speech'),
+    style: getOptionalString('style') ?? getSlot('style') ?? '',
+    subject: getSlot('subject'),
     tags: Array.isArray(ingredient.tags)
       ? ingredient.tags
           .map((tag) => tag.key || tag.label || tag.id)

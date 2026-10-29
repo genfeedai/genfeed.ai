@@ -118,7 +118,7 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
 
     render(
       <AnalyticsOrganizationsList
-        getReleaseAccessHref={(id) => `/admin/organization?id=${id}`}
+        getReleaseAccessHref={(id) => `/admin/organizations/${id}`}
       />,
     );
 
@@ -129,7 +129,7 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
       screen.getByRole('link', {
         name: 'Open release access for Acme Inc',
       }),
-    ).toHaveAttribute('href', '/admin/organization?id=org-1');
+    ).toHaveAttribute('href', '/admin/organizations/org-1');
   });
 
   it('opens an organization summary in the sidebar from the row while the name stays a link', async () => {

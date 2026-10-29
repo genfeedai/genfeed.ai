@@ -114,7 +114,7 @@ test.describe('Core Automation Loop', () => {
       automationPage.getByRole('button', { name: 'Run' }).first(),
     ).toBeVisible();
     await expect(
-      automationPage.getByRole('heading', { name: 'Nodes' }),
+      automationPage.getByRole('button', { name: 'Add node' }),
     ).toBeVisible();
     await automationPage
       .getByRole('button', { name: 'Workflow actions' })
