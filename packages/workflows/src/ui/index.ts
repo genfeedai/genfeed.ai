@@ -40,8 +40,6 @@ export {
   DebugPanel,
   NodeCatalog,
   type NodeCatalogProps,
-  NodePalette,
-  type NodePaletteProps,
   type PaletteNodeDefinition,
   PanelContainer,
 } from './panels';

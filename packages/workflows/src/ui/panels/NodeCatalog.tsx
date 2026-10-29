@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 
 import {
   getNodesByCategory,
@@ -34,7 +34,6 @@ import {
   MessageSquare,
   Mic,
   Navigation,
-  PanelLeftClose,
   Pencil,
   Puzzle,
   Scissors,
@@ -44,13 +43,13 @@ import {
   Volume2,
   WandSparkles,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 import type { CatalogNodeEntry } from '../hooks/useAddCatalogNode';
 import {
   encodeWorkflowNodeTransfer,
   WORKFLOW_NODE_TRANSFER_TYPE,
 } from '../lib/paletteTransfer';
-import { useUIStore } from '../stores/uiStore';
 
 // Icon mapping
 const ICONS: Record<string, typeof Image> = {
@@ -350,6 +349,7 @@ export function NodeCatalog({
   baseNodeTypes,
   onAdd,
 }: NodeCatalogProps) {
+  const translate = useTranslations('pages.workflows.addNode');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCategories, setExpandedCategories] = useState<
     Set<NodeCategory>
@@ -411,10 +411,10 @@ export function NodeCatalog({
       {/* Search bar */}
       <div className="border-b border-border p-3">
         <FormSearchbar
-          ariaLabel="Search nodes"
+          ariaLabel={translate('searchLabel')}
           inputClassName="h-9 bg-muted"
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search nodes..."
+          placeholder={translate('searchPlaceholder')}
           size={ComponentSize.MD}
           value={searchQuery}
         />
@@ -426,7 +426,7 @@ export function NodeCatalog({
           <div className="space-y-0.5 p-2">
             {filteredNodes.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                No nodes found
+                {translate('empty')}
               </p>
             ) : (
               filteredNodes.map((node) => (
@@ -457,34 +457,6 @@ export function NodeCatalog({
           ))
         )}
       </div>
-    </div>
-  );
-}
-
-export interface NodePaletteProps extends NodeCatalogProps {}
-
-export function NodePalette(props: NodePaletteProps = {}) {
-  const { togglePalette } = useUIStore();
-
-  return (
-    <div className="flex h-full w-72 min-w-72 flex-col overflow-hidden border-r border-border bg-background">
-      <div className="flex items-start justify-between gap-2 border-b border-border px-3 py-3">
-        <div>
-          <h2 className="font-semibold text-sm text-foreground">Nodes</h2>
-          <p className="text-xs text-muted-foreground mt-1">Drag to canvas</p>
-        </div>
-        <Button
-          withWrapper={false}
-          variant={ButtonVariant.GHOST}
-          size={ButtonSize.ICON}
-          onClick={togglePalette}
-          title="Close sidebar (M)"
-        >
-          <PanelLeftClose className="size-4 text-muted-foreground group-hover:text-foreground" />
-        </Button>
-      </div>
-
-      <NodeCatalog {...props} />
     </div>
   );
 }
