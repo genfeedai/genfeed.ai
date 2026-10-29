@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  AlertCategory,
-  ButtonVariant,
-  ComponentSize,
-  ViewType,
-} from '@genfeedai/contracts';
+import { AlertCategory, ButtonVariant, ViewType } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IContentTemplate } from '@genfeedai/contracts/interfaces/content/template-ui.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -18,13 +13,13 @@ import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionView from '@ui/collection/CollectionView';
 import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
+import SearchField from '@ui/content/search-field/SearchField';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
-import FormSearchbar from '@ui/primitives/searchbar';
 import { FileText } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -141,12 +136,10 @@ function TemplatesPageContent() {
       title={t('title')}
       icon={FileText}
       search={
-        <FormSearchbar
+        <SearchField
           ariaLabel={t('search')}
-          isCollapsible
           onSearch={(value) => setSearch(value.trim())}
           placeholder={t('search')}
-          size={ComponentSize.SM}
           value={search}
         />
       }

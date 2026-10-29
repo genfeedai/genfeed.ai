@@ -103,7 +103,6 @@ describe('provider import selection and parameters', () => {
       '1-lite',
       '1-pro',
       '1-pro-fast',
-      '1.5-pro',
       '2.0',
       '2.0-fast',
       '2.0-mini',
@@ -143,7 +142,6 @@ describe('provider import selection and parameters', () => {
     for (const family of [
       'fal-ai/bytedance/seedance/v1/pro',
       'fal-ai/bytedance/seedance/v1/pro/fast',
-      'fal-ai/bytedance/seedance/v1.5/pro',
     ]) {
       for (const task of ['text-to-video', 'image-to-video']) {
         expect(targets).toContainEqual({

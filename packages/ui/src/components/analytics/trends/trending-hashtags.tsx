@@ -7,35 +7,19 @@ import Card from '@ui/card/Card';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { Skeleton } from '@ui/primitives/skeleton';
-import {
-  PLATFORM_CONFIGS,
-  PLATFORM_CONFIGS_ARRAY,
-} from '@ui-constants/platform.constant';
+import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
 import { Hash, TrendingUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-
-const HASHTAG_PLATFORMS = ['tiktok', 'instagram', 'twitter'];
 
 export function TrendingHashtags({
   hashtags,
   isLoading = false,
   selectedPlatform,
-  onPlatformChange,
   onHashtagClick,
   className = '',
 }: TrendingHashtagsProps) {
   const translate = useTranslations('ui.discovery');
-  const filteredPlatforms = PLATFORM_CONFIGS_ARRAY.filter((p) =>
-    HASHTAG_PLATFORMS.includes(p.id),
-  );
 
   const filteredHashtags = selectedPlatform
     ? hashtags.filter((h) => h.platform === selectedPlatform)
@@ -47,40 +31,14 @@ export function TrendingHashtags({
 
   return (
     <div className={`space-y-4 ${className}`}>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="space-y-1">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Hash className="text-muted-foreground" />
-            Trending Hashtags
-          </h2>
-          <p className="text-sm text-foreground/60">
-            Observed hashtags and the videos behind them.
-          </p>
-        </div>
-
-        {onPlatformChange && (
-          <Select
-            value={selectedPlatform || 'all'}
-            onValueChange={(value) =>
-              onPlatformChange(value === 'all' ? '' : value)
-            }
-          >
-            <SelectTrigger
-              aria-label={translate('hashtagPlatformFilter')}
-              className="w-40"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{translate('allPlatforms')}</SelectItem>
-              {filteredPlatforms.map((platform) => (
-                <SelectItem key={platform.id} value={platform.id}>
-                  {platform.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
+      <div className="space-y-1">
+        <h2 className="text-lg font-semibold flex items-center gap-2">
+          <Hash className="text-muted-foreground" />
+          Trending Hashtags
+        </h2>
+        <p className="text-sm text-foreground/60">
+          Observed hashtags and the videos behind them.
+        </p>
       </div>
 
       {isLoading ? (

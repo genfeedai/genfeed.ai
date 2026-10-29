@@ -33,7 +33,6 @@ const replicateCandidates: readonly [string, ModelCategory][] = [
     '1-lite',
     '1-pro',
     '1-pro-fast',
-    '1.5-pro',
     '2.0',
     '2.0-fast',
     '2.0-mini',
@@ -69,7 +68,6 @@ const falFamilies: readonly [string, ModelCategory, readonly string[]][] = [
   ...[
     'fal-ai/bytedance/seedance/v1/pro',
     'fal-ai/bytedance/seedance/v1/pro/fast',
-    'fal-ai/bytedance/seedance/v1.5/pro',
   ].map((family): [string, ModelCategory, readonly string[]] => [
     family,
     ModelCategory.VIDEO,

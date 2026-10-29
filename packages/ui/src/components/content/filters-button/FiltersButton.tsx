@@ -126,8 +126,8 @@ export default function FiltersButton({
     <div className={`flex items-center gap-2 ${className}`}>
       {facets.length > 0 ? (
         <FilterMenu
-          className={isAttached ? 'h-6 px-2' : undefined}
           facets={facets}
+          isAttached={isAttached}
           onClear={() => notifyFilterChange({ ...filters, ...EMPTY_FILTERS })}
         />
       ) : null}

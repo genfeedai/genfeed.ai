@@ -380,7 +380,7 @@ describe('AnalyticsAccounts', () => {
       screen.getByRole('button', { name: 'About Posts' }),
     ).toBeInTheDocument();
     const latestToolbar = () =>
-      mocks.setToolbarNode.mock.calls
+      mocks.setSearchNode.mock.calls
         .filter(([node]) => node !== null)
         .at(-1)?.[0] as ReactNode;
     const toolbar = render(latestToolbar());
