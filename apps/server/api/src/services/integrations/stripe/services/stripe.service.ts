@@ -35,7 +35,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import StripeConstructor from 'stripe';
-import { selectSoftwareSubscriptionItem } from './stripe-software-item.util';
+import { requireSoftwareSubscriptionItem } from './stripe-software-item.util';
 
 type StripeClient = InstanceType<typeof StripeConstructor>;
 export type StripeCheckoutSession = Awaited<
@@ -976,18 +976,10 @@ export class StripeService {
         },
       );
 
-      if (!subscription.items.data || subscription.items.data.length === 0) {
-        throw new Error('No subscription items found');
-      }
-
-      const subscriptionItem = selectSoftwareSubscriptionItem(subscription, [
+      const subscriptionItem = requireSoftwareSubscriptionItem(subscription, [
         this.configService.get('STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY'),
         this.configService.get('STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY'),
       ]);
-      if (!subscriptionItem)
-        throw new Error(
-          'A service subscription has no software plan to change',
-        );
 
       // Update the subscription with the new price
       const updatedSubscription = await this.stripe.subscriptions.update(

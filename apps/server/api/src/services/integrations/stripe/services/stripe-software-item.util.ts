@@ -31,3 +31,14 @@ export function selectSoftwareSubscriptionItem<T extends PricedItem>(
   if (subscription.items.data.length === 1) return subscription.items.data[0];
   throw new Error('Software subscription item is missing');
 }
+
+export function requireSoftwareSubscriptionItem<T extends PricedItem>(
+  subscription: ItemSubscription<T>,
+  configuredPriceIds: ReadonlyArray<string | undefined>,
+) {
+  const item = selectSoftwareSubscriptionItem(subscription, configuredPriceIds);
+  if (item === undefined) throw new Error('No subscription items found');
+  if (!item)
+    throw new Error('A service subscription has no software plan to change');
+  return item;
+}
