@@ -633,9 +633,8 @@ describe('AdsResearchPageClient', () => {
     expect(screen.getByTestId('container-refresh')).toContainElement(
       refreshButton,
     );
-    const searchField = screen
-      .getByPlaceholderText('Search ads')
-      .closest('div')?.parentElement as HTMLElement;
+    const searchField = screen.getByPlaceholderText('Search ads').closest('div')
+      ?.parentElement as HTMLElement;
     expect(searchField).toContainElement(screen.getByTestId('filter-menu'));
     fireEvent.click(refreshButton);
     expect(useQueryStates[0].refetch).toHaveBeenCalled();
