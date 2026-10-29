@@ -54,8 +54,8 @@ export default function PosterHeroPage({
               <h1
                 className={
                   compact
-                    ? 'text-4xl font-semibold leading-[1.05] tracking-[-0.03em] text-foreground sm:text-5xl'
-                    : 'text-4xl font-semibold leading-[1.0] tracking-[-0.03em] text-foreground sm:text-5xl md:text-6xl lg:text-[3.5rem]'
+                    ? 'text-4xl font-semibold leading-[1.05] tracking-[-0.02em] text-foreground sm:text-5xl'
+                    : 'text-4xl font-semibold leading-[1.0] tracking-[-0.02em] text-foreground sm:text-5xl md:text-6xl lg:text-[3.5rem]'
                 }
               >
                 {title}

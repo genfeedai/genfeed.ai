@@ -1,8 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OnboardingFirstDraftsService } from '@api/endpoints/onboarding/services/onboarding-first-drafts.service';
-import type { IOnboardingFirstDraftsResult } from '@genfeedai/contracts/interfaces';
 import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
+import type { IOnboardingFirstDraftsResult } from '@genfeedai/contracts/interfaces';
 import { BadRequestException } from '@nestjs/common';
 
 vi.mock(

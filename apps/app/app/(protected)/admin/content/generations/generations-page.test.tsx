@@ -162,7 +162,6 @@ describe('admin Generations page', () => {
     const subbar = within(screen.getByTestId('subbar'));
     // The search is a persistent field with the Filters menu inside it.
     expect(subbar.getByPlaceholderText('search')).toBeVisible();
-    expect(subbar.queryByTestId('collapsible-search')).toBeNull();
     // Status, type and model are facets of the one nested Filters menu.
     await userEvent.click(subbar.getByRole('button', { name: 'menu' }));
     expect(

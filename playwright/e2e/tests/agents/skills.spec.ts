@@ -5,6 +5,7 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { brandPath } from '../../utils/app-chrome';
+import { filtersTrigger, openFilterFacet } from '../../utils/filter-menu';
 
 test.describe('Brand Skills settings', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
@@ -38,6 +39,32 @@ test.describe('Brand Skills settings', () => {
         exact: true,
       }),
     ).toBeVisible();
+  });
+
+  test('search carries the Source, Modality and Stage Filters inside its field', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.SETTINGS.SKILLS), {
+      waitUntil: 'domcontentloaded',
+    });
+
+    const search = authenticatedPage.getByPlaceholder('Search skills');
+    await expect(search).toBeVisible();
+    const field = search.locator('xpath=../..');
+    await expect(filtersTrigger(field)).toBeVisible();
+    await expect(authenticatedPage.getByRole('combobox')).toHaveCount(0);
+
+    await search.fill('YouTube');
+    await expect(search).toHaveValue('YouTube');
+    await expect(
+      authenticatedPage.getByText('YouTube Script Setup').first(),
+    ).toBeVisible();
+
+    for (const facet of ['Source', 'Modality', 'Stage']) {
+      await openFilterFacet(authenticatedPage, facet, field);
+      await authenticatedPage.keyboard.press('Escape');
+      await authenticatedPage.keyboard.press('Escape');
+    }
   });
 });
 

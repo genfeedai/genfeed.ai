@@ -4,6 +4,7 @@ import {
   mockPostsList,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { filtersTrigger } from '../../utils/filter-menu';
 import { assertHealthy, settle } from '../../utils/interaction-helpers';
 import { tryClick } from '../../utils/route-assertions';
 
@@ -259,15 +260,12 @@ test.describe('Posts — deep interactions', () => {
       authenticatedPage.getByText('Weekly Standup Post'),
     ).toHaveCount(0);
 
-    // Search rests as an icon; open it first.
-    await authenticatedPage
-      .getByTestId('collapsible-search-trigger')
-      .first()
-      .click();
+    // The search is a persistent field with the Filters menu inside it.
     const search = authenticatedPage.locator(
       'input[placeholder*="Search posts" i]',
     );
     await expect(search).toBeVisible();
+    await expect(filtersTrigger(search.locator('xpath=../..'))).toBeVisible();
     await search.fill('weekly');
     await settle(authenticatedPage);
 

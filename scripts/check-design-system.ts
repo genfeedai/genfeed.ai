@@ -43,6 +43,7 @@ export type DesignSystemFindingKind =
   | 'dark-only-palette-text'
   | 'raw-chrome-color'
   | 'sub-11-text'
+  | 'tight-tracking'
   | 'undersized-control-height';
 
 export type DesignSystemFinding = {
@@ -111,7 +112,12 @@ function collectFiles(dir: string, extensions: Set<string>): string[] {
     }
 
     if (stat.isDirectory()) {
-      if (entry === 'node_modules' || entry === 'dist' || entry === 'build') {
+      if (
+        entry === 'node_modules' ||
+        entry === 'dist' ||
+        entry === 'build' ||
+        entry === '.next'
+      ) {
         continue;
       }
 
@@ -326,6 +332,7 @@ const DESIGN_SYSTEM_FINDING_KINDS: readonly DesignSystemFindingKind[] = [
   'dark-only-palette-text',
   'raw-chrome-color',
   'sub-11-text',
+  'tight-tracking',
   'undersized-control-height',
 ];
 
@@ -349,6 +356,22 @@ function isSubElevenArbitraryTextToken(token: string): boolean {
   const value = Number(match[1]);
   const pixels = match[2] === 'rem' ? value * 16 : value;
   return Number.isFinite(pixels) && pixels < 11;
+}
+
+const MIN_NEGATIVE_TRACKING_EM = -0.02;
+
+function isTightTrackingToken(token: string): boolean {
+  const base = baseClassToken(token);
+  if (base === 'tracking-tighter') {
+    return true;
+  }
+  const match = /^tracking-\[(-\d*\.?\d+)em\]$/u.exec(base);
+  if (!match) {
+    return false;
+  }
+
+  const value = Number(match[1]);
+  return Number.isFinite(value) && value < MIN_NEGATIVE_TRACKING_EM - 1e-9;
 }
 
 function isControlElement(node: ts.JsxOpeningLikeElement): boolean {
@@ -431,6 +454,7 @@ export function findPackageUiGuardFindings(
   );
   const findings: DesignSystemFinding[] = [];
   const findingKeys = new Set<string>();
+  const isUiPackageFile = file.startsWith('packages/ui/');
 
   const addFinding = (
     literal: ts.StringLiteralLike,
@@ -461,6 +485,7 @@ export function findPackageUiGuardFindings(
     for (const literal of literals) {
       for (const token of classTokens(literal.text)) {
         if (
+          isUiPackageFile &&
           scanControlHeight &&
           CONTROL_HEIGHT_TOKENS.has(baseClassToken(token))
         ) {
@@ -468,6 +493,9 @@ export function findPackageUiGuardFindings(
         }
         if (isSubElevenArbitraryTextToken(token)) {
           addFinding(literal, 'sub-11-text', token);
+        }
+        if (isTightTrackingToken(token)) {
+          addFinding(literal, 'tight-tracking', token);
         }
       }
     }
@@ -505,9 +533,12 @@ export function findPackageUiGuardFindings(
   );
 }
 
+const TYPE_SCALE_GUARD_ROOTS = ['apps/app', 'apps/website', 'packages'];
+
 function findPackageUiGuardFindingsInRepo(): DesignSystemFinding[] {
-  const packageRoot = path.join(rootDir, 'packages/ui');
-  const files = collectFiles(packageRoot, PACKAGE_UI_EXTENSIONS);
+  const files = TYPE_SCALE_GUARD_ROOTS.flatMap((root) =>
+    collectFiles(path.join(rootDir, root), PACKAGE_UI_EXTENSIONS),
+  );
   const findings: DesignSystemFinding[] = [];
 
   for (const filePath of files) {
@@ -698,7 +729,9 @@ export function formatDesignSystemRegressions(
             ? `use a semantic foreground/background token, or mark genuine content color with ${APP_CHROME_COLOR_ALLOW_MARKER}`
             : finding.kind === 'undersized-control-height'
               ? 'use h-control-sm (the 32px minimum control-scale token)'
-              : 'use text-2xs (the 11px typography floor) or a larger semantic text token';
+              : finding.kind === 'tight-tracking'
+                ? 'use tracking-tight (-0.02em, the tightest tracking DESIGN.md allows)'
+                : 'use text-2xs (the 11px typography floor) or a larger semantic text token';
       return `${finding.file}:${finding.line}: ${finding.token} — ${remedy}\n  ${finding.source}`;
     })
     .join('\n');
