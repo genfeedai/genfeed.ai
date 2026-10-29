@@ -15,6 +15,7 @@ import {
 import {
   APP_ROUTES,
   MESSAGES_CONVERSATION_QUERY_PARAM,
+  MESSAGES_STATUS_QUERY_PARAM,
   MESSAGES_TYPE_QUERY_PARAM,
   resolveOrganizationModulePresentationAccess,
 } from '@genfeedai/contracts/constants';
@@ -24,7 +25,10 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
-import type { MessagesSurface } from '@genfeedai/props/messages/messages-conversation-sidebar.props';
+import type {
+  MessagesInboxView,
+  MessagesSurface,
+} from '@genfeedai/props/messages/messages-conversation-sidebar.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { usePlatformOAuthConnect } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
@@ -51,7 +55,6 @@ import { createPortal } from 'react-dom';
 
 import { useRefreshInboxIndicators } from '@/components/shell/use-messages-unread-count';
 import { useWorkspaceNavPanel } from '@/components/workspace-shell/WorkspaceNavPanelContext';
-import MessagesAdvancedFilters from './messages-advanced-filters';
 import {
   getParticipantLabel,
   MessagesConversationSidebar,
@@ -60,6 +63,7 @@ import {
   ALL_BRANDS_FILTER,
   formatMessageTime,
   getMessageProvenanceItems,
+  parseMessagesInboxView,
   parseMessagesSurface,
   STATUS_LABELS,
   STATUS_STYLES,
@@ -299,6 +303,9 @@ export default function MessagesPage() {
     initialConversationType: parseMessagesSurface(
       searchParams.get(MESSAGES_TYPE_QUERY_PARAM),
     ),
+    initialInboxView: parseMessagesInboxView(
+      searchParams.get(MESSAGES_STATUS_QUERY_PARAM),
+    ),
     routeBrandId,
   });
 
@@ -388,6 +395,25 @@ export default function MessagesPage() {
     updateSelectedConversationParam(null);
   }, [updateSelectedConversationParam]);
 
+  // The status filter is shareable: `?status=` follows it, Inbox (the default)
+  // is omitted, and the open conversation stays selected.
+  const handleViewChange = useCallback(
+    (view: MessagesInboxView) => {
+      filters.setInboxView(view);
+      const nextSearchParams = new URLSearchParams(searchParamsString);
+      if (view === 'inbox') {
+        nextSearchParams.delete(MESSAGES_STATUS_QUERY_PARAM);
+      } else {
+        nextSearchParams.set(MESSAGES_STATUS_QUERY_PARAM, view);
+      }
+      const queryString = nextSearchParams.toString();
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
+        scroll: false,
+      });
+    },
+    [filters.setInboxView, pathname, replace, searchParamsString],
+  );
+
   const requestedConversationId =
     searchParams.get(MESSAGES_CONVERSATION_QUERY_PARAM) ?? null;
 
@@ -429,6 +455,36 @@ export default function MessagesPage() {
     },
     [setSelectedId, updateSelectedConversationParam],
   );
+
+  const handleClearFilters = useCallback(() => {
+    filters.setInboxView('inbox');
+    filters.setConversationType('all');
+    filters.setBrandFilter(routeBrandId ?? ALL_BRANDS_FILTER);
+    filters.setPlatform('all');
+    filters.setAutomationState('all');
+    filters.setCredentialId('');
+    setSelectedId(null);
+    const nextSearchParams = new URLSearchParams(searchParamsString);
+    nextSearchParams.delete(MESSAGES_CONVERSATION_QUERY_PARAM);
+    nextSearchParams.delete(MESSAGES_TYPE_QUERY_PARAM);
+    nextSearchParams.delete(MESSAGES_STATUS_QUERY_PARAM);
+    const queryString = nextSearchParams.toString();
+    replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      scroll: false,
+    });
+  }, [
+    filters.setAutomationState,
+    filters.setBrandFilter,
+    filters.setConversationType,
+    filters.setCredentialId,
+    filters.setInboxView,
+    filters.setPlatform,
+    pathname,
+    replace,
+    routeBrandId,
+    searchParamsString,
+    setSelectedId,
+  ]);
 
   // Social references ride the dock conversation: an existing thread must be
   // bound to the conversation's brand; a new one binds to the selected brand.
@@ -554,17 +610,6 @@ export default function MessagesPage() {
           postReplyReason: 'Select a conversation before replying.',
           sendDmReason: 'Select a conversation before sending a DM.',
         });
-  const advancedFilters = (
-    <MessagesAdvancedFilters
-      accounts={filteredAccounts}
-      assignedOwnerId={filters.assignedOwnerId}
-      automationState={filters.automationState}
-      credentialId={filters.credentialId}
-      onAssignedOwnerIdChange={filters.setAssignedOwnerId}
-      onAutomationStateChange={filters.setAutomationState}
-      onCredentialIdChange={filters.setCredentialId}
-    />
-  );
   // In-place OAuth connect — return to this messages surface after verify.
   const handleOAuthConnect = usePlatformOAuthConnect({
     brandId: connectionBrandId ?? null,
@@ -576,26 +621,32 @@ export default function MessagesPage() {
   const conversationNavPanel = (
     <MessagesConversationSidebar
       onOAuthConnect={availableOAuthConnect}
-      advancedFilters={advancedFilters}
+      accounts={filteredAccounts}
+      automationState={filters.automationState}
       brandFilter={filters.brandFilter}
       brandOptions={brandOptions}
       busyAction={busyAction}
       conversations={conversations}
       conversationType={filters.conversationType}
+      credentialId={filters.credentialId}
+      defaultBrandFilter={routeBrandId ?? ALL_BRANDS_FILTER}
       hasConnectedAccounts={hasConnectedAccounts}
       hasSyncableAccounts={hasSyncableAccounts}
       isAccountsLoading={isAccountsLoading}
       isLoading={isLoadingConversations}
+      onAutomationStateChange={filters.setAutomationState}
       onBrandFilterChange={(value) => {
         filters.setBrandFilter(value);
         setSelectedId(null);
         updateSelectedConversationParam(null);
       }}
+      onClearFilters={handleClearFilters}
       onConversationTypeChange={(value) => {
         filters.setConversationType(value);
         setSelectedId(null);
         updateSelectedConversationParam(null, value);
       }}
+      onCredentialIdChange={filters.setCredentialId}
       onNextPage={() => filters.stepConversationPage(1)}
       onPlatformChange={(value) => {
         filters.setPlatform(value);
@@ -606,7 +657,7 @@ export default function MessagesPage() {
       }}
       onSelect={handleSelectConversation}
       onSync={handleSync}
-      onViewChange={filters.setInboxView}
+      onViewChange={handleViewChange}
       pagination={conversationPagination}
       platform={filters.platform}
       search={filters.search}
