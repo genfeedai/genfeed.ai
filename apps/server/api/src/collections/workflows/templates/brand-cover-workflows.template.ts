@@ -35,7 +35,7 @@ const LIVESTREAM_THUMBNAIL_TEMPLATE: WorkflowTemplate = {
     {
       id: 'edge-livestream-image-cover',
       source: 'ai-generate-image-livestream',
-      sourceHandle: 'image',
+      sourceHandle: 'imageUrl',
       target: 'brand-cover-livestream',
       targetHandle: 'image',
     },
