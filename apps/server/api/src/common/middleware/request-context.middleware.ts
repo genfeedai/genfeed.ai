@@ -130,7 +130,13 @@ export class RequestContextMiddleware implements NestMiddleware {
       if (publisher) {
         const cached = await publisher.get(cacheKey);
         if (cached) {
-          req.context = JSON.parse(cached) as IRequestContext;
+          // The key is per user, organization and brand, not per credential:
+          // an API key (never super admin) and a session of the same account
+          // share it, so super-admin always comes from the current actor (#8556).
+          req.context = {
+            ...(JSON.parse(cached) as IRequestContext),
+            isSuperAdmin: user.isSuperAdmin === true,
+          };
           return;
         }
       }
