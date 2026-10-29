@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { CreateAgentTransferDto } from '@api/collections/agent-transfers/dto/create-agent-transfer.dto';
-import { projectAgentTransferStatus } from '@api/collections/agent-transfers/services/agent-transfer-status.util';
+import { settleAgentTransferFromExecution } from '@api/collections/agent-transfers/services/agent-transfer-settlement.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AgentArtifactReferenceService, scopedWhere } from '@api/index';
 import {
@@ -25,36 +25,6 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common';
-
-/**
- * Projection of the agent-turn workflow result JSON that a transfer mirrors.
- *
- * `WorkflowExecution.result` is an untyped Json column, so the completion
- * fields are read defensively rather than cast.
- */
-function readAgentTurnResult(value: unknown): {
-  artifactReferences: unknown[];
-  artifactVersionPinIds: string[];
-  summary: string | null;
-} {
-  const record =
-    value && typeof value === 'object' && !Array.isArray(value)
-      ? (value as Record<string, unknown>)
-      : {};
-
-  return {
-    artifactReferences: Array.isArray(record.artifactReferences)
-      ? record.artifactReferences
-      : [],
-    artifactVersionPinIds: Array.isArray(record.artifactVersionPinIds)
-      ? record.artifactVersionPinIds.filter(
-          (id): id is string => typeof id === 'string',
-        )
-      : [],
-    summary:
-      typeof record.summary === 'string' ? record.summary.slice(0, 500) : null,
-  };
-}
 
 const MAX_TRANSFER_DEPTH = 3;
 const MAX_SELECTED_CONTEXT_BYTES = 16_000;
@@ -439,24 +409,12 @@ export class AgentTransfersService {
         }),
       });
       if (execution && execution.status !== WorkflowExecutionStatus.PENDING) {
-        const turnResult = readAgentTurnResult(execution.result);
-        await this.prisma.agentTransfer.updateMany({
-          data: {
-            completedAt: execution.completedAt,
-            completionSummary: turnResult.summary,
-            failureReason: execution.error?.slice(0, 500),
-            outputArtifactReferences:
-              turnResult.artifactReferences as Prisma.InputJsonValue,
-            outputArtifactVersionPinIds: turnResult.artifactVersionPinIds,
-            progress: execution.progress,
-            startedAt: execution.startedAt,
-            status: projectAgentTransferStatus(execution.status),
-          },
-          where: scopedWhere(actor.organizationId, {
-            destinationExecutionId: acknowledgement.executionId,
-            id: transferId,
-            userId: actor.userId,
-          }),
+        // The child may already have ended; its terminal event fired before
+        // the transfer knew the execution id, so settle it here (#8527).
+        await settleAgentTransferFromExecution(this.prisma, {
+          execution,
+          organizationId: actor.organizationId,
+          transferId,
         });
       }
     } catch (error: unknown) {
