@@ -114,7 +114,7 @@ function CloudGenfeedActionNodeComponent(props: NodeProps) {
           {Object.keys(onNodeProperties).length > 0 ? (
             <ActionSchemaFields
               hideDescriptions
-              idPrefix="node-"
+              idPrefix={`node-${props.id}-`}
               onChange={handleChange}
               schema={onNodeSchema}
               values={parameters}

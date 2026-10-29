@@ -21,6 +21,8 @@ export interface VideoStitchResult {
 export interface VideoStitchProcessorParams {
   brandId?: string;
   executionId?: string;
+  /** `false` keeps the brand end card off this output; unset leaves it to the brand. */
+  isEndCardEnabled?: boolean;
   nodeId: string;
   organizationId: string;
   parentId?: string;
@@ -215,6 +217,14 @@ export class VideoStitchExecutor extends BaseExecutor {
       errors.push('Invalid output quality. Must be: full or draft');
     }
 
+    const isEndCardEnabled = node.config.isEndCardEnabled;
+    if (
+      isEndCardEnabled !== undefined &&
+      typeof isEndCardEnabled !== 'boolean'
+    ) {
+      errors.push('isEndCardEnabled must be a boolean');
+    }
+
     return {
       errors,
       valid: errors.length === 0,
@@ -267,11 +277,17 @@ export class VideoStitchExecutor extends BaseExecutor {
       'dispatchMode',
       undefined,
     );
+    const isEndCardEnabled = this.getOptionalConfig<boolean | undefined>(
+      node.config,
+      'isEndCardEnabled',
+      undefined,
+    );
     const transition = VIDEO_STITCH_TRANSITION_MAP[transitionType];
 
     const result = await this.processor({
       brandId,
       executionId: context.executionId,
+      ...(isEndCardEnabled === false ? { isEndCardEnabled } : {}),
       nodeId: node.id,
       organizationId: context.organizationId,
       parentId,

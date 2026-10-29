@@ -82,7 +82,7 @@ function GenfeedActionNodeComponent(props: NodeProps) {
         >
           <ActionSchemaFields
             hideDescriptions
-            idPrefix="node-"
+            idPrefix={`node-${props.id}-`}
             onChange={handleChange}
             schema={onNodeSchema}
             values={parameters}
