@@ -3,7 +3,10 @@ import {
   getActiveAppId,
 } from '@ui/shell/app-rail/app-rail.registry';
 import { describe, expect, it } from 'vitest';
-import { ADMIN_MENU_ITEMS } from './admin-menu-items.config';
+import {
+  ADMIN_MENU_ITEMS,
+  withCollapsibleAdminGroups,
+} from './admin-menu-items.config';
 
 describe('ADMIN_MENU_ITEMS', () => {
   it('exposes the platform admin surface with dashboard as complete-path home', () => {
@@ -118,5 +121,25 @@ describe('ADMIN_MENU_ITEMS', () => {
         item.category,
       );
     }
+  });
+
+  it('makes each group header collapsible through its first item only', () => {
+    const items = withCollapsibleAdminGroups(
+      ADMIN_MENU_ITEMS.filter((item) => item.category === 'admin-platform'),
+    );
+    const groups = [...new Set(items.map((item) => item.group))];
+
+    for (const group of groups) {
+      const inGroup = items.filter((item) => item.group === group);
+      expect(inGroup[0]?.isCollapsible).toBe(true);
+      expect(inGroup.slice(1).some((item) => item.isCollapsible)).toBe(false);
+    }
+  });
+
+  it('leaves items without a group flat', () => {
+    const [overview] = withCollapsibleAdminGroups(ADMIN_MENU_ITEMS);
+
+    expect(overview?.group).toBeUndefined();
+    expect(overview?.isCollapsible).toBeUndefined();
   });
 });
