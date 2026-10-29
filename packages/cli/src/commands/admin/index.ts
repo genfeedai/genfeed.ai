@@ -29,6 +29,7 @@ import {
   readOrganizationsReport,
   readPricingReport,
   readSystemBrand,
+  readTrainingsReport,
   scanOrganizationBrand,
   seedArticles,
   seedTemplates,
@@ -384,6 +385,30 @@ async function runOrganizationApps(isJson: boolean): Promise<void> {
       `${chalk.bold(organization.label)} ${chalk.dim(`${organization.slug} · ${tier}${preview}`)}`
     );
     print(`  ${visibleApps.length > 0 ? visibleApps.join(', ') : chalk.dim('no apps')}`);
+  }
+}
+
+async function runTrainings(options: { isJson: boolean; limit: number }): Promise<void> {
+  const report = await readTrainingsReport();
+  if (options.isJson) {
+    printJson(report);
+    return;
+  }
+
+  print(formatHeader(`${report.total} trainings\n`));
+  for (const [status, count] of Object.entries(report.byStatus)) {
+    print(formatLabel(status, String(count)));
+  }
+  print('');
+  for (const training of report.trainings.slice(0, options.limit)) {
+    print(
+      `${chalk.bold(training.label)} ${chalk.dim(`${training.status ?? 'no status'} · ${training.model ?? 'no model'}`)}`
+    );
+    print(
+      `  ${training.id} · org ${training.organizationId ?? '-'} · ${training.totalSources ?? 0} sources · ${
+        training.totalGeneratedImages ?? 0
+      } images · created ${training.createdAt?.slice(0, 10) ?? '-'}`
+    );
   }
 }
 
@@ -896,6 +921,22 @@ export const adminCommand = new Command('admin')
       .action(async (_options, command: Command) => {
         try {
           await runOrganizationApps(wantsJson(command));
+        } catch (error) {
+          handleError(error);
+        }
+      })
+  )
+  .addCommand(
+    new Command('trainings')
+      .description('Read LoRA trainings across organizations: totals by status, newest first')
+      .option('--limit <n>', 'How many trainings to list', '10')
+      .option('--json', 'Output as JSON')
+      .action(async (options: { limit: string }, command: Command) => {
+        try {
+          await runTrainings({
+            isJson: wantsJson(command),
+            limit: Math.max(1, Number.parseInt(options.limit, 10) || 10),
+          });
         } catch (error) {
           handleError(error);
         }
