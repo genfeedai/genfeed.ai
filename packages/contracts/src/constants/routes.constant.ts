@@ -79,7 +79,8 @@ export const APP_ROUTES = {
     LIBRARY: {
       VOICES: '/admin/library/voices',
     },
-    ORGANIZATION: '/admin/organization',
+    /** List at `/admin/organizations`; per-org config at `/admin/organizations/:id`. */
+    ORGANIZATIONS: '/admin/organizations',
     OVERVIEW: {
       ACTIVITIES: '/admin/overview/activities',
       ANALYTICS: '/admin/overview/analytics',
