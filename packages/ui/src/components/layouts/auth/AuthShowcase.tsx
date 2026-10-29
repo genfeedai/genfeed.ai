@@ -116,7 +116,6 @@ export default function AuthShowcase({
         src={activeSlide.posterSrc}
         alt=""
         fill
-        priority={activeIndex === 0}
         unoptimized
         sizes="(min-width: 1024px) 55vw, 0px"
         className="object-cover"
@@ -148,6 +147,7 @@ export default function AuthShowcase({
                 poster: activeSlide.posterSrc,
               }}
               src={activeSlide.videoSrc}
+              thumbnail={activeSlide.posterSrc}
               videoRef={videoRef}
             />
           </div>
