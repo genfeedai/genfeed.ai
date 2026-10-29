@@ -2,84 +2,140 @@
 
 import { UploadStatus } from '@genfeedai/contracts';
 import type { FileUploadStatus } from '@genfeedai/contracts/interfaces/modals/file-upload-status.interface';
-import Badge from '@ui/display/badge/Badge';
-import { getStatusBadgeLabel, getStatusBadgeVariant } from './upload.utils';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { Progress } from '@ui/primitives/progress';
+import {
+  Check,
+  CircleAlert,
+  FileAudio,
+  FileVideo,
+  ImageIcon,
+} from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { type ReactElement, useEffect, useState } from 'react';
 
 type Props = {
   selectedFileList: File[];
-  maxFiles: number;
-  maxSize: number;
   fileStatuses: Map<string, FileUploadStatus>;
   formatSize: (bytes: number) => string;
 };
 
+function UploadFileThumb({ file }: { file: File }): ReactElement {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const isImage = file.type.startsWith('image/');
+
+  useEffect(() => {
+    if (!isImage) {
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [file, isImage]);
+
+  const Icon = file.type.startsWith('video/')
+    ? FileVideo
+    : file.type.startsWith('audio/')
+      ? FileAudio
+      : ImageIcon;
+
+  return (
+    <div
+      aria-hidden="true"
+      className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-background-tertiary bg-cover bg-center text-muted-foreground"
+      data-testid="upload-file-thumb"
+      style={
+        previewUrl ? { backgroundImage: `url("${previewUrl}")` } : undefined
+      }
+    >
+      {previewUrl ? null : <Icon className="size-4" />}
+    </div>
+  );
+}
+
 export default function UploadFileList({
   selectedFileList,
-  maxFiles,
-  maxSize,
   fileStatuses,
   formatSize,
 }: Props) {
+  const translate = useTranslations('ui.uploadModal');
+
   return (
-    <div className="text-left space-y-1">
-      <div className="text-xs opacity-70">
-        {selectedFileList.length} / {maxFiles} selected
-      </div>
-      <ul className="space-y-2">
-        {selectedFileList.map((f) => {
-          const fileStatus = Array.from(fileStatuses.values()).find(
-            (status) => status.file.name === f.name,
-          );
+    <ul className="flex flex-col gap-1.5">
+      {selectedFileList.map((file) => {
+        const fileStatus = Array.from(fileStatuses.values()).find(
+          (status) => status.file.name === file.name,
+        );
+        const status = fileStatus?.status;
+        const isUploading = status === UploadStatus.UPLOADING;
+        const isFailed = status === UploadStatus.FAILED;
+        const isCompleted = status === UploadStatus.COMPLETED;
 
-          return (
-            <li
-              key={`${f.name}-${f.size}-${f.lastModified}`}
-              className="space-y-1"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="truncate max-w-52" title={f.name}>
-                  {f.name}
+        return (
+          <li
+            className="flex items-center gap-3 rounded-lg bg-background-secondary p-2 shadow-border"
+            key={`${file.name}-${file.size}-${file.lastModified}`}
+          >
+            <UploadFileThumb file={file} />
+
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <div className="flex items-baseline justify-between gap-2">
+                <span
+                  className="truncate text-sm font-medium"
+                  title={file.name}
+                >
+                  {file.name}
                 </span>
-
-                <div className="flex items-center gap-2">
-                  <Badge
-                    variant={f.size > maxSize * 1024 * 1024 ? 'error' : 'ghost'}
-                    className="whitespace-nowrap text-xs"
-                  >
-                    {formatSize(f.size)}
-                  </Badge>
-
-                  {fileStatus && (
-                    <Badge
-                      variant={getStatusBadgeVariant(fileStatus.status)}
-                      className="whitespace-nowrap"
-                    >
-                      {getStatusBadgeLabel(fileStatus)}
-                    </Badge>
-                  )}
-                </div>
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {formatSize(file.size)}
+                </span>
               </div>
 
-              {fileStatus && fileStatus.status === UploadStatus.UPLOADING && (
-                <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-primary h-full rounded-full transition-[width] duration-300 ease-out"
-                    style={{ width: `${fileStatus.progress}%` }}
-                  />
-                </div>
+              {isUploading ? (
+                <Progress
+                  aria-label={translate('uploadingFile', { name: file.name })}
+                  className="h-1"
+                  value={fileStatus?.progress ?? 0}
+                />
+              ) : (
+                <span
+                  className={cn(
+                    'text-xs',
+                    isFailed ? 'text-destructive' : 'text-muted-foreground',
+                  )}
+                >
+                  {isFailed
+                    ? (fileStatus?.error ?? translate('statusFailed'))
+                    : isCompleted
+                      ? translate('statusUploaded')
+                      : translate('statusWaiting')}
+                </span>
               )}
+            </div>
 
-              {fileStatus &&
-                fileStatus.status === UploadStatus.FAILED &&
-                fileStatus.error && (
-                  <div className="text-xs text-destructive opacity-80">
-                    {fileStatus.error}
-                  </div>
-                )}
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+            <div className="flex size-6 shrink-0 items-center justify-center">
+              {isCompleted ? (
+                <Check
+                  aria-hidden="true"
+                  className="size-4 text-success"
+                  data-testid="upload-status-completed"
+                />
+              ) : null}
+              {isFailed ? (
+                <CircleAlert
+                  aria-hidden="true"
+                  className="size-4 text-destructive"
+                  data-testid="upload-status-failed"
+                />
+              ) : null}
+            </div>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
