@@ -44,6 +44,23 @@ describe('software subscription identity', () => {
       ]),
     ).toBe(custom);
   });
+  it('preserves Scale when a service line is canceled and never promotes the remaining service to software', () => {
+    expect(
+      selectSoftwareSubscriptionItem(
+        {
+          metadata: { billing_scope: 'software' },
+          items: { data: [software] },
+        },
+        ['price_scale'],
+      ),
+    ).toBe(software);
+    expect(() =>
+      selectSoftwareSubscriptionItem(
+        { metadata: { billing_scope: 'software' }, items: { data: [service] } },
+        ['price_scale'],
+      ),
+    ).toThrow('missing');
+  });
   it('rejects duplicate software entitlements', () => {
     expect(() =>
       selectSoftwareSubscriptionItem(

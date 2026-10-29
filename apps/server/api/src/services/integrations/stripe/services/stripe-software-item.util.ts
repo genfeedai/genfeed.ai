@@ -28,7 +28,11 @@ export function selectSoftwareSubscriptionItem<T extends PricedItem>(
     throw new Error('Multiple software items are ambiguous');
   if (candidates.length === 1) return candidates[0];
   // Preserve older one-product subscriptions; never guess among multiple products.
-  if (subscription.items.data.length === 1) return subscription.items.data[0];
+  if (
+    subscription.items.data.length === 1 &&
+    !subscription.metadata?.billing_scope
+  )
+    return subscription.items.data[0];
   throw new Error('Software subscription item is missing');
 }
 
