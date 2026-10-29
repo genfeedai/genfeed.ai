@@ -7,13 +7,17 @@ import type { Mocked } from 'vitest';
 
 describe('DevDiscordController', () => {
   let controller: DevDiscordController;
+  let isDevelopment: boolean;
   let mockConfigService: Mocked<ConfigService>;
   let mockDiscordBotService: Mocked<DiscordBotService>;
 
   beforeEach(async () => {
+    isDevelopment = true;
     mockConfigService = {
       get: vi.fn(),
-      isDevelopment: true,
+      get isDevelopment() {
+        return isDevelopment;
+      },
     } as unknown as Mocked<ConfigService>;
 
     mockDiscordBotService = {
@@ -42,7 +46,7 @@ describe('DevDiscordController', () => {
 
   describe('testChannel', () => {
     it('should throw 403 outside development', () => {
-      mockConfigService.isDevelopment = false;
+      isDevelopment = false;
 
       expect(() =>
         controller.testChannel({ channelId: 'channel-123' }),
@@ -112,7 +116,7 @@ describe('DevDiscordController', () => {
 
   describe('getChannels', () => {
     it('should throw 403 outside development', () => {
-      mockConfigService.isDevelopment = false;
+      isDevelopment = false;
 
       expect(() => controller.getChannels()).toThrow(HttpException);
 
