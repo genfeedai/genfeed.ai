@@ -13,6 +13,7 @@ import StoryboardDraftPage from '@pages/studio/storyboard/StoryboardDraftPage';
 import { getStoryboardEditorSeed } from '@pages/studio/storyboard/utils/storyboard-editor-seed';
 import { buildStoryboardRunEdits } from '@pages/studio/storyboard/utils/storyboard-run';
 import Alert from '@ui/feedback/alert/Alert';
+import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
@@ -184,7 +185,12 @@ export default function StoryboardRunPage({
     runId,
     run?.config.revision,
   );
-  if (notFound) return <LegacyStoryboardRunPage runId={runId} />;
+  if (notFound)
+    return (
+      <AgentOutputShell>
+        <LegacyStoryboardRunPage runId={runId} />
+      </AgentOutputShell>
+    );
   if (run)
     return (
       <StoryboardDraftPage
@@ -202,25 +208,27 @@ export default function StoryboardRunPage({
       />
     );
   return (
-    <Container label={translate('runs.title')} moduleChrome>
-      <div className="mx-auto max-w-5xl space-y-3">
-        {error ? (
-          <>
-            <p role="alert" className="text-sm text-destructive">
-              {error}
+    <AgentOutputShell>
+      <Container label={translate('runs.title')} moduleChrome>
+        <div className="mx-auto max-w-5xl space-y-3">
+          {error ? (
+            <>
+              <p role="alert" className="text-sm text-destructive">
+                {error}
+              </p>
+              <Button
+                label={translate('runPage.retryLoad')}
+                variant={ButtonVariant.SECONDARY}
+                onClick={refresh}
+              />
+            </>
+          ) : (
+            <p role="status" className="text-sm text-muted-foreground">
+              {translate('runPage.loadingDraft')}
             </p>
-            <Button
-              label={translate('runPage.retryLoad')}
-              variant={ButtonVariant.SECONDARY}
-              onClick={refresh}
-            />
-          </>
-        ) : (
-          <p role="status" className="text-sm text-muted-foreground">
-            {translate('runPage.loadingDraft')}
-          </p>
-        )}
-      </div>
-    </Container>
+          )}
+        </div>
+      </Container>
+    </AgentOutputShell>
   );
 }

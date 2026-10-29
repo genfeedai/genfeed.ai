@@ -1200,6 +1200,17 @@
   "workspaceOverlay": {
     "noContent": "No content configured for this overlay."
   },
+  "agentOutput": {
+    "agent": "Agent",
+    "collapseAgent": "Collapse agent",
+    "context": "Context",
+    "expandAgent": "Expand agent",
+    "newThread": "New thread",
+    "openFullPage": "Open full page",
+    "output": "Output",
+    "threads": "Threads",
+    "views": "Agent or output"
+  },
   "agentDock": {
     "close": "Close agent",
     "description": "Chat with the agent without leaving this page.",
