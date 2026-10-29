@@ -581,8 +581,7 @@ describe('real context embedding database and WorkerHost acceptance', () => {
     expect(
       (await runtime.redis.info('server')).match(/^run_id:(.*)$/m)?.[1],
     ).not.toBe(before);
-    await runtime.sweep.sweep();
-    await runtime.status(world, entryId, 'SUCCEEDED');
+    await runtime.sweepUntilStatus(world, entryId, 'SUCCEEDED');
     expect((await runtime.intent(world, entryId)).attempts).toBe(1);
   });
 
