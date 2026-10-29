@@ -23,6 +23,7 @@ memberships AS (
     JOIN "organizations" o
       ON o."id" = m."organizationId" AND o."isDeleted" = false
     WHERE m."isDeleted" = false
+      AND m."isActive" = true
       AND m."userId" IN (SELECT "id" FROM completers)
     GROUP BY m."userId", m."organizationId"
 ),
