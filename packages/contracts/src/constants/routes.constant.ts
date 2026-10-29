@@ -87,7 +87,7 @@ export const APP_ROUTES = {
       ANALYTICS_BRANDS: '/admin/overview/analytics/brands',
       ANALYTICS_BUSINESS: '/admin/overview/analytics/business',
       ANALYTICS_ORGANIZATIONS: '/admin/overview/analytics/organizations',
-      DASHBOARD: '/admin/overview/dashboard',
+      ROOT: '/admin/overview',
     },
   },
   ANALYTICS: {

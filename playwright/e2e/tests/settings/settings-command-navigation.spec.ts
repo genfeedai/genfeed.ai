@@ -6,7 +6,7 @@ const DESTINATIONS = [
   { anchor: 'language', label: 'Language' },
 ];
 
-const HOSTS = ['/settings/help', '/admin/overview/dashboard'];
+const HOSTS = ['/settings/help', '/admin/overview'];
 
 test.describe('Settings command navigation', () => {
   for (const host of HOSTS) {

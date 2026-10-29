@@ -410,7 +410,6 @@ export interface BuildStudioCrunQuoteRequestProps {
   promptText: string;
   references: string[];
   brandId: string;
-  promptId?: string;
   requestedSkillSlugs?: string[];
   knowledge?: KnowledgeSelection;
   harness?: boolean;

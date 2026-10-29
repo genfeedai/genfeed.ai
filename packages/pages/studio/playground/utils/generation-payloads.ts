@@ -289,7 +289,6 @@ export function buildStudioCrunQuoteRequest({
   promptText,
   references,
   brandId,
-  promptId,
   requestedSkillSlugs,
   knowledge,
   harness = false,
@@ -362,7 +361,6 @@ export function buildStudioCrunQuoteRequest({
     useTemplate: true,
     harness,
     ...(settings.folder ? { folderId: settings.folder } : {}),
-    ...(promptId ? { promptId } : {}),
     ...(settings.promptTemplate
       ? {
           promptTemplate:
@@ -400,7 +398,6 @@ export function buildStudioCrunVideoQuoteRequest({
   endFrameId,
   parentId,
   brandId,
-  promptId,
   requestedSkillSlugs,
   knowledge,
   harness = false,
@@ -490,7 +487,6 @@ export function buildStudioCrunVideoQuoteRequest({
     useTemplate: true,
     harness,
     ...(settings.folder ? { folderId: settings.folder } : {}),
-    ...(promptId ? { promptId } : {}),
     ...(settings.promptTemplate
       ? {
           promptTemplate:

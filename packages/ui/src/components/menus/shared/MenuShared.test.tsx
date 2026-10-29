@@ -554,7 +554,7 @@ describe('MenuShared', () => {
     const globalConfig: MenuConfig = {
       items: [
         {
-          href: '/admin/overview/dashboard',
+          href: '/admin/overview',
           hrefScope: 'global',
           label: 'Dashboard',
         },
@@ -566,7 +566,7 @@ describe('MenuShared', () => {
 
     expect(screen.getByText('Dashboard')).toHaveAttribute(
       'data-href',
-      '/admin/overview/dashboard',
+      '/admin/overview',
     );
   });
 
