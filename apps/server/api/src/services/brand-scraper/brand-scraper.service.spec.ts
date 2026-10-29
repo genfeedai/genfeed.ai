@@ -1051,7 +1051,9 @@ describe('BrandScraperService', () => {
           const url = String(input);
           if (url.includes('/products.json')) return feed();
           if (url.endsWith('.css'))
-            return new Response('', { headers: { 'content-type': 'text/css' } });
+            return new Response('', {
+              headers: { 'content-type': 'text/css' },
+            });
           return makeResponse(page);
         });
 
@@ -1062,7 +1064,9 @@ describe('BrandScraperService', () => {
               JSON.stringify({
                 products: [
                   { images: [{ src: 'https://cdn.shopify.com/s/tote.jpg' }] },
-                  { images: [{ src: 'http://cdn.shopify.com/s/insecure.jpg' }] },
+                  {
+                    images: [{ src: 'http://cdn.shopify.com/s/insecure.jpg' }],
+                  },
                 ],
               }),
               { headers: { 'content-type': 'application/json' } },
