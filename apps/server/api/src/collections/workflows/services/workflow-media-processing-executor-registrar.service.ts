@@ -6,6 +6,7 @@ import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { VideoQaContinuityResolverService } from '@api/collections/workflows/services/video-qa-continuity-resolver.service';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
+import { buildCaptionBurnStyleFromConfig } from '@api/collections/workflows/utils/caption-burn-style.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
@@ -288,6 +289,7 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
           organizationId: context.organizationId,
           params: {
             captionContent,
+            captionStyle: buildCaptionBurnStyleFromConfig(node.config),
             inputPath: sourceVideoUrl,
           },
           room: getUserRoomName(context.userId),

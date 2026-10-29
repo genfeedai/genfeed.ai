@@ -43,6 +43,7 @@ describe('RawCutClipCompletionService', () => {
     linkReadyClip: ReturnType<typeof vi.fn>;
   };
   let clipperProjectsService: {
+    findOne: ReturnType<typeof vi.fn>;
     reconcileTerminalState: ReturnType<typeof vi.fn>;
   };
   let clipperResultsService: {
@@ -73,6 +74,7 @@ describe('RawCutClipCompletionService', () => {
       }),
     };
     clipperProjectsService = {
+      findOne: vi.fn().mockResolvedValue({ captionStyle: 'tiktok' }),
       reconcileTerminalState: vi.fn().mockResolvedValue(undefined),
     };
     clipperResultsService = {
@@ -209,6 +211,12 @@ describe('RawCutClipCompletionService', () => {
         id: 'raw-cut-caption-clip-1',
         params: expect.objectContaining({
           captionContent: expect.stringContaining('Launch'),
+          // The project's caption preset reaches the burn-in, so the clip gets
+          // visible captions in that look.
+          captionStyle: expect.objectContaining({
+            fontSizeRatio: 0.07,
+            textCase: 'upper',
+          }),
           s3Key: 'videos/clip-1-portrait.mp4',
         }),
         type: 'add-captions',
