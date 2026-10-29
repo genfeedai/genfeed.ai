@@ -9,7 +9,7 @@ export default function BrandsAnalyticsPage() {
   return (
     <Suspense fallback={null}>
       <AnalyticsBrandsList
-        basePath={APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS}
+        basePath={APP_ROUTES.ADMIN.ROOT}
         isBrandScoped={false}
       />
     </Suspense>

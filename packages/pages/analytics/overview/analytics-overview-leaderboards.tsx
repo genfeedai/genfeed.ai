@@ -34,6 +34,7 @@ import OverviewPlaceholderCard from './analytics-overview-placeholder-card';
 
 type AnalyticsOverviewLeaderboardsProps = {
   basePath: string;
+  brandsBasePath?: string;
   brandsLeaderboard: IBrandWithStats[];
   hasBrandLeaderboard: boolean;
   hasOrgLeaderboard: boolean;
@@ -47,6 +48,7 @@ type AnalyticsOverviewLeaderboardsProps = {
 
 export default function AnalyticsOverviewLeaderboards({
   basePath,
+  brandsBasePath,
   brandsLeaderboard,
   hasBrandLeaderboard,
   hasOrgLeaderboard,
@@ -63,6 +65,10 @@ export default function AnalyticsOverviewLeaderboards({
   const summaryT = useTranslations('ui.rowSidebar.analytics');
   const scopedBasePath =
     scope === PageScope.SUPERADMIN ? basePath : href(basePath);
+  const scopedBrandsBasePath =
+    scope === PageScope.SUPERADMIN
+      ? (brandsBasePath ?? basePath)
+      : href(brandsBasePath ?? basePath);
   const publishingHref = (path: string) =>
     scope === PageScope.SUPERADMIN ? path : href(path);
   const orgsColumns: TableColumn<IOrgLeaderboardItem>[] = useMemo(
@@ -149,7 +155,7 @@ export default function AnalyticsOverviewLeaderboards({
         key: 'name',
         render: (item) => (
           <Link
-            href={`${scopedBasePath}/brands/${item.id}`}
+            href={`${scopedBrandsBasePath}/brands/${item.id}`}
             className="flex items-center gap-2 hover:text-primary"
           >
             {item.logo ? (
@@ -198,7 +204,7 @@ export default function AnalyticsOverviewLeaderboards({
         ),
       },
     ],
-    [brandsLeaderboard, scopedBasePath],
+    [brandsLeaderboard, scopedBrandsBasePath],
   );
 
   return (
@@ -328,7 +334,7 @@ export default function AnalyticsOverviewLeaderboards({
                 Top brands
               </h3>
               <Link
-                href={`${scopedBasePath}/brands`}
+                href={`${scopedBrandsBasePath}/brands`}
                 className={cn(
                   buttonVariants({
                     size: ButtonSize.XS,
@@ -356,7 +362,7 @@ export default function AnalyticsOverviewLeaderboards({
                 render: (item) => (
                   <AnalyticsBrandSummary
                     brand={item}
-                    openHref={`${scopedBasePath}/brands/${item.id}`}
+                    openHref={`${scopedBrandsBasePath}/brands/${item.id}`}
                   />
                 ),
               }}
@@ -368,7 +374,7 @@ export default function AnalyticsOverviewLeaderboards({
             description="This section compares brands once posts begin generating enough views and engagement to rank meaningfully."
             icon={Sparkles}
             primaryAction={{
-              href: `${scopedBasePath}/brands`,
+              href: `${scopedBrandsBasePath}/brands`,
               label: 'Review brands',
               variant: ButtonVariant.SECONDARY,
             }}

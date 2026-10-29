@@ -141,7 +141,7 @@ export class AdminPage {
   }
 
   async gotoAnalyticsBrands(): Promise<void> {
-    await this.page.goto(APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BRANDS, {
+    await this.page.goto(APP_ROUTES.ADMIN.BRANDS, {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
