@@ -324,6 +324,7 @@ export class VideoProcessor extends WorkerHost {
           outputPath,
           filterScriptPath,
           onProgress,
+          isMuted ? { muteVideoAudio: true } : undefined,
         );
       } else {
         await this.ffmpegService.addCaptions(

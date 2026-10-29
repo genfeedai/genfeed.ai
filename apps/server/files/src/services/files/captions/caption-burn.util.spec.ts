@@ -61,7 +61,11 @@ describe('caption-burn.util', () => {
     const style = resolveCaptionBurnStyle({ maxLines: 2, maxWordsPerGroup: 6 });
 
     it('splits a long cue into groups of at most the word limit', () => {
-      const groups = groupCaptionCues(parseSrtCues(SRT), style, 24);
+      const groups = groupCaptionCues(
+        parseSrtCues(SRT),
+        style,
+        (text) => text.length <= 24,
+      );
       const words = groups.map(
         (group) => group.lines.join(' ').split(' ').length,
       );
@@ -71,7 +75,11 @@ describe('caption-burn.util', () => {
     });
 
     it('never lets a group run into the next and never exceeds maxLines', () => {
-      const groups = groupCaptionCues(parseSrtCues(SRT), style, 12);
+      const groups = groupCaptionCues(
+        parseSrtCues(SRT),
+        style,
+        (text) => text.length <= 12,
+      );
       for (const [index, group] of groups.entries()) {
         expect(group.lines.length).toBeLessThanOrEqual(2);
         if (index < groups.length - 1) {
@@ -105,6 +113,19 @@ describe('caption-burn.util', () => {
       expect(result?.script).toContain('color=0x0D0D0D@0.96');
       // two lines: 62 + 86 = 148 text + 2 * 26 padding = 200 high, bottom 1498
       expect(result?.script).toContain('y=1298:w=iw:h=200');
+    });
+
+    it('wraps by measured width: wide letters break the line, narrow ones stay on one', () => {
+      const drawCount = (text: string): number =>
+        buildCaptionBurnFilterScript({
+          height: 1920,
+          srt: `1\n00:00:01,000 --> 00:00:04,000\n${text}\n`,
+          style: { fontSizeRatio: 0.12, maxLines: 3, maxWordsPerGroup: 6 },
+          width: 1080,
+        })?.script.match(/drawtext=/g)?.length ?? 0;
+
+      expect(drawCount('WWW WWW WWW WWW')).toBeGreaterThan(1);
+      expect(drawCount('I I I I I I')).toBe(1);
     });
 
     it('draws each word twice, white unless spoken and red while spoken, when an active color is set', () => {

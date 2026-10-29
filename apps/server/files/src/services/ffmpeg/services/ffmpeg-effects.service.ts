@@ -435,14 +435,18 @@ export class FFmpegEffectsService {
   /**
    * Draw captions into the picture from a filtergraph script that ends in the
    * `[vFinal]` label (see `buildCaptionBurnFilterScript`). The video is
-   * re-encoded; audio is kept.
+   * re-encoded; audio is kept unless `muteVideoAudio` is set.
    */
   async burnCaptions(
     inputPath: string,
     outputPath: string,
     filterScriptPath: string,
     onProgress?: (progress: FFmpegProgress) => void,
+    options: { muteVideoAudio?: boolean } = {},
   ): Promise<void> {
+    const audioArgs = options.muteVideoAudio
+      ? ['-an']
+      : ['-map', '0:a?', '-c:a', 'aac', '-b:a', '192k'];
     const args = [
       '-i',
       inputPath,
@@ -450,8 +454,6 @@ export class FFmpegEffectsService {
       filterScriptPath,
       '-map',
       '[vFinal]',
-      '-map',
-      '0:a?',
       '-c:v',
       'libx264',
       '-preset',
@@ -460,10 +462,7 @@ export class FFmpegEffectsService {
       '20',
       '-pix_fmt',
       'yuv420p',
-      '-c:a',
-      'aac',
-      '-b:a',
-      '192k',
+      ...audioArgs,
       '-movflags',
       '+faststart',
       '-y',

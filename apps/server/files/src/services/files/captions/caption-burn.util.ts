@@ -153,12 +153,15 @@ export function parseSrtCues(srt: string): CaptionCue[] {
   return cues;
 }
 
-function wrapWords(words: string[], charBudget: number): string[] {
+function wrapWords(
+  words: string[],
+  lineFits: (text: string) => boolean,
+): string[] {
   const lines: string[] = [];
   let current = '';
   for (const word of words) {
     const candidate = current ? `${current} ${word}` : word;
-    if (current && candidate.length > charBudget) {
+    if (current && !lineFits(candidate)) {
       lines.push(current);
       current = word;
     } else {
@@ -176,19 +179,20 @@ export interface CaptionGroup {
 }
 
 /**
- * Splits cues into short groups that fit `maxLines` lines of `charBudget`
- * characters. A cue longer than that is divided by words; time is shared by
- * character count so each group follows the speech.
+ * Splits cues into short groups that fit `maxLines` lines, where `lineFits`
+ * says whether a line of text fits the caption width. A cue longer than that
+ * is divided by words; time is shared by character count so each group follows
+ * the speech.
  */
 export function groupCaptionCues(
   cues: CaptionCue[],
   style: ResolvedCaptionBurnStyle,
-  charBudget: number,
+  lineFits: (text: string) => boolean,
 ): CaptionGroup[] {
   const groups: CaptionGroup[] = [];
 
   const place = (words: string[], startMs: number, endMs: number): void => {
-    const lines = wrapWords(words, charBudget);
+    const lines = wrapWords(words, lineFits);
     if (lines.length > style.maxLines && words.length > 1) {
       const middle = Math.ceil(words.length / 2);
       const first = words.slice(0, middle);
@@ -342,18 +346,14 @@ export function buildCaptionBurnFilterScript(options: {
   const pitch = Math.round(fontSize * LINE_PITCH_EM);
   const padding = Math.round(fontSize * BAND_PADDING_EM);
   const textWidth = width * (1 - 2 * SIDE_MARGIN_RATIO);
-  const charBudget = Math.max(
-    8,
-    Math.floor(
-      textWidth /
-        (fontSize *
-          (style.textCase === 'upper'
-            ? AVERAGE_UPPERCASE_GLYPH_EM
-            : AVERAGE_GLYPH_EM)),
-    ),
-  );
+  const fontPath = resolveFontFile(style.fontFamily);
+  const averageGlyphEm =
+    style.textCase === 'upper' ? AVERAGE_UPPERCASE_GLYPH_EM : AVERAGE_GLYPH_EM;
+  const lineFits = (text: string): boolean =>
+    (measureTextWidth(fontPath, text, fontSize) ??
+      text.length * fontSize * averageGlyphEm) <= textWidth;
 
-  const groups = groupCaptionCues(parseSrtCues(options.srt), style, charBudget);
+  const groups = groupCaptionCues(parseSrtCues(options.srt), style, lineFits);
   if (groups.length === 0) return null;
   if (groups.length > MAX_CAPTION_GROUPS) {
     throw new Error(
@@ -361,7 +361,6 @@ export function buildCaptionBurnFilterScript(options: {
     );
   }
 
-  const fontPath = resolveFontFile(style.fontFamily);
   const fontFile = escapeDrawtextValue(fontPath);
   const outline = style.backgroundColor
     ? ''

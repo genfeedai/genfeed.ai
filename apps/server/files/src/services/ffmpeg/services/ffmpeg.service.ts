@@ -556,12 +556,14 @@ export class FFmpegService {
     outputPath: string,
     filterScriptPath: string,
     onProgress?: (progress: FFmpegProgress) => void,
+    options?: { muteVideoAudio?: boolean },
   ): Promise<void> {
     return this.effects.burnCaptions(
       inputPath,
       outputPath,
       filterScriptPath,
       onProgress,
+      options,
     );
   }
 
