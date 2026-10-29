@@ -297,6 +297,34 @@ describe('handleToolDiscoveryTool', () => {
   });
 
   describe('find_tools with name (describe)', () => {
+    it.each([true, false])(
+      'reports whether a discovered tool is listed (%s) and how to load it',
+      (isListed) => {
+        const gallery = tool({
+          name: 'list_assets',
+          _meta: { 'genfeed.ai/toolset': 'generation' },
+        });
+        const registry = {
+          getDiscoverableTools: () => [gallery],
+          getTools: () => (isListed ? [gallery] : []),
+        };
+        const result = handleToolDiscoveryTool(registry, 'find_tools', {
+          name: 'list_assets',
+        });
+        expectSuccess(result);
+        expect(result.structuredContent?.connection).toEqual({
+          isListed,
+          listedToolCount: isListed ? 1 : 0,
+          toolset: 'generation',
+        });
+        expect(result.content[0].text).toContain(
+          isListed ? 'refresh' : 'generation',
+        );
+        expect(result.content[0].text).toContain(
+          isListed ? 'same server URL' : 'existing toolsets',
+        );
+      },
+    );
     const registry: ToolDiscoverySource = {
       getDiscoverableTools: () => [
         tool({ description: 'Create a post', name: 'create_post' }),

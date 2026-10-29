@@ -182,9 +182,23 @@ function handleDescribeTool(
         : undefined;
     return `- ${key}${required.has(key) ? ' (required)' : ' (optional)'}${typeof description === 'string' ? `: ${description}` : ''}`;
   });
+  const listed = registry.getTools?.();
+  const connection = listed
+    ? {
+        isListed: listed.some((candidate) => candidate.name === tool.name),
+        listedToolCount: listed.length,
+        toolset: String(tool._meta[MCP_TOOLSET_META_KEY] ?? ''),
+      }
+    : undefined;
+  const connectionText = connection
+    ? connection.isListed
+      ? 'This tool is listed by this connection. If your client cannot call it, refresh its MCP tool list or reconnect to the same server URL.'
+      : `This tool is not listed by this connection. Include the ${connection.toolset} toolset alongside your existing toolsets and reconnect. Keep the same endpoint and permissions.`
+    : undefined;
   return textResult(
-    `${tool.title || readableLabel(tool.name)}\n\n${retired ? `Use ${retired.canonicalName}(action=${retired.action}).\n\n` : ''}${tool.description}\n\nParameters:\n${parameters.length ? parameters.join('\n') : 'None.'}`,
+    `${tool.title || readableLabel(tool.name)}\n\n${retired ? `Use ${retired.canonicalName}(action=${retired.action}).\n\n` : ''}${tool.description}\n\nParameters:\n${parameters.length ? parameters.join('\n') : 'None.'}${connectionText ? `\n\n${connectionText}` : ''}`,
     {
+      ...(connection ? { connection } : {}),
       tool,
     },
   );

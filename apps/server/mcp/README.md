@@ -106,7 +106,21 @@ a broader `?toolsets=`:
 - `query` and/or `toolset` — case-insensitive substring search over tool name,
   description, and toolset.
 - `name` — the full tool definition for one name, including the closest name
-  matches when the name is not found.
+  matches when the name is not found. `connection.isListed` distinguishes a tool
+  listed by this connection from a permitted tool outside its selected profile.
+
+Discovery returns descriptions; it does not install a tool into the client's
+callable tool list. If `connection.isListed` is true but the client cannot call
+the tool, refresh its MCP tool list or reconnect to the same server URL. If it
+is false, include the returned toolset alongside the existing selection before
+reconnecting. Keep the existing authentication and endpoint restrictions.
+
+The transport is stateless and does not send tool/resource list-change
+notifications. Its discovery and setup examples both advertise `listChanged:
+false`; clients need a fresh discovery after server upgrades or scope changes.
+Library galleries use `list_assets` in the generation toolset. The clipper
+toolset also exposes `get_clip_context` and `edit_clip` for the installed
+clip-editor skill, using the same tenant-scoped handlers as the in-app agent.
 
 These search the full, role-filtered catalog regardless of the caller's
 current toolset selection — they are for discovering what else exists, not

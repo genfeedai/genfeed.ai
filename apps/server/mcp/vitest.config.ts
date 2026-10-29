@@ -20,6 +20,8 @@ export default defineConfig({
       },
     },
     swc.vite({
+      // Keep ESM imports mockable instead of inheriting the server CJS build.
+      swcrc: false,
       jsc: {
         parser: { decorators: true, syntax: 'typescript' },
         transform: { decoratorMetadata: true, legacyDecorator: true },

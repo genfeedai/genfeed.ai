@@ -1,6 +1,10 @@
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { getMcpCatalogOperations } from '@genfeedai/actions';
+import {
+  getMcpCatalogOperations,
+  getToolsForSurface,
+} from '@genfeedai/actions';
+import { MCPService } from '@mcp/mcp/services/mcp.service';
 import { getPublicMcpUrl, getPublicWebsiteUrl } from '@mcp/mcp/setup-page';
 import { ClientService } from '@mcp/services/client.service';
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
@@ -484,6 +488,103 @@ describe('StreamableHttpService (real SDK integration)', () => {
         ]),
       );
     });
+  });
+
+  it('keeps public capability claims equal to the live transport', async () => {
+    await withServer(async (baseUrl) => {
+      const discovery = await postModern(baseUrl, 'server/discover');
+      expect(new MCPService().getMcpExample().capabilities).toEqual(
+        discovery.body.result.capabilities,
+      );
+    });
+  });
+
+  it('lists every permitted catalog tool over the wire, including the asset gallery', async () => {
+    await withServer(async (baseUrl) => {
+      const listing = await postModern(baseUrl, 'tools/list');
+      const expected = getToolsForSurface('mcp')
+        .filter((tool) => tool.requiredRole === 'user')
+        .map((tool) => tool.name)
+        .sort();
+      expect(
+        listing.body.result.tools
+          .map((tool: { name: string }) => tool.name)
+          .sort(),
+      ).toEqual(expected);
+      const gallery = listing.body.result.tools.find(
+        (tool: { name: string }) => tool.name === 'list_assets',
+      );
+      expect(gallery._meta.ui.resourceUri).toBe(MCP_CARD_RESOURCE_URI);
+      expect(gallery._meta['openai/outputTemplate']).toBe(
+        MCP_CARD_RESOURCE_URI,
+      );
+      const described = await postModern(baseUrl, 'tools/call', {
+        name: 'find_tools',
+        arguments: { name: 'list_assets' },
+      });
+      expect(described.body.result.structuredContent.connection).toEqual({
+        isListed: true,
+        listedToolCount: expected.length,
+        toolset: 'generation',
+      });
+    });
+  });
+
+  it('returns Library assets as gallery cards with a readable fallback', async () => {
+    const execute = vi
+      .spyOn(ClientService.prototype, 'executeAgentTool')
+      .mockResolvedValue({
+        success: true,
+        creditsUsed: 0,
+        data: {
+          assets: [
+            {
+              id: 'fixture-image',
+              category: 'image',
+              status: 'COMPLETED',
+              label: 'Campaign image',
+              url: 'https://example.com/campaign.png',
+            },
+            {
+              id: 'fixture-video',
+              category: 'video',
+              status: 'COMPLETED',
+              label: 'Product video',
+              url: 'https://example.com/product.mp4',
+            },
+          ],
+          total: 2,
+        },
+      });
+    try {
+      await withServer(async (baseUrl) => {
+        const result = await postModern(baseUrl, 'tools/call', {
+          name: 'list_assets',
+          arguments: { type: 'image' },
+        });
+        expect(result.body.result.isError).not.toBe(true);
+        expect(result.body.result.structuredContent.genfeedCards).toMatchObject(
+          {
+            layout: 'media',
+            total: 2,
+            cards: [
+              { title: 'Campaign image', kind: 'image' },
+              { title: 'Product video', kind: 'video' },
+            ],
+          },
+        );
+        expect(result.body.result.content).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              type: 'text',
+              text: expect.stringContaining('Campaign image'),
+            }),
+          ]),
+        );
+      });
+    } finally {
+      execute.mockRestore();
+    }
   });
 
   it('serves public card resources and safe tool failures over the modern wire', async () => {
