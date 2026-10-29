@@ -173,7 +173,7 @@ import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-sele
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import MasonryConfirmBridge from '@ui/masonry/shared/MasonryConfirmBridge';
-import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
+import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Label } from '@ui/primitives/label';
@@ -2848,7 +2848,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                 </SelectItem>
               </SelectContent>
             </Select>
-            <ViewToggle
+            <ViewMenu
               activeView={resultsView}
               onChange={(view) => {
                 if (view === ViewType.GRID || view === ViewType.LIST) {
@@ -2867,7 +2867,6 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                   type: ViewType.GRID,
                 },
               ]}
-              size={ComponentSize.SM}
             />
           </div>
         }

@@ -1,7 +1,9 @@
+import { selectView, viewMenuTrigger } from '@app-tests/view-menu.helpers';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import AgentCampaignsPage from '@pages/agents/campaigns/AgentCampaignsPage';
 import type { AgentCampaign } from '@services/automation/agent-campaigns.service';
 import { fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
@@ -226,7 +228,7 @@ describe('AgentCampaignsPage', () => {
     expect(screen.getByTestId('campaign-all')).toBeInTheDocument();
   });
 
-  it('shows All as a list by default and switches to a grid', () => {
+  it('shows All as a list by default and switches to a grid', async () => {
     render(<AgentCampaignsPage />);
 
     const all = screen.getByTestId('campaign-all');
@@ -237,12 +239,9 @@ describe('AgentCampaignsPage', () => {
       'Winter Spend',
     ]);
     expect(within(all).queryAllByTestId('campaign-card')).toHaveLength(0);
-    expect(screen.getByRole('radio', { name: 'List' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
+    expect(viewMenuTrigger('List')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('radio', { name: 'Grid' }));
+    await selectView(userEvent.setup(), 'Grid');
 
     expect(within(all).getAllByTestId('campaign-card')).toHaveLength(4);
     expect(within(all).queryAllByTestId('campaign-row')).toHaveLength(0);
@@ -276,7 +275,7 @@ describe('AgentCampaignsPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders exactly one visible action per row and per card', () => {
+  it('renders exactly one visible action per row and per card', async () => {
     render(<AgentCampaignsPage />);
 
     for (const row of screen.getAllByTestId('campaign-row')) {
@@ -285,7 +284,7 @@ describe('AgentCampaignsPage', () => {
     }
 
     const all = screen.getByTestId('campaign-all');
-    fireEvent.click(screen.getByRole('radio', { name: 'Grid' }));
+    await selectView(userEvent.setup(), 'Grid');
 
     for (const card of within(all).getAllByTestId('campaign-card')) {
       expect(within(card).getAllByRole('link')).toHaveLength(1);
@@ -296,11 +295,11 @@ describe('AgentCampaignsPage', () => {
     ).toHaveAttribute('href', '/acme/demo/automation/campaigns/campaign-1');
   });
 
-  it('keeps program cards free of nested filled boxes', () => {
+  it('keeps program cards free of nested filled boxes', async () => {
     render(<AgentCampaignsPage />);
 
     const all = screen.getByTestId('campaign-all');
-    fireEvent.click(screen.getByRole('radio', { name: 'Grid' }));
+    await selectView(userEvent.setup(), 'Grid');
 
     const card = within(all).getAllByTestId('campaign-card')[0];
     expect(card).toHaveTextContent('Launch sequence');
@@ -375,7 +374,9 @@ describe('AgentCampaignsPage', () => {
     expect(within(all).getByRole('alert')).toHaveTextContent(
       "Programs couldn't load.",
     );
-    expect(screen.queryByRole('radio', { name: 'Grid' })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: /^(View|label): / }),
+    ).toBeNull();
 
     fireEvent.click(within(all).getByRole('button', { name: 'Retry' }));
     // Retry refetches both the paged list and the full set behind the strip.
@@ -414,18 +415,15 @@ describe('AgentCampaignsPage', () => {
     expect(screen.getByTestId('campaign-needs-you')).toBeInTheDocument();
   });
 
-  it('restores the saved grid view after a remount', () => {
+  it('restores the saved grid view after a remount', async () => {
     const { unmount } = render(<AgentCampaignsPage />);
-    fireEvent.click(screen.getByRole('radio', { name: 'Grid' }));
+    await selectView(userEvent.setup(), 'Grid');
     unmount();
 
     render(<AgentCampaignsPage />);
 
     const all = screen.getByTestId('campaign-all');
-    expect(screen.getByRole('radio', { name: 'Grid' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
+    expect(viewMenuTrigger('Grid')).toBeInTheDocument();
     expect(within(all).getAllByTestId('campaign-card')).toHaveLength(4);
     expect(within(all).queryAllByTestId('campaign-row')).toHaveLength(0);
   });

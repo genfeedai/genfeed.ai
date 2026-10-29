@@ -14,7 +14,7 @@ import { useResearchPagination } from '@pages/research/work-surface/ResearchWork
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
-import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
+import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
 import { Columns2, Eye, Megaphone, Table } from 'lucide-react';
@@ -165,7 +165,7 @@ export default function AdsResearchPageClient() {
         source={source}
         timeframe={timeframe}
       />
-      <ViewToggle
+      <ViewMenu
         options={[
           {
             icon: <Columns2 className="size-4" />,

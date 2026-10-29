@@ -1,3 +1,4 @@
+import { selectView, viewMenuTrigger } from '@app-tests/view-menu.helpers';
 import {
   ContextSidebarOutlet,
   ContextSidebarProvider,
@@ -457,7 +458,7 @@ describe('WorkflowTemplatesPage', () => {
     ]);
     await renderLoadedPage();
 
-    await user.click(screen.getByRole('radio', { name: 'Grid' }));
+    await selectView(user, 'Grid');
 
     const exampleCard = within(allSection())
       .getAllByTestId('workflow-template-card')
@@ -710,9 +711,9 @@ describe('WorkflowTemplatesPage', () => {
     expect(
       within(all).queryByTestId('workflow-template-card'),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: 'List' })).toBeChecked();
+    expect(viewMenuTrigger('List')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('radio', { name: 'Grid' }));
+    await selectView(user, 'Grid');
 
     expect(within(all).getAllByTestId('workflow-template-card')).toHaveLength(
       2,
@@ -815,7 +816,7 @@ describe('WorkflowTemplatesPage', () => {
       expect(visibleActions(card)).toEqual(['Use template', 'More actions']);
     }
 
-    await user.click(screen.getByRole('radio', { name: 'Grid' }));
+    await selectView(user, 'Grid');
 
     const gridCards = within(allSection()).getAllByTestId(
       'workflow-template-card',

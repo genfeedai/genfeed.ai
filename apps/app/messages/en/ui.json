@@ -386,6 +386,9 @@
     "scrollLeft": "Scroll left",
     "scrollRight": "Scroll right"
   },
+  "viewMenu": {
+    "label": "View"
+  },
   "recordDetail": {
     "allDetailsCount": "All details ({count})",
     "needsYou": "Needs you",
