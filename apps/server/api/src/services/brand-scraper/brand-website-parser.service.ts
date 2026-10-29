@@ -15,6 +15,12 @@ import * as cheerio from 'cheerio';
 
 const MAX_IMAGE_CANDIDATES = 12;
 const MAX_FONT_CANDIDATES = 8;
+const LAZY_IMAGE_ATTRIBUTES = [
+  'src',
+  'data-src',
+  'data-original',
+  'data-lazy-src',
+];
 const THIRD_PARTY_SECTION =
   /\b(?:clients?|customers?|partners?|providers?|trusted|logo-wall|testimonials?|quotes?|case-stud(?:y|ies)|as-seen|press)\b|\blogos\b/iu;
 // A heading is prose, so it needs a phrase that names someone else's mark. A
@@ -71,7 +77,7 @@ export class BrandWebsiteParserService {
       undefined;
     const ogImage =
       ogImageRaw && !this.isThirdPartyAssetUrl(ogImageRaw)
-        ? ogImageRaw
+        ? this.upgradeSameHostHttp(ogImageRaw, sourceUrl)
         : undefined;
     const ogImageType =
       $('meta[property="og:image:type"]').attr('content')?.trim() || undefined;
@@ -135,6 +141,7 @@ export class BrandWebsiteParserService {
       icons,
       images,
       isLogoFromIcon: !pageLogoUrl && Boolean(logoUrl),
+      isShopify: this.isShopifyStorefront($),
       logoUrl,
       ogDescription,
       ogImage,
@@ -697,17 +704,17 @@ export class BrandWebsiteParserService {
       },
     );
 
-    $('img[src], img[data-src], img[srcset]').each((_i, el) => {
-      if (this.isThirdPartyMark($, el)) {
-        return;
-      }
-      const direct = $(el).attr('src') ?? $(el).attr('data-src');
-      if (direct) {
-        addImage(direct, $(el).attr('alt'));
-      } else {
-        addImage($(el).attr('srcset'), $(el).attr('alt'), true);
-      }
-    });
+    $('img[src], img[data-src], img[srcset], img[data-srcset]').each(
+      (_i, el) => {
+        if (this.isThirdPartyMark($, el) || this.isLogoImage($, el)) {
+          return;
+        }
+        const source = this.readImageSource($, el);
+        if (source) {
+          addImage(source.value, $(el).attr('alt'), source.isSrcSet);
+        }
+      },
+    );
 
     return images.slice(0, MAX_IMAGE_CANDIDATES);
   }
@@ -764,12 +771,66 @@ export class BrandWebsiteParserService {
       if (this.isThirdPartyMark($, element)) {
         continue;
       }
-      const src = $(element).attr('src') ?? $(element).attr('data-src');
-      if (src) {
-        return this.resolveUrl(src, sourceUrl);
+      const source = this.readImageSource($, element);
+      if (source) {
+        return this.resolveUrl(
+          source.isSrcSet
+            ? this.extractSrcFromSrcSet(source.value)
+            : source.value,
+          sourceUrl,
+        );
       }
     }
     return undefined;
+  }
+
+  /**
+   * The real image URL of an `<img>`. Lazy-loading themes keep an inline
+   * `data:` placeholder in `src` and the actual file in `data-src` (Shopify
+   * themes also leave a `{width}` template in it), so a placeholder must not
+   * hide the lazy attributes.
+   */
+  private readImageSource(
+    $: cheerio.CheerioAPI,
+    node: ParsedDomNode,
+  ): { isSrcSet: boolean; value: string } | undefined {
+    const element = $(node);
+    for (const attribute of LAZY_IMAGE_ATTRIBUTES) {
+      const value = element.attr(attribute)?.trim();
+      if (value && !value.startsWith('data:')) {
+        return {
+          isSrcSet: false,
+          value: value.replace(/\{width\}/g, '1024'),
+        };
+      }
+    }
+    for (const attribute of ['srcset', 'data-srcset']) {
+      const value = element.attr(attribute)?.trim();
+      if (value && !value.startsWith('data:')) {
+        return { isSrcSet: true, value };
+      }
+    }
+    return undefined;
+  }
+
+  /** A brand mark is the logo, never a reference photo of what it sells. */
+  private isLogoImage($: cheerio.CheerioAPI, node: ParsedDomNode): boolean {
+    const element = $(node);
+    return /logo/iu.test(
+      [element.attr('class'), element.attr('id')].filter(Boolean).join(' '),
+    );
+  }
+
+  /**
+   * Shopify storefronts render product grids client-side, so the HTML holds
+   * no product photos; the scraper reads them from the public product feed.
+   */
+  private isShopifyStorefront($: cheerio.CheerioAPI): boolean {
+    return (
+      $(
+        '[href*="cdn.shopify.com"], [src*="cdn.shopify.com"], [href*="/cdn/shop/"], [src*="/cdn/shop/"], meta[name="shopify-checkout-api-token"], meta[name="shopify-digital-wallet"]',
+      ).length > 0
+    );
   }
 
   private isThirdPartyAssetUrl(url: string): boolean {
@@ -794,7 +855,7 @@ export class BrandWebsiteParserService {
     ) {
       return true;
     }
-    const src = $(node).attr('src') ?? $(node).attr('data-src') ?? '';
+    const src = this.readImageSource($, node)?.value ?? '';
     if (!src) return false;
     if (this.isThirdPartyAssetUrl(src)) return true;
     return this.isLogoDirectoryUrl(src) && !this.isSiteChromeImage($, node);
@@ -862,10 +923,33 @@ export class BrandWebsiteParserService {
    */
   private resolveUrl(href: string, base: string): string {
     try {
-      return new URL(href, base).href;
+      return this.upgradeSameHostHttp(new URL(href, base).href, base);
     } catch {
       return href;
     }
+  }
+
+  /**
+   * Storefronts often declare `http://` assets for an https page and rely on a
+   * redirect, which the files service refuses to follow. Only an absolute URL
+   * on the page's own host is rewritten; relative values stay verbatim.
+   */
+  private upgradeSameHostHttp(url: string, base: string): string {
+    try {
+      const target = new URL(url);
+      const page = new URL(base);
+      if (
+        target.protocol === 'http:' &&
+        page.protocol === 'https:' &&
+        target.hostname === page.hostname
+      ) {
+        target.protocol = 'https:';
+        return target.href;
+      }
+    } catch {
+      // Relative or malformed values are returned unchanged.
+    }
+    return url;
   }
 
   assertHtmlResponse(response: Response): void {
