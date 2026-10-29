@@ -241,23 +241,6 @@ describe('PostDetail', () => {
     );
   });
 
-  it('closes a missing post shown in the sidebar', async () => {
-    const onClose = vi.fn();
-    mockUsePostDetail.mockReturnValue(buildHookData({ post: null }));
-
-    render(
-      <PostDetail
-        onClose={onClose}
-        postId="post-1"
-        presentation="sidebar"
-        scope={PageScope.SUPERADMIN}
-      />,
-    );
-    await userEvent.click(screen.getByRole('button', { name: 'Close' }));
-
-    expect(onClose).toHaveBeenCalledTimes(1);
-  });
-
   it('warns when the post failed to publish', () => {
     mockUsePostDetail.mockReturnValue(
       buildHookData({ post: buildPost({ status: PostStatus.FAILED }) }),

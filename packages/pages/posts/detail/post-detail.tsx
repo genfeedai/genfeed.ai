@@ -513,23 +513,13 @@ export default function PostDetail({
       <div className={wrapperClassName}>
         <Card className="p-4">
           <div className="text-destructive mb-4">{translate('notFound')}</div>
-          {onClose ? (
-            <Button
-              onClick={onClose}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.SECONDARY}
-            >
-              {translate('close')}
-            </Button>
-          ) : (
-            <Button
-              asChild
-              size={ButtonSize.SM}
-              variant={ButtonVariant.SECONDARY}
-            >
-              <Link href={postsListHref}>{translate('backToPosts')}</Link>
-            </Button>
-          )}
+          <Button
+            asChild
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+          >
+            <Link href={postsListHref}>{translate('backToPosts')}</Link>
+          </Button>
         </Card>
       </div>
     );
