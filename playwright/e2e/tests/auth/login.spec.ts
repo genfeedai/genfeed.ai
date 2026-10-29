@@ -324,11 +324,11 @@ test.describe('Login Success Flow', () => {
   });
 });
 
-test.describe('Auth background video', () => {
+test.describe('Auth example showcase', () => {
   const AUTH_PATHS = ['/login', '/sign-up'] as const;
 
   for (const path of AUTH_PATHS) {
-    test(`plays a muted background video beside the ${path} form on desktop`, async ({
+    test(`plays muted generated examples beside the ${path} form on desktop`, async ({
       unauthenticatedPage,
     }) => {
       await unauthenticatedPage.setViewportSize({ height: 900, width: 1440 });
@@ -337,10 +337,16 @@ test.describe('Auth background video', () => {
       const video = unauthenticatedPage.locator('video');
       await expect(video).toBeVisible();
       await expect(video).toHaveJSProperty('muted', true);
-      await expect(video).toHaveJSProperty('loop', true);
+      // Clips play once and the next example starts, so they must not loop.
+      await expect(video).toHaveJSProperty('loop', false);
       await expect(
         unauthenticatedPage.getByRole('button', {
-          name: /pause background video/i,
+          name: /pause example video/i,
+        }),
+      ).toBeVisible();
+      await expect(
+        unauthenticatedPage.getByRole('region', {
+          name: /examples made with genfeed/i,
         }),
       ).toBeVisible();
     });

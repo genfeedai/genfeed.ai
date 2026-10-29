@@ -46,8 +46,16 @@
     "verifyEmailSentTo": "We sent a verification link to"
   },
   "authShowcase": {
-    "pause": "Pause background video",
-    "play": "Play background video"
+    "pause": "Pause example video",
+    "play": "Play example video",
+    "region": "Examples made with Genfeed",
+    "select": "Show the {model} example",
+    "slides": {
+      "anime-fight": "Hand-drawn anime fight, one prompt",
+      "city-courier": "Handheld street shot, one take",
+      "neon-night-run": "Night orbit through neon rain",
+      "rooftop-gym": "Golden-hour fitness ad, ready to post"
+    }
   },
   "actions": {
     "cancel": "Cancel",
