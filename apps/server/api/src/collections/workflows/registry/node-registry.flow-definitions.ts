@@ -174,6 +174,12 @@ export const FLOW_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
   'effect-captions': {
     category: 'effects',
     configSchema: {
+      activeWordColor: {
+        description:
+          'Hex color of the word being spoken. Empty draws every word in the font color.',
+        label: 'Active Word Color',
+        type: 'string',
+      },
       backgroundColor: {
         description:
           'Hex color of a full-width band behind the text. Empty draws an outline instead.',
@@ -212,6 +218,13 @@ export const FLOW_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
         label: 'Font Size',
         options: ['small', 'medium', 'large'],
         type: 'select',
+      },
+      maxWordsPerGroup: {
+        description: 'Most words shown at once',
+        label: 'Words Per Phrase',
+        max: 12,
+        min: 1,
+        type: 'number',
       },
       position: {
         default: 'bottom',

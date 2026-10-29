@@ -73,4 +73,13 @@ describe('buildCaptionBurnStyleFromConfig', () => {
       }),
     ).toEqual({ fontSizeRatio: 0.058, textCase: 'as-is' });
   });
+
+  it('reads the active word color and the words per phrase', () => {
+    expect(
+      buildCaptionBurnStyleFromConfig({
+        activeWordColor: '#E83B3B',
+        maxWordsPerGroup: 3,
+      }),
+    ).toMatchObject({ activeWordColor: '#E83B3B', maxWordsPerGroup: 3 });
+  });
 });

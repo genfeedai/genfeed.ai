@@ -1,5 +1,6 @@
 import { resolveFontFile } from '@files/helpers/utils/font/font-file.util';
 import { escapeDrawtextValue } from '@files/helpers/utils/string/string.util';
+import { measureTextWidth } from '@files/services/files/captions/font-metrics.util';
 import type {
   CaptionBurnPosition,
   ICaptionBurnStyle,
@@ -12,6 +13,7 @@ export interface CaptionCue {
 }
 
 export interface ResolvedCaptionBurnStyle {
+  activeWordColor: string | null;
   backgroundColor: string | null;
   backgroundOpacity: number;
   bottomAnchorRatio: number;
@@ -26,6 +28,7 @@ export interface ResolvedCaptionBurnStyle {
 
 /** Used for every field a caller leaves out. */
 export const DEFAULT_CAPTION_BURN_STYLE: ResolvedCaptionBurnStyle = {
+  activeWordColor: null,
   backgroundColor: null,
   backgroundOpacity: 0.96,
   bottomAnchorRatio: 0.8,
@@ -40,6 +43,9 @@ export const DEFAULT_CAPTION_BURN_STYLE: ResolvedCaptionBurnStyle = {
 
 /** More groups than this make a filter script no encode should wait for. */
 export const MAX_CAPTION_GROUPS = 1500;
+
+/** Every filter is evaluated per frame; this keeps one encode tractable. */
+export const MAX_CAPTION_FILTERS = 12_000;
 
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 const POSITIONS = new Set<string>(['top', 'center', 'bottom']);
@@ -69,6 +75,11 @@ export function resolveCaptionBurnStyle(
   const defaults = DEFAULT_CAPTION_BURN_STYLE;
   const input = style ?? {};
   return {
+    activeWordColor:
+      typeof input.activeWordColor === 'string' &&
+      HEX_COLOR.test(input.activeWordColor)
+        ? input.activeWordColor
+        : defaults.activeWordColor,
     backgroundColor:
       typeof input.backgroundColor === 'string' &&
       HEX_COLOR.test(input.backgroundColor)
@@ -232,6 +243,69 @@ export function groupCaptionCues(
   return groups.filter((group) => group.endMs > group.startMs);
 }
 
+interface ActiveWordLineOptions {
+  activeColor: string;
+  baseColor: string;
+  enable: { endMs: number; startMs: number };
+  fontFile: string;
+  fontPath: string;
+  fontSize: number;
+  /** Letters spoken on the lines above this one, and in the whole group. */
+  charsBefore: number;
+  groupChars: number;
+  line: string;
+  outline: string;
+  videoWidth: number;
+  y: number;
+}
+
+/**
+ * Draws one centered line word by word. Every word has a base-color copy that
+ * is shown except while it is spoken, and an active-color copy shown only
+ * then. A word is spoken for a share of the group's time proportional to its
+ * length; with word-level cues the groups are single words and this is exact.
+ */
+function buildActiveWordLine(options: ActiveWordLineOptions): string[] {
+  const { enable, fontPath, fontSize, line } = options;
+  const words = line.split(' ').filter(Boolean);
+  const groupLength = options.groupChars || 1;
+  const duration = enable.endMs - enable.startMs;
+  const widthOf = (text: string): number =>
+    measureTextWidth(fontPath, text, fontSize) ??
+    text.length * fontSize * AVERAGE_GLYPH_EM;
+  const spaceWidth = widthOf(' ');
+  const wordWidths = words.map(widthOf);
+  const lineWidth =
+    wordWidths.reduce((sum, value) => sum + value, 0) +
+    spaceWidth * Math.max(0, words.length - 1);
+
+  // Lines of one group follow each other in time.
+  let spokenChars = options.charsBefore;
+  let x = (options.videoWidth - lineWidth) / 2;
+  const filters: string[] = [];
+
+  for (const [index, word] of words.entries()) {
+    const startMs = enable.startMs + (duration * spokenChars) / groupLength;
+    spokenChars += word.length;
+    const endMs = enable.startMs + (duration * spokenChars) / groupLength;
+    const text = escapeDrawtextValue(word.replace(/'/g, '\u2019'));
+    const position = `x=${Math.round(x)}:y=${options.y}`;
+    const common = `fontfile='${options.fontFile}':text='${text}':expansion=none:fontsize=${fontSize}:${position}${options.outline}`;
+    const spoken = `gte(t,${seconds(startMs)})*lt(t,${seconds(endMs)})`;
+    const shown = `gte(t,${seconds(enable.startMs)})*lt(t,${seconds(enable.endMs)})`;
+    filters.push(
+      `drawtext=${common}:fontcolor=${ffmpegColor(options.baseColor)}:enable='${shown}*(1-${spoken})'`,
+      `drawtext=${common}:fontcolor=${ffmpegColor(options.activeColor)}:enable='${spoken}'`,
+    );
+    x += wordWidths[index] + spaceWidth;
+  }
+  return filters;
+}
+
+function charCount(lines: string[]): number {
+  return lines.join('').replace(/ /g, '').length;
+}
+
 function seconds(ms: number): string {
   return (ms / 1000).toFixed(3);
 }
@@ -287,7 +361,8 @@ export function buildCaptionBurnFilterScript(options: {
     );
   }
 
-  const fontFile = escapeDrawtextValue(resolveFontFile(style.fontFamily));
+  const fontPath = resolveFontFile(style.fontFamily);
+  const fontFile = escapeDrawtextValue(fontPath);
   const outline = style.backgroundColor
     ? ''
     : `:borderw=${Math.max(2, Math.round(fontSize * 0.06))}:bordercolor=black`;
@@ -313,10 +388,35 @@ export function buildCaptionBurnFilterScript(options: {
     }
     for (const [index, line] of group.lines.entries()) {
       const y = bandTop + padding + index * pitch;
+      if (style.activeWordColor) {
+        filters.push(
+          ...buildActiveWordLine({
+            activeColor: style.activeWordColor,
+            baseColor: style.fontColor,
+            enable: { endMs: group.endMs, startMs: group.startMs },
+            fontFile,
+            fontPath,
+            fontSize,
+            charsBefore: charCount(group.lines.slice(0, index)),
+            groupChars: charCount(group.lines),
+            line,
+            outline,
+            videoWidth: width,
+            y,
+          }),
+        );
+        continue;
+      }
       filters.push(
         `drawtext=fontfile='${fontFile}':text='${escapeDrawtextValue(line.replace(/'/g, '\u2019'))}':expansion=none:fontcolor=${ffmpegColor(style.fontColor)}:fontsize=${fontSize}:x=(w-text_w)/2:y=${y}${outline}:${enable}`,
       );
     }
+  }
+
+  if (filters.length > MAX_CAPTION_FILTERS) {
+    throw new Error(
+      `Too many caption filters to burn in: ${filters.length} (limit ${MAX_CAPTION_FILTERS})`,
+    );
   }
 
   return {

@@ -667,6 +667,7 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
     },
     'effect-captions': {
       inputSchema: inputSchema([
+        'activeWordColor',
         'autoSync',
         'backgroundColor',
         'backgroundOpacity',
@@ -682,6 +683,7 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
         'includeEmojis',
         'includeHashtags',
         'languages',
+        'maxWordsPerGroup',
         'platform',
         'position',
         'style',

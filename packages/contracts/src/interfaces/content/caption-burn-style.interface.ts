@@ -10,6 +10,8 @@ export interface ICaptionBurnStyle {
   fontFamily?: string;
   /** `#RRGGBB`. */
   fontColor?: string;
+  /** `#RRGGBB` of the word being spoken. Omit to draw every word in `fontColor`. */
+  activeWordColor?: string;
   /** Font height as a share of the video's shorter side. */
   fontSizeRatio?: number;
   position?: CaptionBurnPosition;

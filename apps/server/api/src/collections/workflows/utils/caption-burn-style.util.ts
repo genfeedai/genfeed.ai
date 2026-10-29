@@ -67,6 +67,12 @@ export function buildCaptionBurnStyleFromConfig(
 
   return {
     ...preset,
+    ...(text(config, 'activeWordColor')
+      ? { activeWordColor: text(config, 'activeWordColor') }
+      : {}),
+    ...(number(config, 'maxWordsPerGroup') !== undefined
+      ? { maxWordsPerGroup: number(config, 'maxWordsPerGroup') }
+      : {}),
     ...(text(config, 'backgroundColor')
       ? { backgroundColor: text(config, 'backgroundColor') }
       : {}),
