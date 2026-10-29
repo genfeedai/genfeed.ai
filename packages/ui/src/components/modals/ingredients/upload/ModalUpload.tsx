@@ -97,7 +97,7 @@ export default function ModalUpload({
       title={
         isVoiceLike
           ? translate('cloneVoiceTitle')
-          : translate('title', { category })
+          : translate('title', { category: category.toLowerCase() })
       }
       error={error}
       onClose={() => setError(null)}
