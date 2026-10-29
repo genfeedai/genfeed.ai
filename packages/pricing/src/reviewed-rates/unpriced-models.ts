@@ -36,8 +36,6 @@ export const UNPRICED_MODELS: Readonly<Record<string, string>> = {
   'black-forest-labs/flux-2-klein-4b': INPUT_MEGAPIXELS,
   'black-forest-labs/flux-2-max': INPUT_MEGAPIXELS,
   'black-forest-labs/flux-2-pro': INPUT_MEGAPIXELS,
-  'bytedance/video-upscaler':
-    'The public readme says the price depends on tier, resolution and frame rate, and the numeric table is only on the pricing tab.',
   'fal-ai/clarity-upscaler': FAL_NO_PUBLIC_RATE,
   'fal-ai/eleven-labs-tts': FAL_ENDPOINT_GONE,
   'fal-ai/face-swap': FAL_ENDPOINT_GONE,
