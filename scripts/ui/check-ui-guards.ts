@@ -35,6 +35,13 @@ const checks = [
     required: true,
   },
   {
+    // Subbars take refresh in `refresh` and their controls through
+    // SubbarControls, so every bar keeps one order.
+    command: ['bun', 'run', 'scripts/check-subbar-slots.ts'],
+    name: 'Subbar slots (refresh slot, SubbarControls order)',
+    required: true,
+  },
+  {
     command: ['bun', 'run', 'scripts/check-no-nested-cards.ts'],
     name: 'Nested card composition',
     required: true,

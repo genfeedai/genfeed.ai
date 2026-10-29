@@ -12,6 +12,7 @@ import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import SearchField from '@ui/content/search-field/SearchField';
 import Container from '@ui/layout/container/Container';
+import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import { LazyModalTrainingNew } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
 import { Cpu, Plus } from 'lucide-react';
@@ -137,23 +138,23 @@ export default function ModelsLayoutContent({
         )
       }
       right={
-        <div
-          data-testid="models-layout-actions"
-          className="flex items-center gap-2"
-        >
-          {hasSearch ? null : (
-            <FilterMenu facets={facets} onClear={clearFilters} />
-          )}
-
-          {isTrainingsTab && canTrain ? (
-            <Button
-              label="Training"
-              icon={<Plus />}
-              variant={ButtonVariant.DEFAULT}
-              onClick={() => openModal(ModalEnum.TRAINING_UPLOAD)}
-            />
-          ) : null}
-        </div>
+        <SubbarControls
+          filters={
+            hasSearch ? null : (
+              <FilterMenu facets={facets} onClear={clearFilters} />
+            )
+          }
+          primaryAction={
+            isTrainingsTab && canTrain ? (
+              <Button
+                label="Training"
+                icon={<Plus />}
+                variant={ButtonVariant.DEFAULT}
+                onClick={() => openModal(ModalEnum.TRAINING_UPLOAD)}
+              />
+            ) : null
+          }
+        />
       }
     >
       {children}
