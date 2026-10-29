@@ -502,6 +502,18 @@
     "upgradeTo": "Upgrade to {plan}",
     "redirecting": "Redirecting…"
   },
+  "exportModal": {
+    "title": "Export data",
+    "formatLabel": "Export format",
+    "csvHint": "Opens anywhere",
+    "xlsxHint": "Excel workbook",
+    "fieldsLabel": "Fields to export",
+    "fieldsCount": "Fields · {selected} of {total}",
+    "selectAll": "Select all",
+    "clearAll": "Clear all",
+    "cancel": "Cancel",
+    "exportAs": "Export as {format}"
+  },
   "lowCreditsBanner": {
     "generationUnaffordableTitle": "Not enough credits to keep generating",
     "generationUnaffordableBody": "Everything you made stays in your Library. Buy a credit pack or pick a plan to keep generating.",
