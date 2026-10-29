@@ -2,21 +2,36 @@
 
 import {
   ButtonVariant,
+  IngredientCategory,
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { displayedYouTubeAudience } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { saveDownloadBlob } from '@genfeedai/helpers/media/download/download.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { YouTubePublishingSettingsProps } from '@genfeedai/props/components/youtube-publishing.props';
 import { ReleaseGroupsService } from '@genfeedai/services/content/release-groups.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { VideosService } from '@genfeedai/services/ingredients/videos.service';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+const COVER_WIDTH = 1080;
+
+function readSetting(
+  settings: Record<string, unknown> | null | undefined,
+  key: string,
+): string {
+  const value = settings?.[key];
+  return typeof value === 'string' ? value : '';
+}
 
 export default function YouTubePublishingSettings({
   post,
@@ -30,30 +45,102 @@ export default function YouTubePublishingSettings({
       post.targetSettings?.privacyStatus,
     ) ?? '';
   const savedMadeForKids = post.targetSettings?.madeForKids === true;
+  const savedCoverText = readSetting(post.targetSettings, 'thumbnailText');
+  const savedCoverFrame = readSetting(
+    post.targetSettings,
+    'thumbnailFrameSeconds',
+  );
   const [privacy, setPrivacy] = useState(savedPrivacy);
   const [madeForKids, setMadeForKids] = useState(savedMadeForKids);
+  const [coverText, setCoverText] = useState(savedCoverText);
+  const [coverFrame, setCoverFrame] = useState(savedCoverFrame);
   const [syncedSettings, setSyncedSettings] = useState({
+    coverFrame: savedCoverFrame,
+    coverText: savedCoverText,
     madeForKids: savedMadeForKids,
     privacy: savedPrivacy,
   });
   // Adopt refreshed settings for the same post (adjusting state during render).
   if (
     syncedSettings.privacy !== savedPrivacy ||
-    syncedSettings.madeForKids !== savedMadeForKids
+    syncedSettings.madeForKids !== savedMadeForKids ||
+    syncedSettings.coverText !== savedCoverText ||
+    syncedSettings.coverFrame !== savedCoverFrame
   ) {
     if (privacy === syncedSettings.privacy) setPrivacy(savedPrivacy);
     if (madeForKids === syncedSettings.madeForKids)
       setMadeForKids(savedMadeForKids);
-    setSyncedSettings({ madeForKids: savedMadeForKids, privacy: savedPrivacy });
+    if (coverText === syncedSettings.coverText) setCoverText(savedCoverText);
+    if (coverFrame === syncedSettings.coverFrame)
+      setCoverFrame(savedCoverFrame);
+    setSyncedSettings({
+      coverFrame: savedCoverFrame,
+      coverText: savedCoverText,
+      madeForKids: savedMadeForKids,
+      privacy: savedPrivacy,
+    });
   }
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const getReleasesService = useAuthedService((token) =>
     ReleaseGroupsService.getInstance(token),
   );
+  const getVideosService = useAuthedService((token) =>
+    VideosService.getInstance(token),
+  );
   const selectedVisibility = Object.values(PostVisibility).find(
     (value) => value === privacy,
   );
+  const videoId = post.ingredients?.find(
+    (ingredient) => ingredient.category === IngredientCategory.VIDEO,
+  )?.id;
+  const [cover, setCover] = useState<{ blob: Blob; url: string } | null>(null);
+  const [isRendering, setIsRendering] = useState(false);
+  const [coverError, setCoverError] = useState<string | null>(null);
+  const renderController = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => renderController.current?.abort();
+  }, []);
+
+  useEffect(() => {
+    if (!cover) return;
+    return () => URL.revokeObjectURL(cover.url);
+  }, [cover]);
+
+  function coverFrameSeconds(): number | undefined {
+    const seconds = Number(coverFrame);
+    return coverFrame.trim() !== '' && Number.isFinite(seconds) && seconds >= 0
+      ? seconds
+      : undefined;
+  }
+
+  async function previewCover() {
+    if (!videoId) return;
+    renderController.current?.abort();
+    const controller = new AbortController();
+    renderController.current = controller;
+    setIsRendering(true);
+    setCoverError(null);
+    try {
+      const service = await getVideosService();
+      const blob = await service.getCover(
+        videoId,
+        {
+          timeInSeconds: coverFrameSeconds(),
+          title: coverText.trim() || undefined,
+          width: COVER_WIDTH,
+        },
+        controller.signal,
+      );
+      if (controller.signal.aborted) return;
+      setCover({ blob, url: URL.createObjectURL(blob) });
+    } catch {
+      if (!controller.signal.aborted) setCoverError(translate('coverFailed'));
+    } finally {
+      if (!controller.signal.aborted) setIsRendering(false);
+    }
+  }
 
   async function save() {
     if (!selectedVisibility) return;
@@ -70,6 +157,8 @@ export default function YouTubePublishingSettings({
           ...post.targetSettings,
           madeForKids,
           privacyStatus: selectedVisibility,
+          thumbnailFrameSeconds: coverFrame.trim() || undefined,
+          thumbnailText: coverText.trim() || undefined,
         },
         visibility: selectedVisibility,
       });
@@ -125,6 +214,62 @@ export default function YouTubePublishingSettings({
         isDisabled={isSaving}
         onChange={(event) => setMadeForKids(event.target.checked)}
       />
+      <Input
+        label={translate('coverTitle')}
+        name="youtubeCoverTitle"
+        value={coverText}
+        maxLength={120}
+        isDisabled={isSaving}
+        onChange={(event) => setCoverText(event.target.value)}
+      />
+      <Input
+        label={translate('coverFrame')}
+        name="youtubeCoverFrame"
+        type="number"
+        min={0}
+        step="0.5"
+        value={coverFrame}
+        isDisabled={isSaving}
+        onChange={(event) => setCoverFrame(event.target.value)}
+      />
+      <p className="text-xs text-muted-foreground">{translate('coverHint')}</p>
+      {videoId ? (
+        <Button
+          label={isRendering ? translate('rendering') : translate('preview')}
+          variant={ButtonVariant.SECONDARY}
+          isDisabled={isRendering}
+          isLoading={isRendering}
+          onClick={() => void previewCover()}
+        />
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          {translate('coverNeedsVideo')}
+        </p>
+      )}
+      {coverError ? (
+        <p role="alert" className="text-sm text-destructive">
+          {coverError}
+        </p>
+      ) : null}
+      {cover ? (
+        <div className="space-y-2">
+          <Image
+            src={cover.url}
+            alt={translate('coverPreviewAlt')}
+            width={COVER_WIDTH / 4}
+            height={(COVER_WIDTH / 4) * (16 / 9)}
+            unoptimized
+            className="h-auto w-40 rounded-lg border border-border"
+          />
+          <Button
+            label={translate('downloadCover')}
+            variant={ButtonVariant.SECONDARY}
+            onClick={() =>
+              saveDownloadBlob(cover.blob, `youtube-cover-${post.id}.jpg`)
+            }
+          />
+        </div>
+      ) : null}
       <Button
         label={isSaving ? translate('saving') : translate('save')}
         variant={ButtonVariant.SECONDARY}

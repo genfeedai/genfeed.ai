@@ -397,6 +397,7 @@ export class FilesClientService {
     ingredientId: string,
     timeInSeconds?: number,
     width?: number,
+    title?: string,
   ) {
     try {
       const response = await this.send('generateThumbnail', () =>
@@ -405,6 +406,7 @@ export class FilesClientService {
           {
             ingredientId,
             timeInSeconds,
+            title,
             videoUrl,
             width,
           },

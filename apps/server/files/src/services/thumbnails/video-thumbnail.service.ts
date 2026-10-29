@@ -3,6 +3,7 @@ import * as fs from 'node:fs';
 import { ConfigService } from '@files/config/config.service';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { S3Service } from '@files/services/s3/s3.service';
+import { overlayTitle } from '@files/services/thumbnails/thumbnail-title-overlay.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { assertSafeSegment, resolveContainedPath } from '@libs/security';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -28,6 +29,7 @@ export class VideoThumbnailService {
    * @param ingredientId - ID of the ingredient/video
    * @param timeInSeconds - Time in seconds to extract frame (default: 1)
    * @param width - Thumbnail width (default: 720, will maintain aspect ratio)
+   * @param title - Optional title laid over the bottom of the frame as a cover
    * @returns Public URL of the uploaded thumbnail
    */
   async generateThumbnail(
@@ -35,6 +37,7 @@ export class VideoThumbnailService {
     ingredientId: string,
     timeInSeconds: number = 1,
     width: number = 720,
+    title?: string,
   ): Promise<string> {
     const safeIngredientId = assertSafeSegment(
       ingredientId,
@@ -111,8 +114,12 @@ export class VideoThumbnailService {
 
       // Resize thumbnail using sharp (maintain aspect ratio)
       const resizeStartTime = Date.now();
-      const resizedThumbnailBuffer = await sharp(thumbnailPath)
+      const resizedFrame = await sharp(thumbnailPath)
         .resize(width, null, { withoutEnlargement: true })
+        .toBuffer();
+      const resizedThumbnailBuffer = await sharp(
+        title ? await overlayTitle(resizedFrame, title) : resizedFrame,
+      )
         .jpeg({ quality: 85 })
         .toBuffer();
       const resizeDuration = Date.now() - resizeStartTime;
@@ -136,6 +143,7 @@ export class VideoThumbnailService {
       const { s3Key, publicUrl, uploadDuration } = await this.uploadThumbnail(
         resizedThumbnailPath,
         safeIngredientId,
+        Boolean(title),
       );
       const totalDuration = Date.now() - thumbnailStartTime;
 
@@ -173,10 +181,12 @@ export class VideoThumbnailService {
   private async uploadThumbnail(
     thumbnailPath: string,
     ingredientId: string,
+    isCover: boolean,
   ): Promise<{ s3Key: string; publicUrl: string; uploadDuration: number }> {
+    // A cover must not overwrite the plain still stored under the ingredient id.
     const requestedKey = this.s3Service.generateS3Key(
       'thumbnails',
-      this.configService?.isAuthorizedMediaDeliveryEnabled
+      this.configService?.isAuthorizedMediaDeliveryEnabled || isCover
         ? randomUUID()
         : ingredientId,
     );

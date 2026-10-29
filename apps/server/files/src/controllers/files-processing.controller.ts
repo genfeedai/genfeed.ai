@@ -40,10 +40,11 @@ export class FilesProcessingController {
       ingredientId: string;
       timeInSeconds?: number;
       width?: number;
+      title?: string;
     },
   ) {
     try {
-      const { videoUrl, ingredientId, timeInSeconds, width } = body;
+      const { videoUrl, ingredientId, timeInSeconds, width, title } = body;
 
       if (!videoUrl || !ingredientId) {
         throw new HttpException(
@@ -61,6 +62,7 @@ export class FilesProcessingController {
         ingredientId,
         timeInSeconds,
         width,
+        title,
       );
 
       return {

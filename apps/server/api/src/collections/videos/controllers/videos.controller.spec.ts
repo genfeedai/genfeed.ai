@@ -295,9 +295,10 @@ describe('VideosController', () => {
         {
           provide: FilesClientService,
           useValue: {
-            generateThumbnail: vi
-              .fn()
-              .mockResolvedValue('https://cdn.example.com/thumbnail.jpg'),
+            generateThumbnail: vi.fn().mockResolvedValue({
+              ingredientId: 'video-id',
+              thumbnailUrl: 'https://cdn.example.com/thumbnail.jpg',
+            }),
             uploadToS3: vi.fn(),
           },
         },
@@ -1233,6 +1234,7 @@ describe('VideosController', () => {
         mockVideoId,
         undefined,
         undefined,
+        undefined,
       );
     });
 
@@ -1262,8 +1264,28 @@ describe('VideosController', () => {
         mockVideoId.toString(),
         10,
         1920,
+        undefined,
       );
       expect(result).toBeInstanceOf(StreamableFile);
+    });
+
+    it('passes a trimmed, length-capped title through to render a cover', async () => {
+      await controller.getThumbnail(
+        mockVideoId.toString(),
+        mockUser,
+        mockResponse as never,
+        2,
+        1080,
+        `  ${'x'.repeat(200)}  `,
+      );
+
+      expect(filesClientService.generateThumbnail).toHaveBeenCalledWith(
+        expect.any(String),
+        mockVideoId.toString(),
+        2,
+        1080,
+        'x'.repeat(120),
+      );
     });
 
     it('should use default parameters if not provided', async () => {
@@ -1276,6 +1298,7 @@ describe('VideosController', () => {
       expect(filesClientService.generateThumbnail).toHaveBeenCalledWith(
         expect.any(String),
         mockVideoId.toString(),
+        undefined,
         undefined,
         undefined,
       );

@@ -298,6 +298,7 @@ export class VideosController {
     @Res({ passthrough: true }) res: Response,
     @Query('timeInSeconds') timeInSeconds?: number,
     @Query('width') width?: number,
+    @Query('title') title?: string,
   ): Promise<StreamableFile> {
     const video = await this.videosService.findOne({
       id: videoId,
@@ -332,11 +333,12 @@ export class VideosController {
         videoUrl = projection.grant.url;
       }
 
-      const thumbnailUrl = await this.filesClientService.generateThumbnail(
+      const { thumbnailUrl } = await this.filesClientService.generateThumbnail(
         videoUrl,
         videoId,
         timeInSeconds ? Number(timeInSeconds) : undefined,
         width ? Number(width) : undefined,
+        title?.trim() ? title.trim().slice(0, 120) : undefined,
       );
 
       const thumbnailResponse = await fetch(thumbnailUrl);

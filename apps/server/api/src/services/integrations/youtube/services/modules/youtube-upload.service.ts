@@ -118,6 +118,7 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
         sourceUrl,
         uploadSignal,
         url,
+        settings,
       );
       const mediaResponse = await firstValueFrom(
         this.httpService.get<Readable>(sourceUrl, {
@@ -222,23 +223,32 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
   }
 
   /**
-   * Extracts a still from the source video through the files service. Never
-   * rejects: the thumbnail is an enhancement and must not fail the upload.
+   * Renders the cover through the files service: a still from the source video,
+   * with the post's cover title laid over it when one is set. Never rejects:
+   * the thumbnail is an enhancement and must not fail the upload.
    */
   private async prepareThumbnail(
     ingredientId: string,
     sourceUrl: string,
     signal: AbortSignal,
     logPrefix: string,
+    settings: ChannelTargetSettings,
   ): Promise<Buffer | undefined> {
     if (!this.filesClient) return undefined;
+
+    const frameSeconds = Number(
+      readChannelSettingString(settings, 'thumbnailFrameSeconds'),
+    );
 
     try {
       const frame = await this.filesClient.generateThumbnail(
         sourceUrl,
         ingredientId,
-        THUMBNAIL_FRAME_SECONDS,
+        Number.isFinite(frameSeconds) && frameSeconds >= 0
+          ? frameSeconds
+          : THUMBNAIL_FRAME_SECONDS,
         THUMBNAIL_WIDTH,
+        readChannelSettingString(settings, 'thumbnailText')?.trim(),
       );
       if (!frame?.thumbnailUrl) return undefined;
 
