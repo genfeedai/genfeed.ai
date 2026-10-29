@@ -121,6 +121,9 @@
     },
     "view": "View"
   },
+  "adminDashboard": {
+    "loadFailed": "Could not load the platform stats. Try again."
+  },
   "agentAuth": {
     "claim": {
       "actions": {
