@@ -642,6 +642,9 @@ export const MESSAGES_CONVERSATION_QUERY_PARAM = 'socialConversation';
 /** #5502 query param that seeds the Messages inbox type filter (`dm`, `reply`, `comment`). */
 export const MESSAGES_TYPE_QUERY_PARAM = 'type';
 
+/** Query param of the Messages Status filter; the default (Inbox) is omitted. */
+export const MESSAGES_STATUS_QUERY_PARAM = 'status';
+
 /** Brand-relative path that opens one Messages conversation. */
 export function createMessagesConversationRoute(
   conversationId: string,

@@ -6,7 +6,10 @@ import type {
   SocialInboxSyncRealtimeEvent,
 } from '@genfeedai/contracts/interfaces';
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
-import type { MessagesSurface } from '@genfeedai/props/messages/messages-conversation-sidebar.props';
+import type {
+  MessagesInboxView,
+  MessagesSurface,
+} from '@genfeedai/props/messages/messages-conversation-sidebar.props';
 import type {
   MessagesSyncFeedback,
   MessagesSyncJob,
@@ -59,6 +62,22 @@ export function parseMessagesSurface(
   return value && MESSAGES_SURFACE_VALUES.has(value)
     ? (value as MessagesSurface)
     : 'all';
+}
+
+const MESSAGES_INBOX_VIEWS: readonly MessagesInboxView[] = [
+  'inbox',
+  'unread',
+  'review',
+  'resolved',
+  'archived',
+  'all',
+];
+
+/** Read the `?status=` inbox filter; anything else means the default, Inbox. */
+export function parseMessagesInboxView(
+  value: string | null | undefined,
+): MessagesInboxView {
+  return MESSAGES_INBOX_VIEWS.find((view) => view === value) ?? 'inbox';
 }
 
 export const AUTOMATION_OPTIONS: Array<{
