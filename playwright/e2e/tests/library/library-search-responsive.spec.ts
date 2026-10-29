@@ -5,7 +5,7 @@ import {
   mockLibraryData,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
-import { openFilterFacet } from '../../utils/filter-menu';
+import { filtersTrigger, openFilterFacet } from '../../utils/filter-menu';
 import { expectNoErrorOverlay } from '../../utils/route-assertions';
 
 for (const viewport of [
@@ -26,7 +26,6 @@ for (const viewport of [
       name: 'Primary workspace canvas',
       exact: true,
     });
-    await canvas.getByRole('button', { name: 'Search', exact: true }).click();
     const search = canvas.getByRole('textbox', { name: 'Search', exact: true });
     await search.fill('cobalt');
     await search.press('Enter');
@@ -98,14 +97,15 @@ for (const viewport of [
     await page.keyboard.press('Enter');
     // The open menu hides the rest of the page from role queries.
     await page.keyboard.press('Escape');
-    const chip = canvas.getByRole('button', {
-      name: 'Remove Image filter',
-      exact: true,
-    });
-    await expect(chip).toBeVisible();
-    await chip.focus();
-    await page.keyboard.press('Enter');
-    await expect(chip).toHaveCount(0);
+    // What is applied is counted on the Filters trigger inside the search
+    // field, not listed as chips outside it.
+    await expect(filtersTrigger(canvas)).toContainText('1');
+    await expect(
+      canvas.getByRole('button', { name: 'Remove Image filter', exact: true }),
+    ).toHaveCount(0);
+    await filtersTrigger(canvas).click();
+    await page.getByRole('menuitem', { name: 'Clear all filters' }).click();
+    await expect(filtersTrigger(canvas)).not.toContainText('1');
 
     if (viewport.width < 768) {
       const open = page.getByRole('button', {

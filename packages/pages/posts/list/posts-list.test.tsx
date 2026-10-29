@@ -254,8 +254,11 @@ vi.mock('@ui/display/table/Table', () => ({
 }));
 
 function lastToolbarProps(): { publishingView?: string } {
-  const [node] = setFiltersNodeMock.mock.calls.at(-1) ?? [];
-  return (node as { props: { publishingView?: string } }).props;
+  // The toolbar is the child of the search field published into the leading slot.
+  const [node] = setLeadingNodeMock.mock.calls.at(-1) ?? [];
+  return (
+    node as { props: { children: { props: { publishingView?: string } } } }
+  ).props.children.props;
 }
 
 describe('PostsList', () => {
@@ -290,7 +293,6 @@ describe('PostsList', () => {
     ).not.toBeInTheDocument();
 
     await waitFor(() => {
-      expect(setFiltersNodeMock).toHaveBeenCalled();
       expect(setLeadingNodeMock).toHaveBeenCalled();
     });
   });

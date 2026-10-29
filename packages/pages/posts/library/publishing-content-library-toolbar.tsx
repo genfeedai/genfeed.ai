@@ -18,7 +18,7 @@ import {
 } from '@pages/posts/list/posts-list-query';
 import type { PublishingContentAccount } from '@props/posts/publishing-content-entry.props';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
-import FormSearchbar from '@ui/primitives/searchbar';
+import SearchField from '@ui/content/search-field/SearchField';
 import { Globe, Mail, Share2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
@@ -35,6 +35,8 @@ export interface PublishingContentLibraryToolbarProps {
   accountOptions: PublishingContentAccount[];
   channelOptions: FilterOption[];
   channelValue: string;
+  /** Sits inside a `SearchField`'s trailing edge: a compact trigger. */
+  isAttached?: boolean;
   /** Unfiltered rows; the facets show how many results sit behind each option. */
   items: readonly PublishingContentLibraryItem[];
   sourceValue?: PostsSourceFilter;
@@ -49,25 +51,28 @@ export interface PublishingContentLibraryToolbarProps {
 }
 
 export interface PublishingContentLibrarySearchProps {
+  /** The Filters menu, attached inside the field. */
+  children?: ReactNode;
   searchValue: string;
   onSearchChange: (value: string) => void;
 }
 
-/** Rests as an icon, like the Library search. */
+/** The content search, with the Filters menu attached inside it. */
 export function PublishingContentLibrarySearch({
+  children,
   searchValue,
   onSearchChange,
 }: PublishingContentLibrarySearchProps) {
   const translate = useTranslations('pages.posts.list');
 
   return (
-    <FormSearchbar
-      isCollapsible
+    <SearchField
       onSearch={onSearchChange}
       placeholder={translate('toolbar.searchPlaceholder')}
-      size={ComponentSize.SM}
       value={searchValue}
-    />
+    >
+      {children}
+    </SearchField>
   );
 }
 
@@ -92,6 +97,7 @@ export default function PublishingContentLibraryToolbar({
   accountOptions,
   channelOptions,
   channelValue,
+  isAttached,
   items,
   sourceValue,
   statusOptions,
@@ -185,5 +191,7 @@ export default function PublishingContentLibraryToolbar({
     },
   ];
 
-  return <FilterMenu facets={facets} onClear={onClear} />;
+  return (
+    <FilterMenu facets={facets} isAttached={isAttached} onClear={onClear} />
+  );
 }

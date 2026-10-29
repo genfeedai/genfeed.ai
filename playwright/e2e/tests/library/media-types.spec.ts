@@ -6,7 +6,7 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { brandPath, currentRoute } from '../../utils/app-chrome';
-import { openFilterFacet } from '../../utils/filter-menu';
+import { filtersTrigger, openFilterFacet } from '../../utils/filter-menu';
 
 /**
  * E2E Tests for Library Media Types
@@ -172,7 +172,6 @@ test.describe('Library Media Types', () => {
         .poll(() => currentRoute(authenticatedPage))
         .toBe(brandPath(APP_ROUTES.LIBRARY.VIDEOS));
 
-      await authenticatedPage.getByTestId('collapsible-search-trigger').click();
       const search = authenticatedPage.getByRole('textbox', {
         name: 'Search',
       });
@@ -181,6 +180,11 @@ test.describe('Library Media Types', () => {
         'placeholder',
         "Search this brand's assets",
       );
+      // The Filters menu sits inside the search field, with no chips outside it.
+      await expect(filtersTrigger(search.locator('xpath=../..'))).toBeVisible();
+      await expect(
+        authenticatedPage.getByTestId('library-active-filters'),
+      ).toHaveCount(0);
     });
   });
 });
