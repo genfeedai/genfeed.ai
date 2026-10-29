@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
-  AnalyticsCounterCorrection,
-  AnalyticsMetricAvailability,
   derivedEngagementRate,
   distinctCount,
   lifetimeMetricValue,
   periodMetricGain,
   sumEngagement,
-} from '../../src';
+} from '../../src/analytics';
+import {
+  AnalyticsCounterCorrection,
+  AnalyticsMetricAvailability,
+} from '../../src/enums';
 
 describe('periodMetricGain', () => {
   it('reports period gain from window-boundary snapshots, not summed lifetime totals', () => {

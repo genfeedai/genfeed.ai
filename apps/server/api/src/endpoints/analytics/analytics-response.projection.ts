@@ -2,8 +2,8 @@ import {
   AnalyticsMetric,
   CredentialPlatform,
   fromPrismaCredentialPlatform,
-  sumEngagement,
 } from '@genfeedai/contracts';
+import { sumEngagement } from '@genfeedai/contracts/analytics';
 import type {
   IPlatformComparison,
   IViralHookEffectiveness,
