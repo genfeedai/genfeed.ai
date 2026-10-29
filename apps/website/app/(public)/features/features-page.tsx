@@ -4,7 +4,7 @@ import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import { HOME_OUTPUT_CAROUSEL_ASSETS } from '@web-components/home/_assets';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
-import ProductInterfacePreview from '@web-components/product/ProductInterfacePreview';
+import AppProductScreenshot from '@web-components/products/AppProductScreenshot';
 import {
   ArrowRight,
   Cpu,
@@ -52,17 +52,10 @@ const FEATURES = [
 ];
 
 const HERO_VISUAL = (
-  <ProductInterfacePreview
-    product={{
-      category: 'Control plane',
-      features: FEATURES,
-      headline: 'Create, organize, govern, and ship from one operating system.',
-      name: 'Genfeed',
-      useCases: FEATURES.slice(0, 3).map((feature) => ({
-        description: feature.description,
-        title: feature.label,
-      })),
-    }}
+  <AppProductScreenshot
+    alt="The Genfeed agent working next to its output."
+    isPriority
+    src="/products/agent.webp"
   />
 );
 
