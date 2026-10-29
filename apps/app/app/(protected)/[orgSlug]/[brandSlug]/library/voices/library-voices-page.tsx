@@ -419,7 +419,7 @@ function LibraryVoicesPageContent({
   scope: PageScope.BRAND | PageScope.ORGANIZATION;
 }) {
   return (
-    <IngredientsLayout scope={scope} defaultType="voices" hideTypeTabs>
+    <IngredientsLayout scope={scope} defaultType="voices">
       <LibraryVoicesContent />
     </IngredientsLayout>
   );
