@@ -3,7 +3,10 @@ import type { AgentMessageDocument } from '@api/collections/agent-messages/schem
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import type { AgentThreadListFilters } from '@api/collections/agent-threads/interfaces/agent-thread-list-filters.interface';
 import type { AgentRoomDocument } from '@api/collections/agent-threads/schemas/agent-thread.schema';
-import { AGENT_THREAD_EXTERNAL_RUNTIME_CONFIG_KEY } from '@api/collections/agent-threads/utils/agent-thread-external-runtime.util';
+import {
+  AGENT_THREAD_EXTERNAL_RUNTIME_CONFIG_KEY,
+  toExternalToolCallMetadata,
+} from '@api/collections/agent-threads/utils/agent-thread-external-runtime.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { PageWindow } from '@api/helpers/dto/pagination-query.dto';
 import { buildPaginatedResult } from '@api/helpers/utils/paginated-result/paginated-result.util';
@@ -28,7 +31,6 @@ import type {
   AgentThreadRunState,
   AgentThreadRunStatus,
   IAgentExternalTurnInput,
-  IAgentExternalTurnToolCall,
   IAgentRunProjection,
   IAgentThreadExternalRuntime,
 } from '@genfeedai/contracts/interfaces';
@@ -96,8 +98,6 @@ const LIST_THUMB_INGREDIENT_CATEGORIES: IngredientCategory[] = [
  * under the bound; only very old executions of very chatty threads fall out.
  */
 const THREAD_EXECUTION_SCAN_LIMIT = 500;
-/** Title of the auto-created master thread. */
-const MASTER_THREAD_TITLE = 'Master';
 /** Threads evaluated per round trip while collecting agent runs. */
 const AGENT_RUN_SCAN_BATCH_SIZE = 50;
 
@@ -108,23 +108,6 @@ export type AgentExternalTurnAppendResult = {
   thread: AgentRoomDocument;
   userMessage: AgentMessageDocument;
 };
-
-/** Client-renderable tool call (matches the agent UI's `AgentToolCall`). */
-function toExternalToolCallMetadata(
-  toolCall: IAgentExternalTurnToolCall,
-  index: number,
-): Record<string, unknown> {
-  return {
-    arguments: toolCall.argsSummary ? { summary: toolCall.argsSummary } : {},
-    ...(toolCall.error ? { error: toolCall.error } : {}),
-    id: `external-${index}-${toolCall.name}`,
-    name: toolCall.name,
-    ...(toolCall.resultSummary
-      ? { resultSummary: toolCall.resultSummary }
-      : {}),
-    status: toolCall.status,
-  };
-}
 
 @Injectable()
 export class AgentThreadsService extends BaseService<
@@ -284,8 +267,7 @@ export class AgentThreadsService extends BaseService<
   ): Promise<number> {
     const result = await this.delegate.updateMany({
       data: { status: AgentThreadStatus.ARCHIVED },
-      // The master thread is the user's standing entry point; it is never
-      // archived, in bulk or one by one (#8526).
+      // The master is never archived, in bulk or one by one (#8526).
       where: scopedWhere(organizationId, {
         ...(brandId ? { brandId } : {}),
         kind: { not: AgentThreadKind.MASTER },
@@ -295,58 +277,6 @@ export class AgentThreadsService extends BaseService<
     });
 
     return result.count ?? 0;
-  }
-
-  /**
-   * The user's master thread in this organization, created on first open
-   * (#8526). It is org-scoped (brand null) so it can start threads in any
-   * brand. Concurrent first opens race on the partial unique index
-   * `agent_threads_active_master_per_org_user_key`: the loser's insert is
-   * rejected and it returns the winner's row, so exactly one master exists.
-   */
-  async getOrCreateMasterThread(
-    userId: string,
-    organizationId: string,
-  ): Promise<AgentRoomDocument> {
-    const existing = await this.findMasterThread(userId, organizationId);
-    if (existing) {
-      return existing;
-    }
-
-    const mode = await this.resolveSavedMode(userId);
-    try {
-      return this.normalizeDocument(
-        await this.prisma.agentThread.create({
-          data: {
-            kind: AgentThreadKind.MASTER,
-            mode,
-            organizationId,
-            source: 'web',
-            status: AgentThreadStatus.ACTIVE,
-            title: MASTER_THREAD_TITLE,
-            userId,
-          },
-        }),
-      );
-    } catch (error: unknown) {
-      if ((error as { code?: unknown } | null)?.code !== 'P2002') {
-        throw error;
-      }
-      const winner = await this.findMasterThread(userId, organizationId);
-      if (!winner) {
-        throw error;
-      }
-      return winner;
-    }
-  }
-
-  private findMasterThread(
-    userId: string,
-    organizationId: string,
-  ): Promise<AgentRoomDocument | null> {
-    return this.findOne(
-      scopedWhere(organizationId, { kind: AgentThreadKind.MASTER, userId }),
-    );
   }
 
   updateThreadMetadata(

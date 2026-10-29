@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
+import { AgentMasterThreadService } from '@api/collections/agent-threads/services/agent-master-thread.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { AgentTransfersService } from '@api/collections/agent-transfers/services/agent-transfers.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -53,6 +54,11 @@ describe.skipIf(!connectionString)(
         logger as never,
         {} as AgentMessagesService,
       );
+    const makeMasterService = () =>
+      new AgentMasterThreadService(
+        database() as unknown as PrismaService,
+        makeThreadsService(),
+      );
     const makeTransfersService = () =>
       new AgentTransfersService(
         database() as unknown as PrismaService,
@@ -88,7 +94,7 @@ describe.skipIf(!connectionString)(
     });
 
     it('creates exactly one master when many first opens race', async () => {
-      const service = makeThreadsService();
+      const service = makeMasterService();
       const callers = 8;
       // Hold every caller at its first lookup until all of them have looked,
       // so each one sees "no master yet" and every insert really races. The
@@ -121,7 +127,7 @@ describe.skipIf(!connectionString)(
 
       const opened = await Promise.all(
         Array.from({ length: callers }, () =>
-          service.getOrCreateMasterThread(userId, organizationId),
+          service.getOrCreate(userId, organizationId),
         ),
       );
 
@@ -140,31 +146,25 @@ describe.skipIf(!connectionString)(
     });
 
     it('returns the same master on every later open', async () => {
-      const service = makeThreadsService();
+      const service = makeMasterService();
 
-      const first = await service.getOrCreateMasterThread(
-        userId,
-        organizationId,
-      );
-      const second = await service.getOrCreateMasterThread(
-        userId,
-        organizationId,
-      );
+      const first = await service.getOrCreate(userId, organizationId);
+      const second = await service.getOrCreate(userId, organizationId);
 
       expect(second.id).toBe(first.id);
     });
 
     it('keeps one master per user and one per organization', async () => {
-      const service = makeThreadsService();
+      const service = makeMasterService();
       const otherUserId = `master-other-user-${suffix}`;
       const otherOrganizationId = `master-other-org-${suffix}`;
       await createUser(otherUserId);
       await createOrganization(otherOrganizationId, userId);
 
       const ids = await Promise.all([
-        service.getOrCreateMasterThread(userId, organizationId),
-        service.getOrCreateMasterThread(otherUserId, organizationId),
-        service.getOrCreateMasterThread(userId, otherOrganizationId),
+        service.getOrCreate(userId, organizationId),
+        service.getOrCreate(otherUserId, organizationId),
+        service.getOrCreate(userId, otherOrganizationId),
       ]).then((threads) => threads.map((thread) => thread.id));
 
       expect(new Set(ids).size).toBe(3);
@@ -195,20 +195,14 @@ describe.skipIf(!connectionString)(
     });
 
     it('opens a fresh master once the old one is soft deleted', async () => {
-      const service = makeThreadsService();
-      const first = await service.getOrCreateMasterThread(
-        userId,
-        organizationId,
-      );
+      const service = makeMasterService();
+      const first = await service.getOrCreate(userId, organizationId);
       await database().agentThread.update({
         data: { isDeleted: true },
         where: { id: first.id },
       });
 
-      const second = await service.getOrCreateMasterThread(
-        userId,
-        organizationId,
-      );
+      const second = await service.getOrCreate(userId, organizationId);
 
       expect(second.id).not.toBe(first.id);
       expect(second.isDeleted).toBe(false);
@@ -216,10 +210,8 @@ describe.skipIf(!connectionString)(
 
     it('leaves the master active when the user archives all threads', async () => {
       const service = makeThreadsService();
-      const master = await service.getOrCreateMasterThread(
-        userId,
-        organizationId,
-      );
+      const masters = makeMasterService();
+      const master = await masters.getOrCreate(userId, organizationId);
       await database().agentThread.create({ data: { organizationId, userId } });
 
       const archivedCount = await service.archiveAllThreads(
@@ -236,7 +228,7 @@ describe.skipIf(!connectionString)(
 
     it('sets the parent on a thread spawned from the master and lists children by parent', async () => {
       const threads = makeThreadsService();
-      const master = await threads.getOrCreateMasterThread(
+      const master = await makeMasterService().getOrCreate(
         userId,
         organizationId,
       );

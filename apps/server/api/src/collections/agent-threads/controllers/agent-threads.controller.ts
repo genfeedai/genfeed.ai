@@ -10,6 +10,10 @@ import {
   resolveAgentThreadDatabaseUserId,
   resolveAgentThreadOrganizationId,
 } from '@api/collections/agent-threads/utils/agent-thread-identity.util';
+import {
+  assertThreadArchivable,
+  parseAgentThreadKind,
+} from '@api/collections/agent-threads/utils/agent-thread-kind.util';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
@@ -29,7 +33,6 @@ import { AgentScopeContextService, scopedWhere } from '@api/index';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import {
   AgentMessageRole,
-  AgentThreadKind,
   AgentThreadMode,
   AgentThreadStatus,
 } from '@genfeedai/contracts';
@@ -86,17 +89,6 @@ export class AgentThreadsController {
     try {
       const organizationId = this.resolveOrganizationId(user);
       const dbUserId = await this.resolveDatabaseUserId(user);
-      // Unlike `status`, an unknown kind is rejected: ignoring it would hand
-      // back every thread to a caller that asked for a narrow list.
-      const threadKind = kind?.trim() ? kind.trim() : undefined;
-      if (
-        threadKind &&
-        !Object.values(AgentThreadKind).includes(threadKind as AgentThreadKind)
-      ) {
-        throw new BadRequestException(
-          `kind must be one of: ${Object.values(AgentThreadKind).join(', ')}`,
-        );
-      }
       const parsedStatus = Object.values(AgentThreadStatus).includes(
         status as AgentThreadStatus,
       )
@@ -114,36 +106,13 @@ export class AgentThreadsController {
         threadSource,
         resolvePageWindow(pagination, DEFAULT_THREADS_PAGE_SIZE),
         {
-          kind: threadKind as AgentThreadKind | undefined,
+          kind: parseAgentThreadKind(kind),
           parentThreadId: parentThreadId?.trim() || undefined,
         },
       );
       return serializeCollection(req, AgentThreadSerializer, threads);
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'listThreads');
-    }
-  }
-
-  @TenantReadPolicy('owner')
-  @Get('master')
-  @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
-  @ApiOperation({
-    summary:
-      "Get the user's master thread for this organization, creating it on first open",
-  })
-  async getMasterThread(@Req() req: Request, @CurrentUser() user: User) {
-    try {
-      const thread = await this.agentThreadsService.getOrCreateMasterThread(
-        await this.resolveDatabaseUserId(user),
-        this.resolveOrganizationId(user),
-      );
-      return serializeSingle(
-        req,
-        AgentThreadSerializer,
-        withAgentThreadExternalRuntime(thread),
-      );
-    } catch (error: unknown) {
-      return ErrorResponse.handle(error, this.loggerService, 'getMasterThread');
     }
   }
 
@@ -498,12 +467,7 @@ export class AgentThreadsController {
         isDeleted: false,
       });
       if (!owned) throw new NotFoundException('Thread', threadId);
-      if (
-        owned.kind === AgentThreadKind.MASTER &&
-        body.status === AgentThreadStatus.ARCHIVED
-      ) {
-        throw new BadRequestException('The master thread cannot be archived.');
-      }
+      assertThreadArchivable(owned, body.status);
       const updated =
         body.status === AgentThreadStatus.ARCHIVED
           ? await this.agentThreadsService.archiveThread(

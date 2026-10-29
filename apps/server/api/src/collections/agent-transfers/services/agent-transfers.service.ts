@@ -86,6 +86,17 @@ function requestHash(input: CreateAgentTransferDto): string {
   return `sha256:v1:${sha256Hex(stableStringify(payload))}`;
 }
 
+function assertSendAndRunConfirmed(input: CreateAgentTransferDto): void {
+  if (
+    input.deliveryMode === AgentTransferDeliveryMode.SEND_AND_RUN &&
+    input.explicitUserIntent !== true
+  ) {
+    throw new BadRequestException(
+      'SEND_AND_RUN requires explicit user confirmation.',
+    );
+  }
+}
+
 @Injectable()
 export class AgentTransfersService {
   constructor(
@@ -227,14 +238,7 @@ export class AgentTransfersService {
       );
     }
 
-    if (
-      input.deliveryMode === AgentTransferDeliveryMode.SEND_AND_RUN &&
-      input.explicitUserIntent !== true
-    ) {
-      throw new BadRequestException(
-        'SEND_AND_RUN requires explicit user confirmation.',
-      );
-    }
+    assertSendAndRunConfirmed(input);
 
     const transfer = await this.prisma
       .$transaction(async (tx) => {

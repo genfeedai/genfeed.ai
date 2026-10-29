@@ -38,7 +38,6 @@ describe('AgentThreadsController', () => {
   let service: {
     archiveAllThreads: ReturnType<typeof vi.fn>;
     archiveThread: ReturnType<typeof vi.fn>;
-    getOrCreateMasterThread: ReturnType<typeof vi.fn>;
     getUserThreads: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
@@ -76,7 +75,6 @@ describe('AgentThreadsController', () => {
       archiveAllThreads: vi.fn(),
       archiveThread: vi.fn(),
       create: vi.fn(),
-      getOrCreateMasterThread: vi.fn(),
       resolveSavedMode: vi.fn().mockResolvedValue('manual'),
       updateAgentMode: vi.fn().mockResolvedValue({ mode: 'auto' }),
       updateThreadMetadata: vi.fn().mockResolvedValue({ id: 'thread' }),
@@ -704,42 +702,6 @@ describe('AgentThreadsController', () => {
   });
 
   describe('master thread (#8526)', () => {
-    it('declares GET master before GET :threadId so it is not read as a thread id', () => {
-      const methods = Object.getOwnPropertyNames(
-        AgentThreadsController.prototype,
-      );
-
-      expect(methods.indexOf('getMasterThread')).toBeGreaterThan(-1);
-      expect(methods.indexOf('getMasterThread')).toBeLessThan(
-        methods.indexOf('getThread'),
-      );
-    });
-
-    it('rate limits get-or-create per user because the first open writes', () => {
-      expect(
-        Reflect.getMetadata(
-          RATE_LIMIT_KEY,
-          AgentThreadsController.prototype.getMasterThread,
-        ),
-      ).toEqual({ limit: 30, scope: 'user', windowMs: 60_000 });
-    });
-
-    it('opens the master for the caller and their organization', async () => {
-      service.getOrCreateMasterThread.mockResolvedValue({
-        id: 'master_1',
-        kind: AgentThreadKind.MASTER,
-        organizationId: mockUser.organizationId,
-        userId: mockUser.userId,
-      });
-
-      await controller.getMasterThread({} as never, mockUser);
-
-      expect(service.getOrCreateMasterThread).toHaveBeenCalledWith(
-        mockUser.userId,
-        mockUser.organizationId,
-      );
-    });
-
     it('forwards the kind and parent filters to the list', async () => {
       service.getUserThreads.mockResolvedValue(emptyPage);
 
