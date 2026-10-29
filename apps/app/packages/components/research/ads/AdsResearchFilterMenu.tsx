@@ -114,6 +114,7 @@ type AdsResearchFilterMenuProps = {
   connectedCount: number;
   credentialId: string;
   credentialOptions: CredentialOption[];
+  isAttached?: boolean;
   metric: AdsResearchMetric;
   platform: AdsResearchPlatform | 'all';
   publicCount: number;
@@ -150,6 +151,7 @@ export function AdsResearchFilterMenu({
   connectedCount,
   credentialId,
   credentialOptions,
+  isAttached,
   metric,
   platform,
   publicCount,
@@ -328,7 +330,9 @@ export function AdsResearchFilterMenu({
     },
   );
 
-  return <FilterMenu facets={facets} onClear={onClear} />;
+  return (
+    <FilterMenu facets={facets} isAttached={isAttached} onClear={onClear} />
+  );
 }
 
 type AdsResearchTextFiltersProps = {

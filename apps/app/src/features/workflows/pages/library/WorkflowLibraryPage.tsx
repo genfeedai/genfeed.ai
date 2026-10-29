@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  ButtonSize,
-  ButtonVariant,
-  ComponentSize,
-  ViewType,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
 import { useIsDesktopClient } from '@hooks/ui/use-is-desktop-client/use-is-desktop-client';
@@ -14,11 +9,11 @@ import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
 import CollectionView from '@ui/collection/CollectionView';
 import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
+import SearchField from '@ui/content/search-field/SearchField';
 import Container from '@ui/layout/container/Container';
 import SelectionToolbar from '@ui/lists/selection-toolbar/SelectionToolbar';
 import PaginationStepper from '@ui/navigation/pagination/PaginationStepper';
 import { Button } from '@ui/primitives/button';
-import FormSearchbar from '@ui/primitives/searchbar';
 import Spinner from '@ui/primitives/spinner';
 import {
   CalendarClock,
@@ -221,11 +216,9 @@ export default function WorkflowLibraryPage() {
     headerTabs: workflowCollectionHeaderTabs(href),
     label: translate('library.title'),
     leading: (
-      <FormSearchbar
-        isCollapsible
+      <SearchField
         onSearch={setSearchInput}
         placeholder={translate('library.searchPlaceholder')}
-        size={ComponentSize.SM}
         value={searchInput}
       />
     ),

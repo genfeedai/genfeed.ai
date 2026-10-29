@@ -171,9 +171,8 @@ describe('OrganizationAppsPage (#7842)', () => {
     expect(screen.queryByRole('combobox')).toBeNull();
     expect(screen.queryByRole('button', { name: /^Filters/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /^View: / })).toBeNull();
-    expect(
-      screen.getByTestId('collapsible-search-trigger'),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('textbox')).toBeVisible();
+    expect(screen.queryByTestId('collapsible-search')).toBeNull();
     expect(screen.getByTestId('apps-thumbnail-playground')).toBeInTheDocument();
   });
 

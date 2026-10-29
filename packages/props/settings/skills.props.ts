@@ -133,19 +133,19 @@ export type SkillsPageAction =
   | { type: 'CUSTOMIZE_ERROR'; message: string }
   | { type: 'SET_SKILL_DRAFT'; draft: SkillDraft };
 
-export type SkillFiltersProps = {
+export type SkillAgentActionProps = {
   agentHref: string;
-  modalityFilter: ModalityFilterValue;
-  onModalityFilterChange: (value: ModalityFilterValue) => void;
-  onSourceFilterChange: (value: SourceFilterValue) => void;
-  onStageFilterChange: (value: StageFilterValue) => void;
-  sourceFilter: SourceFilterValue;
-  stageFilter: StageFilterValue;
 };
 
 export type SkillSearchProps = {
+  modalityFilter: ModalityFilterValue;
+  onModalityFilterChange: (value: ModalityFilterValue) => void;
   onSearchQueryChange: (value: string) => void;
+  onSourceFilterChange: (value: SourceFilterValue) => void;
+  onStageFilterChange: (value: StageFilterValue) => void;
   searchQuery: string;
+  sourceFilter: SourceFilterValue;
+  stageFilter: StageFilterValue;
 };
 
 export type SkillsTableProps = {

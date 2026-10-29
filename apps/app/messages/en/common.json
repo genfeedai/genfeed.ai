@@ -1478,6 +1478,7 @@
       "activating": "Activating",
       "all": "All",
       "allAgents": "All agents",
+      "category": "Team",
       "creditsPerDay": "{credits} credits / day",
       "description": "Activate a marketplace agent in one click, or describe a custom agent in chat.",
       "emptySearch": "No agents match this search.",

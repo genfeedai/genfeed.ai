@@ -22,7 +22,8 @@ test('organization Apps browser keeps scope, search and previews usable on deskt
   await expect(page.getByRole('combobox')).toHaveCount(0);
   await expect(page.getByRole('button', { name: /^Filters/ })).toHaveCount(0);
   await expect(viewMenuTrigger(page)).toHaveCount(0);
-  await expect(page.getByTestId('collapsible-search-trigger')).toBeVisible();
+  await expect(page.getByPlaceholder('Search apps')).toBeVisible();
+  await expect(page.getByTestId('collapsible-search')).toHaveCount(0);
   await expect(page.getByTestId('organization-switcher-trigger')).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toHaveText(
     'Apps',
@@ -55,7 +56,6 @@ test('organization Apps browser keeps scope, search and previews usable on deskt
     )
     .toBe(true);
 
-  await page.getByTestId('collapsible-search-trigger').click();
   await page.getByPlaceholder('Search apps').fill('trending');
   await expect(apps).toHaveCount(1);
   await expect(detail).toHaveCount(0);
