@@ -68,13 +68,6 @@ describe('AgentChatInputToolbar', () => {
       >
         <AgentChatInputToolbar
           {...buildDefaultProps({
-            enhancement: {
-              canUndo: false,
-              isEnhancing: false,
-              onCancel: vi.fn(),
-              onEnhance: vi.fn(),
-              onUndo: vi.fn(),
-            },
             isEmptyComposer: false,
             onInsertReference,
             promptText: 'Plan next week',
@@ -85,11 +78,11 @@ describe('AgentChatInputToolbar', () => {
     expect(
       screen.getByRole('button', { name: 'Agent mode: Manual' }),
     ).toBeInTheDocument();
-    // Same labelled Enhance chip as the Studio bar; the saved enhancement
-    // defaults stay one click away in an icon-only settings button beside it.
+    // The saved enhancement defaults stay one click away in an icon-only
+    // settings button; there is no manual Enhance action.
     expect(
-      screen.getByRole('button', { name: 'Enhance prompt' }),
-    ).toHaveTextContent('Enhance');
+      screen.queryByRole('button', { name: 'Enhance prompt' }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Prompt enhancement settings' }),
     ).toBeInTheDocument();
@@ -104,7 +97,7 @@ describe('AgentChatInputToolbar', () => {
     expect(onInsertReference).toHaveBeenCalledOnce();
   });
 
-  it('puts Enhance beside Send on the right and Add context last on the left', () => {
+  it('keeps only Send on the right and Add context last on the left', () => {
     render(
       <ConversationComposerShellProvider
         contextLabel="Library"
@@ -115,13 +108,6 @@ describe('AgentChatInputToolbar', () => {
       >
         <AgentChatInputToolbar
           {...buildDefaultProps({
-            enhancement: {
-              canUndo: false,
-              isEnhancing: false,
-              onCancel: vi.fn(),
-              onEnhance: vi.fn(),
-              onUndo: vi.fn(),
-            },
             isEmptyComposer: false,
             promptText: 'Plan next week',
           })}
@@ -144,36 +130,7 @@ describe('AgentChatInputToolbar', () => {
       Array.from(right?.querySelectorAll('button') ?? []).map((button) =>
         button.getAttribute('aria-label'),
       ),
-    ).toEqual(['Enhance prompt', 'Send message']);
-  });
-
-  it('keeps Enhance disabled while the prompt has no text, even with a ready attachment', () => {
-    render(
-      <ConversationComposerShellProvider
-        contextLabel="Library"
-        draftScopeKey={null}
-        placement="dock"
-        portalTarget={null}
-        shellState="canvas"
-      >
-        <AgentChatInputToolbar
-          {...buildDefaultProps({
-            enhancement: {
-              canUndo: false,
-              isEnhancing: false,
-              onCancel: vi.fn(),
-              onEnhance: vi.fn(),
-              onUndo: vi.fn(),
-            },
-            isEmptyComposer: false,
-            promptText: '',
-          })}
-        />
-      </ConversationComposerShellProvider>,
-    );
-    expect(
-      screen.getByRole('button', { name: 'Enhance prompt' }),
-    ).toBeDisabled();
+    ).toEqual(['Send message']);
   });
 
   it('hides the agent-only controls but keeps Send for other hosts', () => {

@@ -192,10 +192,6 @@ const mocks = vi.hoisted(() => ({
   removeJob: vi.fn(),
   searchParams: { value: '' },
   settings: vi.fn(),
-  enhancedPromptId: { value: undefined as string | undefined },
-  cancelEnhance: vi.fn(),
-  enhancePrompt: vi.fn(),
-  undoEnhance: vi.fn(),
   promptCommandExtensions: [{ name: 'promptCommands' }],
   resolvePromptCommands: vi.fn<
     PrepareCrunGenerationIntentProps['resolvePromptCommands']
@@ -411,20 +407,6 @@ vi.mock('@pages/studio/playground/components/StudioPlaygroundResults', () => ({
     return <div data-testid="studio-results" />;
   },
 }));
-
-vi.mock(
-  '@hooks/prompt-bar/use-prompt-text-enhancement/use-prompt-text-enhancement',
-  () => ({
-    usePromptTextEnhancement: () => ({
-      cancelEnhance: mocks.cancelEnhance,
-      enhancePrompt: mocks.enhancePrompt,
-      undoEnhance: mocks.undoEnhance,
-      isEnhancing: false,
-      previousPrompt: null,
-      enhancedPromptId: mocks.enhancedPromptId.value,
-    }),
-  }),
-);
 
 vi.mock('@ui/prompt-editor/use-prompt-command-extension', () => ({
   usePromptCommandExtension: () => ({
@@ -767,7 +749,6 @@ describe('StudioPlaygroundWorkspace', () => {
         content: text.replace('/cinema ', ''),
         skillSlugs: [],
       }));
-    mocks.enhancedPromptId.value = undefined;
     mocks.isHydrated.value = true;
     mocks.brandId.value = 'brand-1';
     mocks.selectedBrand.value = undefined;
@@ -1317,46 +1298,6 @@ describe('StudioPlaygroundWorkspace', () => {
     },
   );
 
-  it.each(['music'])(
-    'blocks Enhance for selected skills in %s and preserves the prompt tokens',
-    (type) => {
-      mocks.type.value = type;
-      mocks.resolvePromptCommands.mockReturnValue({
-        content: 'A coast',
-        skillSlugs: ['cinema'],
-      });
-      render(<StudioPlaygroundWorkspace />);
-      act(() =>
-        mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('/cinema A coast'),
-      );
-      act(() => mocks.composer.mock.calls.at(-1)?.[0].onEnhancePrompt());
-      expect(mocks.enhancePrompt).not.toHaveBeenCalled();
-      expect(mocks.notify).toHaveBeenCalledWith(
-        expect.stringContaining('Selected skills'),
-      );
-      expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe(
-        '/cinema A coast',
-      );
-      act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
-      expect(mocks.submit).not.toHaveBeenCalled();
-    },
-  );
-
-  it.each(['image', 'video'])(
-    'allows selected-skill Enhance for %s',
-    (type) => {
-      mocks.type.value = type;
-      mocks.resolvePromptCommands.mockReturnValue({
-        content: 'A coast',
-        skillSlugs: ['cinema'],
-      });
-      render(<StudioPlaygroundWorkspace />);
-      act(() => mocks.composer.mock.calls.at(-1)?.[0].onEnhancePrompt());
-      expect(mocks.enhancePrompt).toHaveBeenCalledOnce();
-      expect(mocks.notify).not.toHaveBeenCalled();
-    },
-  );
-
   it('submits completed Agent-style attachments as generation references', () => {
     render(<StudioPlaygroundWorkspace />);
 
@@ -1463,34 +1404,6 @@ describe('StudioPlaygroundWorkspace', () => {
       { originalText: '@anna walking' },
     );
   });
-
-  it.each([
-    [
-      'Reviewed visual prompt',
-      'Reviewed visual prompt',
-      { promptId: 'reviewed-prompt-id' },
-    ],
-    ['@anna walking', 'Anna walking', undefined],
-    ['/cinema Reviewed visual prompt', 'Reviewed visual prompt', undefined],
-  ])(
-    'only reuses the stored prompt ID for unchanged reviewed text: %s',
-    (prompt, submitted, options) => {
-      mocks.enhancedPromptId.value = 'reviewed-prompt-id';
-      render(<StudioPlaygroundWorkspace />);
-      const initial = mocks.composer.mock.calls.at(-1)?.[0] as {
-        onPromptChange: (text: string) => void;
-      };
-      act(() => initial.onPromptChange(prompt as string));
-      const current = mocks.composer.mock.calls.at(-1)?.[0] as {
-        onSubmit: () => void;
-      };
-      act(() => current.onSubmit());
-      expect(mocks.submit).toHaveBeenCalledWith(submitted, expect.any(Object), {
-        ...options,
-        originalText: prompt,
-      });
-    },
-  );
 
   it('turns a gallery remix into a composer reference', async () => {
     await renderLoaded();

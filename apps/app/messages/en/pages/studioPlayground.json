@@ -102,9 +102,6 @@
     "type": "Type"
   },
   "searchPlaceholder": "Search generations",
-  "cancelEnhancingPrompt": "Cancel enhancing prompt",
-  "enhanceLabel": "Enhance",
-  "enhancePrompt": "Enhance prompt",
   "estimatedCredits": "Estimated {credits} credits",
   "estimatedCreditsForSeconds": "Estimated {credits} credits for a ~{seconds} s clip",
   "summary": {
@@ -288,8 +285,6 @@
   "sourceAssetAria": "Show the source of this {type}",
   "startFrame": "Start Frame",
   "startFrameRequired": "Start Frame required",
-  "undo": "Undo",
-  "undoPromptEnhancement": "Undo prompt enhancement",
   "videoReference": "Video Reference",
   "title": "Playground",
   "viewGrid": "Grid",
@@ -311,7 +306,7 @@
       "PRICING_UNAVAILABLE": "A fixed image price is unavailable.",
       "CRUN_RATE_LIMITED": "Image pricing is busy. Try again shortly.",
       "CRUN_PROVIDER_UNAVAILABLE": "The image provider could not be reached.",
-      "CRUN_ENHANCEMENT_REQUIRED": "Enhance the prompt or remove pending skill and Knowledge selections before generating."
+      "CRUN_ENHANCEMENT_REQUIRED": "Remove the selected skills and Knowledge to generate with this model."
     },
     "duration": "Duration",
     "aspectRatio": "Aspect ratio",
@@ -342,7 +337,7 @@
       "PRICING_UNAVAILABLE": "A fixed video price is unavailable.",
       "CRUN_RATE_LIMITED": "Video pricing is busy. Try again shortly.",
       "CRUN_PROVIDER_UNAVAILABLE": "The video provider could not be reached.",
-      "CRUN_ENHANCEMENT_REQUIRED": "Enhance the prompt or remove pending skill and Knowledge selections before generating."
+      "CRUN_ENHANCEMENT_REQUIRED": "Remove the selected skills and Knowledge to generate with this model."
     }
   },
   "focusedPreview": {
