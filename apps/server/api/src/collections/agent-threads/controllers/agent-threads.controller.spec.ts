@@ -7,7 +7,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { runWithTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import type { AgentScopeContextService } from '@api/index';
 import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { AgentThreadStatus } from '@genfeedai/contracts';
+import { AgentThreadKind, AgentThreadStatus } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 
@@ -37,6 +37,8 @@ describe('AgentThreadsController', () => {
   let controller: AgentThreadsController;
   let service: {
     archiveAllThreads: ReturnType<typeof vi.fn>;
+    archiveThread: ReturnType<typeof vi.fn>;
+    getOrCreateMasterThread: ReturnType<typeof vi.fn>;
     getUserThreads: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
@@ -72,7 +74,9 @@ describe('AgentThreadsController', () => {
   beforeEach(() => {
     service = {
       archiveAllThreads: vi.fn(),
+      archiveThread: vi.fn(),
       create: vi.fn(),
+      getOrCreateMasterThread: vi.fn(),
       resolveSavedMode: vi.fn().mockResolvedValue('manual'),
       updateAgentMode: vi.fn().mockResolvedValue({ mode: 'auto' }),
       updateThreadMetadata: vi.fn().mockResolvedValue({ id: 'thread' }),
@@ -267,6 +271,7 @@ describe('AgentThreadsController', () => {
         undefined,
         undefined,
         defaultWindow,
+        {},
       );
     });
 
@@ -293,6 +298,7 @@ describe('AgentThreadsController', () => {
         undefined,
         undefined,
         defaultWindow,
+        {},
       );
     });
 
@@ -317,6 +323,7 @@ describe('AgentThreadsController', () => {
         undefined,
         undefined,
         defaultWindow,
+        {},
       );
     });
 
@@ -332,6 +339,7 @@ describe('AgentThreadsController', () => {
         'brand-1',
         undefined,
         defaultWindow,
+        {},
       );
     });
 
@@ -353,6 +361,7 @@ describe('AgentThreadsController', () => {
         undefined,
         'onboarding',
         defaultWindow,
+        {},
       );
     });
 
@@ -374,6 +383,7 @@ describe('AgentThreadsController', () => {
         undefined,
         undefined,
         defaultWindow,
+        {},
       );
     });
   });
@@ -645,6 +655,7 @@ describe('AgentThreadsController', () => {
         undefined,
         undefined,
         defaultWindow,
+        {},
       );
       expect(mockUser).toEqual(originalIdentity);
       expect(usersService.findOne).not.toHaveBeenCalled();
@@ -689,6 +700,118 @@ describe('AgentThreadsController', () => {
         [],
       );
       expect(service.getUserThreads).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('master thread (#8526)', () => {
+    it('declares GET master before GET :threadId so it is not read as a thread id', () => {
+      const methods = Object.getOwnPropertyNames(
+        AgentThreadsController.prototype,
+      );
+
+      expect(methods.indexOf('getMasterThread')).toBeGreaterThan(-1);
+      expect(methods.indexOf('getMasterThread')).toBeLessThan(
+        methods.indexOf('getThread'),
+      );
+    });
+
+    it('rate limits get-or-create per user because the first open writes', () => {
+      expect(
+        Reflect.getMetadata(
+          RATE_LIMIT_KEY,
+          AgentThreadsController.prototype.getMasterThread,
+        ),
+      ).toEqual({ limit: 30, scope: 'user', windowMs: 60_000 });
+    });
+
+    it('opens the master for the caller and their organization', async () => {
+      service.getOrCreateMasterThread.mockResolvedValue({
+        id: 'master_1',
+        kind: AgentThreadKind.MASTER,
+        organizationId: mockUser.organizationId,
+        userId: mockUser.userId,
+      });
+
+      await controller.getMasterThread({} as never, mockUser);
+
+      expect(service.getOrCreateMasterThread).toHaveBeenCalledWith(
+        mockUser.userId,
+        mockUser.organizationId,
+      );
+    });
+
+    it('forwards the kind and parent filters to the list', async () => {
+      service.getUserThreads.mockResolvedValue(emptyPage);
+
+      await controller.listThreads(
+        {} as never,
+        mockUser,
+        undefined,
+        undefined,
+        undefined,
+        {},
+        ' master ',
+        ' parent_1 ',
+      );
+
+      expect(service.getUserThreads.mock.calls[0]?.[6]).toEqual({
+        kind: AgentThreadKind.MASTER,
+        parentThreadId: 'parent_1',
+      });
+    });
+
+    it('rejects an unknown kind instead of returning every thread', async () => {
+      await expect(
+        controller.listThreads(
+          {} as never,
+          mockUser,
+          undefined,
+          undefined,
+          undefined,
+          {},
+          'orchestrator',
+        ),
+      ).rejects.toMatchObject({ status: 400 });
+
+      expect(service.getUserThreads).not.toHaveBeenCalled();
+    });
+
+    it('refuses to archive the master thread', async () => {
+      service.findOne.mockResolvedValue({
+        id: 'master_1',
+        kind: AgentThreadKind.MASTER,
+      });
+
+      await expect(
+        controller.updateThread(
+          {} as never,
+          'master_1',
+          { status: AgentThreadStatus.ARCHIVED },
+          mockUser,
+        ),
+      ).rejects.toMatchObject({ status: 400 });
+
+      expect(service.archiveThread).not.toHaveBeenCalled();
+    });
+
+    it('still archives a plain thread', async () => {
+      service.findOne.mockResolvedValue({
+        id: 'thread_1',
+        kind: AgentThreadKind.THREAD,
+      });
+      service.archiveThread.mockResolvedValue({ id: 'thread_1' });
+
+      await controller.updateThread(
+        {} as never,
+        'thread_1',
+        { status: AgentThreadStatus.ARCHIVED },
+        mockUser,
+      );
+
+      expect(service.archiveThread).toHaveBeenCalledWith(
+        'thread_1',
+        mockUser.organizationId,
+      );
     });
   });
 

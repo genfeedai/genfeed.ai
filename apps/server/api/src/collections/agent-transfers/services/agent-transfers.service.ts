@@ -245,6 +245,8 @@ export class AgentTransfersService {
               contextVersion: destination.contextVersion,
               id: destination.id,
               organizationId: actor.organizationId,
+              // The orchestrating thread owns what it spawns (#8526).
+              parentThreadId: source.id,
               source: 'agent-transfer',
               status: AgentThreadStatus.ACTIVE,
               title: destination.title,

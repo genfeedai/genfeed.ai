@@ -18,6 +18,7 @@ import { AgentContextAssemblyService } from '@api/services/agent-context-assembl
 import type { AssembledBrandContext } from '@api/services/agent-context-assembly/interfaces/context-assembly.interface';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentModelAccessService } from '@api/services/agent-orchestrator/agent-model-access.service';
+import { AGENT_MASTER_THREAD_PROMPT } from '@api/services/agent-orchestrator/constants/agent-master-thread-prompt.constant';
 import { AGENT_ORCHESTRATOR_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/agent-orchestrator-system-prompt.constant';
 import { getAgentTypeConfig } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
 import { BRAND_INTERVIEW_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/brand-interview-system-prompt.constant';
@@ -45,7 +46,11 @@ import {
 import { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
 import type { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
-import { AgentMessageRole, AgentType } from '@genfeedai/contracts';
+import {
+  AgentMessageRole,
+  AgentThreadKind,
+  AgentType,
+} from '@genfeedai/contracts';
 import type { ResolvedRuntimeSkill } from '@genfeedai/contracts/interfaces/ai';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
@@ -176,6 +181,7 @@ export class AgentOrchestratorContextService {
     };
 
     let thread: {
+      kind?: string;
       systemPrompt?: string;
       memoryEntryIds?: string[];
     } | null = null;
@@ -184,7 +190,11 @@ export class AgentOrchestratorContextService {
       thread = (await this.agentThreadsService.findOne({
         id: request.threadId,
         organizationId: context.organizationId,
-      })) as { systemPrompt?: string; memoryEntryIds?: string[] } | null;
+      })) as {
+        kind?: string;
+        systemPrompt?: string;
+        memoryEntryIds?: string[];
+      } | null;
     }
 
     const memories =
@@ -222,6 +232,7 @@ export class AgentOrchestratorContextService {
       replyStyle,
       request,
       skillPromptSuffix,
+      threadKind: thread?.kind,
       threadSystemPrompt: thread?.systemPrompt,
     });
     // Model precedence, first match wins:
@@ -316,10 +327,15 @@ export class AgentOrchestratorContextService {
     );
     const customPrompt =
       input.threadSystemPrompt || request.systemPromptOverride;
+    const masterPrompt =
+      input.threadKind === AgentThreadKind.MASTER
+        ? AGENT_MASTER_THREAD_PROMPT
+        : '';
 
     if (customPrompt) {
       const prompt = [
         customPrompt,
+        masterPrompt.trim(),
         input.skillPromptSuffix,
         generationModePrompt,
         pageContextPrompt,
@@ -329,9 +345,12 @@ export class AgentOrchestratorContextService {
       return composeAgentGuardrails(prompt);
     }
 
+    // The master delegates instead of writing content itself, so it skips the
+    // platform-intent suffix (that fires only when no type suffix is set).
     const typeSuffix = [
       agentTypeConfig?.systemPromptSuffix,
       generationModePrompt,
+      masterPrompt,
     ]
       .filter(Boolean)
       .join('\n\n');

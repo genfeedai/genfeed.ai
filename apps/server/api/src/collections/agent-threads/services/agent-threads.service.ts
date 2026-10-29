@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { AgentMessageDocument } from '@api/collections/agent-messages/schemas/agent-message.schema';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
+import type { AgentThreadListFilters } from '@api/collections/agent-threads/interfaces/agent-thread-list-filters.interface';
 import type { AgentRoomDocument } from '@api/collections/agent-threads/schemas/agent-thread.schema';
 import { AGENT_THREAD_EXTERNAL_RUNTIME_CONFIG_KEY } from '@api/collections/agent-threads/utils/agent-thread-external-runtime.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -16,6 +17,7 @@ import {
   AGENT_RUNTIME_ACTIVE_STATES,
   AgentMessageRole,
   AgentRuntimeState,
+  AgentThreadKind,
   AgentThreadMode,
   AgentThreadStatus,
   IngredientCategory,
@@ -94,6 +96,8 @@ const LIST_THUMB_INGREDIENT_CATEGORIES: IngredientCategory[] = [
  * under the bound; only very old executions of very chatty threads fall out.
  */
 const THREAD_EXECUTION_SCAN_LIMIT = 500;
+/** Title of the auto-created master thread. */
+const MASTER_THREAD_TITLE = 'Master';
 /** Threads evaluated per round trip while collecting agent runs. */
 const AGENT_RUN_SCAN_BATCH_SIZE = 50;
 
@@ -205,6 +209,7 @@ export class AgentThreadsService extends BaseService<
      */
     source: string | null | undefined,
     window: PageWindow,
+    filters: AgentThreadListFilters = {},
   ): Promise<AggregatePaginateResult<AgentThreadWithSummary>> {
     const where = this.buildUserThreadWhere(
       userId,
@@ -212,6 +217,7 @@ export class AgentThreadsService extends BaseService<
       status,
       brandId,
       source,
+      filters,
     );
     const [threads, totalDocs] = await Promise.all([
       this.findThreadDocuments(organizationId, where, window),
@@ -231,10 +237,19 @@ export class AgentThreadsService extends BaseService<
     status?: AgentThreadStatus,
     brandId?: string | null,
     source?: string | null,
+    filters: AgentThreadListFilters = {},
   ): Record<string, unknown> {
     const where: Record<string, unknown> = scopedWhere(organizationId, {
       userId,
     });
+
+    if (filters.kind) {
+      where.kind = filters.kind;
+    }
+
+    if (filters.parentThreadId) {
+      where.parentThreadId = filters.parentThreadId;
+    }
 
     if (status) {
       where.status = status;
@@ -269,14 +284,69 @@ export class AgentThreadsService extends BaseService<
   ): Promise<number> {
     const result = await this.delegate.updateMany({
       data: { status: AgentThreadStatus.ARCHIVED },
+      // The master thread is the user's standing entry point; it is never
+      // archived, in bulk or one by one (#8526).
       where: scopedWhere(organizationId, {
         ...(brandId ? { brandId } : {}),
+        kind: { not: AgentThreadKind.MASTER },
         status: AgentThreadStatus.ACTIVE,
         userId,
       }),
     });
 
     return result.count ?? 0;
+  }
+
+  /**
+   * The user's master thread in this organization, created on first open
+   * (#8526). It is org-scoped (brand null) so it can start threads in any
+   * brand. Concurrent first opens race on the partial unique index
+   * `agent_threads_active_master_per_org_user_key`: the loser's insert is
+   * rejected and it returns the winner's row, so exactly one master exists.
+   */
+  async getOrCreateMasterThread(
+    userId: string,
+    organizationId: string,
+  ): Promise<AgentRoomDocument> {
+    const existing = await this.findMasterThread(userId, organizationId);
+    if (existing) {
+      return existing;
+    }
+
+    const mode = await this.resolveSavedMode(userId);
+    try {
+      return this.normalizeDocument(
+        await this.prisma.agentThread.create({
+          data: {
+            kind: AgentThreadKind.MASTER,
+            mode,
+            organizationId,
+            source: 'web',
+            status: AgentThreadStatus.ACTIVE,
+            title: MASTER_THREAD_TITLE,
+            userId,
+          },
+        }),
+      );
+    } catch (error: unknown) {
+      if ((error as { code?: unknown } | null)?.code !== 'P2002') {
+        throw error;
+      }
+      const winner = await this.findMasterThread(userId, organizationId);
+      if (!winner) {
+        throw error;
+      }
+      return winner;
+    }
+  }
+
+  private findMasterThread(
+    userId: string,
+    organizationId: string,
+  ): Promise<AgentRoomDocument | null> {
+    return this.findOne(
+      scopedWhere(organizationId, { kind: AgentThreadKind.MASTER, userId }),
+    );
   }
 
   updateThreadMetadata(
