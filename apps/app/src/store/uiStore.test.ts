@@ -11,7 +11,6 @@ describe('useUIStore', () => {
       selectedEdgeId: null,
       selectedNodeId: null,
       showMinimap: true,
-      showPalette: true,
     });
   });
 
@@ -28,24 +27,11 @@ describe('useUIStore', () => {
     it('should have correct initial state', () => {
       const state = useUIStore.getState();
 
-      expect(state.showPalette).toBe(true);
       expect(state.showMinimap).toBe(true);
       expect(state.selectedNodeId).toBeNull();
       expect(state.selectedEdgeId).toBeNull();
       expect(state.activeModal).toBeNull();
       expect(state.notifications).toEqual([]);
-    });
-  });
-
-  describe('togglePalette', () => {
-    it('should toggle palette visibility', () => {
-      const { togglePalette } = useUIStore.getState();
-
-      togglePalette();
-      expect(useUIStore.getState().showPalette).toBe(false);
-
-      togglePalette();
-      expect(useUIStore.getState().showPalette).toBe(true);
     });
   });
 
