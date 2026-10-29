@@ -34,6 +34,28 @@ export function hasExplicitToolsetsQuery(
 }
 
 /**
+ * `?app=` as normalized app names. Comma-separated and repeated forms both
+ * work; bracketed object shapes are dropped, same as `?toolsets=`.
+ */
+export function readAppQueryParam(query: Request['query']): string[] {
+  const raw = query.app;
+  const strings =
+    typeof raw === 'string'
+      ? [raw]
+      : Array.isArray(raw)
+        ? raw.filter((value): value is string => typeof value === 'string')
+        : [];
+  return [
+    ...new Set(
+      strings
+        .flatMap((value) => value.split(','))
+        .map((value) => value.trim().toLowerCase())
+        .filter((value) => value.length > 0),
+    ),
+  ];
+}
+
+/**
  * `?profile=` as one normalized name. A repeated param that disagrees with
  * itself is returned joined, which is not a known profile and fails closed.
  * Bracketed object shapes are dropped, same as `?toolsets=`.

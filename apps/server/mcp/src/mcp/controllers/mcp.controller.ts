@@ -9,6 +9,7 @@ import { StreamableHttpService } from '@mcp/services/streamable-http.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import type { McpRequest } from '@mcp/shared/interfaces/mcp-request.interface';
 import {
+  buildUnknownAppsMessage,
   buildUnknownProfileMessage,
   buildUnknownToolsetsMessage,
   resolveMcpToolQuery,
@@ -114,6 +115,12 @@ export class McpController {
     if (selection.unknown.length > 0) {
       throw new BadRequestException(
         buildUnknownToolsetsMessage(selection.unknown),
+      );
+    }
+
+    if (selection.unknownApps.length > 0) {
+      throw new BadRequestException(
+        buildUnknownAppsMessage(selection.unknownApps),
       );
     }
 
