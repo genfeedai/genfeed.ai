@@ -8,7 +8,7 @@ import { IngredientExportsController } from '@api/collections/ingredients/contro
 import { IngredientExportService } from '@api/collections/ingredients/services/ingredient-export.service';
 import { REQUEST_TIMEOUT_MS } from '@api/helpers/decorators/request-timeout/request-timeout.decorator';
 import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -45,5 +45,29 @@ describe('IngredientExportsController', () => {
       ),
     ).rejects.toThrow(ForbiddenException);
     expect(exports.export).not.toHaveBeenCalled();
+  });
+
+  it('passes the requested mark variant on and rejects an unknown one', async () => {
+    const exports = { export: vi.fn().mockResolvedValue({ id: 'image-1' }) };
+    const module = await Test.createTestingModule({
+      providers: [
+        IngredientExportsController,
+        { provide: IngredientExportService, useValue: exports },
+      ],
+    }).compile();
+    const controller = module.get(IngredientExportsController);
+    const user = {
+      brandId: 'brand-1',
+      id: 'user-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    };
+    await controller
+      .export({} as Request, user, 'image-1', { variant: 'live' })
+      .catch(() => undefined);
+    expect(exports.export).toHaveBeenCalledWith('image-1', 'org-1', 'live');
+    await expect(
+      controller.export({} as Request, user, 'image-1', { variant: 'blue' }),
+    ).rejects.toThrow(BadRequestException);
   });
 });

@@ -1083,6 +1083,11 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   watermarkLogoId          String?
   watermarkOpacity         Float        @default(0.35)
   watermarkPosition        String       @default("bottom-right")
+  watermarkSizeRatio       Float?
+  watermarkInsetXRatio     Float?
+  watermarkInsetYRatio     Float?
+  watermarkLightLogoId     String?
+  watermarkLiveLogoId      String?
   endCardAssetId           String?
   endCardDurationSeconds   Float        @default(3)
   isEndCardEnabled         Boolean      @default(false)
