@@ -12,10 +12,11 @@ import { buildCaptionBurnStyleFromConfig } from '@api/collections/workflows/util
 import { scopedWhere } from '@api/index';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import { type ICaptionBurnStyle, JobState, Status } from '@genfeedai/contracts';
+import { JobState, Status } from '@genfeedai/contracts';
 import type {
   ClipRawCutFramingContract,
   ClipRawCutMediaValidationContract,
+  ICaptionBurnStyle,
   IJobStatusResponse,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';

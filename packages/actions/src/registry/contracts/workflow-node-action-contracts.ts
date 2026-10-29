@@ -18,6 +18,12 @@ import {
 } from './schema-builders';
 
 type InputField =
+  | 'activeWordColor'
+  | 'backgroundOpacity'
+  | 'bottomAnchorRatio'
+  | 'fontFamily'
+  | 'maxWordsPerGroup'
+  | 'textCase'
   | 'identityReferences'
   | 'isEndCardEnabled'
   | 'sourceLanguage'

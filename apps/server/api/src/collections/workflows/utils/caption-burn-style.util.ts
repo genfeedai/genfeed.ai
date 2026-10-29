@@ -1,4 +1,4 @@
-import type { ICaptionBurnStyle } from '@genfeedai/contracts';
+import type { ICaptionBurnStyle } from '@genfeedai/contracts/interfaces';
 
 /** The `style` presets of the `effect-captions` node, as burn-in styles. */
 const PRESETS: Record<string, ICaptionBurnStyle> = {

@@ -4,7 +4,7 @@ import { measureTextWidth } from '@files/services/files/captions/font-metrics.ut
 import type {
   CaptionBurnPosition,
   ICaptionBurnStyle,
-} from '@genfeedai/contracts';
+} from '@genfeedai/contracts/interfaces';
 
 export interface CaptionCue {
   endMs: number;
