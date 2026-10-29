@@ -28,6 +28,7 @@ import {
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { MappedSnapshotRunStatus } from '@genfeedai/agent/utils/agent-thread-snapshot.util';
+import { dispatchAgentToolEffects } from '@genfeedai/agent/utils/agent-tool-effects';
 import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
 import { extractLastGeneratedAssetFromMetadata } from '@genfeedai/agent/utils/extract-last-generated-asset.util';
 import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
@@ -365,6 +366,9 @@ export function attachAgentStreamSubscriptions(
             payload.runId ?? deps.activeStreamRunIdRef.current;
           if (completedRuns.has(completedRun)) return;
           completedRuns.add(completedRun);
+          // The run's tools already changed data, however the thread's reply
+          // is applied below; the open page reloads what they touched.
+          dispatchAgentToolEffects(payload.toolCalls);
 
           deps.pendingCompletionRef.current = null;
           deps.clearCompletionWatchdog();
