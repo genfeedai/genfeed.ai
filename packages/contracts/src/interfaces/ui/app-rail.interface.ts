@@ -32,17 +32,12 @@ export interface AppRailItemConfig {
   description: string;
   /** `daily` is the fixed core loop; `app` entries open from the Apps launcher. */
   /** `admin-category` entries replace the app loop while the admin chrome is up. */
-  /** `admin-exit` is the back button that leaves the admin chrome. */
+  /** `admin-exit` is the back button that leaves the admin chrome (bottom of the rail). */
   group: 'daily' | 'app' | 'admin' | 'admin-category' | 'admin-exit';
   activePathRoots: readonly string[];
   visibilityFlagKey?: AppRailFeatureFlagKey;
   organizationModule?: OrganizationModuleId;
   isBrandAware?: boolean;
-  /**
-   * Admin chrome only: the superadmin section. Its icons sit below a divider
-   * at the bottom of the rail, apart from the day-to-day categories.
-   */
-  isAdminSecondary?: boolean;
   route: (orgSlug: string, brandSlug?: string) => string;
 }
 
