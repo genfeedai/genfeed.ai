@@ -1,4 +1,7 @@
-import { ADMIN_MENU_ITEMS } from '@app-config/admin-menu-items.config';
+import {
+  ADMIN_MENU_ITEMS,
+  withCollapsibleAdminGroups,
+} from '@app-config/admin-menu-items.config';
 import { getAnalyticsMenuItemsForScope } from '@app-config/analytics-menu-items.config';
 import { AUTOMATION_MENU_ITEMS } from '@app-config/automation-menu-items.config';
 import { DISCOVERY_MENU_ITEMS } from '@app-config/discovery-menu-items.config';
@@ -467,8 +470,10 @@ export function useAppProtectedLayout(
   const adminCategoryId = getActiveAppId(ADMIN_RAIL_CATEGORIES, pathname);
   const adminMenuItems = useMemo(
     () =>
-      ADMIN_MENU_ITEMS.filter(
-        (item) => !adminCategoryId || item.category === adminCategoryId,
+      withCollapsibleAdminGroups(
+        ADMIN_MENU_ITEMS.filter(
+          (item) => !adminCategoryId || item.category === adminCategoryId,
+        ),
       ).map(
         ({ category: _category, ...item }): MenuItemConfig => ({
           ...item,
