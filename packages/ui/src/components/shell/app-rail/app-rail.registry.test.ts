@@ -205,9 +205,9 @@ describe('app rail registry', () => {
   });
 
   it('maps admin paths to one category icon each', () => {
-    expect(
-      getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/overview/dashboard'),
-    ).toBe('admin-overview');
+    expect(getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/overview')).toBe(
+      'admin-overview',
+    );
     expect(getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/content/posts')).toBe(
       'admin-content',
     );

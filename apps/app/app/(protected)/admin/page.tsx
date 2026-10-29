@@ -6,5 +6,5 @@ import { permanentRedirect } from 'next/navigation';
  * `/admin/overview/*`. Send logo/legacy deep links to the dashboard page.
  */
 export default function PlatformAdminIndexPage() {
-  permanentRedirect(APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD);
+  permanentRedirect(APP_ROUTES.ADMIN.OVERVIEW.ROOT);
 }

@@ -26,7 +26,7 @@ import { useTranslations } from 'next-intl';
 
 // Lazy-load the chart component to avoid bundling recharts in the initial chunk
 const ActivityChart = dynamic(
-  () => import('@protected/overview/dashboard/activity-chart'),
+  () => import('@protected/overview/activity-chart'),
   { ssr: false },
 );
 

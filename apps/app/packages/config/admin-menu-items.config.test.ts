@@ -10,7 +10,7 @@ import {
 
 describe('ADMIN_MENU_ITEMS', () => {
   it('exposes the platform admin surface with dashboard as complete-path home', () => {
-    expect(ADMIN_MENU_ITEMS[0]?.href).toBe('/admin/overview/dashboard');
+    expect(ADMIN_MENU_ITEMS[0]?.href).toBe('/admin/overview');
     expect(
       ADMIN_MENU_ITEMS.every((item) => item.href.startsWith('/admin')),
     ).toBe(true);
