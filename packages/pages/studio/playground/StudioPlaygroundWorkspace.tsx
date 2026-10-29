@@ -172,6 +172,7 @@ import {
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
+import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import MasonryConfirmBridge from '@ui/masonry/shared/MasonryConfirmBridge';
 import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
@@ -2742,28 +2743,30 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       <MasonryConfirmBridge key={crunRestoreScope} {...transformConfirmation} />
       <SectionTopbar
         actions={
-          <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
-            <ViewMenu
-              activeView={resultsView}
-              onChange={(view) => {
-                if (view === ViewType.GRID || view === ViewType.LIST) {
-                  setResultsView(view);
-                }
-              }}
-              options={[
-                {
-                  icon: <Rows3 className={SHELL_ICON_CLASS} />,
-                  label: translate('viewList'),
-                  type: ViewType.LIST,
-                },
-                {
-                  icon: <LayoutGrid className={SHELL_ICON_CLASS} />,
-                  label: translate('viewGrid'),
-                  type: ViewType.GRID,
-                },
-              ]}
-            />
-          </div>
+          <SubbarControls
+            views={
+              <ViewMenu
+                activeView={resultsView}
+                onChange={(view) => {
+                  if (view === ViewType.GRID || view === ViewType.LIST) {
+                    setResultsView(view);
+                  }
+                }}
+                options={[
+                  {
+                    icon: <Rows3 className={SHELL_ICON_CLASS} />,
+                    label: translate('viewList'),
+                    type: ViewType.LIST,
+                  },
+                  {
+                    icon: <LayoutGrid className={SHELL_ICON_CLASS} />,
+                    label: translate('viewGrid'),
+                    type: ViewType.GRID,
+                  },
+                ]}
+              />
+            }
+          />
         }
         refresh={
           <ButtonRefresh isRefreshing={isLoadingGallery} onClick={refresh} />
