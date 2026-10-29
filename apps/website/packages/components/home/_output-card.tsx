@@ -125,7 +125,7 @@ export default function HomeOutputCard({
         </Text>
         <Heading
           as="h2"
-          className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-white sm:text-3xl"
+          className="mt-2 text-2xl font-semibold tracking-[-0.02em] text-white sm:text-3xl"
         >
           {asset.title}
         </Heading>

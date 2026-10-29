@@ -30,12 +30,7 @@ export default function AffiliatesContent() {
       <PageLayout
         badge="Affiliates"
         badgeIcon={Share2}
-        title={
-          <>
-            Share Genfeed.{' '}
-            <span className="italic font-light">Earn credits.</span>
-          </>
-        }
+        title={<>Share Genfeed. Earn credits.</>}
         description={AFFILIATE_PROGRAM.earnings.description}
       >
         <WebSection maxWidth="lg" py="md">

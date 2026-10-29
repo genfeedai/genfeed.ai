@@ -33,7 +33,7 @@ function SectionHeading({
       </Text>
       <Heading
         as="h2"
-        className="mt-4 text-3xl font-semibold tracking-[-0.03em] text-foreground sm:text-4xl"
+        className="mt-4 text-3xl font-semibold tracking-[-0.02em] text-foreground sm:text-4xl"
       >
         {title}
       </Heading>
@@ -77,7 +77,7 @@ export default function AppProductContent({ product }: AppProductContentProps) {
               </Text>
               <Heading
                 as="h2"
-                className="mt-5 text-4xl font-semibold leading-[1.05] tracking-[-0.04em] text-foreground sm:text-5xl"
+                className="mt-5 text-4xl font-semibold leading-[1.05] tracking-[-0.02em] text-foreground sm:text-5xl"
               >
                 What is {product.name}?
               </Heading>

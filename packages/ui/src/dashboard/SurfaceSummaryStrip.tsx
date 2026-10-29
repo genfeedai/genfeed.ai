@@ -24,7 +24,7 @@ const DENSITY = {
     card: 'min-h-[136px]',
     label:
       'text-2xs font-semibold uppercase tracking-[0.18em] text-muted-foreground',
-    value: 'text-3xl font-semibold tracking-[-0.04em] text-foreground',
+    value: 'text-3xl font-semibold tracking-[-0.02em] text-foreground',
   },
   compact: {
     accent: 'text-2xs text-muted-foreground',

@@ -41,7 +41,7 @@ export default function HomeProviders(): React.ReactElement {
             <Heading
               id="home-providers-heading"
               as="h2"
-              className="text-4xl font-semibold leading-tight tracking-[-0.03em] sm:text-5xl"
+              className="text-4xl font-semibold leading-tight tracking-[-0.02em] sm:text-5xl"
             >
               Your models, one workspace.
             </Heading>
