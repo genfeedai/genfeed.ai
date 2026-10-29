@@ -122,7 +122,9 @@ export class VideoThumbnailService {
         .resize(width, null, { withoutEnlargement: true })
         .toBuffer();
       const resizedThumbnailBuffer = await sharp(
-        title ? await overlayTitle(resizedFrame, title, titleStyle) : resizedFrame,
+        title
+          ? await overlayTitle(resizedFrame, title, titleStyle)
+          : resizedFrame,
       )
         .jpeg({ quality: 85 })
         .toBuffer();
