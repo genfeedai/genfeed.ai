@@ -40,12 +40,14 @@ export default function IngredientsLayoutToolbar({
       <div className="flex shrink-0 items-center gap-2">
         {/* Subbar order: dropdowns with the organization first, then filters. */}
         {scope === PageScope.SUPERADMIN ? <AdminOrgBrandUrlFilter /> : null}
-        <FiltersButton
-          filters={filters}
-          visibleFilters={config.visibleFilters}
-          filterOptions={config.filterOptions}
-          onFiltersChange={onFiltersChange}
-        />
+        {config.visibleFilters?.search ? null : (
+          <FiltersButton
+            filters={filters}
+            visibleFilters={config.visibleFilters}
+            filterOptions={config.filterOptions}
+            onFiltersChange={onFiltersChange}
+          />
+        )}
 
         {/* One-off generation is Agent-first — the standalone Studio
             image/video/avatar/music prompt bars are retired. */}

@@ -151,7 +151,8 @@ export const APP_CHROME_COLOR_SURFACES: Array<{
     root: 'apps/app/src/features/workflows/pages/library',
   },
   {
-    root: 'apps/app/app/(protected)/admin/overview/dashboard',
+    fileNamePattern: /^(activity-chart|overview-page)\.tsx$/u,
+    root: 'apps/app/app/(protected)/admin/overview',
   },
   {
     root: 'apps/app/src/components/workspace-shell',

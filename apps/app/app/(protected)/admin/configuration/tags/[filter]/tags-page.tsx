@@ -4,7 +4,7 @@ import { ButtonVariant, ModalEnum, PageScope } from '@genfeedai/contracts';
 import type { IFiltersState } from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import type { ITagsPageProps } from '@props/admin/tags.props';
-import FiltersButton from '@ui/content/filters-button/FiltersButton';
+import FiltersSearch from '@ui/content/filters-button/FiltersSearch';
 import { Button } from '@ui/primitives/button';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
@@ -40,20 +40,19 @@ export default function TagsPage({ scope, filter }: ITagsPageProps) {
       scope={scope}
       onRefresh={handleRefresh}
       isRefreshing={isRefreshing}
-      filters={
-        <FiltersButton
+      search={
+        <FiltersSearch
           filters={filters}
+          onFiltersChange={(f: IFiltersState) => {
+            setFilters(f);
+          }}
           visibleFilters={{
             format: false,
             model: false,
             provider: false,
-            search: true,
             sort: true,
             status: false,
             type: true,
-          }}
-          onFiltersChange={(f: IFiltersState) => {
-            setFilters(f);
           }}
         />
       }
