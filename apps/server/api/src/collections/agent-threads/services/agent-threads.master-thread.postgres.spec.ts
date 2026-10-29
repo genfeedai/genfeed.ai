@@ -291,6 +291,46 @@ describe.skipIf(!connectionString)(
       );
     });
 
+    it('rejects a destination brand that differs from the existing destination thread', async () => {
+      const db = database();
+      const brands = await Promise.all(
+        ['a', 'b'].map((key) =>
+          db.brand.create({
+            data: {
+              label: `Brand ${key}`,
+              organizationId,
+              slug: `master-brand-${key}-${suffix}`,
+            },
+          }),
+        ),
+      );
+      const master = await makeMasterService().getOrCreate(
+        userId,
+        organizationId,
+      );
+      const destination = await db.agentThread.create({
+        data: { brandId: brands[0]?.id, organizationId, userId },
+      });
+      const request = (destinationBrandId: string, key: string) =>
+        makeTransfersService().create(
+          {
+            content: 'Draft three launch posts.',
+            deliveryMode: AgentTransferDeliveryMode.SEND,
+            destinationBrandId,
+            destinationThreadId: destination.id,
+            idempotencyKey: `master-brand-${key}-${suffix}`,
+            sourceThreadId: master.id,
+          } as never,
+          { organizationId, userId },
+        );
+
+      await expect(request(brands[1]?.id ?? '', 'b')).rejects.toMatchObject({
+        status: 400,
+      });
+      const accepted = await request(brands[0]?.id ?? '', 'a');
+      expect(accepted.destinationBrandId).toBe(brands[0]?.id);
+    });
+
     it('cannot parent a thread to a thread of another organization', async () => {
       const db = database();
       const otherOrganizationId = `master-foreign-org-${suffix}`;
