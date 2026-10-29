@@ -6,6 +6,7 @@ import {
   mockWorkspaceTasks,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { chooseFilterOption, filtersTrigger } from '../../utils/filter-menu';
 
 /** The workspace sidebar's first entry: the Overview home (#6533 renamed it from Dashboard). */
 function workspaceOverviewLink(page: Page): Locator {
@@ -51,7 +52,7 @@ test.describe('Workspace', () => {
   test('sidebar primary action opens the task composer', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.WORKSPACE.INBOX_UNREAD, {
+    await authenticatedPage.goto(APP_ROUTES.WORKSPACE.INBOX, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -74,16 +75,17 @@ test.describe('Workspace', () => {
     ).toBeVisible();
   });
 
-  test('supports inbox tabs and review actions from the workspace', async ({
+  test('filters the inbox by status and opens an item from the workspace', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(APP_ROUTES.WORKSPACE.INBOX, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage.getByText('Unread').first()).toBeVisible();
-    await expect(authenticatedPage.getByText('Recent').first()).toBeVisible();
-    await expect(authenticatedPage.getByText('All').first()).toBeVisible();
+    await expect(filtersTrigger(authenticatedPage)).toBeVisible();
+    await expect(authenticatedPage.getByRole('tab')).toHaveCount(0);
+    await chooseFilterOption(authenticatedPage, 'Status', /^All/);
+    await expect(authenticatedPage).toHaveURL(/[?&]status=all/);
     await expect(
       authenticatedPage.getByText('Launch caption').first(),
     ).toBeVisible();

@@ -289,7 +289,7 @@ describe('routes.constant', () => {
       brandSlug: '',
       orgSlug: '',
     });
-    expect(parseScopedAppPath('/api/werwer/workspace/inbox/unread')).toEqual({
+    expect(parseScopedAppPath('/api/werwer/workspace/inbox')).toEqual({
       brandSlug: '',
       orgSlug: '',
     });

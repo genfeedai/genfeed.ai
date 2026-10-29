@@ -564,7 +564,6 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
   ...registerRoutes(
     [
       '/:orgSlug/~/workspace/inbox',
-      '/:orgSlug/~/workspace/inbox/:view',
       '/:orgSlug/~/workspace/activity',
       '/:orgSlug/~/workspace/tasks',
       '/:orgSlug/~/workspace/tasks/:id',
@@ -804,7 +803,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ...registerRoutes(
     [
       '/:orgSlug/:brandSlug/workspace/inbox',
-      '/:orgSlug/:brandSlug/workspace/inbox/:view',
       '/:orgSlug/:brandSlug/workspace/activity',
       '/:orgSlug/:brandSlug/workspace/tasks',
       '/:orgSlug/:brandSlug/workspace/tasks/:id',
