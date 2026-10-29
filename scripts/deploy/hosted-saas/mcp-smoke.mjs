@@ -222,7 +222,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const { values } = parseArgs({
     options: {
       'auth-url': { type: 'string' },
-      attempts: { default: '7', type: 'string' },
+      attempts: { default: '4', type: 'string' },
       'delay-seconds': { default: '10', type: 'string' },
       'mcp-url': { type: 'string' },
     },
