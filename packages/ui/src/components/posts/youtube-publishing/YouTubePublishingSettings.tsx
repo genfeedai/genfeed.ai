@@ -97,6 +97,7 @@ export default function YouTubePublishingSettings({
   // Preview state is tagged with the inputs it was rendered from, so a preview
   // for an earlier video, title or frame is never shown or downloaded.
   const coverKey = JSON.stringify([
+    post.id,
     videoId,
     coverText.trim(),
     coverFrame.trim(),
