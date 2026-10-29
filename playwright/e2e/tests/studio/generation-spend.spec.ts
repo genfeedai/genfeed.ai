@@ -43,10 +43,7 @@ function isGenerationWrite(request: Request): boolean {
   return /\/v1\/(images|videos|audios|musics|avatars)(\/|$)/.test(pathname);
 }
 
-function image(
-  id: string,
-  prompt: Record<string, unknown> = { original: id },
-) {
+function image(id: string, prompt: Record<string, unknown> = { original: id }) {
   return {
     id,
     type: 'ingredients',
