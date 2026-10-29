@@ -5,6 +5,7 @@ import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import type { ListPageLayoutProps } from '@genfeedai/props/layout/list-page-layout.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
+import FiltersSearch from '@ui/content/filters-button/FiltersSearch';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -53,14 +54,17 @@ export default function ListPageLayout<T extends { id: string }>({
   getRowClassName,
   className,
 }: ListPageLayoutProps<T>) {
+  const hasSearch = visibleFilters?.search !== false;
   const rightActions = (
     <>
-      <FiltersButton
-        filters={filters}
-        onFiltersChange={onFiltersChange}
-        visibleFilters={visibleFilters}
-        filterOptions={filterOptions}
-      />
+      {hasSearch ? null : (
+        <FiltersButton
+          filters={filters}
+          onFiltersChange={onFiltersChange}
+          visibleFilters={visibleFilters}
+          filterOptions={filterOptions}
+        />
+      )}
 
       {bulkActions}
 
@@ -82,6 +86,16 @@ export default function ListPageLayout<T extends { id: string }>({
     <Container
       label={title}
       icon={icon}
+      leading={
+        hasSearch ? (
+          <FiltersSearch
+            filterOptions={filterOptions}
+            filters={filters}
+            onFiltersChange={onFiltersChange}
+            visibleFilters={visibleFilters}
+          />
+        ) : undefined
+      }
       refresh={
         onRefresh ? (
           <ButtonRefresh onClick={onRefresh} isRefreshing={isRefreshing} />
