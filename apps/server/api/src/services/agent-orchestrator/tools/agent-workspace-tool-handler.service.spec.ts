@@ -1070,6 +1070,8 @@ describe('AgentWorkspaceToolHandler.starAsset', () => {
     isDeleted: boolean;
     isFavorite: boolean;
     organizationId: string;
+    scope?: string;
+    userId?: string;
   }
 
   /** An in-memory asset table that honours the where-clause the handler sends. */
@@ -1102,6 +1104,24 @@ describe('AgentWorkspaceToolHandler.starAsset', () => {
         isDeleted: false,
         isFavorite: false,
         organizationId: 'org-1',
+        scope: 'USER',
+        userId: 'user-1',
+      },
+      {
+        id: 'asset-shared',
+        isDeleted: false,
+        isFavorite: false,
+        organizationId: 'org-1',
+        scope: 'ORGANIZATION',
+        userId: 'user-2',
+      },
+      {
+        id: 'asset-personal-other',
+        isDeleted: false,
+        isFavorite: false,
+        organizationId: 'org-1',
+        scope: 'USER',
+        userId: 'user-2',
       },
       {
         id: 'asset-gone',
@@ -1147,11 +1167,31 @@ describe('AgentWorkspaceToolHandler.starAsset', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBe(`Asset ${assetId} was not found.`);
     }
-    expect(table.rows.map((row) => row.isFavorite)).toEqual([
-      false,
-      false,
-      false,
-    ]);
+    expect(table.rows.some((row) => row.isFavorite)).toBe(false);
+  });
+
+  it("refuses another member's personal asset but stars an organization asset they own nothing of", async () => {
+    const table = seeded();
+    const handler = buildHandler({ ingredients: table.service });
+
+    const personal = await handler.starAsset(
+      { assetId: 'asset-personal-other' },
+      baseCtx,
+    );
+    expect(personal.success).toBe(false);
+    expect(personal.error).toBe('Asset asset-personal-other was not found.');
+    expect(
+      table.rows.find((row) => row.id === 'asset-personal-other')?.isFavorite,
+    ).toBe(false);
+
+    const shared = await handler.starAsset(
+      { assetId: 'asset-shared' },
+      baseCtx,
+    );
+    expect(shared.success).toBe(true);
+    expect(
+      table.rows.find((row) => row.id === 'asset-shared')?.isFavorite,
+    ).toBe(true);
   });
 
   it('rejects a missing asset id and a non-boolean isStarred before reading anything', async () => {

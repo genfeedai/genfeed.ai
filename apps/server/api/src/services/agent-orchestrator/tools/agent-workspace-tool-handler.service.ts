@@ -9,6 +9,7 @@ import {
   resolveCharacterFilter,
 } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { canEditAssetTags } from '@api/collections/ingredients/utils/ingredient-tag-edit-access.util';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
@@ -577,7 +578,9 @@ export class AgentWorkspaceToolHandler {
   /**
    * Stars or unstars a Library asset. Fails closed like `rate_ingredient`: only
    * an asset in the caller's own organization is changed, so a foreign or
-   * unknown id never reaches the update.
+   * unknown id never reaches the update. The caller must also be allowed to
+   * edit the asset (the rule behind the tag and trash routes), so another
+   * member's personal asset answers "not found" as well.
    */
   async starAsset(
     params: Record<string, unknown>,
@@ -600,7 +603,13 @@ export class AgentWorkspaceToolHandler {
       isDeleted: false,
       organizationId: ctx.organizationId,
     });
-    if (!asset) {
+    if (
+      !asset ||
+      !canEditAssetTags(asset, {
+        brandId: ctx.brandId,
+        userIds: [ctx.userId],
+      })
+    ) {
       return toolFailure(`Asset ${assetId} was not found.`);
     }
 
