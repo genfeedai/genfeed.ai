@@ -86,7 +86,6 @@ export const APP_ROUTES = {
       ANALYTICS: '/admin/overview/analytics',
       ANALYTICS_ALL: '/admin/overview/analytics/all',
       ANALYTICS_BUSINESS: '/admin/overview/analytics/business',
-      ANALYTICS_ORGANIZATIONS: '/admin/overview/analytics/organizations',
       ROOT: '/admin/overview',
     },
   },

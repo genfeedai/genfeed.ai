@@ -153,10 +153,7 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
     render(<AnalyticsOrganizationsList />);
 
     const link = await screen.findByRole('link', { name: /Acme Inc/ });
-    expect(link).toHaveAttribute(
-      'href',
-      '/admin/overview/analytics/organizations/org-1',
-    );
+    expect(link).toHaveAttribute('href', '/admin/organizations/org-1');
     fireEvent.click(link);
     expect(screen.queryByTestId('context-sidebar')).not.toBeInTheDocument();
 
@@ -168,6 +165,6 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
       within(sidebar).getByRole('link', {
         name: 'Open organization analytics',
       }),
-    ).toHaveAttribute('href', '/admin/overview/analytics/organizations/org-1');
+    ).toHaveAttribute('href', '/admin/organizations/org-1');
   });
 });
