@@ -343,6 +343,9 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
             nativeFields: ['image'],
           },
         ),
+        profile('wan-3-capability', MODEL_KEYS.REPLICATE_ALIBABA_WAN_3, {
+          nativeFields: ['image'],
+        }),
       ],
       spec: {
         aspectRatioField: 'aspect_ratio',

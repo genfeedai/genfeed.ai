@@ -133,4 +133,6 @@ export const ASPECT_RATIOS = {
   VEO: ['16:9', '9:16'] as const,
   VIDU: ['16:9', '9:16', '4:3', '3:4', '1:1'] as const,
   WAN_27: ['16:9', '9:16', '1:1', '4:3', '3:4'] as const,
+  // Wan 3 also takes 'adaptive', which is not a ratio the picker offers.
+  WAN_3: ['16:9', '9:16', '1:1', '4:3', '3:4'] as const,
 } as const;

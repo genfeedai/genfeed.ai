@@ -1008,6 +1008,23 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxReferences: 0,
     },
 
+    // Wan 3.0: text-to-video, or image-to-video from one first-frame image
+    // (https://replicate.com/alibaba/wan-3, 2-30 s, 480p/720p/1080p).
+    [MODEL_KEYS.REPLICATE_ALIBABA_WAN_3]: {
+      aspectRatios: ASPECT_RATIOS.WAN_3,
+      category: ModelCategory.VIDEO,
+      defaultAspectRatio: '16:9',
+      defaultDuration: 5,
+      durations: Array.from({ length: 29 }, (_, index) => index + 2),
+      hasDurationEditing: true,
+      hasResolutionOptions: true,
+      // The page says the input image's aspect ratio wins over aspect_ratio.
+      hasSourceDerivedAspect: true,
+      isBatchSupported: false,
+      maxOutputs: 4,
+      maxReferences: 1,
+    },
+
     [MODEL_KEYS.REPLICATE_META_MUSICGEN]: {
       category: ModelCategory.MUSIC,
       defaultDuration: 10,

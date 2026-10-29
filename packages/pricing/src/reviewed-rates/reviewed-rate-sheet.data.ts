@@ -2808,6 +2808,35 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-20T09:15:00.000Z',
   },
   {
+    endpoint: 'alibaba/wan-3',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.05,
+        when: { resolution: '480p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.1,
+        when: { resolution: '720p' },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.2,
+        when: { resolution: '1080p' },
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://replicate.com/alibaba/wan-3',
+    verifiedAt: '2026-10-29T12:50:00.000Z',
+  },
+  {
     endpoint: 'bytedance/seedream-5-lite',
     provider: 'replicate',
     rates: [
