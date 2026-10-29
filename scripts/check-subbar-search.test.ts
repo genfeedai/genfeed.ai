@@ -18,6 +18,28 @@ describe('findSubbarSearchViolations', () => {
     ).toEqual([{ file: 'packages/pages/posts/list/posts-list.tsx', line: 2 }]);
   });
 
+  it('flags a relative path to the raw Searchbar', () => {
+    expect(
+      findSubbarSearchViolations(
+        'packages/pages/posts/list/posts-list.tsx',
+        "import FormSearchbar from '../../../ui/src/primitives/searchbar';",
+      ),
+    ).toEqual([{ file: 'packages/pages/posts/list/posts-list.tsx', line: 1 }]);
+  });
+
+  it('flags an import whose module path is on the next line', () => {
+    expect(
+      findSubbarSearchViolations(
+        'packages/pages/posts/list/posts-list.tsx',
+        [
+          "import x from 'y';",
+          'import FormSearchbar from',
+          "  '@ui/primitives/searchbar';",
+        ].join('\n'),
+      ),
+    ).toEqual([{ file: 'packages/pages/posts/list/posts-list.tsx', line: 2 }]);
+  });
+
   it('accepts the shared SearchField', () => {
     expect(
       findSubbarSearchViolations(

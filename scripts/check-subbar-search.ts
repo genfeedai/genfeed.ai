@@ -25,7 +25,9 @@ export const SUBBAR_SEARCH_ALLOWLIST: readonly string[] = [
   'packages/pages/trends/following/FollowSourceModal.tsx',
 ];
 
-const SEARCHBAR_IMPORT = /from\s+['"]@ui\/primitives\/searchbar['"]/;
+/** The `@ui` alias or a relative path to the primitive; `\s` spans a line break after `from`. */
+const SEARCHBAR_IMPORT =
+  /from\s+['"](?:@ui\/primitives\/searchbar|(?:\.{1,2}\/)+(?:[\w.-]+\/)*primitives\/searchbar)['"]/g;
 
 export interface SubbarSearchViolation {
   file: string;
@@ -40,11 +42,10 @@ export function findSubbarSearchViolations(
     return [];
   }
 
-  return source
-    .split('\n')
-    .flatMap((text, index) =>
-      SEARCHBAR_IMPORT.test(text) ? [{ file, line: index + 1 }] : [],
-    );
+  return Array.from(source.matchAll(SEARCHBAR_IMPORT), (match) => ({
+    file,
+    line: source.slice(0, match.index).split('\n').length,
+  }));
 }
 
 function main(): void {
