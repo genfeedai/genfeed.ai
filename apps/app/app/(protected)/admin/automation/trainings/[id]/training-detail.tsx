@@ -131,7 +131,7 @@ export default function TrainingDetail({
               size={ComponentSize.SM}
             />
           ) : undefined,
-        href: `${APP_ROUTES.ADMIN.AUTOMATION.TRAININGS}/${trainingId}/images`,
+        href: `${APP_ROUTES.ADMIN.AUTOMATION.TRAININGS}/${trainingId}`,
         icon: Image,
         label: translate('images'),
       },
