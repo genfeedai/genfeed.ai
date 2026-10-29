@@ -13,6 +13,7 @@ import {
   buildConnectGenfeedChatPrompt,
   buildConnectGenfeedInstructions,
   buildGenfeedAgentSetupPrompt,
+  GENFEED_CODEX_MCP_PROFILE,
   GENFEED_SKILLS_INSTALL_COMMAND,
 } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
 import {
@@ -1013,7 +1014,7 @@ ${postHogSnippet}
             <span class="step-number">01</span>
             <div>
               <p class="step-title">Add the MCP server</p>
-              <p class="step-copy">The CLI and IDE share <code class="${ui.inlineCode}">~/.codex/config.toml</code>. No bearer-token variable needed.</p>
+              <p class="step-copy">The CLI and IDE share <code class="${ui.inlineCode}">~/.codex/config.toml</code>. No bearer-token variable needed. The command selects the <code class="${ui.inlineCode}">studio</code> profile: generation, content, scheduling, brand and analytics tools. Pick toolsets above to replace it.</p>
               ${renderCommandBlock({ id: 'codex-command', label: 'Copy Codex command', textSafe: codexCommandSafe, ui })}
             </div>
           </li>
@@ -1235,6 +1236,12 @@ ${postHogSnippet}
       return baseUrl + '?toolsets=' + selected.join(',');
     }
 
+    // Codex installs default to the studio profile (generation included) when
+    // no toolsets are picked; an explicit pick replaces it, like every client.
+    function codexUrlFor(url) {
+      return url === baseMcpUrl ? url + '?profile=${GENFEED_CODEX_MCP_PROFILE}' : url;
+    }
+
     var currentUrl = baseMcpUrl;
     var currentShellUrl = shellQuote(baseMcpUrl);
 
@@ -1262,8 +1269,25 @@ ${postHogSnippet}
     // the currentUrl prefix it just inserted. A placeholder shields the
     // already-rewritten shell occurrences from that second pass; it is
     // substituted back for the real shell-quoted URL last.
-    function rewriteAgentPrompt(text, currentUrl, currentShellUrl, nextUrl, nextShellUrl) {
+    //
+    // The Codex command and TOML url carry their own URL (codexUrlFor), so
+    // they are shielded and restored separately from the standard endpoint.
+    function rewriteAgentPrompt(text, currentUrl, currentShellUrl, nextUrl, nextShellUrl, currentCodexUrl, nextCodexUrl) {
+      currentCodexUrl = currentCodexUrl || currentUrl;
+      nextCodexUrl = nextCodexUrl || nextUrl;
       var placeholder = '__GENFEED_TOOLSET_URL_PLACEHOLDER__';
+      var codexShellPlaceholder = '__GENFEED_CODEX_SHELL_PLACEHOLDER__';
+      var codexTomlPlaceholder = '__GENFEED_CODEX_TOML_PLACEHOLDER__';
+      text = replaceAll(
+        text,
+        '--url ' + shellQuote(currentCodexUrl),
+        '--url ' + codexShellPlaceholder,
+      );
+      text = replaceAll(
+        text,
+        'url = "' + currentCodexUrl + '"',
+        'url = ' + codexTomlPlaceholder,
+      );
       var claudeUrl = currentUrl.split('?')[0] + '/claude';
       var claudePlaceholder = '__GENFEED_CLAUDE_URL_PLACEHOLDER__';
       text = replaceAll(text, claudeUrl, claudePlaceholder);
@@ -1272,14 +1296,17 @@ ${postHogSnippet}
         '--scope user ' + currentShellUrl,
         '--scope user ' + placeholder,
       );
-      next = replaceAll(next, '--url ' + currentShellUrl, '--url ' + placeholder);
       next = replaceAll(next, currentUrl, nextUrl);
       next = replaceAll(next, placeholder, nextShellUrl);
+      next = replaceAll(next, codexShellPlaceholder, shellQuote(nextCodexUrl));
+      next = replaceAll(next, codexTomlPlaceholder, '"' + nextCodexUrl + '"');
       return replaceAll(next, claudePlaceholder, claudeUrl);
     }
 
     function applyUrl(nextUrl) {
       var nextShellUrl = shellQuote(nextUrl);
+      var currentCodexUrl = codexUrlFor(currentUrl);
+      var nextCodexUrl = codexUrlFor(nextUrl);
 
       // Blocks that only ever embed the endpoint as plain text (never inside
       // a shell-quoted command): the endpoint display, the chat-agent prompt
@@ -1298,6 +1325,8 @@ ${postHogSnippet}
           currentShellUrl,
           nextUrl,
           nextShellUrl,
+          currentCodexUrl,
+          nextCodexUrl,
         );
       }
 
@@ -1306,8 +1335,8 @@ ${postHogSnippet}
         if (!el) return;
         el.textContent = replaceAll(
           el.textContent || '',
-          currentShellUrl,
-          nextShellUrl,
+          shellQuote(currentCodexUrl),
+          shellQuote(nextCodexUrl),
         );
       });
 

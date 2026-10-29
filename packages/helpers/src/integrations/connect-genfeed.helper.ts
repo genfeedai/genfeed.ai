@@ -6,6 +6,8 @@ import type {
 import { deriveClaudeMcpResourceIdentifier } from './mcp-resource.helper';
 
 const ENVIRONMENT_VARIABLE = 'GENFEED_API_KEY';
+/** Codex needs generation tools, so its install URL selects the studio profile. */
+export const GENFEED_CODEX_MCP_PROFILE = 'studio';
 export const GENFEED_SKILLS_INSTALL_COMMAND = 'npx skills add genfeedai/agent';
 
 function normalizeEndpoint(endpoint: string): string {
@@ -21,6 +23,19 @@ function normalizeEndpoint(endpoint: string): string {
   }
 
   return end === endpoint.length ? endpoint : endpoint.slice(0, end);
+}
+
+/**
+ * Codex installs default to the studio profile. A URL that already carries a
+ * query (a picked profile or explicit toolsets) is left as the caller wrote it.
+ */
+function withCodexProfile(endpoint: string): string {
+  const url = new URL(endpoint);
+  if (url.search || url.hash) {
+    return endpoint;
+  }
+
+  return `${endpoint}?profile=${GENFEED_CODEX_MCP_PROFILE}`;
 }
 
 /**
@@ -115,7 +130,11 @@ export function buildConnectGenfeedInstructions(
       : new URL(deriveClaudeMcpResourceIdentifier(url.toString())).pathname;
     authMethod = 'oauth';
   }
-  const mcpEndpoint = isClaude ? url.toString() : normalizeEndpoint(endpoint);
+  const mcpEndpoint = isClaude
+    ? url.toString()
+    : client === 'codex'
+      ? withCodexProfile(normalizeEndpoint(endpoint))
+      : normalizeEndpoint(endpoint);
   const shellEndpoint = /^[A-Za-z0-9:/._-]+$/.test(mcpEndpoint)
     ? mcpEndpoint
     : `'${mcpEndpoint.replace(/'/g, `'"'"'`)}'`;
