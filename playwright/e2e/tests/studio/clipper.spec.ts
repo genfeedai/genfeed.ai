@@ -387,6 +387,24 @@ test.describe('Clip Factory', () => {
     ).toBeVisible();
   });
 
+  test('opens a project with the agent on the left and the source on the right', async ({
+    authenticatedPage,
+  }) => {
+    await mockDraftProject(authenticatedPage);
+    await authenticatedPage.goto(`${CLIPPER_URL}/${MOCK_PROJECT_ID}`);
+
+    const agent = authenticatedPage.getByTestId('agent-output-agent-pane');
+    const output = authenticatedPage.getByTestId('agent-output-output-pane');
+    await expect(agent).toBeVisible();
+    await expect(output).toBeVisible();
+    await expect(output.getByLabel(/youtube url/i)).toBeVisible();
+
+    const agentBox = await agent.boundingBox();
+    const outputBox = await output.boundingBox();
+    expect(agentBox?.x).toBeLessThan(outputBox?.x ?? 0);
+    await expect(authenticatedPage.getByTestId('agent-dock')).toHaveCount(0);
+  });
+
   test('restores a pasted YouTube URL after reload', async ({
     authenticatedPage,
   }) => {
