@@ -24,6 +24,7 @@ export const MCP_RESULT_SCHEMAS = {
   discovery: {
     type: 'object',
     properties: {
+      connection: { type: 'object' },
       tool: { type: 'object' },
       tools: { type: 'array' },
       toolsets: { type: 'array' },

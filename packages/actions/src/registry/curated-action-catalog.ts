@@ -175,7 +175,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent', 'mcp'],
     toolset: 'workflows',
   },
-  { name: 'edit_clip', surfaces: ['agent'], toolset: 'ui' },
+  { name: 'edit_clip', surfaces: ['agent', 'mcp'], toolset: 'clipper' },
   {
     name: 'enhance_prompt',
     surfaces: ['agent', 'mcp'],
@@ -234,7 +234,7 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'brand',
   },
   { name: 'get_brands', surfaces: ['agent', 'mcp'], toolset: 'core' },
-  { name: 'get_clip_context', surfaces: ['agent'], toolset: 'ui' },
+  { name: 'get_clip_context', surfaces: ['agent', 'mcp'], toolset: 'clipper' },
   { name: 'get_clipper_highlights', surfaces: ['mcp'], toolset: 'clipper' },
   { name: 'get_clipper_project', surfaces: ['mcp'], toolset: 'clipper' },
   {
