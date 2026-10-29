@@ -40,3 +40,25 @@ export const brandAttributes = createEntityAttributes([
   'externalId',
   'externalHandle',
 ]);
+
+/**
+ * Anonymous brand profile payload. An allowlist on purpose: the full
+ * `brandAttributes` carry `agentConfig` (voice, strategy, prompting, schedule,
+ * auto-publish), watermark and model defaults, and ownership ids, none of which
+ * belong on an unauthenticated route.
+ */
+export const publicBrandAttributes = [
+  'slug',
+  'label',
+  'description',
+  'fontFamily',
+  'primaryColor',
+  'secondaryColor',
+  'backgroundColor',
+  'isHighlighted',
+  'logoUrl',
+  'bannerUrl',
+  'links',
+  'createdAt',
+  'updatedAt',
+];
