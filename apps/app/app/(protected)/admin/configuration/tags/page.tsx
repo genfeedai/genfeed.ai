@@ -1,13 +1,14 @@
-import FilteredListRoute from '@app/(protected)/admin/configuration/tags/FilteredListRoute';
+import TagsPage from '@app/(protected)/admin/configuration/tags/[filter]/tags-page';
+import { PageScope } from '@genfeedai/contracts';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import { Suspense } from 'react';
 
 export const generateMetadata = createPageMetadata('Tags');
 
-export default function FilteredListPage() {
+export default function TagsRootPage() {
   return (
     <Suspense fallback={null}>
-      <FilteredListRoute />
+      <TagsPage filter="all" scope={PageScope.SUPERADMIN} />
     </Suspense>
   );
 }

@@ -13,6 +13,6 @@ describe('synchronous route shell', () => {
     );
     expect(source).toMatch(/export default function/);
     expect(source).not.toMatch(/await (params|searchParams)/);
-    expect(source).toContain('<FilteredListRoute />');
+    expect(source).toContain('<TagsPage filter="all"');
   });
 });
