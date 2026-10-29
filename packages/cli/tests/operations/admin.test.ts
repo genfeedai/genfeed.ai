@@ -100,30 +100,70 @@ describe('operations/admin', () => {
     expect(mockAdminGet).toHaveBeenNthCalledWith(2, '/admin/organization-apps?page=2&limit=100');
   });
 
-  it('walks every page of trainings and counts them by status', async () => {
-    const pageOf = (page: number, data: Array<Record<string, unknown>>) => ({
+  it('asks for trainings once per organization and counts them by status', async () => {
+    const pageOf = (page: number, pages: number, data: Array<Record<string, unknown>>) => ({
       data,
-      pagination: { limit: 100, page, pages: 2, total: 3 },
+      pagination: { limit: 100, page, pages, total: 3 },
     });
     mockAdminGet
+      .mockResolvedValueOnce({
+        data: {
+          generatedAt: '2026-10-29T00:00:00.000Z',
+          organizations: [{ id: 'org_1' }, { id: 'org_2' }],
+          pagination: { limit: 100, page: 1, pages: 1, total: 2 },
+        },
+      })
       .mockResolvedValueOnce(
-        pageOf(1, [
-          { id: 't1', label: 'Shayla', organization: 'org_1', status: 'completed' },
-          { id: 't2', label: 'Mia', organization: { id: 'org_2' }, status: 'failed' },
+        pageOf(1, 2, [
+          {
+            createdAt: '2026-10-01T00:00:00.000Z',
+            id: 't1',
+            label: 'Shayla',
+            organization: 'org_1',
+            status: 'completed',
+          },
         ])
       )
-      .mockResolvedValueOnce(pageOf(2, [{ id: 't3', label: 'Zoe', status: 'completed' }]));
+      .mockResolvedValueOnce(
+        pageOf(2, 2, [
+          {
+            createdAt: '2026-10-03T00:00:00.000Z',
+            id: 't2',
+            label: 'Mia',
+            organization: { id: 'org_1' },
+            status: 'failed',
+          },
+        ])
+      )
+      .mockResolvedValueOnce(
+        pageOf(1, 1, [
+          {
+            createdAt: '2026-10-02T00:00:00.000Z',
+            id: 't3',
+            label: 'Zoe',
+            organization: 'org_2',
+            status: 'completed',
+          },
+        ])
+      );
 
     const report = await readTrainingsReport();
 
     expect(report.total).toBe(3);
     expect(report.byStatus).toEqual({ completed: 2, failed: 1 });
-    expect(report.trainings.map((training) => training.organizationId)).toEqual([
-      'org_1',
-      'org_2',
-      null,
-    ]);
-    expect(mockAdminGet).toHaveBeenNthCalledWith(2, '/trainings?page=2&limit=100');
+    expect(report.trainings.map((training) => training.id)).toEqual(['t2', 't3', 't1']);
+    expect(mockAdminGet).toHaveBeenNthCalledWith(
+      2,
+      '/trainings?organizationId=org_1&page=1&limit=100'
+    );
+    expect(mockAdminGet).toHaveBeenNthCalledWith(
+      3,
+      '/trainings?organizationId=org_1&page=2&limit=100'
+    );
+    expect(mockAdminGet).toHaveBeenNthCalledWith(
+      4,
+      '/trainings?organizationId=org_2&page=1&limit=100'
+    );
   });
 
   it('walks every page of the organizations list and can include deleted ones', async () => {
