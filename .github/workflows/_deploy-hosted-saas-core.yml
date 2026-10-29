@@ -620,12 +620,18 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     # Ceiling for the configured URL set. Per URL: (SMOKE_RETRY+1) attempts *
-    # SMOKE_MAX_TIME plus SMOKE_RETRY * SMOKE_RETRY_DELAY. Five required URLs
+    # SMOKE_MAX_TIME plus SMOKE_RETRY * SMOKE_RETRY_DELAY. Five required URLs plus the MCP wire check
     # worst-case ~17m; six with docs ~20m. Keep this above the printed budget.
     timeout-minutes: 25
     permissions:
       contents: read
     steps:
+      - name: Checkout public deploy engine
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: ops
+          persist-credentials: false
+
       - name: Smoke live production endpoints
         env:
           DOMAIN: ${{ vars.DOMAIN }}
@@ -693,6 +699,17 @@ jobs:
             IFS='|' read -r name url expected <<< "${spec}"
             smoke_url "${name}" "${url}" "${expected}"
           done
+
+          # MCP wire contract: modern 2026-07-28 tools/list and the public card
+          # resources/read, a legacy 2025 client, CORS and OAuth metadata.
+          node ops/scripts/deploy/hosted-saas/mcp-smoke.mjs \
+            --mcp-url "https://mcp.${DOMAIN}/mcp" \
+            --auth-url "https://api.${DOMAIN}" \
+            | tee -a "${RUNNER_TEMP}/post-deploy-smoke/mcp.md"
+          {
+            echo "- mcp-wire: https://mcp.${DOMAIN}/mcp"
+            sed 's/^/  /' "${RUNNER_TEMP}/post-deploy-smoke/mcp.md"
+          } >> "${RUNNER_TEMP}/post-deploy-smoke/summary.md"
 
           {
             echo "## Post-deploy smoke"
