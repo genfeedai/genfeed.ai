@@ -21,6 +21,7 @@ import {
   readOnboardingFunnel,
   readOrganizationAppsReport,
   readOrganizationsReport,
+  readTrainingsReport,
   scanOrganizationBrand,
   seedArticles,
   seedTemplates,
@@ -40,6 +41,8 @@ vi.mock('../../src/api/admin-client', () => ({
 }));
 
 vi.mock('../../src/api/json-api', () => ({
+  extractPagination: (response: { pagination?: unknown }) => response.pagination,
+  flattenCollection: <T>(response: { data: T[] }) => response.data,
   flattenSingle: <T>(response: { data: T }) => response.data,
 }));
 
@@ -95,6 +98,32 @@ describe('operations/admin', () => {
     expect(result.organizations).toEqual([{ id: 'org_1' }, { id: 'org_2' }]);
     expect(result.releaseFlags).toEqual({ release_clipper: true });
     expect(mockAdminGet).toHaveBeenNthCalledWith(2, '/admin/organization-apps?page=2&limit=100');
+  });
+
+  it('walks every page of trainings and counts them by status', async () => {
+    const pageOf = (page: number, data: Array<Record<string, unknown>>) => ({
+      data,
+      pagination: { limit: 100, page, pages: 2, total: 3 },
+    });
+    mockAdminGet
+      .mockResolvedValueOnce(
+        pageOf(1, [
+          { id: 't1', label: 'Shayla', organization: 'org_1', status: 'completed' },
+          { id: 't2', label: 'Mia', organization: { id: 'org_2' }, status: 'failed' },
+        ])
+      )
+      .mockResolvedValueOnce(pageOf(2, [{ id: 't3', label: 'Zoe', status: 'completed' }]));
+
+    const report = await readTrainingsReport();
+
+    expect(report.total).toBe(3);
+    expect(report.byStatus).toEqual({ completed: 2, failed: 1 });
+    expect(report.trainings.map((training) => training.organizationId)).toEqual([
+      'org_1',
+      'org_2',
+      null,
+    ]);
+    expect(mockAdminGet).toHaveBeenNthCalledWith(2, '/trainings?page=2&limit=100');
   });
 
   it('walks every page of the organizations list and can include deleted ones', async () => {
