@@ -473,6 +473,17 @@
     "subtitle": "Storyboard · {state}",
     "tabs": "Storyboard details"
   },
+  "agentThread": {
+    "board": "Shots",
+    "briefDone": "Drafted the shots. They are on the board.",
+    "changeDone": "Updated the board.",
+    "emptyBrief": "Describe the video you want and the agent drafts the shots on the board.",
+    "emptyChanges": "Ask for a change, like making shot 3 shorter, and the board updates.",
+    "failed": "That did not change the board.",
+    "title": "Storyboard agent",
+    "unavailable": "Change requests are not available for this storyboard.",
+    "working": "Working on the board"
+  },
   "promptBar": {
     "briefPlaceholder": "Describe the video you want to make",
     "changesPlaceholder": "Ask for changes, e.g. make shot 3 shorter and end on a question",

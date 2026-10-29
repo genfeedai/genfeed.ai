@@ -1,12 +1,15 @@
 'use client';
 
+import { useAgentOutputHost } from '@contexts/ui/agent-output-host-context';
 import { ButtonVariant } from '@genfeedai/contracts';
 import type {
+  StoryboardAgentRequest,
   StoryboardDraftPageProps,
   StoryboardPlanEditorHandle,
   StoryboardSaveIndicatorProps,
 } from '@genfeedai/props/studio/storyboard.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import StoryboardAgentThread from '@pages/studio/storyboard/components/StoryboardAgentThread';
 import StoryboardConflictReview from '@pages/studio/storyboard/components/StoryboardConflictReview';
 import StoryboardPlanEditor from '@pages/studio/storyboard/components/StoryboardPlanEditor';
 import StoryboardPromptBar from '@pages/studio/storyboard/components/StoryboardPromptBar';
@@ -15,6 +18,7 @@ import {
   useStoryboardDraftOutbox,
 } from '@pages/studio/storyboard/hooks/use-storyboard-autosave';
 import { getStoryboardEditorSeed } from '@pages/studio/storyboard/utils/storyboard-editor-seed';
+import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -88,6 +92,14 @@ export default function StoryboardDraftPage({
   const [isDrafting, setIsDrafting] = useState(false);
   const [draftError, setDraftError] = useState<string>();
   const lastRequest = useRef<DraftRequest>({});
+  const lastRequestId = useRef<string | undefined>(undefined);
+  const nextRequestId = useRef(0);
+  const [requests, setRequests] = useState<readonly StoryboardAgentRequest[]>(
+    [],
+  );
+  // On a split page the agent column carries the composer; elsewhere the
+  // editor keeps it at the foot of the page.
+  const hasAgentColumn = Boolean(useAgentOutputHost());
   const pipeline = run.config.scenePipeline;
   const hasShots = (run.config.plan?.shots.length ?? 0) > 0;
   const savedBrief =
@@ -146,9 +158,30 @@ export default function StoryboardDraftPage({
       .catch(() => setNavigationError(translate('draft.saveBeforeLeave')))
       .finally(() => setLeaving(false));
   }
-  /** Saves what the composer holds, settles pending edits, then drafts. */
-  async function runDraft(request: DraftRequest) {
+  function setRequestState(id: string, state: StoryboardAgentRequest['state']) {
+    setRequests((current) =>
+      current.map((entry) => (entry.id === id ? { ...entry, state } : entry)),
+    );
+  }
+  /**
+   * Saves what the composer holds, settles pending edits, then drafts. A retry
+   * passes the failed request's id so the thread shows one entry, not two.
+   */
+  async function runDraft(request: DraftRequest, retryId?: string) {
     lastRequest.current = request;
+    const requestId = retryId ?? `request-${++nextRequestId.current}`;
+    lastRequestId.current = requestId;
+    if (retryId) setRequestState(retryId, 'working');
+    else
+      setRequests((current) => [
+        ...current,
+        {
+          id: requestId,
+          kind: request.instruction ? 'change' : 'brief',
+          state: 'working',
+          text: request.instruction ?? request.brief ?? savedBrief,
+        },
+      ]);
     setIsDrafting(true);
     setDraftError(undefined);
     try {
@@ -161,7 +194,9 @@ export default function StoryboardDraftPage({
       // The draft is based on the persisted revision, so pending plan edits land first.
       await editor.current?.flush();
       await draftPlan(request.instruction);
+      setRequestState(requestId, 'done');
     } catch (caught) {
+      setRequestState(requestId, 'failed');
       setDraftError(
         caught instanceof Error && caught.message
           ? caught.message
@@ -176,7 +211,7 @@ export default function StoryboardDraftPage({
     if (!trimmed) return;
     return runDraft(hasShots ? { instruction: trimmed } : { brief: trimmed });
   }
-  return (
+  const board = (
     <StoryboardPlanEditor
       ref={editor}
       key={`${run.brandId}:${run.id}`}
@@ -238,7 +273,7 @@ export default function StoryboardDraftPage({
         </>
       }
       composer={
-        canCompose ? (
+        canCompose && !hasAgentColumn ? (
           <StoryboardPromptBar
             error={draftError}
             hasShots={hasShots}
@@ -249,5 +284,26 @@ export default function StoryboardDraftPage({
         ) : undefined
       }
     />
+  );
+  return (
+    <AgentOutputShell
+      agent={
+        <StoryboardAgentThread
+          canCompose={canCompose}
+          error={draftError}
+          hasShots={hasShots}
+          isDisabled={leaving || !draft.queue || isDrafting}
+          onRetry={() =>
+            void runDraft(lastRequest.current, lastRequestId.current)
+          }
+          onSubmit={submitPrompt}
+          requests={requests}
+        />
+      }
+      agentTitle={translate('agentThread.title')}
+      outputLabel={translate('agentThread.board')}
+    >
+      {board}
+    </AgentOutputShell>
   );
 }
