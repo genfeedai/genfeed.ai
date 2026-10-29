@@ -3,9 +3,28 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   getMessagesSyncFeedback,
   getMessagesSyncResultFeedback,
+  parseMessagesInboxView,
   parseMessagesSurface,
   settleMessagesSyncJobs,
 } from './messages-page.helpers';
+
+describe('parseMessagesInboxView', () => {
+  it('accepts every status view and falls back to Inbox', () => {
+    for (const view of [
+      'inbox',
+      'unread',
+      'review',
+      'resolved',
+      'archived',
+      'all',
+    ] as const) {
+      expect(parseMessagesInboxView(view)).toBe(view);
+    }
+    expect(parseMessagesInboxView('nonsense')).toBe('inbox');
+    expect(parseMessagesInboxView(null)).toBe('inbox');
+    expect(parseMessagesInboxView(undefined)).toBe('inbox');
+  });
+});
 
 describe('parseMessagesSurface (#5502)', () => {
   it('accepts the Inbox type filters and falls back to All', () => {

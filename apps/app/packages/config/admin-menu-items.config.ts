@@ -233,7 +233,7 @@ export const ADMIN_MENU_ITEMS: AdminMenuItemConfig[] = [
     category: 'admin-content',
     group: 'Catalog',
     hrefScope: 'global',
-    href: APP_ROUTES.ADMIN.CONFIGURATION.TAGS_ALL,
+    href: APP_ROUTES.ADMIN.CONFIGURATION.TAGS,
     label: 'Tags',
     matchPaths: [APP_ROUTES.ADMIN.CONFIGURATION.TAGS],
     outline: Bookmark,

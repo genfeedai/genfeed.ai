@@ -45,6 +45,8 @@ const AGENT_OUTPUT_ROUTE_PATTERNS: readonly RegExp[] = [
       APP_ROUTES.PUBLISHING.OVERVIEW,
     ].join('|')})/?$`,
   ),
+  // An Editor project; `/editor/new` creates one.
+  new RegExp(`^${APP_ROUTES.STUDIO.EDITOR}/(?!new/?$)[^/]+/?$`),
 ];
 
 export function isAgentOutputRoute(normalizedPathname: string): boolean {

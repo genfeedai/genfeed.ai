@@ -1,5 +1,4 @@
 import type {
-  ICredential,
   SocialAutomationState,
   SocialConversationStatus,
   SocialPlatform,
@@ -11,7 +10,6 @@ import type {
 } from '@genfeedai/props/messages/messages-conversation-sidebar.props';
 
 export type MessagesInboxFiltersState = {
-  assignedOwnerId: string;
   automationState: SocialAutomationState | 'all';
   brandFilterOverride: string | null;
   brandFilterRouteKey: string | undefined;
@@ -26,7 +24,6 @@ export type MessagesInboxFiltersState = {
 };
 
 export type MessagesInboxFiltersAction =
-  | { type: 'set-assigned-owner-id'; assignedOwnerId: string }
   | {
       type: 'set-automation-state';
       automationState: SocialAutomationState | 'all';
@@ -45,15 +42,7 @@ export interface UseMessagesInboxFiltersParams {
   readonly brandSlug: string | undefined;
   /** Type filter seeded from the `?type=` deep link. */
   readonly initialConversationType?: MessagesSurface;
+  /** Status filter seeded from the `?status=` deep link. */
+  readonly initialInboxView?: MessagesInboxView;
   readonly routeBrandId: string | undefined;
-}
-
-export interface MessagesAdvancedFiltersProps {
-  accounts: readonly ICredential[];
-  assignedOwnerId: string;
-  automationState: SocialAutomationState | 'all';
-  credentialId: string;
-  onAssignedOwnerIdChange: (value: string) => void;
-  onAutomationStateChange: (value: SocialAutomationState | 'all') => void;
-  onCredentialIdChange: (value: string) => void;
 }
