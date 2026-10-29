@@ -289,11 +289,7 @@ describe('useStudioGeneration request payloads', () => {
   it('does not forward a media enhancement override to music generation', async () => {
     const { result } = renderStudioGeneration({ type: 'music' });
     await act(async () => {
-      await result.current.submit(
-        'Music prompt',
-        {},
-        { harness: false },
-      );
+      await result.current.submit('Music prompt', {}, { harness: false });
     });
     expect(mockMusicsPost).toHaveBeenCalled();
     expect(mockMusicsPost.mock.calls[0]?.[0]).not.toHaveProperty('harness');
