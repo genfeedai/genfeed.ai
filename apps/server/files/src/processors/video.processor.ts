@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
 import path from 'node:path';
 import { resolveFontFile } from '@files/helpers/utils/font/font-file.util';
+import { renderCaptions } from '@files/processors/video-captions.util';
 import {
   isFinalAttempt,
   isRawCutJob,
@@ -10,10 +11,6 @@ import {
 } from '@files/processors/video-processor.util';
 import { ClipperReferenceFrameExtractionService } from '@files/services/clipper-reference-frames/clipper-reference-frame-extraction.service';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
-import {
-  buildCaptionBurnFilterScript,
-  type CaptionBurnFilterScript,
-} from '@files/services/files/captions/caption-burn.util';
 import type { HookRemixJobData } from '@files/services/hook-remix/hook-remix.interfaces';
 import { HookRemixService } from '@files/services/hook-remix/hook-remix.service';
 import { RemotionRenderJobService } from '@files/services/remotion/remotion-render-job.service';
@@ -256,40 +253,6 @@ export class VideoProcessor extends WorkerHost {
     return await this.videoMergeJobService.process(job);
   }
 
-  /** The picture size as players show it, after any rotation tag. */
-  private async readDisplaySize(
-    videoPath: string,
-  ): Promise<{ height: number; width: number }> {
-    const metadata = await this.ffmpegService.getVideoMetadata(videoPath);
-    const video = metadata.streams?.find(
-      (stream) => stream.codec_type === 'video',
-    );
-    const width = video?.width ?? 0;
-    const height = video?.height ?? 0;
-    const rotation = Number(
-      video?.tags?.rotate ??
-        video?.side_data_list?.find((data) => 'rotation' in data)?.rotation ??
-        0,
-    );
-    return Math.abs(rotation) % 180 === 90
-      ? { height: width, width: height }
-      : { height, width };
-  }
-
-  private async buildCaptionBurnScript(
-    inputPath: string,
-    params: VideoJobData['params'],
-  ): Promise<CaptionBurnFilterScript | null> {
-    const { height, width } = await this.readDisplaySize(inputPath);
-    if (width < 16 || height < 16) return null;
-    return buildCaptionBurnFilterScript({
-      height,
-      srt: params.captionContent ?? '',
-      style: params.captionStyle,
-      width,
-    });
-  }
-
   async handleAddCaptions(job: Job<VideoJobData>): Promise<JobResult> {
     const { ingredientId, params, metadata, userId, room } = job.data;
     this.logger.log(`Processing captions job for ${ingredientId}`);
@@ -298,43 +261,19 @@ export class VideoProcessor extends WorkerHost {
       const tempPath = this.ffmpegService.getTempPath('captions', ingredientId);
       const inputPath = path.join(tempPath, 'input.mp4');
       const outputPath = path.join(tempPath, 'output.mp4');
-      const captionsPath = path.join(tempPath, 'captions.srt');
 
       await this.downloadInput(params, inputPath);
-      const isMuted = params.isMuteVideoAudio === true;
-      const hasCaptions = Boolean(params.captionContent?.trim());
-      if (hasCaptions || !isMuted) {
-        fs.writeFileSync(captionsPath, params.captionContent || '');
-      }
-
-      const onProgress = this.createProgressCallback(
-        metadata.websocketUrl,
-        userId,
-        room,
-      );
-      const burnFilter =
-        hasCaptions && params.captionStyle
-          ? await this.buildCaptionBurnScript(inputPath, params)
-          : null;
-      if (burnFilter) {
-        const filterScriptPath = path.join(tempPath, 'captions.filter');
-        fs.writeFileSync(filterScriptPath, burnFilter.script);
-        await this.ffmpegService.burnCaptions(
-          inputPath,
-          outputPath,
-          filterScriptPath,
-          onProgress,
-          isMuted ? { muteVideoAudio: true } : undefined,
-        );
-      } else {
-        await this.ffmpegService.addCaptions(
-          inputPath,
-          outputPath,
-          hasCaptions || !isMuted ? captionsPath : undefined,
-          onProgress,
-          isMuted ? { muteVideoAudio: true } : undefined,
-        );
-      }
+      await renderCaptions(this.ffmpegService, {
+        inputPath,
+        onProgress: this.createProgressCallback(
+          metadata.websocketUrl,
+          userId,
+          room,
+        ),
+        outputPath,
+        params,
+        tempPath,
+      });
 
       const { size } = fs.statSync(outputPath);
       const { s3Key, url } = await this.uploadAndEmitSuccess(
