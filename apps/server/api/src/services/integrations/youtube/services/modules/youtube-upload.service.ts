@@ -102,51 +102,7 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
         post.tags || [],
       );
 
-      // Determine YouTube privacy status and handle scheduled uploads
-      // If scheduledDate is in the future, upload as PRIVATE with publishAt
-      // YouTube will automatically publish the video at the specified time
-      const hasFutureScheduledDate =
-        post.scheduledDate && new Date(post.scheduledDate) > new Date();
-
-      const requestedPrivacy = resolveYouTubeUploadVisibility(
-        post.visibility,
-        readChannelSettingString(settings, 'privacyStatus'),
-      );
-      const madeForKids = readChannelSettingBoolean(settings, 'madeForKids');
-      // `selfDeclaredMadeForKids` is only accepted alongside the `status` part,
-      // and YouTube rejects the field when it is absent rather than defaulting.
-      const audienceConfig =
-        madeForKids === undefined
-          ? {}
-          : { selfDeclaredMadeForKids: madeForKids };
-
-      let privacyStatus: string;
-      let statusConfig: youtube_v3.Schema$VideoStatus;
-
-      if (hasFutureScheduledDate) {
-        // Future scheduled date: upload as private with publishAt
-        // YouTube will automatically make it public at the scheduled time.
-        // `publishAt` always publishes publicly, so an explicit non-public
-        // choice has to drop the timer rather than silently override it.
-        const honoursTimer = requestedPrivacy === PostVisibility.PUBLIC;
-
-        statusConfig = honoursTimer
-          ? {
-              ...audienceConfig,
-              privacyStatus: PostVisibility.PRIVATE,
-              publishAt: new Date(post.scheduledDate).toISOString(),
-            }
-          : { ...audienceConfig, privacyStatus: requestedPrivacy };
-
-        this.loggerService.log(
-          honoursTimer
-            ? `Scheduling video for future publication: ${post.scheduledDate.toISOString()}`
-            : `Uploading video as ${requestedPrivacy}; YouTube's publish timer only supports public releases`,
-        );
-      } else {
-        privacyStatus = requestedPrivacy;
-        statusConfig = { ...audienceConfig, privacyStatus };
-      }
+      const statusConfig = this.buildStatusConfig(post, settings);
 
       // Sanitize HTML to plain text - YouTube doesn't support HTML markup
       const description = htmlToText(post.description);
@@ -219,6 +175,50 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
     } finally {
       mediaStream?.destroy();
     }
+  }
+
+  /**
+   * If scheduledDate is in the future, upload as PRIVATE with publishAt and
+   * YouTube publishes the video at that time.
+   */
+  private buildStatusConfig(
+    post: YoutubeUploadPostInput,
+    settings: ChannelTargetSettings,
+  ): youtube_v3.Schema$VideoStatus {
+    const hasFutureScheduledDate =
+      post.scheduledDate && new Date(post.scheduledDate) > new Date();
+
+    const requestedPrivacy = resolveYouTubeUploadVisibility(
+      post.visibility,
+      readChannelSettingString(settings, 'privacyStatus'),
+    );
+    const madeForKids = readChannelSettingBoolean(settings, 'madeForKids');
+    // `selfDeclaredMadeForKids` is only accepted alongside the `status` part,
+    // and YouTube rejects the field when it is absent rather than defaulting.
+    const audienceConfig =
+      madeForKids === undefined ? {} : { selfDeclaredMadeForKids: madeForKids };
+
+    if (!hasFutureScheduledDate) {
+      return { ...audienceConfig, privacyStatus: requestedPrivacy };
+    }
+
+    // `publishAt` always publishes publicly, so an explicit non-public
+    // choice has to drop the timer rather than silently override it.
+    const honoursTimer = requestedPrivacy === PostVisibility.PUBLIC;
+
+    this.loggerService.log(
+      honoursTimer
+        ? `Scheduling video for future publication: ${post.scheduledDate.toISOString()}`
+        : `Uploading video as ${requestedPrivacy}; YouTube's publish timer only supports public releases`,
+    );
+
+    return honoursTimer
+      ? {
+          ...audienceConfig,
+          privacyStatus: PostVisibility.PRIVATE,
+          publishAt: new Date(post.scheduledDate).toISOString(),
+        }
+      : { ...audienceConfig, privacyStatus: requestedPrivacy };
   }
 
   /**
