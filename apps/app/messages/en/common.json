@@ -1227,6 +1227,33 @@
     "untitledThread": "Untitled",
     "title": "Agent"
   },
+  "agentThreads": {
+    "allBrands": "All brands",
+    "back": "Back",
+    "brandFilter": "Filter by brand",
+    "empty": "No threads yet. Ask the master to start one.",
+    "groups": {
+      "needsYou": "Needs you",
+      "readyForReview": "Ready for review",
+      "recent": "Recent",
+      "working": "Working"
+    },
+    "loadFailed": "Failed to load this thread.",
+    "loading": "Loading threads",
+    "loadingMessages": "Loading messages",
+    "noMatches": "No threads match.",
+    "noMessages": "No messages yet.",
+    "openFull": "Open full page",
+    "roleAgent": "Agent",
+    "roleYou": "You",
+    "search": "Search threads",
+    "steer": "Steer",
+    "steerFailed": "Could not send. Try again.",
+    "steerLabel": "Steer this thread",
+    "steerPlaceholder": "Tell this thread what to change",
+    "steerSent": "Sent.",
+    "untitled": "Untitled"
+  },
   "contextSidebar": {
     "close": "Close details",
     "collapse": "Collapse details",

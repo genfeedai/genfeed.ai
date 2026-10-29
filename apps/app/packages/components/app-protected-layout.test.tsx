@@ -912,7 +912,7 @@ describe('AppProtectedLayout', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('hands the nav column to the conversation module on agent routes', () => {
+  it('has no Conversations panel on agent routes; the Threads panel lives beside the master', () => {
     mockPathname.value = '/agent/new';
 
     render(
@@ -921,34 +921,13 @@ describe('AppProtectedLayout', () => {
       </AppProtectedLayout>,
     );
 
-    // Conversations get the same two quick-action rows as every other
-    // surface; only the primary action differs. The column itself no longer
-    // carries a bare "+", so there is no `New agent thread` link.
     expect(
       screen.getByRole('button', { name: 'New Conversation' }),
     ).toBeInTheDocument();
     expect(screen.getByTestId('sidebar-search-trigger')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', { name: 'New agent thread' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Conversation header action' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'New Task' }),
-    ).not.toBeInTheDocument();
-
-    const resolveThreadHref = agentThreadListSpy.mock.calls.at(-1)?.[0]
-      ?.resolveThreadHref as
-      | ((thread: { brandId?: string | null; id: string }) => string)
-      | undefined;
-    expect(resolveThreadHref).toEqual(expect.any(Function));
-    expect(resolveThreadHref?.({ brandId: 'brand-123', id: 'thread-1' })).toBe(
-      '/org-123/brand-123/agent/thread-1',
-    );
-    expect(resolveThreadHref?.({ brandId: null, id: 'thread-2' })).toBe(
-      '/org-123/~/agent/thread-2',
-    );
+    expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
+    expect(screen.queryByText('Conversations')).not.toBeInTheDocument();
+    expect(agentThreadListSpy).not.toHaveBeenCalled();
   });
 
   it('keeps the global new-task shortcut available in the agent-first shell', () => {
@@ -1058,7 +1037,7 @@ describe('AppProtectedLayout', () => {
         topbarComponent: expect.any(Function),
       }),
     );
-    expect(await screen.findByTestId('agent-thread-list')).toBeInTheDocument();
+    expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
   });
 
@@ -1077,41 +1056,18 @@ describe('AppProtectedLayout', () => {
     expect(
       screen.queryByRole('link', { name: 'Back to Workspace' }),
     ).not.toBeInTheDocument();
-    // The column renders the thread list itself, with no "Conversations"
-    // title above it: the sidebar section already says where you are, so the
-    // header was redundant chrome.
-    expect(screen.getByTestId('agent-thread-list')).toBeInTheDocument();
+    // Threads live in the panel beside the master, not in the nav column.
+    expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
     expect(screen.queryByText('Conversations')).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Workspace' }),
     ).not.toBeInTheDocument();
-    expect(appSidebarSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        items: [],
-        renderBody: expect.any(Function),
-        showPrimaryItems: true,
-      }),
-    );
-    expect(appSidebarSpy.mock.calls.at(-1)?.[0].sectionLabel).toBeUndefined();
-  });
-
-  it('keeps conversation header actions inside the agent sidebar list (no parent lift)', () => {
-    mockPathname.value = '/agent/new';
-
-    render(
-      <AppProtectedLayout>
-        <div>Protected content</div>
-      </AppProtectedLayout>,
-    );
-
+    const sidebarProps = appSidebarSpy.mock.calls.at(-1)?.[0];
+    // No nav panel body: the agent scope is menu items only.
+    expect(sidebarProps.renderBody).toBeUndefined();
     expect(
-      screen.getByRole('button', { name: 'Conversation header action' }),
-    ).toBeInTheDocument();
-    // Must not surface via the legacy AppSidebar conversationActions slot —
-    // that lift recreated the nav panel and remounted the thread list.
-    expect(
-      screen.queryByTestId('conversation-actions-slot'),
-    ).not.toBeInTheDocument();
+      sidebarProps.items.map((item: { label: string }) => item.label),
+    ).toEqual(['New conversation', 'Runs', 'Outputs', 'Scheduled']);
   });
 
   it('marks the focused agent route as the Agent app', async () => {
@@ -1123,7 +1079,7 @@ describe('AppProtectedLayout', () => {
       </AppProtectedLayout>,
     );
 
-    expect(await screen.findByTestId('agent-thread-list')).toBeInTheDocument();
+    expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({

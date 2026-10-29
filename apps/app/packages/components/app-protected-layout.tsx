@@ -15,17 +15,7 @@ import {
 } from '@contexts/ui/breadcrumb-leaf-context';
 import { ContextSidebarProvider } from '@contexts/ui/context-sidebar-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import {
-  getBrandEntityId,
-  getBrandOrganizationSlug,
-} from '@contexts/user/brand-context/brand-context.helpers';
-import type { AgentThread, AgentThreadListProps } from '@genfeedai/agent';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
-import {
-  APP_ROUTES,
-  createBrandAppRoute,
-  createOrganizationAppRoute,
-} from '@genfeedai/contracts/constants';
 import type { AppContext } from '@genfeedai/contracts/interfaces';
 import type { SidebarNavPanel } from '@genfeedai/props/navigation/menu.props';
 import { useAgentThreadCommands } from '@hooks/commands/use-agent-thread-commands/use-agent-thread-commands';
@@ -41,11 +31,10 @@ import { ErrorBoundary } from '@ui/display/error-boundary/ErrorBoundary';
 import OnboardingGuard from '@ui/guards/onboarding/OnboardingGuard';
 import IngredientSidebarPanel from '@ui/ingredients/inspector/IngredientSidebarPanel';
 import AppLayout from '@ui/layouts/app/AppLayout';
-import Spinner from '@ui/primitives/spinner';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
+import { Suspense, useEffect, useMemo, useRef } from 'react';
 import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizationSync';
 import AppProtectedRail from '@/components/shell/AppProtectedRail';
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
@@ -60,7 +49,6 @@ import {
   captureWorkspaceShellError,
   captureWorkspaceShellPerformance,
 } from '@/lib/workspace-shell/workspace-shell-telemetry';
-import AgentSidebarContent from './AppProtectedLayoutAgentSidebar';
 import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
 import {
   extractAgentConversationId,
@@ -76,25 +64,6 @@ import {
   isProtectedWorkspaceRoute,
   useAppProtectedLayout,
 } from './useAppProtectedLayout';
-
-const LazyAgentThreadList = dynamic<AgentThreadListProps>(
-  () => import('@genfeedai/agent').then((mod) => mod.AgentThreadList),
-  {
-    // Mirror AgentThreadListEmptyState's loading spinner so the
-    // import-pending and data-loading phases render identically instead of
-    // flashing empty → spinner → list.
-    loading: () => (
-      <div
-        data-testid="agent-thread-list-loading"
-        className="flex items-center justify-center p-8"
-        aria-busy="true"
-      >
-        <Spinner className="size-4 text-primary" />
-      </div>
-    ),
-    ssr: false,
-  },
-);
 
 const LazyUniversalWorkspaceShell = dynamic(
   () => import('@/components/workspace-shell/UniversalWorkspaceShell'),
@@ -161,13 +130,8 @@ function AppLayoutWithDynamicMenu({
   initialBootstrap,
 }: AppLayoutWithDynamicMenuProps) {
   const translate = useTranslations('pages.organizationLanding');
-  const {
-    brandId,
-    brands,
-    organizationId,
-    selectedBrand,
-    isBrandScopeResolved,
-  } = useBrand();
+  const { brands, organizationId, selectedBrand, isBrandScopeResolved } =
+    useBrand();
   const sidebarPathname = usePathname();
 
   const {
@@ -238,65 +202,6 @@ function AppLayoutWithDynamicMenu({
     });
   }, [isWorkspaceShellMounted, workspaceShellRoute?.telemetryClass]);
 
-  const resolveAgentThreadHref = useCallback(
-    (thread: AgentThread) => {
-      const ownerBrand = thread.brandId
-        ? brands.find((brand) => getBrandEntityId(brand) === thread.brandId)
-        : undefined;
-      const ownerOrgSlug = getBrandOrganizationSlug(ownerBrand) || orgSlug;
-
-      if (!ownerOrgSlug) {
-        return `${APP_ROUTES.AGENT.ROOT}/${thread.id}`;
-      }
-
-      return ownerBrand?.slug
-        ? createBrandAppRoute(
-            ownerOrgSlug,
-            ownerBrand.slug,
-            `${APP_ROUTES.AGENT.ROOT}/${thread.id}`,
-          )
-        : createOrganizationAppRoute(
-            ownerOrgSlug,
-            `${APP_ROUTES.AGENT.ROOT}/${thread.id}`,
-          );
-    },
-    [brands, orgSlug],
-  );
-
-  const renderConversations = useCallback(
-    () =>
-      agentApiService ? (
-        <LazyAgentThreadList
-          apiService={agentApiService}
-          brandId={brandId || null}
-          onNavigate={handleNavigate}
-          resolveThreadHref={resolveAgentThreadHref}
-        />
-      ) : null,
-    [agentApiService, brandId, handleNavigate, resolveAgentThreadHref],
-  );
-
-  // Keep nav-panel *identity* stable across renders. The panel object is
-  // handed into menuComponent; recreating it remounts the sidebar body.
-  // Closures read latest callbacks via refs so deps stay route-only.
-  const renderConversationsRef = useRef(renderConversations);
-  renderConversationsRef.current = renderConversations;
-  const conversationNavPanel = useMemo<SidebarNavPanel | null>(() => {
-    if (!isConversationRoute) {
-      return null;
-    }
-
-    // Stable identity for the factory passed into AgentSidebarContent — if
-    // this were an inline arrow recreated inside render(), every shell
-    // re-render would look like a prop change on the sidebar body.
-    const stableRenderConversations = () => renderConversationsRef.current();
-
-    return {
-      render: () => (
-        <AgentSidebarContent renderConversations={stableRenderConversations} />
-      ),
-    };
-  }, [isConversationRoute]);
   // Render Library nav in-shell (not via portal). The empty-portal pattern left
   // the column blank when portalTarget never attached (refresh, race, layout
   // order). LibrarySidebarNav is self-contained and does not need the page tree.
@@ -328,8 +233,7 @@ function AppLayoutWithDynamicMenu({
         : null,
     [isMessagesInboxRoute],
   );
-  const activeNavPanel =
-    conversationNavPanel ?? libraryNavPanel ?? messagesNavPanel;
+  const activeNavPanel = libraryNavPanel ?? messagesNavPanel;
 
   const isAppsRoute = /\/~\/apps(\/|$)/.test(sidebarPathname ?? '');
   const menuComponent = useMemo(() => {
@@ -362,6 +266,7 @@ function AppLayoutWithDynamicMenu({
         isAutomationRoute={isAutomationRoute}
         settingsScope={settingsScope}
         adminMenuItems={adminMenuItems}
+        agentMenuItems={agentMenuItems}
         analyticsMenuItems={analyticsMenuItems}
         libraryMenuItems={libraryMenuItems}
         menuItems={menuItems}
@@ -378,6 +283,7 @@ function AppLayoutWithDynamicMenu({
     );
   }, [
     adminMenuItems,
+    agentMenuItems,
     analyticsMenuItems,
     currentApp,
     activeNavPanel,

@@ -51,6 +51,7 @@ type Props = {
   /** Settings sidebar scope — brand routes omit the redundant "Settings" header. */
   settingsScope?: SettingsScope;
   adminMenuItems: MenuItemConfig[];
+  agentMenuItems: MenuItemConfig[];
   analyticsMenuItems: MenuItemConfig[];
   libraryMenuItems: MenuItemConfig[];
   menuItems: MenuItemConfig[];
@@ -89,6 +90,7 @@ export default function AppProtectedLayoutSidebar({
   isAutomationRoute,
   settingsScope = SettingsSurface.PERSONAL,
   adminMenuItems,
+  agentMenuItems,
   analyticsMenuItems,
   libraryMenuItems,
   menuItems,
@@ -163,7 +165,7 @@ export default function AppProtectedLayoutSidebar({
       {
         active: isConversationRoute,
         currentApp,
-        items: [],
+        items: agentMenuItems,
         sectionLabel: translate('workspace'),
       },
       {

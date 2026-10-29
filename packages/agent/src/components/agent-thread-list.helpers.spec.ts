@@ -2,13 +2,14 @@ import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { selectActiveRun } from '@genfeedai/agent/stores/agent-chat.store.run';
 import { buildThreadSummaryFromSnapshot } from '@genfeedai/agent/utils/agent-thread-snapshot.util';
-import { AgentThreadStatus } from '@genfeedai/contracts';
+import { AgentThreadKind, AgentThreadStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   getThreadStatusKey,
   getThreadStatusMeta,
   groupAgentThreads,
   groupAgentThreadsByBrand,
+  groupChildThreads,
   keepNewerRunStatus,
   ORGANIZATION_THREAD_GROUP_LABEL,
   resolveThreadListPreview,
@@ -543,5 +544,57 @@ describe('keepNewerRunStatus', () => {
       runtimeState: 'awaiting_input',
       statusSequence: 6,
     });
+  });
+});
+
+describe('groupChildThreads', () => {
+  const threads = [
+    createThread('master', { kind: AgentThreadKind.MASTER }),
+    createThread('needs-input', { pendingInputCount: 1 }),
+    createThread('working', { runStatus: 'running' }),
+    createThread('ready', { attentionState: 'updated' }),
+    createThread('old', { lastAssistantPreview: 'Done long ago' }),
+    createThread('other-brand', {
+      attentionState: 'updated',
+      brandId: 'brand-2',
+      brandLabel: 'Second brand',
+    }),
+  ];
+  const ids = (group: AgentThread[]) => group.map((thread) => thread.id);
+
+  it('hides the master and sorts the rest by what needs the operator', () => {
+    const groups = groupChildThreads(threads, { searchQuery: '' });
+
+    expect(ids(groups.needsYou)).toEqual(['needs-input']);
+    expect(ids(groups.working)).toEqual(['working']);
+    expect(ids(groups.readyForReview).sort()).toEqual(['other-brand', 'ready']);
+    expect(ids(groups.recent)).toEqual(['old']);
+  });
+
+  it('narrows to one brand and to a search', () => {
+    expect(
+      ids(
+        groupChildThreads(threads, { brandId: 'brand-2', searchQuery: '' })
+          .readyForReview,
+      ),
+    ).toEqual(['other-brand']);
+    expect(
+      ids(groupChildThreads(threads, { searchQuery: 'long ago' }).recent),
+    ).toEqual(['old']);
+  });
+
+  it('keeps waiting on the operator above a finished thread', () => {
+    const groups = groupChildThreads(
+      [
+        createThread('both', {
+          attentionState: 'updated',
+          pendingInputCount: 2,
+        }),
+      ],
+      { searchQuery: '' },
+    );
+
+    expect(ids(groups.needsYou)).toEqual(['both']);
+    expect(groups.readyForReview).toEqual([]);
   });
 });

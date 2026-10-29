@@ -2,6 +2,7 @@ import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import { sortThreads } from '@genfeedai/agent/utils/sort-agent-threads.util';
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
+import { AgentThreadKind } from '@genfeedai/contracts';
 import type { StatusKey } from '@genfeedai/ui';
 
 export { getErrorMessage } from '@genfeedai/utils/error/error-handler.util';
@@ -189,6 +190,62 @@ export function groupAgentThreads(
       continue;
     }
     groups.recent.push(thread);
+  }
+
+  return groups;
+}
+
+export interface ChildThreadGroups {
+  needsYou: AgentThread[];
+  readyForReview: AgentThread[];
+  recent: AgentThread[];
+  working: AgentThread[];
+}
+
+/**
+ * The master's Threads panel: every thread except the master itself, sorted
+ * into what needs the operator first. "Ready for review" is a thread that
+ * finished with output nobody has opened yet (`attentionState: 'updated'`).
+ * `brandId` narrows to one brand; a thread with no brand shows under none.
+ */
+export function groupChildThreads(
+  threads: AgentThread[],
+  options: {
+    brandId?: string | null;
+    searchQuery: string;
+    threadUiBusyById?: Record<string, boolean>;
+  },
+): ChildThreadGroups {
+  const groups: ChildThreadGroups = {
+    needsYou: [],
+    readyForReview: [],
+    recent: [],
+    working: [],
+  };
+
+  for (const thread of sortThreads(threads)) {
+    if (thread.kind === AgentThreadKind.MASTER) {
+      continue;
+    }
+    if (options.brandId && thread.brandId !== options.brandId) {
+      continue;
+    }
+    if (!matchesThreadSearch(thread, options.searchQuery)) {
+      continue;
+    }
+
+    const activity = resolveThreadActivity(thread, {
+      isLocallyBusy: options.threadUiBusyById?.[thread.id] === true,
+    });
+    if (activity === 'needs-you') {
+      groups.needsYou.push(thread);
+    } else if (activity === 'working') {
+      groups.working.push(thread);
+    } else if (thread.attentionState === 'updated') {
+      groups.readyForReview.push(thread);
+    } else {
+      groups.recent.push(thread);
+    }
   }
 
   return groups;

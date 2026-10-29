@@ -107,6 +107,7 @@ import {
 import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
 import AgentDock from './AgentDock';
 import AgentDockHistory from './AgentDockHistory';
+import AgentThreadsPanel from './AgentThreadsPanel';
 import { useAgentDockThreads } from './use-agent-dock-threads';
 import { useIsCompactViewport } from './use-compact-viewport';
 import { useConversationScopeControls } from './use-conversation-scope-controls';
@@ -1189,11 +1190,11 @@ function UniversalWorkspaceShellContent({
 
   // What `AgentOutputShell` renders on a split page: the same conversation,
   // thread list and context as the dock, hosted in the page's own columns.
-  const selectDockThreadFromPage = useCallback(
+  const openFullThreadFromPage = useCallback(
     (threadId: string) => {
-      void selectDockThread(threadId);
+      push(orgHref(`${APP_ROUTES.AGENT.ROOT}/${threadId}`));
     },
-    [selectDockThread],
+    [orgHref, push],
   );
   const agentOutputReferenceCount =
     (surfaceReferences ?? resolvedWorkspaceSurfaceAdapter?.artifactReferences)
@@ -1217,11 +1218,11 @@ function UniversalWorkspaceShellContent({
       onNewThread: dockThreads.startThread,
       onOpenFullPage: handleOpenFullConversation,
       threadsPanel: (
-        <AgentDockHistory
-          activeThreadId={dockThreads.activeThreadId}
-          isThreadListLoading={dockThreads.isThreadListLoading}
-          onSelectThread={selectDockThreadFromPage}
-          threads={dockThreads.threads}
+        <AgentThreadsPanel
+          apiService={agentApiService}
+          isLoading={dockThreads.isThreadListLoading}
+          onOpenFullThread={openFullThreadFromPage}
+          threads={threads}
         />
       ),
     };
@@ -1231,14 +1232,13 @@ function UniversalWorkspaceShellContent({
     agentOutputReferenceCount,
     contextSidebar,
     conversationScope.contextLabel,
-    dockThreads.activeThreadId,
     dockThreads.isThreadListLoading,
     dockThreads.startThread,
-    dockThreads.threads,
     effectiveShellContextLabel,
     handleOpenFullConversation,
     isAgentOutputSurface,
-    selectDockThreadFromPage,
+    openFullThreadFromPage,
+    threads,
   ]);
 
   return (
