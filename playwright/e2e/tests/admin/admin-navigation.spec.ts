@@ -2,8 +2,8 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { expect, test } from '../../fixtures/auth.fixture';
 
 /**
- * Admin rail and sidebar: one rail icon per category, the superadmin section
- * (Platform) apart at the bottom, and a sidebar grouped under headers.
+ * Admin rail and sidebar: one rail icon per category (Platform included), the
+ * back-to-app button at the bottom, and a sidebar grouped under headers.
  */
 test.describe('Admin navigation', () => {
   test.setTimeout(90_000);
@@ -30,7 +30,7 @@ test.describe('Admin navigation', () => {
     });
   }
 
-  test('sets Platform apart from the day-to-day categories', async ({
+  test('keeps Platform with the other categories and leaves the app from the bottom', async ({
     adminPage,
   }) => {
     await adminPage.goto(APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD, {
@@ -41,11 +41,11 @@ test.describe('Admin navigation', () => {
       adminPage
         .getByTestId('app-rail-admin-categories')
         .getByTestId('app-rail-item-admin-platform'),
-    ).toHaveCount(0, { timeout: 60_000 });
+    ).toBeVisible({ timeout: 60_000 });
     await expect(
       adminPage
-        .getByTestId('app-rail-admin-platform')
-        .getByTestId('app-rail-item-admin-platform'),
+        .getByTestId('app-rail-bottom')
+        .getByTestId('app-rail-item-admin-back'),
     ).toBeVisible();
   });
 

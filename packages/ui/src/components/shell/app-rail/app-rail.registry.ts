@@ -238,9 +238,10 @@ export const ADMIN_RAIL_APP: AppRailItemConfig = {
 };
 
 /**
- * Admin chrome leads with this back button instead of the Workspace home
- * icon: it leaves Admin for the workspace the member came from. It carries no
- * `activePathRoots`, so it is never the active rail item.
+ * Admin chrome ends with this back button, in the bottom slot where the app
+ * rail shows the Admin entry: it leaves Admin for the workspace the member
+ * came from. It carries no `activePathRoots`, so it is never the active rail
+ * item.
  */
 export const ADMIN_RAIL_BACK_APP: AppRailItemConfig = {
   activePathRoots: [],
@@ -256,9 +257,7 @@ export const ADMIN_RAIL_BACK_APP: AppRailItemConfig = {
  * Admin chrome swaps the app loop for these: one icon per admin category, each
  * opening that category's pages in the sidebar (`category` on the matching
  * `ADMIN_MENU_ITEMS`). The longest root wins, so Organizations (an
- * `/admin/overview/analytics/...` URL) still lands in Customers. Categories
- * with `isAdminSecondary` form the superadmin section: below a divider, at the
- * bottom of the rail.
+ * `/admin/overview/analytics/...` URL) still lands in Customers.
  */
 export const ADMIN_RAIL_CATEGORIES: readonly AppRailItemConfig[] = [
   {
@@ -335,7 +334,6 @@ export const ADMIN_RAIL_CATEGORIES: readonly AppRailItemConfig[] = [
     group: 'admin-category',
     icon: SlidersHorizontal,
     id: 'admin-platform',
-    isAdminSecondary: true,
     label: 'adminPlatform.label',
     route: () => APP_ROUTES.ADMIN.SETTINGS.BILLING,
   },

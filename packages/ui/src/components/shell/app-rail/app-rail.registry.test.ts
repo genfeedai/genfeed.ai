@@ -237,14 +237,6 @@ describe('app rail registry', () => {
     ).toBe('admin-platform');
   });
 
-  it('sets only the Platform category apart as the superadmin section', () => {
-    expect(
-      ADMIN_RAIL_CATEGORIES.filter((category) => category.isAdminSecondary).map(
-        (category) => category.id,
-      ),
-    ).toEqual(['admin-platform']);
-  });
-
   describe('getRailAppRoute', () => {
     it('opens a rail app in a brand, or in the organization without one', () => {
       expect(getRailAppRoute('workspace', 'acme', 'moonrise')).toBe(

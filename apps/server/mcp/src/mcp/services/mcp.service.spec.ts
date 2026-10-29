@@ -129,9 +129,9 @@ describe('MCPService', () => {
       const example = service.getMcpExample();
 
       expect(example.capabilities.tools).toBeDefined();
-      expect(example.capabilities.tools.listChanged).toBe(true);
+      expect(example.capabilities.tools.listChanged).toBe(false);
       expect(example.capabilities.resources).toBeDefined();
-      expect(example.capabilities.resources.listChanged).toBe(true);
+      expect(example.capabilities.resources.listChanged).toBe(false);
     });
   });
 });

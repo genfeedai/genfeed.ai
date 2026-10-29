@@ -32,7 +32,7 @@ vi.mock('@ui/ingredients/list/media-grid/IngredientsMediaGrid', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/admin/automation/trainings/training-123/images',
+  usePathname: () => '/admin/automation/trainings/training-123',
   useRouter: () => ({ replace: vi.fn() }),
   useSearchParams: () => mocks.searchParams,
 }));

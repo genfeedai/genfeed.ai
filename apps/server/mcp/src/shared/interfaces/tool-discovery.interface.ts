@@ -10,6 +10,8 @@ import type { McpToolOutput } from '@genfeedai/actions';
  */
 export interface ToolDiscoverySource {
   getDiscoverableTools(): McpToolOutput[];
+  /** Actual role- and profile-filtered list served by this connection. */
+  getTools?(): McpToolOutput[];
   /**
    * Requested toolsets with no tools on this deploy. Omitted by callers that
    * have no request selection (the warning is then absent).

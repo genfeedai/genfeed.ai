@@ -11,6 +11,7 @@ import { ConfigService } from '@mcp/config/config.service';
 import {
   buildClaudeMcpServerInstructions,
   getMcpServerInfo,
+  MCP_SERVER_CAPABILITIES,
   MCP_SERVER_INSTRUCTIONS,
 } from '@mcp/mcp/server-identity';
 import { getPublicMcpUrl, getPublicWebsiteUrl } from '@mcp/mcp/setup-page';
@@ -154,10 +155,7 @@ export class StreamableHttpService {
       accessMode,
     );
     const server = new Server(serverInfo, {
-      capabilities: {
-        resources: {},
-        tools: {},
-      },
+      capabilities: MCP_SERVER_CAPABILITIES,
       instructions:
         accessMode === 'claude'
           ? buildClaudeMcpServerInstructions()
