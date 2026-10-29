@@ -179,8 +179,8 @@ describe('ServiceLandingPage', () => {
         screen.queryByText(/scoped on a call|before booking|retainer/i),
       ).not.toBeInTheDocument();
       expect(body.getByText(/Connect Codex, Claude/)).toBeInTheDocument();
-      expect(body.getByText('01 / Connect')).toBeInTheDocument();
-      expect(body.getByText('03 / Review')).toBeInTheDocument();
+      expect(body.getByText('Connect')).toBeInTheDocument();
+      expect(body.getByText('Review')).toBeInTheDocument();
       expect(body.getByText('Approve before publishing')).toBeInTheDocument();
     },
   );

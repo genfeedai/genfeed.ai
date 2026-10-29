@@ -355,11 +355,7 @@ export default function AboutContent() {
           />
 
           <NeuralGrid columns={2}>
-            <NeuralGridItem
-              title={`${FOUNDER.name}, founder`}
-              tierLabel="@VincentShipsIt"
-              padding="lg"
-            >
+            <NeuralGridItem title={`${FOUNDER.name}, founder`} padding="lg">
               <p className="text-sm leading-relaxed text-foreground/65">
                 Genfeed is a one-person company. {FOUNDER.name} founded it in{' '}
                 {FOUNDED_YEAR} and builds it remotely and in public, working

@@ -169,9 +169,6 @@ export default function DesktopContent({
             <NeuralGridItem
               icon={Apple}
               title="macOS"
-              tierLabel={
-                hasMacBuild ? `Version ${version}` : 'Not yet released'
-              }
               padding="lg"
               className={cn(
                 detectedOs === DesktopOs.MAC_OS && 'bg-[var(--gen-accent-bg)]',
@@ -213,7 +210,6 @@ export default function DesktopContent({
             <NeuralGridItem
               icon={Monitor}
               title="Windows"
-              tierLabel="Coming soon"
               padding="lg"
               className={cn(isWindows && 'bg-[var(--gen-accent-bg)]')}
             >
@@ -261,14 +257,11 @@ export default function DesktopContent({
             {INSTALL_STEPS.map((item, index) => (
               <NeuralGridItem
                 key={item.step}
-                tierLabel={`0${index + 1} / ${item.step}`}
                 padding="lg"
+                title={item.step}
+                description={item.description}
                 className={cn(index === 0 && 'bg-foreground/[0.02]')}
-              >
-                <p className="text-sm leading-relaxed text-foreground/60">
-                  {item.description}
-                </p>
-              </NeuralGridItem>
+              />
             ))}
           </NeuralGrid>
         </WebSection>
@@ -280,12 +273,7 @@ export default function DesktopContent({
           />
 
           <NeuralGrid columns={2}>
-            <NeuralGridItem
-              icon={Cpu}
-              title="Desktop app"
-              tierLabel="macOS"
-              padding="lg"
-            >
+            <NeuralGridItem icon={Cpu} title="Desktop app" padding="lg">
               <ul className="space-y-3">
                 {[
                   'Local workspace that works offline',
@@ -306,7 +294,6 @@ export default function DesktopContent({
             <NeuralGridItem
               icon={Monitor}
               title="Web app"
-              tierLabel="Every platform"
               padding="lg"
               className="bg-[var(--gen-accent-bg)]"
             >

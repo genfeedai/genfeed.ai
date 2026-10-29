@@ -108,11 +108,10 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
               }
               className="gsap-grid"
             >
-              {category.skills.map((skill, index) => (
+              {category.skills.map((skill) => (
                 <NeuralGridItem
                   key={skill.slug}
                   className="gsap-card"
-                  tierLabel={`${String(index + 1).padStart(2, '0')} / ${category.label}`}
                   icon={skill.icon}
                   title={skill.name}
                   description={skill.description}
@@ -151,18 +150,15 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
               }
               className="gsap-grid"
             >
-              {registry.skills.map(
-                (skill: SkillRegistryEntry, index: number) => (
-                  <NeuralGridItem
-                    key={skill.slug}
-                    className="gsap-card"
-                    padding="lg"
-                    tierLabel={`${String(index + 1).padStart(2, '0')} / ${skill.category}`}
-                    title={skill.name}
-                    description={skill.description}
-                  />
-                ),
-              )}
+              {registry.skills.map((skill: SkillRegistryEntry) => (
+                <NeuralGridItem
+                  key={skill.slug}
+                  className="gsap-card"
+                  padding="lg"
+                  title={skill.name}
+                  description={skill.description}
+                />
+              ))}
             </NeuralGrid>
           </WebSection>
         )}

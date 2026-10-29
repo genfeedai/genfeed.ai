@@ -58,8 +58,10 @@ export default function ProofTestimonials({
             key={testimonial.id}
             className="flex flex-col gap-5"
             padding="lg"
-            tierLabel={testimonial.metricLabel}
           >
+            <p className="text-sm font-semibold text-foreground/70">
+              {testimonial.metricLabel}
+            </p>
             <p className="text-lg font-medium leading-8 text-foreground">
               &ldquo;{testimonial.quote}&rdquo;
             </p>

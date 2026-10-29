@@ -260,12 +260,7 @@ export default function SelfHostedContent() {
           />
 
           <NeuralGrid columns={2}>
-            <NeuralGridItem
-              icon={Terminal}
-              title="Self-host"
-              tierLabel="Free / open source"
-              padding="lg"
-            >
+            <NeuralGridItem icon={Terminal} title="Self-host" padding="lg">
               <ul className="space-y-3">
                 {[
                   'Run it on your own infrastructure',
@@ -287,7 +282,6 @@ export default function SelfHostedContent() {
             <NeuralGridItem
               icon={Cloud}
               title="Managed cloud"
-              tierLabel="Free to start"
               padding="lg"
               className="bg-[var(--gen-accent-bg)]"
             >
