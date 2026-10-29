@@ -3,6 +3,7 @@ import { getToolsForRole } from '@genfeedai/actions';
 import { deriveClaudeMcpResourceIdentifier } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import * as appMetadata from '@mcp/config/app-metadata.json';
 import { MCP_RESOURCES } from '@mcp/mcp/resource-catalog';
+import { MCP_SERVER_CAPABILITIES } from '@mcp/mcp/server-identity';
 import { getPublicMcpUrl } from '@mcp/mcp/setup-page';
 import type {
   McpConfiguration,
@@ -50,14 +51,7 @@ export class MCPService {
     const publicTools = getToolsForRole('mcp', 'user');
 
     return {
-      capabilities: {
-        resources: {
-          listChanged: true,
-        },
-        tools: {
-          listChanged: true,
-        },
-      },
+      capabilities: MCP_SERVER_CAPABILITIES,
       description: appMetadata.description,
       installation: {
         clientExamples: {

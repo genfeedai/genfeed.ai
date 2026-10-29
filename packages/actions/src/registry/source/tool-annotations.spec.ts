@@ -488,6 +488,7 @@ const FROZEN_MCP_PRESENTATIONS = [
   ],
   ['create_workflow', 'Create Workflow', false, true, false, false],
   ['duplicate_workflow', 'Duplicate Workflow', false, true, false, false],
+  ['edit_clip', 'Edit Clip', false, true, false, false],
   ['enhance_prompt', 'Enhance Prompt', false, false, false, true],
   ['execute_workflow', 'Execute Workflow', false, true, false, true],
   ['export_skill', 'Export Skill', true, false, true, false],
@@ -546,6 +547,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     true,
     false,
   ],
+  ['get_clip_context', 'Get Clip Context', true, false, true, false],
   ['get_clipper_project', 'Get Clipper Project', false, true, true, true],
   [
     'get_connection_status',
@@ -1047,7 +1049,7 @@ describe('MCP tool annotations', () => {
         tool?.annotations?.openWorldHint,
       ]).toEqual(row);
     }
-    expect(rows).toHaveLength(149);
+    expect(rows).toHaveLength(151);
     expect(rows.map((row) => row[0])).toEqual(expected.map((row) => row[0]));
     expect(rows).toEqual(expected);
   });

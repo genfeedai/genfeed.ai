@@ -5,6 +5,11 @@ import { MCP_BRAND_ICON_FILES } from './brand-icons';
 export const MCP_SERVER_NAME = 'genfeed-mcp-server';
 export const MCP_SERVER_TITLE = 'Genfeed';
 export const MCP_SERVER_VERSION = '1.0.0';
+// The stateless transport has no subscription channel for change notifications.
+export const MCP_SERVER_CAPABILITIES = {
+  resources: { listChanged: false },
+  tools: { listChanged: false },
+};
 export const MCP_SERVER_DESCRIPTION =
   'Create, review, schedule, and publish on-brand posts, images, videos, and articles with Genfeed.';
 
@@ -17,6 +22,7 @@ export const MCP_SERVER_INSTRUCTIONS = [
   'Before generate.model or transform_media.model, call get_generation_options and pass a returned models key. Omit generate.model to let the router choose. Do not invent model aliases.',
   'create_post saves a draft for review. Never publish or schedule a post unless the user explicitly asks for it.',
   'Call find_tools when a request needs a capability that is not in the current tool list.',
+  'Discovery does not load tools into the client. If a tool is listed by the connection but missing in the client, refresh its MCP tool list or reconnect to the same server URL. Do not reinstall or broaden permissions to repair a stale tool list.',
 ].join(' ');
 
 export function buildClaudeMcpServerInstructions(): string {

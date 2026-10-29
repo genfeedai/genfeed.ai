@@ -84,6 +84,8 @@ describe('ToolRegistryService.classify', () => {
     // Removed in favour of get_job_status: no executor claims it any more.
     ['get_video_status', 'unknown'],
     ['list_assets', 'agent-executor'],
+    ['get_clip_context', 'agent-executor'],
+    ['edit_clip', 'agent-executor'],
     ['get_account', 'agent-executor'],
     ['get_brands', 'agent-executor'],
     ['get_posts', 'agent-executor'],
