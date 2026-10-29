@@ -1,6 +1,7 @@
 import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
 import type { EditorLayoutProps } from '@props/studio/editor-layout.props';
 import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
+import { useTranslations } from 'next-intl';
 import EditorInspector from './EditorInspector';
 import EditorLockedBanner from './EditorLockedBanner';
 import EditorOutputPane from './EditorOutputPane';
@@ -46,6 +47,8 @@ export default function EditorLayout({
   onFrameChange,
   onPlayingChange,
 }: EditorLayoutProps) {
+  const translate = useTranslations('pages.studioEditor');
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
       <EditorToolbar
@@ -114,7 +117,7 @@ export default function EditorLayout({
           id: selectedClipId ?? project.id,
           kind: 'record',
           origin: selectedClipId ? 'user' : 'automatic',
-          title: 'Inspector',
+          title: translate('inspector'),
         }}
       >
         <EditorInspector
