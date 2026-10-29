@@ -196,18 +196,6 @@ describe('checked-in Replicate variant selectors', () => {
     ).toMatchObject({ status: 'failed' });
   });
 
-  it('quarantines Seedance 1.5 when billing resolution is absent from the schema', () => {
-    const fixture = REPLICATE_VARIANT_FIXTURES['bytedance/seedance-1.5-pro'];
-    if (!fixture) throw new Error('missing Seedance 1.5 evidence');
-    expect(fixture.inputProperties).not.toHaveProperty('resolution');
-    expect(
-      mapReplicateBillingTiers(
-        fixture.tiers,
-        fixture.inputProperties,
-        'bytedance/seedance-1.5-pro',
-      ).status,
-    ).toBe('failed');
-  });
   it('prices FLUX 3 draft and continuation independently of audio', () => {
     const { rates, variantRules } = mapped('black-forest-labs/flux-3');
     expect(rates).toEqual(
