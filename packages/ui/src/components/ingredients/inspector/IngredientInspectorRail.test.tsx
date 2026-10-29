@@ -381,7 +381,9 @@ describe('IngredientInspectorRail', () => {
     const details = screen.getByRole('checkbox', { name: 'details-action' });
     expect(details).toBeEnabled();
     fireEvent.click(details);
-    expect(push).toHaveBeenCalledWith('/admin/content/ingredients/images/asset-1');
+    expect(push).toHaveBeenCalledWith(
+      '/admin/content/ingredients/images/asset-1',
+    );
   });
 
   it('shares the asset and reuses its prompt in a new Agent thread', () => {

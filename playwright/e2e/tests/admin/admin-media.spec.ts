@@ -28,7 +28,10 @@ test.describe('Admin Media', () => {
   });
 
   test('image detail responds to clicks', async ({ adminPage }) => {
-    await assertRouteRenders(adminPage, `${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/images/mock-id`);
+    await assertRouteRenders(
+      adminPage,
+      `${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/images/mock-id`,
+    );
     await tryClick(adminPage, 'button');
     await expect(adminPage.locator('body')).toBeVisible();
   });

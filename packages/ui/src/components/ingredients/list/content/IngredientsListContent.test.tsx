@@ -907,7 +907,10 @@ describe('IngredientsListContent inspector handoff', () => {
     setSelectedAsset.mockClear();
 
     const name = screen.getByRole('link', { name: 'Avatar Source' });
-    expect(name).toHaveAttribute('href', '/admin/content/ingredients/images/avatar-source-1');
+    expect(name).toHaveAttribute(
+      'href',
+      '/admin/content/ingredients/images/avatar-source-1',
+    );
     fireEvent.click(name);
     expect(setSelectedAsset).not.toHaveBeenCalled();
   });

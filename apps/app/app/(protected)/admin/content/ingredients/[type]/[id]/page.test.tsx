@@ -10,7 +10,10 @@ assertSourceHasExport(
 describe('synchronous route shell', () => {
   it('renders the client route without awaiting URL props', () => {
     const source = readFileSync(
-      join(process.cwd(), 'app/(protected)/admin/content/ingredients/[type]/[id]/page.tsx'),
+      join(
+        process.cwd(),
+        'app/(protected)/admin/content/ingredients/[type]/[id]/page.tsx',
+      ),
       'utf8',
     );
     expect(source).toMatch(/export default function/);
