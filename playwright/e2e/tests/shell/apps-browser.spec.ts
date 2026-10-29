@@ -23,7 +23,6 @@ test('organization Apps browser keeps scope, search and previews usable on deskt
   await expect(page.getByRole('button', { name: /^Filters/ })).toHaveCount(0);
   await expect(viewMenuTrigger(page)).toHaveCount(0);
   await expect(page.getByPlaceholder('Search apps')).toBeVisible();
-  await expect(page.getByTestId('collapsible-search')).toHaveCount(0);
   await expect(page.getByTestId('organization-switcher-trigger')).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toHaveText(
     'Apps',

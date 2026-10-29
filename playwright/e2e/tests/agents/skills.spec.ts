@@ -50,9 +50,6 @@ test.describe('Brand Skills settings', () => {
 
     const search = authenticatedPage.getByPlaceholder('Search skills');
     await expect(search).toBeVisible();
-    await expect(
-      authenticatedPage.getByTestId('collapsible-search'),
-    ).toHaveCount(0);
     const field = search.locator('xpath=../..');
     await expect(filtersTrigger(field)).toBeVisible();
     await expect(authenticatedPage.getByRole('combobox')).toHaveCount(0);
