@@ -1235,6 +1235,7 @@ describe('VideosController', () => {
         undefined,
         undefined,
         undefined,
+        true,
       );
     });
 
@@ -1265,6 +1266,7 @@ describe('VideosController', () => {
         10,
         1920,
         undefined,
+        true,
       );
       expect(result).toBeInstanceOf(StreamableFile);
     });
@@ -1285,6 +1287,7 @@ describe('VideosController', () => {
         2,
         1080,
         'x'.repeat(120),
+        true,
       );
     });
 
@@ -1301,6 +1304,7 @@ describe('VideosController', () => {
         undefined,
         undefined,
         undefined,
+        true,
       );
       expect(result).toBeInstanceOf(StreamableFile);
     });

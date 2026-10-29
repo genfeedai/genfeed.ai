@@ -132,6 +132,34 @@ describe('VideoThumbnailService', () => {
     );
   });
 
+  it('stores an untitled cover preview under its own key', async () => {
+    await service.generateThumbnail(
+      'https://example.com/video.mp4',
+      'ingredient-id',
+      4,
+      1080,
+      undefined,
+      true,
+    );
+
+    expect(s3Service.generateS3Key).toHaveBeenCalledWith(
+      'thumbnails',
+      expect.stringMatching(/^[a-f0-9-]{36}$/),
+    );
+  });
+
+  it('keeps the ingredient id key for a plain still', async () => {
+    await service.generateThumbnail(
+      'https://example.com/video.mp4',
+      'ingredient-id',
+    );
+
+    expect(s3Service.generateS3Key).toHaveBeenCalledWith(
+      'thumbnails',
+      'ingredient-id',
+    );
+  });
+
   it('should be defined', () => {
     expect(service).toBeDefined();
   });

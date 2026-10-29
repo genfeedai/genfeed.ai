@@ -308,6 +308,21 @@ describe('YouTube publishing settings', () => {
       );
     });
 
+    it('drops the preview and its download once the title or frame changes', async () => {
+      render(<YouTubePublishingSettings post={postWithVideo} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Preview cover' }));
+      expect(await screen.findByAltText('Cover preview')).toBeInTheDocument();
+
+      fireEvent.change(screen.getByLabelText('Cover title'), {
+        target: { value: 'New title' },
+      });
+
+      expect(screen.queryByAltText('Cover preview')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Download cover' }),
+      ).not.toBeInTheDocument();
+    });
+
     it('reports a cover that could not be rendered', async () => {
       getCover.mockRejectedValueOnce(new Error('render failed'));
       render(<YouTubePublishingSettings post={postWithVideo} />);

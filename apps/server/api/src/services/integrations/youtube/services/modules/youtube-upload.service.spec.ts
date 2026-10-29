@@ -204,6 +204,7 @@ describe('YoutubeUploadService', () => {
         1,
         1080,
         undefined,
+        true,
       );
       expect(mockThumbnailsSet).toHaveBeenCalledTimes(1);
       const params = mockThumbnailsSet.mock.calls[0][0];
@@ -229,6 +230,7 @@ describe('YoutubeUploadService', () => {
         4.5,
         1080,
         'Ship the studio',
+        true,
       );
     });
 
@@ -243,6 +245,7 @@ describe('YoutubeUploadService', () => {
         1,
         1080,
         undefined,
+        true,
       );
     });
 

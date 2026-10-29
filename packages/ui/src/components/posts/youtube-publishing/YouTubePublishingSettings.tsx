@@ -94,19 +94,37 @@ export default function YouTubePublishingSettings({
   const videoId = post.ingredients?.find(
     (ingredient) => ingredient.category === IngredientCategory.VIDEO,
   )?.id;
-  const [cover, setCover] = useState<{ blob: Blob; url: string } | null>(null);
-  const [isRendering, setIsRendering] = useState(false);
-  const [coverError, setCoverError] = useState<string | null>(null);
+  // Preview state is tagged with the inputs it was rendered from, so a preview
+  // for an earlier video, title or frame is never shown or downloaded.
+  const coverKey = JSON.stringify([
+    videoId,
+    coverText.trim(),
+    coverFrame.trim(),
+  ]);
+  const [renderedCover, setRenderedCover] = useState<{
+    blob: Blob;
+    key: string;
+    url: string;
+  } | null>(null);
+  const [renderingKey, setRenderingKey] = useState<string | null>(null);
+  const [renderedError, setRenderedError] = useState<{
+    key: string;
+    message: string;
+  } | null>(null);
   const renderController = useRef<AbortController | null>(null);
+  const cover = renderedCover?.key === coverKey ? renderedCover : null;
+  const isRendering = renderingKey === coverKey;
+  const coverError =
+    renderedError?.key === coverKey ? renderedError.message : null;
 
   useEffect(() => {
     return () => renderController.current?.abort();
   }, []);
 
   useEffect(() => {
-    if (!cover) return;
-    return () => URL.revokeObjectURL(cover.url);
-  }, [cover]);
+    if (!renderedCover) return;
+    return () => URL.revokeObjectURL(renderedCover.url);
+  }, [renderedCover]);
 
   function coverFrameSeconds(): number | undefined {
     const seconds = Number(coverFrame);
@@ -120,8 +138,9 @@ export default function YouTubePublishingSettings({
     renderController.current?.abort();
     const controller = new AbortController();
     renderController.current = controller;
-    setIsRendering(true);
-    setCoverError(null);
+    const key = coverKey;
+    setRenderingKey(key);
+    setRenderedError(null);
     try {
       const service = await getVideosService();
       const blob = await service.getCover(
@@ -134,11 +153,12 @@ export default function YouTubePublishingSettings({
         controller.signal,
       );
       if (controller.signal.aborted) return;
-      setCover({ blob, url: URL.createObjectURL(blob) });
+      setRenderedCover({ blob, key, url: URL.createObjectURL(blob) });
     } catch {
-      if (!controller.signal.aborted) setCoverError(translate('coverFailed'));
+      if (!controller.signal.aborted)
+        setRenderedError({ key, message: translate('coverFailed') });
     } finally {
-      if (!controller.signal.aborted) setIsRendering(false);
+      setRenderingKey((current) => (current === key ? null : current));
     }
   }
 
@@ -220,7 +240,10 @@ export default function YouTubePublishingSettings({
         value={coverText}
         maxLength={120}
         isDisabled={isSaving}
-        onChange={(event) => setCoverText(event.target.value)}
+        onChange={(event) => {
+          renderController.current?.abort();
+          setCoverText(event.target.value);
+        }}
       />
       <Input
         label={translate('coverFrame')}
@@ -230,7 +253,10 @@ export default function YouTubePublishingSettings({
         step="0.5"
         value={coverFrame}
         isDisabled={isSaving}
-        onChange={(event) => setCoverFrame(event.target.value)}
+        onChange={(event) => {
+          renderController.current?.abort();
+          setCoverFrame(event.target.value);
+        }}
       />
       <p className="text-xs text-muted-foreground">{translate('coverHint')}</p>
       {videoId ? (

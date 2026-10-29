@@ -38,6 +38,7 @@ export class VideoThumbnailService {
     timeInSeconds: number = 1,
     width: number = 720,
     title?: string,
+    isCover = false,
   ): Promise<string> {
     const safeIngredientId = assertSafeSegment(
       ingredientId,
@@ -143,7 +144,7 @@ export class VideoThumbnailService {
       const { s3Key, publicUrl, uploadDuration } = await this.uploadThumbnail(
         resizedThumbnailPath,
         safeIngredientId,
-        Boolean(title),
+        isCover || Boolean(title),
       );
       const totalDuration = Date.now() - thumbnailStartTime;
 
@@ -183,7 +184,8 @@ export class VideoThumbnailService {
     ingredientId: string,
     isCover: boolean,
   ): Promise<{ s3Key: string; publicUrl: string; uploadDuration: number }> {
-    // A cover must not overwrite the plain still stored under the ingredient id.
+    // A cover or preview must not overwrite the plain still stored under the
+    // ingredient id, whether or not it carries a title.
     const requestedKey = this.s3Service.generateS3Key(
       'thumbnails',
       this.configService?.isAuthorizedMediaDeliveryEnabled || isCover

@@ -339,6 +339,7 @@ export class VideosController {
         timeInSeconds ? Number(timeInSeconds) : undefined,
         width ? Number(width) : undefined,
         title?.trim() ? title.trim().slice(0, 120) : undefined,
+        true,
       );
 
       const thumbnailResponse = await fetch(thumbnailUrl);

@@ -249,6 +249,7 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
           : THUMBNAIL_FRAME_SECONDS,
         THUMBNAIL_WIDTH,
         readChannelSettingString(settings, 'thumbnailText')?.trim(),
+        true,
       );
       if (!frame?.thumbnailUrl) return undefined;
 

@@ -1152,6 +1152,7 @@ describe('FilesController', () => {
         5,
         320,
         undefined,
+        undefined,
       );
       expect(result.thumbnailUrl).toBe(
         'https://s3.amazonaws.com/thumbnail.jpg',
@@ -1174,6 +1175,7 @@ describe('FilesController', () => {
         5,
         320,
         'Launch day',
+        undefined,
       );
     });
 
