@@ -18,7 +18,22 @@ const videoSettings = {
 };
 
 describe('buildVideoDraftSettings', () => {
-  it('drafts Veo 3.1 on its fast sibling, shortest, silent and single', () => {
+  it('drafts Veo 3.1 on Lite, shortest, silent and single', () => {
+    const draft = buildVideoDraftSettings(videoSettings, [
+      model(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1),
+      model(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST),
+      model(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_LITE),
+    ]);
+
+    expect(draft).toMatchObject({
+      duration: 4,
+      isAudioEnabled: false,
+      modelKey: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_LITE,
+      outputs: 1,
+    });
+  });
+
+  it('drafts Veo 3.1 on its fast sibling when Lite is not on offer', () => {
     const draft = buildVideoDraftSettings(videoSettings, [
       model(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1),
       model(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST),
