@@ -5,6 +5,7 @@ import type {
   KlingO1Input,
   KlingV3OmniVideoInput,
   KlingV3VideoInput,
+  KlingV4VideoInput,
   KlingV16ProInput,
   KlingV21Input,
   KlingV26Input,
@@ -294,6 +295,48 @@ export function buildKlingO1Prompt(
 
   if (params.seed !== undefined) {
     input.seed = params.seed;
+  }
+
+  return input;
+}
+
+/** Images across start, end and reference inputs are capped at 10 together. */
+const KLING_V4_MAX_IMAGES = 10;
+
+export function buildKlingV4Prompt(
+  model: string,
+  params: PromptBuilderParams,
+  promptText: string,
+): KlingV4VideoInput {
+  const calculatedRatio = calculateAspectRatio(params.width, params.height);
+  const aspectRatio = normalizeAspectRatioForModel(model, calculatedRatio);
+  const duration = Math.min(Math.max(params.duration ?? 5, 3), 30);
+
+  const input: KlingV4VideoInput = {
+    aspect_ratio: aspectRatio,
+    duration: duration,
+    prompt: promptText,
+  };
+
+  if (params.resolution) {
+    input.resolution = params.resolution;
+  }
+
+  const [startImage, ...referenceImages] = params.references ?? [];
+  if (startImage) {
+    input.start_image = startImage;
+  }
+
+  if (params.endFrame) {
+    input.end_image = params.endFrame;
+  }
+
+  const remainingImages =
+    KLING_V4_MAX_IMAGES -
+    (input.start_image ? 1 : 0) -
+    (input.end_image ? 1 : 0);
+  if (referenceImages.length > 0) {
+    input.reference_images = referenceImages.slice(0, remainingImages);
   }
 
   return input;
