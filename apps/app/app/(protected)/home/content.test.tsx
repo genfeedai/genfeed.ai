@@ -258,6 +258,9 @@ vi.mock('./use-connect-genfeed-status', () => ({
 }));
 
 const { default: OperationalHomeContent } = await import('./content');
+const { CONNECT_CARD_DISMISS_TTL_MS } = await import(
+  './use-connect-card-dismissal'
+);
 
 function buildReviewItem(id: string): ReviewInboxItem {
   return {
@@ -276,6 +279,7 @@ function buildReviewItem(id: string): ReviewInboxItem {
 describe('OperationalHomeContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.clear();
     mocks.activities = [];
     mocks.accessState = { organizationId: 'org_1' };
     mocks.activityIsError = false;
@@ -318,34 +322,68 @@ describe('OperationalHomeContent', () => {
     mocks.upcomingReleases = null;
   });
 
-  it('renders the canonical Connect Genfeed state when unconfigured', () => {
+  it('renders the canonical Connect Genfeed state when unconfigured', async () => {
     render(<OperationalHomeContent />);
 
     expect(screen.queryByRole('main')).not.toBeInTheDocument();
     expect(
       screen.getByRole('heading', { level: 1, name: 'Operational home' }),
     ).toHaveClass('sr-only');
+    const connectionState = await screen.findByTestId(
+      'operational-home-unconfigured',
+    );
     expect(
-      screen.getByText(
-        /Connect Claude Code, Codex, or another MCP client to manage this workspace/,
+      within(connectionState).getByText(
+        'Connect Claude Code, Codex, or another AI client',
       ),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /Connect Genfeed/ }),
+      within(connectionState).getByRole('link', { name: /Connect Genfeed/ }),
     ).toHaveAttribute('href', '/acme/~/connect');
     expect(
       screen.queryByRole('link', { name: /Manage API keys/ }),
     ).not.toBeInTheDocument();
-    expect(
-      screen.getByText('Connect an AI client (optional)'),
-    ).toBeInTheDocument();
-    const connectionState = screen.getByTestId('operational-home-unconfigured');
     const operationalSections = screen.getByTestId('operational-home-sections');
 
     expect(
       connectionState.compareDocumentPosition(operationalSections) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it('hides the Connect Genfeed card once dismissed and keeps it hidden', async () => {
+    const { unmount } = render(<OperationalHomeContent />);
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Dismiss connect card' }),
+    );
+
+    expect(
+      screen.queryByTestId('operational-home-unconfigured'),
+    ).not.toBeInTheDocument();
+
+    unmount();
+    render(<OperationalHomeContent />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('operational-home-sections')).toBeVisible();
+    });
+    expect(
+      screen.queryByTestId('operational-home-unconfigured'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the Connect Genfeed card again after the dismissal expires', async () => {
+    window.localStorage.setItem(
+      'genfeed:connect-card-dismissed:v1:org_1',
+      String(Date.now() - CONNECT_CARD_DISMISS_TTL_MS - 1),
+    );
+
+    render(<OperationalHomeContent />);
+
+    expect(
+      await screen.findByTestId('operational-home-unconfigured'),
+    ).toBeInTheDocument();
   });
 
   it('renders missing-organization recovery inside the existing shell landmark', () => {
