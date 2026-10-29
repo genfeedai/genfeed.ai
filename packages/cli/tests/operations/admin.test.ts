@@ -2,12 +2,14 @@ import type {
   AdminModelPricingReport,
   AdminModelPricingRow,
   IHarnessActivationReport,
+  ISystemNotificationOverview,
 } from '@genfeedai/contracts/interfaces';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createOrganizationBrand,
   createWarmupAccount,
   filterPricingRows,
+  findMissingDiscordChannels,
   findMissingExternalPacks,
   findPendingVersion,
   findPricingFixTargets,
@@ -15,6 +17,7 @@ import {
   grantOrganizationCredits,
   prepareWarmupAccount,
   readHarnessActivation,
+  readNotificationStatus,
   readOnboardingFunnel,
   readOrganizationAppsReport,
   readOrganizationsReport,
@@ -238,6 +241,54 @@ describe('operations/admin', () => {
 
       await expect(seedTemplates({ dryRun: true })).resolves.toBe(summary);
       expect(adminPost).toHaveBeenCalledWith('/admin/seeds/templates', { dryRun: true });
+    });
+  });
+
+  describe('notification status', () => {
+    function status(missingChannels: string[] | null): ISystemNotificationOverview {
+      return {
+        configuration: {
+          discord:
+            missingChannels === null
+              ? null
+              : { isBotConfigured: true, isBotReady: true, missingChannels },
+          enabled: true,
+          eventTypes: ['user.created'],
+          recordingEnabled: true,
+          transportConfigured: true,
+        },
+        deliveries: [],
+        destinations: [],
+        id: 'system-notifications',
+        observedSignups: 25,
+        signupObservationStart: null,
+      };
+    }
+
+    it('reads the overview from the admin route', async () => {
+      const overview = status([]);
+      mockAdminGet.mockResolvedValueOnce({ data: overview });
+      await expect(readNotificationStatus()).resolves.toEqual(overview);
+      expect(mockAdminGet).toHaveBeenCalledWith('/admin/system-notifications');
+    });
+
+    it('lists the channels the API reports without a channel ID', () => {
+      expect(findMissingDiscordChannels(status(['deployments', 'users']))).toEqual([
+        'deployments',
+        'users',
+      ]);
+    });
+
+    it('checks only the channels asked for', () => {
+      const overview = status(['deployments']);
+      expect(findMissingDiscordChannels(overview, ['users', 'posts'])).toEqual([]);
+      expect(findMissingDiscordChannels(overview, ['deployments', 'posts'])).toEqual([
+        'deployments',
+      ]);
+    });
+
+    it('reports nothing missing when the API gave no Discord status', () => {
+      expect(findMissingDiscordChannels(status(null))).toEqual([]);
     });
   });
 

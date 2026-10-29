@@ -5,6 +5,7 @@ import type {
   IOnboardingFunnelReport,
   IOrganizationAppsReport,
   IOrganizationsReport,
+  ISystemNotificationOverview,
   ModelPricingAttentionLevel,
   ModelPricingFixResult,
 } from '@genfeedai/contracts/interfaces';
@@ -369,6 +370,29 @@ export async function readHarnessActivation(): Promise<IHarnessActivationReport>
   return flattenSingle<IHarnessActivationReport>(
     await adminGet<JsonApiDocument>('/admin/harness/activation')
   );
+}
+
+export const DISCORD_CHANNELS = ['deployments', 'models', 'posts', 'studio', 'users'] as const;
+
+export type DiscordChannel = (typeof DISCORD_CHANNELS)[number];
+
+/** Read-only: the same overview the admin notifications settings page shows. */
+export async function readNotificationStatus(): Promise<ISystemNotificationOverview> {
+  return flattenSingle<ISystemNotificationOverview>(
+    await adminGet<JsonApiDocument>('/admin/system-notifications')
+  );
+}
+
+/**
+ * Operator Discord channels the API reports with no channel ID. The overview
+ * never carries the IDs themselves, so this says set or empty, nothing more.
+ */
+export function findMissingDiscordChannels(
+  status: ISystemNotificationOverview,
+  expectedChannels: readonly DiscordChannel[] = DISCORD_CHANNELS
+): DiscordChannel[] {
+  const missing = new Set(status.configuration.discord?.missingChannels ?? []);
+  return expectedChannels.filter((channel) => missing.has(channel));
 }
 
 /**
