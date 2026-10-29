@@ -1151,11 +1151,30 @@ describe('FilesController', () => {
         'ingredient_123',
         5,
         320,
+        undefined,
       );
       expect(result.thumbnailUrl).toBe(
         'https://s3.amazonaws.com/thumbnail.jpg',
       );
       expect(result.ingredientId).toBe('ingredient_123');
+    });
+
+    it('should pass the cover title through to the thumbnail service', async () => {
+      await controller.generateThumbnail({
+        ingredientId: 'ingredient_123',
+        timeInSeconds: 5,
+        title: 'Launch day',
+        videoUrl: 'https://example.com/video.mp4',
+        width: 320,
+      });
+
+      expect(videoThumbnailService.generateThumbnail).toHaveBeenCalledWith(
+        'https://example.com/video.mp4',
+        'ingredient_123',
+        5,
+        320,
+        'Launch day',
+      );
     });
 
     it('should throw error if videoUrl is missing', async () => {
