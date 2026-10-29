@@ -35,7 +35,7 @@ docker compose --env-file .env -f compose.yml up -d`;
 
 const REQUIREMENTS = [
   'Docker Compose v2 (Docker Engine with the Compose plugin, or Docker Desktop)',
-  'Node.js 24 (>=24 <25), only for the npx command. The release bundle does not need Node.',
+  'Node.js 24 or newer, only for the npx command. The release bundle does not need Node.',
   'Plan for at least 15 GB of free disk, plus room for media, backups, and upgrades',
   'Free ports 3000 (web), 3010 (API), 3011 (WebSocket), and 3014 (MCP)',
 ] as const;
