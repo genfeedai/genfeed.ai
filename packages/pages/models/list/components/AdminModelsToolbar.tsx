@@ -1,10 +1,9 @@
 'use client';
 
-import { ComponentSize } from '@genfeedai/contracts';
 import type { AdminModelsToolbarProps } from '@props/admin/models.props';
 import AdminOrgBrandUrlFilter from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
+import SearchField from '@ui/content/search-field/SearchField';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
-import FormSearchbar from '@ui/primitives/searchbar';
 import { Cpu } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import AdminModelsActions from './AdminModelsActions';
@@ -25,16 +24,15 @@ export default function AdminModelsToolbar({
       title={translate('title')}
       icon={Cpu}
       search={
-        <FormSearchbar
+        <SearchField
           ariaLabel={translate('searchModels')}
-          isCollapsible
           onSearch={onSearch}
           placeholder={translate('searchModels')}
-          size={ComponentSize.SM}
           value={searchTerm}
-        />
+        >
+          <AdminModelsFilters category={category} isAttached />
+        </SearchField>
       }
-      filters={<AdminModelsFilters category={category} />}
       onRefresh={onRefresh}
       isRefreshing={isRefreshing}
       download={iconActions}

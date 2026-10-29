@@ -11,7 +11,6 @@ import {
   AccountEvaluationState,
   AnalyticsMetric,
   ButtonVariant,
-  ComponentSize,
   formatPlatformLabel,
 } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
@@ -36,6 +35,7 @@ import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
+import SearchField from '@ui/content/search-field/SearchField';
 import Badge from '@ui/display/badge/Badge';
 import BrandAvatar from '@ui/display/brand-avatar/BrandAvatar';
 import Table from '@ui/display/table/Table';
@@ -43,7 +43,6 @@ import TableRowSummary from '@ui/display/table/TableRowSummary';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import FormSearchbar from '@ui/primitives/searchbar';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -243,7 +242,7 @@ export default function AnalyticsAccounts() {
     return () => controller.abort();
   }, [isFetchReady, load, refreshTrigger]);
 
-  const accountToolbar = useMemo(() => {
+  const accountFilterMenu = useMemo(() => {
     const facets: FilterMenuFacet[] = [
       {
         defaultValue: AnalyticsMetric.VIEWS,
@@ -266,14 +265,20 @@ export default function AnalyticsAccounts() {
     ];
 
     return (
+      <FilterMenu
+        facets={facets}
+        isAttached
+        onClear={() => {
+          setMetric(AnalyticsMetric.VIEWS);
+          resetPage();
+        }}
+      />
+    );
+  }, [metric, resetPage, translate]);
+
+  const accountToolbar = useMemo(() => {
+    return (
       <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <FilterMenu
-          facets={facets}
-          onClear={() => {
-            setMetric(AnalyticsMetric.VIEWS);
-            resetPage();
-          }}
-        />
         <Input
           aria-label={translate('evaluationWeeks')}
           className="h-9 w-20"
@@ -313,7 +318,6 @@ export default function AnalyticsAccounts() {
     metric,
     organizationId,
     policy,
-    resetPage,
     translate,
     windowWeeks,
   ]);
@@ -323,19 +327,19 @@ export default function AnalyticsAccounts() {
 
   const accountSearch = useMemo(
     () => (
-      <FormSearchbar
+      <SearchField
         ariaLabel={translate('searchAccounts')}
-        isCollapsible
         onChange={(event) => {
           setSearch(event.target.value);
           resetPage();
         }}
         placeholder={translate('searchAccounts')}
-        size={ComponentSize.SM}
         value={search}
-      />
+      >
+        {accountFilterMenu}
+      </SearchField>
     ),
-    [resetPage, search, translate],
+    [accountFilterMenu, resetPage, search, translate],
   );
 
   useAnalyticsToolbar(hasAccountToolbar ? accountToolbar : null);

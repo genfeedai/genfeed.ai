@@ -49,6 +49,8 @@ export interface SearchbarProps {
   name?: string;
   className?: string;
   inputClassName?: string;
+  /** Moves the clear button, for a field with a control at its trailing edge. */
+  clearButtonClassName?: string;
   onClear?: () => void;
   showIcon?: boolean;
   showClearButton?: boolean;
@@ -75,6 +77,7 @@ export default function Searchbar({
   name = 'search',
   className = '',
   inputClassName = '',
+  clearButtonClassName,
   onClear,
   showIcon = true,
   showClearButton = true,
@@ -383,7 +386,10 @@ export default function Searchbar({
           onClick={handleClear}
           variant={ButtonVariant.GHOST}
           size={ButtonSize.MICRO}
-          className="absolute right-1 top-1/2 -translate-y-1/2 transform p-1"
+          className={cn(
+            'absolute right-1 top-1/2 -translate-y-1/2 transform p-1',
+            clearButtonClassName,
+          )}
           icon={<X className={iconSize} />}
         />
       )}

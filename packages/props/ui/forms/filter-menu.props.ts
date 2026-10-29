@@ -60,4 +60,6 @@ export interface FilterMenuProps {
   allLabel?: string;
   align?: 'start' | 'center' | 'end';
   className?: string;
+  /** Sits inside a `SearchField`'s trailing edge: a compact trigger. */
+  isAttached?: boolean;
 }
