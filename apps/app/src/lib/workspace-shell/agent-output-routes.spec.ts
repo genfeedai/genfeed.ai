@@ -17,8 +17,23 @@ describe('isAgentOutputRoute', () => {
     expect(isAgentOutputRoute('/storyboard/new-run')).toBe(true);
   });
 
+  it('matches the Library asset browser destinations', () => {
+    expect(isAgentOutputRoute('/library/assets')).toBe(true);
+    expect(isAgentOutputRoute('/library/images')).toBe(true);
+    expect(isAgentOutputRoute('/library/trash/')).toBe(true);
+    expect(isAgentOutputRoute('/library/shelf/needs-review')).toBe(true);
+  });
+
+  it('keeps the other Library pages on the dock', () => {
+    expect(isAgentOutputRoute('/library')).toBe(false);
+    expect(isAgentOutputRoute('/library/overview')).toBe(false);
+    expect(isAgentOutputRoute('/library/references')).toBe(false);
+    expect(isAgentOutputRoute('/library/voices')).toBe(false);
+    expect(isAgentOutputRoute('/library/captions')).toBe(false);
+    expect(isAgentOutputRoute('/library/shelf')).toBe(false);
+  });
+
   it('does not match other apps or nested paths', () => {
-    expect(isAgentOutputRoute('/library/images')).toBe(false);
     expect(isAgentOutputRoute('/agent/thread-1')).toBe(false);
     expect(isAgentOutputRoute('/storyboard/run-1/extra')).toBe(false);
   });
