@@ -19,14 +19,9 @@ export { WorkflowEditorShell } from './components/WorkflowEditorShell';
 export type { CommentNavigation } from './hooks';
 // Hooks
 export {
-  useAIGenNode,
-  useAIGenNodeHeader,
-  useAutoLoadModelSchema,
   useCanGenerate,
   useCanvasKeyboardShortcuts,
   useCommentNavigation,
-  useMediaUpload,
-  useModelSelection,
   useNodeExecution,
   usePromptAutocomplete,
   useRequiredInputs,
@@ -50,9 +45,6 @@ export {
 } from './panels';
 export type {
   ExecutionHeaderProvider,
-  ModelBrowserModalProps,
-  PromptLibraryService,
-  PromptPickerProps,
   SettingsSyncService,
   SyncableSettings,
   WorkflowUIConfig,
@@ -77,10 +69,6 @@ export {
   getWorkflowLogger,
 } from './stores/executionLogger';
 export { usePromptEditorStore } from './stores/promptEditorStore';
-export {
-  configurePromptLibrary,
-  usePromptLibraryStore,
-} from './stores/promptLibraryStore';
 export {
   configureSettingsSync,
   useSettingsStore,

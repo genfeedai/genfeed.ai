@@ -1,57 +1,10 @@
 import type {
   EdgeStyle,
-  ICreatePrompt,
-  IPrompt,
-  IQueryPrompts,
-  ModelCapability,
-  ProviderModel,
   ProviderType,
   WorkflowInterface,
 } from '@genfeedai/contracts/types';
-import type { ComponentType } from 'react';
 import type { ApplyEditOperations } from '../stores/workflow/slices/types';
 import type { WorkflowPersistenceService } from '../stores/workflow/types';
-
-export interface FileUploadService {
-  uploadFile: (
-    path: string,
-    file: File,
-  ) => Promise<{ url: string; filename: string }>;
-}
-
-export interface ModelSchemaService {
-  fetchModelSchema: (
-    modelId: string,
-    signal?: AbortSignal,
-  ) => Promise<ProviderModel | null>;
-}
-
-export interface PromptLibraryService {
-  getAll: (query?: IQueryPrompts, signal?: AbortSignal) => Promise<IPrompt[]>;
-  getFeatured: (limit?: number, signal?: AbortSignal) => Promise<IPrompt[]>;
-  create: (data: ICreatePrompt, signal?: AbortSignal) => Promise<IPrompt>;
-  update: (
-    id: string,
-    data: Partial<ICreatePrompt>,
-    signal?: AbortSignal,
-  ) => Promise<IPrompt>;
-  delete: (id: string, signal?: AbortSignal) => Promise<void>;
-  duplicate: (id: string, signal?: AbortSignal) => Promise<IPrompt>;
-  use: (id: string, signal?: AbortSignal) => Promise<IPrompt>;
-}
-
-export interface ModelBrowserModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSelect: (model: ProviderModel) => void;
-  capabilities?: ModelCapability[];
-  title?: string;
-}
-
-export interface PromptPickerProps {
-  onSelect: (item: IPrompt) => void;
-  label?: string;
-}
 
 export interface WorkflowsApiService {
   setThumbnail: (
@@ -160,12 +113,6 @@ export interface SettingsSyncService {
 }
 
 export interface WorkflowUIConfig {
-  /** For ImageInputNode, VideoInputNode — file upload */
-  fileUpload?: FileUploadService;
-  /** For AI gen nodes — model schema loading */
-  modelSchema?: ModelSchemaService;
-  /** For PromptNode — prompt library CRUD */
-  promptLibrary?: PromptLibraryService;
   /** For context menu — set workflow thumbnail */
   workflowsApi?: WorkflowsApiService;
   /** Execution-store error reporting (SSE failures, failed runs). No-op if omitted. */
@@ -183,10 +130,6 @@ export interface WorkflowUIConfig {
    * execute requests. Returns no headers when omitted.
    */
   executionHeaders?: ExecutionHeaderProvider;
-  /** Injected ModelBrowserModal component (complex, app-specific) */
-  ModelBrowserModal?: ComponentType<ModelBrowserModalProps> | null;
-  /** Injected PromptPicker component (complex, app-specific) */
-  PromptPicker?: ComponentType<PromptPickerProps> | null;
   /**
    * Persistence backend for workflow CRUD (create/update/getById/getAll/delete/
    * duplicate). Defaults to a throwing "not configured" stub so saves are never
