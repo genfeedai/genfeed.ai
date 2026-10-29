@@ -602,7 +602,7 @@ export class ClipperGenerationService implements OnModuleInit {
       constraints: [],
       fidelityMode: 'guided',
       intent: {
-        objective: this.buildAvatarScript(highlight),
+        objective: this.describeClip(highlight),
         requestedText: [],
         subjects: [],
       },
@@ -669,7 +669,11 @@ export class ClipperGenerationService implements OnModuleInit {
       highlight.start_time,
       highlight.end_time,
     );
-    return spoken || `${highlight.title}. ${highlight.summary}`;
+    return spoken || this.describeClip(highlight);
+  }
+
+  private describeClip(highlight: ClipperHighlight): string {
+    return `${highlight.title}. ${highlight.summary}`;
   }
 
   private async executeGenerateOne(
