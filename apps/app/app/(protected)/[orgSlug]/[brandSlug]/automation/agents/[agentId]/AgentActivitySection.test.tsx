@@ -42,7 +42,10 @@ vi.mock('next-intl', () => ({
       activityEmpty: 'No activity yet',
       activityExecution: `Execution — ${values?.status}`,
       activityFilterAll: 'All activity',
-      activityFilterAria: 'Filter activity',
+      all: 'All',
+      clear: 'Clear filters',
+      menu: 'Filters',
+      activityFilterType: 'Type',
       activityFilterContent: 'Content',
       activityFilterReports: 'Reports',
       activityFilterRuns: 'Runs',
@@ -106,9 +109,8 @@ describe('AgentActivitySection', () => {
   it('renders exactly one filter control governing the whole merged feed', () => {
     render(<AgentActivitySection {...baseProps} />);
 
-    expect(
-      screen.getAllByRole('combobox', { name: 'Filter activity' }),
-    ).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: /^Filters/ })).toHaveLength(1);
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 
   it('merges content, reports and runs into one feed sorted newest first', () => {
@@ -207,8 +209,12 @@ describe('AgentActivitySection', () => {
     expect(screen.getByText('A post')).toBeInTheDocument();
     expect(screen.getByText('Run completed')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('combobox', { name: 'Filter activity' }));
-    await user.click(screen.getByRole('option', { name: 'Content' }));
+    await user.click(screen.getByRole('button', { name: /^Filters/ }));
+    screen.getByRole('menuitem', { name: /^Type/ }).focus();
+    await user.keyboard('{ArrowRight}');
+    await user.click(
+      await screen.findByRole('menuitemradio', { name: 'Content' }),
+    );
 
     expect(screen.getByText('A post')).toBeInTheDocument();
     expect(screen.queryByText('Run completed')).not.toBeInTheDocument();
