@@ -5,6 +5,7 @@ import {
   type ManagedCheckoutResult,
   ManagedStripeCheckoutService,
 } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
+import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { StripeUrlSerializer } from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
 import {
@@ -87,6 +88,7 @@ export class ManagedStripeController {
   }
 
   @Get('sessions/:sessionId')
+  @RateLimit({ limit: 30, scope: 'ip', windowMs: 60_000 })
   @ApiOperation({
     summary:
       'Read the managed checkout provisioning result for a Stripe session',
@@ -95,7 +97,7 @@ export class ManagedStripeController {
     @Param('sessionId') sessionId: string,
   ): Promise<ManagedCheckoutResult> {
     const result =
-      await this.managedStripeCheckoutService.getCheckoutResult(sessionId);
+      await this.managedStripeCheckoutService.claimCheckoutResult(sessionId);
 
     if (!result) {
       throw new HttpException(
