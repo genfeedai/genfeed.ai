@@ -1,4 +1,4 @@
-import FilteredListRoute from '@app/(protected)/admin/content/ingredients/FilteredListRoute';
+import FilteredListRoute from '@app/(protected)/admin/content/ingredients/(library)/FilteredListRoute';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import { Suspense } from 'react';
 

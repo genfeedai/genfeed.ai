@@ -75,7 +75,6 @@ export const APP_ROUTES = {
       ROOT: '/admin/economics',
     },
     FOLDERS: '/admin/folders',
-    IMAGES: '/admin/images',
     LIBRARY: {
       VOICES: '/admin/library/voices',
     },
@@ -89,7 +88,6 @@ export const APP_ROUTES = {
       ANALYTICS_ORGANIZATIONS: '/admin/overview/analytics/organizations',
       DASHBOARD: '/admin/overview/dashboard',
     },
-    VIDEOS: '/admin/videos',
   },
   ANALYTICS: {
     ROOT: '/analytics',

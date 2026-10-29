@@ -1,4 +1,4 @@
-import FilteredListRoute from '@app/(protected)/admin/content/ingredients/FilteredListRoute';
+import FilteredListRoute from '@app/(protected)/admin/content/ingredients/(library)/FilteredListRoute';
 import { PageScope } from '@genfeedai/contracts';
 import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';

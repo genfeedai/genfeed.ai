@@ -218,7 +218,7 @@ describe('useIngredientDetail loading', () => {
       mocks.ingredientActions.mock.lastCall?.[0].onSeeDetails;
 
     onSeeDetails?.({ category: 'IMAGE', id: 'child-1' });
-    expect(mocks.router.push).toHaveBeenCalledWith('/admin/images/child-1');
+    expect(mocks.router.push).toHaveBeenCalledWith('/admin/content/ingredients/images/child-1');
     expect(mocks.openIngredientSidebar).not.toHaveBeenCalled();
 
     const gif = { category: 'GIF', id: 'child-2' };

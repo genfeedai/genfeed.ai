@@ -89,10 +89,10 @@ export function createAdminIngredientRoute(
   switch (category.toUpperCase()) {
     case IngredientCategory.IMAGE:
     case IngredientCategory.IMAGE_EDIT:
-      return `${APP_ROUTES.ADMIN.IMAGES}/${id}`;
+      return `${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/images/${id}`;
     case IngredientCategory.VIDEO:
     case IngredientCategory.VIDEO_EDIT:
-      return `${APP_ROUTES.ADMIN.VIDEOS}/${id}`;
+      return `${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/videos/${id}`;
     default:
       return undefined;
   }
