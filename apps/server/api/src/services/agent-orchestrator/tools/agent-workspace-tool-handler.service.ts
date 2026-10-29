@@ -574,6 +574,45 @@ export class AgentWorkspaceToolHandler {
     };
   }
 
+  /**
+   * Stars or unstars a Library asset. Fails closed like `rate_ingredient`: only
+   * an asset in the caller's own organization is changed, so a foreign or
+   * unknown id never reaches the update.
+   */
+  async starAsset(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const assetId = readRequiredString(params.assetId);
+    if (!assetId) {
+      return toolFailure('star_asset requires assetId.');
+    }
+    if (
+      params.isStarred !== undefined &&
+      typeof params.isStarred !== 'boolean'
+    ) {
+      return toolFailure('isStarred must be true or false.');
+    }
+    const isStarred = params.isStarred ?? true;
+
+    const asset = await this.ingredientsService.findOne({
+      id: assetId,
+      isDeleted: false,
+      organizationId: ctx.organizationId,
+    });
+    if (!asset) {
+      return toolFailure(`Asset ${assetId} was not found.`);
+    }
+
+    await this.ingredientsService.patch(assetId, { isFavorite: isStarred });
+
+    return {
+      creditsUsed: 0,
+      data: { assetId, isStarred },
+      success: true,
+    };
+  }
+
   async requestMediaUpload(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,

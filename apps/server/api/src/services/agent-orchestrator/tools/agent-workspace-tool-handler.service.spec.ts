@@ -1063,3 +1063,110 @@ describe('AgentWorkspaceToolHandler live Cloud brand discovery', () => {
     );
   });
 });
+
+describe('AgentWorkspaceToolHandler.starAsset', () => {
+  interface StoredAsset {
+    id: string;
+    isDeleted: boolean;
+    isFavorite: boolean;
+    organizationId: string;
+  }
+
+  /** An in-memory asset table that honours the where-clause the handler sends. */
+  function assetTable(rows: StoredAsset[]) {
+    return {
+      rows,
+      service: {
+        findOne: vi.fn(async (where: Partial<StoredAsset>) =>
+          rows.find((row) =>
+            Object.entries(where).every(
+              ([key, value]) => row[key as keyof StoredAsset] === value,
+            ),
+          ),
+        ),
+        patch: vi.fn(async (id: string, update: { isFavorite?: boolean }) => {
+          const row = rows.find((candidate) => candidate.id === id);
+          if (row && update.isFavorite !== undefined) {
+            row.isFavorite = update.isFavorite;
+          }
+          return row;
+        }),
+      },
+    };
+  }
+
+  function seeded() {
+    return assetTable([
+      {
+        id: 'asset-own',
+        isDeleted: false,
+        isFavorite: false,
+        organizationId: 'org-1',
+      },
+      {
+        id: 'asset-gone',
+        isDeleted: true,
+        isFavorite: false,
+        organizationId: 'org-1',
+      },
+      {
+        id: 'asset-foreign',
+        isDeleted: false,
+        isFavorite: false,
+        organizationId: 'org-2',
+      },
+    ]);
+  }
+
+  it('stars an asset of the caller organization, and unstars it on request', async () => {
+    const table = seeded();
+    const handler = buildHandler({ ingredients: table.service });
+
+    const starred = await handler.starAsset({ assetId: 'asset-own' }, baseCtx);
+    expect(starred).toEqual({
+      creditsUsed: 0,
+      data: { assetId: 'asset-own', isStarred: true },
+      success: true,
+    });
+    expect(table.rows[0].isFavorite).toBe(true);
+
+    const unstarred = await handler.starAsset(
+      { assetId: 'asset-own', isStarred: false },
+      baseCtx,
+    );
+    expect(unstarred.success).toBe(true);
+    expect(table.rows[0].isFavorite).toBe(false);
+  });
+
+  it('leaves an asset of another organization and a deleted asset untouched', async () => {
+    const table = seeded();
+    const handler = buildHandler({ ingredients: table.service });
+
+    for (const assetId of ['asset-foreign', 'asset-gone', 'asset-unknown']) {
+      const result = await handler.starAsset({ assetId }, baseCtx);
+      expect(result.success).toBe(false);
+      expect(result.error).toBe(`Asset ${assetId} was not found.`);
+    }
+    expect(table.rows.map((row) => row.isFavorite)).toEqual([
+      false,
+      false,
+      false,
+    ]);
+  });
+
+  it('rejects a missing asset id and a non-boolean isStarred before reading anything', async () => {
+    const table = seeded();
+    const handler = buildHandler({ ingredients: table.service });
+
+    const missing = await handler.starAsset({}, baseCtx);
+    const invalid = await handler.starAsset(
+      { assetId: 'asset-own', isStarred: 'yes' },
+      baseCtx,
+    );
+
+    expect(missing.error).toBe('star_asset requires assetId.');
+    expect(invalid.error).toBe('isStarred must be true or false.');
+    expect(table.rows[0].isFavorite).toBe(false);
+    expect(table.service.findOne).not.toHaveBeenCalled();
+  });
+});

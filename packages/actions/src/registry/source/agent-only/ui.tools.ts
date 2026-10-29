@@ -344,6 +344,27 @@ export const AGENT_UI_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
+      'Star or unstar a Library asset so it appears under Starred. Starring is idempotent; pass isStarred false to remove the star. Use list_assets to find the asset id.',
+    name: 'star_asset',
+    parameters: {
+      properties: {
+        assetId: {
+          description: 'Library asset ID to star or unstar',
+          type: 'string',
+        },
+        isStarred: {
+          description: 'true (default) stars the asset; false removes the star',
+          type: 'boolean',
+        },
+      },
+      required: ['assetId'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
       'Get the most-voted ingredients for this organization, optionally filtered by brand or category.',
     name: 'get_top_ingredients',
     parameters: {

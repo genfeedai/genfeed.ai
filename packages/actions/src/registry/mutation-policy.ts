@@ -165,6 +165,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   track_post_link: 'direct',
   rate_content: 'direct',
   rate_ingredient: 'direct',
+  star_asset: 'direct',
   replace_storyboard_character: 'approval-required',
   storyboard_long_form: 'direct',
   reject_social_draft: 'direct',

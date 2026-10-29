@@ -1,4 +1,18 @@
-import { PUBLISHING_CONTENT_REFRESH_EVENT } from '@genfeedai/contracts/constants';
+import {
+  LIBRARY_ASSETS_REFRESH_EVENT,
+  PUBLISHING_CONTENT_REFRESH_EVENT,
+} from '@genfeedai/contracts/constants';
+
+/**
+ * Agent tools that add or change Library assets. A run that completes one of
+ * them tells the open Library to reload its grid and counts.
+ */
+const LIBRARY_ASSET_TOOLS: ReadonlySet<string> = new Set([
+  'complete_media_upload',
+  'ingest_source_media',
+  'star_asset',
+  'transform_media',
+]);
 
 /**
  * Agent tools that create or change Publishing content. A run that completes
@@ -31,13 +45,18 @@ export function dispatchAgentToolEffects(
     return;
   }
 
-  const isPublishingChanged = toolCalls.some(
-    (toolCall) =>
-      toolCall.status === 'completed' &&
-      PUBLISHING_CONTENT_TOOLS.has(toolCall.toolName),
+  const completedTools = new Set(
+    toolCalls
+      .filter((toolCall) => toolCall.status === 'completed')
+      .map((toolCall) => toolCall.toolName),
   );
+  const isChanged = (tools: ReadonlySet<string>): boolean =>
+    [...completedTools].some((toolName) => tools.has(toolName));
 
-  if (isPublishingChanged) {
+  if (isChanged(PUBLISHING_CONTENT_TOOLS)) {
     window.dispatchEvent(new Event(PUBLISHING_CONTENT_REFRESH_EVENT));
+  }
+  if (isChanged(LIBRARY_ASSET_TOOLS)) {
+    window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT));
   }
 }
