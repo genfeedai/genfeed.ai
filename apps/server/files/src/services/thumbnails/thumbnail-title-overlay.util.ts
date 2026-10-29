@@ -2,7 +2,7 @@ import { resolveFontFile } from '@files/helpers/utils/font/font-file.util';
 import { readFontDisplayName } from '@files/helpers/utils/font/font-name.util';
 import { FontFamily } from '@genfeedai/contracts';
 import type { ICoverTitleStyle } from '@genfeedai/contracts/interfaces';
-import sharp from 'sharp';
+import sharp, { type OverlayOptions } from 'sharp';
 
 const MAX_TITLE_CHARS = 120;
 const MAX_LINES = 4;
@@ -127,7 +127,7 @@ export async function overlayTitle(
   });
   if (!titleText.width || !titleText.height) return image;
 
-  const composites: sharp.OverlayOptions[] = [];
+  const composites: OverlayOptions[] = [];
   if (isTopLeft) {
     composites.push({
       input: titleText.buffer,
