@@ -232,7 +232,7 @@ describe('ToolRegistryService.getDiscoverableTools', () => {
   });
 });
 
-it('lists the real mixed default with canonical wrappers at 24 user / 25 maximum', async () => {
+it('lists the real mixed default with canonical wrappers inside the 25-tool bare-URL cap', async () => {
   const actual =
     await vi.importActual<typeof import('@genfeedai/actions')>(
       '@genfeedai/actions',
@@ -242,8 +242,8 @@ it('lists the real mixed default with canonical wrappers at 24 user / 25 maximum
   );
   const user = build('user', [...actual.DEFAULT_MCP_PROFILE_TOOLSETS]);
   const maximum = build('superadmin', [...actual.DEFAULT_MCP_PROFILE_TOOLSETS]);
-  expect(user.getTools()).toHaveLength(26);
-  expect(maximum.getTools()).toHaveLength(27);
+  expect(user.getTools()).toHaveLength(actual.BARE_MCP_URL_TOOL_CAP);
+  expect(maximum.getTools()).toHaveLength(actual.BARE_MCP_URL_TOOL_CAP + 1);
   const listed = names(user.getTools());
   expect(listed).toContain('check_channel');
   expect(listed).toContain('upload_media');
@@ -254,4 +254,22 @@ it('lists the real mixed default with canonical wrappers at 24 user / 25 maximum
     'complete_media_upload',
   ])
     expect(listed).not.toContain(name);
+});
+
+it('lists the studio profile with generation inside its own cap', async () => {
+  const actual =
+    await vi.importActual<typeof import('@genfeedai/actions')>(
+      '@genfeedai/actions',
+    );
+  mockState.toolsForToolsets = actual.toMcpTools(
+    actual.getToolsForToolsets('mcp', actual.STUDIO_MCP_PROFILE_TOOLSETS),
+  );
+  const listed = build('user', [
+    ...actual.STUDIO_MCP_PROFILE_TOOLSETS,
+  ]).getTools();
+  expect(listed.length).toBeLessThanOrEqual(actual.STUDIO_MCP_PROFILE_TOOL_CAP);
+  expect(listed.length).toBeGreaterThan(actual.BARE_MCP_URL_TOOL_CAP);
+  expect(names(listed)).toEqual(
+    expect.arrayContaining(['generate', 'get_analytics', 'get_brand_context']),
+  );
 });

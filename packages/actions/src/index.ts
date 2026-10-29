@@ -179,12 +179,15 @@ export type {
 export {
   BARE_MCP_URL_TOOL_CAP,
   BARE_URL_MCP_PROFILE,
+  CONNECTOR_MCP_TOOL_CAP,
   DEFAULT_MCP_PROFILE_TOOLSETS,
   DIRECTORY_EXCLUDED_TOOLSETS,
   DIRECTORY_MCP_PROFILE_TOOLSETS,
   isMcpToolsetProfileName,
   MCP_PROFILE_NAMES,
   resolveMcpProfile,
+  STUDIO_MCP_PROFILE_TOOL_CAP,
+  STUDIO_MCP_PROFILE_TOOLSETS,
 } from './registry/toolset-profiles';
 export type {
   ToolsetDefinition,
