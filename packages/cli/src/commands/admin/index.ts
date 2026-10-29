@@ -10,6 +10,7 @@ import { clearAdminTokenCache, revokeAdminSession, verifyAdminSession } from '@/
 import { waitForAdminSession } from '@/commands/login';
 import { getAdminSession, getApiUrl, getLoginEndpoints, setAdminSession } from '@/config/store';
 import {
+  addOrganizationMember,
   approvePricingRates,
   approveSystemBrand,
   createOrganizationBrand,
@@ -77,6 +78,15 @@ interface CreditsGrantOptions {
   expiresInDays?: number;
   idempotencyKey?: string;
   reason: string;
+  yes?: boolean;
+}
+
+interface MemberAddOptions {
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  org: string;
+  role: string;
   yes?: boolean;
 }
 
@@ -873,6 +883,51 @@ function createCreditsCommand(): Command {
   );
 }
 
+function createMemberCommand(): Command {
+  return new Command('member')
+    .description('Manage organization members (never sends an email)')
+    .addCommand(
+      new Command('add')
+        .description('Add a member to an organization with a role (preview unless --yes)')
+        .requiredOption('--org <organizationId>', 'Organization id')
+        .requiredOption('--email <email>', 'Member email')
+        .option('--role <role>', 'Role: admin or member', 'admin')
+        .option('--first-name <name>', 'First name, used only when the user is created')
+        .option('--last-name <name>', 'Last name, used only when the user is created')
+        .option('--yes', 'Apply the change')
+        .action(async (options: MemberAddOptions) => {
+          try {
+            if (options.role !== 'admin' && options.role !== 'member') {
+              throw new GenfeedError('--role must be admin or member');
+            }
+            if (!options.yes) {
+              print(formatHeader('Add member (preview)\n'));
+              print(formatLabel('Organization', options.org));
+              print(formatLabel('Email', options.email));
+              print(formatLabel('Role', options.role));
+              print(formatWarning('No email is sent. Re-run with --yes to add the member.'));
+              return;
+            }
+            const added = await addOrganizationMember(options.org, {
+              email: options.email,
+              firstName: options.firstName,
+              lastName: options.lastName,
+              roleKey: options.role,
+            });
+            print(
+              formatSuccess(
+                `${added.isMemberCreated ? 'Added' : 'Updated'} member ${added.memberId} as ${added.roleKey} (${
+                  added.isUserCreated ? 'new user' : 'existing user'
+                } ${added.userId})`
+              )
+            );
+          } catch (error) {
+            handleError(error);
+          }
+        })
+    );
+}
+
 function createWarmupCommand(): Command {
   return new Command('warmup')
     .description('Create and prepare concierge accounts (never sends the invitation email)')
@@ -1088,4 +1143,5 @@ export const adminCommand = new Command('admin')
   .addCommand(createSeedCommand())
   .addCommand(createBrandCommand())
   .addCommand(createCreditsCommand())
+  .addCommand(createMemberCommand())
   .addCommand(createWarmupCommand());
