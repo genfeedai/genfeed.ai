@@ -1,7 +1,10 @@
 import type { SocialConversationType } from '@genfeedai/contracts';
-import type { SocialPlatform } from '@genfeedai/contracts/interfaces';
+import type {
+  ICredential,
+  SocialAutomationState,
+  SocialPlatform,
+} from '@genfeedai/contracts/interfaces';
 import type { SocialConversationModel } from '@genfeedai/models/social/social-conversation.model';
-import type { ReactNode } from 'react';
 
 export type MessagesInboxView =
   | 'all'
@@ -35,18 +38,24 @@ export type MessagesBrandFilterOption = {
 };
 
 export interface MessagesConversationSidebarProps {
-  advancedFilters: ReactNode;
+  accounts: readonly ICredential[];
+  automationState: SocialAutomationState | 'all';
   brandFilter: string;
   brandOptions: readonly MessagesBrandFilterOption[];
   busyAction: string | null;
   conversations: SocialConversationModel[];
   conversationType: MessagesSurface;
+  credentialId: string;
+  defaultBrandFilter: string;
   hasConnectedAccounts: boolean;
   hasSyncableAccounts: boolean;
   isAccountsLoading: boolean;
   isLoading: boolean;
+  onAutomationStateChange: (value: SocialAutomationState | 'all') => void;
   onBrandFilterChange: (brandId: string) => void;
+  onClearFilters: () => void;
   onConversationTypeChange: (conversationType: MessagesSurface) => void;
+  onCredentialIdChange: (credentialId: string) => void;
   onNextPage: () => void;
   onOAuthConnect?: (platform: string) => void | Promise<void>;
   onPlatformChange: (platform: SocialPlatform | 'all') => void;
