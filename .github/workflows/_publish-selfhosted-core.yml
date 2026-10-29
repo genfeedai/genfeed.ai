@@ -156,7 +156,7 @@ jobs:
       - name: Setup create package
         uses: ./.github/actions/setup-bun-env
         with:
-          node-version: "24.x"
+          node-version: "26.x"
           install-command: "bun install --filter @genfeedai/create --frozen-lockfile --ignore-scripts"
 
       - name: Test and build create package

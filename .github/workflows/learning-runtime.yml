@@ -71,10 +71,10 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
-      - name: Setup preflight Node.js 24.x
+      - name: Setup preflight Node.js 26.x
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '24.x'
+          node-version: '26.x'
       - name: Validate learning prerequisites before dependency setup
         id: preflight
         run: node scripts/ci/runtime-acceptance.mjs preflight --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA" --group learning

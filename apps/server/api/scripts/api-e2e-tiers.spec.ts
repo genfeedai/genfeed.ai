@@ -357,17 +357,17 @@ describe('dedicated Context Embedding Acceptance lane', () => {
 
 describe('observed acceptance runtime identity', () => {
   const healthy = {
-    nodeVersion: '24.22.0',
+    nodeVersion: '26.12.1',
     bunVersion: '1.4.4',
     selector: 'latest',
     packageManager: 'bun@1.4.3',
-    ciCheckRuntime: 'Linux/X64/1.4.4/v24.22.0',
+    ciCheckRuntime: 'Linux/X64/1.4.4/v26.12.1',
     platform: 'linux',
     architecture: 'x64',
   };
   it('accepts exact rolling stable identity while retaining the distinct packageManager declaration', () => {
     expect(validateContextEmbeddingRuntime(healthy)).toEqual({
-      node: '24.22.0',
+      node: '26.12.1',
       bun: '1.4.4',
       bunSelector: 'latest',
       packageManager: 'bun@1.4.3',
@@ -380,11 +380,11 @@ describe('observed acceptance runtime identity', () => {
     ).toBe('1.4.4');
   });
   it.each([
-    { nodeVersion: '26.12.1', ciCheckRuntime: 'Linux/X64/1.4.4/v26.12.1' },
+    { nodeVersion: '24.22.0', ciCheckRuntime: 'Linux/X64/1.4.4/v24.22.0' },
     { ciCheckRuntime: undefined },
-    { ciCheckRuntime: 'Linux/X64/1.4.3/v24.22.0' },
-    { platform: 'darwin', ciCheckRuntime: 'macOS/X64/1.4.4/v24.22.0' },
-    { architecture: 'arm64', ciCheckRuntime: 'Linux/ARM64/1.4.4/v24.22.0' },
+    { ciCheckRuntime: 'Linux/X64/1.4.3/v26.12.1' },
+    { platform: 'darwin', ciCheckRuntime: 'macOS/X64/1.4.4/v26.12.1' },
+    { architecture: 'arm64', ciCheckRuntime: 'Linux/ARM64/1.4.4/v26.12.1' },
     { bunVersion: '1.4.4-canary.1' },
     { bunVersion: 'invalid' },
     { selector: '1.4.3' },
