@@ -1,3 +1,4 @@
+import { BRAND_COVER_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/brand-cover-workflows.template';
 import { CONTENT_LOOP_TEMPLATE } from '@api/collections/workflows/templates/content-loop.template';
 import { DAILY_PUBLISHING_TEMPLATE } from '@api/collections/workflows/templates/daily-publishing-workflow.template';
 import { DAILY_TRENDS_DIGEST_TEMPLATE } from '@api/collections/workflows/templates/daily-trends-digest.template';
@@ -111,6 +112,7 @@ export interface WorkflowTemplate {
 
 const WORKFLOW_TEMPLATE_CATALOG: Record<string, WorkflowTemplate> = {
   ...GENERATION_WORKFLOW_TEMPLATES,
+  ...BRAND_COVER_WORKFLOW_TEMPLATES,
   ...DYNAMIC_VIDEO_WORKFLOW_TEMPLATES,
   ...Object.fromEntries(
     PRODUCTIZED_DAILY_ROUTINE_TEMPLATES.map((template) => [

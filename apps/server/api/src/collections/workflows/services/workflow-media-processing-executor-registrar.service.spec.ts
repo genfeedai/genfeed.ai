@@ -49,6 +49,179 @@ function getActionExecutor(
     : undefined;
 }
 
+describe('WorkflowMediaProcessingExecutorRegistrarService brandCover', () => {
+  const context = {
+    organizationId: 'org-1',
+    runId: 'run-1',
+    userId: 'user-1',
+    workflowId: 'workflow-1',
+    workflowVersionId: 'version-1',
+  };
+
+  function registerBrandCover() {
+    const config: Record<string, unknown> = {
+      brandId: 'brand-1',
+      placement: 'top-left',
+      title: 'Configured title',
+      variant: 'live',
+      width: 3840,
+    };
+    const helper = {
+      extractIngredientId: (value: unknown) =>
+        typeof value === 'string' ? value : undefined,
+      getOptionalNumberConfig: (
+        source: Record<string, unknown>,
+        key: string,
+        fallback: number,
+      ) => (typeof source[key] === 'number' ? source[key] : fallback),
+      getOptionalStringInput: (inputs: Map<string, unknown>, key: string) => {
+        const value = inputs.get(key);
+        return typeof value === 'string' && value ? value : undefined;
+      },
+      getRequiredBrandId: () => 'brand-1',
+      readConfigString: (source: Record<string, unknown>, key: string) =>
+        typeof source[key] === 'string' ? source[key] : undefined,
+      wrapEngineExecutor,
+    } as unknown as WorkflowEngineExecutorHelperService;
+    const files = {
+      generateThumbnail: vi
+        .fn()
+        .mockResolvedValue({ thumbnailUrl: 'https://cdn/cover.jpg' }),
+      getPresignedDownloadUrl: vi.fn().mockResolvedValue('https://cdn/in.png'),
+    };
+    const brandCoverStyle = {
+      resolveCoverStyle: vi.fn().mockResolvedValue({
+        signature: { opacity: 1, position: 'top-right', text: 'SSS' },
+        title: { accentColor: '#E83B3B', color: '#FFFFFF' },
+      }),
+    };
+    const engine = new WorkflowEngine();
+    new WorkflowMediaProcessingExecutorRegistrarService(
+      helper,
+      { isAuthorizedMediaDeliveryEnabled: false } as never,
+      undefined,
+      undefined,
+      undefined,
+      files as never,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      brandCoverStyle as never,
+    ).register(engine);
+    return { brandCoverStyle, config, engine, files };
+  }
+
+  it('covers the source image with the brand title style, signature and configured placement', async () => {
+    const { brandCoverStyle, config, engine, files } = registerBrandCover();
+
+    const result = await getActionExecutor(engine, 'brandCover')?.(
+      {
+        config,
+        id: 'cover-1',
+        inputs: [],
+        label: 'Cover',
+        type: 'brandCover',
+      },
+      new Map([['image', 'image-asset']]),
+      context,
+    );
+
+    expect(result).toEqual({
+      id: 'image-asset',
+      image: 'https://cdn/cover.jpg',
+      status: 'generated',
+    });
+    expect(brandCoverStyle.resolveCoverStyle).toHaveBeenCalledWith(
+      'brand-1',
+      'org-1',
+      'live',
+    );
+    expect(files.generateThumbnail).toHaveBeenCalledWith(
+      'https://cdn/in.png',
+      'image-asset',
+      0,
+      3840,
+      'Configured title',
+      true,
+      {
+        signature: { opacity: 1, position: 'top-right', text: 'SSS' },
+        title: {
+          accentColor: '#E83B3B',
+          color: '#FFFFFF',
+          placement: 'top-left',
+        },
+      },
+    );
+  });
+
+  it('prefers a title wired in from an upstream node over the configured one', async () => {
+    const { config, engine, files } = registerBrandCover();
+
+    await getActionExecutor(engine, 'brandCover')?.(
+      {
+        config,
+        id: 'cover-1',
+        inputs: [],
+        label: 'Cover',
+        type: 'brandCover',
+      },
+      new Map([
+        ['image', 'image-asset'],
+        ['title', 'Wired title'],
+      ]),
+      context,
+    );
+
+    expect(files.generateThumbnail.mock.calls[0]?.[4]).toBe('Wired title');
+  });
+
+  it('takes the cover frame from a source video at the configured second', async () => {
+    const { config, engine, files } = registerBrandCover();
+
+    await getActionExecutor(engine, 'brandCover')?.(
+      {
+        config: { ...config, timestampSeconds: 12 },
+        id: 'cover-1',
+        inputs: [],
+        label: 'Cover',
+        type: 'brandCover',
+      },
+      new Map([['video', 'video-asset']]),
+      context,
+    );
+
+    expect(files.getPresignedDownloadUrl).toHaveBeenCalledWith(
+      'video-asset',
+      'videos',
+    );
+    expect(files.generateThumbnail.mock.calls[0]?.[1]).toBe('video-asset');
+    expect(files.generateThumbnail.mock.calls[0]?.[2]).toBe(12);
+  });
+
+  it('rejects a cover without a source image ingredient', async () => {
+    const { config, engine } = registerBrandCover();
+
+    await expect(
+      getActionExecutor(engine, 'brandCover')?.(
+        {
+          config,
+          id: 'cover-1',
+          inputs: [],
+          label: 'Cover',
+          type: 'brandCover',
+        },
+        new Map(),
+        context,
+      ),
+    ).rejects.toThrow('brandCover requires a source image or video ingredient');
+  });
+});
+
 describe('WorkflowMediaProcessingExecutorRegistrarService', () => {
   it('rejects an activated overlay issuer denial before fetching media or invoking files processing', async () => {
     const helper = {

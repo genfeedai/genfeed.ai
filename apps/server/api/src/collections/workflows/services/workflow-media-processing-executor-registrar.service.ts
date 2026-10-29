@@ -1,3 +1,4 @@
+import { BrandCoverStyleService } from '@api/collections/brands/services/brand-cover-style.service';
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
@@ -83,6 +84,8 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
     @Optional() private readonly videoStitchService?: VideoStitchService,
     @Optional()
     private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
+    @Optional()
+    private readonly brandCoverStyleService?: BrandCoverStyleService,
   ) {}
 
   private processingMediaUrl(
@@ -107,6 +110,7 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
 
   register(engine: WorkflowEngine): void {
     this.registerAvatarVideoExecutor(engine);
+    this.registerBrandCoverExecutor(engine);
     this.registerCaptionsExecutor(engine);
     this.registerMusicSourceExecutor(engine);
     this.registerSoundOverlayExecutor(engine);
@@ -568,6 +572,83 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
     }
 
     return resolved;
+  }
+
+  /** Lays the brand title and signature over one image as a cover. */
+  private registerBrandCoverExecutor(engine: WorkflowEngine): void {
+    const filesClientService = this.filesClientService;
+    const brandCoverStyleService = this.brandCoverStyleService;
+    if (!filesClientService || !brandCoverStyleService) {
+      return;
+    }
+
+    engine.registerExecutor('brandCover', async (node, inputs, context) => {
+      const brandId = this.helper.getRequiredBrandId(node);
+      const isVideo = inputs.has('video');
+      const source = inputs.get(isVideo ? 'video' : 'image');
+      const ingredientId = this.helper.extractIngredientId(source);
+      if (!ingredientId) {
+        throw new Error(
+          'brandCover requires a source image or video ingredient',
+        );
+      }
+
+      const mediaUrl = this.configService.isAuthorizedMediaDeliveryEnabled
+        ? await this.processingMediaUrl(
+            context.organizationId,
+            await this.helper.requireMediaAsset(
+              ingredientId,
+              context.organizationId,
+              [isVideo ? IngredientCategory.VIDEO : IngredientCategory.IMAGE],
+            ),
+          )
+        : await filesClientService.getPresignedDownloadUrl(
+            ingredientId,
+            isVideo ? 'videos' : 'images',
+          );
+
+      const variant = this.helper.readConfigString(node.config, 'variant');
+      const placement = this.helper.readConfigString(node.config, 'placement');
+      const title =
+        this.helper.getOptionalStringInput(inputs, 'title') ??
+        this.helper.readConfigString(node.config, 'title');
+      const coverStyle = await brandCoverStyleService.resolveCoverStyle(
+        brandId,
+        context.organizationId,
+        variant === 'light' || variant === 'live' ? variant : 'default',
+      );
+      const styled = {
+        ...coverStyle,
+        title: {
+          ...coverStyle?.title,
+          ...(placement === 'top-left' || placement === 'bottom'
+            ? { placement }
+            : {}),
+        },
+      };
+
+      const result = await filesClientService.generateThumbnail(
+        mediaUrl,
+        ingredientId,
+        isVideo
+          ? this.helper.getOptionalNumberConfig(
+              node.config,
+              'timestampSeconds',
+              1,
+            )
+          : 0,
+        this.helper.getOptionalNumberConfig(node.config, 'width', 1280),
+        title,
+        true,
+        styled,
+      );
+
+      return {
+        id: ingredientId,
+        image: result.thumbnailUrl,
+        status: 'generated',
+      };
+    });
   }
 
   private registerVideoFrameExtractExecutor(engine: WorkflowEngine): void {
