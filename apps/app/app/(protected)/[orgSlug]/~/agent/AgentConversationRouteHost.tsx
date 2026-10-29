@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { AgentConversationRouteHostProps } from '@props/agent/agent-conversation-route-host.props';
 import { usePathname } from 'next/navigation';
 import { useMemo } from 'react';
@@ -7,6 +8,7 @@ import {
   normalizeProtectedPathname,
   resolveAgentConversationRoute,
 } from '@/lib/navigation/operator-shell';
+import AgentMasterWorkspace from './AgentMasterWorkspace';
 import { AgentWorkspacePageShell } from './AgentWorkspacePageShell';
 
 /**
@@ -47,7 +49,16 @@ export default function AgentConversationRouteHost({
     return children;
   }
 
-  const shell = <AgentWorkspacePageShell threadId={route.threadId} />;
+  // `/agent` is the master: its conversation on the left, Threads on the right.
+  // `/agent/new` and `/agent/[id]` stay a single full-page conversation.
+  const isMasterRoute =
+    Boolean(rawPathname) &&
+    normalizeProtectedPathname(rawPathname ?? '') === APP_ROUTES.AGENT.ROOT;
+  const shell = isMasterRoute ? (
+    <AgentMasterWorkspace />
+  ) : (
+    <AgentWorkspacePageShell threadId={route.threadId} />
+  );
 
   return (
     <>

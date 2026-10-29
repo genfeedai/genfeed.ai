@@ -29,6 +29,8 @@ export function useAgentDockThreads(
   apiService: Pick<AgentApiService, 'getMessages' | 'getThreads'> &
     Partial<Pick<AgentApiService, 'getMasterThread'>>,
   isEnabled: boolean,
+  // False where the page opens the master itself (the `/agent` workspace).
+  shouldOpenMaster = true,
 ) {
   const threads = useAgentChatStore((state) => state.threads);
   const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
@@ -179,6 +181,7 @@ export function useAgentDockThreads(
       return;
     }
     if (
+      !shouldOpenMaster ||
       activeThreadId ||
       hasStartedFreshThread.current ||
       typeof apiService.getMasterThread !== 'function'
@@ -207,7 +210,7 @@ export function useAgentDockThreads(
       .catch(() => undefined);
 
     return () => controller.abort();
-  }, [activeThreadId, apiService, isEnabled, selectThread]);
+  }, [activeThreadId, apiService, isEnabled, selectThread, shouldOpenMaster]);
 
   return {
     activeThreadId,

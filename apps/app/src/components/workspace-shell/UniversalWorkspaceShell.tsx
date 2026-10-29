@@ -650,7 +650,11 @@ function UniversalWorkspaceShellContent({
   // The split pages list threads and take attached records without the dock.
   const isConversationHost =
     isAgentDockHost || (Boolean(agentDock) && isAgentOutputSurface);
-  const dockThreads = useAgentDockThreads(agentApiService, isConversationHost);
+  const dockThreads = useAgentDockThreads(
+    agentApiService,
+    isConversationHost,
+    !isAgentRoute,
+  );
   const setIsAgentDockAvailable = agentDock?.setIsAvailable;
   const closeAgentDock = agentDock?.close;
   const openAgentDock = agentDock?.open;

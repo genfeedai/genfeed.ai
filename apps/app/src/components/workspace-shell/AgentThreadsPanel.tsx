@@ -6,7 +6,11 @@ import {
   groupChildThreads,
   resolveThreadListPreview,
 } from '@genfeedai/agent/components/agent-thread-list.helpers';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  AgentThreadKind,
+  ButtonSize,
+  ButtonVariant,
+} from '@genfeedai/contracts';
 import type { AgentThreadsPanelProps } from '@props/ui/agent-threads-panel.props';
 import { Button } from '@ui/primitives/button';
 import Searchbar from '@ui/primitives/searchbar';
@@ -41,12 +45,24 @@ export default function AgentThreadsPanel({
   apiService,
   isLoading = false,
   onOpenFullThread,
+  onOpenThreadChange,
+  openThreadId: controlledOpenThreadId,
   threads,
 }: AgentThreadsPanelProps) {
   const translate = useTranslations('common.agentThreads');
   const [searchQuery, setSearchQuery] = useState('');
   const [brandId, setBrandId] = useState<string>(ALL_BRANDS);
-  const [openThreadId, setOpenThreadId] = useState<string | null>(null);
+  const [localOpenThreadId, setLocalOpenThreadId] = useState<string | null>(
+    null,
+  );
+  const openThreadId =
+    controlledOpenThreadId !== undefined
+      ? controlledOpenThreadId
+      : localOpenThreadId;
+  const setOpenThreadId = (threadId: string | null) => {
+    setLocalOpenThreadId(threadId);
+    onOpenThreadChange?.(threadId);
+  };
 
   const brandOptions = useMemo(() => {
     const labels = new Map<string, string>();
@@ -71,9 +87,13 @@ export default function AgentThreadsPanel({
     ? threads.find((thread) => thread.id === openThreadId)
     : undefined;
   if (openThread) {
+    const parent = openThread.parentThreadId
+      ? threads.find((thread) => thread.id === openThread.parentThreadId)
+      : undefined;
     return (
       <AgentThreadLightView
         apiService={apiService}
+        isStartedByMaster={parent?.kind === AgentThreadKind.MASTER}
         onBack={() => setOpenThreadId(null)}
         onOpenFullThread={onOpenFullThread}
         thread={openThread}

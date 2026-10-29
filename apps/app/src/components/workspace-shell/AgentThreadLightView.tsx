@@ -1,12 +1,16 @@
 'use client';
 
-import type { AgentChatMessage } from '@genfeedai/agent';
+import { getThreadStatusMeta } from '@genfeedai/agent/components/agent-thread-list.helpers';
+import type { AgentChatMessage } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AgentThreadLightViewProps } from '@props/ui/agent-threads-panel.props';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
+import { Video } from 'lucide-react';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useId, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useState } from 'react';
+import { collectThreadAssets } from './agent-thread-assets.util';
 
 const MESSAGE_LIMIT = 20;
 
@@ -19,6 +23,7 @@ type SteerState = 'idle' | 'sending' | 'sent' | 'failed';
 export default function AgentThreadLightView({
   apiService,
   onBack,
+  isStartedByMaster = false,
   onOpenFullThread,
   thread,
 }: AgentThreadLightViewProps) {
@@ -29,6 +34,12 @@ export default function AgentThreadLightView({
   const [hasLoadFailed, setHasLoadFailed] = useState(false);
   const [draft, setDraft] = useState('');
   const [steerState, setSteerState] = useState<SteerState>('idle');
+
+  const status = getThreadStatusMeta(thread);
+  const assets = useMemo(
+    () => collectThreadAssets(thread, messages),
+    [messages, thread],
+  );
 
   const loadMessages = useCallback(
     (signal: AbortSignal) => {
@@ -120,6 +131,17 @@ export default function AgentThreadLightView({
         ) : null}
       </div>
 
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border px-3 py-2 text-xs text-muted-foreground">
+        <span data-testid="agent-thread-status">
+          {status?.label ?? translate('statusIdle')}
+        </span>
+        {isStartedByMaster ? (
+          <span data-testid="agent-thread-started-by">
+            {translate('startedByMaster')}
+          </span>
+        ) : null}
+      </div>
+
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
         {isLoading && messages.length === 0 ? (
           <p className="text-sm text-muted-foreground" role="status">
@@ -152,6 +174,39 @@ export default function AgentThreadLightView({
           ))
         )}
       </div>
+
+      {assets.length > 0 ? (
+        <ul
+          aria-label={translate('outputs')}
+          className="flex flex-wrap gap-2 border-t border-border p-3"
+          data-testid="agent-thread-assets"
+        >
+          {assets.map((asset) => (
+            <li key={asset.url}>
+              <a
+                aria-label={translate('openOutput')}
+                className="relative flex size-16 items-center justify-center overflow-hidden rounded-md border border-border bg-muted"
+                href={asset.url}
+                rel="noreferrer"
+                target="_blank"
+              >
+                {asset.kind === 'image' ? (
+                  <Image
+                    alt=""
+                    className="absolute inset-0 size-full object-cover"
+                    height={64}
+                    src={asset.url}
+                    unoptimized
+                    width={64}
+                  />
+                ) : (
+                  <Video aria-hidden="true" className="size-5" />
+                )}
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : null}
 
       <div className="space-y-2 border-t border-border p-3">
         <Textarea

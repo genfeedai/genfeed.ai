@@ -17,6 +17,13 @@ describe('isAgentOutputRoute', () => {
     expect(isAgentOutputRoute('/storyboard/new-run')).toBe(true);
   });
 
+  it('matches the master conversation but not a single full-page thread', () => {
+    expect(isAgentOutputRoute('/agent')).toBe(true);
+    expect(isAgentOutputRoute('/agent/')).toBe(true);
+    expect(isAgentOutputRoute('/agent/new')).toBe(false);
+    expect(isAgentOutputRoute('/agent/journey')).toBe(false);
+  });
+
   it('does not match other apps or nested paths', () => {
     expect(isAgentOutputRoute('/library/images')).toBe(false);
     expect(isAgentOutputRoute('/agent/thread-1')).toBe(false);

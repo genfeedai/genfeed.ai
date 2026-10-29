@@ -1,3 +1,4 @@
+import { AgentThreadOpenProvider } from '@genfeedai/agent/components/AgentThreadOpenContext';
 import { AgentTransferProvenanceCard } from '@genfeedai/agent/components/AgentTransferProvenanceCard';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import {
@@ -107,5 +108,24 @@ describe('AgentTransferProvenanceCard', () => {
     expect(onUiAction).toHaveBeenCalledWith('confirm_agent_transfer', {
       sourceActionId: 'agent-transfer:key-1',
     });
+  });
+
+  it('opens the destination thread in the Threads panel when the surface has one', () => {
+    const onOpenThread = vi.fn();
+    render(
+      <AgentThreadOpenProvider value={onOpenThread}>
+        <AgentTransferProvenanceCard action={makeAction()} />
+      </AgentThreadOpenProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('agent-transfer-open-thread'));
+
+    expect(onOpenThread).toHaveBeenCalledWith('destination-1');
+  });
+
+  it('has no panel button where no surface offers one', () => {
+    render(<AgentTransferProvenanceCard action={makeAction()} />);
+
+    expect(screen.queryByTestId('agent-transfer-open-thread')).toBeNull();
   });
 });

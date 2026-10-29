@@ -1200,6 +1200,10 @@
   "workspaceOverlay": {
     "noContent": "No content configured for this overlay."
   },
+  "agentWorkspace": {
+    "master": "Master",
+    "views": "Master or Threads"
+  },
   "agentOutput": {
     "agent": "Agent",
     "collapseAgent": "Collapse agent",
@@ -1244,9 +1248,13 @@
     "noMatches": "No threads match.",
     "noMessages": "No messages yet.",
     "openFull": "Open full page",
+    "openOutput": "Open output",
+    "outputs": "Outputs",
     "roleAgent": "Agent",
     "roleYou": "You",
     "search": "Search threads",
+    "startedByMaster": "Started by Master",
+    "statusIdle": "Idle",
     "steer": "Steer",
     "steerFailed": "Could not send. Try again.",
     "steerLabel": "Steer this thread",

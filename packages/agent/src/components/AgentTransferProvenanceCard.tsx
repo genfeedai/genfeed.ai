@@ -1,4 +1,5 @@
 import { AgentCardCollapseToggle } from '@genfeedai/agent/components/AgentCardCollapseToggle';
+import { useAgentThreadOpen } from '@genfeedai/agent/components/AgentThreadOpenContext';
 import {
   AGENT_CONVERSATION_INLINE_ROW_CLASS,
   AGENT_CONVERSATION_SURFACE_CLASS,
@@ -50,6 +51,7 @@ export function AgentTransferProvenanceCard({
   onUiAction,
 }: AgentTransferProvenanceCardProps): ReactElement {
   const translate = useTranslations('agent.transferProvenance');
+  const openThread = useAgentThreadOpen();
   const transfer = readTransfer(action);
   const direction =
     transfer?.direction ??
@@ -143,6 +145,17 @@ export function AgentTransferProvenanceCard({
         />
         {statusLabel}
       </span>
+      {openThread && counterpartId ? (
+        <Button
+          data-testid="agent-transfer-open-thread"
+          onClick={() => openThread(counterpartId)}
+          size={ButtonSize.SM}
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
+        >
+          {translate('openInThreads')}
+        </Button>
+      ) : null}
       <AgentCardCollapseToggle
         isCollapsed={!isExpanded}
         labelCollapse="Collapse transfer details"

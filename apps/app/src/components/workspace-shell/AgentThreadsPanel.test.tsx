@@ -1,4 +1,5 @@
-import type { AgentChatMessage, AgentThread } from '@genfeedai/agent';
+import type { AgentThread } from '@genfeedai/agent';
+import type { AgentChatMessage } from '@genfeedai/agent/models/agent-chat.model';
 import { AgentThreadKind, AgentThreadStatus } from '@genfeedai/contracts';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -36,6 +37,11 @@ const threads: AgentThread[] = [
     attentionState: 'updated',
     brandId: 'brand-a',
     brandLabel: 'Moonrise',
+  }),
+  makeThread('child', 'Trailer cut', {
+    lastGeneratedAssetUrl: 'https://cdn.example.com/trailer.mp4',
+    parentThreadId: 'master-1',
+    runStatus: 'running',
   }),
   makeThread('old', 'Old idea', {
     brandId: 'brand-b',
@@ -160,5 +166,44 @@ describe('AgentThreadsPanel', () => {
     await user.click(await screen.findByRole('button', { name: 'Back' }));
 
     expect(screen.getByTestId('agent-threads-panel')).toBeVisible();
+  });
+
+  it('says who started a thread, its status and what it produced', async () => {
+    const user = userEvent.setup();
+    getMessages.mockResolvedValueOnce([
+      {
+        ...message,
+        metadata: {
+          contentType: 'image',
+          mediaUrl: 'https://cdn.example.com/frame.png',
+        },
+        threadId: 'child',
+      },
+    ]);
+    render(<AgentThreadsPanel apiService={apiService} threads={threads} />);
+
+    await user.click(screen.getByTestId('agent-threads-panel-thread-child'));
+
+    expect(
+      await screen.findByTestId('agent-thread-started-by'),
+    ).toHaveTextContent('Started by Master');
+    expect(screen.getByTestId('agent-thread-status')).toHaveTextContent(
+      'Running',
+    );
+    const tiles = await screen.findByTestId('agent-thread-assets');
+    expect(within(tiles).getAllByRole('link')).toHaveLength(2);
+  });
+
+  it('opens the thread a chip asked for', () => {
+    render(
+      <AgentThreadsPanel
+        apiService={apiService}
+        openThreadId="ready"
+        threads={threads}
+      />,
+    );
+
+    expect(screen.getByTestId('agent-thread-light-view')).toBeVisible();
+    expect(screen.getByText('Spring captions')).toBeVisible();
   });
 });

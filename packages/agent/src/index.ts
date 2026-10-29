@@ -22,6 +22,10 @@ export {
   AgentThreadList,
   type AgentThreadListProps,
 } from '@genfeedai/agent/components/AgentThreadList';
+export {
+  AgentThreadOpenProvider,
+  useAgentThreadOpen,
+} from '@genfeedai/agent/components/AgentThreadOpenContext';
 export { AgentToolCallDisplay } from '@genfeedai/agent/components/AgentToolCallDisplay';
 // Block renderers
 export {
