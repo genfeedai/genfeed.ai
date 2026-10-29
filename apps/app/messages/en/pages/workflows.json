@@ -40,6 +40,9 @@
     "searchLabel": "Search nodes",
     "searchPlaceholder": "Search nodes..."
   },
+  "agentLayout": {
+    "canvas": "Canvas"
+  },
   "nodePalette": {
     "image": {
       "description": "Pick an image from the library",

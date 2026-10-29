@@ -25,6 +25,18 @@ describe('isAgentOutputRoute', () => {
     expect(isAgentOutputRoute('/editor/new/')).toBe(false);
   });
 
+  it('matches the workflow editor, new or saved', () => {
+    expect(isAgentOutputRoute('/automation/workflows/new')).toBe(true);
+    expect(isAgentOutputRoute('/automation/workflows/wf-1')).toBe(true);
+    expect(isAgentOutputRoute('/automation/workflows/wf-1/')).toBe(true);
+  });
+
+  it('leaves the workflow library and templates on the dock', () => {
+    expect(isAgentOutputRoute('/automation/workflows')).toBe(false);
+    expect(isAgentOutputRoute('/automation/workflows/templates')).toBe(false);
+    expect(isAgentOutputRoute('/automation/workflows/templates/')).toBe(false);
+  });
+
   it('matches a clipper project and leaves the list and the create form', () => {
     expect(isAgentOutputRoute('/clipper/project-1')).toBe(true);
     expect(isAgentOutputRoute('/clipper/project-1/')).toBe(true);

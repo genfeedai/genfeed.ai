@@ -153,6 +153,37 @@ test.describe('Workflows builder & canvas interactions', () => {
     await expectNoErrorOverlay(authenticatedPage);
   });
 
+  test('new workflow builder sits in the agent rail beside the canvas', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.goto(
+      brandPath(APP_ROUTES.AUTOMATION.WORKFLOWS_NEW),
+      {
+        waitUntil: 'domcontentloaded',
+      },
+    );
+
+    const agent = authenticatedPage.getByTestId('agent-output-agent-pane');
+    const output = authenticatedPage.getByTestId('agent-output-output-pane');
+    await expect(agent).toBeVisible({ timeout: 20_000 });
+    await expect(output.locator('.react-flow').first()).toBeVisible({
+      timeout: 20_000,
+    });
+
+    // Agent on the left, canvas on the right, and one agent only: the
+    // product dock is off on the editor routes.
+    const [agentBox, outputBox] = await Promise.all([
+      agent.boundingBox(),
+      output.boundingBox(),
+    ]);
+    expect(agentBox?.x ?? 0).toBeLessThan(outputBox?.x ?? 0);
+    await expect(authenticatedPage.getByTestId('agent-dock')).toHaveCount(0);
+    await expect(
+      authenticatedPage.getByTestId('topbar-agent-dock-toggle'),
+    ).toHaveCount(0);
+    await expectNoErrorOverlay(authenticatedPage);
+  });
+
   test('builder toolbar exposes Run and draft lifecycle actions', async ({
     authenticatedPage,
   }) => {
