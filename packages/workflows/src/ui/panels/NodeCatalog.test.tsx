@@ -4,7 +4,16 @@ import {
   decodeWorkflowNodeTransfer,
   WORKFLOW_NODE_TRANSFER_TYPE,
 } from '../lib/paletteTransfer';
-import { NodeCatalog, NodePalette } from './NodePalette';
+import { NodeCatalog } from './NodeCatalog';
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) =>
+    ({
+      empty: 'No nodes found',
+      searchLabel: 'Search nodes',
+      searchPlaceholder: 'Search nodes...',
+    })[key] ?? key,
+}));
 
 vi.mock('@genfeedai/contracts/types', () => ({
   getNodesByCategory: () => ({
@@ -16,14 +25,10 @@ vi.mock('@genfeedai/contracts/types', () => ({
   }),
 }));
 
-vi.mock('../stores/uiStore', () => ({
-  useUIStore: () => ({ togglePalette: vi.fn() }),
-}));
-
-describe('NodePalette', () => {
+describe('NodeCatalog', () => {
   it('keeps the action binding when an action is dragged from search results', () => {
     render(
-      <NodePalette
+      <NodeCatalog
         additionalNodes={[
           {
             actionId: 'media.image.generate',
@@ -65,7 +70,7 @@ describe('NodePalette', () => {
 
   it('lists nodes alphabetically by label inside a category', () => {
     render(
-      <NodePalette
+      <NodeCatalog
         additionalNodes={[
           {
             category: 'input',
@@ -106,9 +111,7 @@ describe('NodePalette', () => {
     expect(labels[1]).toContain('Image');
     expect(labels[2]).toContain('Video');
   });
-});
 
-describe('NodeCatalog', () => {
   it('reports the clicked entry with its action binding', () => {
     const onAdd = vi.fn();
     render(

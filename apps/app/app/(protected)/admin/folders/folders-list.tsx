@@ -23,7 +23,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
-import FiltersButton from '@ui/content/filters-button/FiltersButton';
+import FiltersSearch from '@ui/content/filters-button/FiltersSearch';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
@@ -315,6 +315,25 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
     <Container
       label="Folders"
       icon={FolderOpen}
+      leading={
+        <FiltersSearch
+          filterOptions={{ sort: FOLDER_SORT_OPTIONS }}
+          filters={filters}
+          onFiltersChange={(f: IFiltersState, q: IFilters) => {
+            dispatch({
+              type: 'SET_FILTERS_AND_QUERY',
+              payload: { filters: f, query: q },
+            });
+          }}
+          visibleFilters={{
+            format: false,
+            provider: false,
+            sort: true,
+            status: false,
+            type: false,
+          }}
+        />
+      }
       refresh={
         <ButtonRefresh
           onClick={() => refreshFolders()}
@@ -323,27 +342,6 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
       }
       right={
         <>
-          <FiltersButton
-            filters={filters}
-            onFiltersChange={(f: IFiltersState, q: IFilters) => {
-              dispatch({
-                type: 'SET_FILTERS_AND_QUERY',
-                payload: { filters: f, query: q },
-              });
-            }}
-            visibleFilters={{
-              format: false,
-              provider: false,
-              search: true,
-              sort: true,
-              status: false,
-              type: false,
-            }}
-            filterOptions={{
-              sort: FOLDER_SORT_OPTIONS,
-            }}
-          />
-
           {scope !== PageScope.SUPERADMIN && (
             <Button
               label="Folder"

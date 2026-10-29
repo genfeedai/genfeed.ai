@@ -325,7 +325,6 @@ export default function WorkflowDetailPageClient({
             />
           ) : (
             <WorkflowEditorShell
-              showNodePalette={false}
               nodeTypes={cloudNodeTypes}
               rightPanel={
                 showRunPanel ? (

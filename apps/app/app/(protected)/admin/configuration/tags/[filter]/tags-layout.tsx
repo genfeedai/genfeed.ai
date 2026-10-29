@@ -13,6 +13,7 @@ export default function TagsLayout({
   children,
   scope,
   filters,
+  search: searchNode,
   primaryAction,
   onRefresh,
   isRefreshing,
@@ -49,6 +50,7 @@ export default function TagsLayout({
     <AdminPageShell
       title="Tags"
       icon={Tag}
+      search={searchNode}
       tabs={
         tabs
           ? {

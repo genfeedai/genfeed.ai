@@ -196,37 +196,31 @@ const config = createAppNextConfig({
     ...selfHostedOrgRewrites,
   ],
   redirects: async () => [
-    // Platform admin home is the overview dashboard (complete path). Bare
-    // `/admin` and incomplete `/admin/overview` permanently redirect here.
+    // Platform admin home is Overview. Bare `/admin` permanently redirects here.
     {
-      destination: APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
+      destination: APP_ROUTES.ADMIN.OVERVIEW.ROOT,
       permanent: true,
       source: APP_ROUTES.ADMIN.ROOT,
-    },
-    {
-      destination: APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
-      permanent: true,
-      source: `${APP_ROUTES.ADMIN.ROOT}/overview`,
     },
 
     // Brand-scoped /admin/* never existed. Send it to the platform dashboard.
     {
-      destination: APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
+      destination: APP_ROUTES.ADMIN.OVERVIEW.ROOT,
       permanent: true,
       source: createBrandAppRoute(':orgSlug', ':brandSlug', '/admin'),
     },
     {
-      destination: APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
+      destination: APP_ROUTES.ADMIN.OVERVIEW.ROOT,
       permanent: true,
       source: createBrandAppRoute(':orgSlug', ':brandSlug', '/admin/:path*'),
     },
     {
-      destination: APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
+      destination: APP_ROUTES.ADMIN.OVERVIEW.ROOT,
       permanent: true,
       source: createOrganizationAppRoute(':orgSlug', '/admin'),
     },
     {
-      destination: APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
+      destination: APP_ROUTES.ADMIN.OVERVIEW.ROOT,
       permanent: true,
       source: createOrganizationAppRoute(':orgSlug', '/admin/:path*'),
     },

@@ -1,7 +1,5 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { Button } from '@genfeedai/ui/primitives/button';
 import {
   Background,
   BackgroundVariant,
@@ -17,7 +15,6 @@ import {
   SelectionMode,
   useReactFlow,
 } from '@xyflow/react';
-import { PanelLeft } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import '@xyflow/react/dist/style.css';
 
@@ -326,7 +323,6 @@ interface WorkflowCanvasHandlersOptions {
   setDraggingNodeId: (id: string | null) => void;
   setSelectedNodeIds: (ids: string[]) => void;
   toggleNodeLock: (id: string) => void;
-  togglePalette: () => void;
   unlockAllNodes: () => void;
 }
 
@@ -356,7 +352,6 @@ function useWorkflowCanvasHandlers({
   setDraggingNodeId,
   setSelectedNodeIds,
   toggleNodeLock,
-  togglePalette,
   unlockAllNodes,
 }: WorkflowCanvasHandlersOptions) {
   const addCatalogNode = useAddCatalogNode();
@@ -401,7 +396,6 @@ function useWorkflowCanvasHandlers({
     openShortcutHelp,
     selectedNodeIds,
     toggleNodeLock,
-    togglePalette,
     unlockAllNodes,
   });
 
@@ -677,8 +671,6 @@ export function WorkflowCanvas({
     selectEdge,
     setHighlightedNodeIds,
     highlightedNodeIds,
-    showPalette,
-    togglePalette,
     openModal,
     openConnectionDropMenu,
   } = useUIStore();
@@ -769,7 +761,6 @@ export function WorkflowCanvas({
     setDraggingNodeId,
     setSelectedNodeIds,
     toggleNodeLock,
-    togglePalette,
     unlockAllNodes,
   });
 
@@ -780,18 +771,6 @@ export function WorkflowCanvas({
       onDrop={handleDrop}
       onDragOver={handleDragOver}
     >
-      {!showPalette && (
-        <Button
-          withWrapper={false}
-          variant={ButtonVariant.SECONDARY}
-          size={ButtonSize.ICON}
-          onClick={togglePalette}
-          className="absolute top-3 left-3 z-10"
-          title="Open sidebar (M)"
-        >
-          <PanelLeft className="size-4 text-muted-foreground group-hover:text-foreground" />
-        </Button>
-      )}
       <ReactFlow<WorkflowNode, WorkflowEdge>
         nodes={nodes}
         edges={styledEdges}

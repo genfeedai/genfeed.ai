@@ -3,8 +3,6 @@ export { DebugPanel } from './DebugPanel';
 export {
   NodeCatalog,
   type NodeCatalogProps,
-  NodePalette,
-  type NodePaletteProps,
   type PaletteNodeDefinition,
-} from './NodePalette';
+} from './NodeCatalog';
 export { PanelContainer } from './PanelContainer';

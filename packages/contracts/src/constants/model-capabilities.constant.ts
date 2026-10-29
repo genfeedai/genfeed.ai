@@ -820,6 +820,25 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 4,
       maxReferences: 1,
     },
+    // Kling 4.0 (https://replicate.com/kwaivgi/kling-v4.0): 3-30 s, 720p or
+    // 1080p, start/middle/end keyframes, up to 10 images in total and
+    // reference or base videos. No audio or negative-prompt input.
+    [MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V4]: {
+      aspectRatios: ASPECT_RATIOS.KLING_4,
+      category: ModelCategory.VIDEO,
+      defaultAspectRatio: '16:9',
+      defaultDuration: 5,
+      durations: Array.from({ length: 28 }, (_, index) => index + 3),
+      hasDurationEditing: true,
+      hasEndFrame: true,
+      hasResolutionOptions: true,
+      // The page says the first frame, end frame, middle images or base
+      // video set the aspect ratio when present.
+      hasSourceDerivedAspect: true,
+      isBatchSupported: false,
+      maxOutputs: 4,
+      maxReferences: 10,
+    },
     [MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO]: {
       aspectRatios: ASPECT_RATIOS.KLING,
       category: ModelCategory.VIDEO,

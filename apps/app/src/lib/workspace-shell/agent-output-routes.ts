@@ -13,6 +13,8 @@ const AGENT_OUTPUT_ROUTE_PATTERNS: readonly RegExp[] = [
   new RegExp(`^${APP_ROUTES.STUDIO.STORYBOARD}/(?!new/?$)[^/]+/?$`),
   // An Editor project; `/editor/new` creates one.
   new RegExp(`^${APP_ROUTES.STUDIO.EDITOR}/(?!new/?$)[^/]+/?$`),
+  // A Clipper project; `/clipper/new` creates one.
+  new RegExp(`^${APP_ROUTES.STUDIO.CLIPPER}/(?!new/?$)[^/]+/?$`),
 ];
 
 export function isAgentOutputRoute(normalizedPathname: string): boolean {
