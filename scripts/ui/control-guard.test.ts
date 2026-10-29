@@ -394,6 +394,7 @@ describe('shared media boundary', () => {
     'packages/agent/src/components/Card.tsx',
     'packages/workflows/src/ui/nodes/Preview.tsx',
     'packages/ui/src/components/workflow-builder/Preview.tsx',
+    'apps/server/mcp/src/ui/preview-client.tsx',
   ])('rejects bespoke media in %s', (file) => {
     write(
       file,

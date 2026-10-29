@@ -5,8 +5,7 @@ export type McpCardKind =
   | 'video'
   | 'audio'
   | 'media'
-  | 'summary'
-  | 'usage';
+  | 'summary';
 
 export type McpMediaKind = 'audio' | 'image' | 'video';
 
