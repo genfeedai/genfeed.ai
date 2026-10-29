@@ -6,6 +6,7 @@ import { getPublishingPostsHref } from '@genfeedai/helpers/content/posts.helper'
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
+import ModalActions from '@ui/modals/actions/ModalActions';
 import { Button } from '@ui/primitives/button';
 import { useRouter } from 'next/navigation';
 import { PLATFORM_ICONS } from './batch-post.utils';
@@ -134,7 +135,7 @@ export default function ModalPostBatchResultsView({
                 </div>
               </Alert>
 
-              <div className="flex w-full gap-2 justify-between">
+              <ModalActions className="w-full justify-between">
                 <Button
                   label="Close"
                   variant={ButtonVariant.GHOST}
@@ -152,7 +153,7 @@ export default function ModalPostBatchResultsView({
                     );
                   }}
                 />
-              </div>
+              </ModalActions>
             </div>
           )}
       </div>
