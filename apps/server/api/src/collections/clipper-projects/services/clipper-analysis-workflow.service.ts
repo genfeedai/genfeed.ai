@@ -26,6 +26,7 @@ import {
 } from '@api/collections/clipper-projects/services/clipper-analysis-workflow-definition';
 import { ClipperHighlightDetector } from '@api/collections/clipper-projects/services/clipper-highlight-detector.service';
 import { toClipFailureMessage } from '@api/collections/clipper-projects/services/clipper-source-contract.util';
+import { buildSpokenScript } from '@api/collections/clipper-projects/services/clipper-spoken-script.util';
 import { settleClipperWorkflowFailure } from '@api/collections/clipper-projects/services/clipper-workflow-terminal-failure.util';
 import {
   type SystemWorkflowActionRequest,
@@ -309,7 +310,18 @@ export class ClipperAnalysisWorkflowService implements OnModuleInit {
         (highlight) =>
           highlight.virality_score >= transcribed.data.minViralityScore,
       )
-      .map((highlight) => ({ ...highlight, id: randomUUID() }));
+      .map((highlight) => {
+        const script = buildSpokenScript(
+          transcribed.transcription.segments,
+          highlight.start_time,
+          highlight.end_time,
+        );
+        return {
+          ...highlight,
+          id: randomUUID(),
+          ...(script ? { script } : {}),
+        };
+      });
     return { ...transcribed, highlights };
   }
 

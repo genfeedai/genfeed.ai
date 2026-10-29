@@ -1128,6 +1128,9 @@ export function useStudioClipperPage(options?: { projectId?: string }) {
           : {}),
         editedHighlights: selectedEditedHighlights.map((highlight) => ({
           id: highlight.id,
+          ...(highlight.script !== undefined
+            ? { script: highlight.script }
+            : {}),
           summary: highlight.summary,
           title: highlight.title,
         })),
@@ -1295,9 +1298,9 @@ export function useStudioClipperPage(options?: { projectId?: string }) {
     );
   }, []);
 
-  const updateHighlightScript = useCallback((id: string, summary: string) => {
+  const updateHighlightScript = useCallback((id: string, script: string) => {
     setEditedHighlights((prev) =>
-      prev.map((h) => (h.id === id ? { ...h, summary } : h)),
+      prev.map((h) => (h.id === id ? { ...h, script } : h)),
     );
   }, []);
 
