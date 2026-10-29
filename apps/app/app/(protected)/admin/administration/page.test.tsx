@@ -10,7 +10,7 @@ describe('app/(protected)/admin/administration/page.tsx', () => {
     );
 
     expect(source).toContain(
-      'permanentRedirect(APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS)',
+      'permanentRedirect(APP_ROUTES.ADMIN.ORGANIZATIONS)',
     );
   });
 });

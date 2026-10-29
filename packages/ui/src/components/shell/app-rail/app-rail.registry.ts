@@ -271,7 +271,6 @@ export const ADMIN_RAIL_CATEGORIES: readonly AppRailItemConfig[] = [
   },
   {
     activePathRoots: [
-      APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS,
       APP_ROUTES.ADMIN.ORGANIZATIONS,
       APP_ROUTES.ADMIN.BRANDS,
       APP_ROUTES.ADMIN.ADMINISTRATION.USERS,
@@ -284,7 +283,7 @@ export const ADMIN_RAIL_CATEGORIES: readonly AppRailItemConfig[] = [
     icon: BriefcaseBusiness,
     id: 'admin-customers',
     label: 'adminCustomers.label',
-    route: () => APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS,
+    route: () => APP_ROUTES.ADMIN.ORGANIZATIONS,
   },
   {
     // Folders sit outside `/admin/content` but belong with it; unclaimed, the

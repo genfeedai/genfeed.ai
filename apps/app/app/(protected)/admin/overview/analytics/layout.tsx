@@ -28,10 +28,7 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
         fullWidth: false,
         tabs: [
           { href: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ALL, label: 'Overview' },
-          {
-            href: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS,
-            label: 'Organizations',
-          },
+          { href: APP_ROUTES.ADMIN.ORGANIZATIONS, label: 'Organizations' },
           { href: APP_ROUTES.ADMIN.BRANDS, label: 'Brands' },
           {
             href: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BUSINESS,
