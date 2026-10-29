@@ -1,4 +1,4 @@
-import { ModalEnum } from '@genfeedai/contracts';
+import { ModalEnum, QualityTier, SubscriptionTier } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import ModalUpgradePrompt from '@ui/modals/upgrade/ModalUpgradePrompt';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -16,6 +16,17 @@ vi.mock('next-intl', async () => {
           heading: 'This needs more credits than you have left',
           seePlans: 'See plans',
           title: 'Not enough credits',
+        },
+        upgradePrompt: {
+          notNow: 'Not now',
+          perMonth: '/mo',
+          quality: '{quality} quality',
+          recommended: 'Recommended',
+          redirecting: 'Redirecting…',
+          title: '{quality} quality is on {plan}',
+          titleFallback: 'Upgrade your plan',
+          upgradeTo: 'Upgrade to {plan}',
+          yourPlan: 'Your plan',
         },
       },
     }),
@@ -88,8 +99,32 @@ describe('ModalUpgradePrompt', () => {
     render(<ModalUpgradePrompt />);
 
     expect(screen.getByTestId(ModalEnum.UPGRADE_PROMPT)).toHaveTextContent(
-      'Upgrade Your Plan',
+      'Upgrade your plan',
     );
     expect(screen.queryByTestId(ModalEnum.CREDITS_REQUIRED)).toBeNull();
+  });
+
+  it('names the locked quality and the plan that unlocks it', () => {
+    render(
+      <ModalUpgradePrompt
+        currentTier={SubscriptionTier.FREE}
+        lockedQualityTier={QualityTier.HIGH}
+      />,
+    );
+
+    const prompt = screen.getByTestId(ModalEnum.UPGRADE_PROMPT);
+    expect(prompt).toHaveTextContent('Premium quality is on Scale');
+    expect(prompt).toHaveTextContent('Your plan');
+    expect(prompt).toHaveTextContent('Recommended');
+    expect(prompt).toHaveTextContent('$499/mo');
+  });
+
+  it('sends the user to the subscription page from the upgrade action', () => {
+    render(<ModalUpgradePrompt lockedQualityTier={QualityTier.ULTRA} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Upgrade to Scale/ }));
+    expect(window.location.href).toBe(
+      'https://app.test/acme/~/settings/subscription',
+    );
   });
 });

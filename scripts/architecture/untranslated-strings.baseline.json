@@ -563,7 +563,6 @@
     "packages/ui/src/components/modals/trainings/ModalTrainingNew.tsx": 2,
     "packages/ui/src/components/modals/trainings/TrainingFileList.tsx": 5,
     "packages/ui/src/components/modals/trainings/TrainingFormInputs.tsx": 25,
-    "packages/ui/src/components/modals/upgrade/ModalUpgradePrompt.tsx": 6,
     "packages/ui/src/components/navigation/view-toggle/ViewToggle.tsx": 1,
     "packages/ui/src/components/overview/OverviewTrendsPanel.tsx": 3,
     "packages/ui/src/components/pages/offline/OfflinePage.tsx": 3,
