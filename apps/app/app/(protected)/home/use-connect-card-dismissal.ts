@@ -1,16 +1,12 @@
 'use client';
 
+import type { UseConnectCardDismissalResult } from '@genfeedai/props/home/connect-card-dismissal.props';
 import { useCallback, useEffect, useState } from 'react';
 
 const DISMISS_KEY_PREFIX = 'genfeed:connect-card-dismissed:v1';
 // The Connect page has no other in-app entry, so a dismissed card returns
 // after a month instead of orphaning the route for good.
 export const CONNECT_CARD_DISMISS_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-
-export interface UseConnectCardDismissalResult {
-  dismiss: () => void;
-  isDismissed: boolean | null;
-}
 
 function getDismissKey(organizationId: string): string {
   return `${DISMISS_KEY_PREFIX}:${organizationId}`;
