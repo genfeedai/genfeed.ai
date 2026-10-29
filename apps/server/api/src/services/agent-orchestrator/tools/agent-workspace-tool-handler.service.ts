@@ -9,7 +9,6 @@ import {
   resolveCharacterFilter,
 } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { canEditAssetTags } from '@api/collections/ingredients/utils/ingredient-tag-edit-access.util';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
@@ -18,6 +17,7 @@ import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-ke
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { readAccountIdentity } from '@api/services/agent-orchestrator/tools/agent-account-identity.util';
+import { starLibraryAsset } from '@api/services/agent-orchestrator/tools/agent-asset-star.util';
 import { readAgentLibraryFilters } from '@api/services/agent-orchestrator/tools/agent-library-filters.util';
 import {
   agentPostPreviewInclude,
@@ -575,51 +575,12 @@ export class AgentWorkspaceToolHandler {
     };
   }
 
-  /**
-   * Stars or unstars a Library asset. Fails closed like `rate_ingredient`: only
-   * an asset in the caller's own organization is changed, so a foreign or
-   * unknown id never reaches the update. The caller must also be allowed to
-   * edit the asset (the rule behind the tag and trash routes), so another
-   * member's personal asset answers "not found" as well.
-   */
-  async starAsset(
+  /** Stars or unstars a Library asset; the rules live in `starLibraryAsset`. */
+  starAsset(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const assetId = readRequiredString(params.assetId);
-    if (!assetId) {
-      return toolFailure('star_asset requires assetId.');
-    }
-    if (
-      params.isStarred !== undefined &&
-      typeof params.isStarred !== 'boolean'
-    ) {
-      return toolFailure('isStarred must be true or false.');
-    }
-    const isStarred = params.isStarred ?? true;
-
-    const asset = await this.ingredientsService.findOne({
-      id: assetId,
-      isDeleted: false,
-      organizationId: ctx.organizationId,
-    });
-    if (
-      !asset ||
-      !canEditAssetTags(asset, {
-        brandId: ctx.brandId,
-        userIds: [ctx.userId],
-      })
-    ) {
-      return toolFailure(`Asset ${assetId} was not found.`);
-    }
-
-    await this.ingredientsService.patch(assetId, { isFavorite: isStarred });
-
-    return {
-      creditsUsed: 0,
-      data: { assetId, isStarred },
-      success: true,
-    };
+    return starLibraryAsset(this.ingredientsService, params, ctx);
   }
 
   async requestMediaUpload(
