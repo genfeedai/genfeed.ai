@@ -21,6 +21,7 @@ import { StripeSubscriptionWebhookHandler } from '@api/endpoints/webhooks/stripe
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import { StripeWebhookBillingService } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.service';
 import type { StripeSubscription } from '@api/services/integrations/stripe/services/stripe.service';
+import { selectSoftwareSubscriptionItem } from '@api/services/integrations/stripe/services/stripe-software-item.util';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { SubscriptionPlan } from '@genfeedai/contracts';
 import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/contracts/interfaces/billing';
@@ -52,6 +53,7 @@ describe('subscription.created credit grant (#4824)', () => {
     hasSubscriptionCreditGrant: vi.fn(async () => false),
     isUniqueConstraintError: () => false,
     recordCreditsActivity: vi.fn(),
+    softwareItem: selectSoftwareSubscriptionItem,
     resolveSubscriptionPlan: vi.fn(() => SubscriptionPlan.MONTHLY),
     resolveTierFromPriceId: vi.fn(() => null),
     setHasEverHadCredits: vi.fn(),
@@ -181,5 +183,11 @@ describe('subscription.created credit grant (#4824)', () => {
       expect.stringContaining('reconciliation skipped'),
       expect.objectContaining({ outcome: 'ineligible_status' }),
     );
+  });
+  it('does not resolve billing identity or grant credits for a service-only subscription', async () => {
+    const service = stripeSubscription('active');
+    service.metadata = { billing_scope: 'service' };
+    await handler.handleSubscriptionCreated(service, 'test');
+    expect(billingService.resolve).not.toHaveBeenCalled();
   });
 });

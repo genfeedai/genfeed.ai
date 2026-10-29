@@ -5,6 +5,7 @@ import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/hand
 import { StripeWebhookBillingError } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.error';
 import { StripeWebhookBillingService } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.service';
 import type { StripeSubscription } from '@api/services/integrations/stripe/services/stripe.service';
+import { selectSoftwareSubscriptionItem } from '@api/services/integrations/stripe/services/stripe-software-item.util';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import {
   SubscriptionPlan,
@@ -33,6 +34,7 @@ describe('StripeSubscriptionWebhookHandler', () => {
   const usersService = { findOne: vi.fn() };
   const supportService = {
     invalidateUserCaches: vi.fn(),
+    softwareItem: selectSoftwareSubscriptionItem,
     resolveSubscriptionPlan: vi.fn().mockReturnValue(SubscriptionPlan.MONTHLY),
     resolveTierFromPriceId: vi.fn().mockReturnValue(null),
     updateOrganizationTierAndModels: vi.fn(),
