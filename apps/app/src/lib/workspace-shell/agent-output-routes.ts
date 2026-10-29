@@ -34,6 +34,17 @@ const AGENT_OUTPUT_ROUTE_PATTERNS: readonly RegExp[] = [
   new RegExp(`^${APP_ROUTES.AUTOMATION.WORKFLOWS}/(?!templates/?$)[^/]+/?$`),
   // A Clipper project; `/clipper/new` creates one.
   new RegExp(`^${APP_ROUTES.STUDIO.CLIPPER}/(?!new/?$)[^/]+/?$`),
+  // Publishing desks that share `publishing-layout-content.tsx`: the posts
+  // queue, the calendar and the overview. A post's editor and Campaigns keep
+  // their own layouts, and Approvals stays on the dock: its item inspector is
+  // the work surface, not a side detail.
+  new RegExp(
+    `^(?:${[
+      APP_ROUTES.PUBLISHING.POSTS,
+      APP_ROUTES.PUBLISHING.CALENDAR,
+      APP_ROUTES.PUBLISHING.OVERVIEW,
+    ].join('|')})/?$`,
+  ),
   // An Editor project; `/editor/new` creates one.
   new RegExp(`^${APP_ROUTES.STUDIO.EDITOR}/(?!new/?$)[^/]+/?$`),
 ];
