@@ -1,10 +1,16 @@
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { permanentRedirect } from 'next/navigation';
+import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
+import dynamic from 'next/dynamic';
+import { Suspense } from 'react';
 
-/**
- * `/admin/overview` has no surface of its own (only dashboard / activities /
- * analytics children). Close the 404 hole for incomplete overview paths.
- */
-export default function AdminOverviewIndexPage() {
-  permanentRedirect(APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD);
+export const generateMetadata = createPageMetadata('Overview');
+const OverviewPageContent = dynamic(
+  () => import('@protected/overview/overview-page'),
+);
+
+export default function OverviewPage() {
+  return (
+    <Suspense fallback={null}>
+      <OverviewPageContent />
+    </Suspense>
+  );
 }

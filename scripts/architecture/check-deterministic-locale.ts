@@ -141,7 +141,7 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     1,
   ),
   legacyUiAllowance(
-    'apps/app/app/(protected)/admin/overview/dashboard/overview-page.tsx',
+    'apps/app/app/(protected)/admin/overview/overview-page.tsx',
     'to-locale-string',
     2,
   ),

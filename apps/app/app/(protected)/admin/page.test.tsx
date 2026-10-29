@@ -10,7 +10,7 @@ describe('app/(protected)/admin/page.tsx', () => {
     );
 
     expect(source).toContain('permanentRedirect');
-    expect(source).toContain('ADMIN.OVERVIEW.DASHBOARD');
+    expect(source).toContain('ADMIN.OVERVIEW.ROOT');
     expect(source).not.toContain('@admin/');
   });
 });
