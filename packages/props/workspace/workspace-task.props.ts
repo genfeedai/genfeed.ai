@@ -16,12 +16,6 @@ export type WorkspaceTranslate = (
   values?: Record<string, number | string>,
 ) => string;
 
-export interface WorkspaceInboxViewOption {
-  descriptionKey: string;
-  id: InboxView;
-  labelKey: string;
-}
-
 export interface WorkspaceSectionCopyEntry {
   descriptionKey: string;
   titleKey: string;

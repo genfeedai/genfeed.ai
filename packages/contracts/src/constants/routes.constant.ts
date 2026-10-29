@@ -380,9 +380,6 @@ export const APP_ROUTES = {
   WORKSPACE: {
     ACTIVITY: '/workspace/activity',
     INBOX: '/workspace/inbox',
-    INBOX_ALL: '/workspace/inbox/all',
-    INBOX_RECENT: '/workspace/inbox/recent',
-    INBOX_UNREAD: '/workspace/inbox/unread',
     /**
      * Canonical workspace home. Bare ROOT (`/workspace`) redirects here so the
      * Overview nav item is a complete path that does not prefix-match

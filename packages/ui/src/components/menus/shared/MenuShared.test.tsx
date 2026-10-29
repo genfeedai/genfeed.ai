@@ -325,31 +325,9 @@ describe('MenuShared', () => {
     ).not.toBeInTheDocument();
   });
 
-  it.each(['all', 'recent'])('keeps Inbox selected on its %s alias', (view) => {
-    mockPathname.value = `/acme/moonrise-studio/workspace/inbox/${view}`;
-    render(
-      <MenuShared
-        config={{
-          logoHref: '/',
-          items: [
-            {
-              href: '/workspace/inbox/unread',
-              label: 'Inbox',
-              matchPaths: ['/workspace/inbox'],
-            },
-          ],
-        }}
-      />,
-    );
-    expect(screen.getByText('Inbox (2)')).toHaveAttribute(
-      'data-active',
-      'true',
-    );
-  });
-
   it('prefers the specific destination over an overview root alias', () => {
     mockPathname.value = '/acme/moonrise-studio/workspace/inbox';
-    mockSearchParams.value = 'view=recent';
+    mockSearchParams.value = 'status=recent';
     render(
       <MenuShared
         config={{
@@ -377,14 +355,14 @@ describe('MenuShared', () => {
 
   it('keeps Inbox selected across query filters', () => {
     mockPathname.value = '/acme/moonrise-studio/workspace/inbox';
-    mockSearchParams.value = 'view=all&taskId=task-1';
+    mockSearchParams.value = 'status=all&taskId=task-1';
     render(
       <MenuShared
         config={{
           logoHref: '/',
           items: [
             {
-              href: '/workspace/inbox?view=unread',
+              href: '/workspace/inbox',
               label: 'Inbox',
               matchPaths: ['/workspace/inbox'],
             },
@@ -406,7 +384,7 @@ describe('MenuShared', () => {
           label: 'Dashboard',
         },
         {
-          href: '/workspace/inbox/unread',
+          href: '/workspace/inbox',
           label: 'Inbox',
         },
       ],
@@ -464,7 +442,7 @@ describe('MenuShared', () => {
         },
         {
           group: '',
-          href: '/workspace/inbox/unread',
+          href: '/workspace/inbox',
           label: 'Inbox',
         },
         {
@@ -720,7 +698,7 @@ describe('MenuShared', () => {
           label: 'Overview',
         },
         {
-          href: '/workspace/inbox/unread',
+          href: '/workspace/inbox',
           label: 'Inbox',
         },
         {

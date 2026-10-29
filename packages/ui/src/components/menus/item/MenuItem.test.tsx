@@ -25,7 +25,7 @@ describe('MenuItem', () => {
       <MenuItem
         badgeCount={40}
         label="Inbox"
-        href="/workspace/inbox/unread"
+        href="/workspace/inbox"
         variant="icon"
       />,
     );
@@ -38,7 +38,7 @@ describe('MenuItem', () => {
     render(
       <>
         <MenuItem href="/workspace" isActive label="Dashboard" variant="icon" />
-        <MenuItem href="/workspace/inbox/unread" label="Inbox" variant="icon" />
+        <MenuItem href="/workspace/inbox" label="Inbox" variant="icon" />
       </>,
     );
 

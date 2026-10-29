@@ -321,7 +321,7 @@ export function DashboardRecentActivity({
           size={ButtonSize.XS}
           className="h-auto px-0 text-2xs font-normal text-muted-foreground hover:bg-transparent"
         >
-          <Link href={href(APP_ROUTES.WORKSPACE.INBOX_UNREAD)}>
+          <Link href={href(APP_ROUTES.WORKSPACE.INBOX)}>
             {translate('recentViewAll')}
           </Link>
         </Button>
@@ -408,7 +408,7 @@ export function DashboardRecentTasks({
           size={ButtonSize.XS}
           className="h-auto px-0 text-2xs font-normal text-muted-foreground hover:bg-transparent"
         >
-          <Link href={href(APP_ROUTES.WORKSPACE.INBOX_UNREAD)}>
+          <Link href={href(APP_ROUTES.WORKSPACE.INBOX)}>
             {translate('recentViewAll')}
           </Link>
         </Button>

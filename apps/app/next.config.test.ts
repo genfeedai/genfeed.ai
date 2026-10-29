@@ -249,8 +249,8 @@ describe('app next.config', () => {
     'redirects old filter paths under %s and leaves the inbox paths alone',
     async (prefix) => {
       const redirects = await config.redirects?.();
-      // Inbox views are real paths (`/workspace/inbox/all`); nothing under
-      // /workspace/inbox is redirected by config.
+      // The inbox is one real path; nothing under /workspace/inbox is
+      // redirected by config.
       expect(
         redirects?.some((entry) =>
           entry.source.startsWith(`${prefix}/workspace/inbox`),

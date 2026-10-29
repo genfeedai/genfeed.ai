@@ -216,9 +216,16 @@ const navigationState = vi.hoisted(() => ({
   searchParams: new URLSearchParams(),
 }));
 
+function renderInbox(status?: 'all' | 'recent') {
+  navigationState.searchParams = new URLSearchParams(
+    status ? `status=${status}` : '',
+  );
+  return render(<WorkspacePageContent section="inbox" />);
+}
+
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'acme-creator', orgSlug: 'acme-org' }),
-  usePathname: () => '/workspace/inbox/unread',
+  usePathname: () => '/workspace/inbox',
   useRouter: () => ({
     push: routerPushMock,
     replace: vi.fn(),
@@ -426,6 +433,7 @@ function selectTab(tab: HTMLElement): void {
 describe('WorkspacePageContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    navigationState.searchParams = new URLSearchParams();
     // Radix menus need pointer capture and scrollIntoView, which jsdom lacks.
     Element.prototype.hasPointerCapture = vi.fn(() => false);
     Element.prototype.releasePointerCapture = vi.fn();
@@ -515,14 +523,16 @@ describe('WorkspacePageContent', () => {
       }),
     );
 
-    render(<WorkspacePageContent section="inbox" defaultInboxView="all" />);
+    renderInbox('all');
 
     expect(screen.getByTestId('workspace-inbox')).toHaveAttribute(
       'aria-busy',
       'true',
     );
-    // View tabs live on Container header chrome (shared spacing with Tasks).
-    expect(screen.getByRole('link', { name: /all/i })).toBeInTheDocument();
+    // Status is a Filters option on the Container header chrome (shared with Tasks).
+    expect(
+      screen.getByRole('button', { name: /filters/i }),
+    ).toBeInTheDocument();
     expect(screen.queryByText('No inbox items yet.')).not.toBeInTheDocument();
 
     resolveTasks?.([
@@ -642,7 +652,7 @@ describe('WorkspacePageContent', () => {
       }),
     ]);
 
-    render(<WorkspacePageContent section="inbox" defaultInboxView="all" />);
+    renderInbox('all');
 
     await waitFor(() => {
       expect(listMock).toHaveBeenCalledWith({});
@@ -683,7 +693,7 @@ describe('WorkspacePageContent', () => {
     );
   });
 
-  it('renders unread, recent, and all inbox routes on the dedicated inbox page', async () => {
+  it('filters the dedicated inbox page by status', async () => {
     listMock.mockResolvedValue([
       buildTask({
         id: 'task-review',
@@ -699,9 +709,7 @@ describe('WorkspacePageContent', () => {
       }),
     ]);
 
-    const { rerender } = render(
-      <WorkspacePageContent section="inbox" defaultInboxView="unread" />,
-    );
+    const { rerender } = renderInbox();
 
     await waitFor(() => {
       expect(listMock).toHaveBeenCalledWith({});
@@ -711,28 +719,15 @@ describe('WorkspacePageContent', () => {
     expect(
       screen.queryByTestId('workspace-advanced-tools'),
     ).not.toBeInTheDocument();
-    // Inbox tabs are org/brand-scoped via useOrgUrl().href() (#2182).
-    expect(screen.getByRole('link', { name: /unread/i })).toHaveAttribute(
-      'href',
-      '/acme-org/acme-creator/workspace/inbox/unread',
-    );
-    expect(screen.getByRole('link', { name: /unread/i })).toHaveAttribute(
-      'data-state',
-      'active',
-    );
-    expect(screen.getByRole('link', { name: /recent/i })).toHaveAttribute(
-      'href',
-      '/acme-org/acme-creator/workspace/inbox/recent',
-    );
-    expect(screen.getByRole('link', { name: /all/i })).toHaveAttribute(
-      'href',
-      '/acme-org/acme-creator/workspace/inbox/all',
-    );
+    // Status is a Filters option, not tabs.
+    expect(screen.getByRole('button', { name: /filters/i })).toBeVisible();
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
 
     expect(screen.getByText('Review launch draft')).toBeInTheDocument();
     expect(screen.queryByText('Published recap')).not.toBeInTheDocument();
 
-    rerender(<WorkspacePageContent section="inbox" defaultInboxView="all" />);
+    navigationState.searchParams = new URLSearchParams('status=all');
+    rerender(<WorkspacePageContent section="inbox" />);
 
     expect(screen.getByText('Published recap')).toBeInTheDocument();
   });
@@ -740,7 +735,7 @@ describe('WorkspacePageContent', () => {
   it('shows the empty recent inbox', async () => {
     listMock.mockResolvedValue([]);
 
-    render(<WorkspacePageContent section="inbox" defaultInboxView="recent" />);
+    renderInbox('recent');
 
     expect(
       await screen.findByText('No inbox activity yet'),
@@ -757,7 +752,7 @@ describe('WorkspacePageContent', () => {
       }),
     ]);
 
-    render(<WorkspacePageContent section="inbox" defaultInboxView="all" />);
+    renderInbox('all');
 
     await waitFor(() => {
       expect(listMock).toHaveBeenCalledWith({});
@@ -791,7 +786,7 @@ describe('WorkspacePageContent', () => {
       }),
     ]);
 
-    render(<WorkspacePageContent section="inbox" defaultInboxView="all" />);
+    renderInbox('all');
 
     const link = await screen.findByRole('link', {
       name: 'Plan the launch week',
@@ -816,9 +811,7 @@ describe('WorkspacePageContent', () => {
       }),
     ]);
 
-    const { rerender } = render(
-      <WorkspacePageContent section="inbox" defaultInboxView="all" />,
-    );
+    const { rerender } = renderInbox('all');
     await waitFor(() => {
       expect(listMock).toHaveBeenCalledWith({});
     });
@@ -842,10 +835,10 @@ describe('WorkspacePageContent', () => {
 
     // Back/forward restores the same task without a tap.
     navigationState.searchParams = new URLSearchParams(
-      'taskId=task-activity-1',
+      'status=all&taskId=task-activity-1',
     );
     try {
-      rerender(<WorkspacePageContent section="inbox" defaultInboxView="all" />);
+      rerender(<WorkspacePageContent section="inbox" />);
       await waitFor(() => {
         expect(screen.getByTestId('task-rail')).toHaveAttribute(
           'data-selection-origin',
@@ -868,7 +861,7 @@ describe('WorkspacePageContent', () => {
       }),
     ]);
 
-    render(<WorkspacePageContent section="inbox" defaultInboxView="all" />);
+    renderInbox('all');
 
     await waitFor(() => {
       expect(listMock).toHaveBeenCalledWith({});
@@ -921,7 +914,7 @@ describe('WorkspacePageContent', () => {
       }),
     ]);
 
-    render(<WorkspacePageContent section="inbox" defaultInboxView="all" />);
+    renderInbox('all');
 
     await waitFor(() => {
       expect(listMock).toHaveBeenCalledWith({});
@@ -974,7 +967,7 @@ describe('WorkspacePageContent', () => {
       }),
     ]);
 
-    render(<WorkspacePageContent section="inbox" defaultInboxView="unread" />);
+    renderInbox();
 
     await waitFor(() => {
       expect(listMock).toHaveBeenCalledWith({});
