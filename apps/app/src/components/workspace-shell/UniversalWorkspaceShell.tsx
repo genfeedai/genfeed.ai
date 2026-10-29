@@ -2,6 +2,7 @@
 
 import { AgentWorkspaceLayoutClient } from '@app/(protected)/[orgSlug]/~/agent/AgentWorkspaceLayoutClient';
 import { useAgentDock } from '@contexts/ui/agent-dock-context';
+import { AgentOutputHostContext } from '@contexts/ui/agent-output-host-context';
 import { useContextSidebar } from '@contexts/ui/context-sidebar-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
@@ -30,6 +31,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import type { AgentOutputHostValue } from '@props/ui/agent-output-shell.props';
 import type {
   WorkspacePanelControls,
   WorkspacePanelTab,
@@ -71,6 +73,7 @@ import {
   appendSearchParamsToHref,
   normalizeProtectedPathname,
 } from '@/lib/navigation/operator-shell';
+import { isAgentOutputRoute } from '@/lib/workspace-shell/agent-output-routes';
 import {
   canLaunchComposerCanvas,
   canvasLaunchDispatchedResult,
@@ -307,6 +310,9 @@ function UniversalWorkspaceShellContent({
   const isAgentRoute =
     normalizedPathname === APP_ROUTES.AGENT.ROOT ||
     normalizedPathname.startsWith(`${APP_ROUTES.AGENT.ROOT}/`);
+  // Pages that render `AgentOutputShell` are the conversation's other half:
+  // like `/agent`, the product dock stays off and the composer sits in flow.
+  const isAgentOutputSurface = isAgentOutputRoute(normalizedPathname);
   const isUnthreadedConversation =
     normalizedPathname === APP_ROUTES.AGENT.ROOT ||
     normalizedPathname === APP_ROUTES.AGENT.NEW;
@@ -638,8 +644,12 @@ function UniversalWorkspaceShellContent({
   // The dock is the conversation on product routes. `/agent/*` is the
   // conversation itself, so arriving there closes the dock; it stays closed
   // on the way back until the operator reopens it.
-  const isAgentDockHost = Boolean(agentDock) && !isAgentRoute;
-  const dockThreads = useAgentDockThreads(agentApiService, isAgentDockHost);
+  const isAgentDockHost =
+    Boolean(agentDock) && !isAgentRoute && !isAgentOutputSurface;
+  // The split pages list threads and take attached records without the dock.
+  const isConversationHost =
+    isAgentDockHost || (Boolean(agentDock) && isAgentOutputSurface);
+  const dockThreads = useAgentDockThreads(agentApiService, isConversationHost);
   const setIsAgentDockAvailable = agentDock?.setIsAvailable;
   const closeAgentDock = agentDock?.close;
   const openAgentDock = agentDock?.open;
@@ -649,7 +659,10 @@ function UniversalWorkspaceShellContent({
   // Below `xl` the agent is a bottom sheet, so only the rail counts here.
   const isAgentPanelOpen =
     isAgentDockHost && isAgentDockOpen && !isCompactViewport;
-  const isPanelOpen = isInspectorOpen || isAgentPanelOpen;
+  // A split page shows its selection inside the output pane, so the right
+  // rail stays shut.
+  const isPanelOpen =
+    !isAgentOutputSurface && (isInspectorOpen || isAgentPanelOpen);
   const [panelTabPreference, setPanelTabPreference] =
     useState<WorkspacePanelTab>('agent');
   const requestedPanelTabRef = useRef<WorkspacePanelTab | null>(null);
@@ -734,10 +747,12 @@ function UniversalWorkspaceShellContent({
   // Below `xl` the rail does not render, so a context left open at a wider
   // size is not visible: only the sheet (dock or mobile context) is.
   const isPanelVisible =
-    (isAgentDockHost && isAgentDockOpen) ||
-    (isInspectorOpen && !isCompactViewport) ||
-    isMobileContextOpen;
-  const hasContextView = isAgentDockHost || Boolean(activeContextSidebar);
+    !isAgentOutputSurface &&
+    ((isAgentDockHost && isAgentDockOpen) ||
+      (isInspectorOpen && !isCompactViewport) ||
+      isMobileContextOpen);
+  const hasContextView =
+    !isAgentOutputSurface && (isAgentDockHost || Boolean(activeContextSidebar));
   const panelControls = useMemo<WorkspacePanelControls>(
     () => ({
       activeView: isPanelVisible ? activePanelTab : null,
@@ -775,10 +790,10 @@ function UniversalWorkspaceShellContent({
   }, [isAgentDockHost, setIsAgentDockAvailable]);
 
   useEffect(() => {
-    if (isAgentRoute && isAgentDockOpen) {
+    if ((isAgentRoute || isAgentOutputSurface) && isAgentDockOpen) {
       closeAgentDock?.();
     }
-  }, [closeAgentDock, isAgentDockOpen, isAgentRoute]);
+  }, [closeAgentDock, isAgentDockOpen, isAgentOutputSurface, isAgentRoute]);
 
   // Warm the conversation chunk once the page is idle so the first open does
   // not wait on the network.
@@ -808,7 +823,7 @@ function UniversalWorkspaceShellContent({
   }, [isAgentDockHost, isAgentDockOpen, state]);
 
   useEffect(() => {
-    if (!isAgentDockHost || !registerAgentDockAttachHandler) {
+    if (!isConversationHost || !registerAgentDockAttachHandler) {
       return;
     }
 
@@ -817,7 +832,7 @@ function UniversalWorkspaceShellContent({
     return registerAgentDockAttachHandler((reference) => {
       attachContentToConversationDraft(draftScopeKey, reference);
     });
-  }, [draftScopeKey, isAgentDockHost, registerAgentDockAttachHandler]);
+  }, [draftScopeKey, isConversationHost, registerAgentDockAttachHandler]);
 
   const launchWorkspaceOverlay = useCallback(
     (overlayRequest: WorkspaceShellOverlayRequest): boolean => {
@@ -1172,6 +1187,60 @@ function UniversalWorkspaceShellContent({
     </>
   );
 
+  // What `AgentOutputShell` renders on a split page: the same conversation,
+  // thread list and context as the dock, hosted in the page's own columns.
+  const selectDockThreadFromPage = useCallback(
+    (threadId: string) => {
+      void selectDockThread(threadId);
+    },
+    [selectDockThread],
+  );
+  const agentOutputReferenceCount =
+    (surfaceReferences ?? resolvedWorkspaceSurfaceAdapter?.artifactReferences)
+      ?.length ?? 0;
+  const agentOutputHost = useMemo<AgentOutputHostValue | null>(() => {
+    if (!isAgentOutputSurface) {
+      return null;
+    }
+
+    return {
+      agent: <ConversationDockPanel apiService={agentApiService} />,
+      agentTitle: activeThread?.title?.trim() || undefined,
+      contextPanel: (
+        <WorkspaceAgentContext
+          contextSidebar={contextSidebar}
+          pageLabel={effectiveShellContextLabel}
+          referenceCount={agentOutputReferenceCount}
+          scopeLabel={conversationScope.contextLabel}
+        />
+      ),
+      onNewThread: dockThreads.startThread,
+      onOpenFullPage: handleOpenFullConversation,
+      threadsPanel: (
+        <AgentDockHistory
+          activeThreadId={dockThreads.activeThreadId}
+          isThreadListLoading={dockThreads.isThreadListLoading}
+          onSelectThread={selectDockThreadFromPage}
+          threads={dockThreads.threads}
+        />
+      ),
+    };
+  }, [
+    activeThread?.title,
+    agentApiService,
+    agentOutputReferenceCount,
+    contextSidebar,
+    conversationScope.contextLabel,
+    dockThreads.activeThreadId,
+    dockThreads.isThreadListLoading,
+    dockThreads.startThread,
+    dockThreads.threads,
+    effectiveShellContextLabel,
+    handleOpenFullConversation,
+    isAgentOutputSurface,
+    selectDockThreadFromPage,
+  ]);
+
   return (
     <ConversationComposerShellProvider
       artifactReferences={
@@ -1191,7 +1260,11 @@ function UniversalWorkspaceShellContent({
       // column. Portaling it into an absolute dock clips the bar when the
       // shell height settles on reload.
       placement={
-        state === 'overlay' ? 'overlay' : isAgentRoute ? 'surface' : 'dock'
+        state === 'overlay'
+          ? 'overlay'
+          : isAgentRoute || isAgentOutputSurface
+            ? 'surface'
+            : 'dock'
       }
       portalTarget={composerPortalTarget}
       references={activeResearchSurfaceAdapter?.references}
@@ -1242,7 +1315,9 @@ function UniversalWorkspaceShellContent({
               aria-label="Primary workspace canvas"
               className={cn(
                 'flex min-h-0 min-w-0 flex-1 flex-col bg-background focus:outline-none',
-                isAgentRoute || workflowSurfaceRoute.isGraphCanvas
+                isAgentRoute ||
+                  isAgentOutputSurface ||
+                  workflowSurfaceRoute.isGraphCanvas
                   ? 'overflow-hidden'
                   : 'overflow-auto',
               )}
@@ -1265,7 +1340,9 @@ function UniversalWorkspaceShellContent({
                 <WorkspaceShellActionsProvider
                   openOverlay={launchWorkspaceOverlay}
                 >
-                  {children}
+                  <AgentOutputHostContext value={agentOutputHost}>
+                    {children}
+                  </AgentOutputHostContext>
                 </WorkspaceShellActionsProvider>
               </ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider>
             </section>
@@ -1358,14 +1435,18 @@ function UniversalWorkspaceShellContent({
                   ) : null}
                 </AgentDock>
               ) : null}
-              {isCompactViewport ? null : alternatePanelContent}
+              {isCompactViewport || isAgentOutputSurface
+                ? null
+                : alternatePanelContent}
             </div>
           </aside>
         </div>
 
         <Drawer
           open={
-            !isAgentDockHost && (activeContextSidebar?.isMobileOpen ?? false)
+            !isAgentDockHost &&
+            !isAgentOutputSurface &&
+            (activeContextSidebar?.isMobileOpen ?? false)
           }
           onOpenChange={(isOpen: boolean) => {
             // Dismissing the drawer is the mobile close: it deselects, so

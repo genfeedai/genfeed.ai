@@ -263,7 +263,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/editor': 'Projects',
   '/:orgSlug/~/editor/:id': 'Project',
 
-  '/admin': 'Dashboard',
+  '/admin': 'Overview',
   '/admin/settings/ai': 'AI',
   '/admin/administration/users/:id': 'User',
   '/admin/automation/models/:type': ':type Models',
@@ -1123,7 +1123,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
 const ADMIN_CONTROL_PLANE_ROUTE_PATTERNS = [
   '/admin',
   '/admin/overview',
-  '/admin/overview/dashboard',
   '/admin/overview/activities',
   '/admin/content/posts',
   '/admin/content/posts/:id',
@@ -1198,7 +1197,7 @@ const ADMIN_ANALYTICS_ROUTE_PATTERNS = [
 
 const ADMIN_ROUTE_REGISTRATIONS = [
   ...registerRoutes(ADMIN_CONTROL_PLANE_ROUTE_PATTERNS, {
-    fallback: '/admin/overview/dashboard',
+    fallback: '/admin/overview',
     mode: 'canvas',
     productClass: 'control-plane',
     scope: 'platform-admin',
@@ -1207,7 +1206,7 @@ const ADMIN_ROUTE_REGISTRATIONS = [
     telemetryClass: 'management',
   }),
   ...registerRoutes(ADMIN_ANALYTICS_ROUTE_PATTERNS, {
-    fallback: '/admin/overview/dashboard',
+    fallback: '/admin/overview',
     mode: 'canvas',
     productClass: 'visual-data',
     scope: 'platform-admin',

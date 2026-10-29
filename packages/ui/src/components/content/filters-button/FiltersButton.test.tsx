@@ -31,11 +31,11 @@ describe('FiltersButton', () => {
     type: '',
   };
 
-  it('shows the search box beside one Filters trigger', () => {
+  it('renders one Filters trigger and leaves search to FiltersSearch', () => {
     render(<FiltersButton filters={filters} onFiltersChange={vi.fn()} />);
     expect(
-      screen.getByPlaceholderText('Search label, description, or tags'),
-    ).toBeInTheDocument();
+      screen.queryByPlaceholderText('Search label, description, or tags'),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Filters/ })).toBeVisible();
   });
 
@@ -92,12 +92,9 @@ describe('FiltersButton', () => {
       <FiltersButton
         filters={filters}
         onFiltersChange={vi.fn()}
-        visibleFilters={{ search: false, sort: true }}
+        visibleFilters={{ sort: true }}
       />,
     );
-    expect(
-      screen.queryByPlaceholderText('Search label, description, or tags'),
-    ).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /^Filters/ }));
     expect(screen.getByRole('menuitem', { name: /Sort/ })).toBeVisible();
     expect(screen.queryByRole('menuitem', { name: /Type/ })).toBeNull();

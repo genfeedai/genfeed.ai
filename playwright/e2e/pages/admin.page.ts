@@ -106,7 +106,7 @@ export class AdminPage {
   }
 
   async gotoOverview(): Promise<void> {
-    await this.page.goto(APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD, {
+    await this.page.goto(APP_ROUTES.ADMIN.OVERVIEW.ROOT, {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();

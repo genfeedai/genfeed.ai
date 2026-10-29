@@ -234,7 +234,7 @@ export const ADMIN_RAIL_APP: AppRailItemConfig = {
   group: 'admin',
   id: 'admin',
   label: 'admin.label',
-  route: () => APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
+  route: () => APP_ROUTES.ADMIN.OVERVIEW.ROOT,
 };
 
 /**
@@ -267,7 +267,7 @@ export const ADMIN_RAIL_CATEGORIES: readonly AppRailItemConfig[] = [
     icon: Gauge,
     id: 'admin-overview',
     label: 'adminOverview.label',
-    route: () => APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
+    route: () => APP_ROUTES.ADMIN.OVERVIEW.ROOT,
   },
   {
     activePathRoots: [

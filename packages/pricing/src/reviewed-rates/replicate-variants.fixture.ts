@@ -3436,6 +3436,202 @@ export const REPLICATE_VARIANT_FIXTURES: Readonly<
       },
     ],
   },
+  'kwaivgi/kling-v4.0': {
+    sourceUrl: 'https://replicate.com/kwaivgi/kling-v4.0/api/schema',
+    inputProperties: {
+      prompt: {
+        type: 'string',
+        title: 'Prompt',
+        'x-order': 0,
+        description:
+          'Text prompt describing the video. Refer to images as @image_1, @image_2, ... and videos as @video_1, @video_2, ... (see start_image and reference_images for numbering). Up to 26,000 English characters or 11,000 non-English characters.',
+      },
+      duration: {
+        type: 'integer',
+        title: 'Duration',
+        default: 5,
+        maximum: 30,
+        minimum: 3,
+        'x-order': 9,
+        description:
+          'Video duration in seconds. Ignored when base_video is set.',
+      },
+      end_image: {
+        type: 'string',
+        title: 'End Image',
+        format: 'uri',
+        'x-order': 3,
+        nullable: true,
+        description:
+          'Last frame of the video. Same format requirements as start_image.',
+      },
+      base_video: {
+        type: 'string',
+        title: 'Base Video',
+        format: 'uri',
+        'x-order': 6,
+        nullable: true,
+        description:
+          'Video to edit (.mp4/.mov, 3-30 seconds, 700-4553px per side, max 300MB). Referred to as @video_1. When set, the output keeps the length and aspect ratio of this video.',
+      },
+      resolution: {
+        enum: ['720p', '1080p'],
+        type: 'string',
+        title: 'resolution',
+        description: 'Output resolution.',
+        default: '1080p',
+        'x-order': 7,
+      },
+      start_image: {
+        type: 'string',
+        title: 'Start Image',
+        format: 'uri',
+        'x-order': 1,
+        nullable: true,
+        description:
+          'First frame of the video. Supports .jpg/.jpeg/.png, max 30MB, min 300px, aspect ratio between 2:5 and 5:2.',
+      },
+      aspect_ratio: {
+        enum: ['16:9', '9:16', '1:1', '21:9'],
+        type: 'string',
+        title: 'aspect_ratio',
+        description:
+          'Aspect ratio of the output video. Ignored when start_image, middle_images, end_image or base_video is set, since the aspect ratio then comes from the input.',
+        default: '16:9',
+        'x-order': 8,
+      },
+      middle_images: {
+        type: 'array',
+        items: {
+          type: 'string',
+          format: 'uri',
+        },
+        title: 'Middle Images',
+        default: [],
+        'x-order': 2,
+        description:
+          'Keyframes between the first and last frame, in order. Same format requirements as start_image.',
+      },
+      reference_images: {
+        type: 'array',
+        items: {
+          type: 'string',
+          format: 'uri',
+        },
+        title: 'Reference Images',
+        default: [],
+        'x-order': 4,
+        description:
+          'Reference images for characters, objects, scenes or style. Images are numbered in this order: start_image, middle_images, end_image, reference_images. Up to 10 images in total across all image inputs.',
+      },
+      reference_videos: {
+        type: 'array',
+        items: {
+          type: 'string',
+          format: 'uri',
+        },
+        title: 'Reference Videos',
+        default: [],
+        'x-order': 5,
+        description:
+          'Reference videos to take motion, camera work or style from (.mp4/.mov, 3-30 seconds each, 700-4553px per side, max 300MB). Numbered after base_video.',
+      },
+    },
+    tiers: [
+      {
+        criteria: [
+          {
+            title: 'model variant',
+            type: 'equals',
+            subtype: 'string',
+            value: 'no-video-input',
+          },
+          {
+            title: 'target resolution',
+            type: 'equals',
+            subtype: 'string',
+            value: '720p',
+          },
+        ],
+        prices: [
+          {
+            metric: 'video_output_duration_seconds',
+            type: 'per-unit',
+            price: '$0.157',
+          },
+        ],
+      },
+      {
+        criteria: [
+          {
+            title: 'model variant',
+            type: 'equals',
+            subtype: 'string',
+            value: 'no-video-input',
+          },
+          {
+            title: 'target resolution',
+            type: 'equals',
+            subtype: 'string',
+            value: '1080p',
+          },
+        ],
+        prices: [
+          {
+            metric: 'video_output_duration_seconds',
+            type: 'per-unit',
+            price: '$0.235',
+          },
+        ],
+      },
+      {
+        criteria: [
+          {
+            title: 'model variant',
+            type: 'equals',
+            subtype: 'string',
+            value: 'video-input',
+          },
+          {
+            title: 'target resolution',
+            type: 'equals',
+            subtype: 'string',
+            value: '720p',
+          },
+        ],
+        prices: [
+          {
+            metric: 'video_output_duration_seconds',
+            type: 'per-unit',
+            price: '$0.094',
+          },
+        ],
+      },
+      {
+        criteria: [
+          {
+            title: 'model variant',
+            type: 'equals',
+            subtype: 'string',
+            value: 'video-input',
+          },
+          {
+            title: 'target resolution',
+            type: 'equals',
+            subtype: 'string',
+            value: '1080p',
+          },
+        ],
+        prices: [
+          {
+            metric: 'video_output_duration_seconds',
+            type: 'per-unit',
+            price: '$0.141',
+          },
+        ],
+      },
+    ],
+  },
   'kwaivgi/kling-o1': {
     sourceUrl: 'https://replicate.com/kwaivgi/kling-o1/api/schema',
     inputProperties: {

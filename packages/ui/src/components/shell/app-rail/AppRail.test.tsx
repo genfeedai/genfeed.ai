@@ -318,9 +318,7 @@ describe('AppRail', () => {
     );
 
     expect(notPrevented).toBe(false);
-    expect(onOpenAdminExternally).toHaveBeenCalledWith(
-      '/admin/overview/dashboard',
-    );
+    expect(onOpenAdminExternally).toHaveBeenCalledWith('/admin/overview');
     expect(router.push).not.toHaveBeenCalled();
   });
 
@@ -1072,7 +1070,7 @@ describe('AppRail', () => {
 
     expect(screen.getByRole('link', { name: 'Admin' })).toHaveAttribute(
       'href',
-      '/admin/overview/dashboard',
+      '/admin/overview',
     );
   });
 
@@ -1286,7 +1284,7 @@ describe('AppRail', () => {
     act(() => {
       admin?.action();
     });
-    expect(router.push).toHaveBeenLastCalledWith('/admin/overview/dashboard');
+    expect(router.push).toHaveBeenLastCalledWith('/admin/overview');
     expect(onNavigationEvent).toHaveBeenLastCalledWith({
       from_app: null,
       to_app: 'admin',

@@ -13,6 +13,7 @@ import { useElementsContext } from '@providers/elements/elements.context';
 import ElementsProvider from '@providers/elements/elements.provider';
 import AdminOrgBrandUrlFilter from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
+import FiltersSearch from '@ui/content/filters-button/FiltersSearch';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Button } from '@ui/primitives/button';
 import { ELEMENT_LABELS } from '@ui-constants/element.constant';
@@ -125,6 +126,18 @@ function ElementsLayoutContent({ children }: LayoutProps) {
     label: 'Elements',
   };
 
+  const handleFiltersChange = (nextFilters: IFiltersState) => {
+    setFilters(nextFilters);
+    if (searchParams.has('page')) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete('page');
+      const queryString = params.toString();
+      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+        scroll: false,
+      });
+    }
+  };
+
   return (
     <AdminPageShell
       title={currentElement.label}
@@ -147,24 +160,25 @@ function ElementsLayoutContent({ children }: LayoutProps) {
         void refetch();
       }}
       isRefreshing={isRefreshing}
+      search={
+        filterConfig.visibleFilters.search ? (
+          <FiltersSearch
+            filterOptions={filterConfig.filterOptions}
+            filters={filters}
+            onFiltersChange={handleFiltersChange}
+            visibleFilters={filterConfig.visibleFilters}
+          />
+        ) : undefined
+      }
       filters={
-        <FiltersButton
-          filters={filters}
-          visibleFilters={filterConfig.visibleFilters}
-          filterOptions={filterConfig.filterOptions}
-          onFiltersChange={(nextFilters: IFiltersState) => {
-            setFilters(nextFilters);
-            if (searchParams.has('page')) {
-              const params = new URLSearchParams(searchParams.toString());
-              params.delete('page');
-              const queryString = params.toString();
-              router.replace(
-                queryString ? `${pathname}?${queryString}` : pathname,
-                { scroll: false },
-              );
-            }
-          }}
-        />
+        filterConfig.visibleFilters.search ? undefined : (
+          <FiltersButton
+            filters={filters}
+            visibleFilters={filterConfig.visibleFilters}
+            filterOptions={filterConfig.filterOptions}
+            onFiltersChange={handleFiltersChange}
+          />
+        )
       }
       dropdowns={<AdminOrgBrandUrlFilter />}
       primaryAction={

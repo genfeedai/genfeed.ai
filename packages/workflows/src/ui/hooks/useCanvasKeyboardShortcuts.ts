@@ -14,7 +14,6 @@ interface UseCanvasKeyboardShortcutsParams {
   deleteGroup: (groupId: string) => void;
   unlockAllNodes: () => void;
   addNode: (type: NodeType, position: { x: number; y: number }) => string;
-  togglePalette: () => void;
   fitView: (options?: FitViewOptions) => void;
   openShortcutHelp: () => void;
   openNodeSearch: () => void;
@@ -25,7 +24,6 @@ interface UseCanvasKeyboardShortcutsParams {
  * Hook that handles keyboard shortcuts for the workflow canvas
  *
  * Shortcuts:
- * - M: Toggle sidebar/palette
  * - L: Toggle lock on selected nodes
  * - F: Fit view to selection (or all if none selected)
  * - ?: Show shortcut help modal
@@ -49,7 +47,6 @@ export function useCanvasKeyboardShortcuts({
   deleteGroup,
   unlockAllNodes,
   addNode,
-  togglePalette,
   fitView,
   openShortcutHelp,
   openNodeSearch,
@@ -78,12 +75,6 @@ export function useCanvasKeyboardShortcuts({
         e.preventDefault();
         deleteSelectedElements();
         return;
-      }
-
-      // M - Toggle sidebar (Todoist style)
-      if (e.key === 'm' && !isMod && !e.shiftKey) {
-        e.preventDefault();
-        togglePalette();
       }
 
       // F - Fit view to selection (or all nodes if none selected)
@@ -210,7 +201,6 @@ export function useCanvasKeyboardShortcuts({
     groups,
     nodes,
     addNode,
-    togglePalette,
     fitView,
     openShortcutHelp,
     openNodeSearch,

@@ -25,6 +25,7 @@ import {
   AgentDockProvider,
   useAgentDock,
 } from '@contexts/ui/agent-dock-context';
+import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
 import {
   SIDEBAR_TRANSITION_DURATION_MS,
   SIDEBAR_TRANSITION_EASING,
@@ -1547,6 +1548,79 @@ describe('UniversalWorkspaceShell', () => {
       expect(screen.queryByRole('region', { name: 'Agent' })).toBeNull();
       expect(dock?.panel?.activeView).toBeNull();
       expect(screen.getByTestId('dock-conversation')).toBeInTheDocument();
+    });
+
+    it('opts a split page out of the dock and hosts the conversation in its left column', async () => {
+      navigation.pathname = '/acme/moonrise/storyboard/run-1';
+      const { container } = renderWithDock(
+        <>
+          <DockProbe onDock={recordDock} />
+          <AgentOutputShell>
+            <p>Board output</p>
+          </AgentOutputShell>
+        </>,
+      );
+
+      await screen.findByTestId('agent-output-layout');
+      // No second Chat toggle: the dock is off and the right rail stays shut.
+      expect(dock?.isAvailable).toBe(false);
+      expect(
+        container.querySelector('#workspace-context-inspector'),
+      ).toHaveAttribute('inert');
+      expect(screen.queryByTestId('agent-dock')).toBeNull();
+      expect(
+        document.querySelector('[data-composer-placement]'),
+      ).toHaveAttribute('data-composer-placement', 'surface');
+
+      const agentPane = screen.getByTestId('agent-output-agent-pane');
+      expect(
+        await within(agentPane).findByTestId('dock-conversation'),
+      ).toBeVisible();
+      const outputPane = screen.getByTestId('agent-output-output-pane');
+      expect(within(outputPane).getByText('Board output')).toBeVisible();
+      expect(
+        within(outputPane).getByRole('tab', { name: 'Threads' }),
+      ).toBeVisible();
+      expect(
+        within(outputPane).getByRole('tab', { name: 'Context' }),
+      ).toBeVisible();
+    });
+
+    it('opens a selected record inside the output pane of a split page', async () => {
+      navigation.pathname = '/acme/moonrise/storyboard/run-1';
+      const { container } = render(
+        <ContextSidebarProvider>
+          <AgentDockProvider>
+            <UniversalWorkspaceShell agentApiService={agentApiService}>
+              <AgentOutputShell>
+                <p>Board output</p>
+              </AgentOutputShell>
+              <ContextSidebarPanel
+                selection={{
+                  id: 'shot-3',
+                  kind: 'asset',
+                  origin: 'user',
+                  title: 'Shot 3',
+                }}
+              >
+                <p>Shot 3 detail</p>
+              </ContextSidebarPanel>
+            </UniversalWorkspaceShell>
+          </AgentDockProvider>
+        </ContextSidebarProvider>,
+      );
+
+      const outputPane = await screen.findByTestId('agent-output-output-pane');
+      await waitFor(() =>
+        expect(
+          within(outputPane).getByRole('tab', { name: 'Context' }),
+        ).toHaveAttribute('data-state', 'active'),
+      );
+      expect(within(outputPane).getByText('Shot 3 detail')).toBeVisible();
+      // Detail never opens the global right rail on a split page.
+      expect(
+        container.querySelector('#workspace-context-inspector'),
+      ).toHaveAttribute('inert');
     });
 
     it('keeps empty Context and real History available without a selection', async () => {
