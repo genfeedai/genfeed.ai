@@ -12,6 +12,7 @@ export default function AnalyticsOverviewPage() {
       <AnalyticsOverview
         scope={PageScope.SUPERADMIN}
         basePath={APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS}
+        brandsBasePath={APP_ROUTES.ADMIN.ROOT}
       />
     </Suspense>
   );

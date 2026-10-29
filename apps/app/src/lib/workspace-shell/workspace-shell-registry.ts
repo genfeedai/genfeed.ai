@@ -276,8 +276,8 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/admin/content/posts/:id': 'Post',
   '/admin/content/templates/:id': 'Template',
   '/admin/organizations/:id': 'Organization Configuration',
-  '/admin/overview/analytics/brands/:id': 'Brand Details',
-  '/admin/overview/analytics/brands/:id/platforms/:platform': ':platform',
+  '/admin/brands/:id': 'Brand Details',
+  '/admin/brands/:id/platforms/:platform': ':platform',
   '/admin/overview/analytics/organizations/:id': 'Organization Details',
   '/settings': 'Settings',
   '/settings/personal': 'Personal',
@@ -1187,10 +1187,10 @@ const ADMIN_CONTROL_PLANE_ROUTE_PATTERNS = [
 ] as const;
 
 const ADMIN_ANALYTICS_ROUTE_PATTERNS = [
+  '/admin/brands',
+  '/admin/brands/:id',
+  '/admin/brands/:id/platforms/:platform',
   '/admin/overview/analytics/all',
-  '/admin/overview/analytics/brands',
-  '/admin/overview/analytics/brands/:id',
-  '/admin/overview/analytics/brands/:id/platforms/:platform',
   '/admin/overview/analytics/business',
   '/admin/overview/analytics/organizations',
   '/admin/overview/analytics/organizations/:id',

@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import AnalyticsPlatformDetail from '@pages/analytics/platform-detail/analytics-platform-detail';
 
 import { useParams } from 'next/navigation';
@@ -14,7 +15,7 @@ export default function AdminAnalyticsBrandPlatformDetailRoute() {
     <AnalyticsPlatformDetail
       brandId={id}
       platform={platform}
-      basePath="/admin/overview/analytics"
+      basePath={APP_ROUTES.ADMIN.ROOT}
     />
   );
 }

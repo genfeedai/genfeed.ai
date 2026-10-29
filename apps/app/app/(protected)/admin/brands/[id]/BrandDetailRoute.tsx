@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import AnalyticsBrandOverview from '@pages/analytics/brand-overview/analytics-brand-overview';
 import type { AnalyticsDetailPageProps } from '@props/admin/analytics.props';
 
@@ -11,6 +12,6 @@ export default function BrandDetailRoute() {
   const id = readRouteParam(params.id);
 
   return (
-    <AnalyticsBrandOverview brandId={id} basePath="/admin/overview/analytics" />
+    <AnalyticsBrandOverview brandId={id} basePath={APP_ROUTES.ADMIN.ROOT} />
   );
 }

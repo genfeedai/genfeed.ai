@@ -11,6 +11,7 @@ export const APP_ROUTES = {
   SIGN_UP: '/sign-up',
   ADMIN: {
     ROOT: '/admin',
+    BRANDS: '/admin/brands',
     FLAGS: '/admin/flags',
     SETTINGS: {
       ACCOUNTS: '/admin/settings/accounts',
@@ -84,7 +85,6 @@ export const APP_ROUTES = {
       ACTIVITIES: '/admin/overview/activities',
       ANALYTICS: '/admin/overview/analytics',
       ANALYTICS_ALL: '/admin/overview/analytics/all',
-      ANALYTICS_BRANDS: '/admin/overview/analytics/brands',
       ANALYTICS_BUSINESS: '/admin/overview/analytics/business',
       ANALYTICS_ORGANIZATIONS: '/admin/overview/analytics/organizations',
       DASHBOARD: '/admin/overview/dashboard',
