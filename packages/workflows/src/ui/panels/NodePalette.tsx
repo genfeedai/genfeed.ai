@@ -45,6 +45,7 @@ import {
   WandSparkles,
 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
+import type { CatalogNodeEntry } from '../hooks/useAddCatalogNode';
 import {
   encodeWorkflowNodeTransfer,
   WORKFLOW_NODE_TRANSFER_TYPE,
@@ -147,6 +148,7 @@ export type PaletteCategory = NodeCategory;
 
 interface NodeCardProps {
   actionId?: string;
+  onAdd?: (entry: CatalogNodeEntry) => void;
   type: string;
   label: string;
   description: string;
@@ -156,6 +158,7 @@ interface NodeCardProps {
 
 function NodeCard({
   actionId,
+  onAdd,
   type,
   label,
   description,
@@ -183,6 +186,7 @@ function NodeCard({
       type="button"
       variant={ButtonVariant.GHOST}
       draggable
+      onClick={() => onAdd?.({ actionId, label, type })}
       onDragStart={handleDragStart}
       className={`h-auto w-full cursor-grab justify-start rounded-md border border-transparent bg-transparent px-2 py-2 text-left shadow-none transition-colors ${colors.hover}`}
       textTransform="none"
@@ -279,6 +283,7 @@ interface CategorySectionProps {
   category: NodeCategory;
   isExpanded: boolean;
   nodes: PaletteNodeDefinition[];
+  onAdd?: (entry: CatalogNodeEntry) => void;
   onToggle: () => void;
 }
 
@@ -286,6 +291,7 @@ function CategorySection({
   category,
   isExpanded,
   nodes,
+  onAdd,
   onToggle,
 }: CategorySectionProps) {
   return (
@@ -320,6 +326,7 @@ function CategorySection({
               description={node.description}
               icon={node.icon}
               category={category}
+              onAdd={onAdd}
             />
           ))}
         </div>
@@ -328,23 +335,25 @@ function CategorySection({
   );
 }
 
-export interface NodePaletteProps {
-  /** Extra palette entries merged into the visible categories. */
+export interface NodeCatalogProps {
+  /** Extra catalog entries merged into the visible categories. */
   additionalNodes?: readonly PaletteNodeDefinition[];
   /** Optional hard-cut filter for which core engine primitives are visible. */
   baseNodeTypes?: readonly string[];
+  /** Called when an entry is clicked. Entries stay draggable either way. */
+  onAdd?: (entry: CatalogNodeEntry) => void;
 }
 
-export function NodePalette({
+/** Searchable, categorised node list shared by the palette and Add node menu. */
+export function NodeCatalog({
   additionalNodes = [],
   baseNodeTypes,
-}: NodePaletteProps = {}) {
-  const { togglePalette } = useUIStore();
+  onAdd,
+}: NodeCatalogProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCategories, setExpandedCategories] = useState<
     Set<NodeCategory>
   >(new Set(['input']));
-
   const nodesByCategory = useMemo(
     () =>
       mergeNodesByCategory(
@@ -398,23 +407,7 @@ export function NodePalette({
   );
 
   return (
-    <div className="flex h-full w-72 min-w-72 flex-col overflow-hidden border-r border-border bg-background">
-      <div className="flex items-start justify-between gap-2 border-b border-border px-3 py-3">
-        <div>
-          <h2 className="font-semibold text-sm text-foreground">Nodes</h2>
-          <p className="text-xs text-muted-foreground mt-1">Drag to canvas</p>
-        </div>
-        <Button
-          withWrapper={false}
-          variant={ButtonVariant.GHOST}
-          size={ButtonSize.ICON}
-          onClick={togglePalette}
-          title="Close sidebar (M)"
-        >
-          <PanelLeftClose className="size-4 text-muted-foreground group-hover:text-foreground" />
-        </Button>
-      </div>
-
+    <div className="flex min-h-0 flex-1 flex-col">
       {/* Search bar */}
       <div className="border-b border-border p-3">
         <FormSearchbar
@@ -445,6 +438,7 @@ export function NodePalette({
                   description={node.description}
                   icon={node.icon}
                   category={mapToPaletteCategory(node.category)}
+                  onAdd={onAdd}
                 />
               ))
             )}
@@ -457,11 +451,40 @@ export function NodePalette({
               category={category}
               isExpanded={expandedCategories.has(category)}
               nodes={nodesByCategory[category]}
+              onAdd={onAdd}
               onToggle={() => toggleCategory(category)}
             />
           ))
         )}
       </div>
+    </div>
+  );
+}
+
+export interface NodePaletteProps extends NodeCatalogProps {}
+
+export function NodePalette(props: NodePaletteProps = {}) {
+  const { togglePalette } = useUIStore();
+
+  return (
+    <div className="flex h-full w-72 min-w-72 flex-col overflow-hidden border-r border-border bg-background">
+      <div className="flex items-start justify-between gap-2 border-b border-border px-3 py-3">
+        <div>
+          <h2 className="font-semibold text-sm text-foreground">Nodes</h2>
+          <p className="text-xs text-muted-foreground mt-1">Drag to canvas</p>
+        </div>
+        <Button
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
+          onClick={togglePalette}
+          title="Close sidebar (M)"
+        >
+          <PanelLeftClose className="size-4 text-muted-foreground group-hover:text-foreground" />
+        </Button>
+      </div>
+
+      <NodeCatalog {...props} />
     </div>
   );
 }

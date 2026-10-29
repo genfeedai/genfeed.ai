@@ -1,22 +1,18 @@
-'use client';
-
 import { ALL_ACTIONS } from '@genfeedai/actions';
-import {
-  NodePalette,
-  type PaletteNodeDefinition,
-} from '@genfeedai/workflows/ui';
+import type { PaletteNodeDefinition } from '@genfeedai/workflows/ui';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
-const CLOUD_ENGINE_NATIVE_NODE_TYPES = ['workflowInput'] as const;
+export const CLOUD_ENGINE_NATIVE_NODE_TYPES = ['workflowInput'] as const;
 
 /**
- * Cloud workflow palette: engine primitives plus catalog-generated action
+ * Cloud workflow node catalog: engine primitives plus catalog-generated action
  * entries. Product actions all create the same `genfeedAction` node shape.
  */
-export function CloudNodePalette() {
+export function useCloudNodeCatalog(): PaletteNodeDefinition[] {
   const translate = useTranslations('pages.workflows.nodePalette');
-  const additionalNodes = useMemo((): PaletteNodeDefinition[] => {
+
+  return useMemo((): PaletteNodeDefinition[] => {
     const nativeNodes: PaletteNodeDefinition[] = [
       {
         category: 'input',
@@ -54,11 +50,4 @@ export function CloudNodePalette() {
 
     return [...nativeNodes, ...actionNodes];
   }, [translate]);
-
-  return (
-    <NodePalette
-      additionalNodes={additionalNodes}
-      baseNodeTypes={CLOUD_ENGINE_NATIVE_NODE_TYPES}
-    />
-  );
 }
