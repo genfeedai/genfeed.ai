@@ -1,8 +1,9 @@
-import type { Readable } from 'node:stream';
+import { Readable } from 'node:stream';
 import type {
   ServerYoutubeUploader,
   YoutubeUploadPostInput,
 } from '@api/server.dependencies';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { requireStoredMediaKey } from '@api/services/media-urls/media-delivery-policy.util';
@@ -23,6 +24,11 @@ import { Injectable, Optional } from '@nestjs/common';
 import { google, type youtube_v3 } from 'googleapis';
 import { firstValueFrom } from 'rxjs';
 
+/** Second of the video the thumbnail still is taken from. */
+const THUMBNAIL_FRAME_SECONDS = 1;
+/** 1080 wide gives a 1080x1920 still for a 9:16 Short (YouTube minimum is 640px). */
+const THUMBNAIL_WIDTH = 1080;
+
 @Injectable()
 export class YoutubeUploadService implements ServerYoutubeUploader {
   private readonly constructorName = this.constructor.name;
@@ -36,6 +42,8 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
     private readonly configService: ConfigService,
     @Optional()
     private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
+    @Optional()
+    private readonly filesClient?: FilesClientService,
   ) {
     // Create YouTube API client without default auth
     // Each upload will pass its own per-request auth
@@ -146,6 +154,15 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
       const playlistId = readChannelSettingString(settings, 'playlistId');
 
       const uploadSignal = AbortSignal.timeout(10 * 60_000);
+
+      // Grab the frame while the video uploads: the source URL can expire
+      // during a long upload, and the frame is ready by the time it finishes.
+      const thumbnailPromise = this.prepareThumbnail(
+        videoId,
+        sourceUrl,
+        uploadSignal,
+        url,
+      );
       const mediaResponse = await firstValueFrom(
         this.httpService.get<Readable>(sourceUrl, {
           responseType: 'stream',
@@ -180,6 +197,13 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
 
       const youtubeVideoId = res.data.id;
 
+      await this.setThumbnail(
+        youtubeVideoId,
+        await thumbnailPromise,
+        auth,
+        url,
+      );
+
       if (playlistId) {
         await this.addToPlaylist(youtubeVideoId, playlistId, auth, url);
       }
@@ -194,6 +218,75 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
       throw error;
     } finally {
       mediaStream?.destroy();
+    }
+  }
+
+  /**
+   * Extracts a still from the source video through the files service. Never
+   * rejects: the thumbnail is an enhancement and must not fail the upload.
+   */
+  private async prepareThumbnail(
+    ingredientId: string,
+    sourceUrl: string,
+    signal: AbortSignal,
+    logPrefix: string,
+  ): Promise<Buffer | undefined> {
+    if (!this.filesClient) return undefined;
+
+    try {
+      const frame = await this.filesClient.generateThumbnail(
+        sourceUrl,
+        ingredientId,
+        THUMBNAIL_FRAME_SECONDS,
+        THUMBNAIL_WIDTH,
+      );
+      if (!frame?.thumbnailUrl) return undefined;
+
+      const response = await firstValueFrom(
+        this.httpService.get<ArrayBuffer>(frame.thumbnailUrl, {
+          responseType: 'arraybuffer',
+          signal,
+          timeout: 30_000,
+        }),
+      );
+      return Buffer.from(response.data);
+    } catch (error: unknown) {
+      this.loggerService.warn(`${logPrefix} thumbnail generation failed`, {
+        error: getErrorMessage(error),
+      });
+      return undefined;
+    }
+  }
+
+  /**
+   * `thumbnails.set` is a separate API call (~50 quota units) that runs after
+   * a successful upload. Non-fatal for the same reason as the playlist call:
+   * the video is already on YouTube. YouTube Help documents custom Shorts
+   * thumbnails as a Studio-on-desktop feature, and the Data API reference does
+   * not say whether it accepts them, so a rejection here is logged, not thrown.
+   */
+  private async setThumbnail(
+    youtubeVideoId: string,
+    thumbnail: Buffer | undefined,
+    auth: unknown,
+    logPrefix: string,
+  ): Promise<void> {
+    if (!thumbnail) return;
+
+    try {
+      await this.youtubeAPI.thumbnails.set({
+        auth,
+        media: { body: Readable.from(thumbnail), mimeType: 'image/jpeg' },
+        videoId: youtubeVideoId,
+      } as youtube_v3.Params$Resource$Thumbnails$Set);
+      this.loggerService.log(`${logPrefix} custom thumbnail set`, {
+        youtubeVideoId,
+      });
+    } catch (error: unknown) {
+      this.loggerService.warn(`${logPrefix} failed to set custom thumbnail`, {
+        error: getErrorMessage(error),
+        youtubeVideoId,
+      });
     }
   }
 
