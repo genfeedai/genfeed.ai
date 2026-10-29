@@ -160,6 +160,13 @@ describe('hosted SaaS rollback contract', () => {
     }
   });
 
+  test('smokes the MCP wire contract after every deploy', async () => {
+    const core = await workflow('_deploy-hosted-saas-core.yml');
+
+    expect(core).toContain('hosted-saas/mcp-smoke.mjs');
+    expect(core).toContain('--mcp-url "https://mcp.${DOMAIN}/mcp"');
+  });
+
   test('points a failed post-deploy smoke at the rollback workflow', async () => {
     const core = await workflow('_deploy-hosted-saas-core.yml');
 
