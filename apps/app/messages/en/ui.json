@@ -393,7 +393,7 @@
     "allDetailsCount": "All details ({count})",
     "needsYou": "Needs you",
     "activity": "Activity",
-    "activityFilterAria": "Filter activity",
+    "activityFilterType": "Type",
     "activityFilterAll": "All activity",
     "activityFilterContent": "Content",
     "activityFilterRuns": "Runs",
