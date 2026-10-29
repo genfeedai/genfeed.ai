@@ -131,7 +131,6 @@ export interface StudioGenerationOptions {
   referencePreviewUrl?: string;
   /** Explicit Knowledge pick from the Library picker; absent means Auto. */
   knowledge?: KnowledgeSelection;
-  promptId?: string;
   /** Set only when the prompt came from an agent proposal. */
   promptAuthor?: GenerationPromptAuthor;
   /** The model an Auto choice was priced at; submitted instead of routing again. */
@@ -1061,7 +1060,6 @@ export function useStudioGeneration({
                 ...(options?.requestedSkillSlugs?.length
                   ? { requestedSkillSlugs: options.requestedSkillSlugs }
                   : {}),
-                ...(options?.promptId ? { promptId: options.promptId } : {}),
                 ...(options?.harness !== undefined
                   ? { harness: options.harness }
                   : {}),
@@ -1121,7 +1119,6 @@ export function useStudioGeneration({
                 ...(options?.requestedSkillSlugs?.length
                   ? { requestedSkillSlugs: options.requestedSkillSlugs }
                   : {}),
-                ...(options?.promptId ? { promptId: options.promptId } : {}),
                 ...(options?.harness !== undefined
                   ? { harness: options.harness }
                   : {}),
