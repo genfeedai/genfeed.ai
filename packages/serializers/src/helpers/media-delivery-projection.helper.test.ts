@@ -4,9 +4,11 @@ import {
   assetResponseIds,
   ingredientResponseIds,
   projectMediaResponse,
+  projectSocialAvatarUrls,
 } from '@serializers/helpers/media-delivery-projection.helper';
 import { PostSerializer } from '@serializers/server/content/post.serializer';
 import { IngredientSerializer } from '@serializers/server/ingredients/ingredient.serializer';
+import { CredentialSerializer } from '@serializers/server/organizations/credential.serializer';
 import { describe, expect, it } from 'vitest';
 
 const id = testId('ingredient', 1);
@@ -278,4 +280,49 @@ it('preserves binary streams and non-plain values without walking their internal
   };
   expect(projected.date).toBe(date);
   expect(projected.buffer).toBe(buffer);
+});
+
+describe('social avatar projection', () => {
+  const avatar = 'https://cdn.example/ingredients/social-avatars/cred-1';
+  const sign = (url: string) => `${url}?Signature=abc`;
+
+  it('re-signs the avatar of a serialized credential without mutating the input', () => {
+    const response = CredentialSerializer.serialize({
+      id: 'cred-1',
+      platform: 'INSTAGRAM',
+      externalAvatar: avatar,
+    });
+    const serialized = JSON.stringify(response);
+    const projected = projectSocialAvatarUrls(response, sign);
+    expect(JSON.stringify(projected)).toContain(`${avatar}?Signature=abc`);
+    expect(JSON.stringify(response)).toBe(serialized);
+  });
+
+  it('signs avatars nested in lists and relations, and only on the avatar prefix', () => {
+    const other = 'https://cdn.example/ingredients/images/img-1';
+    const provider = 'https://pbs.twimg.com/profile_images/1/a.jpg';
+    expect(
+      projectSocialAvatarUrls(
+        { accounts: [{ externalAvatar: avatar }], other, provider },
+        sign,
+      ),
+    ).toEqual({
+      accounts: [{ externalAvatar: `${avatar}?Signature=abc` }],
+      other,
+      provider,
+    });
+  });
+
+  it('withholds an avatar that cannot be signed instead of returning the unsigned link', () => {
+    expect(
+      projectSocialAvatarUrls({ externalAvatar: avatar }, () => {
+        throw new Error('no key');
+      }),
+    ).toEqual({ externalAvatar: null });
+  });
+
+  it('returns the same reference when nothing needs signing', () => {
+    const response = { data: [{ id: 'a', externalAvatar: null }] };
+    expect(projectSocialAvatarUrls(response, sign)).toBe(response);
+  });
 });
