@@ -556,7 +556,7 @@
     "packages/ui/src/components/modals/ingredients/upload/UploadVoiceCloneSection.tsx": 8,
     "packages/ui/src/components/modals/ingredients/video/ModalVideo.tsx": 7,
     "packages/ui/src/components/modals/system/error-debug/ModalErrorDebug.tsx": 12,
-    "packages/ui/src/components/modals/system/export/ModalExport.tsx": 36,
+    "packages/ui/src/components/modals/system/export/ModalExport.tsx": 25,
     "packages/ui/src/components/modals/system/watchlist/ModalWatchlist.tsx": 18,
     "packages/ui/src/components/modals/trainings/ModalTraining.tsx": 11,
     "packages/ui/src/components/modals/trainings/ModalTrainingNew.tsx": 2,
