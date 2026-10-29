@@ -291,11 +291,6 @@ const UI_TEST_MESSAGES = {
       addContext: 'Add context',
       attachFiles: 'Attach files',
       referenceLabel: 'Reference',
-      cancelEnhancingPrompt: 'Cancel enhancing prompt',
-      enhanceLabel: 'Enhance',
-      enhancePrompt: 'Enhance prompt',
-      undo: 'Undo',
-      undoPromptEnhancement: 'Undo prompt enhancement',
       referenceLibrary: 'Reference library content',
     },
     generationSetup: {

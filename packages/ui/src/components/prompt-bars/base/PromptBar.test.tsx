@@ -48,9 +48,6 @@ const mockFlushConfigChange = vi.fn();
 const mockHandleTextChange = vi.fn();
 const mockTriggerConfigChange = vi.fn();
 const mockHandleTextareaChange = vi.fn();
-const mockEnhancePrompt = vi.fn();
-const mockHandleCopy = vi.fn();
-const mockHandleUndo = vi.fn();
 const mockOpenGallery = vi.fn();
 const mockOpenUpload = vi.fn();
 const mockNotifications = {
@@ -131,19 +128,6 @@ vi.mock(
       mockUseSpeechRecording(options),
   }),
 );
-vi.mock(
-  '@genfeedai/hooks/prompt-bar/use-prompt-bar-enhancement/use-prompt-bar-enhancement',
-  () => ({
-    usePromptBarEnhancement: () => ({
-      enhancePrompt: mockEnhancePrompt,
-      handleCopy: mockHandleCopy,
-      handleUndo: mockHandleUndo,
-      isEnhancing: false,
-      previousPrompt: '',
-    }),
-  }),
-);
-
 vi.mock(
   '@genfeedai/hooks/prompt-bar/use-prompt-bar-filters/use-prompt-bar-filters',
   () => ({
