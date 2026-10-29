@@ -2837,6 +2837,76 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-29T12:50:00.000Z',
   },
   {
+    endpoint: 'kwaivgi/kling-v4.0',
+    provider: 'replicate',
+    // Replicate bills $0.157/s (720p) and $0.235/s (1080p) for text, keyframe or
+    // reference-image input. Video input is a separate, higher-billed tier that
+    // the request builder never reaches, so it has no rate here.
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.157,
+        when: {
+          model_variant: 'no-video-input',
+          resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.235,
+        when: {
+          model_variant: 'no-video-input',
+          resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'composite',
+          parts: [
+            {
+              field: 'reference_videos',
+              mode: 'presence',
+              fieldType: 'array',
+            },
+            {
+              field: 'base_video',
+              mode: 'presence',
+              fieldType: 'string',
+            },
+          ],
+          cases: [
+            {
+              when: [false, false],
+              selector: 'no-video-input',
+            },
+            {
+              when: [true, false],
+              selector: 'video-input',
+            },
+            {
+              when: [false, true],
+              selector: 'video-input',
+            },
+            {
+              when: [true, true],
+              selector: 'video-input',
+            },
+          ],
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/kwaivgi/kling-v4.0',
+    verifiedAt: '2026-10-29T13:20:00.000Z',
+  },
+  {
     endpoint: 'bytedance/seedream-5-lite',
     provider: 'replicate',
     rates: [

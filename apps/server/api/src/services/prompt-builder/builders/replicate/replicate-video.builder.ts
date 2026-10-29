@@ -6,6 +6,7 @@ import {
   buildKlingO1Prompt,
   buildKlingV3OmniPrompt,
   buildKlingV3Prompt,
+  buildKlingV4Prompt,
   buildKlingV16ProPrompt,
   buildKlingV21Prompt,
   buildKlingV26Prompt,
@@ -74,6 +75,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
       MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V1_6_PRO,
       MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
       MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO,
+      MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V4,
       MODEL_KEYS.REPLICATE_KWAIVGI_KLING_AVATAR_V2,
       MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0,
       MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0_FAST,
@@ -152,6 +154,9 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
           promptText,
           negativePrompt,
         );
+
+      case MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V4:
+        return buildKlingV4Prompt(model, params, promptText);
 
       case MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO:
         return buildKlingV3Prompt(

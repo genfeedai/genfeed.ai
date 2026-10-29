@@ -22,7 +22,6 @@ export interface ConnectionDropMenuState {
 
 interface UIStore {
   // Panel visibility
-  showPalette: boolean;
   showMinimap: boolean;
   showAIGenerator: boolean;
   showDebugPanel: boolean;
@@ -48,7 +47,6 @@ interface UIStore {
   notifications: Notification[];
 
   // Actions
-  togglePalette: () => void;
   toggleMinimap: () => void;
   toggleAIGenerator: () => void;
   toggleDebugPanel: () => void;
@@ -170,7 +168,6 @@ export const useUIStore = create<UIStore>((set) => ({
   showAIGenerator: false,
   showDebugPanel: false,
   showMinimap: true,
-  showPalette: true,
 
   toggleAIGenerator: () => {
     set((state) => ({ showAIGenerator: !state.showAIGenerator }));
@@ -182,9 +179,5 @@ export const useUIStore = create<UIStore>((set) => ({
 
   toggleMinimap: () => {
     set((state) => ({ showMinimap: !state.showMinimap }));
-  },
-
-  togglePalette: () => {
-    set((state) => ({ showPalette: !state.showPalette }));
   },
 }));
