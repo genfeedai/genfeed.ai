@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { BrandFontAssetsController } from '@api/collections/brands/controllers/brand-font-assets.controller';
+import { BrandLutController } from '@api/collections/brands/controllers/brand-lut.controller';
 import { BrandOsRevisionsController } from '@api/collections/brands/controllers/brand-os-revisions.controller';
 import { BrandOsScanController } from '@api/collections/brands/controllers/brand-os-scan.controller';
 import { BrandRelocationsController } from '@api/collections/brands/controllers/brand-relocations.controller';
@@ -68,6 +69,7 @@ describe('Brands split controllers', () => {
       BrandOsRevisionsController,
       BrandOsScanController,
       BrandFontAssetsController,
+      BrandLutController,
       BrandsAgentConfigController,
       BrandsSetupController,
       BrandsController,
