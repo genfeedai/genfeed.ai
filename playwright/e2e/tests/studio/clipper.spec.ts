@@ -508,9 +508,12 @@ test.describe('Clip Factory', () => {
     await expect(
       authenticatedPage.getByRole('heading', { name: /review highlights/i }),
     ).toBeVisible();
-    await expect(authenticatedPage.getByRole('textbox').first()).toHaveValue(
-      'The Hook',
-    );
+    await expect(
+      authenticatedPage
+        .getByTestId('agent-output-output-pane')
+        .getByRole('textbox')
+        .first(),
+    ).toHaveValue('The Hook');
     await expect(
       authenticatedPage.getByText(/found 3 highlights/i),
     ).toBeVisible();
@@ -798,7 +801,10 @@ test.describe('Clip Factory', () => {
       authenticatedPage.getByRole('heading', { name: /review highlights/i }),
     ).toBeVisible();
 
-    const editedTitleInput = authenticatedPage.getByRole('textbox').first();
+    const editedTitleInput = authenticatedPage
+      .getByTestId('agent-output-output-pane')
+      .getByRole('textbox')
+      .first();
     await expect(editedTitleInput).toHaveValue('The Hook');
     await editedTitleInput.fill('Edited Hook Title');
     await authenticatedPage
