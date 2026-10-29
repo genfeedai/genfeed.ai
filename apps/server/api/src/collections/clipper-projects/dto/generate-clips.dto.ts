@@ -45,6 +45,15 @@ export class GenerateClipperHighlightDto {
     required: true,
   })
   readonly summary!: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({
+    description:
+      'What the avatar says for this highlight; defaults to the highlight transcript',
+    required: false,
+  })
+  readonly script?: string;
 }
 
 export class GenerateClipsDto {
