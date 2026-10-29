@@ -11,6 +11,9 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 const AGENT_OUTPUT_ROUTE_PATTERNS: readonly RegExp[] = [
   // A Storyboard run; `/storyboard/new` is the create form.
   new RegExp(`^${APP_ROUTES.STUDIO.STORYBOARD}/(?!new/?$)[^/]+/?$`),
+  // The workflow editor, new or saved; `/automation/workflows/templates` is
+  // the template gallery and stays on the dock.
+  new RegExp(`^${APP_ROUTES.AUTOMATION.WORKFLOWS}/(?!templates/?$)[^/]+/?$`),
 ];
 
 export function isAgentOutputRoute(normalizedPathname: string): boolean {

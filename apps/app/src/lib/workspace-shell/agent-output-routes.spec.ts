@@ -17,6 +17,18 @@ describe('isAgentOutputRoute', () => {
     expect(isAgentOutputRoute('/storyboard/new-run')).toBe(true);
   });
 
+  it('matches the workflow editor, new or saved', () => {
+    expect(isAgentOutputRoute('/automation/workflows/new')).toBe(true);
+    expect(isAgentOutputRoute('/automation/workflows/wf-1')).toBe(true);
+    expect(isAgentOutputRoute('/automation/workflows/wf-1/')).toBe(true);
+  });
+
+  it('leaves the workflow library and templates on the dock', () => {
+    expect(isAgentOutputRoute('/automation/workflows')).toBe(false);
+    expect(isAgentOutputRoute('/automation/workflows/templates')).toBe(false);
+    expect(isAgentOutputRoute('/automation/workflows/templates/')).toBe(false);
+  });
+
   it('does not match other apps or nested paths', () => {
     expect(isAgentOutputRoute('/library/images')).toBe(false);
     expect(isAgentOutputRoute('/agent/thread-1')).toBe(false);
