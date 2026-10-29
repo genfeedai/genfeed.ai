@@ -66,7 +66,19 @@ export const getServerAuthToken = cache(async (): Promise<string> => {
       .map((cookie) => `${cookie.name}=${cookie.value}`)
       .join('; ');
 
-    return (await getBetterAuthServerToken(cookieHeader)) ?? '';
+    // A missing token renders the visitor without admin or bootstrap until the
+    // next load (#8556), so every failed exchange says why.
+    return (
+      (await getBetterAuthServerToken(cookieHeader, {
+        onFailure: (failure) =>
+          logger.warn('Better Auth token exchange failed', {
+            ...failure,
+            // A 401/403 is a signed-out visitor; anything else is a fault.
+            reportToSentry:
+              failure.reason !== 'http' || (failure.status ?? 0) >= 429,
+          }),
+      })) ?? ''
+    );
   } catch (error) {
     logger.warn('Better Auth token unavailable during protected bootstrap', {
       error,

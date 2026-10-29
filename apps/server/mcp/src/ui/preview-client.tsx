@@ -1,5 +1,5 @@
 import '@mcp/ui/preview-runtime';
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, formatPlatformLabel } from '@genfeedai/contracts';
 import type {
   McpCalendarDay,
   McpCard,
@@ -24,6 +24,8 @@ import { CardBoundary } from '@mcp/ui/card-boundary';
 import uiMessages from '@preview-messages/ui';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import Card from '@ui/card/Card';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import PlatformPreview from '@ui/posts/platform-preview/PlatformPreview';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
@@ -35,6 +37,11 @@ import {
   CollapsibleTrigger,
 } from '@ui/primitives/collapsible';
 import {
+  DefinitionDetail,
+  DefinitionList,
+  DefinitionTerm,
+} from '@ui/primitives/definition-list';
+import {
   Dialog,
   DialogClose,
   DialogContent,
@@ -44,6 +51,7 @@ import { Progress } from '@ui/primitives/progress';
 import { SelectField } from '@ui/primitives/select';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import Image from 'next/image';
 import { NextIntlClientProvider } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
@@ -87,7 +95,6 @@ function card(value: unknown): McpCard | undefined {
       'audio',
       'media',
       'summary',
-      'usage',
     ].includes(text(row.kind))
   )
     return undefined;
@@ -237,22 +244,7 @@ function formatDate(
     : date.toLocaleString(undefined, options);
 }
 function platformName(value: string): string {
-  const names: Record<string, string> = {
-    facebook: 'Facebook',
-    instagram: 'Instagram',
-    linkedin: 'LinkedIn',
-    pinterest: 'Pinterest',
-    reddit: 'Reddit',
-    threads: 'Threads',
-    tiktok: 'TikTok',
-    twitter: 'X',
-    x: 'X',
-    youtube: 'YouTube',
-  };
-  return (
-    names[value.toLowerCase()] ||
-    (value ? value.charAt(0).toUpperCase() + value.slice(1) : 'Post')
-  );
+  return formatPlatformLabel(value) || 'Post';
 }
 function Description({ content, bridge }: DescriptionProps) {
   if (!content) return null;
@@ -346,12 +338,13 @@ function MediaPreview({ item, bridge, openImage, onError }: MediaPreviewProps) {
         ariaLabel={`Enlarge ${item.title || 'Generated image'}`}
         onClick={(event) => openImage(src, item.title, event.currentTarget)}
       >
-        <img
+        <Image
           src={src}
           alt={item.title || 'Generated image'}
+          width={0}
+          height={0}
           loading="lazy"
-          referrerPolicy="no-referrer"
-          className="max-h-80 max-w-full rounded-card object-contain outline-media"
+          className="h-auto max-h-80 w-auto max-w-full rounded-card object-contain outline-media"
           onError={onError}
           onLoad={bridge.resize}
         />
@@ -421,12 +414,12 @@ function SummaryCard({
   );
   return (
     <article className="content-card min-w-0">
-      <div
+      <Card
         data-testid="preview-card"
-        className="flex h-full flex-col gap-3 rounded-card bg-card p-4 text-card-foreground shadow-border"
-      >
-        <div className="flex items-start gap-3">
-          {hasIdentity && (
+        className="h-full"
+        bodyClassName="h-full"
+        icon={
+          hasIdentity ? (
             <Avatar className="size-11 rounded-xl">
               {avatarUrl && (
                 <AvatarImage
@@ -440,64 +433,61 @@ function SummaryCard({
                 {initials(item.title)}
               </AvatarFallback>
             </Avatar>
-          )}
-          <div className="min-w-0 flex-1">
-            <Heading as="h2" size="sm" className="break-words">
-              {item.title}
-            </Heading>
-            {hasIdentity && handle && (
-              <Text as="p" size="xs" color="muted" className="truncate">
-                @{handle.replace(/^@/, '')}
-              </Text>
-            )}
-          </div>
-          {item.status && (
+          ) : undefined
+        }
+        label={item.title}
+        labelAs="h2"
+        isLabelWrapped
+        description={
+          hasIdentity && handle ? `@${handle.replace(/^@/, '')}` : undefined
+        }
+        headerAction={
+          item.status ? (
             <Badge variant="outline" className="status shrink-0">
               {item.status}
             </Badge>
-          )}
-        </div>
+          ) : undefined
+        }
+        actions={
+          item.actions?.length
+            ? item.actions.map((action) => (
+                <Button
+                  key={`${action.kind}-${action.brandId}`}
+                  variant={
+                    isSelected ? ButtonVariant.SECONDARY : ButtonVariant.DEFAULT
+                  }
+                  withWrapper={false}
+                  isDisabled={isSelected || isActionPending}
+                  ariaLabel={`${action.label} ${item.title}`}
+                  onClick={() => onAction(action)}
+                >
+                  {isSelected ? 'Selected' : action.label}
+                </Button>
+              ))
+            : undefined
+        }
+      >
         {item.description && (
           <Description content={item.description} bridge={bridge} />
         )}
         {facts.length ? (
-          <dl className="facts grid gap-1">
+          <DefinitionList variant="compact" className="facts">
             {facts.map((fact) => (
               <div key={fact.label} className="flex flex-wrap gap-x-2">
-                <Text as="dt" size="sm" color="muted">
-                  {fact.label}
-                </Text>
-                <Text as="dd" size="sm" className="break-words">
+                <DefinitionTerm>{fact.label}</DefinitionTerm>
+                <DefinitionDetail className="break-words">
                   {fact.value}
-                </Text>
+                </DefinitionDetail>
               </div>
             ))}
-          </dl>
+          </DefinitionList>
         ) : null}
         {when && (
           <Text size="xs" color="muted">
             {when}
           </Text>
         )}
-        {item.actions?.length ? (
-          <div className="media-actions mt-auto flex flex-wrap gap-2 pt-1">
-            {item.actions.map((action) => (
-              <Button
-                key={`${action.kind}-${action.brandId}`}
-                variant={
-                  isSelected ? ButtonVariant.SECONDARY : ButtonVariant.DEFAULT
-                }
-                withWrapper={false}
-                isDisabled={isSelected || isActionPending}
-                ariaLabel={`${action.label} ${item.title}`}
-                onClick={() => onAction(action)}
-              >
-                {isSelected ? 'Selected' : action.label}
-              </Button>
-            ))}
-          </div>
-        ) : null}
-      </div>
+      </Card>
     </article>
   );
 }
@@ -749,10 +739,6 @@ function CardPreview({
               </CollapsibleContent>
             </Collapsible>
           )
-        ) : current.kind === 'usage' ? (
-          <Heading as="p" size="2xl" className="metric">
-            {current.description}
-          </Heading>
         ) : (
           <Description content={current.description} bridge={bridge} />
         )}
@@ -761,9 +747,7 @@ function CardPreview({
             <Badge variant="outline">
               {current.kind.charAt(0).toUpperCase() + current.kind.slice(1)}
             </Badge>
-            {current.platform && (
-              <Badge variant="outline">{platformName(current.platform)}</Badge>
-            )}
+            {current.platform && <PlatformBadge platform={current.platform} />}
             {when && (
               <Text size="xs" color="muted">
                 {when}
@@ -965,6 +949,14 @@ function Preview({ result, notice, bridge }: PreviewProps) {
             .filter(Boolean)
             .join('\n')
         : '';
+  const emptyMessage =
+    view && !notice && !view.cards.length && !days.length
+      ? view.layout === 'calendar'
+        ? 'No days in this calendar window.'
+        : view.layout === 'organizations'
+          ? 'No brands in this organization yet.'
+          : 'No content found.'
+      : '';
   function switchOrganization(organizationId: string) {
     if (!organizationId || organizationId === view?.organizations?.activeId)
       return;
@@ -1078,27 +1070,25 @@ function Preview({ result, notice, bridge }: PreviewProps) {
             switcher={view.organizations}
           />
         )}
-        <Text
-          as="p"
-          role="status"
-          aria-live="polite"
-          size="sm"
-          color="muted"
-          id="notice"
-          className="whitespace-pre-wrap"
-        >
-          {notice ||
-            (!view
-              ? fallback ||
-                'No preview is available. The tool result remains available in the conversation.'
-              : view.cards.length || days.length
-                ? ''
-                : view.layout === 'calendar'
-                  ? 'No days in this calendar window.'
-                  : view.layout === 'organizations'
-                    ? 'No brands in this organization yet.'
-                    : 'No content found.')}
-        </Text>
+        {emptyMessage ? (
+          <CardEmptyContent label={emptyMessage} />
+        ) : (
+          <Text
+            as="p"
+            role="status"
+            aria-live="polite"
+            size="sm"
+            color="muted"
+            id="notice"
+            className="whitespace-pre-wrap"
+          >
+            {notice ||
+              (!view
+                ? fallback ||
+                  'No preview is available. The tool result remains available in the conversation.'
+                : '')}
+          </Text>
+        )}
         <div
           id="cards"
           className={
@@ -1149,9 +1139,7 @@ function Preview({ result, notice, bridge }: PreviewProps) {
                         >
                           <div className="flex flex-wrap items-center gap-2">
                             {post.platform && (
-                              <Badge variant="outline">
-                                {platformName(post.platform)}
-                              </Badge>
+                              <PlatformBadge platform={post.platform} />
                             )}
                             <Text size="xs" color="muted">
                               {formatDate(post.date, { timeStyle: 'short' })}
@@ -1220,11 +1208,12 @@ function Preview({ result, notice, bridge }: PreviewProps) {
         >
           <DialogTitle>{image?.title || 'Generated image'}</DialogTitle>
           {image && (
-            <img
+            <Image
               src={image.src}
               alt={image.title}
-              referrerPolicy="no-referrer"
-              className="max-h-[75vh] max-w-full object-contain"
+              width={0}
+              height={0}
+              className="h-auto max-h-[75vh] w-auto max-w-full object-contain"
             />
           )}
           <DialogClose asChild>

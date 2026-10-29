@@ -427,6 +427,7 @@ short-lived token. Admin routes also require your IP in the API's
 ```bash
 genfeed admin login
 genfeed admin status
+genfeed admin notifications [--expect users posts]   # Discord bot ready? which operator channels have no ID (IDs are never shown)
 genfeed admin pricing sync [--provider fal]       # queue the provider price import now
 genfeed admin pricing report --attention          # models whose provider price needs review
 genfeed admin pricing approve <model>             # preview the pending rates

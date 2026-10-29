@@ -5,9 +5,9 @@ import { AgentPage } from '../../pages/agent.page';
 
 /**
  * One prompt bar everywhere (#7778): the left group is mode, setup chips, then
- * the `+` that adds context, last. The right group is Enhance prompt and
- * submit only. Every icon-only control is the same 32px box with its glyph
- * centred, on one shared centre line.
+ * the `+` that adds context, last. The right group is submit only. Every
+ * icon-only control is the same 32px box with its glyph centred, on one shared
+ * centre line.
  */
 
 async function mockAgentShell(page: Page): Promise<void> {
@@ -60,7 +60,7 @@ test.describe('Agent prompt bar', () => {
     await mockAgentShell(authenticatedPage);
   });
 
-  test('keeps Enhance beside submit on the right and Add context last on the left', async ({
+  test('has no manual Enhance prompt button and keeps Add context last on the left', async ({
     authenticatedPage,
   }) => {
     const agentPage = new AgentPage(authenticatedPage);
@@ -74,7 +74,7 @@ test.describe('Agent prompt bar', () => {
     expect(leftNames).not.toContain('Enhance prompt');
 
     const rightNames = await buttonNames(right);
-    expect(rightNames[0]).toBe('Enhance prompt');
+    expect(rightNames).not.toContain('Enhance prompt');
     expect(rightNames).not.toContain('Add context');
   });
 

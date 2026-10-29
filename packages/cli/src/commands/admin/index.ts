@@ -14,7 +14,10 @@ import {
   approveSystemBrand,
   createOrganizationBrand,
   createWarmupAccount,
+  DISCORD_CHANNELS,
+  type DiscordChannel,
   filterPricingRows,
+  findMissingDiscordChannels,
   findMissingExternalPacks,
   findPendingVersion,
   findPricingFixTargets,
@@ -24,6 +27,7 @@ import {
   type PriceSyncProvider,
   prepareWarmupAccount,
   readHarnessActivation,
+  readNotificationStatus,
   readOnboardingFunnel,
   readOrganizationAppsReport,
   readOrganizationsReport,
@@ -513,6 +517,75 @@ async function runHarnessActivation(options: {
   }
 }
 
+async function runNotificationStatus(options: {
+  expect?: string[];
+  isJson: boolean;
+}): Promise<void> {
+  const expected = options.expect ?? [];
+  const unknownChannels = expected.filter(
+    (channel) => !(DISCORD_CHANNELS as readonly string[]).includes(channel)
+  );
+  if (unknownChannels.length > 0) {
+    throw new GenfeedError(
+      `Unknown Discord channel: ${unknownChannels.join(', ')} (use ${DISCORD_CHANNELS.join(', ')})`
+    );
+  }
+
+  const status = await readNotificationStatus();
+  const discord = status.configuration.discord;
+  const missing = findMissingDiscordChannels(status);
+  const missingExpected = findMissingDiscordChannels(status, expected as DiscordChannel[]);
+
+  if (options.isJson) {
+    printJson({ ...status, missingExpectedChannels: missingExpected });
+  } else {
+    print(formatHeader('System notifications\n'));
+    print(
+      formatLabel('Alerts', status.configuration.enabled ? chalk.green('enabled') : 'disabled')
+    );
+    if (!discord) {
+      print(formatLabel('Discord bot', chalk.red('status unavailable')));
+    } else {
+      print(
+        formatLabel(
+          'Discord bot',
+          discord.isBotConfigured ? chalk.green('configured') : 'not configured'
+        )
+      );
+      print(
+        formatLabel('Bot connected', discord.isBotReady ? chalk.green('yes') : chalk.red('no'))
+      );
+      for (const channel of DISCORD_CHANNELS) {
+        print(
+          formatLabel(
+            `Channel ${channel}`,
+            missing.includes(channel) ? chalk.red('no channel ID') : chalk.green('set')
+          )
+        );
+      }
+    }
+    print(chalk.dim('\nChannel IDs are not shown; this only says whether each one is set.'));
+    print(
+      formatLabel(
+        'Signups observed',
+        `${status.observedSignups}${
+          status.signupObservationStart ? ` since ${status.signupObservationStart}` : ''
+        }`
+      )
+    );
+    const failed = status.deliveries.filter((delivery) => delivery.status === 'failed');
+    print(
+      formatLabel('Recent deliveries', `${status.deliveries.length} (${failed.length} failed)`)
+    );
+  }
+
+  if (missingExpected.length > 0) {
+    throw new GenfeedError(
+      `Expected Discord channels with no channel ID: ${missingExpected.join(', ')}`
+    );
+  }
+}
+
 async function readJsonFile(filePath: string): Promise<unknown> {
   try {
     return JSON.parse(await readFile(filePath, 'utf8')) as unknown;
@@ -988,6 +1061,24 @@ export const adminCommand = new Command('admin')
       .action(async (options: { expect?: string[] }, command: Command) => {
         try {
           await runHarnessActivation({ expect: options.expect, isJson: wantsJson(command) });
+        } catch (error) {
+          handleError(error);
+        }
+      })
+  )
+  .addCommand(
+    new Command('notifications')
+      .description(
+        'Show whether the Discord bot is connected and which operator channels have no channel ID'
+      )
+      .option(
+        '--expect <channels...>',
+        `Fail unless each channel has an ID (${DISCORD_CHANNELS.join(', ')})`
+      )
+      .option('--json', 'Output as JSON')
+      .action(async (options: { expect?: string[] }, command: Command) => {
+        try {
+          await runNotificationStatus({ expect: options.expect, isJson: wantsJson(command) });
         } catch (error) {
           handleError(error);
         }

@@ -69,7 +69,6 @@ import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useFailedIngredientRecovery } from '@hooks/data/ingredients/use-ingredients-list/use-failed-ingredient-recovery';
 import { usePromptBarResting } from '@hooks/prompt-bar/use-prompt-bar-resting/use-prompt-bar-resting';
-import { usePromptTextEnhancement } from '@hooks/prompt-bar/use-prompt-text-enhancement/use-prompt-text-enhancement';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
 import { useAdvancedModePreference } from '@hooks/utils/use-advanced-mode-preference/use-advanced-mode-preference';
@@ -376,21 +375,6 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     useState<PromptEditorDocumentSeed | null>(null);
   const [agentPromptSeed, setAgentPromptSeed] =
     useState<StudioAgentPromptSeed | null>(null);
-  const {
-    cancelEnhance,
-    enhancePrompt,
-    isEnhancing: isEnhancingPrompt,
-    enhancedPromptId,
-    previousPrompt: previousEnhancedPrompt,
-    undoEnhance,
-  } = usePromptTextEnhancement({
-    brandId,
-    contentType: type === 'image' || type === 'video' ? type : undefined,
-    modelKey: settings.modelKey,
-    onPromptChange: setPrompt,
-    prompt,
-    resolveRequestedSkills: resolvePromptCommands,
-  });
   const [search, setSearch] = useState('');
   const [resultType, setResultType] = useState<StudioPlaygroundFilter>('all');
   const [resultSort, setResultSort] = useState<'newest' | 'oldest'>('newest');
@@ -1239,19 +1223,6 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     [notificationsService.warning, type],
   );
 
-  const handleEnhancePrompt = useCallback(() => {
-    const { skillSlugs } = resolvePromptCommands(prompt);
-    if (type === 'image-edit' || rejectUnsupportedSkillSelection(skillSlugs))
-      return;
-    return enhancePrompt();
-  }, [
-    enhancePrompt,
-    prompt,
-    type,
-    rejectUnsupportedSkillSelection,
-    resolvePromptCommands,
-  ]);
-
   const handleStarterIdea = useCallback(
     (selection: StudioPlaygroundStarterSelection) => {
       // The editor reports getText() after the seed lands. Setting the prompt
@@ -1361,14 +1332,8 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
         promptText: crunPreparedIntent.text,
         references: crunPreparedIntent.referenceIds,
         brandId,
-        ...(enhancedPromptId && crunPreparedIntent.text === prompt
-          ? { promptId: enhancedPromptId }
-          : {
-              requestedSkillSlugs: crunPreparedIntent.skillSlugs,
-              ...(hasKnowledgeSelection
-                ? { knowledge: knowledgeSelection }
-                : {}),
-            }),
+        requestedSkillSlugs: crunPreparedIntent.skillSlugs,
+        ...(hasKnowledgeSelection ? { knowledge: knowledgeSelection } : {}),
         harness: false,
       }),
     [
@@ -1377,8 +1342,6 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       settings,
       crunPreparedIntent,
       brandId,
-      enhancedPromptId,
-      prompt,
       hasKnowledgeSelection,
       knowledgeSelection,
     ],
@@ -1397,12 +1360,8 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       references: crunPreparedIntent.referenceIds,
       endFrameId: resolvedReferences.endFrameId,
       brandId,
-      ...(enhancedPromptId && crunPreparedIntent.text === prompt
-        ? { promptId: enhancedPromptId }
-        : {
-            requestedSkillSlugs: crunPreparedIntent.skillSlugs,
-            ...(hasKnowledgeSelection ? { knowledge: knowledgeSelection } : {}),
-          }),
+      requestedSkillSlugs: crunPreparedIntent.skillSlugs,
+      ...(hasKnowledgeSelection ? { knowledge: knowledgeSelection } : {}),
       harness: false,
     });
   }, [
@@ -1414,8 +1373,6 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     resolvedReferences.videoReferenceIds,
     resolvedReferences.audioReferenceIds,
     brandId,
-    enhancedPromptId,
-    prompt,
     hasKnowledgeSelection,
     knowledgeSelection,
   ]);
@@ -1424,7 +1381,6 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       ? {
           mediaKind: 'video',
           request:
-            isEnhancingPrompt ||
             isUploading ||
             crunRestoreStatus ||
             referenceValidation.errors.length
@@ -1434,7 +1390,6 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
         }
       : {
           request:
-            isEnhancingPrompt ||
             isUploading ||
             crunRestoreStatus ||
             referenceValidation.errors.length
@@ -1524,8 +1479,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
               }
             : skillSlugs.length ||
                 hasKnowledgeSelection ||
-                (isHandoffAccepted && handoffPayload?.harness !== undefined) ||
-                (enhancedPromptId && prepared.text === prompt)
+                (isHandoffAccepted && handoffPayload?.harness !== undefined)
               ? {
                   ...(skillSlugs.length
                     ? { requestedSkillSlugs: skillSlugs }
@@ -1535,9 +1489,6 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                     : {}),
                   ...(isHandoffAccepted && handoffPayload?.harness !== undefined
                     ? { harness: handoffPayload.harness }
-                    : {}),
-                  ...(enhancedPromptId && prepared.text === prompt
-                    ? { promptId: enhancedPromptId }
                     : {}),
                 }
               : {}),
@@ -1571,7 +1522,6 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       crunRequest,
       crunVideoRequest,
       crunQuote.getCurrentQuote,
-      enhancedPromptId,
       hasKnowledgeSelection,
       knowledgeSelection,
       isListening,
@@ -3092,7 +3042,6 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                 documentSeed={documentSeed}
                 extraExtensions={composerExtensions}
                 isDragActive={capabilities.hasReferences && dragState.isActive}
-                isEnhancingPrompt={isEnhancingPrompt}
                 isListening={isListening}
                 isResting={composerResting.isResting}
                 onExpand={composerResting.expand}
@@ -3101,8 +3050,6 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                 isUploading={isUploading}
                 models={models}
                 onAddFiles={handleAddFiles}
-                onCancelEnhancePrompt={cancelEnhance}
-                onEnhancePrompt={handleEnhancePrompt}
                 onOpenLibrary={handleOpenLibrary}
                 onPromptCommandContextChange={setPromptCommandContext}
                 onPromptChange={(value) => {
@@ -3133,9 +3080,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                   clearCrunRestore();
                   setType(value);
                 }}
-                onUndoEnhancePrompt={undoEnhance}
                 prompt={prompt}
-                previousPrompt={previousEnhancedPrompt}
                 settings={settings}
                 isVoiceInputAvailable={isVoiceInputAvailable}
                 type={type}

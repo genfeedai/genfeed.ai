@@ -137,7 +137,7 @@ describe('TrainingsList', () => {
     );
 
     expect(source).toContain('APP_ROUTES.ADMIN.AUTOMATION.TRAININGS');
-    expect(source).toMatch(/training\.id}\/images/);
+    expect(source).toMatch(/TRAININGS}\/\${training\.id}`/);
     expect(source).not.toMatch(/router\.push\(`\/trainings\//);
   });
 
@@ -181,7 +181,7 @@ describe('TrainingsList', () => {
     });
     expect(nameLink).toHaveAttribute(
       'href',
-      '/admin/automation/trainings/training-1/images',
+      '/admin/automation/trainings/training-1',
     );
   });
 

@@ -1124,7 +1124,6 @@ export function useAgentChatInput({
     canSendMessage,
     canUseVoiceInput,
     contentLibraryItems,
-    conversationBrandId,
     editor,
     handlePasteImages,
     handleRemoveAttachment,
@@ -1146,7 +1145,6 @@ export function useAgentChatInput({
     references: displayedReferences,
     selectedContentIds,
     setIsContentPickerOpen,
-    skillSlugs,
     startListening,
     stopListening,
   };

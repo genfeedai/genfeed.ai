@@ -21,7 +21,6 @@ import {
   getDefaultVideoResolution,
   hasResolutionOptions,
 } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
-import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useSpeechRecording } from '@genfeedai/hooks/media/use-speech-recording/use-speech-recording';
 import {
   resolveStudioGenerationCostModels,
@@ -31,19 +30,16 @@ import {
   serializeCrunQuoteIntent,
   useCrunGenerationQuote,
 } from '@genfeedai/hooks/prompt-bar/use-crun-generation-quote/use-crun-generation-quote';
-import { usePromptBarEnhancement } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-enhancement/use-prompt-bar-enhancement';
 import { usePromptBarFilters } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-filters/use-prompt-bar-filters';
 import { usePromptBarForm } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-form/use-prompt-bar-form';
 import { usePromptBarModels } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-models/use-prompt-bar-models';
 import { usePromptBarPricing } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-pricing/use-prompt-bar-pricing';
 import { usePromptBarReferences } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-references/use-prompt-bar-references';
 import { usePromptBarSync } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-sync/use-prompt-bar-sync';
-import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
 import type {
   PromptBarAttachedAsset,
   PromptBarProps,
 } from '@genfeedai/props/studio/prompt-bar.props';
-import { PromptsService } from '@genfeedai/services/content/prompts.service';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import type { JSONContent } from '@tiptap/core';
@@ -173,13 +169,9 @@ export function usePromptBarState({
   );
   const { openGallery } = useGalleryModal();
   const { openUpload } = useUploadModal();
-  const { brandId, organizationId, selectedBrand, settings } = useBrand();
+  const { brandId, selectedBrand, settings } = useBrand();
   const { activeGenerations } = useAssetSelection();
   const { currentUser } = useCurrentUser();
-  const { subscribe } = useSocketManager();
-  const getPromptsService = useAuthedService((token: string) =>
-    PromptsService.getInstance(token),
-  );
 
   const [selectedPreset, setSelectedPreset] = useState('');
   const [selectedProfile, setSelectedProfile] = useState('');
@@ -449,44 +441,32 @@ export function usePromptBarState({
     useSplitState,
   });
 
-  const { isEnhancing, previousPrompt, enhancePrompt, handleUndo, handleCopy } =
-    usePromptBarEnhancement({
-      brandId,
-      clipboardService,
-      form,
-      getPromptsService,
-      notificationsService,
-      organizationId,
-      resizeTextarea: resizePromptTextarea,
-      selectedProfile,
-      setTextValue,
-      subscribe,
-      textareaRef,
-      watchedModel,
-    });
+  const handleCopy = useCallback(
+    async (text: string) => {
+      await clipboardService.copyToClipboard(text);
+    },
+    [clipboardService],
+  );
 
   const isCrunVideo = crunInputControls?.mediaKind === 'video';
-  const crunRequest =
-    crunModel && !isEnhancing
-      ? isCrunVideo
-        ? (crunVideoBinding?.prepareRequest(form.getValues()) ?? null)
-        : (crunBinding?.prepareRequest(form.getValues()) ?? null)
-      : null;
+  const crunRequest = crunModel
+    ? isCrunVideo
+      ? (crunVideoBinding?.prepareRequest(form.getValues()) ?? null)
+      : (crunBinding?.prepareRequest(form.getValues()) ?? null)
+    : null;
   const crunQuote = useCrunGenerationQuote(
     isCrunVideo
       ? {
           mediaKind: 'video',
-          request:
-            crunModel && !isEnhancing
-              ? (crunVideoBinding?.prepareRequest(form.getValues()) ?? null)
-              : null,
+          request: crunModel
+            ? (crunVideoBinding?.prepareRequest(form.getValues()) ?? null)
+            : null,
           isActive: Boolean(crunModel && crunVideoBinding),
         }
       : {
-          request:
-            crunModel && !isEnhancing
-              ? (crunBinding?.prepareRequest(form.getValues()) ?? null)
-              : null,
+          request: crunModel
+            ? (crunBinding?.prepareRequest(form.getValues()) ?? null)
+            : null,
           isActive: Boolean(crunModel && crunBinding),
         },
   );
@@ -1066,7 +1046,6 @@ export function usePromptBarState({
     categoryType,
     dragError,
     endFrame,
-    enhancePrompt,
     filteredBlacklists,
     filteredCameraMovements,
     filteredCameras,
@@ -1090,7 +1069,6 @@ export function usePromptBarState({
     handleSubmitForm,
     handleTextChange,
     handleTextareaChange,
-    handleUndo,
     hasAnyImagenModel,
     hasAnyResolutionOptions,
     hasAudioToggle,
@@ -1107,7 +1085,6 @@ export function usePromptBarState({
     isCollapsible,
     isDragActive,
     isDisabledState,
-    isEnhancing,
     isGenerateBlocked,
     isGenerateDisabled,
     isGenerating,
@@ -1128,7 +1105,6 @@ export function usePromptBarState({
     openGallery,
     openUpload,
     pathname,
-    previousPrompt,
     profiles,
     promptBarHeight,
     refocusTextarea,

@@ -130,8 +130,6 @@ export interface PromptBarInternalContextValue {
   handleTextareaChange: () => void;
   onTextChange?: (text: string) => void;
   handleCopy: (text: string) => Promise<void>;
-  enhancePrompt: () => Promise<void>;
-  handleUndo: () => void;
   handleSubmitForm: (e?: FormEvent<HTMLFormElement>) => void;
   onCancel?: () => void;
 
@@ -161,9 +159,7 @@ export interface PromptBarInternalContextValue {
   isProcessing: boolean;
 
   isGenerating: boolean;
-  isEnhancing: boolean;
   isGenerateDisabled: boolean;
-  previousPrompt: string | null;
   selectedModelCost: number | null;
   generationMeter: StudioGenerationMeter | null;
   activeGenerations: IGenerationItem[];

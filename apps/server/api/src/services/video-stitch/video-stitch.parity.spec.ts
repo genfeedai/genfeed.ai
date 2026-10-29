@@ -259,4 +259,46 @@ describe('video stitch parity across callers', () => {
     expect({ ...storyboardRun.job, params: shared }).toEqual(reference.job);
     expect(storyboardRun.events).toEqual(reference.events);
   });
+
+  it('appends the brand end card to the final stitch only when the first node switches it off', async () => {
+    const fixture = newFixture();
+    fixture.addBrandWithEndCard();
+    const stitchNode = async (nodeId: string, isEndCardEnabled?: boolean) => {
+      let request: VideoStitchRequest | undefined;
+      await createVideoStitchExecutor(async (params) => {
+        request = toWorkflowStitchRequest(params, 'brand-1', params.videoUrls);
+        return { jobId: 'captured', outputId: 'captured', outputVideoUrl: 'x' };
+      }).execute({
+        context: {
+          organizationId: 'org-1',
+          runId: 'run-1',
+          userId: 'user-1',
+          workflowId: 'workflow-1',
+          workflowVersionId: 'workflow-1-v1',
+        },
+        inputs: new Map<string, unknown>([['videos', ['clip-1', 'clip-2']]]),
+        node: {
+          config: {
+            transitionType: 'cut',
+            ...(isEndCardEnabled === undefined ? {} : { isEndCardEnabled }),
+          },
+          id: nodeId,
+          inputs: [],
+          label: nodeId,
+          type: 'videoStitch',
+        },
+      });
+      if (!request) throw new Error('workflow request was not built');
+      await fixture.service.stitch(request);
+    };
+
+    await stitchNode('stitch-1', false);
+    await stitchNode('stitch-2');
+
+    const [first, second] = fixture.mergeJobs();
+    expect(first?.params).not.toHaveProperty('endCardStorageKey');
+    expect(second?.params).toMatchObject({
+      endCardStorageKey: 'logos/asset-1',
+    });
+  });
 });
