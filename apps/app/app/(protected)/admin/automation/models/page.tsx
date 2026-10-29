@@ -1,8 +1,13 @@
-import AdminModelsPageContent from '@app/(protected)/admin/automation/models/[type]/admin-models-page-content';
+import FilteredListRoute from '@app/(protected)/admin/automation/models/FilteredListRoute';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
+import { Suspense } from 'react';
 
 export const generateMetadata = createPageMetadata('Models');
 
-export default function ModelsRootPage() {
-  return <AdminModelsPageContent type="active" />;
+export default function FilteredListPage() {
+  return (
+    <Suspense fallback={null}>
+      <FilteredListRoute />
+    </Suspense>
+  );
 }
