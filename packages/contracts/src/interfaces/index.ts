@@ -162,6 +162,7 @@ export * from './content/content-plan.interface';
 export * from './content/content-plan-seed.interface';
 export * from './content/content-run.interface';
 export * from './content/content-run-service.contract';
+export * from './content/cover-title-style.interface';
 export * from './content/crun-contract.interface';
 export * from './content/dashboard-layout.interface';
 export * from './content/enhancement-response.interface';

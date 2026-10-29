@@ -59,12 +59,17 @@ describe('VideosService', () => {
 
     const result = await service.getCover(
       'video_1',
-      { timeInSeconds: 3, title: 'Ship it', width: 1080 },
+      { brandId: 'brand_1', timeInSeconds: 3, title: 'Ship it', width: 1080 },
       controller.signal,
     );
 
     expect(http.get).toHaveBeenCalledWith('/video_1/thumbnail', {
-      params: { timeInSeconds: 3, title: 'Ship it', width: 1080 },
+      params: {
+        brandId: 'brand_1',
+        timeInSeconds: 3,
+        title: 'Ship it',
+        width: 1080,
+      },
       responseType: 'blob',
       signal: controller.signal,
     });

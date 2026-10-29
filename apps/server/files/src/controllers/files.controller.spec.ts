@@ -1153,6 +1153,7 @@ describe('FilesController', () => {
         320,
         undefined,
         undefined,
+        undefined,
       );
       expect(result.thumbnailUrl).toBe(
         'https://s3.amazonaws.com/thumbnail.jpg',
@@ -1160,11 +1161,13 @@ describe('FilesController', () => {
       expect(result.ingredientId).toBe('ingredient_123');
     });
 
-    it('should pass the cover title through to the thumbnail service', async () => {
+    it('should pass the cover title and its style through to the thumbnail service', async () => {
+      const titleStyle = { accentColor: '#E83B3B', fontFamily: 'INTER_BOLD' };
       await controller.generateThumbnail({
         ingredientId: 'ingredient_123',
         timeInSeconds: 5,
         title: 'Launch day',
+        titleStyle,
         videoUrl: 'https://example.com/video.mp4',
         width: 320,
       });
@@ -1176,6 +1179,7 @@ describe('FilesController', () => {
         320,
         'Launch day',
         undefined,
+        titleStyle,
       );
     });
 

@@ -87,17 +87,24 @@ export class VideosService extends IngredientsService<Video> {
 
   /**
    * Renders a cover still for the video: the frame at `timeInSeconds` with the
-   * optional `title` laid over it. Same render the YouTube publish sends.
+   * optional `title` laid over it, set in `brandId`'s style. Same render the
+   * YouTube publish sends.
    */
   public async getCover(
     id: string,
-    options: { title?: string; timeInSeconds?: number; width?: number } = {},
+    options: {
+      brandId?: string;
+      timeInSeconds?: number;
+      title?: string;
+      width?: number;
+    } = {},
     signal?: AbortSignal,
   ): Promise<Blob> {
     const response = await this.instance.get<Blob>(
       buildResourcePath(id, 'thumbnail'),
       {
         params: {
+          ...(options.brandId ? { brandId: options.brandId } : {}),
           ...(options.title ? { title: options.title } : {}),
           ...(options.timeInSeconds !== undefined
             ? { timeInSeconds: options.timeInSeconds }

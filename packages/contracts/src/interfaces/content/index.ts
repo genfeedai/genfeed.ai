@@ -20,6 +20,7 @@ export * from './content-plan.interface';
 export * from './content-plan-seed.interface';
 export * from './content-run.interface';
 export * from './content-run-service.contract';
+export * from './cover-title-style.interface';
 export * from './crun-contract.interface';
 export * from './dashboard-layout.interface';
 export * from './enhancement-response.interface';

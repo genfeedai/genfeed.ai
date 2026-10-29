@@ -91,6 +91,7 @@ export default function YouTubePublishingSettings({
   const selectedVisibility = Object.values(PostVisibility).find(
     (value) => value === privacy,
   );
+  const brandId = post.brand?.id;
   const videoId = post.ingredients?.find(
     (ingredient) => ingredient.category === IngredientCategory.VIDEO,
   )?.id;
@@ -99,6 +100,7 @@ export default function YouTubePublishingSettings({
   const coverKey = JSON.stringify([
     post.id,
     videoId,
+    brandId,
     coverText.trim(),
     coverFrame.trim(),
   ]);
@@ -147,6 +149,7 @@ export default function YouTubePublishingSettings({
       const blob = await service.getCover(
         videoId,
         {
+          brandId,
           timeInSeconds: coverFrameSeconds(),
           title: coverText.trim() || undefined,
           width: COVER_WIDTH,
