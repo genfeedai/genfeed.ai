@@ -179,6 +179,7 @@ export default function FilterMenu({
   clearLabel,
   facets,
   getActiveCountLabel,
+  isAttached = false,
   label,
   onClear,
 }: FilterMenuProps) {
@@ -199,6 +200,7 @@ export default function FilterMenu({
         <Button
           className={cn(
             'h-8 shrink-0 gap-1.5 px-2.5 text-xs',
+            isAttached && 'h-6 px-2',
             activeCount > 0 && 'text-foreground',
             className,
           )}

@@ -28,7 +28,6 @@ import {
 } from 'react';
 
 import {
-  VoicesCatalogFilters,
   VoicesCatalogSearch,
   VoicesSyncAllButton,
   VoicesSyncMenu,
@@ -202,10 +201,6 @@ function VoicesLibraryPageContent() {
         <VoicesCatalogSearch
           search={search}
           onSearchChange={(value) => setParam('q', value.trim())}
-        />
-      }
-      filters={
-        <VoicesCatalogFilters
           providerFilter={providerFilter}
           onProviderFilterChange={(value) =>
             setParam('provider', value === 'all' ? '' : value)

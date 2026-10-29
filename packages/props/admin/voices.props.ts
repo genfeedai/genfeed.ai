@@ -27,9 +27,6 @@ export type ProviderFilter =
 export interface VoicesCatalogSearchProps {
   search: string;
   onSearchChange: (value: string) => void;
-}
-
-export interface VoicesCatalogFiltersProps {
   providerFilter: ProviderFilter;
   onProviderFilterChange: (value: ProviderFilter) => void;
 }
