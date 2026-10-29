@@ -6,6 +6,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  addOrganizationMember,
   createOrganizationBrand,
   createWarmupAccount,
   filterPricingRows,
@@ -417,6 +418,30 @@ describe('operations/admin', () => {
         reason: 'Customer setup',
       });
       expect(grant.balance).toBe(500);
+    });
+
+    it('adds a member to the given organization without an invitation', async () => {
+      adminPost.mockResolvedValue({
+        data: {
+          isMemberCreated: true,
+          isUserCreated: true,
+          memberId: 'member-1',
+          organizationId: 'org-1',
+          roleKey: 'admin',
+          userId: 'user-1',
+        },
+      });
+
+      const added = await addOrganizationMember('org-1', {
+        email: 'design@example.com',
+        roleKey: 'admin',
+      });
+
+      expect(adminPost).toHaveBeenCalledWith('/admin/organizations/org-1/members', {
+        email: 'design@example.com',
+        roleKey: 'admin',
+      });
+      expect(added.memberId).toBe('member-1');
     });
 
     it('creates a brand inside the given organization', async () => {
