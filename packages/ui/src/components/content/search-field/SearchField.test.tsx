@@ -38,4 +38,19 @@ describe('SearchField', () => {
       screen.getByRole('button', { name: 'Filters' }),
     );
   });
+
+  it('keeps the clear button reachable, beside a trailing Filters control when there is one', () => {
+    const { rerender } = render(
+      <SearchField placeholder="Search posts" value="launch" />,
+    );
+    expect(screen.getByRole('button', { name: 'Clear search' })).toBeVisible();
+
+    rerender(
+      <SearchField placeholder="Search posts" value="launch">
+        <button type="button">Filters</button>
+      </SearchField>,
+    );
+    expect(screen.getByRole('button', { name: 'Clear search' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Filters' })).toBeVisible();
+  });
 });

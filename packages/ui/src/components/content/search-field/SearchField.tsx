@@ -9,7 +9,7 @@ import FormSearchbar from '@ui/primitives/searchbar';
  * The one search of a list page, for the subbar's left slot. It is a persistent
  * field with the page's Filters menu attached inside its trailing edge, so
  * finding and narrowing are one control and no filter trigger or applied-filter
- * chip sits outside it.
+ * chip sits outside it. The clear button sits just left of the Filters menu.
  */
 export default function SearchField({
   ariaLabel,
@@ -25,11 +25,12 @@ export default function SearchField({
       <FormSearchbar
         ariaLabel={ariaLabel}
         className="w-full"
-        inputClassName={children ? 'pr-24' : undefined}
+        clearButtonClassName={children ? 'right-[5.5rem]' : undefined}
+        inputClassName={children ? 'pr-32' : undefined}
         onChange={onChange}
         onSearch={onSearch}
         placeholder={placeholder}
-        showClearButton={false}
+        showClearButton
         size={ComponentSize.SM}
         value={value}
       />

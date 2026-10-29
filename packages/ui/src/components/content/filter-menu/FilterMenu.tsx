@@ -200,7 +200,7 @@ export default function FilterMenu({
         <Button
           className={cn(
             'h-8 shrink-0 gap-1.5 px-2.5 text-xs',
-            isAttached && 'h-6 px-2',
+            isAttached && 'h-auto px-2 py-1',
             activeCount > 0 && 'text-foreground',
             className,
           )}
