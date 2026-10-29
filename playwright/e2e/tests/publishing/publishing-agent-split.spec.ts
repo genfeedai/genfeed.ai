@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test';
 import {
   mockActiveSubscription,
   mockPostsList,
+  mockReviewQueue,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
@@ -100,7 +101,7 @@ test.describe('Publishing on the agent + output layout', () => {
     await expect(layout).toHaveAttribute('data-mode', 'rail');
   });
 
-  test('puts the agent beside the overview and leaves approvals on the dock', async ({
+  test('puts the agent beside the overview', async ({
     authenticatedPage: page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -113,12 +114,32 @@ test.describe('Publishing on the agent + output layout', () => {
         .getByRole('tab', { name: 'Overview' }),
     ).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByTestId('agent-output-agent-pane')).toBeVisible();
+  });
 
-    // The approvals inspector is the work surface, so it keeps the dock.
+  test('puts the agent beside Approvals and opens a linked item in Context', async ({
+    authenticatedPage: page,
+  }) => {
+    await mockReviewQueue(page);
+    await page.setViewportSize({ width: 1440, height: 900 });
+
+    // The queue is the output; no second agent dock beside it.
     await page.goto(`${base}/approvals`);
     await assertNoErrorBoundaryFallback(page);
-    await expect(page.getByTestId('agent-output-layout')).toHaveCount(0);
-    await expect(page.getByTestId('topbar-agent-dock-toggle')).toBeVisible();
+    await expect(page.getByTestId('agent-output-layout')).toHaveAttribute(
+      'data-mode',
+      'split',
+    );
+    await expect(page.getByTestId('agent-output-agent-pane')).toBeVisible();
+    await expect(page.getByTestId('topbar-agent-dock-toggle')).toHaveCount(0);
+
+    // A link to one item (from a project or the agent) shows its inspector.
+    await page.goto(`${base}/approvals/batch-1/item-1`);
+    await expect(page.getByTestId('review-surface-inspector')).toBeVisible();
+    await expect(
+      page
+        .getByTestId('agent-output-output-pane')
+        .getByRole('tab', { name: 'Context' }),
+    ).toHaveAttribute('aria-selected', 'true');
   });
 
   test('reloads the queue when the agent changes posts', async ({

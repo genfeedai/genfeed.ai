@@ -145,4 +145,39 @@ describe('AgentOutputShell', () => {
       'active',
     );
   });
+
+  it('ignores a selection carried over from the page the operator left', () => {
+    const view = render(
+      <ContextSidebarProvider>
+        <AgentOutputHostContext value={buildHost()}>
+          <ContextSidebarPanel
+            selection={{
+              id: 'asset-1',
+              kind: 'asset',
+              origin: 'user',
+              title: 'Asset 1',
+            }}
+          >
+            <p>Asset detail</p>
+          </ContextSidebarPanel>
+        </AgentOutputHostContext>
+      </ContextSidebarProvider>,
+    );
+
+    view.rerender(
+      <ContextSidebarProvider>
+        <AgentOutputHostContext value={buildHost()}>
+          <AgentOutputShell>
+            <p>Board</p>
+          </AgentOutputShell>
+        </AgentOutputHostContext>
+      </ContextSidebarProvider>,
+    );
+
+    expect(
+      within(screen.getByTestId('agent-output-output-pane')).getByRole('tab', {
+        name: 'Output',
+      }),
+    ).toHaveAttribute('data-state', 'active');
+  });
 });

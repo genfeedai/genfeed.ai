@@ -16,6 +16,7 @@ function ReviewQueueContentContent() {
     turboRunList,
     turboRunsError,
     canDiscardTurboRun,
+    deepLinkedItemId,
     filterCounts,
     hasInvalidTurboRunPayload,
     isActioning,
@@ -60,6 +61,7 @@ function ReviewQueueContentContent() {
       turboRunList={turboRunList}
       turboRunsError={turboRunsError as Error | null}
       canDiscardTurboRun={canDiscardTurboRun}
+      deepLinkedItemId={deepLinkedItemId}
       filterCounts={filterCounts}
       hasInvalidTurboRunPayload={hasInvalidTurboRunPayload}
       isActioning={isActioning}
