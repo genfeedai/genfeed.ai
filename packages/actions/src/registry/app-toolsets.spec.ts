@@ -56,7 +56,7 @@ describe('MCP app toolsets', () => {
   });
 
   it('leaves only the listed toolsets without an app', () => {
-    const covered = new Set(Object.values(MCP_APP_TOOLSETS).flat());
+    const covered = new Set<string>(Object.values(MCP_APP_TOOLSETS).flat());
     const toolsCoreNames = new Set(
       getToolsForToolsets('mcp', ['core']).map((tool) => tool.name),
     );
