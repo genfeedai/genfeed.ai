@@ -490,7 +490,7 @@ test.describe('Studio edit mode', () => {
     await expectNoErrorOverlay(page);
   });
 
-  test('Edit slots and run again sends the edited slot, not the stored one', async ({
+  test('Edit slots and run again sends the edited subject, not the stored one', async ({
     authenticatedPage: page,
   }) => {
     test.setTimeout(90_000);
@@ -512,13 +512,18 @@ test.describe('Studio edit mode', () => {
     // Reopening submits nothing: the person edits the slots first.
     expect(generationWrites).toEqual([]);
 
+    // The prompt row's subject is restored on the Look row, not only shown in
+    // the inspector; editing it changes what the regenerate sends.
     await page
       .getByTestId('generation-setup-section-chips')
       .getByRole('button', { name: 'Configure Look', exact: true })
       .click();
-    const subject = page.getByRole('textbox', { name: /subject/i });
-    await expect(subject).toHaveValue('a founder at a desk');
-    await subject.fill('a barista behind a counter');
+    const subjectRow = page.getByRole('menuitem', { name: /^Subject/ });
+    await expect(subjectRow).toContainText(/a founder at a desk/i);
+    await subjectRow.click();
+    await page
+      .getByRole('textbox', { name: /subject/i })
+      .fill('a barista behind a counter');
     await page.keyboard.press('Escape');
 
     await page.getByRole('button', { name: 'Generate', exact: true }).click();

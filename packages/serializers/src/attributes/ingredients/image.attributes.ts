@@ -58,6 +58,8 @@ export const imageGenerationRequestAttributes = [
   'outputs',
   'crunControls',
   'crunQuoteId',
+  'subject',
+  'action',
   'style',
   'mood',
   'camera',
