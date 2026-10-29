@@ -58,8 +58,15 @@ test.describe('Dashboard connect card', () => {
     await card.getByRole('button', { name: 'Dismiss connect card' }).click();
     await expect(card).toBeHidden();
 
+    const apiKeysLoaded = authenticatedPage.waitForResponse(API_KEYS);
     await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
+    await apiKeysLoaded;
     await expect(dashboardPage.statsSection).toBeVisible();
+    // The card is also absent while the status query loads, so wait for that
+    // to settle before asserting it stays hidden.
+    await expect(
+      authenticatedPage.getByText('Checking MCP connection state...'),
+    ).toBeHidden();
     await expect(card).toBeHidden();
   });
 });

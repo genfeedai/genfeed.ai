@@ -115,6 +115,7 @@ function ConnectionStatusLine({
           className="flex-1 @2xl:flex-none"
           size={ButtonSize.LG}
           variant={ButtonVariant.DEFAULT}
+          withWrapper={false}
         >
           <Link href={connectHref}>
             {translate('home.connect.action')}

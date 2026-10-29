@@ -6,18 +6,23 @@ import type { ReactNode } from 'react';
 
 export type NoticeBannerTone = 'destructive' | 'info' | 'warning';
 
-export interface NoticeBannerProps {
+interface NoticeBannerBaseProps {
   actions?: ReactNode;
   badge?: ReactNode;
   className?: string;
   description?: ReactNode;
-  dismissLabel?: string;
   icon: ReactNode;
-  onDismiss?: () => void;
   testId?: string;
   title: ReactNode;
   tone: NoticeBannerTone;
 }
+
+/** A dismiss button is icon-only, so `dismissLabel` is required with it. */
+export type NoticeBannerProps = NoticeBannerBaseProps &
+  (
+    | { dismissLabel: string; onDismiss?: (() => void) | undefined }
+    | { dismissLabel?: undefined; onDismiss?: undefined }
+  );
 
 const TONE_ICON_TILE_CLASSES: Record<NoticeBannerTone, string> = {
   destructive: 'border-destructive/30 bg-destructive/10 text-destructive',

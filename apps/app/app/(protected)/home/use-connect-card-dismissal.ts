@@ -43,10 +43,18 @@ function readIsDismissed(organizationId: string): boolean {
 export function useConnectCardDismissal(
   organizationId: string,
 ): UseConnectCardDismissalResult {
-  const [isDismissed, setIsDismissed] = useState<boolean | null>(null);
+  // Tagged with the organization it was read for, so switching organizations
+  // reports `null` until storage has been read again instead of the old value.
+  const [state, setState] = useState<{
+    isDismissed: boolean;
+    organizationId: string;
+  } | null>(null);
 
   useEffect(() => {
-    setIsDismissed(readIsDismissed(organizationId));
+    setState({
+      isDismissed: readIsDismissed(organizationId),
+      organizationId,
+    });
   }, [organizationId]);
 
   const dismiss = useCallback(() => {
@@ -58,8 +66,11 @@ export function useConnectCardDismissal(
     } catch {
       // Storage unavailable: hide for this view only.
     }
-    setIsDismissed(true);
+    setState({ isDismissed: true, organizationId });
   }, [organizationId]);
+
+  const isDismissed =
+    state?.organizationId === organizationId ? state.isDismissed : null;
 
   return { dismiss, isDismissed };
 }
