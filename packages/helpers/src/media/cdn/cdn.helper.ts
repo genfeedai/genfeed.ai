@@ -19,6 +19,7 @@ export const CDN_BASE_URL = 'https://cdn.genfeed.ai';
  *   site/pages/<slug>.webp   landing page heroes (+ <slug>.jpg for social OG art)
  *   site/shared/<name>.webp  heroes shared by several pages
  *   site/home/**             homepage hero and output-carousel video + posters
+ *   site/auth/**             generated examples beside the login / sign-up forms (video + posters)
  *   site/proof/*             proof screenshots
  *   og/<id>.jpg              link-preview artwork rendered by the website OG routes
  *   og/<id>.mp4              link-preview video (og:video), opens on the same card
