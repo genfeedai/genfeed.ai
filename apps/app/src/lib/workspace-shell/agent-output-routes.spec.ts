@@ -52,6 +52,24 @@ describe('isAgentOutputRoute', () => {
     expect(isAgentOutputRoute('/clipper/new')).toBe(false);
   });
 
+  it('matches the Publishing desks', () => {
+    expect(isAgentOutputRoute('/publishing/posts')).toBe(true);
+    expect(isAgentOutputRoute('/publishing/calendar/')).toBe(true);
+    expect(isAgentOutputRoute('/publishing/overview')).toBe(true);
+  });
+
+  it('keeps the post editor, campaigns, approvals and the rest of Publishing off the split', () => {
+    expect(isAgentOutputRoute('/publishing')).toBe(false);
+    expect(isAgentOutputRoute('/publishing/posts/post-1')).toBe(false);
+    expect(isAgentOutputRoute('/publishing/campaigns')).toBe(false);
+    expect(isAgentOutputRoute('/publishing/review')).toBe(false);
+    expect(isAgentOutputRoute('/publishing/remix')).toBe(false);
+    expect(isAgentOutputRoute('/publishing/approvals')).toBe(false);
+    expect(isAgentOutputRoute('/publishing/approvals/run-1/item-1')).toBe(
+      false,
+    );
+  });
+
   it('does not match other apps or nested paths', () => {
     expect(isAgentOutputRoute('/agent/thread-1')).toBe(false);
     expect(isAgentOutputRoute('/storyboard/run-1/extra')).toBe(false);
