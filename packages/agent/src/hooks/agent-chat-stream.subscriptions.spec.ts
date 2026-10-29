@@ -3,6 +3,7 @@ import {
   AgentWorkEventStatus,
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
+import { PUBLISHING_CONTENT_REFRESH_EVENT } from '@genfeedai/contracts/constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StreamSubscriptionDeps } from './agent-chat-stream.subscriptions';
 import { attachAgentStreamSubscriptions } from './agent-chat-stream.subscriptions';
@@ -100,6 +101,42 @@ describe('attachAgentStreamSubscriptions', () => {
     for (const registered of handlers.values()) {
       expect(registered).toHaveLength(0);
     }
+  });
+
+  it('reloads Publishing when a run completed a post tool, ui-action runs included', () => {
+    const { deps, emit } = makeDeps();
+    attachAgentStreamSubscriptions(deps);
+    const onRefresh = vi.fn();
+    window.addEventListener(PUBLISHING_CONTENT_REFRESH_EVENT, onRefresh);
+
+    const done = {
+      creditsRemaining: 40,
+      creditsUsed: 0,
+      fullContent: 'Scheduled.',
+      metadata: {},
+      threadId: 'thread-1',
+      toolCalls: [
+        {
+          creditsUsed: 0,
+          durationMs: 40,
+          status: 'completed',
+          toolName: 'schedule_post',
+        },
+      ],
+      userId: 'user-1',
+    };
+    emit('agent:done', { ...done, runId: 'exec-turn', sequence: 4 });
+    emit('agent:done', {
+      ...done,
+      runId: 'exec-card',
+      sequence: 5,
+      uiAction: { action: 'confirm_publish', sourceId: 'card-1' },
+    });
+    // The same run's done arriving twice reloads once.
+    emit('agent:done', { ...done, runId: 'exec-card', sequence: 5 });
+
+    window.removeEventListener(PUBLISHING_CONTENT_REFRESH_EVENT, onRefresh);
+    expect(onRefresh).toHaveBeenCalledTimes(2);
   });
 
   it('settles a ui-action run from its done: source card in place, thread scope moved', () => {
