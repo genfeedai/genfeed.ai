@@ -102,13 +102,8 @@ export default function PublishingContentLibrary() {
     organizationId,
     pageScope,
   });
-  const {
-    setLeadingNode,
-    setFiltersNode,
-    setIsRefreshing,
-    setRefresh,
-    setViewToggleNode,
-  } = usePostsLayout();
+  const { setLeadingNode, setIsRefreshing, setRefresh, setViewToggleNode } =
+    usePostsLayout();
   const { href } = useOrgUrl();
   const pathname = usePathname();
   const router = useRouter();
@@ -609,28 +604,27 @@ export default function PublishingContentLibrary() {
       <PublishingContentLibrarySearch
         searchValue={search}
         onSearchChange={(value) => replaceQueryParam('search', value)}
-      />,
-    );
-    setFiltersNode(
-      <PublishingContentLibraryToolbar
-        accountOptions={accountOptions}
-        channelOptions={channelOptions}
-        channelValue={channel}
-        items={items}
-        sourceValue={source}
-        statusOptions={statusOptions}
-        statusValue={status}
-        typeValue={type}
-        onChannelChange={(value) => replaceQueryParam('platform', value)}
-        onClear={clearFilters}
-        onSourceChange={(value) => replaceQueryParam('source', value ?? '')}
-        onStatusChange={(value) => replaceQueryParam('status', value)}
-        onTypeChange={(value) => replaceQueryParam('type', value)}
-      />,
+      >
+        <PublishingContentLibraryToolbar
+          accountOptions={accountOptions}
+          channelOptions={channelOptions}
+          channelValue={channel}
+          isAttached
+          items={items}
+          sourceValue={source}
+          statusOptions={statusOptions}
+          statusValue={status}
+          typeValue={type}
+          onChannelChange={(value) => replaceQueryParam('platform', value)}
+          onClear={clearFilters}
+          onSourceChange={(value) => replaceQueryParam('source', value ?? '')}
+          onStatusChange={(value) => replaceQueryParam('status', value)}
+          onTypeChange={(value) => replaceQueryParam('type', value)}
+        />
+      </PublishingContentLibrarySearch>,
     );
 
     return () => {
-      setFiltersNode(null);
       setLeadingNode(null);
     };
   }, [
@@ -641,7 +635,6 @@ export default function PublishingContentLibrary() {
     items,
     replaceQueryParam,
     search,
-    setFiltersNode,
     setLeadingNode,
     source,
     status,

@@ -1,6 +1,6 @@
 'use client';
 
-import { ComponentSize, WorkflowExecutionStatus } from '@genfeedai/contracts';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflow-execution.helper';
 import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
@@ -10,9 +10,9 @@ import {
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import SearchField from '@ui/content/search-field/SearchField';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Container from '@ui/layout/container/Container';
-import FormSearchbar from '@ui/primitives/searchbar';
 import { useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import ActiveRunsPanel from './ActiveRunsPanel';
@@ -74,11 +74,9 @@ export default function MissionControl() {
       label="Workflow Executions"
       titleVisibility="sr-only"
       leading={
-        <FormSearchbar
-          isCollapsible
+        <SearchField
           onChange={(event) => setSearchQuery(event.target.value)}
           placeholder="Search workflow executions"
-          size={ComponentSize.SM}
           value={searchQuery}
         />
       }
