@@ -124,7 +124,7 @@ vi.mock('@ui/content/admin-filters/AdminOrgBrandFilter', () => ({
   ),
 }));
 
-vi.mock('@ui/content/filters-button/FiltersButton', () => ({
+vi.mock('@ui/content/filters-button/FiltersSearch', () => ({
   default: ({
     onFiltersChange,
   }: {
@@ -218,14 +218,17 @@ vi.mock('@ui/display/table/Table', () => ({
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
+    leading,
     refresh,
     right,
   }: {
     children: ReactNode;
+    leading?: ReactNode;
     refresh?: ReactNode;
     right?: ReactNode;
   }) => (
     <section>
+      <div>{leading}</div>
       <div data-testid="container-refresh">{refresh}</div>
       <div>{right}</div>
       {children}

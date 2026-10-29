@@ -11,6 +11,7 @@ import type {
 import { createPathViewHref } from '@helpers/navigation/filter-href.helper';
 import type { IngredientsLayoutProps } from '@props/content/ingredients-layout.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import FiltersSearch from '@ui/content/filters-button/FiltersSearch';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import {
@@ -73,6 +74,18 @@ export default function IngredientsLayout({
         <Container
           isTopbarPinned
           label={currentIngredient.label}
+          leading={
+            config.visibleFilters?.search ? (
+              <FiltersSearch
+                filterOptions={config.filterOptions}
+                filters={filters}
+                onFiltersChange={(f: IFiltersState, q: IFilters) =>
+                  handleFiltersChange(f, q)
+                }
+                visibleFilters={config.visibleFilters}
+              />
+            ) : undefined
+          }
           icon={Image}
           {...(hideTypeTabs
             ? {}
