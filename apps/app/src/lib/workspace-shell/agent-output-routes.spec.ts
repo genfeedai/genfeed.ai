@@ -52,6 +52,14 @@ describe('isAgentOutputRoute', () => {
     expect(isAgentOutputRoute('/clipper/new')).toBe(false);
   });
 
+  it('matches an editor project and leaves the list and the create form', () => {
+    expect(isAgentOutputRoute('/editor/project-1')).toBe(true);
+    expect(isAgentOutputRoute('/editor/project-1/')).toBe(true);
+    expect(isAgentOutputRoute('/editor')).toBe(false);
+    expect(isAgentOutputRoute('/editor/new')).toBe(false);
+    expect(isAgentOutputRoute('/editor/new/')).toBe(false);
+  });
+
   it('does not match other apps or nested paths', () => {
     expect(isAgentOutputRoute('/agent/thread-1')).toBe(false);
     expect(isAgentOutputRoute('/storyboard/run-1/extra')).toBe(false);
