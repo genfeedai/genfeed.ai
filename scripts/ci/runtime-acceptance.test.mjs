@@ -650,7 +650,7 @@ test('shared dataset job keeps control, candidate and guarded evidence boundarie
     [
       'Anchor acceptance job deadline',
       'Checkout inspected control source',
-      'Setup preflight Node.js 24.x',
+      'Setup preflight Node.js 26.x',
       'Validate control identity and freeze controller',
       'Checkout exact dataset candidate',
       'Require exact candidate checkout',
@@ -676,7 +676,7 @@ test('shared dataset job keeps control, candidate and guarded evidence boundarie
     );
   }
   assert.match(shared, /CONTROL_SHA: \$\{\{ github.sha \}\}/);
-  assert.match(step('Setup preflight Node.js 24.x'), /node-version: '24.x'/);
+  assert.match(step('Setup preflight Node.js 26.x'), /node-version: '26.x'/);
   const preflight = step('Validate control identity and freeze controller');
   assert.match(preflight, /id: preflight/);
   assert.match(
@@ -1657,7 +1657,7 @@ for (const group of QUALIFIED_GROUPS) {
     const { options, env } = await preflightFixture(t);
     const output = path.join(options.repo, 'cli.output');
     const linux24 =
-      process.platform === 'linux' && /^v24\./.test(process.version);
+      process.platform === 'linux' && /^v26\./.test(process.version);
     assertCliFailure(
       actualCli(
         'preflight',
@@ -1736,7 +1736,7 @@ for (const group of ['visual-isolation', 'visual-connected'])
       { ...options, group },
       { ...env, GITHUB_OUTPUT: output },
     );
-    if (process.platform !== 'linux' || !/^v24\./.test(process.version)) {
+    if (process.platform !== 'linux' || !/^v26\./.test(process.version)) {
       assertCliFailure(result, 'HOST_PREREQUISITE');
       await assert.rejects(lstat(options.state));
       await assert.rejects(lstat(output));
@@ -1787,7 +1787,7 @@ for (const group of [
     contract.brand = structuredClone(BRAND_SOURCE_CONTRACT.brand);
     const output = path.join(options.repo, 'cli.output');
     const linux24 =
-      process.platform === 'linux' && /^v24\./.test(process.version);
+      process.platform === 'linux' && /^v26\./.test(process.version);
     assertCliFailure(
       actualCli(
         'preflight',
@@ -1825,7 +1825,7 @@ for (const group of [
     await writeFile(file, 'changed frozen owner bytes');
     const output = path.join(options.repo, 'cli.output');
     const linux24 =
-      process.platform === 'linux' && /^v24\./.test(process.version);
+      process.platform === 'linux' && /^v26\./.test(process.version);
     assertCliFailure(
       actualCli(
         'preflight',

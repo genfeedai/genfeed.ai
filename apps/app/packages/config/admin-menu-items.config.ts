@@ -87,7 +87,7 @@ export const ADMIN_MENU_ITEMS: AdminMenuItemConfig[] = [
     label: 'Organizations',
     matchPaths: [
       APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS,
-      APP_ROUTES.ADMIN.ORGANIZATION,
+      APP_ROUTES.ADMIN.ORGANIZATIONS,
     ],
     outline: Building2,
     solid: Building2,

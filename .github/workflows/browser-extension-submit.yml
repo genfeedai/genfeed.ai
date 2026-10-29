@@ -51,7 +51,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          node-version: "24.x"
+          node-version: "26.x"
 
       - name: Build the extension
         run: bunx turbo run build --force --filter=@genfeedai/extension-browser
@@ -96,7 +96,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '24.x'
+          node-version: '26.x'
 
       - name: Validate store prerequisites
         env:

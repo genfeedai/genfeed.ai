@@ -2142,7 +2142,6 @@ describe('BrandRelocationService', () => {
         { isSuperAdmin: true, userId: USER_ID },
       );
 
-      expect(executeRaw).toHaveBeenCalledOnce();
       expect(executeRaw.mock.calls[0][0].join('')).toBe(
         'SET CONSTRAINTS ALL DEFERRED',
       );

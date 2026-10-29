@@ -24,7 +24,7 @@ test.describe('Admin Organization', () => {
     },
     {
       hasOrganizationsList: true,
-      route: APP_ROUTES.ADMIN.ORGANIZATION,
+      route: APP_ROUTES.ADMIN.ORGANIZATIONS,
       title: 'Organizations',
     },
     {
@@ -66,10 +66,10 @@ test.describe('Admin Organization', () => {
   test('organization admin list href stays on the organizations page', async ({
     adminPage,
   }) => {
-    await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.ORGANIZATION);
+    await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.ORGANIZATIONS);
 
     expect(new URL(adminPage.url()).pathname).toBe(
-      APP_ROUTES.ADMIN.ORGANIZATION,
+      APP_ROUTES.ADMIN.ORGANIZATIONS,
     );
     // The organizations list itself, without the analytics tab bar that
     // ANALYTICS_ORGANIZATIONS wraps it in.
@@ -97,11 +97,11 @@ test.describe('Admin Organization', () => {
     const link = adminPage
       .getByRole('main')
       .getByRole('link', { name: 'Set release preview per organization' });
-    await expect(link).toHaveAttribute('href', APP_ROUTES.ADMIN.ORGANIZATION);
+    await expect(link).toHaveAttribute('href', APP_ROUTES.ADMIN.ORGANIZATIONS);
     await link.click();
 
     await expect(adminPage).toHaveURL(
-      new RegExp(`${APP_ROUTES.ADMIN.ORGANIZATION}$`),
+      new RegExp(`${APP_ROUTES.ADMIN.ORGANIZATIONS}$`),
     );
     await expect(organizationsListSurface(adminPage)).toBeVisible();
   });

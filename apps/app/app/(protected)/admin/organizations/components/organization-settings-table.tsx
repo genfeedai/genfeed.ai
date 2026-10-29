@@ -8,8 +8,8 @@ import type {
   SettingTableRow,
 } from '@props/admin/organization-settings.props';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
-import { EditSettingModal } from '@protected/organization/components/edit-setting-modal';
-import { useOrganizationSettings } from '@protected/organization/hooks/use-organization-settings';
+import { EditSettingModal } from '@protected/organizations/components/edit-setting-modal';
+import { useOrganizationSettings } from '@protected/organizations/hooks/use-organization-settings';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Table from '@ui/display/table/Table';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';

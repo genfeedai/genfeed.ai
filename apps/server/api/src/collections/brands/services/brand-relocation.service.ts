@@ -1,3 +1,4 @@
+import { unlinkStraddlingAgentThreadParents } from '@api/collections/agent-threads/utils/agent-thread-relocation.util';
 import {
   FIRST_ORDER_TARGETS,
   SECOND_ORDER_TARGETS,
@@ -751,10 +752,9 @@ export class BrandRelocationService {
     // 0. Reassign source-org members off this brand BEFORE its organizationId
     // moves. currentBrandId is a single-column FK to Brand.id (not the
     // compound (brandId, organizationId) FK used by brand-owned content, see
-    // schema.prisma) precisely so a member row never gets swept into the
-    // destination org by a cascade; this method reassigns it explicitly
-    // instead. `sourceFallbackBrand` was already proven to exist by the
-    // caller's last-brand guard, re-read here inside the transaction.
+    // schema.prisma) so a member row never gets swept into the destination org
+    // by a cascade; this method reassigns it explicitly instead. The caller's
+    // last-brand guard proved `sourceFallbackBrand` exists; re-read in the tx.
     const sourceFallbackBrand = await tx.brand.findFirst({
       orderBy: { createdAt: 'asc' },
       select: { id: true },
@@ -778,6 +778,7 @@ export class BrandRelocationService {
       },
     });
 
+    await unlinkStraddlingAgentThreadParents(tx, brandId);
     // 1. The brand row itself (+ any co-patched scalar fields). The workflow
     // composite FK cascades workflow.organizationId with the brand.
     await client.brand.updateMany({

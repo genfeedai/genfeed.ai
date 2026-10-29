@@ -1,8 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import type { AgentMessageDocument } from '@api/collections/agent-messages/schemas/agent-message.schema';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
+import type { AgentThreadListFilters } from '@api/collections/agent-threads/interfaces/agent-thread-list-filters.interface';
 import type { AgentRoomDocument } from '@api/collections/agent-threads/schemas/agent-thread.schema';
-import { AGENT_THREAD_EXTERNAL_RUNTIME_CONFIG_KEY } from '@api/collections/agent-threads/utils/agent-thread-external-runtime.util';
+import {
+  AGENT_THREAD_EXTERNAL_RUNTIME_CONFIG_KEY,
+  toExternalToolCallMetadata,
+} from '@api/collections/agent-threads/utils/agent-thread-external-runtime.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { PageWindow } from '@api/helpers/dto/pagination-query.dto';
 import { buildPaginatedResult } from '@api/helpers/utils/paginated-result/paginated-result.util';
@@ -16,6 +20,7 @@ import {
   AGENT_RUNTIME_ACTIVE_STATES,
   AgentMessageRole,
   AgentRuntimeState,
+  AgentThreadKind,
   AgentThreadMode,
   AgentThreadStatus,
   IngredientCategory,
@@ -26,7 +31,6 @@ import type {
   AgentThreadRunState,
   AgentThreadRunStatus,
   IAgentExternalTurnInput,
-  IAgentExternalTurnToolCall,
   IAgentRunProjection,
   IAgentThreadExternalRuntime,
 } from '@genfeedai/contracts/interfaces';
@@ -104,23 +108,6 @@ export type AgentExternalTurnAppendResult = {
   thread: AgentRoomDocument;
   userMessage: AgentMessageDocument;
 };
-
-/** Client-renderable tool call (matches the agent UI's `AgentToolCall`). */
-function toExternalToolCallMetadata(
-  toolCall: IAgentExternalTurnToolCall,
-  index: number,
-): Record<string, unknown> {
-  return {
-    arguments: toolCall.argsSummary ? { summary: toolCall.argsSummary } : {},
-    ...(toolCall.error ? { error: toolCall.error } : {}),
-    id: `external-${index}-${toolCall.name}`,
-    name: toolCall.name,
-    ...(toolCall.resultSummary
-      ? { resultSummary: toolCall.resultSummary }
-      : {}),
-    status: toolCall.status,
-  };
-}
 
 @Injectable()
 export class AgentThreadsService extends BaseService<
@@ -205,6 +192,7 @@ export class AgentThreadsService extends BaseService<
      */
     source: string | null | undefined,
     window: PageWindow,
+    filters: AgentThreadListFilters = {},
   ): Promise<AggregatePaginateResult<AgentThreadWithSummary>> {
     const where = this.buildUserThreadWhere(
       userId,
@@ -212,6 +200,7 @@ export class AgentThreadsService extends BaseService<
       status,
       brandId,
       source,
+      filters,
     );
     const [threads, totalDocs] = await Promise.all([
       this.findThreadDocuments(organizationId, where, window),
@@ -231,10 +220,19 @@ export class AgentThreadsService extends BaseService<
     status?: AgentThreadStatus,
     brandId?: string | null,
     source?: string | null,
+    filters: AgentThreadListFilters = {},
   ): Record<string, unknown> {
     const where: Record<string, unknown> = scopedWhere(organizationId, {
       userId,
     });
+
+    if (filters.kind) {
+      where.kind = filters.kind;
+    }
+
+    if (filters.parentThreadId) {
+      where.parentThreadId = filters.parentThreadId;
+    }
 
     if (status) {
       where.status = status;
@@ -269,8 +267,10 @@ export class AgentThreadsService extends BaseService<
   ): Promise<number> {
     const result = await this.delegate.updateMany({
       data: { status: AgentThreadStatus.ARCHIVED },
+      // The master is never archived, in bulk or one by one (#8526).
       where: scopedWhere(organizationId, {
         ...(brandId ? { brandId } : {}),
+        kind: { not: AgentThreadKind.MASTER },
         status: AgentThreadStatus.ACTIVE,
         userId,
       }),

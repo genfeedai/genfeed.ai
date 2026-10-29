@@ -202,7 +202,7 @@ const adminRouteBuckets: RouteBucket[] = [
     /^\/admin\/(folders|library)(\/|$)/.test(route),
   ),
   routeBucket('admin organization overview', adminRoutes, (route) =>
-    /^\/admin\/(organization|overview)(\/|$)/.test(route),
+    /^\/admin\/(organizations|overview)(\/|$)/.test(route),
   ),
   routeBucket('admin settings', adminRoutes, (route) =>
     route.startsWith('/admin/settings'),

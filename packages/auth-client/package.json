@@ -6,7 +6,7 @@
   },
   "description": "Genfeed.ai first-party Better Auth client, epic #735",
   "devDependencies": {
-    "@types/node": "24.13.3",
+    "@types/node": "26.6.6",
     "@types/react": "19.3.0",
     "react": "19.3.1",
     "@typescript/native": "npm:typescript@7.0.2"

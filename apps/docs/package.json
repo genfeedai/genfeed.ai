@@ -10,7 +10,7 @@
   },
   "description": "Genfeed.ai documentation site built with Nextra",
   "devDependencies": {
-    "@types/node": "24.13.3",
+    "@types/node": "26.6.6",
     "@types/react": "19.3.0",
     "prettier": "3.9.10",
     "@typescript/native": "npm:typescript@7.0.2",

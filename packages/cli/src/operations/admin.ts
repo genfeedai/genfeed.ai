@@ -6,11 +6,17 @@ import type {
   IOrganizationAppsReport,
   IOrganizationsReport,
   ISystemNotificationOverview,
+  ITraining,
   ModelPricingAttentionLevel,
   ModelPricingFixResult,
 } from '@genfeedai/contracts/interfaces';
 import { adminGet, adminPatch, adminPost } from '@/api/admin-client';
-import { flattenSingle, type JsonApiDocument } from '@/api/json-api';
+import {
+  extractPagination,
+  flattenCollection,
+  flattenSingle,
+  type JsonApiDocument,
+} from '@/api/json-api';
 
 export interface SystemBrandRevision {
   content?: unknown;
@@ -212,6 +218,85 @@ export async function readOrganizationAppsReport(): Promise<IOrganizationAppsRep
   }
 
   return { ...first, organizations };
+}
+
+export interface AdminTrainingRow {
+  brandId: string | null;
+  createdAt: string | null;
+  id: string;
+  isActive: boolean | null;
+  label: string;
+  model: string | null;
+  organizationId: string | null;
+  status: string | null;
+  totalGeneratedImages: number | null;
+  totalSources: number | null;
+}
+
+export interface AdminTrainingsReport {
+  byStatus: Record<string, number>;
+  total: number;
+  trainings: AdminTrainingRow[];
+}
+
+const TRAININGS_PAGE_SIZE = 100;
+
+function readRelationId(value: { id: string } | string | undefined): string | null {
+  if (typeof value === 'string') return value;
+  return value?.id ?? null;
+}
+
+function toTrainingRow(training: ITraining): AdminTrainingRow {
+  return {
+    brandId: readRelationId(training.brand),
+    createdAt: training.createdAt ?? null,
+    id: training.id,
+    isActive: training.isActive ?? null,
+    label: training.label,
+    model: training.model ?? null,
+    organizationId: readRelationId(training.organization),
+    status: training.status ?? null,
+    totalGeneratedImages: training.totalGeneratedImages ?? null,
+    totalSources: training.totalSources ?? null,
+  };
+}
+
+async function readOrganizationTrainings(organizationId: string): Promise<AdminTrainingRow[]> {
+  const trainings: AdminTrainingRow[] = [];
+  let pages = 1;
+
+  for (let page = 1; page <= pages; page += 1) {
+    const document = await adminGet<JsonApiDocument>(
+      `/trainings?organizationId=${encodeURIComponent(organizationId)}&page=${page}&limit=${TRAININGS_PAGE_SIZE}`
+    );
+    pages = extractPagination(document)?.pages ?? 1;
+    trainings.push(...flattenCollection<ITraining>(document).map(toTrainingRow));
+  }
+
+  return trainings;
+}
+
+/**
+ * Every training across organizations, newest first. `GET /trainings` only widens to
+ * all orgs for a super admin when the query names one, so ask once per organization.
+ */
+export async function readTrainingsReport(): Promise<AdminTrainingsReport> {
+  const { organizations } = await readOrganizationsReport();
+  const trainings: AdminTrainingRow[] = [];
+
+  for (const organization of organizations) {
+    trainings.push(...(await readOrganizationTrainings(organization.id)));
+  }
+
+  trainings.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
+
+  const byStatus: Record<string, number> = {};
+  for (const training of trainings) {
+    const status = training.status ?? 'unknown';
+    byStatus[status] = (byStatus[status] ?? 0) + 1;
+  }
+
+  return { byStatus, total: trainings.length, trainings };
 }
 
 export async function readOnboardingFunnel(days: number): Promise<IOnboardingFunnelReport> {

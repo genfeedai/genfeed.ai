@@ -16,6 +16,7 @@ import type { OpenRouterMessage } from '@api/services/integrations/openrouter/dt
 import {
   AgentGenerationMode,
   AgentMessageRole,
+  AgentThreadKind,
   AgentType,
 } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -39,7 +40,11 @@ function createService(options?: {
   initialBrandId?: string;
   builtSystemPrompt?: string;
   orgSettings?: { agentReplyStyle?: string } | null;
-  thread?: { memoryEntryIds?: string[]; systemPrompt?: string } | null;
+  thread?: {
+    kind?: string;
+    memoryEntryIds?: string[];
+    systemPrompt?: string;
+  } | null;
 }): AgentOrchestratorContextService {
   return new AgentOrchestratorContextService(
     {
@@ -553,6 +558,65 @@ describe('AgentOrchestratorContextService generation mode', () => {
       expect(result.systemPrompt).toContain(oppositeGuard);
     },
   );
+});
+
+describe('AgentOrchestratorContextService master thread prompt (#8526)', () => {
+  it('layers the orchestration brief on the base prompt for a master thread', async () => {
+    const result = await createService({
+      thread: { kind: AgentThreadKind.MASTER },
+    }).resolveSystemPromptAndModel(
+      { content: 'Plan my launch week', threadId: THREAD_ID },
+      CONTEXT,
+    );
+
+    expect(result.systemPrompt).toContain(
+      AGENT_ORCHESTRATOR_SYSTEM_PROMPT.split('\n')[0] ?? '',
+    );
+    expect(result.systemPrompt).toContain('## Master thread');
+    expect(result.systemPrompt).toContain('transfer_agent_conversation');
+    expect(result.systemPrompt).toContain('SEND_AND_RUN');
+    expectSharedScopeGuardrail(result.systemPrompt);
+  });
+
+  it('keeps the brief when the master thread also has a custom prompt', async () => {
+    const result = await createService({
+      thread: { kind: AgentThreadKind.MASTER, systemPrompt: 'Custom prompt' },
+    }).resolveSystemPromptAndModel(
+      { content: 'Plan my launch week', threadId: THREAD_ID },
+      CONTEXT,
+    );
+
+    expect(result.systemPrompt).toContain('Custom prompt');
+    expect(result.systemPrompt).toContain('## Master thread');
+  });
+
+  it('ignores a selected generation mode on the master but not on a plain thread', async () => {
+    const turn = {
+      content: 'Make a launch visual',
+      generationMode: AgentGenerationMode.IMAGE,
+      threadId: THREAD_ID,
+    };
+    const master = await createService({
+      thread: { kind: AgentThreadKind.MASTER },
+    }).resolveSystemPromptAndModel(turn, CONTEXT);
+    const plain = await createService({
+      thread: { kind: AgentThreadKind.THREAD },
+    }).resolveSystemPromptAndModel(turn, CONTEXT);
+
+    expect(master.systemPrompt).not.toContain('generationType=image');
+    expect(plain.systemPrompt).toContain('generationType=image');
+  });
+
+  it('leaves plain threads without the brief', async () => {
+    const result = await createService({
+      thread: { kind: AgentThreadKind.THREAD },
+    }).resolveSystemPromptAndModel(
+      { content: 'Write a post', threadId: THREAD_ID },
+      CONTEXT,
+    );
+
+    expect(result.systemPrompt ?? '').not.toContain('## Master thread');
+  });
 });
 
 describe('AgentOrchestratorContextService resolveModel chain (chat model pin)', () => {

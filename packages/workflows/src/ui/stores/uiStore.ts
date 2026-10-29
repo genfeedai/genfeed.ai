@@ -5,8 +5,6 @@ export type ModalType =
   | 'cost'
   | 'welcome'
   | 'settings'
-  | 'promptLibrary'
-  | 'modelBrowser'
   | 'nodeDetail'
   | 'shortcutHelp'
   | 'nodeSearch'

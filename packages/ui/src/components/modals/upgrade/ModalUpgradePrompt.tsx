@@ -3,17 +3,20 @@
 import {
   ButtonVariant,
   ModalEnum,
-  QualityTier,
+  type QualityTier,
   SubscriptionTier,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { QUALITY_TIER_OPTIONS, TIER_QUALITY_ACCESS } from '@genfeedai/helpers';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { ModalUpgradePromptProps } from '@genfeedai/props/modals/modal-upgrade-prompt.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
-import { ArrowRight, Check, Coins, Lock, Sparkles } from 'lucide-react';
+import { ArrowRight, Check, Coins, Minus, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 
@@ -49,19 +52,6 @@ const QUALITY_TIERS_BY_ACCESS: Map<QualityTier, SubscriptionTier> =
 function getRequiredTierForQuality(quality: QualityTier): SubscriptionTier {
   return QUALITY_TIERS_BY_ACCESS.get(quality) ?? SubscriptionTier.SCALE;
 }
-
-const UPGRADE_TIERS = [
-  {
-    highlight: true,
-    qualities: [
-      QualityTier.BASIC,
-      QualityTier.STANDARD,
-      QualityTier.HIGH,
-      QualityTier.ULTRA,
-    ],
-    tier: SubscriptionTier.SCALE,
-  },
-];
 
 function useAppNavigation() {
   const [isNavigating, setIsNavigating] = useState(false);
@@ -150,6 +140,7 @@ function PlanUpgradePrompt({
   currentTier = SubscriptionTier.FREE,
   lockedQualityTier,
 }: ModalUpgradePromptProps) {
+  const translate = useTranslations('ui.upgradePrompt');
   const { isNavigating, navigateTo } = useAppNavigation();
 
   const requiredTier = lockedQualityTier
@@ -164,87 +155,131 @@ function PlanUpgradePrompt({
     navigateTo(APP_ROUTES.SETTINGS.SUBSCRIPTION);
   }, [navigateTo]);
 
+  const handleDismiss = useCallback(() => {
+    closeModal(ModalEnum.UPGRADE_PROMPT);
+  }, []);
+
+  // Already on the required plan (another feature gate): show it alone.
+  const plans =
+    currentTier === requiredTier
+      ? [{ isRecommended: true, tier: requiredTier }]
+      : [
+          { isRecommended: false, tier: currentTier },
+          { isRecommended: true, tier: requiredTier },
+        ];
+
   return (
-    <Modal id={ModalEnum.UPGRADE_PROMPT} title="Upgrade Your Plan">
-      <div className="space-y-6 py-2">
-        {/* Lock message */}
-        <div className="flex items-start gap-3 p-4 bg-primary/5 shadow-border">
-          <Lock className="size-5 text-primary flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-foreground">
-              {lockedLabel
-                ? `${lockedLabel} quality requires ${TIER_LABELS[requiredTier]} plan`
-                : 'This feature requires a higher plan'}
-            </p>
-            <p className="text-xs text-foreground/50 mt-1">
-              You&apos;re on the{' '}
-              <span className="font-medium">{TIER_LABELS[currentTier]}</span>{' '}
-              plan. Upgrade to unlock more models and higher quality outputs.
-            </p>
-          </div>
-        </div>
-
-        {/* Plan comparison */}
-        <div className="grid grid-cols-2 gap-3">
-          {UPGRADE_TIERS.map(({ tier, qualities, highlight }) => (
-            <div
-              key={tier}
-              className={`p-4 ${
-                highlight
-                  ? 'shadow-border-strong bg-primary/5'
-                  : 'bg-card shadow-border'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-semibold">
-                  {TIER_LABELS[tier]}
-                </span>
-                {highlight && <Sparkles className="size-4 text-primary" />}
+    <Modal
+      id={ModalEnum.UPGRADE_PROMPT}
+      size="md"
+      title={
+        lockedLabel
+          ? translate('title', {
+              plan: TIER_LABELS[requiredTier],
+              quality: lockedLabel,
+            })
+          : translate('titleFallback')
+      }
+    >
+      <div
+        className={cn(
+          'grid gap-2',
+          plans.length > 1 ? 'grid-cols-2' : 'grid-cols-1',
+        )}
+      >
+        {plans.map(({ isRecommended, tier }) => (
+          <div
+            key={tier}
+            className={cn(
+              'flex flex-col gap-3 rounded-lg p-4',
+              isRecommended
+                ? 'bg-primary/10 shadow-border-strong'
+                : 'bg-background-secondary shadow-border',
+            )}
+          >
+            <div>
+              <div
+                className={cn(
+                  'flex items-center gap-1 text-xs',
+                  isRecommended ? 'text-primary' : 'text-muted-foreground',
+                )}
+              >
+                {isRecommended ? (
+                  <Sparkles aria-hidden="true" className="size-3" />
+                ) : null}
+                {isRecommended
+                  ? translate('recommended')
+                  : translate('yourPlan')}
               </div>
-              <div className="text-2xl font-bold mb-3">
+              <div className="text-sm font-semibold">{TIER_LABELS[tier]}</div>
+              <div className="mt-2 text-2xl font-semibold">
                 {TIER_PRICES[tier]}
-                <span className="text-xs font-normal text-muted-foreground">
-                  /mo
-                </span>
+                {tier === SubscriptionTier.ENTERPRISE ? null : (
+                  <span className="text-xs font-normal text-muted-foreground">
+                    {translate('perMonth')}
+                  </span>
+                )}
               </div>
-              <ul className="space-y-1.5">
-                {qualities.map((q) => {
-                  const label = QUALITY_TIER_OPTIONS.find(
-                    (o) => o.value === q,
-                  )?.label;
-                  return (
-                    <li
-                      key={q}
-                      className="flex items-center gap-2 text-xs text-foreground/60"
-                    >
-                      <Check className="size-3 text-muted-foreground" />
-                      {label} quality
-                    </li>
-                  );
-                })}
-              </ul>
             </div>
-          ))}
-        </div>
+            <ul className="flex flex-col gap-2">
+              {QUALITY_TIER_OPTIONS.map(({ label, value }) => {
+                const hasAccess = TIER_QUALITY_ACCESS[tier].includes(value);
+                return (
+                  <li
+                    key={value}
+                    className={cn(
+                      'flex items-center gap-2 text-xs',
+                      !hasAccess && 'text-muted-foreground',
+                    )}
+                  >
+                    {hasAccess ? (
+                      <Check
+                        aria-hidden="true"
+                        className={cn(
+                          'size-3.5',
+                          isRecommended && 'text-primary',
+                        )}
+                      />
+                    ) : (
+                      <Minus
+                        aria-hidden="true"
+                        className="size-3.5 opacity-50"
+                      />
+                    )}
+                    {translate('quality', { quality: label })}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
 
-        {/* CTA */}
+      <ModalActions>
         <Button
-          variant={ButtonVariant.DEFAULT}
-          onClick={handleUpgrade}
+          onClick={handleDismiss}
+          textTransform="none"
+          variant={ButtonVariant.GHOST}
+        >
+          {translate('notNow')}
+        </Button>
+        <Button
           isDisabled={isNavigating}
           isLoading={isNavigating}
-          className="w-full"
+          onClick={handleUpgrade}
+          textTransform="none"
+          variant={ButtonVariant.DEFAULT}
         >
           {isNavigating ? (
-            'Redirecting…'
+            translate('redirecting')
           ) : (
             <>
-              Upgrade Now
-              <ArrowRight className="size-4" />
+              {translate('upgradeTo', { plan: TIER_LABELS[requiredTier] })}
+              <ArrowRight aria-hidden="true" className="size-4" />
             </>
           )}
         </Button>
-      </div>
+      </ModalActions>
     </Modal>
   );
 }
