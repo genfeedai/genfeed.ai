@@ -988,8 +988,4 @@ export class ToolRegistryService implements OnModuleInit {
       throw error;
     }
   }
-
-  setBearerToken(token: string) {
-    this.clientService.setBearerToken(token);
-  }
 }

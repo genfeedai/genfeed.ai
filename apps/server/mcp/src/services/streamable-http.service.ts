@@ -139,14 +139,10 @@ export class StreamableHttpService {
       routeAccessMode,
       authContext?.accessMode,
     );
-    const clientService = this.createClientService(authContext?.token);
-    const toolRegistry = new ToolRegistryService(
-      clientService,
-      this.logger,
-      authContext?.role ?? 'user',
+    const toolRegistry = this.createToolRegistry(
+      authContext,
       toolsets,
-      this.configService,
-      accessMode,
+      routeAccessMode,
     );
 
     const serverInfo = getMcpServerInfo(
@@ -191,6 +187,26 @@ export class StreamableHttpService {
     this.analyticsService.instrumentServer(server, authContext);
 
     return server;
+  }
+
+  /**
+   * A registry bound to its own caller: a fresh API client carrying this
+   * request's bearer token, the caller's role and the most restrictive access
+   * mode. Never share one across requests, since the token lives on the client.
+   */
+  createToolRegistry(
+    authContext?: McpAuthContext,
+    toolsets: readonly ToolsetName[] = [],
+    routeAccessMode: McpAccessMode = 'standard',
+  ): ToolRegistryService {
+    return new ToolRegistryService(
+      this.createClientService(authContext?.token),
+      this.logger,
+      authContext?.role ?? 'user',
+      toolsets,
+      this.configService,
+      mostRestrictiveMcpAccessMode(routeAccessMode, authContext?.accessMode),
+    );
   }
 
   private createClientService(bearerToken?: string): ClientService {

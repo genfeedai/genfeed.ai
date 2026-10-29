@@ -166,18 +166,21 @@ describe('McpController', () => {
     getMcpExample: vi.fn().mockReturnValue({ example: 'data' }),
   };
 
+  const handleResourceReadMock = vi.fn();
+  const mockRequestRegistry = {
+    handleResourceRead: handleResourceReadMock,
+  } satisfies Pick<ToolRegistryService, 'handleResourceRead'>;
+
   const mockStreamableHttpService = {
+    createToolRegistry: vi.fn<StreamableHttpService['createToolRegistry']>(
+      () => mockRequestRegistry as unknown as ToolRegistryService,
+    ),
     isTransportReady: vi.fn().mockReturnValue(true),
   };
 
   const mockToolRegistryService = {
     getToolsForRoleAndToolsets: getToolsForRoleAndToolsetsMock,
-    handleResourceRead: vi.fn(),
-    setBearerToken: vi.fn(),
-  } satisfies Pick<
-    ToolRegistryService,
-    'getToolsForRoleAndToolsets' | 'handleResourceRead' | 'setBearerToken'
-  >;
+  } satisfies Pick<ToolRegistryService, 'getToolsForRoleAndToolsets'>;
 
   const mockLoggerService = {
     debug: vi.fn(),
@@ -485,19 +488,21 @@ describe('McpController', () => {
       },
     } as AuthenticatedControllerRequest;
 
-    it('delegates the read to the registry used by the JSON-RPC transport', async () => {
+    it('reads through a registry built for this request, not the shared singleton', async () => {
       const contents = { contents: [{ text: '{}', uri: 'genfeed://x' }] };
-      mockToolRegistryService.handleResourceRead.mockResolvedValue(contents);
+      handleResourceReadMock.mockResolvedValue(contents);
 
       const result = await controller.readResource(
         McpResourceUri.VIDEO_ANALYTICS,
         mockRequest,
       );
 
-      expect(mockToolRegistryService.setBearerToken).toHaveBeenCalledWith(
-        'test-token',
+      expect(mockStreamableHttpService.createToolRegistry).toHaveBeenCalledWith(
+        mockRequest.authContext,
+        undefined,
+        undefined,
       );
-      expect(mockToolRegistryService.handleResourceRead).toHaveBeenCalledWith({
+      expect(handleResourceReadMock).toHaveBeenCalledWith({
         uri: McpResourceUri.VIDEO_ANALYTICS,
       });
       expect(result).toMatchObject({
@@ -506,21 +511,32 @@ describe('McpController', () => {
       });
     });
 
-    it('skips bearer propagation when the request carries no token', async () => {
-      mockToolRegistryService.handleResourceRead.mockResolvedValue({
-        contents: [],
-      });
+    it('builds a separate registry for each concurrent caller', async () => {
+      handleResourceReadMock.mockResolvedValue({ contents: [] });
+      const requestFor = (token: string) =>
+        ({
+          authContext: { token },
+        }) as AuthenticatedControllerRequest;
 
-      await controller.readResource(
-        McpResourceUri.ORGANIZATION_ANALYTICS,
-        {} as AuthenticatedControllerRequest,
-      );
+      await Promise.all([
+        controller.readResource(
+          McpResourceUri.VIDEO_ANALYTICS,
+          requestFor('token-a'),
+        ),
+        controller.readResource(
+          McpResourceUri.ORGANIZATION_ANALYTICS,
+          requestFor('token-b'),
+        ),
+      ]);
 
-      expect(mockToolRegistryService.setBearerToken).not.toHaveBeenCalled();
+      const builtFor = mockStreamableHttpService.createToolRegistry.mock.calls
+        .map(([authContext]) => authContext?.token)
+        .sort();
+      expect(builtFor).toEqual(['token-a', 'token-b']);
     });
 
     it('propagates the registry error for an unknown resource', async () => {
-      mockToolRegistryService.handleResourceRead.mockRejectedValue(
+      handleResourceReadMock.mockRejectedValue(
         new Error('Unknown resource: genfeed://unknown'),
       );
 
