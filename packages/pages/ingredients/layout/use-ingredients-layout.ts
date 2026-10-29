@@ -91,18 +91,7 @@ export function useIngredientsLayout({
     const brandParam = searchParams?.get('brand');
 
     // Determine ingredient type from pathname for default format
-    const routeIngredientType =
-      [
-        'videos',
-        'images',
-        'gifs',
-        'musics',
-        'avatars',
-        'voices',
-        'ingredients',
-      ].find((value) => value === searchParams?.get('assetType')) ??
-      (searchParams?.has('assetType') ? getFallbackType(scope) : null) ??
-      getIngredientTypeFromPathname(pathname);
+    const routeIngredientType = getIngredientTypeFromPathname(pathname);
 
     // Default format to "all" (empty string) - don't force format filter
     const defaultFormat = formatParam || '';
@@ -155,21 +144,7 @@ export function useIngredientsLayout({
   const [selectedIngredientType, setIngredientType] = useState(
     defaultType ?? getFallbackType(scope),
   );
-  const routeIngredientType = useMemo(
-    () =>
-      [
-        'videos',
-        'images',
-        'gifs',
-        'musics',
-        'avatars',
-        'voices',
-        'ingredients',
-      ].find((value) => value === searchParams?.get('assetType')) ??
-      (searchParams?.has('assetType') ? getFallbackType(scope) : null) ??
-      getIngredientTypeFromPathname(pathname),
-    [pathname, scope, searchParams],
-  );
+  const routeIngredientType = getIngredientTypeFromPathname(pathname);
   const ingredientType =
     defaultType ?? routeIngredientType ?? selectedIngredientType;
   const [isRefreshing, setIsRefreshing] = useState(false);

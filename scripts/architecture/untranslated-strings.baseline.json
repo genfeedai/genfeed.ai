@@ -571,7 +571,7 @@
     "packages/ui/src/components/pricing/card/PricingCard.tsx": 8,
     "packages/ui/src/components/pricing/toggle/PricingToggle.tsx": 4,
     "packages/ui/src/components/prompt-bars/components/collapsed-view/PromptBarCollapsedView.tsx": 8,
-    "packages/ui/src/components/prompt-bars/components/essentials/PromptBarEssentials.tsx": 13,
+    "packages/ui/src/components/prompt-bars/components/essentials/PromptBarEssentials.tsx": 12,
     "packages/ui/src/components/prompt-bars/components/expanded-view/PromptBarExpandedView.tsx": 1,
     "packages/ui/src/components/prompt-bars/components/folder-selector/PromptBarFolderSelector.tsx": 1,
     "packages/ui/src/components/prompt-bars/components/format-controls/PromptBarFormatControls.tsx": 1,

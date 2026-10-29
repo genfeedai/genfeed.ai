@@ -5481,30 +5481,6 @@
       "workspace": "hooks"
     },
     {
-      "code": 2345,
-      "count": 2,
-      "file": "packages/hooks/prompt-bar/use-prompt-bar-enhancement/use-prompt-bar-enhancement.test.ts",
-      "fingerprint": "65c655f51e0211d4ce7f",
-      "message": "Argument of type '{ brandId: string; clipboardService: { copyToClipboard: Mock<Procedure>; }; form: { formState: { isValid: boolean; }; getValues: Mock<(field?: string) => {}>; setValue: Mock<...>; watch: Mock<...>; }; ... 8 more ...; watchedModel: string; }' is not assignable to parameter of type 'UsePromptBarEnhancementOptions'.   Types of property 'form' are incompatible.     Type '{ formState: { isValid: boolean; }; getValues: Mock<(field?: string | undefined) => {}>; setValue: Mock<Procedure>; watch: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 27 more ...; videoReferences?: string[] | undefined; }>': getErrors, getFieldState, setError, clearErrors, and 11 more.",
-      "workspace": "hooks"
-    },
-    {
-      "code": 2345,
-      "count": 11,
-      "file": "packages/hooks/prompt-bar/use-prompt-bar-enhancement/use-prompt-bar-enhancement.test.ts",
-      "fingerprint": "c5c24d5a99077a8b8b07",
-      "message": "Argument of type '{ brandId: string; clipboardService: { copyToClipboard: Mock<Procedure>; }; form: { formState: { isValid: boolean; }; getValues: Mock<(field?: string) => {}>; setValue: Mock<...>; watch: Mock<...>; }; ... 8 more ...; watchedModel: string; }' is not assignable to parameter of type 'UsePromptBarEnhancementOptions'.   Types of property 'form' are incompatible.     Type '{ formState: { isValid: boolean; }; getValues: Mock<(field?: string | undefined) => {}>; setValue: Mock<Procedure>; watch: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 27 more ...; videoReferences?: string[] | undefined; }>': getErrors, getFieldState, setError, clearErrors, and 11 more.",
-      "workspace": "hooks"
-    },
-    {
-      "code": 2345,
-      "count": 4,
-      "file": "packages/hooks/prompt-bar/use-prompt-bar-enhancement/use-prompt-bar-enhancement.test.ts",
-      "fingerprint": "d10a23df582baf964e71",
-      "message": "Argument of type '{ brandId: string; clipboardService: { copyToClipboard: Mock<Procedure>; }; form: { formState: { isValid: boolean; }; getValues: Mock<(field?: string) => {}>; setValue: Mock<...>; watch: Mock<...>; }; ... 8 more ...; watchedModel: string; }' is not assignable to parameter of type 'UsePromptBarEnhancementOptions'.   Types of property 'form' are incompatible.     Type '{ formState: { isValid: boolean; }; getValues: Mock<(field?: string | undefined) => {}>; setValue: Mock<Procedure>; watch: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 27 more ...; videoReferences?: string[] | undefined; }>': getErrors, getFieldState, setError, clearErrors, and 11 more.",
-      "workspace": "hooks"
-    },
-    {
       "code": 2322,
       "count": 1,
       "file": "packages/hooks/prompt-bar/use-prompt-bar-filters/use-prompt-bar-filters.test.ts",

@@ -3,10 +3,9 @@ import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolba
 import { describe, expect, it } from 'vitest';
 
 describe('PromptBarToolbar', () => {
-  it('lays the tools out as mode, setup, then the `+` last, with Enhance beside submit on the right', () => {
+  it('lays the tools out as mode, setup, then the `+` last, with submit on the right', () => {
     render(
       <PromptBarToolbar
-        enhance={<span>enhance</span>}
         leading={<span>setup</span>}
         leadingLabel="Prompt tools"
         mode={<span>mode</span>}
@@ -23,7 +22,7 @@ describe('PromptBarToolbar', () => {
     const submission = screen.getByRole('group', {
       name: 'Generation controls',
     });
-    expect(submission).toHaveTextContent('enhancesubmit');
+    expect(submission).toHaveTextContent('submit');
     expect(submission).not.toHaveTextContent('reference');
   });
 
@@ -38,7 +37,6 @@ describe('PromptBarToolbar', () => {
   it('keeps submission out of the tools group', () => {
     render(
       <PromptBarToolbar
-        enhance={<span>enhance</span>}
         leadingLabel="Prompt tools"
         trailing={<span>submit</span>}
       />,

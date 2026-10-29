@@ -276,3 +276,67 @@ function projectIngredient(
       if (field in fields) fields[field] = null;
   }
 }
+
+/**
+ * Mirrored provider profile photos (`credentials.externalAvatar`) live under
+ * this CDN prefix. They are persisted as plain CDN URLs, but a private CDN
+ * returns 403 for an unsigned one, so every response re-signs them on read.
+ */
+const SOCIAL_AVATAR_PATH_PREFIX = '/ingredients/social-avatars/';
+
+function isSocialAvatarUrl(value: string): boolean {
+  if (
+    !/^https?:\/\//i.test(value) ||
+    !value.includes(SOCIAL_AVATAR_PATH_PREFIX)
+  )
+    return false;
+  try {
+    const { pathname } = new URL(value);
+    return (
+      pathname.startsWith(SOCIAL_AVATAR_PATH_PREFIX) &&
+      pathname.length > SOCIAL_AVATAR_PATH_PREFIX.length
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Re-signs mirrored social avatar URLs wherever a response carries them
+ * (credential resources, post credentials, analytics accounts, timelines).
+ * The prefix holds only copies of public provider profile photos, never
+ * tenant media, so it is the one place a CDN URL may be signed without an
+ * ingredient or asset record behind it. A URL that cannot be signed is
+ * withheld (`null`) rather than left as an unsigned link. The input is never
+ * mutated: cached responses stay intact.
+ */
+export function projectSocialAvatarUrls(
+  value: unknown,
+  signUrl: (url: string) => string,
+): unknown {
+  if (typeof value === 'string') {
+    if (!isSocialAvatarUrl(value)) return value;
+    try {
+      return signUrl(value);
+    } catch {
+      return null;
+    }
+  }
+  if (Array.isArray(value)) {
+    const projected = value.map((entry) =>
+      projectSocialAvatarUrls(entry, signUrl),
+    );
+    return projected.some((entry, index) => entry !== value[index])
+      ? projected
+      : value;
+  }
+  if (!isPlainObjectRecord(value)) return value;
+  let hasChanged = false;
+  const output: Record<string, unknown> = {};
+  for (const [key, entry] of Object.entries(value)) {
+    const projected = projectSocialAvatarUrls(entry, signUrl);
+    if (projected !== entry) hasChanged = true;
+    output[key] = projected;
+  }
+  return hasChanged ? output : value;
+}

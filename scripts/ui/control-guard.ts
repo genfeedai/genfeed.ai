@@ -63,6 +63,8 @@ export type ControlGuardViolation = {
 // state.
 export const ALLOWLIST = {
   sharedMediaFiles: new Set<string>([
+    // Stands in for next/image in the MCP card bundle.
+    'apps/server/mcp/src/ui/next-image.tsx',
     'packages/ui/src/components/display/video-player/VideoPlayer.tsx',
   ]),
   /**
@@ -191,6 +193,7 @@ function lineOf(content: string, index: number): number {
 const APP_PAGES_PREFIXES = ['apps/app/', 'packages/pages/'] as const;
 const PRODUCT_UI_PREFIXES = [
   ...APP_PAGES_PREFIXES,
+  'apps/server/mcp/src/ui/',
   'packages/agent/src/',
   'packages/ui/src/',
 ] as const;

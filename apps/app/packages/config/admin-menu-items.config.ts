@@ -449,3 +449,18 @@ export const ADMIN_MENU_ITEMS: AdminMenuItemConfig[] = [
     solid: Bell,
   },
 ];
+
+/**
+ * Sidebar group headers collapse when the group's first item carries
+ * `isCollapsible`. Items without a group render flat and stay as they are.
+ */
+export function withCollapsibleAdminGroups<T extends AdminMenuItemConfig>(
+  items: T[],
+): T[] {
+  const seen = new Set<string>();
+  return items.map((item) => {
+    if (!item.group || seen.has(item.group)) return item;
+    seen.add(item.group);
+    return { ...item, isCollapsible: true };
+  });
+}

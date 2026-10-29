@@ -38,7 +38,6 @@ import type { MediaReference } from '@genfeedai/contracts/interfaces/components/
 import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
 import type { GlobalModalGalleryConfig } from '@genfeedai/props/modals/global-modals.props';
 import type { CrunVideoPromptBinding } from '@genfeedai/props/studio/crun-video-prompt-binding.props';
-import type { PromptsService } from '@genfeedai/services/content/prompts.service';
 import type { PromptBarSuggestionItem } from '@props/prompt-bars/prompt-bar-suggestion-item.props';
 import type { AnyExtension, JSONContent } from '@tiptap/core';
 import type {
@@ -488,39 +487,6 @@ export interface UsePromptBarSyncReturn {
   setTextValue: Dispatch<SetStateAction<string>>;
 }
 
-export interface UsePromptBarEnhancementOptions {
-  form: UseFormReturn<PromptTextareaSchema>;
-  watchedModel: string;
-  organizationId: string;
-  brandId: string;
-  selectedProfile: string;
-  getPromptsService: () => Promise<PromptsService>;
-  subscribe: (
-    event: string,
-    handler: (...args: unknown[]) => void,
-  ) => () => void;
-  notificationsService: {
-    info: (message: string) => void;
-    error: (message: string) => void;
-  };
-  clipboardService: {
-    copyToClipboard: (text: string) => Promise<unknown>;
-  };
-  textareaRef: RefObject<HTMLTextAreaElement | null>;
-  resizeTextarea: (textarea: HTMLTextAreaElement | null) => void;
-  setTextValue: Dispatch<SetStateAction<string>>;
-}
-
-export interface UsePromptBarEnhancementReturn {
-  isEnhancing: boolean;
-  previousPrompt: string | null;
-  enhancePrompt: () => Promise<void>;
-  handleUndo: () => void;
-  handleCopy: (text: string) => Promise<void>;
-  socketSubscriptionsRef: RefObject<Array<() => void>>;
-  timeoutRefsRef: RefObject<Array<NodeJS.Timeout>>;
-}
-
 export interface PromptBarFolderSelectorProps {
   folders?: IFolder[];
   form: UseFormReturn<PromptTextareaSchema>;
@@ -627,8 +593,6 @@ export interface PromptBarExpandedViewProps {
   handleTextareaChange: () => void;
   onTextChange?: (text: string) => void;
   handleCopy: (text: string) => Promise<void>;
-  enhancePrompt: () => Promise<void>;
-  handleUndo: () => void;
   handleSubmitForm: (e?: FormEvent<HTMLFormElement>) => void;
   suggestions?: PromptBarSuggestionItem[];
   onSuggestionSelect?: (item: PromptBarSuggestionItem) => void;
@@ -664,9 +628,7 @@ export interface PromptBarExpandedViewProps {
   isProcessing: boolean;
 
   isGenerating: boolean;
-  isEnhancing: boolean;
   isGenerateDisabled: boolean;
-  previousPrompt: string | null;
   selectedModelCost: number | null;
   activeGenerations: IGenerationItem[];
   generateLabel: string;

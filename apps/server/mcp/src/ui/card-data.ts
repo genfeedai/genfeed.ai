@@ -85,7 +85,6 @@ const INVOCATION_STATUS: Readonly<
   media: { invoked: 'Media ready', invoking: 'Working on media…' },
   post: { invoked: 'Posts ready', invoking: 'Loading posts…' },
   summary: { invoked: 'Summary ready', invoking: 'Loading summary…' },
-  usage: { invoked: 'Usage ready', invoking: 'Checking usage…' },
   video: { invoked: 'Video ready', invoking: 'Preparing video…' },
 };
 
@@ -312,8 +311,7 @@ function buildCalendarView(data: Record<string, unknown>): McpCardView {
 
 function layoutFor(kind: McpCardKind): McpCardLayout {
   if (kind === 'post') return 'posts';
-  if (kind === 'article' || kind === 'summary' || kind === 'usage')
-    return 'cards';
+  if (kind === 'article' || kind === 'summary') return 'cards';
   return 'media';
 }
 

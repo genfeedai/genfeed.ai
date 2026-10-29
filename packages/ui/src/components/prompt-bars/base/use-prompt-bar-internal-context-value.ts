@@ -124,8 +124,6 @@ type UsePromptBarInternalContextValueParams = {
   handleTextareaChange: () => void;
   handleTextChange?: (text: string) => void;
   handleCopy: (text: string) => Promise<void>;
-  enhancePrompt: () => Promise<void>;
-  handleUndo: () => void;
   handleSubmitForm: (e?: FormEvent<HTMLFormElement>) => void;
   onCancel?: () => void;
   suggestions?: PromptBarSuggestionItem[];
@@ -146,9 +144,7 @@ type UsePromptBarInternalContextValueParams = {
   isRecording: boolean;
   isProcessing: boolean;
   isGenerating: boolean;
-  isEnhancing: boolean;
   isGenerateDisabled: boolean;
-  previousPrompt: string | null;
   selectedModelCost: number | null;
   generationMeter: StudioGenerationMeter | null;
   activeGenerations: IGenerationItem[];
@@ -243,8 +239,6 @@ export function usePromptBarInternalContextValue(
       handleTextareaChange: p.handleTextareaChange,
       onTextChange: p.handleTextChange,
       handleCopy: p.handleCopy,
-      enhancePrompt: p.enhancePrompt,
-      handleUndo: p.handleUndo,
       handleSubmitForm: p.handleSubmitForm,
       onCancel: p.onCancel,
       suggestions: p.suggestions,
@@ -267,9 +261,7 @@ export function usePromptBarInternalContextValue(
       isRecording: p.isRecording,
       isProcessing: p.isProcessing,
       isGenerating: p.isGenerating,
-      isEnhancing: p.isEnhancing,
       isGenerateDisabled: p.isGenerateDisabled,
-      previousPrompt: p.previousPrompt,
       selectedModelCost: p.selectedModelCost,
       generationMeter: p.generationMeter,
       activeGenerations: p.activeGenerations,
@@ -360,8 +352,6 @@ export function usePromptBarInternalContextValue(
       p.handleTextareaChange,
       p.handleTextChange,
       p.handleCopy,
-      p.enhancePrompt,
-      p.handleUndo,
       p.handleSubmitForm,
       p.onCancel,
       p.suggestions,
@@ -382,9 +372,7 @@ export function usePromptBarInternalContextValue(
       p.isRecording,
       p.isProcessing,
       p.isGenerating,
-      p.isEnhancing,
       p.isGenerateDisabled,
-      p.previousPrompt,
       p.selectedModelCost,
       p.generationMeter,
       p.activeGenerations,

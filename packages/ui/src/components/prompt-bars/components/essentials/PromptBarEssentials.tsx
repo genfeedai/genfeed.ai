@@ -21,9 +21,7 @@ import {
   Clock,
   Mic,
   PanelLeft,
-  Sparkles,
   Square,
-  Undo2,
 } from 'lucide-react';
 import { type ChangeEvent, memo, useCallback } from 'react';
 
@@ -113,8 +111,6 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
   onToggleQuickOptions,
   isQuickOptionsOpen,
   handleCopy,
-  enhancePrompt,
-  handleUndo,
   handleSubmitForm,
   onCancel,
   onToggleCollapse,
@@ -137,9 +133,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
   isRecording,
   isProcessing,
   isGenerating,
-  isEnhancing,
   isGenerateDisabled,
-  previousPrompt,
   generationMeter,
   activeGenerations,
   generateLabel,
@@ -421,30 +415,6 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 variant={ButtonVariant.GHOST}
                 className={iconButtonClass}
                 icon={<Clipboard className="size-4" />}
-              />
-            )}
-
-            {!isMinimalBar && watchedTextTrimmed && (
-              <Button
-                onClick={enhancePrompt}
-                isDisabled={isDisabledState || isEnhancing}
-                tooltip={isEnhancing ? 'Enhancing…' : 'Enhance prompt with AI'}
-                tooltipPosition="top"
-                variant={ButtonVariant.GHOST}
-                className={cn(iconButtonClass, isEnhancing && 'animate-pulse')}
-                icon={<Sparkles className="size-4" />}
-              />
-            )}
-
-            {!isMinimalBar && previousPrompt && (
-              <Button
-                onClick={handleUndo}
-                isDisabled={isDisabledState}
-                tooltip="Undo enhancement"
-                tooltipPosition="top"
-                variant={ButtonVariant.GHOST}
-                className={iconButtonClass}
-                icon={<Undo2 className="size-4" />}
               />
             )}
           </div>

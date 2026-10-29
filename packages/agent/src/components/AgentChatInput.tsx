@@ -22,10 +22,7 @@ import type {
   DragHandlers,
   DragState,
 } from '@genfeedai/props/ui/attachments.props';
-import { extractRequestedSkillSlugs } from '@helpers/content/prompt-command.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import { usePromptTextEnhancement } from '@hooks/prompt-bar/use-prompt-text-enhancement/use-prompt-text-enhancement';
-import type { JSONContent } from '@tiptap/core';
 import { Button } from '@ui/primitives/button';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
@@ -38,7 +35,6 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from 'react';
 
@@ -158,7 +154,6 @@ export function AgentChatInput({
     actionFeedback,
     canSendMessage,
     contentLibraryItems,
-    conversationBrandId,
     editor,
     handlePasteImages,
     handleRemoveAttachment,
@@ -178,7 +173,6 @@ export function AgentChatInput({
     references,
     selectedContentIds,
     setIsContentPickerOpen,
-    skillSlugs,
     canUseVoiceInput,
     startListening,
     stopListening,
@@ -232,60 +226,6 @@ export function AgentChatInput({
       submitRef.current = null;
     };
   }, [handleToolbarSend, submitRef]);
-  // Enhance swaps the editor's document for plain text. The document it
-  // replaced is kept so Undo brings its mention nodes (and their ids) back.
-  const preEnhanceDocRef = useRef<{ doc: JSONContent; text: string } | null>(
-    null,
-  );
-  const handleEnhancedPrompt = useCallback(
-    (text: string) => {
-      if (!editor) return;
-      const saved = preEnhanceDocRef.current;
-      if (saved && text.trim() === saved.text.trim()) {
-        editor.commands.setContent(saved.doc);
-        preEnhanceDocRef.current = null;
-      } else {
-        const currentText = editor.getText();
-        preEnhanceDocRef.current = {
-          doc: editor.getJSON(),
-          text: currentText,
-        };
-        // Picked skills stay in the prompt as `/slug` tokens; the rewrite
-        // returns only the prompt text, so put them back in front of it.
-        const { skillSlugs: pickedSlugs } = extractRequestedSkillSlugs(
-          currentText,
-          skillSlugs,
-        );
-        const skillPrefix = pickedSlugs.map((slug) => `/${slug} `).join('');
-        editor.commands.setContent(`${skillPrefix}${text}`);
-      }
-      editor.commands.focus('end');
-    },
-    [editor, skillSlugs],
-  );
-  const resolveRequestedSkills = useCallback(
-    (prompt: string) => {
-      const { content, skillSlugs: slugs } = extractRequestedSkillSlugs(
-        prompt,
-        skillSlugs,
-      );
-      return { content, skillSlugs: slugs };
-    },
-    [skillSlugs],
-  );
-  // `promptText` settles 150ms after typing stops; Enhance reads the editor.
-  const getLivePrompt = useCallback(() => editor?.getText() ?? '', [editor]);
-  const promptEnhancement = usePromptTextEnhancement({
-    brandId: conversationBrandId,
-    contentType:
-      generationMode === AgentGenerationMode.VIDEO ? 'video' : 'image',
-    getLivePrompt,
-    modelKey: '',
-    onPromptChange: handleEnhancedPrompt,
-    prompt: promptText,
-    resolveRequestedSkills,
-  });
-
   return (
     <div
       className="relative w-full min-w-0 max-w-full"
@@ -360,15 +300,6 @@ export function AgentChatInput({
           canSendMessage={canSendMessage}
           canUseVoiceInput={canUseVoiceInput}
           disabled={disabled}
-          enhancement={{
-            canUndo: promptEnhancement.previousPrompt !== null,
-            isEnhancing: promptEnhancement.isEnhancing,
-            onCancel: promptEnhancement.cancelEnhance,
-            onEnhance: () => {
-              void promptEnhancement.enhancePrompt();
-            },
-            onUndo: promptEnhancement.undoEnhance,
-          }}
           hasEditor={Boolean(editor)}
           isAgentControlsHidden={isAgentControlsHidden}
           isEmptyComposer={isEmptyComposer}

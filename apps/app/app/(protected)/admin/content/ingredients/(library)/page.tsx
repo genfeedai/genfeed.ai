@@ -1,13 +1,14 @@
-import FilteredListRoute from '@app/(protected)/admin/content/ingredients/(library)/FilteredListRoute';
+import { PageScope } from '@genfeedai/contracts';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
+import IngredientsList from '@pages/ingredients/list/ingredients-list';
 import { Suspense } from 'react';
 
 export const generateMetadata = createPageMetadata('Assets');
 
-export default function FilteredListPage() {
+export default function IngredientsRootPage() {
   return (
     <Suspense fallback={null}>
-      <FilteredListRoute />
+      <IngredientsList type="ingredients" scope={PageScope.SUPERADMIN} />
     </Suspense>
   );
 }
