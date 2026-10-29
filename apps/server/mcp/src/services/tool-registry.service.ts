@@ -31,6 +31,12 @@ import {
   PUBLIC_MCP_RESOURCES,
 } from '@mcp/mcp/resource-catalog';
 import { getPublicAppUrl, getPublicMcpUrl } from '@mcp/mcp/setup-page';
+import {
+  isAdsGatewayTool,
+  isGoogleAdsTool,
+  isMetaAdsTool,
+  isTikTokAdsTool,
+} from '@mcp/services/ads-tool-names.util';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
 import {
@@ -174,24 +180,6 @@ const BRAND_NAMED_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'get_account',
   'get_brands',
 ]);
-
-const isMetaAdsTool = (name: string): boolean =>
-  name.startsWith('list_meta_') ||
-  name.startsWith('get_meta_') ||
-  name.startsWith('compare_meta_');
-
-const isGoogleAdsTool = (name: string): boolean =>
-  name.startsWith('list_google_ads_') || name.startsWith('get_google_ads_');
-
-const isTikTokAdsTool = (name: string): boolean =>
-  name.startsWith('list_tiktok_') || name.startsWith('get_tiktok_');
-
-/**
- * Platform-generic ads gateway tools (`/ads/:platform/*`). The `get_ads_` prefix
- * is reserved for this executor — per-platform tools use their own platform
- * prefix (`get_meta_`, `get_google_ads_`), so the namespaces cannot overlap.
- */
-const isAdsGatewayTool = (name: string): boolean => name.startsWith('get_ads_');
 
 /**
  * Which executor handles a tool name. `'unknown'` means no dispatch path exists
