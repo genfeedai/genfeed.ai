@@ -42,7 +42,7 @@ describe('ADMIN_MENU_ITEMS', () => {
     const hrefs = ADMIN_MENU_ITEMS.map((item) => item.href);
 
     expect(hrefs).toContain('/admin/overview/analytics/organizations');
-    expect(hrefs).not.toContain('/admin/organization');
+    expect(hrefs).not.toContain('/admin/organizations');
     expect(hrefs).toContain('/admin/administration/learning');
     expect(hrefs).toContain('/admin/library/voices');
     expect(hrefs).toContain('/admin/administration/users');

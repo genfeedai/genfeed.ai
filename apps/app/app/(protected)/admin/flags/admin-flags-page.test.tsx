@@ -154,7 +154,7 @@ describe('AdminFlagsPage (#5468)', () => {
       await screen.findByRole('link', {
         name: 'Set release preview per organization',
       }),
-    ).toHaveAttribute('href', '/admin/organization');
+    ).toHaveAttribute('href', '/admin/organizations');
   });
 
   it('lists releases off until an operator releases them', async () => {

@@ -47,6 +47,33 @@ describe('app next.config', () => {
     }
   });
 
+  it('redirects bare legacy /admin/organization to the organizations list', async () => {
+    const response = await unstable_getResponseFromNextConfig({
+      url: 'https://example.com/admin/organization',
+      nextConfig: { redirects: config.redirects },
+    });
+    expect(response.status).toBe(308);
+    expect(new URL(response.headers.get('location') ?? '').pathname).toBe(
+      '/admin/organizations',
+    );
+  });
+
+  // `unstable_getResponseFromNextConfig` only forwards path params, so it
+  // cannot resolve a `has`-query capture; assert the rule itself instead.
+  it('maps legacy /admin/organization?id=:id to /admin/organizations/:id', async () => {
+    const redirects = (await config.redirects?.()) ?? [];
+    const rule = redirects.find(
+      (redirect) =>
+        redirect.source === '/admin/organization' && redirect.has?.length,
+    );
+    expect(rule?.destination).toBe('/admin/organizations/:id');
+    expect(rule?.permanent).toBe(true);
+    const [hasQuery] = rule?.has ?? [];
+    expect(hasQuery).toMatchObject({ key: 'id', type: 'query' });
+    const match = 'org1'.match(new RegExp(`^${hasQuery?.value}$`));
+    expect(match?.groups?.id).toBe('org1');
+  });
+
   it.each([
     '/admin/automation/models/image?organization=o1',
     '/admin/content/ingredients/images?search=hero',

@@ -209,6 +209,20 @@ const config = createAppNextConfig({
       source: `${APP_ROUTES.ADMIN.ROOT}/overview`,
     },
 
+    // Legacy `/admin/organization?id=:id` is now `/admin/organizations/:id`;
+    // the bare path is the organizations list.
+    {
+      destination: `${APP_ROUTES.ADMIN.ORGANIZATIONS}/:id`,
+      has: [{ key: 'id', type: 'query', value: '(?<id>[^&/]+)' }],
+      permanent: true,
+      source: '/admin/organization',
+    },
+    {
+      destination: APP_ROUTES.ADMIN.ORGANIZATIONS,
+      permanent: true,
+      source: '/admin/organization',
+    },
+
     // Brand-scoped /admin/* never existed. Send it to the platform dashboard.
     {
       destination: APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,

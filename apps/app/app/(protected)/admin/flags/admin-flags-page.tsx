@@ -187,7 +187,7 @@ export default function AdminFlagsPage() {
                     size={ButtonSize.SM}
                     variant={ButtonVariant.SECONDARY}
                   >
-                    <Link href={APP_ROUTES.ADMIN.ORGANIZATION}>
+                    <Link href={APP_ROUTES.ADMIN.ORGANIZATIONS}>
                       {translate('sections.releases.organizationsLink')}
                     </Link>
                   </Button>
