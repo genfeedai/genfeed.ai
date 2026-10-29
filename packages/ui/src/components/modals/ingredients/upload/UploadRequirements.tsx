@@ -1,6 +1,7 @@
 'use client';
 
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
+import { useTranslations } from 'next-intl';
 
 type Props = {
   acceptedTypes: string[];
@@ -17,39 +18,34 @@ export default function UploadRequirements({
   dimensionText,
   dimensionWarning,
 }: Props) {
-  const isVisible =
-    acceptedTypes.length > 0 ||
-    dimensionText ||
-    maxFiles >= 1 ||
-    dimensionWarning;
-
-  if (!isVisible) {
-    return null;
-  }
+  const translate = useTranslations('ui.uploadModal');
 
   return (
-    <div className="text-xs text-muted-foreground mt-3 space-y-1.5">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="opacity-70">Requirements</span>
-        <Badge variant="ghost">
-          {maxFiles === 1 ? 'Single file' : `Up to ${maxFiles} files`}
+    <div className="flex flex-col items-center gap-1.5">
+      <div className="flex flex-wrap justify-center gap-1.5">
+        <Badge variant="secondary">
+          {maxFiles === 1
+            ? translate('singleFile')
+            : translate('upToFiles', { count: maxFiles })}
         </Badge>
 
-        <Badge variant="ghost">≤ {maxSize}MB each</Badge>
+        <Badge variant="secondary">
+          {translate('maxSizeEach', { size: maxSize })}
+        </Badge>
 
-        {acceptedTypes.length > 0 && (
-          <Badge variant="ghost">
+        {acceptedTypes.length > 0 ? (
+          <Badge variant="secondary">
             {acceptedTypes
-              .map((e) => e.replace('.', '').toUpperCase())
-              .join(', ')}
+              .map((extension) => extension.replace('.', '').toUpperCase())
+              .join(' · ')}
           </Badge>
-        )}
+        ) : null}
       </div>
       {dimensionWarning ? (
-        <p className="text-warning">{dimensionWarning}</p>
-      ) : (
-        dimensionText && <div className="opacity-80">{dimensionText}</div>
-      )}
+        <p className="text-xs text-warning">{dimensionWarning}</p>
+      ) : dimensionText ? (
+        <p className="text-xs text-muted-foreground">{dimensionText}</p>
+      ) : null}
     </div>
   );
 }

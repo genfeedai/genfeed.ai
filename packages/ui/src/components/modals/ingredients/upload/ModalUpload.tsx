@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  AssetCategory,
-  ButtonSize,
-  ButtonVariant,
-  ModalEnum,
-} from '@genfeedai/contracts';
+import { AssetCategory, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import { useFocusFirstInput } from '@genfeedai/hooks/ui/use-focus-first-input/use-focus-first-input';
 import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import { useFormSubmitWithState } from '@genfeedai/hooks/utils/use-form-submit/use-form-submit';
@@ -16,6 +11,8 @@ import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
+import { UploadCloud } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import UploadFileList from './UploadFileList';
 import UploadRequirements from './UploadRequirements';
 import UploadVoiceCloneSection from './UploadVoiceCloneSection';
@@ -35,6 +32,8 @@ export default function ModalUpload({
   isOpen,
   openKey,
 }: ModalUploadProps) {
+  const translate = useTranslations('ui.uploadModal');
+
   useModalAutoOpen(ModalEnum.UPLOAD, { isOpen, openKey });
 
   const formRef = useFocusFirstInput<HTMLFormElement>();
@@ -89,10 +88,17 @@ export default function ModalUpload({
     handleSubmit(),
   );
 
+  const hasFiles = selectedFileList.length > 0;
+
   return (
     <Modal
       id={ModalEnum.UPLOAD}
-      title={isVoiceLike ? 'Clone Voice' : `Upload ${category}`}
+      size="md"
+      title={
+        isVoiceLike
+          ? translate('cloneVoiceTitle')
+          : translate('title', { category })
+      }
       error={error}
       onClose={() => setError(null)}
     >
@@ -116,30 +122,33 @@ export default function ModalUpload({
         <div
           {...getRootProps({
             className:
-              'file-uploader !max-w-full bg-primary/10 border-primary/10 border-1 border-dashed p-4 text-center cursor-pointer',
+              'flex cursor-pointer flex-col items-center gap-2 rounded-lg border border-dashed border-border bg-background-secondary px-4 py-6 text-center transition-colors hover:bg-background-tertiary',
           })}
         >
           <Input type="file" {...getInputProps({ name: 'file' })} />
-          {selectedFileList.length > 0 ? (
-            <UploadFileList
-              selectedFileList={selectedFileList}
-              maxFiles={maxFiles}
-              maxSize={maxSize}
-              fileStatuses={fileStatuses}
-              formatSize={formatSize}
-            />
-          ) : (
-            <p>Drop files here or click to upload</p>
-          )}
+          <div className="flex size-9 items-center justify-center rounded-lg bg-background-tertiary text-muted-foreground">
+            <UploadCloud aria-hidden="true" className="size-4" />
+          </div>
+          <div className="text-sm font-medium">
+            {translate('dropPrompt')}{' '}
+            <span className="text-primary">{translate('browse')}</span>
+          </div>
+          <UploadRequirements
+            acceptedTypes={acceptedTypes}
+            maxFiles={maxFiles}
+            maxSize={maxSize}
+            dimensionText={dimensionText}
+            dimensionWarning={dimensionWarning}
+          />
         </div>
 
-        <UploadRequirements
-          acceptedTypes={acceptedTypes}
-          maxFiles={maxFiles}
-          maxSize={maxSize}
-          dimensionText={dimensionText}
-          dimensionWarning={dimensionWarning}
-        />
+        {hasFiles ? (
+          <UploadFileList
+            selectedFileList={selectedFileList}
+            fileStatuses={fileStatuses}
+            formatSize={formatSize}
+          />
+        ) : null}
 
         {/* Privacy/Scope selector - only for media uploads, not assets like logos/banners */}
         {category !== AssetCategory.LOGO &&
@@ -150,32 +159,47 @@ export default function ModalUpload({
               value={scope}
               onChange={setScope}
               isDisabled={isSubmitting}
+              showLabel={false}
+              variant="segmented"
             />
           )}
 
-        <ModalActions>
-          <Button
-            label="Cancel"
-            variant={ButtonVariant.SECONDARY}
-            size={ButtonSize.LG}
-            className="md:h-9 md:px-4 md:py-2 mb-4 md:mb-0"
-            onClick={() => closeModalUpload()}
-            isLoading={isSubmitting}
-          />
+        <ModalActions className="justify-between">
+          <span className="text-xs text-muted-foreground">
+            {maxFiles > 1
+              ? translate('fileCount', {
+                  count: selectedFileList.length,
+                  max: maxFiles,
+                })
+              : null}
+          </span>
 
-          <Button
-            label={isVoiceLike ? 'Clone Voice' : 'Upload'}
-            type="submit"
-            variant={ButtonVariant.DEFAULT}
-            size={ButtonSize.LG}
-            className="md:h-9 md:px-4 md:py-2 mb-4 md:mb-0"
-            isDisabled={
-              isSubmitting ||
-              (selectedFileList.length === 0 && !urlValue) ||
-              (isVoiceLike && !voiceCloneName.trim())
-            }
-            isLoading={isSubmitting}
-          />
+          <div className="flex gap-2">
+            <Button
+              onClick={() => closeModalUpload()}
+              isLoading={isSubmitting}
+              textTransform="none"
+              variant={ButtonVariant.GHOST}
+            >
+              {translate('cancel')}
+            </Button>
+
+            <Button
+              type="submit"
+              variant={ButtonVariant.DEFAULT}
+              isDisabled={
+                isSubmitting ||
+                (selectedFileList.length === 0 && !urlValue) ||
+                (isVoiceLike && !voiceCloneName.trim())
+              }
+              isLoading={isSubmitting}
+              textTransform="none"
+            >
+              {isVoiceLike
+                ? translate('cloneVoice')
+                : translate('upload', { count: selectedFileList.length })}
+            </Button>
+          </div>
         </ModalActions>
       </Form>
     </Modal>
