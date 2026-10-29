@@ -51,6 +51,7 @@ const baseProps: ComponentProps<typeof AppProtectedLayoutSidebar> = {
   settingsMenuItems: [],
   studioMenuItems: [],
   automationMenuItems: [],
+  agentMenuItems: [],
   messagesMenuItems: [],
 };
 

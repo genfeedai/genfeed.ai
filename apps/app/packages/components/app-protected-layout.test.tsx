@@ -1600,6 +1600,7 @@ describe('AppProtectedLayout', () => {
         settingsMenuItems={[]}
         studioMenuItems={[]}
         automationMenuItems={[]}
+        agentMenuItems={[]}
         messagesMenuItems={[]}
       />,
     );
@@ -1639,6 +1640,7 @@ describe('AppProtectedLayout', () => {
         settingsMenuItems={[{ href: '/settings', label: 'Personal' }]}
         studioMenuItems={[]}
         automationMenuItems={[]}
+        agentMenuItems={[]}
         messagesMenuItems={[]}
       />,
     );
@@ -1683,6 +1685,7 @@ describe('AppProtectedLayout', () => {
         settingsMenuItems={[]}
         studioMenuItems={[]}
         automationMenuItems={[]}
+        agentMenuItems={[]}
         messagesMenuItems={[]}
         navPanel={{
           render: () => <div data-testid="module-nav-panel" />,
