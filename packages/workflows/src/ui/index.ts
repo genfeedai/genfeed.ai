@@ -38,6 +38,8 @@ export {
 export {
   ActionNodeInspector,
   DebugPanel,
+  NodeCatalog,
+  type NodeCatalogProps,
   NodePalette,
   type NodePaletteProps,
   type PaletteNodeDefinition,

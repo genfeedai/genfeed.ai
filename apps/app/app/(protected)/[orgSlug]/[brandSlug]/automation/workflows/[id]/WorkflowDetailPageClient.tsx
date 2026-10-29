@@ -30,8 +30,8 @@ import '@genfeedai/workflows/ui/styles';
 import '@/features/workflows/styles/workflow-scope.css';
 
 import { useTranslations } from 'next-intl';
-import { CloudNodePalette } from '@/features/workflows/components/CloudNodePalette';
 import { ExecutionPanel } from '@/features/workflows/components/ExecutionPanel';
+import { AddNodeMenu } from '@/features/workflows/components/editor/AddNodeMenu';
 import { CloudActionNodeInspector } from '@/features/workflows/components/editor/CloudActionNodeInspector';
 import { CloudCreditsIndicator } from '@/features/workflows/components/editor/CloudCreditsIndicator';
 import { CloudWorkflowToolbar } from '@/features/workflows/components/editor/CloudWorkflowToolbar';
@@ -292,7 +292,12 @@ export default function WorkflowDetailPageClient({
             graphChrome={
               <CloudWorkflowToolbar
                 isSaving={isSaving}
-                middleContent={<CloudCreditsIndicator />}
+                middleContent={
+                  <>
+                    <AddNodeMenu />
+                    <CloudCreditsIndicator />
+                  </>
+                }
                 onRename={handleRename}
               />
             }
@@ -320,7 +325,7 @@ export default function WorkflowDetailPageClient({
             />
           ) : (
             <WorkflowEditorShell
-              nodePalette={<CloudNodePalette />}
+              showNodePalette={false}
               nodeTypes={cloudNodeTypes}
               rightPanel={
                 showRunPanel ? (

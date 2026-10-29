@@ -121,7 +121,7 @@ test.describe('Workflows builder & canvas interactions', () => {
     await expectNoErrorOverlay(authenticatedPage);
   });
 
-  test('node palette can be searched in the new builder', async ({
+  test('Add node menu searches the catalog and adds a step to the canvas', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(
@@ -131,27 +131,25 @@ test.describe('Workflows builder & canvas interactions', () => {
       },
     );
 
+    await expect(authenticatedPage.locator('.react-flow').first()).toBeVisible({
+      timeout: 20_000,
+    });
+    // The fixed palette column is gone; steps are added from the toolbar.
+    await expect(
+      authenticatedPage.getByPlaceholder('Search nodes...'),
+    ).toHaveCount(0);
+    const nodes = authenticatedPage.locator('.react-flow__node');
+    const nodeCountBefore = await nodes.count();
+
+    await authenticatedPage.getByRole('button', { name: 'Add node' }).click();
+    const search = authenticatedPage.getByPlaceholder('Search nodes...');
+    await search.fill('Stitch');
     await authenticatedPage
-      .locator('.react-flow')
-      .first()
-      .waitFor({ state: 'visible', timeout: 20_000 })
-      .catch(() => {});
+      .getByRole('button', { name: /Stitch Videos/ })
+      .click();
 
-    // Toggle the palette open if it is collapsed, then search.
-    await tryClick(authenticatedPage, 'button[title*="sidebar" i]');
-    await authenticatedPage.waitForTimeout(200);
-
-    const nodeSearch = authenticatedPage
-      .getByPlaceholder('Search nodes...')
-      .first();
-    const hasSearch = await nodeSearch.isVisible().catch(() => false);
-    if (hasSearch) {
-      await nodeSearch.fill('image').catch(() => {});
-      await authenticatedPage.waitForTimeout(300);
-      await nodeSearch.fill('').catch(() => {});
-    }
-
-    await expect(authenticatedPage.locator('body')).toBeVisible();
+    await expect(nodes).toHaveCount(nodeCountBefore + 1);
+    await expect(search).toHaveCount(0);
     await expectNoErrorOverlay(authenticatedPage);
   });
 

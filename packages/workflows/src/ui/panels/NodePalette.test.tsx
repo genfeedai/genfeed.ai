@@ -4,7 +4,7 @@ import {
   decodeWorkflowNodeTransfer,
   WORKFLOW_NODE_TRANSFER_TYPE,
 } from '../lib/paletteTransfer';
-import { NodePalette } from './NodePalette';
+import { NodeCatalog, NodePalette } from './NodePalette';
 
 vi.mock('@genfeedai/contracts/types', () => ({
   getNodesByCategory: () => ({
@@ -105,5 +105,37 @@ describe('NodePalette', () => {
     expect(labels[0]).toContain('Brand');
     expect(labels[1]).toContain('Image');
     expect(labels[2]).toContain('Video');
+  });
+});
+
+describe('NodeCatalog', () => {
+  it('reports the clicked entry with its action binding', () => {
+    const onAdd = vi.fn();
+    render(
+      <NodeCatalog
+        additionalNodes={[
+          {
+            actionId: 'media.image.generate',
+            category: 'ai',
+            description: 'Creates one image.',
+            icon: 'Sparkles',
+            label: 'Generate Image',
+            type: 'genfeedAction',
+          },
+        ]}
+        onAdd={onAdd}
+      />,
+    );
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search nodes' }), {
+      target: { value: 'Generate Image' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Generate Image/ }));
+
+    expect(onAdd).toHaveBeenCalledWith({
+      actionId: 'media.image.generate',
+      label: 'Generate Image',
+      type: 'genfeedAction',
+    });
   });
 });
