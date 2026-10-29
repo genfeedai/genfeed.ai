@@ -469,6 +469,17 @@ describe('BrandWebsiteParserService storefront images', () => {
     ]);
   });
 
+  it('keeps a logo out of the references when only its file name says so', () => {
+    const parsed = service.parseHtml(
+      '<body><img src="/cdn/shop/files/Brand_-_Black_Logo_-_vertical.png"><img src="/tote.jpg"></body>',
+      'https://acme.example',
+    );
+
+    expect(parsed.images.map((image) => image.src)).toEqual([
+      'https://acme.example/tote.jpg',
+    ]);
+  });
+
   it('upgrades a same-host http og:image on an https page, and only that', () => {
     const upgraded = service.parseHtml(
       '<meta property="og:image" content="http://acme.example/cover.jpg">',
