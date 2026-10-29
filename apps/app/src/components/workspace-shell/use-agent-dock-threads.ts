@@ -5,7 +5,7 @@ import {
   type AgentThread,
   useAgentChatStore,
 } from '@genfeedai/agent';
-import { AgentThreadStatus } from '@genfeedai/contracts';
+import { AgentThreadKind, AgentThreadStatus } from '@genfeedai/contracts';
 import type { AgentDockThreadOption } from '@props/ui/agent-dock.props';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -26,7 +26,8 @@ function threadRecency(thread: AgentThread): string {
  * conversation store so the dock transcript follows.
  */
 export function useAgentDockThreads(
-  apiService: Pick<AgentApiService, 'getMessages' | 'getThreads'>,
+  apiService: Pick<AgentApiService, 'getMessages' | 'getThreads'> &
+    Partial<Pick<AgentApiService, 'getMasterThread'>>,
   isEnabled: boolean,
 ) {
   const threads = useAgentChatStore((state) => state.threads);
@@ -50,6 +51,9 @@ export function useAgentDockThreads(
   const translate = useTranslations('common.agentDock');
   const [isThreadListLoading, setIsThreadListLoading] = useState(false);
   const requestSerial = useRef(0);
+  // Set when the operator starts a blank conversation, so opening the master by
+  // default does not undo it. Cleared when the dock stops being the host.
+  const hasStartedFreshThread = useRef(false);
 
   useEffect(() => {
     if (!isEnabled || typeof apiService.getThreads !== 'function') {
@@ -82,6 +86,12 @@ export function useAgentDockThreads(
     return threads
       .filter(isListedThread)
       .sort((left, right) => {
+        // The master is the dock's home: it leads the list, then pinned.
+        const isLeftMaster = left.kind === AgentThreadKind.MASTER;
+        const isRightMaster = right.kind === AgentThreadKind.MASTER;
+        if (isLeftMaster !== isRightMaster) {
+          return isLeftMaster ? -1 : 1;
+        }
         if (Boolean(left.isPinned) !== Boolean(right.isPinned)) {
           return left.isPinned ? -1 : 1;
         }
@@ -90,7 +100,10 @@ export function useAgentDockThreads(
       .slice(0, THREAD_LIST_LIMIT)
       .map((thread) => ({
         id: thread.id,
-        title: thread.title?.trim() || translate('untitledThread'),
+        title:
+          thread.kind === AgentThreadKind.MASTER
+            ? translate('masterThread')
+            : thread.title?.trim() || translate('untitledThread'),
       }));
   }, [threads, translate]);
 
@@ -153,9 +166,48 @@ export function useAgentDockThreads(
     if (currentThreadId) {
       cacheConversation(currentThreadId);
     }
+    hasStartedFreshThread.current = true;
     setActiveThread(null);
     resetActiveConversationState();
   }, [cacheConversation, resetActiveConversationState, setActiveThread]);
+
+  // The dock opens on the master conversation unless a thread is already open
+  // or the operator asked for a blank one.
+  useEffect(() => {
+    if (!isEnabled) {
+      hasStartedFreshThread.current = false;
+      return;
+    }
+    if (
+      activeThreadId ||
+      hasStartedFreshThread.current ||
+      typeof apiService.getMasterThread !== 'function'
+    ) {
+      return;
+    }
+
+    const controller = new AbortController();
+    apiService
+      .getMasterThread(controller.signal)
+      .then((master) => {
+        if (
+          controller.signal.aborted ||
+          hasStartedFreshThread.current ||
+          useAgentChatStore.getState().activeThreadId
+        ) {
+          return;
+        }
+        const { threads: current, setThreads: replaceThreads } =
+          useAgentChatStore.getState();
+        if (!current.some((thread) => thread.id === master.id)) {
+          replaceThreads([master, ...current]);
+        }
+        return selectThread(master.id);
+      })
+      .catch(() => undefined);
+
+    return () => controller.abort();
+  }, [activeThreadId, apiService, isEnabled, selectThread]);
 
   return {
     activeThreadId,

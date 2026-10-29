@@ -1215,6 +1215,7 @@
     "close": "Close agent",
     "description": "Chat with the agent without leaving this page.",
     "label": "Agent",
+    "masterThread": "Master",
     "newChat": "New chat",
     "newThread": "New thread",
     "noThreads": "No threads yet",
