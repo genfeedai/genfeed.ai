@@ -1,13 +1,8 @@
 'use client';
 
 import type { AgentApiService } from '@genfeedai/agent';
+import type { MasterThreadState } from '@props/ui/master-thread.props';
 import { useEffect, useState } from 'react';
-
-interface MasterThreadState {
-  hasFailed: boolean;
-  isLoading: boolean;
-  masterThreadId: string | null;
-}
 
 /**
  * The caller's master thread id. The server creates the master on first read,
