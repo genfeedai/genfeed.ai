@@ -1,3 +1,5 @@
+import type { IWatermarkLayer } from '../organization/watermark-export.interface';
+
 export type CoverTitlePlacement = 'bottom' | 'top-left';
 export type CoverTitleTextCase = 'as-is' | 'upper';
 
@@ -15,4 +17,11 @@ export interface ICoverTitleStyle {
   /** `bottom` is centred on a dark scrim; `top-left` is stacked, no scrim. */
   placement?: CoverTitlePlacement;
   textCase?: CoverTitleTextCase;
+}
+
+/** What a cover is dressed with: the title style and the brand signature. */
+export interface ICoverStyle {
+  /** The brand mark laid over the cover, placed like an export watermark. */
+  signature?: IWatermarkLayer;
+  title?: ICoverTitleStyle;
 }

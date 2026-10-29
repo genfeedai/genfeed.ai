@@ -1,4 +1,8 @@
 import { createHash } from 'node:crypto';
+import {
+  watermarkLogoIdFor,
+  watermarkPlacementFor,
+} from '@api/collections/brands/utils/brand-watermark-layer.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
@@ -7,7 +11,6 @@ import { isSelfHostedDeployment } from '@genfeedai/config';
 import type {
   IIngredientExportResult,
   IWatermarkLayer,
-  WatermarkPosition,
   WatermarkVariant,
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
@@ -28,24 +31,6 @@ export class IngredientExportService {
     private readonly config: ConfigService,
     private readonly mediaUrlService: MediaUrlService,
   ) {}
-
-  /** The mark for a background: its own asset when the brand set one, else the default. */
-  private logoIdFor(
-    brand: {
-      watermarkLightLogoId?: string | null;
-      watermarkLiveLogoId?: string | null;
-      watermarkLogoId?: string | null;
-    },
-    variant: WatermarkVariant,
-  ): string | null {
-    const own =
-      variant === 'light'
-        ? brand.watermarkLightLogoId
-        : variant === 'live'
-          ? brand.watermarkLiveLogoId
-          : null;
-    return own ?? brand.watermarkLogoId ?? null;
-  }
 
   /** Brand-watermarked copy of an ingredient, cached by source and settings. */
   async export(
@@ -85,7 +70,7 @@ export class IngredientExportService {
     const text = brand.watermarkText?.trim();
     let logoStorageKey: string | undefined;
     let logoVersion: string | undefined;
-    const logoId = this.logoIdFor(brand, variant);
+    const logoId = watermarkLogoIdFor(brand, variant);
     if (logoId) {
       const logo = await this.prisma.asset.findFirst({
         where: {
@@ -124,17 +109,7 @@ export class IngredientExportService {
       {
         text: text || undefined,
         logoStorageKey,
-        opacity: brand.watermarkOpacity,
-        position: brand.watermarkPosition as WatermarkPosition,
-        ...(brand.watermarkSizeRatio != null
-          ? { sizeRatio: brand.watermarkSizeRatio }
-          : {}),
-        ...(brand.watermarkInsetXRatio != null
-          ? { insetXRatio: brand.watermarkInsetXRatio }
-          : {}),
-        ...(brand.watermarkInsetYRatio != null
-          ? { insetYRatio: brand.watermarkInsetYRatio }
-          : {}),
+        ...watermarkPlacementFor(brand),
       },
     ];
     const result = await this.files.watermarkExport({

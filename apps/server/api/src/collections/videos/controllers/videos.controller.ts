@@ -339,7 +339,7 @@ export class VideosController {
 
       // The same brand style the YouTube publish applies, so the preview is
       // the file that gets sent.
-      const titleStyle = await this.brandCoverStyle?.resolveTitleStyle(
+      const coverStyle = await this.brandCoverStyle?.resolveCoverStyle(
         brandId,
         user.organizationId,
       );
@@ -350,7 +350,7 @@ export class VideosController {
         width ? Number(width) : undefined,
         title?.trim() ? title.trim().slice(0, 120) : undefined,
         true,
-        titleStyle,
+        coverStyle,
       );
 
       const thumbnailResponse = await fetch(thumbnailUrl);

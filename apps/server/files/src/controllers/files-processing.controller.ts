@@ -5,7 +5,7 @@ import { FilesService } from '@files/services/files/files.service';
 import { ImagesSplitService } from '@files/services/images/images-split.service';
 import { VideoThumbnailService } from '@files/services/thumbnails/video-thumbnail.service';
 import { UploadService } from '@files/services/upload/upload.service';
-import type { ICoverTitleStyle } from '@genfeedai/contracts/interfaces';
+import type { ICoverStyle } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { HttpService } from '@nestjs/axios';
@@ -43,7 +43,7 @@ export class FilesProcessingController {
       width?: number;
       title?: string;
       isCover?: boolean;
-      titleStyle?: ICoverTitleStyle;
+      coverStyle?: ICoverStyle;
     },
   ) {
     try {
@@ -54,7 +54,7 @@ export class FilesProcessingController {
         width,
         title,
         isCover,
-        titleStyle,
+        coverStyle,
       } = body;
 
       if (!videoUrl || !ingredientId) {
@@ -75,7 +75,7 @@ export class FilesProcessingController {
         width,
         title,
         isCover,
-        titleStyle,
+        coverStyle,
       );
 
       return {
