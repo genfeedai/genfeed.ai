@@ -19,6 +19,7 @@ import {
 
 type InputField =
   | 'identityReferences'
+  | 'isEndCardEnabled'
   | 'sourceLanguage'
   | 'targetLanguage'
   | 'timingToleranceSeconds'
@@ -297,6 +298,14 @@ function inputFieldSchema(field: InputField): ActionJsonSchema {
     case 'trackingEnabled':
     case 'skipped':
     case 'auto':
+    case 'isEndCardEnabled':
+      return {
+        ...BOOLEAN_SCHEMA,
+        default: true,
+        description:
+          'Append the brand end card to this output. Turn off when a later node joins it.',
+        title: 'Brand end card',
+      };
     case 'seamlessLoop':
     case 'useIdentityDefaults':
     case 'useLlm':
@@ -1471,6 +1480,7 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
         'audioCodec',
         'brandId',
         'dispatchMode',
+        'isEndCardEnabled',
         'model',
         'outputQuality',
         'parentId',

@@ -249,5 +249,55 @@ describe('VideoStitchExecutor', () => {
         'transitionDuration',
       );
     });
+
+    it.each([
+      [false, { isEndCardEnabled: false }],
+      [true, {}],
+      [undefined, {}],
+    ] as const)(
+      'forwards only an explicit end card opt-out (isEndCardEnabled: %s)',
+      async (isEndCardEnabled, expected) => {
+        const processor = vi.fn().mockResolvedValue({
+          jobId: 'j',
+          outputVideoUrl: 'https://cdn.example/stitched.mp4',
+        });
+        await createVideoStitchExecutor(processor).execute({
+          context: ctx,
+          inputs: new Map<string, unknown>([
+            [
+              'videos',
+              ['https://cdn.example/a.mp4', 'https://cdn.example/b.mp4'],
+            ],
+          ]),
+          node: {
+            config: isEndCardEnabled === undefined ? {} : { isEndCardEnabled },
+            id: 'n',
+            inputs: [],
+            label: 'Stitch',
+            type: 'videoStitch',
+          },
+        });
+        expect(processor.mock.calls[0]?.[0]).toMatchObject(expected);
+        if (isEndCardEnabled !== false) {
+          expect(processor.mock.calls[0]?.[0]).not.toHaveProperty(
+            'isEndCardEnabled',
+          );
+        }
+      },
+    );
+  });
+
+  describe('validate end card switch', () => {
+    it('rejects a non-boolean isEndCardEnabled', () => {
+      const result = createVideoStitchExecutor().validate({
+        config: { isEndCardEnabled: 'no' },
+        id: 'n',
+        inputs: [],
+        label: 'Stitch',
+        type: 'videoStitch',
+      });
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('isEndCardEnabled must be a boolean');
+    });
   });
 });
