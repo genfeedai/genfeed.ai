@@ -158,11 +158,7 @@ export const ADMIN_MENU_ITEMS: AdminMenuItemConfig[] = [
     hrefScope: 'global',
     href: APP_ROUTES.ADMIN.CONTENT.INGREDIENTS_VIDEOS,
     label: 'Ingredients',
-    matchPaths: [
-      APP_ROUTES.ADMIN.CONTENT.INGREDIENTS,
-      APP_ROUTES.ADMIN.IMAGES,
-      APP_ROUTES.ADMIN.VIDEOS,
-    ],
+    matchPaths: [APP_ROUTES.ADMIN.CONTENT.INGREDIENTS],
     outline: LibraryBig,
     solid: LibraryBig,
   },

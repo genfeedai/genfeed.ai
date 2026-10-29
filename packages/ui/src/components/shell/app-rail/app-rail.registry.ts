@@ -286,14 +286,11 @@ export const ADMIN_RAIL_CATEGORIES: readonly AppRailItemConfig[] = [
     route: () => APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS,
   },
   {
-    // Ingredient detail (`/admin/images/:id`, `/admin/videos/:id`) and folders
-    // sit outside `/admin/content` but belong with it; unclaimed, the sidebar
-    // falls back to listing every admin page.
+    // Folders sit outside `/admin/content` but belong with it; unclaimed, the
+    // sidebar falls back to listing every admin page.
     activePathRoots: [
       '/admin/content',
       '/admin/configuration',
-      APP_ROUTES.ADMIN.IMAGES,
-      APP_ROUTES.ADMIN.VIDEOS,
       APP_ROUTES.ADMIN.FOLDERS,
       APP_ROUTES.ADMIN.LIBRARY.VOICES,
     ],

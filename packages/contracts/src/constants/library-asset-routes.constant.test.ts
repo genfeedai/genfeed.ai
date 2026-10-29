@@ -133,10 +133,10 @@ describe('library-asset-routes.constant', () => {
     it('points images and videos at their admin page', () => {
       expect(
         createAdminIngredientRoute(IngredientCategory.IMAGE, 'ing_1'),
-      ).toBe(`${APP_ROUTES.ADMIN.IMAGES}/ing_1`);
+      ).toBe(`${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/images/ing_1`);
       expect(
         createAdminIngredientRoute(IngredientCategory.VIDEO_EDIT, 'ing_2'),
-      ).toBe(`${APP_ROUTES.ADMIN.VIDEOS}/ing_2`);
+      ).toBe(`${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/videos/ing_2`);
     });
 
     it('has no page for other categories or a missing id', () => {
