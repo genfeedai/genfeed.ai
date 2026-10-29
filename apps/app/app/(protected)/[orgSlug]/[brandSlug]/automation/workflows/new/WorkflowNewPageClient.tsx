@@ -51,7 +51,7 @@ import {
   type WorkflowGraphNodeLike,
 } from '@/features/workflows/utils/workflow-graph';
 import { createEditorWorkflowRunTracker } from '@/lib/analytics';
-import { promptsApi, workflowsApi } from '@/lib/api';
+import { workflowsApi } from '@/lib/api';
 import { getExecutionProviderHeaders } from '@/lib/api/execution-headers';
 import { postWorkflowExecution } from '@/lib/api/execution-http-client';
 import { createSettingsSyncService } from '@/lib/api/settings-sync';
@@ -226,7 +226,6 @@ export default function WorkflowNewPageClient() {
         post: postWorkflowExecution,
       },
       logger,
-      promptLibrary: promptsApi,
       settingsSync: createSettingsSyncService(),
       workflowPersistence: {
         create: workflowsApi.create,
