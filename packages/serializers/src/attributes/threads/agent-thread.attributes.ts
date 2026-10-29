@@ -18,6 +18,8 @@ export const agentThreadAttributes = createEntityAttributes([
   'organization',
   'user',
   'isPinned',
+  'kind',
+  'parentThreadId',
   'mode',
   'requestedModel',
   'runtimeKey',

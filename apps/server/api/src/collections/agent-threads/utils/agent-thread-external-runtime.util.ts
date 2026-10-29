@@ -3,7 +3,10 @@ import {
   AGENT_EXTERNAL_RUNTIME_SESSION_ID_PATTERN,
   isAgentExternalRuntimeKey,
 } from '@genfeedai/contracts/constants';
-import type { IAgentThreadExternalRuntime } from '@genfeedai/contracts/interfaces';
+import type {
+  IAgentExternalTurnToolCall,
+  IAgentThreadExternalRuntime,
+} from '@genfeedai/contracts/interfaces';
 import { readRecordOrNull } from '@genfeedai/utils/data/extract.util';
 
 /** Key inside `AgentThread.config` that stores the external CLI session. */
@@ -46,5 +49,22 @@ export function withAgentThreadExternalRuntime<T extends AgentRoomDocument>(
   return {
     ...thread,
     externalRuntime: readAgentThreadExternalRuntime(thread.config),
+  };
+}
+
+/** Client-renderable tool call (matches the agent UI's `AgentToolCall`). */
+export function toExternalToolCallMetadata(
+  toolCall: IAgentExternalTurnToolCall,
+  index: number,
+): Record<string, unknown> {
+  return {
+    arguments: toolCall.argsSummary ? { summary: toolCall.argsSummary } : {},
+    ...(toolCall.error ? { error: toolCall.error } : {}),
+    id: `external-${index}-${toolCall.name}`,
+    name: toolCall.name,
+    ...(toolCall.resultSummary
+      ? { resultSummary: toolCall.resultSummary }
+      : {}),
+    status: toolCall.status,
   };
 }
