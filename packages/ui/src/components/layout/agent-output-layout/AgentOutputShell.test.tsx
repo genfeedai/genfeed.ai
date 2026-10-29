@@ -101,7 +101,7 @@ describe('AgentOutputShell', () => {
           <ContextSidebarPanel
             selection={{
               id: 'run-1',
-              kind: 'storyboard',
+              kind: 'record',
               origin: 'automatic',
               title: 'Run 1',
             }}

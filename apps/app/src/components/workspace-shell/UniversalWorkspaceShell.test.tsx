@@ -1598,7 +1598,7 @@ describe('UniversalWorkspaceShell', () => {
               <ContextSidebarPanel
                 selection={{
                   id: 'shot-3',
-                  kind: 'shot',
+                  kind: 'asset',
                   origin: 'user',
                   title: 'Shot 3',
                 }}
