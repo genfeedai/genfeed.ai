@@ -63,7 +63,6 @@ const PlatformBreakdownChart = dynamic(
 export interface AnalyticsOrganizationOverviewProps {
   organizationId?: string;
   basePath?: string;
-  brandsBasePath?: string;
 }
 
 interface OrganizationMetricCard {
@@ -179,7 +178,6 @@ function OrganizationMetricStrip({
 
 export default function AnalyticsOrganizationOverview({
   basePath = '/analytics',
-  brandsBasePath = basePath,
   organizationId: organizationIdProp,
 }: AnalyticsOrganizationOverviewProps) {
   const { isSignedIn } = useAuthIdentity();
@@ -332,7 +330,7 @@ export default function AnalyticsOrganizationOverview({
           emptyLabel="No brands found"
           getRowKey={(brand) => brand.id}
           getRowLink={(brand) => ({
-            href: `${brandsBasePath}/brands/${brand.id}`,
+            href: `${basePath}/brands/${brand.id}`,
             label: `Open ${brand.name} analytics`,
           })}
           rowSidebar={{
@@ -343,7 +341,7 @@ export default function AnalyticsOrganizationOverview({
             render: (brand) => (
               <AnalyticsBrandSummary
                 brand={brand}
-                openHref={`${brandsBasePath}/brands/${brand.id}`}
+                openHref={`${basePath}/brands/${brand.id}`}
               />
             ),
           }}

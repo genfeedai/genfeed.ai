@@ -6,15 +6,15 @@ import {
 } from '@contexts/analytics/analytics-context';
 import { Timeframe } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import AnalyticsOrganizationsList from '@protected/overview/analytics/organizations/analytics-organizations-list';
+import AnalyticsOrganizationsList from '@protected/organizations/analytics-organizations-list';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import DateRangePicker from '@ui/primitives/date-range-picker';
 import { Building2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-/** Per-organization config page: release preview, released apps, settings. */
+/** The organization's Settings tab: release preview, released apps, settings. */
 function getReleaseAccessHref(organizationId: string): string {
-  return `${APP_ROUTES.ADMIN.ORGANIZATIONS}/${organizationId}`;
+  return `${APP_ROUTES.ADMIN.ORGANIZATIONS}/${organizationId}?tab=settings`;
 }
 
 function AdminOrganizationsLandingContent() {
@@ -38,17 +38,15 @@ function AdminOrganizationsLandingContent() {
         </div>
       }
     >
-      <AnalyticsOrganizationsList
-        basePath={APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS}
-        getReleaseAccessHref={getReleaseAccessHref}
-      />
+      <AnalyticsOrganizationsList getReleaseAccessHref={getReleaseAccessHref} />
     </AdminPageShell>
   );
 }
 
 /**
  * `/admin/organizations` is the organizations list. The live product page is
- * this analytics table; each row links to `/admin/organizations/:id`.
+ * this analytics table; each row links to `/admin/organizations/:id`, where the
+ * organization's analytics and settings are tabs.
  *
  * The list publishes its sort control to the subbar through `toolbarNode`, so
  * this route owns an `AdminPageShell` (without the analytics tab bar) that
