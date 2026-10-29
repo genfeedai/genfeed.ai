@@ -593,7 +593,7 @@ describe('AgentOrchestratorContextService master thread prompt (#8526)', () => {
   it('ignores a selected generation mode on the master but not on a plain thread', async () => {
     const turn = {
       content: 'Make a launch visual',
-      generationMode: 'image' as const,
+      generationMode: AgentGenerationMode.IMAGE,
       threadId: THREAD_ID,
     };
     const master = await createService({

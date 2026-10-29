@@ -8,6 +8,7 @@ import type { LoggerService } from '@libs/logger/logger.service';
 import { describe, expect, it, vi } from 'vitest';
 
 const user = {
+  brandId: 'brand_current',
   id: 'user_1',
   organizationId: 'org_current',
   userId: 'user_1',
