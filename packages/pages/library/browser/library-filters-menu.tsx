@@ -50,13 +50,13 @@ function CharacterAvatar({
 }
 
 /**
- * Every filter axis and the sort order behind one trigger, so the toolbar is a
- * single line at any width. What is applied shows as chips beside the trigger
- * (see `LibraryActiveFilters`); the menu only ever has to say what is
- * possible.
+ * Every filter axis and the sort order behind one trigger, attached inside the
+ * Library's search field. The trigger counts what is applied; the menu only has
+ * to say what is possible.
  */
 export default function LibraryFiltersMenu({
   isAdminScope = false,
+  isAttached,
   onClearAllFilters,
   onCharactersChange,
   onSortChange,
@@ -216,6 +216,7 @@ export default function LibraryFiltersMenu({
       clearLabel={translate('clearAllFilters')}
       facets={facets}
       getActiveCountLabel={(count) => translate('activeFilterCount', { count })}
+      isAttached={isAttached}
       label={translate('filters')}
       onClear={onClearAllFilters}
     />

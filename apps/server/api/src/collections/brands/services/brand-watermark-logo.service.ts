@@ -20,15 +20,19 @@ export class BrandWatermarkLogoService {
     update: {
       endCardAssetId?: string | null;
       isEndCardEnabled?: boolean;
+      watermarkLightLogoId?: string | null;
+      watermarkLiveLogoId?: string | null;
       watermarkLogoId?: string | null;
     },
   ): Promise<void> {
-    if (update.watermarkLogoId) {
-      await this.validateWatermarkLogo(
-        brandId,
-        organizationId,
-        update.watermarkLogoId,
-      );
+    for (const logoId of [
+      update.watermarkLogoId,
+      update.watermarkLightLogoId,
+      update.watermarkLiveLogoId,
+    ]) {
+      if (logoId) {
+        await this.validateWatermarkLogo(brandId, organizationId, logoId);
+      }
     }
     await this.validateEndCardSettings(brandId, organizationId, update);
   }

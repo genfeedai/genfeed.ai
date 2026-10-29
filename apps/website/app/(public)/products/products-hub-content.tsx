@@ -45,7 +45,7 @@ export default function ProductsHubContent() {
             <div className="mb-10 max-w-2xl">
               <Heading
                 as="h2"
-                className="text-3xl font-semibold tracking-[-0.03em] text-foreground sm:text-4xl"
+                className="text-3xl font-semibold tracking-[-0.02em] text-foreground sm:text-4xl"
               >
                 {group}
               </Heading>
@@ -95,7 +95,7 @@ export default function ProductsHubContent() {
         <section className="mx-auto max-w-4xl px-6 pb-24 text-center">
           <Heading
             as="h2"
-            className="text-3xl font-semibold tracking-[-0.03em] text-foreground"
+            className="text-3xl font-semibold tracking-[-0.02em] text-foreground"
           >
             Build your workspace
           </Heading>

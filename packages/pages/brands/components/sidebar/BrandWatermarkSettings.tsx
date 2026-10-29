@@ -2,6 +2,7 @@
 
 import type { IBrand } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import BrandWatermarkLogoSelect from '@pages/brands/components/sidebar/BrandWatermarkLogoSelect';
 import type { BrandWatermarkSettingsProps } from '@props/pages/brand-detail.props';
 import { BrandsService } from '@services/social/brands.service';
 import Card from '@ui/card/Card';
@@ -25,6 +26,21 @@ const positions = [
   'bottom-right',
 ] as const;
 
+/** An empty field means "not set"; a set one must be a number within the range. */
+function isOptionalPercentValid(value: string, min: number, max: number) {
+  if (value.trim() === '') return true;
+  const number = Number(value);
+  return Number.isFinite(number) && number >= min && number <= max;
+}
+
+function percentToRatio(value: string): number | null {
+  return value.trim() === '' ? null : Number(value) / 100;
+}
+
+function ratioToPercent(ratio: number | null | undefined): string {
+  return ratio == null ? '' : String(Math.round(ratio * 10000) / 100);
+}
+
 export default function BrandWatermarkSettings({
   brand,
   brandId,
@@ -39,6 +55,21 @@ export default function BrandWatermarkSettings({
   const [position, setPosition] = useState<
     NonNullable<IBrand['watermarkPosition']>
   >(brand.watermarkPosition ?? 'bottom-right');
+  const [sizePercent, setSizePercent] = useState(
+    ratioToPercent(brand.watermarkSizeRatio),
+  );
+  const [insetXPercent, setInsetXPercent] = useState(
+    ratioToPercent(brand.watermarkInsetXRatio),
+  );
+  const [insetYPercent, setInsetYPercent] = useState(
+    ratioToPercent(brand.watermarkInsetYRatio),
+  );
+  const [lightLogoId, setLightLogoId] = useState(
+    brand.watermarkLightLogoId ?? 'none',
+  );
+  const [liveLogoId, setLiveLogoId] = useState(
+    brand.watermarkLiveLogoId ?? 'none',
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [status, setStatus] = useState<'saved' | 'error' | null>(null);
   const getService = useAuthedService((token) =>
@@ -57,8 +88,13 @@ export default function BrandWatermarkSettings({
     Number(opacity) >= 5 &&
     Number(opacity) <= 100;
 
+  const isPlacementValid =
+    isOptionalPercentValid(sizePercent, 1, 50) &&
+    isOptionalPercentValid(insetXPercent, 0, 50) &&
+    isOptionalPercentValid(insetYPercent, 0, 50);
+
   async function save() {
-    if (isSaving || !validOpacity) return;
+    if (isSaving || !validOpacity || !isPlacementValid) return;
     setIsSaving(true);
     setStatus(null);
     try {
@@ -68,6 +104,11 @@ export default function BrandWatermarkSettings({
         watermarkLogoId: logoId === 'none' ? null : logoId,
         watermarkOpacity: Number(opacity) / 100,
         watermarkPosition: position,
+        watermarkSizeRatio: percentToRatio(sizePercent),
+        watermarkInsetXRatio: percentToRatio(insetXPercent),
+        watermarkInsetYRatio: percentToRatio(insetYPercent),
+        watermarkLightLogoId: lightLogoId === 'none' ? null : lightLogoId,
+        watermarkLiveLogoId: liveLogoId === 'none' ? null : liveLogoId,
       });
       await onRefreshBrand();
       setStatus('saved');
@@ -97,35 +138,36 @@ export default function BrandWatermarkSettings({
             disabled={isSaving}
           />
         </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="brand-watermark-logo">{translate('logo')}</Label>
-          <Select value={logoId} onValueChange={setLogoId} disabled={isSaving}>
-            <SelectTrigger id="brand-watermark-logo">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">{translate('noLogo')}</SelectItem>
-              {logoId !== 'none' &&
-                !assets.some((asset) => asset.id === logoId) && (
-                  <SelectItem value={logoId}>
-                    {translate('savedLogo')}
-                  </SelectItem>
-                )}
-              {assets.map((asset) => (
-                <SelectItem key={asset.id} value={asset.id}>
-                  {asset.id === brand.logo?.id
-                    ? translate('currentLogo')
-                    : translate('reference', {
-                        number:
-                          (brand.references ?? []).findIndex(
-                            (reference) => reference.id === asset.id,
-                          ) + 1,
-                      })}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <BrandWatermarkLogoSelect
+          assets={assets}
+          brand={brand}
+          id="brand-watermark-logo"
+          isDisabled={isSaving}
+          label={translate('logo')}
+          noneLabel={translate('noLogo')}
+          onChange={setLogoId}
+          value={logoId}
+        />
+        <BrandWatermarkLogoSelect
+          assets={assets}
+          brand={brand}
+          id="brand-watermark-light-logo"
+          isDisabled={isSaving}
+          label={translate('lightLogo')}
+          noneLabel={translate('sameAsDefault')}
+          onChange={setLightLogoId}
+          value={lightLogoId}
+        />
+        <BrandWatermarkLogoSelect
+          assets={assets}
+          brand={brand}
+          id="brand-watermark-live-logo"
+          isDisabled={isSaving}
+          label={translate('liveLogo')}
+          noneLabel={translate('sameAsDefault')}
+          onChange={setLiveLogoId}
+          value={liveLogoId}
+        />
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="brand-watermark-opacity">
@@ -168,11 +210,65 @@ export default function BrandWatermarkSettings({
             </Select>
           </div>
         </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="brand-watermark-size">{translate('size')}</Label>
+            <Input
+              id="brand-watermark-size"
+              type="number"
+              min={1}
+              max={50}
+              step={0.1}
+              value={sizePercent}
+              placeholder={translate('automatic')}
+              onChange={(event) => setSizePercent(event.target.value)}
+              aria-invalid={!isOptionalPercentValid(sizePercent, 1, 50)}
+              disabled={isSaving}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="brand-watermark-inset-x">
+              {translate('insetX')}
+            </Label>
+            <Input
+              id="brand-watermark-inset-x"
+              type="number"
+              min={0}
+              max={50}
+              step={0.1}
+              value={insetXPercent}
+              placeholder={translate('automatic')}
+              onChange={(event) => setInsetXPercent(event.target.value)}
+              aria-invalid={!isOptionalPercentValid(insetXPercent, 0, 50)}
+              disabled={isSaving}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="brand-watermark-inset-y">
+              {translate('insetY')}
+            </Label>
+            <Input
+              id="brand-watermark-inset-y"
+              type="number"
+              min={0}
+              max={50}
+              step={0.1}
+              value={insetYPercent}
+              placeholder={translate('automatic')}
+              onChange={(event) => setInsetYPercent(event.target.value)}
+              aria-invalid={!isOptionalPercentValid(insetYPercent, 0, 50)}
+              disabled={isSaving}
+            />
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {translate('placementHelp')}
+        </p>
         <Button
           label={translate('save')}
           onClick={() => void save()}
           isLoading={isSaving}
-          isDisabled={isSaving || !validOpacity}
+          isDisabled={isSaving || !validOpacity || !isPlacementValid}
         />
         {status && (
           <p

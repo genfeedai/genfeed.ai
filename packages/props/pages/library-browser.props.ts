@@ -65,7 +65,7 @@ export interface LibraryCharacterOption {
   label: string;
 }
 
-/** Everything the Filters menu and the active-filter chips read and write. */
+/** Everything the Filters menu reads and writes. */
 export interface LibraryFilterProps {
   categories: IngredientCategory[];
   /** Current place from the URL. Trash selects the Trash status option. */
@@ -101,30 +101,29 @@ export interface LibraryFilterProps {
   isAdminScope?: boolean;
 }
 
-export interface LibraryBrowserToolbarProps extends LibraryFilterProps {
+export interface LibraryBrowserToolbarProps {
   isRecoveryView?: boolean;
-  sort: string;
-  sortOptions: LibraryBrowserSortOption[];
   viewMode: LibraryViewMode;
   isRefreshing: boolean;
   reviewUnsortedHref?: string;
-  onSortChange: (sort: string) => void;
   onViewModeChange: (viewMode: LibraryViewMode) => void;
   onRefresh: () => void;
   onUpload: () => void;
 }
 
+/** The Library search with its Filters menu (filters and sort) attached inside. */
+export interface LibraryBrowserSearchProps extends LibraryFiltersMenuProps {
+  placeholder: string;
+  search: string;
+  onSearch: (value: string) => void;
+}
+
 export interface LibraryFiltersMenuProps extends LibraryFilterProps {
+  /** Sits inside a `SearchField`'s trailing edge: a compact trigger. */
+  isAttached?: boolean;
   sort: string;
   sortOptions: LibraryBrowserSortOption[];
   onSortChange: (sort: string) => void;
-}
-
-/** One applied filter, shown as a removable chip beside the Filters button. */
-export interface LibraryActiveFilter {
-  id: string;
-  label: string;
-  onRemove: () => void;
 }
 
 export interface LibraryFilterChoice {
@@ -134,9 +133,8 @@ export interface LibraryFilterChoice {
   value: string;
 }
 
-/** Derived state shared by the Filters menu and the active-filter chips. */
+/** Derived state of the Filters menu. */
 export interface LibraryFilterModel {
-  activeFilters: LibraryActiveFilter[];
   originChoices: LibraryFilterChoice[];
   placeValue: string;
   statusChoices: LibraryFilterChoice[];

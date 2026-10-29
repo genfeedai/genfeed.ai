@@ -4,11 +4,26 @@ export type WatermarkPosition =
   | 'bottom-left'
   | 'bottom-right';
 
+/** Which of a brand's marks an export uses: the default, one for light footage or one for livestreams. */
+export type WatermarkVariant = 'default' | 'light' | 'live';
+
+export const WATERMARK_VARIANTS: readonly WatermarkVariant[] = [
+  'default',
+  'light',
+  'live',
+];
+
 export interface IWatermarkLayer {
   text?: string;
   logoStorageKey?: string;
   opacity: number;
   position: WatermarkPosition;
+  /** Width of the mark as a share of the canvas width. */
+  sizeRatio?: number;
+  /** Distance from the left or right edge as a share of the canvas width. */
+  insetXRatio?: number;
+  /** Distance from the top or bottom edge as a share of the canvas width. */
+  insetYRatio?: number;
 }
 
 export interface IWatermarkExportRequest {

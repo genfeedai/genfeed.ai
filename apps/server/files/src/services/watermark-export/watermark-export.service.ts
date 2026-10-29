@@ -181,12 +181,26 @@ export class WatermarkExportService {
         digest.update(overlay);
         const metadata = await sharp(overlay).metadata();
         const margin = Math.max(2, Math.round(Math.min(width, height) * 0.025));
-        const left = layer.position.endsWith('right')
-          ? width - (metadata.width ?? 0) - margin
-          : margin;
-        const top = layer.position.startsWith('bottom')
-          ? height - (metadata.height ?? 0) - margin
-          : margin;
+        const insetX =
+          layer.insetXRatio === undefined
+            ? margin
+            : Math.round(width * layer.insetXRatio);
+        const insetY =
+          layer.insetYRatio === undefined
+            ? margin
+            : Math.round(width * layer.insetYRatio);
+        const left = Math.max(
+          0,
+          layer.position.endsWith('right')
+            ? width - (metadata.width ?? 0) - insetX
+            : insetX,
+        );
+        const top = Math.max(
+          0,
+          layer.position.startsWith('bottom')
+            ? height - (metadata.height ?? 0) - insetY
+            : insetY,
+        );
         overlays.push({ input: overlay, left, top });
         const overlayPath = path.join(directory, `overlay-${index}.png`);
         await sharp(overlay).toFile(overlayPath);
@@ -341,6 +355,17 @@ export class WatermarkExportService {
       if (!layer.text && !layer.logoStorageKey)
         throw invalid('A watermark needs text or a logo');
       if (layer.logoStorageKey) this.validateStoredSource(layer.logoStorageKey);
+      for (const [name, value, min, max] of [
+        ['size', layer.sizeRatio, 0.01, 0.5],
+        ['horizontal inset', layer.insetXRatio, 0, 0.5],
+        ['vertical inset', layer.insetYRatio, 0, 0.5],
+      ] as const) {
+        if (
+          value !== undefined &&
+          (!Number.isFinite(value) || value < min || value > max)
+        )
+          throw invalid(`Invalid watermark ${name}`);
+      }
     }
   }
 
@@ -351,8 +376,14 @@ export class WatermarkExportService {
     directory: string,
     index: number,
   ): Promise<Buffer> {
-    const maxWidth = Math.max(1, Math.floor(width * 0.3));
-    const maxHeight = Math.max(1, Math.floor(height * 0.12));
+    // A brand that fixes the mark size gets exactly that width; the height then
+    // follows the logo, within the canvas.
+    const hasFixedSize = layer.sizeRatio !== undefined;
+    const maxWidth = Math.max(1, Math.floor(width * (layer.sizeRatio ?? 0.3)));
+    const maxHeight = Math.max(
+      1,
+      Math.floor(hasFixedSize ? height * 0.5 : height * 0.12),
+    );
     const parts: Buffer[] = [];
     if (layer.logoStorageKey) {
       const logo = path.join(directory, `logo-${index}.png`);

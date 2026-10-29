@@ -1,12 +1,14 @@
 'use client';
 
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
+import type { SearchFieldProps } from '@genfeedai/props/ui/forms/search-field.props';
 import { createContext, type ReactNode, use, useEffect, useState } from 'react';
 
 /** What the models list publishes into the settings layout's subbar. */
 export interface ModelsToolbar {
   facets: readonly FilterMenuFacet[];
-  searchNode: ReactNode;
+  /** The catalog search; the layout attaches the Filters menu inside it. */
+  search: Pick<SearchFieldProps, 'onSearch' | 'placeholder' | 'value'>;
   onClear: () => void;
 }
 

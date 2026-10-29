@@ -9,7 +9,6 @@ import type {
   TableErrorState,
 } from '@props/ui/display/table.props';
 import type { FiltersBarProps } from '@props/ui/forms/filters.props';
-import type { ReactNode } from 'react';
 
 export interface ListPageLayoutProps<T> {
   title: string;
@@ -29,7 +28,6 @@ export interface ListPageLayoutProps<T> {
   onRefresh?: () => void;
   isRefreshing?: boolean;
   showPagination?: boolean;
-  bulkActions?: ReactNode;
   getRowKey?: (item: T) => string;
   getRowClassName?: (item: T) => string;
   className?: string;

@@ -9,7 +9,6 @@ describe('SearchField', () => {
     render(<SearchField placeholder="Search posts" />);
 
     expect(screen.getByPlaceholderText('Search posts')).toBeVisible();
-    expect(screen.queryByTestId('collapsible-search')).toBeNull();
   });
 
   it('reports the search on Enter', async () => {

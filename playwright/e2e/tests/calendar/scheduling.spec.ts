@@ -255,8 +255,12 @@ test.describe('Calendar — Scheduling', () => {
     await expect(calendarPage.postModal).toBeVisible();
     await expect(calendarPage.postSidebarTitle).toHaveText('Clickable Post');
 
-    // The context sidebar's own close control deselects the post.
-    await calendarPage.closeModal();
+    // The calendar is a split page: the post opens in the output pane's
+    // Context tab, and stepping back to the Calendar tab puts the grid back.
+    await authenticatedPage
+      .getByTestId('agent-output-output-pane')
+      .getByRole('tab', { name: 'Calendar' })
+      .click();
     await expect(calendarPage.postModal).toBeHidden();
   });
 

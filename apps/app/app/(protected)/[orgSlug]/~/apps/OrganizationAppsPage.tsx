@@ -1,12 +1,7 @@
 'use client';
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import {
-  ButtonSize,
-  ButtonVariant,
-  ComponentSize,
-  ViewType,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -23,9 +18,9 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import CollectionSection from '@ui/collection/CollectionSection';
 import CollectionView from '@ui/collection/CollectionView';
+import SearchField from '@ui/content/search-field/SearchField';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Button } from '@ui/primitives/button';
-import FormSearchbar from '@ui/primitives/searchbar';
 import {
   APP_RAIL_REGISTRY,
   getAppRailHref,
@@ -224,12 +219,10 @@ function OrganizationAppsCatalog() {
       title={translate('title')}
       icon={Puzzle}
       search={
-        <FormSearchbar
+        <SearchField
           ariaLabel={translate('search')}
-          isCollapsible
           onChange={(event) => setSearchQuery(event.target.value)}
           placeholder={translate('search')}
-          size={ComponentSize.SM}
           value={searchQuery}
         />
       }

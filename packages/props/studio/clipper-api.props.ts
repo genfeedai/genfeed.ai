@@ -61,6 +61,7 @@ export interface GenerateClipsPayload {
     id: string;
     title: string;
     summary: string;
+    script?: string;
   }>;
   avatarId?: string;
   avatarProvider?: string;
