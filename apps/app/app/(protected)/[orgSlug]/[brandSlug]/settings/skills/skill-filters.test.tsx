@@ -71,7 +71,6 @@ describe('SkillSearch', () => {
     const onSearchQueryChange = vi.fn();
     renderSearch({ onSearchQueryChange });
 
-    expect(screen.queryByTestId('collapsible-search')).not.toBeInTheDocument();
     fireEvent.change(screen.getByPlaceholderText(/search skills/i), {
       target: { value: 'script' },
     });

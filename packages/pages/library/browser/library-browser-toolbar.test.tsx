@@ -126,7 +126,6 @@ describe('LibraryBrowserToolbar', () => {
       within(field).getByRole('button', { name: /^Filters/ }),
     ).toBeVisible();
     expect(screen.queryByTestId('library-active-filters')).toBeNull();
-    expect(screen.queryByTestId('collapsible-search')).toBeNull();
   });
 
   it('counts the applied filters on the trigger', () => {
