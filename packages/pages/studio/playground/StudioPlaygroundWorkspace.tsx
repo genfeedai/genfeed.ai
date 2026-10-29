@@ -14,7 +14,6 @@ import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
 import {
   ButtonSize,
   ButtonVariant,
-  ComponentSize,
   IngredientCategory,
   RouterPriority,
   SkillSurface,
@@ -164,6 +163,8 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import type { JSONContent } from '@tiptap/core';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
+import SearchField from '@ui/content/search-field/SearchField';
 import {
   buildStudioGenerationSetupScope,
   setGenerationSetupField,
@@ -176,14 +177,6 @@ import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Label } from '@ui/primitives/label';
-import Searchbar from '@ui/primitives/searchbar';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { usePromptCommandExtension } from '@ui/prompt-editor/use-prompt-command-extension';
 import { SHELL_ICON_CLASS } from '@ui-constants/shell-chrome.constant';
 import {
@@ -2750,54 +2743,6 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       <SectionTopbar
         actions={
           <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
-            <Select
-              onValueChange={(value) => {
-                if (value === 'all' || isStudioPlaygroundType(value)) {
-                  setResultType(value);
-                }
-              }}
-              value={resultType}
-            >
-              <SelectTrigger
-                aria-label={translate('filters.type')}
-                className="w-36"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">
-                  {translate('filters.allTypes')}
-                </SelectItem>
-                {listStudioPlaygroundTypeConfigs().map((config) => (
-                  <SelectItem key={config.type} value={config.type}>
-                    {config.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              onValueChange={(value) => {
-                if (value === 'newest' || value === 'oldest') {
-                  setResultSort(value);
-                }
-              }}
-              value={resultSort}
-            >
-              <SelectTrigger
-                aria-label={translate('filters.sort')}
-                className="w-40"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="newest">
-                  {translate('filters.newest')}
-                </SelectItem>
-                <SelectItem value="oldest">
-                  {translate('filters.oldest')}
-                </SelectItem>
-              </SelectContent>
-            </Select>
             <ViewMenu
               activeView={resultsView}
               onChange={(view) => {
@@ -2824,15 +2769,58 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
           <ButtonRefresh isRefreshing={isLoadingGallery} onClick={refresh} />
         }
         leading={
-          <Searchbar
+          <SearchField
             ariaLabel={translate('searchPlaceholder')}
-            isCollapsible
             onChange={(event) => setSearch(event.target.value)}
-            onClear={() => setSearch('')}
             placeholder={translate('searchPlaceholder')}
-            size={ComponentSize.SM}
             value={search}
-          />
+          >
+            <FilterMenu
+              facets={[
+                {
+                  defaultValue: 'all',
+                  key: 'type',
+                  label: translate('filters.type'),
+                  onChange: (value) => {
+                    if (value === 'all' || isStudioPlaygroundType(value)) {
+                      setResultType(value);
+                    }
+                  },
+                  options: [
+                    { label: translate('filters.allTypes'), value: 'all' },
+                    ...listStudioPlaygroundTypeConfigs().map((config) => ({
+                      label: config.label,
+                      value: config.type,
+                    })),
+                  ],
+                  selection: 'single',
+                  value: resultType,
+                },
+                {
+                  defaultValue: 'newest',
+                  isCounted: false,
+                  key: 'sort',
+                  label: translate('filters.sort'),
+                  onChange: (value) => {
+                    if (value === 'newest' || value === 'oldest') {
+                      setResultSort(value);
+                    }
+                  },
+                  options: [
+                    { label: translate('filters.newest'), value: 'newest' },
+                    { label: translate('filters.oldest'), value: 'oldest' },
+                  ],
+                  selection: 'single',
+                  value: resultSort,
+                },
+              ]}
+              isAttached
+              onClear={() => {
+                setResultType('all');
+                setResultSort('newest');
+              }}
+            />
+          </SearchField>
         }
         title={translate('title')}
       />
