@@ -13,7 +13,7 @@ describe('DevDiscordController', () => {
   beforeEach(async () => {
     mockConfigService = {
       get: vi.fn(),
-      isProduction: false,
+      isDevelopment: true,
     } as unknown as Mocked<ConfigService>;
 
     mockDiscordBotService = {
@@ -41,8 +41,8 @@ describe('DevDiscordController', () => {
   });
 
   describe('testChannel', () => {
-    it('should throw 403 in production', () => {
-      mockConfigService.isProduction = true;
+    it('should throw 403 outside development', () => {
+      mockConfigService.isDevelopment = false;
 
       expect(() =>
         controller.testChannel({ channelId: 'channel-123' }),
@@ -111,8 +111,8 @@ describe('DevDiscordController', () => {
   });
 
   describe('getChannels', () => {
-    it('should throw 403 in production', () => {
-      mockConfigService.isProduction = true;
+    it('should throw 403 outside development', () => {
+      mockConfigService.isDevelopment = false;
 
       expect(() => controller.getChannels()).toThrow(HttpException);
 
