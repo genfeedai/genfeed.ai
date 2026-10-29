@@ -31,7 +31,7 @@ ALTER TABLE "agent_threads"
   ADD CONSTRAINT "agent_threads_parentThreadId_organizationId_fkey"
   FOREIGN KEY ("parentThreadId", "organizationId")
   REFERENCES "agent_threads"("id", "organizationId")
-  ON DELETE RESTRICT ON UPDATE CASCADE NOT VALID;
+  ON DELETE RESTRICT ON UPDATE CASCADE DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 -- At most one live master per user per organization. Concurrent
 -- get-or-create calls race on this index; the loser reads the winner's row.
