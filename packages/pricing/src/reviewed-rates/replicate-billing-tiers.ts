@@ -215,10 +215,29 @@ function billingDivisor(
   return scales.values().next().value ?? (requiresScale ? null : 1);
 }
 
+/**
+ * Replicate states a numeric band as a one-sided range: `(-inf, N]` is
+ * `open-closed` and `(N, +inf)` is `open`. Both read as a stable label that a
+ * resolver entry maps a dispatched value onto; any other shape has no label.
+ */
+function rangeCriterionLabel(
+  criterion: Record<string, unknown>,
+): string | null {
+  const { subtype, value } = criterion;
+  if (!Array.isArray(value) || value.length !== 2) return null;
+  const [low, high] = value;
+  if (low === null && subtype === 'open-closed' && Number.isFinite(high))
+    return `up-to-${String(high)}`;
+  if (high === null && subtype === 'open' && Number.isFinite(low))
+    return `above-${String(low)}`;
+  return null;
+}
+
 function mapBillingCriterion(
   criterion: Record<string, unknown>,
   properties: Record<string, unknown>,
   endpoint?: string,
+  isResolverOnly = false,
 ):
   | {
       key: string;
@@ -227,7 +246,10 @@ function mapBillingCriterion(
     }
   | { reason: string } {
   const title = String(criterion.title);
-  const matched = matchInputProperty(title, properties);
+  // A band label is not an input value, so only a resolver entry may price it.
+  const matched = isResolverOnly
+    ? { reason: `unmapped_criterion:${title}` }
+    : matchInputProperty(title, properties);
   if (!('reason' in matched)) {
     const value = coerceCriterionValue(
       matched.key,
@@ -334,15 +356,24 @@ export function mapReplicateBillingTiers(
       if (!isJsonObject(rawCriterion) || typeof rawCriterion.title !== 'string')
         return { reason: 'invalid_billing_criterion', status: 'failed' };
       if (ignoredTitles.has(words(rawCriterion.title))) continue;
-      if (rawCriterion.type !== undefined && rawCriterion.type !== 'equals')
+      const isRange = rawCriterion.type === 'range';
+      const rangeLabel = isRange ? rangeCriterionLabel(rawCriterion) : null;
+      if (
+        rawCriterion.type !== undefined &&
+        rawCriterion.type !== 'equals' &&
+        rangeLabel === null
+      )
         return {
           reason: `unsupported_criterion_type:${String(rawCriterion.type)}`,
           status: 'failed',
         };
       const mapped = mapBillingCriterion(
-        rawCriterion,
+        rangeLabel === null
+          ? rawCriterion
+          : { ...rawCriterion, subtype: 'string', value: rangeLabel },
         inputProperties,
         endpoint,
+        rangeLabel !== null,
       );
       if ('reason' in mapped)
         return { reason: mapped.reason, status: 'failed' };

@@ -164,7 +164,7 @@ describe('PublishingContentLibrary', () => {
     ).toBeVisible();
     expect(screen.getByText('3 posts')).toBeVisible();
 
-    await waitFor(() => expect(mocks.setFiltersNode).toHaveBeenCalled());
+    await waitFor(() => expect(mocks.setLeadingNode).toHaveBeenCalled());
   });
 
   it('offers the Source filter on an empty workspace', async () => {
@@ -177,11 +177,11 @@ describe('PublishingContentLibrary', () => {
 
     render(<PublishingContentLibrary />);
 
-    await waitFor(() => expect(mocks.setFiltersNode).toHaveBeenCalled());
-    const filters = mocks.setFiltersNode.mock.calls
+    await waitFor(() => expect(mocks.setLeadingNode).toHaveBeenCalled());
+    const search = mocks.setLeadingNode.mock.calls
       .map(([node]) => node)
       .findLast(Boolean);
-    render(filters);
+    render(search);
 
     await userEvent.click(screen.getByRole('button', { name: 'menu' }));
 
@@ -289,16 +289,13 @@ describe('PublishingContentLibrary', () => {
     ).toHaveAttribute('href', '/acme/main/publishing/posts?release=release-1');
   });
 
-  it('keeps the leading search tied to the URL and out of the right filters', async () => {
+  it('keeps the leading search tied to the URL, with the filters inside it and none on the right', async () => {
     mocks.search = 'status=draft&search=launch&page=3';
     render(<PublishingContentLibrary />);
     const [search] = mocks.setLeadingNode.mock.calls.at(-1) ?? [];
-    const [filters] = mocks.setFiltersNode.mock.calls.at(-1) ?? [];
-    const toolbar = render(filters);
-    expect(
-      toolbar.queryByPlaceholderText('toolbar.searchPlaceholder'),
-    ).not.toBeInTheDocument();
+    expect(mocks.setFiltersNode).not.toHaveBeenCalledWith(expect.anything());
     const leading = render(search);
+    expect(leading.getByRole('button', { name: /menu/ })).toBeVisible();
     const input = leading.getByPlaceholderText('toolbar.searchPlaceholder');
     expect(input).toHaveValue('launch');
     fireEvent.change(input, { target: { value: 'updated' } });

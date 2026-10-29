@@ -6,7 +6,6 @@ import {
   Platform,
   SocialConversationType,
 } from '@genfeedai/contracts';
-import type { SocialPlatform } from '@genfeedai/contracts/interfaces';
 import type { SocialConversationModel } from '@genfeedai/models/social/social-conversation.model';
 import {
   ConversationSidebarSearch,
@@ -27,62 +26,11 @@ import PaginationStepper from '@ui/navigation/pagination/PaginationStepper';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@ui/primitives/popover';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
-import { ListFilter, MessageSquare, RefreshCw } from 'lucide-react';
+import { MessageSquare, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import MessagesFilterMenu from './messages-filter-menu';
 
 export type { MessagesInboxView, MessagesSurface };
-
-const VIEW_FILTERS = [
-  { messageKey: 'inbox', value: 'inbox' },
-  { messageKey: 'unread', value: 'unread' },
-  { messageKey: 'review', value: 'review' },
-  { messageKey: 'resolved', value: 'resolved' },
-  { messageKey: 'archived', value: 'archived' },
-  { messageKey: 'all', value: 'all' },
-] as const satisfies ReadonlyArray<{
-  messageKey: 'all' | 'archived' | 'inbox' | 'resolved' | 'review' | 'unread';
-  value: MessagesInboxView;
-}>;
-
-const SURFACE_FILTERS = [
-  { messageKey: 'all', value: 'all' },
-  { messageKey: 'dms', value: SocialConversationType.DM },
-  { messageKey: 'replies', value: SocialConversationType.REPLY },
-  { messageKey: 'comments', value: SocialConversationType.COMMENT },
-] as const satisfies ReadonlyArray<{
-  messageKey: 'all' | 'comments' | 'dms' | 'replies';
-  value: MessagesSurface;
-}>;
-
-const PLATFORM_OPTIONS = [
-  { messageKey: 'all', value: 'all' },
-  { messageKey: 'youtube', value: 'youtube' },
-  { messageKey: 'instagram', value: 'instagram' },
-  { messageKey: 'tiktok', value: 'tiktok' },
-  { messageKey: 'twitter', value: 'twitter' },
-  { messageKey: 'linkedin', value: 'linkedin' },
-] as const satisfies ReadonlyArray<{
-  messageKey:
-    | 'all'
-    | 'instagram'
-    | 'linkedin'
-    | 'tiktok'
-    | 'twitter'
-    | 'youtube';
-  value: SocialPlatform | 'all';
-}>;
 
 function formatRelativeTime(value?: string | null): string {
   if (!value) {
@@ -274,18 +222,24 @@ function ConversationRow({
 export type { MessagesBrandFilterOption, PaginationState };
 
 export function MessagesConversationSidebar({
-  advancedFilters,
+  accounts,
+  automationState,
   brandFilter,
   brandOptions,
   busyAction,
   conversations,
   conversationType,
+  credentialId,
+  defaultBrandFilter,
   hasConnectedAccounts,
   hasSyncableAccounts,
   isAccountsLoading,
   isLoading,
+  onAutomationStateChange,
   onBrandFilterChange,
+  onClearFilters,
   onConversationTypeChange,
+  onCredentialIdChange,
   onNextPage,
   onOAuthConnect,
   onPlatformChange,
@@ -365,132 +319,24 @@ export function MessagesConversationSidebar({
             : null;
   const filterAction = (
     <div className="flex items-center gap-1">
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            ariaLabel={translate('sidebar.filterAria')}
-            className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-card text-foreground/70 hover:bg-foreground/[0.07] hover:text-foreground"
-            icon={<ListFilter className="size-4" />}
-            size={ButtonSize.ICON}
-            textTransform="none"
-            tooltip={translate('sidebar.filterTooltip')}
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-          />
-        </PopoverTrigger>
-        <PopoverContent align="start" className="w-72 space-y-2 p-3">
-          <p className="text-xs font-semibold text-foreground/72">
-            {translate('sidebar.filters')}
-          </p>
-          <div className="space-y-1.5">
-            <Select
-              value={conversationType}
-              onValueChange={(value) => {
-                onConversationTypeChange(value as MessagesSurface);
-              }}
-            >
-              <SelectTrigger aria-label={translate('sidebar.filterByTypeAria')}>
-                <span className="min-w-0 truncate">
-                  <span className="shrink-0 text-muted-foreground">
-                    {translate('sidebar.type')}:{' '}
-                  </span>
-                  <SelectValue
-                    placeholder={translate('sidebar.surfaces.all')}
-                  />
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                {SURFACE_FILTERS.map((filter) => (
-                  <SelectItem key={filter.value} value={filter.value}>
-                    {translate(`sidebar.surfaces.${filter.messageKey}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Select
-              value={view}
-              onValueChange={(value) => {
-                onViewChange(value as MessagesInboxView);
-              }}
-            >
-              <SelectTrigger
-                aria-label={translate('sidebar.filterByStatusAria')}
-              >
-                <span className="min-w-0 truncate">
-                  <span className="shrink-0 text-muted-foreground">
-                    {translate('sidebar.status')}:{' '}
-                  </span>
-                  <SelectValue placeholder={translate('sidebar.views.inbox')} />
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                {VIEW_FILTERS.map((filter) => (
-                  <SelectItem key={filter.value} value={filter.value}>
-                    {translate(`sidebar.views.${filter.messageKey}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {brandOptions.length > 0 ? (
-            <div className="space-y-1.5">
-              <Select value={brandFilter} onValueChange={onBrandFilterChange}>
-                <SelectTrigger
-                  aria-label={translate('sidebar.filterByBrandAria')}
-                >
-                  <span className="min-w-0 truncate">
-                    <span className="shrink-0 text-muted-foreground">
-                      {translate('sidebar.brand')}:{' '}
-                    </span>
-                    <SelectValue placeholder={translate('sidebar.allBrands')} />
-                  </span>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">
-                    {translate('sidebar.allBrands')}
-                  </SelectItem>
-                  {brandOptions.map((option) => (
-                    <SelectItem key={option.id} value={option.id}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : null}
-          <div className="space-y-1.5">
-            <Select
-              value={platform}
-              onValueChange={(value) => {
-                onPlatformChange(value as SocialPlatform | 'all');
-              }}
-            >
-              <SelectTrigger
-                aria-label={translate('sidebar.filterByPlatformAria')}
-              >
-                <span className="min-w-0 truncate">
-                  <span className="shrink-0 text-muted-foreground">
-                    {translate('sidebar.platform')}:{' '}
-                  </span>
-                  <SelectValue
-                    placeholder={translate('sidebar.platforms.all')}
-                  />
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                {PLATFORM_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {translate(`sidebar.platforms.${option.messageKey}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {advancedFilters}
-        </PopoverContent>
-      </Popover>
+      <MessagesFilterMenu
+        accounts={accounts}
+        automationState={automationState}
+        brandFilter={brandFilter}
+        brandOptions={brandOptions}
+        conversationType={conversationType}
+        credentialId={credentialId}
+        defaultBrandFilter={defaultBrandFilter}
+        platform={platform}
+        view={view}
+        onAutomationStateChange={onAutomationStateChange}
+        onBrandFilterChange={onBrandFilterChange}
+        onClear={onClearFilters}
+        onConversationTypeChange={onConversationTypeChange}
+        onCredentialIdChange={onCredentialIdChange}
+        onPlatformChange={onPlatformChange}
+        onViewChange={onViewChange}
+      />
       {syncAction}
     </div>
   );

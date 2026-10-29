@@ -1,4 +1,4 @@
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import type {
   ModalityFilterValue,
@@ -6,12 +6,12 @@ import type {
   StageFilterValue,
 } from '@props/settings/skill-filters.props';
 import type {
-  SkillFiltersProps,
+  SkillAgentActionProps,
   SkillSearchProps,
 } from '@props/settings/skills.props';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
+import SearchField from '@ui/content/search-field/SearchField';
 import { Button } from '@ui/primitives/button';
-import FormSearchbar from '@ui/primitives/searchbar';
 import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -22,34 +22,17 @@ import {
   STAGE_FILTERS,
 } from './skill-filter-options';
 
-/** Rests as an icon in the subbar, like every other page search. */
+/** The skills search, with the Source / Modality / Stage Filters menu inside it. */
 export function SkillSearch({
-  onSearchQueryChange,
-  searchQuery,
-}: SkillSearchProps) {
-  const translate = useTranslations('common.settings.skills');
-
-  return (
-    <FormSearchbar
-      ariaLabel={translate('filters.search.label')}
-      isCollapsible
-      onChange={(event) => onSearchQueryChange(event.target.value)}
-      placeholder={translate('filters.search.placeholder')}
-      size={ComponentSize.SM}
-      value={searchQuery}
-    />
-  );
-}
-
-export default function SkillFilters({
-  agentHref,
   modalityFilter,
   onModalityFilterChange,
+  onSearchQueryChange,
   onSourceFilterChange,
   onStageFilterChange,
+  searchQuery,
   sourceFilter,
   stageFilter,
-}: SkillFiltersProps) {
+}: SkillSearchProps) {
   const translate = useTranslations('common.settings.skills');
 
   const facets: FilterMenuFacet[] = [
@@ -92,7 +75,12 @@ export default function SkillFilters({
   ];
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2.5">
+    <SearchField
+      ariaLabel={translate('filters.search.label')}
+      onChange={(event) => onSearchQueryChange(event.target.value)}
+      placeholder={translate('filters.search.placeholder')}
+      value={searchQuery}
+    >
       <FilterMenu
         allLabel={translate('filters.all')}
         clearLabel={translate('filters.clear')}
@@ -100,6 +88,7 @@ export default function SkillFilters({
         getActiveCountLabel={(count) =>
           translate('filters.activeCount', { count })
         }
+        isAttached
         label={translate('filters.menu')}
         onClear={() => {
           onSourceFilterChange('all');
@@ -107,18 +96,24 @@ export default function SkillFilters({
           onStageFilterChange('all');
         }}
       />
+    </SearchField>
+  );
+}
 
-      <Button
-        asChild
-        size={ButtonSize.SM}
-        variant={ButtonVariant.DEFAULT}
-        withWrapper={false}
-      >
-        <Link href={agentHref}>
-          <Sparkles className="size-4" />
-          {translate('actions.openAgent')}
-        </Link>
-      </Button>
-    </div>
+export default function SkillAgentAction({ agentHref }: SkillAgentActionProps) {
+  const translate = useTranslations('common.settings.skills');
+
+  return (
+    <Button
+      asChild
+      size={ButtonSize.SM}
+      variant={ButtonVariant.DEFAULT}
+      withWrapper={false}
+    >
+      <Link href={agentHref}>
+        <Sparkles className="size-4" />
+        {translate('actions.openAgent')}
+      </Link>
+    </Button>
   );
 }

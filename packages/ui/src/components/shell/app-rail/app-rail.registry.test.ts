@@ -218,10 +218,7 @@ describe('app rail registry', () => {
       getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/administration/users/u1'),
     ).toBe('admin-customers');
     expect(
-      getActiveAppId(
-        ADMIN_RAIL_CATEGORIES,
-        '/admin/overview/analytics/organizations',
-      ),
+      getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/organizations/org-1'),
     ).toBe('admin-customers');
     expect(
       getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/economics/costs'),

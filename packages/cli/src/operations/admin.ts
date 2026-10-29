@@ -95,6 +95,22 @@ export interface OrganizationCreditGrant {
   organizationId: string;
 }
 
+export interface OrganizationMemberInput {
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  roleKey?: 'admin' | 'member';
+}
+
+export interface OrganizationMemberAdded {
+  isMemberCreated: boolean;
+  isUserCreated: boolean;
+  memberId: string;
+  organizationId: string;
+  roleKey: string;
+  userId: string;
+}
+
 export interface OrganizationBrandInput {
   backgroundColor?: string;
   description?: string;
@@ -150,6 +166,18 @@ export async function grantOrganizationCredits(
 ): Promise<OrganizationCreditGrant> {
   const response = await adminPost<DataEnvelope<OrganizationCreditGrant>>(
     `/admin/organizations/${encodeURIComponent(organizationId)}/credits`,
+    input
+  );
+  return response.data;
+}
+
+/** Add a member to any organization with a role, without sending an invitation email. */
+export async function addOrganizationMember(
+  organizationId: string,
+  input: OrganizationMemberInput
+): Promise<OrganizationMemberAdded> {
+  const response = await adminPost<DataEnvelope<OrganizationMemberAdded>>(
+    `/admin/organizations/${encodeURIComponent(organizationId)}/members`,
     input
   );
   return response.data;

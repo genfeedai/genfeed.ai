@@ -78,12 +78,10 @@ test('library list navigation preserves resolved tenant parameters', async ({
       ),
     ).toBeChecked();
     await authenticatedPage.keyboard.press('Escape');
-    await expect(
-      authenticatedPage.getByRole('button', {
-        name: 'Remove Recent filter',
-        exact: true,
-      }),
-    ).toBeVisible();
+    // The Images type and Recent are both counted on the trigger.
+    await expect(filtersTrigger(authenticatedPage)).toContainText(
+      '2 filters applied',
+    );
   });
   await expectResolvedLinks(authenticatedPage);
   expect(placeholderRequests).toEqual([]);

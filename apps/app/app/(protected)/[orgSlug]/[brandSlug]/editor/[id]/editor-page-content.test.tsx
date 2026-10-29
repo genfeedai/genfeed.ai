@@ -283,6 +283,29 @@ vi.mock('./EditorPreview', () => ({
   },
 }));
 
+// The workspace shell owns the host and the Context tab; render the inspector
+// inline so these tests drive the same panels the operator sees there.
+vi.mock('@contexts/ui/context-sidebar-context', async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import('@contexts/ui/context-sidebar-context')
+  >()),
+  ContextSidebarPanel: ({
+    children,
+    selection,
+  }: {
+    children: React.ReactNode;
+    selection: { id: string; origin?: string };
+  }) => (
+    <aside
+      aria-label="inspector"
+      data-origin={selection.origin}
+      data-selection-id={selection.id}
+    >
+      {children}
+    </aside>
+  ),
+}));
+
 vi.mock('./EditorTextPanel', () => ({
   default: ({
     onAddTextTrack,
@@ -575,6 +598,18 @@ describe('EditorPageContent', () => {
         'Render started! Check the gallery for the output.',
       );
     });
+  });
+
+  it('opens the inspector on the clip the operator picks', async () => {
+    await renderLoadedEditor();
+
+    const inspector = screen.getByRole('complementary', { name: 'inspector' });
+    expect(inspector).toHaveAttribute('data-origin', 'automatic');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Select Clip' }));
+
+    expect(inspector).toHaveAttribute('data-origin', 'user');
+    expect(inspector).toHaveAttribute('data-selection-id', 'clip-1');
   });
 
   it('adds a video track from the gallery callback', async () => {

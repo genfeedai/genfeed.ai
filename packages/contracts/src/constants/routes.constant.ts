@@ -38,8 +38,6 @@ export const APP_ROUTES = {
       BOTS: '/admin/automation/bots',
       FAILURES: '/admin/automation/failures',
       MODELS: '/admin/automation/models',
-      MODELS_ACTIVE: '/admin/automation/models?type=active',
-      MODELS_ALL: '/admin/automation/models?type=all',
       TRAININGS: '/admin/automation/trainings',
       WORKFLOWS: '/admin/automation/workflows',
     },
@@ -58,7 +56,6 @@ export const APP_ROUTES = {
       FONT_FAMILIES: '/admin/configuration/font-families',
       PRESETS: '/admin/configuration/presets',
       TAGS: '/admin/configuration/tags',
-      TAGS_ALL: '/admin/configuration/tags?filter=all',
     },
     CONTENT: {
       // Ghost CRM routes (analytics/companies/leads/tasks) removed — no pages.
@@ -86,7 +83,6 @@ export const APP_ROUTES = {
       ANALYTICS: '/admin/overview/analytics',
       ANALYTICS_ALL: '/admin/overview/analytics/all',
       ANALYTICS_BUSINESS: '/admin/overview/analytics/business',
-      ANALYTICS_ORGANIZATIONS: '/admin/overview/analytics/organizations',
       ROOT: '/admin/overview',
     },
   },
@@ -642,6 +638,9 @@ export const MESSAGES_CONVERSATION_QUERY_PARAM = 'socialConversation';
 
 /** #5502 query param that seeds the Messages inbox type filter (`dm`, `reply`, `comment`). */
 export const MESSAGES_TYPE_QUERY_PARAM = 'type';
+
+/** Query param of the Messages Status filter; the default (Inbox) is omitted. */
+export const MESSAGES_STATUS_QUERY_PARAM = 'status';
 
 /** Brand-relative path that opens one Messages conversation. */
 export function createMessagesConversationRoute(

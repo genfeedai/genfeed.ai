@@ -29,7 +29,6 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export default function AnalyticsOrganizationsList({
-  basePath = APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS,
   getReleaseAccessHref,
 }: AnalyticsOrganizationsListProps) {
   const translate = useTranslations('pages.adminOrganizations');
@@ -131,7 +130,7 @@ export default function AnalyticsOrganizationsList({
         key: 'name',
         render: (org) => (
           <Link
-            href={`${basePath}/organizations/${org.id}`}
+            href={`${APP_ROUTES.ADMIN.ORGANIZATIONS}/${org.id}`}
             className="flex items-center gap-3 hover:text-primary"
           >
             {org.logo ? (
@@ -238,7 +237,7 @@ export default function AnalyticsOrganizationsList({
           ]
         : []),
     ],
-    [basePath, getReleaseAccessHref, rowSidebarT, translate],
+    [getReleaseAccessHref, rowSidebarT, translate],
   );
 
   return (
@@ -294,7 +293,7 @@ export default function AnalyticsOrganizationsList({
                   value: `${org.growth > 0 ? '+' : ''}${org.growth.toFixed(1)}%`,
                 },
               ]}
-              openHref={`${basePath}/organizations/${org.id}`}
+              openHref={`${APP_ROUTES.ADMIN.ORGANIZATIONS}/${org.id}`}
               openLabel={analyticsT('openOrganization')}
             />
           ),

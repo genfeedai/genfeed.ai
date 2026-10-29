@@ -9,6 +9,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ChangeEvent, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SocialMessagesPage from './page';
@@ -16,6 +17,18 @@ import SocialMessagesPage from './page';
 assertSourceHasExport(
   'app/(protected)/[orgSlug]/[brandSlug]/messages/page.tsx',
 );
+
+/** Opens the shared Filters menu and picks `option` in the `facet` submenu. */
+async function chooseFilter(
+  user: ReturnType<typeof userEvent.setup>,
+  facet: RegExp,
+  option: RegExp,
+) {
+  await user.click(await screen.findByRole('button', { name: /^filters/i }));
+  (await screen.findByRole('menuitem', { name: facet })).focus();
+  await user.keyboard('{ArrowRight}');
+  await user.click(await screen.findByRole('menuitemradio', { name: option }));
+}
 
 const mocks = vi.hoisted(() => ({
   agentDock: null as null | { isAvailable: boolean; open: () => void },
@@ -193,6 +206,7 @@ vi.mock('@ui/primitives/button', () => ({
     isDisabled,
     onClick,
     title,
+    ...rest
   }: {
     'aria-pressed'?: boolean;
     ariaLabel?: string;
@@ -203,8 +217,19 @@ vi.mock('@ui/primitives/button', () => ({
     isDisabled?: boolean;
     onClick?: () => void;
     title?: string;
-  }) =>
-    asChild ? (
+  } & Record<string, unknown>) => {
+    // Keep what Radix triggers inject (handlers, aria/data attributes, ref).
+    const triggerProps = Object.fromEntries(
+      Object.entries(rest).filter(
+        ([key]) =>
+          key === 'ref' ||
+          key === 'id' ||
+          key === 'role' ||
+          /^(on[A-Z]|aria-|data-)/.test(key),
+      ),
+    );
+
+    return asChild ? (
       (children ?? null)
     ) : (
       <button
@@ -213,12 +238,14 @@ vi.mock('@ui/primitives/button', () => ({
         disabled={disabled || isDisabled}
         title={title}
         type="button"
+        {...triggerProps}
         onClick={onClick}
       >
         {icon}
         {children}
       </button>
-    ),
+    );
+  },
 }));
 
 vi.mock('@ui/primitives/input', () => ({
@@ -386,6 +413,10 @@ const messages = [
 
 describe('SocialMessagesPage', () => {
   beforeEach(() => {
+    // Radix menus need pointer capture and scrollIntoView, which jsdom lacks.
+    Element.prototype.hasPointerCapture = vi.fn(() => false);
+    Element.prototype.releasePointerCapture = vi.fn();
+    Element.prototype.scrollIntoView = vi.fn();
     vi.clearAllMocks();
     mocks.brandContext.settings = {
       hasOrganizationBilling: false,
@@ -855,9 +886,9 @@ describe('SocialMessagesPage', () => {
       screen.getByRole('button', { name: 'Sync inbox' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Filter social conversations' }),
+      screen.getByRole('button', { name: /^filters/i }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'DMs' })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
     expect(screen.queryByText('0 conversations')).not.toBeInTheDocument();
     expect(screen.queryByText('Connected')).not.toBeInTheDocument();
 
@@ -887,9 +918,13 @@ describe('SocialMessagesPage', () => {
     expect(
       screen.queryByLabelText('Credential or account ID'),
     ).not.toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /^filters/i }));
+    (await screen.findByRole('menuitem', { name: /^account/i })).focus();
+    await user.keyboard('{ArrowRight}');
     expect(
-      screen.getAllByRole('button', { name: 'YouTube' }).length,
-    ).toBeGreaterThan(0);
+      await screen.findByRole('menuitemradio', { name: 'YouTube' }),
+    ).toBeInTheDocument();
   });
 
   it('uses the account picker to filter conversations and sync only that account', async () => {
@@ -903,10 +938,10 @@ describe('SocialMessagesPage', () => {
     );
     render(<SocialMessagesPage />);
     await screen.findByRole('button', { name: 'Sync inbox' });
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Instagram · instagram account',
-      }),
+    await chooseFilter(
+      userEvent.setup(),
+      /^account/i,
+      /Instagram · instagram account/,
     );
     await waitFor(() =>
       expect(mocks.listPage).toHaveBeenLastCalledWith(
@@ -996,9 +1031,7 @@ describe('SocialMessagesPage', () => {
       }),
     ).toBeInTheDocument();
     expect(
-      within(portalTarget).getByRole('button', {
-        name: 'Filter social conversations',
-      }),
+      within(portalTarget).getByRole('button', { name: /^filters/i }),
     ).toBeInTheDocument();
     expect(screen.getByTestId('messages-surface-layout')).not.toHaveClass(
       'lg:grid-cols-[380px_minmax(0,1fr)]',
@@ -1038,10 +1071,7 @@ describe('SocialMessagesPage', () => {
 
     await screen.findByRole('button', { name: 'Sync inbox' });
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Filter social conversations' }),
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'DMs' }));
+    await chooseFilter(userEvent.setup(), /^type/i, /^DMs/);
 
     await waitFor(() =>
       expect(mocks.listPage).toHaveBeenCalledWith(
@@ -1090,10 +1120,7 @@ describe('SocialMessagesPage', () => {
     render(<SocialMessagesPage />);
 
     await screen.findByRole('button', { name: 'Sync inbox' });
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Filter social conversations' }),
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Comments' }));
+    await chooseFilter(userEvent.setup(), /^type/i, /^Comments/);
     fireEvent.click(
       await screen.findByRole('button', { name: 'Sync comments' }),
     );

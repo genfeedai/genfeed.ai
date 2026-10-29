@@ -20,9 +20,9 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import {
   ArticleSerializer,
-  BrandSerializer,
   IngredientSerializer,
   LinkSerializer,
+  PublicBrandSerializer,
   VideoSerializer,
 } from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
@@ -102,7 +102,7 @@ export class PublicBrandsController {
     const data = await this.brandsService.findAll(aggregate, options);
     data.docs = await this.attachPublicBrandAssets(data.docs);
 
-    return serializeCollection(request, BrandSerializer, data);
+    return serializeCollection(request, PublicBrandSerializer, data);
   }
 
   @Get('slug')
@@ -138,7 +138,7 @@ export class PublicBrandsController {
 
     return serializeSingle(
       request,
-      BrandSerializer,
+      PublicBrandSerializer,
       await this.attachPublicBrandAsset(data),
     );
   }
@@ -172,7 +172,7 @@ export class PublicBrandsController {
 
     return serializeSingle(
       request,
-      BrandSerializer,
+      PublicBrandSerializer,
       await this.attachPublicBrandAsset(data),
     );
   }

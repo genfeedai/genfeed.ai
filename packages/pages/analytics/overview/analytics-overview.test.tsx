@@ -521,11 +521,7 @@ describe('AnalyticsOverview', () => {
 
   it('preserves superadmin destinations despite a selected brand payload', () => {
     const markup = renderToStaticMarkup(
-      <AnalyticsOverview
-        scope={PageScope.SUPERADMIN}
-        basePath="/admin/overview/analytics"
-        brandsBasePath="/admin"
-      />,
+      <AnalyticsOverview scope={PageScope.SUPERADMIN} basePath="/admin" />,
     );
     expect(markup).toContain('/acme/~/settings/integrations');
     expect(markup).not.toContain('/acme/brand-x/settings/connected-accounts');
