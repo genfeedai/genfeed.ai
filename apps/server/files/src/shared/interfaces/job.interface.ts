@@ -127,6 +127,7 @@ export interface VideoProcessingParams {
   endCardStorageKey?: string; // Brand end card image appended after the merge
   endCardDuration?: number; // Seconds the end card stays on screen
   endCardBackgroundColor?: string; // #RRGGBB behind a card that does not fill the frame
+  lutStorageKey?: string; // Brand .cube colour LUT applied to the merged video, before the end card
   isBeatSyncEnabled?: boolean; // Trim clips so every cut lands on a beat of the music
   beatSyncCutStrategy?: BeatSyncCutStrategy;
 
@@ -259,6 +260,7 @@ export interface JobProgress {
     | 'downloading-music'
     | 'merging'
     | 'resizing'
+    | 'color-grading'
     | 'adding-end-card'
     | 'uploading';
   stepProgress?: number; // 0-100 progress within current step

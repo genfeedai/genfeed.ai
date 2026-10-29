@@ -1086,6 +1086,9 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   endCardAssetId           String?
   endCardDurationSeconds   Float        @default(3)
   isEndCardEnabled         Boolean      @default(false)
+  isLutEnabled             Boolean      @default(false)
+  lutFileName              String?
+  lutStorageKey            String?
   knowledgeSources KnowledgeSource[]
   knowledgeSpaces KnowledgeSpace[]
   id                       String       @id @default(cuid())

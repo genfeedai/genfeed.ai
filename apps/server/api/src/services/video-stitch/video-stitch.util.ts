@@ -269,6 +269,7 @@ export function buildVideoStitchJobParams(
           endCardStorageKey: plan.endCard.storageKey,
         }
       : {}),
+    ...(plan.lut ? { lutStorageKey: plan.lut.storageKey } : {}),
     ...(settings.isBeatSyncEnabled
       ? {
           beatSyncCutStrategy:

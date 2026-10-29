@@ -390,6 +390,12 @@ export interface BrandEndCardSettingsProps {
   onRefreshBrand: () => Promise<void>;
 }
 
+export interface BrandLutSettingsProps {
+  brand: IBrand;
+  brandId: string;
+  onRefreshBrand: () => Promise<void>;
+}
+
 export interface BrandWatermarkSettingsProps {
   brand: IBrand;
   brandId: string;

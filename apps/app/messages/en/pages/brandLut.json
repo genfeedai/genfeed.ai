@@ -1,0 +1,15 @@
+{
+  "title": "Brand colour grade",
+  "description": "Grade every finished video with your brand's look. Upload a .cube 3D LUT from your grading tool and switch it on.",
+  "enabled": "Grade finished videos with this LUT",
+  "file": "Colour LUT",
+  "noFile": "No LUT uploaded yet.",
+  "upload": "Upload .cube file",
+  "replace": "Replace .cube file",
+  "remove": "Remove LUT",
+  "uploaded": "LUT uploaded.",
+  "removed": "LUT removed.",
+  "saved": "Colour grade setting saved.",
+  "invalidFile": "Choose a .cube file up to {size} MB.",
+  "error": "Could not save the colour grade. Please try again."
+}

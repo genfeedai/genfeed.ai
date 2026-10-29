@@ -20,6 +20,7 @@ export class BrandWatermarkLogoService {
     update: {
       endCardAssetId?: string | null;
       isEndCardEnabled?: boolean;
+      isLutEnabled?: boolean;
       watermarkLogoId?: string | null;
     },
   ): Promise<void> {
@@ -31,6 +32,25 @@ export class BrandWatermarkLogoService {
       );
     }
     await this.validateEndCardSettings(brandId, organizationId, update);
+    await this.validateLutSettings(brandId, organizationId, update);
+  }
+
+  /** Turning the grade on needs a LUT uploaded to this brand first. */
+  async validateLutSettings(
+    brandId: string,
+    organizationId: string,
+    update: { isLutEnabled?: boolean },
+  ): Promise<void> {
+    if (!update.isLutEnabled) return;
+    const brand = await this.prisma.brand.findFirst({
+      select: { lutStorageKey: true },
+      where: { id: brandId, organizationId, isDeleted: false },
+    });
+    if (!brand) throw new NotFoundException('Brand', brandId);
+    if (!brand.lutStorageKey)
+      throw new BadRequestException(
+        'Upload a .cube LUT before turning the colour grade on',
+      );
   }
 
   async validateWatermarkLogo(

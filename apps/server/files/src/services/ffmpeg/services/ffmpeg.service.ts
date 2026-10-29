@@ -535,6 +535,20 @@ export class FFmpegService {
     );
   }
 
+  async applyColorLut(
+    inputPath: string,
+    lutPath: string,
+    outputPath: string,
+    onProgress?: (progress: FFmpegProgress) => void,
+  ): Promise<void> {
+    return this.effects.applyColorLut(
+      inputPath,
+      lutPath,
+      outputPath,
+      onProgress,
+    );
+  }
+
   async addCaptions(
     inputPath: string,
     outputPath: string,

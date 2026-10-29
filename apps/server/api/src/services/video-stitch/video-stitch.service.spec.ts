@@ -357,6 +357,40 @@ describe('VideoStitchService', () => {
     );
   });
 
+  describe('brand colour LUT', () => {
+    it('adds no grade until the brand turns one on', async () => {
+      await fixture.service.stitch(request());
+      expect(fixture.queued[0]?.params).not.toHaveProperty('lutStorageKey');
+    });
+
+    it('hands the worker the brand LUT file', async () => {
+      fixture.addBrandWithLut();
+      await fixture.service.stitch(request());
+      expect(fixture.queued[0]?.params).toMatchObject({
+        lutStorageKey: 'brand-luts/org-1/brand-1/lut.cube',
+      });
+    });
+
+    it('skips the grade while the brand switch is off, keeping the file', async () => {
+      fixture.addBrandWithLut({ isLutEnabled: false });
+      await fixture.service.stitch(request());
+      expect(fixture.queued[0]?.params).not.toHaveProperty('lutStorageKey');
+    });
+
+    it('refuses to ship ungraded when the switch is on but the file is gone', async () => {
+      fixture.addBrandWithLut({ lutStorageKey: null });
+      expect(await failingField(fixture.service.stitch(request()))).toBe('lut');
+      expect(fixture.outputs()).toHaveLength(0);
+      expect(fixture.queued).toHaveLength(0);
+    });
+
+    it('never reads another organization’s LUT', async () => {
+      fixture.addBrandWithLut({ organizationId: 'org-2' });
+      await fixture.service.stitch(request());
+      expect(fixture.queued[0]?.params).not.toHaveProperty('lutStorageKey');
+    });
+  });
+
   describe('shared validation', () => {
     it.each([
       ['clipIds', request({ clipIds: ['clip-1'] })],

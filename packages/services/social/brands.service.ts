@@ -669,6 +669,32 @@ export class BrandsService extends BaseService<Brand> {
       .then((res) => this.mapOne(res.data));
   }
 
+  /** Turns the brand's colour grade on or off; the file itself is set by {@link uploadLut}. */
+  public async updateLut(
+    id: string,
+    settings: Pick<IBrand, 'isLutEnabled'>,
+  ): Promise<Brand> {
+    return this.instance
+      .patch<JsonApiResponseDocument>(`/${id}`, settings)
+      .then((res) => this.mapOne(res.data));
+  }
+
+  /** Stores a `.cube` colour LUT on the brand, replacing the current one. */
+  public async uploadLut(id: string, file: File): Promise<Brand> {
+    const form = new FormData();
+    form.append('file', file);
+    return this.instance
+      .put<JsonApiResponseDocument>(`/${id}/lut`, form, { timeout: 60000 })
+      .then((res) => this.mapOne(res.data));
+  }
+
+  /** Removes the brand's LUT and turns the grade off. */
+  public async removeLut(id: string): Promise<Brand> {
+    return this.instance
+      .delete<JsonApiResponseDocument>(`/${id}/lut`)
+      .then((res) => this.mapOne(res.data));
+  }
+
   /**
    * Add reference images (face, product, style, logo) to a brand. Backs
    * `POST /brands/:id/reference-images` (dissolves the onboarding route,

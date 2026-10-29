@@ -13,6 +13,8 @@ export const brandAttributes = createEntityAttributes([
   'endCardAssetId',
   'endCardDurationSeconds',
   'isEndCardEnabled',
+  'lutFileName',
+  'isLutEnabled',
   'description',
   'text',
   'fontFamily',

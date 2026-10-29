@@ -37,6 +37,7 @@ const probeResult = (duration: string) => ({
 
 describe('VideoMergeJobService', () => {
   const ffmpegService = {
+    applyColorLut: vi.fn().mockResolvedValue(undefined),
     appendEndCard: vi.fn().mockResolvedValue(undefined),
     cleanupTempFiles: vi.fn(),
     probe: vi.fn(),
@@ -351,6 +352,98 @@ describe('VideoMergeJobService', () => {
         expect(ffmpegService.appendEndCard).not.toHaveBeenCalled();
       },
     );
+  });
+
+  describe('brand colour LUT', () => {
+    const tempDirectory = '/tmp/merge-ingredient-123';
+    const lutParams = {
+      endCardBackgroundColor: '#112233',
+      endCardDuration: 3,
+      endCardStorageKey: 'logos/brand-logo',
+      lutStorageKey: 'brand-luts/org-1/brand-1/lut.cube',
+      sourceIds: ['source-1'],
+      sourceStorageKeys: ['ingredients/videos/source-1'],
+    };
+
+    beforeEach(async () => {
+      await mkdir(tempDirectory, { recursive: true });
+      const logo = await sharp({
+        create: {
+          background: { alpha: 1, b: 0, g: 0, r: 0 },
+          channels: 4,
+          height: 20,
+          width: 40,
+        },
+      })
+        .png()
+        .toBuffer();
+      s3Service.downloadFile.mockImplementation(
+        async (key: string, localPath: string) => {
+          if (key === 'logos/brand-logo') await writeFile(localPath, logo);
+        },
+      );
+    });
+
+    afterEach(async () => {
+      s3Service.downloadFile.mockReset().mockResolvedValue(undefined);
+      await rm(tempDirectory, { force: true, recursive: true });
+    });
+
+    it('grades the merged video, then closes the graded file with the end card', async () => {
+      await service.process(createJob(createJobData({ params: lutParams })));
+
+      expect(s3Service.downloadFile).toHaveBeenCalledWith(
+        'brand-luts/org-1/brand-1/lut.cube',
+        `${tempDirectory}/brand-lut.cube`,
+      );
+      expect(ffmpegService.applyColorLut).toHaveBeenCalledWith(
+        `${tempDirectory}/merged.mp4`,
+        `${tempDirectory}/brand-lut.cube`,
+        `${tempDirectory}/graded.mp4`,
+        expect.any(Function),
+      );
+      expect(ffmpegService.appendEndCard).toHaveBeenCalledWith(
+        `${tempDirectory}/graded.mp4`,
+        expect.any(String),
+        expect.any(String),
+        expect.anything(),
+        expect.any(Function),
+      );
+    });
+
+    it('delivers the graded file when there is no end card', async () => {
+      await service.process(
+        createJob(
+          createJobData({
+            params: {
+              lutStorageKey: lutParams.lutStorageKey,
+              sourceIds: ['source-1'],
+              sourceStorageKeys: ['ingredients/videos/source-1'],
+            },
+          }),
+        ),
+      );
+
+      expect(s3Service.uploadFile).toHaveBeenCalledWith(
+        expect.any(String),
+        `${tempDirectory}/graded.mp4`,
+        'video/mp4',
+      );
+    });
+
+    it('grades nothing when the brand has no LUT', async () => {
+      await service.process(createJob(createJobData()));
+      expect(ffmpegService.applyColorLut).not.toHaveBeenCalled();
+    });
+
+    it('fails the job instead of delivering an ungraded video', async () => {
+      ffmpegService.applyColorLut.mockRejectedValueOnce(new Error('lut3d'));
+      await expect(
+        service.process(createJob(createJobData({ params: lutParams }))),
+      ).rejects.toThrow('lut3d');
+      expect(s3Service.uploadFile).not.toHaveBeenCalled();
+      expect(webSocketService.emitError).toHaveBeenCalled();
+    });
   });
 
   it('fails before downloading when activated source keys are absent', async () => {

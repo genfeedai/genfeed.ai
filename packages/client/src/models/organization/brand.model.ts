@@ -25,6 +25,8 @@ export class Brand extends BaseEntity implements IBrand {
   declare public endCardAssetId?: string | null;
   declare public endCardDurationSeconds?: number;
   declare public isEndCardEnabled?: boolean;
+  declare public lutFileName?: string | null;
+  declare public isLutEnabled?: boolean;
   declare public slug: string;
   declare public label: string;
   declare public description: string;
