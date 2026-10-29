@@ -111,6 +111,22 @@ export const REPLICATE_VARIANT_SELECTORS: Readonly<
       },
     },
   ],
+  // Public schema and billingConfig, 2026-10-29: Replicate bills by tier,
+  // output resolution and a frame-rate band (30 fps or below, above 30 fps).
+  'bytedance/video-upscaler': [
+    field('processing_type', identity('standard', 'pro')),
+    field(
+      'target_fps',
+      {
+        '24': 'up-to-30',
+        '30': 'up-to-30',
+        '60': 'above-30',
+        '120': 'above-30',
+      },
+      'target frames per second',
+      'target_fps_band',
+    ),
+  ],
   'kwaivgi/kling-v2.1': [field('mode', identity('standard', 'pro'))],
   'kwaivgi/kling-v2.6': [audio],
   'kwaivgi/kling-v3-video': kling3,

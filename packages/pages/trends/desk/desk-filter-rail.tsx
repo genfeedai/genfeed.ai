@@ -33,6 +33,7 @@ export default function DeskFilterRail({
   activePlatforms,
   onTogglePlatform,
   onClearPlatforms,
+  isAttached,
   items,
   summary,
   onContentTypeChange,
@@ -44,6 +45,8 @@ export default function DeskFilterRail({
   activePlatforms: Set<string>;
   onTogglePlatform: (platform: string) => void;
   onClearPlatforms: () => void;
+  /** Sits inside a `SearchField`'s trailing edge: a compact trigger. */
+  isAttached?: boolean;
   items: DiscoveryDeskItem[];
   summary: TrendsSummary;
   contentType: DiscoveryDeskContentTypeFilter;
@@ -141,6 +144,7 @@ export default function DeskFilterRail({
       getActiveCountLabel={(count) =>
         translate('filters.activeCount', { count })
       }
+      isAttached={isAttached}
       label={translate('filters.menu')}
       onClear={() => {
         onClearPlatforms();

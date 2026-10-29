@@ -59,7 +59,6 @@ test.describe('Admin Configuration', () => {
     );
     const search = adminPage.getByPlaceholder(/^Search/);
     await expect(search).toBeVisible();
-    await expect(adminPage.getByTestId('collapsible-search')).toHaveCount(0);
 
     const field = search.locator('xpath=../..');
     await expect(filtersTrigger(field)).toBeVisible();

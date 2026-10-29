@@ -3,7 +3,6 @@
 import { IngredientsProvider } from '@contexts/content/ingredients-context/ingredients-context';
 import { IngredientsHeaderProvider } from '@contexts/content/ingredients-header-context/ingredients-header-context';
 import {
-  ComponentSize,
   LIBRARY_SHELF_LABELS,
   LibraryPlace,
   LibraryShelf,
@@ -17,17 +16,16 @@ import type { LibraryBrowserProps } from '@props/pages/library-browser.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
 import Container from '@ui/layout/container/Container';
-import FormSearchbar from '@ui/primitives/searchbar';
 import { useLibraryTags } from '@ui/tags/library-tag-picker/use-library-tags';
 import { Library } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import LibraryActiveFilters from './library-active-filters';
 import {
   LIBRARY_PLACE_COPY,
   LIBRARY_SORT_OPTIONS,
 } from './library-browser.config';
 import LibraryBrowserToolbar, {
   LibraryBrowserIconActions,
+  LibraryBrowserSearch,
 } from './library-browser-toolbar';
 import { useLibraryBrowser } from './use-library-browser';
 import { useLibraryCharacterOptions } from './use-library-character-options';
@@ -149,45 +147,43 @@ export default function LibraryBrowser({
             label={destination.label}
             titleVisibility="sr-only"
             leading={
-              <FormSearchbar
-                isCollapsible
+              <LibraryBrowserSearch
+                categories={categories}
+                characterOptions={characterOptions}
+                characters={characters}
+                onCategoriesChange={handleCategoriesChange}
+                onCharactersChange={handleCharactersChange}
+                onClearAllFilters={handleClearAllFilters}
+                onOriginsChange={handleOriginsChange}
+                onPlaceChange={handlePlaceChange}
                 onSearch={handleSearchChange}
+                onSortChange={handleSortChange}
+                onStatusChange={handleStatusChange}
+                onTagMatchChange={handleTagMatchChange}
+                onTagsChange={handleTagsChange}
+                origins={origins}
+                place={place}
                 placeholder={
                   scope === PageScope.ORGANIZATION
                     ? 'Search organization assets'
                     : "Search this brand's assets"
                 }
-                size={ComponentSize.SM}
-                value={search}
+                search={search}
+                shelf={shelf}
+                shelfCounts={summary?.byShelf}
+                sort={sort}
+                sortOptions={[...LIBRARY_SORT_OPTIONS]}
+                tagMatch={tagMatch}
+                tagOptions={tagOptions}
+                tags={tags}
+                trashedCount={summary?.trashedCount}
               />
             }
             right={
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <LibraryBrowserToolbar
                   isRecoveryView={isRecoveryView}
-                  categories={categories}
-                  characterOptions={characterOptions}
-                  characters={characters}
-                  onCategoriesChange={handleCategoriesChange}
-                  onCharactersChange={handleCharactersChange}
-                  onClearAllFilters={handleClearAllFilters}
-                  onOriginsChange={handleOriginsChange}
-                  onPlaceChange={handlePlaceChange}
-                  onStatusChange={handleStatusChange}
-                  origins={origins}
-                  place={place}
-                  shelf={shelf}
-                  shelfCounts={summary?.byShelf}
-                  trashedCount={summary?.trashedCount}
-                  onSortChange={handleSortChange}
-                  onTagMatchChange={handleTagMatchChange}
-                  onTagsChange={handleTagsChange}
                   onViewModeChange={handleViewModeChange}
-                  sort={sort}
-                  sortOptions={[...LIBRARY_SORT_OPTIONS]}
-                  tagMatch={tagMatch}
-                  tagOptions={tagOptions}
-                  tags={tags}
                   viewMode={viewMode}
                 />
                 {isRecoveryView ? (
@@ -214,27 +210,6 @@ export default function LibraryBrowser({
             }
             topbarFooter={
               <>
-                <LibraryActiveFilters
-                  categories={categories}
-                  characterOptions={characterOptions}
-                  characters={characters}
-                  onCategoriesChange={handleCategoriesChange}
-                  onCharactersChange={handleCharactersChange}
-                  onClearAllFilters={handleClearAllFilters}
-                  onOriginsChange={handleOriginsChange}
-                  onPlaceChange={handlePlaceChange}
-                  onStatusChange={handleStatusChange}
-                  onTagMatchChange={handleTagMatchChange}
-                  onTagsChange={handleTagsChange}
-                  origins={origins}
-                  place={place}
-                  shelf={shelf}
-                  shelfCounts={summary?.byShelf}
-                  tagMatch={tagMatch}
-                  tagOptions={tagOptions}
-                  tags={tags}
-                  trashedCount={summary?.trashedCount}
-                />
                 <div
                   className="empty:hidden"
                   data-testid="library-selection-slot"

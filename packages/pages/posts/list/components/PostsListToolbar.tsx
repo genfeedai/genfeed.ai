@@ -1,6 +1,6 @@
 'use client';
 
-import { ComponentSize, PostStatus } from '@genfeedai/contracts';
+import { PostStatus } from '@genfeedai/contracts';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { getPostPlatformTabs } from '@helpers/content/posts.helper';
 import {
@@ -10,8 +10,9 @@ import {
   parsePostsSource,
 } from '@pages/posts/list/posts-list-query';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
-import FormSearchbar from '@ui/primitives/searchbar';
+import SearchField from '@ui/content/search-field/SearchField';
 import { useTranslations } from 'next-intl';
+import type { ReactNode } from 'react';
 
 export interface PostsListToolbarOption {
   label: string;
@@ -30,6 +31,8 @@ const PUBLISHING_VIEW_OPTIONS: {
 ];
 
 export interface PostsListToolbarProps {
+  /** Sits inside a `SearchField`'s trailing edge: a compact trigger. */
+  isAttached?: boolean;
   sortValue: string;
   sortOptions: PostsListToolbarOption[];
   onSortChange: (value: string) => void;
@@ -43,30 +46,33 @@ export interface PostsListToolbarProps {
 }
 
 export interface PostsListSearchProps {
+  /** The Filters menu, attached inside the field. */
+  children?: ReactNode;
   searchValue: string;
   onSearchChange: (value: string) => void;
 }
 
-/** Rests as an icon, like the Library search. */
+/** The posts search, with the Filters menu attached inside it. */
 export function PostsListSearch({
+  children,
   searchValue,
   onSearchChange,
 }: PostsListSearchProps) {
   const translate = useTranslations('pages.posts.list');
   return (
-    <FormSearchbar
-      isCollapsible
+    <SearchField
       onSearch={onSearchChange}
       placeholder={translate('toolbar.searchPlaceholder')}
-      // SM keeps the control on the same 32px shell row as ViewToggle + refresh.
-      size={ComponentSize.SM}
       value={searchValue}
-    />
+    >
+      {children}
+    </SearchField>
   );
 }
 
 /** Publishing state, source and sort behind the shared Filters menu. */
 export default function PostsListToolbar({
+  isAttached,
   sortValue,
   sortOptions,
   onSortChange,
@@ -148,6 +154,7 @@ export default function PostsListToolbar({
   return (
     <FilterMenu
       facets={facets}
+      isAttached={isAttached}
       onClear={() => {
         onSourceChange?.(undefined);
         onPlatformChange?.('all');

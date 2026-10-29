@@ -10,6 +10,7 @@ import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.prop
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
+import SearchField from '@ui/content/search-field/SearchField';
 import Container from '@ui/layout/container/Container';
 import { LazyModalTrainingNew } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
@@ -108,11 +109,28 @@ export default function ModelsLayoutContent({
     ...(activeType === 'all' ? (toolbar?.facets ?? []) : []),
   ];
 
+  const clearFilters = () => {
+    toolbar?.onClear();
+  };
+  // The catalog has a search, so its Filters menu sits inside that field. The
+  // other views have none, so the menu stands alone.
+  const hasSearch = activeType === 'all' && toolbar != null;
+
   return (
     <Container
       label="Models"
       icon={Cpu}
-      leading={activeType === 'all' ? toolbar?.searchNode : undefined}
+      leading={
+        hasSearch ? (
+          <SearchField
+            onSearch={toolbar.search.onSearch}
+            placeholder={toolbar.search.placeholder}
+            value={toolbar.search.value}
+          >
+            <FilterMenu facets={facets} isAttached onClear={clearFilters} />
+          </SearchField>
+        ) : undefined
+      }
       refresh={
         isCustomModelsTab ? undefined : (
           <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
@@ -123,12 +141,9 @@ export default function ModelsLayoutContent({
           data-testid="models-layout-actions"
           className="flex items-center gap-2"
         >
-          <FilterMenu
-            facets={facets}
-            onClear={() => {
-              toolbar?.onClear();
-            }}
-          />
+          {hasSearch ? null : (
+            <FilterMenu facets={facets} onClear={clearFilters} />
+          )}
 
           {isTrainingsTab && canTrain ? (
             <Button

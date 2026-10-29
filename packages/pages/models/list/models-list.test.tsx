@@ -19,6 +19,7 @@ import {
   within,
 } from '@testing-library/react';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
+import SearchField from '@ui/content/search-field/SearchField';
 import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
@@ -123,8 +124,17 @@ function ModelsToolbarHost() {
 
   return toolbar ? (
     <header data-testid="models-subbar">
-      {toolbar.searchNode}
-      <FilterMenu facets={toolbar.facets} onClear={toolbar.onClear} />
+      <SearchField
+        onSearch={toolbar.search.onSearch}
+        placeholder={toolbar.search.placeholder}
+        value={toolbar.search.value}
+      >
+        <FilterMenu
+          facets={toolbar.facets}
+          isAttached
+          onClear={toolbar.onClear}
+        />
+      </SearchField>
     </header>
   ) : null;
 }
