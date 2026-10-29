@@ -506,6 +506,16 @@ export interface Wan27T2VInput extends BaseVideoInput {
   seed?: number;
 }
 
+/** Alibaba Wan 3.0 (text-to-video, or image-to-video with a first frame) */
+export interface Wan3Input extends BaseVideoInput {
+  aspect_ratio: string;
+  duration: number;
+  image?: string;
+  resolution?: string;
+  negative_prompt?: string;
+  seed?: number;
+}
+
 /** Google Veo 3.1 Lite */
 export interface Veo31LiteInput extends BaseVideoInput {
   aspect_ratio: string;
@@ -541,6 +551,7 @@ export type ReplicateVideoInput =
   | Hailuo23FastInput
   | ViduQ3Input
   | Wan27T2VInput
+  | Wan3Input
   | Veo31LiteInput;
 
 /** DeepSeek R1 */

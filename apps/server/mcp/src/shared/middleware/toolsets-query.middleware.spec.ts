@@ -1,6 +1,7 @@
 import {
   DEFAULT_MCP_PROFILE_TOOLSETS,
   DIRECTORY_MCP_PROFILE_TOOLSETS,
+  STUDIO_MCP_PROFILE_TOOLSETS,
 } from '@genfeedai/actions';
 import type { McpRequest } from '@mcp/shared/interfaces/mcp-request.interface';
 import {
@@ -87,6 +88,12 @@ describe('resolveMcpToolQuery', () => {
       unknown: [],
       unknownProfile: null,
     });
+  });
+
+  it('resolves ?profile=studio to the default toolsets plus brand and analytics', () => {
+    expect(resolveMcpToolQuery({ profile: 'studio' }).toolsets).toEqual([
+      ...STUDIO_MCP_PROFILE_TOOLSETS,
+    ]);
   });
 
   it('lets an explicit ?toolsets= win over ?profile=', () => {
@@ -203,7 +210,9 @@ describe('toolsetsQueryMiddleware', () => {
       expect.objectContaining({
         error: expect.objectContaining({
           code: -32602,
-          message: expect.stringContaining('Unknown profile: nope'),
+          message: expect.stringContaining(
+            'Valid profiles: default, directory, studio, full',
+          ),
         }),
         id: null,
         jsonrpc: '2.0',

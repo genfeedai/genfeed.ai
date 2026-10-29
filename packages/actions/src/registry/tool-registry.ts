@@ -56,10 +56,11 @@ if (coreMcpToolCount > CORE_MCP_TOOL_LIMIT) {
   );
 }
 
+// The cap counts what an ordinary caller sees; admin-only tools are not listed to them.
 const bareUrlMcpToolCount = getToolsForToolsets(
   'mcp',
   DEFAULT_MCP_PROFILE_TOOLSETS,
-).length;
+).filter((tool) => tool.requiredRole === 'user').length;
 if (bareUrlMcpToolCount > BARE_MCP_URL_TOOL_CAP) {
   throw new Error(
     `default MCP profile exceeds the ${BARE_MCP_URL_TOOL_CAP}-tool bare-URL cap: has ${bareUrlMcpToolCount} (${DEFAULT_MCP_PROFILE_TOOLSETS.join(', ')})`,

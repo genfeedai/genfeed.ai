@@ -88,6 +88,7 @@ export const MODEL_KEYS = {
   REPLICATE_VIDU_Q3_TURBO: 'vidu/q3-turbo',
   REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST: 'wan-video/wan-2.2-i2v-fast',
   REPLICATE_WAN_VIDEO_WAN_2_7_T2V: 'wan-video/wan-2.7-t2v',
+  REPLICATE_ALIBABA_WAN_3: 'alibaba/wan-3',
   REPLICATE_META_MUSICGEN: 'meta/musicgen',
   FAL_ELEVENLABS_MUSIC: 'fal-ai/elevenlabs/music',
   FAL_LYRIA3_PRO: 'fal-ai/lyria3/pro',

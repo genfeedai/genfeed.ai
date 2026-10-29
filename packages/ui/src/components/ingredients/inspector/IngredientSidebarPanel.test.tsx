@@ -139,7 +139,7 @@ describe('IngredientSidebarPanel', () => {
     renderPanel();
 
     expect(await screen.findByTestId('detail-href')).toHaveTextContent(
-      '/admin/images/asset-1',
+      '/admin/content/ingredients/images/asset-1',
     );
   });
 

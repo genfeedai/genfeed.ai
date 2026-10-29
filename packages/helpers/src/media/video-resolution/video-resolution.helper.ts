@@ -137,6 +137,15 @@ export const videoModelResolutions: VideoModelResolution[] = [
   },
   {
     default: '1080p',
+    model: MODEL_KEYS.REPLICATE_ALIBABA_WAN_3,
+    resolutions: [
+      { label: '480p', value: '480p' },
+      { label: '720p', value: '720p' },
+      { label: '1080p', value: '1080p' },
+    ],
+  },
+  {
+    default: '1080p',
     model: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST,
     resolutions: [
       { label: '720p', value: '720p' },

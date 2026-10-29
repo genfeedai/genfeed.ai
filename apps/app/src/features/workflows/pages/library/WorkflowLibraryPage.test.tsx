@@ -1,3 +1,5 @@
+import { selectView } from '@app-tests/view-menu.helpers';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom/vitest';
 import { WorkflowLifecycle } from '@genfeedai/contracts';
 import { fireEvent, render, screen, within } from '@testing-library/react';
@@ -176,18 +178,29 @@ vi.mock('@ui/primitives/button', () => ({
     children,
     label,
     ariaLabel,
+    icon,
     onClick,
+    ...triggerProps
   }: {
     ariaLabel?: string;
     asChild?: boolean;
     children?: ReactNode;
+    icon?: ReactNode;
     label?: string;
     onClick?: () => void;
   }) =>
     asChild ? (
       children
     ) : (
-      <button type="button" aria-label={ariaLabel} onClick={onClick}>
+      // Props the Radix menu trigger injects (pointer and key handlers, aria
+      // state) must reach the DOM node or the View menu never opens.
+      <button
+        type="button"
+        aria-label={ariaLabel}
+        onClick={onClick}
+        {...triggerProps}
+      >
+        {icon}
         {label ?? children}
       </button>
     ),
@@ -363,10 +376,9 @@ describe('WorkflowLibraryPage card semantics', () => {
 
   it.each(['list', 'grid'])(
     'keeps navigation, selection and schedule commands separate in %s',
-    (view) => {
+    async (view) => {
       render(<WorkflowLibraryPage />);
-      if (view === 'grid')
-        fireEvent.click(screen.getByRole('radio', { name: 'Grid' }));
+      if (view === 'grid') await selectView(userEvent.setup(), 'Grid');
       const link = screen.getByRole('link', {
         name: 'Open Scheduled workflow',
       });
@@ -448,11 +460,10 @@ describe('WorkflowLibraryPage card semantics', () => {
 
   it.each(['list', 'grid'])(
     'only permits removing existing favorites from read-only team rows in %s',
-    (view) => {
+    async (view) => {
       mocks.mostUsed = [{ ...mocks.workflows[0], executionCount: 23 }];
       const { rerender } = render(<WorkflowLibraryPage />);
-      if (view === 'grid')
-        fireEvent.click(screen.getByRole('radio', { name: 'Grid' }));
+      if (view === 'grid') await selectView(userEvent.setup(), 'Grid');
       const team = within(screen.getByTestId('workflow-section-most-used'));
       expect(
         team.queryByRole('button', { name: 'Add to favorites' }),
@@ -484,14 +495,14 @@ describe('WorkflowLibraryPage card semantics', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows bulk commands for selected rows across views', () => {
+  it('shows bulk commands for selected rows across views', async () => {
     mocks.selectedIds = new Set(['workflow-1']);
     render(<WorkflowLibraryPage />);
     expect(screen.getByRole('checkbox')).toHaveAttribute(
       'aria-checked',
       'true',
     );
-    fireEvent.click(screen.getByRole('radio', { name: 'Grid' }));
+    await selectView(userEvent.setup(), 'Grid');
     expect(screen.getByRole('checkbox')).toHaveAttribute(
       'aria-checked',
       'true',

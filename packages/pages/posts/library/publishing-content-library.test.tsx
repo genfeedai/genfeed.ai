@@ -1,3 +1,4 @@
+import { selectView, viewMenuTrigger } from '@app-tests/view-menu.helpers';
 import '@testing-library/jest-dom/vitest';
 import {
   ArticleCategory,
@@ -447,30 +448,30 @@ describe('PublishingContentLibrary', () => {
     ).toBeVisible();
   });
 
-  it('offers calendar and approvals as routes of their own beside the display modes', () => {
+  it('offers calendar and approvals as routes of their own beside the display modes', async () => {
     render(<PublishingContentLibrary />);
 
     const [toggle] = mocks.setViewToggleNode.mock.calls.at(-1) ?? [];
     render(toggle);
-    expect(screen.getByRole('radio', { name: 'list' })).toBeChecked();
+    expect(viewMenuTrigger('list')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('radio', { name: 'approvals' }));
+    await selectView(userEvent.setup(), 'approvals');
     expect(mocks.push).toHaveBeenLastCalledWith(
       '/acme/main/publishing/approvals',
     );
 
-    fireEvent.click(screen.getByRole('radio', { name: 'calendar' }));
+    await selectView(userEvent.setup(), 'calendar');
     expect(mocks.push).toHaveBeenLastCalledWith(
       '/acme/main/publishing/calendar',
     );
   });
 
-  it('keeps board and grid as display modes of the Posts route', () => {
+  it('keeps board and grid as display modes of the Posts route', async () => {
     render(<PublishingContentLibrary />);
 
     const [toggle] = mocks.setViewToggleNode.mock.calls.at(-1) ?? [];
     render(toggle);
-    fireEvent.click(screen.getByRole('radio', { name: 'board' }));
+    await selectView(userEvent.setup(), 'board');
 
     expect(mocks.replace.mock.calls.at(-1)?.[0]).toBe(
       '/acme/main/publishing/posts?view=board',

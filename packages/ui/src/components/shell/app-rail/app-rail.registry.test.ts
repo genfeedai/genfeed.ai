@@ -187,8 +187,8 @@ describe('app rail registry', () => {
 
   it('keeps ingredient detail, folders, voices and the catalog under Content', () => {
     for (const path of [
-      '/admin/images/abc',
-      '/admin/videos/abc',
+      '/admin/content/ingredients/images/abc',
+      '/admin/content/ingredients/videos/abc',
       '/admin/folders',
       '/admin/library/voices',
       '/admin/configuration/tags',

@@ -20,7 +20,7 @@ _One real generation on a self-hosted instance: prompt, generate, approve. About
 npx @genfeedai/create my-genfeed
 ```
 
-Needs Docker Compose v2 and Node.js 24. The wizard verifies the release bundle,
+Needs Docker Compose v2 and Node.js 24 or newer. The wizard verifies the release bundle,
 asks for your [OpenRouter API key](https://openrouter.ai/keys), then starts it. Install guide: [genfeed.ai/self-hosted](https://genfeed.ai/self-hosted)
 · [docs.genfeed.ai](https://docs.genfeed.ai/self-host/installation).
 
@@ -275,7 +275,7 @@ program; see [the contribution policy](CONTRIBUTING.md#voluntary-contributions).
 
 Audience order for this repository is self-hosters, then agent contributors,
 then human contributors. Development is supported on macOS and Linux (Windows
-via WSL2). Prerequisites: Node 24, Bun, Docker with Compose v2, a C/C++
+via WSL2). Prerequisites: Node 26, Bun, Docker with Compose v2, a C/C++
 toolchain plus `python3` (`sudo apt-get install -y build-essential python3` on
 Debian/Ubuntu, `xcode-select --install` on macOS), and systemd on Linux for
 `dev:setup`. Details are in

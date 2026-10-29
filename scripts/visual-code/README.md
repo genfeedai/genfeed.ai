@@ -18,7 +18,7 @@ This establishes local transport, media, revision and settlement behavior, not p
 provider quality, production storage selection, browser authentication or deployment.
 
 Run tests and typechecks on the designated verification host. The coordinator requires
-Linux, Node24, runsc registered with Docker, the fixed renderer image, ffmpeg/ffprobe,
+Linux, Node 26, runsc registered with Docker, the fixed renderer image, ffmpeg/ffprobe,
 and authenticated ready health through an owned loopback forward. Never substitute
 runc or weaken container restrictions. Create input media once in a new private root:
 
@@ -38,7 +38,7 @@ Redis URLs cannot contain userinfo, query or hash. No provider secrets are requi
 Before execution, write private `runtime-preflight.json` at the artifact root with
 exact keys `gitHead`, `platform`, `nodeVersion`, `ffmpegVersion`, `ffprobeVersion`,
 `runscVersion`, `imageId`, `dockerRuntime`, `rendererVersion`. Record actual observations:
-current candidate SHA, Linux, Node24, first trimmed version lines, Docker image SHA256,
+current candidate SHA, Linux, Node 26, first trimmed version lines, Docker image SHA256,
 runsc and renderer 4.0.530. The suite rejects missing, malformed or stale preflight;
 it also rejects changes to this file during a run. Health still requires a live check.
 

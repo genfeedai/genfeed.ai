@@ -25,7 +25,7 @@ import { SkeletonTable } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
+import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import {
   Dialog,
   DialogContent,
@@ -412,7 +412,7 @@ export default function IssuesList() {
         onClear={() => setUrlParam('status', null)}
       />
       {hasItems ? (
-        <ViewToggle
+        <ViewMenu
           activeView={viewMode}
           onChange={(nextView) =>
             setUrlParam(

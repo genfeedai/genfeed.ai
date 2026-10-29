@@ -1,3 +1,4 @@
+import { selectView, viewMenuTrigger } from '@app-tests/view-menu.helpers';
 import {
   IngredientCategory,
   IngredientOrigin,
@@ -33,31 +34,6 @@ vi.mock('@ui/tags/library-tag-picker/LibraryTagManagerDialog', () => ({
 
 vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
   default: () => <div data-testid="refresh-button" />,
-}));
-
-vi.mock('@ui/navigation/view-toggle/ViewToggle', () => ({
-  default: ({
-    activeView,
-    onChange,
-    options,
-  }: {
-    activeView: string;
-    onChange: (view: string) => void;
-    options: readonly { label: string; type: string }[];
-  }) => (
-    <div data-testid="view-toggle">
-      {options.map((option) => (
-        <button
-          aria-pressed={activeView === option.type}
-          key={option.type}
-          onClick={() => onChange(option.type)}
-          type="button"
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  ),
 }));
 
 const SORT_OPTIONS = [
@@ -215,7 +191,9 @@ describe('LibraryBrowserToolbar', () => {
   it('hides presentation toggles only for grouped failure recovery', () => {
     renderToolbar({ isRecoveryView: true });
 
-    expect(screen.queryByTestId('view-toggle')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /^(View|label): / }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Filters' })).toBeInTheDocument();
   });
 
@@ -479,41 +457,47 @@ describe('LibraryBrowserToolbar', () => {
     expect(onUpload).toHaveBeenCalledTimes(1);
   });
 
-  it('arranges the same result set three ways, canvas included', () => {
+  it('arranges the same result set three ways, canvas included', async () => {
+    const user = userEvent.setup();
     const onViewModeChange = vi.fn();
 
     renderToolbar({ onViewModeChange, viewMode: 'canvas' });
 
+    expect(viewMenuTrigger('Canvas')).toBeInTheDocument();
+    await user.click(viewMenuTrigger());
     expect(
-      screen.getByRole('button', { name: 'Contact sheet' }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'List' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Canvas' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+      await screen.findByRole('menuitemradio', { name: 'Contact sheet' }),
+    ).not.toBeChecked();
+    expect(
+      screen.getByRole('menuitemradio', { name: 'List' }),
+    ).not.toBeChecked();
+    expect(screen.getByRole('menuitemradio', { name: 'Canvas' })).toBeChecked();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Contact sheet' }));
+    await user.click(
+      screen.getByRole('menuitemradio', { name: 'Contact sheet' }),
+    );
 
     expect(onViewModeChange).toHaveBeenCalledWith('grid');
 
-    fireEvent.click(screen.getByRole('button', { name: 'List' }));
+    await selectView(user, 'List');
 
     expect(onViewModeChange).toHaveBeenCalledWith('list');
   });
 
-  it('drops the canvas option when its flag is off', () => {
+  it('drops the canvas option when its flag is off', async () => {
+    const user = userEvent.setup();
     useFeatureFlag.mockReturnValue(false);
 
     renderToolbar();
 
+    expect(viewMenuTrigger('List')).toBeInTheDocument();
+    await user.click(viewMenuTrigger());
     expect(
-      screen.queryByRole('button', { name: 'Canvas' }),
+      await screen.findByRole('menuitemradio', { name: 'List' }),
+    ).toBeChecked();
+    expect(
+      screen.queryByRole('menuitemradio', { name: 'Canvas' }),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'List' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
   });
 });
 

@@ -8,6 +8,7 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { expectNoErrorOverlay } from '../../utils/route-assertions';
+import { chooseView } from '../../utils/view-menu';
 
 /**
  * The shell's context sidebar is selection-driven: selecting an asset opens
@@ -73,7 +74,7 @@ async function openStudioList(page: Page): Promise<void> {
     waitUntil: 'domcontentloaded',
   });
   // List rows expose the prompt as plain text, a stable non-control target.
-  await page.getByRole('radio', { name: 'List' }).click();
+  await chooseView(page, 'List');
   await expect(page.getByText(ASSET_PROMPT)).toBeVisible();
 }
 

@@ -572,6 +572,63 @@ describe('ReplicateVideoBuilder', () => {
     });
   });
 
+  describe('buildPrompt - Wan 3', () => {
+    const baseParams: PromptBuilderParams = {
+      height: 1080,
+      modelCategory: ModelCategory.VIDEO,
+      prompt: 'A slow orbit around a ceramic mug',
+      width: 1920,
+    };
+    const firstFrame = 'https://cdn.example.com/first-frame.jpg';
+
+    it('is a supported model', () => {
+      expect(builder.getSupportedModels()).toContain(
+        MODEL_KEYS.REPLICATE_ALIBABA_WAN_3,
+      );
+    });
+
+    it('builds text-to-video without an image', () => {
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_ALIBABA_WAN_3,
+        { ...baseParams, duration: 8, resolution: '720p', seed: 7 },
+        'A slow orbit around a ceramic mug',
+      );
+
+      expect(result).toEqual({
+        aspect_ratio: '16:9',
+        duration: 8,
+        prompt: 'A slow orbit around a ceramic mug',
+        resolution: '720p',
+        seed: 7,
+      });
+    });
+
+    it('maps the first reference onto the first-frame image', () => {
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_ALIBABA_WAN_3,
+        {
+          ...baseParams,
+          references: [firstFrame, 'https://cdn.example.com/b'],
+        },
+        'A slow orbit around a ceramic mug',
+      );
+
+      expect(result).toHaveProperty('image', firstFrame);
+    });
+
+    it('keeps duration inside the 2 to 30 second range Replicate accepts', () => {
+      const build = (duration: number) =>
+        builder.buildPrompt(
+          MODEL_KEYS.REPLICATE_ALIBABA_WAN_3,
+          { ...baseParams, duration },
+          'A slow orbit around a ceramic mug',
+        );
+
+      expect(build(1)).toHaveProperty('duration', 2);
+      expect(build(45)).toHaveProperty('duration', 30);
+    });
+  });
+
   describe('buildPrompt - Kling V2.1', () => {
     it('should require reference image', () => {
       const params: PromptBuilderParams = {

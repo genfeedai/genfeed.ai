@@ -8,7 +8,7 @@
 # ==================================================
 # Stage 1: Toolchain
 # ==================================================
-FROM node:24.22.1-slim AS toolchain
+FROM node:26.12.1-slim AS toolchain
 
 # Docker cannot read `.bun-version` before selecting/installing its toolchain.
 # The unpinned installer intentionally mirrors that rolling policy, and the CI
@@ -284,7 +284,7 @@ RUN node -r tsconfig-paths/register \
 # ==================================================
 # Stage 6: Production - Runtime image
 # ==================================================
-FROM node:24.22.1-slim AS production
+FROM node:26.12.1-slim AS production
 
 # Install system dependencies for Bun, FFmpeg, the tesseract OCR engine used by
 # media perception (#4879), and the pinned Remotion Chrome Headless Shell
@@ -317,7 +317,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-noto-color-emoji \
     && rm -rf /var/lib/apt/lists/*
 
-# This stage is a fresh `FROM node:24.22.1-slim` — it does NOT inherit the base
+# This stage is a fresh `FROM node:26.12.1-slim` — it does NOT inherit the base
 # stage's ENV. The ffmpeg-static export honors $FFMPEG_BIN at module-eval time,
 # and the download was skipped in the builder, so the bundled binary is absent
 # from the copied node_modules; without this the files/api services would crash

@@ -29,6 +29,7 @@ import type {
   Veo31Input,
   Veo31LiteInput,
   ViduQ3Input,
+  Wan3Input,
   Wan27T2VInput,
   WanVideoInput,
 } from '@api/services/prompt-builder/interfaces/replicate-input.interface';
@@ -94,6 +95,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
       MODEL_KEYS.REPLICATE_VIDU_Q3_TURBO,
       // WAN Video 2.7
       MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_7_T2V,
+      MODEL_KEYS.REPLICATE_ALIBABA_WAN_3,
       MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_LITE,
     ];
   }
@@ -212,6 +214,9 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
           promptText,
           negativePrompt,
         );
+
+      case MODEL_KEYS.REPLICATE_ALIBABA_WAN_3:
+        return this.buildWan3Prompt(model, params, promptText, negativePrompt);
 
       case MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_LITE:
         return this.buildVeo31LitePrompt(model, params, promptText);
@@ -793,6 +798,41 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
       duration: duration,
       prompt: promptText,
     };
+
+    if (params.resolution) {
+      input.resolution = params.resolution;
+    }
+
+    if (negativePrompt) {
+      input.negative_prompt = negativePrompt;
+    }
+
+    if (params.seed !== undefined) {
+      input.seed = params.seed;
+    }
+
+    return input;
+  }
+
+  private buildWan3Prompt(
+    model: string,
+    params: PromptBuilderParams,
+    promptText: string,
+    negativePrompt: string,
+  ): Wan3Input {
+    const aspectRatio = calculateAspectRatio(params.width, params.height);
+    const normalizedRatio = normalizeAspectRatioForModel(model, aspectRatio);
+    const duration = Math.min(Math.max(params.duration ?? 5, 2), 30);
+
+    const input: Wan3Input = {
+      aspect_ratio: normalizedRatio,
+      duration: duration,
+      prompt: promptText,
+    };
+
+    if (params.references && params.references.length > 0) {
+      input.image = params.references[0];
+    }
 
     if (params.resolution) {
       input.resolution = params.resolution;

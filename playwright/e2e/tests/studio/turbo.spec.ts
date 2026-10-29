@@ -2,6 +2,7 @@ import { TurboProjectKind } from '@genfeedai/contracts';
 import { playwrightApiEndpoint } from '../../config/environment';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { mockTurboProject } from '../../fixtures/turbo-projects.fixture';
+import { chooseView } from '../../utils/view-menu';
 
 const base = '/test-org/brand-1/turbo';
 test.describe('Persisted Turbo projects', () => {
@@ -142,10 +143,7 @@ test.describe('Persisted Turbo projects', () => {
     await expect(
       page.getByText('Launch collection', { exact: true }).first(),
     ).toBeVisible();
-    await page.getByRole('radio', { name: 'Grid', exact: true }).click();
-    await expect(
-      page.getByRole('radio', { name: 'Grid', exact: true }),
-    ).toBeChecked();
+    await chooseView(page, 'Grid');
     await page.screenshot({
       path: testInfo.outputPath('project-list-mobile.png'),
       fullPage: true,

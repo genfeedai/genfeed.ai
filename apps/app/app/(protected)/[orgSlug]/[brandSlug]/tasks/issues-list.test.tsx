@@ -1,4 +1,5 @@
 import { selectFilterOption } from '@app-tests/filter-menu.helpers';
+import { viewMenuTrigger } from '@app-tests/view-menu.helpers';
 import '@testing-library/jest-dom/vitest';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -133,14 +134,20 @@ describe('IssuesList view controls', () => {
 
     expect(await screen.findByText('Ship empty-state CTA')).toBeVisible();
 
-    const listView = screen.getByRole('radio', { name: 'List view' });
-    const kanbanView = screen.getByRole('radio', { name: 'Kanban view' });
+    const user = userEvent.setup();
+    expect(viewMenuTrigger('List view')).toBeVisible();
 
-    expect(screen.getByRole('group', { name: 'View' })).toBeVisible();
-    expect(listView).toHaveAttribute('aria-checked', 'true');
-    expect(kanbanView).toHaveAttribute('aria-checked', 'false');
+    await user.click(viewMenuTrigger());
+    expect(
+      await screen.findByRole('menuitemradio', { name: 'List view' }),
+    ).toBeChecked();
+    expect(
+      screen.getByRole('menuitemradio', { name: 'Kanban view' }),
+    ).not.toBeChecked();
 
-    fireEvent.click(kanbanView);
+    await user.click(
+      screen.getByRole('menuitemradio', { name: 'Kanban view' }),
+    );
 
     expect(mocks.replace).toHaveBeenCalledWith('/?view=kanban', {
       scroll: false,
@@ -303,10 +310,7 @@ describe('IssuesList URL view state', () => {
     render(<IssuesList />);
 
     expect(await screen.findByTestId('tasks-kanban-board')).toBeVisible();
-    expect(screen.getByRole('radio', { name: 'Kanban view' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
+    expect(viewMenuTrigger('Kanban view')).toBeInTheDocument();
     expect(mocks.list).toHaveBeenCalledWith(
       expect.objectContaining({ status: 'todo' }),
     );
