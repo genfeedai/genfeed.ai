@@ -1,6 +1,7 @@
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
 import type { ClipperRunCardState } from '@genfeedai/agent/models/clipper-run-card.model';
 import type {
+  AgentThreadKind,
   AgentThreadMode,
   AgentThreadStatus,
   PostVisibility,
@@ -403,7 +404,11 @@ export interface AgentThread {
   contextVersion: number;
   organizationId?: string;
   isPinned?: boolean;
+  /** `master` for the user's org-level orchestrating thread (#8526). */
+  kind?: AgentThreadKind;
   mode?: AgentThreadMode;
+  /** The thread that spawned this one, when it was spawned. */
+  parentThreadId?: string | null;
   requestedModel?: string;
   runtimeKey?: string;
   title?: string;

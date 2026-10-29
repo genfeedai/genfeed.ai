@@ -20,6 +20,7 @@ export interface UseAdminStatsReturn {
   stats: IAnalytics | null;
   leaderboard: IOrgLeaderboardItem[];
   timeseries: ITimeSeriesDataPoint[];
+  isError: boolean;
   isLoading: boolean;
   isRefreshing: boolean;
   refresh: () => Promise<void>;
@@ -47,6 +48,7 @@ export function useAdminStats(): UseAdminStatsReturn {
 
   const {
     data: statsData,
+    isError: isErrorStats,
     isLoading: isLoadingStats,
     isFetching: isFetchingStats,
     refetch: refetchStats,
@@ -66,6 +68,7 @@ export function useAdminStats(): UseAdminStatsReturn {
 
   const {
     data: leaderboardData,
+    isError: isErrorLeaderboard,
     isLoading: isLoadingLeaderboard,
     isFetching: isFetchingLeaderboard,
     refetch: refetchLeaderboard,
@@ -88,6 +91,7 @@ export function useAdminStats(): UseAdminStatsReturn {
 
   const {
     data: timeseriesData,
+    isError: isErrorTimeseries,
     isLoading: isLoadingTimeseries,
     isFetching: isFetchingTimeseries,
     refetch: refetchTimeseries,
@@ -163,6 +167,8 @@ export function useAdminStats(): UseAdminStatsReturn {
     });
   }, [shouldFetch, timeseriesData]);
 
+  const isError =
+    shouldFetch && (isErrorStats || isErrorLeaderboard || isErrorTimeseries);
   const isLoading =
     shouldFetch &&
     (isLoadingStats || isLoadingLeaderboard || isLoadingTimeseries);
@@ -182,6 +188,7 @@ export function useAdminStats(): UseAdminStatsReturn {
   };
 
   return {
+    isError,
     isLoading,
     isRefreshing,
     leaderboard,

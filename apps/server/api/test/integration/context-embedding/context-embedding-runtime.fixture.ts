@@ -616,6 +616,34 @@ export class ContextEmbeddingRuntime {
       timeoutMs,
     );
   }
+  // Production runs the sweep on a schedule, so an enqueue that fails while the
+  // queue connection is still reconnecting after an outage is retried on the
+  // next tick. Mirror that here instead of trusting one sweep to land.
+  async sweepUntilStatus(
+    world: EmbeddingWorld,
+    entryId: string,
+    status: string,
+    timeoutMs = 30000,
+  ): Promise<void> {
+    let lastSweep = 'not run';
+    let lastSweepAt = Number.NEGATIVE_INFINITY;
+    try {
+      await waitFor(async () => {
+        if ((await this.intent(world, entryId)).status === status) return true;
+        if (performance.now() - lastSweepAt >= 1000) {
+          lastSweepAt = performance.now();
+          lastSweep = JSON.stringify(await this.sweep.sweep());
+        }
+        return false;
+      }, timeoutMs);
+    } catch (error) {
+      const intent = await this.intent(world, entryId);
+      throw new Error(
+        `Embedding intent stayed ${intent.status} (wanted ${status}) after sweeps; last sweep ${lastSweep}`,
+        { cause: error },
+      );
+    }
+  }
   async redisContainer(): Promise<string> {
     const id = process.env.CONTEXT_EMBEDDING_REDIS_CONTAINER_ID;
     if (

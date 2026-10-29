@@ -11,11 +11,22 @@ import { ALL_TOOLS, getToolByName, getToolsForSurface } from './tool-registry';
 import { CORE_TOOLSET_NAME, isToolsetName } from './toolsets';
 
 describe('curated action catalog', () => {
+  it.each(['get_clip_context', 'edit_clip'])(
+    'connects the installed clip-editor skill action %s to MCP',
+    (name) => {
+      expect(getToolByName(name)).toMatchObject({
+        creditCost: 0,
+        requiredRole: 'user',
+        toolset: 'clipper',
+        surfaces: { agent: true, mcp: true },
+      });
+    },
+  );
   it('retains internal targets while listing only the two consolidated MCP envelopes', () => {
     expect(ALL_TOOLS).toHaveLength(226);
-    expect(ALL_TOOLS.filter((tool) => tool.surfaces.mcp)).toHaveLength(153);
+    expect(ALL_TOOLS.filter((tool) => tool.surfaces.mcp)).toHaveLength(155);
     const listed = getToolsForSurface('mcp').map((tool) => tool.name);
-    expect(listed).toHaveLength(149);
+    expect(listed).toHaveLength(151);
     expect(listed).toContain('check_channel');
     expect(listed).toContain('upload_media');
     for (const name of [

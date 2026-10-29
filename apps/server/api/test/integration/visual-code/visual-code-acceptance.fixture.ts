@@ -306,7 +306,7 @@ const versionLine = z
 const runtimePreflightSchema = z.strictObject({
   gitHead: z.string().regex(/^[a-f0-9]{40}$/),
   platform: z.literal('linux'),
-  nodeVersion: z.string().regex(/^v24\.\d+\.\d+$/),
+  nodeVersion: z.string().regex(/^v26\.\d+\.\d+$/),
   ffmpegVersion: versionLine,
   ffprobeVersion: versionLine,
   runscVersion: versionLine,

@@ -2,12 +2,14 @@ import type {
   AdminModelPricingReport,
   AdminModelPricingRow,
   IHarnessActivationReport,
+  ISystemNotificationOverview,
 } from '@genfeedai/contracts/interfaces';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createOrganizationBrand,
   createWarmupAccount,
   filterPricingRows,
+  findMissingDiscordChannels,
   findMissingExternalPacks,
   findPendingVersion,
   findPricingFixTargets,
@@ -15,9 +17,11 @@ import {
   grantOrganizationCredits,
   prepareWarmupAccount,
   readHarnessActivation,
+  readNotificationStatus,
   readOnboardingFunnel,
   readOrganizationAppsReport,
   readOrganizationsReport,
+  readTrainingsReport,
   scanOrganizationBrand,
   seedArticles,
   seedTemplates,
@@ -37,6 +41,8 @@ vi.mock('../../src/api/admin-client', () => ({
 }));
 
 vi.mock('../../src/api/json-api', () => ({
+  extractPagination: (response: { pagination?: unknown }) => response.pagination,
+  flattenCollection: <T>(response: { data: T[] }) => response.data,
   flattenSingle: <T>(response: { data: T }) => response.data,
 }));
 
@@ -92,6 +98,72 @@ describe('operations/admin', () => {
     expect(result.organizations).toEqual([{ id: 'org_1' }, { id: 'org_2' }]);
     expect(result.releaseFlags).toEqual({ release_clipper: true });
     expect(mockAdminGet).toHaveBeenNthCalledWith(2, '/admin/organization-apps?page=2&limit=100');
+  });
+
+  it('asks for trainings once per organization and counts them by status', async () => {
+    const pageOf = (page: number, pages: number, data: Array<Record<string, unknown>>) => ({
+      data,
+      pagination: { limit: 100, page, pages, total: 3 },
+    });
+    mockAdminGet
+      .mockResolvedValueOnce({
+        data: {
+          generatedAt: '2026-10-29T00:00:00.000Z',
+          organizations: [{ id: 'org_1' }, { id: 'org_2' }],
+          pagination: { limit: 100, page: 1, pages: 1, total: 2 },
+        },
+      })
+      .mockResolvedValueOnce(
+        pageOf(1, 2, [
+          {
+            createdAt: '2026-10-01T00:00:00.000Z',
+            id: 't1',
+            label: 'Shayla',
+            organization: 'org_1',
+            status: 'completed',
+          },
+        ])
+      )
+      .mockResolvedValueOnce(
+        pageOf(2, 2, [
+          {
+            createdAt: '2026-10-03T00:00:00.000Z',
+            id: 't2',
+            label: 'Mia',
+            organization: { id: 'org_1' },
+            status: 'failed',
+          },
+        ])
+      )
+      .mockResolvedValueOnce(
+        pageOf(1, 1, [
+          {
+            createdAt: '2026-10-02T00:00:00.000Z',
+            id: 't3',
+            label: 'Zoe',
+            organization: 'org_2',
+            status: 'completed',
+          },
+        ])
+      );
+
+    const report = await readTrainingsReport();
+
+    expect(report.total).toBe(3);
+    expect(report.byStatus).toEqual({ completed: 2, failed: 1 });
+    expect(report.trainings.map((training) => training.id)).toEqual(['t2', 't3', 't1']);
+    expect(mockAdminGet).toHaveBeenNthCalledWith(
+      2,
+      '/trainings?organizationId=org_1&page=1&limit=100'
+    );
+    expect(mockAdminGet).toHaveBeenNthCalledWith(
+      3,
+      '/trainings?organizationId=org_1&page=2&limit=100'
+    );
+    expect(mockAdminGet).toHaveBeenNthCalledWith(
+      4,
+      '/trainings?organizationId=org_2&page=1&limit=100'
+    );
   });
 
   it('walks every page of the organizations list and can include deleted ones', async () => {
@@ -238,6 +310,54 @@ describe('operations/admin', () => {
 
       await expect(seedTemplates({ dryRun: true })).resolves.toBe(summary);
       expect(adminPost).toHaveBeenCalledWith('/admin/seeds/templates', { dryRun: true });
+    });
+  });
+
+  describe('notification status', () => {
+    function status(missingChannels: string[] | null): ISystemNotificationOverview {
+      return {
+        configuration: {
+          discord:
+            missingChannels === null
+              ? null
+              : { isBotConfigured: true, isBotReady: true, missingChannels },
+          enabled: true,
+          eventTypes: ['user.created'],
+          recordingEnabled: true,
+          transportConfigured: true,
+        },
+        deliveries: [],
+        destinations: [],
+        id: 'system-notifications',
+        observedSignups: 25,
+        signupObservationStart: null,
+      };
+    }
+
+    it('reads the overview from the admin route', async () => {
+      const overview = status([]);
+      mockAdminGet.mockResolvedValueOnce({ data: overview });
+      await expect(readNotificationStatus()).resolves.toEqual(overview);
+      expect(mockAdminGet).toHaveBeenCalledWith('/admin/system-notifications');
+    });
+
+    it('lists the channels the API reports without a channel ID', () => {
+      expect(findMissingDiscordChannels(status(['deployments', 'users']))).toEqual([
+        'deployments',
+        'users',
+      ]);
+    });
+
+    it('checks only the channels asked for', () => {
+      const overview = status(['deployments']);
+      expect(findMissingDiscordChannels(overview, ['users', 'posts'])).toEqual([]);
+      expect(findMissingDiscordChannels(overview, ['deployments', 'posts'])).toEqual([
+        'deployments',
+      ]);
+    });
+
+    it('reports nothing missing when the API gave no Discord status', () => {
+      expect(findMissingDiscordChannels(status(null))).toEqual([]);
     });
   });
 

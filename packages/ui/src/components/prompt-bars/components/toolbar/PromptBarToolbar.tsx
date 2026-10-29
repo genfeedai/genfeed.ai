@@ -6,8 +6,7 @@ import type { ReactElement } from 'react';
  * The one prompt-bar toolbar row shared by Agent, Studio and every other
  * composer: tools on the left, submission on the right. Surfaces only fill the
  * slots. The left group reads mode, then the surface's setup chips, then the
- * `+` that adds context, last. The right group holds only Enhance prompt and
- * the submit slot.
+ * `+` that adds context, last. The right group holds only the submit slot.
  *
  * Nothing in the row scrolls. Submission keeps its size on the right and the
  * tools wrap onto further lines when they run out of room. The row is the
@@ -17,7 +16,6 @@ import type { ReactElement } from 'react';
  */
 export default function PromptBarToolbar({
   className,
-  enhance,
   leading,
   leadingLabel,
   mode,
@@ -49,11 +47,6 @@ export default function PromptBarToolbar({
         className="ml-auto flex shrink-0 flex-nowrap items-center justify-end gap-1"
         role="group"
       >
-        {enhance ? (
-          <div className="contents" data-prompt-bar-enhance="">
-            {enhance}
-          </div>
-        ) : null}
         {trailing}
       </div>
     </div>

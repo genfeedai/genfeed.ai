@@ -47,7 +47,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          node-version: "24.x"
+          node-version: "26.x"
           install-command: "bun install --frozen-lockfile"
 
       - name: Build workspace
@@ -96,7 +96,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          node-version: "24.x"
+          node-version: "26.x"
           install-command: "bun install --frozen-lockfile"
 
       - name: Build workspace
@@ -135,7 +135,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          node-version: "24.x"
+          node-version: "26.x"
           install-command: "bun install --frozen-lockfile"
 
       - name: Build workspace
@@ -185,7 +185,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          node-version: "24.x"
+          node-version: "26.x"
           install-command: "bun install --frozen-lockfile"
 
       - name: Download blob report artifacts
@@ -269,6 +269,7 @@ jobs:
       BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/billing_scope_test
       CREDIT_BALANCE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/credit_balance_test
       BRAND_DELETE_SAFETY_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/brand_delete_safety_test
+      AGENT_MASTER_THREAD_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/agent_master_thread_test
       POST_LINK_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/genfeed_7823_disposable
       REDIS_URL: redis://localhost:6379
     strategy:
@@ -283,7 +284,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          node-version: "24.x"
+          node-version: "26.x"
           install-command: "bun install --frozen-lockfile"
 
       # Every shard provisions both databases: `vitest --shard` does not let us
@@ -341,7 +342,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          node-version: "24.x"
+          node-version: "26.x"
           install-command: "bun install --frozen-lockfile"
 
       - name: Download blob report artifacts
@@ -454,7 +455,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          node-version: "24.x"
+          node-version: "26.x"
           install-command: "bun install --frozen-lockfile"
       - name: Download all Playwright shard reports
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2

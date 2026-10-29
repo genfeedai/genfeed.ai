@@ -45,10 +45,6 @@ export {
   getWorkflowLogger,
 } from './executionLogger';
 export { usePromptEditorStore } from './promptEditorStore';
-export {
-  configurePromptLibrary,
-  usePromptLibraryStore,
-} from './promptLibraryStore';
 export type { ProviderConfig, ProviderSettings } from './settingsStore';
 export {
   configureSettingsSync,

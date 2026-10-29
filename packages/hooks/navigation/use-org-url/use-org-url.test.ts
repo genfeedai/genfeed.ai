@@ -72,7 +72,7 @@ describe('useOrgUrl', () => {
 
   it('falls back to brand context slugs when route params are missing', () => {
     mockUseParams.mockReturnValue({});
-    mockUsePathname.mockReturnValue('/admin/organization');
+    mockUsePathname.mockReturnValue('/admin/organizations');
     const { result } = renderHook(() => useOrgUrl());
 
     expect(result.current.orgSlug).toBe('fallback-org');

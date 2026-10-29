@@ -52,6 +52,7 @@ export function toWorkflowStitchRequest(
     ...(params.providerData ? { providerData: params.providerData } : {}),
     ...(params.executionId ? { workflowExecutionId: params.executionId } : {}),
     settings: {
+      ...(params.isEndCardEnabled === false ? { isEndCardEnabled: false } : {}),
       transition: params.transition,
       ...(params.transitionDuration !== undefined
         ? { transitionDuration: params.transitionDuration }

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Provisions the fully-migrated Postgres databases that the API's
 # *.postgres.spec.ts suites need (billing-account-scope, credit-balance,
-# brand-delete-safety and post-link).
+# brand-delete-safety, agent-master-thread and post-link).
 # Mirrors the "Provision billing-account-scope and credit-balance test
 # databases" step of the `Test API` job in ci.yml: migrate once, then copy the
 # second database with CREATE DATABASE ... TEMPLATE (a file-level copy).
@@ -28,4 +28,5 @@ psql -h localhost -U genfeed -d test -c "CREATE DATABASE billing_scope_test;"
 
 psql -h localhost -U genfeed -d test -c "CREATE DATABASE credit_balance_test TEMPLATE billing_scope_test;"
 psql -h localhost -U genfeed -d test -c "CREATE DATABASE brand_delete_safety_test TEMPLATE billing_scope_test;"
+psql -h localhost -U genfeed -d test -c "CREATE DATABASE agent_master_thread_test TEMPLATE billing_scope_test;"
 psql -h localhost -U genfeed -d test -c "CREATE DATABASE genfeed_7823_disposable;"

@@ -192,6 +192,7 @@ describe('useAdminStats', () => {
       expect(visible(result.current)).toEqual(expectedVisible(oldPayload)),
     );
     expect(Object.keys(result.current).sort()).toEqual([
+      'isError',
       'isLoading',
       'isRefreshing',
       'leaderboard',
@@ -199,8 +200,16 @@ describe('useAdminStats', () => {
       'stats',
       'timeseries',
     ]);
+    expect(result.current.isError).toBe(false);
     expect(result.current.isLoading).toBe(false);
     expect(result.current.isRefreshing).toBe(false);
+  });
+
+  it('reports a failed stats call instead of looking like an empty platform', async () => {
+    fixture.findAll.mockRejectedValue(new Error('Forbidden'));
+    const { result } = renderHook(useAdminStats, createHarness());
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.stats).toBeNull();
   });
 
   it('returns null stats when data is missing', async () => {

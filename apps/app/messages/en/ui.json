@@ -491,6 +491,17 @@
     "buyCredits": "Buy credits",
     "seePlans": "See plans"
   },
+  "upgradePrompt": {
+    "title": "{quality} quality is on {plan}",
+    "titleFallback": "Upgrade your plan",
+    "yourPlan": "Your plan",
+    "recommended": "Recommended",
+    "perMonth": "/mo",
+    "quality": "{quality} quality",
+    "notNow": "Not now",
+    "upgradeTo": "Upgrade to {plan}",
+    "redirecting": "Redirecting…"
+  },
   "lowCreditsBanner": {
     "generationUnaffordableTitle": "Not enough credits to keep generating",
     "generationUnaffordableBody": "Everything you made stays in your Library. Buy a credit pack or pick a plan to keep generating.",

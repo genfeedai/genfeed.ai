@@ -10,13 +10,10 @@ export * from './saas';
 // Node type mapping for React Flow
 import type { NodeTypes } from '@xyflow/react';
 import {
-  ImageGenNode,
   LipSyncNode,
-  LLMNode,
   MotionControlNode,
   TextToSpeechNode,
   TranscribeNode,
-  VideoGenNode,
   VoiceChangeNode,
 } from './ai';
 import {
@@ -24,14 +21,7 @@ import {
   WorkflowOutputNode,
   WorkflowRefNode,
 } from './composition';
-import {
-  AudioInputNode,
-  CastPromptNode,
-  ImageInputNode,
-  PromptConstructorNode,
-  PromptNode,
-  VideoInputNode,
-} from './input';
+import { AudioInputNode, CastPromptNode, PromptConstructorNode } from './input';
 import { DownloadNode } from './output';
 import {
   AnimationNode,
@@ -59,14 +49,10 @@ export const nodeTypes: NodeTypes = {
   download: DownloadNode,
   imageCompare: ImageCompareNode,
   // AI nodes
-  imageGen: ImageGenNode,
   imageGridSplit: ImageGridSplitNode,
-  imageInput: ImageInputNode,
   lipSync: LipSyncNode,
-  llm: LLMNode,
   motionControl: MotionControlNode,
   outputGallery: OutputGalleryNode,
-  prompt: PromptNode,
   promptConstructor: PromptConstructorNode,
   castPrompt: CastPromptNode,
   'cast-prompt-generator': CastPromptNode,
@@ -78,8 +64,6 @@ export const nodeTypes: NodeTypes = {
   transcribe: TranscribeNode,
   upscale: UpscaleNode,
   videoFrameExtract: VideoFrameExtractNode,
-  videoGen: VideoGenNode,
-  videoInput: VideoInputNode,
   videoQa: VideoQaNode,
   videoStitch: VideoStitchNode,
   videoTrim: VideoTrimNode,

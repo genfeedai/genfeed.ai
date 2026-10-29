@@ -125,7 +125,6 @@ import PromptBarContextRow from '@ui/prompt-bars/components/context-row/PromptBa
 import PromptBarCrunControls from '@ui/prompt-bars/components/crun-controls/PromptBarCrunControls';
 import PromptBarCrunVideoControls from '@ui/prompt-bars/components/crun-controls/PromptBarCrunVideoControls';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
-import PromptBarEnhanceControls from '@ui/prompt-bars/components/toolbar/PromptBarEnhanceControls';
 import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/PromptBarReferenceControls';
 import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
 import PromptBarSubmitSlot from '@ui/prompt-bars/components/toolbar/PromptBarSubmitSlot';
@@ -163,7 +162,6 @@ export default function StudioPlaygroundComposer({
   documentSeed,
   extraExtensions,
   isDragActive = false,
-  isEnhancingPrompt = false,
   isListening,
   isLoadingModels,
   isTranscribing,
@@ -173,8 +171,6 @@ export default function StudioPlaygroundComposer({
   notice,
   onExpand,
   onAddFiles,
-  onCancelEnhancePrompt,
-  onEnhancePrompt,
   onOpenLibrary,
   onPromptChange,
   onPromptCommandContextChange,
@@ -186,9 +182,7 @@ export default function StudioPlaygroundComposer({
   onStopListening,
   onSubmit,
   onTypeChange,
-  onUndoEnhancePrompt,
   prompt,
-  previousPrompt = null,
   settings,
   isVoiceInputAvailable,
   type,
@@ -1059,7 +1053,7 @@ export default function StudioPlaygroundComposer({
                 startFrameId: crunStartFrameId,
                 endFrameId: crunEndFrameId,
               }}
-              isDisabled={isUploading || isEnhancingPrompt}
+              isDisabled={isUploading}
               labels={{
                 duration: translate('crun.duration'),
                 aspectRatio: translate('crun.aspectRatio'),
@@ -1122,25 +1116,6 @@ export default function StudioPlaygroundComposer({
       type={type}
     />
   ) : null;
-
-  // The enhance action sits with the other tools, after the setup chips.
-  const enhanceControl =
-    onEnhancePrompt && type !== 'image-edit' ? (
-      <PromptBarEnhanceControls
-        isDisabled={isPromptEmpty}
-        isEnhancing={isEnhancingPrompt}
-        labels={{
-          cancelAria: translate('cancelEnhancingPrompt'),
-          enhanceAria: translate('enhancePrompt'),
-          enhanceLabel: translate('enhanceLabel'),
-          undoAria: translate('undoPromptEnhancement'),
-          undoLabel: translate('undo'),
-        }}
-        onCancel={() => onCancelEnhancePrompt?.()}
-        onEnhance={onEnhancePrompt}
-        onUndo={previousPrompt !== null ? onUndoEnhancePrompt : undefined}
-      />
-    ) : null;
 
   // The last thing in the button row: `+`, which adds references.
   const referenceControl = (
@@ -1454,7 +1429,6 @@ export default function StudioPlaygroundComposer({
             identityFields
           )
         }
-        enhance={enhanceControl}
         reference={referenceControl}
         trailing={
           <PromptBarSubmitSlot

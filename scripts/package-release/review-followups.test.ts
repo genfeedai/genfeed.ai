@@ -120,7 +120,7 @@ describe('package and worktree review follow-ups', () => {
 
     expect(setupIndex).toBeGreaterThanOrEqual(0);
     expect(publishIndex).toBeGreaterThan(setupIndex ?? -1);
-    expect(publishJob).toContain("node-version: '24.x'");
+    expect(publishJob).toContain("node-version: '26.x'");
     expect(publishJob).not.toContain('bun-version:');
     expect(publishJob).toContain(
       "install-command: 'bun install --frozen-lockfile'",

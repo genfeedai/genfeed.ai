@@ -145,7 +145,7 @@ const TOOL_DOCUMENTATION = new Map([
       original:
         'Find tools callable on this connection, filtered by its endpoint permissions and caller role. Tools excluded from this endpoint are never returned. Can discover callable tools outside the current ?toolsets= selection. No arguments: list available toolsets and counts. query and/or toolset: search by name, description or toolset. name: describe one callable tool with its input schema, mutation policy, credit cost and required role.',
       concise:
-        'Discover callable tools within endpoint permissions and caller role, including outside ?toolsets=. No args: toolsets/counts. query/toolset: search names, descriptions or toolsets. name: one tool with input schema, mutation policy, credit cost and role.',
+        'Discover permitted tools, including outside ?toolsets=. No args: toolsets/counts. query/toolset: search. name: schema, policy, cost, role and connection listing status. Discovery does not load tools into the client; refresh a stale client list.',
     },
   ],
   [

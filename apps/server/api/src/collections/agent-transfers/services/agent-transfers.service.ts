@@ -86,6 +86,17 @@ function requestHash(input: CreateAgentTransferDto): string {
   return `sha256:v1:${sha256Hex(stableStringify(payload))}`;
 }
 
+function assertSendAndRunConfirmed(input: CreateAgentTransferDto): void {
+  if (
+    input.deliveryMode === AgentTransferDeliveryMode.SEND_AND_RUN &&
+    input.explicitUserIntent !== true
+  ) {
+    throw new BadRequestException(
+      'SEND_AND_RUN requires explicit user confirmation.',
+    );
+  }
+}
+
 @Injectable()
 export class AgentTransfersService {
   constructor(
@@ -207,7 +218,7 @@ export class AgentTransfersService {
     const destination = input.destinationThreadId
       ? await this.loadAuthorizedThread(actor, input.destinationThreadId)
       : await this.createDestinationThread(actor, input, source);
-    this.assertCompatibleScope(source, destination);
+    this.assertCompatibleScope(source, destination, input);
     this.assertSelectedContextBounded(input.selectedContext);
     await this.reauthorizeArtifacts(input, actor, source, destination);
 
@@ -227,14 +238,7 @@ export class AgentTransfersService {
       );
     }
 
-    if (
-      input.deliveryMode === AgentTransferDeliveryMode.SEND_AND_RUN &&
-      input.explicitUserIntent !== true
-    ) {
-      throw new BadRequestException(
-        'SEND_AND_RUN requires explicit user confirmation.',
-      );
-    }
+    assertSendAndRunConfirmed(input);
 
     const transfer = await this.prisma
       .$transaction(async (tx) => {
@@ -245,6 +249,8 @@ export class AgentTransfersService {
               contextVersion: destination.contextVersion,
               id: destination.id,
               organizationId: actor.organizationId,
+              // The orchestrating thread owns what it spawns (#8526).
+              parentThreadId: source.id,
               source: 'agent-transfer',
               status: AgentThreadStatus.ACTIVE,
               title: destination.title,
@@ -538,7 +544,19 @@ export class AgentTransfersService {
   private assertCompatibleScope(
     source: AuthorizedThread,
     destination: AuthorizedThread,
+    input: CreateAgentTransferDto,
   ) {
+    // An existing destination keeps its own brand, so a different brand named
+    // for it is a mistake to surface, not to ignore.
+    if (
+      input.destinationThreadId &&
+      input.destinationBrandId &&
+      input.destinationBrandId !== destination.brandId
+    ) {
+      throw new BadRequestException(
+        'destinationBrandId does not match the destination conversation.',
+      );
+    }
     if (source.brandId && source.brandId !== destination.brandId) {
       throw new BadRequestException(
         'Transfers cannot widen or cross the source conversation brand scope.',

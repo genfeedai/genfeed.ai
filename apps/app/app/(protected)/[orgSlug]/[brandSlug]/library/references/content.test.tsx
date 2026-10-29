@@ -291,7 +291,12 @@ describe('LibraryCharactersPage', () => {
       }),
     );
     expect(mocks.createFromSheet).not.toHaveBeenCalled();
-    expect(await screen.findByTestId('candidate-image')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('candidate-image')).toHaveAttribute(
+        'data-src',
+        'https://cdn.test/ingredients/images/img-1',
+      );
+    });
   });
 
   it('does not create a persona when the candidate is discarded', async () => {

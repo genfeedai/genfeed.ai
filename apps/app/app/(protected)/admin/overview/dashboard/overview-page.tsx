@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { AlertCategory, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-card.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -13,6 +13,7 @@ import type { KPICardProps } from '@props/ui/kpi/kpi-card.props';
 import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
+import Alert from '@ui/feedback/alert/Alert';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
@@ -21,6 +22,7 @@ import { Skeleton } from '@ui/primitives/skeleton';
 import { Building2, CreditCard, Newspaper, Tag, Users } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 // Lazy-load the chart component to avoid bundling recharts in the initial chunk
 const ActivityChart = dynamic(
@@ -248,8 +250,17 @@ function QuickActionsGrid() {
 }
 
 export default function OverviewPage() {
-  const { stats, leaderboard, timeseries, isLoading, isRefreshing, refresh } =
-    useAdminStats();
+  const translate = useTranslations('common');
+  const {
+    stats,
+    leaderboard,
+    timeseries,
+    isError,
+    isLoading,
+    isRefreshing,
+    refresh,
+  } = useAdminStats();
+  const hasFailedStats = isError && !stats;
 
   // Totals only: the API has no period-over-period figures, so no trend is shown.
   const kpiItems: KPICardProps[] = [
@@ -284,24 +295,40 @@ export default function OverviewPage() {
       isRefreshing={isRefreshing}
     >
       <div className="flex w-full flex-col gap-5">
-        <KPISection
-          items={kpiItems}
-          gridCols={{ desktop: 4, mobile: 1 }}
-          className="mb-0"
-          isLoading={isLoading}
-        />
+        {hasFailedStats ? (
+          <Alert type={AlertCategory.ERROR}>
+            <span className="flex flex-wrap items-center gap-3">
+              {translate('adminDashboard.loadFailed')}
+              <Button
+                variant={ButtonVariant.SECONDARY}
+                onClick={() => refresh()}
+              >
+                {translate('actions.retry')}
+              </Button>
+            </span>
+          </Alert>
+        ) : (
+          <>
+            <KPISection
+              items={kpiItems}
+              gridCols={{ desktop: 4, mobile: 1 }}
+              className="mb-0"
+              isLoading={isLoading}
+            />
 
-        <StatsGrid
-          stats={{
-            activeBots: stats?.activeBots || 0,
-            activeWorkflows: stats?.activeWorkflows || 0,
-            pendingPosts: stats?.pendingPosts || 0,
-            recentActivities: stats?.recentActivities || 0,
-            totalBrands: stats?.totalBrands || 0,
-            totalModels: stats?.totalModels || 0,
-          }}
-          isLoading={isLoading}
-        />
+            <StatsGrid
+              stats={{
+                activeBots: stats?.activeBots || 0,
+                activeWorkflows: stats?.activeWorkflows || 0,
+                pendingPosts: stats?.pendingPosts || 0,
+                recentActivities: stats?.recentActivities || 0,
+                totalBrands: stats?.totalBrands || 0,
+                totalModels: stats?.totalModels || 0,
+              }}
+              isLoading={isLoading}
+            />
+          </>
+        )}
 
         <QuickActionsGrid />
 

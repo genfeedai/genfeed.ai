@@ -4661,7 +4661,16 @@ model AgentThread {
   source                         String?
   systemPrompt                   String?
   memoryEntryIds                 String[]     @default([])
+  // 'master' | 'thread' — see `AgentThreadKind` in @genfeedai/contracts. The
+  // partial unique index `agent_threads_active_master_per_org_user_key`
+  // (organizationId, userId) WHERE kind = 'master' AND isDeleted = false keeps
+  // one live master per user per organization; Prisma cannot declare it, so
+  // it lives in the migration SQL.
+  kind                           String       @default("thread")
+  // Set on threads spawned from another thread (agent transfers, branches).
+  // Composite so a parent can never belong to another organization.
   parentThreadId                 String?
+  parentThread                   AgentThread? @relation("agent_thread_parent", fields: [parentThreadId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   scopeChangeProvenance          Json         @default("[]")
   isLegacyBrandFallbackEligible  Boolean      @default(false)
   legacyBrandFallbackCount       Int          @default(0)
@@ -4672,6 +4681,7 @@ model AgentThread {
   createdAt                      DateTime     @default(now())
   updatedAt                      DateTime     @updatedAt
 
+  childThreads      AgentThread[]         @relation("agent_thread_parent")
   messages          AgentMessage[]
   outboundTransfers AgentTransfer[]       @relation("agent_transfer_source_thread")
   inboundTransfers  AgentTransfer[]       @relation("agent_transfer_destination_thread")
@@ -4683,6 +4693,7 @@ model AgentThread {
 
   @@index([organizationId, isDeleted, updatedAt(sort: Desc)])
   @@index([organizationId, brandId, isDeleted, updatedAt(sort: Desc)], map: "agent_threads_org_brand_deleted_updated_at_idx")
+  @@index([organizationId, parentThreadId])
   @@map("agent_threads")
   executionReadScopes WorkflowExecutionReadScope[]
   @@unique([id, organizationId], map: "agent_threads_id_organizationId_key")

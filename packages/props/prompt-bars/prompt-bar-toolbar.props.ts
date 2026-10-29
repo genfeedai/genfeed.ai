@@ -6,12 +6,10 @@ export interface PromptBarToolbarProps {
   mode?: ReactNode;
   /** Left group, after mode: the surface's own setup chips. */
   leading?: ReactNode;
-  /** Right group, before submit: the Enhance prompt action. */
-  enhance?: ReactNode;
   /** Left group, last: the `+` that adds references. */
   reference?: ReactNode;
   leadingLabel?: string;
-  /** Right group, after Enhance: price and the submit slot. */
+  /** Right group: price and the submit slot. */
   trailing: ReactNode;
   trailingLabel?: string;
 }

@@ -7,8 +7,10 @@ import { BrandAccessService } from '@api/authorization/brand-access/brand-access
  */
 
 import { AgentMessagesModule } from '@api/collections/agent-messages/agent-messages.module';
+import { AgentMasterThreadController } from '@api/collections/agent-threads/controllers/agent-master-thread.controller';
 import { AgentRunsController } from '@api/collections/agent-threads/controllers/agent-runs.controller';
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
+import { AgentMasterThreadService } from '@api/collections/agent-threads/services/agent-master-thread.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
@@ -21,8 +23,16 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Module } from '@nestjs/common';
 
 @Module({
-  controllers: [AgentRunsController, AgentThreadsController],
-  exports: [AgentScopeContextService, AgentThreadsService],
+  controllers: [
+    AgentRunsController,
+    AgentMasterThreadController,
+    AgentThreadsController,
+  ],
+  exports: [
+    AgentMasterThreadService,
+    AgentScopeContextService,
+    AgentThreadsService,
+  ],
   imports: [
     BrandAccessModule,
     AgentMessagesModule,
@@ -33,6 +43,7 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     AgentThreadsService,
+    AgentMasterThreadService,
     AgentThreadProjectorService,
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
     { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },

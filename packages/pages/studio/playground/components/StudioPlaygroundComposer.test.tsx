@@ -2171,134 +2171,6 @@ describe('StudioPlaygroundComposer', () => {
     );
   });
 
-  describe('Enhance prompt action (#4676)', () => {
-    it('is absent when no onEnhancePrompt handler is supplied', () => {
-      render(
-        <StudioPlaygroundComposer
-          {...baseProps}
-          prompt="A product photo"
-          settings={settings}
-          type="image"
-        />,
-      );
-
-      expect(
-        screen.queryByRole('button', { name: 'Enhance prompt' }),
-      ).not.toBeInTheDocument();
-    });
-
-    it('calls onEnhancePrompt and never touches onSubmit', () => {
-      const onEnhancePrompt = vi.fn();
-      render(
-        <StudioPlaygroundComposer
-          {...baseProps}
-          onEnhancePrompt={onEnhancePrompt}
-          prompt="A product photo"
-          settings={settings}
-          type="image"
-        />,
-      );
-
-      const promptTools = within(
-        screen.getByRole('group', { name: 'Prompt tools' }),
-      );
-      const generationControls = within(
-        screen.getByRole('group', { name: 'Generation controls' }),
-      );
-      // Enhance sits on the right, beside Generate, not with the setup chips.
-      expect(
-        generationControls.getByRole('button', { name: 'Enhance prompt' }),
-      ).not.toHaveTextContent('Enhance prompt');
-      expect(
-        promptTools.queryByRole('button', { name: 'Enhance prompt' }),
-      ).not.toBeInTheDocument();
-      expect(
-        promptTools.getByRole('button', { name: 'Setup' }),
-      ).toBeInTheDocument();
-      fireEvent.click(screen.getByRole('button', { name: 'Enhance prompt' }));
-
-      expect(onEnhancePrompt).toHaveBeenCalledOnce();
-      expect(baseProps.onSubmit).not.toHaveBeenCalled();
-    });
-
-    it('disables the Enhance action for an empty prompt', () => {
-      render(
-        <StudioPlaygroundComposer
-          {...baseProps}
-          onEnhancePrompt={vi.fn()}
-          prompt=""
-          settings={settings}
-          type="image"
-        />,
-      );
-
-      expect(
-        screen.getByRole('button', { name: 'Enhance prompt' }),
-      ).toBeDisabled();
-    });
-
-    it('swaps to a clickable Cancel action while enhancing — the composer stays usable', () => {
-      const onCancelEnhancePrompt = vi.fn();
-      render(
-        <StudioPlaygroundComposer
-          {...baseProps}
-          isEnhancingPrompt
-          onCancelEnhancePrompt={onCancelEnhancePrompt}
-          onEnhancePrompt={vi.fn()}
-          prompt="A product photo"
-          settings={settings}
-          type="image"
-        />,
-      );
-
-      const cancelButton = screen.getByRole('button', {
-        name: 'Cancel enhancing prompt',
-      });
-      expect(cancelButton).toBeEnabled();
-
-      fireEvent.click(cancelButton);
-      expect(onCancelEnhancePrompt).toHaveBeenCalledOnce();
-    });
-
-    it('shows Undo only once an enhancement has replaced the prompt, not while pending', () => {
-      const onUndoEnhancePrompt = vi.fn();
-      const { rerender } = render(
-        <StudioPlaygroundComposer
-          {...baseProps}
-          isEnhancingPrompt
-          onEnhancePrompt={vi.fn()}
-          onUndoEnhancePrompt={onUndoEnhancePrompt}
-          previousPrompt="The original prompt"
-          prompt="An enhanced prompt"
-          settings={settings}
-          type="image"
-        />,
-      );
-
-      expect(
-        screen.queryByRole('button', { name: 'Undo prompt enhancement' }),
-      ).not.toBeInTheDocument();
-
-      rerender(
-        <StudioPlaygroundComposer
-          {...baseProps}
-          isEnhancingPrompt={false}
-          onEnhancePrompt={vi.fn()}
-          onUndoEnhancePrompt={onUndoEnhancePrompt}
-          previousPrompt="The original prompt"
-          prompt="An enhanced prompt"
-          settings={settings}
-          type="image"
-        />,
-      );
-
-      const undoButton = screen.getByRole('button', {
-        name: 'Undo prompt enhancement',
-      });
-      fireEvent.click(undoButton);
-      expect(onUndoEnhancePrompt).toHaveBeenCalledOnce();
-    });
-  });
   it('distinguishes Auto, catalog loading, missing pricing and live wallet states', () => {
     const props = {
       ...baseProps,
@@ -2896,7 +2768,7 @@ describe('StudioPlaygroundComposer', () => {
         expect.objectContaining({ outputs: 1 }),
       );
     });
-    it('blocks submission without a source and never offers prompt enhancement', () => {
+    it('blocks submission without a source', () => {
       render(
         <StudioPlaygroundComposer
           {...baseProps}
@@ -2904,7 +2776,6 @@ describe('StudioPlaygroundComposer', () => {
           prompt="Change the sign"
           settings={{ ...settings, modelKey: editModel.key }}
           type="image-edit"
-          onEnhancePrompt={vi.fn()}
         />,
       );
       expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
@@ -2914,9 +2785,6 @@ describe('StudioPlaygroundComposer', () => {
       expect(
         screen.getByText('Choose a source image to edit.'),
       ).toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', { name: 'Enhance prompt' }),
-      ).not.toBeInTheDocument();
     });
     it('forces source dimensions for a mask, preserves seed zero and passes the extensions it is given', () => {
       render(

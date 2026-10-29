@@ -376,7 +376,7 @@ describe('AppRail', () => {
     expect(screen.queryByTestId('app-rail-item-admin')).toBeNull();
   });
 
-  it('leads admin chrome with a back button to the workspace, never active', () => {
+  it('ends admin chrome with a back button to the workspace, never active', () => {
     render(
       <AppRail
         brandSlug="moonrise"
@@ -393,7 +393,7 @@ describe('AppRail', () => {
     expect(screen.queryByRole('link', { name: 'Workspace' })).toBeNull();
   });
 
-  it('separates the admin back button from the categories with one divider', () => {
+  it('lists every admin category together and puts the back button at the bottom', () => {
     render(
       <AppRail
         currentPath="/admin/content/posts"
@@ -404,19 +404,20 @@ describe('AppRail', () => {
     );
     const nav = screen.getByTestId('app-rail');
     const categories = screen.getByTestId('app-rail-admin-categories');
-    // The divider is the group's first child, followed by the five day-to-day
-    // categories; the superadmin section (Platform) is set apart below.
-    expect(categories.querySelectorAll('a')).toHaveLength(5);
-    expect(categories.firstElementChild?.tagName).toBe('DIV');
-    expect(categories.firstElementChild).toHaveClass('my-1', 'w-5');
-    const platform = screen.getByTestId('app-rail-admin-platform');
-    expect(platform.querySelectorAll('a')).toHaveLength(1);
-    expect(platform.firstElementChild).toHaveClass('my-1', 'w-5');
+    // Platform is one of the six categories, not a separate section.
+    expect(categories.querySelectorAll('a')).toHaveLength(6);
     expect(
-      platform.contains(screen.getByTestId('app-rail-item-admin-platform')),
+      categories.contains(screen.getByTestId('app-rail-item-admin-platform')),
     ).toBe(true);
-    expect(screen.getByTestId('app-rail-bottom')).toContainElement(platform);
-    // No empty app-loop group between the back button and the categories.
+    // The back button takes the bottom slot the Admin entry has in the app rail.
+    const bottom = screen.getByTestId('app-rail-bottom');
+    expect(
+      bottom.contains(screen.getByTestId('app-rail-item-admin-back')),
+    ).toBe(true);
+    expect(
+      categories.contains(screen.getByTestId('app-rail-item-admin-back')),
+    ).toBe(false);
+    // No empty app-loop group between the header and the categories.
     expect(
       Array.from(nav.children).filter((child) => child.childElementCount === 0),
     ).toHaveLength(0);

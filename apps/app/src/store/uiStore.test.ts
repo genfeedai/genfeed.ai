@@ -137,14 +137,6 @@ describe('useUIStore', () => {
 
       expect(useUIStore.getState().activeModal).toBe('settings');
     });
-
-    it('should open the promptLibrary modal', () => {
-      const { openModal } = useUIStore.getState();
-
-      openModal('promptLibrary');
-
-      expect(useUIStore.getState().activeModal).toBe('promptLibrary');
-    });
   });
 
   describe('closeModal', () => {

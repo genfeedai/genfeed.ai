@@ -545,6 +545,76 @@ describe('RequestContextMiddleware', () => {
       ).toBe(false);
     });
 
+    it('keeps super-admin for a session when an API key of the same account cached the context first', async () => {
+      vi.stubEnv('ADMIN_ALLOWED_IPS', '203.0.113.7');
+      const store = new Map<string, string>();
+      const publisher = buildPublisher({
+        get: vi.fn(async (key: string) => store.get(key) ?? null),
+        setex: vi.fn(async (key: string, _ttl: number, value: string) => {
+          store.set(key, value);
+          return 'OK';
+        }),
+      });
+      redisService.getPublisher.mockReturnValue(publisher);
+
+      const apiKeyRequest = {
+        headers: {},
+        ip: '203.0.113.7',
+        user: { ...buildUser(), isApiKey: true, isSuperAdmin: false },
+      };
+      await middleware.hydrate(apiKeyRequest as never);
+
+      const sessionRequest = buildSuperAdminRequest('203.0.113.7');
+      await middleware.hydrate(sessionRequest as never);
+
+      expect(store.size).toBe(1);
+      expect(
+        (
+          apiKeyRequest as typeof apiKeyRequest & {
+            context: { isSuperAdmin: boolean };
+          }
+        ).context.isSuperAdmin,
+      ).toBe(false);
+      expect(
+        (
+          sessionRequest as typeof sessionRequest & {
+            context: { isSuperAdmin: boolean };
+          }
+        ).context.isSuperAdmin,
+      ).toBe(true);
+    });
+
+    it('never gives an API key super-admin from a context a session cached', async () => {
+      vi.stubEnv('ADMIN_ALLOWED_IPS', '203.0.113.7');
+      const store = new Map<string, string>();
+      const publisher = buildPublisher({
+        get: vi.fn(async (key: string) => store.get(key) ?? null),
+        setex: vi.fn(async (key: string, _ttl: number, value: string) => {
+          store.set(key, value);
+          return 'OK';
+        }),
+      });
+      redisService.getPublisher.mockReturnValue(publisher);
+
+      await middleware.hydrate(buildSuperAdminRequest('203.0.113.7') as never);
+
+      const apiKeyRequest = {
+        headers: {},
+        ip: '203.0.113.7',
+        user: { ...buildUser(), isApiKey: true, isSuperAdmin: false },
+      };
+      await middleware.hydrate(apiKeyRequest as never);
+
+      expect(store.size).toBe(1);
+      expect(
+        (
+          apiKeyRequest as typeof apiKeyRequest & {
+            context: { isSuperAdmin: boolean };
+          }
+        ).context.isSuperAdmin,
+      ).toBe(false);
+    });
+
     it('drops super-admin from the self-hosted default context for a blocked IP', async () => {
       vi.stubEnv('ADMIN_ALLOWED_IPS', '203.0.113.7');
       configState.isSelfHosted = true;

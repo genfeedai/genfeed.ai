@@ -89,7 +89,6 @@ export interface StudioPlaygroundComposerProps {
   documentSeed?: PromptEditorDocumentSeed | null;
   extraExtensions?: readonly AnyExtension[];
   isDragActive?: boolean;
-  isEnhancingPrompt?: boolean;
   isListening: boolean;
   isLoadingModels: boolean;
   /** One-line resting bar while the gallery scrolls under it. */
@@ -101,8 +100,6 @@ export interface StudioPlaygroundComposerProps {
   notice?: ReactNode;
   onExpand?: () => void;
   onAddFiles: (files: File[], role?: StudioPlaygroundReferenceRole) => void;
-  onCancelEnhancePrompt?: () => void;
-  onEnhancePrompt?: () => void;
   onOpenLibrary: (role?: StudioPlaygroundReferenceRole) => void;
   /** Hands this type's presets and saved looks to the shared `/` menu. */
   onPromptCommandContextChange?: (context: PromptCommandContext | null) => void;
@@ -115,10 +112,7 @@ export interface StudioPlaygroundComposerProps {
   onStopListening: () => void;
   onSubmit: (options?: StudioSubmitOptions) => void;
   onTypeChange: (type: StudioPlaygroundType) => void;
-  onUndoEnhancePrompt?: () => void;
   prompt: string;
-  /** Set only once an enhancement has actually replaced the prompt. */
-  previousPrompt?: string | null;
   settings: StudioPlaygroundSettings;
   /** Org Voice Control is on and the browser can record; the composer decides placement. */
   isVoiceInputAvailable: boolean;
