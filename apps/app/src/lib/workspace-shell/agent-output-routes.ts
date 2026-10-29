@@ -11,6 +11,8 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 const AGENT_OUTPUT_ROUTE_PATTERNS: readonly RegExp[] = [
   // A Storyboard run; `/storyboard/new` is the create form.
   new RegExp(`^${APP_ROUTES.STUDIO.STORYBOARD}/(?!new/?$)[^/]+/?$`),
+  // An Editor project; `/editor/new` creates one.
+  new RegExp(`^${APP_ROUTES.STUDIO.EDITOR}/(?!new/?$)[^/]+/?$`),
 ];
 
 export function isAgentOutputRoute(normalizedPathname: string): boolean {

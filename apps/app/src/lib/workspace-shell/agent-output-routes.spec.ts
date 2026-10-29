@@ -17,6 +17,14 @@ describe('isAgentOutputRoute', () => {
     expect(isAgentOutputRoute('/storyboard/new-run')).toBe(true);
   });
 
+  it('matches an editor project and leaves the list and the create form', () => {
+    expect(isAgentOutputRoute('/editor/project-1')).toBe(true);
+    expect(isAgentOutputRoute('/editor/project-1/')).toBe(true);
+    expect(isAgentOutputRoute('/editor')).toBe(false);
+    expect(isAgentOutputRoute('/editor/new')).toBe(false);
+    expect(isAgentOutputRoute('/editor/new/')).toBe(false);
+  });
+
   it('does not match other apps or nested paths', () => {
     expect(isAgentOutputRoute('/library/images')).toBe(false);
     expect(isAgentOutputRoute('/agent/thread-1')).toBe(false);
