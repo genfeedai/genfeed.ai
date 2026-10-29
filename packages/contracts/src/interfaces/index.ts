@@ -148,6 +148,7 @@ export * from './content/campaign-comparison.interface';
 export * from './content/campaign-lifecycle.interface';
 export * from './content/campaign-paid-activation.interface';
 export * from './content/campaign-performance.interface';
+export * from './content/caption-burn-style.interface';
 export * from './content/character-sheet.interface';
 export * from './content/clipper-clip-edit.interface';
 export * from './content/clipper-draft-handoff.interface';

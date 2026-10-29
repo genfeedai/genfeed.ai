@@ -551,6 +551,20 @@ export class FFmpegService {
     );
   }
 
+  async burnCaptions(
+    inputPath: string,
+    outputPath: string,
+    filterScriptPath: string,
+    onProgress?: (progress: FFmpegProgress) => void,
+  ): Promise<void> {
+    return this.effects.burnCaptions(
+      inputPath,
+      outputPath,
+      filterScriptPath,
+      onProgress,
+    );
+  }
+
   async addAudioAndTextToVideo(
     inputPath: string,
     outputPath: string,

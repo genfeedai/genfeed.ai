@@ -174,9 +174,37 @@ export const FLOW_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
   'effect-captions': {
     category: 'effects',
     configSchema: {
+      backgroundColor: {
+        description:
+          'Hex color of a full-width band behind the text. Empty draws an outline instead.',
+        label: 'Background Band Color',
+        type: 'string',
+      },
+      backgroundOpacity: {
+        default: 0.96,
+        label: 'Background Band Opacity',
+        max: 1,
+        min: 0,
+        type: 'number',
+      },
+      bottomAnchorRatio: {
+        default: 0.8,
+        description:
+          'Where the text block ends for bottom captions, as a share of the video height',
+        label: 'Bottom Edge',
+        max: 0.95,
+        min: 0.5,
+        type: 'number',
+      },
       fontColor: {
         default: '#FFFFFF',
         label: 'Font Color',
+        type: 'string',
+      },
+      fontFamily: {
+        description:
+          'Brand font name such as INTER_BOLD or MONTSERRAT_BLACK. Empty uses the default caption font.',
+        label: 'Font Family',
         type: 'string',
       },
       fontSize: {
@@ -195,6 +223,12 @@ export const FLOW_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
         default: 'dynamic',
         label: 'Style',
         options: ['minimal', 'dynamic', 'youtube', 'tiktok'],
+        type: 'select',
+      },
+      textCase: {
+        default: 'as-is',
+        label: 'Text Case',
+        options: ['as-is', 'upper'],
         type: 'select',
       },
     },

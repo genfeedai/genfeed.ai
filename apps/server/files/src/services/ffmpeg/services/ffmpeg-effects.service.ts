@@ -433,6 +433,47 @@ export class FFmpegEffectsService {
   }
 
   /**
+   * Draw captions into the picture from a filtergraph script that ends in the
+   * `[vFinal]` label (see `buildCaptionBurnFilterScript`). The video is
+   * re-encoded; audio is kept.
+   */
+  async burnCaptions(
+    inputPath: string,
+    outputPath: string,
+    filterScriptPath: string,
+    onProgress?: (progress: FFmpegProgress) => void,
+  ): Promise<void> {
+    const args = [
+      '-i',
+      inputPath,
+      '-filter_complex_script',
+      filterScriptPath,
+      '-map',
+      '[vFinal]',
+      '-map',
+      '0:a?',
+      '-c:v',
+      'libx264',
+      '-preset',
+      'fast',
+      '-crf',
+      '20',
+      '-pix_fmt',
+      'yuv420p',
+      '-c:a',
+      'aac',
+      '-b:a',
+      '192k',
+      '-movflags',
+      '+faststart',
+      '-y',
+      outputPath,
+    ];
+
+    await this.core.executeFFmpeg(args, onProgress);
+  }
+
+  /**
    * Add audio and text overlays to video
    */
   async addAudioAndTextToVideo(
