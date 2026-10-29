@@ -34,7 +34,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: "24.x"
+          node-version: "26.x"
       - name: Validate policy against the base revision
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -58,7 +58,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: "24.x"
+          node-version: "26.x"
       - name: Assess completed scheduled baseline evidence
         env:
           GH_TOKEN: ${{ github.token }}

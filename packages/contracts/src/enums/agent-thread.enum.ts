@@ -4,6 +4,18 @@ export enum AgentThreadStatus {
 }
 
 /**
+ * What a thread is for (#8526). `MASTER` is the one org-level thread per user
+ * per organization that talks to the user and orchestrates the others through
+ * agent transfers; every other thread is a plain `THREAD`. A partial unique
+ * index on `agent_threads` enforces at most one live master per
+ * (organization, user).
+ */
+export enum AgentThreadKind {
+  MASTER = 'master',
+  THREAD = 'thread',
+}
+
+/**
  * Per-thread agent mode (#4672). Replaces the old `planModeEnabled` boolean:
  * `AUTO` and `PLAN` retain all declared approval-required and outbound gates.
  * `MANUAL` additionally confirms credit spending and brand context changes.

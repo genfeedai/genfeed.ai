@@ -43,6 +43,7 @@
     "missingTitle": "Content not found"
   },
   "detail": {
+    "backToPosts": "Back to posts",
     "header": {
       "askAgent": "Ask Agent",
       "delete": "Delete",

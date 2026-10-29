@@ -8,7 +8,7 @@ import type {
   IFilters,
   IFiltersState,
 } from '@genfeedai/contracts/interfaces/utils/filters.interface';
-import { createFilterHref } from '@helpers/navigation/filter-href.helper';
+import { createPathViewHref } from '@helpers/navigation/filter-href.helper';
 import type { IngredientsLayoutProps } from '@props/content/ingredients-layout.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
@@ -18,7 +18,7 @@ import {
   SHELL_ICON_CLASS,
 } from '@ui-constants/shell-chrome.constant';
 import { Image, Upload } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
 import IngredientsLayoutToolbar from './ingredients-layout-toolbar';
@@ -27,6 +27,16 @@ import { useIngredientsLayout } from './use-ingredients-layout';
 // The provider only hosts header context for the Library; this layout has
 // nothing to publish, so the value is a stable constant.
 const HEADER_CONTEXT_VALUE = {};
+
+const ALL_ASSETS_TYPE = 'ingredients';
+const ADMIN_ASSET_TYPES = [
+  'videos',
+  'images',
+  'gifs',
+  'musics',
+  'avatars',
+  'voices',
+];
 
 export default function IngredientsLayout({
   children,
@@ -37,12 +47,14 @@ export default function IngredientsLayout({
   const translateUpload = useTranslations('pages.library.browser.toolbar');
   const translateTabs = useTranslations('pages.library.browser.assetTypeTabs');
   const search = useSearchParams()?.toString() ?? '';
+  const pathname = usePathname() ?? '';
   const typeHref = (type: string) =>
-    createFilterHref(
-      APP_ROUTES.ADMIN.CONTENT.INGREDIENTS,
+    createPathViewHref(
+      type === ALL_ASSETS_TYPE
+        ? APP_ROUTES.ADMIN.CONTENT.INGREDIENTS
+        : `${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/${type}`,
       search,
       'assetType',
-      type,
     );
   const {
     config,
@@ -67,18 +79,11 @@ export default function IngredientsLayout({
             : {
                 headerTabs: {
                   activeTab: typeHref(
-                    [
-                      'videos',
-                      'images',
-                      'gifs',
-                      'musics',
-                      'avatars',
-                      'voices',
-                      'ingredients',
-                    ].find(
+                    ADMIN_ASSET_TYPES.find(
                       (value) =>
-                        value === new URLSearchParams(search).get('assetType'),
-                    ) ?? 'ingredients',
+                        pathname ===
+                        `${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/${value}`,
+                    ) ?? ALL_ASSETS_TYPE,
                   ),
                   fullWidth: false,
                   tabs: [

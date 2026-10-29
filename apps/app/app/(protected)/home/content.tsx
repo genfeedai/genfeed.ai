@@ -7,15 +7,18 @@ import {
   createOrganizationAppRoute,
 } from '@genfeedai/contracts/constants';
 import { useAccessState } from '@providers/access-state/access-state.provider';
+import NoticeBanner from '@ui/banners/notice-banner/NoticeBanner';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
-import { ArrowRight, Info, RefreshCw, ShieldCheck, Zap } from 'lucide-react';
+import { ArrowRight, Plug, RefreshCw, ShieldCheck, Zap } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { resolveOperationalHomeScope } from './operational-home.helpers';
 import OperationalHomeSections from './operational-home-sections';
+import { useConnectCardDismissal } from './use-connect-card-dismissal';
 import {
   type UseConnectGenfeedStatusResult,
   useConnectGenfeedStatus,
@@ -24,10 +27,16 @@ import {
 function ConnectionStatusLine({
   connectHref,
   connection,
+  isDismissed,
+  onDismiss,
 }: {
   connectHref: string;
   connection: UseConnectGenfeedStatusResult;
+  isDismissed: boolean | null;
+  onDismiss: () => void;
 }) {
+  const translate = useTranslations('common');
+
   if (connection.status === 'configured') {
     return (
       <div
@@ -88,25 +97,33 @@ function ConnectionStatusLine({
     );
   }
 
+  if (isDismissed !== false) {
+    return null;
+  }
+
   return (
-    <Alert variant="info" data-testid="operational-home-unconfigured">
-      <Info aria-hidden="true" />
-      <AlertTitle>Connect an AI client (optional)</AlertTitle>
-      <AlertDescription>
-        <p>
-          Connect Claude Code, Codex, or another MCP client to manage this
-          workspace from your AI tools. You can keep using the dashboard without
-          connecting.
-        </p>
-        <Link
-          className="mt-2 inline-flex items-center gap-1 font-medium underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          href={connectHref}
+    <NoticeBanner
+      tone="info"
+      icon={<Plug />}
+      title={translate('home.connect.title')}
+      dismissLabel={translate('home.connect.dismiss')}
+      onDismiss={onDismiss}
+      testId="operational-home-unconfigured"
+      actions={
+        <Button
+          asChild
+          className="flex-1 @2xl:flex-none"
+          size={ButtonSize.LG}
+          variant={ButtonVariant.DEFAULT}
+          withWrapper={false}
         >
-          Connect Genfeed
-          <ArrowRight aria-hidden="true" className="size-3.5" />
-        </Link>
-      </AlertDescription>
-    </Alert>
+          <Link href={connectHref}>
+            {translate('home.connect.action')}
+            <ArrowRight aria-hidden="true" className="size-3.5" />
+          </Link>
+        </Button>
+      }
+    />
   );
 }
 
@@ -124,6 +141,7 @@ export default function OperationalHomeContent() {
     selectedBrand,
   });
   const connection = useConnectGenfeedStatus(resolvedOrganizationId);
+  const connectCard = useConnectCardDismissal(resolvedOrganizationId);
 
   if (!orgSlug) {
     return (
@@ -153,7 +171,12 @@ export default function OperationalHomeContent() {
     <div className="flex w-full flex-col gap-5">
       <h1 className="sr-only">Operational home</h1>
 
-      <ConnectionStatusLine connectHref={connectHref} connection={connection} />
+      <ConnectionStatusLine
+        connectHref={connectHref}
+        connection={connection}
+        isDismissed={connectCard.isDismissed}
+        onDismiss={connectCard.dismiss}
+      />
 
       <OperationalHomeSections brandSlug={brandSlug} orgSlug={orgSlug} />
     </div>

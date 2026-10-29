@@ -46,8 +46,16 @@
     "verifyEmailSentTo": "We sent a verification link to"
   },
   "authShowcase": {
-    "pause": "Pause background video",
-    "play": "Play background video"
+    "pause": "Pause example video",
+    "play": "Play example video",
+    "region": "Examples made with Genfeed",
+    "select": "Show the {model} example",
+    "slides": {
+      "anime-fight": "Hand-drawn anime fight, one prompt",
+      "city-courier": "Handheld street shot, one take",
+      "neon-night-run": "Night orbit through neon rain",
+      "rooftop-gym": "Golden-hour fitness ad, ready to post"
+    }
   },
   "actions": {
     "cancel": "Cancel",
@@ -112,6 +120,9 @@
       "requested": "Tool approval needed"
     },
     "view": "View"
+  },
+  "adminDashboard": {
+    "loadFailed": "Could not load the platform stats. Try again."
   },
   "agentAuth": {
     "claim": {
@@ -1374,6 +1385,11 @@
       "approveError": "Failed to approve the item",
       "approvePost": "Approve post",
       "workflowFailed": "Workflow execution failed."
+    },
+    "connect": {
+      "action": "Connect Genfeed",
+      "dismiss": "Dismiss connect card",
+      "title": "Connect Claude Code, Codex, or another AI client"
     },
     "credentials": {
       "addBrand": "Add a brand",

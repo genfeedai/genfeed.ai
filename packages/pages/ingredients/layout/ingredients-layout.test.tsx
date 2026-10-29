@@ -9,6 +9,7 @@ const { translationNamespaceSpy } = vi.hoisted(() => ({
 }));
 const replaceSpy = vi.fn();
 let mockSearchParams = new URLSearchParams();
+let mockPathname = '/library/videos';
 
 vi.mock('@ui/buttons/base/Button', () => ({
   default: ({ onClick }: { onClick?: () => void }) => (
@@ -73,15 +74,27 @@ vi.mock('@ui/content/filters-button/FiltersButton', () => ({
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
+    headerTabs,
     label,
     right,
   }: {
     children?: ReactNode;
+    headerTabs?: {
+      activeTab: string;
+      tabs: { href: string; label: string }[];
+    };
     label?: ReactNode;
     right?: ReactNode;
   }) => (
     <div>
       <div>{label}</div>
+      <nav data-active={headerTabs?.activeTab}>
+        {headerTabs?.tabs.map((tab) => (
+          <a key={tab.href} href={tab.href}>
+            {tab.label}
+          </a>
+        ))}
+      </nav>
       <div>{right}</div>
       <div>{children}</div>
     </div>
@@ -100,7 +113,7 @@ vi.mock('next/navigation', () => ({
     brandSlug: 'brand-1',
     orgSlug: 'org-1',
   })),
-  usePathname: vi.fn(() => '/library/videos'),
+  usePathname: vi.fn(() => mockPathname),
   useRouter: vi.fn(() => ({
     replace: replaceSpy,
   })),
@@ -112,6 +125,7 @@ describe('IngredientsLayout', () => {
     replaceSpy.mockReset();
     translationNamespaceSpy.mockClear();
     mockSearchParams = new URLSearchParams();
+    mockPathname = '/library/videos';
     window.history.replaceState({}, '', '/library/videos');
   });
 
@@ -185,5 +199,30 @@ describe('IngredientsLayout', () => {
     );
 
     expect(getAllByText('Videos').length).toBeGreaterThan(0);
+  });
+
+  it('links the admin asset type tabs by path and keeps the filters', () => {
+    mockPathname = '/admin/content/ingredients/images';
+    mockSearchParams = new URLSearchParams('search=hero');
+
+    const { container } = render(
+      <IngredientsLayout scope={PageScope.SUPERADMIN} />,
+    );
+
+    const nav = container.querySelector('nav');
+    expect(
+      Array.from(nav?.querySelectorAll('a') ?? []).map((link) =>
+        link.getAttribute('href'),
+      ),
+    ).toEqual([
+      '/admin/content/ingredients?search=hero',
+      '/admin/content/ingredients/videos?search=hero',
+      '/admin/content/ingredients/images?search=hero',
+      '/admin/content/ingredients/gifs?search=hero',
+      '/admin/content/ingredients/musics?search=hero',
+    ]);
+    expect(nav?.getAttribute('data-active')).toBe(
+      '/admin/content/ingredients/images?search=hero',
+    );
   });
 });

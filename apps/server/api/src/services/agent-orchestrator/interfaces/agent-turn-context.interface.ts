@@ -43,6 +43,8 @@ export interface AgentTurnSystemPromptInput {
   replyStyle?: string;
   request: AgentChatRequest;
   skillPromptSuffix: string;
+  /** `master` when the turn runs on the user's master thread (#8526). */
+  threadKind?: string;
   /** The persisted thread's own system prompt, when it has one. */
   threadSystemPrompt?: string;
 }

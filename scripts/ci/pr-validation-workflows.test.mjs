@@ -1698,7 +1698,7 @@ test('dedicated production agent and BRAND jobs preserve full-tier selection and
         block.indexOf('actions/checkout@'),
     );
     assert.ok(
-      block.indexOf('Setup preflight Node.js 24.x') <
+      block.indexOf('Setup preflight Node.js 26.x') <
         block.indexOf('Validate final prerequisites'),
     );
     assert.ok(

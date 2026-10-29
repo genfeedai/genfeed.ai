@@ -349,6 +349,68 @@ describe.skipIf(!connectionString)(
       ).resolves.toMatchObject({ organizationId: s.destination });
     });
 
+    it('unlinks agent thread parents that would straddle the move, and keeps links on the same side', async () => {
+      const s = await seed(prisma);
+      // A brandless master stays behind; the moved thread is its child.
+      const master = (
+        await prisma.agentThread.create({
+          data: {
+            kind: 'master',
+            organizationId: s.source,
+            userId: s.owner,
+          },
+        })
+      ).id;
+      await prisma.agentThread.update({
+        data: { parentThreadId: master },
+        where: { id: s.thread },
+      });
+      // A stay-behind child of the moved thread, and a child that moves with it.
+      const stayBehind = (
+        await prisma.agentThread.create({
+          data: {
+            organizationId: s.source,
+            parentThreadId: s.thread,
+            userId: s.owner,
+          },
+        })
+      ).id;
+      const movesAlong = (
+        await prisma.agentThread.create({
+          data: {
+            brandId: s.brand,
+            organizationId: s.source,
+            parentThreadId: s.thread,
+            userId: s.owner,
+          },
+        })
+      ).id;
+
+      await move(s, s.destination);
+
+      const threads = new Map(
+        (
+          await prisma.agentThread.findMany({
+            select: { id: true, organizationId: true, parentThreadId: true },
+            where: { id: { in: [master, s.thread, stayBehind, movesAlong] } },
+          })
+        ).map((thread) => [thread.id, thread]),
+      );
+      expect(threads.get(master)).toMatchObject({ organizationId: s.source });
+      expect(threads.get(stayBehind)).toMatchObject({
+        organizationId: s.source,
+        parentThreadId: null,
+      });
+      expect(threads.get(s.thread)).toMatchObject({
+        organizationId: s.destination,
+        parentThreadId: null,
+      });
+      expect(threads.get(movesAlong)).toMatchObject({
+        organizationId: s.destination,
+        parentThreadId: s.thread,
+      });
+    });
+
     it('pauses the schedule and clears its actor, keeping cron and timezone, and removes the queued job after commit', async () => {
       const s = await seed(prisma);
 

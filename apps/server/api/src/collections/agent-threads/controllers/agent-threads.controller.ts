@@ -10,6 +10,14 @@ import {
   resolveAgentThreadDatabaseUserId,
   resolveAgentThreadOrganizationId,
 } from '@api/collections/agent-threads/utils/agent-thread-identity.util';
+import {
+  assertThreadArchivable,
+  parseAgentThreadKind,
+} from '@api/collections/agent-threads/utils/agent-thread-kind.util';
+import {
+  type AgentThreadMetadataBody,
+  pickAgentThreadMetadata,
+} from '@api/collections/agent-threads/utils/agent-thread-metadata.util';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
@@ -79,6 +87,8 @@ export class AgentThreadsController {
     @Query('brand') brand?: string,
     @Query('source') source?: string,
     @Query() pagination: PaginationQueryDto = {},
+    @Query('kind') kind?: string,
+    @Query('parentThreadId') parentThreadId?: string,
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
@@ -99,6 +109,10 @@ export class AgentThreadsController {
         brandId,
         threadSource,
         resolvePageWindow(pagination, DEFAULT_THREADS_PAGE_SIZE),
+        {
+          kind: parseAgentThreadKind(kind),
+          parentThreadId: parentThreadId?.trim() || undefined,
+        },
       );
       return serializeCollection(req, AgentThreadSerializer, threads);
     } catch (error: unknown) {
@@ -429,16 +443,7 @@ export class AgentThreadsController {
   async updateThread(
     @Req() req: Request,
     @Param('threadId') threadId: string,
-    @Body() body: {
-      isPinned?: boolean;
-      mode?: AgentThreadMode;
-      requestedModel?: string;
-      runtimeKey?: string;
-      title?: string;
-      systemPrompt?: string;
-      memoryEntryIds?: string[];
-      status?: AgentThreadStatus;
-    },
+    @Body() body: AgentThreadMetadataBody & { status?: AgentThreadStatus },
     @CurrentUser() user: User,
   ) {
     try {
@@ -457,6 +462,7 @@ export class AgentThreadsController {
         isDeleted: false,
       });
       if (!owned) throw new NotFoundException('Thread', threadId);
+      assertThreadArchivable(owned, body.status);
       const updated =
         body.status === AgentThreadStatus.ARCHIVED
           ? await this.agentThreadsService.archiveThread(
@@ -471,7 +477,7 @@ export class AgentThreadsController {
             : await this.agentThreadsService.updateThreadMetadata(
                 threadId,
                 organizationId,
-                body,
+                pickAgentThreadMetadata(body),
               );
       return serializeSingle(req, AgentThreadSerializer, updated);
     } catch (error: unknown) {
