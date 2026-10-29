@@ -29,6 +29,7 @@ export const TOOLSET_NAMES = [
   'clipper',
   'content',
   'core',
+  'editor',
   'engagement',
   'generation',
   'goals',
@@ -43,6 +44,7 @@ export const TOOLSET_NAMES = [
   'ui',
   'visual-code',
   'workflows',
+  'workspace',
 ] as const;
 
 export type ToolsetName = (typeof TOOLSET_NAMES)[number];
@@ -108,6 +110,12 @@ export const TOOLSETS: readonly ToolsetDefinition[] = [
       'Account basics and tool discovery. Always included on every connection regardless of the requested toolsets.',
     isAlwaysOn: true,
     name: 'core',
+  },
+  {
+    description:
+      'Studio Editor projects: open videos on the timeline, then list and read projects.',
+    isAlwaysOn: false,
+    name: 'editor',
   },
   {
     description:
@@ -188,6 +196,12 @@ export const TOOLSETS: readonly ToolsetDefinition[] = [
       'Workflow creation, execution, scheduling, and template management.',
     isAlwaysOn: false,
     name: 'workflows',
+  },
+  {
+    description:
+      'Workspace tasks, the review inbox, and recent account activity.',
+    isAlwaysOn: false,
+    name: 'workspace',
   },
 ];
 

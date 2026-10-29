@@ -113,6 +113,10 @@ import {
   handleWorkflowStatusTool,
   WORKFLOW_STATUS_TOOL_NAMES,
 } from '@mcp/tools/workflow-status.tool';
+import {
+  handleWorkspaceAppTool,
+  WORKSPACE_APP_TOOL_NAMES,
+} from '@mcp/tools/workspace-app.tool';
 import { cardResource } from '@mcp/ui/card-app';
 import {
   isContentCardsUri,
@@ -217,6 +221,7 @@ type ExecutorKind =
   | 'social-messages'
   | 'clipper-projects'
   | 'editor'
+  | 'workspace-app'
   | 'storyboard-capabilities'
   | 'remix'
   | 'scheduler'
@@ -528,6 +533,7 @@ export class ToolRegistryService implements OnModuleInit {
     if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) return 'social-messages';
     if (CLIPPER_PROJECTS_TOOL_NAMES.has(name)) return 'clipper-projects';
     if (EDITOR_TOOL_NAMES.has(name)) return 'editor';
+    if (WORKSPACE_APP_TOOL_NAMES.has(name)) return 'workspace-app';
     if (STORYBOARD_TOOL_NAMES.has(name)) return 'storyboard-capabilities';
     if (REMIX_TOOL_NAMES.has(name)) return 'remix';
     if (SCHEDULER_TOOL_NAMES.has(name)) return 'scheduler';
@@ -612,6 +618,8 @@ export class ToolRegistryService implements OnModuleInit {
         return handleClipperProjectsTool(this.clientService, name, args);
       case 'editor':
         return handleEditorTool(this.clientService, name, args);
+      case 'workspace-app':
+        return handleWorkspaceAppTool(this.clientService, name, args);
       case 'storyboard-capabilities':
         return handleStoryboardTool(this.clientService, name, args);
       case 'remix':

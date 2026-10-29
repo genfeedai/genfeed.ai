@@ -11,8 +11,7 @@ import type { ToolsetName } from './toolset-names';
  * new app fails the type check until it is mapped here.
  *
  * An empty list means the app has no MCP tools yet; `?app=` accepts it and
- * adds nothing. `editor` shares `clipper` because the editor handoff
- * (`open_in_editor`, `edit_clip`) ships in that toolset.
+ * adds nothing.
  */
 export const MCP_APP_TOOLSETS = {
   agent: ['agent-chat'],
@@ -20,7 +19,7 @@ export const MCP_APP_TOOLSETS = {
   automation: ['workflows'],
   clipper: ['clipper'],
   discovery: ['ads', 'inspiration'],
-  editor: ['clipper'],
+  editor: ['editor'],
   library: ['generation'],
   messages: ['social-inbox'],
   motion: ['visual-code'],
@@ -28,7 +27,7 @@ export const MCP_APP_TOOLSETS = {
   publishing: ['articles', 'content', 'onboarding', 'scheduler'],
   storyboard: ['inspiration'],
   turbo: ['content'],
-  workspace: [],
+  workspace: ['workspace'],
 } as const satisfies Record<
   CoreAppId | NativeSecondaryAppId,
   readonly ToolsetName[]
