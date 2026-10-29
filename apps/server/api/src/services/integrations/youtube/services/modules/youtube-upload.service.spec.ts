@@ -203,6 +203,8 @@ describe('YoutubeUploadService', () => {
         videoId,
         1,
         1080,
+        undefined,
+        true,
       );
       expect(mockThumbnailsSet).toHaveBeenCalledTimes(1);
       const params = mockThumbnailsSet.mock.calls[0][0];
@@ -214,6 +216,37 @@ describe('YoutubeUploadService', () => {
       const chunks: Buffer[] = [];
       for await (const chunk of params.media.body) chunks.push(chunk);
       expect(Buffer.concat(chunks).toString()).toBe('jpeg bytes');
+    });
+
+    it('renders the cover from the post’s title and frame settings', async () => {
+      await service.uploadVideo(orgId, brandId, videoId, createPost(), {
+        thumbnailFrameSeconds: '4.5',
+        thumbnailText: '  Ship the studio  ',
+      });
+
+      expect(filesClient.generateThumbnail).toHaveBeenCalledWith(
+        expect.any(String),
+        videoId,
+        4.5,
+        1080,
+        'Ship the studio',
+        true,
+      );
+    });
+
+    it('falls back to the default frame when the frame setting is not a number', async () => {
+      await service.uploadVideo(orgId, brandId, videoId, createPost(), {
+        thumbnailFrameSeconds: 'soon',
+      });
+
+      expect(filesClient.generateThumbnail).toHaveBeenCalledWith(
+        expect.any(String),
+        videoId,
+        1,
+        1080,
+        undefined,
+        true,
+      );
     });
 
     it('still returns the video id when the frame cannot be generated', async () => {
