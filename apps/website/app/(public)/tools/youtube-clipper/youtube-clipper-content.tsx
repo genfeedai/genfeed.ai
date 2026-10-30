@@ -64,25 +64,25 @@ function RecommendationCard({
     <article className="grid gap-4 bg-background p-5 shadow-border">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <Text className="text-xs font-semibold uppercase tracking-wider text-foreground/55">
+          <Text className="text-xs font-semibold uppercase tracking-wider text-foreground/60">
             Clip {index + 1} · {recommendation.clipType}
           </Text>
           <Heading as="h3" className="mt-2 text-lg">
             {recommendation.title}
           </Heading>
         </div>
-        <span className="shrink-0 text-xs font-semibold text-foreground/65">
+        <span className="shrink-0 text-xs font-semibold text-foreground/70">
           {formatTimestamp(recommendation.startTime)}–
           {formatTimestamp(recommendation.endTime)}
         </span>
       </div>
-      <Text className="text-sm leading-6 text-foreground/65">
+      <Text className="text-sm leading-6 text-foreground/70">
         {recommendation.summary}
       </Text>
       <div className="flex flex-wrap gap-2">
         {recommendation.tags.slice(0, 4).map((tag) => (
           <span
-            className="bg-foreground/[0.05] px-2 py-1 text-xs text-foreground/65"
+            className="bg-foreground/5 px-2 py-1 text-xs text-foreground/70"
             key={tag}
           >
             {tag}
@@ -308,7 +308,7 @@ export default function YoutubeClipperContent(): React.ReactElement {
             </Text>
             <div
               aria-label={`${session.progress}% complete`}
-              className="h-1 overflow-hidden bg-foreground/[0.08]"
+              className="h-1 overflow-hidden bg-foreground/10"
               role="progressbar"
             >
               <div
@@ -332,7 +332,7 @@ export default function YoutubeClipperContent(): React.ReactElement {
                 <Heading as="h2" id="clipper-results">
                   Three moments worth clipping
                 </Heading>
-                <Text className="mt-2 text-sm text-foreground/65">
+                <Text className="mt-2 text-sm text-foreground/70">
                   Choose once: this free session renders one preview clip.
                 </Text>
               </div>
@@ -360,10 +360,10 @@ export default function YoutubeClipperContent(): React.ReactElement {
                       className="grid grid-cols-[4.5rem_1fr] gap-3 text-sm"
                       key={`${segment.start}-${segment.end}`}
                     >
-                      <span className="font-mono text-xs text-foreground/55">
+                      <span className="font-mono text-xs text-foreground/60">
                         {formatTimestamp(segment.start)}
                       </span>
-                      <span className="leading-6 text-foreground/75">
+                      <span className="leading-6 text-foreground/80">
                         {segment.text}
                       </span>
                     </li>
@@ -381,12 +381,12 @@ export default function YoutubeClipperContent(): React.ReactElement {
           <Heading as="h2" className="text-lg">
             Free session includes
           </Heading>
-          <ul className="grid gap-3 text-sm leading-6 text-foreground/65">
+          <ul className="grid gap-3 text-sm leading-6 text-foreground/70">
             <li>Full timestamped transcript</li>
             <li>Three ranked clip recommendations</li>
             <li>One rendered vertical preview</li>
           </ul>
-          <Text className="text-xs leading-5 text-foreground/55">
+          <Text className="text-xs leading-5 text-foreground/60">
             <Clock3 aria-hidden="true" className="mr-1 inline size-3" />
             Temporary results expire automatically. The source URL and media are
             never sent to product analytics.
@@ -430,12 +430,12 @@ export default function YoutubeClipperContent(): React.ReactElement {
             <Heading as="h2" className="text-lg">
               Make the rest in Studio
             </Heading>
-            <Text className="text-sm leading-6 text-foreground/65">
+            <Text className="text-sm leading-6 text-foreground/70">
               Create a workspace to keep this transcript, recommendations, and
               preview as a real Clipper project.
             </Text>
             {previewInFlight ? (
-              <Text className="text-sm leading-6 text-foreground/65">
+              <Text className="text-sm leading-6 text-foreground/70">
                 Finish rendering this preview before continuing so it is saved
                 with the Studio project.
               </Text>

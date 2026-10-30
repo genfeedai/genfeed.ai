@@ -178,7 +178,7 @@ export function BrandOsFunnel(): React.ReactElement {
 
         <div
           aria-hidden="true"
-          className="text-center text-xs text-foreground/55"
+          className="text-center text-xs text-foreground/60"
         >
           or
         </div>
@@ -225,7 +225,6 @@ export function BrandOsFunnel(): React.ReactElement {
         announce
         draft={preview?.draft}
         scaleRole="monument"
-        showEvidence={Boolean(preview)}
         state={state}
       />
 

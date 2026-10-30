@@ -1,5 +1,6 @@
 'use client';
 
+import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { TargetExecutionState, TurboRunItemStatus } from '@genfeedai/contracts';
 import {
@@ -26,7 +27,7 @@ import KPISection from '@ui/kpi/kpi-section/KPISection';
 import { buildSocialConnections } from '@ui/modals/brands/brand/ModalBrand.types';
 import { OverviewContent } from '@ui/overview/OverviewLayout';
 import { Calendar, ClipboardCheck, List, Send } from 'lucide-react';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 
 import { isReadyToReview } from '../review/components/review-state';
 import { buildAccountHealthRows } from './account-health.util';
@@ -227,6 +228,40 @@ export default function PublishingOverviewPage() {
     },
   });
 
+  const { setRefresh } = usePostsLayout();
+  const refetchTurboRuns = turboRunsQuery.refetch;
+  const refetchNotPostedTotal = notPostedTotalQuery.refetch;
+  const refetchPublishedTotal = publishedTotalQuery.refetch;
+  const refetchUpcomingReleases = upcomingReleasesQuery.refetch;
+  const refetchFailedReleases = failedReleasesQuery.refetch;
+  const refetchPostedReleases = postedReleasesQuery.refetch;
+  const refetchAccountHealth = accountHealthQuery.refetch;
+  // The toolbar's refresh, and the reload after the agent changes posts,
+  // refetch every overview source.
+  useEffect(() => {
+    setRefresh(() => () => {
+      void Promise.all([
+        refetchTurboRuns(),
+        refetchNotPostedTotal(),
+        refetchPublishedTotal(),
+        refetchUpcomingReleases(),
+        refetchFailedReleases(),
+        refetchPostedReleases(),
+        refetchAccountHealth(),
+      ]);
+    });
+    return () => setRefresh(() => () => {});
+  }, [
+    refetchAccountHealth,
+    refetchFailedReleases,
+    refetchNotPostedTotal,
+    refetchPostedReleases,
+    refetchPublishedTotal,
+    refetchTurboRuns,
+    refetchUpcomingReleases,
+    setRefresh,
+  ]);
+
   const turboRuns = turboRunsQuery.data ?? [];
   const notPostedTotal = notPostedTotalQuery.data ?? 0;
   const publishedTotal = publishedTotalQuery.data ?? 0;
@@ -369,7 +404,7 @@ export default function PublishingOverviewPage() {
 
   const cards: OverviewCard[] = [
     {
-      color: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300',
+      color: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
       cta: 'Open Review',
       description: turboRunsQuery.isError
         ? 'Review queue could not be loaded.'
@@ -384,7 +419,7 @@ export default function PublishingOverviewPage() {
       label: 'Review queue',
     },
     {
-      color: 'bg-amber-500/12 text-amber-700 dark:text-amber-300',
+      color: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
       cta: 'Browse drafts',
       description: notPostedTotalQuery.isError
         ? 'Not-posted posts could not be loaded.'
@@ -399,7 +434,7 @@ export default function PublishingOverviewPage() {
       label: 'Not posted',
     },
     {
-      color: 'bg-sky-500/12 text-sky-700 dark:text-sky-300',
+      color: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
       cta: 'Open calendar',
       href: href(APP_ROUTES.PUBLISHING.CALENDAR),
       icon: Calendar,
@@ -407,7 +442,7 @@ export default function PublishingOverviewPage() {
       label: 'Calendar',
     },
     {
-      color: 'bg-violet-500/12 text-violet-700 dark:text-violet-300',
+      color: 'bg-violet-500/10 text-violet-700 dark:text-violet-300',
       cta: 'View published',
       description: publishedTotalQuery.isError
         ? 'Published posts could not be loaded.'

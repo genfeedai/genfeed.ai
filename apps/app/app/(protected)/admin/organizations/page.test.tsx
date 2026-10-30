@@ -14,13 +14,13 @@ describe('Admin organizations routes', () => {
     expect(source).not.toContain('redirect');
   });
 
-  it('renders the org config page at /admin/organizations/:id from the route param', () => {
+  it('renders the organization detail page at /admin/organizations/:id from the route param', () => {
     const page = read('[id]/page.tsx');
-    const config = read('[id]/organization-config-page.tsx');
+    const detail = read('[id]/organization-detail-page.tsx');
 
-    expect(page).toContain('<OrganizationConfigPage />');
+    expect(page).toContain('<OrganizationDetailPage />');
     expect(page).not.toMatch(/await\s+(params|searchParams)/);
-    expect(config).toContain('useParams');
-    expect(config).not.toContain("get('id')");
+    expect(detail).toContain('useRouteParams');
+    expect(detail).not.toContain("get('id')");
   });
 });

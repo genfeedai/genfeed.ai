@@ -14,6 +14,7 @@ import type {
   ProviderOption,
 } from '@props/studio/clipper.props';
 import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
+import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
@@ -105,7 +106,7 @@ export default function ClipperWorkspace({ projectId }: ClipperWorkspaceProps) {
     </div>
   ) : undefined;
 
-  return (
+  const workspace = (
     <Container label="Clipper" titleVisibility="sr-only" right={topbarActions}>
       <div className="flex w-full flex-col gap-4">
         <p className="text-sm text-muted-foreground">{t('description')}</p>
@@ -142,6 +143,14 @@ export default function ClipperWorkspace({ projectId }: ClipperWorkspaceProps) {
       </div>
     </Container>
   );
+
+  // A project opens with the agent on the left and the source, clips and
+  // transcript on the right. The list stays a full-width page.
+  return projectId ? (
+    <AgentOutputShell>{workspace}</AgentOutputShell>
+  ) : (
+    workspace
+  );
 }
 
 function ClipperProjectDetail(props: ReturnType<typeof useStudioClipperPage>) {
@@ -150,7 +159,7 @@ function ClipperProjectDetail(props: ReturnType<typeof useStudioClipperPage>) {
   if (props.isHydrating || !props.project)
     return <ClipperProjectControls {...props} />;
   return (
-    <div className="grid min-w-0 items-start gap-6 lg:grid-cols-2">
+    <div className="flex min-w-0 flex-col gap-6">
       <div className="min-w-0">
         <ClipperSourcePreview
           name={props.project.name}
@@ -453,14 +462,14 @@ function ClipperProjectControls({
                         avatarProvider === opt.value
                           ? 'border-primary bg-primary/10'
                           : opt.disabled
-                            ? 'cursor-not-allowed border-border bg-muted/30 opacity-50'
+                            ? 'cursor-not-allowed border-border bg-muted/20 opacity-50'
                             : 'border-border bg-muted hover:border-primary/60'
                       }`}
                     >
                       <div className="text-xs font-medium text-foreground">
                         {opt.label}
                       </div>
-                      <div className="text-[10px] text-muted-foreground">
+                      <div className="text-2xs text-muted-foreground">
                         {opt.description}
                       </div>
                     </Button>
@@ -485,6 +494,7 @@ function ClipperProjectControls({
 
               <Button
                 variant={ButtonVariant.DEFAULT}
+                action="clipper.generate"
                 onClick={handleGenerate}
                 isDisabled={
                   isSubmitting ||

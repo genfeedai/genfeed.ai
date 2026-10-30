@@ -14,6 +14,8 @@ import { useQuery } from '@tanstack/react-query';
 import AdminOrgBrandUrlFilter, {
   useAdminOrgBrandParams,
 } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
+import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
+import SearchField from '@ui/content/search-field/SearchField';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
@@ -31,6 +33,7 @@ export default function AdminAgentsPage() {
   const { isSignedIn } = useAuthIdentity();
   const notificationsService = NotificationsService.getInstance();
   const { brand, organization } = useAdminOrgBrandParams();
+  const { search, setSearch } = useAdminSearchParam();
 
   const columns = useMemo<TableColumn<AgentStrategy>[]>(
     () => [
@@ -111,6 +114,18 @@ export default function AdminAgentsPage() {
     queryKey: ['admin-agent-strategies', organization, brand],
   });
 
+  const visibleStrategies = useMemo(() => {
+    const term = search.toLowerCase();
+    if (!term) {
+      return strategies;
+    }
+    return strategies.filter((strategy) =>
+      [strategy.label, strategy.agentType, strategy.brand?.label].some(
+        (value) => value?.toLowerCase().includes(term),
+      ),
+    );
+  }, [search, strategies]);
+
   useEffect(() => {
     if (error) {
       logger.error('GET /agent-strategies failed', error);
@@ -126,10 +141,18 @@ export default function AdminAgentsPage() {
         void refetch();
       }}
       isRefreshing={isFetching && !isLoading}
+      search={
+        <SearchField
+          ariaLabel={translate('searchAgents')}
+          onSearch={setSearch}
+          placeholder={translate('searchAgents')}
+          value={search}
+        />
+      }
       dropdowns={<AdminOrgBrandUrlFilter />}
     >
       <AppTable<AgentStrategy>
-        items={strategies}
+        items={visibleStrategies}
         columns={columns}
         isLoading={isLoading}
         getRowKey={(strategy) => strategy.id}

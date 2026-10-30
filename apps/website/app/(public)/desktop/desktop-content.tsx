@@ -18,7 +18,6 @@ import {
   HardDrive,
   KeyRound,
   Monitor,
-  MonitorDown,
   RefreshCw,
 } from 'lucide-react';
 
@@ -106,14 +105,7 @@ export default function DesktopContent({
     <MarketingEntrance hero={false} sections={false}>
       <PageLayout
         heroMedia={<MarketingArtwork page="/desktop" kind="integration" />}
-        badge="Desktop"
-        badgeIcon={MonitorDown}
-        title={
-          <>
-            Genfeed, running{' '}
-            <span className="italic font-light">on your Mac</span>.
-          </>
-        }
+        title={<>Genfeed, running on your Mac.</>}
         description="The full content OS as a native desktop app. A local workspace that works offline, generation through your own provider keys, and the same account you already use on the web."
         heroActions={
           <>
@@ -174,15 +166,12 @@ export default function DesktopContent({
             <NeuralGridItem
               icon={Apple}
               title="macOS"
-              tierLabel={
-                hasMacBuild ? `Version ${version}` : 'Not yet released'
-              }
               padding="lg"
               className={cn(
                 detectedOs === DesktopOs.MAC_OS && 'bg-[var(--gen-accent-bg)]',
               )}
             >
-              <p className="mt-2 text-sm text-foreground/65">
+              <p className="mt-2 text-sm text-foreground/70">
                 {MAC_REQUIREMENT}
               </p>
 
@@ -208,7 +197,7 @@ export default function DesktopContent({
               {hasMacBuild ? (
                 <p className="mt-4 text-xs text-foreground/50">
                   Prefer Homebrew?{' '}
-                  <span className="font-mono text-foreground/75">
+                  <span className="font-mono text-foreground/80">
                     brew install --cask genfeedai/tap/genfeed
                   </span>
                 </p>
@@ -218,11 +207,10 @@ export default function DesktopContent({
             <NeuralGridItem
               icon={Monitor}
               title="Windows"
-              tierLabel="Coming soon"
               padding="lg"
               className={cn(isWindows && 'bg-[var(--gen-accent-bg)]')}
             >
-              <p className="mt-2 text-sm text-foreground/65">
+              <p className="mt-2 text-sm text-foreground/70">
                 Not built yet. Use Genfeed in the browser in the meantime, or
                 self-host the open-source core on your own machine.
               </p>
@@ -266,14 +254,11 @@ export default function DesktopContent({
             {INSTALL_STEPS.map((item, index) => (
               <NeuralGridItem
                 key={item.step}
-                tierLabel={`0${index + 1} / ${item.step}`}
                 padding="lg"
-                className={cn(index === 0 && 'bg-foreground/[0.02]')}
-              >
-                <p className="text-sm leading-relaxed text-foreground/60">
-                  {item.description}
-                </p>
-              </NeuralGridItem>
+                title={item.step}
+                description={item.description}
+                className={cn(index === 0 && 'bg-foreground/5')}
+              />
             ))}
           </NeuralGrid>
         </WebSection>
@@ -285,12 +270,7 @@ export default function DesktopContent({
           />
 
           <NeuralGrid columns={2}>
-            <NeuralGridItem
-              icon={Cpu}
-              title="Desktop app"
-              tierLabel="macOS"
-              padding="lg"
-            >
+            <NeuralGridItem icon={Cpu} title="Desktop app" padding="lg">
               <ul className="space-y-3">
                 {[
                   'Local workspace that works offline',
@@ -311,7 +291,6 @@ export default function DesktopContent({
             <NeuralGridItem
               icon={Monitor}
               title="Web app"
-              tierLabel="Every platform"
               padding="lg"
               className="bg-[var(--gen-accent-bg)]"
             >

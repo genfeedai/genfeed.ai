@@ -26,7 +26,7 @@ function PlayBadge(): React.JSX.Element {
     <div
       data-testid="library-canvas-play-badge"
       className={
-        'absolute right-2 bottom-2 flex h-7 w-7 items-center justify-center rounded-md bg-black/55 text-white backdrop-blur-sm' /* design-system-allow-content-color -- media overlay */
+        'absolute right-2 bottom-2 flex h-7 w-7 items-center justify-center rounded-md bg-black/50 text-white backdrop-blur-sm' /* design-system-allow-content-color -- media overlay */
       }
     >
       <svg

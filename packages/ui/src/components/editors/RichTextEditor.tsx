@@ -145,7 +145,7 @@ export default function RichTextEditor({
   const headingValue = activeHeadingLevel ? String(activeHeadingLevel) : '0';
 
   return (
-    <div className={`rich-text-editor border border-white/[0.08] ${className}`}>
+    <div className={`rich-text-editor border border-white/10 ${className}`}>
       {/* Toolbar */}
       {shouldShowToolbar && (
         <RichTextEditorToolbar

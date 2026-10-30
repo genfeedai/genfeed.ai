@@ -59,10 +59,10 @@ const ENTITY_MODEL_LABELS: Record<TaskLinkedEntityModel, string> = {
 };
 
 const ENTITY_MODEL_COLORS: Record<TaskLinkedEntityModel, string> = {
-  Article: 'bg-purple-500/15 text-purple-700 dark:text-purple-400',
-  Evaluation: 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
-  Ingredient: 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-400',
-  Post: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
+  Article: 'bg-purple-500/10 text-purple-700 dark:text-purple-400',
+  Evaluation: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
+  Ingredient: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-400',
+  Post: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
 };
 
 const VISIBLE_COMMENT_COUNT = 3;

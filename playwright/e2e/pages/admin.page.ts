@@ -106,7 +106,7 @@ export class AdminPage {
   }
 
   async gotoOverview(): Promise<void> {
-    await this.page.goto(APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD, {
+    await this.page.goto(APP_ROUTES.ADMIN.OVERVIEW.ROOT, {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
@@ -133,15 +133,8 @@ export class AdminPage {
     await this.waitForPageLoad();
   }
 
-  async gotoAnalyticsOrganizations(): Promise<void> {
-    await this.page.goto(APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS, {
-      waitUntil: 'domcontentloaded',
-    });
-    await this.waitForPageLoad();
-  }
-
   async gotoAnalyticsBrands(): Promise<void> {
-    await this.page.goto(APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BRANDS, {
+    await this.page.goto(APP_ROUTES.ADMIN.BRANDS, {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();

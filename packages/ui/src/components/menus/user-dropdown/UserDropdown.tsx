@@ -89,7 +89,7 @@ export default function UserDropdown({
               sizes="32px"
             />
           ) : (
-            <span className="flex size-8 items-center justify-center rounded-full bg-foreground/15 text-sm font-semibold text-foreground/85">
+            <span className="flex size-8 items-center justify-center rounded-full bg-foreground/10 text-sm font-semibold text-foreground/90">
               {initial}
             </span>
           )}

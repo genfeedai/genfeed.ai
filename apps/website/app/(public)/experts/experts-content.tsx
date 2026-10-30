@@ -167,7 +167,7 @@ export default function ExpertsContent() {
           <Heading as="h2" className="text-2xl font-bold mb-2 text-foreground">
             The six-step path
           </Heading>
-          <Text as="p" className="text-foreground/65 mb-8">
+          <Text as="p" className="text-foreground/70 mb-8">
             One workflow, from your first interview to a running weekly
             operation.
           </Text>
@@ -201,7 +201,7 @@ export default function ExpertsContent() {
           <Heading as="h2" className="text-2xl font-bold mb-2 text-foreground">
             The positioning scorecard
           </Heading>
-          <Text as="p" className="text-foreground/65 mb-8">
+          <Text as="p" className="text-foreground/70 mb-8">
             Step 04 scores your profile against six dimensions before Genfeed
             drafts anything.
           </Text>
@@ -227,12 +227,12 @@ export default function ExpertsContent() {
           <Heading as="h2" className="text-2xl font-bold mb-2 text-foreground">
             Grounded in your corpus, not a prompt
           </Heading>
-          <Text as="p" className="text-foreground/65 mb-2">
+          <Text as="p" className="text-foreground/70 mb-2">
             An illustrative example — not a real customer post — of the
             difference between a prompt with no source and a post pulled from an
             expert&apos;s own material.
           </Text>
-          <div className="grid grid-cols-1 gap-px bg-foreground/5 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-px bg-foreground/10 md:grid-cols-2">
             <div className="bg-background p-8">
               <div className="mb-4 flex items-center gap-2">
                 <X className="size-4 text-destructive" />
@@ -240,7 +240,7 @@ export default function ExpertsContent() {
                   Generic AI post
                 </Text>
               </div>
-              <Text className="text-sm leading-6 text-foreground/65">
+              <Text className="text-sm leading-6 text-foreground/70">
                 &ldquo;Consistency is everything. The best founders show up
                 every day and share value with their audience.&rdquo;
               </Text>
@@ -252,7 +252,7 @@ export default function ExpertsContent() {
                   Grounded in your corpus
                 </Text>
               </div>
-              <Text className="text-sm leading-6 text-foreground/65">
+              <Text className="text-sm leading-6 text-foreground/70">
                 &ldquo;I used to think consistency meant posting daily. Then I
                 watched three clients burn out chasing a schedule instead of a
                 point of view. The founders who compound aren&apos;t the ones
@@ -260,8 +260,8 @@ export default function ExpertsContent() {
                 you&apos;d recognize as theirs blindfolded.&rdquo;
               </Text>
               <div className="mt-4 flex items-center gap-2 border-t border-foreground/10 pt-4">
-                <Quote className="size-3.5 shrink-0 text-foreground/45" />
-                <Text className="text-xs font-medium text-foreground/55">
+                <Quote className="size-3.5 shrink-0 text-foreground/50" />
+                <Text className="text-xs font-medium text-foreground/60">
                   Source: your 2024 keynote transcript
                 </Text>
               </div>
@@ -282,7 +282,7 @@ export default function ExpertsContent() {
                 <Heading as="h2" className="text-xl font-bold text-foreground">
                   Nothing publishes without your approval
                 </Heading>
-                <Text as="p" className="text-sm text-foreground/65">
+                <Text as="p" className="text-sm text-foreground/70">
                   Publish approval is on by default for every expert account.
                   Genfeed drafts the positioning scorecard and the first content
                   system from your corpus and interview; you review and approve

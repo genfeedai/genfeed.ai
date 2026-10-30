@@ -15,10 +15,10 @@ import { useCallback, useState } from 'react';
 import { useUIStore } from '../stores/uiStore';
 
 const typeStyles = {
-  error: 'bg-destructive/10 border-destructive/30 text-destructive',
+  error: 'bg-destructive/10 border-destructive/20 text-destructive',
   info: 'bg-muted border-border text-foreground',
-  success: 'bg-success/10 border-success/30 text-success',
-  warning: 'bg-warning/10 border-warning/30 text-warning',
+  success: 'bg-success/10 border-success/20 text-success',
+  warning: 'bg-warning/10 border-warning/20 text-warning',
 } as const;
 
 const typeIcons = {

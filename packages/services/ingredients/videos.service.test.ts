@@ -52,6 +52,30 @@ describe('VideosService', () => {
     expect(result.id).toBe('video_1');
   });
 
+  it('getCover requests the rendered thumbnail as a blob with the cover options', async () => {
+    const cover = new Blob(['jpeg'], { type: 'image/jpeg' });
+    http.get.mockResolvedValue(axiosResponse(cover));
+    const controller = new AbortController();
+
+    const result = await service.getCover(
+      'video_1',
+      { brandId: 'brand_1', timeInSeconds: 3, title: 'Ship it', width: 1080 },
+      controller.signal,
+    );
+
+    expect(http.get).toHaveBeenCalledWith('/video_1/thumbnail', {
+      params: {
+        brandId: 'brand_1',
+        timeInSeconds: 3,
+        title: 'Ship it',
+        width: 1080,
+      },
+      responseType: 'blob',
+      signal: controller.signal,
+    });
+    expect(result).toBe(cover);
+  });
+
   it('findVideoAllPosts GETs the posts for a video', async () => {
     http.get.mockResolvedValue(
       axiosResponse(collectionDocument([{ id: 'post_1', label: 'Post' }])),

@@ -1,10 +1,11 @@
+import { vercelWebhookPayloadSchema } from '@api/endpoints/webhooks/vercel/webhooks.vercel.schema';
 import { VercelWebhookService } from '@api/endpoints/webhooks/vercel/webhooks.vercel.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { Public } from '@libs/decorators/public.decorator';
-import { VercelWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
+  BadRequestException,
   Controller,
   HttpCode,
   Post,
@@ -34,12 +35,7 @@ export class VercelWebhookController {
       const rawBody = request.body as Buffer;
       const signature = request.headers['x-vercel-signature'] as string;
 
-      // Parse the body for logging and processing
-      const payload: VercelWebhookPayload = JSON.parse(rawBody.toString());
-
-      this.loggerService.log(`${url} received`, payload);
-
-      // Validate webhook signature using raw body
+      // Validate webhook signature using raw body, before trusting or logging it
       const isValid = this.vercelWebhookService.validateSignature(
         rawBody,
         signature,
@@ -50,6 +46,10 @@ export class VercelWebhookController {
         throw new UnauthorizedException('Invalid webhook signature');
       }
 
+      const payload = this.parsePayload(rawBody);
+
+      this.loggerService.log(`${url} received`, payload);
+
       await this.vercelWebhookService.handleWebhook(payload);
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
@@ -57,5 +57,20 @@ export class VercelWebhookController {
     }
 
     return { success: true };
+  }
+
+  private parsePayload(rawBody: Buffer) {
+    let json: unknown;
+    try {
+      json = JSON.parse(rawBody.toString());
+    } catch {
+      throw new BadRequestException('Webhook body is not valid JSON');
+    }
+
+    const parsed = vercelWebhookPayloadSchema.safeParse(json);
+    if (!parsed.success) {
+      throw new BadRequestException('Webhook body has an unexpected shape');
+    }
+    return parsed.data;
   }
 }

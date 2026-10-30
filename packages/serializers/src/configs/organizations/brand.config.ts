@@ -1,5 +1,8 @@
 import { linkAttributes } from '@serializers/attributes';
-import { brandAttributes } from '@serializers/attributes/organizations/brand.attributes';
+import {
+  brandAttributes,
+  publicBrandAttributes,
+} from '@serializers/attributes/organizations/brand.attributes';
 import { credentialAttributes } from '@serializers/attributes/organizations/credential.attributes';
 import { rel } from '@serializers/builders';
 import {
@@ -18,4 +21,10 @@ export const brandSerializerConfig = {
   references: ASSET_REL,
   type: 'brand',
   user: USER_REL,
+};
+
+export const publicBrandSerializerConfig = {
+  attributes: publicBrandAttributes,
+  links: rel('link', linkAttributes),
+  type: 'brand',
 };

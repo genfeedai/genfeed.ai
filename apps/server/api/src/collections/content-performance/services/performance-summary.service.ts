@@ -503,7 +503,7 @@ export class PerformanceSummaryService {
     return lines.join(' ') || 'No performance data available yet.';
   }
 
-  // ─── Private helpers ───────────────────────────────────────────────
+  // Private helpers
 
   /**
    * Distinct Genfeed posts in the window — the Genfeed half of the dataset
@@ -840,7 +840,7 @@ export class PerformanceSummaryService {
   }
 }
 
-// ─── Imported content helpers ───────────────────────────────────────
+// Imported content helpers
 
 type ImportedSourcePostRow = {
   contentType: string;

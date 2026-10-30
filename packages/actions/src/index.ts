@@ -59,6 +59,13 @@ export {
   isMcpApprovalSkippable,
   resolveEffectiveMutationPolicy,
 } from './registry/agent-action-class';
+export type { McpAppName } from './registry/app-toolsets';
+export {
+  isMcpAppName,
+  MCP_APP_NAMES,
+  MCP_APP_TOOLSETS,
+  resolveMcpAppToolsets,
+} from './registry/app-toolsets';
 export {
   getKnowledgeToolActionContract,
   KNOWLEDGE_CAPTURE_TRANSCRIPT_CREDIT,

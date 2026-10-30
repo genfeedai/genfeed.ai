@@ -126,7 +126,7 @@ export default function DropdownPrompt({
             className={cn(BG_BLUR, BORDER_WHITE_30, 'w-80')}
           >
             {/* Header with Copy and Reprompt Buttons */}
-            <div className="p-3 border-b border-white/[0.08] flex items-center justify-between">
+            <div className="p-3 border-b border-white/10 flex items-center justify-between">
               <div className="text-xs uppercase text-foreground/60">Prompt</div>
               <div className="flex items-center gap-2">
                 {onReprompt && (

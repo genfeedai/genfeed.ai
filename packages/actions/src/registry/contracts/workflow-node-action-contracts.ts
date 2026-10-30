@@ -18,6 +18,12 @@ import {
 } from './schema-builders';
 
 type InputField =
+  | 'activeWordColor'
+  | 'backgroundOpacity'
+  | 'bottomAnchorRatio'
+  | 'fontFamily'
+  | 'maxWordsPerGroup'
+  | 'textCase'
   | 'identityReferences'
   | 'isEndCardEnabled'
   | 'sourceLanguage'
@@ -133,6 +139,7 @@ type InputField =
   | 'parentIngredientId'
   | 'photoUrl'
   | 'pitchShift'
+  | 'placement'
   | 'platform'
   | 'platforms'
   | 'position'
@@ -201,6 +208,7 @@ type InputField =
   | 'url'
   | 'useIdentityDefaults'
   | 'useLlm'
+  | 'variant'
   | 'variables'
   | 'video'
   | 'sourceEvidence'
@@ -276,6 +284,10 @@ function inputFieldSchema(field: InputField): ActionJsonSchema {
       ] as const);
     case 'mixMode':
       return enumSchema(['replace', 'mix', 'background'] as const);
+    case 'placement':
+      return enumSchema(['bottom', 'top-left'] as const);
+    case 'variant':
+      return enumSchema(['default', 'light', 'live'] as const);
     case 'brandVoice':
     case 'harnessContext':
       return TEXT_OR_OBJECT_SCHEMA;
@@ -517,6 +529,23 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
       inputSchema: inputSchema(['audio', 'language', 'video']),
       outputSchema: objectOutput({ transcript: STRING_SCHEMA }),
     },
+    brandCover: {
+      inputSchema: inputSchema([
+        'brandId',
+        'image',
+        'placement',
+        'timestampSeconds',
+        'title',
+        'variant',
+        'video',
+        'width',
+      ]),
+      outputSchema: objectOutput({
+        id: STRING_SCHEMA,
+        image: STRING_SCHEMA,
+        status: STRING_SCHEMA,
+      }),
+    },
     aiAvatarVideo: {
       inputSchema: inputSchema([
         'aspectRatio',
@@ -667,10 +696,14 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
     },
     'effect-captions': {
       inputSchema: inputSchema([
+        'activeWordColor',
         'autoSync',
         'backgroundColor',
+        'backgroundOpacity',
+        'bottomAnchorRatio',
         'brandId',
         'fontColor',
+        'fontFamily',
         'fontSize',
         'generateChapters',
         'generateTranscript',
@@ -679,9 +712,11 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
         'includeEmojis',
         'includeHashtags',
         'languages',
+        'maxWordsPerGroup',
         'platform',
         'position',
         'style',
+        'textCase',
         'tone',
         'video',
       ]),

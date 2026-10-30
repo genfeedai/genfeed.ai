@@ -72,17 +72,14 @@ vi.mock('@pages/ingredients/layout/ingredients-layout', () => ({
   default: ({
     children,
     defaultType,
-    hideTypeTabs,
     scope,
   }: {
     children: ReactNode;
     defaultType: string;
-    hideTypeTabs?: boolean;
     scope: PageScope;
   }) => (
     <section
       data-default-type={defaultType}
-      data-hide-type-tabs={String(Boolean(hideTypeTabs))}
       data-scope={scope}
       data-testid="ingredients-layout"
     >

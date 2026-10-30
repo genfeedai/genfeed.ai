@@ -3,6 +3,7 @@
 import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IAgentCampaignStatusResponse } from '@genfeedai/contracts/interfaces';
+import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
@@ -23,7 +24,7 @@ import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 import RecordFactLine from '@ui/record-detail/RecordFactLine';
 import { ArrowLeft, Check, LayoutDashboard, Pause, Play } from 'lucide-react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AgentCampaignAgentsList from './AgentCampaignAgentsList';
@@ -35,7 +36,7 @@ import { getCampaignPrimaryActionKind } from './campaign-primary-action.helper';
 
 export default function AgentCampaignDetailPage() {
   const router = useRouter();
-  const params = useParams();
+  const params = useRouteParams();
   const campaignId = params.id as string;
   const translate = useTranslations('common.agentCampaign');
   const { brandId, isReady, organizationId, pageScope } = useCollectionScope();

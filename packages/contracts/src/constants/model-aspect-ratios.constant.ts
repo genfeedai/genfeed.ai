@@ -80,6 +80,7 @@ export const ASPECT_RATIOS = {
   ] as const,
   IMAGEN: ['1:1', '9:16', '16:9', '3:4', '4:3'] as const,
   KLING: ['16:9', '9:16', '1:1'] as const,
+  KLING_4: ['16:9', '9:16', '1:1', '21:9'] as const,
   LUMA_REFRAME: ['1:1', '3:4', '4:3', '9:16', '16:9', '21:9', '9:21'] as const,
   NANO_BANANA: [
     'match_input_image',

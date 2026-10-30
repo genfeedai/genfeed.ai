@@ -105,7 +105,10 @@ export class VisualProjectBillingService {
     let defaultModelKey: string | null = null;
     try {
       defaultModelKey = (await this.resolveModel(organizationId)).row.key;
-    } catch {}
+    } catch {
+      // Best effort: no resolvable default model (unpriced or unavailable)
+      // leaves defaultModelKey null; each model below reports its own reason.
+    }
     const active = await this.prisma.model.findMany({
       where: {
         isDeleted: false,

@@ -8,6 +8,7 @@ import {
 import { ClipperResultsService } from '@api/collections/clipper-results/clipper-results.service';
 import type { ClipperResultDocument } from '@api/collections/clipper-results/schemas/clipper-result.schema';
 import { isTerminalClipStatus } from '@api/collections/clipper-shared/clipper-terminal-contract.util';
+import { buildCaptionBurnStyleFromConfig } from '@api/collections/workflows/utils/caption-burn-style.util';
 import { scopedWhere } from '@api/index';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
@@ -15,6 +16,7 @@ import { JobState, Status } from '@genfeedai/contracts';
 import type {
   ClipRawCutFramingContract,
   ClipRawCutMediaValidationContract,
+  ICaptionBurnStyle,
   IJobStatusResponse,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -326,7 +328,14 @@ export class RawCutClipCompletionService {
       id: getRawCutCaptionJobId(clipperResultId),
       ingredientId: clipperResultId,
       organizationId: event.organizationId,
-      params: { captionContent: captionSrt, s3Key },
+      params: {
+        captionContent: captionSrt,
+        captionStyle: await this.readCaptionStyle(
+          projectId,
+          event.organizationId,
+        ),
+        s3Key,
+      },
       room: this.readString(clipperResult.room),
       type: 'add-captions',
       userId,
@@ -567,7 +576,14 @@ export class RawCutClipCompletionService {
       id: getRawCutCaptionJobId(this.readId(clipperResult)),
       ingredientId: this.readId(clipperResult),
       organizationId: clipperResult.organizationId,
-      params: { captionContent: captionSrt, s3Key },
+      params: {
+        captionContent: captionSrt,
+        captionStyle: await this.readCaptionStyle(
+          this.readProjectId(clipperResult),
+          clipperResult.organizationId,
+        ),
+        s3Key,
+      },
       room: this.readString(clipperResult.room),
       type: 'add-captions',
       userId,
@@ -594,6 +610,23 @@ export class RawCutClipCompletionService {
       );
     }
     return projectId;
+  }
+
+  /** The project's caption look; every clip of a project is captioned alike. */
+  private async readCaptionStyle(
+    projectId: string | undefined,
+    organizationId: string,
+  ): Promise<ICaptionBurnStyle> {
+    const project = projectId
+      ? await this.clipperProjectsService.findOne({
+          id: projectId,
+          organizationId,
+        })
+      : null;
+    const preset = this.readString(project?.captionStyle);
+    return buildCaptionBurnStyleFromConfig({
+      style: preset === 'default' ? 'dynamic' : preset,
+    });
   }
 
   private async reconcileProject(

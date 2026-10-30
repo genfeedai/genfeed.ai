@@ -10,6 +10,7 @@ import {
   createLibraryBrowserRoute,
   createLibraryShelfRoute,
   LIBRARY_QUERY_KEYS,
+  resolveAdminLibraryAxisRoute,
   resolveLegacyLibraryRoute,
   resolveLibraryAxisRoute,
 } from './library-routes.constant';
@@ -150,6 +151,36 @@ describe('resolveLibraryAxisRoute', () => {
     expect(
       resolveLibraryAxisRoute({ categories: [IngredientCategory.IMAGE] }).route,
     ).toBe('/library/assets');
+  });
+});
+
+describe('resolveAdminLibraryAxisRoute', () => {
+  it('puts an exact type preset under the admin Library, like the app', () => {
+    expect(
+      resolveAdminLibraryAxisRoute([
+        IngredientCategory.VIDEO,
+        IngredientCategory.VIDEO_EDIT,
+      ]),
+    ).toEqual({
+      hasCategoriesInPath: true,
+      route: '/admin/content/ingredients/videos',
+    });
+    expect(
+      resolveAdminLibraryAxisRoute([IngredientCategory.AVATAR]).route,
+    ).toBe('/admin/content/ingredients/avatars');
+  });
+
+  it('stays on the admin Library root for anything without a route of its own', () => {
+    expect(resolveAdminLibraryAxisRoute()).toEqual({
+      hasCategoriesInPath: false,
+      route: '/admin/content/ingredients',
+    });
+    expect(
+      resolveAdminLibraryAxisRoute([
+        IngredientCategory.IMAGE,
+        IngredientCategory.VIDEO,
+      ]).route,
+    ).toBe('/admin/content/ingredients');
   });
 });
 

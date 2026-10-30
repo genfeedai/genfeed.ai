@@ -40,7 +40,7 @@ export function AgentThreadListHeaderActions({
           withWrapper={false}
           ariaLabel="Conversation list actions"
           textTransform="none"
-          className="size-7 rounded-md text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground/80"
+          className="size-7 rounded-md text-muted-foreground hover:bg-foreground/5 hover:text-foreground/80"
         >
           <Ellipsis className="size-3.5" />
         </Button>

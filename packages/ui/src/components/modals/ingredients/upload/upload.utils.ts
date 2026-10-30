@@ -1,4 +1,3 @@
-import { UploadStatus } from '@genfeedai/contracts';
 import type { FileUploadStatus } from '@genfeedai/contracts/interfaces/modals/file-upload-status.interface';
 import type { Dispatch, SetStateAction } from 'react';
 
@@ -22,40 +21,6 @@ export function updateFileStatus(
     }
     return newMap;
   });
-}
-
-/**
- * Gets badge variant based on file upload status.
- */
-export function getStatusBadgeVariant(
-  status: FileUploadStatus['status'],
-): 'success' | 'error' | 'info' | 'ghost' {
-  switch (status) {
-    case UploadStatus.COMPLETED:
-      return 'success';
-    case UploadStatus.FAILED:
-      return 'error';
-    case UploadStatus.UPLOADING:
-      return 'info';
-    default:
-      return 'ghost';
-  }
-}
-
-/**
- * Gets badge label based on file upload status.
- */
-export function getStatusBadgeLabel(fileStatus: FileUploadStatus): string {
-  switch (fileStatus.status) {
-    case UploadStatus.UPLOADING:
-      return `${fileStatus.progress}%`;
-    case UploadStatus.COMPLETED:
-      return '✓';
-    case UploadStatus.FAILED:
-      return '✗';
-    default:
-      return 'pending';
-  }
 }
 
 /**

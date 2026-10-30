@@ -221,10 +221,10 @@ export default function ReviewItemsTable({
                   className={cn(
                     'inline-flex items-center rounded-md border px-1.5 py-0.5 text-2xs font-medium',
                     performanceSignal === 'winning'
-                      ? 'border-success/30 bg-success/15 text-success'
+                      ? 'border-success/20 bg-success/10 text-success'
                       : performanceSignal === 'underperforming'
-                        ? 'border-destructive/30 bg-destructive/15 text-destructive'
-                        : 'border-warning/30 bg-warning/15 text-warning',
+                        ? 'border-destructive/20 bg-destructive/10 text-destructive'
+                        : 'border-warning/20 bg-warning/10 text-warning',
                   )}
                 >
                   {performanceLabel}
@@ -271,8 +271,8 @@ export default function ReviewItemsTable({
       getItemId={(item) => item.id}
       getRowClassName={(item) =>
         cn(
-          activeItemId === item.id && 'bg-primary/[0.06]',
-          item.status === TurboRunItemStatus.FAILED && 'bg-destructive/[0.03]',
+          activeItemId === item.id && 'bg-primary/5',
+          item.status === TurboRunItemStatus.FAILED && 'bg-destructive/5',
         )
       }
       getRowKey={(item) => item.id}

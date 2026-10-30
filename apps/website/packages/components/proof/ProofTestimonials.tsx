@@ -58,8 +58,10 @@ export default function ProofTestimonials({
             key={testimonial.id}
             className="flex flex-col gap-5"
             padding="lg"
-            tierLabel={testimonial.metricLabel}
           >
+            <p className="text-sm font-semibold text-foreground/70">
+              {testimonial.metricLabel}
+            </p>
             <p className="text-lg font-medium leading-8 text-foreground">
               &ldquo;{testimonial.quote}&rdquo;
             </p>
@@ -67,7 +69,7 @@ export default function ProofTestimonials({
               <div className="text-sm font-semibold text-foreground">
                 {testimonial.attribution}
               </div>
-              <div className="mt-1 text-sm text-foreground/55">
+              <div className="mt-1 text-sm text-foreground/60">
                 {testimonial.role}
               </div>
               <div className="mt-4 text-xs font-bold uppercase tracking-widest text-success">

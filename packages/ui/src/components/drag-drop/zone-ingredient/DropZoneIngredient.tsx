@@ -78,7 +78,7 @@ export default function DropZoneIngredient({
     >
       {children}
       {isDragOver && isEnabled && (
-        <div className="absolute inset-0 bg-primary/30 pointer-events-none z-50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-primary/20 pointer-events-none z-50 flex items-center justify-center">
           <div className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
             Set as parent
           </div>

@@ -1,9 +1,7 @@
-import type { ComponentType, ReactNode, SVGProps } from 'react';
+import type { ReactNode } from 'react';
 
 export interface PageLayoutProps {
   children: ReactNode;
-  badge?: string;
-  badgeIcon?: ComponentType<SVGProps<SVGSVGElement>>;
   compact?: boolean;
   description?: string;
   heroActions?: ReactNode;

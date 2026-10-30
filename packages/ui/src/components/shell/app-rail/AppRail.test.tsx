@@ -318,9 +318,7 @@ describe('AppRail', () => {
     );
 
     expect(notPrevented).toBe(false);
-    expect(onOpenAdminExternally).toHaveBeenCalledWith(
-      '/admin/overview/dashboard',
-    );
+    expect(onOpenAdminExternally).toHaveBeenCalledWith('/admin/overview');
     expect(router.push).not.toHaveBeenCalled();
   });
 
@@ -513,36 +511,7 @@ describe('AppRail', () => {
     }
   });
 
-  it('warms only the intended resolved item after a sustained interaction', () => {
-    vi.useFakeTimers();
-    render(
-      <AppRail
-        orgSlug="acme"
-        brandSlug="my-brand"
-        resolveNavigation={(href) => ({ href: `${href}?thread=123` })}
-      />,
-    );
-    expect(router.prefetch).not.toHaveBeenCalled();
-    const workspace = screen.getByRole('link', { name: 'Workspace' });
-    const analytics = screen.getByRole('link', { name: 'Analytics' });
-    fireEvent.mouseEnter(workspace);
-    fireEvent.mouseLeave(workspace);
-    fireEvent.focus(analytics);
-    act(() => {
-      vi.advanceTimersByTime(99);
-    });
-    expect(router.prefetch).not.toHaveBeenCalled();
-    act(() => {
-      vi.advanceTimersByTime(1);
-    });
-    expect(router.prefetch).toHaveBeenCalledTimes(1);
-    expect(router.prefetch).toHaveBeenCalledWith(
-      '/acme/my-brand/analytics/overview?thread=123',
-      { kind: 'auto', onInvalidate: expect.any(Function) },
-    );
-  });
-
-  it('never viewport-prefetches the rail destinations', () => {
+  it('leaves rail destinations on the default Link prefetch', () => {
     render(
       <AppRail
         orgSlug="acme"
@@ -552,7 +521,7 @@ describe('AppRail', () => {
       />,
     );
     for (const link of screen.getAllByRole('link')) {
-      expect(link).toHaveAttribute('data-prefetch', 'false');
+      expect(link).not.toHaveAttribute('data-prefetch', 'false');
     }
   });
   it('renders only the core loop when nothing is pinned (#5502)', () => {
@@ -665,13 +634,13 @@ describe('AppRail', () => {
       'focus-visible:ring-ring/60',
       'focus-visible:ring-offset-gray-100',
       'rounded-lg',
-      'bg-foreground/[0.12]',
+      'bg-foreground/10',
       'text-foreground',
     );
-    expect(analytics).not.toHaveClass('bg-foreground/[0.12]');
+    expect(analytics).not.toHaveClass('bg-foreground/10');
     expect(analytics).toHaveClass(
       'text-foreground/50',
-      'hover:bg-foreground/[0.06]',
+      'hover:bg-foreground/5',
       'hover:text-foreground',
     );
   });
@@ -1072,7 +1041,7 @@ describe('AppRail', () => {
 
     expect(screen.getByRole('link', { name: 'Admin' })).toHaveAttribute(
       'href',
-      '/admin/overview/dashboard',
+      '/admin/overview',
     );
   });
 
@@ -1286,7 +1255,7 @@ describe('AppRail', () => {
     act(() => {
       admin?.action();
     });
-    expect(router.push).toHaveBeenLastCalledWith('/admin/overview/dashboard');
+    expect(router.push).toHaveBeenLastCalledWith('/admin/overview');
     expect(onNavigationEvent).toHaveBeenLastCalledWith({
       from_app: null,
       to_app: 'admin',
@@ -1514,7 +1483,7 @@ describe('AppRail', () => {
         view.rerender(<AppRail {...props} pinnedAppIds={[appId]} />);
         const pinned = screen.getByTestId(`app-rail-item-${appId}`);
         expect(pinned).toHaveAttribute('aria-current', 'page');
-        expect(pinned).toHaveClass('bg-foreground/[0.12]', 'text-foreground');
+        expect(pinned).toHaveClass('bg-foreground/10', 'text-foreground');
         expect(
           view.container.querySelectorAll('[aria-current="page"]'),
         ).toHaveLength(1);

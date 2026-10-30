@@ -183,7 +183,7 @@ export default function MenuBrandSwitcher({
               variant={ButtonVariant.UNSTYLED}
               withWrapper={false}
               className={cn(
-                'flex items-center justify-center rounded-md p-1 transition-colors duration-150 hover:bg-foreground/[0.06]',
+                'flex items-center justify-center rounded-md p-1 transition-colors duration-150 hover:bg-foreground/5',
                 isUpdating && 'cursor-not-allowed opacity-50',
                 isOpen && SWITCHER_TRIGGER_OPEN_CLASSNAME,
               )}

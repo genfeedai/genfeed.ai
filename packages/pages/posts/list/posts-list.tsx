@@ -153,22 +153,22 @@ export default function PostsList({
       <PostsListSearch
         searchValue={filterSearch}
         onSearchChange={handleSearchChange}
-      />,
-    );
-    setFiltersNode(
-      <PostsListToolbar
-        sortValue={filterSort || getDefaultSort(status)}
-        sortOptions={sortOptions}
-        publishingView={publishingView}
-        onPlatformChange={
-          isAdminScope
-            ? (value) => handlePlatformChange(value as Platform | 'all')
-            : undefined
-        }
-        onPublishingViewChange={handlePublicationStateChange}
-        onSortChange={handleToolbarSortChange}
-        platformValue={platformParam ?? 'all'}
-      />,
+      >
+        <PostsListToolbar
+          isAttached
+          sortValue={filterSort || getDefaultSort(status)}
+          sortOptions={sortOptions}
+          publishingView={publishingView}
+          onPlatformChange={
+            isAdminScope
+              ? (value) => handlePlatformChange(value as Platform | 'all')
+              : undefined
+          }
+          onPublishingViewChange={handlePublicationStateChange}
+          onSortChange={handleToolbarSortChange}
+          platformValue={platformParam ?? 'all'}
+        />
+      </PostsListSearch>,
     );
   }, [
     filterSearch,
@@ -180,7 +180,6 @@ export default function PostsList({
     isAdminScope,
     platformParam,
     publishingView,
-    setFiltersNode,
     setLeadingNode,
     sortOptions,
     status,

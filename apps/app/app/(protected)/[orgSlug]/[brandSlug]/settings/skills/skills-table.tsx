@@ -60,7 +60,7 @@ export default function SkillsTable({
               <div className="truncate text-sm font-medium text-foreground">
                 {skill.name}
               </div>
-              <div className="mt-0.5 line-clamp-1 text-xs text-foreground/55">
+              <div className="mt-0.5 line-clamp-1 text-xs text-foreground/60">
                 {skill.description}
               </div>
             </div>

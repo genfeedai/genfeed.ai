@@ -10,13 +10,15 @@ import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   AnalyticsMetric,
   AnalyticsMetricAvailability,
-  classifyAccountEvaluation,
   fromPrismaCredentialPlatform,
-  isFleetEvaluationMetric,
   Platform,
-  periodMetricGain,
   toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
+import {
+  classifyAccountEvaluation,
+  isFleetEvaluationMetric,
+  periodMetricGain,
+} from '@genfeedai/contracts/analytics';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   IAccountAnalytics,

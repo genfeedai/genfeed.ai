@@ -43,7 +43,7 @@ export default function GallerySidebar({ onLinkClick }: GallerySidebarProps) {
 
   return (
     <aside className="w-64 h-screen bg-background flex flex-col">
-      <div className="p-6 border-b border-white/[0.08]">
+      <div className="p-6 border-b border-white/10">
         <Link href="/" className="flex items-center gap-3">
           {logoUrl && (
             <Image
@@ -80,7 +80,7 @@ export default function GallerySidebar({ onLinkClick }: GallerySidebarProps) {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-white/[0.08]">
+      <div className="p-4 border-t border-white/10">
         <p className="text-xs text-foreground/60 text-center">
           © 2024 AI Gallery
         </p>

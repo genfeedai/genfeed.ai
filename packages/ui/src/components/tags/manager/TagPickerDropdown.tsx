@@ -70,7 +70,7 @@ export default function TagPickerDropdown({
             })()}
           </div>
 
-          <div className="mt-2 pt-2 border-t border-white/[0.08]">
+          <div className="mt-2 pt-2 border-t border-white/10">
             <Button
               withWrapper={false}
               variant={ButtonVariant.UNSTYLED}
@@ -118,7 +118,7 @@ export default function TagPickerDropdown({
       )}
 
       {!showNewTagInput && (
-        <div className="mt-2 pt-2 border-t border-white/[0.08]">
+        <div className="mt-2 pt-2 border-t border-white/10">
           <Button
             withWrapper={false}
             variant={ButtonVariant.UNSTYLED}

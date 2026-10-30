@@ -18,6 +18,7 @@ import {
 import { expect, test } from '../../fixtures/auth.fixture';
 import { AnalyticsPage } from '../../pages/analytics.page';
 import { brandPath } from '../../utils/app-chrome';
+import { filtersTrigger } from '../../utils/filter-menu';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 /**
@@ -600,9 +601,10 @@ test.describe('Analytics Deep Pages', () => {
       await analyticsPage.waitForPageLoad();
       await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
-      await expect(
-        authenticatedPage.getByPlaceholder('Search posts...'),
-      ).toBeVisible();
+      const search = authenticatedPage.getByPlaceholder('Search posts...');
+      await expect(search).toBeVisible();
+      // The Filters menu sits inside the search field, not beside it.
+      await expect(filtersTrigger(search.locator('xpath=../..'))).toBeVisible();
       // Platform lives in the shared Filters menu in the subbar; with no
       // filter applied its summary reads "All".
       await analyticsPage.filtersButton.click();

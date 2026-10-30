@@ -68,8 +68,8 @@ export default function StudioPlaygroundAgentProposals({
             className={[
               'flex h-auto w-full flex-col items-start gap-2',
               'rounded-2xl border border-border bg-background px-3.5 py-3.5',
-              'text-left normal-case tracking-normal text-foreground/88',
-              'shadow-md shadow-black/25 transition-colors',
+              'text-left normal-case tracking-normal text-foreground/90',
+              'shadow-md shadow-black/20 transition-colors',
               'hover:border-border/80 hover:bg-card',
             ].join(' ')}
             isDisabled={isDisabled}

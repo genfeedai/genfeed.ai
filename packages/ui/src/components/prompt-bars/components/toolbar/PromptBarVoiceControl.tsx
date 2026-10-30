@@ -52,7 +52,7 @@ export default function PromptBarVoiceControl({
         ariaLabel="Stop listening"
         className={cn(
           controlClass,
-          'relative bg-destructive/15 text-destructive',
+          'relative bg-destructive/10 text-destructive',
         )}
         onClick={onStopListening}
         size={ButtonSize.ICON}

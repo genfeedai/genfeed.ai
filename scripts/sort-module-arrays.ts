@@ -15,7 +15,7 @@ const DRY_RUN = process.argv.includes('--dry-run');
 const VERBOSE = process.argv.includes('--verbose');
 const ARRAY_PROPS = ['controllers', 'exports', 'imports', 'providers'];
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// Helpers
 
 /** Count net open brackets in a string */
 function bracketDepth(text: string): number {
@@ -65,7 +65,7 @@ function getSortKey(code: string): string | null {
   return null;
 }
 
-// ── Tokenization ─────────────────────────────────────────────────────────────
+// Tokenization
 
 interface Token {
   type: 'entry' | 'gap';
@@ -147,7 +147,7 @@ function tokenize(body: string): Token[] {
   return tokens;
 }
 
-// ── Sorting ──────────────────────────────────────────────────────────────────
+// Sorting
 
 /**
  * Sort entries within each group (between gap tokens).
@@ -197,7 +197,7 @@ function rebuild(tokens: Token[]): string {
   return tokens.map((t) => t.lines.join('\n')).join('\n');
 }
 
-// ── Main processing ──────────────────────────────────────────────────────────
+// Main processing
 
 /**
  * Find and sort a specific decorator array property in file content.

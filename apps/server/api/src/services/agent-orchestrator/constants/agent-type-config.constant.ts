@@ -80,6 +80,7 @@ const SHARED_READ_TOOLS: CuratedActionName[] = [
   'rate_content',
   'score_seo',
   'rate_ingredient',
+  'star_asset',
   'get_top_ingredients',
   'replicate_top_ingredient',
   'suggest_next_steps',
@@ -235,6 +236,8 @@ Image guidelines:
       'prepare_voice_clone',
       'prepare_workflow_trigger',
       'prepare_clipper_workflow_run',
+      'start_clip_analysis',
+      'get_clip_highlights',
       'get_clip_context',
       'edit_clip',
       'suggest_ingredient_alternatives',
@@ -277,6 +280,8 @@ Video guidelines:
       'prepare_generation',
       'prepare_voice_clone',
       'prepare_clipper_workflow_run',
+      'start_clip_analysis',
+      'get_clip_highlights',
       'get_clip_context',
       'edit_clip',
       'create_workflow',
@@ -333,7 +338,7 @@ Writing guidelines:
 - Match brand voice — formal or casual as specified in brand context`,
   },
 
-  // ── Extended agent types ──────────────────────────────────────
+  // Extended agent types
 
   [AgentType.LINKEDIN_CONTENT]: {
     defaultDailyCreditBudget: 200,

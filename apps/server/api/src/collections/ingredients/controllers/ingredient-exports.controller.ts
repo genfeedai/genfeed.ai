@@ -5,8 +5,14 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import {
+  WATERMARK_VARIANTS,
+  type WatermarkVariant,
+} from '@genfeedai/contracts/interfaces';
 import { IngredientExportSerializer } from '@genfeedai/serializers';
 import {
+  BadRequestException,
+  Body,
   Controller,
   ForbiddenException,
   Param,
@@ -26,6 +32,7 @@ export class IngredientExportsController {
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
+    @Body() body?: { variant?: unknown },
   ) {
     if (!user.organizationId)
       throw new ForbiddenException(
@@ -34,7 +41,18 @@ export class IngredientExportsController {
     return serializeSingle(
       request,
       IngredientExportSerializer,
-      await this.exports.export(id, user.organizationId.toString()),
+      await this.exports.export(
+        id,
+        user.organizationId.toString(),
+        this.readVariant(body?.variant),
+      ),
     );
+  }
+
+  private readVariant(value: unknown): WatermarkVariant {
+    if (value === undefined) return 'default';
+    const variant = WATERMARK_VARIANTS.find((item) => item === value);
+    if (!variant) throw new BadRequestException('Unknown watermark variant');
+    return variant;
   }
 }

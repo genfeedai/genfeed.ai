@@ -38,14 +38,14 @@ export default function FeatureGrid({
             const Icon = feature.icon;
             const content = (
               <>
-                <div className="mb-12 text-xs font-semibold uppercase tracking-widest text-foreground/55">
+                <div className="mb-12 text-xs font-semibold uppercase tracking-widest text-foreground/60">
                   {feature.number} / {feature.label}
                 </div>
-                <Icon className="mb-8 size-10 text-foreground/55 transition-colors group-hover:text-foreground" />
+                <Icon className="mb-8 size-10 text-foreground/60 transition-colors group-hover:text-foreground" />
                 <h3 className="mb-4 text-xl font-semibold uppercase tracking-tight">
                   {feature.title}
                 </h3>
-                <p className="mb-8 text-sm leading-relaxed text-foreground/55">
+                <p className="mb-8 text-sm leading-relaxed text-foreground/60">
                   {feature.description}
                 </p>
                 {feature.href ? (
@@ -61,7 +61,7 @@ export default function FeatureGrid({
                 <Link
                   key={feature.number}
                   href={feature.href}
-                  className="group flex flex-col bg-background p-6 sm:p-12 transition-colors hover:bg-foreground/[0.02]"
+                  className="group flex flex-col bg-background p-6 sm:p-12 transition-colors hover:bg-foreground/5"
                 >
                   {content}
                 </Link>
@@ -71,7 +71,7 @@ export default function FeatureGrid({
             return (
               <div
                 key={feature.number}
-                className="group flex flex-col bg-background p-6 sm:p-12 transition-colors hover:bg-foreground/[0.02]"
+                className="group flex flex-col bg-background p-6 sm:p-12 transition-colors hover:bg-foreground/5"
               >
                 {content}
               </div>

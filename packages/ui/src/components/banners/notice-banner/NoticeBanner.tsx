@@ -25,9 +25,9 @@ export type NoticeBannerProps = NoticeBannerBaseProps &
   );
 
 const TONE_ICON_TILE_CLASSES: Record<NoticeBannerTone, string> = {
-  destructive: 'border-destructive/30 bg-destructive/10 text-destructive',
-  info: 'border-info/30 bg-info/10 text-info',
-  warning: 'border-warning/30 bg-warning/10 text-warning',
+  destructive: 'border-destructive/20 bg-destructive/10 text-destructive',
+  info: 'border-info/20 bg-info/10 text-info',
+  warning: 'border-warning/20 bg-warning/10 text-warning',
 };
 
 /**

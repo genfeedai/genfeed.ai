@@ -943,7 +943,7 @@ export class BrandsService extends BaseService<
     throw new ValidationException('Brand deletion needs an organization');
   }
 
-  // ───────────────────────── Brand → organization relocation ─────────────────────────
+  // Brand → organization relocation
 
   async relocateToOrganization(
     brandId: string,

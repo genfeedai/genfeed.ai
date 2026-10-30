@@ -59,7 +59,7 @@ function GroupRow({
         variant={ButtonVariant.UNSTYLED}
         withWrapper={false}
         onClick={() => setExpanded(!isExpanded)}
-        className="flex w-full items-center gap-2.5 px-2 py-1.5 text-left transition-colors duration-150 hover:bg-foreground/[0.04]"
+        className="flex w-full items-center gap-2.5 px-2 py-1.5 text-left transition-colors duration-150 hover:bg-foreground/5"
       >
         {isComplete ? (
           <Check className="size-3.5 text-success/60 flex-shrink-0" />
@@ -84,7 +84,7 @@ function GroupRow({
         <div className="flex items-center gap-2">
           <Progress
             aria-label={group.label}
-            className="h-1 w-10 bg-foreground/[0.06]"
+            className="h-1 w-10 bg-foreground/5"
             indicatorClassName="bg-foreground"
             value={group.score}
           />
@@ -100,9 +100,9 @@ function GroupRow({
             <Link
               key={field.key}
               href={href(field.href)}
-              className="flex items-center gap-2 rounded px-2 py-1 text-2xs text-muted-foreground transition-colors duration-150 hover:bg-foreground/[0.04] hover:text-foreground/70"
+              className="flex items-center gap-2 rounded px-2 py-1 text-2xs text-muted-foreground transition-colors duration-150 hover:bg-foreground/5 hover:text-foreground/70"
             >
-              <ChevronRight className="size-3 flex-shrink-0 text-foreground/15" />
+              <ChevronRight className="size-3 flex-shrink-0 text-foreground/20" />
               {field.label}
             </Link>
           ))}
@@ -139,7 +139,7 @@ export default function BrandCompletenessCard({
 
       {/* Progress bar */}
       <Progress
-        className="mb-3 h-1 bg-foreground/[0.06]"
+        className="mb-3 h-1 bg-foreground/5"
         indicatorClassName="bg-foreground"
         value={result.overallScore}
       />

@@ -28,7 +28,7 @@ describe('posts semantic theme contract', () => {
   ])('uses shared field controls in %s', (relativePath) => {
     const source = readPostSource(relativePath);
 
-    expect(source).toContain('FormSearchbar');
+    expect(source).toContain('SearchField');
     expect(source).not.toMatch(/(?:bg|border|text|hover:bg|hover:text)-white/);
   });
 });

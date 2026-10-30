@@ -67,7 +67,7 @@ function extractPurpose(content: string): string {
   return '';
 }
 
-// ── main ────────────────────────────────────────────────────────────────────
+// main
 
 const args = process.argv.slice(2);
 const flags: Record<string, string | boolean> = {};

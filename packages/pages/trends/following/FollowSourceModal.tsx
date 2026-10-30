@@ -464,7 +464,7 @@ export default function FollowSourceModal({
                   </span>
                 ) : null}
               </div>
-              <p className="text-xs leading-5 text-foreground/58">
+              <p className="text-xs leading-5 text-foreground/60">
                 {translate('postChoice')}
               </p>
               <div className="flex flex-wrap gap-2">
@@ -517,7 +517,7 @@ export default function FollowSourceModal({
           {!isSearching && !postReference && candidates.length > 0 ? (
             <>
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-xs text-foreground/55">
+                <p className="text-xs text-foreground/60">
                   {selectableCandidates.length
                     ? `${selectableCandidates.length} account${selectableCandidates.length === 1 ? '' : 's'} available`
                     : 'No new accounts to follow'}
@@ -637,7 +637,7 @@ export default function FollowSourceModal({
                           aria-label={selectLabel}
                           className={`flex w-full items-start gap-3 rounded-card border px-3 py-3 text-left transition-colors ${
                             isChecked
-                              ? 'cursor-pointer border-foreground/35 bg-foreground/[0.06]'
+                              ? 'cursor-pointer border-foreground/40 bg-foreground/5'
                               : 'cursor-pointer border-border bg-card hover:bg-hover/40'
                           }`}
                           onClick={() => {

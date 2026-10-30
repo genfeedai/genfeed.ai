@@ -29,7 +29,7 @@ export default function RelatedMetricCard({
         <div className="truncate text-sm font-medium text-foreground">
           {title}
         </div>
-        <div className="flex flex-wrap items-center gap-2 text-xs text-foreground/55">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-foreground/60">
           <Badge variant="ghost">{Math.round(badgeValue)}</Badge>
           {detail ? <span>{detail}</span> : null}
         </div>

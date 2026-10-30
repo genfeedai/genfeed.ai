@@ -140,7 +140,7 @@ export function ContentLibraryPicker({
                       'group flex flex-col overflow-hidden rounded-lg border border-border bg-card text-left transition-colors',
                       isSelected
                         ? 'opacity-50'
-                        : 'hover:border-primary/40 hover:bg-foreground/[0.04]',
+                        : 'hover:border-primary/40 hover:bg-foreground/5',
                     )}
                   >
                     <div className="relative aspect-square w-full overflow-hidden bg-background">

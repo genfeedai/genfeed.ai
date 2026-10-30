@@ -58,7 +58,7 @@ export class ContentEngineController {
     return this.moduleRef.get(SystemWorkflowRunnerService, { strict: false });
   }
 
-  // ── Studio proposals ───────────────────────────────────────────────
+  // Studio proposals
 
   /** Agent-written drafts Playground and Storyboard open on (#7341). */
   @Post('studio-proposals')
@@ -76,7 +76,7 @@ export class ContentEngineController {
     });
   }
 
-  // ── Plans ──────────────────────────────────────────────────────────
+  // Plans
 
   @Post('plans')
   async generatePlan(
@@ -179,7 +179,7 @@ export class ContentEngineController {
     return this.contentPlansService.softDelete(organization, planId);
   }
 
-  // ── Execution ──────────────────────────────────────────────────────
+  // Execution
 
   /**
    * Entry surface only: the plan is claimed, fanned out, and finalized by the

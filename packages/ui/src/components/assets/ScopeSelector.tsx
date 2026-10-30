@@ -6,7 +6,17 @@ import type {
   ScopeSelectorProps,
 } from '@genfeedai/props/components/scope-selector.props';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
+import { ToggleGroup, ToggleGroupItem } from '@ui/primitives/toggle-group';
 import { SCOPE_OPTIONS } from '@ui-constants/scope.constant';
+import { Building2, Globe, Lock, Tag } from 'lucide-react';
+import type { ComponentType } from 'react';
+
+const SCOPE_ICONS: Record<AssetScope, ComponentType<{ className?: string }>> = {
+  [AssetScope.USER]: Lock,
+  [AssetScope.BRAND]: Tag,
+  [AssetScope.ORGANIZATION]: Building2,
+  [AssetScope.PUBLIC]: Globe,
+};
 
 /**
  * ScopeSelector Component
@@ -29,79 +39,125 @@ export function ScopeSelector({
   variant = 'default',
   showLabel = true,
 }: ScopeSelectorProps) {
+  const groupProps = { 'aria-label': 'Access Control', disabled: isDisabled };
+  const selectedOption = SCOPE_OPTIONS.find((option) => option.value === value);
+
   return (
-    <fieldset className={cn('space-y-3', className)}>
+    <fieldset
+      className={cn(
+        variant === 'segmented' ? 'flex flex-col gap-2' : 'space-y-3',
+        className,
+      )}
+    >
       {showLabel && (
         <legend className="block text-sm font-medium text-foreground/80">
           Access Control
         </legend>
       )}
 
-      <RadioGroup
-        aria-label="Access Control"
-        disabled={isDisabled}
-        value={value}
-        onValueChange={(nextValue) => onChange(nextValue as AssetScope)}
-        className={cn(
-          'overflow-hidden rounded-2xl border',
-          variant === 'panel'
-            ? 'divide-y divide-border border-border bg-tertiary'
-            : 'border-border bg-background divide-y divide-border',
-        )}
-      >
-        {SCOPE_OPTIONS.map((option) => (
-          <div
-            key={option.value}
-            className={cn(
-              'flex cursor-pointer items-start gap-3 px-4 py-3 transition-colors',
-              isDisabled && 'cursor-not-allowed opacity-50',
-              value === option.value
-                ? variant === 'panel'
-                  ? 'bg-accent text-accent-foreground'
-                  : 'bg-primary/10 text-foreground'
-                : variant === 'panel'
-                  ? 'bg-transparent text-foreground/80 hover:bg-accent/60'
-                  : 'bg-transparent text-foreground hover:bg-muted/60',
-            )}
+      {variant === 'segmented' ? (
+        <>
+          <ToggleGroup
+            {...groupProps}
+            className="w-full gap-1 rounded-lg bg-background-secondary p-1 shadow-border"
+            onValueChange={(nextValue) => {
+              // Radix reports '' when the active item is pressed again.
+              if (nextValue) {
+                onChange(nextValue as AssetScope);
+              }
+            }}
+            type="single"
+            value={value}
           >
-            <RadioGroupItem
-              aria-label={option.label}
-              value={option.value}
-              className="mt-1"
-            />
+            {SCOPE_OPTIONS.map((option) => {
+              const Icon = SCOPE_ICONS[option.value];
 
-            <div className="flex-1 space-y-1">
-              <div className="flex items-center gap-2">
-                <span
+              return (
+                <ToggleGroupItem
+                  aria-label={option.label}
+                  className="flex-1 rounded-md"
+                  key={option.value}
+                  value={option.value}
+                >
+                  <Icon className="size-3.5" />
+                  <span className="hidden sm:inline">{option.label}</span>
+                </ToggleGroupItem>
+              );
+            })}
+          </ToggleGroup>
+
+          {selectedOption ? (
+            <p className="text-xs text-muted-foreground">
+              {selectedOption.description}
+            </p>
+          ) : null}
+        </>
+      ) : (
+        <RadioGroup
+          {...groupProps}
+          value={value}
+          onValueChange={(nextValue) => onChange(nextValue as AssetScope)}
+          className={cn(
+            'overflow-hidden rounded-2xl border',
+            variant === 'panel'
+              ? 'divide-y divide-border border-border bg-tertiary'
+              : 'border-border bg-background divide-y divide-border',
+          )}
+        >
+          {SCOPE_OPTIONS.map((option) => (
+            <div
+              key={option.value}
+              className={cn(
+                'flex cursor-pointer items-start gap-3 px-4 py-3 transition-colors',
+                isDisabled && 'cursor-not-allowed opacity-50',
+                value === option.value
+                  ? variant === 'panel'
+                    ? 'bg-accent text-accent-foreground'
+                    : 'bg-primary/10 text-foreground'
+                  : variant === 'panel'
+                    ? 'bg-transparent text-foreground/80 hover:bg-accent/60'
+                    : 'bg-transparent text-foreground hover:bg-muted/60',
+              )}
+            >
+              <RadioGroupItem
+                aria-label={option.label}
+                value={option.value}
+                className="mt-1"
+              />
+
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      'text-sm font-medium',
+                      variant === 'panel'
+                        ? value === option.value
+                          ? 'text-accent-foreground'
+                          : 'text-foreground/90'
+                        : 'text-foreground',
+                    )}
+                  >
+                    {option.label}
+                  </span>
+                </div>
+
+                <p
                   className={cn(
-                    'text-sm font-medium',
+                    'text-xs',
                     variant === 'panel'
                       ? value === option.value
-                        ? 'text-accent-foreground'
-                        : 'text-foreground/85'
-                      : 'text-foreground',
+                        ? 'text-accent-foreground/80'
+                        : 'text-muted-foreground'
+                      : 'text-foreground/70',
                   )}
                 >
-                  {option.label}
-                </span>
+                  {option.description}
+                </p>
               </div>
-
-              <p
-                className={cn(
-                  'text-xs',
-                  variant === 'panel'
-                    ? value === option.value
-                      ? 'text-accent-foreground/75'
-                      : 'text-muted-foreground'
-                    : 'text-foreground/70',
-                )}
-              >
-                {option.description}
-              </p>
             </div>
-          </div>
-        ))}
-      </RadioGroup>
+          ))}
+        </RadioGroup>
+      )}
     </fieldset>
   );
 }
@@ -126,9 +182,9 @@ export function ScopeBadge({ scope, className = '' }: ScopeBadgeProps) {
 
   const bgColor = {
     [AssetScope.USER]: 'bg-muted',
-    [AssetScope.BRAND]: 'bg-info/15',
-    [AssetScope.ORGANIZATION]: 'bg-success/15',
-    [AssetScope.PUBLIC]: 'bg-primary/15',
+    [AssetScope.BRAND]: 'bg-info/10',
+    [AssetScope.ORGANIZATION]: 'bg-success/10',
+    [AssetScope.PUBLIC]: 'bg-primary/10',
   }[scope];
 
   return (

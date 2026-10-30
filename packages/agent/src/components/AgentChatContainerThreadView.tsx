@@ -258,7 +258,7 @@ export function AgentChatContainerThreadView({
               <div className="pointer-events-none absolute inset-x-0 bottom-full z-20 flex justify-center pb-2">
                 <Button
                   ariaLabel={translate('scrollToLatest')}
-                  className="pointer-events-auto rounded-md border border-border/70 bg-background/88 text-foreground/72 shadow-[0_16px_36px_-24px_rgba(0,0,0,0.85)] backdrop-blur-sm hover:text-foreground"
+                  className="pointer-events-auto rounded-md border border-border/70 bg-background/90 text-foreground/80 shadow-[0_16px_36px_-24px_rgba(0,0,0,0.85)] backdrop-blur-sm hover:text-foreground"
                   icon={<ArrowDown className="size-4" />}
                   onClick={scrollToBottom}
                   size={ButtonSize.ICON}
@@ -282,7 +282,7 @@ export function AgentChatContainerThreadView({
             size={ButtonSize.ICON}
             icon={<ArrowDown className="size-4" />}
             ariaLabel={translate('scrollToLatest')}
-            className="pointer-events-auto rounded-md border border-border/70 bg-background/88 text-foreground/72 shadow-[0_16px_36px_-24px_rgba(0,0,0,0.85)] backdrop-blur-sm hover:text-foreground"
+            className="pointer-events-auto rounded-md border border-border/70 bg-background/90 text-foreground/80 shadow-[0_16px_36px_-24px_rgba(0,0,0,0.85)] backdrop-blur-sm hover:text-foreground"
             withWrapper={false}
             onClick={scrollToBottom}
           />

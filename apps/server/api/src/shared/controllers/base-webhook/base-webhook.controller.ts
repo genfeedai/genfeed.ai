@@ -179,20 +179,4 @@ export abstract class BaseWebhookController {
       );
     }
   }
-
-  /**
-   * Handle a webhook with raw body validation
-   * Use this when the webhook requires raw body for signature validation
-   *
-   * @param request - Express request with raw body
-   * @param options - Handler options
-   */
-  protected handleWebhookWithRawBody<T>(
-    request: Request,
-    options: WebhookHandlerOptions = {},
-  ): Promise<{ success: boolean; detail?: string }> {
-    const rawBody = request.body as Buffer;
-    const payload = JSON.parse(rawBody.toString());
-    return this.handleWebhook<T>(request, payload, options);
-  }
 }

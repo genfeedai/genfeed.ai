@@ -137,7 +137,7 @@ export function AgentStrategyContentSection({
               className={`border px-3 py-1 text-xs font-medium capitalize transition-colors ${
                 platforms.includes(platform)
                   ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border text-muted-foreground hover:border-primary/30'
+                  : 'border-border text-muted-foreground hover:border-primary/20'
               }`}
             >
               {platform}

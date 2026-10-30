@@ -11,6 +11,7 @@ import {
   BookmarkCheck,
   Bot,
   Box,
+  BriefcaseBusiness,
   Building2,
   ChartPie,
   CircleDollarSign,
@@ -50,14 +51,13 @@ export const ADMIN_MENU_ITEMS: AdminMenuItemConfig[] = [
   {
     category: 'admin-overview',
     hrefScope: 'global',
-    // Real page is `/admin/overview/dashboard`. Bare `/admin` re-exports it and
-    // permanently redirects here; never link to `/admin/overview` (no page).
-    href: APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
+    // Bare `/admin` permanently redirects here.
+    href: APP_ROUTES.ADMIN.OVERVIEW.ROOT,
     // Exact: `/admin` is a prefix of every admin route, so a prefix match would
     // keep Overview lit on pages that have no menu item of their own.
     isExactMatch: true,
     label: 'Overview',
-    matchPaths: [APP_ROUTES.ADMIN.ROOT, APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD],
+    matchPaths: [APP_ROUTES.ADMIN.ROOT, APP_ROUTES.ADMIN.OVERVIEW.ROOT],
     outline: Gauge,
     solid: Gauge,
   },
@@ -83,14 +83,21 @@ export const ADMIN_MENU_ITEMS: AdminMenuItemConfig[] = [
     category: 'admin-customers',
     group: 'Accounts',
     hrefScope: 'global',
-    href: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS,
+    href: APP_ROUTES.ADMIN.ORGANIZATIONS,
     label: 'Organizations',
-    matchPaths: [
-      APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS,
-      APP_ROUTES.ADMIN.ORGANIZATIONS,
-    ],
+    matchPaths: [APP_ROUTES.ADMIN.ORGANIZATIONS],
     outline: Building2,
     solid: Building2,
+  },
+  {
+    category: 'admin-customers',
+    group: 'Accounts',
+    hrefScope: 'global',
+    href: APP_ROUTES.ADMIN.BRANDS,
+    label: 'Brands',
+    matchPaths: [APP_ROUTES.ADMIN.BRANDS],
+    outline: BriefcaseBusiness,
+    solid: BriefcaseBusiness,
   },
   {
     category: 'admin-customers',
@@ -156,7 +163,7 @@ export const ADMIN_MENU_ITEMS: AdminMenuItemConfig[] = [
     category: 'admin-content',
     group: 'Library',
     hrefScope: 'global',
-    href: APP_ROUTES.ADMIN.CONTENT.INGREDIENTS_VIDEOS,
+    href: APP_ROUTES.ADMIN.CONTENT.INGREDIENTS,
     label: 'Ingredients',
     matchPaths: [APP_ROUTES.ADMIN.CONTENT.INGREDIENTS],
     outline: LibraryBig,
@@ -226,7 +233,7 @@ export const ADMIN_MENU_ITEMS: AdminMenuItemConfig[] = [
     category: 'admin-content',
     group: 'Catalog',
     hrefScope: 'global',
-    href: APP_ROUTES.ADMIN.CONFIGURATION.TAGS_ALL,
+    href: APP_ROUTES.ADMIN.CONFIGURATION.TAGS,
     label: 'Tags',
     matchPaths: [APP_ROUTES.ADMIN.CONFIGURATION.TAGS],
     outline: Bookmark,

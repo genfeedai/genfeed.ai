@@ -1,9 +1,9 @@
-// ── Re-exports from @genfeedai/errors ────────────────────────────────────────
+// Re-exports from @genfeedai/errors
 export { ApiError, BaseCliError, formatError, type HandleErrorOptions } from '@genfeedai/errors';
 
 import { BaseCliError, formatError } from '@genfeedai/errors';
 
-// ── CLI-specific errors ─────────────────────────────────────────────────────
+// CLI-specific errors
 
 export class GenfeedError extends BaseCliError {
   constructor(message: string, suggestion?: string) {

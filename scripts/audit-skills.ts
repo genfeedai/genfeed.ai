@@ -18,7 +18,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { basename, join, relative } from 'node:path';
 
-// ── helpers ──────────────────────────────────────────────────────────────────
+// helpers
 
 const KEBAB_RE = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 const FORBIDDEN_NAMES = /claude|anthropic/i;
@@ -70,7 +70,7 @@ function wordCount(text: string): number {
   return text.split(/\s+/).filter(Boolean).length;
 }
 
-// ── audit a single skill folder ─────────────────────────────────────────────
+// audit a single skill folder
 
 function auditSkill(skillDir: string): SkillReport {
   const folderName = basename(skillDir);
@@ -200,7 +200,7 @@ function auditSkill(skillDir: string): SkillReport {
   return report;
 }
 
-// ── scan legacy commands ────────────────────────────────────────────────────
+// scan legacy commands
 
 function scanCommands(dir: string): LegacyCommandReport[] {
   if (!existsSync(dir)) return [];
@@ -230,7 +230,7 @@ function scanCommands(dir: string): LegacyCommandReport[] {
   return reports;
 }
 
-// ── main ────────────────────────────────────────────────────────────────────
+// main
 
 const ROOT = process.cwd();
 const SKILLS_DIR = join(ROOT, 'skills');
@@ -253,7 +253,7 @@ if (existsSync(SKILLS_DIR)) {
 const projectCmds = scanCommands(PROJECT_CMDS_DIR);
 const globalCmds = scanCommands(GLOBAL_CMDS_DIR);
 
-// ── output ──────────────────────────────────────────────────────────────────
+// output
 
 const result = {
   commands: {

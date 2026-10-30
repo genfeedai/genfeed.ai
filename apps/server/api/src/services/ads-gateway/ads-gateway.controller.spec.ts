@@ -503,7 +503,7 @@ describe('AdsGatewayController', () => {
     });
   });
 
-  // ─── getAdSetInsights ────────────────────────────────────────────────────
+  // getAdSetInsights
 
   describe('getAdSetInsights', () => {
     it('should resolve the adapter for any supported platform', async () => {
@@ -560,7 +560,7 @@ describe('AdsGatewayController', () => {
     });
   });
 
-  // ─── getAdInsights ───────────────────────────────────────────────────────
+  // getAdInsights
 
   describe('getAdInsights', () => {
     it('should pass a custom time range through to the adapter', async () => {
@@ -608,7 +608,7 @@ describe('AdsGatewayController', () => {
     });
   });
 
-  // ─── comparePlatforms ────────────────────────────────────────────────────
+  // comparePlatforms
 
   describe('comparePlatforms', () => {
     it('should throw BadRequestException if arrays have mismatched lengths', async () => {

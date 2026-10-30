@@ -14,42 +14,42 @@ export const GROUP_COLORS: Record<
 > = {
   blue: {
     bg: 'bg-blue-500/10',
-    border: 'border-blue-500/30',
+    border: 'border-blue-500/20',
     text: 'text-blue-400',
   },
   gray: {
     bg: 'bg-gray-500/10',
-    border: 'border-gray-500/30',
+    border: 'border-gray-500/20',
     text: 'text-gray-400',
   },
   green: {
     bg: 'bg-green-500/10',
-    border: 'border-green-500/30',
+    border: 'border-green-500/20',
     text: 'text-green-400',
   },
   orange: {
     bg: 'bg-orange-500/10',
-    border: 'border-orange-500/30',
+    border: 'border-orange-500/20',
     text: 'text-orange-400',
   },
   pink: {
     bg: 'bg-pink-500/10',
-    border: 'border-pink-500/30',
+    border: 'border-pink-500/20',
     text: 'text-pink-400',
   },
   purple: {
     bg: 'bg-purple-500/10',
-    border: 'border-purple-500/30',
+    border: 'border-purple-500/20',
     text: 'text-purple-400',
   },
   red: {
     bg: 'bg-red-500/10',
-    border: 'border-red-500/30',
+    border: 'border-red-500/20',
     text: 'text-red-400',
   },
   yellow: {
     bg: 'bg-yellow-500/10',
-    border: 'border-yellow-500/30',
+    border: 'border-yellow-500/20',
     text: 'text-yellow-400',
   },
 };

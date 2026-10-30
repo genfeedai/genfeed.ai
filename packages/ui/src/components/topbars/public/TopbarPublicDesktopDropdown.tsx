@@ -134,8 +134,8 @@ export default function TopbarPublicDesktopDropdown({
           className={cn(
             'group flex items-start gap-3 rounded-md px-3 py-3 transition-colors',
             isActive
-              ? 'bg-foreground/[0.08] text-foreground'
-              : 'text-foreground/90 hover:bg-foreground/[0.06] hover:text-foreground',
+              ? 'bg-foreground/10 text-foreground'
+              : 'text-foreground/90 hover:bg-foreground/5 hover:text-foreground',
           )}
           href={item.href}
           onClick={onItemClick}
@@ -148,7 +148,7 @@ export default function TopbarPublicDesktopDropdown({
               {item.label}
             </span>
             {item.description && (
-              <span className="mt-0.5 text-xs leading-5 text-foreground/55">
+              <span className="mt-0.5 text-xs leading-5 text-foreground/60">
                 {item.description}
               </span>
             )}
@@ -175,7 +175,7 @@ export default function TopbarPublicDesktopDropdown({
       ))}
       {panel.footer ? (
         <div className="col-span-3 mt-7 flex items-center justify-between border-t border-foreground/10 px-3 pt-5">
-          <p className="text-xs text-foreground/55">
+          <p className="text-xs text-foreground/60">
             {panel.footer.description}
           </p>
           <Link

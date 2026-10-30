@@ -365,6 +365,16 @@ export interface KlingV3VideoInput extends BaseVideoInput {
   end_image?: string;
 }
 
+/** Kwaivgi Kling 4.0 */
+export interface KlingV4VideoInput extends BaseVideoInput {
+  aspect_ratio: string;
+  duration: number;
+  resolution?: string;
+  start_image?: string;
+  end_image?: string;
+  reference_images?: string[];
+}
+
 /** Kwaivgi Kling V3 Omni Video */
 export interface KlingV3OmniVideoInput extends BaseVideoInput {
   aspect_ratio: string;
@@ -538,6 +548,7 @@ export type ReplicateVideoInput =
   | KlingV16ProInput
   | PVideoInput
   | KlingV3VideoInput
+  | KlingV4VideoInput
   | KlingV3OmniVideoInput
   | KlingAvatarV2Input
   | Seedance2Input

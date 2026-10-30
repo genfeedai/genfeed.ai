@@ -24,7 +24,7 @@ export default function HomeAsks(): React.ReactElement {
           <div className="flex flex-col gap-4" data-reveal="up">
             <Heading
               as="h2"
-              className="max-w-3xl text-5xl font-semibold leading-tight tracking-[-0.04em] sm:text-6xl"
+              className="max-w-3xl text-5xl font-semibold leading-tight tracking-[-0.02em] sm:text-6xl"
             >
               Ask for the job, not the file.
             </Heading>
@@ -57,7 +57,7 @@ export default function HomeAsks(): React.ReactElement {
             >
               <Heading
                 as="h3"
-                className="text-xl font-semibold tracking-[-0.025em] text-foreground"
+                className="text-xl font-semibold tracking-[-0.02em] text-foreground"
               >
                 &ldquo;{prompt.ask}&rdquo;
               </Heading>
@@ -65,12 +65,12 @@ export default function HomeAsks(): React.ReactElement {
                   block or the destination link wraps onto the same line. */}
               <Text
                 as="p"
-                className="mt-3 text-sm leading-6 text-foreground/72"
+                className="mt-3 text-sm leading-6 text-foreground/80"
               >
                 {prompt.result}
               </Text>
               <Link
-                className="mt-4 inline-flex text-[13px] font-semibold text-foreground/72 underline underline-offset-4 transition-colors hover:text-foreground"
+                className="mt-4 inline-flex text-[13px] font-semibold text-foreground/80 underline underline-offset-4 transition-colors hover:text-foreground"
                 href={prompt.href}
               >
                 {prompt.hrefLabel}

@@ -81,8 +81,8 @@ export function conversationSidebarRowClassName(options: {
   return cn(
     'group relative w-full rounded-md border border-transparent text-left transition-colors',
     options.isSelected
-      ? 'border-border bg-foreground/[0.07]'
-      : 'hover:bg-foreground/[0.045]',
+      ? 'border-border bg-foreground/5'
+      : 'hover:bg-foreground/5',
     options.isMuted && 'opacity-55',
   );
 }

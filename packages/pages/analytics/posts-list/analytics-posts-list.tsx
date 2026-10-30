@@ -9,7 +9,6 @@ import {
   AnalyticsMetric,
   ButtonSize,
   ButtonVariant,
-  ComponentSize,
   PageScope,
 } from '@genfeedai/contracts';
 import type { ExtensionPublicationCaptureResult } from '@genfeedai/contracts/interfaces/content/extension-publication.interface';
@@ -29,9 +28,9 @@ import {
 } from '@pages/posts/list/posts-list-query';
 import type { AnalyticsPostGridItem } from '@props/analytics/analytics-posts-grid.props';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
+import SearchField from '@ui/content/search-field/SearchField';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Button } from '@ui/primitives/button';
-import FormSearchbar from '@ui/primitives/searchbar';
 import { LayoutGrid } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -168,7 +167,7 @@ export default function AnalyticsPostsList() {
     resetKey: [search, metric, platform, source ?? SOURCE_ALL].join('|'),
   });
 
-  const toolbar = useMemo(() => {
+  const filterMenu = useMemo(() => {
     const facets: FilterMenuFacet[] = [
       {
         defaultValue: SHOW_ALL,
@@ -243,15 +242,29 @@ export default function AnalyticsPostsList() {
     ];
 
     return (
+      <FilterMenu
+        facets={facets}
+        isAttached
+        onClear={() => {
+          setFilter('show', undefined);
+          setFilter('platform', undefined);
+          setFilter('source', undefined);
+        }}
+      />
+    );
+  }, [
+    isWinnersView,
+    metric,
+    platform,
+    setFilter,
+    source,
+    translateSource,
+    translateWinners,
+  ]);
+
+  const toolbar = useMemo(() => {
+    return (
       <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <FilterMenu
-          facets={facets}
-          onClear={() => {
-            setFilter('show', undefined);
-            setFilter('platform', undefined);
-            setFilter('source', undefined);
-          }}
-        />
         {focusedPostId ? (
           <Button
             label="Clear Focus"
@@ -271,32 +284,20 @@ export default function AnalyticsPostsList() {
         />
       </div>
     );
-  }, [
-    brandId,
-    translateTrack,
-    focusedPostId,
-    isWinnersView,
-    metric,
-    platform,
-    setFocusedPost,
-    setFilter,
-    source,
-    translateSource,
-    translateWinners,
-  ]);
+  }, [brandId, translateTrack, focusedPostId, setFocusedPost]);
 
   const searchNode = useMemo(
     () => (
-      <FormSearchbar
+      <SearchField
         ariaLabel="Search posts"
-        isCollapsible
         onSearch={(value) => setFilter('query', value)}
         placeholder="Search posts..."
-        size={ComponentSize.SM}
         value={search}
-      />
+      >
+        {filterMenu}
+      </SearchField>
     ),
-    [search, setFilter],
+    [filterMenu, search, setFilter],
   );
 
   useAnalyticsToolbar(toolbar);

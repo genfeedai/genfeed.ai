@@ -241,9 +241,9 @@ export default function NodeConfigPanel({
   const variableKeys = inputVariables.map((v) => v.key);
 
   return (
-    <div className="border-b border-white/[0.08] bg-card">
+    <div className="border-b border-white/10 bg-card">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-white/[0.08] px-4 py-3">
+      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
         <div>
           <h3 className="font-semibold">{data.label}</h3>
           <p className="text-xs opacity-60">{definition?.description}</p>

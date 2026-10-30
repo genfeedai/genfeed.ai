@@ -105,7 +105,7 @@ export function DiscoveryOrgBrandGate({ children }: { children: ReactNode }) {
         <h1 className="text-xl font-semibold text-foreground text-balance">
           Choose a brand for Discovery
         </h1>
-        <p className="text-sm text-foreground/55">
+        <p className="text-sm text-foreground/60">
           Discovery is brand-scoped. Pick which brand&apos;s trends and ads to
           open.
         </p>
@@ -118,7 +118,7 @@ export function DiscoveryOrgBrandGate({ children }: { children: ReactNode }) {
                 variant={CardVariant.DEFAULT}
                 label={brand.label}
                 bodyClassName="min-h-14 justify-center py-3 text-sm font-semibold"
-                className="transition-colors hover:bg-foreground/[0.06]"
+                className="transition-colors hover:bg-foreground/5"
               />
             </Link>
           </li>

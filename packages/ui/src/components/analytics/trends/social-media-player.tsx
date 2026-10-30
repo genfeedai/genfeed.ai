@@ -95,7 +95,7 @@ export default function SocialMediaPlayer({
               <Button
                 aria-label={translate('playVideo', { title })}
                 variant={ButtonVariant.UNSTYLED}
-                className="absolute inset-0 flex size-full items-center justify-center bg-background/30"
+                className="absolute inset-0 flex size-full items-center justify-center bg-background/20"
                 withWrapper={false}
                 onClick={() => setPlaying(true)}
               >

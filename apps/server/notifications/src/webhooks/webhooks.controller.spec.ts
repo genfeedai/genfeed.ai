@@ -1,4 +1,8 @@
+import { LoggerService } from '@libs/logger/logger.service';
+import { UnauthorizedException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@notifications/config/config.service';
+import { InternalApiKeyGuard } from '@notifications/guards/internal-api-key.guard';
 import type { WebhookNotification } from '@notifications/shared/interfaces/webhooks.interface';
 import { WebhooksController } from '@notifications/webhooks/webhooks.controller';
 import { WebhooksService } from '@notifications/webhooks/webhooks.service';
@@ -16,6 +20,11 @@ describe('WebhooksController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [WebhooksController],
       providers: [
+        {
+          provide: ConfigService,
+          useValue: { get: vi.fn(), isDevelopment: false },
+        },
+        { provide: LoggerService, useValue: { warn: vi.fn() } },
         {
           provide: WebhooksService,
           useValue: mockWebhooksService,
@@ -115,6 +124,45 @@ describe('WebhooksController', () => {
 
       expect(result.service).toBe('openai');
       expect(result.id).toBe('video_789');
+    });
+  });
+
+  describe('authentication', () => {
+    const buildGuard = (configuredKey: string | undefined) =>
+      new InternalApiKeyGuard(
+        {
+          get: () => configuredKey,
+          isDevelopment: false,
+        } as unknown as ConfigService,
+        { warn: vi.fn() } as unknown as LoggerService,
+      );
+
+    const contextFor = (authorization?: string) =>
+      ({
+        switchToHttp: () => ({
+          getRequest: () => ({ headers: { authorization } }),
+        }),
+      }) as never;
+
+    it('is guarded by the internal API key guard', () => {
+      expect(Reflect.getMetadata('__guards__', WebhooksController)).toContain(
+        InternalApiKeyGuard,
+      );
+    });
+
+    it('rejects a caller without a bearer token', () => {
+      expect(() => buildGuard('service-key').canActivate(contextFor())).toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('rejects a wrong key and accepts the configured key', () => {
+      const guard = buildGuard('service-key');
+
+      expect(() => guard.canActivate(contextFor('Bearer wrong-key'))).toThrow(
+        UnauthorizedException,
+      );
+      expect(guard.canActivate(contextFor('Bearer service-key'))).toBe(true);
     });
   });
 });

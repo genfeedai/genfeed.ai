@@ -97,7 +97,7 @@ export default function MultiSelectOptionsList({
           <span className="flex flex-col flex-1 min-w-0">
             <span className="text-sm">{option.label}</span>
             {option.description && (
-              <span className="text-xs text-foreground/55 truncate">
+              <span className="text-xs text-foreground/60 truncate">
                 {option.description}
               </span>
             )}

@@ -58,7 +58,7 @@ function CopyCodeButton({ code }: { code: string }): React.ReactElement {
       variant={ButtonVariant.SECONDARY}
       size={ButtonSize.XS}
       ariaLabel="Copy this prompt"
-      className="border border-foreground/[0.08] bg-foreground/10 text-foreground backdrop-blur-sm transition-all hover:border-foreground/20 hover:bg-foreground/20"
+      className="border border-foreground/10 bg-foreground/10 text-foreground backdrop-blur-sm transition-all hover:border-foreground/20 hover:bg-foreground/20"
       onClick={handleCopy}
     >
       {isCopied ? (
@@ -155,7 +155,7 @@ export default function ArticleContent({
 
   return (
     <div>
-      <div className="mb-8 border-y border-foreground/[0.08] py-4">
+      <div className="mb-8 border-y border-foreground/10 py-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0">
             <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-foreground/50">

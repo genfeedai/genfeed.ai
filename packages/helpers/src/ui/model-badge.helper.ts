@@ -1,20 +1,20 @@
 import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 
 const MODEL_CATEGORY_BADGE_CLASSES: Record<ModelCategory, string> = {
-  [ModelCategory.AVATAR]: 'bg-agent/15 text-agent border-agent/30',
+  [ModelCategory.AVATAR]: 'bg-agent/10 text-agent border-agent/20',
   [ModelCategory.EMBEDDING]: 'bg-muted text-muted-foreground border-border',
-  [ModelCategory.IMAGE]: 'bg-info/15 text-info border-info/30',
+  [ModelCategory.IMAGE]: 'bg-info/10 text-info border-info/20',
   [ModelCategory.IMAGE_EDIT]:
     '[background-color:color-mix(in_srgb,var(--accent-pink)_15%,transparent)] text-[var(--accent-pink)] [border-color:color-mix(in_srgb,var(--accent-pink)_30%,transparent)]',
   [ModelCategory.IMAGE_UPSCALE]:
     '[background-color:color-mix(in_srgb,var(--accent-rose)_15%,transparent)] text-[var(--accent-rose)] [border-color:color-mix(in_srgb,var(--accent-rose)_30%,transparent)]',
-  [ModelCategory.MUSIC]: 'bg-warning/15 text-warning border-warning/30',
-  [ModelCategory.TEXT]: 'bg-success/15 text-success border-success/30',
+  [ModelCategory.MUSIC]: 'bg-warning/10 text-warning border-warning/20',
+  [ModelCategory.TEXT]: 'bg-success/10 text-success border-success/20',
   [ModelCategory.VIDEO]:
     '[background-color:color-mix(in_srgb,var(--accent-violet)_15%,transparent)] text-[var(--accent-violet)] [border-color:color-mix(in_srgb,var(--accent-violet)_30%,transparent)]',
   [ModelCategory.VIDEO_EDIT]:
     '[background-color:color-mix(in_srgb,var(--accent-purple)_15%,transparent)] text-[var(--accent-purple)] [border-color:color-mix(in_srgb,var(--accent-purple)_30%,transparent)]',
-  [ModelCategory.VIDEO_UPSCALE]: 'bg-primary/15 text-primary border-primary/30',
+  [ModelCategory.VIDEO_UPSCALE]: 'bg-primary/10 text-primary border-primary/20',
   [ModelCategory.VOICE]:
     '[background-color:color-mix(in_srgb,var(--accent-orange)_15%,transparent)] text-[var(--accent-orange)] [border-color:color-mix(in_srgb,var(--accent-orange)_30%,transparent)]',
 };

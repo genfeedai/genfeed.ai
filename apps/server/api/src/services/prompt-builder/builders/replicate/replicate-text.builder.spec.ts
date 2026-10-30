@@ -148,7 +148,7 @@ describe('ReplicateTextBuilder', () => {
     });
   });
 
-  // ─── GPT Image 1.5 ─────────────────────────────────────────────────────────
+  // GPT Image 1.5
 
   describe('GPT Image 1.5', () => {
     const model = MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_1_5;
@@ -205,7 +205,7 @@ describe('ReplicateTextBuilder', () => {
     });
   });
 
-  // ─── Gemini 2.5 Flash ──────────────────────────────────────────────────────
+  // Gemini 2.5 Flash
 
   describe('Gemini 2.5 Flash', () => {
     const model = MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_2_5_FLASH;
@@ -241,7 +241,7 @@ describe('ReplicateTextBuilder', () => {
     });
   });
 
-  // ─── Gemini 3 Pro ──────────────────────────────────────────────────────────
+  // Gemini 3 Pro
 
   describe('Gemini 3 Pro', () => {
     const model = MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO;
@@ -265,7 +265,7 @@ describe('ReplicateTextBuilder', () => {
     });
   });
 
-  // ─── Llama 3.1 405B ────────────────────────────────────────────────────────
+  // Llama 3.1 405B
 
   describe('Llama 3.1 405B', () => {
     const model = MODEL_KEYS.REPLICATE_META_LLAMA_3_1_405B_INSTRUCT;

@@ -10,7 +10,6 @@ import type {
   TabsEnhancedProps,
   TabsItem,
 } from '@genfeedai/props/ui/navigation/tabs.props';
-import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { Button } from '@ui/primitives/button';
 import {
   TabsList,
@@ -67,17 +66,12 @@ function NavigationTabLink({
   itemKey: string;
   tab: RouteTabItem;
 }) {
-  const prefetchHref = useNavigationPrefetch(tab.href);
-
   return (
     <Link
       key={itemKey}
       href={tab.href}
       aria-current={isActive ? 'page' : undefined}
       data-state={isActive ? 'active' : 'inactive'}
-      prefetch={false}
-      onFocus={prefetchHref}
-      onMouseEnter={prefetchHref}
       className={getTabsTriggerClassName()}
     >
       {children}

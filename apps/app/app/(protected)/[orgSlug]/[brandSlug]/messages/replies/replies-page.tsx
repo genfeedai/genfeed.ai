@@ -26,6 +26,7 @@ import Card from '@ui/card/Card';
 import { EmptyState } from '@ui/card/EmptyState';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import Container from '@ui/layout/container/Container';
+import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import Loading from '@ui/loading/default/Loading';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -306,53 +307,57 @@ export default function RepliesPage() {
         />
       }
       right={
-        <div className="flex items-center gap-2">
-          <FilterMenu
-            facets={[
-              {
-                defaultValue: Platform.TWITTER,
-                key: 'platform',
-                label: translate('platform.label'),
-                onChange: (value) => {
-                  const platform = parsePlatform(value);
-                  if (
-                    platform === Platform.TWITTER ||
-                    platform === Platform.YOUTUBE
-                  ) {
-                    setInboxPlatform(platform);
-                    setItems([]);
-                    setInboxError(null);
-                  }
+        <SubbarControls
+          filters={
+            <FilterMenu
+              facets={[
+                {
+                  defaultValue: Platform.TWITTER,
+                  key: 'platform',
+                  label: translate('platform.label'),
+                  onChange: (value) => {
+                    const platform = parsePlatform(value);
+                    if (
+                      platform === Platform.TWITTER ||
+                      platform === Platform.YOUTUBE
+                    ) {
+                      setInboxPlatform(platform);
+                      setItems([]);
+                      setInboxError(null);
+                    }
+                  },
+                  options: [
+                    {
+                      label: translate('platform.twitter'),
+                      value: Platform.TWITTER,
+                    },
+                    {
+                      label: translate('platform.youtube'),
+                      value: Platform.YOUTUBE,
+                    },
+                  ],
+                  selection: 'single',
+                  value: inboxPlatform,
                 },
-                options: [
-                  {
-                    label: translate('platform.twitter'),
-                    value: Platform.TWITTER,
-                  },
-                  {
-                    label: translate('platform.youtube'),
-                    value: Platform.YOUTUBE,
-                  },
-                ],
-                selection: 'single',
-                value: inboxPlatform,
-              },
-            ]}
-            onClear={() => {
-              setInboxPlatform(Platform.TWITTER);
-              setItems([]);
-              setInboxError(null);
-            }}
-          />
-          <Button
-            isDisabled={isEnabling}
-            onClick={() => void handleEnableAuto()}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.DEFAULT}
-          >
-            {isEnabling ? 'Enabling…' : 'Enable auto-replies'}
-          </Button>
-        </div>
+              ]}
+              onClear={() => {
+                setInboxPlatform(Platform.TWITTER);
+                setItems([]);
+                setInboxError(null);
+              }}
+            />
+          }
+          primaryAction={
+            <Button
+              isDisabled={isEnabling}
+              onClick={() => void handleEnableAuto()}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.DEFAULT}
+            >
+              {isEnabling ? 'Enabling…' : 'Enable auto-replies'}
+            </Button>
+          }
+        />
       }
     >
       <Card label="Inbox status" bodyClassName="gap-4 p-4">
@@ -374,7 +379,7 @@ export default function RepliesPage() {
           {translate('description')}
         </p>
         {inboxError ? (
-          <p className="rounded border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          <p className="rounded border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
             {inboxError}
           </p>
         ) : null}

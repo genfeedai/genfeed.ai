@@ -180,7 +180,7 @@ export default function StreaksPage() {
                             <Flame className="size-4 text-muted-foreground" />
                           )}
                         </div>
-                        <p className="mt-1 text-sm text-foreground/65">
+                        <p className="mt-1 text-sm text-foreground/70">
                           {rewardLabel(milestone)}
                         </p>
                       </div>

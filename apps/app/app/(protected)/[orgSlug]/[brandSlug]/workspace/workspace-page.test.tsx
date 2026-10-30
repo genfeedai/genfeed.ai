@@ -226,7 +226,7 @@ vi.mock('@services/management/tasks.service', async (importOriginal) => {
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'acme-creator', orgSlug: 'acme-org' }),
-  usePathname: () => '/workspace/inbox/unread',
+  usePathname: () => '/workspace/inbox',
   useRouter: () => ({
     push: mocks.push,
     replace: mocks.replace,
@@ -451,12 +451,15 @@ describe('WorkspacePageContent', () => {
     // router is still applying the taskId query update.
     mocks.replace.mockImplementation(() => {});
 
-    render(<WorkspacePageContent section="inbox" defaultInboxView="unread" />);
+    render(<WorkspacePageContent section="inbox" />);
 
     expect(await screen.findByText('Campaign image')).toBeVisible();
-    // Inbox chrome is Container header (tabs + refresh), not the snapshot strip.
+    // Inbox chrome is the Container header (refresh + Filters), not the snapshot strip.
     expect(screen.queryByTestId('workspace-snapshot')).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /unread/i })).toBeVisible();
+    expect(screen.getByRole('button', { name: /filters/i })).toBeVisible();
+    expect(
+      screen.queryByRole('tab', { name: /unread/i }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /refresh/i })).toBeVisible();
     expect(mocks.subscribe).toHaveBeenCalled();
 
@@ -465,7 +468,7 @@ describe('WorkspacePageContent', () => {
     );
 
     expect(mocks.replace).toHaveBeenCalledWith(
-      '/workspace/inbox/unread?taskId=task-1',
+      '/workspace/inbox?taskId=task-1',
       { scroll: false },
     );
     const taskInspector = await screen.findByTestId(
@@ -543,7 +546,7 @@ describe('WorkspacePageContent', () => {
     mocks.searchParamsString = 'taskId=task-1';
     mocks.replace.mockImplementation(() => {});
 
-    render(<WorkspacePageContent section="inbox" defaultInboxView="unread" />);
+    render(<WorkspacePageContent section="inbox" />);
 
     expect(await screen.findByTestId('workspace-task-inspector')).toBeVisible();
 
@@ -554,13 +557,49 @@ describe('WorkspacePageContent', () => {
         screen.queryByTestId('workspace-task-inspector'),
       ).not.toBeInTheDocument();
     });
-    expect(mocks.replace).toHaveBeenCalledWith('/workspace/inbox/unread', {
+    expect(mocks.replace).toHaveBeenCalledWith('/workspace/inbox', {
       scroll: false,
     });
   });
 
+  it('writes the chosen inbox status to ?status= and drops it for the default', async () => {
+    // Radix menus need pointer capture and scrollIntoView, which jsdom lacks.
+    Element.prototype.hasPointerCapture = vi.fn(() => false);
+    Element.prototype.releasePointerCapture = vi.fn();
+    Element.prototype.scrollIntoView = vi.fn();
+    const user = userEvent.setup();
+    mocks.searchParamsString = 'taskId=task-1';
+
+    const { rerender } = render(<WorkspacePageContent section="inbox" />);
+    await user.click(await screen.findByRole('button', { name: /filters/i }));
+    (await screen.findByRole('menuitem', { name: /^status/i })).focus();
+    await user.keyboard('{ArrowRight}');
+    await user.click(
+      await screen.findByRole('menuitemradio', { name: /all/i }),
+    );
+
+    expect(mocks.replace).toHaveBeenCalledWith(
+      '/workspace/inbox?taskId=task-1&status=all',
+      { scroll: false },
+    );
+
+    rerender(<WorkspacePageContent section="inbox" />);
+    await user.click(await screen.findByRole('button', { name: /filters/i }));
+    (await screen.findByRole('menuitem', { name: /^status/i })).focus();
+    await user.keyboard('{ArrowRight}');
+    await user.click(
+      await screen.findByRole('menuitemradio', { name: /unread/i }),
+    );
+
+    expect(mocks.replace).toHaveBeenLastCalledWith(
+      '/workspace/inbox?taskId=task-1',
+      { scroll: false },
+    );
+  });
+
   it('marks individual rows and all inbox items read without opening the task', async () => {
-    render(<WorkspacePageContent section="inbox" defaultInboxView="all" />);
+    mocks.searchParamsString = 'status=all';
+    render(<WorkspacePageContent section="inbox" />);
     expect(await screen.findByText('Campaign image')).toBeVisible();
     fireEvent.click(screen.getAllByRole('button', { name: 'Mark read' })[0]);
     expect(inboxReadMock.mutate).toHaveBeenCalledWith([
@@ -582,7 +621,8 @@ describe('WorkspacePageContent', () => {
       },
     );
 
-    render(<WorkspacePageContent section="inbox" defaultInboxView="all" />);
+    mocks.searchParamsString = 'status=all';
+    render(<WorkspacePageContent section="inbox" />);
 
     expect(await screen.findByText('Campaign image')).toBeVisible();
     fireEvent.click(screen.getAllByRole('button', { name: /refresh/i })[0]);
@@ -713,14 +753,14 @@ describe('WorkspacePageContent', () => {
     );
     // #5397: the "Open Inbox" link (`workspace-overview-sidebar.tsx`'s
     // "Recent activity" card) used to build a bare
-    // `APP_ROUTES.WORKSPACE.INBOX_UNREAD` href, unlike its sibling links in
+    // `APP_ROUTES.WORKSPACE.INBOX` href, unlike its sibling links in
     // this same file, which already scope through `href()`.
     // `resolveWorkspaceShellRoute` only recognizes the scoped
     // `/:orgSlug/:brandSlug/workspace/...` pathname, so following that link
     // would have left the workspace inspector unable to activate.
     expect(screen.getByRole('link', { name: 'Open Inbox' })).toHaveAttribute(
       'href',
-      '/acme-org/acme-creator/workspace/inbox/unread',
+      '/acme-org/acme-creator/workspace/inbox',
     );
     expect(screen.getByText('Library snapshot')).toBeVisible();
     expect(screen.getByText('Overview', { selector: 'p' })).toBeVisible();

@@ -386,7 +386,7 @@ function BaseNodeContent({
     <div className="flex-1 flex flex-col p-3 min-h-0">
       <NodeErrorBoundary nodeId={nodeId} nodeType={nodeType}>
         {nodeData.error && (
-          <div className="mb-3 border border-destructive/30 bg-destructive/10 p-2">
+          <div className="mb-3 border border-destructive/20 bg-destructive/10 p-2">
             <div className="flex items-start gap-1.5">
               <p className="flex-1 text-xs text-destructive break-all">
                 {nodeData.error}

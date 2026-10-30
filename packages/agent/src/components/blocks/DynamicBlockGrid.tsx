@@ -70,28 +70,28 @@ function getAlertStyles(severity?: AlertBlock['severity']): {
     case 'error':
       return {
         bg: 'bg-destructive/10',
-        border: 'border-red-500/30',
+        border: 'border-red-500/20',
         icon: '\u2716',
         text: 'text-destructive',
       };
     case 'warning':
       return {
         bg: 'bg-warning/10',
-        border: 'border-yellow-500/30',
+        border: 'border-yellow-500/20',
         icon: '\u26A0',
         text: 'text-warning',
       };
     case 'success':
       return {
         bg: 'bg-success/10',
-        border: 'border-green-500/30',
+        border: 'border-green-500/20',
         icon: '\u2714',
         text: 'text-success',
       };
     default:
       return {
         bg: 'bg-info/10',
-        border: 'border-blue-500/30',
+        border: 'border-blue-500/20',
         icon: '\u2139',
         text: 'text-info',
       };
@@ -355,22 +355,22 @@ const CALLOUT_SEVERITY_STYLES: Record<
 > = {
   error: {
     bg: 'bg-destructive/10',
-    border: 'border-red-500/30',
+    border: 'border-red-500/20',
     text: 'text-destructive',
   },
   info: {
     bg: 'bg-info/10',
-    border: 'border-blue-500/30',
+    border: 'border-blue-500/20',
     text: 'text-info',
   },
   success: {
     bg: 'bg-success/10',
-    border: 'border-green-500/30',
+    border: 'border-green-500/20',
     text: 'text-success',
   },
   warning: {
     bg: 'bg-warning/10',
-    border: 'border-yellow-500/30',
+    border: 'border-yellow-500/20',
     text: 'text-warning',
   },
 };

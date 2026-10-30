@@ -2,7 +2,6 @@ import YoutubeLongFormContent from '@public/tools/youtube-long-form/youtube-long
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 import PageLayout from '@web-components/PageLayout';
-import { FileText } from 'lucide-react';
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'YouTube to Article and Newsletter',
@@ -21,8 +20,6 @@ export default function YoutubeLongFormPage(): React.ReactElement {
           kind="creator"
         />
       }
-      badge="Free AI tool"
-      badgeIcon={FileText}
       compact
       description="Paste a public YouTube video once, reuse its transcript, and turn it into a publish-ready article or newsletter."
       title="YouTube to long-form text"

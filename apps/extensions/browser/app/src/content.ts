@@ -318,8 +318,13 @@ function extractCurrentPageContext(): {
 // Listen for messages from background/side panel
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'GET_PAGE_CONTEXT') {
+    // A panel opened after the page loaded missed the page's own report, so
+    // the answer carries the platform and composer state too.
+    const platform = getCurrentPlatform();
     sendResponse({
+      composeBoxAvailable: getComposerState(platform).composeBoxAvailable,
       pageContext: extractCurrentPageContext(),
+      platform: platform ? getPlatformName() : null,
       success: true,
     });
     return true;

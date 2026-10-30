@@ -224,12 +224,12 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
         )}
 
         {secondaryContent && (
-          <div className="mt-2 border-t border-white/8 pt-2">
+          <div className="mt-2 border-t border-white/10 pt-2">
             {secondaryContent}
           </div>
         )}
 
-        <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-white/8 pt-2">
+        <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-white/10 pt-2">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5 overflow-visible">
             {!isMinimalBar &&
               (isAdvancedMode &&

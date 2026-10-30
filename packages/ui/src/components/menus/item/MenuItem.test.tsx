@@ -25,7 +25,7 @@ describe('MenuItem', () => {
       <MenuItem
         badgeCount={40}
         label="Inbox"
-        href="/workspace/inbox/unread"
+        href="/workspace/inbox"
         variant="icon"
       />,
     );
@@ -38,16 +38,15 @@ describe('MenuItem', () => {
     render(
       <>
         <MenuItem href="/workspace" isActive label="Dashboard" variant="icon" />
-        <MenuItem href="/workspace/inbox/unread" label="Inbox" variant="icon" />
+        <MenuItem href="/workspace/inbox" label="Inbox" variant="icon" />
       </>,
     );
 
     const activeRow = screen.getByRole('link', { name: 'Dashboard' });
     const hoverRow = screen.getByRole('link', { name: 'Inbox' });
 
-    expect(activeRow).toHaveClass('bg-foreground/[0.06]');
-    expect(hoverRow).toHaveClass('hover:bg-foreground/[0.06]');
-    expect(hoverRow).not.toHaveClass('hover:bg-foreground/[0.035]');
+    expect(activeRow).toHaveClass('bg-foreground/5');
+    expect(hoverRow).toHaveClass('hover:bg-foreground/5');
   });
 
   it('uses the canonical 16px icon size for expanded sidebar rows', () => {

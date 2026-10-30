@@ -1,11 +1,12 @@
 import '@testing-library/jest-dom/vitest';
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
+import { PUBLISHING_CONTENT_REFRESH_EVENT } from '@genfeedai/contracts/constants';
 import type {
   ModalArticleProps,
   ModalNewsletterProps,
   ModalPostProps,
 } from '@props/modals/modal.props';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useEffect } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -97,6 +98,15 @@ function ToolbarFixture() {
       setExportNode(null);
     };
   }, [setLeadingNode, setFiltersNode, setExportNode]);
+  return <div>posts</div>;
+}
+
+function RefreshFixture({ reload }: { reload: () => void }) {
+  const { setRefresh } = usePostsLayout();
+  useEffect(() => {
+    setRefresh(() => reload);
+    return () => setRefresh(() => () => {});
+  }, [reload, setRefresh]);
   return <div>posts</div>;
 }
 
@@ -257,5 +267,39 @@ describe('PublishingLayoutContent', () => {
     expect(
       screen.queryByRole('button', { name: /new post/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it('reloads the desk when posts change outside the page', () => {
+    const reload = vi.fn();
+
+    render(
+      <PublishingLayoutContent>
+        <RefreshFixture reload={reload} />
+      </PublishingLayoutContent>,
+    );
+    act(() => {
+      window.dispatchEvent(new Event(PUBLISHING_CONTENT_REFRESH_EVENT));
+    });
+
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores the reload event on a post editor, which has no desk to reload', () => {
+    const refresh = vi.fn();
+    useRouterMock.mockReturnValue({ push: pushMock, refresh });
+    usePathnameMock.mockReturnValue(
+      '/acme-org/acme-creator/publishing/posts/post-123',
+    );
+
+    render(
+      <PublishingLayoutContent>
+        <div>detail content</div>
+      </PublishingLayoutContent>,
+    );
+    act(() => {
+      window.dispatchEvent(new Event(PUBLISHING_CONTENT_REFRESH_EVENT));
+    });
+
+    expect(refresh).not.toHaveBeenCalled();
   });
 });

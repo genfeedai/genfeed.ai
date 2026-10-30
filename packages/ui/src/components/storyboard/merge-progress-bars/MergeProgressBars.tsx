@@ -47,7 +47,7 @@ export default function MergeProgressBars({
               {isFailed && <CircleX className="size-8 text-destructive" />}
               {isActive && <Spinner size={ComponentSize.MD} />}
               {isPending && (
-                <div className="size-6 rounded-full border-2 border-white/[0.08]" />
+                <div className="size-6 rounded-full border-2 border-white/10" />
               )}
             </div>
 

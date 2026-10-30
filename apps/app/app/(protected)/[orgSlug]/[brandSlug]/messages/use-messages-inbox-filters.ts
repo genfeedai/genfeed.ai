@@ -21,23 +21,24 @@ export type { UseMessagesInboxFiltersParams } from '@genfeedai/props/messages/me
 function createInitialFiltersState({
   brandSlug,
   initialConversationType = 'all',
+  initialInboxView = 'inbox',
 }: Pick<
   UseMessagesInboxFiltersParams,
-  'brandSlug' | 'initialConversationType'
+  'brandSlug' | 'initialConversationType' | 'initialInboxView'
 >): MessagesInboxFiltersState {
+  const view = resolveInboxViewStatus(initialInboxView);
   return {
-    assignedOwnerId: '',
     automationState: 'all',
     brandFilterOverride: null,
     brandFilterRouteKey: brandSlug,
     conversationPage: 1,
     conversationType: initialConversationType,
     credentialId: '',
-    needsReviewOnly: false,
+    needsReviewOnly: view.needsReviewOnly,
     platform: 'all',
     search: '',
-    status: 'open',
-    unreadOnly: false,
+    status: view.status,
+    unreadOnly: view.unreadOnly,
   };
 }
 
@@ -127,12 +128,6 @@ function messagesInboxFiltersReducer(
         conversationPage: 1,
         credentialId: action.credentialId,
       };
-    case 'set-assigned-owner-id':
-      return {
-        ...state,
-        assignedOwnerId: action.assignedOwnerId,
-        conversationPage: 1,
-      };
     case 'set-search':
       return {
         ...state,
@@ -177,11 +172,12 @@ function deriveInboxView(state: MessagesInboxFiltersState): MessagesInboxView {
 export function useMessagesInboxFilters({
   brandSlug,
   initialConversationType,
+  initialInboxView,
   routeBrandId,
 }: UseMessagesInboxFiltersParams) {
   const [state, dispatch] = useReducer(
     messagesInboxFiltersReducer,
-    { brandSlug, initialConversationType },
+    { brandSlug, initialConversationType, initialInboxView },
     createInitialFiltersState,
   );
 
@@ -217,9 +213,6 @@ export function useMessagesInboxFilters({
       ...(state.credentialId.trim()
         ? { credentialId: state.credentialId.trim() }
         : {}),
-      ...(state.assignedOwnerId.trim()
-        ? { assignedOwnerId: state.assignedOwnerId.trim() }
-        : {}),
       ...(state.search.trim() ? { search: state.search.trim() } : {}),
     };
   }, [brandFilter, state]);
@@ -254,10 +247,6 @@ export function useMessagesInboxFilters({
     dispatch({ credentialId, type: 'set-credential-id' });
   }, []);
 
-  const setAssignedOwnerId = useCallback((assignedOwnerId: string) => {
-    dispatch({ assignedOwnerId, type: 'set-assigned-owner-id' });
-  }, []);
-
   const setSearch = useCallback((search: string) => {
     dispatch({ search, type: 'set-search' });
   }, []);
@@ -271,7 +260,6 @@ export function useMessagesInboxFilters({
   }, []);
 
   return {
-    assignedOwnerId: state.assignedOwnerId,
     automationState: state.automationState,
     brandFilter,
     conversationPage: state.conversationPage,
@@ -281,7 +269,6 @@ export function useMessagesInboxFilters({
     platform: state.platform,
     query,
     search: state.search,
-    setAssignedOwnerId,
     setAutomationState,
     setBrandFilter,
     setConversationPage,

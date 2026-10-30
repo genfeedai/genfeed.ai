@@ -41,7 +41,7 @@ import {
   vi,
 } from 'vitest';
 
-// ── Module-level mocks ──────────────────────────────────────────────────────
+// Module-level mocks
 
 const {
   mockRefreshOAuth2Token,
@@ -115,7 +115,7 @@ vi.mock('@api/shared/utils/html-to-text/html-to-text.util', () => ({
   htmlToText: vi.fn((val: string) => val),
 }));
 
-// ── Imports ───────────────────────────────────────────────────────────────────
+// Imports
 
 import { SERVER_TOKENS } from '@api/server.dependencies';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
@@ -126,7 +126,7 @@ import { safeFetch } from '@libs/security/destination-guard';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// Helpers
 
 /** Minimal credential document shape used across multiple tests. */
 const makeCredential = (overrides: Record<string, unknown> = {}) => ({
@@ -139,7 +139,7 @@ const makeCredential = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-// ── Suite ─────────────────────────────────────────────────────────────────────
+// Suite
 
 describe('TwitterService (coverage)', () => {
   let service: TwitterService;
@@ -211,7 +211,7 @@ describe('TwitterService (coverage)', () => {
     service = module.get<TwitterService>(TwitterService);
   });
 
-  // ── buildTweetUrl ──────────────────────────────────────────────────────────
+  // buildTweetUrl
 
   describe('buildTweetUrl', () => {
     it('returns canonical Twitter URL from SocialUrlHelper', () => {
@@ -220,7 +220,7 @@ describe('TwitterService (coverage)', () => {
     });
   });
 
-  // ── refreshToken ──────────────────────────────────────────────────────────
+  // refreshToken
 
   describe('refreshToken', () => {
     it('throws when credential not found', async () => {
@@ -429,7 +429,7 @@ describe('TwitterService (coverage)', () => {
     );
   });
 
-  // ── searchRecentTweets ────────────────────────────────────────────────────
+  // searchRecentTweets
 
   describe('searchRecentTweets', () => {
     it('returns sorted tweets with author info', async () => {
@@ -517,7 +517,7 @@ describe('TwitterService (coverage)', () => {
     });
   });
 
-  // ── getUserByUsername ─────────────────────────────────────────────────────
+  // getUserByUsername
 
   describe('getUserByUsername', () => {
     it('returns user data on success', async () => {
@@ -754,7 +754,7 @@ describe('TwitterService (coverage)', () => {
     });
   });
 
-  // ── getFollowers ──────────────────────────────────────────────────────────
+  // getFollowers
 
   describe('getFollowers', () => {
     it('returns mapped followers list', async () => {
@@ -806,7 +806,7 @@ describe('TwitterService (coverage)', () => {
     });
   });
 
-  // ── getTweetLikingUsers ───────────────────────────────────────────────────
+  // getTweetLikingUsers
 
   describe('getTweetLikingUsers', () => {
     it('returns users who liked a tweet', async () => {
@@ -840,7 +840,7 @@ describe('TwitterService (coverage)', () => {
     });
   });
 
-  // ── getTweetRetweetedBy ───────────────────────────────────────────────────
+  // getTweetRetweetedBy
 
   describe('getTweetRetweetedBy', () => {
     it('returns users who retweeted a tweet', async () => {
@@ -874,7 +874,7 @@ describe('TwitterService (coverage)', () => {
     });
   });
 
-  // ── getTrends ─────────────────────────────────────────────────────────────
+  // getTrends
 
   describe('getTrends (error branches)', () => {
     it('returns empty array on access-level error (code 453)', async () => {
@@ -922,7 +922,7 @@ describe('TwitterService (coverage)', () => {
     });
   });
 
-  // ── sendCommentReplyDm ────────────────────────────────────────────────────
+  // sendCommentReplyDm
 
   describe('sendCommentReplyDm (error path)', () => {
     it('propagates error when DM send fails', async () => {
@@ -938,7 +938,7 @@ describe('TwitterService (coverage)', () => {
     });
   });
 
-  // ── uploadMedia ───────────────────────────────────────────────────────────
+  // uploadMedia
 
   describe('uploadMedia', () => {
     beforeEach(() => {
@@ -1122,7 +1122,7 @@ describe('TwitterService (coverage)', () => {
     });
   });
 
-  // ── postTweet ─────────────────────────────────────────────────────────────
+  // postTweet
 
   describe('postTweet', () => {
     beforeEach(() => {
@@ -1163,7 +1163,7 @@ describe('TwitterService (coverage)', () => {
     });
   });
 
-  // ── getMediaAnalytics ─────────────────────────────────────────────────────
+  // getMediaAnalytics
 
   describe('getMediaAnalytics', () => {
     it('uses an OAuth2 user client with private metrics when accessToken provided', async () => {
@@ -1330,7 +1330,7 @@ describe('TwitterService (coverage)', () => {
     });
   });
 
-  // ── getMediaAnalyticsBatch ────────────────────────────────────────────────
+  // getMediaAnalyticsBatch
 
   describe('getMediaAnalyticsBatch', () => {
     it('returns empty Map when given empty array', async () => {

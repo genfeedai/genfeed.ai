@@ -11,6 +11,7 @@ import type { SystemNotificationDestinationsService } from '@api/services/system
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const notifications = {
@@ -85,6 +86,25 @@ describe('system event outbox', () => {
     expect(prisma.$queryRaw).not.toHaveBeenCalled();
     expect(prisma.user.findFirst).not.toHaveBeenCalled();
   });
+  it.each([
+    undefined,
+    null,
+    [],
+    {},
+    { enabled: 'yes', eventTypes: [] },
+    { enabled: true },
+    { enabled: true, eventTypes: 'user.created' },
+    { enabled: true, eventTypes: ['not.an.event'] },
+  ])(
+    'rejects configure body %j with 400 without writing settings',
+    async (body) => {
+      const { service, prisma } = setup();
+      await expect(service.configure(body)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(prisma.systemNotificationSettings.upsert).not.toHaveBeenCalled();
+    },
+  );
   it('does not backfill users before enablement and uses stable IDs for current users', async () => {
     const { service, prisma } = setup();
     prisma.user.findFirst.mockResolvedValue({

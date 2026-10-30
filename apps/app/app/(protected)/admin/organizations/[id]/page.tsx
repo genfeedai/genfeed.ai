@@ -1,10 +1,8 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import OrganizationConfigPage from '@protected/organizations/[id]/organization-config-page';
+import OrganizationDetailPage from '@protected/organizations/[id]/organization-detail-page';
 
-export const generateMetadata = createPageMetadata(
-  'Organization Configuration',
-);
+export const generateMetadata = createPageMetadata('Organization');
 
-export default function AdminOrganizationConfigPage() {
-  return <OrganizationConfigPage />;
+export default function AdminOrganizationDetailPage() {
+  return <OrganizationDetailPage />;
 }

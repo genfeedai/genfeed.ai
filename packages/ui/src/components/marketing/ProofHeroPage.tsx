@@ -1,8 +1,6 @@
-import type { ComponentType, ReactNode, SVGProps } from 'react';
+import type { ReactNode } from 'react';
 
 export interface ProofHeroPageProps {
-  badge?: string;
-  badgeIcon?: ComponentType<SVGProps<SVGSVGElement>>;
   children: ReactNode;
   compact?: boolean;
   description?: ReactNode;
@@ -39,8 +37,8 @@ export default function ProofHeroPage({
               <h1
                 className={
                   compact
-                    ? 'text-4xl font-semibold leading-[1.05] tracking-[-0.03em] text-foreground sm:text-5xl'
-                    : 'text-5xl font-semibold leading-[0.95] tracking-[-0.03em] text-foreground sm:text-6xl md:text-7xl lg:text-[5.2rem]'
+                    ? 'text-4xl font-semibold leading-[1.05] tracking-[-0.02em] text-foreground sm:text-5xl'
+                    : 'text-5xl font-semibold leading-[0.95] tracking-[-0.02em] text-foreground sm:text-6xl md:text-7xl lg:text-[5.2rem]'
                 }
               >
                 {title}

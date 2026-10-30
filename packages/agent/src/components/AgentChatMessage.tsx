@@ -287,7 +287,7 @@ function AgentChatMessageInner({
               </div>
             )}
             {shouldSuppressFallbackMessage && !completionSummaryAction ? (
-              <div className="rounded-md border border-border/65 bg-background/70 px-3 py-2 text-xs text-muted-foreground">
+              <div className="rounded-md border border-border/60 bg-background/70 px-3 py-2 text-xs text-muted-foreground">
                 Results are ready below.
               </div>
             ) : null}

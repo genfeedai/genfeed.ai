@@ -101,12 +101,25 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@ui/layout/container/Container', () => ({
-  default: ({ children, label }: { children?: ReactNode; label?: string }) => (
+  default: ({
+    children,
+    label,
+    leading,
+  }: {
+    children?: ReactNode;
+    label?: string;
+    leading?: ReactNode;
+  }) => (
     <main>
       <h1>{label}</h1>
+      <div data-testid="subbar-leading">{leading}</div>
       {children}
     </main>
   ),
+}));
+
+vi.mock('./AgentMarketplaceSearch', () => ({
+  default: () => <input aria-label="Search agents" />,
 }));
 
 vi.mock('./AgentMarketplace', () => ({

@@ -58,6 +58,7 @@ export function NewsletterEditorActions({
         icon={<CircleCheck />}
         isLoading={loadingAction === 'approving'}
         isDisabled={isPublished || isActionInFlight}
+        action="newsletter.approve"
         onClick={() => onApprove(selectedNewsletter.id)}
       />
       <Button
@@ -66,6 +67,7 @@ export function NewsletterEditorActions({
         icon={<Sparkles />}
         isLoading={loadingAction === 'publishing'}
         isDisabled={isPublished || isActionInFlight}
+        action="newsletter.publish"
         onClick={() => onPublish(selectedNewsletter.id)}
       />
       <Button

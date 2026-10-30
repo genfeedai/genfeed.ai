@@ -200,7 +200,7 @@ export default function SwitcherDropdown({
 
         {/* Footer */}
         {resolvedFooterActions.length > 0 && (
-          <div className="border-t border-foreground/[0.08]">
+          <div className="border-t border-foreground/10">
             {resolvedFooterActions.map((action) => {
               const ActionIcon = action.icon;
 
@@ -213,7 +213,7 @@ export default function SwitcherDropdown({
                     close();
                     action.onAction();
                   }}
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground/60 transition-colors duration-150 hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground/60 transition-colors duration-150 hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {ActionIcon ? (
                     <ActionIcon className="size-3.5 flex-shrink-0" />
@@ -254,8 +254,8 @@ function SwitcherItem({
         // Active = wash + check only. No ring/border. Keyboard cursor on an
         // inactive row is a quieter wash, never a second selected treatment.
         item.isActive
-          ? 'bg-foreground/[0.08]'
-          : 'hover:bg-foreground/[0.04] has-[[data-selected=true]]:bg-foreground/[0.05]',
+          ? 'bg-foreground/10'
+          : 'hover:bg-foreground/5 has-[[data-selected=true]]:bg-foreground/5',
       )}
     >
       {/* Active stays selectable so cmdk can keep the keyboard cursor on it
@@ -270,7 +270,7 @@ function SwitcherItem({
           item.trailingAction ? 'pr-1' : 'pr-3',
           item.isActive
             ? 'cursor-default font-medium text-foreground'
-            : 'cursor-pointer font-normal text-foreground/55 data-[selected=true]:text-foreground/80 group-hover:text-foreground',
+            : 'cursor-pointer font-normal text-foreground/60 data-[selected=true]:text-foreground/80 group-hover:text-foreground',
         )}
       >
         {/* Avatar */}
@@ -279,7 +279,7 @@ function SwitcherItem({
           fallbackClassName={cn(
             'flex size-5 flex-shrink-0 items-center justify-center rounded-md text-2xs font-bold',
             item.isActive
-              ? 'bg-primary/30 text-primary'
+              ? 'bg-primary/20 text-primary'
               : 'bg-foreground/10 text-foreground/50',
           )}
           imageUrl={item.imageUrl}

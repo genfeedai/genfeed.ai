@@ -166,7 +166,7 @@ export function NodeSearch() {
                     onClick={() => handleSelectNode(node)}
                     className={`w-full flex items-center gap-3 p-2 rounded text-left h-auto justify-start ${
                       index === selectedIndex
-                        ? 'bg-primary/10 border border-primary/30'
+                        ? 'bg-primary/10 border border-primary/20'
                         : 'hover:bg-muted/50 border border-transparent'
                     }`}
                   >

@@ -79,7 +79,7 @@ function PayloadCard({ payload }: PayloadCardProps) {
       </Button>
 
       {isExpanded && (
-        <div className="border-t border-border p-3 bg-muted/30">
+        <div className="border-t border-border p-3 bg-muted/20">
           <div className="flex items-center justify-between mb-2">
             <span className="text-2xs font-medium text-muted-foreground uppercase">
               Payload
@@ -169,7 +169,7 @@ function DebugPanelComponent() {
 
       {/* Footer info */}
       {debugPayloads.length > 0 && (
-        <div className="p-3 border-t border-border bg-muted/30">
+        <div className="p-3 border-t border-border bg-muted/20">
           <p className="text-2xs text-muted-foreground">
             {debugPayloads.length} payload
             {debugPayloads.length !== 1 ? 's' : ''} captured. Click to expand

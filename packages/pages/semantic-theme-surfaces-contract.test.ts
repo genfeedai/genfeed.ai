@@ -65,8 +65,8 @@ describe('page semantic theme surfaces', () => {
     ],
     [
       'trends/list/components/HookRemixModal.tsx',
-      'bg-white/[0.04]',
-      'bg-foreground/[0.04]',
+      'bg-white/5',
+      'bg-foreground/5',
     ],
     [
       'posts/detail/components/PostDetailCardBody.tsx',
@@ -112,7 +112,7 @@ describe('page semantic theme surfaces', () => {
     // The streak page renders its loading state through `@ui` cards now, so it
     // carries no spinner chrome of its own — the ban still applies.
     expect(streaks).not.toContain('border-t-white');
-    expect(campaigns).toContain('bg-foreground/[0.06]');
+    expect(campaigns).toContain('bg-foreground/5');
     expect(campaigns).not.toContain('border-white');
     expect(campaigns).not.toContain('bg-white');
   });

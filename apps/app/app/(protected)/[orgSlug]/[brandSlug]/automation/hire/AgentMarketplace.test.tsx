@@ -140,27 +140,6 @@ vi.mock('@ui/primitives/button', () => ({
   ),
 }));
 
-vi.mock('@ui/primitives/searchbar', () => ({
-  default: ({
-    ariaLabel,
-    onChange,
-    placeholder,
-    value,
-  }: {
-    ariaLabel?: string;
-    onChange?: (event: { target: { value: string } }) => void;
-    placeholder?: string;
-    value?: string;
-  }) => (
-    <input
-      aria-label={ariaLabel}
-      onChange={onChange}
-      placeholder={placeholder}
-      value={value}
-    />
-  ),
-}));
-
 // The real carousel measures its rail; jsdom ships no ResizeObserver.
 class ResizeObserverStub {
   observe() {}
@@ -170,23 +149,23 @@ class ResizeObserverStub {
 
 function renderMarketplace(
   props: Partial<{
+    category: string;
     isSubmitting: boolean;
+    searchQuery: string;
     submittingPresetId: string | null;
   }> = {},
   onActivate = vi.fn(),
 ) {
   render(
     <AgentMarketplace
+      category={props.category ?? 'all'}
       isSubmitting={props.isSubmitting ?? false}
       onActivate={onActivate}
+      searchQuery={props.searchQuery ?? ''}
       submittingPresetId={props.submittingPresetId ?? null}
     />,
   );
   return onActivate;
-}
-
-function getSearch() {
-  return screen.getByRole('textbox', { name: 'Search agents' });
 }
 
 describe('AgentMarketplace', () => {
@@ -267,9 +246,7 @@ describe('AgentMarketplace', () => {
   });
 
   it('drops the carousel while searching and lists every match as All agents', () => {
-    renderMarketplace();
-
-    fireEvent.change(getSearch(), { target: { value: 'copy' } });
+    renderMarketplace({ searchQuery: 'copy' });
 
     expect(
       screen.queryByTestId('agent-marketplace-featured'),
@@ -283,9 +260,7 @@ describe('AgentMarketplace', () => {
   });
 
   it('hides the list section when the category fits in the carousel', () => {
-    renderMarketplace();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Editorial' }));
+    renderMarketplace({ category: 'Editorial' });
 
     expect(
       screen
@@ -303,9 +278,7 @@ describe('AgentMarketplace', () => {
   });
 
   it('shows the empty search message without any section', () => {
-    renderMarketplace();
-
-    fireEvent.change(getSearch(), { target: { value: 'nothing-matches' } });
+    renderMarketplace({ searchQuery: 'nothing-matches' });
 
     expect(screen.getByText('No agents match this search.')).toBeVisible();
     expect(

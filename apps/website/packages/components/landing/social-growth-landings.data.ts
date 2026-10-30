@@ -109,7 +109,6 @@ const SOCIAL_GROWTH_PROCESS_DESCRIPTION =
 export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
   {
     isAgentFirst: true,
-    badge: 'X Growth',
     closingDescription:
       'Turn your next product update into posts for X. Review the drafts, choose when to publish and use the available results to plan what comes next.',
     closingTitle: 'Grow Your X Account From What You Ship',
@@ -215,7 +214,6 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
   },
   {
     isAgentFirst: true,
-    badge: 'LinkedIn Growth',
     closingDescription:
       'Connect your agent and turn your next product update into content for LinkedIn. Review the drafts in Genfeed, then publish when you are ready.',
     closingTitle: 'Become The Name Your Buyers Already Know',
@@ -319,7 +317,6 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
   },
   {
     isAgentFirst: true,
-    badge: 'Instagram Growth',
     closingDescription:
       'Connect your agent and turn your next product update into content for Instagram. Review the drafts in Genfeed, then publish when you are ready.',
     closingTitle: 'Post Like A Media Team Without Hiring One',
@@ -424,7 +421,6 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
   },
   {
     isAgentFirst: true,
-    badge: 'TikTok Growth',
     closingDescription:
       'Connect your agent and turn your next product update into content for TikTok. Review the drafts in Genfeed, then publish when you are ready.',
     closingTitle: 'Post Every Day Without Filming Every Day',
@@ -528,7 +524,6 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
   },
   {
     isAgentFirst: true,
-    badge: 'YouTube Growth',
     closingDescription:
       'Connect your agent and turn your next product update into content for YouTube. Review the drafts in Genfeed, then publish when you are ready.',
     closingTitle: 'Build The Channel Without Becoming An Editor',
@@ -632,7 +627,6 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
   },
   {
     isAgentFirst: true,
-    badge: 'Threads Growth',
     closingDescription:
       'Connect your agent and turn your next product update into content for Threads. Review the drafts in Genfeed, then publish when you are ready.',
     closingTitle: 'Show Up In The Conversation Every Day',
@@ -736,7 +730,6 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
   },
   {
     isAgentFirst: true,
-    badge: 'Facebook Growth',
     closingDescription:
       'Connect your agent and turn your next product update into content for Facebook. Review the drafts in Genfeed, then publish when you are ready.',
     closingTitle: 'Keep Your Page Alive Without Babysitting It',
@@ -841,7 +834,6 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
   },
   {
     isAgentFirst: true,
-    badge: 'Pinterest Growth',
     closingDescription:
       'Connect your agent and turn your next product update into content for Pinterest. Review the drafts in Genfeed, then publish when you are ready.',
     closingTitle: 'Turn Pinterest Into A Traffic Channel',

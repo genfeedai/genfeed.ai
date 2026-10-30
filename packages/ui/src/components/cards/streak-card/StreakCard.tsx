@@ -78,8 +78,8 @@ export default function StreakCard() {
               className={cn(
                 'h-7 rounded border text-2xs flex items-center justify-center',
                 count > 0
-                  ? 'border-foreground/30 bg-foreground/25 text-foreground'
-                  : 'border-border bg-foreground/[0.03] text-muted-foreground',
+                  ? 'border-foreground/20 bg-foreground/20 text-foreground'
+                  : 'border-border bg-foreground/5 text-muted-foreground',
               )}
               title={`${dayKey}${count > 0 ? `: ${count} item${count === 1 ? '' : 's'}` : ''}`}
             >
@@ -89,7 +89,7 @@ export default function StreakCard() {
         })}
       </div>
 
-      <p className="mb-3 text-xs leading-5 text-foreground/65">
+      <p className="mb-3 text-xs leading-5 text-foreground/70">
         {nextMilestone
           ? `Next milestone: ${nextMilestone.days} days. ${nextMilestone.remaining} more day${nextMilestone.remaining === 1 ? '' : 's'} to go.`
           : 'Top streak milestone reached. Keep creating daily to defend it.'}

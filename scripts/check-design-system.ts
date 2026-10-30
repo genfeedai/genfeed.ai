@@ -41,8 +41,10 @@ const DESIGN_SYSTEM_BASELINE_PATH = path.join(
 
 export type DesignSystemFindingKind =
   | 'dark-only-palette-text'
+  | 'off-ladder-opacity'
   | 'raw-chrome-color'
   | 'sub-11-text'
+  | 'tight-tracking'
   | 'undersized-control-height';
 
 export type DesignSystemFinding = {
@@ -111,7 +113,12 @@ function collectFiles(dir: string, extensions: Set<string>): string[] {
     }
 
     if (stat.isDirectory()) {
-      if (entry === 'node_modules' || entry === 'dist' || entry === 'build') {
+      if (
+        entry === 'node_modules' ||
+        entry === 'dist' ||
+        entry === 'build' ||
+        entry === '.next'
+      ) {
         continue;
       }
 
@@ -151,7 +158,8 @@ export const APP_CHROME_COLOR_SURFACES: Array<{
     root: 'apps/app/src/features/workflows/pages/library',
   },
   {
-    root: 'apps/app/app/(protected)/admin/overview/dashboard',
+    fileNamePattern: /^(activity-chart|overview-page)\.tsx$/u,
+    root: 'apps/app/app/(protected)/admin/overview',
   },
   {
     root: 'apps/app/src/components/workspace-shell',
@@ -323,8 +331,10 @@ const NATIVE_CONTROL_NAMES = new Set([
 const PACKAGE_UI_EXTENSIONS = new Set(['.js', '.jsx', '.ts', '.tsx']);
 const DESIGN_SYSTEM_FINDING_KINDS: readonly DesignSystemFindingKind[] = [
   'dark-only-palette-text',
+  'off-ladder-opacity',
   'raw-chrome-color',
   'sub-11-text',
+  'tight-tracking',
   'undersized-control-height',
 ];
 
@@ -348,6 +358,95 @@ function isSubElevenArbitraryTextToken(token: string): boolean {
   const value = Number(match[1]);
   const pixels = match[2] === 'rem' ? value * 16 : value;
   return Number.isFinite(pixels) && pixels < 11;
+}
+
+const OPACITY_LADDER_STOPS = new Set([
+  0, 5, 10, 20, 40, 50, 60, 70, 80, 90, 100,
+]);
+const OPACITY_COLOR_UTILITY_PATTERN =
+  /^(?:bg|text|border(?:-[xytblrse])?|from|via|to|ring|shadow|fill|stroke|divide|outline|decoration|placeholder|accent|caret)-(?:([a-z][\w-]*)|\[[^\]]+\])\/(\[[\d.]+%?\]|\d+(?:\.\d+)?)$/u;
+const OPACITY_NON_COLOR_NAMES = new Set([
+  '2xl',
+  '2xs',
+  '3xl',
+  '4xl',
+  '5xl',
+  '6xl',
+  '7xl',
+  '8xl',
+  '9xl',
+  'base',
+  'inner',
+  'lg',
+  'md',
+  'none',
+  'sm',
+  'xl',
+  'xs',
+]);
+
+function stripVariants(token: string): string {
+  let depth = 0;
+  let start = 0;
+  for (let index = 0; index < token.length; index += 1) {
+    const char = token[index];
+    if (char === '[') {
+      depth += 1;
+    } else if (char === ']') {
+      depth -= 1;
+    } else if (char === ':' && depth === 0) {
+      start = index + 1;
+    }
+  }
+  return token.slice(start).replace(/^!/u, '');
+}
+
+export function isOffLadderOpacityToken(token: string): boolean {
+  const match = OPACITY_COLOR_UTILITY_PATTERN.exec(stripVariants(token));
+  if (!match || (match[1] && OPACITY_NON_COLOR_NAMES.has(match[1]))) {
+    return false;
+  }
+
+  const modifier = match[2];
+  const isBracketed = modifier.startsWith('[');
+  const raw = isBracketed ? modifier.slice(1, -1) : modifier;
+  const isPercent = raw.endsWith('%');
+  const value = Number(isPercent ? raw.slice(0, -1) : raw);
+  const percent = isBracketed && !isPercent ? value * 100 : value;
+  return (
+    !Number.isFinite(percent) ||
+    !OPACITY_LADDER_STOPS.has(Math.round(percent * 1000) / 1000) ||
+    isBracketed
+  );
+}
+
+type TemplatePartNode = ts.TemplateHead | ts.TemplateMiddle | ts.TemplateTail;
+
+function completeTemplateTokens(part: TemplatePartNode): string[] {
+  const tokens = classTokens(part.text);
+  if (!ts.isTemplateHead(part) && !/^\s/u.test(part.text)) {
+    tokens.shift();
+  }
+  if (!ts.isTemplateTail(part) && !/\s$/u.test(part.text)) {
+    tokens.pop();
+  }
+  return tokens;
+}
+
+const MIN_NEGATIVE_TRACKING_EM = -0.02;
+
+function isTightTrackingToken(token: string): boolean {
+  const base = baseClassToken(token);
+  if (base === 'tracking-tighter') {
+    return true;
+  }
+  const match = /^tracking-\[(-\d*\.?\d+)em\]$/u.exec(base);
+  if (!match) {
+    return false;
+  }
+
+  const value = Number(match[1]);
+  return Number.isFinite(value) && value < MIN_NEGATIVE_TRACKING_EM - 1e-9;
 }
 
 function isControlElement(node: ts.JsxOpeningLikeElement): boolean {
@@ -430,9 +529,10 @@ export function findPackageUiGuardFindings(
   );
   const findings: DesignSystemFinding[] = [];
   const findingKeys = new Set<string>();
+  const isUiPackageFile = file.startsWith('packages/ui/');
 
   const addFinding = (
-    literal: ts.StringLiteralLike,
+    literal: ts.StringLiteralLike | TemplatePartNode,
     kind: DesignSystemFindingKind,
     token: string,
   ): void => {
@@ -460,6 +560,7 @@ export function findPackageUiGuardFindings(
     for (const literal of literals) {
       for (const token of classTokens(literal.text)) {
         if (
+          isUiPackageFile &&
           scanControlHeight &&
           CONTROL_HEIGHT_TOKENS.has(baseClassToken(token))
         ) {
@@ -467,6 +568,12 @@ export function findPackageUiGuardFindings(
         }
         if (isSubElevenArbitraryTextToken(token)) {
           addFinding(literal, 'sub-11-text', token);
+        }
+        if (isTightTrackingToken(token)) {
+          addFinding(literal, 'tight-tracking', token);
+        }
+        if (isOffLadderOpacityToken(token)) {
+          addFinding(literal, 'off-ladder-opacity', token);
         }
       }
     }
@@ -490,6 +597,16 @@ export function findPackageUiGuardFindings(
       ts.isNoSubstitutionTemplateLiteral(node)
     ) {
       scanLiterals([node], isControlScaleLiteral(node, file));
+    } else if (
+      ts.isTemplateHead(node) ||
+      ts.isTemplateMiddle(node) ||
+      ts.isTemplateTail(node)
+    ) {
+      for (const token of completeTemplateTokens(node)) {
+        if (isOffLadderOpacityToken(token)) {
+          addFinding(node, 'off-ladder-opacity', token);
+        }
+      }
     }
 
     ts.forEachChild(node, visit);
@@ -504,9 +621,12 @@ export function findPackageUiGuardFindings(
   );
 }
 
+const TYPE_SCALE_GUARD_ROOTS = ['apps/app', 'apps/website', 'packages'];
+
 function findPackageUiGuardFindingsInRepo(): DesignSystemFinding[] {
-  const packageRoot = path.join(rootDir, 'packages/ui');
-  const files = collectFiles(packageRoot, PACKAGE_UI_EXTENSIONS);
+  const files = TYPE_SCALE_GUARD_ROOTS.flatMap((root) =>
+    collectFiles(path.join(rootDir, root), PACKAGE_UI_EXTENSIONS),
+  );
   const findings: DesignSystemFinding[] = [];
 
   for (const filePath of files) {
@@ -697,7 +817,11 @@ export function formatDesignSystemRegressions(
             ? `use a semantic foreground/background token, or mark genuine content color with ${APP_CHROME_COLOR_ALLOW_MARKER}`
             : finding.kind === 'undersized-control-height'
               ? 'use h-control-sm (the 32px minimum control-scale token)'
-              : 'use text-2xs (the 11px typography floor) or a larger semantic text token';
+              : finding.kind === 'tight-tracking'
+                ? 'use tracking-tight (-0.02em, the tightest tracking DESIGN.md allows)'
+                : finding.kind === 'off-ladder-opacity'
+                  ? 'use an opacity stop from the ladder: /5 /10 /20 /40 /50 /60 /70 /80 /90 (or /0, /100)'
+                  : 'use text-2xs (the 11px typography floor) or a larger semantic text token';
       return `${finding.file}:${finding.line}: ${finding.token} — ${remedy}\n  ${finding.source}`;
     })
     .join('\n');

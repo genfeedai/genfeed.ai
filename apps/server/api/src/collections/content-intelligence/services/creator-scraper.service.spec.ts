@@ -281,7 +281,7 @@ describe('CreatorScraperService.calculateAggregateMetrics', () => {
   });
 });
 
-// ─── scrapeCreator ─────────────────────────────────────────────────────────
+// scrapeCreator
 
 describe('CreatorScraperService.scrapeCreator', () => {
   let service: CreatorScraperService;
@@ -484,7 +484,7 @@ describe('CreatorScraperService.scrapeCreator', () => {
   });
 });
 
-// ─── extractHashtags (via scrapeCreator output) ────────────────────────────
+// extractHashtags (via scrapeCreator output)
 
 describe('CreatorScraperService hashtag extraction', () => {
   let service: CreatorScraperService;

@@ -42,6 +42,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { AppContext } from '@genfeedai/contracts/interfaces';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
+import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import { getDesktopCreditsVisibility } from '@genfeedai/services/core/desktop-runtime.service';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
@@ -57,12 +58,7 @@ import {
   isAppRailPathEnabled,
 } from '@ui/shell/app-rail/app-rail.registry';
 import { CalendarClock, History, Images, MessagesSquare } from 'lucide-react';
-import {
-  useParams,
-  usePathname,
-  useRouter,
-  useSearchParams,
-} from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useOptionalAuth } from '@/hooks/useOptionalAuth';
 import {
@@ -114,7 +110,10 @@ export function useAppProtectedLayout(
     getDesktopCreditsVisibility(runtime),
   );
   const rawPathname = usePathname();
-  const routeParams = useParams<{ brandSlug?: string; orgSlug?: string }>();
+  const routeParams = useRouteParams<{
+    brandSlug?: string;
+    orgSlug?: string;
+  }>();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
 

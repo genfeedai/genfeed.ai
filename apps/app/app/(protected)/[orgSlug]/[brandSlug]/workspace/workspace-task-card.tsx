@@ -37,7 +37,7 @@ export function WorkspaceTaskCard({
             {statusLabel}
           </Badge>
         </div>
-        <p className="text-sm text-foreground/55">{task.request}</p>
+        <p className="text-sm text-foreground/60">{task.request}</p>
         <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
           {task.routingSummary ? <span>{task.routingSummary}</span> : null}
           {task.progress?.message ? <span>{task.progress.message}</span> : null}

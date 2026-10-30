@@ -316,7 +316,7 @@ export class GoogleAdsController {
     );
   }
 
-  // ─── Private Helpers ───────────────────────────────────────────────────────
+  // Private Helpers
 
   /**
    * Extract the Google Ads access token from the user's credentials.

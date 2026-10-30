@@ -97,7 +97,7 @@ function DeskLightCard({
             {isVideo ? (
               <span
                 className={
-                  'absolute right-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white' /* design-system-allow-content-color */
+                  'absolute right-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-2xs font-medium uppercase tracking-wide text-white' /* design-system-allow-content-color */
                 }
               >
                 {translateCard('videoBadge')}

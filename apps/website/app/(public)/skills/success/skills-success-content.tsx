@@ -15,8 +15,6 @@ export default function SkillsSuccessContent() {
   return (
     <MarketingEntrance cards={false}>
       <PageLayout
-        badge="Complete"
-        badgeIcon={Check}
         compact
         title={<>Purchase Complete</>}
         description="Check your email for your receipt ID, then install your skills."
@@ -42,7 +40,7 @@ export default function SkillsSuccessContent() {
                 <div className="size-3 rounded-full bg-foreground/20" />
                 <div className="size-3 rounded-full bg-foreground/20" />
               </div>
-              <div className="flex-1 text-center text-xs text-foreground/55 font-mono uppercase tracking-widest">
+              <div className="flex-1 text-center text-xs text-foreground/60 font-mono">
                 terminal
               </div>
             </div>
@@ -50,7 +48,7 @@ export default function SkillsSuccessContent() {
             <div className="p-6 font-mono text-sm">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex gap-2 overflow-x-auto">
-                  <span className="text-foreground/55">$</span>
+                  <span className="text-foreground/60">$</span>
                   <span className="text-foreground/80">{INSTALL_COMMAND}</span>
                 </div>
                 <CopyCommandButton command={INSTALL_COMMAND} />
@@ -58,9 +56,9 @@ export default function SkillsSuccessContent() {
             </div>
           </div>
 
-          <div className="mt-8 space-y-4 text-sm text-foreground/65">
+          <div className="mt-8 space-y-4 text-sm text-foreground/70">
             <div className="flex items-start gap-3">
-              <Terminal className="size-4 mt-0.5 shrink-0 text-foreground/65" />
+              <Terminal className="size-4 mt-0.5 shrink-0 text-foreground/70" />
               <span>
                 Replace{' '}
                 <Code className="text-foreground/60 bg-foreground/5">
@@ -70,7 +68,7 @@ export default function SkillsSuccessContent() {
               </span>
             </div>
             <div className="flex items-start gap-3">
-              <Terminal className="size-4 mt-0.5 shrink-0 text-foreground/65" />
+              <Terminal className="size-4 mt-0.5 shrink-0 text-foreground/70" />
               <span>
                 Skills are installed to{' '}
                 <Code className="text-foreground/60 bg-foreground/5">

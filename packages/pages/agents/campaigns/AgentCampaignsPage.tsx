@@ -187,7 +187,7 @@ function CampaignProgress({
     <div className={cn('flex items-center gap-2', className)}>
       <Progress
         aria-label={translate('creditsProgress', { percent })}
-        className="h-1.5 w-full min-w-16 bg-foreground/[0.06]"
+        className="h-1.5 w-full min-w-16 bg-foreground/5"
         indicatorClassName="bg-foreground/60"
         value={percent}
       />
@@ -389,7 +389,7 @@ export default function AgentCampaignsPage() {
     >
       {isEmpty ? (
         <div className="flex flex-col items-center justify-center gap-4 py-20">
-          <div className="flex size-12 items-center justify-center rounded-full border border-border bg-foreground/[0.02]">
+          <div className="flex size-12 items-center justify-center rounded-full border border-border bg-foreground/5">
             <LayoutDashboard className="size-6 text-muted-foreground" />
           </div>
           <div className="text-center">

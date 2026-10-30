@@ -183,7 +183,7 @@ export function AgentTransferProvenanceCard({
       data-testid="agent-transfer-card"
     >
       {header}
-      <p className="whitespace-pre-wrap text-sm leading-6 text-foreground/85">
+      <p className="whitespace-pre-wrap text-sm leading-6 text-foreground/90">
         {content}
       </p>
       {transfer?.completionSummary ? (

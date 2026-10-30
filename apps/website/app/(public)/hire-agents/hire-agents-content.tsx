@@ -118,7 +118,7 @@ export default function HireAgentsContent() {
                 <Heading as="h3" className="text-2xl font-bold">
                   A Content Team on Your Terms
                 </Heading>
-                <Text as="p" className="text-foreground/65">
+                <Text as="p" className="text-foreground/70">
                   Hire agents for research, creative, and publishing. Set goals
                   and guardrails, then let them execute campaigns on schedule
                   while you stay in control of approvals.
@@ -134,7 +134,7 @@ export default function HireAgentsContent() {
             {AGENT_ROLES.map((role) => (
               <div
                 key={role}
-                className="gen-contact-sheet aspect-square flex items-center justify-center p-6 bg-foreground/[0.02]"
+                className="gen-contact-sheet aspect-square flex items-center justify-center p-6 bg-foreground/5"
               >
                 <Text className="text-center text-sm font-semibold tracking-[-0.01em] text-foreground/70">
                   {role}
@@ -170,7 +170,7 @@ export default function HireAgentsContent() {
                   >
                     {feature.title}
                   </Heading>
-                  <Text className="text-sm text-foreground/65">
+                  <Text className="text-sm text-foreground/70">
                     {feature.description}
                   </Text>
                 </div>
@@ -190,7 +190,7 @@ export default function HireAgentsContent() {
               return (
                 <div
                   key={step.label}
-                  className="gen-contact-sheet flex flex-col items-center gap-3 bg-foreground/[0.02] p-6 text-center"
+                  className="gen-contact-sheet flex flex-col items-center gap-3 bg-foreground/5 p-6 text-center"
                 >
                   <div className="flex size-14 items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
                     <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />

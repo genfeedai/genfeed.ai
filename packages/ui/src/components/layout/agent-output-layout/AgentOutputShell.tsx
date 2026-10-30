@@ -11,7 +11,7 @@ import AgentOutputLayout from '@ui/layout/agent-output-layout/AgentOutputLayout'
 import { Button } from '@ui/primitives/button';
 import { Expand, SquarePen } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const OUTPUT_TAB_ID = 'output';
 const THREADS_TAB_ID = 'threads';
@@ -50,10 +50,21 @@ export default function AgentOutputShell({
   const isUserSelectionOpen =
     selection?.origin === 'user' &&
     (Boolean(contextSidebar?.isOpen) || Boolean(contextSidebar?.isMobileOpen));
+  // A selection already registered when the shell mounts belongs to the page
+  // the operator just left (the sidebar state outlives a route change), so it
+  // must not pull this page onto an empty Context tab.
+  const carriedSelectionKeyRef = useRef(selectionKey);
   // A new selection brings its detail forward; the operator can still step
   // back to the output while it stays selected.
   useEffect(() => {
-    if (selectionKey && isUserSelectionOpen) {
+    if (!selectionKey) {
+      carriedSelectionKeyRef.current = null;
+      return;
+    }
+    if (
+      isUserSelectionOpen &&
+      selectionKey !== carriedSelectionKeyRef.current
+    ) {
       setActiveTabId(CONTEXT_TAB_ID);
     }
   }, [isUserSelectionOpen, selectionKey]);

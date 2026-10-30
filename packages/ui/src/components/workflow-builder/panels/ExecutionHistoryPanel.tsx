@@ -92,7 +92,7 @@ function ExecutionItem({
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div className=" border border-white/[0.08] bg-card">
+    <div className=" border border-white/10 bg-card">
       <div className="flex items-center gap-3 p-3">
         <Button
           type="button"
@@ -145,7 +145,7 @@ function ExecutionItem({
       </div>
 
       {isExpanded && (
-        <div className="border-t border-white/[0.08] p-3">
+        <div className="border-t border-white/10 p-3">
           {execution.status === WorkflowExecutionStatus.RUNNING && (
             <div className="mb-3">
               <div className="flex justify-between text-xs mb-1">
@@ -261,7 +261,7 @@ export default function ExecutionHistoryPanel({
   );
 
   return (
-    <div className="border-b border-white/[0.08]">
+    <div className="border-b border-white/10">
       <Button
         type="button"
         variant={ButtonVariant.UNSTYLED}

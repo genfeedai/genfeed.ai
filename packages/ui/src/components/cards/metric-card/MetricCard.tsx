@@ -38,7 +38,7 @@ const LABEL_CLASS =
   'text-2xs font-bold uppercase tracking-[0.16em] text-muted-foreground';
 
 const VALUE_CLASS =
-  'font-semibold tracking-[-0.03em] tabular-nums text-foreground';
+  'font-semibold tracking-[-0.02em] tabular-nums text-foreground';
 
 function AnimatedValue({ value }: { value: string }): ReactElement {
   const match = value.match(/^([\d.]+)(.*)$/);
@@ -168,7 +168,7 @@ const MetricCard = memo(function MetricCard({
         <span className="font-medium text-foreground tabular-nums">
           {resolveValueContent(value, isLoading, 'sm')}
         </span>
-        <span className="text-foreground/55">
+        <span className="text-foreground/60">
           {analyticsMetric ? (
             <AnalyticsMetricLabel
               metric={analyticsMetric}
@@ -221,7 +221,7 @@ const MetricCard = memo(function MetricCard({
       {valueNode}
 
       {description ? (
-        <p className="mt-1.5 text-xs leading-5 text-foreground/55">
+        <p className="mt-1.5 text-xs leading-5 text-foreground/60">
           {description}
         </p>
       ) : null}
@@ -240,13 +240,13 @@ export function MetricSummary({
 }: MetricSummaryProps): ReactElement {
   return (
     <p
-      className={cn('text-xs tabular-nums text-foreground/55', className)}
+      className={cn('text-xs tabular-nums text-foreground/60', className)}
       data-testid={dataTestId}
     >
       {keyListItems(items, (item) => item.label).map(({ item, key }, index) => (
         <span key={key}>
           {index > 0 ? (
-            <span className="mx-1.5 text-foreground/25" aria-hidden>
+            <span className="mx-1.5 text-foreground/40" aria-hidden>
               ·
             </span>
           ) : null}

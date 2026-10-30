@@ -9,14 +9,14 @@ import {
 } from './admin-menu-items.config';
 
 describe('ADMIN_MENU_ITEMS', () => {
-  it('exposes the platform admin surface with dashboard as complete-path home', () => {
-    expect(ADMIN_MENU_ITEMS[0]?.href).toBe('/admin/overview/dashboard');
+  it('exposes the platform admin surface with Overview as the home', () => {
+    expect(ADMIN_MENU_ITEMS[0]?.href).toBe('/admin/overview');
     expect(
       ADMIN_MENU_ITEMS.every((item) => item.href.startsWith('/admin')),
     ).toBe(true);
     expect(ADMIN_MENU_ITEMS.some((item) => item.href === '/admin')).toBe(false);
     expect(
-      ADMIN_MENU_ITEMS.some((item) => item.href === '/admin/overview'),
+      ADMIN_MENU_ITEMS.some((item) => item.href.endsWith('/dashboard')),
     ).toBe(false);
     expect(
       ADMIN_MENU_ITEMS.some(
@@ -44,8 +44,7 @@ describe('ADMIN_MENU_ITEMS', () => {
   it('includes cross-org cloud management destinations', () => {
     const hrefs = ADMIN_MENU_ITEMS.map((item) => item.href);
 
-    expect(hrefs).toContain('/admin/overview/analytics/organizations');
-    expect(hrefs).not.toContain('/admin/organizations');
+    expect(hrefs).toContain('/admin/organizations');
     expect(hrefs).toContain('/admin/administration/learning');
     expect(hrefs).toContain('/admin/library/voices');
     expect(hrefs).toContain('/admin/administration/users');

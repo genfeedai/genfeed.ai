@@ -36,7 +36,7 @@ export default function MasonryFailureNotice({
     return (
       <div
         className={cn(
-          'pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center gap-2 bg-black/45 px-4 text-center backdrop-blur-sm' /* design-system-allow-content-color -- media overlay */,
+          'pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center gap-2 bg-black/40 px-4 text-center backdrop-blur-sm' /* design-system-allow-content-color -- media overlay */,
           overlayClassName,
         )}
         data-testid={`asset-failure-overlay-${ingredientId}`}

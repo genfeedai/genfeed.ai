@@ -617,7 +617,7 @@ describe('ContentOrchestrationService', () => {
     });
   });
 
-  // ── Sentry Performance Tracing ─────────────────────────────────────────────
+  // Sentry Performance Tracing
 
   describe('Sentry performance tracing', () => {
     it('generateAndPublish should invoke Sentry.startSpan for each step', async () => {

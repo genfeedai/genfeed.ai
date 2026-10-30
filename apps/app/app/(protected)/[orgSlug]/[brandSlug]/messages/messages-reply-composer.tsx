@@ -75,7 +75,7 @@ export default function MessagesReplyComposer({
         banner={banner}
         beforeBody={
           <div className="flex flex-col gap-0.5 px-3.5 pt-2.5">
-            <p className="flex items-center gap-1.5 text-2xs font-medium text-foreground/55">
+            <p className="flex items-center gap-1.5 text-2xs font-medium text-foreground/60">
               <span>{translate('replyComposer.title')}</span>
               <span className="rounded bg-tertiary px-1.5 py-0.5 text-foreground/80">
                 {participantLabel}

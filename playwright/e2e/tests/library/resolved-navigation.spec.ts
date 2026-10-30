@@ -78,12 +78,10 @@ test('library list navigation preserves resolved tenant parameters', async ({
       ),
     ).toBeChecked();
     await authenticatedPage.keyboard.press('Escape');
-    await expect(
-      authenticatedPage.getByRole('button', {
-        name: 'Remove Recent filter',
-        exact: true,
-      }),
-    ).toBeVisible();
+    // The Images type and Recent are both counted on the trigger.
+    await expect(filtersTrigger(authenticatedPage)).toContainText(
+      '2 filters applied',
+    );
   });
   await expectResolvedLinks(authenticatedPage);
   expect(placeholderRequests).toEqual([]);
@@ -122,8 +120,8 @@ test('list to detail navigation preserves resolved record parameters', async ({
       });
     },
   );
-  await adminPage.goto(APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BRANDS);
-  const destination = `${APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BRANDS}/brand-1`;
+  await adminPage.goto(APP_ROUTES.ADMIN.BRANDS);
+  const destination = `${APP_ROUTES.ADMIN.BRANDS}/brand-1`;
   const link = adminPage.getByRole('link', {
     name: 'Open Brand 1 analytics',
     exact: true,

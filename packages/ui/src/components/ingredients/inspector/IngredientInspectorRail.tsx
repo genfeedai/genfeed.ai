@@ -89,7 +89,7 @@ function InspectorField({
       <dt className="shrink-0 text-2xs uppercase tracking-[0.12em] text-muted-foreground">
         {label}
       </dt>
-      <dd className="min-w-0 truncate text-right text-xs text-foreground/78">
+      <dd className="min-w-0 truncate text-right text-xs text-foreground/80">
         {value}
       </dd>
     </div>
@@ -122,7 +122,7 @@ function InspectorNote({
       <p
         className={cn(
           'min-w-0 select-text whitespace-pre-wrap break-words text-xs leading-relaxed',
-          tone === 'error' ? 'text-destructive' : 'text-foreground/62',
+          tone === 'error' ? 'text-destructive' : 'text-foreground/70',
         )}
       >
         {text}
@@ -219,7 +219,7 @@ export default function IngredientInspectorRail({
       )}
     >
       {previewUrl || videoUrl ? (
-        <div className="relative h-[clamp(12rem,35dvh,24rem)] w-full shrink-0 overflow-hidden rounded-lg bg-foreground/4">
+        <div className="relative h-[clamp(12rem,35dvh,24rem)] w-full shrink-0 overflow-hidden rounded-lg bg-foreground/5">
           {videoUrl ? (
             <VideoPlayer
               key={ingredient.id}
@@ -276,7 +276,7 @@ export default function IngredientInspectorRail({
         ) : null}
       </div>
 
-      <dl className="flex flex-col divide-y divide-foreground/6">
+      <dl className="flex flex-col divide-y divide-foreground/5">
         <div className="flex items-baseline justify-between gap-3 py-1.5">
           <dt className="shrink-0 text-2xs uppercase tracking-[0.12em] text-muted-foreground">
             {translate('type')}

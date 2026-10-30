@@ -13,6 +13,13 @@ const AGENT_OUTPUT_ROUTE_PATTERNS: readonly RegExp[] = [
   new RegExp(`^${APP_ROUTES.AGENT.ROOT}/?$`),
   // A Storyboard run; `/storyboard/new` is the create form.
   new RegExp(`^${APP_ROUTES.STUDIO.STORYBOARD}/(?!new/?$)[^/]+/?$`),
+  // The workflow editor, new or saved; `/automation/workflows/templates` is
+  // the template gallery and stays on the dock.
+  new RegExp(`^${APP_ROUTES.AUTOMATION.WORKFLOWS}/(?!templates/?$)[^/]+/?$`),
+  // A Clipper project; `/clipper/new` creates one.
+  new RegExp(`^${APP_ROUTES.STUDIO.CLIPPER}/(?!new/?$)[^/]+/?$`),
+  // An Editor project; `/editor/new` creates one.
+  new RegExp(`^${APP_ROUTES.STUDIO.EDITOR}/(?!new/?$)[^/]+/?$`),
 ];
 
 export function isAgentOutputRoute(normalizedPathname: string): boolean {

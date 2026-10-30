@@ -103,7 +103,7 @@ export function WorkspaceTaskInspectorBody({
       </Card>
       <Card
         label={translate('inspector.labels.taskMetadata')}
-        bodyClassName="space-y-2 p-4 text-sm text-foreground/65"
+        bodyClassName="space-y-2 p-4 text-sm text-foreground/70"
       >
         <p>{translate('inspector.priority', { value: task.priority })}</p>
         <p>
@@ -130,7 +130,7 @@ export function WorkspaceTaskInspectorBody({
       {hasResultPreview ? (
         <Card
           label={translate('inspector.labels.resultPreview')}
-          bodyClassName="border-l border-emerald-400/30 p-4 text-sm text-foreground/75"
+          bodyClassName="border-l border-emerald-400/20 p-4 text-sm text-foreground/80"
         >
           {task.resultPreview}
         </Card>
@@ -139,7 +139,7 @@ export function WorkspaceTaskInspectorBody({
       {continuityQa ? (
         <Card
           label={translate('inspector.labels.visualContinuityQa')}
-          bodyClassName="space-y-3 border-l border-amber-400/30 p-4 text-sm text-foreground/75"
+          bodyClassName="space-y-3 border-l border-amber-400/20 p-4 text-sm text-foreground/80"
         >
           <p className="flex items-center gap-2 font-semibold">
             {continuityQa.summary.driftClipCount > 0 ? (
@@ -151,7 +151,7 @@ export function WorkspaceTaskInspectorBody({
             })}
           </p>
           {continuityQa.skipReason ? (
-            <p className="text-foreground/55">
+            <p className="text-foreground/60">
               {translate('inspector.assessmentSkipped', {
                 reason: continuityQa.skipReason.replaceAll('_', ' '),
               })}
@@ -241,7 +241,7 @@ export function WorkspaceTaskInspectorBody({
       {hasReportLocation ? (
         <Card
           label={translate('inspector.labels.reportLocation')}
-          bodyClassName="space-y-3 border-l border-border p-4 text-sm text-foreground/75"
+          bodyClassName="space-y-3 border-l border-border p-4 text-sm text-foreground/80"
         >
           <p>{translate('inspector.reportLocationDescription')}</p>
           <Button
@@ -265,7 +265,7 @@ export function WorkspaceTaskInspectorBody({
       {hasFailure ? (
         <Card
           label={translate('inspector.labels.failure')}
-          bodyClassName="border-l border-destructive/35 p-4 text-sm text-destructive"
+          bodyClassName="border-l border-destructive/40 p-4 text-sm text-destructive"
         >
           {task.failureReason}
         </Card>
@@ -274,7 +274,7 @@ export function WorkspaceTaskInspectorBody({
       {hasRequestedChanges ? (
         <Card
           label={translate('inspector.labels.requestedChanges')}
-          bodyClassName="border-l border-warning/35 p-4 text-sm text-warning"
+          bodyClassName="border-l border-warning/40 p-4 text-sm text-warning"
         >
           {task.requestedChangesReason}
         </Card>
@@ -286,7 +286,7 @@ export function WorkspaceTaskInspectorBody({
     <div className="space-y-4 p-6">
       <Card
         label={translate('inspector.labels.linkedRecords')}
-        bodyClassName="space-y-2 p-4 text-sm text-foreground/65"
+        bodyClassName="space-y-2 p-4 text-sm text-foreground/70"
       >
         <p>
           {translate('inspector.runs', {

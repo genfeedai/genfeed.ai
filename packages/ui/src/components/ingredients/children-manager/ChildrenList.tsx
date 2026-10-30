@@ -40,7 +40,7 @@ export default function ChildrenList({
         const metadata = child.metadata as IMetadata;
         return (
           <div key={child.id} className="relative group">
-            <div className="relative size-20 overflow-hidden border-2 border-primary/30">
+            <div className="relative size-20 overflow-hidden border-2 border-primary/20">
               {isVideo ? (
                 <div className="size-full bg-background">
                   <VideoPlayer

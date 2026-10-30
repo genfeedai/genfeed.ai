@@ -25,7 +25,7 @@ import {
 } from '@web-components/landing/service-landings.data';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
-import { BadgeCheck, CalendarRange, Sparkles } from 'lucide-react';
+import { BadgeCheck, CalendarRange } from 'lucide-react';
 import Link from 'next/link';
 
 export interface ServiceLandingPageProps {
@@ -141,8 +141,6 @@ export default function ServiceLandingPage({
         <PageLayout
           heroMedia={<MarketingArtwork page={`/${slug}`} />}
           isHeroVisualStacked={config.isAgentFirst}
-          badge={config.badge}
-          badgeIcon={Sparkles}
           title={
             <>
               {config.heroTitle} <span>{config.heroAccent}</span>.
@@ -179,7 +177,7 @@ export default function ServiceLandingPage({
                   {config.intro}
                 </p>
 
-                <div className="flex flex-wrap items-center gap-3 text-sm text-foreground/65">
+                <div className="flex flex-wrap items-center gap-3 text-sm text-foreground/70">
                   <span className="border border-foreground/10 px-3 py-2 text-foreground/70">
                     {config.isAgentFirst
                       ? 'Start for $0'
@@ -206,7 +204,7 @@ export default function ServiceLandingPage({
               </div>
 
               <div className="bg-background/60 p-6">
-                <div className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-foreground/65">
+                <div className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-foreground/70">
                   <CalendarRange className="size-4" />
                   {config.fitLabel}
                 </div>
@@ -214,7 +212,7 @@ export default function ServiceLandingPage({
                   {config.fitSignals.map((signal) => (
                     <li
                       key={signal}
-                      className="flex gap-3 text-sm text-foreground/65"
+                      className="flex gap-3 text-sm text-foreground/70"
                     >
                       <BadgeCheck className="mt-0.5 size-4 shrink-0 text-foreground/50" />
                       <span>{signal}</span>
@@ -274,7 +272,7 @@ export default function ServiceLandingPage({
               ))}
             </NeuralGrid>
 
-            <div className="mt-8 grid gap-px bg-foreground/5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-8 grid gap-px bg-foreground/10 sm:grid-cols-2 lg:grid-cols-4">
               {config.includes.map((item) => (
                 <div
                   key={item}
@@ -294,19 +292,15 @@ export default function ServiceLandingPage({
             />
 
             <NeuralGrid columns={4}>
-              {config.process.map((step, index) => (
-                // Every step is one step. Tinting the first and last only marked
-                // the ends of a sequence the numbering already marks, and read as
-                // two cards being highlighted for a reason nobody could name.
+              {config.process.map((step) => (
+                // Every step is one step. Tinting the first and last read as two
+                // cards being highlighted for a reason nobody could name.
                 <NeuralGridItem
                   key={step.step}
-                  tierLabel={`0${index + 1} / ${step.step}`}
                   padding="lg"
-                >
-                  <p className="text-sm leading-relaxed text-foreground/60">
-                    {step.description}
-                  </p>
-                </NeuralGridItem>
+                  title={step.step}
+                  description={step.description}
+                />
               ))}
             </NeuralGrid>
           </WebSection>

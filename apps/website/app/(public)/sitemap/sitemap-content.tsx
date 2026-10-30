@@ -112,7 +112,7 @@ export default function SitemapContent(): React.ReactElement {
                 {section.links.map((link) => (
                   <li key={link.href}>
                     <Link
-                      className="text-sm text-foreground/75 transition-colors hover:text-primary"
+                      className="text-sm text-foreground/80 transition-colors hover:text-primary"
                       href={link.href}
                     >
                       {link.label}

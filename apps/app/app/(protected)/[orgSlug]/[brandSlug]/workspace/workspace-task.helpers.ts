@@ -7,7 +7,6 @@ import type {
   InboxView,
   ReviewInboxSummary,
   WorkspaceAdvancedTool,
-  WorkspaceInboxViewOption,
   WorkspaceLibrarySnapshotLink,
   WorkspaceSection,
   WorkspaceSectionCopyEntry,
@@ -41,39 +40,17 @@ export const DEFAULT_REVIEW_INBOX: ReviewInboxSummary = {
   rejectedCount: 0,
 };
 
-const INBOX_VIEW_OPTION_KEYS: WorkspaceInboxViewOption[] = [
-  {
-    descriptionKey: 'inbox.views.unread.description',
-    id: 'unread',
-    labelKey: 'inbox.views.unread.label',
-  },
-  {
-    descriptionKey: 'inbox.views.recent.description',
-    id: 'recent',
-    labelKey: 'inbox.views.recent.label',
-  },
-  {
-    descriptionKey: 'inbox.views.all.description',
-    id: 'all',
-    labelKey: 'inbox.views.all.label',
-  },
+export const INBOX_VIEW_ORDER: readonly InboxView[] = [
+  'unread',
+  'recent',
+  'all',
 ];
 
-export function useInboxViewOptions(): Array<{
-  description: string;
-  id: InboxView;
-  label: string;
-}> {
-  const translate = useTranslations('pages.workspaceOverview');
-  return useMemo(
-    () =>
-      INBOX_VIEW_OPTION_KEYS.map((option) => ({
-        description: translate(option.descriptionKey),
-        id: option.id,
-        label: translate(option.labelKey),
-      })),
-    [translate],
-  );
+export const DEFAULT_INBOX_VIEW: InboxView = 'unread';
+
+/** `?status=` is the only inbox view state; anything unknown is the default. */
+export function parseInboxView(value: string | null): InboxView {
+  return INBOX_VIEW_ORDER.find((view) => view === value) ?? DEFAULT_INBOX_VIEW;
 }
 
 const SECTION_COPY_KEYS: Record<WorkspaceSection, WorkspaceSectionCopyEntry> = {

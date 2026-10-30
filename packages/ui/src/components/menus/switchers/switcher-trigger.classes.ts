@@ -5,12 +5,12 @@ import { hoverRevealClassName } from '@ui/styles/hover-reveal';
  * header don't drift (different px, gap, avatar size, label weight).
  */
 export const SWITCHER_TRIGGER_CLASSNAME =
-  'flex h-8 w-full min-w-0 cursor-pointer items-center gap-2 rounded-md px-2.5 text-left transition-colors duration-150 hover:bg-foreground/[0.06]';
+  'flex h-8 w-full min-w-0 cursor-pointer items-center gap-2 rounded-md px-2.5 text-left transition-colors duration-150 hover:bg-foreground/5';
 
-export const SWITCHER_TRIGGER_OPEN_CLASSNAME = 'bg-foreground/[0.06]';
+export const SWITCHER_TRIGGER_OPEN_CLASSNAME = 'bg-foreground/5';
 
 export const SWITCHER_AVATAR_CLASSNAME =
-  'flex size-5 flex-shrink-0 items-center justify-center overflow-hidden rounded-md bg-primary/30 text-2xs font-bold text-primary';
+  'flex size-5 flex-shrink-0 items-center justify-center overflow-hidden rounded-md bg-primary/20 text-2xs font-bold text-primary';
 
 export const SWITCHER_LABEL_CLASSNAME =
   'min-w-0 flex-1 truncate text-left text-sm font-semibold leading-none text-foreground';
@@ -24,7 +24,7 @@ export const SWITCHER_CHEVRON_CLASSNAME =
  * `group` enables hover-reveal for the clear control.
  */
 export const SWITCHER_COMPOSITE_SHELL_CLASSNAME =
-  'group flex h-8 w-full min-w-0 items-center rounded-md transition-colors duration-150 hover:bg-foreground/[0.06]';
+  'group flex h-8 w-full min-w-0 items-center rounded-md transition-colors duration-150 hover:bg-foreground/5';
 
 /** Trigger segment inside the composite shell (no own hover fill). */
 export const SWITCHER_COMPOSITE_TRIGGER_CLASSNAME =
@@ -38,17 +38,17 @@ export const SWITCHER_COMPOSITE_TRIGGER_CLASSNAME =
 export const SWITCHER_COMPOSITE_CLEAR_CLASSNAME = [
   'flex h-8 w-7 flex-shrink-0 items-center justify-center rounded-r-md border-l',
   'text-muted-foreground transition-[opacity,color,background-color,border-color] duration-150',
-  'hover:bg-foreground/[0.06] hover:text-foreground',
+  'hover:bg-foreground/5 hover:text-foreground',
   'focus-visible:outline-none focus-visible:ring-0',
   'disabled:cursor-not-allowed disabled:opacity-50',
-  'border-foreground/[0.08]',
+  'border-foreground/10',
   '[@media(hover:hover)]:border-transparent',
-  '[@media(hover:hover)]:group-hover:border-foreground/[0.08]',
-  '[@media(hover:hover)]:group-focus-within:border-foreground/[0.08]',
+  '[@media(hover:hover)]:group-hover:border-foreground/10',
+  '[@media(hover:hover)]:group-focus-within:border-foreground/10',
 ].join(' ');
 
 /** Force clear visible (e.g. dropdown open) on fine-pointer devices. */
 export const SWITCHER_COMPOSITE_CLEAR_VISIBLE_CLASSNAME = [
   hoverRevealClassName({ isOpen: true }),
-  '[@media(hover:hover)]:border-foreground/[0.08]',
+  '[@media(hover:hover)]:border-foreground/10',
 ].join(' ');

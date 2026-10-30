@@ -71,22 +71,20 @@ Official sources: [fal metadata](https://fal.ai/docs/platform-apis/v1/models),
 
 ## Seedance family
 
-The manifest includes all eight official Replicate Seedance endpoints observed
-on 2026-10-09: `1-lite`, `1-pro`, `1-pro-fast`, `1.5-pro`, `2.0`, `2.0-fast`,
-`2.0-mini`, and `2.5`, under `bytedance/seedance-`. An explicit import includes
+The manifest includes the seven Replicate Seedance endpoints we still offer:
+`1-lite`, `1-pro`, `1-pro-fast`, `2.0`, `2.0-fast`, `2.0-mini`, and `2.5`, under
+`bytedance/seedance-`. Seedance 1.5 Pro is retired and is not imported. An explicit import includes
 2.5 even when it already has reviewed prices. Existing approvals remain intact.
 
-The fal manifest includes the 25 active task endpoints observed on that date:
+The fal manifest includes the active task endpoints observed on 2026-10-09:
 text/image/reference variants for 2.0, Fast, Mini, US, 2.5 and 2.5 US; the 2.5
-draft completion endpoint; and text/image variants for 1 Pro, 1 Pro Fast and
-1.5 Pro. Deprecated fal 1 Lite endpoints are excluded. Each endpoint keeps its
+draft completion endpoint; and text/image variants for 1 Pro and 1 Pro Fast.
+Deprecated fal 1 Lite endpoints and the retired 1.5 Pro endpoints are excluded. Each endpoint keeps its
 own schema, pricing and review decision; provider prices are not interchangeable.
 
 Seven Replicate models have captured per-second prices, including resolution
-and video-reference conditions. Seedance 1.5 Pro remains quarantined: its public
-billing tiers vary by resolution, but the observed input schema has no resolution
-field. Do not assign an arbitrary resolution tariff. The captured authenticated
-fal observations support 24 task tariffs; draft completion remains quarantined.
+and video-reference conditions. The captured authenticated fal observations
+support the task tariffs; draft completion remains quarantined.
 Public model metadata alone does not provide an approvable billing contract.
 
 The fal Seedance mapper verifies the authenticated endpoint, currency, token

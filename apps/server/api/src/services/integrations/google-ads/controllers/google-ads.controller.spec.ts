@@ -193,7 +193,7 @@ describe('GoogleAdsController', () => {
     });
   });
 
-  // ── Customers ─────────────────────────────────────────────────────────────
+  // Customers
   describe('listCustomers', () => {
     it('decrypts token and calls listAccessibleCustomers', async () => {
       const result = await controller.listCustomers(mockUser);
@@ -212,7 +212,7 @@ describe('GoogleAdsController', () => {
     });
   });
 
-  // ── Campaigns ─────────────────────────────────────────────────────────────
+  // Campaigns
   describe('listCampaigns', () => {
     it('passes customerId, status, and limit to service', async () => {
       const result = await controller.listCampaigns(
@@ -248,7 +248,7 @@ describe('GoogleAdsController', () => {
     });
   });
 
-  // ── Campaign metrics ──────────────────────────────────────────────────────
+  // Campaign metrics
   describe('getCampaignMetrics', () => {
     it('passes date range when both dates supplied', async () => {
       await controller.getCampaignMetrics(
@@ -289,7 +289,7 @@ describe('GoogleAdsController', () => {
     });
   });
 
-  // ── Ad-group insights ─────────────────────────────────────────────────────
+  // Ad-group insights
   describe('getAdGroupInsights', () => {
     it('delegates to googleAdsService', async () => {
       const result = await controller.getAdGroupInsights(
@@ -311,7 +311,7 @@ describe('GoogleAdsController', () => {
     });
   });
 
-  // ── Keywords ──────────────────────────────────────────────────────────────
+  // Keywords
   describe('getKeywordPerformance', () => {
     it('converts limit string to number', async () => {
       await controller.getKeywordPerformance(
@@ -331,7 +331,7 @@ describe('GoogleAdsController', () => {
     });
   });
 
-  // ── Search terms ──────────────────────────────────────────────────────────
+  // Search terms
   describe('getSearchTerms', () => {
     it('delegates with campaign id and params', async () => {
       const result = await controller.getSearchTerms(

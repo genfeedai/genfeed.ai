@@ -5,7 +5,6 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { MenuItemProps } from '@genfeedai/props/navigation/menu.props';
 import ComingSoonBadge from '@ui/badges/ComingSoonBadge';
 import Badge from '@ui/display/badge/Badge';
-import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { useHoverAnimatedIcon } from '@ui/primitives/animated-icons/use-hover-animated-icon';
 import { Button } from '@ui/primitives/button';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
@@ -32,7 +31,6 @@ export default function MenuItem({
   const isIconVariant = variant === 'icon';
   const shouldRenderBadge = typeof badgeCount === 'number' && badgeCount > 0;
   const shouldRenderCount = typeof count === 'number' && !shouldRenderBadge;
-  const prefetchHref = useNavigationPrefetch(href);
 
   // Determine layout: horizontal when expanded on desktop, vertical otherwise
   const isHorizontalLayout = isIconVariant && !isCollapsed;
@@ -68,17 +66,16 @@ export default function MenuItem({
             'size-5 shrink-0',
             isActive
               ? 'text-foreground'
-              : 'text-muted-foreground group-hover:text-foreground/78',
+              : 'text-muted-foreground group-hover:text-foreground/80',
           ]
         : [
-            'size-8 rounded border border-border bg-card text-foreground/78',
-            'group-hover:border-foreground/[0.14] group-hover:bg-foreground/[0.07] group-hover:text-foreground',
-            isActive &&
-              'border-foreground/[0.14] bg-foreground text-background',
+            'size-8 rounded border border-border bg-card text-foreground/80',
+            'group-hover:border-foreground/10 group-hover:bg-foreground/5 group-hover:text-foreground',
+            isActive && 'border-foreground/10 bg-foreground text-background',
           ]
       : isActive
         ? 'text-foreground'
-        : 'text-muted-foreground group-hover:text-foreground/78',
+        : 'text-muted-foreground group-hover:text-foreground/80',
   );
 
   const iconNode = renderedIcon ? (
@@ -100,12 +97,12 @@ export default function MenuItem({
   const activeClasses = isIconVariant
     ? isHorizontalLayout
       ? isActive
-        ? 'bg-foreground/[0.06] text-foreground'
-        : 'hover:bg-foreground/[0.06] hover:text-foreground'
+        ? 'bg-foreground/5 text-foreground'
+        : 'hover:bg-foreground/5 hover:text-foreground'
       : '' // No outer wrapper styling for vertical card variant - highlighting is on the icon itself
     : isActive
-      ? 'bg-foreground/[0.06] text-foreground font-semibold'
-      : 'text-foreground/72 hover:bg-foreground/[0.06] hover:text-foreground';
+      ? 'bg-foreground/5 text-foreground font-semibold'
+      : 'text-foreground/80 hover:bg-foreground/5 hover:text-foreground';
 
   const listItemClass = cn(
     'list-none overflow-visible',
@@ -124,7 +121,7 @@ export default function MenuItem({
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <span
           className={cn(
-            'min-w-0 truncate text-sm font-medium capitalize tracking-[-0.01em] text-foreground/88 transition-colors duration-200',
+            'min-w-0 truncate text-sm font-medium capitalize tracking-[-0.01em] text-foreground/90 transition-colors duration-200',
             isActive && 'text-foreground font-semibold',
           )}
         >
@@ -154,7 +151,7 @@ export default function MenuItem({
       // Vertical card layout: uppercase small label
       <span
         className={cn(
-          'text-2xs font-semibold uppercase tracking-[0.18em] text-foreground/58 transition-colors duration-200',
+          'text-2xs font-semibold uppercase tracking-[0.18em] text-foreground/60 transition-colors duration-200',
           isActive && 'text-foreground',
         )}
       >
@@ -209,14 +206,11 @@ export default function MenuItem({
       <Link
         href={href}
         onClick={onClick}
-        prefetch={false}
         onBlur={hoverProps.onBlur}
         onFocus={(event) => {
-          prefetchHref();
           hoverProps.onFocus(event);
         }}
         onMouseEnter={(event) => {
-          prefetchHref();
           hoverProps.onMouseEnter(event);
         }}
         onMouseLeave={hoverProps.onMouseLeave}

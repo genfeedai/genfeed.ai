@@ -13,7 +13,6 @@ import type {
   AppRailItemProps,
   AppRailProps,
 } from '@genfeedai/props/ui/app-rail.props';
-import { useNavigationIntentPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { useHoverAnimatedIcon } from '@ui/primitives/animated-icons/use-hover-animated-icon';
 import { Separator } from '@ui/primitives/separator';
 import {
@@ -63,7 +62,6 @@ function AppRailItem({
 }: AppRailItemProps) {
   const t = useTranslations('common.appRail');
   const Icon = app.icon;
-  const intent = useNavigationIntentPrefetch(href);
   const { hoverProps, icon: hoverIcon } = useHoverAnimatedIcon(
     <Icon aria-hidden="true" className="size-4" />,
   );
@@ -80,8 +78,8 @@ function AppRailItem({
     // Codex-style selection: a filled tile two steps above the rail,
     // hover one step. The icon is the only foreground either way.
     isActive
-      ? 'bg-foreground/[0.12] text-foreground'
-      : 'text-foreground/50 hover:bg-foreground/[0.06] hover:text-foreground',
+      ? 'bg-foreground/10 text-foreground'
+      : 'text-foreground/50 hover:bg-foreground/5 hover:text-foreground',
     isLocked && 'opacity-60',
   );
   const itemBody = (
@@ -115,7 +113,6 @@ function AppRailItem({
       <TooltipTrigger asChild>
         <Link
           href={href}
-          prefetch={false}
           // The slot around the link is the drag source, so the browser's
           // own link drag never competes with reordering.
           draggable={false}
@@ -124,20 +121,16 @@ function AppRailItem({
           aria-label={accessibleLabel}
           data-testid={`app-rail-item-${app.id}`}
           onBlur={(event) => {
-            intent.onBlur();
             hoverProps.onBlur(event);
           }}
           onClick={onNavigateStart}
           onFocus={(event) => {
-            intent.onFocus();
             hoverProps.onFocus(event);
           }}
           onMouseEnter={(event) => {
-            intent.onMouseEnter();
             hoverProps.onMouseEnter(event);
           }}
           onMouseLeave={(event) => {
-            intent.onMouseLeave();
             hoverProps.onMouseLeave(event);
           }}
           className={itemClassName}
@@ -154,7 +147,7 @@ function AppRailItem({
         <span className="flex items-center justify-between gap-3">
           <span className="font-semibold">{label}</span>
           {shortcutLabel ? (
-            <kbd className="inline-flex items-center rounded-md px-1.5 py-0.5 border border-foreground/[0.08] bg-foreground/[0.03] text-xs tracking-[0.2em] text-foreground/70 font-mono">
+            <kbd className="inline-flex items-center rounded-md px-1.5 py-0.5 border border-foreground/10 bg-foreground/5 text-xs tracking-[0.2em] text-foreground/70 font-mono">
               {shortcutLabel}
             </kbd>
           ) : null}

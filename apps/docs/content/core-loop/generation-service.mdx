@@ -1,123 +1,49 @@
 ---
-description: 'Trace the OSS generation surface across stable entrypoints, Turbo runs, provider integrations, model discovery, and generation tools.'
+description: 'See how a request for an image, video, voice, or track reaches a provider through the media API and returns as a Genfeed asset.'
 ---
 
 # Generation Service
 
-This page documents the OSS v1 generation surface.
-
-## Live Module Inventory
-
-The generation story in the current repo spans a small set of stable entrypoints plus provider packages:
-
-- [`apps/server/api/src/app.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/app.module.ts)
-  - imports `TurboRunModule`
-  - imports the provider-facing integration modules used by generation flows
-- [`apps/server/api/src/services/turbo-run/turbo-run.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/turbo-run/turbo-run.module.ts)
-  - owns the Turbo run controller/service pair
-  - persists Turbo runs on the cloud connection
-- [`apps/server/api/src/services/turbo-run/turbo-run.controller.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/turbo-run/turbo-run.controller.ts)
-  - exposes the stable Turbo entrypoints under `turbo-runs`
-  - routes create/process/review operations into the service layer
-- [`apps/server/api/src/services/turbo-run/turbo-run.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/turbo-run/turbo-run.service.ts)
-  - builds Turbo run plans
-  - delegates actual generation to `ContentGeneratorService`
-- `packages/actions/src/registry/source/index.ts`
-  - defines the canonical agent-visible generation tools
-- `packages/actions/src/registry/tool-registry.ts`
-  - assigns generation tool categories and UI action cards
-- [`apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts)
-  - dispatches generation tools to the internal media APIs
-- [`apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts)
-  - discovers models from verified Replicate owners into an inactive review queue
-- [`packages/agent/src/utils/agent-generation-setup.util.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/packages/agent/src/utils/agent-generation-setup.util.ts)
-  - seeds default Unified Generation Setup values (aspect ratio, model, duration) for the Agent's `GenerationActionCard` review — image/video only, with no Studio Look or Prompt Enhance sourcing (#4672)
-
-## Stable Generation Surface
-
-For v1, the important point is not every experimental flow. It is the stable path:
-
-1. API/controller accepts a generation or Turbo request.
-2. `TurboRunService` or another generation-facing service delegates into content generation.
-3. Model/provider selection is resolved from reviewed model records in the shared registry.
-4. Provider adapters normalize generation results into one Genfeed-facing shape.
-
-## Stable `generate_*` Tool Surface
-
-The v1 stable generation tools are the agent-facing tools that create generation work or route users into a generation review flow. Their metadata is defined in `packages/actions/src/registry/source/index.ts` and rendered through the canonical registry in `packages/actions/src/registry/tool-registry.ts`.
-
-| Tool                     | Stable input contract                                                                                   | Execution path                                                                                            | Output contract                                               |
-| ------------------------ | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `generate`               | `type` (`image`, `video`, `voice`, `music`) and `prompt`; optional `model` (router picks when omitted), plus per-type fields such as `aspectRatio`, `duration`, `imageUrl` + `audioUrl` (avatar video) or `voiceId`; a field for another type is rejected | `AgentMediaGenerationToolHandler.generate` -> `POST /v1/images`, `/v1/videos`, `/v1/voices/generate` or `/v1/musics` -> provider selection | Content preview card with the ingredient id and gallery URL (voice: voice id or audio URL) |
-| `generate_turbo_content` | `count`, `platforms`, optional `brandId`, `handle`, `dateRange`, `contentMix`, `style`, `topics`        | `AgentMediaGenerationToolHandler.generateTurboContent` -> `TurboRunService.createTurboRun`                | Turbo run id plus review queue/status actions                 |
-| `generate_as_identity`   | `text` for the identity avatar to speak                                                                 | `AgentToolExecutorService.generateAsIdentity` -> `POST /v1/videos/avatar` with `useIdentity: true`        | Processing preview card for the avatar video generation       |
-
-These are the stable tool names callers should depend on for v1. Lower-level workflow categories such as `generate-image`, `generate-video`, and `generate-music` remain workflow-engine step categories, not public agent tool names.
-
-## Step 3 Module -> Provider -> Tool Map
-
-| Layer              | Files                                                                                         | Responsibility                                                                           |
-| ------------------ | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Tool metadata      | `packages/actions/src/registry/source/index.ts`, `packages/actions/src/registry/tool-registry.ts` | Defines tool names, parameters, categories, and UI action card types                     |
-| Agent dispatch     | `apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts`        | Converts tool calls into internal API requests and normalizes preview-card responses     |
-| Media APIs         | `/v1/images`, `/v1/videos`, `/v1/musics`, `/v1/voices/generate`                               | Own request validation, model selection, persistence, and completion polling      |
-| Skill execution    | `apps/server/api/src/services/skill-executor/*`                                            | Runs content skills such as `image-generation` through immutable canonical workflows     |
-| Provider access    | `apps/server/api/src/services/byok/*`                                                      | Resolves organization BYOK keys before hosted fallback                                   |
-| Provider adapters  | `apps/server/api/src/services/integrations/*`                                                | Call Replicate, fal.ai, Leonardo, ElevenLabs, OpenRouter, and related provider surfaces   |
-| Registry/discovery | `apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts`                   | Creates reviewed Replicate catalog candidates without auto-activation                    |
-
-## Dataflow
+Generation turns a prompt into an asset. The same path serves the agent, Studio, and Turbo runs.
 
 ```mermaid
 flowchart LR
-  A["Agent tool call\ngenerate_*"] --> B["Canonical tool registry"]
-  B --> C["AgentToolExecutorService"]
-  C --> D["Media API\n/v1/images, /v1/videos, /v1/musics, /v1/voices"]
-  D --> E["Provider access\nBYOK or hosted"]
-  E --> F["Reviewed model catalog"]
-  F --> G["Provider adapter\nReplicate / fal.ai / Leonardo / ElevenLabs"]
-  G --> H["Generated ingredient\npreview card / workflow execution"]
+  A["Generate request"] --> B["Media API"]
+  B --> C["Provider access"]
+  C --> D["Provider"]
+  D --> E["Generated asset"]
 ```
 
-## Representative V1 End-to-End Path
+## How A Request Flows
 
-Two specs carry the representative media verification path:
+1. The agent tool, Studio, or a Turbo run sends a request to the media API for the asset type.
+2. The media API validates it, picks a model from the reviewed model catalog, and records the asset.
+3. Provider access resolves the key: the organization's own key first, the hosted key as the fallback.
+4. A provider adapter calls Replicate, fal.ai, Leonardo, ElevenLabs, or OpenRouter and normalizes the result into one Genfeed asset shape.
+5. The asset returns as a preview card or lands in the Library when it finishes.
 
-- [`apps/server/api/src/services/skill-executor/skill-executor.service.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/skill-executor/skill-executor.service.spec.ts) covers workflow dispatch
-- [`apps/server/api/src/services/skill-executor/handlers/image-generation.handler.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/skill-executor/handlers/image-generation.handler.spec.ts) covers the representative image path
+New models found on verified provider accounts enter an inactive review queue. Nothing generates with a model until it has been reviewed and activated.
 
-Both use mocked provider services so they run in CI without live credentials, but they keep the production service wiring.
+## Agent Tools
 
-`SkillWorkflowService` owns dispatch:
+The stable tools an agent can call to create generation work:
 
-- every reviewed skill action and its immutable canonical workflow are registered on `SystemWorkflowRunner`
-- executing a skill runs the selected canonical workflow and returns its `WorkflowExecution` provenance
-- a slug outside the reviewed action catalog is rejected
+| Tool                     | Input                                                                                                                                                                                                                  | Result                                                        |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `generate`               | `type` (`image`, `video`, `voice`, `music`) and `prompt`; optional `model` (the router picks when omitted), plus per-type fields such as `aspectRatio`, `duration`, `imageUrl` and `audioUrl` (avatar video) or `voiceId`. A field for another type is rejected | A preview card with the asset id and gallery link (voice: voice id or audio URL) |
+| `generate_turbo_content` | `count`, `platforms`; optional `brandId`, `handle`, `dateRange`, `contentMix`, `style`, `topics`                                                                                                                       | A Turbo run id with review queue and status actions           |
+| `generate_as_identity`   | `text` for the identity avatar to speak                                                                                                                                                                                | A processing preview card for the avatar video                |
 
-`ImageGenerationHandler` owns the representative image path:
+Depend on these names. Workflow step categories such as `generate-image` and `generate-music` belong to the workflow engine and are not agent tool names.
 
-- organization BYOK resolution selects the provider for the active organization
-- fal.ai, Leonardo, and Replicate model routing each receive the resolved server-side key and normalized image parameters
-- a configured managed key routes generation through managed inference instead
-- a provider capacity error fails over between Replicate and fal.ai rather than failing the draft
+The agent's generation card starts from default aspect ratio, model, and duration for images and video, which you review before it runs.
 
-Run them with:
+## Skills
 
-```bash
-cd apps/server/api
-TZ=UTC bunx vitest run --config vitest.config.ts src/services/skill-executor
-```
+Content skills such as `image-generation` run a reviewed, immutable workflow. A skill that is not in the reviewed catalog is rejected. For images, the organization's key picks the provider, a configured managed key routes through managed inference instead, and a provider capacity error fails over between Replicate and fal.ai rather than failing the draft.
 
-This keeps the v1 proof end-to-end at the application boundary without making CI depend on external provider availability.
+## Checking It
 
-## Explicit V1 Gaps
+The verification path runs a skill through workflow dispatch and the image path with mocked providers, so it needs no live credentials. It does not call fal.ai or Replicate, covers one representative image path rather than every media type, and leaves billing, rate limits, and provider callbacks to provider-specific tests and manual release checks.
 
-- The CI smoke path does not make a live fal.ai or Replicate request.
-- It verifies one representative image path, not every media type or provider.
-- Full provider billing, rate-limit, and callback behavior should stay covered by provider-specific tests and manual release checks.
-
-## V1 Boundary
-
-This page documents the current registry and generation surface. It does **not** expand v1 to include every deferred model-registry or training-pipeline item by default.
-
-For the OSS provider registry contract, see [Provider Registry](/self-host/provider-registry).
+For the provider contract, see [Provider Registry](/self-host/provider-registry).

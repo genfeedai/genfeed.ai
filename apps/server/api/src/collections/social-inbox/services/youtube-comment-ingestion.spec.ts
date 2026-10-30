@@ -109,6 +109,50 @@ describe('ingestOwnedYoutubeComments', () => {
     expect(result.postFailures).toHaveLength(3);
   });
 
+  it('skips a video that no longer exists instead of failing the sweep', async () => {
+    const videoNotFound = Object.assign(
+      new Error(
+        'The video identified by the videoId parameter could not be found.',
+      ),
+      { errors: [{ reason: 'videoNotFound' }], status: 404 },
+    );
+    const listVideoComments = vi
+      .fn()
+      .mockRejectedValueOnce(videoNotFound)
+      .mockResolvedValue([]);
+
+    const result = await ingestOwnedYoutubeComments(
+      scope,
+      {},
+      createPorts({ listVideoComments }),
+    );
+
+    expect(listVideoComments).toHaveBeenCalledTimes(3);
+    expect(result.postFailures).toEqual([]);
+    expect(result.postsScanned).toBe(2);
+  });
+
+  it('reports no scanned posts when every owned video was removed', async () => {
+    const videoNotFound = Object.assign(new Error('not found'), {
+      response: { data: { error: { errors: [{ reason: 'videoNotFound' }] } } },
+    });
+
+    const result = await ingestOwnedYoutubeComments(
+      scope,
+      {},
+      createPorts({
+        findOwnedPosts: vi.fn(async () => [post('p1')]),
+        listVideoComments: vi.fn().mockRejectedValue(videoNotFound),
+      }),
+    );
+
+    expect(result).toMatchObject({
+      credentialsScanned: 1,
+      postFailures: [],
+      postsScanned: 0,
+    });
+  });
+
   it('moves on to the next credential after a sign-in failure', async () => {
     const authError = Object.assign(new Error('Unauthorized'), { status: 401 });
     const listVideoComments = vi

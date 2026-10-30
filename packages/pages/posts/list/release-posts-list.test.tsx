@@ -257,7 +257,7 @@ describe('ReleasePostsList selection from the release URL param', () => {
       />,
     );
 
-    const toolbar = setFiltersNode.mock.calls.at(-1)?.[0];
+    const toolbar = setLeadingNode.mock.calls.at(-1)?.[0].props.children;
     expect(toolbar.props.sourceValue).toBeUndefined();
     toolbar.props.onSourceChange('extension');
     expect(replaceMock).toHaveBeenLastCalledWith(
@@ -274,7 +274,8 @@ describe('ReleasePostsList selection from the release URL param', () => {
         sort="createdAt: -1"
       />,
     );
-    const extensionToolbar = setFiltersNode.mock.calls.at(-1)?.[0];
+    const extensionToolbar =
+      setLeadingNode.mock.calls.at(-1)?.[0].props.children;
     expect(extensionToolbar.props.sourceValue).toBe('extension');
     expect(
       extensionToolbar.props.sortOptions.map(

@@ -402,7 +402,7 @@ describe('AgentThreadList', () => {
 
     expect(archivedRow).toHaveClass('bg-muted/50');
     expect(archivedRow).not.toHaveClass('opacity-40');
-    expect(archivedTitle).toHaveClass('text-foreground/65');
+    expect(archivedTitle).toHaveClass('text-foreground/70');
 
     fireEvent.pointerDown(
       screen.getByRole('button', { name: 'Conversation list actions' }),
@@ -491,7 +491,7 @@ describe('AgentThreadList', () => {
     expect(threadLink?.parentElement).toHaveClass('min-h-0');
   });
 
-  it('keeps programmatic thread navigation route-driven and prefetches on intent', async () => {
+  it('keeps programmatic thread navigation route-driven and leaves prefetch to next/link', async () => {
     const thread = createThread('conv-1', 'Fast thread');
     const onNavigate = vi.fn();
     const apiService = createApiService({
@@ -511,14 +511,10 @@ describe('AgentThreadList', () => {
     const threadLink = (await screen.findByText('Fast thread')).closest('a');
 
     expect(threadLink).not.toBeNull();
-    expect(threadLink).toHaveAttribute('data-prefetch', 'false');
+    expect(threadLink).not.toHaveAttribute('data-prefetch', 'false');
 
     fireEvent.pointerEnter(threadLink as HTMLAnchorElement);
-    expect(prefetchRoute).toHaveBeenCalledOnce();
-    expect(prefetchRoute).toHaveBeenCalledWith('/acme/moonrise/agent/conv-1', {
-      kind: 'auto',
-      onInvalidate: expect.any(Function),
-    });
+    expect(prefetchRoute).not.toHaveBeenCalled();
 
     const navigationWasNotCanceled = fireEvent.click(
       threadLink as HTMLAnchorElement,

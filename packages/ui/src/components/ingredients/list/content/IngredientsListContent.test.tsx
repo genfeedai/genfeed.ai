@@ -451,7 +451,7 @@ describe('IngredientsListContent', () => {
     ).toHaveAttribute('src', 'https://cdn.genfeed.ai/mock/clip-poster.jpg');
     expect(screen.queryByAltText('Ingredient URL')).not.toBeInTheDocument();
     expect(
-      screen.getByText('Video').closest('[class*="bg-primary/15"]'),
+      screen.getByText('Video').closest('[class*="bg-primary/10"]'),
     ).not.toBeNull();
     expect(screen.queryByText('VIDEO')).not.toBeInTheDocument();
     expect(

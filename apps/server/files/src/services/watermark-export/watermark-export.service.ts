@@ -171,25 +171,17 @@ export class WatermarkExportService {
       const overlays: OverlayOptions[] = [];
       const overlayPaths: string[] = [];
       for (const [index, layer] of request.layers.entries()) {
-        const overlay = await this.createOverlay(
+        const placed = await this.placeLayer(
           layer,
           width,
           height,
           directory,
           index,
         );
-        digest.update(overlay);
-        const metadata = await sharp(overlay).metadata();
-        const margin = Math.max(2, Math.round(Math.min(width, height) * 0.025));
-        const left = layer.position.endsWith('right')
-          ? width - (metadata.width ?? 0) - margin
-          : margin;
-        const top = layer.position.startsWith('bottom')
-          ? height - (metadata.height ?? 0) - margin
-          : margin;
-        overlays.push({ input: overlay, left, top });
+        digest.update(placed.overlay);
+        overlays.push(placed.options);
         const overlayPath = path.join(directory, `overlay-${index}.png`);
-        await sharp(overlay).toFile(overlayPath);
+        await sharp(placed.overlay).toFile(overlayPath);
         overlayPaths.push(overlayPath);
       }
       const extension = request.category === 'images' ? 'png' : 'mp4';
@@ -223,6 +215,83 @@ export class WatermarkExportService {
         request.category === 'images' ? 'image/png' : 'video/mp4',
       );
       return { storageKey: storedKey, url: this.storage.getUrl(storedKey) };
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  }
+
+  /** Renders a layer and works out where it sits: corner, then inset. */
+  private async placeLayer(
+    layer: IWatermarkLayer,
+    width: number,
+    height: number,
+    directory: string,
+    index: number,
+  ): Promise<{ options: OverlayOptions; overlay: Buffer }> {
+    const overlay = await this.createOverlay(
+      layer,
+      width,
+      height,
+      directory,
+      index,
+    );
+    const metadata = await sharp(overlay).metadata();
+    const margin = Math.max(2, Math.round(Math.min(width, height) * 0.025));
+    const insetX =
+      layer.insetXRatio === undefined
+        ? margin
+        : Math.round(width * layer.insetXRatio);
+    const insetY =
+      layer.insetYRatio === undefined
+        ? margin
+        : Math.round(width * layer.insetYRatio);
+    const left = Math.max(
+      0,
+      layer.position.endsWith('right')
+        ? width - (metadata.width ?? 0) - insetX
+        : insetX,
+    );
+    const top = Math.max(
+      0,
+      layer.position.startsWith('bottom')
+        ? height - (metadata.height ?? 0) - insetY
+        : insetY,
+    );
+    return { options: { input: overlay, left, top }, overlay };
+  }
+
+  /**
+   * Lays the layers over a still image the caller already holds, such as a
+   * video cover, and returns the new image. Nothing is stored: the caller
+   * decides where the result goes. Same sizing and placement as an export.
+   */
+  async applyToImage(
+    image: Buffer,
+    layers: IWatermarkLayer[],
+  ): Promise<Buffer> {
+    this.validateLayers(layers);
+    const { height = 0, width = 0 } = await sharp(image, {
+      limitInputPixels: MAX_PIXELS,
+    }).metadata();
+    if (width < 16 || height < 16)
+      throw invalid('Unsupported media dimensions');
+    await mkdir(FILES_TMP_ROOT, { recursive: true });
+    const directory = await mkdtemp(path.join(FILES_TMP_ROOT, 'watermark-'));
+    try {
+      const overlays: OverlayOptions[] = [];
+      for (const [index, layer] of layers.entries()) {
+        const placed = await this.placeLayer(
+          layer,
+          width,
+          height,
+          directory,
+          index,
+        );
+        overlays.push(placed.options);
+      }
+      return await sharp(image, { limitInputPixels: MAX_PIXELS })
+        .composite(overlays)
+        .toBuffer();
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
@@ -313,13 +382,13 @@ export class WatermarkExportService {
     )
       throw invalid('Invalid export cache key');
     this.validateStoredSource(request.storageKey);
-    if (
-      !Array.isArray(request.layers) ||
-      request.layers.length < 1 ||
-      request.layers.length > 2
-    )
+    this.validateLayers(request.layers);
+  }
+
+  private validateLayers(layers: IWatermarkLayer[]): void {
+    if (!Array.isArray(layers) || layers.length < 1 || layers.length > 2)
       throw invalid('Expected one or two watermark layers');
-    for (const layer of request.layers) {
+    for (const layer of layers) {
       if (
         !layer ||
         !POSITIONS.has(layer.position) ||
@@ -341,6 +410,17 @@ export class WatermarkExportService {
       if (!layer.text && !layer.logoStorageKey)
         throw invalid('A watermark needs text or a logo');
       if (layer.logoStorageKey) this.validateStoredSource(layer.logoStorageKey);
+      for (const [name, value, min, max] of [
+        ['size', layer.sizeRatio, 0.01, 0.5],
+        ['horizontal inset', layer.insetXRatio, 0, 0.5],
+        ['vertical inset', layer.insetYRatio, 0, 0.5],
+      ] as const) {
+        if (
+          value !== undefined &&
+          (!Number.isFinite(value) || value < min || value > max)
+        )
+          throw invalid(`Invalid watermark ${name}`);
+      }
     }
   }
 
@@ -351,8 +431,14 @@ export class WatermarkExportService {
     directory: string,
     index: number,
   ): Promise<Buffer> {
-    const maxWidth = Math.max(1, Math.floor(width * 0.3));
-    const maxHeight = Math.max(1, Math.floor(height * 0.12));
+    // A brand that fixes the mark size gets exactly that width; the height then
+    // follows the logo, within the canvas.
+    const hasFixedSize = layer.sizeRatio !== undefined;
+    const maxWidth = Math.max(1, Math.floor(width * (layer.sizeRatio ?? 0.3)));
+    const maxHeight = Math.max(
+      1,
+      Math.floor(hasFixedSize ? height * 0.5 : height * 0.12),
+    );
     const parts: Buffer[] = [];
     if (layer.logoStorageKey) {
       const logo = path.join(directory, `logo-${index}.png`);

@@ -16,6 +16,7 @@
       "@genfeedai/contexts/*": ["../contexts/*"],
       "@genfeedai/contracts": ["../contracts/src/index.ts"],
       "@genfeedai/contracts/*": ["../contracts/src/*"],
+      "@genfeedai/hooks/*": ["../hooks/*"],
       "@genfeedai/helpers": ["../helpers/src/index.ts"],
       "@genfeedai/helpers/*": ["../helpers/src/*"],
       "@genfeedai/pricing": ["../pricing/src/index.ts"],

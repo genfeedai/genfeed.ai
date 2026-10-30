@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
   isAnalyticsEnabled: vi.fn(),
   pathname: '/login',
   resetAnalytics: vi.fn(),
+  setSentryAccountContext: vi.fn(),
 }));
 
 vi.mock('@hooks/auth/use-auth-user', () => ({
@@ -38,6 +39,10 @@ vi.mock('@/lib/analytics', () => ({
   identifyAnalyticsUser: mocks.identifyUser,
   isAnalyticsEnabled: mocks.isAnalyticsEnabled,
   resetAnalytics: mocks.resetAnalytics,
+}));
+
+vi.mock('@/lib/analytics/sentry-context', () => ({
+  setSentryAccountContext: mocks.setSentryAccountContext,
 }));
 
 describe('AnalyticsPublicRouteSync', () => {
@@ -94,6 +99,12 @@ describe('AnalyticsPublicRouteSync', () => {
     expect(mocks.clearOrganization.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.capturePageview.mock.invocationCallOrder[0] as number,
     );
+    expect(mocks.capturePageview).toHaveBeenCalledWith(expect.any(String), {
+      app: 'public',
+    });
+    expect(mocks.setSentryAccountContext).toHaveBeenCalledWith({
+      userId: 'user-1',
+    });
     expect(mocks.ensureAnonymous).not.toHaveBeenCalled();
   });
 

@@ -387,6 +387,24 @@ test.describe('Clip Factory', () => {
     ).toBeVisible();
   });
 
+  test('opens a project with the agent on the left and the source on the right', async ({
+    authenticatedPage,
+  }) => {
+    await mockDraftProject(authenticatedPage);
+    await authenticatedPage.goto(`${CLIPPER_URL}/${MOCK_PROJECT_ID}`);
+
+    const agent = authenticatedPage.getByTestId('agent-output-agent-pane');
+    const output = authenticatedPage.getByTestId('agent-output-output-pane');
+    await expect(agent).toBeVisible();
+    await expect(output).toBeVisible();
+    await expect(output.getByLabel(/youtube url/i)).toBeVisible();
+
+    const agentBox = await agent.boundingBox();
+    const outputBox = await output.boundingBox();
+    expect(agentBox?.x).toBeLessThan(outputBox?.x ?? 0);
+    await expect(authenticatedPage.getByTestId('agent-dock')).toHaveCount(0);
+  });
+
   test('restores a pasted YouTube URL after reload', async ({
     authenticatedPage,
   }) => {
@@ -490,9 +508,12 @@ test.describe('Clip Factory', () => {
     await expect(
       authenticatedPage.getByRole('heading', { name: /review highlights/i }),
     ).toBeVisible();
-    await expect(authenticatedPage.getByRole('textbox').first()).toHaveValue(
-      'The Hook',
-    );
+    await expect(
+      authenticatedPage
+        .getByTestId('agent-output-output-pane')
+        .getByRole('textbox')
+        .first(),
+    ).toHaveValue('The Hook');
     await expect(
       authenticatedPage.getByText(/found 3 highlights/i),
     ).toBeVisible();
@@ -743,7 +764,7 @@ test.describe('Clip Factory', () => {
     await authenticatedPage.route(API_CLIP_RESULTS, async (route) => {
       const editedHighlight = (
         generateRequestBody?.editedHighlights as
-          | Array<{ id: string; summary: string; title: string }>
+          | Array<{ id: string; script?: string; title: string }>
           | undefined
       )?.find((highlight) => highlight.id === 'h1');
 
@@ -754,7 +775,7 @@ test.describe('Clip Factory', () => {
                 {
                   attributes: {
                     ...mockCompletedClipperResult,
-                    summary: editedHighlight.summary,
+                    summary: editedHighlight.script,
                     title: editedHighlight.title,
                   },
                   id: 'clip-1',
@@ -780,7 +801,10 @@ test.describe('Clip Factory', () => {
       authenticatedPage.getByRole('heading', { name: /review highlights/i }),
     ).toBeVisible();
 
-    const editedTitleInput = authenticatedPage.getByRole('textbox').first();
+    const editedTitleInput = authenticatedPage
+      .getByTestId('agent-output-output-pane')
+      .getByRole('textbox')
+      .first();
     await expect(editedTitleInput).toHaveValue('The Hook');
     await editedTitleInput.fill('Edited Hook Title');
     await authenticatedPage
@@ -802,7 +826,7 @@ test.describe('Clip Factory', () => {
       editedHighlights: expect.arrayContaining([
         expect.objectContaining({
           id: 'h1',
-          summary: 'Edited hook summary for generation.',
+          script: 'Edited hook summary for generation.',
           title: 'Edited Hook Title',
         }),
       ]),
@@ -816,6 +840,7 @@ test.describe('Clip Factory', () => {
       (
         submittedEditedHighlights as Array<{
           id: string;
+          script: string;
           summary: string;
           title: string;
         }>
@@ -823,7 +848,8 @@ test.describe('Clip Factory', () => {
     ).toEqual([
       {
         id: 'h1',
-        summary: 'Edited hook summary for generation.',
+        script: 'Edited hook summary for generation.',
+        summary: mockHighlights[0].summary,
         title: 'Edited Hook Title',
       },
     ]);
@@ -1118,11 +1144,18 @@ test.describe('Clip Factory', () => {
     expect(analyzeRequestBody).toMatchObject({ youtubeUrl: MOCK_YOUTUBE_URL });
     expect(createRequestBody).not.toHaveProperty('avatarId');
     expect(createRequestBody).not.toHaveProperty('voiceId');
+    // The /clipper list stays mounted (hidden) behind /clipper/new while
+    // the route is retained, so its preset badges also match these labels.
+    // Scope to the visible route; the assertions are unchanged.
     await expect(
-      authenticatedPage.getByText('Raw cut', { exact: true }),
+      authenticatedPage
+        .getByText('Raw cut', { exact: true })
+        .filter({ visible: true }),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByText('In Library', { exact: true }),
+      authenticatedPage
+        .getByText('In Library', { exact: true })
+        .filter({ visible: true }),
     ).toBeVisible();
     await expect(
       authenticatedPage.getByLabel('Preview Edited Hook Title'),

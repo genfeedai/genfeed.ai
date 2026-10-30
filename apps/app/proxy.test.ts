@@ -296,12 +296,12 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
-      makeSignedInRequest('/api/werwer/workspace/inbox/unread'),
+      makeSignedInRequest('/api/werwer/workspace/inbox'),
     );
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/inbox/unread',
+      'http://localhost:3000/acme/moonrise-studio/workspace/inbox',
     );
   });
 
@@ -321,7 +321,7 @@ describe('proxy', () => {
     },
   );
 
-  // ─── Signed-in redirect away from root / public entry points ──────────────
+  // Signed-in redirect away from root / public entry points
 
   it.each(['/login', '/login/password', '/login/magic-link'])(
     'redirects a signed-in user away from %s honoring callbackUrl',
@@ -740,7 +740,7 @@ describe('proxy', () => {
       ['/analytics', ''],
       ['/settings', ''],
       [APP_ROUTES.SETTINGS.GENERAL, ''],
-      ['/api/stale-brand/workspace/inbox/unread', ''],
+      ['/api/stale-brand/workspace/inbox', ''],
     ])(
       'canonicalizes %s%s exactly as a signed-in production request',
       async (pathname, search) => {

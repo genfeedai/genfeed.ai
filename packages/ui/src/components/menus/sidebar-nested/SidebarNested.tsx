@@ -64,7 +64,7 @@ export default function SidebarNested({
           onClick={onBack}
           className={cn(
             'flex h-9 w-full items-center gap-3 rounded-lg px-3 py-2 transition-colors duration-200 group cursor-pointer',
-            'text-foreground/80 hover:bg-foreground/[0.06] hover:text-foreground',
+            'text-foreground/80 hover:bg-foreground/5 hover:text-foreground',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
           )}
           ariaLabel={`Back to ${backLabel ?? groupLabel}`}
@@ -89,12 +89,12 @@ export default function SidebarNested({
               <Fragment key={itemHref ?? `${item.label}-${index}`}>
                 {item.hasDividerAbove && (
                   <li className="my-2">
-                    <div className="border-t border-foreground/[0.08]" />
+                    <div className="border-t border-foreground/10" />
                   </li>
                 )}
                 {isFirstDynamic && (
                   <li className="my-2">
-                    <div className="border-t border-foreground/[0.06]" />
+                    <div className="border-t border-foreground/5" />
                     <span className="px-3 pt-2 text-2xs uppercase tracking-wider text-muted-foreground block">
                       Accounts
                     </span>

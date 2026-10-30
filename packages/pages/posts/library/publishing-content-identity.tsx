@@ -39,7 +39,7 @@ export default function PublishingContentIdentity({
           ) : null}
         </div>
         {summary ? (
-          <p className="mt-1 line-clamp-1 text-sm text-foreground/55">
+          <p className="mt-1 line-clamp-1 text-sm text-foreground/60">
             {summary}
           </p>
         ) : null}

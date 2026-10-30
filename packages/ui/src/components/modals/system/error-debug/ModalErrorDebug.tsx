@@ -107,7 +107,7 @@ function ErrorSection({
 export default function ModalErrorDebug() {
   const clipboardService = ClipboardService.getInstance();
   const preClassName =
-    'mt-2 max-h-48 overflow-y-auto border border-border bg-background text-foreground/85';
+    'mt-2 max-h-48 overflow-y-auto border border-border bg-background text-foreground/90';
 
   const [errorInfo, setErrorInfo] = useState<IErrorDebugInfo | null>(null);
   const [isResponseExpanded, setIsResponseExpanded] = useState(true);

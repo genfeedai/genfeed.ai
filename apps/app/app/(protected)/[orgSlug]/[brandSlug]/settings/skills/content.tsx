@@ -10,6 +10,7 @@ import { ModalEnum } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { isModalOpen } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useBrandEnabledSkills } from '@hooks/data/skills/use-brand-enabled-skills';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -34,12 +35,7 @@ import Loading from '@ui/loading/default/Loading';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
-import {
-  useParams,
-  usePathname,
-  useRouter,
-  useSearchParams,
-} from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   useCallback,
@@ -51,7 +47,7 @@ import {
 } from 'react';
 import SkillDetailPanel from './skill-detail-panel';
 import { prepareSkillDraftPatch } from './skill-draft-patch';
-import SkillFilters, { SkillSearch } from './skill-filters';
+import SkillAgentAction, { SkillSearch } from './skill-filters';
 import SkillImportForm, {
   type SkillImportFormLabels,
 } from './skill-import-form';
@@ -280,7 +276,7 @@ function pageReducer(state: PageState, action: PageAction): PageState {
 
 export default function BrandSettingsSkillsPage() {
   const translate = useTranslations('common.settings.skills');
-  const params = useParams<{ brandSlug: string; orgSlug: string }>();
+  const params = useRouteParams<{ brandSlug: string; orgSlug: string }>();
   const { push, replace } = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -981,19 +977,12 @@ export default function BrandSettingsSkillsPage() {
       label={translate('heading')}
       leading={
         <SkillSearch
-          onSearchQueryChange={(value) =>
-            dispatch({ type: 'SET_SEARCH_QUERY', value })
-          }
-          searchQuery={searchQuery}
-        />
-      }
-      refresh={<ButtonRefresh onClick={() => void refreshCatalog()} />}
-      right={
-        <SkillFilters
-          agentHref={href(APP_ROUTES.AGENT.ROOT)}
           modalityFilter={modalityFilter}
           onModalityFilterChange={(value) =>
             dispatch({ type: 'SET_MODALITY_FILTER', value })
+          }
+          onSearchQueryChange={(value) =>
+            dispatch({ type: 'SET_SEARCH_QUERY', value })
           }
           onSourceFilterChange={(value) =>
             dispatch({ type: 'SET_SOURCE_FILTER', value })
@@ -1001,10 +990,13 @@ export default function BrandSettingsSkillsPage() {
           onStageFilterChange={(value) =>
             dispatch({ type: 'SET_STAGE_FILTER', value })
           }
+          searchQuery={searchQuery}
           sourceFilter={sourceFilter}
           stageFilter={stageFilter}
         />
       }
+      refresh={<ButtonRefresh onClick={() => void refreshCatalog()} />}
+      right={<SkillAgentAction agentHref={href(APP_ROUTES.AGENT.ROOT)} />}
       titleVisibility="sr-only"
     >
       {error && !selectedSkill ? (

@@ -322,7 +322,7 @@ export default function AboutContent() {
           <NeuralGrid columns={2}>
             {DIFFERENTIATORS.map((item) => (
               <NeuralGridItem key={item.title} title={item.title} padding="lg">
-                <p className="text-sm leading-relaxed text-foreground/65">
+                <p className="text-sm leading-relaxed text-foreground/70">
                   {item.body}
                 </p>
               </NeuralGridItem>
@@ -340,7 +340,7 @@ export default function AboutContent() {
             {AUDIENCES.map((item) => (
               <li
                 key={item}
-                className="border-b border-foreground/5 pb-3 text-foreground/65 last:border-b-0 last:pb-0"
+                className="border-b border-foreground/5 pb-3 text-foreground/70 last:border-b-0 last:pb-0"
               >
                 {item}
               </li>
@@ -355,17 +355,13 @@ export default function AboutContent() {
           />
 
           <NeuralGrid columns={2}>
-            <NeuralGridItem
-              title={`${FOUNDER.name}, founder`}
-              tierLabel="@VincentShipsIt"
-              padding="lg"
-            >
-              <p className="text-sm leading-relaxed text-foreground/65">
+            <NeuralGridItem title={`${FOUNDER.name}, founder`} padding="lg">
+              <p className="text-sm leading-relaxed text-foreground/70">
                 Genfeed is a one-person company. {FOUNDER.name} founded it in{' '}
                 {FOUNDED_YEAR} and builds it remotely and in public, working
                 with AI agents across code and content.
               </p>
-              <p className="mt-4 text-sm text-foreground/65">
+              <p className="mt-4 text-sm text-foreground/70">
                 <ExternalLink href={FOUNDER.x}>X</ExternalLink> ·{' '}
                 <ExternalLink href={FOUNDER.linkedin}>LinkedIn</ExternalLink> ·{' '}
                 <ExternalLink href={FOUNDER.github}>GitHub</ExternalLink>
@@ -373,7 +369,7 @@ export default function AboutContent() {
             </NeuralGridItem>
 
             <NeuralGridItem title="Why Genfeed exists" padding="lg">
-              <p className="text-sm leading-relaxed text-foreground/65">
+              <p className="text-sm leading-relaxed text-foreground/70">
                 Genfeed started from a builder&apos;s problem: shipping products
                 nobody sees, because every hour spent making content is an hour
                 taken from the product. Genfeed is used to market Genfeed,
@@ -416,7 +412,7 @@ export default function AboutContent() {
                 <DefinitionTerm className="font-semibold text-foreground">
                   {fact.label}
                 </DefinitionTerm>
-                <DefinitionDetail className="leading-relaxed text-foreground/65">
+                <DefinitionDetail className="leading-relaxed text-foreground/70">
                   {fact.value}
                 </DefinitionDetail>
               </div>

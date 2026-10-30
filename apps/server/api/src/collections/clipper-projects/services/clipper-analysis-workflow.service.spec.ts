@@ -58,6 +58,7 @@ describe('ClipperAnalysisWorkflowService', () => {
     },
     registerWorkflow: vi.fn(),
   };
+  const highlightDetector = { detectHighlights: vi.fn() };
   const service = new ClipperAnalysisWorkflowService(
     { error: vi.fn(), warn: vi.fn() } as unknown as LoggerService,
     clipperProjects as unknown as ClipperProjectsService,
@@ -67,7 +68,7 @@ describe('ClipperAnalysisWorkflowService', () => {
       get: vi.fn(),
       isDevelopment: true,
     } as unknown as ConfigService,
-    { detectHighlights: vi.fn() } as unknown as ClipperHighlightDetector,
+    highlightDetector as unknown as ClipperHighlightDetector,
     {
       patchByWorkerProjectId: vi.fn(),
     } as unknown as PublicClipperToolStoreService,
@@ -296,6 +297,49 @@ describe('ClipperAnalysisWorkflowService', () => {
       'Audio extraction job job-7 failed: Source video is unreadable',
     );
   });
+  it('saves what was said in each highlight window as its script', async () => {
+    highlightDetector.detectHighlights.mockResolvedValue([
+      {
+        clip_type: 'hook',
+        end_time: 20,
+        start_time: 10,
+        summary: 'Why this clip works',
+        tags: [],
+        title: 'Ship on Fridays',
+        virality_score: 90,
+      },
+    ]);
+
+    const result = (await actions.get('clipper.analysis.detect-highlights')?.({
+      input: {
+        transcribed: {
+          data: {
+            maxClips: 3,
+            minViralityScore: 50,
+            orgId: 'org-1',
+            projectId: 'project-1',
+            userId: 'user-1',
+          },
+          transcription: {
+            segments: [
+              { end: 5, start: 0, text: 'Before the clip.' },
+              { end: 14, start: 10, text: 'Um, we ship on Fridays.' },
+              { end: 19, start: 15, text: 'No exceptions.' },
+            ],
+            text: 'Before the clip. Um, we ship on Fridays. No exceptions.',
+          },
+        },
+      },
+    } as never)) as { highlights: Array<Record<string, unknown>> };
+
+    expect(result.highlights).toEqual([
+      expect.objectContaining({
+        script: 'We ship on Fridays. No exceptions.',
+        summary: 'Why this clip works',
+      }),
+    ]);
+  });
+
   it.each([
     ['clipper.analysis.prepare-source', 'job'],
     ['clipper.analysis.transcribe', 'prepared'],

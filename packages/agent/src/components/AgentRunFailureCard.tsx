@@ -81,7 +81,7 @@ export function AgentRunFailureCard({
       role="alert"
     >
       <div className="flex items-start gap-3">
-        <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-destructive/12 text-destructive shadow-border">
+        <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-destructive/10 text-destructive shadow-border">
           <TriangleAlert className="size-3.5" aria-hidden />
         </div>
         <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
@@ -113,7 +113,7 @@ export function AgentRunFailureCard({
               onClick={() => {
                 void handleCopy();
               }}
-              className="size-8 border border-destructive/30 text-destructive hover:bg-destructive/20 hover:text-destructive"
+              className="size-8 border border-destructive/20 text-destructive hover:bg-destructive/20 hover:text-destructive"
               icon={
                 isCopied ? (
                   <Check className="size-3.5" />
@@ -127,7 +127,7 @@ export function AgentRunFailureCard({
                 variant={ButtonVariant.SECONDARY}
                 withWrapper={false}
                 onClick={() => openModal(ModalEnum.CREDITS_REQUIRED)}
-                className="h-8 shrink-0 gap-1.5 self-start border-destructive/40 bg-destructive/20 px-3 text-xs font-medium text-destructive hover:bg-destructive/30"
+                className="h-8 shrink-0 gap-1.5 self-start border-destructive/40 bg-destructive/20 px-3 text-xs font-medium text-destructive hover:bg-destructive/20"
                 icon={<Coins className="size-3.5" />}
               >
                 {translate('getCredits')}
@@ -142,7 +142,7 @@ export function AgentRunFailureCard({
                 onClick={() => {
                   void onRetry();
                 }}
-                className="h-8 shrink-0 gap-1.5 self-start border-destructive/40 bg-destructive/20 px-3 text-xs font-medium text-destructive hover:bg-destructive/30"
+                className="h-8 shrink-0 gap-1.5 self-start border-destructive/40 bg-destructive/20 px-3 text-xs font-medium text-destructive hover:bg-destructive/20"
                 icon={<RefreshCw className="size-3.5" />}
               >
                 Retry

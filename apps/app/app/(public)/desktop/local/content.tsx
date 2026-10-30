@@ -263,7 +263,7 @@ export default function LocalDesktopContent() {
                       <h2 className="text-base font-semibold">
                         {translate('workspace.title')}
                       </h2>
-                      <p className="text-sm text-foreground/55">
+                      <p className="text-sm text-foreground/60">
                         {activeWorkspace
                           ? activeWorkspace.path
                           : translate('workspace.description')}
@@ -310,7 +310,7 @@ export default function LocalDesktopContent() {
                       <Sparkles aria-hidden="true" className="size-4" />
                       {translate('generation.title')}
                     </h2>
-                    <p className="text-sm text-foreground/55">
+                    <p className="text-sm text-foreground/60">
                       {translate('generation.description')}
                     </p>
                   </div>

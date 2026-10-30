@@ -44,10 +44,6 @@ export interface PostsListPageProps {
   searchParams: Promise<{ platform?: string; status?: string }>;
 }
 
-export interface OrganizationConfigPageProps {
-  searchParams: Promise<{ id?: string }>;
-}
-
 export interface ArticlesStatusPageProps {
   params: Promise<{ status: string }>;
 }

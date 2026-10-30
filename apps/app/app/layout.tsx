@@ -15,6 +15,7 @@ import { createAppMetadata, createPwaMetadata } from '@ui/shell/metadata';
 import type { Metadata, Viewport } from 'next';
 import { Suspense } from 'react';
 import AnalyticsAnonymousSessionSync from '@/components/analytics/AnalyticsAnonymousSessionSync';
+import AppContextSync from '@/components/analytics/AppContextSync';
 import DesktopDragStrip from '@/components/desktop/DesktopDragStrip';
 import ServiceWorkerRegistrar from '@/components/pwa/ServiceWorkerRegistrar';
 import RuntimeConfigScript from '@/components/runtime/RuntimeConfigScript';
@@ -88,6 +89,7 @@ export default function RootLayout({ children }: LayoutProps) {
             storageKey={THEME_STORAGE_KEY}
           >
             <AnalyticsAnonymousSessionSync />
+            <AppContextSync />
             <DesktopDragStrip />
             <DeploymentVersionWatcher />
             <ServiceWorkerRegistrar />

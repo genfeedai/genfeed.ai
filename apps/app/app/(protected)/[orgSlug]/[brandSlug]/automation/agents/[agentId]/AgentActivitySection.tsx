@@ -6,14 +6,8 @@ import type { AgentActivitySectionProps } from '@props/automation/agent-activity
 import type { AgentActivityFilter } from '@props/automation/agent-activity-timeline.props';
 import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import { ListRow } from '@ui/lists/list-row/ListRow';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
@@ -104,31 +98,25 @@ export default function AgentActivitySection({
   return (
     <CollectionSection
       actions={
-        <Select
-          onValueChange={(value) => setFilter(value as AgentActivityFilter)}
-          value={filter}
-        >
-          <SelectTrigger
-            aria-label={translate('activityFilterAria')}
-            className="w-40"
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">
-              {translate('activityFilterAll')}
-            </SelectItem>
-            <SelectItem value="content">
-              {translate('activityFilterContent')}
-            </SelectItem>
-            <SelectItem value="report">
-              {translate('activityFilterReports')}
-            </SelectItem>
-            <SelectItem value="run">
-              {translate('activityFilterRuns')}
-            </SelectItem>
-          </SelectContent>
-        </Select>
+        <FilterMenu
+          facets={[
+            {
+              defaultValue: 'all',
+              key: 'type',
+              label: translate('activityFilterType'),
+              onChange: (value) => setFilter(value as AgentActivityFilter),
+              options: [
+                { label: translate('activityFilterAll'), value: 'all' },
+                { label: translate('activityFilterContent'), value: 'content' },
+                { label: translate('activityFilterReports'), value: 'report' },
+                { label: translate('activityFilterRuns'), value: 'run' },
+              ],
+              selection: 'single',
+              value: filter,
+            },
+          ]}
+          onClear={() => setFilter('all')}
+        />
       }
       title={translate('activity')}
     >

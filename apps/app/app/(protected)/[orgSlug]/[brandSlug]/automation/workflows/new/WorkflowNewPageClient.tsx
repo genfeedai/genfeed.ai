@@ -36,6 +36,7 @@ import { AddNodeMenu } from '@/features/workflows/components/editor/AddNodeMenu'
 import { CloudActionNodeInspector } from '@/features/workflows/components/editor/CloudActionNodeInspector';
 import { CloudCreditsIndicator } from '@/features/workflows/components/editor/CloudCreditsIndicator';
 import { CloudWorkflowToolbar } from '@/features/workflows/components/editor/CloudWorkflowToolbar';
+import { WorkflowAgentLayout } from '@/features/workflows/components/editor/WorkflowAgentLayout';
 import { WorkflowEditorSectionTopbar } from '@/features/workflows/components/editor/WorkflowEditorSectionTopbar';
 import { WorkflowRunPanel } from '@/features/workflows/components/WorkflowRunPanel';
 import { useCloudWorkflow } from '@/features/workflows/hooks/useCloudWorkflow';
@@ -364,43 +365,44 @@ export default function WorkflowNewPageClient() {
             title={workflowName || 'New workflow'}
           />
 
-          {cloudError && (
-            <div className="shrink-0 border-b border-destructive/20 bg-destructive/10 px-4 py-2 text-xs text-destructive">
-              {cloudError}
-            </div>
-          )}
+          <WorkflowAgentLayout>
+            {cloudError && (
+              <div className="shrink-0 border-b border-destructive/20 bg-destructive/10 px-4 py-2 text-xs text-destructive">
+                {cloudError}
+              </div>
+            )}
 
-          {isLoading ? (
-            <section
-              aria-label="Loading editor"
-              className="min-h-0 flex-1 bg-background"
-              data-testid="workflow-editor-loading-shell"
-            />
-          ) : (
-            <WorkflowEditorShell
-              showNodePalette={false}
-              nodeTypes={cloudNodeTypes}
-              rightPanel={
-                showRunPanel ? (
-                  <WorkflowRunPanel
-                    inputVariables={inputVariables}
-                    isRunning={isRunning}
-                    onClose={() => setShowRunPanel(false)}
-                    onRun={handleRun}
-                  />
-                ) : showExecutionPanel ? (
-                  <ExecutionPanel
-                    workflowId={currentWorkflowId ?? 'new'}
-                    onClose={() => setShowExecutionPanel(false)}
-                    onTerminalExecution={handleTerminalExecution}
-                    runId={activeExecutionId}
-                  />
-                ) : (
-                  <CloudActionNodeInspector />
-                )
-              }
-            />
-          )}
+            {isLoading ? (
+              <section
+                aria-label="Loading editor"
+                className="min-h-0 flex-1 bg-background"
+                data-testid="workflow-editor-loading-shell"
+              />
+            ) : (
+              <WorkflowEditorShell
+                nodeTypes={cloudNodeTypes}
+                rightPanel={
+                  showRunPanel ? (
+                    <WorkflowRunPanel
+                      inputVariables={inputVariables}
+                      isRunning={isRunning}
+                      onClose={() => setShowRunPanel(false)}
+                      onRun={handleRun}
+                    />
+                  ) : showExecutionPanel ? (
+                    <ExecutionPanel
+                      workflowId={currentWorkflowId ?? 'new'}
+                      onClose={() => setShowExecutionPanel(false)}
+                      onTerminalExecution={handleTerminalExecution}
+                      runId={activeExecutionId}
+                    />
+                  ) : (
+                    <CloudActionNodeInspector />
+                  )
+                }
+              />
+            )}
+          </WorkflowAgentLayout>
         </div>
       </ReactFlowProvider>
     </WorkflowUIProvider>

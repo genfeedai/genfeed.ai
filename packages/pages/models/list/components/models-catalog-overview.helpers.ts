@@ -42,7 +42,7 @@ const MODEL_CATEGORY_GROUPS: ModelCategoryGroup[] = [
       ModelCategory.IMAGE_UPSCALE,
     ],
     icon: Image as IconType,
-    iconClassName: 'bg-info/15 text-info',
+    iconClassName: 'bg-info/10 text-info',
     key: 'image',
     label: 'Image',
     routeCategory: 'image',
@@ -81,7 +81,7 @@ const MODEL_CATEGORY_GROUPS: ModelCategoryGroup[] = [
   {
     categories: [ModelCategory.TEXT],
     icon: FileText as IconType,
-    iconClassName: 'bg-success/15 text-success',
+    iconClassName: 'bg-success/10 text-success',
     key: 'text',
     label: 'Text',
     routeCategory: 'text',

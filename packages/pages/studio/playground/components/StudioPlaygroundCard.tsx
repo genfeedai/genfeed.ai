@@ -650,7 +650,7 @@ export default function StudioPlaygroundCard({
       onClick={handleCardActivate}
     >
       <div
-        className={`pointer-events-none relative z-0 flex items-center justify-center overflow-hidden bg-foreground/[0.04] ${
+        className={`pointer-events-none relative z-0 flex items-center justify-center overflow-hidden bg-foreground/5 ${
           isListView ? 'h-32 border-r border-border sm:h-40' : 'w-full min-h-40'
         }`}
         style={isListView ? undefined : { aspectRatio: `${width} / ${height}` }}
@@ -704,7 +704,7 @@ export default function StudioPlaygroundCard({
           >
             <ImageOff className="size-5" />
             <span className="text-xs">{translate('previewUnavailable')}</span>
-            <span className="max-w-48 text-2xs leading-relaxed text-muted-foreground/75">
+            <span className="max-w-48 text-2xs leading-relaxed text-muted-foreground/80">
               {translate('previewUnavailableDescription')}
             </span>
           </div>

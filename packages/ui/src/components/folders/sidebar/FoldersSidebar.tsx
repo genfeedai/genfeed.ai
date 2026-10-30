@@ -20,7 +20,7 @@ import { buildFolderTree, getFolderAncestorIds } from './folder-tree.util';
 const FOLDER_DEPTH_INDENT = 14;
 
 const FOLDER_ROW_CLASS_NAME =
-  'group flex h-8 w-full min-w-0 flex-1 !rounded !border-transparent !px-2.5 !py-1.5 text-left text-foreground/72 hover:!bg-foreground/[0.06] hover:text-foreground';
+  'group flex h-8 w-full min-w-0 flex-1 !rounded !border-transparent !px-2.5 !py-1.5 text-left text-foreground/80 hover:!bg-foreground/5 hover:text-foreground';
 
 function FoldersSidebar({
   folders,
@@ -76,7 +76,7 @@ function FoldersSidebar({
         onClick={() => onSelectFolder?.(folder)}
         className={cn(
           FOLDER_ROW_CLASS_NAME,
-          isSelected && '!bg-foreground/[0.06] text-foreground',
+          isSelected && '!bg-foreground/5 text-foreground',
         )}
         isSelected={isSelected}
       >
@@ -86,7 +86,7 @@ function FoldersSidebar({
               'flex size-5 shrink-0 items-center justify-center transition-colors duration-200',
               isSelected
                 ? 'text-foreground'
-                : 'text-muted-foreground group-hover:text-foreground/78',
+                : 'text-muted-foreground group-hover:text-foreground/80',
             )}
           >
             {hasDisclosure ? null : <Folder className="size-4" />}
@@ -119,7 +119,7 @@ function FoldersSidebar({
             <Button
               aria-expanded={isOpen}
               ariaLabel={`${isOpen ? 'Collapse' : 'Expand'} ${folder.label}`}
-              className="absolute top-1.5 z-10 size-5 shrink-0 p-0 text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground"
+              className="absolute top-1.5 z-10 size-5 shrink-0 p-0 text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
               onClick={() => toggleFolder(folder.id)}
               size={ButtonSize.ICON}
               textTransform="none"
@@ -154,7 +154,7 @@ function FoldersSidebar({
           {onCreateFolder ? (
             <Button
               ariaLabel="New folder"
-              className="size-6 shrink-0 p-0 text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground"
+              className="size-6 shrink-0 p-0 text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
               onClick={onCreateFolder}
               size={ButtonSize.ICON}
               textTransform="none"

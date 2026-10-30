@@ -138,7 +138,7 @@ export default function ResearchContent() {
                 <Heading as="h3" className="text-2xl font-bold">
                   Every Signal, One Workspace
                 </Heading>
-                <Text as="p" className="text-foreground/65">
+                <Text as="p" className="text-foreground/70">
                   Track trending content, competitor social accounts, and
                   winning ad creative from a single interface. Turn any
                   discovery into a ready brief without switching tabs.
@@ -194,7 +194,7 @@ export default function ResearchContent() {
                   >
                     {feature.title}
                   </Heading>
-                  <Text className="text-sm text-foreground/65">
+                  <Text className="text-sm text-foreground/70">
                     {feature.description}
                   </Text>
                 </div>
@@ -214,7 +214,7 @@ export default function ResearchContent() {
               return (
                 <div
                   key={step.label}
-                  className="gen-contact-sheet flex flex-col items-center gap-3 bg-foreground/[0.02] p-6 text-center"
+                  className="gen-contact-sheet flex flex-col items-center gap-3 bg-foreground/5 p-6 text-center"
                 >
                   <div className="flex size-14 items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
                     <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />

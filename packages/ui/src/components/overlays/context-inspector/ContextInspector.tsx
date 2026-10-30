@@ -41,7 +41,7 @@ export default function ContextInspector({
       <DialogContent
         aria-describedby={description ? descriptionId : undefined}
         className={cn(
-          'overflow-hidden border-l border-border bg-background/95 backdrop-blur-xl',
+          'overflow-hidden border-l border-border bg-background/90 backdrop-blur-xl',
           WIDTH_CLASS_NAMES[width],
           className,
         )}
@@ -49,7 +49,7 @@ export default function ContextInspector({
         onOpenAutoFocus={(event) => event.preventDefault()}
         placement="right"
       >
-        <div className="shrink-0 border-b border-border bg-background/92 px-5 py-4 pr-12 backdrop-blur">
+        <div className="shrink-0 border-b border-border bg-background/90 px-5 py-4 pr-12 backdrop-blur">
           <div className="flex items-start justify-between gap-4">
             <DialogHeader className="min-w-0 text-left">
               <DialogTitle>{title}</DialogTitle>
@@ -70,7 +70,7 @@ export default function ContextInspector({
         </div>
 
         {footer ? (
-          <div className="shrink-0 border-t border-border bg-background/92">
+          <div className="shrink-0 border-t border-border bg-background/90">
             {footer}
           </div>
         ) : null}

@@ -47,7 +47,7 @@ export function chartPlatformLabel(platform: string): string {
 export function ChartLoadingOverlay() {
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/50">
-      <span className="size-12 animate-pulse rounded-full bg-primary/30" />
+      <span className="size-12 animate-pulse rounded-full bg-primary/20" />
     </div>
   );
 }

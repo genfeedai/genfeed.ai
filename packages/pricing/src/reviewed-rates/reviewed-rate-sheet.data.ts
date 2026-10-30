@@ -2837,6 +2837,292 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-29T12:50:00.000Z',
   },
   {
+    endpoint: 'kwaivgi/kling-v4.0',
+    provider: 'replicate',
+    // Replicate bills $0.157/s (720p) and $0.235/s (1080p) for text, keyframe or
+    // reference-image input. Video input is a separate, higher-billed tier that
+    // the request builder never reaches, so it has no rate here.
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.157,
+        when: {
+          model_variant: 'no-video-input',
+          resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.235,
+        when: {
+          model_variant: 'no-video-input',
+          resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'composite',
+          parts: [
+            {
+              field: 'reference_videos',
+              mode: 'presence',
+              fieldType: 'array',
+            },
+            {
+              field: 'base_video',
+              mode: 'presence',
+              fieldType: 'string',
+            },
+          ],
+          cases: [
+            {
+              when: [false, false],
+              selector: 'no-video-input',
+            },
+            {
+              when: [true, false],
+              selector: 'video-input',
+            },
+            {
+              when: [false, true],
+              selector: 'video-input',
+            },
+            {
+              when: [true, true],
+              selector: 'video-input',
+            },
+          ],
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/kwaivgi/kling-v4.0',
+    verifiedAt: '2026-10-29T13:20:00.000Z',
+  },
+  {
+    endpoint: 'bytedance/video-upscaler',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.003443,
+        when: {
+          model_variant: 'standard',
+          target_fps_band: 'up-to-30',
+          target_resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.006887,
+        when: {
+          model_variant: 'standard',
+          target_fps_band: 'above-30',
+          target_resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.006887,
+        when: {
+          model_variant: 'standard',
+          target_fps_band: 'up-to-30',
+          target_resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.013773,
+        when: {
+          model_variant: 'standard',
+          target_fps_band: 'above-30',
+          target_resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.013773,
+        when: {
+          model_variant: 'standard',
+          target_fps_band: 'up-to-30',
+          target_resolution: '2k',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.027548,
+        when: {
+          model_variant: 'standard',
+          target_fps_band: 'above-30',
+          target_resolution: '2k',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.027548,
+        when: {
+          model_variant: 'standard',
+          target_fps_band: 'up-to-30',
+          target_resolution: '4k',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.055097,
+        when: {
+          model_variant: 'standard',
+          target_fps_band: 'above-30',
+          target_resolution: '4k',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.034435,
+        when: {
+          model_variant: 'pro',
+          target_fps_band: 'up-to-30',
+          target_resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.06887,
+        when: {
+          model_variant: 'pro',
+          target_fps_band: 'above-30',
+          target_resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.06887,
+        when: {
+          model_variant: 'pro',
+          target_fps_band: 'up-to-30',
+          target_resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.137742,
+        when: {
+          model_variant: 'pro',
+          target_fps_band: 'above-30',
+          target_resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.137742,
+        when: {
+          model_variant: 'pro',
+          target_fps_band: 'up-to-30',
+          target_resolution: '2k',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.275482,
+        when: {
+          model_variant: 'pro',
+          target_fps_band: 'above-30',
+          target_resolution: '2k',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.275482,
+        when: {
+          model_variant: 'pro',
+          target_fps_band: 'up-to-30',
+          target_resolution: '4k',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.550965,
+        when: {
+          model_variant: 'pro',
+          target_fps_band: 'above-30',
+          target_resolution: '4k',
+        },
+        isPerOutput: true,
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'field',
+          field: 'processing_type',
+          valueMap: {
+            standard: 'standard',
+            pro: 'pro',
+          },
+          fieldType: 'string',
+          default: 'standard',
+        },
+      },
+      {
+        criterionTitle: 'target frames per second',
+        selectorKey: 'target_fps_band',
+        derive: {
+          kind: 'field',
+          field: 'target_fps',
+          valueMap: {
+            '24': 'up-to-30',
+            '30': 'up-to-30',
+            '60': 'above-30',
+            '120': 'above-30',
+          },
+          fieldType: 'number',
+          default: 60,
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/bytedance/video-upscaler',
+    verifiedAt: '2026-10-29T17:30:00.000Z',
+  },
+  {
     endpoint: 'bytedance/seedream-5-lite',
     provider: 'replicate',
     rates: [

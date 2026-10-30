@@ -35,7 +35,13 @@
     "unavailableTitle": "Unavailable action"
   },
   "addNode": {
-    "label": "Add node"
+    "empty": "No nodes found",
+    "label": "Add node",
+    "searchLabel": "Search nodes",
+    "searchPlaceholder": "Search nodes..."
+  },
+  "agentLayout": {
+    "canvas": "Canvas"
   },
   "nodePalette": {
     "image": {

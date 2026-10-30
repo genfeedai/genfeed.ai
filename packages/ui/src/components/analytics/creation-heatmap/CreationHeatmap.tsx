@@ -13,8 +13,8 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 const INTENSITY_CLASSES = [
   'bg-foreground/10',
-  'bg-foreground/25',
-  'bg-foreground/45',
+  'bg-foreground/20',
+  'bg-foreground/40',
   'bg-foreground/80',
 ] as const;
 

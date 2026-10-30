@@ -5,7 +5,7 @@ import {
 } from '@genfeedai/contracts';
 import type { GenerationBriefReference } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 
-// ── Step discriminated unions ────────────────────────────────────────
+// Step discriminated unions
 
 export interface TextToImageStep {
   type: 'text-to-image';
@@ -48,7 +48,7 @@ export type PipelineStep =
   | TextToSpeechStep
   | TextToMusicStep;
 
-// ── Pipeline config ──────────────────────────────────────────────────
+// Pipeline config
 
 export type PublishMode = 'all' | 'final' | 'none';
 
@@ -83,7 +83,7 @@ export interface StepResult {
   contentType: string; // e.g. 'image/png', 'video/mp4', 'audio/mpeg'
 }
 
-// ── Pipeline result ─────────────────────────────────────────────────
+// Pipeline result
 
 export interface StepOutcome {
   stepIndex: number;
@@ -103,7 +103,7 @@ export interface PipelineResultV2 {
   };
 }
 
-// ── Structured errors ────────────────────────────────────────────────
+// Structured errors
 
 export interface PipelineError {
   code: string;

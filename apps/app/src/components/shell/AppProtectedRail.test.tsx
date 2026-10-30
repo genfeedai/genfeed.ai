@@ -513,9 +513,9 @@ describe('AppProtectedRail', () => {
     };
     expect(props.showAdmin).toBe(true);
 
-    props.onOpenAdminExternally?.('/admin/overview/dashboard');
+    props.onOpenAdminExternally?.('/admin/overview');
     expect(mockDesktop.openExternalPath).toHaveBeenCalledWith(
-      '/admin/overview/dashboard',
+      '/admin/overview',
     );
   });
 

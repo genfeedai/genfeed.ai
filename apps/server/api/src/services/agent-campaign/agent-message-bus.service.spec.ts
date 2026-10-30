@@ -52,7 +52,7 @@ describe('AgentMessageBusService', () => {
     expect(service).toBeDefined();
   });
 
-  // ── publish ───────────────────────────────────────────────────────────────
+  // publish
 
   describe('publish', () => {
     const message = {
@@ -110,7 +110,7 @@ describe('AgentMessageBusService', () => {
     });
   });
 
-  // ── subscribe ─────────────────────────────────────────────────────────────
+  // subscribe
 
   describe('subscribe', () => {
     it('subscribes to campaign channel', async () => {
@@ -144,7 +144,7 @@ describe('AgentMessageBusService', () => {
     });
   });
 
-  // ── getRecentMessages ─────────────────────────────────────────────────────
+  // getRecentMessages
 
   describe('getRecentMessages', () => {
     it('returns empty array when Redis publisher is unavailable', async () => {
