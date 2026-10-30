@@ -1159,6 +1159,8 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
         // (a new conversation never inherits another thread's run).
         return {
           activeThreadId: id,
+          // A mode picked on the thread being left says nothing about this one.
+          hasExplicitDraftAgentMode: false,
           stream: { ...DEFAULT_STREAM_STATE },
         };
       }),

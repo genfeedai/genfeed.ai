@@ -617,6 +617,21 @@ describe('agent-chat.store simple setters', () => {
     ]);
   });
 
+  it('drops an explicit mode pick when switching to another thread', () => {
+    const store = useAgentChatStore.getState();
+    store.setActiveThread('thread-a');
+    useAgentChatStore.setState({
+      draftAgentMode: AgentThreadMode.AUTO,
+      hasExplicitDraftAgentMode: true,
+    });
+
+    store.setActiveThread('thread-a');
+    expect(useAgentChatStore.getState().hasExplicitDraftAgentMode).toBe(true);
+
+    store.setActiveThread('thread-b');
+    expect(useAgentChatStore.getState().hasExplicitDraftAgentMode).toBe(false);
+  });
+
   it('covers scalar setters', () => {
     const store = useAgentChatStore.getState();
     store.setActiveThread('thread-9');
