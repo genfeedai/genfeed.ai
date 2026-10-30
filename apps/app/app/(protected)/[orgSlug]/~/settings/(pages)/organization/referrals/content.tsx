@@ -4,7 +4,6 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant, ReferralRewardStatus } from '@genfeedai/contracts';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { ReferralStatProps } from '@props/settings/referral-hub-card.props';
 import { ReferralsService } from '@services/billing/referrals.service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
@@ -19,6 +18,7 @@ import { Text } from '@ui/typography/text';
 import { Copy, Gift, TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
+import type { ReferralStatProps } from '@/features/settings/props/referral-hub-card.props';
 
 const REFERRAL_REWARD_STATUS_KEYS = {
   [ReferralRewardStatus.CANCELLED]: 'status.cancelled',

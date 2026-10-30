@@ -1,7 +1,7 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import type { AutomationLibraryTypeRouteProps } from '@props/automation/automation-library-type-route.props';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
+import type { AutomationLibraryTypeRouteProps } from '@/features/automation/props/automation-library-type-route.props';
 import TwitterReplyBot from '@/features/workflows/components/bots/TwitterReplyBot';
 import TwitchChatBot from './TwitchChatBot';
 import YoutubeChatBot from './YoutubeChatBot';

@@ -3,7 +3,6 @@
 import { ButtonSize, ButtonVariant, MemberRole } from '@genfeedai/contracts';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { MemberDetailsProps } from '@props/settings/members-list.props';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import { Button } from '@ui/primitives/button';
@@ -20,6 +19,7 @@ import { getErrorMessage } from '@utils/error/error-handler.util';
 import { Pencil } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
+import type { MemberDetailsProps } from '@/features/settings/props/members-list.props';
 
 export default function MemberDetails({
   member,

@@ -3,8 +3,8 @@
 import { useStreak } from '@hooks/data/streaks/use-streak/use-streak';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useSetupCard } from '@hooks/utils/use-setup-card/use-setup-card';
-import { useSidebarProgressPreference } from '@hooks/utils/use-sidebar-progress-preference/use-sidebar-progress-preference';
-import type { SettingsProgressPageProps } from '@props/settings/settings-progress-page.props';
+import { useSidebarProgressPreference } from '@/features/settings/hooks/use-sidebar-progress-preference/use-sidebar-progress-preference';
+import type { SettingsProgressPageProps } from '@/features/settings/props/settings-progress-page.props';
 import SettingsProgressChecklistCard from './settings-progress-checklist-card';
 import SettingsProgressHeatmapCard from './settings-progress-heatmap-card';
 import SettingsProgressOverviewCard from './settings-progress-overview-card';

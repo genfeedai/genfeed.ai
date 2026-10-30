@@ -1,6 +1,6 @@
-import type { PostSignupIntent } from '@genfeedai/props/onboarding/post-signup-routing.props';
+import type { PostSignupIntent } from '@/features/onboarding/props/post-signup-routing.props';
 
-export type { PostSignupIntent } from '@genfeedai/props/onboarding/post-signup-routing.props';
+export type { PostSignupIntent } from '@/features/onboarding/props/post-signup-routing.props';
 
 export {
   deriveBrandNameFromDomain,

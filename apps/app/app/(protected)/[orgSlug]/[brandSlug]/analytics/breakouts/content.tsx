@@ -8,7 +8,6 @@ import type {
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import type { BreakoutResponsesContentProps } from '@props/analytics/breakout-response-detail.props';
 import { BreakoutResponsesService } from '@services/analytics/breakout-responses.service';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
@@ -20,6 +19,7 @@ import { Text } from '@ui/typography/text';
 import { useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import type { BreakoutResponsesContentProps } from '@/features/analytics/props/breakout-response-detail.props';
 import BreakoutResponseDetail from './response-detail';
 
 function ScopedBreakoutResponses({

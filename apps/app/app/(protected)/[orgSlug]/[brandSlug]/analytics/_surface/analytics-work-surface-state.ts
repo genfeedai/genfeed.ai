@@ -7,16 +7,16 @@ import type {
   AnalyticsQuerySelectedResource,
 } from '@genfeedai/contracts/interfaces';
 import { getAnalyticsMetricDefinitionKey } from '@genfeedai/helpers/analytics/analytics-metric-definition.util';
+import { getDefaultDateRange } from '@helpers/utils/date-range.util';
 import type {
   AnalyticsSurfaceDescriptor,
   RestoredAnalyticsSurfaceState,
-} from '@genfeedai/props/analytics/analytics-work-surface-state.props';
-import { getDefaultDateRange } from '@helpers/utils/date-range.util';
+} from '@/features/analytics/props/analytics-work-surface-state.props';
 
 export type {
   AnalyticsSurfaceDescriptor,
   RestoredAnalyticsSurfaceState,
-} from '@genfeedai/props/analytics/analytics-work-surface-state.props';
+} from '@/features/analytics/props/analytics-work-surface-state.props';
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const PLATFORM_PATTERN = /^[a-z0-9_-]{1,32}$/;

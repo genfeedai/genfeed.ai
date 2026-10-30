@@ -1,5 +1,5 @@
 import type { IContentTemplate } from '@genfeedai/contracts/interfaces/content/template-ui.interface';
-import type { TemplateView } from '@props/admin/templates.props';
+import type { TemplateView } from '@/features/admin/props/templates.props';
 
 /**
  * The API serializes a template as `label` + string `content` (Handlebars for

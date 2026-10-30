@@ -1,6 +1,5 @@
 'use client';
 
-import type { RunStatsStripProps } from '@props/automation/run-stats-strip.props';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import {
   Activity,
@@ -10,6 +9,7 @@ import {
   ListChecks,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { RunStatsStripProps } from '@/features/automation/props/run-stats-strip.props';
 
 /** A statistics payload missing a counter must not unmount the runs page. */
 function formatStat(value: number | undefined): string {

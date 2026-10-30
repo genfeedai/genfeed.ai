@@ -9,9 +9,7 @@ import {
 } from '@genfeedai/contracts';
 import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import { getPlanEntitlementForTier, getPlanLabel } from '@genfeedai/pricing';
-import { useBillingAccount } from '@hooks/data/billing/use-billing-account/use-billing-account';
 import { useSubscription } from '@hooks/data/subscription/use-subscription/use-subscription';
-import type { SubscriptionStatCellProps } from '@props/settings/subscription-page.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
@@ -21,6 +19,8 @@ import { Text } from '@ui/typography/text';
 import { ExternalLink } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import { useBillingAccount } from '@/features/settings/hooks/use-billing-account/use-billing-account';
+import type { SubscriptionStatCellProps } from '@/features/settings/props/subscription-page.props';
 import UpgradePlan from './upgrade-plan';
 
 /**

@@ -1,5 +1,4 @@
 import { CardVariant } from '@genfeedai/contracts';
-import type { WorkspaceTaskFacecamPanelProps } from '@props/workspace/workspace-task-facecam-panel.props';
 import Card from '@ui/card/Card';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Label } from '@ui/primitives/label';
@@ -10,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import type { WorkspaceTaskFacecamPanelProps } from '@/features/workspace/props/workspace-task-facecam-panel.props';
 
 export function WorkspaceTaskFacecamPanel({
   avatars,

@@ -1,9 +1,9 @@
-import type { AgentMarketplaceSearchProps } from '@props/automation/agent-marketplace.props';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import SearchField from '@ui/content/search-field/SearchField';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { CONTENT_TEAM_ROLE_PRESETS } from '@/features/agents/content-team/content-team-presets';
+import type { AgentMarketplaceSearchProps } from '@/features/automation/props/agent-marketplace.props';
 import { ALL_CATEGORY } from './agent-marketplace-filter';
 
 /** The marketplace search, with the team Filters menu inside it. */

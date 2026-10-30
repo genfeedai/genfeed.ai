@@ -1,6 +1,6 @@
 import { formatPlatformLabel } from '@genfeedai/contracts';
-import type { AgentPlatformApprovalProgress } from '@props/automation/agent-strategy-publish-toggles.props';
 import type { AgentStrategyPublishPolicy } from '@services/automation/agent-strategies.service';
+import type { AgentPlatformApprovalProgress } from '@/features/automation/props/agent-strategy-publish-toggles.props';
 
 /** The server's graduation threshold when a strategy stores none (#4964). */
 export const DEFAULT_APPROVALS_TO_GRADUATE = 5;

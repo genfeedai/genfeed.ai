@@ -2,10 +2,6 @@
 
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { Code } from '@genfeedai/ui';
-import type {
-  CopyTarget,
-  SuccessState,
-} from '@props/auth/managed-credits-success-content.props';
 import {
   isManagedCreditsTransientError,
   ManagedCreditsService,
@@ -23,8 +19,11 @@ import {
 import { useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
-
 import { Card, CardContent } from '@/components/ui/card';
+import type {
+  CopyTarget,
+  SuccessState,
+} from '@/features/managed-credits/props/managed-credits-success-content.props';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 
 const CHECKOUT_RESULT_POLL_DELAYS_MS = [1000, 2000, 3000, 5000, 8000];

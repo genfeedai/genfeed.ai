@@ -1,6 +1,6 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import type { WorkflowDetailPageProps } from '@props/automation/workflow-detail-page.props';
 import { notFound } from 'next/navigation';
+import type { WorkflowDetailPageProps } from '@/features/automation/props/workflow-detail-page.props';
 import WorkflowDetailPageClient from './WorkflowDetailPageClient';
 
 export const generateMetadata = createPageMetadata('Agent Workflow Editor');

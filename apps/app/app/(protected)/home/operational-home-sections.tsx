@@ -27,12 +27,6 @@ import { useActivities } from '@hooks/data/activities/use-activities/use-activit
 import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';
 import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import type {
-  NeedsYouItem,
-  OperationalHomeSectionsProps,
-  PublishingSurfaceProps,
-  ReviewInboxItem,
-} from '@props/home/operational-home-sections.props';
 import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { logger } from '@services/core/logger.service';
@@ -65,6 +59,12 @@ import {
 } from '@/features/activities/activities-list.utils';
 import ActivityThumbnailCell from '@/features/activities/components/ActivityThumbnailCell';
 import AccountCell from '@/features/brands/components/integrations/AccountCell';
+import type {
+  NeedsYouItem,
+  OperationalHomeSectionsProps,
+  PublishingSurfaceProps,
+  ReviewInboxItem,
+} from '@/features/home/props/operational-home-sections.props';
 import PublishingPostHoverPreview from '@/features/posts/library/publishing-post-hover-preview';
 import {
   badgeVariantForTone,

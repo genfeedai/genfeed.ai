@@ -3,10 +3,6 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { TurboProjectKind } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type {
-  TurboPreset,
-  TurboPresetGridProps,
-} from '@genfeedai/props/studio/turbo-presets.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -16,6 +12,10 @@ import { useTranslations } from 'next-intl';
 import { type ReactElement, useRef, useState } from 'react';
 import StudioPresetCard from '@/features/studio/shared/components/StudioPresetCard';
 import StudioPresetList from '@/features/studio/shared/components/StudioPresetList';
+import type {
+  TurboPreset,
+  TurboPresetGridProps,
+} from '@/features/workflows/props/turbo-presets.props';
 import TurboIdeaStrip from './TurboIdeaStrip';
 import { createTurboProjectsApi } from './turbo-projects-api';
 

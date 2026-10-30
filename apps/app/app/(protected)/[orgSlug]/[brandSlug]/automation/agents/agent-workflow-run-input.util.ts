@@ -1,14 +1,13 @@
-import type { AgentWorkflowRunFormState } from '@genfeedai/props/automation/agent-workflow-run-input.props';
-
 import type {
   AgentStrategyWorkflowInputPreview,
   RunAgentStrategyWorkflowInput,
 } from '@services/automation/agent-strategies.service';
+import type { AgentWorkflowRunFormState } from '@/features/automation/props/agent-workflow-run-input.props';
 
 export type {
   AgentWorkflowRunFormState,
   WorkflowIngredientSelection,
-} from '@genfeedai/props/automation/agent-workflow-run-input.props';
+} from '@/features/automation/props/agent-workflow-run-input.props';
 
 /** Keys covered by the fixed topic/prompt/cta/image form fields. */
 export const STANDARD_WORKFLOW_SLOT_KEYS = new Set([

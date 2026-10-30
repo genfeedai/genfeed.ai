@@ -1,5 +1,5 @@
-import type { ProvidersRowItemProps } from '@props/onboarding/providers-row-item.props';
 import { CircleCheck, Key } from 'lucide-react';
+import type { ProvidersRowItemProps } from '@/features/onboarding/props/providers-row-item.props';
 
 export default function ProvidersRowItem({
   description,

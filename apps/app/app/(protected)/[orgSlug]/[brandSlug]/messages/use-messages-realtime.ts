@@ -2,10 +2,10 @@ import type {
   SocialInboxRealtimeEvent,
   SocialInboxSyncRealtimeEvent,
 } from '@genfeedai/contracts/interfaces';
-import type { UseMessagesRealtimeParams } from '@genfeedai/props/messages/messages-realtime.props';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { WebSocketPaths } from '@utils/network/websocket.util';
 import { useCallback, useEffect, useRef } from 'react';
+import type { UseMessagesRealtimeParams } from '@/features/messages/props/messages-realtime.props';
 import { captureMessagesSurfaceEvent } from './messages-surface-telemetry';
 
 type MessagesConnectionState =

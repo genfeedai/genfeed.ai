@@ -1,4 +1,3 @@
-import type { MotionPreset } from '@genfeedai/props/studio/motion-presets.props';
 import {
   BarChart3,
   Captions,
@@ -7,6 +6,7 @@ import {
   Quote,
   Sparkles,
 } from 'lucide-react';
+import type { MotionPreset } from '@/features/motion/props/motion-presets.props';
 
 /**
  * Brand-neutral compose-form starting points for Motion. Prompts are content

@@ -1,9 +1,9 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { EditorLockedBannerProps } from '@props/studio/editor-locked-banner.props';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Lock } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { EditorLockedBannerProps } from '@/features/studio/props/editor-locked-banner.props';
 
 export default function EditorLockedBanner({
   hasSaveConflict,

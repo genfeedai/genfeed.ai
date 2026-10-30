@@ -10,10 +10,6 @@ import {
 import { resolveMcpAccessModeForResource } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
-import type {
-  ConsentState,
-  OAuthDecisionResponse,
-} from '@props/auth/oauth-consent-content.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import Card from '@ui/card/Card';
@@ -25,6 +21,10 @@ import { ArrowUpRight, Check, Lock } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type {
+  ConsentState,
+  OAuthDecisionResponse,
+} from '@/features/auth/props/oauth-consent-content.props';
 import { redirectToOAuthClient } from './redirect';
 
 type AccessLevel = 'full' | 'drafts' | 'read';

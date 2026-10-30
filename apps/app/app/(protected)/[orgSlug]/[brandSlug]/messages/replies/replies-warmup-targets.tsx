@@ -9,7 +9,6 @@ import type {
 import { ReplyBotConfigsService } from '@genfeedai/services/automation/reply-bot-configs.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { RepliesWarmupTargetsProps } from '@props/messages/replies-warmup-targets.props';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -17,6 +16,7 @@ import { Input } from '@ui/primitives/input';
 import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import type { RepliesWarmupTargetsProps } from '@/features/messages/props/replies-warmup-targets.props';
 
 /**
  * Suggests X accounts in the brand's niche, adds the chosen ones to the

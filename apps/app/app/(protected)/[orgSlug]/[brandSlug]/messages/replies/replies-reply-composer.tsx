@@ -2,7 +2,6 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ReplyIntent } from '@genfeedai/props/messages/replies-page.props';
-import type { RepliesReplyComposerProps } from '@genfeedai/props/messages/replies-reply-composer.props';
 import { Button } from '@ui/primitives/button';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
@@ -11,6 +10,7 @@ import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolba
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import { Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { RepliesReplyComposerProps } from '@/features/messages/props/replies-reply-composer.props';
 
 const INTENT_VALUES: ReplyIntent[] = [
   'thanks',

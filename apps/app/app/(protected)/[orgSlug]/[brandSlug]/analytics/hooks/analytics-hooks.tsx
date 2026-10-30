@@ -14,7 +14,6 @@ import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.prop
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useClientPagination } from '@hooks/data/pagination/use-client-pagination/use-client-pagination';
-import type { AnalyticsHooksProps } from '@props/analytics/analytics-hooks.props';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
@@ -26,6 +25,7 @@ import { format } from 'date-fns';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { AnalyticsHooksProps } from '@/features/analytics/props/analytics-hooks.props';
 
 import HookAnalysisSection from './HookAnalysisSection';
 import HookStatCards from './HookStatCards';

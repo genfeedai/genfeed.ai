@@ -1,10 +1,10 @@
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { AddCreditsCardProps } from '@props/settings/add-credits-card.props';
 import { StripeService } from '@services/billing/stripe.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useState } from 'react';
+import type { AddCreditsCardProps } from '@/features/settings/props/add-credits-card.props';
 import CreditTopUpPanel from '../credits/credit-top-up-panel';
 
 export default function AddCreditsCard({

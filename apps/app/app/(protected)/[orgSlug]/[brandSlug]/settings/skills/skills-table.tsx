@@ -1,9 +1,9 @@
-import type { SkillsTableProps } from '@props/settings/skills.props';
 import type { Skill } from '@services/content/skills.service';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import { Switch } from '@ui/primitives/switch';
 import { useTranslations } from 'next-intl';
+import type { SkillsTableProps } from '@/features/settings/props/skills.props';
 
 function getSourceBadgeVariant(
   source: Skill['source'],

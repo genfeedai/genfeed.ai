@@ -1,9 +1,5 @@
 'use client';
 
-import type {
-  AgentContextFieldRow,
-  AgentContextLayerBodyProps,
-} from '@props/settings/agent/context.props';
 import { Badge } from '@ui/primitives/badge';
 import {
   DefinitionDetail,
@@ -12,6 +8,10 @@ import {
 } from '@ui/primitives/definition-list';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
+import type {
+  AgentContextFieldRow,
+  AgentContextLayerBodyProps,
+} from '@/features/settings/props/context.props';
 
 function joinValues(values: string[] | undefined): string | undefined {
   return values && values.length > 0 ? values.join(', ') : undefined;

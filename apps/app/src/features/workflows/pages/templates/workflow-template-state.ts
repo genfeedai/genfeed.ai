@@ -1,7 +1,7 @@
 import type {
   DataSource,
   DataSourceStatus,
-} from '@genfeedai/props/workflows/workflow-templates-page.props';
+} from '@/features/workflows/props/workflow-templates-page.props';
 import type { WorkflowApiService } from '@/features/workflows/services/workflow-api';
 import type { PageAction, PageState } from './workflow-template-types';
 

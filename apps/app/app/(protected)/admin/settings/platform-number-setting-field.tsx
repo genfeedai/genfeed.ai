@@ -1,10 +1,10 @@
 'use client';
 
-import type { PlatformNumberSettingFieldProps } from '@props/admin/platform-settings.props';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import type { PlatformNumberSettingFieldProps } from '@/features/admin/props/platform-settings.props';
 
 function formatValue(value: number | null): string {
   return value === null ? '' : String(value);

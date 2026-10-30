@@ -1,6 +1,6 @@
-import type { WorkspaceTaskThreadCardProps } from '@props/workspace/workspace-task-thread-card.props';
 import Card from '@ui/card/Card';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import type { WorkspaceTaskThreadCardProps } from '@/features/workspace/props/workspace-task-thread-card.props';
 import {
   formatWorkspaceEventLabel,
   getWorkspaceEventMessage,

@@ -17,7 +17,6 @@ import {
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useVisiblePolling } from '@hooks/ui/use-visible-polling/use-visible-polling';
-import type { AgentDetailPageProps } from '@props/automation/agent-strategy.props';
 import type {
   AgentStrategyWorkflowBinding,
   RunAgentStrategyWorkflowInput,
@@ -42,6 +41,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useMemo, useState } from 'react';
+import type { AgentDetailPageProps } from '@/features/automation/props/agent-strategy.props';
 import AgentWorkflowRunDialog from '../AgentWorkflowRunDialog';
 import { getAgentTypeIcon, getAgentTypeLabel } from '../agent-type-display';
 import {

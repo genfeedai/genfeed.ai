@@ -2,10 +2,6 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ITurboRunItemAssignee } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Member } from '@models/organization/member.model';
-import type {
-  ReviewAssignmentMemberOption,
-  ReviewAssignmentPanelProps,
-} from '@props/publishing/review-assignment-panel.props';
 import { logger } from '@services/core/logger.service';
 import { MembersService } from '@services/organization/members.service';
 import { Button } from '@ui/primitives/button';
@@ -19,6 +15,10 @@ import {
 } from '@ui/primitives/select';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type {
+  ReviewAssignmentMemberOption,
+  ReviewAssignmentPanelProps,
+} from '@/features/posts/props/review-assignment-panel.props';
 
 function getMemberOptionLabel(member: Member): string {
   const handle = member.user?.handle?.trim() ?? '';

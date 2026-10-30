@@ -1,5 +1,4 @@
 import '@testing-library/jest-dom/vitest';
-import type { IssueSidebarProps } from '@props/tasks/issue-sidebar.props';
 import {
   Task,
   type TaskLinkedEntityModel,
@@ -8,6 +7,7 @@ import {
 } from '@services/management/tasks.service';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import type { IssueSidebarProps } from '@/features/tasks/props/issue-sidebar.props';
 import IssueSidebar from './issue-sidebar';
 
 // The "View parent" link must be scope-aware (#5397): a bare

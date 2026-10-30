@@ -2,10 +2,9 @@ import type {
   AccountHealthSummary,
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
-
+import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
+import type { AsyncState } from '@genfeedai/props/shared/async-state.types';
 import type { ReactNode } from 'react';
-import type { BrandDetailSocialConnection } from '../pages/brand-detail.props';
-import type { AsyncState } from '../shared/async-state.types';
 
 /** One SCHEDULED channel target due within the next 24 hours. */
 export interface PublishingOverviewQueueItem {

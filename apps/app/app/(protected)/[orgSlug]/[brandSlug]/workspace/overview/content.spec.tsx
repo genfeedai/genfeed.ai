@@ -19,7 +19,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock(
-  '@hooks/data/content/use-dashboard-layout/use-dashboard-layout',
+  '@/features/workspace/hooks/use-dashboard-layout/use-dashboard-layout',
   () => ({
     useDashboardLayout: (...args: unknown[]) =>
       mocks.useDashboardLayout(...args),

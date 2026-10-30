@@ -4,10 +4,6 @@ import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type {
-  GenerationStatusOption,
-  GenerationView,
-} from '@props/admin/generations.props';
 import { ModelsService } from '@services/ai/models.service';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { PromptsService } from '@services/content/prompts.service';
@@ -27,6 +23,10 @@ import { Image as ImageIcon } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import type {
+  GenerationStatusOption,
+  GenerationView,
+} from '@/features/admin/props/generations.props';
 import GenerationDetailPanel from './generation-detail-panel';
 import GenerationRow from './generation-row';
 import {

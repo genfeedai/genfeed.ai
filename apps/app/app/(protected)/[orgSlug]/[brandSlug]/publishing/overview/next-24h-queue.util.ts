@@ -1,10 +1,10 @@
 import { TargetExecutionState } from '@genfeedai/contracts';
 import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
+import { getPublishingReleaseHref } from '@helpers/content/posts.helper';
 import type {
   Next24hQueueGroup,
   Next24hQueueItem,
-} from '@genfeedai/props/publisher/publishing-overview.props';
-import { getPublishingReleaseHref } from '@helpers/content/posts.helper';
+} from '@/features/posts/props/publishing-overview.props';
 import { releaseDisplayTitle } from '@/features/posts/rail/release-rail-row.helpers';
 import { resolveAccountLabel } from './account-label.util';
 
@@ -12,7 +12,7 @@ export type {
   Next24hQueueBucket,
   Next24hQueueGroup,
   Next24hQueueItem,
-} from '@genfeedai/props/publisher/publishing-overview.props';
+} from '@/features/posts/props/publishing-overview.props';
 
 const NEAR_WINDOW_MS = 3 * 60 * 60 * 1000;
 const QUEUE_WINDOW_MS = 24 * 60 * 60 * 1000;

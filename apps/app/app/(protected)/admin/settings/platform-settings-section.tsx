@@ -9,7 +9,6 @@ import {
   TYPED_DECISION_PROVIDER_LABELS,
   TYPED_DECISION_PROVIDER_NAMES,
 } from '@genfeedai/contracts/constants';
-import type { PlatformSettingsTab } from '@props/admin/platform-settings.props';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
@@ -24,6 +23,7 @@ import {
 import { Text } from '@ui/typography/text';
 import { useTranslations } from 'next-intl';
 import type { FormEvent } from 'react';
+import type { PlatformSettingsTab } from '@/features/admin/props/platform-settings.props';
 import PlatformFeatureSettingsFields from './platform-feature-settings-fields';
 import PlatformNumberSettingField from './platform-number-setting-field';
 import { usePlatformSettings } from './platform-settings.provider';

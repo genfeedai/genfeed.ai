@@ -14,11 +14,6 @@ import type {
   VisualCodeQuoteRequest,
 } from '@genfeedai/contracts/interfaces';
 import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
-import type { MotionSettingKey } from '@genfeedai/props/studio/motion-composer.props';
-import type {
-  MotionPreset,
-  MotionPresetId,
-} from '@genfeedai/props/studio/motion-presets.props';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useVisualProjects } from '@hooks/data/content/use-visual-projects';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -47,6 +42,11 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
+import type { MotionSettingKey } from '@/features/motion/props/motion-composer.props';
+import type {
+  MotionPreset,
+  MotionPresetId,
+} from '@/features/motion/props/motion-presets.props';
 import MotionAdvancedSettings from './components/MotionAdvancedSettings';
 import MotionPresetPanel from './components/MotionPresetPanel';
 import MotionQuoteReview from './components/MotionQuoteReview';

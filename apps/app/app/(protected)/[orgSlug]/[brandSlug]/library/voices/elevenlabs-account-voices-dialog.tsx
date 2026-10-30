@@ -7,7 +7,6 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
-import type { ElevenLabsAccountVoicesDialogProps } from '@props/library/elevenlabs-account-voices-dialog.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { VoicesService } from '@services/ingredients/voices.service';
@@ -25,6 +24,7 @@ import { Input } from '@ui/primitives/input';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { ElevenLabsAccountVoicesDialogProps } from '@/features/library/props/elevenlabs-account-voices-dialog.props';
 
 const SEARCH_DEBOUNCE_MS = 350;
 

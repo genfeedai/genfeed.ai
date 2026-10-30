@@ -5,12 +5,12 @@ import type { ISocialWarmupEnrollment } from '@genfeedai/contracts/interfaces';
 import { SocialWarmupEnrollmentsService } from '@genfeedai/services/social/social-warmup-enrollments.service';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useMemo } from 'react';
 import type {
   UseSocialWarmupEnrollmentOptions,
   UseSocialWarmupEnrollmentResult,
-} from '@props/social/social-warmup-enrollments.props';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useMemo } from 'react';
+} from '@/features/brands/props/social-warmup-enrollments.props';
 
 export const SOCIAL_WARMUP_ENROLLMENT_QUERY_KEY = 'social-warmup-enrollment';
 

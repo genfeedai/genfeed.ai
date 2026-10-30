@@ -14,13 +14,13 @@ import type {
   MessagesSyncFeedback,
   MessagesSyncJob,
   MessagesSyncOutcome,
-} from '@genfeedai/props/messages/messages-page-state.props';
+} from '@/features/messages/props/messages-page-state.props';
 
 export type {
   MessagesSyncFeedback,
   MessagesSyncJob,
   MessagesSyncOutcome,
-} from '@genfeedai/props/messages/messages-page-state.props';
+} from '@/features/messages/props/messages-page-state.props';
 
 export type MessagesPaginationState = Omit<
   IPaginatedResponse<unknown>,

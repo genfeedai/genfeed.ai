@@ -5,10 +5,10 @@ import type {
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
 import type { Newsletter } from '@models/content/newsletter.model';
-import type { ContentCalendarLoadOptions } from '@props/publishing/content-calendar-controller.props';
 import type { ReleaseGroupListQuery } from '@services/content/release-groups.service';
 import { logger } from '@services/core/logger.service';
 import { useEffect, useState } from 'react';
+import type { ContentCalendarLoadOptions } from '@/features/posts/props/content-calendar-controller.props';
 
 export function useContentCalendarData({
   brandId,

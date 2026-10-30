@@ -2,7 +2,7 @@ import { readRecordOrUndefined } from '@genfeedai/utils/data/extract.util';
 import type {
   GenerationMediaKind,
   GenerationView,
-} from '@props/admin/generations.props';
+} from '@/features/admin/props/generations.props';
 
 type SourceRecord = Record<string, unknown>;
 

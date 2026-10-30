@@ -1,5 +1,4 @@
 import { AgentType, Platform } from '@genfeedai/contracts';
-import type { AgentTypeIcon } from '@genfeedai/props/automation/agent-type-display.props';
 import {
   Clapperboard,
   FileText,
@@ -14,6 +13,7 @@ import {
   SquareUser,
   Video,
 } from 'lucide-react';
+import type { AgentTypeIcon } from '@/features/automation/props/agent-type-display.props';
 
 export type { AgentTypeIcon };
 

@@ -6,10 +6,10 @@ import {
 import { createPublishingApprovalsRoute } from '@genfeedai/contracts/constants';
 import type { CalendarEventDrop } from '@props/components/calendar.props';
 import type { PendingCalendarDrop } from '@props/publisher/release-calendar.props';
-import type { CalendarReleaseActionsOptions } from '@props/publishing/content-calendar-controller.props';
-import type { ContentCalendarItem } from '@props/publishing/content-calendar-page.props';
 import { logger } from '@services/core/logger.service';
 import { useCallback, useMemo, useRef, useState } from 'react';
+import type { CalendarReleaseActionsOptions } from '@/features/posts/props/content-calendar-controller.props';
+import type { ContentCalendarItem } from '@/features/posts/props/content-calendar-page.props';
 import {
   RELEASE_RESCHEDULE_ACTION,
   targetRescheduleAction,

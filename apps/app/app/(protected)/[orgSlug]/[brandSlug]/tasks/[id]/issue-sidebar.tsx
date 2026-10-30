@@ -8,12 +8,12 @@ import {
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { IssueSidebarProps } from '@props/tasks/issue-sidebar.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import { FileText, Image, LinkIcon } from 'lucide-react';
 import Link from 'next/link';
+import type { IssueSidebarProps } from '@/features/tasks/props/issue-sidebar.props';
 
 export default function IssueSidebar({
   issue,

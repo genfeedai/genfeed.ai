@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { AgentContextOverviewCardProps } from '@props/settings/agent/context.props';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -10,6 +9,7 @@ import { Progress } from '@ui/primitives/progress';
 import { RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type KeyboardEvent, useState } from 'react';
+import type { AgentContextOverviewCardProps } from '@/features/settings/props/context.props';
 
 /** Model, credits per round, context budget, and a preview-query control. */
 export default function AgentContextOverviewCard({

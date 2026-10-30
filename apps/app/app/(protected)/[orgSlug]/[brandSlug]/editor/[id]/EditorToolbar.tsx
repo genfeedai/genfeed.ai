@@ -5,7 +5,6 @@ import {
   ButtonVariant,
   IngredientFormat,
 } from '@genfeedai/contracts';
-import type { EditorToolbarProps } from '@props/studio/editor-toolbar.props';
 import { Button } from '@ui/primitives/button';
 import {
   Select,
@@ -29,6 +28,7 @@ import {
   Undo2,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { EditorToolbarProps } from '@/features/studio/props/editor-toolbar.props';
 
 import EditorSaveIndicator from './EditorSaveIndicator';
 import { formatPlaybackFrameTime } from './editor-time-format.util';

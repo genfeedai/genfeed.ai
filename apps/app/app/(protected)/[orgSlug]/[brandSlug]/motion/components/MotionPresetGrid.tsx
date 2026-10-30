@@ -1,8 +1,8 @@
 'use client';
 
-import type { MotionPresetGridProps } from '@genfeedai/props/studio/motion-presets.props';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
+import type { MotionPresetGridProps } from '@/features/motion/props/motion-presets.props';
 import StudioPresetCard from '@/features/studio/shared/components/StudioPresetCard';
 import StudioPresetList from '@/features/studio/shared/components/StudioPresetList';
 import MotionFramePreview from './MotionFramePreview';

@@ -6,7 +6,6 @@ import type {
   TrialClaimStatus,
 } from '@genfeedai/contracts/interfaces/billing';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { TrialCardClaimCardProps } from '@props/settings/trial-card-claim-card.props';
 import { StripeService } from '@services/billing/stripe.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -17,6 +16,7 @@ import { Gift } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { TrialCardClaimCardProps } from '@/features/settings/props/trial-card-claim-card.props';
 
 const OUTCOME_MESSAGE_KEYS: Record<
   Exclude<TrialClaimOutcome, 'already-claimed' | 'granted'>,

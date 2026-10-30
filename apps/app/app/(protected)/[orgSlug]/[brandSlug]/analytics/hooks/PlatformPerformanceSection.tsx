@@ -1,8 +1,8 @@
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
-import type { Props } from '@props/analytics/platform-performance-section.props';
 import Card from '@ui/card/Card';
 import MetricItem from '@ui/display/metric-item/MetricItem';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import type { Props } from '@/features/analytics/props/platform-performance-section.props';
 
 export default function PlatformPerformanceSection({ topPlatforms }: Props) {
   if (topPlatforms.length === 0) {

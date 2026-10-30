@@ -1,6 +1,6 @@
 import { ButtonVariant } from '@genfeedai/contracts';
-import type { EditorNotFoundProps } from '@props/studio/editor-not-found.props';
 import { Button } from '@ui/primitives/button';
+import type { EditorNotFoundProps } from '@/features/studio/props/editor-not-found.props';
 
 export default function EditorNotFound({ onBack }: EditorNotFoundProps) {
   return (

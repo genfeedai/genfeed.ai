@@ -1,8 +1,8 @@
 'use client';
 
-import type { EconomicsPeriodFilterProps } from '@props/admin/economics.props';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import { useTranslations } from 'next-intl';
+import type { EconomicsPeriodFilterProps } from '@/features/admin/props/economics.props';
 import {
   DEFAULT_ECONOMICS_PERIOD_DAYS,
   ECONOMICS_PERIOD_DAYS,

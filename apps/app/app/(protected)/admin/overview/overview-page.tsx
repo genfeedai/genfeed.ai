@@ -5,10 +5,6 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-card.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAdminStats } from '@hooks/data/analytics/use-admin-stats/use-admin-stats';
-import type {
-  LeaderboardCardProps,
-  StatsGridProps,
-} from '@props/admin/dashboard.props';
 import type { KPICardProps } from '@props/ui/kpi/kpi-card.props';
 import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
@@ -23,6 +19,10 @@ import { Building2, CreditCard, Newspaper, Tag, Users } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import type {
+  LeaderboardCardProps,
+  StatsGridProps,
+} from '@/features/admin/props/dashboard.props';
 
 // Lazy-load the chart component to avoid bundling recharts in the initial chunk
 const ActivityChart = dynamic(

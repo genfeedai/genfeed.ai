@@ -1,8 +1,8 @@
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
-import type { Props } from '@props/analytics/hook-stat-cards.props';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import { Eye, Heart, Sparkles, TrendingUp } from 'lucide-react';
+import type { Props } from '@/features/analytics/props/hook-stat-cards.props';
 
 export default function HookStatCards({
   analysisData,

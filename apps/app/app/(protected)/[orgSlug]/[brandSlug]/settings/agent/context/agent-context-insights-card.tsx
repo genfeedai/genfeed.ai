@@ -1,10 +1,10 @@
 'use client';
 
-import type { AgentContextInsightsCardProps } from '@props/settings/agent/context.props';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { useTranslations } from 'next-intl';
+import type { AgentContextInsightsCardProps } from '@/features/settings/props/context.props';
 
 /** Every distilled BrandMemory insight, newest first. */
 export default function AgentContextInsightsCard({

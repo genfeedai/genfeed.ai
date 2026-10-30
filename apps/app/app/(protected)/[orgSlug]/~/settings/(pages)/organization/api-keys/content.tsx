@@ -15,12 +15,6 @@ import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type {
-  AuthorizedApiKeysContentProps,
-  ProductApiKeyForm,
-  ProductApiKeyScope,
-  ProductPlainKey,
-} from '@props/settings/api-keys-content.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { isCancelledRequest } from '@services/core/operation-error';
@@ -42,6 +36,12 @@ import {
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type {
+  AuthorizedApiKeysContentProps,
+  ProductApiKeyForm,
+  ProductApiKeyScope,
+  ProductPlainKey,
+} from '@/features/settings/props/api-keys-content.props';
 import { isApiKeyLimitReached } from './api-key-create-error';
 
 const PRODUCT_API_KEY_PRESETS = [

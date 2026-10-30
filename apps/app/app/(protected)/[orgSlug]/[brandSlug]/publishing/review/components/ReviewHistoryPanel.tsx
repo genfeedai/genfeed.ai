@@ -1,8 +1,8 @@
 import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
 import { formatDateInTimezone } from '@helpers/formatting/timezone/timezone.helper';
-import type { ReviewHistoryPanelProps } from '@props/publishing/review-history-panel.props';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 import { useTranslations } from 'next-intl';
+import type { ReviewHistoryPanelProps } from '@/features/posts/props/review-history-panel.props';
 
 function getReviewerInitials(displayName: string): string {
   const initials = displayName

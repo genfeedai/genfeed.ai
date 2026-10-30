@@ -12,10 +12,6 @@ import {
 } from '@genfeedai/contracts/constants';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type {
-  PublishingLayoutAction,
-  PublishingLayoutState,
-} from '@props/publishing/publishing-layout-content.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
 import {
@@ -29,6 +25,10 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { Suspense, useCallback, useEffect, useMemo, useReducer } from 'react';
+import type {
+  PublishingLayoutAction,
+  PublishingLayoutState,
+} from '@/features/posts/props/publishing-layout-content.props';
 
 const initialPublishingLayoutState: PublishingLayoutState = {
   refreshFn: null,

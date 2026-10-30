@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
-import type { WorkspaceTaskInspectorHeaderProps } from '@props/workspace/workspace-task-inspector-header.props';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import {
@@ -14,6 +13,7 @@ import {
 import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import type { WorkspaceTaskInspectorHeaderProps } from '@/features/workspace/props/workspace-task-inspector-header.props';
 import { buildTaskLaunchHref } from '@/lib/navigation/operator-shell';
 import {
   getTaskBadgeStatus,

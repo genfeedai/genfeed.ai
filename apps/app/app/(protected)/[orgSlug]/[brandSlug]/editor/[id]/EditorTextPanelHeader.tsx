@@ -1,6 +1,6 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { EditorTextPanelHeaderProps } from '@props/studio/editor-text-panel-header.props';
 import { Button } from '@ui/primitives/button';
+import type { EditorTextPanelHeaderProps } from '@/features/studio/props/editor-text-panel-header.props';
 
 function EditorTextPanelHeader({
   isExpanded,

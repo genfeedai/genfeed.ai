@@ -1,11 +1,11 @@
 'use client';
 
-import type { MotionQuoteReviewProps } from '@genfeedai/props/studio/motion-composer.props';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Label } from '@ui/primitives/label';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
+import type { MotionQuoteReviewProps } from '@/features/motion/props/motion-composer.props';
 
 /**
  * The credit-ceiling approval. It renders as the prompt bar's banner, so the

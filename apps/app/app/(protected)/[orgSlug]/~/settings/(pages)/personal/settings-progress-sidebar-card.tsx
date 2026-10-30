@@ -1,8 +1,8 @@
-import type { Props } from '@props/settings/settings-progress-sidebar-card.props';
 import Card from '@ui/card/Card';
 import { MetricSummary } from '@ui/cards/metric-card/MetricCard';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { Switch } from '@ui/primitives/switch';
+import type { Props } from '@/features/settings/props/settings-progress-sidebar-card.props';
 
 export default function SettingsProgressSidebarCard({
   isSaving,

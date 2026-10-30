@@ -1,12 +1,12 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { IOnboardingDraftContext } from '@genfeedai/contracts/interfaces';
-import type { FirstDraftsContextFormProps } from '@genfeedai/props/onboarding/first-drafts.props';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import type { FirstDraftsContextFormProps } from '@/features/onboarding/props/first-drafts.props';
 
 const GOALS = ['grow', 'sell', 'authority'] as const;
 const TONES = ['keep', 'casual', 'professional'] as const;

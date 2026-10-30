@@ -1,11 +1,11 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { WorkspaceTaskOutputsCardProps } from '@props/workspace/workspace-task-outputs-card.props';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
+import type { WorkspaceTaskOutputsCardProps } from '@/features/workspace/props/workspace-task-outputs-card.props';
 import {
   getWorkspaceLinkedOutputDescription,
   getWorkspaceLinkedOutputTitle,

@@ -2,12 +2,12 @@ import { ArticleStatus } from '@genfeedai/contracts';
 import type {
   CalendarTagColorSource,
   ContentCalendarColorItem,
-} from '@genfeedai/props/publishing/calendar-item-color.props';
+} from '@/features/posts/props/calendar-item-color.props';
 
 export type {
   CalendarTagColorSource,
   ContentCalendarColorItem,
-} from '@genfeedai/props/publishing/calendar-item-color.props';
+} from '@/features/posts/props/calendar-item-color.props';
 
 export const CALENDAR_DEFAULT_EVENT_COLOR = '#8b5cf6';
 export const CALENDAR_SLOT_EVENT_COLOR = '#64748b';

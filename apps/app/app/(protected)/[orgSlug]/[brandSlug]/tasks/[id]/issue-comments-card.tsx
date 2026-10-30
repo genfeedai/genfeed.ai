@@ -1,10 +1,10 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { IssueCommentsCardProps } from '@props/tasks/issue-comments-card.props';
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { ChevronDown, ChevronsDown, MessageCircle } from 'lucide-react';
+import type { IssueCommentsCardProps } from '@/features/tasks/props/issue-comments-card.props';
 import { CommentItem } from './comment-item';
 
 export default function IssueCommentsCard({

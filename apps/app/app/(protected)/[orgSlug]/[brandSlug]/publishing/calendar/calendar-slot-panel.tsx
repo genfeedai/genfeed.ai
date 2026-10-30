@@ -6,14 +6,14 @@ import {
   ButtonVariant,
   CalendarSlotState,
 } from '@genfeedai/contracts';
-import type {
-  CalendarSlotBodyProps,
-  CalendarSlotPanelProps,
-} from '@props/publishing/calendar-slot-panel.props';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import type {
+  CalendarSlotBodyProps,
+  CalendarSlotPanelProps,
+} from '@/features/posts/props/calendar-slot-panel.props';
 
 function CalendarSlotBody({
   isPending,

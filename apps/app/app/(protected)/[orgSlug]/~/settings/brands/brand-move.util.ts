@@ -1,10 +1,10 @@
 import type { IBrandRelocationPreview } from '@genfeedai/services/social/brand-relocation.types';
+import { buildMovingResourcesSummary } from '@ui/modals/brands/brand/brand-relocation-summary.util';
 import type {
   BrandMoveEntry,
   BrandMoveEntryStatus,
   BrandMoveTranslate,
-} from '@props/settings/brand-move.props';
-import { buildMovingResourcesSummary } from '@ui/modals/brands/brand/brand-relocation-summary.util';
+} from '@/features/settings/props/brand-move.props';
 
 /**
  * An org keeps at least one brand. When the whole org is selected, the server

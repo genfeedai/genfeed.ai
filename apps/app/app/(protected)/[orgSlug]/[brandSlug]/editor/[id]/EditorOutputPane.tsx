@@ -1,4 +1,4 @@
-import type { EditorOutputPaneProps } from '@props/studio/editor-output-pane.props';
+import type { EditorOutputPaneProps } from '@/features/studio/props/editor-output-pane.props';
 import EditorPreview from './EditorPreview';
 import EditorTimeline from './EditorTimeline';
 

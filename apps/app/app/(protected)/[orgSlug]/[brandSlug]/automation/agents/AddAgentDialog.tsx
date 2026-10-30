@@ -1,6 +1,5 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import type { AddAgentDialogProps } from '@props/automation/add-agent-dialog.props';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -12,6 +11,7 @@ import {
 } from '@ui/primitives/dialog';
 import { MessageSquarePlus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { AddAgentDialogProps } from '@/features/automation/props/add-agent-dialog.props';
 import ContentTeamHirePage from '../hire/ContentTeamHirePage';
 import {
   buildContentAgentSetupPrompt,

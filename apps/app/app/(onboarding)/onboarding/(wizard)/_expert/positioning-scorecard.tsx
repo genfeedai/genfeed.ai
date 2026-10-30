@@ -1,9 +1,9 @@
 'use client';
 
 import { getExpertPositioningRatingLabel } from '@genfeedai/contracts/constants';
-import type { PositioningScorecardProps } from '@props/onboarding/expert-path.props';
 import { Badge } from '@ui/primitives/badge';
 import { useTranslations } from 'next-intl';
+import type { PositioningScorecardProps } from '@/features/onboarding/props/expert-path.props';
 
 export default function PositioningScorecard({
   score,

@@ -1,7 +1,6 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { WorkspaceTranslate } from '@props/workspace/workspace-task.props';
-import type { WorkspaceTaskInspectorBodyProps } from '@props/workspace/workspace-task-inspector-body.props';
 import Card from '@ui/card/Card';
 import { PanelTabs } from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
@@ -9,8 +8,8 @@ import { AlertTriangle, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import type { WorkspaceTaskInspectorBodyProps } from '@/features/workspace/props/workspace-task-inspector-body.props';
 import { useWorkspaceTaskHref } from './use-workspace-task-href';
 import {
   getTaskContinuityQa,

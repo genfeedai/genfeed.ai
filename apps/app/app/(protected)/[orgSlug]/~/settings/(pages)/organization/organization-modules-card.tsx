@@ -12,7 +12,6 @@ import {
   organizationModuleOverridesSchema,
 } from '@genfeedai/contracts/constants';
 import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
-import type { OrganizationModuleTileProps } from '@genfeedai/props/settings/organization-modules-card.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
@@ -35,6 +34,7 @@ import {
   APP_CATALOG,
   APP_CATALOG_CATEGORY_IDS,
 } from '@/components/app-catalog/app-catalog';
+import type { OrganizationModuleTileProps } from '@/features/settings/props/organization-modules-card.props';
 
 /**
  * Settings → Modules: which apps the organization shows its members, laid

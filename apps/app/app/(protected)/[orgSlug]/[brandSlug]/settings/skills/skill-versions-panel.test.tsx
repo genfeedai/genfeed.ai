@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import type { SkillVersionsPanelProps } from '@props/settings/skills.props';
+
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import type { SkillVersionsPanelProps } from '@/features/settings/props/skills.props';
 import SkillVersionsPanel from './skill-versions-panel';
 
 vi.mock('next-intl', async () => {

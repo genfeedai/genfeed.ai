@@ -1,4 +1,3 @@
-import type { MediaSectionProps } from '@props/settings/organization-generation-defaults-media-section.props';
 import { Label } from '@ui/primitives/label';
 import {
   Select,
@@ -7,6 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import type { MediaSectionProps } from '@/features/settings/props/organization-generation-defaults-media-section.props';
 
 export default function OrganizationGenerationDefaultsMediaSection({
   imageModels,

@@ -2,7 +2,6 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { ReviewPostHoverPreviewProps } from '@props/publishing/review-post-hover-preview.props';
 import TargetPreview from '@ui/previews/TargetPreview';
 import { Button } from '@ui/primitives/button';
 import {
@@ -14,6 +13,7 @@ import { ArrowUpRight, PanelRightOpen } from 'lucide-react';
 import NextLink from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { ReviewPostHoverPreviewProps } from '@/features/posts/props/review-post-hover-preview.props';
 
 import { buildReviewItemTargetPreview } from './review-item.helpers';
 

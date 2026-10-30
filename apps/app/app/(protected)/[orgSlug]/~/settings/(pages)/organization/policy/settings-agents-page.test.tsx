@@ -60,7 +60,7 @@ vi.mock('@hooks/data/organization/use-organization/use-organization', () => ({
 }));
 
 vi.mock(
-  '@hooks/data/billing/use-agent-model-access/use-agent-model-access',
+  '@/features/settings/hooks/use-agent-model-access/use-agent-model-access',
   () => ({
     useAgentModelAccess: () => ({
       isLoading: false,

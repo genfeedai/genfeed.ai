@@ -8,10 +8,6 @@ import { hasByokAccess } from '@genfeedai/pricing';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useIsDesktopClient } from '@hooks/ui/use-is-desktop-client/use-is-desktop-client';
-import type {
-  IntegrationsAction,
-  IntegrationsState,
-} from '@props/settings/integrations-content.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
@@ -22,9 +18,12 @@ import { Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useReducer } from 'react';
-
 import DesktopLocalProviderSettings from '@/components/desktop/DesktopLocalProviderSettings';
 import DesktopServerSettings from '@/components/desktop/DesktopServerSettings';
+import type {
+  IntegrationsAction,
+  IntegrationsState,
+} from '@/features/settings/props/integrations-content.props';
 import ByokProviderCard from '../api-keys/byok-provider-card';
 
 const initialState: IntegrationsState = {

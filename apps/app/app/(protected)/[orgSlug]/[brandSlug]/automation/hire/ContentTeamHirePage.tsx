@@ -5,7 +5,6 @@ import {
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { ContentTeamHirePageProps } from '@props/automation/content-team-hire-page.props';
 import { AgentStrategiesService } from '@services/automation/agent-strategies.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -16,6 +15,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 import { buildRoleStrategyInput } from '@/features/agents/content-team/content-team-presets';
+import type { ContentTeamHirePageProps } from '@/features/automation/props/content-team-hire-page.props';
 import AgentMarketplace from './AgentMarketplace';
 import AgentMarketplaceSearch from './AgentMarketplaceSearch';
 import { ALL_CATEGORY } from './agent-marketplace-filter';

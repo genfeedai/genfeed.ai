@@ -3,13 +3,13 @@
 import { ComponentSize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { BreakoutResponseDetailProps } from '@props/analytics/breakout-response-detail.props';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Badge } from '@ui/primitives/badge';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
+import type { BreakoutResponseDetailProps } from '@/features/analytics/props/breakout-response-detail.props';
 
 export default function BreakoutResponseDetail({
   response,

@@ -1,7 +1,7 @@
-import type { CreditGovernanceCardProps } from '@props/settings/policy.props';
 import Card from '@ui/card/Card';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
+import type { CreditGovernanceCardProps } from '@/features/settings/props/policy.props';
 
 export default function CreditGovernanceCard({
   agentDailyCreditCap,

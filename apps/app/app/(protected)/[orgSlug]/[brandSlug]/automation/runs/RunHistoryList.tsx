@@ -5,7 +5,6 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
 import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflow-execution.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { RunHistoryListProps } from '@props/automation/run-history-list.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
@@ -13,6 +12,7 @@ import TableRowSummary from '@ui/display/table/TableRowSummary';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo } from 'react';
+import type { RunHistoryListProps } from '@/features/automation/props/run-history-list.props';
 import {
   formatExecutionDuration,
   formatExecutionRelativeTime,

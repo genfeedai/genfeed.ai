@@ -8,15 +8,6 @@ import type {
   IWarmupInvitationStatus,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type {
-  WarmupActiveInvitationRequest as ActiveInvitationRequest,
-  WarmupAccountsPageAction as PageAction,
-  WarmupAccountsPageState as PageState,
-  WarmupAccountDetailProps,
-  WarmupAccountFormState,
-  WarmupAccountsPageProps,
-  WarmupInvitationAction,
-} from '@props/admin/warmup-accounts.props';
 import { AdminWarmupAccountsService } from '@services/admin/warmup-accounts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -34,6 +25,15 @@ import { Ban, CircleCheck, Mail, Rocket, RotateCw, Search } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import type {
+  WarmupActiveInvitationRequest as ActiveInvitationRequest,
+  WarmupAccountsPageAction as PageAction,
+  WarmupAccountsPageState as PageState,
+  WarmupAccountDetailProps,
+  WarmupAccountFormState,
+  WarmupAccountsPageProps,
+  WarmupInvitationAction,
+} from '@/features/admin/props/warmup-accounts.props';
 import WarmupPreparationPanel from './warmup-preparation-panel';
 
 const INITIAL_FORM: WarmupAccountFormState = {

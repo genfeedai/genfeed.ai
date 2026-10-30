@@ -3,11 +3,6 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type {
-  BrandMoveDialogProps,
-  BrandMoveEntry,
-  BrandMoveEntryStatus,
-} from '@props/settings/brand-move.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { BrandsService } from '@services/social/brands.service';
@@ -30,6 +25,11 @@ import {
   useRef,
   useState,
 } from 'react';
+import type {
+  BrandMoveDialogProps,
+  BrandMoveEntry,
+  BrandMoveEntryStatus,
+} from '@/features/settings/props/brand-move.props';
 import {
   countByStatus,
   describePreview,

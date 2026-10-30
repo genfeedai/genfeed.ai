@@ -13,8 +13,6 @@
   "packages/hooks/pages/use-brand-detail/use-brand-detail.ts": 1,
   "packages/hooks/ui/use-quick-actions/use-quick-actions.ts": 1,
   "packages/prisma/scripts/verify-release-upgrade.ts": 1,
-  "packages/props/agent/agent-workspace-context.props.ts": 1,
-  "packages/props/agent/agent-workspace-layout-client.props.ts": 1,
   "packages/props/ui/agent/agent-input-request-overlay.props.ts": 1,
   "packages/props/ui/agent/agent-work-objects.props.ts": 1,
   "packages/services/analytics/insights.service.ts": 1,

@@ -1,11 +1,11 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
-import type { WorkspaceTaskCardProps } from '@props/workspace/workspace-task-card.props';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import type { WorkspaceTaskCardProps } from '@/features/workspace/props/workspace-task-card.props';
 
 import {
   getAdvancedToolHref,

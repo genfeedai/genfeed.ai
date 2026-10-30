@@ -1,8 +1,8 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { EditorSaveIndicatorProps } from '@props/studio/editor-save-indicator.props';
 import { useTranslations } from 'next-intl';
+import type { EditorSaveIndicatorProps } from '@/features/studio/props/editor-save-indicator.props';
 
 /**
  * Saving / saved / failed state of the Editor autosave. A polite live region,

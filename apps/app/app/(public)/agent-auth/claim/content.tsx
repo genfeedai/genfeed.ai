@@ -2,11 +2,6 @@
 
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
-import type {
-  ClaimDetails,
-  ClaimResponse,
-  ClaimState,
-} from '@props/auth/agent-auth-claim-content.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
@@ -17,8 +12,12 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
-
 import { Card, CardContent } from '@/components/ui/card';
+import type {
+  ClaimDetails,
+  ClaimResponse,
+  ClaimState,
+} from '@/features/auth/props/agent-auth-claim-content.props';
 
 export default function AgentAuthClaimContent() {
   const translate = useTranslations('common.agentAuth.claim');

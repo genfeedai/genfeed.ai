@@ -1,7 +1,6 @@
 'use client';
 
 import type { TypedDecisionMode } from '@genfeedai/contracts/interfaces';
-import type { PlatformModeSettingFieldProps } from '@props/admin/platform-settings.props';
 import Field from '@ui/primitives/field';
 import {
   Select,
@@ -11,6 +10,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { useTranslations } from 'next-intl';
+import type { PlatformModeSettingFieldProps } from '@/features/admin/props/platform-settings.props';
 
 export default function PlatformModeSettingField<
   TMode extends TypedDecisionMode,

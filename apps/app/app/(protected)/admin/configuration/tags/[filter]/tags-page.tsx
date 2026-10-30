@@ -3,11 +3,11 @@
 import { ButtonVariant, ModalEnum, PageScope } from '@genfeedai/contracts';
 import type { IFiltersState } from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
-import type { ITagsPageProps } from '@props/admin/tags.props';
 import FiltersSearch from '@ui/content/filters-button/FiltersSearch';
 import { Button } from '@ui/primitives/button';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
+import type { ITagsPageProps } from '@/features/admin/props/tags.props';
 
 import TagsLayout from './tags-layout';
 import TagsList from './tags-list';

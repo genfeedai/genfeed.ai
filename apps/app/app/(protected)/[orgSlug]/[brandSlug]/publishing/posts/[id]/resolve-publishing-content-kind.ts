@@ -1,7 +1,7 @@
 import type { ArtifactEditorType } from '@genfeedai/contracts/constants';
-import type { ContentLookup } from '@genfeedai/props/publishing/publishing-content-editor-page.props';
+import type { ContentLookup } from '@/features/posts/props/publishing-content-editor-page.props';
 
-export type { ContentLookup } from '@genfeedai/props/publishing/publishing-content-editor-page.props';
+export type { ContentLookup } from '@/features/posts/props/publishing-content-editor-page.props';
 
 export type PublishingContentKind = ArtifactEditorType;
 

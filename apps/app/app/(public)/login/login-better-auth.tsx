@@ -6,10 +6,6 @@ import { AlertCategory, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { GoogleColorIcon } from '@genfeedai/helpers/ui/icons/brands';
 import { useIsDesktopClient } from '@hooks/ui/use-is-desktop-client/use-is-desktop-client';
-import type {
-  InvitationNotice,
-  LoginBetterAuthProps,
-} from '@props/auth/login-better-auth.props';
 import Alert from '@ui/feedback/alert/Alert';
 import AuthActionSurface from '@ui/layouts/auth/AuthActionSurface';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
@@ -28,6 +24,10 @@ import {
   useRef,
   useState,
 } from 'react';
+import type {
+  InvitationNotice,
+  LoginBetterAuthProps,
+} from '@/features/auth/props/login-better-auth.props';
 import { getDesktopBridge } from '@/lib/desktop/runtime';
 import { useDesktopLocalWorkspaceFlag } from '@/lib/desktop/use-desktop-local-workspace-flag';
 

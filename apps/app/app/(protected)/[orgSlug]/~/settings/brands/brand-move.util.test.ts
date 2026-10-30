@@ -1,5 +1,5 @@
-import type { BrandMoveEntry } from '@props/settings/brand-move.props';
 import { describe, expect, it } from 'vitest';
+import type { BrandMoveEntry } from '@/features/settings/props/brand-move.props';
 import { translateFromCatalog } from '../../../../../../tests/next-intl.stub';
 import {
   describePreview,

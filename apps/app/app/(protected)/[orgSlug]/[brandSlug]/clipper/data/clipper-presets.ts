@@ -1,4 +1,3 @@
-import type { ClipperPreset } from '@genfeedai/props/studio/clipper-presets.props';
 import {
   GraduationCap,
   Lightbulb,
@@ -7,6 +6,7 @@ import {
   UserRound,
   Users,
 } from 'lucide-react';
+import type { ClipperPreset } from '@/features/clipper/props/clipper-presets.props';
 
 /**
  * Brand-neutral starting settings for a new clip project. Titles and

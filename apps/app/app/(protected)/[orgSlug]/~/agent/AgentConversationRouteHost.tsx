@@ -1,9 +1,9 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { AgentConversationRouteHostProps } from '@props/agent/agent-conversation-route-host.props';
 import { usePathname } from 'next/navigation';
 import { useMemo } from 'react';
+import type { AgentConversationRouteHostProps } from '@/features/agents/props/agent-conversation-route-host.props';
 import {
   normalizeProtectedPathname,
   resolveAgentConversationRoute,

@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { MessagesReplyComposerProps } from '@genfeedai/props/messages/messages-reply-composer.props';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import { Button } from '@ui/primitives/button';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
@@ -10,6 +9,7 @@ import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolba
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import { Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { MessagesReplyComposerProps } from '@/features/messages/props/messages-reply-composer.props';
 
 /**
  * Reply / DM composer for the selected conversation, built from the shared

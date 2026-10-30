@@ -9,7 +9,6 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useFeatureFlagContext } from '@hooks/feature-flags/provider';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { WorkspaceOverviewSidebarProps } from '@props/workspace/workspace-overview-sidebar.props';
 import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import AppTable from '@ui/display/table/Table';
@@ -23,8 +22,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import type { WorkspaceOverviewSidebarProps } from '@/features/workspace/props/workspace-overview-sidebar.props';
 import {
   useAdvancedTools,
   useLibrarySnapshotLinks,

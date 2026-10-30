@@ -3,10 +3,6 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { SocialPlatform } from '@genfeedai/contracts/interfaces';
 import type { SocialReplyCampaignModel } from '@genfeedai/models/social/social-reply-campaign.model';
-import type {
-  ReplyCampaignDraft,
-  ReplyCampaignsPageProps,
-} from '@genfeedai/props/social/reply-campaigns-panel.props';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import type { SocialReplyCampaignTransition } from '@services/social/reply-campaigns.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
@@ -26,6 +22,10 @@ import {
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { useMemo, useState } from 'react';
+import type {
+  ReplyCampaignDraft,
+  ReplyCampaignsPageProps,
+} from '@/features/messages/props/reply-campaigns-panel.props';
 import { useReplyCampaigns } from './use-reply-campaigns';
 
 /** Reply drip — throttled outbound replies (Messages module). */

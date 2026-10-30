@@ -10,10 +10,6 @@ import {
   rememberOAuthConnectContext,
 } from '@hooks/auth/use-platform-oauth-connect/oauth-connect-context';
 import { OAUTH_RETURN_TO_STORAGE_KEY } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
-import type {
-  OAuthPlatformFormProps,
-  VerifyResult,
-} from '@props/auth/oauth-platform-form.props';
 import { logger } from '@services/core/logger.service';
 import { ServicesService } from '@services/external/services.service';
 import ConnectionSuccess from '@ui/feedback/connection-success/ConnectionSuccess';
@@ -21,13 +17,16 @@ import { resolvePlatformConnectionBrand } from '@ui/feedback/connection-success/
 import InstagramAccountSelector from '@ui/modals/brands/instagram/InstagramAccountSelector';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
-
 import { CircleX } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import AnalyticsPublicRouteSync from '@/components/analytics/AnalyticsPublicRouteSync';
+import type {
+  OAuthPlatformFormProps,
+  VerifyResult,
+} from '@/features/auth/props/oauth-platform-form.props';
 import { resolveSameOriginReturnTo } from '@/lib/navigation/resolve-same-origin-return-to';
 import {
   isHttpsAuthorizationUrl,

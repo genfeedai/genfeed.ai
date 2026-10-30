@@ -5,14 +5,7 @@ import {
 } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useAgentModelAccess } from '@hooks/data/billing/use-agent-model-access/use-agent-model-access';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
-import type {
-  AgentPolicyState,
-  OverrideCategoryModels,
-  PolicyFormAction,
-  PolicyFormState,
-} from '@props/settings/policy.props';
 import { ModelsService } from '@services/ai/models.service';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
@@ -20,6 +13,13 @@ import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import { useAgentModelAccess } from '@/features/settings/hooks/use-agent-model-access/use-agent-model-access';
+import type {
+  AgentPolicyState,
+  OverrideCategoryModels,
+  PolicyFormAction,
+  PolicyFormState,
+} from '@/features/settings/props/policy.props';
 
 import AdvancedRoutingCard from './advanced-routing-card';
 import AgentPolicyCard from './agent-policy-card';

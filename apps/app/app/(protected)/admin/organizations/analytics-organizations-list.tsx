@@ -9,7 +9,6 @@ import {
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { formatPercentageSimple } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { AnalyticsOrganizationsListProps } from '@props/admin/analytics.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import {
   AnalyticsService,
@@ -27,6 +26,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { AnalyticsOrganizationsListProps } from '@/features/admin/props/analytics.props';
 
 export default function AnalyticsOrganizationsList({
   getReleaseAccessHref,

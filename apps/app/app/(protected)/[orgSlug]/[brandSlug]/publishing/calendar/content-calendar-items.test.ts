@@ -10,8 +10,8 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { Article } from '@models/content/article.model';
 import { Newsletter } from '@models/content/newsletter.model';
-import type { ContentCalendarItemsOptions } from '@props/publishing/content-calendar-controller.props';
 import { describe, expect, it } from 'vitest';
+import type { ContentCalendarItemsOptions } from '@/features/posts/props/content-calendar-controller.props';
 import { buildContentCalendarItems } from './content-calendar-items';
 
 const instant = '2026-10-21T12:00:00.000Z';

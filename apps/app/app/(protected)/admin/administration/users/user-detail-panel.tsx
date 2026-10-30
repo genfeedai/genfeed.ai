@@ -2,11 +2,11 @@
 
 import { ButtonVariant, PlatformRole } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { AdminUserDetailPanelProps } from '@props/admin/admin-user.props';
 import { Button } from '@ui/primitives/button';
 import { VenetianMask } from 'lucide-react';
 import NextLink from 'next/link';
 import { useTranslations } from 'next-intl';
+import type { AdminUserDetailPanelProps } from '@/features/admin/props/admin-user.props';
 import UserDetails from './user-details';
 
 /** Quick look at a user from the list; the full page lives at `.../users/:id`. */

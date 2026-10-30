@@ -1,7 +1,6 @@
 'use client';
 
 import { ComponentSize } from '@genfeedai/contracts';
-import type { TaskPillSelectProps } from '@props/tasks/task-pills.props';
 import type {
   TaskPriority,
   TaskStatus,
@@ -15,6 +14,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { ChevronDown, ChevronsUp, ChevronUp, Minus } from 'lucide-react';
+import type { TaskPillSelectProps } from '@/features/tasks/props/task-pills.props';
 
 export {
   PRIORITY_ORDER,

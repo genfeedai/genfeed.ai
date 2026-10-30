@@ -6,10 +6,6 @@ import {
   formatPlatformLabel,
 } from '@genfeedai/contracts';
 import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-card.interface';
-import type {
-  PlatformConnectionHealth,
-  PlatformHomeContentProps,
-} from '@genfeedai/props/pages/platform-home.props';
 import { usePlatformOAuthConnect } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
@@ -35,6 +31,10 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import type {
+  PlatformConnectionHealth,
+  PlatformHomeContentProps,
+} from '@/features/platforms/props/platform-home.props';
 import {
   buildPlatformHomeDestinations,
   filterConnectionsForPlatform,

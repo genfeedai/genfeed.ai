@@ -1,6 +1,6 @@
-import type { ActiveRunsPanelProps } from '@props/automation/active-runs-panel.props';
 import Badge from '@ui/display/badge/Badge';
 import { useTranslations } from 'next-intl';
+import type { ActiveRunsPanelProps } from '@/features/automation/props/active-runs-panel.props';
 import WorkflowExecutionCard from './WorkflowExecutionCard';
 
 export default function ActiveRunsPanel({

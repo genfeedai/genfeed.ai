@@ -15,12 +15,6 @@ import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useBrandEnabledSkills } from '@hooks/data/skills/use-brand-enabled-skills';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
-import type {
-  SkillsPageAction as PageAction,
-  SkillsPageState as PageState,
-  SkillDraft,
-  SkillVersionsState,
-} from '@props/settings/skills.props';
 import {
   classifySkillImportFailure,
   type Skill,
@@ -45,6 +39,12 @@ import {
   useRef,
   useState,
 } from 'react';
+import type {
+  SkillsPageAction as PageAction,
+  SkillsPageState as PageState,
+  SkillDraft,
+  SkillVersionsState,
+} from '@/features/settings/props/skills.props';
 import SkillDetailPanel from './skill-detail-panel';
 import { prepareSkillDraftPatch } from './skill-draft-patch';
 import SkillAgentAction, { SkillSearch } from './skill-filters';

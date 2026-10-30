@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import type { IBrandOsRevision } from '@genfeedai/contracts/interfaces';
-import type {
-  BrandGuidePanelProps,
-  UseBrandGuideScanResult,
-} from '@genfeedai/props/onboarding/brand-guide.props';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BrandOsSettingsCardProps } from '@/features/brands/props/brand-os-settings.props';
+import type {
+  BrandGuidePanelProps,
+  UseBrandGuideScanResult,
+} from '@/features/onboarding/props/brand-guide.props';
 import BrandGuidePanel from './brand-guide-panel';
 
 const mocks = vi.hoisted(() => ({

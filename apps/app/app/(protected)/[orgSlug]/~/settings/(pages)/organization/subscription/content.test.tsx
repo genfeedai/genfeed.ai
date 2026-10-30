@@ -37,9 +37,12 @@ vi.mock('@hooks/data/subscription/use-subscription/use-subscription', () => ({
 }));
 
 const useBillingAccountMock = vi.fn();
-vi.mock('@hooks/data/billing/use-billing-account/use-billing-account', () => ({
-  useBillingAccount: () => useBillingAccountMock(),
-}));
+vi.mock(
+  '@/features/settings/hooks/use-billing-account/use-billing-account',
+  () => ({
+    useBillingAccount: () => useBillingAccountMock(),
+  }),
+);
 
 const createCheckoutSession = vi.fn();
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({

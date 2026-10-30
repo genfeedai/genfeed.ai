@@ -6,7 +6,6 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { PageScope } from '@genfeedai/contracts';
 import type { ArtifactEditorType } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { PublishingContentEditorPageProps } from '@props/publishing/publishing-content-editor-page.props';
 import { ArticlesService } from '@services/content/articles.service';
 import { NewslettersService } from '@services/content/newsletters.service';
 import { PostsService } from '@services/content/posts.service';
@@ -16,6 +15,7 @@ import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import PostDetail from '@/features/posts/detail/post-detail';
+import type { PublishingContentEditorPageProps } from '@/features/posts/props/publishing-content-editor-page.props';
 import ArtifactEditorShell from '../../../edit/artifact-editor-shell';
 import {
   type PublishingContentKind,

@@ -1,6 +1,6 @@
 import { cn } from '@genfeedai/helpers';
-import type { AdminUserAvatarProps } from '@props/admin/admin-user.props';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
+import type { AdminUserAvatarProps } from '@/features/admin/props/admin-user.props';
 import { getUserDisplayName, getUserInitial } from './user-display.helpers';
 
 export default function UserAvatar({ user, className }: AdminUserAvatarProps) {

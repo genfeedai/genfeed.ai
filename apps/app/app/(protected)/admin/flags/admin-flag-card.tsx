@@ -5,10 +5,10 @@ import {
   PLATFORM_FLAG_PARENTS,
   type PlatformFlagKey,
 } from '@genfeedai/contracts/constants';
-import type { AdminFlagCardProps } from '@props/admin/admin-flags.props';
 import Card from '@ui/card/Card';
 import { Switch } from '@ui/primitives/switch';
 import { useTranslations } from 'next-intl';
+import type { AdminFlagCardProps } from '@/features/admin/props/admin-flags.props';
 
 /**
  * One module (or platform feature) on Admin → Flags: its own switch in the

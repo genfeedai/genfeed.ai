@@ -2,12 +2,12 @@ import { TargetExecutionState } from '@genfeedai/contracts';
 import type {
   CadenceGap,
   CadenceGapsInput,
-} from '@genfeedai/props/publisher/publishing-overview.props';
+} from '@/features/posts/props/publishing-overview.props';
 
 export type {
   CadenceGap,
   CadenceGapsInput,
-} from '@genfeedai/props/publisher/publishing-overview.props';
+} from '@/features/posts/props/publishing-overview.props';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 

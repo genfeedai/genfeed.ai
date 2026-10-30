@@ -1,8 +1,8 @@
 import { ComponentSize } from '@genfeedai/contracts';
 import { Code } from '@genfeedai/ui';
-import type { TemplateVariablesCardProps as Props } from '@props/admin/templates.props';
 import Badge from '@ui/display/badge/Badge';
 import { Text } from '@ui/typography/text';
+import type { TemplateVariablesCardProps as Props } from '@/features/admin/props/templates.props';
 import { DetailCard } from './template-detail-helpers';
 
 export default function TemplateVariablesCard({ variables }: Props) {

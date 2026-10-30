@@ -7,13 +7,13 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type {
-  UseEngagementRulesOptions,
-  UseEngagementRulesResult,
-} from '@props/scheduler/engagement-rules.props';
 import { EngagementRulesService } from '@services/content/engagement-rules.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
+import type {
+  UseEngagementRulesOptions,
+  UseEngagementRulesResult,
+} from '@/features/posts/props/engagement-rules.props';
 
 export const ENGAGEMENT_RULES_QUERY_KEY = 'engagement-rules';
 

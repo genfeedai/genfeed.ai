@@ -1,8 +1,8 @@
 import { ComponentSize } from '@genfeedai/contracts';
-import type { TemplateSidebarProps as Props } from '@props/admin/templates.props';
 import Badge from '@ui/display/badge/Badge';
 import { Text } from '@ui/typography/text';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import type { TemplateSidebarProps as Props } from '@/features/admin/props/templates.props';
 import { DetailCard, MetadataRow } from './template-detail-helpers';
 
 export default function TemplateSidebar({

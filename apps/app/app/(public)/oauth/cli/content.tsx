@@ -7,12 +7,6 @@ import {
 } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
-import type {
-  DesktopAuthCodeStatus,
-  DesktopAuthorizeResponse,
-  DesktopIdentity,
-  FlowState,
-} from '@props/auth/oauth-cli-content.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
@@ -30,8 +24,13 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
-
 import { Card, CardContent } from '@/components/ui/card';
+import type {
+  DesktopAuthCodeStatus,
+  DesktopAuthorizeResponse,
+  DesktopIdentity,
+  FlowState,
+} from '@/features/auth/props/oauth-cli-content.props';
 import { redirectToCallback } from './callback-redirect';
 
 const MIN_PORT = 1024;

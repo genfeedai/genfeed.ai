@@ -5,11 +5,6 @@ import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/el
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Sound } from '@models/ingredients/sound.model';
-import type {
-  SoundFetchStatus as FetchStatus,
-  SoundsListAction,
-  SoundsListState,
-} from '@props/admin/sounds.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -23,6 +18,11 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
+import type {
+  SoundFetchStatus as FetchStatus,
+  SoundsListAction,
+  SoundsListState,
+} from '@/features/admin/props/sounds.props';
 
 import { buildSoundsColumns } from './sounds-list-columns.helpers';
 import SoundsListModals from './sounds-list-modals';

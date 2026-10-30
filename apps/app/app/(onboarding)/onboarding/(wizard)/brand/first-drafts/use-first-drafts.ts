@@ -15,13 +15,6 @@ import type {
   IOnboardingScanResult,
 } from '@genfeedai/contracts/interfaces';
 import { resolveSignupBrandDomain } from '@genfeedai/helpers';
-import type {
-  FirstDraftsError,
-  FirstDraftsPhase,
-  FirstDraftsState,
-  FirstDraftsWorkingStep,
-  FirstDraftVerdict,
-} from '@genfeedai/props/onboarding/first-drafts.props';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { BrandedGenerationReceiptsService } from '@services/ai/branded-generation-receipts.service';
@@ -29,6 +22,13 @@ import { logger } from '@services/core/logger.service';
 import { OnboardingService } from '@services/onboarding/onboarding.service';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type {
+  FirstDraftsError,
+  FirstDraftsPhase,
+  FirstDraftsState,
+  FirstDraftsWorkingStep,
+  FirstDraftVerdict,
+} from '@/features/onboarding/props/first-drafts.props';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
 import { useCompleteOnboarding } from '../../_expert/use-complete-onboarding.hook';
 import { isValidOnboardingLink, toOnboardingLink } from './first-drafts.util';

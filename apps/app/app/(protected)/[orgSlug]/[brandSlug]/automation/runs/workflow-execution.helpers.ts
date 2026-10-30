@@ -1,7 +1,7 @@
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
-import type { ExecutionCreditsSummary } from '@props/automation/run-history-list.props';
-import type { WorkflowExecutionTranslate } from '@props/automation/workflow-execution-card.props';
+import type { ExecutionCreditsSummary } from '@/features/automation/props/run-history-list.props';
+import type { WorkflowExecutionTranslate } from '@/features/automation/props/workflow-execution-card.props';
 
 const EXECUTION_STATUS_KEYS: Record<WorkflowExecutionStatus, string> = {
   [WorkflowExecutionStatus.CANCELLED]: 'statusCancelled',

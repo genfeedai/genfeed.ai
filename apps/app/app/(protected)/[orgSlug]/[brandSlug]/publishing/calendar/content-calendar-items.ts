@@ -1,4 +1,10 @@
-import type { ContentCalendarItemsOptions } from '@props/publishing/content-calendar-controller.props';
+import {
+  createPublishingContentLibraryItems,
+  filterPublishingContentLibraryItems,
+  parsePublishingContentType,
+  publishingContentTitle,
+} from '@/features/posts/library/publishing-content-library.helpers';
+import type { ContentCalendarItemsOptions } from '@/features/posts/props/content-calendar-controller.props';
 import type {
   ArticleContentCalendarItem,
   ContentCalendarItem,
@@ -6,13 +12,7 @@ import type {
   NewsletterContentCalendarItem,
   ReleaseContentCalendarItem,
   SlotContentCalendarItem,
-} from '@props/publishing/content-calendar-page.props';
-import {
-  createPublishingContentLibraryItems,
-  filterPublishingContentLibraryItems,
-  parsePublishingContentType,
-  publishingContentTitle,
-} from '@/features/posts/library/publishing-content-library.helpers';
+} from '@/features/posts/props/content-calendar-page.props';
 import { releaseScheduledInstant } from '@/features/posts/shared/release-status.helpers';
 import {
   aggregateCalendarItemsByDay,

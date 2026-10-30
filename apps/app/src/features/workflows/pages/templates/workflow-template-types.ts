@@ -2,7 +2,7 @@ import type {
   WorkflowTemplateCatalogItem,
   WorkflowTemplatesPageAction,
   WorkflowTemplatesPageState,
-} from '@genfeedai/props/workflows/workflow-templates-page.props';
+} from '@/features/workflows/props/workflow-templates-page.props';
 import type {
   FeaturedWorkflow,
   SystemWorkflowCatalogEntry,

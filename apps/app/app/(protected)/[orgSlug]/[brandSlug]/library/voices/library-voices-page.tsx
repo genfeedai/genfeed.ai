@@ -19,7 +19,6 @@ import { useOrganization } from '@hooks/data/organization/use-organization/use-o
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Voice } from '@models/ingredients/voice.model';
-import type { SelectedBrandState } from '@props/library/library-voices-page.props';
 import { useUploadModal } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -34,6 +33,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import IngredientsLayout from '@/features/ingredients/layout/ingredients-layout';
+import type { SelectedBrandState } from '@/features/library/props/library-voices-page.props';
 import { useVoiceCatalog } from '@/features/library/voices/hooks/use-voice-catalog';
 import ElevenLabsAccountVoicesDialog from './elevenlabs-account-voices-dialog';
 import VoiceCatalogList from './voice-catalog-list';

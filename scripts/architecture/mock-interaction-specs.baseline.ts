@@ -708,7 +708,7 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'packages/hooks/commands/use-agent-thread-commands/use-agent-thread-commands.test.ts',
   'packages/hooks/commands/use-brand-switch-handler/use-brand-switch-handler.test.ts',
   'packages/hooks/commands/use-default-commands-registration/use-default-commands-registration.test.ts',
-  'packages/hooks/data/content/use-dashboard-layout/use-dashboard-layout.test.ts',
+  'apps/app/src/features/workspace/hooks/use-dashboard-layout/use-dashboard-layout.test.ts',
   'packages/hooks/data/content/use-mood-board/use-mood-board.test.ts',
   'packages/hooks/data/content/use-rss-sources/use-rss-sources.test.ts',
   'packages/hooks/data/ingredients/use-ingredient-deep-link/use-ingredient-deep-link.test.ts',

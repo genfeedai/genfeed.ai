@@ -3,9 +3,9 @@ import type {
   SocialInboxReference,
   SocialMessage,
 } from '@genfeedai/contracts/interfaces';
-import type { MessagesActionKind } from '@genfeedai/props/messages/messages-surface-telemetry.props';
+import type { MessagesActionKind } from '@/features/messages/props/messages-surface-telemetry.props';
 
-export type { MessagesActionKind } from '@genfeedai/props/messages/messages-surface-telemetry.props';
+export type { MessagesActionKind } from '@/features/messages/props/messages-surface-telemetry.props';
 
 export function getSocialInboxReferenceKey(
   reference: SocialInboxReference,

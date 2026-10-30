@@ -1,10 +1,10 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { ClipperPresetGridProps } from '@genfeedai/props/studio/clipper-presets.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
+import type { ClipperPresetGridProps } from '@/features/clipper/props/clipper-presets.props';
 import StudioPresetCard from '@/features/studio/shared/components/StudioPresetCard';
 import StudioPresetList from '@/features/studio/shared/components/StudioPresetList';
 import ClipperSourceBar from './ClipperSourceBar';

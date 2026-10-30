@@ -1,6 +1,6 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { MotionFramePreviewProps } from '@genfeedai/props/studio/motion-presets.props';
 import type { ReactElement } from 'react';
+import type { MotionFramePreviewProps } from '@/features/motion/props/motion-presets.props';
 
 const FPS = 30;
 const MIN_KEYFRAMES = 2;

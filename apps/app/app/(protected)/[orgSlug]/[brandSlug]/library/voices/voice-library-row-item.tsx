@@ -1,6 +1,6 @@
 import { matchesDefaultVoice } from '@helpers/voice/default-voice-ref.helper';
-import type { VoiceLibraryRowItemProps } from '@props/library/voice-library-row-item.props';
 import { logger } from '@services/core/logger.service';
+import type { VoiceLibraryRowItemProps } from '@/features/library/props/voice-library-row-item.props';
 import VoiceCatalogRow from './voice-catalog-row';
 
 export default function VoiceLibraryRowItem({

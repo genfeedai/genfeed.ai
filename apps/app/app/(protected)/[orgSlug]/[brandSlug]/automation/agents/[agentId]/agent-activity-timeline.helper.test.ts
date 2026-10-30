@@ -1,5 +1,5 @@
-import type { AgentActivityEntry } from '@props/automation/agent-activity-timeline.props';
 import { describe, expect, it } from 'vitest';
+import type { AgentActivityEntry } from '@/features/automation/props/agent-activity-timeline.props';
 import {
   filterAgentActivity,
   mergeAgentActivity,

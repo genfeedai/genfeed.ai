@@ -1,7 +1,6 @@
 'use client';
 
 import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
-import type { GenerationDetailPanelProps } from '@props/admin/generations.props';
 import {
   Collapsible,
   CollapsibleContent,
@@ -10,6 +9,7 @@ import {
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import type { GenerationDetailPanelProps } from '@/features/admin/props/generations.props';
 import GenerationStatusBadge from './generation-status-badge';
 import GenerationThumbnail from './generation-thumbnail';
 

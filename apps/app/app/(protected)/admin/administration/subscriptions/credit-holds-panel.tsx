@@ -4,13 +4,13 @@ import { ButtonVariant, CreditHoldRecoveryAction } from '@genfeedai/contracts';
 import { formatCreditBalanceExact } from '@genfeedai/contracts/constants';
 import type { AdminCreditHoldRow } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { CreditHoldsPanelProps } from '@props/admin/credit-holds-panel.props';
 import { AdminCreditHoldsService } from '@services/admin/credit-holds.service';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import type { CreditHoldsPanelProps } from '@/features/admin/props/credit-holds-panel.props';
 
 export default function CreditHoldsPanel({
   organizationId,

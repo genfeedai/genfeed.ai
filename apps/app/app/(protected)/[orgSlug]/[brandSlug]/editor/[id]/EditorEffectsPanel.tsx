@@ -7,13 +7,13 @@ import {
   EditorTrackType,
 } from '@genfeedai/contracts';
 import type { IEditorEffect } from '@genfeedai/contracts/interfaces';
-import type {
-  EditorEffectsPanelProps,
-  EffectConfig,
-} from '@props/studio/editor-effects-panel.props';
 import { Button } from '@ui/primitives/button';
 import { Slider } from '@ui/primitives/slider';
 import { type JSX, useCallback, useState } from 'react';
+import type {
+  EditorEffectsPanelProps,
+  EffectConfig,
+} from '@/features/studio/props/editor-effects-panel.props';
 
 const AVAILABLE_EFFECTS: EffectConfig[] = [
   {

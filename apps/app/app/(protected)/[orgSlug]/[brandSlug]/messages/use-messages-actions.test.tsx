@@ -1,8 +1,8 @@
 import { SocialConversationType } from '@genfeedai/contracts';
-import type { UseMessagesActionsParams } from '@genfeedai/props/messages/messages-actions.props';
 import type { SocialMessagesService } from '@services/social/messages.service';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import type { UseMessagesActionsParams } from '@/features/messages/props/messages-actions.props';
 import { useMessagesActions } from './use-messages-actions';
 
 vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));

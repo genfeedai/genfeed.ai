@@ -5,13 +5,13 @@ import {
   isCollectionFetchReady,
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import type { GeneratePlanFormState } from '@props/automation/content-plans-section.props';
 import { ContentPlansService } from '@services/content/content-plans.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
+import type { GeneratePlanFormState } from '@/features/automation/props/content-plans-section.props';
 
 export function useContentPlansSection() {
   const translate = useTranslations('common.automation.contentPlans');

@@ -1,5 +1,5 @@
-import type { CalendarBulkGenerationOptions } from '@props/publishing/content-calendar-controller.props';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { CalendarBulkGenerationOptions } from '@/features/posts/props/content-calendar-controller.props';
 import { mutationErrorMessage } from '@/features/posts/release/release-mutation-runner';
 
 export function useCalendarBulkGeneration({

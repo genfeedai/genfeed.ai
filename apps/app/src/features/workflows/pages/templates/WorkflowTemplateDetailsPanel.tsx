@@ -2,10 +2,10 @@
 
 import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { WorkflowTemplateDetailsPanelProps } from '@genfeedai/props/workflows/workflow-template-details-panel.props';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import type { WorkflowTemplateDetailsPanelProps } from '@/features/workflows/props/workflow-template-details-panel.props';
 import WorkflowTemplateCardPreview from './WorkflowTemplateCardPreview';
 
 /** A template's description, metadata and preview in the right context sidebar. */

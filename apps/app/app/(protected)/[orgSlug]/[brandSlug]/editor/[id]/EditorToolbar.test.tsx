@@ -1,7 +1,7 @@
 import { IngredientFormat } from '@genfeedai/contracts';
-import type { EditorToolbarProps } from '@props/studio/editor-toolbar.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { EditorToolbarProps } from '@/features/studio/props/editor-toolbar.props';
 import EditorToolbar from './EditorToolbar';
 import '@testing-library/jest-dom/vitest';
 

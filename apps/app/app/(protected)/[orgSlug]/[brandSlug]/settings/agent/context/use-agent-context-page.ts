@@ -7,7 +7,6 @@ import type {
   IBrandMemoryInsight,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { AgentContextPageState } from '@props/settings/agent/context.props';
 import { AgentBrandContextService } from '@services/automation/agent-brand-context.service';
 import { AgentMemoriesService } from '@services/automation/agent-memories.service';
 import { BrandMemoryService } from '@services/automation/brand-memory.service';
@@ -15,6 +14,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
+import type { AgentContextPageState } from '@/features/settings/props/context.props';
 
 const INSIGHTS_LIMIT = 20;
 

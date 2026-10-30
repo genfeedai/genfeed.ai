@@ -3,11 +3,11 @@
 import { PageScope } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { createPathViewHref } from '@helpers/navigation/filter-href.helper';
-import type { ITagsLayoutProps } from '@props/admin/tags.props';
 import AdminOrgBrandUrlFilter from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Tag } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
+import type { ITagsLayoutProps } from '@/features/admin/props/tags.props';
 
 export default function TagsLayout({
   children,

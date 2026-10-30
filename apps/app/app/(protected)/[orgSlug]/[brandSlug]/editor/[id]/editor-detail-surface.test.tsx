@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 
-import type { EditorPageContentProps } from '@props/studio/editor-page-content.props';
 import { act, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { EditorPageContentProps } from '@/features/studio/props/editor-page-content.props';
 import EditorDetailSurface from './editor-detail-surface';
 
 const { contentState } = vi.hoisted(() => ({

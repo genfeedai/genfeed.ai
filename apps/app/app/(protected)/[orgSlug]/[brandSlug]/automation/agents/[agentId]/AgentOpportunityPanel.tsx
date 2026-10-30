@@ -3,12 +3,12 @@ import {
   DefinitionList,
   DefinitionTerm,
 } from '@genfeedai/ui';
-import type { AgentOpportunityPanelProps } from '@props/automation/agent-opportunity-panel.props';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { useTranslations } from 'next-intl';
+import type { AgentOpportunityPanelProps } from '@/features/automation/props/agent-opportunity-panel.props';
 
 export default function AgentOpportunityPanel({
   opportunities,

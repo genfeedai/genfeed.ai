@@ -1,15 +1,15 @@
 'use client';
 
-import type {
-  MotionAdvancedSettingsProps,
-  MotionSettingKey,
-} from '@genfeedai/props/studio/motion-composer.props';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
+import type {
+  MotionAdvancedSettingsProps,
+  MotionSettingKey,
+} from '@/features/motion/props/motion-composer.props';
 
 const SETTING_KEYS: readonly MotionSettingKey[] = [
   'width',

@@ -5,16 +5,16 @@ import {
   type RefreshFunction,
 } from '@contexts/posts/posts-layout-context';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type {
-  PostsLayoutAction,
-  PostsLayoutState,
-} from '@props/admin/posts.props';
 import AdminOrgBrandUrlFilter from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Newspaper } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Suspense, useCallback, useMemo, useReducer } from 'react';
+import type {
+  PostsLayoutAction,
+  PostsLayoutState,
+} from '@/features/admin/props/posts.props';
 
 const NOOP_POSTS_LAYOUT_CONTEXT_VALUE = {
   setExportNode: () => {},

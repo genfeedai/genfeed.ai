@@ -6,7 +6,6 @@ import type {
   IWarmupPrepareRequest,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { WarmupPreparationPanelProps } from '@props/admin/warmup-accounts.props';
 import { AdminWarmupAccountsService } from '@services/admin/warmup-accounts.service';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -18,6 +17,7 @@ import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import type { WarmupPreparationPanelProps } from '@/features/admin/props/warmup-accounts.props';
 
 export default function WarmupPreparationPanel({
   account,

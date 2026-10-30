@@ -1,10 +1,10 @@
 import { getExpertPositioningRatingLabel } from '@genfeedai/contracts/constants';
-import type { HarnessPositioningScorecardProps } from '@props/settings/brand-kit/content-rules.props';
 import Card from '@ui/card/Card';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import type { HarnessPositioningScorecardProps } from '@/features/settings/props/content-rules.props';
 
 /**
  * Expert Path positioning scorecard, shown on the brand harness settings page

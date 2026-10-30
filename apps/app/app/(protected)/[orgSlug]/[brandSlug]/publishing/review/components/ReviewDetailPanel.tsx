@@ -4,12 +4,12 @@ import {
   formatDateInTimezone,
   getBrowserTimezone,
 } from '@helpers/formatting/timezone/timezone.helper';
-import type { ReviewDetailPanelProps } from '@props/publishing/review-detail-panel.props';
 import type { ReviewPanelItem } from '@props/publishing/review-panel-item.props';
 import TargetPreview from '@ui/previews/TargetPreview';
 import { ImageIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+import type { ReviewDetailPanelProps } from '@/features/posts/props/review-detail-panel.props';
 
 import ReviewDetailPanelAside from './ReviewDetailPanelAside';
 import ReviewDetailPanelEmpty from './ReviewDetailPanelEmpty';

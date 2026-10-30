@@ -1,4 +1,3 @@
-import type { TextSectionProps } from '@props/settings/organization-generation-defaults-text-section.props';
 import { Label } from '@ui/primitives/label';
 import {
   Select,
@@ -7,6 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import type { TextSectionProps } from '@/features/settings/props/organization-generation-defaults-text-section.props';
 
 export default function OrganizationGenerationDefaultsTextSection({
   enabledModelIds,

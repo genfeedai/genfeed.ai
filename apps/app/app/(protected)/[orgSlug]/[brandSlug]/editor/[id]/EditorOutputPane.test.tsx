@@ -1,10 +1,10 @@
 import '@testing-library/jest-dom/vitest';
 import type { IEditorProject } from '@genfeedai/contracts/interfaces';
-import type { EditorTimelineProps } from '@props/studio/editor-timeline.props';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRef } from 'react';
 import { describe, expect, it, vi } from 'vitest';
+import type { EditorTimelineProps } from '@/features/studio/props/editor-timeline.props';
 import EditorOutputPane from './EditorOutputPane';
 
 vi.mock('./EditorPreview', () => ({

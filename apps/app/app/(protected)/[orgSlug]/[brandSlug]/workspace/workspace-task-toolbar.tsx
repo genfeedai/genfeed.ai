@@ -1,14 +1,14 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { WorkspaceTaskMode } from '@props/workspace/workspace-task-composer.props';
-import type {
-  TaskPreset,
-  WorkspaceTaskToolbarProps,
-} from '@props/workspace/workspace-task-toolbar.props';
 import { Button } from '@ui/primitives/button';
 import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
 import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
 import { Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type {
+  TaskPreset,
+  WorkspaceTaskToolbarProps,
+} from '@/features/workspace/props/workspace-task-toolbar.props';
 
 export function WorkspaceTaskToolbar({
   isEnhancementBusy,

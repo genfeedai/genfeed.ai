@@ -6,7 +6,6 @@ import {
   TurboRunStatus,
 } from '@genfeedai/contracts';
 import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
-import type { ReviewQueueViewProps } from '@props/publishing/review-queue-view.props';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import CollectionSection from '@ui/collection/CollectionSection';
@@ -16,6 +15,7 @@ import { ClipboardCheck, Trash2, TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import PostDetailPanel from '@/features/posts/detail/PostDetailPanel';
+import type { ReviewQueueViewProps } from '@/features/posts/props/review-queue-view.props';
 import { isAgentSourceVisible } from '../useReviewInboxApprovals';
 import ReviewFilterMenu from './ReviewFilterMenu';
 import ReviewGrid from './ReviewGrid';

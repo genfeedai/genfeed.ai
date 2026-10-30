@@ -15,10 +15,6 @@ import { isDesktopLocalModeEnabled } from '@genfeedai/contracts/desktop';
 import type { IOnboardingContextValue } from '@genfeedai/contracts/interfaces';
 import { resolveSignupBrandDomain } from '@genfeedai/helpers';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import type {
-  BrandGuideExitEpoch,
-  BrandGuideScope,
-} from '@genfeedai/props/onboarding/brand-guide.props';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
@@ -28,6 +24,10 @@ import Spinner from '@ui/primitives/spinner';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import type {
+  BrandGuideExitEpoch,
+  BrandGuideScope,
+} from '@/features/onboarding/props/brand-guide.props';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
 import BrandGuidePanel from './brand-guide-panel';
 import FirstDraftsOnboarding from './first-drafts/first-drafts-onboarding';

@@ -2,12 +2,12 @@
 
 import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
 import { ButtonVariant } from '@genfeedai/contracts';
-import type { SkillDetailPanelProps } from '@props/settings/skills.props';
 import Badge from '@ui/display/badge/Badge';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import { Button } from '@ui/primitives/button';
 import { MessageSquare } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { SkillDetailPanelProps } from '@/features/settings/props/skills.props';
 import SkillDetailCard from './SkillDetailCard';
 import SkillVersionsPanel from './skill-versions-panel';
 

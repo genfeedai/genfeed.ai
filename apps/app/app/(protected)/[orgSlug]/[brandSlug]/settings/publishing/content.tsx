@@ -12,11 +12,6 @@ import { redactSensitiveString } from '@genfeedai/helpers';
 import { TIMEZONES } from '@helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
-import type {
-  FormAction,
-  FormState,
-  PublishingConfig,
-} from '@props/settings/publishing-content.props';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -48,6 +43,11 @@ import {
   useReducer,
   useState,
 } from 'react';
+import type {
+  FormAction,
+  FormState,
+  PublishingConfig,
+} from '@/features/settings/props/publishing-content.props';
 import PublishingPostingSetsSection from './publishing-posting-sets-section';
 import PublishingRssSourcesSection from './publishing-rss-sources-section';
 

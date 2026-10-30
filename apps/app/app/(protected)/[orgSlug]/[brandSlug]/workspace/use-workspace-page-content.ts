@@ -1,6 +1,5 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import type { UseWorkspacePageContentParams } from '@genfeedai/props/workspace/workspace-page.props';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useWorkspaceInboxRead } from '@hooks/data/tasks/use-workspace-inbox-read';
 import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
@@ -17,6 +16,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import type { UseWorkspacePageContentParams } from '@/features/workspace/props/workspace-page.props';
 import { OPERATOR_TASK_CONTEXT_QUERY_KEYS } from '@/lib/navigation/operator-shell';
 import {
   consumeOpenTaskComposerRequest,
@@ -34,7 +34,7 @@ import {
   type WorkspaceTaskRealtimePayload,
 } from './workspace-task.helpers';
 
-export type { UseWorkspacePageContentParams } from '@genfeedai/props/workspace/workspace-page.props';
+export type { UseWorkspacePageContentParams } from '@/features/workspace/props/workspace-page.props';
 
 const RECENT_INBOX_LIMIT = 5;
 const WORKSPACE_OVERVIEW_LOAD_TIMEOUT_MS = 15_000;

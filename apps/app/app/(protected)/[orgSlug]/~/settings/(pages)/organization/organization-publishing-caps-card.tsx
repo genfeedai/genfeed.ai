@@ -2,11 +2,6 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { PUBLISHING_QUOTA_MAX } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
-import type {
-  PublishingCapField,
-  PublishingCapKey,
-  PublishingCapsFormState,
-} from '@props/settings/organization-publishing-caps-card.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
@@ -16,6 +11,11 @@ import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
+import type {
+  PublishingCapField,
+  PublishingCapKey,
+  PublishingCapsFormState,
+} from '@/features/settings/props/organization-publishing-caps-card.props';
 
 const PUBLISHING_CAP_FIELDS: PublishingCapField[] = [
   { id: 'org-quota-twitter', key: 'quotaTwitter', labelKey: 'twitter' },

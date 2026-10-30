@@ -1,10 +1,10 @@
 import { ButtonVariant } from '@genfeedai/contracts';
-import type { AnnouncementHistoryListProps as Props } from '@props/admin/announcements.props';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
 import { Calendar } from 'lucide-react';
+import type { AnnouncementHistoryListProps as Props } from '@/features/admin/props/announcements.props';
 
 const ANNOUNCEMENT_HISTORY_SKELETON_KEYS = [
   'announcement-history-skeleton-1',

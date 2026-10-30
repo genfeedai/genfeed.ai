@@ -4,9 +4,9 @@ import {
   DefinitionList,
   DefinitionTerm,
 } from '@genfeedai/ui';
-import type { ReviewDetailPanelAsideProps } from '@props/publishing/review-detail-panel-aside.props';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import type { ReviewDetailPanelAsideProps } from '@/features/posts/props/review-detail-panel-aside.props';
 
 import ReviewAssignmentPanel from './ReviewAssignmentPanel';
 import ReviewDecisionPanel from './ReviewDecisionPanel';

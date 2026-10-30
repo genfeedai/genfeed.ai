@@ -6,9 +6,9 @@ import {
   ButtonVariant,
   KnowledgeProcessingState,
 } from '@genfeedai/contracts';
-import type { CorpusSourceListProps } from '@props/onboarding/expert-path.props';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
+import type { CorpusSourceListProps } from '@/features/onboarding/props/expert-path.props';
 
 export default function CorpusSourceList({
   retryingSourceId,

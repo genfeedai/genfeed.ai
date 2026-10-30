@@ -2,12 +2,6 @@
 
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type {
-  AnnouncementComposeFormState,
-  AnnouncementsPageProps,
-  AnnouncementsPageAction as PageAction,
-  AnnouncementsPageState as PageState,
-} from '@props/admin/announcements.props';
 import { AdminAnnouncementsService } from '@services/admin/announcements.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -16,6 +10,12 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Megaphone } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useReducer } from 'react';
+import type {
+  AnnouncementComposeFormState,
+  AnnouncementsPageProps,
+  AnnouncementsPageAction as PageAction,
+  AnnouncementsPageState as PageState,
+} from '@/features/admin/props/announcements.props';
 
 import AnnouncementComposeForm from './announcement-compose-form';
 import AnnouncementHistoryList from './announcement-history-list';

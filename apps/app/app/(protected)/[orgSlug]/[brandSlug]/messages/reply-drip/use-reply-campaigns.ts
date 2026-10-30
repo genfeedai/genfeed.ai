@@ -6,7 +6,6 @@ import type {
   SocialReplyCampaignQuery,
 } from '@genfeedai/contracts/interfaces';
 import type { SocialReplyCampaignModel } from '@genfeedai/models/social/social-reply-campaign.model';
-import type { ReplyCampaignEnrollableConversation } from '@genfeedai/props/social/reply-campaigns-panel.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { SocialMessagesService } from '@services/social/messages.service';
 import {
@@ -14,6 +13,7 @@ import {
   type SocialReplyCampaignTransition,
 } from '@services/social/reply-campaigns.service';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { ReplyCampaignEnrollableConversation } from '@/features/messages/props/reply-campaigns-panel.props';
 
 function getErrorMessage(err: unknown): string {
   if (err instanceof Error && err.message.trim()) {

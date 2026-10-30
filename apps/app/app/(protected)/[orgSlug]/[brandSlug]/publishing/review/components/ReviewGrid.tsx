@@ -1,9 +1,9 @@
 import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/contracts';
-import type { ReviewGridProps } from '@props/publishing/review-grid.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Check, Sparkles, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { ReviewGridProps } from '@/features/posts/props/review-grid.props';
 
 import ReviewItemsTable from './ReviewItemsTable';
 import ReviewRewriteProgress from './ReviewRewriteProgress';

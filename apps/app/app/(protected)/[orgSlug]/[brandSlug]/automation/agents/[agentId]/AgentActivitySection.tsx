@@ -2,8 +2,6 @@
 
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { AgentActivitySectionProps } from '@props/automation/agent-activity-section.props';
-import type { AgentActivityFilter } from '@props/automation/agent-activity-timeline.props';
 import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
@@ -12,6 +10,8 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import type { AgentActivitySectionProps } from '@/features/automation/props/agent-activity-section.props';
+import type { AgentActivityFilter } from '@/features/automation/props/agent-activity-timeline.props';
 import {
   filterAgentActivity,
   mergeAgentActivity,

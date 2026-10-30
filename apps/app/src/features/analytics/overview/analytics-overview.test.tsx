@@ -223,9 +223,12 @@ vi.mock('@hooks/data/analytics/use-analytics/use-analytics', () => ({
   useAnalytics: () => mockAnalyticsReturn,
 }));
 
-vi.mock('@hooks/data/analytics/use-health-checks/use-health-checks', () => ({
-  useHealthChecks: () => mockHealthChecksReturn,
-}));
+vi.mock(
+  '@/features/analytics/hooks/use-health-checks/use-health-checks',
+  () => ({
+    useHealthChecks: () => mockHealthChecksReturn,
+  }),
+);
 
 vi.mock('@hooks/data/analytics/use-leaderboards/use-leaderboards', () => ({
   useLeaderboards: (options: unknown) => {
@@ -234,7 +237,7 @@ vi.mock('@hooks/data/analytics/use-leaderboards/use-leaderboards', () => ({
   },
 }));
 
-vi.mock('@hooks/data/analytics/use-timeseries/use-timeseries', () => ({
+vi.mock('@/features/analytics/hooks/use-timeseries/use-timeseries', () => ({
   useTimeseries: (options: unknown) => {
     mockDataHookOptions.timeseries(options);
     return mockTimeseriesReturn;

@@ -1,5 +1,5 @@
-import type { AgentWorkspaceContextValue } from '@props/agent/agent-workspace-context.props';
 import { createContext, use } from 'react';
+import type { AgentWorkspaceContextValue } from '@/features/agents/props/agent-workspace-context.props';
 
 export type { AgentWorkspaceContextValue };
 

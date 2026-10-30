@@ -1,5 +1,5 @@
-import type { ProvidersServerListProps } from '@props/onboarding/providers-server-list.props';
 import Card from '@ui/card/Card';
+import type { ProvidersServerListProps } from '@/features/onboarding/props/providers-server-list.props';
 
 import ProvidersRowItem from './providers-row-item';
 

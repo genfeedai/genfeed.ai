@@ -10,10 +10,6 @@ import {
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {
-  UnitEconomicsDrillDown,
-  UnitEconomicsTableRow,
-} from '@props/admin/unit-economics.props';
-import type {
   TableColumn,
   TableSortDirection,
 } from '@props/ui/display/table.props';
@@ -28,6 +24,10 @@ import { ArrowLeft, Scale } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type {
+  UnitEconomicsDrillDown,
+  UnitEconomicsTableRow,
+} from '@/features/admin/props/unit-economics.props';
 import EconomicsPeriodFilter from '../economics-period-filter';
 import {
   buildEconomicsRange,
