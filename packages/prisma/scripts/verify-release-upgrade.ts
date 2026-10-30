@@ -62,6 +62,17 @@ const migrate = (config: string) =>
       stdio: 'inherit',
     },
   );
+
+// Migrations record their own ledger rows (e.g. the organization onboarding
+// backfill), so count only the row the credential backfill owns.
+async function credentialBackfillCount(): Promise<string> {
+  return (
+    await db.query('SELECT count(*) FROM data_backfills WHERE id = $1', [
+      CREDENTIAL_BACKFILL_VERSION,
+    ])
+  ).rows[0].count;
+}
+
 function decrypt(envelope: string): string {
   const [iv, ciphertext, tag] = envelope.split(':');
   assert(iv && ciphertext && tag);
@@ -314,10 +325,7 @@ try {
     assert.equal(placeholderBrand.isDeleted, false);
   }
   await runCredentialEncryptionBackfill(db, { ...args, dryRun: true }, secret);
-  assert.equal(
-    (await db.query('SELECT count(*) FROM data_backfills')).rows[0].count,
-    '0',
-  );
+  assert.equal(await credentialBackfillCount(), '0');
   assert.equal(
     (
       await db.query('SELECT "accessToken" FROM credentials WHERE id = $1', [
@@ -350,10 +358,7 @@ try {
     runCredentialEncryptionBackfill(db, args, secret),
     /synthetic failure/,
   );
-  assert.equal(
-    (await db.query('SELECT count(*) FROM data_backfills')).rows[0].count,
-    '0',
-  );
+  assert.equal(await credentialBackfillCount(), '0');
   const committed = (
     await db.query(
       'SELECT "accessToken", "refreshToken" FROM credentials WHERE id = $1',
@@ -441,10 +446,7 @@ try {
     'synthetic-deleted-refreshed',
   );
   assert.equal(credentials.rows[1].isDeleted, true);
-  assert.equal(
-    (await db.query('SELECT count(*) FROM data_backfills')).rows[0].count,
-    '1',
-  );
+  assert.equal(await credentialBackfillCount(), '1');
   assert.equal(
     (await runCredentialEncryptionBackfill(db, args, secret)).skipped,
     true,
