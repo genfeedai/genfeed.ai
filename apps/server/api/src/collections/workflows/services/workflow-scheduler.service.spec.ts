@@ -202,6 +202,58 @@ describe('WorkflowSchedulerService — job scheduler registration', () => {
     expect(queueService.removeWorkflowScheduler).not.toHaveBeenCalled();
   });
 
+  it('rejects scheduling a generation workflow that has no brand', async () => {
+    const prisma = createMockPrisma();
+    prisma.workflow.findFirst.mockResolvedValue({
+      brandId: null,
+      currentVersion: {
+        contentHash: 'hash',
+        graph: {
+          nodes: [
+            {
+              data: {
+                config: { actionId: 'imageGen', parameters: {} },
+                label: 'Image',
+              },
+              id: 'image',
+              type: 'genfeedAction',
+            },
+          ],
+        },
+      },
+      id: 'wf-1',
+    });
+    const { queueService, service } = createService({ prisma });
+
+    await expect(
+      service.updateSchedule('wf-1', 'org-1', '0 7 * * *', 'UTC', true),
+    ).rejects.toThrow('Choose a brand');
+
+    expect(prisma.workflow.update).not.toHaveBeenCalled();
+    expect(queueService.upsertWorkflowScheduler).not.toHaveBeenCalled();
+  });
+
+  it('schedules a generation workflow whose brand is set', async () => {
+    const prisma = createMockPrisma();
+    prisma.workflow.findFirst.mockResolvedValue({
+      brandId: 'brand-1',
+      currentVersion: { contentHash: 'hash', graph: { nodes: [] } },
+      id: 'wf-1',
+    });
+    prisma.workflow.update.mockResolvedValue(
+      versionedWorkflow({
+        id: 'wf-1',
+        isScheduleEnabled: true,
+        schedule: '0 7 * * *',
+      }),
+    );
+    const { queueService, service } = createService({ prisma });
+
+    await service.updateSchedule('wf-1', 'org-1', '0 7 * * *', 'UTC', true);
+
+    expect(queueService.upsertWorkflowScheduler).toHaveBeenCalledTimes(1);
+  });
+
   it('removes the job scheduler when the schedule is disabled', async () => {
     const prisma = createMockPrisma();
     prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-1' });

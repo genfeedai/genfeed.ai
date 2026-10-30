@@ -1,5 +1,8 @@
 import type { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
-import { assertWorkflowGenerationActorAdmission } from '@api/collections/workflows/utils/workflow-generation-actor-admission.util';
+import {
+  assertWorkflowGenerationActorAdmission,
+  hasStoredWorkflowGenerationBrandSource,
+} from '@api/collections/workflows/utils/workflow-generation-actor-admission.util';
 import type { WorkflowAdmissionAvailableSourceV1 } from '@api/collections/workflows/workflow-generation-admission.interface';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { describe, expect, it, vi } from 'vitest';
@@ -104,5 +107,41 @@ describe('workflow generation actor boundary', () => {
     const f = fixture();
     f.access.assert.mockRejectedValue(new Error('Brand access denied'));
     await expect(f.run()).rejects.toThrow('Brand access denied');
+  });
+});
+
+describe('hasStoredWorkflowGenerationBrandSource', () => {
+  const imageNode = (parameters: Record<string, unknown>) => ({
+    data: { config: { actionId: 'imageGen', parameters }, label: 'Image' },
+    id: 'image',
+    type: 'genfeedAction',
+  });
+
+  it('is false when neither the workflow nor any action node names a brand', () => {
+    expect(
+      hasStoredWorkflowGenerationBrandSource(null, {
+        nodes: [imageNode({ prompt: 'a cat' })],
+      }),
+    ).toBe(false);
+  });
+
+  it('is true for a workflow brand, an action node brand or a source ingredient', () => {
+    const graph = { nodes: [imageNode({ prompt: 'a cat' })] };
+    expect(hasStoredWorkflowGenerationBrandSource('brand', graph)).toBe(true);
+    expect(
+      hasStoredWorkflowGenerationBrandSource(null, {
+        nodes: [imageNode({ brandId: 'brand' })],
+      }),
+    ).toBe(true);
+    expect(
+      hasStoredWorkflowGenerationBrandSource(null, {
+        nodes: [imageNode({ parentIngredientId: 'ingredient' })],
+      }),
+    ).toBe(true);
+  });
+
+  it('is null when the stored graph cannot be read', () => {
+    expect(hasStoredWorkflowGenerationBrandSource(null, undefined)).toBeNull();
+    expect(hasStoredWorkflowGenerationBrandSource(null, {})).toBeNull();
   });
 });

@@ -2,7 +2,77 @@ import type { BrandAccessService } from '@api/authorization/brand-access/brand-a
 import type { WorkflowAdmissionAvailableSourceV1 } from '@api/collections/workflows/workflow-generation-admission.interface';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ApiKeyScope } from '@genfeedai/contracts';
-import { unwrapExecutableActionNode } from '@genfeedai/workflows/engine';
+import {
+  type ExecutableNode,
+  unwrapExecutableActionNode,
+} from '@genfeedai/workflows/engine';
+
+/** Brand ids named on action nodes, and the source ingredients whose brand stands in for one. */
+export function collectWorkflowGenerationNodeBrandSources(
+  nodes: readonly ExecutableNode[],
+): { brandIds: string[]; parentIngredientIds: string[] } {
+  const brandIds: string[] = [];
+  const parentIngredientIds: string[] = [];
+  for (const node of nodes) {
+    if (node.type !== 'genfeedAction') continue;
+    const { config } = unwrapExecutableActionNode(node);
+    if (typeof config.brandId === 'string' && config.brandId)
+      brandIds.push(config.brandId);
+    if (
+      typeof config.parentIngredientId === 'string' &&
+      config.parentIngredientId
+    )
+      parentIngredientIds.push(config.parentIngredientId);
+  }
+  return { brandIds, parentIngredientIds };
+}
+
+/**
+ * Whether a run of this workflow can resolve a brand at admission. A workflow
+ * without one fails every run with "Workflow generation brand is unavailable".
+ */
+export function hasWorkflowGenerationBrandSource(
+  workflowBrandId: string | null | undefined,
+  nodes: readonly ExecutableNode[],
+): boolean {
+  if (workflowBrandId) return true;
+  const { brandIds, parentIngredientIds } =
+    collectWorkflowGenerationNodeBrandSources(nodes);
+  return brandIds.length > 0 || parentIngredientIds.length > 0;
+}
+
+/**
+ * Same check on a stored version graph (visual nodes). Null when the graph
+ * cannot be read here, so a caller never blocks a save on a guess.
+ */
+export function hasStoredWorkflowGenerationBrandSource(
+  workflowBrandId: string | null | undefined,
+  graph: unknown,
+): boolean | null {
+  const storedNodes =
+    graph !== null && typeof graph === 'object'
+      ? (graph as { nodes?: unknown }).nodes
+      : undefined;
+  if (!Array.isArray(storedNodes)) return null;
+  try {
+    const nodes = storedNodes.map(
+      (node: {
+        id: string;
+        type: string;
+        data?: { config?: Record<string, unknown>; label?: string };
+      }): ExecutableNode => ({
+        config: node.data?.config ?? {},
+        id: node.id,
+        inputs: [],
+        label: node.data?.label ?? node.id,
+        type: node.type,
+      }),
+    );
+    return hasWorkflowGenerationBrandSource(workflowBrandId, nodes);
+  } catch {
+    return null;
+  }
+}
 
 /** Revalidate live membership, key status/scopes and brand grants using the canonical authority. */
 export async function assertWorkflowGenerationActorAdmission(
@@ -56,24 +126,20 @@ export async function assertWorkflowGenerationActorAdmission(
       throw new Error('Workflow generation key permission is unavailable');
   }
   const brands = new Set<string>(source.brandId ? [source.brandId] : []);
-  for (const node of nodes) {
-    if (node.type !== 'genfeedAction') continue;
-    const brandId = unwrapExecutableActionNode(node).config.brandId;
-    if (typeof brandId === 'string' && brandId) brands.add(brandId);
-    const parentId = unwrapExecutableActionNode(node).config.parentIngredientId;
-    if (typeof parentId === 'string' && parentId) {
-      const parent = await prisma.ingredient.findFirst({
-        select: { brandId: true },
-        where: {
-          id: parentId,
-          organizationId: source.organizationId,
-          isDeleted: false,
-        },
-      });
-      if (!parent?.brandId)
-        throw new Error('Workflow generation source brand is unavailable');
-      brands.add(parent.brandId);
-    }
+  const nodeSources = collectWorkflowGenerationNodeBrandSources(nodes);
+  for (const brandId of nodeSources.brandIds) brands.add(brandId);
+  for (const parentId of nodeSources.parentIngredientIds) {
+    const parent = await prisma.ingredient.findFirst({
+      select: { brandId: true },
+      where: {
+        id: parentId,
+        organizationId: source.organizationId,
+        isDeleted: false,
+      },
+    });
+    if (!parent?.brandId)
+      throw new Error('Workflow generation source brand is unavailable');
+    brands.add(parent.brandId);
   }
   if (brands.size === 0)
     throw new Error('Workflow generation brand is unavailable');
