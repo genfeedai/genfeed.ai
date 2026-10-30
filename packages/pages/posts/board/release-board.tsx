@@ -404,7 +404,7 @@ export default function ReleaseBoard({
           const columnReleases = columns.get(column) ?? [];
           return (
             <div
-              className="flex min-w-0 flex-col gap-2 rounded-md border border-border bg-muted/30 p-2"
+              className="flex min-w-0 flex-col gap-2 rounded-md border border-border bg-muted/20 p-2"
               key={column}
               onDragOver={(event) => {
                 if (!REFUSED_DROP_COLUMNS.has(column)) {

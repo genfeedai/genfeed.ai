@@ -502,7 +502,7 @@ export default function StudioIdentityFields({
       aria-current={activeTab === tab}
       ariaLabel={`${title}: ${value ?? translate('identityRequired')}`}
       className={cn(
-        'flex h-auto w-full flex-col items-stretch gap-2 rounded-lg border bg-muted/30 p-2.5 text-left',
+        'flex h-auto w-full flex-col items-stretch gap-2 rounded-lg border bg-muted/20 p-2.5 text-left',
         activeTab === tab ? 'border-foreground/60' : 'border-border',
       )}
       onClick={() => changeTab(tab)}

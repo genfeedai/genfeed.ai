@@ -110,7 +110,7 @@ export default function PostDetailPostList({
               <div
                 className={`h-px my-2 transition-all duration-200 ${
                   dragOverDividerIndex === index - 2
-                    ? 'h-1 bg-primary/30'
+                    ? 'h-1 bg-primary/20'
                     : 'bg-border hover:bg-muted/50'
                 }`}
                 onDragOver={(e) => {

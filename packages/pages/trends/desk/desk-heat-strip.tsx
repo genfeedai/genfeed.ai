@@ -85,7 +85,7 @@ export default function DeskHeatStrip({
             >
               <Link
                 aria-label={platform}
-                className="gen-glass-subtle flex shrink-0 items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-foreground/50 transition hover:text-foreground/75"
+                className="gen-glass-subtle flex shrink-0 items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-foreground/50 transition hover:text-foreground/80"
                 href={publishingHref}
               >
                 <Lock className="size-3" />

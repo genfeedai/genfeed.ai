@@ -275,7 +275,7 @@ function FollowingDeckPost({
         </div>
       ) : null}
 
-      <footer className="relative flex items-center gap-3 text-xs text-foreground/55">
+      <footer className="relative flex items-center gap-3 text-xs text-foreground/60">
         {item.metrics.likes !== undefined ? (
           <span className="flex items-center gap-1 tabular-nums">
             <Heart className="size-3.5" />

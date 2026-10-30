@@ -153,7 +153,7 @@ function OrganizationMetricStrip({
                 {metric.value}
               </div>
             )}
-            <p className="mt-1 text-2xs font-medium uppercase tracking-[0.14em] text-foreground/55">
+            <p className="mt-1 text-2xs font-medium uppercase tracking-[0.14em] text-foreground/60">
               {metric.analyticsMetric ? (
                 <AnalyticsMetricLabel metric={metric.analyticsMetric}>
                   {metric.label}

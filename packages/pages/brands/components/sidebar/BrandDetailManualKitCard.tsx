@@ -597,7 +597,7 @@ export default function BrandDetailManualKitCard({
             />
           </FormControl>
 
-          <Label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-sm text-muted-foreground hover:border-foreground/30 font-normal leading-normal">
+          <Label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-sm text-muted-foreground hover:border-foreground/20 font-normal leading-normal">
             <FileText className="size-4" />
             <span>{form.guidanceDocumentName || 'Upload guidance file'}</span>
             <Input
@@ -664,7 +664,7 @@ export default function BrandDetailManualKitCard({
         {error ? (
           <p
             role="alert"
-            className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive"
           >
             {error}
           </p>
