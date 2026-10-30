@@ -263,7 +263,7 @@ function TimelineWorkGroupInner({
             textTransform="none"
             onClick={() => setIsExpanded((prev) => !prev)}
             aria-expanded={isExpanded}
-            className="flex w-full min-w-0 items-center rounded-md text-left transition-colors hover:bg-foreground/[0.04]"
+            className="flex w-full min-w-0 items-center rounded-md text-left transition-colors hover:bg-foreground/5"
           >
             {durationFooter}
           </Button>

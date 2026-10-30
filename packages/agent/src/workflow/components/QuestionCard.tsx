@@ -59,7 +59,7 @@ function QuestionCardInner({
               className={cn(
                 'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-normal leading-normal cursor-pointer transition-all',
                 selectedOption === option
-                  ? 'bg-info/15 text-info ring-1 ring-info/30'
+                  ? 'bg-info/10 text-info ring-1 ring-info/20'
                   : 'bg-foreground/5 text-foreground/70 hover:bg-foreground/10',
                 (disabled || isAnswered) && 'pointer-events-none opacity-60',
               )}
@@ -78,7 +78,7 @@ function QuestionCardInner({
                   'size-4 rounded-full border-2 flex items-center justify-center shrink-0',
                   selectedOption === option
                     ? 'border-info/20'
-                    : 'border-foreground/30',
+                    : 'border-foreground/20',
                 )}
               >
                 {selectedOption === option && (

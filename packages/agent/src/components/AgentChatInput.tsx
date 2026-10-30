@@ -238,7 +238,7 @@ export function AgentChatInput({
       {actionFeedback ? (
         <div
           aria-live="polite"
-          className="mb-2 rounded-lg border border-border bg-card/92 px-3 py-2 text-xs leading-5 text-foreground/78 shadow-border"
+          className="mb-2 rounded-lg border border-border bg-card/90 px-3 py-2 text-xs leading-5 text-foreground/80 shadow-border"
           role="status"
         >
           {actionFeedback}

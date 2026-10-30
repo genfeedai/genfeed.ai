@@ -160,7 +160,7 @@ export function AgentConversationTurnNavigator({
                   'h-0.5 rounded-full transition-[width,background-color] duration-150',
                   isActive
                     ? 'w-3.5 bg-foreground/80'
-                    : 'w-2 bg-muted-foreground/40 group-hover:w-3 group-hover:bg-muted-foreground/75',
+                    : 'w-2 bg-muted-foreground/40 group-hover:w-3 group-hover:bg-muted-foreground/70',
                 )}
               />
             </Button>

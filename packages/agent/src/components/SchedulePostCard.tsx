@@ -505,7 +505,7 @@ export function SchedulePostCard({
                         signatures={signatures}
                       />
                       {blockers.length > 0 ? (
-                        <div className="space-y-1 border border-destructive/30 bg-destructive/5 p-2">
+                        <div className="space-y-1 border border-destructive/20 bg-destructive/5 p-2">
                           <p className="text-2xs font-medium uppercase tracking-wider text-destructive">
                             {translate('cannotSchedule')}
                           </p>

@@ -55,7 +55,7 @@ function renderOutputPreview(
           <Sparkles className="size-3.5" />
           {variant.title ?? 'Text'}
         </div>
-        <p className="line-clamp-6 whitespace-pre-wrap text-sm leading-5 text-foreground/85">
+        <p className="line-clamp-6 whitespace-pre-wrap text-sm leading-5 text-foreground/90">
           {variant.textContent}
         </p>
       </div>

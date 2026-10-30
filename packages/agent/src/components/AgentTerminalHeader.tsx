@@ -22,10 +22,10 @@ export function AgentTerminalHeader({
 }: AgentTerminalHeaderProps): ReactElement {
   return (
     <div className="flex min-w-0 shrink-0 items-center gap-2 overflow-hidden">
-      <span className="shrink-0 text-2xs capitalize leading-none text-foreground/55">
+      <span className="shrink-0 text-2xs capitalize leading-none text-foreground/60">
         {catalog.environmentLabel}
       </span>
-      <p className="shrink-0 self-center truncate text-2xs leading-none text-foreground/55">
+      <p className="shrink-0 self-center truncate text-2xs leading-none text-foreground/60">
         {threadLabel || 'New session'}
       </p>
 

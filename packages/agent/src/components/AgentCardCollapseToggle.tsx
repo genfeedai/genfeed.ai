@@ -42,7 +42,7 @@ export function AgentCardCollapseToggle({
       className={cn(
         'inline-flex size-7 shrink-0 items-center justify-center rounded-md',
         'p-0 text-muted-foreground transition-colors',
-        'hover:bg-foreground/[0.06] hover:text-foreground',
+        'hover:bg-foreground/5 hover:text-foreground',
         className,
       )}
     >

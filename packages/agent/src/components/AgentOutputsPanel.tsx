@@ -196,7 +196,7 @@ export function AgentOutputsPanel({
           <h2 className="mt-3 text-lg font-semibold tracking-[-0.02em] text-foreground">
             {emptyTitle}
           </h2>
-          <p className="mt-2 text-sm leading-6 text-foreground/56">
+          <p className="mt-2 text-sm leading-6 text-foreground/60">
             {emptyDescription}
           </p>
         </div>
