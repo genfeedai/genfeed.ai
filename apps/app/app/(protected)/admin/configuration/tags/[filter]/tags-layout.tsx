@@ -2,28 +2,30 @@
 
 import { PageScope } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { createFilterHref } from '@helpers/navigation/filter-href.helper';
+import { createPathViewHref } from '@helpers/navigation/filter-href.helper';
 import type { ITagsLayoutProps } from '@props/admin/tags.props';
 import AdminOrgBrandUrlFilter from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Tag } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 
 export default function TagsLayout({
   children,
   scope,
   filters,
+  search: searchNode,
   primaryAction,
   onRefresh,
   isRefreshing,
 }: ITagsLayoutProps) {
   const search = useSearchParams()?.toString() ?? '';
+  const pathname = usePathname() ?? '';
+  // The view is a path segment (`/tags/default`); the filters stay in the query.
   const filterHref = (filter: string) =>
-    createFilterHref(
-      APP_ROUTES.ADMIN.CONFIGURATION.TAGS,
+    createPathViewHref(
+      `${APP_ROUTES.ADMIN.CONFIGURATION.TAGS}/${filter}`,
       search,
       'filter',
-      filter,
     );
   // Both customer and admin views navigate the same tag categories.
   const tabs =
@@ -49,13 +51,15 @@ export default function TagsLayout({
     <AdminPageShell
       title="Tags"
       icon={Tag}
+      search={searchNode}
       tabs={
         tabs
           ? {
               activeTab: filterHref(
                 ['all', 'default', 'organization', 'account'].find(
                   (value) =>
-                    value === new URLSearchParams(search).get('filter'),
+                    pathname ===
+                    `${APP_ROUTES.ADMIN.CONFIGURATION.TAGS}/${value}`,
                 ) ?? 'all',
               ),
               fullWidth: false,

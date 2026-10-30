@@ -33,7 +33,7 @@ export default function HeroProofRail({
             <p className="text-2xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
               {item.label}
             </p>
-            <div className="text-sm leading-relaxed text-foreground/84">
+            <div className="text-sm leading-relaxed text-foreground/90">
               {item.value}
             </div>
           </div>

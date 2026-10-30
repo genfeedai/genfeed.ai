@@ -13,7 +13,7 @@ export default function SkillsHowItWorks(): React.ReactElement {
           How It Works
         </div>
         <h2 className="text-5xl font-semibold mb-6">Install. Learn. Create.</h2>
-        <p className="text-foreground/65 max-w-xl mx-auto">
+        <p className="text-foreground/70 max-w-xl mx-auto">
           Skills are knowledge packages your agent absorbs, not plugins you
           configure.
         </p>
@@ -24,7 +24,6 @@ export default function SkillsHowItWorks(): React.ReactElement {
           <NeuralGridItem
             key={step.number}
             className="gsap-card"
-            tierLabel={`${step.number} / ${step.title}`}
             icon={step.icon}
             title={step.title}
             description={step.description}

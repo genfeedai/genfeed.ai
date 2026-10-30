@@ -60,7 +60,7 @@ not in the Genfeed container's `.env`:
 
 ```bash
 export GENFEED_API_KEY=gf_live_xxx
-codex mcp add genfeed --url http://localhost:3014/mcp --bearer-token-env-var GENFEED_API_KEY
+codex mcp add genfeed --url 'http://localhost:3014/mcp?profile=studio' --bearer-token-env-var GENFEED_API_KEY
 ```
 
 To enter the key without putting its value in shell history:
@@ -77,7 +77,7 @@ You can also add the server in your user-level `~/.codex/config.toml`:
 
 ```toml
 [mcp_servers.genfeed]
-url = "http://localhost:3014/mcp"
+url = "http://localhost:3014/mcp?profile=studio"
 bearer_token_env_var = "GENFEED_API_KEY"
 ```
 
@@ -330,9 +330,38 @@ The bare endpoint uses the `default` profile. Profiles shape the advertised
 
 | Endpoint selector | Advertised toolsets |
 | --- | --- |
-| No selector or `?profile=default` | `core`, `generation`, `content`, and `scheduler`, capped at 26 tools. |
+| No selector or `?profile=default` | `core`, `generation`, `content`, and `scheduler`, hard-capped at 25 tools. |
 | `?profile=directory` | The same bounded selection, with `generation`, `clipper`, and `ui` excluded. This profile does not imply directory approval. |
+| `?profile=studio` | The default selection plus `brand` and `analytics`, capped at 40 tools. Generation, content, scheduling, brand and analytics, without ads tools. Codex installs use this profile. |
 | `?profile=full` | All toolsets, subject to the caller's permissions. |
+
+### Add an app with `?app=`
+
+`?app=` adds the tools behind a Genfeed app to whatever the rest of the URL
+selects (the default, `?profile=`, or `?toolsets=`). It is additive and accepts
+several names, so `?profile=studio&app=clipper,motion` is the studio set plus
+Clipper and Motion. Added apps are not counted against the profile caps.
+`?profile=full` already includes everything.
+
+| App | Toolsets it adds |
+| --- | --- |
+| `agent` | `agent-chat` |
+| `analytics` | `analytics` |
+| `automation` | `workflows` |
+| `clipper` | `clipper` |
+| `editor` | `editor` |
+| `discovery` | `ads`, `inspiration` |
+| `library`, `playground` | `generation` |
+| `messages` | `social-inbox` |
+| `motion` | `visual-code` |
+| `publishing` | `articles`, `content`, `onboarding`, `scheduler` |
+| `storyboard` | `inspiration` |
+| `turbo` | `content` |
+| `workspace` | `workspace` |
+
+`brand`, `engagement`, `knowledge`, and `skills-pro` have no app; select them
+with `?toolsets=`. An unknown app name returns HTTP 400 listing the valid
+names. The Claude connector at `/mcp/claude` keeps its fixed tool list.
 
 To expose the available content journey, including generation and analytics,
 select these toolsets explicitly:

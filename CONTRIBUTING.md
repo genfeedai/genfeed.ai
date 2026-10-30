@@ -49,7 +49,8 @@ requests.
 
 ## Toolchain and supported operating systems
 
-- Node.js `>=24 <25`
+- Node.js 26 (the version in `.node-version`; CI and the Docker images pin it). The
+  workspace `engines` floor is `>=24` with no ceiling.
 - Bun latest stable (resolved from `.bun-version`; the exact `packageManager`
   value is Turborepo compatibility metadata, not the installer selector)
 - Docker Engine with Docker Compose v2, or Docker Desktop, for PostgreSQL and
@@ -64,7 +65,7 @@ Install these before running `bun install`:
 
 | Requirement | Why it is needed |
 | --- | --- |
-| Node.js 24 (`>=24 <25`) | Runtime for the workspaces and tooling |
+| Node.js 26 (floor `>=24`) | Runtime for the workspaces and tooling |
 | Bun | Package manager and script runner |
 | Docker with Compose v2 (`docker compose version`) | PostgreSQL and Redis for local development |
 | C/C++ toolchain (`build-essential`, or Xcode CLT on macOS) and `python3` | `bun install` compiles the `node-pty` native module (used by `apps/server/notifications`) with `node-gyp` |
@@ -77,7 +78,7 @@ sudo apt-get update
 sudo apt-get install -y build-essential python3 git unzip ca-certificates
 ```
 
-Then install Node.js 24 (for example with [nvm](https://github.com/nvm-sh/nvm),
+Then install Node.js 26 (for example with [nvm](https://github.com/nvm-sh/nvm),
 [fnm](https://github.com/Schniz/fnm), or NodeSource), [Bun](https://bun.sh/docs/installation),
 and Docker Engine with the Compose v2 plugin following the
 [Docker install guide](https://docs.docker.com/engine/install/). Add your user to
@@ -90,7 +91,7 @@ so `docker compose` runs without `sudo`.
 xcode-select --install   # Xcode Command Line Tools: compiler toolchain and python3
 ```
 
-Then install Node.js 24, Bun, and Docker Desktop (or another Docker Engine with
+Then install Node.js 26, Bun, and Docker Desktop (or another Docker Engine with
 Compose v2), for example via Homebrew.
 
 **systemd.** `bun run dev:setup` registers Portless as a startup service, so a

@@ -32,7 +32,7 @@ const PromptBarShell = forwardRef<HTMLDivElement, PromptBarShellProps>(
       >
         {banner ? (
           <div
-            className="border-b border-white/[0.08]"
+            className="border-b border-white/10"
             data-testid="prompt-bar-shell-banner"
           >
             {banner}

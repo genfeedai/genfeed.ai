@@ -165,7 +165,7 @@ function TagsListContent(props: TagsListProps) {
         isLoading={isLoading}
         getRowKey={(t) => t.id}
         rowSidebar={rowSidebar}
-        emptyLabel={EMPTY_STATES.TAGS_YET}
+        emptyLabel={EMPTY_STATES.TAGS_FOUND}
       />
 
       <div className="mt-4">

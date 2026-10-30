@@ -11,9 +11,9 @@ and neither needs a repository clone.
 
 | Option                                                         | Best for                                 | Needs                                   |
 | -------------------------------------------------------------- | ---------------------------------------- | --------------------------------------- |
-| [`npx @genfeedai/create`](#option-1-npx-one-command)           | The fastest start                        | Docker Compose v2, Node.js 24           |
+| [`npx @genfeedai/create`](#option-1-npx-one-command)           | The fastest start                        | Docker Compose v2, Node.js 24+          |
 | [Release bundle](#option-2-release-bundle-with-docker-compose) | Servers, CI, or machines without Node.js | Docker Compose v2                       |
-| [From source](#option-3-from-source-contributors)              | Contributors changing Genfeed itself     | Node.js 24, Bun, Git, Docker Compose v2 |
+| [From source](#option-3-from-source-contributors)              | Contributors changing Genfeed itself     | Node.js 26, Bun, Git, Docker Compose v2 |
 
 Check the [system requirements](/self-host/system-requirements) first. Plan on at
 least 15 GB of free disk, plus room for media, backups, and upgrades. This is
@@ -42,10 +42,10 @@ The installer downloads the release bundle and verifies its checksum and
 manifest, then asks for your OpenRouter API key with hidden input. It refuses an
 empty or placeholder value, validates the Compose file, and starts the stack.
 
-It needs Node.js 24 (`>=24 <25`). On any other Node version, use the release
+It needs Node.js 24 or newer (`>=24`). On an older Node version, use the release
 bundle below. `@genfeedai/create` is separate from the
 [`@genfeedai/cli`](/api-reference/cli) terminal client, which needs Node.js
-22.12 or newer.
+24 or newer.
 
 ## Option 2: Release bundle with Docker Compose
 
@@ -185,7 +185,7 @@ Use this path only if you are changing Genfeed itself. To run Genfeed, use optio
 
 ### Requirements
 
-- Node.js `>=24 <25`
+- Node.js 26 (the version in `.node-version`; the workspace floor is `>=24`)
 - Latest stable Bun (see `.bun-version`)
 - Git
 - Docker Engine with Docker Compose v2, for local PostgreSQL 17 and Redis 7

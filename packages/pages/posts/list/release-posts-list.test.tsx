@@ -1,11 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { viewMenuTrigger } from '@app-tests/view-menu.helpers';
 import {
   CredentialPlatform,
   PageScope,
   ReleaseStatus,
 } from '@genfeedai/contracts';
 import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom/vitest';
 import { act, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -255,7 +257,7 @@ describe('ReleasePostsList selection from the release URL param', () => {
       />,
     );
 
-    const toolbar = setFiltersNode.mock.calls.at(-1)?.[0];
+    const toolbar = setLeadingNode.mock.calls.at(-1)?.[0].props.children;
     expect(toolbar.props.sourceValue).toBeUndefined();
     toolbar.props.onSourceChange('extension');
     expect(replaceMock).toHaveBeenLastCalledWith(
@@ -272,7 +274,8 @@ describe('ReleasePostsList selection from the release URL param', () => {
         sort="createdAt: -1"
       />,
     );
-    const extensionToolbar = setFiltersNode.mock.calls.at(-1)?.[0];
+    const extensionToolbar =
+      setLeadingNode.mock.calls.at(-1)?.[0].props.children;
     expect(extensionToolbar.props.sourceValue).toBe('extension');
     expect(
       extensionToolbar.props.sortOptions.map(
@@ -286,7 +289,7 @@ describe('ReleasePostsList selection from the release URL param', () => {
     );
   });
 
-  it('offers calendar and approvals as routes beside the display modes', () => {
+  it('offers calendar and approvals as routes beside the display modes', async () => {
     searchParams = new URLSearchParams('');
     render(
       <ReleasePostsList
@@ -297,10 +300,13 @@ describe('ReleasePostsList selection from the release URL param', () => {
     );
     const toggle = setViewToggleNode.mock.calls.at(-1)?.[0];
     render(toggle);
-    expect(screen.getByRole('radio', { name: 'list' })).toBeChecked();
-    expect(screen.getByRole('radio', { name: 'calendar' })).toBeInTheDocument();
+    expect(viewMenuTrigger('list')).toBeInTheDocument();
+    await userEvent.click(viewMenuTrigger());
     expect(
-      screen.getByRole('radio', { name: 'approvals' }),
+      await screen.findByRole('menuitemradio', { name: 'calendar' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitemradio', { name: 'approvals' }),
     ).toBeInTheDocument();
   });
 

@@ -433,7 +433,7 @@ export class ContentOptimizationService implements OnModuleInit {
     return { applied: true, status: 'applied', suggestionId };
   }
 
-  // ─── 4. Winner → Trend Feedback (issue #166) ─────────────────────
+  // 4. Winner → Trend Feedback (issue #166)
 
   /**
    * Close the core loop: when a content run's winning variant is identified,
@@ -900,7 +900,7 @@ export class ContentOptimizationService implements OnModuleInit {
     };
   }
 
-  // ─── Private Helpers ─────────────────────────────────────────────
+  // Private Helpers
 
   private async applySuggestionPayload(
     organizationId: string,

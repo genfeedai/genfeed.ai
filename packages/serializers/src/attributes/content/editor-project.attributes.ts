@@ -17,6 +17,17 @@ export function computeEditorProjectIsLocked(
   return Boolean((config as Record<string, unknown>).composition);
 }
 
+/**
+ * A finished render is stored as `renderedVideoId`; the contract exposes it
+ * as `renderedVideo` (an ingredient or its id). Derived on read so API
+ * clients, MCP included, can find the exported video.
+ */
+export function computeEditorProjectRenderedVideo(
+  record: Record<string, unknown>,
+): unknown {
+  return record.renderedVideo ?? record.renderedVideoId ?? undefined;
+}
+
 export const editorProjectAttributes = createEntityAttributes([
   'name',
   'organization',

@@ -10,7 +10,7 @@ import {
   neuralGridVariants,
 } from './neural-grid.variants';
 
-/* ─── NeuralGrid ─── */
+/* NeuralGrid */
 
 export interface NeuralGridProps
   extends HTMLAttributes<HTMLDivElement>,
@@ -33,13 +33,11 @@ function NeuralGrid({
 }
 NeuralGrid.displayName = 'NeuralGrid';
 
-/* ─── NeuralGridItem ─── */
+/* NeuralGridItem */
 
 export interface NeuralGridItemProps
   extends Omit<HTMLAttributes<HTMLDivElement>, 'title'>,
     VariantProps<typeof neuralGridItemVariants> {
-  /** Tier label like "01 / Quick Start" */
-  tierLabel?: string;
   /** Optional icon component */
   icon?: React.ComponentType<{ className?: string }>;
   /** Item title */
@@ -52,7 +50,6 @@ function NeuralGridItem({
   className,
   padding,
   align,
-  tierLabel,
   icon: Icon,
   title,
   description,
@@ -66,11 +63,6 @@ function NeuralGridItem({
       ref={ref}
       {...props}
     >
-      {tierLabel && (
-        <div className="text-xs font-black uppercase tracking-widest mb-6 text-foreground/55">
-          {tierLabel}
-        </div>
-      )}
       {Icon && (
         <Icon className="size-8 mb-4 text-foreground/60 group-hover:text-foreground transition-colors" />
       )}
@@ -78,7 +70,7 @@ function NeuralGridItem({
         <h3 className="text-lg font-bold mb-2 text-foreground">{title}</h3>
       )}
       {description && (
-        <p className="text-sm text-foreground/65">{description}</p>
+        <p className="text-sm text-foreground/70">{description}</p>
       )}
       {children}
     </div>
@@ -86,12 +78,12 @@ function NeuralGridItem({
 }
 NeuralGridItem.displayName = 'NeuralGridItem';
 
-/* ─── WebSection ─── */
+/* WebSection */
 
 const bgClasses = {
   bordered: 'border-t border-foreground/5',
   default: '',
-  subtle: 'bg-foreground/[0.02]',
+  subtle: 'bg-foreground/5',
 } as const;
 
 /**
@@ -146,7 +138,7 @@ function WebSection({
 }
 WebSection.displayName = 'WebSection';
 
-/* ─── CtaSection ─── */
+/* CtaSection */
 
 function CtaSection({
   className,
@@ -162,7 +154,7 @@ function CtaSection({
     <section
       className={cn(
         'py-20 md:py-40',
-        bg === 'subtle' && 'bg-foreground/[0.02]',
+        bg === 'subtle' && 'bg-foreground/5',
         className,
       )}
       ref={ref}
@@ -174,7 +166,7 @@ function CtaSection({
             {title}
           </h2>
           {description && (
-            <p className="mb-8 text-lg font-medium text-foreground/65 sm:mb-12 sm:text-xl">
+            <p className="mb-8 text-lg font-medium text-foreground/70 sm:mb-12 sm:text-xl">
               {description}
             </p>
           )}

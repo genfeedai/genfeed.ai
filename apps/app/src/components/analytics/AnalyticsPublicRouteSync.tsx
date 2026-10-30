@@ -11,6 +11,8 @@ import {
   identifyAnalyticsUser,
   isAnalyticsEnabled,
 } from '@/lib/analytics';
+import { ANALYTICS_APP_PUBLIC } from '@/lib/analytics/analytics-app';
+import { setSentryAccountContext } from '@/lib/analytics/sentry-context';
 
 function EnabledAnalyticsPublicRouteSync() {
   const { isLoaded: isAuthLoaded, user } = useAuthUser();
@@ -42,8 +44,14 @@ function EnabledAnalyticsPublicRouteSync() {
       return;
     }
 
-    captureAnalyticsPageview(pageviewKey);
+    captureAnalyticsPageview(pageviewKey, { app: ANALYTICS_APP_PUBLIC });
   }, [isAuthLoaded, isLogoutRoute, pageviewKey]);
+
+  useEffect(() => {
+    if (isAuthLoaded && !isLogoutRoute) {
+      setSentryAccountContext({ userId: user?.id });
+    }
+  }, [isAuthLoaded, isLogoutRoute, user?.id]);
 
   return null;
 }

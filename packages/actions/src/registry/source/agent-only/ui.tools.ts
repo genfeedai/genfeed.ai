@@ -210,6 +210,61 @@ export const AGENT_UI_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
+      'Start a free analysis of a YouTube video for clips: it downloads the audio, transcribes it and picks the best segments. It returns a clip project id right away and the analysis runs in the background, so read the result with get_clip_highlights a minute or two later. Analysis spends no credits; generating avatar clips from the highlights does, and needs its own approval.',
+    name: 'start_clip_analysis',
+    parameters: {
+      properties: {
+        language: {
+          description: 'Language code of the video, for the transcript.',
+          type: 'string',
+        },
+        maxClips: {
+          description: 'How many highlights to pick, 1 to 30. Defaults to 10.',
+          maximum: 30,
+          minimum: 1,
+          type: 'number',
+        },
+        minViralityScore: {
+          description:
+            'Drop highlights scoring below this, 0 to 100. Defaults to 50.',
+          maximum: 100,
+          minimum: 0,
+          type: 'number',
+        },
+        name: {
+          description: 'Project name. Defaults to the video title.',
+          type: 'string',
+        },
+        youtubeUrl: {
+          description: 'The YouTube watch, share or shorts link to analyze.',
+          type: 'string',
+        },
+      },
+      required: ['youtubeUrl'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
+      'Read the highlights an analysis found for a clip project, with the status of the analysis. Each highlight has its source-video start and end in seconds, a virality score and `script`: what the speaker said in that window, cleaned of fillers, which is what an avatar clip would say. While the status is not completed the list can be empty; ask again shortly.',
+    name: 'get_clip_highlights',
+    parameters: {
+      properties: {
+        projectId: {
+          description: 'The clip project id from start_clip_analysis.',
+          type: 'string',
+        },
+      },
+      required: ['projectId'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
       'Suggest 2–3 alternative generation prompts for a different angle, style, or variation. Each alternative has a short label and a full prompt. Returns an ingredient_alternatives_card so the user can click one to generate inline.',
     name: 'suggest_ingredient_alternatives',
     parameters: {
@@ -281,7 +336,7 @@ export const AGENT_UI_TOOLS: SourceTool[] = [
         },
         model: {
           description:
-            'Suggested model key in "provider/model-name" format (optional — if omitted, the card will let the user pick). Image models: google/imagen-4, google/imagen-4-ultra, google/imagen-4-fast, google/nano-banana-2-lite, google/nano-banana-2, google/nano-banana-2.1, google/nano-banana-pro, google/nano-banana, black-forest-labs/flux-2-pro, black-forest-labs/flux-2-max, black-forest-labs/flux-1.1-pro, black-forest-labs/flux-schnell, black-forest-labs/flux-2-klein-4b, black-forest-labs/flux-kontext-pro, black-forest-labs/flux-kontext-max, ideogram-ai/ideogram-v3-quality, ideogram-ai/ideogram-v3-balanced, ideogram-ai/ideogram-v3-turbo, bytedance/seedream-4.5, bytedance/seedream-4, bytedance/seedream-5-lite, openai/gpt-image-1.5, openai/gpt-image-2, openai/gpt-image-2.5-flare, openai/gpt-image-2.5-sunburst, recraft-ai/recraft-v4, recraft-ai/recraft-v4-pro, xai/grok-imagine-image, runwayml/gen4-image-turbo, qwen/qwen-image. Video models: minimax/h3, google/veo-3.1, google/veo-3.1-lite, google/veo-3, google/veo-2, bytedance/seedance-2.0, bytedance/seedance-2.0-fast, kwaivgi/kling-v3-video, kwaivgi/kling-v2.6, kwaivgi/kling-v2.1, kwaivgi/kling-o1, pixverse/pixverse-v6, xai/grok-imagine-video, runwayml/gen-4.5, minimax/hailuo-2.3, minimax/hailuo-2.3-fast, vidu/q3-pro, vidu/q3-turbo, wan-video/wan-2.7-t2v, openai/sora-2. If the user says "use X" or "with X", X is a model name — set model to the matching key and write a separate creative prompt.',
+            'Suggested model key in "provider/model-name" format (optional — if omitted, the card will let the user pick). Image models: google/imagen-4, google/imagen-4-ultra, google/imagen-4-fast, google/nano-banana-2-lite, google/nano-banana-2, google/nano-banana-2.1, google/nano-banana-pro, google/nano-banana, black-forest-labs/flux-2-pro, black-forest-labs/flux-2-max, black-forest-labs/flux-1.1-pro, black-forest-labs/flux-schnell, black-forest-labs/flux-2-klein-4b, black-forest-labs/flux-kontext-pro, black-forest-labs/flux-kontext-max, ideogram-ai/ideogram-v3-quality, ideogram-ai/ideogram-v3-balanced, ideogram-ai/ideogram-v3-turbo, bytedance/seedream-4.5, bytedance/seedream-4, bytedance/seedream-5-lite, openai/gpt-image-1.5, openai/gpt-image-2, openai/gpt-image-2.5-flare, openai/gpt-image-2.5-sunburst, recraft-ai/recraft-v4, recraft-ai/recraft-v4-pro, xai/grok-imagine-image, runwayml/gen4-image-turbo, qwen/qwen-image. Video models: minimax/h3, google/veo-3.1, google/veo-3.1-lite, google/veo-3, google/veo-2, bytedance/seedance-2.0, bytedance/seedance-2.0-fast, kwaivgi/kling-v3-video, kwaivgi/kling-v2.6, kwaivgi/kling-v2.1, kwaivgi/kling-o1, pixverse/pixverse-v6, xai/grok-imagine-video, runwayml/gen-4.5, minimax/hailuo-2.3, minimax/hailuo-2.3-fast, vidu/q3-pro, vidu/q3-turbo, wan-video/wan-2.7-t2v, alibaba/wan-3, openai/sora-2. If the user says "use X" or "with X", X is a model name — set model to the matching key and write a separate creative prompt.',
           type: 'string',
         },
         prompt: {

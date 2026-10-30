@@ -96,9 +96,7 @@ export class AgentQualityToolHandler {
     }
   }
 
-  // ──────────────────────────────────────────────
   // SEO SCORING
-  // ──────────────────────────────────────────────
 
   async scoreSeo(
     params: Record<string, unknown>,
@@ -169,9 +167,7 @@ export class AgentQualityToolHandler {
     }
   }
 
-  // ──────────────────────────────────────────────
   // INGREDIENT VOTING & REPLICATION TOOLS
-  // ──────────────────────────────────────────────
 
   async rateIngredient(
     params: Record<string, unknown>,

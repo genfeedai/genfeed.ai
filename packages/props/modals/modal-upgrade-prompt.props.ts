@@ -1,4 +1,4 @@
-import type { QualityTier, SubscriptionTier } from '@genfeedai/contracts';
+import type { QualityTier } from '@genfeedai/contracts';
 
 /**
  * `plan`: a feature or quality tier needs a higher plan.
@@ -7,7 +7,8 @@ import type { QualityTier, SubscriptionTier } from '@genfeedai/contracts';
 export type UpgradePromptReason = 'plan' | 'credits';
 
 export interface ModalUpgradePromptProps {
-  currentTier?: SubscriptionTier;
+  /** Persisted tier string; unknown or legacy values resolve to FREE. */
+  currentTier?: string | null;
   lockedQualityTier?: QualityTier;
   reason?: UpgradePromptReason;
 }

@@ -6,9 +6,6 @@ import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import Link from 'next/link';
 
-const EYEBROW_CLASS =
-  'text-xs font-bold uppercase tracking-widest text-foreground/72';
-
 const FEATURED_PROVIDER_COUNT = 5;
 
 /**
@@ -37,11 +34,10 @@ export default function HomeProviders(): React.ReactElement {
           data-reveal="up"
         >
           <div className="flex max-w-3xl flex-col gap-4">
-            <Text className={EYEBROW_CLASS}>Models</Text>
             <Heading
               id="home-providers-heading"
               as="h2"
-              className="text-4xl font-semibold leading-tight tracking-[-0.03em] sm:text-5xl"
+              className="text-4xl font-semibold leading-tight tracking-[-0.02em] sm:text-5xl"
             >
               Your models, one workspace.
             </Heading>

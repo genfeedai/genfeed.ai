@@ -12,6 +12,7 @@ import Card from '@ui/card/Card';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import Container from '@ui/layout/container/Container';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
+import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import { Flame } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -70,67 +71,71 @@ export default function DiscoveryTrends() {
           />
         }
         actions={
-          <FilterMenu
-            facets={[
-              {
-                defaultValue: 'brand',
-                key: 'relevance',
-                label: discovery('relevance'),
-                onChange: (value) => {
-                  if (value === 'brand' || value === 'market') {
-                    setRelevance(value);
-                  }
-                },
-                options: [
-                  { label: discovery('brand'), value: 'brand' },
-                  { label: discovery('market'), value: 'market' },
-                ],
-                selection: 'single',
-                value: relevance,
-              },
-              {
-                defaultValue: 'all',
-                key: 'platform',
-                label: discovery('platformFilter'),
-                onChange: (value) =>
-                  setHashtagPlatform(value === 'all' ? '' : value),
-                options: [
-                  { label: discovery('allPlatforms'), value: 'all' },
-                  ...TRENDS_PLATFORMS.map(({ id, label }) => ({
-                    label,
-                    value: id,
-                  })),
-                ],
-                selection: 'single',
-                value: hashtagPlatform || 'all',
-              },
-              {
-                defaultValue: Timeframe.H72,
-                key: 'timeframe',
-                label: discovery('timeframeFilter'),
-                onChange: (value) => {
-                  if (
-                    value === Timeframe.H24 ||
-                    value === Timeframe.H72 ||
-                    value === Timeframe.D7
-                  ) {
-                    setVideoTimeframe(value);
-                  }
-                },
-                options: [
-                  { label: discovery('hours24'), value: Timeframe.H24 },
-                  { label: discovery('hours72'), value: Timeframe.H72 },
-                  { label: discovery('days7'), value: Timeframe.D7 },
-                ],
-                selection: 'single',
-                value: videoTimeframe,
-              },
-            ]}
-            onClear={() => {
-              setRelevance('brand');
-              setHashtagPlatform('');
-              setVideoTimeframe(Timeframe.H72);
-            }}
+          <SubbarControls
+            filters={
+              <FilterMenu
+                facets={[
+                  {
+                    defaultValue: 'brand',
+                    key: 'relevance',
+                    label: discovery('relevance'),
+                    onChange: (value) => {
+                      if (value === 'brand' || value === 'market') {
+                        setRelevance(value);
+                      }
+                    },
+                    options: [
+                      { label: discovery('brand'), value: 'brand' },
+                      { label: discovery('market'), value: 'market' },
+                    ],
+                    selection: 'single',
+                    value: relevance,
+                  },
+                  {
+                    defaultValue: 'all',
+                    key: 'platform',
+                    label: discovery('platformFilter'),
+                    onChange: (value) =>
+                      setHashtagPlatform(value === 'all' ? '' : value),
+                    options: [
+                      { label: discovery('allPlatforms'), value: 'all' },
+                      ...TRENDS_PLATFORMS.map(({ id, label }) => ({
+                        label,
+                        value: id,
+                      })),
+                    ],
+                    selection: 'single',
+                    value: hashtagPlatform || 'all',
+                  },
+                  {
+                    defaultValue: Timeframe.H72,
+                    key: 'timeframe',
+                    label: discovery('timeframeFilter'),
+                    onChange: (value) => {
+                      if (
+                        value === Timeframe.H24 ||
+                        value === Timeframe.H72 ||
+                        value === Timeframe.D7
+                      ) {
+                        setVideoTimeframe(value);
+                      }
+                    },
+                    options: [
+                      { label: discovery('hours24'), value: Timeframe.H24 },
+                      { label: discovery('hours72'), value: Timeframe.H72 },
+                      { label: discovery('days7'), value: Timeframe.D7 },
+                    ],
+                    selection: 'single',
+                    value: videoTimeframe,
+                  },
+                ]}
+                onClear={() => {
+                  setRelevance('brand');
+                  setHashtagPlatform('');
+                  setVideoTimeframe(Timeframe.H72);
+                }}
+              />
+            }
           />
         }
       />

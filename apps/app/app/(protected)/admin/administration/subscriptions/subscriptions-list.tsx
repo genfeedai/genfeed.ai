@@ -31,7 +31,7 @@ import CreditHoldsPanel from './credit-holds-panel';
 const EMPTY_CELL = '-';
 
 function getOrganizationHref(row: IOrganizationBilling): string {
-  return `${APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS}/${row.organizationId}`;
+  return `${APP_ROUTES.ADMIN.ORGANIZATIONS}/${row.organizationId}`;
 }
 
 /**

@@ -60,9 +60,9 @@ export default function CloudSyncIndicator() {
           ariaLabel={isConnected ? 'Cloud connected' : 'Cloud disconnected'}
           icon={
             isConnected ? (
-              <CloudSync className="size-4 text-foreground/56" />
+              <CloudSync className="size-4 text-foreground/60" />
             ) : (
-              <CloudOff className="size-4 text-foreground/56" />
+              <CloudOff className="size-4 text-foreground/60" />
             )
           }
         >
@@ -84,7 +84,7 @@ export default function CloudSyncIndicator() {
                 isConnected ? 'bg-success' : 'bg-warning',
               )}
             />
-            <span className="text-xs font-medium text-foreground/88">
+            <span className="text-xs font-medium text-foreground/90">
               {isConnected
                 ? 'Connected to Cloud'
                 : local
@@ -107,7 +107,7 @@ export default function CloudSyncIndicator() {
               withWrapper={false}
               disabled={desktop && isLaunching}
               onClick={() => void handleConnect()}
-              className="w-full rounded px-2 py-1.5 text-xs font-medium text-foreground/72 transition-colors hover:bg-hover cursor-pointer"
+              className="w-full rounded px-2 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-hover cursor-pointer"
             >
               {desktop && isLaunching
                 ? 'Opening Browser...'

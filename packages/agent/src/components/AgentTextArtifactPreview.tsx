@@ -86,11 +86,11 @@ function NewsletterPreview({
         </h3>
         <div className="grid gap-1 text-xs text-muted-foreground sm:grid-cols-[4rem_1fr]">
           <span>From</span>
-          <span className="text-foreground/75">
+          <span className="text-foreground/80">
             {author?.name || 'Your publication'}
           </span>
           <span>To</span>
-          <span className="text-foreground/75">Subscribers</span>
+          <span className="text-foreground/80">Subscribers</span>
         </div>
         {data.preheader?.trim() ? (
           <p className="text-xs leading-5 text-muted-foreground">
@@ -105,7 +105,7 @@ function NewsletterPreview({
         )}
       >
         <SafeMarkdown
-          className="max-w-none text-sm leading-7 text-foreground/88"
+          className="max-w-none text-sm leading-7 text-foreground/90"
           content={data.content}
           enhanceStructure
         />
@@ -150,7 +150,7 @@ function ArtifactPreviewBody({
       className="rounded-lg bg-card p-4 shadow-border"
     >
       <SafeMarkdown
-        className="max-w-none text-sm leading-7 text-foreground/88"
+        className="max-w-none text-sm leading-7 text-foreground/90"
         content={data.content}
         enhanceStructure
       />

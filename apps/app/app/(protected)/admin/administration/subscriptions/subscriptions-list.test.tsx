@@ -243,7 +243,7 @@ describe('SubscriptionsList', () => {
 
     const { getRowLink, rowSidebar } = getTableProps();
     expect(getRowLink?.(billing)).toEqual({
-      href: '/admin/overview/analytics/organizations/org-1',
+      href: '/admin/organizations/org-1',
       label: 'openNamed',
     });
     expect(rowSidebar?.kind).toBe('record');

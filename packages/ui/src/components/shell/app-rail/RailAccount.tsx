@@ -58,11 +58,10 @@ export default function RailAccount() {
             aria-label={translate('help')}
             className={cn(
               'inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-foreground/50 transition-[background-color,color] duration-150',
-              'hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
+              'hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
             )}
             data-testid="app-rail-help"
             href={APP_ROUTES.SETTINGS.HELP}
-            prefetch={false}
           >
             <CircleQuestionMark aria-hidden="true" className="size-4" />
           </Link>

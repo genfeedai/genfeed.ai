@@ -1,5 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { filtersTrigger } from '../../utils/filter-menu';
 import { assertRouteRenders, tryClick } from '../../utils/route-assertions';
 
 /**
@@ -25,7 +26,7 @@ test.describe('Admin Configuration', () => {
     APP_ROUTES.ADMIN.CONFIGURATION.FONT_FAMILIES,
     APP_ROUTES.ADMIN.CONFIGURATION.PRESETS,
     APP_ROUTES.ADMIN.CONFIGURATION.TAGS,
-    APP_ROUTES.ADMIN.CONFIGURATION.TAGS_ALL,
+    `${APP_ROUTES.ADMIN.CONFIGURATION.TAGS}/default`,
   ];
 
   for (const route of routes) {
@@ -47,5 +48,21 @@ test.describe('Admin Configuration', () => {
     );
     await tryClick(adminPage, 'button');
     await expect(adminPage.locator('body')).toBeVisible();
+  });
+
+  test('element search carries the Filters menu inside its field', async ({
+    adminPage,
+  }) => {
+    await assertRouteRenders(
+      adminPage,
+      APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS_SOUNDS,
+    );
+    const search = adminPage.getByPlaceholder(/^Search/);
+    await expect(search).toBeVisible();
+
+    const field = search.locator('xpath=../..');
+    await expect(filtersTrigger(field)).toBeVisible();
+    await search.fill('wide');
+    await expect(search).toHaveValue('wide');
   });
 });

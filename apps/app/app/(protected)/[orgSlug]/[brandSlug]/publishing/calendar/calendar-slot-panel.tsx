@@ -47,6 +47,7 @@ function CalendarSlotBody({
       <div className="flex flex-wrap gap-2">
         <Button
           isDisabled={isPending || isGenerating}
+          action="publishing.slot-generate"
           onClick={() => onGenerate(brief || undefined)}
           size={ButtonSize.SM}
         >

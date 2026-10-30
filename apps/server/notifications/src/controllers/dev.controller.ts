@@ -20,7 +20,7 @@ export class DevDiscordController {
   @HttpCode(200)
   @Post('test-channel')
   testChannel(@Body() body: { channelId: string }) {
-    if (this.configService.isProduction) {
+    if (!this.configService.isDevelopment) {
       throw new HttpException('Dev only', HttpStatus.FORBIDDEN);
     }
 
@@ -33,7 +33,7 @@ export class DevDiscordController {
 
   @Get('channels')
   getChannels() {
-    if (this.configService.isProduction) {
+    if (!this.configService.isDevelopment) {
       throw new HttpException('Dev only', HttpStatus.FORBIDDEN);
     }
 

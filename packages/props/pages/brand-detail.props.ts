@@ -396,6 +396,18 @@ export interface BrandLutSettingsProps {
   onRefreshBrand: () => Promise<void>;
 }
 
+export interface BrandWatermarkLogoSelectProps {
+  assets: Array<{ id: string }>;
+  brand: IBrand;
+  id: string;
+  isDisabled: boolean;
+  label: string;
+  /** Text for the empty choice: no logo, or the default mark. */
+  noneLabel: string;
+  onChange: (logoId: string) => void;
+  value: string;
+}
+
 export interface BrandWatermarkSettingsProps {
   brand: IBrand;
   brandId: string;

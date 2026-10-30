@@ -84,6 +84,35 @@ export class ManagedStripeCheckoutService {
     );
   }
 
+  /**
+   * Result read for the anonymous success page. The Stripe session id is the
+   * only credential on that route, so the plaintext API key is handed to the
+   * first reader only; later reads get the record with the key withheld
+   * (`apiKeyAlreadyExists`), which the page already renders.
+   */
+  async claimCheckoutResult(
+    sessionId: string,
+  ): Promise<ManagedCheckoutResult | null> {
+    const result = await this.getCheckoutResult(sessionId);
+
+    if (!result?.apiKey) {
+      return result;
+    }
+
+    const claimKey = this.buildClaimKey(sessionId);
+    const claimCount = await this.cacheService.incr(claimKey, 1);
+
+    if (claimCount === 1) {
+      await this.cacheService.expire(
+        claimKey,
+        MANAGED_CHECKOUT_RESULT_TTL_SECONDS,
+      );
+      return result;
+    }
+
+    return { ...result, apiKey: null, apiKeyAlreadyExists: true };
+  }
+
   async cacheCheckoutResult(
     sessionId: string,
     result: ManagedCheckoutResult,
@@ -134,6 +163,14 @@ export class ManagedStripeCheckoutService {
     return this.cacheService.generateKey(
       MANAGED_CHECKOUT_NAMESPACE,
       'result',
+      sessionId,
+    );
+  }
+
+  private buildClaimKey(sessionId: string): string {
+    return this.cacheService.generateKey(
+      MANAGED_CHECKOUT_NAMESPACE,
+      'claim',
       sessionId,
     );
   }

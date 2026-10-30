@@ -32,7 +32,7 @@ describe('SidebarActionTrigger', () => {
       'px-2.5',
       'py-1',
       'rounded',
-      'hover:bg-foreground/[0.06]',
+      'hover:bg-foreground/5',
       'focus-visible:ring-offset-background',
     );
     expect(button.firstElementChild).toHaveClass('size-4');

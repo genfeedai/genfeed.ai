@@ -714,7 +714,7 @@ export function PublishPostCard({
                       ) : null}
 
                       {blockers.length > 0 ? (
-                        <div className="mb-2 space-y-1 border border-destructive/30 bg-destructive/5 p-2">
+                        <div className="mb-2 space-y-1 border border-destructive/20 bg-destructive/5 p-2">
                           <p className="text-2xs font-medium uppercase tracking-wider text-destructive">
                             {translate('cannotPublish')}
                           </p>
@@ -730,7 +730,7 @@ export function PublishPostCard({
                       ) : null}
 
                       {warnings.length > 0 ? (
-                        <div className="space-y-1 border border-amber-500/30 bg-warning/10 p-2">
+                        <div className="space-y-1 border border-amber-500/20 bg-warning/10 p-2">
                           <p className="text-2xs font-medium uppercase tracking-wider text-warning">
                             {translate('reviewWarnings')}
                           </p>

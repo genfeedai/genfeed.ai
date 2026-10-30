@@ -1,0 +1,333 @@
+'use client';
+
+import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
+import {
+  AnalyticsMetric,
+  ButtonSize,
+  ButtonVariant,
+} from '@genfeedai/contracts';
+import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import { formatPercentageSimple } from '@helpers/formatting/format/format.helper';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type { AnalyticsOrganizationsListProps } from '@props/admin/analytics.props';
+import type { TableColumn } from '@props/ui/display/table.props';
+import {
+  AnalyticsService,
+  type IOrgWithStats,
+  type IPaginatedOrgsResponse,
+} from '@services/analytics/analytics.service';
+import { logger } from '@services/core/logger.service';
+import FilterMenu from '@ui/content/filter-menu/FilterMenu';
+import AppTable from '@ui/display/table/Table';
+import TableRowSummary from '@ui/display/table/TableRowSummary';
+import { Button } from '@ui/primitives/button';
+import { format } from 'date-fns';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+
+export default function AnalyticsOrganizationsList({
+  getReleaseAccessHref,
+}: AnalyticsOrganizationsListProps) {
+  const translate = useTranslations('pages.adminOrganizations');
+  const rowSidebarT = useTranslations('ui.rowSidebar');
+  const fieldsT = useTranslations('ui.rowSidebar.fields');
+  const analyticsT = useTranslations('ui.rowSidebar.analytics');
+  const { dateRange, refreshTrigger, setToolbarNode } = useAnalyticsContext();
+
+  const getAnalyticsService = useAuthedService((token: string) =>
+    AnalyticsService.getInstance(token),
+  );
+
+  const [data, setData] = useState<IPaginatedOrgsResponse | null>(null);
+  const [page, setPage] = useState(1);
+  const [sort, setSort] = useState<
+    AnalyticsMetric.ENGAGEMENT | AnalyticsMetric.VIEWS | AnalyticsMetric.POSTS
+  >(AnalyticsMetric.ENGAGEMENT);
+
+  const isLoading = data === null;
+
+  const fetchData = useCallback(async () => {
+    if (!dateRange.startDate || !dateRange.endDate) {
+      return;
+    }
+
+    try {
+      const service = await getAnalyticsService();
+      const response = await service.getOrganizationsWithStats({
+        endDate: format(dateRange.endDate, 'yyyy-MM-dd'),
+        limit: ITEMS_PER_PAGE,
+        page,
+        sort,
+        startDate: format(dateRange.startDate, 'yyyy-MM-dd'),
+      });
+      setData(response);
+    } catch (error) {
+      logger.error('Failed to fetch organizations', error);
+    }
+  }, [getAnalyticsService, dateRange, page, sort]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      fetchData();
+    }
+  }, [refreshTrigger, fetchData]);
+
+  const handleSortChange = useCallback((value: string) => {
+    setSort(
+      value as
+        | AnalyticsMetric.ENGAGEMENT
+        | AnalyticsMetric.VIEWS
+        | AnalyticsMetric.POSTS,
+    );
+    setPage(1);
+  }, []);
+
+  const toolbar = useMemo(
+    () => (
+      <FilterMenu
+        facets={[
+          {
+            defaultValue: AnalyticsMetric.ENGAGEMENT,
+            // Sort orders the list, it does not narrow it.
+            isCounted: false,
+            key: 'sort',
+            label: 'Sort by',
+            onChange: handleSortChange,
+            options: [
+              { label: 'Engagement', value: AnalyticsMetric.ENGAGEMENT },
+              { label: 'Views', value: AnalyticsMetric.VIEWS },
+              { label: 'Posts', value: AnalyticsMetric.POSTS },
+            ],
+            selection: 'single',
+            value: sort,
+          },
+        ]}
+        onClear={() => handleSortChange(AnalyticsMetric.ENGAGEMENT)}
+      />
+    ),
+    [sort, handleSortChange],
+  );
+
+  useEffect(() => {
+    setToolbarNode(toolbar);
+    return () => setToolbarNode(null);
+  }, [setToolbarNode, toolbar]);
+
+  const orgs = data?.data || [];
+  const pagination = data?.pagination;
+
+  const columns: TableColumn<IOrgWithStats>[] = useMemo(
+    () => [
+      {
+        header: 'Organization',
+        key: 'name',
+        render: (org) => (
+          <Link
+            href={`${APP_ROUTES.ADMIN.ORGANIZATIONS}/${org.id}`}
+            className="flex items-center gap-3 hover:text-primary"
+          >
+            {org.logo ? (
+              <Image
+                src={org.logo}
+                alt={org.name || 'Organization'}
+                width={32}
+                height={32}
+                className="size-8 rounded-full object-cover outline-media"
+              />
+            ) : (
+              <div className="size-8 rounded-full bg-muted flex items-center justify-center text-sm font-medium">
+                {(org.name || 'U').charAt(0).toUpperCase()}
+              </div>
+            )}
+            <span className="font-medium">{org.name || 'Unknown'}</span>
+          </Link>
+        ),
+      },
+      {
+        className: 'text-right',
+        header: 'Posts',
+        key: 'totalPosts',
+        render: (org) => (
+          <span className="font-mono">
+            {org.totalPosts.toLocaleString('en-US')}
+          </span>
+        ),
+      },
+      {
+        className: 'text-right',
+        header: 'Engagement',
+        key: 'totalEngagement',
+        render: (org) => (
+          <span className="font-mono">
+            {org.totalEngagement.toLocaleString('en-US')}
+          </span>
+        ),
+      },
+      {
+        className: 'text-right',
+        header: 'Views',
+        key: 'totalViews',
+        render: (org) => (
+          <span className="font-mono">
+            {org.totalViews.toLocaleString('en-US')}
+          </span>
+        ),
+      },
+      {
+        className: 'text-right',
+        header: 'Brands',
+        key: 'totalBrands',
+        render: (org) => <span className="font-mono">{org.totalBrands}</span>,
+      },
+      {
+        className: 'text-right',
+        header: 'Growth',
+        key: 'growth',
+        render: (org) => (
+          <span
+            className={`font-mono ${
+              org.growth > 0
+                ? 'text-success'
+                : org.growth < 0
+                  ? 'text-destructive'
+                  : 'text-foreground/60'
+            }`}
+          >
+            {org.growth > 0 ? '+' : ''}
+            {org.growth.toFixed(1)}%
+          </span>
+        ),
+      },
+      {
+        className: 'text-right',
+        header: 'Members',
+        key: 'totalMembers',
+        render: (org) => <span className="font-mono">{org.totalMembers}</span>,
+      },
+      ...(getReleaseAccessHref
+        ? [
+            {
+              className: 'text-right',
+              header: translate('releaseAccessColumn'),
+              key: 'releaseAccess',
+              render: (org: IOrgWithStats) => (
+                <Button
+                  asChild
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.SECONDARY}
+                >
+                  <Link
+                    aria-label={translate('releaseAccessLinkLabel', {
+                      name: org.name || rowSidebarT('unknown'),
+                    })}
+                    href={getReleaseAccessHref(org.id)}
+                  >
+                    {translate('releaseAccessLink')}
+                  </Link>
+                </Button>
+              ),
+            },
+          ]
+        : []),
+    ],
+    [getReleaseAccessHref, rowSidebarT, translate],
+  );
+
+  return (
+    <div className="flex flex-col gap-4">
+      <AppTable<IOrgWithStats>
+        items={orgs}
+        isLoading={isLoading}
+        columns={columns}
+        getRowKey={(org) => org.id}
+        emptyLabel="No organizations found"
+        rowSidebar={{
+          getId: (org) => org.id,
+          getSubtitle: (org) =>
+            analyticsT('brandCount', { count: org.totalBrands }),
+          getTitle: (org) => org.name || rowSidebarT('unknown'),
+          kind: 'organization',
+          render: (org) => (
+            <TableRowSummary
+              facts={[
+                {
+                  id: 'brands',
+                  label: fieldsT('brands'),
+                  value: org.totalBrands,
+                },
+                {
+                  id: 'members',
+                  label: fieldsT('members'),
+                  value: org.totalMembers,
+                },
+                {
+                  id: 'posts',
+                  label: fieldsT('posts'),
+                  value: org.totalPosts.toLocaleString('en-US'),
+                },
+                {
+                  id: 'views',
+                  label: fieldsT('views'),
+                  value: org.totalViews.toLocaleString('en-US'),
+                },
+                {
+                  id: 'engagement',
+                  label: fieldsT('engagement'),
+                  value: org.totalEngagement.toLocaleString('en-US'),
+                },
+                {
+                  id: 'engagementRate',
+                  label: fieldsT('engagementRate'),
+                  value: formatPercentageSimple(org.avgEngagementRate, 2),
+                },
+                {
+                  id: 'growth',
+                  label: fieldsT('growth'),
+                  value: `${org.growth > 0 ? '+' : ''}${org.growth.toFixed(1)}%`,
+                },
+              ]}
+              openHref={`${APP_ROUTES.ADMIN.ORGANIZATIONS}/${org.id}`}
+              openLabel={analyticsT('openOrganization')}
+            />
+          ),
+        }}
+      />
+
+      {pagination && pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-foreground/60">
+            Showing {(page - 1) * pagination.limit + 1} -{' '}
+            {Math.min(page * pagination.limit, pagination.total)} of{' '}
+            {pagination.total}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.SM}
+              isDisabled={page === 1}
+              onClick={() => setPage((prev) => prev - 1)}
+              icon={<ChevronLeft className="size-4" />}
+            />
+            <span className="text-sm">
+              Page {page} of {pagination.totalPages}
+            </span>
+            <Button
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.SM}
+              isDisabled={page === pagination.totalPages}
+              onClick={() => setPage((prev) => prev + 1)}
+              icon={<ChevronRight className="size-4" />}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

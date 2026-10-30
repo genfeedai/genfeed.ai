@@ -140,7 +140,7 @@ export default function PricingContent() {
       <PageLayout compact title="Pricing">
         <WebSection maxWidth="full" py="sm" className="pt-0 md:pt-0">
           <NeuralGrid columns={3} className="gsap-grid md:grid-cols-3">
-            {getOrderedPlans().map((plan, index) => {
+            {getOrderedPlans().map((plan) => {
               const isFeatured = plan.tier === FEATURED_TIER;
               const isPayg = plan.type === 'payg';
               const ctaHref = isPayg
@@ -155,7 +155,7 @@ export default function PricingContent() {
                     'relative gsap-card flex min-w-0 flex-col p-6 sm:p-6',
                     isFeatured && 'bg-card hover:bg-card',
                   )}
-                  tierLabel={`${String(index + 1).padStart(2, '0')} / ${isPayg ? 'PAYG' : getPlanLabel(plan.tier)}`}
+                  title={isPayg ? 'PAYG' : getPlanLabel(plan.tier)}
                   aria-label={getPlanLabel(plan.tier)}
                 >
                   {isFeatured ? (
@@ -167,12 +167,12 @@ export default function PricingContent() {
                   ) : null}
 
                   <div className="mb-2 flex items-baseline gap-1.5 whitespace-nowrap">
-                    <span className="text-4xl font-semibold tracking-[-0.03em] xl:text-5xl">
+                    <span className="text-4xl font-semibold tracking-[-0.02em] xl:text-5xl">
                       {isPayg
                         ? `$${CREDIT_VALUE_DOLLARS.toFixed(2)}`
                         : formatPrice(plan.price)}
                     </span>
-                    <span className="text-sm font-medium text-foreground/55">
+                    <span className="text-sm font-medium text-foreground/60">
                       {isPayg ? '/credit' : '/mo'}
                     </span>
                   </div>
@@ -187,7 +187,7 @@ export default function PricingContent() {
                   <ul className="mb-auto space-y-3">
                     {plan.features.map((feature) => (
                       <li key={feature} className="flex items-start gap-3">
-                        <CircleCheck className="mt-0.5 size-4 shrink-0 text-foreground/55" />
+                        <CircleCheck className="mt-0.5 size-4 shrink-0 text-foreground/60" />
                         <span className="text-sm text-foreground/60">
                           {feature}
                         </span>
@@ -216,23 +216,23 @@ export default function PricingContent() {
             <NeuralGridItem
               padding="lg"
               className="relative gsap-card flex min-w-0 flex-col p-6 sm:p-6"
-              tierLabel={`03 / ${serviceOffering.name}`}
+              title={serviceOffering.name}
               aria-label={serviceOffering.name}
             >
               <div className="absolute right-6 top-6">
-                <span className="border border-foreground/20 px-2.5 py-1 text-2xs font-bold uppercase tracking-widest text-foreground/65">
+                <span className="border border-foreground/20 px-2.5 py-1 text-2xs font-bold uppercase tracking-widest text-foreground/70">
                   We run it
                 </span>
               </div>
 
               <div className="mb-2 flex items-baseline gap-1.5 whitespace-nowrap">
-                <span className="text-sm font-medium text-foreground/55">
+                <span className="text-sm font-medium text-foreground/60">
                   From
                 </span>
-                <span className="text-4xl font-semibold tracking-[-0.03em] xl:text-5xl">
+                <span className="text-4xl font-semibold tracking-[-0.02em] xl:text-5xl">
                   {formatPrice(serviceOffering.startingMonthlyPrice)}
                 </span>
-                <span className="text-sm font-medium text-foreground/55">
+                <span className="text-sm font-medium text-foreground/60">
                   /mo
                 </span>
               </div>
@@ -244,7 +244,7 @@ export default function PricingContent() {
               <ul className="mb-auto space-y-3">
                 {serviceOffering.includes.map((feature) => (
                   <li key={feature} className="flex items-start gap-3">
-                    <CircleCheck className="mt-0.5 size-4 shrink-0 text-foreground/55" />
+                    <CircleCheck className="mt-0.5 size-4 shrink-0 text-foreground/60" />
                     <span className="text-sm text-foreground/60">
                       {feature}
                     </span>
@@ -272,16 +272,16 @@ export default function PricingContent() {
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl mb-4"
           />
 
-          <div className="grid gap-px bg-foreground/5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-px bg-foreground/10 sm:grid-cols-2 lg:grid-cols-3">
             {OUTPUT_COSTS.map((row) => (
               <div
                 key={row.label}
                 className="flex items-baseline justify-between gap-4 bg-background px-5 py-4"
               >
-                <span className="text-sm text-foreground/65">{row.label}</span>
+                <span className="text-sm text-foreground/70">{row.label}</span>
                 <span className="text-sm font-semibold text-foreground">
                   {formatCredits(row.credits, row.maxCredits)}
-                  <span className="ml-2 font-normal text-foreground/55">
+                  <span className="ml-2 font-normal text-foreground/60">
                     ≈ {formatCreditsDollars(row.credits, row.maxCredits)}
                     {row.suffix ?? ''}
                   </span>
@@ -289,7 +289,7 @@ export default function PricingContent() {
               </div>
             ))}
           </div>
-          <p className="mt-3 text-xs text-foreground/55">
+          <p className="mt-3 text-xs text-foreground/60">
             Image prices are for FLUX.3. Other models are priced per model, and
             Studio shows the exact credits before you run.
           </p>
@@ -297,7 +297,7 @@ export default function PricingContent() {
           <p className="mt-8 mb-2 text-sm font-medium text-foreground/70">
             Top up from $10.
           </p>
-          <div className="grid gap-px bg-foreground/5 sm:grid-cols-3">
+          <div className="grid gap-px bg-foreground/10 sm:grid-cols-3">
             {WEBSITE_CREDIT_PACKS.map((pack) => (
               <div
                 key={pack.label}

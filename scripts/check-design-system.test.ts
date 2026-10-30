@@ -129,6 +129,84 @@ describe('packages/ui design-system guards', () => {
     ]);
     expect(findings.every((entry) => entry.kind === 'sub-11-text')).toBe(true);
   });
+
+  it('flags negative tracking tighter than -0.02em and nothing else', () => {
+    const findings = findPackageUiGuardFindings(
+      '<><h1 className="tracking-[-0.05em]" /><h2 className="md:tracking-tighter" /><h3 className="tracking-[-0.02em] tracking-tight tracking-[-0.011em] tracking-[0.12em]" /></>',
+      'apps/website/example.tsx',
+    );
+
+    expect(findings.map((entry) => entry.token)).toEqual([
+      'md:tracking-tighter',
+      'tracking-[-0.05em]',
+    ]);
+    expect(findings.every((entry) => entry.kind === 'tight-tracking')).toBe(
+      true,
+    );
+  });
+
+  it('flags colour opacity modifiers that are not on the ladder', () => {
+    const findings = findPackageUiGuardFindings(
+      '<><div className="bg-foreground/[0.04] hover:text-primary/72 border-white/[0.1] from-background/55" /><p className="bg-foreground/5 text-foreground/70 border-border/0 bg-black/100 text-sm/6 w-1/2 shadow-lg/20" /></>',
+      'apps/website/example.tsx',
+    );
+
+    expect(findings.map((entry) => entry.token)).toEqual([
+      'bg-foreground/[0.04]',
+      'border-white/[0.1]',
+      'from-background/55',
+      'hover:text-primary/72',
+    ]);
+    expect(findings.every((entry) => entry.kind === 'off-ladder-opacity')).toBe(
+      true,
+    );
+  });
+
+  it('recognises arbitrary colours, percent and decimal modifiers', () => {
+    const findings = findPackageUiGuardFindings(
+      '<div className="bg-[#0088cc]/35 bg-red-500/[35%] bg-red-500/2.5 bg-[color:var(--x)]/20 bg-[#0088cc]/20 bg-red-500/[50%]" />',
+      'apps/website/example.tsx',
+    );
+
+    expect(findings.map((entry) => entry.token)).toEqual([
+      'bg-[#0088cc]/35',
+      'bg-red-500/[35%]',
+      'bg-red-500/[50%]',
+      'bg-red-500/2.5',
+    ]);
+  });
+
+  it('scans the static parts of interpolated class templates', () => {
+    const findings = findPackageUiGuardFindings(
+      'const a = <div className={`bg-primary/35 ${active ? "ring-1" : ""} text-foreground/72 border-border/10 hover:bg-primary/3${n}`} />;',
+      'apps/website/example.tsx',
+    );
+
+    expect(findings.map((entry) => entry.token)).toEqual([
+      'bg-primary/35',
+      'text-foreground/72',
+    ]);
+  });
+
+  it('names the ladder in the remedy for opacity findings', () => {
+    const findings = findPackageUiGuardFindings(
+      '<div className="bg-primary/35" />',
+      'apps/website/example.tsx',
+    );
+
+    expect(formatDesignSystemRegressions(findings)).toContain(
+      '/5 /10 /20 /40 /50 /60 /70 /80 /90',
+    );
+  });
+
+  it('keeps the control-height rule inside packages/ui', () => {
+    expect(
+      findPackageUiGuardFindings(
+        '<button className="h-6" />',
+        'apps/website/example-button.tsx',
+      ),
+    ).toEqual([]);
+  });
 });
 
 describe('design-system debt baseline', () => {

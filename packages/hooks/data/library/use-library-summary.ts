@@ -28,8 +28,15 @@ export interface UseLibrarySummaryReturn {
  * `IngredientsService` has no client method for `GET /ingredients/summary`
  * yet, so this mirrors the raw-fetch idiom already used by
  * `useWorkflowBuilder` for endpoints without a service wrapper.
+ *
+ * Pass `isEnabled: false` where the counters are not shown (the admin Library
+ * spans every organization, so one brand's counts would mislead).
  */
-export function useLibrarySummary(): UseLibrarySummaryReturn {
+export function useLibrarySummary({
+  isEnabled = true,
+}: {
+  isEnabled?: boolean;
+} = {}): UseLibrarySummaryReturn {
   const collectionScope = useCollectionScope();
   const { brandId, pageScope } = collectionScope;
   const isFetchReady = isCollectionFetchReady(collectionScope);
@@ -51,7 +58,7 @@ export function useLibrarySummary(): UseLibrarySummaryReturn {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: reloadToken is the refresh trigger, not a value the effect reads.
   useEffect(() => {
-    if (!isFetchReady) {
+    if (!isFetchReady || !isEnabled) {
       return;
     }
 
@@ -119,7 +126,7 @@ export function useLibrarySummary(): UseLibrarySummaryReturn {
     return () => {
       controller.abort();
     };
-  }, [brandId, getToken, isFetchReady, pageScope, reloadToken]);
+  }, [brandId, getToken, isEnabled, isFetchReady, pageScope, reloadToken]);
 
   return { summary, isLoading, error, refresh };
 }

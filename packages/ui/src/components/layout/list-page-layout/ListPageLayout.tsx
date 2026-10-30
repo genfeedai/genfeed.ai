@@ -5,8 +5,10 @@ import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import type { ListPageLayoutProps } from '@genfeedai/props/layout/list-page-layout.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
+import FiltersSearch from '@ui/content/filters-button/FiltersSearch';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
+import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Plus } from 'lucide-react';
@@ -48,40 +50,53 @@ export default function ListPageLayout<T extends { id: string }>({
   onRefresh,
   isRefreshing = false,
   showPagination = true,
-  bulkActions,
   getRowKey,
   getRowClassName,
   className,
 }: ListPageLayoutProps<T>) {
+  const hasSearch = visibleFilters?.search !== false;
   const rightActions = (
-    <>
-      <FiltersButton
-        filters={filters}
-        onFiltersChange={onFiltersChange}
-        visibleFilters={visibleFilters}
-        filterOptions={filterOptions}
-      />
-
-      {bulkActions}
-
-      {onCreate && createLabel && (
-        <Button
-          label={
-            <>
-              <Plus /> {createLabel}
-            </>
-          }
-          variant={ButtonVariant.DEFAULT}
-          onClick={onCreate}
-        />
-      )}
-    </>
+    <SubbarControls
+      filters={
+        hasSearch ? null : (
+          <FiltersButton
+            filters={filters}
+            onFiltersChange={onFiltersChange}
+            visibleFilters={visibleFilters}
+            filterOptions={filterOptions}
+          />
+        )
+      }
+      primaryAction={
+        onCreate && createLabel ? (
+          <Button
+            label={
+              <>
+                <Plus /> {createLabel}
+              </>
+            }
+            variant={ButtonVariant.DEFAULT}
+            onClick={onCreate}
+          />
+        ) : null
+      }
+    />
   );
 
   return (
     <Container
       label={title}
       icon={icon}
+      leading={
+        hasSearch ? (
+          <FiltersSearch
+            filterOptions={filterOptions}
+            filters={filters}
+            onFiltersChange={onFiltersChange}
+            visibleFilters={visibleFilters}
+          />
+        ) : undefined
+      }
       refresh={
         onRefresh ? (
           <ButtonRefresh onClick={onRefresh} isRefreshing={isRefreshing} />

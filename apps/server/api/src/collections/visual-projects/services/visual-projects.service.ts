@@ -9,6 +9,7 @@ import {
   parseExport,
   parseRetry,
   parseRevision,
+  parseVisualInput,
   visualInputHash,
   visualSettingsSchema,
 } from '@api/collections/visual-projects/utils/visual-code-validation.util';
@@ -109,7 +110,7 @@ export class VisualProjectsService implements OnModuleInit {
   private requireBrandContext(value: unknown): string {
     if (value === undefined || value === null)
       throw new BadRequestException('brand_context_required');
-    const brandId = z.string().parse(value);
+    const brandId = parseVisualInput(z.string(), value);
     if (!brandId.trim())
       throw new BadRequestException('brand_context_required');
     return brandId;
@@ -170,7 +171,10 @@ export class VisualProjectsService implements OnModuleInit {
     }
     if (operation === 'catalog')
       return {
-        ...(await this.catalog(user, z.string().min(1).parse(params.brandId))),
+        ...(await this.catalog(
+          user,
+          parseVisualInput(z.string().min(1), params.brandId),
+        )),
       };
     if (operation === 'quote') {
       const quote = await this.quote(user, params);
@@ -183,7 +187,7 @@ export class VisualProjectsService implements OnModuleInit {
     }
     if (operation === 'generate')
       return visualProjectData(await this.create(user, params, dispatchClass));
-    const projectId = z.string().min(1).parse(params.projectId);
+    const projectId = parseVisualInput(z.string().min(1), params.projectId);
     delete params.projectId;
     const project = await this.authorization.project(user, projectId);
     if (user.brandId && project.brandId !== user.brandId)
@@ -195,10 +199,13 @@ export class VisualProjectsService implements OnModuleInit {
           projectId,
           params.beforeRevision === undefined
             ? undefined
-            : z.number().int().positive().parse(params.beforeRevision),
+            : parseVisualInput(
+                z.number().int().positive(),
+                params.beforeRevision,
+              ),
           params.limit === undefined
             ? 50
-            : z.number().int().min(1).max(50).parse(params.limit),
+            : parseVisualInput(z.number().int().min(1).max(50), params.limit),
         ),
       );
     if (operation === 'cancel')
@@ -437,10 +444,12 @@ export class VisualProjectsService implements OnModuleInit {
     raw: unknown,
   ) {
     const project = await this.authorization.project(user, id);
-    const candidate = z
-      .object({ revision: z.number().int().positive().optional() })
-      .passthrough()
-      .parse(raw);
+    const candidate = parseVisualInput(
+      z
+        .object({ revision: z.number().int().positive().optional() })
+        .passthrough(),
+      raw,
+    );
     const prior = await this.authorization.revision(
       user,
       id,
@@ -512,8 +521,8 @@ export class VisualProjectsService implements OnModuleInit {
     };
   }
   async quote(user: AuthenticatedUser, raw: unknown) {
-    const envelope = z
-      .discriminatedUnion('operation', [
+    const envelope = parseVisualInput(
+      z.discriminatedUnion('operation', [
         z.strictObject({
           operation: z.literal('create'),
           input: z.record(z.string(), z.unknown()),
@@ -525,8 +534,9 @@ export class VisualProjectsService implements OnModuleInit {
             input: z.record(z.string(), z.unknown()),
           }),
         ),
-      ])
-      .parse(raw);
+      ]),
+      raw,
+    );
     if (Object.hasOwn(envelope.input, 'maximumCredits'))
       throw new BadRequestException('quote_must_not_include_maximum_credits');
     if (envelope.operation === 'create') {
@@ -584,10 +594,10 @@ export class VisualProjectsService implements OnModuleInit {
     dispatchClass: SystemWorkflowDispatchClass,
   ) {
     const project = await this.authorization.project(user, id);
-    const requestId = z
-      .object({ requestId: z.string().trim().min(1).max(128) })
-      .passthrough()
-      .parse(raw).requestId;
+    const requestId = parseVisualInput(
+      z.object({ requestId: z.string().trim().min(1).max(128) }).passthrough(),
+      raw,
+    ).requestId;
     const normalized =
       operation === 'revise'
         ? parseRevision(raw)
@@ -600,10 +610,12 @@ export class VisualProjectsService implements OnModuleInit {
                   await this.authorization.revision(
                     user,
                     id,
-                    z
-                      .object({ revision: z.number().int().positive() })
-                      .passthrough()
-                      .parse(raw).revision,
+                    parseVisualInput(
+                      z
+                        .object({ revision: z.number().int().positive() })
+                        .passthrough(),
+                      raw,
+                    ).revision,
                   )
                 ).settings,
               ),
@@ -765,9 +777,10 @@ export class VisualProjectsService implements OnModuleInit {
     });
   }
   async cancel(user: AuthenticatedUser, id: string, raw: unknown) {
-    const input = z
-      .strictObject({ revision: z.number().int().positive() })
-      .parse(raw);
+    const input = parseVisualInput(
+      z.strictObject({ revision: z.number().int().positive() }),
+      raw,
+    );
     const project = await this.authorization.project(user, id);
     if (input.revision !== project.currentRevision)
       throw new ConflictException('stale_visual_revision');

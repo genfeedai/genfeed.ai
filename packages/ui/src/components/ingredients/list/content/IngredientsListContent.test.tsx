@@ -451,7 +451,7 @@ describe('IngredientsListContent', () => {
     ).toHaveAttribute('src', 'https://cdn.genfeed.ai/mock/clip-poster.jpg');
     expect(screen.queryByAltText('Ingredient URL')).not.toBeInTheDocument();
     expect(
-      screen.getByText('Video').closest('[class*="bg-primary/15"]'),
+      screen.getByText('Video').closest('[class*="bg-primary/10"]'),
     ).not.toBeNull();
     expect(screen.queryByText('VIDEO')).not.toBeInTheDocument();
     expect(
@@ -907,7 +907,10 @@ describe('IngredientsListContent inspector handoff', () => {
     setSelectedAsset.mockClear();
 
     const name = screen.getByRole('link', { name: 'Avatar Source' });
-    expect(name).toHaveAttribute('href', '/admin/images/avatar-source-1');
+    expect(name).toHaveAttribute(
+      'href',
+      '/admin/content/ingredients/images/avatar-source-1',
+    );
     fireEvent.click(name);
     expect(setSelectedAsset).not.toHaveBeenCalled();
   });

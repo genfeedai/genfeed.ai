@@ -316,7 +316,7 @@ export class TikTokAdsService {
     }
   }
 
-  // ─── Write Operations ────────────────────────────────────────────────────────
+  // Write Operations
 
   async createCampaign(
     accessToken: string,
@@ -533,7 +533,7 @@ export class TikTokAdsService {
     }
   }
 
-  // ─── Private Helpers ────────────────────────────────────────────────────────
+  // Private Helpers
 
   private async makeRequest<T>(
     accessToken: string,

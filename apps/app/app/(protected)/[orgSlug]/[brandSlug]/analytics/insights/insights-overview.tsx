@@ -28,7 +28,7 @@ const InsightsOverview = memo(function InsightsOverview({
   return (
     <div className={cn('space-y-6', className)}>
       {status === 'unavailable' ? (
-        <Card className="border-warning/30 bg-warning/5">
+        <Card className="border-warning/20 bg-warning/5">
           <div role="status" className="space-y-1">
             <p className="text-sm font-medium text-warning">
               Analytics insights unavailable

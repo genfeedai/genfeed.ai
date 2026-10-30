@@ -321,31 +321,6 @@ vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
   ),
 }));
 
-vi.mock('@ui/navigation/view-toggle/ViewToggle', () => ({
-  default: ({
-    activeView,
-    onChange,
-    options,
-  }: {
-    activeView: string;
-    onChange: (view: string) => void;
-    options: Array<{ label: string; type: string }>;
-  }) => (
-    <div>
-      {options.map((option) => (
-        <button
-          key={option.type}
-          type="button"
-          aria-pressed={activeView === option.type}
-          onClick={() => onChange(option.type)}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  ),
-}));
-
 vi.mock('@ui/buttons/base/Button', () => ({
   default: ({
     ariaLabel,
@@ -397,7 +372,7 @@ vi.mock('@ui/primitives/searchbar', () => ({
   ),
 }));
 
-vi.mock('@ui/navigation/view-toggle/ViewToggle', () => ({
+vi.mock('@ui/navigation/view-menu/ViewMenu', () => ({
   default: ({ onChange }: { onChange: (value: string) => void }) => (
     <div data-testid="view-toggle">
       <button type="button" onClick={() => onChange('table')}>
@@ -653,14 +628,14 @@ describe('AdsResearchPageClient', () => {
     expect(screen.getByText('2.40')).toBeInTheDocument();
 
     const refreshButton = screen.getByRole('button', { name: 'Refresh' });
-    // Refresh is passed through the Container `refresh` slot, ahead of the filters.
+    // Refresh is passed through the Container `refresh` slot; the filters sit
+    // inside the search field in the leading slot.
     expect(screen.getByTestId('container-refresh')).toContainElement(
       refreshButton,
     );
-    expect(
-      refreshButton.compareDocumentPosition(screen.getByTestId('filter-menu')) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    const searchField = screen.getByPlaceholderText('Search ads').closest('div')
+      ?.parentElement as HTMLElement;
+    expect(searchField).toContainElement(screen.getByTestId('filter-menu'));
     fireEvent.click(refreshButton);
     expect(useQueryStates[0].refetch).toHaveBeenCalled();
 

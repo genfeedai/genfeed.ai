@@ -3,6 +3,7 @@
 import type { AdminPageShellProps } from '@props/admin/admin-page-shell.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
+import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 
 /**
  * The one layout every admin page renders through.
@@ -10,8 +11,9 @@ import Container from '@ui/layout/container/Container';
  * - The breadcrumb is the page title, so the title is screen-reader only and
  *   no header is drawn inside the content.
  * - Filters live in the subbar, never in the content.
- * - Controls keep one order: refresh, download, dropdowns, Filters menu,
- *   views, primary CTA. Search rests as an icon on the left.
+ * - Controls keep one order: refresh, download, then {@link SubbarControls}
+ *   (dropdowns, Filters menu, views, primary CTA). Search is the persistent
+ *   search field on the left, with the page's Filters menu inside it.
  */
 export default function AdminPageShell({
   title,
@@ -50,12 +52,12 @@ export default function AdminPageShell({
       iconActions={download}
       right={
         hasRight ? (
-          <>
-            {dropdowns}
-            {filters}
-            {views}
-            {primaryAction}
-          </>
+          <SubbarControls
+            dropdowns={dropdowns}
+            filters={filters}
+            views={views}
+            primaryAction={primaryAction}
+          />
         ) : undefined
       }
     >

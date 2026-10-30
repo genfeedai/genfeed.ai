@@ -61,9 +61,9 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
     <Card
       className={cn(
         'group',
-        'bg-foreground/[0.03]',
+        'bg-foreground/5',
         'transition-colors duration-300 ease-out',
-        'hover:bg-foreground/[0.05]',
+        'hover:bg-foreground/5',
         prompt.isRejected && 'opacity-40 pointer-events-none',
       )}
       bodyClassName="gap-0 p-0"
@@ -76,7 +76,7 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
           'absolute top-3 right-3 z-10',
           'rounded-md p-1',
           'text-muted-foreground hover:text-foreground/70',
-          'bg-foreground/[0.04] hover:bg-foreground/[0.1]',
+          'bg-foreground/5 hover:bg-foreground/10',
           'transition-[color,background-color,opacity] duration-200',
           hoverRevealClassName(),
         )}

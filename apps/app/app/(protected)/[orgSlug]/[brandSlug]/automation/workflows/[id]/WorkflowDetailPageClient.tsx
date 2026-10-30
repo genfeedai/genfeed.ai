@@ -30,11 +30,12 @@ import '@genfeedai/workflows/ui/styles';
 import '@/features/workflows/styles/workflow-scope.css';
 
 import { useTranslations } from 'next-intl';
-import { CloudNodePalette } from '@/features/workflows/components/CloudNodePalette';
 import { ExecutionPanel } from '@/features/workflows/components/ExecutionPanel';
+import { AddNodeMenu } from '@/features/workflows/components/editor/AddNodeMenu';
 import { CloudActionNodeInspector } from '@/features/workflows/components/editor/CloudActionNodeInspector';
 import { CloudCreditsIndicator } from '@/features/workflows/components/editor/CloudCreditsIndicator';
 import { CloudWorkflowToolbar } from '@/features/workflows/components/editor/CloudWorkflowToolbar';
+import { WorkflowAgentLayout } from '@/features/workflows/components/editor/WorkflowAgentLayout';
 import { WorkflowEditorSectionTopbar } from '@/features/workflows/components/editor/WorkflowEditorSectionTopbar';
 import { WorkflowScheduleDialog } from '@/features/workflows/components/schedule/WorkflowScheduleDialog';
 import { WorkflowRunPanel } from '@/features/workflows/components/WorkflowRunPanel';
@@ -292,7 +293,12 @@ export default function WorkflowDetailPageClient({
             graphChrome={
               <CloudWorkflowToolbar
                 isSaving={isSaving}
-                middleContent={<CloudCreditsIndicator />}
+                middleContent={
+                  <>
+                    <AddNodeMenu />
+                    <CloudCreditsIndicator />
+                  </>
+                }
                 onRename={handleRename}
               />
             }
@@ -306,43 +312,44 @@ export default function WorkflowDetailPageClient({
             title={workflowName || 'Workflow editor'}
           />
 
-          {cloudError && (
-            <div className="shrink-0 border-b border-destructive/20 bg-destructive/10 px-4 py-2 text-xs text-destructive">
-              {cloudError}
-            </div>
-          )}
+          <WorkflowAgentLayout>
+            {cloudError && (
+              <div className="shrink-0 border-b border-destructive/20 bg-destructive/10 px-4 py-2 text-xs text-destructive">
+                {cloudError}
+              </div>
+            )}
 
-          {isLoading ? (
-            <section
-              aria-label={translate('detail.loadingEditor')}
-              className="min-h-0 flex-1 bg-background"
-              data-testid="workflow-editor-loading-shell"
-            />
-          ) : (
-            <WorkflowEditorShell
-              nodePalette={<CloudNodePalette />}
-              nodeTypes={cloudNodeTypes}
-              rightPanel={
-                showRunPanel ? (
-                  <WorkflowRunPanel
-                    inputVariables={inputVariables}
-                    isRunning={isRunning}
-                    onClose={() => setShowRunPanel(false)}
-                    onRun={handleRun}
-                  />
-                ) : visibleExecutionPanelId ? (
-                  <ExecutionPanel
-                    workflowId={currentWorkflowId ?? workflowId ?? 'new'}
-                    onClose={handleCloseExecutionPanel}
-                    onTerminalExecution={handleTerminalExecution}
-                    runId={visibleExecutionPanelId}
-                  />
-                ) : (
-                  <CloudActionNodeInspector />
-                )
-              }
-            />
-          )}
+            {isLoading ? (
+              <section
+                aria-label={translate('detail.loadingEditor')}
+                className="min-h-0 flex-1 bg-background"
+                data-testid="workflow-editor-loading-shell"
+              />
+            ) : (
+              <WorkflowEditorShell
+                nodeTypes={cloudNodeTypes}
+                rightPanel={
+                  showRunPanel ? (
+                    <WorkflowRunPanel
+                      inputVariables={inputVariables}
+                      isRunning={isRunning}
+                      onClose={() => setShowRunPanel(false)}
+                      onRun={handleRun}
+                    />
+                  ) : visibleExecutionPanelId ? (
+                    <ExecutionPanel
+                      workflowId={currentWorkflowId ?? workflowId ?? 'new'}
+                      onClose={handleCloseExecutionPanel}
+                      onTerminalExecution={handleTerminalExecution}
+                      runId={visibleExecutionPanelId}
+                    />
+                  ) : (
+                    <CloudActionNodeInspector />
+                  )
+                }
+              />
+            )}
+          </WorkflowAgentLayout>
 
           {isScheduleDialogOpen ? (
             <WorkflowScheduleDialog

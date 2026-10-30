@@ -249,7 +249,7 @@ function WorkflowRefMessages({
       )}
 
       {error && (
-        <div className="border border-destructive/30 bg-destructive/10 p-2">
+        <div className="border border-destructive/20 bg-destructive/10 p-2">
           <p className="text-xs text-destructive">{error}</p>
         </div>
       )}

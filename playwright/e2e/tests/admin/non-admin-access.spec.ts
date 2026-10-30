@@ -19,7 +19,7 @@ test.describe('Admin access without superadmin', () => {
       })),
     );
 
-    await authenticatedPage.goto(APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD, {
+    await authenticatedPage.goto(APP_ROUTES.ADMIN.OVERVIEW.ROOT, {
       waitUntil: 'domcontentloaded',
     });
 

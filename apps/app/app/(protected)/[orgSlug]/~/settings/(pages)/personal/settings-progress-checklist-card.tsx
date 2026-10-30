@@ -36,7 +36,7 @@ export default function SettingsProgressChecklistCard({
             className={cn(
               'flex items-center justify-between gap-3 rounded-2xl border px-4 py-4',
               step.isCompleted
-                ? 'border-success/20 bg-success/[0.06]'
+                ? 'border-success/20 bg-success/5'
                 : 'border-border bg-card',
             )}
           >
@@ -55,7 +55,7 @@ export default function SettingsProgressChecklistCard({
                 'inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:min-h-8',
                 step.isCompleted
                   ? 'border border-border text-muted-foreground hover:bg-muted/60'
-                  : 'border border-primary/25 bg-primary/10 text-foreground hover:bg-primary/15',
+                  : 'border border-primary/20 bg-primary/10 text-foreground hover:bg-primary/10',
               )}
             >
               {step.isCompleted ? 'Review' : 'Complete'}

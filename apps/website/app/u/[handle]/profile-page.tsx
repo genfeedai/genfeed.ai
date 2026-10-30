@@ -122,7 +122,7 @@ function ProfileContent({
               href={addUTMParameters(link.url, handle)}
               target="_blank"
               rel="noopener noreferrer"
-              className="block w-full bg-foreground/10 hover:bg-foreground/20 backdrop-blur-sm text-foreground rounded-full py-4 px-6 text-center font-medium transition-all border border-foreground/[0.08] hover:border-foreground/20"
+              className="block w-full bg-foreground/10 hover:bg-foreground/20 backdrop-blur-sm text-foreground rounded-full py-4 px-6 text-center font-medium transition-all border border-foreground/10 hover:border-foreground/20"
             >
               {link.label}
             </a>

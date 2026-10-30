@@ -85,6 +85,39 @@ export class VideosService extends IngredientsService<Video> {
       .then((res) => this.mapOne(res.data));
   }
 
+  /**
+   * Renders a cover still for the video: the frame at `timeInSeconds` with the
+   * optional `title` laid over it, set in `brandId`'s style. Same render the
+   * YouTube publish sends.
+   */
+  public async getCover(
+    id: string,
+    options: {
+      brandId?: string;
+      timeInSeconds?: number;
+      title?: string;
+      width?: number;
+    } = {},
+    signal?: AbortSignal,
+  ): Promise<Blob> {
+    const response = await this.instance.get<Blob>(
+      buildResourcePath(id, 'thumbnail'),
+      {
+        params: {
+          ...(options.brandId ? { brandId: options.brandId } : {}),
+          ...(options.title ? { title: options.title } : {}),
+          ...(options.timeInSeconds !== undefined
+            ? { timeInSeconds: options.timeInSeconds }
+            : {}),
+          ...(options.width ? { width: options.width } : {}),
+        },
+        responseType: 'blob',
+        signal,
+      },
+    );
+    return response.data;
+  }
+
   public async findVideoAllPosts(id: string) {
     return await this.instance
       .get<JsonApiResponseDocument>(buildResourcePath(id, 'posts'))

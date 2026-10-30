@@ -325,6 +325,28 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
       },
     },
     {
+      // Kling 4.0 takes `resolution` (720p or 1080p), not V3's `mode`, and
+      // keeps its still references in `reference_images` beside the first and
+      // last frames. Reference videos ride `reference_videos`.
+      compilerId: KLING_VIDEO_COMPILER_ID,
+      compilerVersion: REMAINING_VIDEO_COMPILER_VERSION,
+      profiles: [
+        profile('kling-v4-capability', MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V4, {
+          maxReferences: 10,
+          nativeFields: ['start_image', 'end_image', 'reference_images'],
+        }),
+      ],
+      spec: {
+        aspectRatioField: 'aspect_ratio',
+        durationField: 'duration',
+        extraReferenceField: 'reference_images',
+        firstFrameField: 'start_image',
+        lastFrameField: 'end_image',
+        modelLabel: 'Kling',
+        resolutionField: 'resolution',
+      },
+    },
+    {
       compilerId: WAN_VIDEO_COMPILER_ID,
       compilerVersion: REMAINING_VIDEO_COMPILER_VERSION,
       profiles: [
@@ -343,6 +365,9 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
             nativeFields: ['image'],
           },
         ),
+        profile('wan-3-capability', MODEL_KEYS.REPLICATE_ALIBABA_WAN_3, {
+          nativeFields: ['image'],
+        }),
       ],
       spec: {
         aspectRatioField: 'aspect_ratio',

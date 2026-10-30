@@ -100,8 +100,8 @@ export default function StudioPlaygroundStarterIdeas({
               className={[
                 'flex h-auto min-h-[5.5rem] w-full flex-col items-start gap-2.5',
                 'rounded-2xl border border-border bg-background px-3.5 py-3.5',
-                'text-left normal-case tracking-normal text-foreground/88',
-                'shadow-md shadow-black/25 transition-colors',
+                'text-left normal-case tracking-normal text-foreground/90',
+                'shadow-md shadow-black/20 transition-colors',
                 'hover:border-border/80 hover:bg-card',
               ].join(' ')}
               isDisabled={isDisabled}
@@ -151,7 +151,7 @@ export default function StudioPlaygroundStarterIdeas({
                 />
               </span>
               <span className="flex w-full flex-col items-start gap-1">
-                <span className="break-words text-left text-sm font-medium leading-snug text-foreground/88">
+                <span className="break-words text-left text-sm font-medium leading-snug text-foreground/90">
                   {translate(`${idea.id}.label`)}
                 </span>
                 <span className="break-words text-left text-2xs leading-snug text-muted-foreground">

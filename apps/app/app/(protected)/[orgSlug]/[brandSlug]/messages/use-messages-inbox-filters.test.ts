@@ -24,6 +24,19 @@ describe('useMessagesInboxFilters', () => {
     });
   });
 
+  it('seeds the status view from ?status= and narrows the list query', () => {
+    const { result } = renderHook(() =>
+      useMessagesInboxFilters({
+        brandSlug: 'demo',
+        initialInboxView: 'unread',
+        routeBrandId: 'brand-1',
+      }),
+    );
+
+    expect(result.current.inboxView).toBe('unread');
+    expect(result.current.query).toMatchObject({ unread: true });
+  });
+
   it('seeds the type filter from a deep link (#5502)', () => {
     const { result } = renderHook(() =>
       useMessagesInboxFilters({

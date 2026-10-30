@@ -5,6 +5,7 @@ import type {
 } from '@genfeedai/contracts';
 import type {
   ClipperReferenceFrameSet,
+  ICaptionBurnStyle,
   IEditorRenderCorrelation,
   IEditorRenderJobParams,
 } from '@genfeedai/contracts/interfaces';
@@ -134,6 +135,8 @@ export interface VideoProcessingParams {
   // Caption params
   captionContent?: string;
   captionLanguage?: string;
+  /** Draws the captions into the picture; without it they are a soft track. */
+  captionStyle?: ICaptionBurnStyle;
 
   // Text overlay params
   text?: string;

@@ -48,7 +48,7 @@ export function CommandPaletteView({
       modalBoxClassName="max-w-2xl max-h-[calc(100vh-10rem)] p-0"
     >
       <div className={cn('flex h-full flex-col', className)}>
-        <div className="flex-shrink-0 border-b border-white/[0.08] p-4">
+        <div className="flex-shrink-0 border-b border-white/10 p-4">
           <Input
             ref={inputRef}
             type="search"
@@ -84,7 +84,7 @@ export function CommandPaletteView({
           )}
         </div>
 
-        <div className="flex-shrink-0 flex items-center justify-between border-t border-white/[0.08] px-4 py-2 text-xs text-foreground/60">
+        <div className="flex-shrink-0 flex items-center justify-between border-t border-white/10 px-4 py-2 text-xs text-foreground/60">
           <div className="flex gap-4">
             <span>
               <Kbd>↑↓</Kbd> Navigate

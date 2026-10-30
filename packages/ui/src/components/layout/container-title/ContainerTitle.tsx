@@ -41,12 +41,12 @@ export default function ContainerTitle({
             <span className="truncate">{activeGroupId}</span>
           ) : null}
           {activeGroupId && activePageLabel ? (
-            <span aria-hidden="true" className="select-none text-foreground/25">
+            <span aria-hidden="true" className="select-none text-foreground/40">
               ›
             </span>
           ) : null}
           {activePageLabel ? (
-            <span className="truncate text-foreground/65">
+            <span className="truncate text-foreground/70">
               {activePageLabel}
             </span>
           ) : null}

@@ -16,7 +16,9 @@ export function buildVideoDraftSettings(
 ): StudioPlaygroundSettings | null {
   if (!models.some((model) => model.key === settings.modelKey)) return null;
 
-  const draftModelKey = resolveVideoDraftModelKey(settings.modelKey);
+  const draftModelKey = resolveVideoDraftModelKey(settings.modelKey, (key) =>
+    models.some((model) => model.key === key),
+  );
   const draftModel = models.find((model) => model.key === draftModelKey);
   if (!draftModel) return null;
 

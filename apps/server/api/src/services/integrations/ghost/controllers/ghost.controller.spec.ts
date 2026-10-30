@@ -87,7 +87,7 @@ describe('GhostController', () => {
     expect(controller).toBeDefined();
   });
 
-  // ── connect ──────────────────────────────────────────────────────────────
+  // connect
 
   describe('connect', () => {
     const validBody = {
@@ -170,7 +170,7 @@ describe('GhostController', () => {
     });
   });
 
-  // ── createPost ────────────────────────────────────────────────────────────
+  // createPost
 
   describe('createPost', () => {
     const validBody = {

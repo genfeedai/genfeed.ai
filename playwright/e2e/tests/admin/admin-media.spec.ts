@@ -6,8 +6,8 @@ test.describe('Admin Media', () => {
   test.setTimeout(60_000);
 
   const routes = [
-    `${APP_ROUTES.ADMIN.IMAGES}/mock-id`,
-    `${APP_ROUTES.ADMIN.VIDEOS}/mock-id`,
+    `${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/images/mock-id`,
+    `${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/videos/mock-id`,
     APP_ROUTES.ADMIN.LIBRARY.VOICES,
   ];
 
@@ -28,7 +28,10 @@ test.describe('Admin Media', () => {
   });
 
   test('image detail responds to clicks', async ({ adminPage }) => {
-    await assertRouteRenders(adminPage, `${APP_ROUTES.ADMIN.IMAGES}/mock-id`);
+    await assertRouteRenders(
+      adminPage,
+      `${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/images/mock-id`,
+    );
     await tryClick(adminPage, 'button');
     await expect(adminPage.locator('body')).toBeVisible();
   });

@@ -11,14 +11,14 @@ export default function AgentClientExamples({
   return (
     <section className="container mx-auto px-6 py-12 sm:py-20">
       <div className="mb-10 max-w-2xl">
-        <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-foreground/65">
+        <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-foreground/70">
           02 / From a brief to something real
         </p>
         <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
           Plan in {client.name}.<br />
           Create with Genfeed.
         </h2>
-        <p className="mt-5 text-base leading-7 text-foreground/75">
+        <p className="mt-5 text-base leading-7 text-foreground/80">
           Your brand context, creative tools, and content library travel with
           you. These examples show the kind of work you can ask for.
         </p>
@@ -56,13 +56,13 @@ export default function AgentClientExamples({
               />
             </div>
             <figcaption className="p-6">
-              <p className="text-xs text-foreground/65">
+              <p className="text-xs text-foreground/70">
                 {isClaude
                   ? 'Illustrative output created in Genfeed Studio'
                   : 'Illustrative generated output'}
               </p>
               <h3 className="mt-2 text-xl font-semibold">{title}</h3>
-              <p className="mt-4 text-base leading-7 text-foreground/75">
+              <p className="mt-4 text-base leading-7 text-foreground/80">
                 “{prompt}”
               </p>
             </figcaption>
@@ -72,7 +72,7 @@ export default function AgentClientExamples({
       <div className="mt-10 grid gap-6 border-t border-foreground/10 pt-8 md:grid-cols-2">
         {client.examplePrompts.map((prompt) => (
           <p
-            className="flex items-start gap-3 text-base leading-7 text-foreground/75"
+            className="flex items-start gap-3 text-base leading-7 text-foreground/80"
             key={prompt}
           >
             <ArrowRight aria-hidden className="mt-1.5 size-4 shrink-0" />

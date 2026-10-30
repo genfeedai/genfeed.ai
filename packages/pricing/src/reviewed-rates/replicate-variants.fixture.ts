@@ -3436,6 +3436,202 @@ export const REPLICATE_VARIANT_FIXTURES: Readonly<
       },
     ],
   },
+  'kwaivgi/kling-v4.0': {
+    sourceUrl: 'https://replicate.com/kwaivgi/kling-v4.0/api/schema',
+    inputProperties: {
+      prompt: {
+        type: 'string',
+        title: 'Prompt',
+        'x-order': 0,
+        description:
+          'Text prompt describing the video. Refer to images as @image_1, @image_2, ... and videos as @video_1, @video_2, ... (see start_image and reference_images for numbering). Up to 26,000 English characters or 11,000 non-English characters.',
+      },
+      duration: {
+        type: 'integer',
+        title: 'Duration',
+        default: 5,
+        maximum: 30,
+        minimum: 3,
+        'x-order': 9,
+        description:
+          'Video duration in seconds. Ignored when base_video is set.',
+      },
+      end_image: {
+        type: 'string',
+        title: 'End Image',
+        format: 'uri',
+        'x-order': 3,
+        nullable: true,
+        description:
+          'Last frame of the video. Same format requirements as start_image.',
+      },
+      base_video: {
+        type: 'string',
+        title: 'Base Video',
+        format: 'uri',
+        'x-order': 6,
+        nullable: true,
+        description:
+          'Video to edit (.mp4/.mov, 3-30 seconds, 700-4553px per side, max 300MB). Referred to as @video_1. When set, the output keeps the length and aspect ratio of this video.',
+      },
+      resolution: {
+        enum: ['720p', '1080p'],
+        type: 'string',
+        title: 'resolution',
+        description: 'Output resolution.',
+        default: '1080p',
+        'x-order': 7,
+      },
+      start_image: {
+        type: 'string',
+        title: 'Start Image',
+        format: 'uri',
+        'x-order': 1,
+        nullable: true,
+        description:
+          'First frame of the video. Supports .jpg/.jpeg/.png, max 30MB, min 300px, aspect ratio between 2:5 and 5:2.',
+      },
+      aspect_ratio: {
+        enum: ['16:9', '9:16', '1:1', '21:9'],
+        type: 'string',
+        title: 'aspect_ratio',
+        description:
+          'Aspect ratio of the output video. Ignored when start_image, middle_images, end_image or base_video is set, since the aspect ratio then comes from the input.',
+        default: '16:9',
+        'x-order': 8,
+      },
+      middle_images: {
+        type: 'array',
+        items: {
+          type: 'string',
+          format: 'uri',
+        },
+        title: 'Middle Images',
+        default: [],
+        'x-order': 2,
+        description:
+          'Keyframes between the first and last frame, in order. Same format requirements as start_image.',
+      },
+      reference_images: {
+        type: 'array',
+        items: {
+          type: 'string',
+          format: 'uri',
+        },
+        title: 'Reference Images',
+        default: [],
+        'x-order': 4,
+        description:
+          'Reference images for characters, objects, scenes or style. Images are numbered in this order: start_image, middle_images, end_image, reference_images. Up to 10 images in total across all image inputs.',
+      },
+      reference_videos: {
+        type: 'array',
+        items: {
+          type: 'string',
+          format: 'uri',
+        },
+        title: 'Reference Videos',
+        default: [],
+        'x-order': 5,
+        description:
+          'Reference videos to take motion, camera work or style from (.mp4/.mov, 3-30 seconds each, 700-4553px per side, max 300MB). Numbered after base_video.',
+      },
+    },
+    tiers: [
+      {
+        criteria: [
+          {
+            title: 'model variant',
+            type: 'equals',
+            subtype: 'string',
+            value: 'no-video-input',
+          },
+          {
+            title: 'target resolution',
+            type: 'equals',
+            subtype: 'string',
+            value: '720p',
+          },
+        ],
+        prices: [
+          {
+            metric: 'video_output_duration_seconds',
+            type: 'per-unit',
+            price: '$0.157',
+          },
+        ],
+      },
+      {
+        criteria: [
+          {
+            title: 'model variant',
+            type: 'equals',
+            subtype: 'string',
+            value: 'no-video-input',
+          },
+          {
+            title: 'target resolution',
+            type: 'equals',
+            subtype: 'string',
+            value: '1080p',
+          },
+        ],
+        prices: [
+          {
+            metric: 'video_output_duration_seconds',
+            type: 'per-unit',
+            price: '$0.235',
+          },
+        ],
+      },
+      {
+        criteria: [
+          {
+            title: 'model variant',
+            type: 'equals',
+            subtype: 'string',
+            value: 'video-input',
+          },
+          {
+            title: 'target resolution',
+            type: 'equals',
+            subtype: 'string',
+            value: '720p',
+          },
+        ],
+        prices: [
+          {
+            metric: 'video_output_duration_seconds',
+            type: 'per-unit',
+            price: '$0.094',
+          },
+        ],
+      },
+      {
+        criteria: [
+          {
+            title: 'model variant',
+            type: 'equals',
+            subtype: 'string',
+            value: 'video-input',
+          },
+          {
+            title: 'target resolution',
+            type: 'equals',
+            subtype: 'string',
+            value: '1080p',
+          },
+        ],
+        prices: [
+          {
+            metric: 'video_output_duration_seconds',
+            type: 'per-unit',
+            price: '$0.141',
+          },
+        ],
+      },
+    ],
+  },
   'kwaivgi/kling-o1': {
     sourceUrl: 'https://replicate.com/kwaivgi/kling-o1/api/schema',
     inputProperties: {
@@ -3839,267 +4035,6 @@ export const REPLICATE_VARIANT_FIXTURES: Readonly<
           },
         ],
         title: 'Video-to-video draft 720p',
-      },
-    ],
-  },
-  'bytedance/seedance-1.5-pro': {
-    sourceUrl: 'https://replicate.com/bytedance/seedance-1.5-pro/api/schema',
-    inputProperties: {
-      fps: {
-        allOf: [
-          {
-            $ref: '#/components/schemas/fps',
-          },
-        ],
-        default: 24,
-        'x-order': 5,
-        description: 'Frame rate (frames per second)',
-      },
-      seed: {
-        type: 'integer',
-        title: 'Seed',
-        'x-order': 8,
-        nullable: true,
-        description: 'Random seed. Set for reproducible generation',
-      },
-      image: {
-        type: 'string',
-        title: 'Image',
-        format: 'uri',
-        'x-order': 1,
-        nullable: true,
-        description: 'Input image for image-to-video generation',
-      },
-      prompt: {
-        type: 'string',
-        title: 'Prompt',
-        'x-order': 0,
-        description: 'Text prompt for video generation',
-      },
-      duration: {
-        type: 'integer',
-        title: 'Duration',
-        default: 5,
-        maximum: 12,
-        minimum: 2,
-        'x-order': 3,
-        description: 'Video duration in seconds',
-      },
-      aspect_ratio: {
-        allOf: [
-          {
-            $ref: '#/components/schemas/aspect_ratio',
-          },
-        ],
-        default: '16:9',
-        'x-order': 4,
-        description: 'Video aspect ratio. Ignored if an image is used.',
-      },
-      camera_fixed: {
-        type: 'boolean',
-        title: 'Camera Fixed',
-        default: false,
-        'x-order': 6,
-        description: 'Whether to fix camera position',
-      },
-      generate_audio: {
-        type: 'boolean',
-        title: 'Generate Audio',
-        default: false,
-        'x-order': 7,
-        description:
-          'Generate audio synchronized with the video. When enabled, the model outputs a video with audio that matches the visuals.',
-      },
-      last_frame_image: {
-        type: 'string',
-        title: 'Last Frame Image',
-        format: 'uri',
-        'x-order': 2,
-        nullable: true,
-        description:
-          'Input image for last frame generation. This only works if an image start frame is given too.',
-      },
-    },
-    tiers: [
-      {
-        criteria: [
-          {
-            description: 'with_audio',
-            subtype: 'string',
-            title: 'model variant',
-            type: 'equals',
-            value: 'with_audio',
-          },
-          {
-            description: '480p',
-            subtype: 'string',
-            title: 'target resolution',
-            type: 'equals',
-            value: '480p',
-          },
-        ],
-        description: null,
-        prices: [
-          {
-            description: 'or 40 seconds for $1',
-            metric: 'video_output_duration_seconds',
-            metric_display: 'second of output video',
-            price: '$0.025',
-            title: 'per second of output video',
-            type: 'per-unit',
-          },
-        ],
-        title: null,
-      },
-      {
-        criteria: [
-          {
-            description: 'without_audio',
-            subtype: 'string',
-            title: 'model variant',
-            type: 'equals',
-            value: 'without_audio',
-          },
-          {
-            description: '480p',
-            subtype: 'string',
-            title: 'target resolution',
-            type: 'equals',
-            value: '480p',
-          },
-        ],
-        description: null,
-        prices: [
-          {
-            description: 'or around 76 seconds for $1',
-            metric: 'video_output_duration_seconds',
-            metric_display: 'second of output video',
-            price: '$0.013',
-            title: 'per second of output video',
-            type: 'per-unit',
-          },
-        ],
-        title: null,
-      },
-      {
-        criteria: [
-          {
-            description: 'with_audio',
-            subtype: 'string',
-            title: 'model variant',
-            type: 'equals',
-            value: 'with_audio',
-          },
-          {
-            description: '720p',
-            subtype: 'string',
-            title: 'target resolution',
-            type: 'equals',
-            value: '720p',
-          },
-        ],
-        description: null,
-        prices: [
-          {
-            description: 'or around 19 seconds for $1',
-            metric: 'video_output_duration_seconds',
-            metric_display: 'second of output video',
-            price: '$0.052',
-            title: 'per second of output video',
-            type: 'per-unit',
-          },
-        ],
-        title: null,
-      },
-      {
-        criteria: [
-          {
-            description: 'without_audio',
-            subtype: 'string',
-            title: 'model variant',
-            type: 'equals',
-            value: 'without_audio',
-          },
-          {
-            description: '720p',
-            subtype: 'string',
-            title: 'target resolution',
-            type: 'equals',
-            value: '720p',
-          },
-        ],
-        description: null,
-        prices: [
-          {
-            description: 'or around 38 seconds for $1',
-            metric: 'video_output_duration_seconds',
-            metric_display: 'second of output video',
-            price: '$0.026',
-            title: 'per second of output video',
-            type: 'per-unit',
-          },
-        ],
-        title: null,
-      },
-      {
-        criteria: [
-          {
-            description: 'with_audio',
-            subtype: 'string',
-            title: 'model variant',
-            type: 'equals',
-            value: 'with_audio',
-          },
-          {
-            description: '1080p',
-            subtype: 'string',
-            title: 'target resolution',
-            type: 'equals',
-            value: '1080p',
-          },
-        ],
-        description: null,
-        prices: [
-          {
-            description: 'or around 83 seconds for $10',
-            metric: 'video_output_duration_seconds',
-            metric_display: 'second of output video',
-            price: '$0.12',
-            title: 'per second of output video',
-            type: 'per-unit',
-          },
-        ],
-        title: null,
-      },
-      {
-        criteria: [
-          {
-            description: 'without_audio',
-            subtype: 'string',
-            title: 'model variant',
-            type: 'equals',
-            value: 'without_audio',
-          },
-          {
-            description: '1080p',
-            subtype: 'string',
-            title: 'target resolution',
-            type: 'equals',
-            value: '1080p',
-          },
-        ],
-        description: null,
-        prices: [
-          {
-            description: 'or around 16 seconds for $1',
-            metric: 'video_output_duration_seconds',
-            metric_display: 'second of output video',
-            price: '$0.06',
-            title: 'per second of output video',
-            type: 'per-unit',
-          },
-        ],
-        title: null,
       },
     ],
   },
@@ -5487,6 +5422,649 @@ export const REPLICATE_VARIANT_FIXTURES: Readonly<
           },
         ],
         title: '768p quality',
+      },
+    ],
+  },
+  'bytedance/video-upscaler': {
+    sourceUrl: 'https://replicate.com/bytedance/video-upscaler/api/schema',
+    inputProperties: {
+      scene: {
+        enum: ['aigc', 'short_series', 'ugc', 'old_film', 'common'],
+        type: 'string',
+        title: 'scene',
+        description:
+          "Scene-based enhancement preset. 'aigc' is recommended for Seedance / other model outputs. 'short_series' is tuned for short-form drama, 'ugc' for user-generated content, 'old_film' for film restoration, 'common' for everything else.",
+        default: 'aigc',
+        'x-order': 2,
+      },
+      video: {
+        type: 'string',
+        title: 'Video',
+        format: 'uri',
+        'x-order': 0,
+        description:
+          'Video to upscale and enhance. Typically a Seedance 2.0 output (1080p/24fps), but any AIGC video works.',
+      },
+      target_fps: {
+        enum: [24, 30, 60, 120],
+        type: 'integer',
+        title: 'target_fps',
+        description:
+          'Target output frame rate. Frame interpolation is applied if higher than the source. Valid range: 1\u2013120.',
+        default: 60,
+        'x-order': 4,
+      },
+      processing_type: {
+        enum: ['standard', 'pro'],
+        type: 'string',
+        title: 'processing_type',
+        description:
+          "Processing tier. 'standard' is self-serve and works for any BytePlus VOD account. 'pro' uses a higher-quality enhancement model \u2014 better skin textures and fine detail for real-people footage \u2014 but requires your BytePlus account to be whitelisted first (file a support ticket).",
+        default: 'standard',
+        'x-order': 1,
+      },
+      target_resolution: {
+        enum: ['240p', '360p', '480p', '540p', '720p', '1080p', '2k', '4k'],
+        type: 'string',
+        title: 'target_resolution',
+        description:
+          'Target output resolution. BytePlus VOD uses lowercase suffixes (`2k`/`4k` not `2K`/`4K`). 4k is the native maximum.',
+        default: '4k',
+        'x-order': 3,
+      },
+    },
+    tiers: [
+      {
+        criteria: [
+          {
+            description: 'standard',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'standard',
+          },
+          {
+            description: '720p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '720p',
+          },
+          {
+            description: '\u2264 30',
+            subtype: 'open-closed',
+            title: 'target frames per second',
+            type: 'range',
+            value: [null, 30],
+          },
+        ],
+        description: 'Standard tier, 720p output at 30fps or below',
+        prices: [
+          {
+            description: 'or around 290 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$3.443',
+            title: 'per thousand seconds of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: 'Standard 720p \u226430fps',
+      },
+      {
+        criteria: [
+          {
+            description: 'standard',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'standard',
+          },
+          {
+            description: '720p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '720p',
+          },
+          {
+            description: '> 30',
+            subtype: 'open',
+            title: 'target frames per second',
+            type: 'range',
+            value: [30, null],
+          },
+        ],
+        description: 'Standard tier, 720p output above 30fps',
+        prices: [
+          {
+            description: 'or around 145 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$6.887',
+            title: 'per thousand seconds of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: 'Standard 720p >30fps',
+      },
+      {
+        criteria: [
+          {
+            description: 'standard',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'standard',
+          },
+          {
+            description: '1080p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '1080p',
+          },
+          {
+            description: '\u2264 30',
+            subtype: 'open-closed',
+            title: 'target frames per second',
+            type: 'range',
+            value: [null, 30],
+          },
+        ],
+        description: 'Standard tier, 1080p output at 30fps or below',
+        prices: [
+          {
+            description: 'or around 145 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$6.887',
+            title: 'per thousand seconds of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: 'Standard 1080p \u226430fps',
+      },
+      {
+        criteria: [
+          {
+            description: 'standard',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'standard',
+          },
+          {
+            description: '1080p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '1080p',
+          },
+          {
+            description: '> 30',
+            subtype: 'open',
+            title: 'target frames per second',
+            type: 'range',
+            value: [30, null],
+          },
+        ],
+        description: 'Standard tier, 1080p output above 30fps',
+        prices: [
+          {
+            description: 'or around 72 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.013773',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: 'Standard 1080p >30fps',
+      },
+      {
+        criteria: [
+          {
+            description: 'standard',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'standard',
+          },
+          {
+            description: '2k',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '2k',
+          },
+          {
+            description: '\u2264 30',
+            subtype: 'open-closed',
+            title: 'target frames per second',
+            type: 'range',
+            value: [null, 30],
+          },
+        ],
+        description: 'Standard tier, 2K output at 30fps or below',
+        prices: [
+          {
+            description: 'or around 72 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.013773',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: 'Standard 2K \u226430fps',
+      },
+      {
+        criteria: [
+          {
+            description: 'standard',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'standard',
+          },
+          {
+            description: '2k',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '2k',
+          },
+          {
+            description: '> 30',
+            subtype: 'open',
+            title: 'target frames per second',
+            type: 'range',
+            value: [30, null],
+          },
+        ],
+        description: 'Standard tier, 2K output above 30fps',
+        prices: [
+          {
+            description: 'or around 36 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.027548',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: 'Standard 2K >30fps',
+      },
+      {
+        criteria: [
+          {
+            description: 'standard',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'standard',
+          },
+          {
+            description: '4k',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '4k',
+          },
+          {
+            description: '\u2264 30',
+            subtype: 'open-closed',
+            title: 'target frames per second',
+            type: 'range',
+            value: [null, 30],
+          },
+        ],
+        description: 'Standard tier, 4K output at 30fps or below',
+        prices: [
+          {
+            description: 'or around 36 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.027548',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: 'Standard 4K \u226430fps',
+      },
+      {
+        criteria: [
+          {
+            description: 'standard',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'standard',
+          },
+          {
+            description: '4k',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '4k',
+          },
+          {
+            description: '> 30',
+            subtype: 'open',
+            title: 'target frames per second',
+            type: 'range',
+            value: [30, null],
+          },
+        ],
+        description: 'Standard tier, 4K output above 30fps',
+        prices: [
+          {
+            description: 'or around 18 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.055097',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: 'Standard 4K >30fps',
+      },
+      {
+        criteria: [
+          {
+            description: 'pro',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'pro',
+          },
+          {
+            description: '720p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '720p',
+          },
+          {
+            description: '\u2264 30',
+            subtype: 'open-closed',
+            title: 'target frames per second',
+            type: 'range',
+            value: [null, 30],
+          },
+        ],
+        description: 'Pro tier, 720p output at 30fps or below',
+        prices: [
+          {
+            description: 'or around 29 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.034435',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: 'Pro 720p \u226430fps',
+      },
+      {
+        criteria: [
+          {
+            description: 'pro',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'pro',
+          },
+          {
+            description: '720p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '720p',
+          },
+          {
+            description: '> 30',
+            subtype: 'open',
+            title: 'target frames per second',
+            type: 'range',
+            value: [30, null],
+          },
+        ],
+        description: 'Pro tier, 720p output above 30fps',
+        prices: [
+          {
+            description: 'or around 14 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.06887',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: 'Pro 720p >30fps',
+      },
+      {
+        criteria: [
+          {
+            description: 'pro',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'pro',
+          },
+          {
+            description: '1080p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '1080p',
+          },
+          {
+            description: '\u2264 30',
+            subtype: 'open-closed',
+            title: 'target frames per second',
+            type: 'range',
+            value: [null, 30],
+          },
+        ],
+        description: 'Pro tier, 1080p output at 30fps or below',
+        prices: [
+          {
+            description: 'or around 14 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.06887',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: 'Pro 1080p \u226430fps',
+      },
+      {
+        criteria: [
+          {
+            description: 'pro',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'pro',
+          },
+          {
+            description: '1080p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '1080p',
+          },
+          {
+            description: '> 30',
+            subtype: 'open',
+            title: 'target frames per second',
+            type: 'range',
+            value: [30, null],
+          },
+        ],
+        description: 'Pro tier, 1080p output above 30fps',
+        prices: [
+          {
+            description: 'or around 72 seconds for $10',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.137742',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: 'Pro 1080p >30fps',
+      },
+      {
+        criteria: [
+          {
+            description: 'pro',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'pro',
+          },
+          {
+            description: '2k',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '2k',
+          },
+          {
+            description: '\u2264 30',
+            subtype: 'open-closed',
+            title: 'target frames per second',
+            type: 'range',
+            value: [null, 30],
+          },
+        ],
+        description: 'Pro tier, 2K output at 30fps or below',
+        prices: [
+          {
+            description: 'or around 72 seconds for $10',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.137742',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: 'Pro 2K \u226430fps',
+      },
+      {
+        criteria: [
+          {
+            description: 'pro',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'pro',
+          },
+          {
+            description: '2k',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '2k',
+          },
+          {
+            description: '> 30',
+            subtype: 'open',
+            title: 'target frames per second',
+            type: 'range',
+            value: [30, null],
+          },
+        ],
+        description: 'Pro tier, 2K output above 30fps',
+        prices: [
+          {
+            description: 'or around 36 seconds for $10',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.275482',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: 'Pro 2K >30fps',
+      },
+      {
+        criteria: [
+          {
+            description: 'pro',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'pro',
+          },
+          {
+            description: '4k',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '4k',
+          },
+          {
+            description: '\u2264 30',
+            subtype: 'open-closed',
+            title: 'target frames per second',
+            type: 'range',
+            value: [null, 30],
+          },
+        ],
+        description: 'Pro tier, 4K output at 30fps or below',
+        prices: [
+          {
+            description: 'or around 36 seconds for $10',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.275482',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: 'Pro 4K \u226430fps',
+      },
+      {
+        criteria: [
+          {
+            description: 'pro',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'pro',
+          },
+          {
+            description: '4k',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '4k',
+          },
+          {
+            description: '> 30',
+            subtype: 'open',
+            title: 'target frames per second',
+            type: 'range',
+            value: [30, null],
+          },
+        ],
+        description: 'Pro tier, 4K output above 30fps',
+        prices: [
+          {
+            description: 'or around 18 seconds for $10',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.550965',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: 'Pro 4K >30fps',
       },
     ],
   },

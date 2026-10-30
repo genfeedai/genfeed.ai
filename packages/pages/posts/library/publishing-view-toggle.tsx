@@ -6,7 +6,7 @@ import {
   type PublishingPostsViewMode,
 } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
+import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import {
   CalendarDays,
   ClipboardCheck,
@@ -69,7 +69,7 @@ export default function PublishingViewToggle({
   }
 
   return (
-    <ViewToggle
+    <ViewMenu
       activeView={activeView}
       onChange={handleChange}
       options={[

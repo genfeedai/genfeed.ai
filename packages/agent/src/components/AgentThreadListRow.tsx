@@ -5,7 +5,6 @@ import {
   ButtonVariant,
 } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -82,10 +81,10 @@ function agentThreadListRowClassName(options: {
     // Square active — no purple left rail, no soft pill.
     'rounded border border-transparent',
     options.isSelected
-      ? 'border-border bg-foreground/[0.06]'
+      ? 'border-border bg-foreground/5'
       : options.isArchived
         ? 'bg-muted/50 hover:bg-muted'
-        : 'hover:bg-foreground/[0.045]',
+        : 'hover:bg-foreground/5',
   );
 }
 
@@ -143,7 +142,6 @@ export function AgentThreadListRow({
 }: AgentThreadListRowProps): ReactElement {
   const translate = useTranslations('agent.threadList');
   const threadHref = getThreadHref(conv);
-  const prefetchThreadRoute = useNavigationPrefetch(threadHref);
   const isActiveConversation = conv.id === activeThreadId;
   // Archived view lists only archived threads, so a stale/missing API status
   // must still render with archived chrome.
@@ -205,7 +203,6 @@ export function AgentThreadListRow({
       ) : (
         <Link
           href={threadHref}
-          prefetch={false}
           className="flex min-w-0 flex-1 gap-2 rounded px-2.5 py-1.5 pr-8 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/60"
           onClick={(event) => {
             if (usesProgrammaticNavigation) {
@@ -223,11 +220,9 @@ export function AgentThreadListRow({
             onStartRename(conv);
           }}
           onPointerEnter={() => {
-            prefetchThreadRoute();
             onPrefetch(conv.id);
           }}
           onFocus={() => {
-            prefetchThreadRoute();
             onPrefetch(conv.id);
           }}
           onPointerLeave={() => {
@@ -255,7 +250,7 @@ export function AgentThreadListRow({
                   'min-w-0 flex-1 truncate text-sm font-medium',
                   // Default studio tokens: >=7.56:1 dark and >=4.92:1 light
                   // across archived, hover, and selected row surfaces.
-                  isArchived ? 'text-foreground/65' : 'text-foreground/90',
+                  isArchived ? 'text-foreground/70' : 'text-foreground/90',
                 )}
               >
                 {threadTitle}
@@ -297,7 +292,7 @@ export function AgentThreadListRow({
               withWrapper={false}
               ariaLabel={`Thread actions for ${conv.title || 'thread'}`}
               className={cn(
-                'pointer-events-auto size-7 rounded-md p-1 text-muted-foreground transition-opacity hover:bg-foreground/[0.06] hover:text-foreground/78',
+                'pointer-events-auto size-7 rounded-md p-1 text-muted-foreground transition-opacity hover:bg-foreground/5 hover:text-foreground/80',
                 shouldShowActions
                   ? 'pointer-events-auto opacity-100'
                   : hoverRevealClassName(),

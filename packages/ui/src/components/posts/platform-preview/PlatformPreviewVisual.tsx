@@ -33,7 +33,7 @@ export default function InstagramPreviewRenderer({
         <Bookmark className="ml-auto size-5" />
       </div>
       <div className="mt-3 flex items-start justify-between gap-3">
-        <p className="description min-w-0 whitespace-pre-wrap break-words text-sm leading-6 text-foreground/85">
+        <p className="description min-w-0 whitespace-pre-wrap break-words text-sm leading-6 text-foreground/90">
           <span className="font-semibold">{getAuthorName(target)}</span>{' '}
           {target.captionState.previewText.trim()
             ? renderCaptionEntities(target.captionState.previewText)
@@ -108,7 +108,7 @@ export function YouTubePreviewRenderer({
           <CharacterCounter state={target.captionState} />
         </div>
       </div>
-      <div className="mt-3 rounded-lg bg-muted/35 p-3">
+      <div className="mt-3 rounded-lg bg-muted/40 p-3">
         <CaptionText
           target={target}
           emptyMessage={translate('emptyDescription')}

@@ -1,6 +1,7 @@
 import { expect, test } from '../../fixtures/auth.fixture';
 import { orgPath } from '../../utils/app-chrome';
 import { expectNoErrorOverlay } from '../../utils/route-assertions';
+import { viewMenuTrigger } from '../../utils/view-menu';
 
 // Uses the existing isolated auth/API fixture; no live installations or providers.
 test('organization Apps browser keeps scope, search and previews usable on desktop and mobile', async ({
@@ -20,8 +21,8 @@ test('organization Apps browser keeps scope, search and previews usable on deskt
   await expect(page.getByRole('tablist')).toHaveCount(0);
   await expect(page.getByRole('combobox')).toHaveCount(0);
   await expect(page.getByRole('button', { name: /^Filters/ })).toHaveCount(0);
-  await expect(page.getByRole('radio')).toHaveCount(0);
-  await expect(page.getByTestId('collapsible-search-trigger')).toBeVisible();
+  await expect(viewMenuTrigger(page)).toHaveCount(0);
+  await expect(page.getByPlaceholder('Search apps')).toBeVisible();
   await expect(page.getByTestId('organization-switcher-trigger')).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toHaveText(
     'Apps',
@@ -54,7 +55,6 @@ test('organization Apps browser keeps scope, search and previews usable on deskt
     )
     .toBe(true);
 
-  await page.getByTestId('collapsible-search-trigger').click();
   await page.getByPlaceholder('Search apps').fill('trending');
   await expect(apps).toHaveCount(1);
   await expect(detail).toHaveCount(0);

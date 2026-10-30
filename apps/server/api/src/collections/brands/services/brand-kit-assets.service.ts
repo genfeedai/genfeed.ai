@@ -29,7 +29,9 @@ import type {
   IBrandKitResolvedAssets,
 } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
+import { projectSocialAvatarUrls } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
+import { signCdnUrl } from '@libs/media/media-url.util';
 import { Injectable } from '@nestjs/common';
 
 const BRAND_KIT_IMPORT_MAX_BYTES = 50 * 1024 * 1024;
@@ -438,7 +440,7 @@ export class BrandKitAssetsService {
         ASSET_UPLOAD_TYPE_BY_ROLE[candidate.role],
         {
           type: FileInputType.URL,
-          url: sourceUrl,
+          url: this.resolveFetchUrl(sourceUrl),
         },
       );
 
@@ -511,6 +513,24 @@ export class BrandKitAssetsService {
         status: 'failed',
       };
     }
+  }
+
+  /**
+   * The URL the files service downloads from. `sourceUrl` stays the stable
+   * identity (stored as `origin`, used for de-duplication); only the fetch is
+   * signed, and only for our own mirrored social avatars, which a private CDN
+   * rejects unsigned. Other CDN paths are tenant media and are never signed
+   * for a caller-supplied URL.
+   */
+  private resolveFetchUrl(sourceUrl: string): string {
+    if (!this.configService.isAuthorizedMediaDeliveryEnabled) return sourceUrl;
+    const fetchUrl = projectSocialAvatarUrls(sourceUrl, (url) =>
+      signCdnUrl(url, this.configService.mediaUrlConfig),
+    );
+    if (typeof fetchUrl !== 'string') {
+      throw new Error('Could not sign the social avatar URL for import');
+    }
+    return fetchUrl;
   }
 
   private async resolveBrandKitImportConflict(

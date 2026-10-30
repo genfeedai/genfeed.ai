@@ -58,7 +58,7 @@ export default function ClipperModeSelector({
               <span className="flex items-start gap-3">
                 <span
                   className={`flex size-8 shrink-0 items-center justify-center rounded-md ${
-                    isSelected ? 'bg-primary/15' : 'bg-muted'
+                    isSelected ? 'bg-primary/10' : 'bg-muted'
                   }`}
                 >
                   <Icon

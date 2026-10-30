@@ -171,78 +171,8 @@ const AUDITED_READ_PRESENTATIONS = [
       openWorldHint: true,
       readOnlyHint: false,
     },
-    name: 'get_articles',
-    title: 'Get Articles',
-  },
-  {
-    annotations: {
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-      readOnlyHint: false,
-    },
-    name: 'get_connection_status',
-    title: 'Get Connection Status',
-  },
-  {
-    annotations: {
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: true,
-      readOnlyHint: false,
-    },
-    name: 'get_social_conversation',
-    title: 'Get Social Conversation',
-  },
-  {
-    annotations: {
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: true,
-      readOnlyHint: false,
-    },
     name: 'list_ads_research',
     title: 'List Ads Research',
-  },
-  {
-    annotations: {
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: true,
-      readOnlyHint: false,
-    },
-    name: 'list_social_conversations',
-    title: 'List Social Conversations',
-  },
-  {
-    annotations: {
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-      readOnlyHint: false,
-    },
-    name: 'list_workflows',
-    title: 'List Workflows',
-  },
-  {
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-    name: 'get_account',
-    title: 'Get Account',
-  },
-  {
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-    name: 'get_analytics',
-    title: 'Get Analytics',
   },
   {
     annotations: {
@@ -263,26 +193,6 @@ const AUDITED_READ_PRESENTATIONS = [
     },
     name: 'get_clipper_project',
     title: 'Get Clipper Project',
-  },
-  {
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
-    name: 'get_content_analytics',
-    title: 'Get Content Analytics',
-  },
-  {
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: true,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-    name: 'get_generation_options',
-    title: 'Get Generation Options',
   },
   {
     annotations: {
@@ -486,6 +396,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     false,
     false,
   ],
+  ['create_task', 'Create Task', false, false, false, false],
   ['create_workflow', 'Create Workflow', false, true, false, false],
   ['duplicate_workflow', 'Duplicate Workflow', false, true, false, false],
   ['edit_clip', 'Edit Clip', false, true, false, false],
@@ -514,7 +425,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     true,
   ],
   ['generate_visual_code', 'Generate Visual Code', false, true, false, true],
-  ['get_account', 'Get Account', false, false, true, false],
+  ['get_account', 'Get Account', true, false, true, false],
   [
     'get_ad_research_detail',
     'Get Ad Research Detail',
@@ -525,9 +436,9 @@ const FROZEN_MCP_PRESENTATIONS = [
   ],
   ['get_ads_ad_insights', 'Get Ads Ad Insights', true, false, true, true],
   ['get_ads_adset_insights', 'Get Ads Adset Insights', true, false, true, true],
-  ['get_analytics', 'Get Analytics', false, false, false, false],
+  ['get_analytics', 'Get Analytics', true, false, true, false],
   ['get_article_preview', 'Get Article Preview', true, false, true, false],
-  ['get_articles', 'Get Articles', false, false, false, true],
+  ['get_articles', 'Get Articles', true, false, true, true],
   [
     'get_brand_completeness',
     'Get Brand Completeness',
@@ -549,28 +460,16 @@ const FROZEN_MCP_PRESENTATIONS = [
   ],
   ['get_clip_context', 'Get Clip Context', true, false, true, false],
   ['get_clipper_project', 'Get Clipper Project', false, true, true, true],
-  [
-    'get_connection_status',
-    'Get Connection Status',
-    false,
-    false,
-    false,
-    false,
-  ],
-  [
-    'get_content_analytics',
-    'Get Content Analytics',
-    false,
-    false,
-    false,
-    false,
-  ],
+  ['get_editor_project', 'Get Editor Project', true, false, true, false],
+  ['get_task', 'Get Task', true, false, true, false],
+  ['get_connection_status', 'Get Connection Status', true, false, true, false],
+  ['get_content_analytics', 'Get Content Analytics', true, false, true, false],
   ['get_context_coverage', 'Get Context Coverage', true, false, true, false],
   [
     'get_generation_options',
     'Get Generation Options',
-    false,
     true,
+    false,
     true,
     false,
   ],
@@ -670,9 +569,9 @@ const FROZEN_MCP_PRESENTATIONS = [
   [
     'get_social_conversation',
     'Get Social Conversation',
+    true,
     false,
-    false,
-    false,
+    true,
     true,
   ],
   [
@@ -748,7 +647,11 @@ const FROZEN_MCP_PRESENTATIONS = [
     true,
     false,
   ],
+  ['list_activity', 'List Activity', true, false, true, false],
   ['list_clipper_projects', 'List Clipper Projects', true, false, true, false],
+  ['list_editor_projects', 'List Editor Projects', true, false, true, false],
+  ['list_inbox', 'List Inbox', true, false, true, false],
+  ['list_tasks', 'List Tasks', true, false, true, false],
   [
     'list_google_ads_campaigns',
     'List Google Ads Campaigns',
@@ -795,9 +698,9 @@ const FROZEN_MCP_PRESENTATIONS = [
   [
     'list_social_conversations',
     'List Social Conversations',
+    true,
     false,
-    false,
-    false,
+    true,
     true,
   ],
   ['list_stalled_items', 'List Stalled Items', true, false, true, false],
@@ -829,7 +732,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     true,
     false,
   ],
-  ['list_workflows', 'List Workflows', false, false, false, false],
+  ['list_workflows', 'List Workflows', true, false, true, false],
   [
     'list_x_account_activity',
     'List X Account Activity',
@@ -926,6 +829,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     false,
   ],
   ['start_brand_interview', 'Start Brand Interview', false, true, false, false],
+  ['start_editor_render', 'Start Editor Render', false, false, false, false],
   [
     'start_remix_generation',
     'Start Remix Generation',
@@ -1049,7 +953,7 @@ describe('MCP tool annotations', () => {
         tool?.annotations?.openWorldHint,
       ]).toEqual(row);
     }
-    expect(rows).toHaveLength(151);
+    expect(rows).toHaveLength(159);
     expect(rows.map((row) => row[0])).toEqual(expected.map((row) => row[0]));
     expect(rows).toEqual(expected);
   });
@@ -1068,13 +972,13 @@ describe('MCP tool annotations', () => {
       destructiveHint: false,
       idempotentHint: true,
       openWorldHint: false,
-      readOnlyHint: false,
+      readOnlyHint: true,
     });
     expect(second.annotations).toEqual({
       destructiveHint: false,
       idempotentHint: true,
       openWorldHint: false,
-      readOnlyHint: false,
+      readOnlyHint: true,
     });
     expect(
       deriveMcpToolPresentation('get_brands', undefined).annotations,
@@ -1197,8 +1101,17 @@ describe('MCP tool annotations', () => {
       expect(getToolByName(name)?.annotations?.readOnlyHint, name).toBe(false);
     }
     for (const name of [
+      'get_account',
+      'get_analytics',
+      'get_articles',
       'get_brands',
+      'get_connection_status',
+      'get_content_analytics',
+      'get_generation_options',
+      'get_social_conversation',
       'list_assets',
+      'list_social_conversations',
+      'list_workflows',
       'validate_scheduler_target',
     ]) {
       expect(getToolByName(name)?.annotations?.readOnlyHint, name).toBe(true);
@@ -1301,7 +1214,20 @@ describe('MCP tool annotations', () => {
       readOnlyHint: false,
     });
     expect(tool?.mutationPolicy).toBe('direct');
-    expect(tool?.toolset).toBe('clipper');
+    expect(tool?.toolset).toBe('editor');
+    expect(tool?.creditCost).toBe(0);
+  });
+
+  it('marks Start Editor Render as a free, direct, non-destructive write', () => {
+    const tool = getToolByName('start_editor_render');
+    expect(tool?.annotations).toMatchObject({
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+      readOnlyHint: false,
+    });
+    expect(tool?.mutationPolicy).toBe('direct');
+    expect(tool?.toolset).toBe('editor');
     expect(tool?.creditCost).toBe(0);
   });
 

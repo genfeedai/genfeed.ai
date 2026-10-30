@@ -241,6 +241,22 @@ describe('AgentOrchestratorPlanModeService — #4672 mode field', () => {
     expect(agentMessagesService.addMessage).not.toHaveBeenCalled();
   });
 
+  it('does not plan on a thread started from the extension, even in plan mode', async () => {
+    agentThreadsService.findOne.mockResolvedValue({
+      mode: 'plan',
+      source: 'extension',
+    });
+
+    const result = await service.tryHandlePlanModeTurn(
+      baseParams as never,
+      host,
+    );
+
+    expect(result).toBeNull();
+    expect(llmDispatcher.chatCompletion).not.toHaveBeenCalled();
+    expect(threadEventRecorder.recordPlanUpserted).not.toHaveBeenCalled();
+  });
+
   it('treats a thread with no mode field as not plan-enabled', async () => {
     agentThreadsService.findOne.mockResolvedValue({});
 

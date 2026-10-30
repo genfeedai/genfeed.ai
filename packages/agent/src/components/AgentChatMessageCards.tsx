@@ -375,7 +375,7 @@ export function ContentPreviewCard({
           className="grid grid-cols-3 gap-2"
           role="status"
         >
-          <div className="col-span-3 flex aspect-video items-center justify-center rounded-lg border border-border bg-muted/30">
+          <div className="col-span-3 flex aspect-video items-center justify-center rounded-lg border border-border bg-muted/20">
             <GenerationStatus
               status="generating"
               assetLabel={assetKindLabel.toLowerCase()}
@@ -386,7 +386,7 @@ export function ContentPreviewCard({
       {hasNoMedia && isUnavailable && (
         <div
           aria-label={`${assetKindLabel} generation failed`}
-          className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2"
+          className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2"
           role="status"
         >
           <p className="text-sm font-medium text-foreground">

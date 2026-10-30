@@ -1,0 +1,20 @@
+'use client';
+
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
+import AnalyticsPlatformDetail from '@pages/analytics/platform-detail/analytics-platform-detail';
+import { readRouteParam } from '@/lib/route-params';
+
+export default function AdminAnalyticsBrandPlatformDetailRoute() {
+  const params = useRouteParams<{ id: string; platform: string }>();
+  const id = readRouteParam(params.id);
+  const platform = readRouteParam(params.platform);
+
+  return (
+    <AnalyticsPlatformDetail
+      brandId={id}
+      platform={platform}
+      basePath={APP_ROUTES.ADMIN.ROOT}
+    />
+  );
+}

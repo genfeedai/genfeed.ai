@@ -79,8 +79,8 @@ describe('operator-shell helpers', () => {
     expect(
       normalizeProtectedPathname('/admin/overview/analytics/business'),
     ).toBe('/admin/overview/analytics/business');
-    expect(normalizeProtectedPathname('/admin/overview/dashboard')).toBe(
-      '/admin/overview/dashboard',
+    expect(normalizeProtectedPathname('/admin/overview')).toBe(
+      '/admin/overview',
     );
     expect(normalizeProtectedPathname('/admin/configuration/elements')).toBe(
       '/admin/configuration/elements',

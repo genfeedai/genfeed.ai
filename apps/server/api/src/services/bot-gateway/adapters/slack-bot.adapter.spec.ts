@@ -54,7 +54,7 @@ describe('SlackBotAdapter', () => {
     expect(adapter.platform).toBe(CredentialPlatform.SLACK);
   });
 
-  // ── validateSignature ─────────────────────────────────────────────────────
+  // validateSignature
 
   describe('validateSignature', () => {
     const timestamp = String(Math.floor(Date.now() / 1000));
@@ -114,7 +114,7 @@ describe('SlackBotAdapter', () => {
     });
   });
 
-  // ── getInteractionType ────────────────────────────────────────────────────
+  // getInteractionType
 
   describe('getInteractionType', () => {
     it('returns PING for url_verification type', () => {
@@ -134,7 +134,7 @@ describe('SlackBotAdapter', () => {
     });
   });
 
-  // ── parseMessage ──────────────────────────────────────────────────────────
+  // parseMessage
 
   describe('parseMessage', () => {
     const baseCommand = {
@@ -196,7 +196,7 @@ describe('SlackBotAdapter', () => {
     });
   });
 
-  // ── buildImmediateResponse ────────────────────────────────────────────────
+  // buildImmediateResponse
 
   describe('buildImmediateResponse', () => {
     it('returns pong response', () => {
@@ -223,7 +223,7 @@ describe('SlackBotAdapter', () => {
     });
   });
 
-  // ── sendFollowupMessage ───────────────────────────────────────────────────
+  // sendFollowupMessage
 
   describe('sendFollowupMessage', () => {
     it('posts message to response URL', async () => {
@@ -254,7 +254,7 @@ describe('SlackBotAdapter', () => {
     });
   });
 
-  // ── sendFollowupMedia ─────────────────────────────────────────────────────
+  // sendFollowupMedia
 
   describe('sendFollowupMedia', () => {
     it('sends image blocks for image type', async () => {

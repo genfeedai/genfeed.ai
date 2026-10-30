@@ -372,7 +372,7 @@ const PostsGrid = memo(
                 )}
 
                 {view === 'grid' && (
-                  <p className="mt-4 line-clamp-4 min-h-[5rem] text-sm leading-6 text-foreground/72">
+                  <p className="mt-4 line-clamp-4 min-h-[5rem] text-sm leading-6 text-foreground/80">
                     {preview}
                   </p>
                 )}

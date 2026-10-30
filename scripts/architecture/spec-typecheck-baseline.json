@@ -595,94 +595,6 @@
     {
       "code": 2307,
       "count": 1,
-      "file": "packages/contexts/providers/access-state/access-state.provider.tsx",
-      "fingerprint": "ed16c1ee3d7e4f31c18b",
-      "message": "Cannot find module '@genfeedai/hooks/auth/use-authed-service/use-authed-service' or its corresponding type declarations.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/contexts/providers/access-state/access-state.provider.tsx",
-      "fingerprint": "f31f36527e15294ac372",
-      "message": "Cannot find module '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity' or its corresponding type declarations.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/contexts/providers/global-modals/useGlobalModalsState.ts",
-      "fingerprint": "365b43c5e9a8b59115c9",
-      "message": "Cannot find module '@genfeedai/hooks/auth/use-authed-service/use-authed-service' or its corresponding type declarations.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/contexts/providers/global-modals/useGlobalModalsState.ts",
-      "fingerprint": "682c2f78032eb2e876c9",
-      "message": "Cannot find module '@genfeedai/hooks/auth/use-auth-user/use-auth-user' or its corresponding type declarations.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/contexts/user/brand-context/useBrandProviderState.ts",
-      "fingerprint": "960e77d68f0a817c4582",
-      "message": "Cannot find module '@genfeedai/hooks/auth/use-auth-user/use-auth-user' or its corresponding type declarations.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/contexts/user/brand-context/useBrandProviderState.ts",
-      "fingerprint": "bfc1c3df12f7be291d7f",
-      "message": "Cannot find module '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity' or its corresponding type declarations.",
-      "workspace": "agent"
-    },
-    {
-      "code": 18047,
-      "count": 1,
-      "file": "packages/contexts/user/brand-context/useBrandProviderState.ts",
-      "fingerprint": "2d81d92926ac4bcb3ea0",
-      "message": "'bootstrap' is possibly 'null'.",
-      "workspace": "agent"
-    },
-    {
-      "code": 18047,
-      "count": 1,
-      "file": "packages/contexts/user/brand-context/useBrandProviderState.ts",
-      "fingerprint": "2f57cba1bba170d7851e",
-      "message": "'bootstrap' is possibly 'null'.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/contexts/user/internal/context-authed-service.ts",
-      "fingerprint": "9065c9b43dba8120edc4",
-      "message": "Cannot find module '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity' or its corresponding type declarations.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/contexts/user/user-context/user-context.tsx",
-      "fingerprint": "ded4720a37f95c375fbe",
-      "message": "Cannot find module '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity' or its corresponding type declarations.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/contexts/user/user-context/user-context.tsx",
-      "fingerprint": "f17d7bbf219105b8ba6e",
-      "message": "Cannot find module '@genfeedai/hooks/auth/use-auth-user/use-auth-user' or its corresponding type declarations.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2307,
-      "count": 1,
       "file": "packages/hooks/data/elements/use-elements/use-elements.ts",
       "fingerprint": "37a958bba521b8f4904e",
       "message": "Cannot find module '@providers/promptbar/promptbar.context' or its corresponding type declarations.",
@@ -6305,14 +6217,6 @@
       "workspace": "models"
     },
     {
-      "code": 2540,
-      "count": 2,
-      "file": "apps/server/notifications/src/controllers/dev.controller.spec.ts",
-      "fingerprint": "ae2d996c13b453e5e9dc",
-      "message": "Cannot assign to 'isProduction' because it is a read-only property.",
-      "workspace": "notifications"
-    },
-    {
       "code": 2345,
       "count": 2,
       "file": "apps/server/notifications/src/services/discord/discord-bot.service.spec.ts",
@@ -8486,14 +8390,6 @@
       "file": "packages/ui/src/components/modals/gallery/items/ModalGalleryItemVideo.test.tsx",
       "fingerprint": "e99e661f74b9e29748f4",
       "message": "Type '{ onSelect: Mock<Procedure>; video: { id: string; }; }' is not assignable to type 'ModalGalleryItemVideoProps'.   Types of property 'video' are incompatible.     Type '{ id: string; }' is missing the following properties from type 'IVideo': category, status, user, organization, and 11 more.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2322,
-      "count": 8,
-      "file": "packages/ui/src/components/modals/ingredients/upload/ModalUpload.test.tsx",
-      "fingerprint": "33856267f900d2e1cc25",
-      "message": "Type '{ type: string; onComplete: Mock<Procedure>; }' is not assignable to type 'IntrinsicAttributes & ModalUploadProps'.   Property 'type' does not exist on type 'IntrinsicAttributes & ModalUploadProps'.",
       "workspace": "ui"
     },
     {

@@ -152,7 +152,7 @@ function ValidationErrorsToast({
   if (messages.length === 0) return null;
 
   return (
-    <div className="fixed right-4 top-20 z-50 max-w-sm border border-destructive/30 bg-destructive/10 p-4 shadow-xl">
+    <div className="fixed right-4 top-20 z-50 max-w-sm border border-destructive/20 bg-destructive/10 p-4 shadow-xl">
       <div className="flex items-start gap-3">
         <CircleAlert className="mt-0.5 size-5 shrink-0 text-destructive" />
         <div className="min-w-0 flex-1">
@@ -337,7 +337,7 @@ export function Toolbar({
           size={ButtonSize.SM}
           onClick={() => openModal('settings')}
           title="Debug mode active - API calls are mocked"
-          className="border-warning/30 bg-warning/10 text-warning hover:bg-warning/20"
+          className="border-warning/20 bg-warning/10 text-warning hover:bg-warning/20"
         >
           <Bug className="size-4" />
           <span className="font-medium">Debug</span>

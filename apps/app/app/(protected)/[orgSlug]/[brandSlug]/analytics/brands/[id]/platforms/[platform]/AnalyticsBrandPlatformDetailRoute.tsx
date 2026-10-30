@@ -1,12 +1,11 @@
 'use client';
 
+import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import AnalyticsPlatformDetail from '@pages/analytics/platform-detail/analytics-platform-detail';
-
-import { useParams } from 'next/navigation';
 import { readRouteParam } from '@/lib/route-params';
 
 export default function AnalyticsBrandPlatformDetailRoute() {
-  const params = useParams<{ id: string; platform: string }>();
+  const params = useRouteParams<{ id: string; platform: string }>();
   const id = readRouteParam(params.id);
   const platform = readRouteParam(params.platform);
 

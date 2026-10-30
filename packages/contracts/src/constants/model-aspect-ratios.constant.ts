@@ -80,6 +80,7 @@ export const ASPECT_RATIOS = {
   ] as const,
   IMAGEN: ['1:1', '9:16', '16:9', '3:4', '4:3'] as const,
   KLING: ['16:9', '9:16', '1:1'] as const,
+  KLING_4: ['16:9', '9:16', '1:1', '21:9'] as const,
   LUMA_REFRAME: ['1:1', '3:4', '4:3', '9:16', '16:9', '21:9', '9:21'] as const,
   NANO_BANANA: [
     'match_input_image',
@@ -133,4 +134,6 @@ export const ASPECT_RATIOS = {
   VEO: ['16:9', '9:16'] as const,
   VIDU: ['16:9', '9:16', '4:3', '3:4', '1:1'] as const,
   WAN_27: ['16:9', '9:16', '1:1', '4:3', '3:4'] as const,
+  // Wan 3 also takes 'adaptive', which is not a ratio the picker offers.
+  WAN_3: ['16:9', '9:16', '1:1', '4:3', '3:4'] as const,
 } as const;

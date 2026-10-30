@@ -600,7 +600,7 @@ export class MetaAdsService {
     }
   }
 
-  // ─── Write Operations ────────────────────────────────────────────────────────
+  // Write Operations
 
   private async makePostRequest<T>(
     accessToken: string,
@@ -933,7 +933,7 @@ export class MetaAdsService {
     }
   }
 
-  // ─── Private Helpers ────────────────────────────────────────────────────────
+  // Private Helpers
 
   private normalizeInsights(row: Record<string, unknown>): MetaInsightsData {
     return {

@@ -26,6 +26,7 @@ import { ClipperGenerationRequestService } from '@api/collections/clipper-projec
 import { ClipperHighlightDetector } from '@api/collections/clipper-projects/services/clipper-highlight-detector.service';
 import { ClipperIdentityResolutionService } from '@api/collections/clipper-projects/services/clipper-identity-resolution.service';
 import { ClipperLibraryLinkService } from '@api/collections/clipper-projects/services/clipper-library-link.service';
+import { ClipperProjectIngestionService } from '@api/collections/clipper-projects/services/clipper-project-ingestion.service';
 import { HighlightRewriteService } from '@api/collections/clipper-projects/services/highlight-rewrite.service';
 import { HookClipApprovalService } from '@api/collections/clipper-projects/services/hook-clipper-approval.service';
 import { RawCutClipService } from '@api/collections/clipper-projects/services/raw-cut-clip.service';
@@ -41,6 +42,7 @@ import { FilesClientModule } from '@api/services/files-microservice/client/files
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { PublicClipperToolStoreModule } from '@api/services/public-clipper-tool/public-clipper-tool-store.module';
+import { UploadsModule } from '@api/services/uploads/uploads.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
@@ -61,6 +63,7 @@ import { Module } from '@nestjs/common';
     ClipperHighlightDetector,
     ClipperIdentityResolutionService,
     ClipperLibraryLinkService,
+    ClipperProjectIngestionService,
     HighlightRewriteService,
     HookClipApprovalService,
     RawCutClipCompletionService,
@@ -82,6 +85,7 @@ import { Module } from '@nestjs/common';
     PublicClipperToolStoreModule,
     FileQueueModule,
     FilesClientModule,
+    UploadsModule,
     WorkflowsModule,
     WhisperModule,
   ],
@@ -100,6 +104,7 @@ import { Module } from '@nestjs/common';
     ClipperHighlightDetector,
     ClipperIdentityResolutionService,
     ClipperLibraryLinkService,
+    ClipperProjectIngestionService,
     HighlightRewriteService,
     HookClipApprovalService,
     RawCutClipCompletionService,

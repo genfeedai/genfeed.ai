@@ -153,7 +153,7 @@ describe('AgentThreadEngineService', () => {
     vi.clearAllMocks();
   });
 
-  // ── appendEvent ──────────────────────────────────────────────────────────────
+  // appendEvent
   describe('appendEvent', () => {
     const params = {
       commandId,
@@ -236,7 +236,7 @@ describe('AgentThreadEngineService', () => {
     });
   });
 
-  // ── listEvents ────────────────────────────────────────────────────────────────
+  // listEvents
   describe('listEvents', () => {
     it('returns sorted events', async () => {
       const result = await service.listEvents(
@@ -267,7 +267,7 @@ describe('AgentThreadEngineService', () => {
     });
   });
 
-  // ── getSnapshot ───────────────────────────────────────────────────────────────
+  // getSnapshot
   describe('getRunTerminalSequence', () => {
     it('reads the latest terminal event of that run only, tenant scoped', async () => {
       mockPrisma.agentThreadEvent.findFirst.mockResolvedValue({ sequence: 7 });
@@ -346,7 +346,7 @@ describe('AgentThreadEngineService', () => {
     });
   });
 
-  // ── resolveInputRequest ───────────────────────────────────────────────────────
+  // resolveInputRequest
   describe('resolveInputRequest', () => {
     const pendingRequest = {
       requestId: 'req-1',
@@ -618,7 +618,7 @@ describe('AgentThreadEngineService', () => {
     });
   });
 
-  // ── recordProfileSnapshot ─────────────────────────────────────────────────────
+  // recordProfileSnapshot
   describe('recordProfileSnapshot', () => {
     it('persists the profile snapshot without relation aliases', async () => {
       mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(
@@ -654,7 +654,7 @@ describe('AgentThreadEngineService', () => {
     });
   });
 
-  // ── recordMemoryFlush ─────────────────────────────────────────────────────────
+  // recordMemoryFlush
   describe('recordMemoryFlush', () => {
     it('creates memory and appends event', async () => {
       mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);

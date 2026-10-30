@@ -302,7 +302,7 @@ export default function LibraryTagManagerDialog() {
             {translate('emptyGuidance')}
           </p>
         ) : (
-          <ul className="max-h-80 divide-y divide-foreground/6 overflow-y-auto">
+          <ul className="max-h-80 divide-y divide-foreground/5 overflow-y-auto">
             {tags.map((tag) => (
               <TagManagerRow
                 key={tag.id}

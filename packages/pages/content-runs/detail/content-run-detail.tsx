@@ -165,7 +165,7 @@ function getStepClasses(state: TimelineStep['state']): string {
     return 'bg-destructive/10 text-destructive shadow-border';
   }
 
-  return 'bg-muted text-foreground/65 shadow-border';
+  return 'bg-muted text-foreground/70 shadow-border';
 }
 
 function Panel({
@@ -201,7 +201,7 @@ function Section({
     <section>
       <Card bodyClassName="gap-0 p-5">
         <div className="mb-4 flex items-center gap-2">
-          <span className="flex size-8 items-center justify-center rounded-md bg-tertiary text-foreground/75 shadow-border">
+          <span className="flex size-8 items-center justify-center rounded-md bg-tertiary text-foreground/80 shadow-border">
             {icon}
           </span>
           <h2 className="text-sm font-semibold">{title}</h2>
@@ -216,7 +216,7 @@ function DetailRow({ label, value }: { label: string; value?: ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-4 border-border border-t py-3 first:border-t-0">
       <dt className="text-xs text-foreground/50">{label}</dt>
-      <dd className="max-w-[70%] text-right text-sm text-foreground/82">
+      <dd className="max-w-[70%] text-right text-sm text-foreground/90">
         {value ?? '-'}
       </dd>
     </div>
@@ -248,7 +248,7 @@ function BriefSection({ brief }: { brief?: ContentRunBrief }) {
       {brief.evidence?.length ? (
         <div className="grid gap-2">
           {brief.evidence.map((item) => (
-            <Panel key={item} className="px-3 py-2 text-sm text-foreground/75">
+            <Panel key={item} className="px-3 py-2 text-sm text-foreground/80">
               {item}
             </Panel>
           ))}
@@ -277,12 +277,12 @@ function VariantsSection({ variants }: { variants?: ContentRunVariant[] }) {
           </div>
           <h3 className="text-sm font-medium">{variant.angle ?? variant.id}</h3>
           {variant.hypothesis ? (
-            <p className="mt-2 text-sm text-foreground/62">
+            <p className="mt-2 text-sm text-foreground/70">
               {variant.hypothesis}
             </p>
           ) : null}
           {variant.content ? (
-            <p className="mt-3 line-clamp-4 text-sm text-foreground/76">
+            <p className="mt-3 line-clamp-4 text-sm text-foreground/80">
               {variant.content}
             </p>
           ) : null}
@@ -363,7 +363,7 @@ function AnalyticsSection({
         </div>
       </Panel>
       {analytics.summary ? (
-        <p className="md:col-span-4 text-sm text-foreground/72">
+        <p className="md:col-span-4 text-sm text-foreground/80">
           {analytics.summary}
         </p>
       ) : null}
@@ -372,7 +372,7 @@ function AnalyticsSection({
           {analytics.topSignals.map((signal) => (
             <Panel
               key={signal}
-              className="px-3 py-2 text-sm text-foreground/75"
+              className="px-3 py-2 text-sm text-foreground/80"
             >
               {signal}
             </Panel>
@@ -410,7 +410,7 @@ function RecommendationsSection({
             {recommendation.action ?? 'Review recommendation'}
           </h3>
           {recommendation.rationale ? (
-            <p className="mt-2 text-sm text-foreground/65">
+            <p className="mt-2 text-sm text-foreground/70">
               {recommendation.rationale}
             </p>
           ) : null}
@@ -481,7 +481,7 @@ function NavigationPanel({
         <div className="mt-4 grid gap-2">
           <Button
             ariaLabel="Create remix pack from this content run"
-            className="flex min-h-11 items-center justify-between rounded-md bg-card px-3 text-sm text-foreground/82 shadow-border transition hover:bg-accent"
+            className="flex min-h-11 items-center justify-between rounded-md bg-card px-3 text-sm text-foreground/90 shadow-border transition hover:bg-accent"
             isLoading={isRemixing}
             onClick={onCreateRemixPack}
             variant={ButtonVariant.UNSTYLED}
@@ -498,7 +498,7 @@ function NavigationPanel({
               <Button
                 asChild
                 key={item.href}
-                className="flex min-h-11 items-center justify-between rounded-md bg-card px-3 text-sm text-foreground/82 shadow-border transition hover:bg-accent"
+                className="flex min-h-11 items-center justify-between rounded-md bg-card px-3 text-sm text-foreground/90 shadow-border transition hover:bg-accent"
                 variant={ButtonVariant.UNSTYLED}
                 withWrapper={false}
               >
@@ -604,7 +604,7 @@ export default function ContentRunDetailPage({
                 <h2 className="text-2xl font-semibold">
                   {getBriefTitle(run.brief)}
                 </h2>
-                <p className="mt-2 text-sm text-foreground/56">
+                <p className="mt-2 text-sm text-foreground/60">
                   {getRunId(run)}
                 </p>
               </div>

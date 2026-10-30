@@ -63,6 +63,8 @@ const CREDIT_SPENDING_TOOL_NAMES = new Set<string>([
   'transform_media',
   // Free, but it queues a render, so Manual mode asks before it builds.
   'edit_clip',
+  // Free, but it queues a transcription and analysis job.
+  'start_clip_analysis',
   'execute_workflow',
   // Starts a quoted storyboard render; chat approves it outside Auto mode.
   'start_storyboard_long_form',

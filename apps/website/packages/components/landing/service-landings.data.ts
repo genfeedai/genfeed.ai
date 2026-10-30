@@ -44,7 +44,6 @@ export interface ServiceLandingConfig {
   title: string;
   metaTitle: string;
   metaDescription: string;
-  badge: string;
   heroTitle: string;
   heroAccent: string;
   heroDescription: string;
@@ -81,7 +80,6 @@ const COMMON_SERVICE_INCLUDES = serviceOffering.includes;
 
 export const serviceLandingConfigs: ServiceLandingConfig[] = [
   {
-    badge: 'Done-For-You',
     closingDescription:
       'Start free and run it yourself on Genfeed, or book a call and we will scope the engagement.',
     closingTitle: 'If You Need Content Volume Without Building a Team',
@@ -198,7 +196,6 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
   },
   {
     isAgentFirst: true,
-    badge: 'Founder Content',
     closingDescription:
       'Connect your agent and turn what you shipped into your next post. Review the draft in Genfeed before it publishes.',
     closingTitle: 'Founder-Led Content Without Founder-Led Production',
@@ -326,7 +323,6 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
     title: 'Founder Content With Your Agent',
   },
   {
-    badge: 'Podcast To Content',
     closingDescription:
       'If you already have conversations worth repurposing, this is usually one of the fastest ways to create quality content volume.',
     closingTitle: 'Turn Recorded Conversations Into Published Content',
@@ -452,7 +448,6 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
     title: 'Podcast To Content Service',
   },
   {
-    badge: 'Launch Content',
     closingDescription:
       'If you have a specific launch window, start free on Genfeed or book a call and we will scope the sprint.',
     closingTitle: 'Launch Content Without Last-Minute Chaos',

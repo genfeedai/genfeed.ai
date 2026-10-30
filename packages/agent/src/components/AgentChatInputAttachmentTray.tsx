@@ -107,7 +107,7 @@ export function AgentChatInputAttachmentTray({
                 isDisabled={isDisabled}
                 ariaLabel={translate('removeAttachment', { name: assetName })}
                 className={cn(
-                  'absolute right-1 top-1 flex size-5 items-center justify-center rounded-md border border-border bg-background/88 text-foreground/70 shadow-sm transition-opacity hover:text-foreground',
+                  'absolute right-1 top-1 flex size-5 items-center justify-center rounded-md border border-border bg-background/90 text-foreground/70 shadow-sm transition-opacity hover:text-foreground',
                   hoverRevealClassName({ focus: 'visible' }),
                 )}
               >
@@ -159,7 +159,7 @@ export function AgentChatInputAttachmentTray({
             ) : (
               <div className="flex size-full flex-col items-center justify-center gap-0.5 px-1 text-muted-foreground">
                 <ImageIcon aria-hidden="true" className="size-5" />
-                <span className="max-w-full truncate text-2xs font-medium text-foreground/55">
+                <span className="max-w-full truncate text-2xs font-medium text-foreground/60">
                   {reference.contentType ?? 'content'}
                 </span>
               </div>
@@ -174,7 +174,7 @@ export function AgentChatInputAttachmentTray({
                   label: reference.label,
                 })}
                 className={cn(
-                  'absolute right-1 top-1 flex size-5 items-center justify-center rounded-md border border-border bg-background/88 text-foreground/70 shadow-sm transition-opacity hover:text-foreground',
+                  'absolute right-1 top-1 flex size-5 items-center justify-center rounded-md border border-border bg-background/90 text-foreground/70 shadow-sm transition-opacity hover:text-foreground',
                   hoverRevealClassName({ focus: 'visible' }),
                 )}
               >
@@ -197,7 +197,7 @@ export function AgentChatInputAttachmentTray({
           return (
             <span
               className={cn(
-                'inline-flex max-w-48 items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground/78',
+                'inline-flex max-w-48 items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground/80',
                 isRemovableAsset && 'pr-1.5',
               )}
               key={`${reference.type}:${reference.id}`}

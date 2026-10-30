@@ -14,6 +14,7 @@ import {
   resolveButtonVariant,
   TEXT_TRANSFORM_CLASSES,
 } from './button.variants';
+import { notifyButtonAction } from './button-action';
 import ButtonTooltip from './button-tooltip';
 
 export interface ButtonProps
@@ -22,6 +23,12 @@ export interface ButtonProps
       'children' | 'onClick' | 'onMouseDown'
     >,
     ButtonStyleProps {
+  /**
+   * Stable slug naming what this button does (`clipper.export`). It becomes a
+   * Sentry breadcrumb and a PostHog event on click, so keep it a fixed
+   * identifier, never user text.
+   */
+  action?: string;
   ariaLabel?: string;
   asChild?: boolean;
   children?: ReactNode;
@@ -60,6 +67,7 @@ function Spinner({
 
 function Button({
   ref,
+  action,
   ariaLabel,
   asChild = false,
   children,
@@ -83,6 +91,12 @@ function Button({
   ...props
 }: ButtonProps) {
   const Comp = asChild ? Slot : 'button';
+  const handleClick = action
+    ? (e: MouseEvent<HTMLButtonElement>) => {
+        notifyButtonAction(action);
+        onClick?.(e);
+      }
+    : onClick;
   const isButtonDisabled = disabled || isDisabled || isLoading;
   const resolvedVariant = resolveButtonVariant(variant);
   // Product buttons use title case (first letter of each word). PUBLIC
@@ -108,13 +122,14 @@ function Button({
     resolvedVariant === ButtonVariant.UNSTYLED ? (
       <Comp
         aria-label={ariaLabel}
+        data-action={action}
         className={cn(
           isButtonDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
           transformClass,
           className,
         )}
         disabled={isButtonDisabled}
-        onClick={onClick}
+        onClick={handleClick}
         onMouseDown={onMouseDown}
         ref={ref}
         type={type}
@@ -125,6 +140,7 @@ function Button({
     ) : (
       <Comp
         aria-label={ariaLabel}
+        data-action={action}
         className={cn(
           // Lucide defaults to 24px; buttons use 16px unless the icon sets size.
           '[&_svg:not([class*="size-"])]:size-4',
@@ -133,7 +149,7 @@ function Button({
           className,
         )}
         disabled={isButtonDisabled}
-        onClick={onClick}
+        onClick={handleClick}
         onMouseDown={onMouseDown}
         ref={ref}
         type={type}

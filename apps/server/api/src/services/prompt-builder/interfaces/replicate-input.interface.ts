@@ -365,6 +365,16 @@ export interface KlingV3VideoInput extends BaseVideoInput {
   end_image?: string;
 }
 
+/** Kwaivgi Kling 4.0 */
+export interface KlingV4VideoInput extends BaseVideoInput {
+  aspect_ratio: string;
+  duration: number;
+  resolution?: string;
+  start_image?: string;
+  end_image?: string;
+  reference_images?: string[];
+}
+
 /** Kwaivgi Kling V3 Omni Video */
 export interface KlingV3OmniVideoInput extends BaseVideoInput {
   aspect_ratio: string;
@@ -506,6 +516,16 @@ export interface Wan27T2VInput extends BaseVideoInput {
   seed?: number;
 }
 
+/** Alibaba Wan 3.0 (text-to-video, or image-to-video with a first frame) */
+export interface Wan3Input extends BaseVideoInput {
+  aspect_ratio: string;
+  duration: number;
+  image?: string;
+  resolution?: string;
+  negative_prompt?: string;
+  seed?: number;
+}
+
 /** Google Veo 3.1 Lite */
 export interface Veo31LiteInput extends BaseVideoInput {
   aspect_ratio: string;
@@ -528,6 +548,7 @@ export type ReplicateVideoInput =
   | KlingV16ProInput
   | PVideoInput
   | KlingV3VideoInput
+  | KlingV4VideoInput
   | KlingV3OmniVideoInput
   | KlingAvatarV2Input
   | Seedance2Input
@@ -541,6 +562,7 @@ export type ReplicateVideoInput =
   | Hailuo23FastInput
   | ViduQ3Input
   | Wan27T2VInput
+  | Wan3Input
   | Veo31LiteInput;
 
 /** DeepSeek R1 */

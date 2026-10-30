@@ -5,6 +5,7 @@ import {
   type StripeCustomer,
   StripeService,
 } from '@api/services/integrations/stripe/services/stripe.service';
+import { selectSoftwareSubscriptionItem } from '@api/services/integrations/stripe/services/stripe-software-item.util';
 import {
   type ISubscriptionAttributionsService,
   type ISubscriptionOssReadModel,
@@ -41,7 +42,10 @@ export class StripeAttributionTrackerService {
         session.subscription as string,
       );
 
-      const primaryItem = stripeSubscription.items.data[0];
+      const primaryItem = selectSoftwareSubscriptionItem(stripeSubscription, [
+        subscription.stripePriceId ?? undefined,
+      ]);
+      if (!primaryItem) return;
       const organizationId = subscription.organizationId;
       const userId = subscription.userId;
 

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
 import path from 'node:path';
 import { resolveFontFile } from '@files/helpers/utils/font/font-file.util';
+import { renderCaptions } from '@files/processors/video-captions.util';
 import {
   isFinalAttempt,
   isRawCutJob,
@@ -260,22 +261,19 @@ export class VideoProcessor extends WorkerHost {
       const tempPath = this.ffmpegService.getTempPath('captions', ingredientId);
       const inputPath = path.join(tempPath, 'input.mp4');
       const outputPath = path.join(tempPath, 'output.mp4');
-      const captionsPath = path.join(tempPath, 'captions.srt');
 
       await this.downloadInput(params, inputPath);
-      const isMuted = params.isMuteVideoAudio === true;
-      const hasCaptions = Boolean(params.captionContent?.trim());
-      if (hasCaptions || !isMuted) {
-        fs.writeFileSync(captionsPath, params.captionContent || '');
-      }
-
-      await this.ffmpegService.addCaptions(
+      await renderCaptions(this.ffmpegService, {
         inputPath,
+        onProgress: this.createProgressCallback(
+          metadata.websocketUrl,
+          userId,
+          room,
+        ),
         outputPath,
-        hasCaptions || !isMuted ? captionsPath : undefined,
-        this.createProgressCallback(metadata.websocketUrl, userId, room),
-        isMuted ? { muteVideoAudio: true } : undefined,
-      );
+        params,
+        tempPath,
+      });
 
       const { size } = fs.statSync(outputPath);
       const { s3Key, url } = await this.uploadAndEmitSuccess(

@@ -14,6 +14,7 @@ import { useTranslations } from 'next-intl';
 
 export default function AdminModelsFilters({
   category,
+  isAttached,
 }: AdminModelsFiltersProps) {
   const translate = useTranslations('pages.models');
   const params = useSearchParams();
@@ -86,6 +87,7 @@ export default function AdminModelsFilters({
       clearLabel={translate('clearFilters')}
       facets={facets}
       getActiveCountLabel={(count) => translate('activeFilterCount', { count })}
+      isAttached={isAttached}
       label={translate('filters')}
       onClear={() => handleChange('clear', [])}
     />

@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
   FilterMenuFacet,
   FilterMenuProps,
@@ -164,8 +165,10 @@ function FilterMenuFacetItem({
 }
 
 /**
- * Every filter axis behind one "Filters" trigger: each facet is a submenu with
- * a checkable (multiple) or radio (single) list, so a toolbar stays one line
+ * Every filter axis behind one ghost "Filters" trigger with an active-count
+ * badge, so it weighs the same as refresh and the view menu in the subbar. Each
+ * facet is a submenu with a checkable (multiple) or radio (single) list, so a
+ * toolbar stays one line
  * however many facets a page has. Owners keep the state and the URL/query
  * mapping; this component only renders and reports changes.
  */
@@ -176,6 +179,7 @@ export default function FilterMenu({
   clearLabel,
   facets,
   getActiveCountLabel,
+  isAttached = false,
   label,
   onClear,
 }: FilterMenuProps) {
@@ -194,10 +198,15 @@ export default function FilterMenu({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          className={className ?? 'h-8 shrink-0 gap-1.5 px-2.5 text-xs'}
+          className={cn(
+            'h-8 shrink-0 gap-1.5 px-2.5 text-xs',
+            isAttached && 'h-auto px-2 py-1',
+            activeCount > 0 && 'text-foreground',
+            className,
+          )}
           icon={<SlidersHorizontal className={SHELL_ICON_CLASS} />}
           size={ButtonSize.SM}
-          variant={ButtonVariant.SECONDARY}
+          variant={ButtonVariant.GHOST}
           withWrapper={false}
         >
           {label ?? translate('menu')}

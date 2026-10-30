@@ -1,3 +1,4 @@
+import { selectView, viewMenuTrigger } from '@app-tests/view-menu.helpers';
 import '@testing-library/jest-dom/vitest';
 import { ViewType } from '@genfeedai/contracts';
 import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
@@ -98,7 +99,7 @@ describe('ClipperProjectList', () => {
       'https://img.youtube.com/vi/zjXzkB8z5xg/hqdefault.jpg',
     );
     expect(within(recent).queryByText('Project 2')).toBeNull();
-    await userEvent.click(screen.getByRole('radio', { name: 'Grid' }));
+    await selectView(userEvent.setup(), 'Grid');
     expect(screen.getAllByTestId('clipper-project-card')).toHaveLength(9);
     expect(within(recent).getAllByTestId('clipper-project-card')).toHaveLength(
       3,
@@ -155,10 +156,7 @@ describe('ClipperProjectList', () => {
     expect(screen.queryByTestId('clipper-projects-all')).toBeNull();
     rerender(<ClipperProjectList projects={[]} isLoading />);
     expect(screen.getByTestId('clipper-project-list-loading')).toBeVisible();
-    await userEvent.click(screen.getByRole('radio', { name: 'Grid' }));
-    expect(screen.getByRole('radio', { name: 'Grid' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
+    await selectView(userEvent.setup(), 'Grid');
+    expect(viewMenuTrigger('Grid')).toBeInTheDocument();
   });
 });

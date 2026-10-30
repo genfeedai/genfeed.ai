@@ -4,12 +4,11 @@ import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import { HOME_OUTPUT_CAROUSEL_ASSETS } from '@web-components/home/_assets';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
-import ProductInterfacePreview from '@web-components/product/ProductInterfacePreview';
+import AppProductScreenshot from '@web-components/products/AppProductScreenshot';
 import {
   ArrowRight,
   Cpu,
   Database,
-  Layers,
   MonitorPlay,
   ShieldCheck,
 } from 'lucide-react';
@@ -52,17 +51,10 @@ const FEATURES = [
 ];
 
 const HERO_VISUAL = (
-  <ProductInterfacePreview
-    product={{
-      category: 'Control plane',
-      features: FEATURES,
-      headline: 'Create, organize, govern, and ship from one operating system.',
-      name: 'Genfeed',
-      useCases: FEATURES.slice(0, 3).map((feature) => ({
-        description: feature.description,
-        title: feature.label,
-      })),
-    }}
+  <AppProductScreenshot
+    alt="The Genfeed agent working next to its output."
+    isPriority
+    src="/products/agent.webp"
   />
 );
 
@@ -75,8 +67,6 @@ export default function FeaturesPage(): React.ReactElement {
         heroMedia={
           <MarketingArtwork page="/features" isCompact kind="workflow" />
         }
-        badge="Platform Capabilities"
-        badgeIcon={Layers}
         compact
         heroVisual={HERO_VISUAL}
         title={<>What Genfeed Does For You</>}
@@ -84,22 +74,22 @@ export default function FeaturesPage(): React.ReactElement {
       >
         <section className="gsap-hero py-16 md:py-32">
           <div className="container mx-auto px-6">
-            <div className="gsap-grid grid grid-cols-1 gap-px bg-foreground/5 md:grid-cols-2 lg:grid-cols-4">
+            <div className="gsap-grid grid grid-cols-1 gap-px bg-foreground/10 md:grid-cols-2 lg:grid-cols-4">
               {FEATURES.map((feature) => {
                 const Icon = feature.icon;
                 return (
                   <div
                     key={feature.number}
-                    className="gsap-card bg-background p-6 sm:p-12 flex flex-col group hover:bg-foreground/[0.02] transition-colors"
+                    className="gsap-card bg-background p-6 sm:p-12 flex flex-col group hover:bg-foreground/5 transition-colors"
                   >
                     <div className="text-foreground/50 text-xs font-black uppercase tracking-widest mb-12">
                       {feature.number} / {feature.label}
                     </div>
-                    <Icon className="size-10 mb-8 text-foreground/55 group-hover:text-foreground transition-all" />
+                    <Icon className="size-10 mb-8 text-foreground/60 group-hover:text-foreground transition-all" />
                     <h3 className="text-xl font-semibold uppercase tracking-tight mb-4">
                       {feature.title}
                     </h3>
-                    <p className="text-foreground/65 text-sm leading-relaxed mb-8">
+                    <p className="text-foreground/70 text-sm leading-relaxed mb-8">
                       {feature.description}
                     </p>
                     <span className="mt-auto text-2xs font-black uppercase tracking-widest flex items-center gap-2 hover:gap-4 transition-all cursor-pointer">
@@ -112,13 +102,13 @@ export default function FeaturesPage(): React.ReactElement {
           </div>
         </section>
 
-        <section className="gsap-section bg-foreground/[0.02] py-16 md:py-32">
+        <section className="gsap-section bg-foreground/5 py-16 md:py-32">
           <div className="container mx-auto px-6">
             <div className="mb-14 max-w-3xl">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/45">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/50">
                 Made in Genfeed
               </p>
-              <h2 className="mt-5 text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">
+              <h2 className="mt-5 text-4xl font-semibold tracking-[-0.02em] sm:text-5xl">
                 The output is the proof.
               </h2>
               <p className="mt-5 max-w-2xl text-base leading-7 text-foreground/60">
@@ -141,7 +131,7 @@ export default function FeaturesPage(): React.ReactElement {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                   <figcaption className="absolute inset-x-0 bottom-0 p-6">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/60">
+                    <p className="text-2xs font-bold uppercase tracking-[0.14em] text-white/60">
                       {output.format}
                     </p>
                     <p className="mt-2 text-xl font-semibold text-white">
@@ -152,7 +142,7 @@ export default function FeaturesPage(): React.ReactElement {
               ))}
             </div>
             <div className="mt-12 flex flex-wrap items-center justify-between gap-6 border-t border-foreground/10 pt-8">
-              <p className="max-w-xl text-sm leading-6 text-foreground/55">
+              <p className="max-w-xl text-sm leading-6 text-foreground/60">
                 Model availability is read from the live registry. The website
                 does not maintain a model-name list in marketing copy.
               </p>
@@ -173,7 +163,7 @@ export default function FeaturesPage(): React.ReactElement {
               <h2 className="text-6xl font-semibold mb-10">
                 Start Creating Today
               </h2>
-              <p className="text-foreground/65 text-xl mb-12 font-medium">
+              <p className="text-foreground/70 text-xl mb-12 font-medium">
                 Start creating in minutes. Choose the plan that fits your team.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

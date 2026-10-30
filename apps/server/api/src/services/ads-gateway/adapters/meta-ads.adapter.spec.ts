@@ -54,7 +54,7 @@ describe('MetaAdsAdapter', () => {
     expect(adapter.platform).toBe('meta');
   });
 
-  // ── getAdAccounts ─────────────────────────────────────────────────────────
+  // getAdAccounts
 
   describe('getAdAccounts', () => {
     it('maps raw accounts to unified format', async () => {
@@ -86,7 +86,7 @@ describe('MetaAdsAdapter', () => {
     });
   });
 
-  // ── listCampaigns ─────────────────────────────────────────────────────────
+  // listCampaigns
 
   describe('listCampaigns', () => {
     it('maps raw campaigns to unified format', async () => {
@@ -115,7 +115,7 @@ describe('MetaAdsAdapter', () => {
     });
   });
 
-  // ── getCampaignInsights ───────────────────────────────────────────────────
+  // getCampaignInsights
 
   describe('getCampaignInsights', () => {
     const rawInsights = {
@@ -159,7 +159,7 @@ describe('MetaAdsAdapter', () => {
     });
   });
 
-  // ── getAdSetInsights ──────────────────────────────────────────────────────
+  // getAdSetInsights
 
   describe('getAdSetInsights', () => {
     it('forwards the date preset and returns unified insights', async () => {
@@ -203,7 +203,7 @@ describe('MetaAdsAdapter', () => {
     });
   });
 
-  // ── getAdInsights ─────────────────────────────────────────────────────────
+  // getAdInsights
 
   describe('getAdInsights', () => {
     it('forwards a custom time range and returns unified insights', async () => {
@@ -246,7 +246,7 @@ describe('MetaAdsAdapter', () => {
     });
   });
 
-  // ── createCampaign ────────────────────────────────────────────────────────
+  // createCampaign
 
   describe('createCampaign', () => {
     it('creates campaign and returns unified shape', async () => {
@@ -309,7 +309,7 @@ describe('MetaAdsAdapter', () => {
     );
   });
 
-  // ── updateCampaign ────────────────────────────────────────────────────────
+  // updateCampaign
 
   describe('updateCampaign', () => {
     it('leaves an omitted status omitted', async () => {
@@ -336,7 +336,7 @@ describe('MetaAdsAdapter', () => {
     );
   });
 
-  // ── listAdSets ────────────────────────────────────────────────────────────
+  // listAdSets
 
   describe('listAdSets', () => {
     const providerError = new Error('Meta Graph ad-set listing failed');
@@ -408,7 +408,7 @@ describe('MetaAdsAdapter', () => {
     });
   });
 
-  // ── listAds ───────────────────────────────────────────────────────────────
+  // listAds
 
   describe('listAds', () => {
     const providerError = new Error('Meta Graph ad listing failed');
@@ -515,7 +515,7 @@ describe('MetaAdsAdapter', () => {
     });
   });
 
-  // ── getTopPerformers ──────────────────────────────────────────────────────
+  // getTopPerformers
 
   describe('getTopPerformers', () => {
     it('maps top performers to unified shape', async () => {

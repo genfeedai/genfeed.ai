@@ -3,7 +3,6 @@
  * limits promised in plans-pricing.ts.
  *
  *   Marketing plan (plans-pricing.ts)      → SubscriptionTier   → finite gates
- *   ─────────────────────────────────────────────────────────────────────────
  *   Pay As You Go (free)                   → FREE               → API at 60/min, solo, 1 org
  *   Scale                               → SCALE              → API, unlimited seats/orgs
  *   Enterprise                             → ENTERPRISE         → custom API, unlimited seats/orgs

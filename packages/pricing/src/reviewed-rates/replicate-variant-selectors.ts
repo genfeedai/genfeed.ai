@@ -90,6 +90,43 @@ export const REPLICATE_VARIANT_SELECTORS: Readonly<
   'bytedance/seedance-2.0-fast': seedance,
   'bytedance/seedance-2.0-mini': seedance,
   'bytedance/seedance-2.5': seedance,
+  // Public schema and billingConfig, 2026-10-29: video input is priced as its
+  // own tier, and we never send `reference_videos` or `base_video`.
+  'kwaivgi/kling-v4.0': [
+    {
+      criterionTitle: 'model variant',
+      selectorKey: 'model_variant',
+      derive: {
+        kind: 'composite',
+        parts: [
+          { field: 'reference_videos', mode: 'presence' },
+          { field: 'base_video', mode: 'presence' },
+        ],
+        cases: [
+          { when: [false, false], selector: 'no-video-input' },
+          { when: [true, false], selector: 'video-input' },
+          { when: [false, true], selector: 'video-input' },
+          { when: [true, true], selector: 'video-input' },
+        ],
+      },
+    },
+  ],
+  // Public schema and billingConfig, 2026-10-29: Replicate bills by tier,
+  // output resolution and a frame-rate band (30 fps or below, above 30 fps).
+  'bytedance/video-upscaler': [
+    field('processing_type', identity('standard', 'pro')),
+    field(
+      'target_fps',
+      {
+        '24': 'up-to-30',
+        '30': 'up-to-30',
+        '60': 'above-30',
+        '120': 'above-30',
+      },
+      'target frames per second',
+      'target_fps_band',
+    ),
+  ],
   'kwaivgi/kling-v2.1': [field('mode', identity('standard', 'pro'))],
   'kwaivgi/kling-v2.6': [audio],
   'kwaivgi/kling-v3-video': kling3,
@@ -188,6 +225,11 @@ export const REPLICATE_UNREACHABLE_BILLING_TIERS: Readonly<
   // Layer decomposition needs `layer_decomposition: true`, which we never send.
   'bytedance/seedream-5-pro': [
     { criterionTitle: 'model variant', values: ['layer-small', 'layer-large'] },
+  ],
+  // Video-input billing is 2x output seconds or more, and the Kling 4.0 request
+  // builder never sends `reference_videos` or `base_video`.
+  'kwaivgi/kling-v4.0': [
+    { criterionTitle: 'model variant', values: ['video-input'] },
   ],
   // Replicate's own fallback route; `resolution` accepts only 1K, 2K and 4K.
   'google/nano-banana-pro': [

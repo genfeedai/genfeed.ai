@@ -6,7 +6,6 @@ import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
 import { SIDEBAR_DEFAULT_WIDTH } from '@ui/layouts/app/app-layout.utils';
 import MenuItem from '@ui/menus/item/MenuItem';
 import SidebarNested from '@ui/menus/sidebar-nested/SidebarNested';
-import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import TopbarLogo from '@ui/topbars/logo/TopbarLogo';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -68,7 +67,6 @@ export default function MenuShared({
   const resolvedBackHref = backHref
     ? (prefixHref({ href: backHref }) ?? backHref)
     : undefined;
-  const prefetchBackHref = useNavigationPrefetch(resolvedBackHref);
   const secondaryNavigationContent =
     secondaryItems.length > 0 ? (
       <div
@@ -112,18 +110,15 @@ export default function MenuShared({
         <div className="pb-1">
           <Link
             href={resolvedBackHref ?? backHref}
-            prefetch={false}
-            onFocus={prefetchBackHref}
-            onMouseEnter={prefetchBackHref}
             className={cn(
               'group flex h-control-sm w-full items-center gap-2 rounded px-2.5 py-1 transition-colors duration-150',
-              'text-foreground/72 hover:bg-foreground/[0.06] hover:text-foreground',
+              'text-foreground/80 hover:bg-foreground/5 hover:text-foreground',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
             )}
             aria-label={`Back to ${backLabel ?? 'previous page'}`}
           >
-            <ArrowLeft className="size-4 text-muted-foreground transition-colors duration-200 group-hover:text-foreground/78" />
-            <span className="text-sm font-medium tracking-[-0.01em] text-foreground/88">
+            <ArrowLeft className="size-4 text-muted-foreground transition-colors duration-200 group-hover:text-foreground/80" />
+            <span className="text-sm font-medium tracking-[-0.01em] text-foreground/90">
               {backLabel ?? 'Back'}
             </span>
           </Link>

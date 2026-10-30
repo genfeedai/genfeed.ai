@@ -1,8 +1,8 @@
 export { ActionNodeInspector } from './ActionNodeInspector';
 export { DebugPanel } from './DebugPanel';
 export {
-  NodePalette,
-  type NodePaletteProps,
+  NodeCatalog,
+  type NodeCatalogProps,
   type PaletteNodeDefinition,
-} from './NodePalette';
+} from './NodeCatalog';
 export { PanelContainer } from './PanelContainer';

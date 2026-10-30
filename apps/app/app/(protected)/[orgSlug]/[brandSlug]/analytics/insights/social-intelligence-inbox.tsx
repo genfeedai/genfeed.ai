@@ -324,7 +324,7 @@ export default function SocialIntelligenceInbox({
       <div className="space-y-5">
         {inbox.partialReason ? (
           <div
-            className="rounded-md border border-warning/30 bg-warning/5 p-3 text-sm text-warning"
+            className="rounded-md border border-warning/20 bg-warning/5 p-3 text-sm text-warning"
             role="status"
           >
             {inbox.partialReason}

@@ -41,6 +41,7 @@ export class StripeSubscriptionWebhookHandler {
     subscription: StripeSubscription,
     url: string,
   ): Promise<void> {
+    if (subscription.metadata?.billing_scope === 'service') return;
     try {
       const identity = await this.billingService.resolve({
         customer: subscription.customer,
@@ -59,11 +60,16 @@ export class StripeSubscriptionWebhookHandler {
       await this.subscriptionsService.syncSubscriptionState(
         updatedSubscription,
         subscription.id,
-        subscription.items.data[0].price.id,
+        this.supportService.softwareItem(subscription)?.price.id,
         subscription.status,
       );
 
-      const tier = this.supportService.resolveTierFromPriceId(stripePriceId);
+      const tier =
+        this.supportService.resolveTierFromPriceId(stripePriceId) ??
+        (this.supportService.softwareItem(subscription)?.price.metadata
+          ?.genfeed_software_tier === 'scale'
+          ? SubscriptionTier.SCALE
+          : null);
       if (tier) {
         if (organizationId) {
           await this.supportService.updateOrganizationTierAndModels(
@@ -77,7 +83,7 @@ export class StripeSubscriptionWebhookHandler {
         await this.subscriptionsService.syncSubscriptionState(
           updatedSubscription,
           subscription.id,
-          subscription.items.data[0].price.id,
+          this.supportService.softwareItem(subscription)?.price.id,
           subscription.status,
           tier,
         );
@@ -124,7 +130,7 @@ export class StripeSubscriptionWebhookHandler {
   private buildSubscriptionCreatePatch(
     subscription: StripeSubscription,
   ): StripeWebhookSubscriptionPatch {
-    const item = subscription.items?.data?.[0];
+    const item = this.supportService.softwareItem(subscription);
     if (
       !item?.price ||
       typeof item.price.id !== 'string' ||
@@ -146,8 +152,7 @@ export class StripeSubscriptionWebhookHandler {
     // Determine the canonical plan from the Stripe price.
     // Stripe's Interval includes an open `OtherString` brand; re-check via
     // plain string so TS narrows to our closed StripeRecurringInterval union.
-    const rawInterval: string | undefined =
-      subscription.items.data[0].price.recurring?.interval;
+    const rawInterval: string | undefined = item.price.recurring?.interval;
     const recurringInterval =
       rawInterval === 'day' ||
       rawInterval === 'week' ||
@@ -156,21 +161,21 @@ export class StripeSubscriptionWebhookHandler {
         ? rawInterval
         : undefined;
     const plan = this.supportService.resolveSubscriptionPlan(
-      subscription.items.data[0].price.id,
+      item.price.id,
       recurringInterval,
     );
 
     // Stripe API: cancel_at_period_end is on Subscription,
     // current_period_end is on subscription items (moved in newer API versions)
-    const currentPeriodEnd = subscription.items.data[0]?.current_period_end;
-    const currentPeriodStart = subscription.items.data[0]?.current_period_start;
+    const currentPeriodEnd = item.current_period_end;
+    const currentPeriodStart = item.current_period_start;
 
     return {
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
       currentPeriodEnd: stripeWebhookPeriod(currentPeriodEnd),
       currentPeriodStart: stripeWebhookPeriod(currentPeriodStart),
       status: toPrismaSubscriptionStatus(subscription.status),
-      stripePriceId: subscription.items.data[0].price.id,
+      stripePriceId: item.price.id,
       stripeSubscriptionId: subscription.id,
       plan,
     };
@@ -181,12 +186,15 @@ export class StripeSubscriptionWebhookHandler {
     stripePriceId: string | undefined,
     organizationId: string,
     url: string,
+    negotiatedTier?: string,
   ): Promise<void> {
     if (!stripePriceId) {
       return;
     }
 
-    const tier = this.supportService.resolveTierFromPriceId(stripePriceId);
+    const tier =
+      this.supportService.resolveTierFromPriceId(stripePriceId) ??
+      (negotiatedTier === 'scale' ? SubscriptionTier.SCALE : null);
     if (tier) {
       await this.supportService.updateOrganizationTierAndModels(
         organizationId,
@@ -200,6 +208,7 @@ export class StripeSubscriptionWebhookHandler {
     subscription: StripeSubscription,
     url: string,
   ): Promise<void> {
+    if (subscription.metadata?.billing_scope === 'service') return;
     try {
       // Find existing subscription
       const existingSubscription = await this.subscriptionsService.findOne({
@@ -217,7 +226,8 @@ export class StripeSubscriptionWebhookHandler {
         existingSubscription,
         url,
       );
-      const currentPeriodEnd = subscription.items.data[0]?.current_period_end;
+      const currentPeriodEnd =
+        this.supportService.softwareItem(subscription)?.current_period_end;
       const updateData = {
         cancelAtPeriodEnd: subscription.cancel_at_period_end,
         currentPeriodEnd: currentPeriodEnd
@@ -240,16 +250,18 @@ export class StripeSubscriptionWebhookHandler {
       await this.subscriptionsService.syncSubscriptionState(
         updatedSubscription,
         subscription.id,
-        subscription.items.data[0]?.price?.id,
+        this.supportService.softwareItem(subscription)?.price?.id,
         subscription.status,
       );
 
       // Update tier if price changed
       if (organizationId) {
         await this.updateTierFromPrice(
-          subscription.items.data[0]?.price?.id,
+          this.supportService.softwareItem(subscription)?.price?.id,
           organizationId,
           url,
+          this.supportService.softwareItem(subscription)?.price.metadata
+            ?.genfeed_software_tier,
         );
       }
 
@@ -276,6 +288,7 @@ export class StripeSubscriptionWebhookHandler {
     subscription: StripeSubscription,
     url: string,
   ): Promise<void> {
+    if (subscription.metadata?.billing_scope === 'service') return;
     try {
       const existingSubscription = await this.subscriptionsService.findOne({
         stripeSubscriptionId: subscription.id,

@@ -122,7 +122,7 @@ export function AgentOAuthConnectMenu({
           data-active={open ? 'true' : 'false'}
           ariaLabel="Connect a social channel"
         >
-          {!hideIcon ? <Link className="size-3.5 text-foreground/55" /> : null}
+          {!hideIcon ? <Link className="size-3.5 text-foreground/60" /> : null}
           <span
             className={
               isShellControl
@@ -151,14 +151,14 @@ export function AgentOAuthConnectMenu({
           <p className="text-2xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
             Connect a channel
           </p>
-          <p className="mt-1 text-xs text-foreground/58">
+          <p className="mt-1 text-xs text-foreground/60">
             Add a publishing destination without leaving your current work.
           </p>
         </div>
 
         {error ? (
           <AgentErrorMessage
-            className="mx-2 mb-2 rounded-lg border-red-400/25 bg-destructive/10 text-xs text-destructive"
+            className="mx-2 mb-2 rounded-lg border-red-400/20 bg-destructive/10 text-xs text-destructive"
             message={error}
           />
         ) : null}

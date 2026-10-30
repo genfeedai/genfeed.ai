@@ -8,8 +8,6 @@ export default function ToolsContent(): React.ReactElement {
   return (
     <PageLayout
       heroMedia={<MarketingArtwork page="/tools" kind="creator" />}
-      badge="Free tools"
-      badgeIcon={Scissors}
       compact
       description="Choose an AI model or turn a public YouTube video into useful content. Get a result before signup, then continue in the full Genfeed workspace."
       title="Free AI tools for models and content"
@@ -20,7 +18,7 @@ export default function ToolsContent(): React.ReactElement {
             <Cpu aria-hidden="true" className="size-5" />
             <div>
               <h2 className="text-xl font-semibold">AI model selector</h2>
-              <p className="mt-2 text-sm leading-6 text-foreground/65">
+              <p className="mt-2 text-sm leading-6 text-foreground/70">
                 Find AI models for images, video, writing, voice, and music.
                 Compare live catalog matches instantly. No signup or API key.
               </p>
@@ -33,14 +31,14 @@ export default function ToolsContent(): React.ReactElement {
             </Link>
           </Card>
           <Card className="flex flex-col gap-5 p-8">
-            <div className="flex size-11 items-center justify-center bg-foreground/[0.05]">
+            <div className="flex size-11 items-center justify-center bg-foreground/5">
               <FileText aria-hidden="true" className="size-5" />
             </div>
             <div>
               <h2 className="text-xl font-semibold">
                 YouTube to long-form text
               </h2>
-              <p className="mt-2 text-sm leading-6 text-foreground/65">
+              <p className="mt-2 text-sm leading-6 text-foreground/70">
                 Turn one video into a standard article, LinkedIn article, X
                 article, or newsletter.
               </p>
@@ -53,14 +51,14 @@ export default function ToolsContent(): React.ReactElement {
             </Link>
           </Card>
           <Card className="flex flex-col gap-5 p-8">
-            <div className="flex size-11 items-center justify-center bg-foreground/[0.05]">
+            <div className="flex size-11 items-center justify-center bg-foreground/5">
               <Scissors aria-hidden="true" className="size-5" />
             </div>
             <div>
               <h2 className="text-xl font-semibold">
                 YouTube transcript to clips
               </h2>
-              <p className="mt-2 text-sm leading-6 text-foreground/65">
+              <p className="mt-2 text-sm leading-6 text-foreground/70">
                 Extract a timestamped transcript, find three short-form clip
                 opportunities, and render one preview free.
               </p>

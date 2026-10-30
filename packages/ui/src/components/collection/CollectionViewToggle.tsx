@@ -5,8 +5,8 @@ import type {
   CollectionViewToggleProps,
   CollectionViewType,
 } from '@genfeedai/props/ui/collection/collection.props';
-import type { ViewOption } from '@genfeedai/props/ui/navigation/view-toggle.props';
-import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
+import type { ViewOption } from '@genfeedai/props/ui/navigation/view-option.props';
+import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { SHELL_ICON_CLASS } from '@ui-constants/shell-chrome.constant';
 import { LayoutGrid, Rows3 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -38,10 +38,6 @@ export default function CollectionViewToggle({
   );
 
   return (
-    <ViewToggle
-      activeView={view}
-      onChange={onViewChange}
-      options={viewOptions}
-    />
+    <ViewMenu activeView={view} onChange={onViewChange} options={viewOptions} />
   );
 }

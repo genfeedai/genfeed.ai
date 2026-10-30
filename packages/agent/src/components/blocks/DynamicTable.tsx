@@ -162,7 +162,7 @@ function DynamicTable({ block }: DynamicTableProps): ReactElement {
               ({ item: row, key }) => (
                 <TableRow
                   key={key}
-                  className="border-b border-border transition-colors last:border-b-0 hover:bg-accent/30"
+                  className="border-b border-border transition-colors last:border-b-0 hover:bg-accent/20"
                 >
                   {columns.map((col) => (
                     <TableCell

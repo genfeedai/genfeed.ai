@@ -91,6 +91,8 @@ export function resolveAdminModelFilters(
 
 export interface AdminModelsFiltersProps {
   category?: string;
+  /** Sits inside the search field's trailing edge. */
+  isAttached?: boolean;
 }
 export interface AdminModelsToolbarProps extends AdminModelsFiltersProps {
   children: ReactNode;

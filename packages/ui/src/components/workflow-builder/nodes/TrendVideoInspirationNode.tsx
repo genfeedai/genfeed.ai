@@ -141,7 +141,7 @@ function TrendVideoInspirationNodeComponent({
               className={`w-full p-2 text-left border transition ${
                 data.inspirationStyle === s.value
                   ? 'border-primary bg-primary/10'
-                  : 'border-white/[0.08] hover:border-primary/50'
+                  : 'border-white/10 hover:border-primary/50'
               }`}
             >
               <div className="text-sm font-medium">{s.label}</div>
@@ -217,7 +217,7 @@ function TrendVideoInspirationNodeComponent({
 
       {/* Source Video Info */}
       {data.sourceTrendTitle && (
-        <div className="p-2 bg-background border border-white/[0.08]">
+        <div className="p-2 bg-background border border-white/10">
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Video className="size-3" />
             Source Video

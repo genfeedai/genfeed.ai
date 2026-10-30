@@ -1,3 +1,4 @@
+import { selectView, viewMenuTrigger } from '@app-tests/view-menu.helpers';
 import '@testing-library/jest-dom/vitest';
 import { AgentType } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
@@ -365,7 +366,7 @@ describe('AgentHubPage', () => {
     expect(within(all).getByRole('alert')).toHaveTextContent(
       "Agents couldn't load.",
     );
-    expect(screen.queryByRole('radio', { name: 'Grid' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^View: / })).toBeNull();
     expect(screen.queryByText('No agents yet')).not.toBeInTheDocument();
 
     fireEvent.click(within(all).getByRole('button', { name: 'Retry' }));
@@ -510,20 +511,17 @@ describe('AgentHubPage', () => {
     ).toBeVisible();
   });
 
-  it('defaults All to a list and switches to a remembered three-column grid of flat cards', () => {
+  it('defaults All to a list and switches to a remembered three-column grid of flat cards', async () => {
     mocks.strategies = [HEALTHY_AGENT, IDLE_AGENT];
 
     render(<AgentHubPage />);
 
     const all = getSection('all');
-    expect(screen.getByRole('radio', { name: 'List' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
+    expect(viewMenuTrigger('List')).toBeInTheDocument();
     expect(within(all).getAllByTestId(/^agent-row-all-/)).toHaveLength(2);
     expect(within(all).queryAllByTestId(/^agent-card-/)).toHaveLength(0);
 
-    fireEvent.click(screen.getByRole('radio', { name: 'Grid' }));
+    await selectView(userEvent.setup(), 'Grid');
 
     expect(within(all).queryAllByTestId(/^agent-row-all-/)).toHaveLength(0);
     const grid = within(all).getByTestId('agent-hub-collection')

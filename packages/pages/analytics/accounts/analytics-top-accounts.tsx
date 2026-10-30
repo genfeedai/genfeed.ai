@@ -101,7 +101,7 @@ export default function AnalyticsTopAccounts({
                 account.identity.externalName
               }
               trailing={
-                <span className="text-sm text-foreground/55">
+                <span className="text-sm text-foreground/60">
                   {views?.availability === 'observed' && views.change !== null
                     ? formatCompactNumberIntl(views.change)
                     : 'Unavailable'}

@@ -238,7 +238,7 @@ function ContentRunRow({
         <div className="truncate text-sm font-medium text-foreground">
           {getRunTitle(run.brief)}
         </div>
-        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-foreground/55">
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-foreground/60">
           <span>{run.skillSlug ?? 'content-run'}</span>
           <span>
             {variantCount} {variantCount === 1 ? 'variant' : 'variants'}

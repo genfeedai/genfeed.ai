@@ -32,6 +32,7 @@ import { EmptyState } from '@ui/card/EmptyState';
 import PlatformAvatarStack from '@ui/display/platform-avatar-stack/PlatformAvatarStack';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
+import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import {
@@ -332,29 +333,35 @@ function BrandsListContent() {
     <Container
       label="Brands"
       icon={Building2}
+      refresh={
+        <ButtonRefresh
+          isRefreshing={isRefreshing}
+          onClick={() => void refresh()}
+        />
+      }
       right={
-        <div className="flex items-center gap-2">
-          <ButtonRefresh
-            isRefreshing={isRefreshing}
-            onClick={() => void refresh()}
-          />
-          {canMoveBrands && selectedBrands.length > 0 ? (
+        <SubbarControls
+          dropdowns={
+            canMoveBrands && selectedBrands.length > 0 ? (
+              <Button
+                variant={ButtonVariant.SECONDARY}
+                icon={<ArrowRightLeft />}
+                label={translate('moveSelected', {
+                  count: selectedBrands.length,
+                })}
+                onClick={() => setBrandsToMove(selectedBrands)}
+              />
+            ) : null
+          }
+          primaryAction={
             <Button
-              variant={ButtonVariant.SECONDARY}
-              icon={<ArrowRightLeft />}
-              label={translate('moveSelected', {
-                count: selectedBrands.length,
-              })}
-              onClick={() => setBrandsToMove(selectedBrands)}
+              variant={ButtonVariant.DEFAULT}
+              icon={<Plus />}
+              label="Add Brand"
+              onClick={() => openBrandCreateModal(() => void refresh())}
             />
-          ) : null}
-          <Button
-            variant={ButtonVariant.DEFAULT}
-            icon={<Plus />}
-            label="Add Brand"
-            onClick={() => openBrandCreateModal(() => void refresh())}
-          />
-        </div>
+          }
+        />
       }
     >
       <AppTable<Brand>

@@ -570,6 +570,19 @@ describe('AgentThreadsController', () => {
         }),
       );
     });
+
+    it('starts an extension thread in auto when the saved default is plan', async () => {
+      service.create.mockResolvedValue({ id: 'new' });
+      service.resolveSavedMode.mockResolvedValue('plan');
+      await controller.createThread(
+        {} as never,
+        { source: 'extension', title: 'Test' },
+        mockUser,
+      );
+      expect(service.create).toHaveBeenCalledWith(
+        expect.objectContaining({ mode: 'auto', source: 'extension' }),
+      );
+    });
   });
 
   describe('updateThreadContext', () => {

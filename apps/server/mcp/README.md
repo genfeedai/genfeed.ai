@@ -59,8 +59,8 @@ Widget layout uses shared utilities; it must not recreate component styling.
 
 ## Toolsets
 
-The bare endpoint uses the default profile (up to 27 canonical tools before
-role filtering). `?profile=full` exposes the complete catalog (144 tools at the
+The bare endpoint uses the default profile (hard-capped at 25 tools for the
+ordinary role; CI fails on overflow). `?profile=full` exposes the complete catalog (144 tools at the
 #7815 benchmark revision). Compact output schemas and bounded readable results
 reduce serialized payload size; model-token savings depend on the client.
 See the [token benchmark](TOKEN_BENCHMARK.md) for measurements and reproduction.
@@ -76,9 +76,17 @@ https://mcp.genfeed.ai/mcp?toolsets=content,generation
 - **`core` is always included** and cannot be excluded — it holds the
   discovery meta tool (`find_tools`) plus
   a handful of always-needed account/status tools.
+- **`?app=clipper,motion` adds the toolsets behind those apps** to the
+  selection made by the rest of the URL (default, `?profile=`, or
+  `?toolsets=`). Apps are `agent`, `analytics`, `automation`, `clipper`,
+  `discovery`, `editor`, `library`, `messages`, `motion`, `playground`,
+  `publishing`, `storyboard`, `turbo` and `workspace`. The map
+  is `MCP_APP_TOOLSETS` in `packages/actions`.
 - **Omitting the parameter (or passing an empty value) uses `?profile=`**, and
   a bare URL gets the `default` profile: `core`, `generation`, `content` and
-  `scheduler`, capped at 27 tools. Use `?profile=full` for every tool.
+  `scheduler`, capped at 25 tools. `?profile=studio` adds `brand` and
+  `analytics` (capped at 40) and is what Codex installs use. Use
+  `?profile=full` for every tool.
 - **An unknown toolset name is rejected with an HTTP 400** and a JSON-RPC
   `-32602` error naming the valid toolsets, before authentication runs (so it
   also applies to the unauthenticated public `tools/list` discovery path).

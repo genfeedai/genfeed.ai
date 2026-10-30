@@ -18,11 +18,10 @@ import {
 } from '@web-components/content/NeuralGrid';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
-import { Terminal } from 'lucide-react';
 import Link from 'next/link';
 
 const LINK_CLASS_NAME =
-  'text-sm text-foreground/75 transition-colors hover:text-primary';
+  'text-sm text-foreground/80 transition-colors hover:text-primary';
 
 export default function AgentClientChannelContent({
   client,
@@ -42,8 +41,6 @@ export default function AgentClientChannelContent({
   return (
     <MarketingEntrance hero={false} sections={false}>
       <PageLayout
-        badge={`${client.name} · ${page.channelName}`}
-        badgeIcon={Terminal}
         compact
         description={page.description}
         heroActions={
@@ -64,7 +61,7 @@ export default function AgentClientChannelContent({
         title={page.title}
       >
         <AgentClientSetup client={client} />
-        <p className="container mx-auto px-6 pb-6 text-base leading-7 text-foreground/75">
+        <p className="container mx-auto px-6 pb-6 text-base leading-7 text-foreground/80">
           Connect your {page.channelName} account in Genfeed once to make it
           available to {client.name}.
         </p>
@@ -83,7 +80,7 @@ export default function AgentClientChannelContent({
           <NeuralGrid columns={3}>
             {page.prompts.map((prompt) => (
               <NeuralGridItem key={prompt} padding="lg">
-                <p className="text-base leading-7 text-foreground/75">
+                <p className="text-base leading-7 text-foreground/80">
                   “{prompt}”
                 </p>
               </NeuralGridItem>
@@ -100,7 +97,7 @@ export default function AgentClientChannelContent({
           <NeuralGrid columns={2}>
             {page.features.map((feature) => (
               <NeuralGridItem key={feature} padding="lg">
-                <p className="text-base leading-7 text-foreground/75">
+                <p className="text-base leading-7 text-foreground/80">
                   {feature}
                 </p>
               </NeuralGridItem>

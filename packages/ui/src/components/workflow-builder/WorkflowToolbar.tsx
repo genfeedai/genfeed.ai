@@ -21,7 +21,7 @@ export default function WorkflowToolbar({
   isReadOnly = false,
 }: WorkflowToolbarProps) {
   return (
-    <div className="flex h-14 items-center justify-between border-b border-white/[0.08] bg-card px-4">
+    <div className="flex h-14 items-center justify-between border-b border-white/10 bg-card px-4">
       <div className="flex items-center gap-3">
         <h2 className="font-semibold text-foreground">{workflowLabel}</h2>
         {isDirty && (

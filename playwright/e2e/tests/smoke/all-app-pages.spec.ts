@@ -199,10 +199,10 @@ const adminRouteBuckets: RouteBucket[] = [
     route.startsWith('/admin/flags'),
   ),
   routeBucket('admin library media', adminRoutes, (route) =>
-    /^\/admin\/(folders|images|library|videos)(\/|$)/.test(route),
+    /^\/admin\/(folders|library)(\/|$)/.test(route),
   ),
-  routeBucket('admin organization overview', adminRoutes, (route) =>
-    /^\/admin\/(organizations|overview)(\/|$)/.test(route),
+  routeBucket('admin accounts overview', adminRoutes, (route) =>
+    /^\/admin\/(brands|organizations|overview)(\/|$)/.test(route),
   ),
   routeBucket('admin settings', adminRoutes, (route) =>
     route.startsWith('/admin/settings'),

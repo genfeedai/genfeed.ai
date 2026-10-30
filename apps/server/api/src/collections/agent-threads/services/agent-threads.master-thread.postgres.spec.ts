@@ -2,12 +2,15 @@ import { randomUUID } from 'node:crypto';
 import type { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentMasterThreadService } from '@api/collections/agent-threads/services/agent-master-thread.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
+import { AgentTransferExecutionListener } from '@api/collections/agent-transfers/listeners/agent-transfer-execution.listener';
 import { AgentTransfersService } from '@api/collections/agent-transfers/services/agent-transfers.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  AgentMessageRole,
   AgentThreadKind,
   AgentThreadStatus,
   AgentTransferDeliveryMode,
+  AgentTransferStatus,
 } from '@genfeedai/contracts';
 import { PrismaClient } from '@genfeedai/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -59,11 +62,16 @@ describe.skipIf(!connectionString)(
         database() as unknown as PrismaService,
         makeThreadsService(),
       );
-    const makeTransfersService = () =>
+    const makeTransfersService = (turnAcceptance: unknown = {}) =>
       new AgentTransfersService(
         database() as unknown as PrismaService,
         {} as never,
-        {} as never,
+        turnAcceptance as never,
+      );
+    const makeListener = () =>
+      new AgentTransferExecutionListener(
+        database() as unknown as PrismaService,
+        logger as never,
       );
 
     let suffix: string;
@@ -344,6 +352,247 @@ describe.skipIf(!connectionString)(
           data: { organizationId, parentThreadId: foreign.id, userId },
         }),
       ).rejects.toMatchObject({ code: 'P2003' });
+    });
+
+    describe('child results reach the master (#8527)', () => {
+      const SUMMARY = 'Three launch posts are drafted and waiting for review.';
+
+      /** A queued agent-turn execution, as `startDestinationRun` would see it. */
+      async function createExecution(status: 'COMPLETED' | 'PENDING') {
+        const db = database();
+        const workflow = `master-wf-${randomUUID()}`;
+        const version = `master-wfv-${randomUUID()}`;
+        const execution = `master-exec-${randomUUID()}`;
+        // The current-version foreign key is deferred, so the workflow goes first.
+        await db.$transaction(async (tx) => {
+          await tx.workflow.create({
+            data: {
+              currentVersionId: version,
+              id: workflow,
+              organizationId,
+              userId,
+            },
+          });
+          await tx.workflowVersion.create({
+            data: {
+              contentHash: 'sha256:v1:fixture',
+              graph: { edges: [], lockedNodeIds: [], nodes: [] },
+              id: version,
+              organizationId,
+              userId,
+              version: 1,
+              workflowId: workflow,
+            },
+          });
+        });
+        await db.workflowExecution.create({
+          data: {
+            id: execution,
+            organizationId,
+            status,
+            userId,
+            workflowId: workflow,
+            workflowVersionId: version,
+            ...(status === 'COMPLETED' ? finishedFields() : {}),
+          },
+        });
+        return execution;
+      }
+
+      function finishedFields() {
+        return {
+          completedAt: new Date(),
+          progress: 100,
+          result: {
+            artifactReferences: [],
+            artifactVersionPinIds: [],
+            summary: SUMMARY,
+          },
+          startedAt: new Date(Date.now() - 1000),
+        };
+      }
+
+      async function startRun(executionId: string) {
+        const master = await makeMasterService().getOrCreate(
+          userId,
+          organizationId,
+        );
+        const accept = vi.fn(async () => ({
+          executionId,
+          queuedAt: new Date().toISOString(),
+        }));
+        const transfer = await makeTransfersService({ accept }).create(
+          {
+            content: 'Draft three launch posts.',
+            deliveryMode: AgentTransferDeliveryMode.SEND_AND_RUN,
+            destinationTitle: 'Launch posts',
+            explicitUserIntent: true,
+            idempotencyKey: `master-run-${randomUUID()}`,
+            sourceThreadId: master.id,
+          } as never,
+          { organizationId, userId },
+        );
+        return { master, transfer };
+      }
+
+      const resultMessages = (masterId: string) =>
+        database().agentMessage.findMany({
+          where: {
+            organizationId,
+            role: AgentMessageRole.SYSTEM,
+            threadId: masterId,
+          },
+        });
+
+      it('completes the transfer and tells the master when the child finishes later', async () => {
+        const executionId = await createExecution('PENDING');
+        const { master, transfer } = await startRun(executionId);
+        await database().workflowExecution.update({
+          data: { ...finishedFields(), status: 'COMPLETED' },
+          where: { id: executionId },
+        });
+
+        await makeListener().handleExecutionTerminal({
+          executionId,
+          organizationId,
+          status: 'completed',
+        });
+
+        const row = await database().agentTransfer.findUniqueOrThrow({
+          where: { id: transfer.id },
+        });
+        expect(row).toMatchObject({
+          completionSummary: SUMMARY,
+          progress: 100,
+          status: AgentTransferStatus.COMPLETED,
+        });
+        expect(row.completedAt).not.toBeNull();
+        const messages = await resultMessages(master.id);
+        // The outbound marker written when the transfer was created has no
+        // result metadata; the result message is the one that does.
+        const results = messages.filter(
+          (message) =>
+            (message.metadata as { agentTransferResult?: unknown } | null)
+              ?.agentTransferResult,
+        );
+        expect(results).toHaveLength(1);
+        expect(results[0]).toMatchObject({
+          content: `Launch posts finished.\n\n${SUMMARY}`,
+          metadata: {
+            agentTransferResult: {
+              destinationThreadId: transfer.destinationThreadId,
+              status: AgentTransferStatus.COMPLETED,
+              transferId: transfer.id,
+            },
+          },
+        });
+      });
+
+      it('writes the result once however often the terminal event arrives', async () => {
+        const executionId = await createExecution('PENDING');
+        const { master } = await startRun(executionId);
+        await database().workflowExecution.update({
+          data: { ...finishedFields(), status: 'COMPLETED' },
+          where: { id: executionId },
+        });
+        const listener = makeListener();
+        const event = {
+          executionId,
+          organizationId,
+          status: 'completed',
+        } as const;
+
+        await Promise.all([
+          listener.handleExecutionTerminal(event),
+          listener.handleExecutionTerminal(event),
+          listener.handleExecutionTerminal(event),
+        ]);
+
+        const results = (await resultMessages(master.id)).filter(
+          (message) =>
+            (message.metadata as { agentTransferResult?: unknown } | null)
+              ?.agentTransferResult,
+        );
+        expect(results).toHaveLength(1);
+      });
+
+      it('settles at once when the child already ended before it was acknowledged', async () => {
+        const executionId = await createExecution('COMPLETED');
+
+        const { master, transfer } = await startRun(executionId);
+
+        expect(transfer).toMatchObject({
+          completionSummary: SUMMARY,
+          status: AgentTransferStatus.COMPLETED,
+        });
+        const results = (await resultMessages(master.id)).filter(
+          (message) =>
+            (message.metadata as { agentTransferResult?: unknown } | null)
+              ?.agentTransferResult,
+        );
+        expect(results).toHaveLength(1);
+        // The late terminal event does not add a second message.
+        await makeListener().handleExecutionTerminal({
+          executionId,
+          organizationId,
+          status: 'completed',
+        });
+        expect(
+          (await resultMessages(master.id)).filter(
+            (message) =>
+              (message.metadata as { agentTransferResult?: unknown } | null)
+                ?.agentTransferResult,
+          ),
+        ).toHaveLength(1);
+      });
+
+      it('reports a failed child to the master with the reason', async () => {
+        const executionId = await createExecution('PENDING');
+        const { master, transfer } = await startRun(executionId);
+        await database().workflowExecution.update({
+          data: {
+            completedAt: new Date(),
+            error: 'Insufficient credits.',
+            status: 'FAILED',
+          },
+          where: { id: executionId },
+        });
+
+        await makeListener().handleExecutionTerminal({
+          executionId,
+          organizationId,
+          status: 'failed',
+        });
+
+        const row = await database().agentTransfer.findUniqueOrThrow({
+          where: { id: transfer.id },
+        });
+        expect(row).toMatchObject({
+          failureReason: 'Insufficient credits.',
+          status: AgentTransferStatus.FAILED,
+        });
+        const results = (await resultMessages(master.id)).filter(
+          (message) =>
+            (message.metadata as { agentTransferResult?: unknown } | null)
+              ?.agentTransferResult,
+        );
+        expect(results.map((message) => message.content)).toEqual([
+          'Launch posts failed: Insufficient credits.',
+        ]);
+      });
+
+      it('ignores an execution that belongs to no transfer', async () => {
+        const executionId = await createExecution('COMPLETED');
+
+        await expect(
+          makeListener().handleExecutionTerminal({
+            executionId,
+            organizationId,
+            status: 'completed',
+          }),
+        ).resolves.toBeUndefined();
+        expect(logger.error).not.toHaveBeenCalled();
+      });
     });
   },
 );

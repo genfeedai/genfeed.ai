@@ -10,6 +10,7 @@ import { brandPath } from '../../utils/app-chrome';
 import { openFilterFacet } from '../../utils/filter-menu';
 import { waitForIngredientsRead } from '../../utils/ingredients-requests';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
+import { chooseView } from '../../utils/view-menu';
 
 /**
  * The avatar library defaults to Canvas view (LibraryCanvas — a free-placement
@@ -19,7 +20,7 @@ import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
  * match.
  */
 async function useListView(page: Page): Promise<void> {
-  await page.getByRole('radio', { name: 'List' }).click();
+  await chooseView(page, 'List');
 }
 
 /**

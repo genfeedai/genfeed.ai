@@ -490,6 +490,9 @@ export class MicroservicesService implements OnModuleInit, HealthContributor {
         !Array.isArray(dataRecord.metadata)
           ? (dataRecord.metadata as Record<string, unknown>)
           : {};
+      const internalApiKey = this.configService
+        .get('GENFEEDAI_API_KEY')
+        ?.trim();
       const notification = {
         data,
         event,
@@ -506,6 +509,10 @@ export class MicroservicesService implements OnModuleInit, HealthContributor {
           `${notificationsUrl}/v1/webhooks/notify`,
           notification,
           {
+            // The notifications service requires the internal service key.
+            headers: internalApiKey
+              ? { Authorization: `Bearer ${internalApiKey}` }
+              : undefined,
             timeout: 5000,
           },
         ),

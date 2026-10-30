@@ -1,7 +1,5 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { Button } from '@genfeedai/ui/primitives/button';
 import {
   Background,
   BackgroundVariant,
@@ -17,11 +15,9 @@ import {
   SelectionMode,
   useReactFlow,
 } from '@xyflow/react';
-import { PanelLeft } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import '@xyflow/react/dist/style.css';
 
-import { getActionDefinition } from '@genfeedai/actions';
 import type {
   ImageGenNodeData,
   NodeType,
@@ -34,6 +30,7 @@ import { ContextMenu } from '../components/context-menu/ContextMenu';
 import { GlobalImageHistory } from '../components/GlobalImageHistory';
 import { MultiSelectToolbar } from '../components/MultiSelectToolbar';
 import { NotificationToast } from '../components/NotificationToast';
+import { useAddCatalogNode } from '../hooks/useAddCatalogNode';
 import { useCanvasKeyboardShortcuts } from '../hooks/useCanvasKeyboardShortcuts';
 import { useContextMenu } from '../hooks/useContextMenu';
 import {
@@ -49,7 +46,6 @@ import {
 import { resolveWorkflowNodeDefinition } from '../lib/workflowNodeHandles';
 import { nodeTypes as defaultNodeTypes } from '../nodes';
 import { NodeDetailModal } from '../nodes/NodeDetailModal';
-import { useWorkflowUIConfig } from '../provider/WorkflowUIProvider';
 import { useExecutionStore } from '../stores/execution';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useUIStore } from '../stores/uiStore';
@@ -327,7 +323,6 @@ interface WorkflowCanvasHandlersOptions {
   setDraggingNodeId: (id: string | null) => void;
   setSelectedNodeIds: (ids: string[]) => void;
   toggleNodeLock: (id: string) => void;
-  togglePalette: () => void;
   unlockAllNodes: () => void;
 }
 
@@ -357,10 +352,9 @@ function useWorkflowCanvasHandlers({
   setDraggingNodeId,
   setSelectedNodeIds,
   toggleNodeLock,
-  togglePalette,
   unlockAllNodes,
 }: WorkflowCanvasHandlersOptions) {
-  const { actionParameterDefaults } = useWorkflowUIConfig();
+  const addCatalogNode = useAddCatalogNode();
   const selectedNodeIdLookup = useMemo(
     () => createIdLookup(selectedNodeIds),
     [selectedNodeIds],
@@ -402,7 +396,6 @@ function useWorkflowCanvasHandlers({
     openShortcutHelp,
     selectedNodeIds,
     toggleNodeLock,
-    togglePalette,
     unlockAllNodes,
   });
 
@@ -508,30 +501,16 @@ function useWorkflowCanvasHandlers({
         event.dataTransfer.getData(WORKFLOW_NODE_TRANSFER_TYPE),
       );
       if (!transfer) return;
-      const nodeType = transfer.type;
 
-      if (nodeType === 'genfeedAction') {
-        const action = transfer.actionId
-          ? getActionDefinition(transfer.actionId)
-          : undefined;
-        if (action?.visibility !== 'workflow') return;
-      }
-
-      const position = reactFlow.screenToFlowPosition({
-        x: event.clientX,
-        y: event.clientY,
-      });
-
-      const nodeId = addNode(nodeType, position);
-      if (nodeId && transfer.actionId) {
-        useWorkflowStore.getState().updateNodeData(nodeId, {
-          actionId: transfer.actionId,
-          label: transfer.label,
-          parameters: actionParameterDefaults?.(transfer.actionId) ?? {},
-        });
-      }
+      addCatalogNode(
+        transfer,
+        reactFlow.screenToFlowPosition({
+          x: event.clientX,
+          y: event.clientY,
+        }),
+      );
     },
-    [actionParameterDefaults, addNode, reactFlow],
+    [addCatalogNode, addNode, reactFlow],
   );
 
   const handleDragOver = useCallback((event: React.DragEvent) => {
@@ -692,8 +671,6 @@ export function WorkflowCanvas({
     selectEdge,
     setHighlightedNodeIds,
     highlightedNodeIds,
-    showPalette,
-    togglePalette,
     openModal,
     openConnectionDropMenu,
   } = useUIStore();
@@ -784,7 +761,6 @@ export function WorkflowCanvas({
     setDraggingNodeId,
     setSelectedNodeIds,
     toggleNodeLock,
-    togglePalette,
     unlockAllNodes,
   });
 
@@ -795,18 +771,6 @@ export function WorkflowCanvas({
       onDrop={handleDrop}
       onDragOver={handleDragOver}
     >
-      {!showPalette && (
-        <Button
-          withWrapper={false}
-          variant={ButtonVariant.SECONDARY}
-          size={ButtonSize.ICON}
-          onClick={togglePalette}
-          className="absolute top-3 left-3 z-10"
-          title="Open sidebar (M)"
-        >
-          <PanelLeft className="size-4 text-muted-foreground group-hover:text-foreground" />
-        </Button>
-      )}
       <ReactFlow<WorkflowNode, WorkflowEdge>
         nodes={nodes}
         edges={styledEdges}

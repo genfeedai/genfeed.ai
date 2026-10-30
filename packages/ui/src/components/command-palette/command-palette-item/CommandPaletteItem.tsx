@@ -25,8 +25,8 @@ export function CommandPaletteItem({
       onClick={onClick}
       className={cn(
         'flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors duration-200',
-        'hover:bg-foreground/[0.06] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
-        isSelected && 'bg-foreground/[0.08]',
+        'hover:bg-foreground/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+        isSelected && 'bg-foreground/10',
       )}
     >
       {command.icon && (

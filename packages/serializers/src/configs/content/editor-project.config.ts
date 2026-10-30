@@ -1,10 +1,14 @@
 import {
   computeEditorProjectIsLocked,
+  computeEditorProjectRenderedVideo,
   editorProjectAttributes,
 } from '@serializers/attributes/content/editor-project.attributes';
 import { simpleConfig } from '@serializers/builders';
 
 export const editorProjectSerializerConfig = {
   ...simpleConfig('editor-project', editorProjectAttributes),
-  attributeDerivations: { isLocked: computeEditorProjectIsLocked },
+  attributeDerivations: {
+    isLocked: computeEditorProjectIsLocked,
+    renderedVideo: computeEditorProjectRenderedVideo,
+  },
 };

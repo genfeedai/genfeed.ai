@@ -125,7 +125,7 @@ export function validateOutputs(value: unknown, settings: IVisualCodeSettings) {
       throw new UnprocessableEntityException('invalid_output_frame');
   return parsed;
 }
-function parse<T>(schema: z.ZodType<T>, value: unknown): T {
+export function parseVisualInput<T>(schema: z.ZodType<T>, value: unknown): T {
   const result = schema.safeParse(value);
   if (!result.success)
     throw new UnprocessableEntityException({
@@ -138,23 +138,23 @@ function parse<T>(schema: z.ZodType<T>, value: unknown): T {
   return result.data;
 }
 export function parseCreate(value: unknown): ICreateVisualProject {
-  const input = parse(createSchema, value);
+  const input = parseVisualInput(createSchema, value);
   validateOutputs(input.outputs, input.settings);
   return input;
 }
 export function parseRevision(value: unknown): IReviseVisualProject {
-  return parse(revisionSchema, value);
+  return parseVisualInput(revisionSchema, value);
 }
 export function parseExport(
   value: unknown,
   settings: IVisualCodeSettings,
 ): IExportVisualProject & Required<Pick<IExportVisualProject, 'outputs'>> {
-  const input = parse(exportSchema, value);
+  const input = parseVisualInput(exportSchema, value);
   validateOutputs(input.outputs, settings);
   return input;
 }
 export function parseRetry(value: unknown): IRetryVisualProject {
-  return parse(retrySchema, value);
+  return parseVisualInput(retrySchema, value);
 }
 export function visualInputHash(value: unknown): string {
   const normalize = (item: unknown): unknown =>

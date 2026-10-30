@@ -64,7 +64,7 @@ export function AgentThreadListEmptyState({
         {actions ? (
           <div className="absolute right-2 top-2">{actions}</div>
         ) : null}
-        <div className="flex size-10 items-center justify-center rounded-md bg-foreground/[0.05] ring-1 ring-inset ring-border">
+        <div className="flex size-10 items-center justify-center rounded-md bg-foreground/5 ring-1 ring-inset ring-border">
           <MessageSquare className="size-5 text-muted-foreground" />
         </div>
         <div>

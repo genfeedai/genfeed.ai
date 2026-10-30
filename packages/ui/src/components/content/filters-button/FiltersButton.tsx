@@ -1,12 +1,10 @@
 'use client';
 
-import { ComponentSize } from '@genfeedai/contracts';
 import type { IFieldOption } from '@genfeedai/contracts/interfaces';
 import type { IFilters } from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import type { FiltersBarProps } from '@genfeedai/props/ui/forms/filters.props';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
-import FormSearchbar from '@ui/primitives/searchbar';
 import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 
@@ -49,6 +47,7 @@ export default function FiltersButton({
   filters,
   onFiltersChange,
   className = '',
+  isAttached = false,
   filterOptions = DEFAULT_FILTER_OPTIONS,
   visibleFilters = DEFAULT_VISIBLE_FILTERS,
 }: FiltersBarProps) {
@@ -125,20 +124,10 @@ export default function FiltersButton({
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      {visibleFilters.search ? (
-        <FormSearchbar
-          className="w-48"
-          onSearch={(value) =>
-            notifyFilterChange({ ...filters, search: value })
-          }
-          placeholder={translate('searchPlaceholder')}
-          size={ComponentSize.SM}
-          value={filters.search ?? ''}
-        />
-      ) : null}
       {facets.length > 0 ? (
         <FilterMenu
           facets={facets}
+          isAttached={isAttached}
           onClear={() => notifyFilterChange({ ...filters, ...EMPTY_FILTERS })}
         />
       ) : null}

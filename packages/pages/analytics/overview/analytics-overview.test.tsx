@@ -521,16 +521,13 @@ describe('AnalyticsOverview', () => {
 
   it('preserves superadmin destinations despite a selected brand payload', () => {
     const markup = renderToStaticMarkup(
-      <AnalyticsOverview
-        scope={PageScope.SUPERADMIN}
-        basePath="/admin/overview/analytics"
-      />,
+      <AnalyticsOverview scope={PageScope.SUPERADMIN} basePath="/admin" />,
     );
     expect(markup).toContain('/acme/~/settings/integrations');
     expect(markup).not.toContain('/acme/brand-x/settings/connected-accounts');
     expect(markup).not.toContain('/acme/brand-x/publishing');
     expect(markup).toContain('href="/publishing');
-    expect(markup).toContain('/admin/overview/analytics/brands');
+    expect(markup).toContain('/admin/brands');
   });
 
   it('offers brand selection instead of provider settings in organization scope', () => {

@@ -650,6 +650,11 @@ export class BrandsService extends BaseService<Brand> {
       | 'watermarkLogoId'
       | 'watermarkOpacity'
       | 'watermarkPosition'
+      | 'watermarkSizeRatio'
+      | 'watermarkLightLogoId'
+      | 'watermarkLiveLogoId'
+      | 'watermarkInsetXRatio'
+      | 'watermarkInsetYRatio'
     >,
   ): Promise<Brand> {
     return this.instance

@@ -195,7 +195,7 @@ function TrendHashtagInspirationNodeComponent({
 
       {/* Source Hashtag Info */}
       {data.sourceHashtag && (
-        <div className="p-2 bg-background border border-white/[0.08]">
+        <div className="p-2 bg-background border border-white/10">
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Hash className="size-3" />
             Source Hashtag

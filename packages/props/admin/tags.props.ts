@@ -6,6 +6,7 @@ export interface ITagsLayoutProps {
   children: ReactNode;
   scope: ContentProps['scope'];
   filters?: ReactNode;
+  search?: ReactNode;
   primaryAction?: ReactNode;
   onRefresh?: () => void;
   isRefreshing?: boolean;

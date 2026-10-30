@@ -10,7 +10,7 @@ describe('LibraryAssetTypeBadge', () => {
     );
 
     expect(
-      screen.getByText('Video').closest('[class*="bg-primary/15"]'),
+      screen.getByText('Video').closest('[class*="bg-primary/10"]'),
     ).not.toBeNull();
     expect(screen.queryByText('VIDEO')).not.toBeInTheDocument();
 
@@ -19,7 +19,7 @@ describe('LibraryAssetTypeBadge', () => {
     );
 
     expect(
-      screen.getByText('Video').closest('[class*="bg-primary/15"]'),
+      screen.getByText('Video').closest('[class*="bg-primary/10"]'),
     ).not.toBeNull();
   });
 
@@ -28,27 +28,27 @@ describe('LibraryAssetTypeBadge', () => {
       <LibraryAssetTypeBadge category={IngredientCategory.IMAGE} />,
     );
     expect(
-      screen.getByText('Image').closest('[class*="bg-info/15"]'),
+      screen.getByText('Image').closest('[class*="bg-info/10"]'),
     ).not.toBeNull();
 
     rerender(<LibraryAssetTypeBadge category={IngredientCategory.GIF} />);
     expect(
-      screen.getByText('GIF').closest('[class*="bg-info/15"]'),
+      screen.getByText('GIF').closest('[class*="bg-info/10"]'),
     ).not.toBeNull();
 
     rerender(<LibraryAssetTypeBadge category={IngredientCategory.AVATAR} />);
     expect(
-      screen.getByText('Avatar').closest('[class*="bg-info/15"]'),
+      screen.getByText('Avatar').closest('[class*="bg-info/10"]'),
     ).not.toBeNull();
 
     rerender(<LibraryAssetTypeBadge category={IngredientCategory.MUSIC} />);
     expect(
-      screen.getByText('Audio').closest('[class*="bg-warning/15"]'),
+      screen.getByText('Audio').closest('[class*="bg-warning/10"]'),
     ).not.toBeNull();
 
     rerender(<LibraryAssetTypeBadge category={IngredientCategory.VOICE} />);
     expect(
-      screen.getByText('Voice').closest('[class*="bg-warning/15"]'),
+      screen.getByText('Voice').closest('[class*="bg-warning/10"]'),
     ).not.toBeNull();
 
     rerender(<LibraryAssetTypeBadge category={IngredientCategory.TEXT} />);

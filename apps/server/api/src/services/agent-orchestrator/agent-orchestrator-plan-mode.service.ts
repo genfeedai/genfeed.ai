@@ -1,6 +1,7 @@
 import { type AgentMemoryDocument } from '@api/collections/agent-memories/schemas/agent-memory.schema';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
+import { canThreadSourceReviewPlans } from '@api/collections/agent-threads/utils/agent-thread-mode-for-source.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { AgentAutoModelResolverService } from '@api/services/agent-orchestrator/agent-auto-model-resolver.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
@@ -519,7 +520,13 @@ export class AgentOrchestratorPlanModeService {
       organizationId: organizationId,
     });
 
-    return thread?.mode === AgentThreadMode.PLAN;
+    // A host that cannot show a plan would leave the run paused with nothing
+    // to approve, so its threads answer directly even if they were saved in
+    // Plan mode.
+    return (
+      thread?.mode === AgentThreadMode.PLAN &&
+      canThreadSourceReviewPlans(thread.source)
+    );
   }
 
   /**

@@ -87,7 +87,7 @@ describe('AdsGatewayService', () => {
     expect(service).toBeDefined();
   });
 
-  // ── getAdapter ────────────────────────────────────────────────────────────
+  // getAdapter
 
   describe('getAdapter', () => {
     it('returns the meta adapter', () => {
@@ -109,7 +109,7 @@ describe('AdsGatewayService', () => {
     });
   });
 
-  // ── comparePlatforms ──────────────────────────────────────────────────────
+  // comparePlatforms
 
   describe('comparePlatforms', () => {
     it('fans the same validated insights params to every platform adapter', async () => {

@@ -130,7 +130,7 @@ export function ArticleAbout({
   );
 
   return (
-    <div className="border border-foreground/[0.08] bg-foreground/10 p-4 backdrop-blur-sm md:p-6">
+    <div className="border border-foreground/10 bg-foreground/10 p-4 backdrop-blur-sm md:p-6">
       <h2 className="mb-4 text-base font-semibold text-foreground md:text-lg">
         About {label}
       </h2>
@@ -154,7 +154,7 @@ export function ArticleAbout({
         </p>
 
         <Link
-          className="flex items-center justify-center gap-2 border border-foreground/[0.08] bg-foreground/10 px-3 py-2 text-xs text-foreground transition-colors hover:border-foreground/20 hover:bg-foreground/20 hover:text-foreground/80 lg:justify-start md:text-sm"
+          className="flex items-center justify-center gap-2 border border-foreground/10 bg-foreground/10 px-3 py-2 text-xs text-foreground transition-colors hover:border-foreground/20 hover:bg-foreground/20 hover:text-foreground/80 lg:justify-start md:text-sm"
           href={href}
         >
           <span>{linkLabel}</span>
@@ -240,7 +240,7 @@ export default function ArticleDetail({
         />
 
         {isPreview && (
-          <div className="mb-6 flex items-start gap-3 border border-yellow-500/30 bg-yellow-500/20 p-4 backdrop-blur-sm md:mb-8">
+          <div className="mb-6 flex items-start gap-3 border border-yellow-500/20 bg-yellow-500/20 p-4 backdrop-blur-sm md:mb-8">
             <TriangleAlert className="size-4 flex-shrink-0 text-warning" />
             <span className="text-sm text-foreground md:text-base">
               You are viewing a preview of this article. This article may not be
@@ -255,7 +255,7 @@ export default function ArticleDetail({
               {article.category && (
                 <Badge
                   variant="primary"
-                  className="mb-3 bg-foreground/20 text-foreground border-foreground/30 md:mb-4 md:text-sm"
+                  className="mb-3 bg-foreground/20 text-foreground border-foreground/20 md:mb-4 md:text-sm"
                 >
                   {article.category}
                 </Badge>

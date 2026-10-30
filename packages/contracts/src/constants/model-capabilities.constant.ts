@@ -820,6 +820,25 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 4,
       maxReferences: 1,
     },
+    // Kling 4.0 (https://replicate.com/kwaivgi/kling-v4.0): 3-30 s, 720p or
+    // 1080p, start/middle/end keyframes, up to 10 images in total and
+    // reference or base videos. No audio or negative-prompt input.
+    [MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V4]: {
+      aspectRatios: ASPECT_RATIOS.KLING_4,
+      category: ModelCategory.VIDEO,
+      defaultAspectRatio: '16:9',
+      defaultDuration: 5,
+      durations: Array.from({ length: 28 }, (_, index) => index + 3),
+      hasDurationEditing: true,
+      hasEndFrame: true,
+      hasResolutionOptions: true,
+      // The page says the first frame, end frame, middle images or base
+      // video set the aspect ratio when present.
+      hasSourceDerivedAspect: true,
+      isBatchSupported: false,
+      maxOutputs: 4,
+      maxReferences: 10,
+    },
     [MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO]: {
       aspectRatios: ASPECT_RATIOS.KLING,
       category: ModelCategory.VIDEO,
@@ -1006,6 +1025,23 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       isBatchSupported: false,
       maxOutputs: 4,
       maxReferences: 0,
+    },
+
+    // Wan 3.0: text-to-video, or image-to-video from one first-frame image
+    // (https://replicate.com/alibaba/wan-3, 2-30 s, 480p/720p/1080p).
+    [MODEL_KEYS.REPLICATE_ALIBABA_WAN_3]: {
+      aspectRatios: ASPECT_RATIOS.WAN_3,
+      category: ModelCategory.VIDEO,
+      defaultAspectRatio: '16:9',
+      defaultDuration: 5,
+      durations: Array.from({ length: 29 }, (_, index) => index + 2),
+      hasDurationEditing: true,
+      hasResolutionOptions: true,
+      // The page says the input image's aspect ratio wins over aspect_ratio.
+      hasSourceDerivedAspect: true,
+      isBatchSupported: false,
+      maxOutputs: 4,
+      maxReferences: 1,
     },
 
     [MODEL_KEYS.REPLICATE_META_MUSICGEN]: {

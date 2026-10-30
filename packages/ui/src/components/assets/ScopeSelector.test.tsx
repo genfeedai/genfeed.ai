@@ -51,4 +51,38 @@ describe('ScopeSelector', () => {
       /\b(?:bg|border|divide|text)-(?:black|white)(?:\b|\/|\[)/,
     );
   });
+
+  it('renders the segmented variant as one radio per scope with the active description', () => {
+    render(
+      <ScopeSelector
+        value={AssetScope.BRAND}
+        onChange={vi.fn()}
+        showLabel={false}
+        variant="segmented"
+      />,
+    );
+
+    expect(screen.getAllByRole('radio')).toHaveLength(4);
+    expect(screen.getByRole('radio', { name: 'Brand' })).toBeChecked();
+    expect(screen.getByText('Brand members can access')).toBeInTheDocument();
+    expect(screen.queryByText('Only you can access')).not.toBeInTheDocument();
+  });
+
+  it('selects another scope from the segmented variant and ignores re-pressing the active one', () => {
+    const onChange = vi.fn();
+
+    render(
+      <ScopeSelector
+        value={AssetScope.USER}
+        onChange={onChange}
+        variant="segmented"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Private' }));
+    expect(onChange).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Public' }));
+    expect(onChange).toHaveBeenCalledWith(AssetScope.PUBLIC);
+  });
 });

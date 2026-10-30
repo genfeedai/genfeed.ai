@@ -6,7 +6,6 @@ import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/us
 import type { MenuShellConfig } from '@genfeedai/props/navigation/menu.props';
 import { Kbd } from '@genfeedai/ui';
 import MenuItem from '@ui/menus/item/MenuItem';
-import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { Button } from '@ui/primitives/button';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
@@ -34,7 +33,6 @@ export default function MenuSharedPrimaryAction({
     ? (prefixHref(config.primaryAction) ?? config.primaryAction.href)
     : undefined;
   const isDesktop = useIsDesktopClient();
-  const prefetchPrimaryActionHref = useNavigationPrefetch(primaryActionHref);
 
   if (config.primaryAction) {
     return (
@@ -44,9 +42,6 @@ export default function MenuSharedPrimaryAction({
             data-testid="sidebar-primary-action"
             href={primaryActionHref ?? config.primaryAction.href}
             onClick={handleLinkClick}
-            prefetch={false}
-            onFocus={prefetchPrimaryActionHref}
-            onMouseEnter={prefetchPrimaryActionHref}
             className="flex h-9 w-full items-center gap-3 rounded-md shadow-border bg-card px-3 py-1.5 text-left text-xs font-semibold transition-colors hover:shadow-border-strong hover:bg-tertiary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
             data-tone="accent"
           >
@@ -64,7 +59,7 @@ export default function MenuSharedPrimaryAction({
               <Kbd
                 variant="subtle"
                 size="xs"
-                className="bg-foreground/10 text-foreground/52"
+                className="bg-foreground/10 text-foreground/60"
               >
                 {'⌘⇧'}N
               </Kbd>
@@ -96,7 +91,7 @@ export default function MenuSharedPrimaryAction({
               <Kbd
                 variant="subtle"
                 size="xs"
-                className="bg-foreground/10 text-foreground/52"
+                className="bg-foreground/10 text-foreground/60"
               >
                 {'⌘⇧'}N
               </Kbd>

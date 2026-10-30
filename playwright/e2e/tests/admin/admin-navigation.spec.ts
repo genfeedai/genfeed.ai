@@ -9,7 +9,7 @@ test.describe('Admin navigation', () => {
   test.setTimeout(90_000);
 
   const categories = [
-    { id: 'admin-overview', path: APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD },
+    { id: 'admin-overview', path: APP_ROUTES.ADMIN.OVERVIEW.ROOT },
     {
       id: 'admin-customers',
       path: APP_ROUTES.ADMIN.ADMINISTRATION.USERS,
@@ -33,7 +33,7 @@ test.describe('Admin navigation', () => {
   test('keeps Platform with the other categories and leaves the app from the bottom', async ({
     adminPage,
   }) => {
-    await adminPage.goto(APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD, {
+    await adminPage.goto(APP_ROUTES.ADMIN.OVERVIEW.ROOT, {
       waitUntil: 'domcontentloaded',
     });
 

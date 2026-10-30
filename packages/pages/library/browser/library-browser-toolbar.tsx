@@ -1,18 +1,17 @@
 'use client';
 
-import {
-  ButtonSize,
-  ButtonVariant,
-  ComponentSize,
-  ViewType,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
 import {
   LIBRARY_CANVAS_FEATURE_FLAG,
   type LibraryViewMode,
 } from '@genfeedai/contracts/constants';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag/use-feature-flag';
-import type { LibraryBrowserToolbarProps } from '@props/pages/library-browser.props';
-import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
+import type {
+  LibraryBrowserSearchProps,
+  LibraryBrowserToolbarProps,
+} from '@props/pages/library-browser.props';
+import SearchField from '@ui/content/search-field/SearchField';
+import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Button } from '@ui/primitives/button';
 import LibraryTagManagerDialog from '@ui/tags/library-tag-picker/LibraryTagManagerDialog';
 import {
@@ -58,20 +57,32 @@ const MODE_TO_VIEW_TYPE: Record<LibraryViewMode, ViewType> = {
   list: ViewType.LIST,
 };
 
+/** The Library search, with the one Filters menu (everything but the view) inside it. */
+export function LibraryBrowserSearch({
+  onSearch,
+  placeholder,
+  search,
+  ...filterProps
+}: LibraryBrowserSearchProps) {
+  return (
+    <SearchField onSearch={onSearch} placeholder={placeholder} value={search}>
+      <LibraryFiltersMenu {...filterProps} isAttached />
+    </SearchField>
+  );
+}
+
 /**
- * The Library's control plane: one Filters menu (status, show, type,
- * origin, character, tags, sort) and the view toggle. Folder stays in the
- * sidebar. Applied filters render as chips in `LibraryActiveFilters`. Two
- * controls is what keeps this row, and the icon actions beside it, on one line.
+ * The Library's view switch. The filters and sort live in the search field;
+ * folder stays in the sidebar. Grouped failure recovery has one arrangement,
+ * so it shows no switch.
  */
 export default function LibraryBrowserToolbar({
   isRecoveryView = false,
   onViewModeChange,
   viewMode,
-  ...filterProps
-}: Omit<
+}: Pick<
   LibraryBrowserToolbarProps,
-  'onRefresh' | 'onUpload' | 'isRefreshing'
+  'isRecoveryView' | 'onViewModeChange' | 'viewMode'
 >) {
   const translate = useTranslations('pages.library.browser.toolbar');
   const isCanvasEnabled = useFeatureFlag(LIBRARY_CANVAS_FEATURE_FLAG);
@@ -87,21 +98,16 @@ export default function LibraryBrowserToolbar({
     return options;
   }, [isCanvasEnabled, translate]);
 
-  return (
-    <div className="flex shrink-0 items-center gap-2">
-      <LibraryFiltersMenu {...filterProps} />
+  if (isRecoveryView) {
+    return null;
+  }
 
-      {!isRecoveryView ? (
-        <ViewToggle
-          activeView={MODE_TO_VIEW_TYPE[viewMode]}
-          onChange={(view) =>
-            onViewModeChange(VIEW_TYPE_TO_MODE[view] ?? 'grid')
-          }
-          options={viewOptions}
-          size={ComponentSize.SM}
-        />
-      ) : null}
-    </div>
+  return (
+    <ViewMenu
+      activeView={MODE_TO_VIEW_TYPE[viewMode]}
+      onChange={(view) => onViewModeChange(VIEW_TYPE_TO_MODE[view] ?? 'grid')}
+      options={viewOptions}
+    />
   );
 }
 

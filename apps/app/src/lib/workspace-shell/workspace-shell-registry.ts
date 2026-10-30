@@ -263,7 +263,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/editor': 'Projects',
   '/:orgSlug/~/editor/:id': 'Project',
 
-  '/admin': 'Dashboard',
+  '/admin': 'Overview',
   '/admin/settings/ai': 'AI',
   '/admin/administration/users/:id': 'User',
   '/admin/automation/models/:type': ':type Models',
@@ -272,14 +272,12 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/admin/automation/trainings/:id/sources': 'Training Sources',
   '/admin/configuration/tags/:filter': ':filter Tags',
   '/admin/content/ingredients/:type': ':type Ingredients',
+  '/admin/content/ingredients/:type/:id': ':type Ingredient',
   '/admin/content/posts/:id': 'Post',
   '/admin/content/templates/:id': 'Template',
-  '/admin/images/:id': 'Image',
-  '/admin/organizations/:id': 'Organization Configuration',
-  '/admin/overview/analytics/brands/:id': 'Brand Details',
-  '/admin/overview/analytics/brands/:id/platforms/:platform': ':platform',
-  '/admin/overview/analytics/organizations/:id': 'Organization Details',
-  '/admin/videos/:id': 'Video',
+  '/admin/organizations/:id': 'Organization Details',
+  '/admin/brands/:id': 'Brand Details',
+  '/admin/brands/:id/platforms/:platform': ':platform',
   '/settings': 'Settings',
   '/settings/personal': 'Personal',
   '/settings/help': 'Help',
@@ -565,7 +563,6 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
   ...registerRoutes(
     [
       '/:orgSlug/~/workspace/inbox',
-      '/:orgSlug/~/workspace/inbox/:view',
       '/:orgSlug/~/workspace/activity',
       '/:orgSlug/~/workspace/tasks',
       '/:orgSlug/~/workspace/tasks/:id',
@@ -805,7 +802,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ...registerRoutes(
     [
       '/:orgSlug/:brandSlug/workspace/inbox',
-      '/:orgSlug/:brandSlug/workspace/inbox/:view',
       '/:orgSlug/:brandSlug/workspace/activity',
       '/:orgSlug/:brandSlug/workspace/tasks',
       '/:orgSlug/:brandSlug/workspace/tasks/:id',
@@ -1124,7 +1120,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
 const ADMIN_CONTROL_PLANE_ROUTE_PATTERNS = [
   '/admin',
   '/admin/overview',
-  '/admin/overview/dashboard',
   '/admin/overview/activities',
   '/admin/content/posts',
   '/admin/content/posts/:id',
@@ -1133,9 +1128,8 @@ const ADMIN_CONTROL_PLANE_ROUTE_PATTERNS = [
   '/admin/content/generations',
   '/admin/content/ingredients',
   '/admin/content/ingredients/:type',
+  '/admin/content/ingredients/:type/:id',
   '/admin/folders',
-  '/admin/images/:id',
-  '/admin/videos/:id',
   '/admin/automation/agents',
   '/admin/automation/bots',
   '/admin/automation/failures',
@@ -1189,18 +1183,16 @@ const ADMIN_CONTROL_PLANE_ROUTE_PATTERNS = [
 ] as const;
 
 const ADMIN_ANALYTICS_ROUTE_PATTERNS = [
+  '/admin/brands',
+  '/admin/brands/:id',
+  '/admin/brands/:id/platforms/:platform',
   '/admin/overview/analytics/all',
-  '/admin/overview/analytics/brands',
-  '/admin/overview/analytics/brands/:id',
-  '/admin/overview/analytics/brands/:id/platforms/:platform',
   '/admin/overview/analytics/business',
-  '/admin/overview/analytics/organizations',
-  '/admin/overview/analytics/organizations/:id',
 ] as const;
 
 const ADMIN_ROUTE_REGISTRATIONS = [
   ...registerRoutes(ADMIN_CONTROL_PLANE_ROUTE_PATTERNS, {
-    fallback: '/admin/overview/dashboard',
+    fallback: '/admin/overview',
     mode: 'canvas',
     productClass: 'control-plane',
     scope: 'platform-admin',
@@ -1209,7 +1201,7 @@ const ADMIN_ROUTE_REGISTRATIONS = [
     telemetryClass: 'management',
   }),
   ...registerRoutes(ADMIN_ANALYTICS_ROUTE_PATTERNS, {
-    fallback: '/admin/overview/dashboard',
+    fallback: '/admin/overview',
     mode: 'canvas',
     productClass: 'visual-data',
     scope: 'platform-admin',

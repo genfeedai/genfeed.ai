@@ -1,3 +1,4 @@
+import { selectView } from '@app-tests/view-menu.helpers';
 import {
   ContextSidebarOutlet,
   ContextSidebarProvider,
@@ -49,7 +50,9 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import {
   getGenerationSetup,
   useGenerationSetupStore,
@@ -1068,7 +1071,7 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(mocks.results.mock.calls.at(-1)?.[0].jobs).toHaveLength(1);
   });
 
-  it('removes gallery tabs without hiding history from other asset types', () => {
+  it('removes gallery tabs without hiding history from other asset types', async () => {
     mocks.gallery.mockReturnValue({
       isLoadingGallery: false,
       refresh: vi.fn(),
@@ -1086,19 +1089,22 @@ describe('StudioPlaygroundWorkspace', () => {
 
     const topbar = screen.getByTestId('section-topbar');
     const leading = screen.getByTestId('section-topbar-leading');
-    expect(leading).toContainElement(
-      screen.getByTestId('collapsible-search-trigger'),
-    );
-    fireEvent.click(screen.getByTestId('collapsible-search-trigger'));
-    expect(topbar).toContainElement(
-      screen.getByPlaceholderText('searchPlaceholder'),
+    const search = screen.getByPlaceholderText('searchPlaceholder');
+    expect(leading).toContainElement(search);
+    expect(topbar).toContainElement(search);
+    // Type and sort live in the Filters menu inside the search field, not as
+    // loose dropdowns on the bar.
+    expect(screen.queryByRole('combobox')).toBeNull();
+    const field = search.closest('div')?.parentElement as HTMLElement;
+    await userEvent.click(
+      within(field).getByRole('button', { name: /filters|menu/i }),
     );
     expect(
-      screen.getByRole('combobox', { name: 'filters.type' }),
-    ).toHaveTextContent('filters.allTypes');
+      await screen.findByRole('menuitem', { name: /filters\.type/ }),
+    ).toBeVisible();
     expect(
-      screen.getByRole('combobox', { name: 'filters.sort' }),
-    ).toHaveTextContent('filters.newest');
+      screen.getByRole('menuitem', { name: /filters\.sort/ }),
+    ).toBeVisible();
     expect(screen.queryByTestId('section-topbar-tabs')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'All' })).toBeNull();
     expect(mocks.gallery).toHaveBeenCalledWith({
@@ -1584,7 +1590,7 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(mocks.rehydratePending).toHaveBeenCalledWith(storedJobs);
   });
 
-  it('defaults to the masonry grid and toggles the results into a list', () => {
+  it('defaults to the masonry grid and toggles the results into a list', async () => {
     mocks.gallery.mockReturnValue({
       isLoadingGallery: false,
       refresh: vi.fn(),
@@ -1608,7 +1614,7 @@ describe('StudioPlaygroundWorkspace', () => {
       expect.objectContaining({ view: 'grid' }),
     );
 
-    fireEvent.click(screen.getByRole('radio', { name: 'viewList' }));
+    await selectView(userEvent.setup(), 'viewList');
 
     expect(mocks.results.mock.calls.at(-1)?.[0]).toEqual(
       expect.objectContaining({ view: 'list' }),

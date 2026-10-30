@@ -21,6 +21,20 @@ export const TIER_QUALITY_ACCESS: Record<SubscriptionTier, QualityTier[]> = {
 };
 
 /**
+ * Resolve a persisted `subscriptionTier` (a free-text column that can hold
+ * legacy values) to a known tier. Matching is exact, like the server's plan
+ * entitlement lookup, so a value the server treats as FREE shows as FREE here.
+ */
+export function resolveSubscriptionTier(
+  value: string | null | undefined,
+): SubscriptionTier {
+  return (
+    Object.values(SubscriptionTier).find((tier) => tier === value) ??
+    SubscriptionTier.FREE
+  );
+}
+
+/**
  * Get all allowed quality tiers for a subscription tier.
  * Returns BASIC only for unknown tiers.
  */

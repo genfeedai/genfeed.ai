@@ -160,7 +160,7 @@ export default function HookRemixModal({
         </div>
 
         {video && (
-          <div className="bg-foreground/[0.04] px-3 py-2 text-xs text-foreground/50">
+          <div className="bg-foreground/5 px-3 py-2 text-xs text-foreground/50">
             <span className="font-medium text-foreground/70">Source:</span>{' '}
             {video.title || video.hook || 'Untitled'} by @{video.creatorHandle}
             {video.views ? ` - ${video.views.toLocaleString()} views` : ''}

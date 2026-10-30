@@ -119,22 +119,20 @@ describe('ModelsLayoutContent', () => {
     });
   });
 
-  it('keeps the Filters menu on one non-wrapping row and refresh in the refresh slot', () => {
+  it('renders refresh from its slot ahead of the Filters menu', () => {
     render(
       <ModelsLayoutContent>
         <div>children</div>
       </ModelsLayoutContent>,
     );
 
-    const row = screen.getByTestId('models-layout-actions');
     const filter = screen.getByRole('button', { name: /^Filters/ });
     const refresh = screen.getByRole('button', { name: 'Refresh' });
 
-    expect(row.className).toMatch(/items-center/);
-    expect(row.className).not.toMatch(/flex-wrap/);
-    expect(row).toContainElement(filter);
-    // Refresh lives in the Container `refresh` slot, not the actions row.
-    expect(row).not.toContainElement(refresh);
+    expect(
+      refresh.compareDocumentPosition(filter) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('hides refresh on the Custom Models tab', () => {

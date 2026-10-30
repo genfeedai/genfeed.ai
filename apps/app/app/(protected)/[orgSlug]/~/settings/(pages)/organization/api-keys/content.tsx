@@ -10,6 +10,7 @@ import {
   API_KEY_SCOPE_PRESETS,
   ITEMS_PER_PAGE,
 } from '@genfeedai/contracts/constants';
+import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
@@ -38,7 +39,7 @@ import {
   Trash2,
   TriangleAlert,
 } from 'lucide-react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { isApiKeyLimitReached } from './api-key-create-error';
@@ -115,7 +116,7 @@ export default function SettingsApiKeysPage() {
     confirmedOrganizationSlug,
   } = useRoutedOrganization();
   const { sessionId, userId, orgId } = useAuthIdentity();
-  const { orgSlug } = useParams<{ orgSlug: string }>();
+  const { orgSlug } = useRouteParams<{ orgSlug: string }>();
   const isKeylessSelfHosted =
     isSelfHostedDeployment() && !isBetterAuthEnabled();
   const isAuthorized =
@@ -571,8 +572,8 @@ function AuthorizedApiKeysContent({
                       className={cn(
                         'h-8 rounded-md border px-3 text-xs font-medium',
                         isActive
-                          ? 'border-foreground/25 bg-foreground/[0.08] text-foreground'
-                          : 'border-border text-foreground/70 hover:bg-foreground/[0.04] hover:text-foreground',
+                          ? 'border-foreground/20 bg-foreground/10 text-foreground'
+                          : 'border-border text-foreground/70 hover:bg-foreground/5 hover:text-foreground',
                       )}
                       onClick={() => handlePresetSelect(preset.scopes)}
                     >
@@ -597,7 +598,7 @@ function AuthorizedApiKeysContent({
                     className={cn(
                       'flex items-center gap-2 rounded-md border px-3 py-2 text-xs transition-colors',
                       isFullySelected
-                        ? 'border-foreground/20 bg-foreground/[0.04]'
+                        ? 'border-foreground/20 bg-foreground/5'
                         : isPartiallySelected
                           ? 'border-border bg-muted/20'
                           : 'border-border',

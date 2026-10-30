@@ -8,7 +8,10 @@ export interface FiltersBarProps {
   filters: IFiltersState;
   onFiltersChange: (filters: IFiltersState, query: IFilters) => void;
   className?: string;
+  /** Sits inside a search field's trailing edge: a compact trigger, no own wrapper spacing. */
+  isAttached?: boolean;
   visibleFilters?: {
+    /** Read by pages to decide whether to render `FiltersSearch`, which carries the Filters menu inside its field; the menu alone has no search. */
     search?: boolean;
     status?: boolean;
     format?: boolean;

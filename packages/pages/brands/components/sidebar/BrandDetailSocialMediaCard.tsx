@@ -773,7 +773,7 @@ export default function BrandDetailSocialMediaCard({
 
         {selectedOverrideHealth ? (
           <div className="space-y-4">
-            <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
+            <div className="rounded-md border border-warning/20 bg-warning/10 p-3 text-sm text-warning">
               {selectedOverrideHealth.holdReason ??
                 translate('accountHeldByWarmup')}
             </div>

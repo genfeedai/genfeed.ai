@@ -121,7 +121,7 @@ test.describe('Workflows builder & canvas interactions', () => {
     await expectNoErrorOverlay(authenticatedPage);
   });
 
-  test('node palette can be searched in the new builder', async ({
+  test('Add node menu searches the catalog and adds a step to the canvas', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(
@@ -131,27 +131,56 @@ test.describe('Workflows builder & canvas interactions', () => {
       },
     );
 
+    await expect(authenticatedPage.locator('.react-flow').first()).toBeVisible({
+      timeout: 20_000,
+    });
+    // The fixed palette column is gone; steps are added from the toolbar.
+    await expect(
+      authenticatedPage.getByPlaceholder('Search nodes...'),
+    ).toHaveCount(0);
+    const nodes = authenticatedPage.locator('.react-flow__node');
+    const nodeCountBefore = await nodes.count();
+
+    await authenticatedPage.getByRole('button', { name: 'Add node' }).click();
+    const search = authenticatedPage.getByPlaceholder('Search nodes...');
+    await search.fill('Stitch');
     await authenticatedPage
-      .locator('.react-flow')
-      .first()
-      .waitFor({ state: 'visible', timeout: 20_000 })
-      .catch(() => {});
+      .getByRole('button', { name: /Stitch Videos/ })
+      .click();
 
-    // Toggle the palette open if it is collapsed, then search.
-    await tryClick(authenticatedPage, 'button[title*="sidebar" i]');
-    await authenticatedPage.waitForTimeout(200);
+    await expect(nodes).toHaveCount(nodeCountBefore + 1);
+    await expect(search).toHaveCount(0);
+    await expectNoErrorOverlay(authenticatedPage);
+  });
 
-    const nodeSearch = authenticatedPage
-      .getByPlaceholder('Search nodes...')
-      .first();
-    const hasSearch = await nodeSearch.isVisible().catch(() => false);
-    if (hasSearch) {
-      await nodeSearch.fill('image').catch(() => {});
-      await authenticatedPage.waitForTimeout(300);
-      await nodeSearch.fill('').catch(() => {});
-    }
+  test('new workflow builder sits in the agent rail beside the canvas', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.goto(
+      brandPath(APP_ROUTES.AUTOMATION.WORKFLOWS_NEW),
+      {
+        waitUntil: 'domcontentloaded',
+      },
+    );
 
-    await expect(authenticatedPage.locator('body')).toBeVisible();
+    const agent = authenticatedPage.getByTestId('agent-output-agent-pane');
+    const output = authenticatedPage.getByTestId('agent-output-output-pane');
+    await expect(agent).toBeVisible({ timeout: 20_000 });
+    await expect(output.locator('.react-flow').first()).toBeVisible({
+      timeout: 20_000,
+    });
+
+    // Agent on the left, canvas on the right, and one agent only: the
+    // product dock is off on the editor routes.
+    const [agentBox, outputBox] = await Promise.all([
+      agent.boundingBox(),
+      output.boundingBox(),
+    ]);
+    expect(agentBox?.x ?? 0).toBeLessThan(outputBox?.x ?? 0);
+    await expect(authenticatedPage.getByTestId('agent-dock')).toHaveCount(0);
+    await expect(
+      authenticatedPage.getByTestId('topbar-agent-dock-toggle'),
+    ).toHaveCount(0);
     await expectNoErrorOverlay(authenticatedPage);
   });
 

@@ -76,7 +76,7 @@ export default function CreditTopUpPanel({
     cn(
       'inline-flex h-9 items-center gap-2 rounded border px-3 text-left transition-colors',
       selected
-        ? 'border-foreground bg-foreground/[0.06] text-foreground'
+        ? 'border-foreground bg-foreground/5 text-foreground'
         : 'border-border bg-muted/40 text-muted-foreground hover:bg-muted/60 hover:text-foreground',
     );
 

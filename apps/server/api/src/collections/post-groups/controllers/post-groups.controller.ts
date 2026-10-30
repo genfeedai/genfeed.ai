@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { EnsureReleaseFromPostDto } from '@api/collections/post-groups/dto/ensure-release-from-post.dto';
 import { PostGroupsQueryDto } from '@api/collections/post-groups/dto/post-groups-query.dto';
 import { PostGroupRecurrenceService } from '@api/collections/post-groups/services/post-group-recurrence.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
@@ -83,17 +84,13 @@ export class PostGroupsController {
   async ensureFromPost(
     @Req() req: Request,
     @CurrentUser() user: User,
-    @Body() body: unknown,
+    @Body() body: EnsureReleaseFromPostDto,
   ) {
     const metadata = user;
-    const postId =
-      body && typeof body === 'object' && !Array.isArray(body)
-        ? (body as Record<string, unknown>).postId
-        : undefined;
     const data = await this.postGroupsService.ensureReleaseForPost(
       metadata.organizationId,
       user.id,
-      typeof postId === 'string' ? postId : '',
+      body.postId,
     );
     return serializeSingle(req, ReleaseGroupSerializer, data);
   }

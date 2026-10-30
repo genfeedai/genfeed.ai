@@ -29,7 +29,6 @@ const SHORTCUTS: ShortcutItem[] = [
     description: 'Fit view to selection (or all)',
     keys: 'F',
   },
-  { category: 'Navigation', description: 'Toggle sidebar', keys: 'M' },
 
   // Selection
   { category: 'Selection', description: 'Select node', keys: 'Click' },

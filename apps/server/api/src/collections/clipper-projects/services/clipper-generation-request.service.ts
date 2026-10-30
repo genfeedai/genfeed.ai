@@ -221,6 +221,9 @@ export class ClipperGenerationRequestService {
 
       return {
         ...highlight,
+        ...(editedHighlight.script !== undefined
+          ? { script: editedHighlight.script }
+          : {}),
         summary: editedHighlight.summary,
         title: editedHighlight.title,
       };

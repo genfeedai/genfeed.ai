@@ -120,7 +120,7 @@ export default function SchedulePanel({
   }, [workflowId, onScheduleUpdate, getWorkflowsService]);
 
   return (
-    <div className="border-b border-white/[0.08]">
+    <div className="border-b border-white/10">
       <Button
         className="flex cursor-pointer items-center justify-between px-4 py-3"
         onClick={onToggleCollapse}

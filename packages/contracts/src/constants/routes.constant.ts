@@ -11,6 +11,7 @@ export const APP_ROUTES = {
   SIGN_UP: '/sign-up',
   ADMIN: {
     ROOT: '/admin',
+    BRANDS: '/admin/brands',
     FLAGS: '/admin/flags',
     SETTINGS: {
       ACCOUNTS: '/admin/settings/accounts',
@@ -37,8 +38,6 @@ export const APP_ROUTES = {
       BOTS: '/admin/automation/bots',
       FAILURES: '/admin/automation/failures',
       MODELS: '/admin/automation/models',
-      MODELS_ACTIVE: '/admin/automation/models?type=active',
-      MODELS_ALL: '/admin/automation/models?type=all',
       TRAININGS: '/admin/automation/trainings',
       WORKFLOWS: '/admin/automation/workflows',
     },
@@ -57,13 +56,11 @@ export const APP_ROUTES = {
       FONT_FAMILIES: '/admin/configuration/font-families',
       PRESETS: '/admin/configuration/presets',
       TAGS: '/admin/configuration/tags',
-      TAGS_ALL: '/admin/configuration/tags?filter=all',
     },
     CONTENT: {
       // Ghost CRM routes (analytics/companies/leads/tasks) removed — no pages.
       GENERATIONS: '/admin/content/generations',
       INGREDIENTS: '/admin/content/ingredients',
-      INGREDIENTS_VIDEOS: '/admin/content/ingredients/videos',
       POSTS: '/admin/content/posts',
       TEMPLATES: '/admin/content/templates',
     },
@@ -75,7 +72,6 @@ export const APP_ROUTES = {
       ROOT: '/admin/economics',
     },
     FOLDERS: '/admin/folders',
-    IMAGES: '/admin/images',
     LIBRARY: {
       VOICES: '/admin/library/voices',
     },
@@ -85,12 +81,9 @@ export const APP_ROUTES = {
       ACTIVITIES: '/admin/overview/activities',
       ANALYTICS: '/admin/overview/analytics',
       ANALYTICS_ALL: '/admin/overview/analytics/all',
-      ANALYTICS_BRANDS: '/admin/overview/analytics/brands',
       ANALYTICS_BUSINESS: '/admin/overview/analytics/business',
-      ANALYTICS_ORGANIZATIONS: '/admin/overview/analytics/organizations',
-      DASHBOARD: '/admin/overview/dashboard',
+      ROOT: '/admin/overview',
     },
-    VIDEOS: '/admin/videos',
   },
   ANALYTICS: {
     ROOT: '/analytics',
@@ -382,9 +375,6 @@ export const APP_ROUTES = {
   WORKSPACE: {
     ACTIVITY: '/workspace/activity',
     INBOX: '/workspace/inbox',
-    INBOX_ALL: '/workspace/inbox/all',
-    INBOX_RECENT: '/workspace/inbox/recent',
-    INBOX_UNREAD: '/workspace/inbox/unread',
     /**
      * Canonical workspace home. Bare ROOT (`/workspace`) redirects here so the
      * Overview nav item is a complete path that does not prefix-match
@@ -647,6 +637,9 @@ export const MESSAGES_CONVERSATION_QUERY_PARAM = 'socialConversation';
 
 /** #5502 query param that seeds the Messages inbox type filter (`dm`, `reply`, `comment`). */
 export const MESSAGES_TYPE_QUERY_PARAM = 'type';
+
+/** Query param of the Messages Status filter; the default (Inbox) is omitted. */
+export const MESSAGES_STATUS_QUERY_PARAM = 'status';
 
 /** Brand-relative path that opens one Messages conversation. */
 export function createMessagesConversationRoute(

@@ -18,8 +18,8 @@ import type {
 import {
   AnalyticsMetric,
   fromPrismaCredentialPlatform,
-  sumEngagement,
 } from '@genfeedai/contracts';
+import { sumEngagement } from '@genfeedai/contracts/analytics';
 import type { IPlatformComparison } from '@genfeedai/contracts/interfaces';
 
 type TimeSeriesGroup = 'day' | 'week';

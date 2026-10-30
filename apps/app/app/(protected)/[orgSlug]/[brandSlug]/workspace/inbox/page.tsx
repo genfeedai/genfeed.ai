@@ -1,35 +1,17 @@
-import { createBrandAppRoute } from '@genfeedai/contracts/constants';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import { redirect } from 'next/navigation';
+import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
+import WorkspacePageContent from '../workspace-page';
 
 export const generateMetadata = createPageMetadata('Workspace Inbox');
 
 /**
- * The inbox has no view of its own: `/workspace/inbox` opens the unread view
- * with the filters it was given.
+ * The inbox is one page. Unread / Recent / All is the Status filter in the
+ * subbar (`?status=`, Unread by default), not a route segment.
  */
-export default async function WorkspaceInboxPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ brandSlug: string; orgSlug: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const [{ brandSlug, orgSlug }, search] = await Promise.all([
-    params,
-    searchParams,
-  ]);
-
-  const rest = new URLSearchParams();
-  for (const [key, value] of Object.entries(search)) {
-    if (key === 'view' || value === undefined) continue;
-    for (const entry of [value].flat()) {
-      rest.append(key, entry);
-    }
-  }
-  const query = rest.toString();
-
-  redirect(
-    `${createBrandAppRoute(orgSlug, brandSlug, '/workspace/inbox/unread')}${query ? `?${query}` : ''}`,
+export default function WorkspaceInboxPage() {
+  return (
+    <ErrorBoundary>
+      <WorkspacePageContent section="inbox" />
+    </ErrorBoundary>
   );
 }

@@ -7,7 +7,11 @@ import {
   SubscriptionTier,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { QUALITY_TIER_OPTIONS, TIER_QUALITY_ACCESS } from '@genfeedai/helpers';
+import {
+  QUALITY_TIER_OPTIONS,
+  resolveSubscriptionTier,
+  TIER_QUALITY_ACCESS,
+} from '@genfeedai/helpers';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
@@ -137,9 +141,10 @@ export default function ModalUpgradePrompt({
 }
 
 function PlanUpgradePrompt({
-  currentTier = SubscriptionTier.FREE,
+  currentTier: persistedTier,
   lockedQualityTier,
 }: ModalUpgradePromptProps) {
+  const currentTier = resolveSubscriptionTier(persistedTier);
   const translate = useTranslations('ui.upgradePrompt');
   const { isNavigating, navigateTo } = useAppNavigation();
 

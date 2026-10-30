@@ -60,7 +60,7 @@ function SourceRow({
       ? 'text-destructive'
       : syncStatus === 'empty'
         ? 'text-warning'
-        : 'text-foreground/52';
+        : 'text-foreground/60';
 
   return (
     <div className="flex items-start justify-between gap-3 p-4">
@@ -97,7 +97,7 @@ function SourceRow({
               : 'Never synced'}
         </div>
         {source.lastSyncError ? (
-          <p className="mt-1 text-xs leading-5 text-foreground/55">
+          <p className="mt-1 text-xs leading-5 text-foreground/60">
             {source.lastSyncError}
           </p>
         ) : null}
@@ -308,7 +308,7 @@ export default function DeskSourcesMenu({
                 />
               ))
             ) : (
-              <div className="p-5 text-sm text-foreground/62">
+              <div className="p-5 text-sm text-foreground/70">
                 {translateDesk('sourcesMenu.noSourcesFollowed')}
               </div>
             )}

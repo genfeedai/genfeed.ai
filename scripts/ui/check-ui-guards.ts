@@ -28,6 +28,20 @@ const checks = [
     required: true,
   },
   {
+    // List pages search through SearchField (the Filters menu attached inside
+    // it), never the raw Searchbar, so every subbar stays one design.
+    command: ['bun', 'run', 'scripts/check-subbar-search.ts'],
+    name: 'Subbar search (SearchField, Filters menu inside)',
+    required: true,
+  },
+  {
+    // Subbars take refresh in `refresh` and their controls through
+    // SubbarControls, so every bar keeps one order.
+    command: ['bun', 'run', 'scripts/check-subbar-slots.ts'],
+    name: 'Subbar slots (refresh slot, SubbarControls order)',
+    required: true,
+  },
+  {
     command: ['bun', 'run', 'scripts/check-no-nested-cards.ts'],
     name: 'Nested card composition',
     required: true,
@@ -59,6 +73,11 @@ const checks = [
   {
     command: ['bun', 'run', 'scripts/check-hardcoded-app-routes.ts'],
     name: 'Hardcoded app routes (nav sinks must use APP_ROUTES / route builders)',
+    required: true,
+  },
+  {
+    command: ['bun', 'run', 'scripts/check-route-params-guard.ts'],
+    name: 'Route params (useRouteParams, never next/navigation useParams)',
     required: true,
   },
 ] as const;

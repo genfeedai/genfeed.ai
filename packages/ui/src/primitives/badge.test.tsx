@@ -29,12 +29,12 @@ describe('Badge', () => {
   });
 
   it.each([
-    ['destructive', 'text-destructive', 'bg-destructive/15'],
-    ['success', 'text-success', 'bg-success/15'],
-    ['warning', 'text-warning', 'bg-warning/15'],
-    ['info', 'text-info', 'bg-info/15'],
+    ['destructive', 'text-destructive', 'bg-destructive/10'],
+    ['success', 'text-success', 'bg-success/10'],
+    ['warning', 'text-warning', 'bg-warning/10'],
+    ['info', 'text-info', 'bg-info/10'],
     ['secondary', 'text-muted-foreground', 'bg-tertiary'],
-    ['default', 'text-primary', 'bg-primary/15'],
+    ['default', 'text-primary', 'bg-primary/10'],
   ] as const)(
     'renders %s with a visible semantic tone',
     (variant, textClass, bgClass) => {

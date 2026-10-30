@@ -77,7 +77,7 @@ function SoundOverlayNodeComponent({
           className={`flex items-center gap-2 p-2 border ${
             data.videoUrl
               ? 'bg-green-500/10 border-green-500/20'
-              : 'bg-background border-white/[0.08]'
+              : 'bg-background border-white/10'
           }`}
         >
           <Video className="size-4" />
@@ -89,7 +89,7 @@ function SoundOverlayNodeComponent({
           className={`flex items-center gap-2 p-2 border ${
             data.soundUrl
               ? 'bg-green-500/10 border-green-500/20'
-              : 'bg-background border-white/[0.08]'
+              : 'bg-background border-white/10'
           }`}
         >
           <Music className="size-4" />
@@ -118,7 +118,7 @@ function SoundOverlayNodeComponent({
               className={`w-full p-2 text-left border transition ${
                 data.mixMode === m.value
                   ? 'border-primary bg-primary/10'
-                  : 'border-white/[0.08] hover:border-primary/50'
+                  : 'border-white/10 hover:border-primary/50'
               }`}
             >
               <div className="text-sm font-medium">{m.label}</div>

@@ -11,6 +11,7 @@ import AdminAgentsPage from './admin-agents-page';
 
 const mocks = vi.hoisted(() => ({
   findAllPages: vi.fn(),
+  search: { value: '' },
 }));
 
 vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
@@ -26,6 +27,13 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 vi.mock('@ui/content/admin-filters/AdminOrgBrandUrlFilter', () => ({
   default: () => <div>Organization filter</div>,
   useAdminOrgBrandParams: () => ({ brand: '', organization: 'org-2' }),
+}));
+
+vi.mock('@ui/content/admin-filters/useAdminSearchParam', () => ({
+  useAdminSearchParam: () => ({
+    search: mocks.search.value,
+    setSearch: vi.fn(),
+  }),
 }));
 
 vi.mock('@ui/layout/admin-page-shell/AdminPageShell', () => ({
@@ -83,6 +91,38 @@ vi.mock('next-intl', async () => {
 });
 
 describe('AdminAgentsPage', () => {
+  it('narrows the list by agent, type or brand with the q search', async () => {
+    mocks.search.value = 'acme';
+    mocks.findAllPages.mockResolvedValue([
+      {
+        agentType: 'growth',
+        brand: { id: 'brand-1', label: 'Acme', slug: 'acme' },
+        id: 'strategy-1',
+        isActive: true,
+        label: 'X growth agent',
+        platforms: ['twitter'],
+      },
+      {
+        agentType: 'growth',
+        brand: { id: 'brand-2', label: 'Globex', slug: 'globex' },
+        id: 'strategy-2',
+        isActive: true,
+        label: 'Newsletter agent',
+        platforms: ['linkedin'],
+      },
+    ]);
+
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <AdminAgentsPage />
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText('X growth agent')).toBeTruthy();
+    expect(screen.queryByText('Newsletter agent')).toBeNull();
+    mocks.search.value = '';
+  });
+
   it("lists the selected organization's agents with their publishing mode", async () => {
     mocks.findAllPages.mockResolvedValue([
       {

@@ -18,6 +18,7 @@ import {
   type AgentThreadMetadataBody,
   pickAgentThreadMetadata,
 } from '@api/collections/agent-threads/utils/agent-thread-metadata.util';
+import { resolveThreadModeForSource } from '@api/collections/agent-threads/utils/agent-thread-mode-for-source.util';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
@@ -273,14 +274,18 @@ export class AgentThreadsController {
         requestedBrandId: body.brandId,
         userId: dbUserId,
       });
+      const source = body.source || 'web';
       const thread = await this.agentThreadsService.create({
         ...preparedScope.initialScopeFields,
         organizationId,
         ...(body.runtimeKey ? { runtimeKey: body.runtimeKey } : {}),
-        source: body.source || 'web',
+        source,
         title: body.title,
         userId: dbUserId,
-        mode: await this.agentThreadsService.resolveSavedMode(dbUserId),
+        mode: resolveThreadModeForSource(
+          await this.agentThreadsService.resolveSavedMode(dbUserId),
+          source,
+        ),
       });
       return serializeSingle(
         req,

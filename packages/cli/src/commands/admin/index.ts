@@ -10,6 +10,7 @@ import { clearAdminTokenCache, revokeAdminSession, verifyAdminSession } from '@/
 import { waitForAdminSession } from '@/commands/login';
 import { getAdminSession, getApiUrl, getLoginEndpoints, setAdminSession } from '@/config/store';
 import {
+  addOrganizationMember,
   approvePricingRates,
   approveSystemBrand,
   createOrganizationBrand,
@@ -24,12 +25,15 @@ import {
   fixModelPricing,
   grantOrganizationCredits,
   type OrganizationBrandInput,
+  type OrganizationBrandSummary,
+  type OrganizationBrandUpdate,
   type PriceSyncProvider,
   prepareWarmupAccount,
   readHarnessActivation,
   readNotificationStatus,
   readOnboardingFunnel,
   readOrganizationAppsReport,
+  readOrganizationBrand,
   readOrganizationsReport,
   readPricingReport,
   readSystemBrand,
@@ -39,6 +43,7 @@ import {
   seedTemplates,
   seedWorkflows,
   syncProviderPrices,
+  updateOrganizationBrand,
   updateSystemBrand,
   type WarmupAccountInput,
   type WarmupPrepareInput,
@@ -65,6 +70,27 @@ interface OrganizationBrandCreateOptions {
   yes?: boolean;
 }
 
+interface OrganizationBrandShowOptions {
+  brand: string;
+  json?: boolean;
+  org: string;
+}
+
+interface OrganizationBrandUpdateOptions {
+  backgroundColor?: string;
+  brand: string;
+  description?: string;
+  fontFamily?: string;
+  label?: string;
+  org: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  watermarkOpacity?: number;
+  watermarkPosition?: OrganizationBrandUpdate['watermarkPosition'];
+  watermarkText?: string;
+  yes?: boolean;
+}
+
 interface OrganizationBrandScanOptions {
   brand: string;
   org: string;
@@ -77,6 +103,15 @@ interface CreditsGrantOptions {
   expiresInDays?: number;
   idempotencyKey?: string;
   reason: string;
+  yes?: boolean;
+}
+
+interface MemberAddOptions {
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  org: string;
+  role: string;
   yes?: boolean;
 }
 
@@ -716,7 +751,9 @@ function createSeedCommand(): Command {
 
 function createBrandCommand(): Command {
   const brand = new Command('brand')
-    .description('Review the system brand kit; create and scan brands inside any organization')
+    .description(
+      'Review the system brand kit; create, read, update and scan brands inside any organization'
+    )
     .addCommand(
       new Command('show')
         .description('Show the system brand revision (created on first use)')
@@ -771,6 +808,43 @@ function createBrandCommand(): Command {
   return brand;
 }
 
+function toBrandUpdate(options: OrganizationBrandUpdateOptions): OrganizationBrandUpdate {
+  const fields: OrganizationBrandUpdate = {
+    backgroundColor: options.backgroundColor,
+    description: options.description,
+    fontFamily: options.fontFamily,
+    label: options.label,
+    primaryColor: options.primaryColor,
+    secondaryColor: options.secondaryColor,
+    watermarkOpacity: options.watermarkOpacity,
+    watermarkPosition: options.watermarkPosition,
+    watermarkText: options.watermarkText === undefined ? undefined : options.watermarkText || null,
+  };
+  return Object.fromEntries(
+    Object.entries(fields).filter(([, value]) => value !== undefined)
+  ) as OrganizationBrandUpdate;
+}
+
+function printBrandSummary(brand: OrganizationBrandSummary): void {
+  print(formatLabel('Brand', `${brand.label} (${brand.id}, slug ${brand.slug})`));
+  print(formatLabel('Font', brand.fontFamily ?? '-'));
+  print(
+    formatLabel(
+      'Colors',
+      [brand.primaryColor, brand.secondaryColor, brand.backgroundColor].filter(Boolean).join(' ')
+    )
+  );
+  print(formatLabel('Watermark text', brand.watermarkText ?? '-'));
+  print(formatLabel('Watermark logo', brand.watermarkLogoId ?? '-'));
+  print(
+    formatLabel(
+      'Watermark',
+      `${brand.watermarkPosition ?? '-'} at opacity ${brand.watermarkOpacity ?? '-'}`
+    )
+  );
+  print(formatLabel('End card', brand.isEndCardEnabled ? (brand.endCardAssetId ?? 'on') : 'off'));
+}
+
 function createOrganizationBrandSubcommands(): Command[] {
   return [
     new Command('create')
@@ -802,6 +876,60 @@ function createOrganizationBrandSubcommands(): Command[] {
           }
           const brand = await createOrganizationBrand(options.org, input);
           print(formatSuccess(`Created brand ${brand.label} (${brand.id}, slug ${brand.slug})`));
+        } catch (error) {
+          handleError(error);
+        }
+      }),
+    new Command('kit')
+      .description('Show the kit fields of a brand in any organization')
+      .requiredOption('--org <organizationId>', 'Organization id')
+      .requiredOption('--brand <brandId>', 'Brand id')
+      .option('--json', 'Output as JSON')
+      .action(async (options: OrganizationBrandShowOptions, command: Command) => {
+        try {
+          const brand = await readOrganizationBrand(options.org, options.brand);
+          if (wantsJson(command)) {
+            printJson(brand);
+            return;
+          }
+          printBrandSummary(brand);
+        } catch (error) {
+          handleError(error);
+        }
+      }),
+    new Command('set-kit')
+      .description('Update the kit fields of a brand in any organization (preview unless --yes)')
+      .requiredOption('--org <organizationId>', 'Organization id')
+      .requiredOption('--brand <brandId>', 'Brand id')
+      .option('--label <label>', 'Brand name')
+      .option('--description <text>', 'Brand description')
+      .option('--font-family <fontFamily>', 'FontFamily enum value')
+      .option('--primary-color <hex>', 'Primary color')
+      .option('--secondary-color <hex>', 'Secondary color')
+      .option('--background-color <hex>', 'Background color')
+      .option('--watermark-text <text>', 'Watermark text (empty string clears it)')
+      .option('--watermark-opacity <0.05-1>', 'Watermark opacity', Number)
+      .option('--watermark-position <corner>', 'top-left, top-right, bottom-left or bottom-right')
+      .option('--yes', 'Apply the update')
+      .action(async (options: OrganizationBrandUpdateOptions) => {
+        try {
+          const input = toBrandUpdate(options);
+          if (Object.keys(input).length === 0) {
+            throw new Error('Pass at least one field to update.');
+          }
+          if (!options.yes) {
+            print(formatHeader('Brand update (preview)\n'));
+            print(formatLabel('Organization', options.org));
+            print(formatLabel('Brand', options.brand));
+            for (const [field, value] of Object.entries(input)) {
+              print(formatLabel(field, String(value)));
+            }
+            print(formatWarning('Re-run with --yes to apply the update.'));
+            return;
+          }
+          const brand = await updateOrganizationBrand(options.org, options.brand, input);
+          print(formatSuccess(`Updated brand ${brand.label} (${brand.id})`));
+          printBrandSummary(brand);
         } catch (error) {
           handleError(error);
         }
@@ -871,6 +999,51 @@ function createCreditsCommand(): Command {
         }
       })
   );
+}
+
+function createMemberCommand(): Command {
+  return new Command('member')
+    .description('Manage organization members (never sends an email)')
+    .addCommand(
+      new Command('add')
+        .description('Add a member to an organization with a role (preview unless --yes)')
+        .requiredOption('--org <organizationId>', 'Organization id')
+        .requiredOption('--email <email>', 'Member email')
+        .option('--role <role>', 'Role: admin or member', 'admin')
+        .option('--first-name <name>', 'First name, used only when the user is created')
+        .option('--last-name <name>', 'Last name, used only when the user is created')
+        .option('--yes', 'Apply the change')
+        .action(async (options: MemberAddOptions) => {
+          try {
+            if (options.role !== 'admin' && options.role !== 'member') {
+              throw new GenfeedError('--role must be admin or member');
+            }
+            if (!options.yes) {
+              print(formatHeader('Add member (preview)\n'));
+              print(formatLabel('Organization', options.org));
+              print(formatLabel('Email', options.email));
+              print(formatLabel('Role', options.role));
+              print(formatWarning('No email is sent. Re-run with --yes to add the member.'));
+              return;
+            }
+            const added = await addOrganizationMember(options.org, {
+              email: options.email,
+              firstName: options.firstName,
+              lastName: options.lastName,
+              roleKey: options.role,
+            });
+            print(
+              formatSuccess(
+                `${added.isMemberCreated ? 'Added' : 'Updated'} member ${added.memberId} as ${added.roleKey} (${
+                  added.isUserCreated ? 'new user' : 'existing user'
+                } ${added.userId})`
+              )
+            );
+          } catch (error) {
+            handleError(error);
+          }
+        })
+    );
 }
 
 function createWarmupCommand(): Command {
@@ -1088,4 +1261,5 @@ export const adminCommand = new Command('admin')
   .addCommand(createSeedCommand())
   .addCommand(createBrandCommand())
   .addCommand(createCreditsCommand())
+  .addCommand(createMemberCommand())
   .addCommand(createWarmupCommand());

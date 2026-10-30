@@ -10,6 +10,7 @@ import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { ILink } from '@genfeedai/contracts/interfaces';
 import { isPublicAssetScope } from '@genfeedai/helpers';
 import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import BrandDetailBanner from '@pages/brands/components/banner/BrandDetailBanner';
@@ -23,7 +24,6 @@ import {
   LazyModalBrandGenerate,
   LazyModalBrandLink,
 } from '@ui/lazy/modal/LazyModal';
-import { useParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
 import BrandDetailLatestArticles from './BrandDetailLatestArticles';
 import BrandDetailLatestImages from './BrandDetailLatestImages';
@@ -62,7 +62,7 @@ export default function BrandDetail() {
     selectLink,
   } = useBrandDetail();
 
-  const params = useParams();
+  const params = useRouteParams();
   const orgSlug = typeof params?.orgSlug === 'string' ? params.orgSlug : '';
   const brandSlug =
     typeof params?.brandSlug === 'string' ? params.brandSlug : '';

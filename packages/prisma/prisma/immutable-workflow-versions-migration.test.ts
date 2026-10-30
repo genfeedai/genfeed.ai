@@ -72,6 +72,15 @@ const rejectedLegacyStepCategories = [
   'performance-track',
 ] as const;
 
+/**
+ * Executors registered after the hard cut shipped. The migration's executor
+ * snapshot is frozen with the applied SQL, and no legacy graph can reference
+ * an action that did not exist when it was written, so these stay out of the
+ * snapshot. The parity test below requires each to be registered and absent
+ * from the snapshot, so a listed id cannot hide drift.
+ */
+const postHardCutExecutorIds = ['brandCover'] as const;
+
 const legacyStepCategories = [
   ...rejectedLegacyStepCategories,
   'delay',
@@ -344,7 +353,9 @@ describe('immutable workflow version migration', () => {
     );
     const expectedAtomicActionIds = [
       ...registeredExecutorNodeTypes().filter(
-        (nodeType) => !engineNativeExecutorNodeTypes.has(nodeType),
+        (nodeType) =>
+          !engineNativeExecutorNodeTypes.has(nodeType) &&
+          !(postHardCutExecutorIds as readonly string[]).includes(nodeType),
       ),
       ...workflowControlActionIds,
     ].sort();
@@ -357,6 +368,10 @@ describe('immutable workflow version migration', () => {
       expectedAtomicActionIds.length,
     );
     expect(atomicActionIds).toEqual(expectedAtomicActionIds);
+    for (const actionId of postHardCutExecutorIds) {
+      expect(registeredExecutorNodeTypes()).toContain(actionId);
+      expect(atomicActionIds).not.toContain(actionId);
+    }
     expect(
       expectedAtomicActionIds.filter(
         (actionId) => !supportedActionIds.has(actionId),

@@ -18,18 +18,10 @@ beforeEach(() => {
     showAIGenerator: false,
     showDebugPanel: false,
     showMinimap: true,
-    showPalette: true,
   });
 });
 
 describe('uiStore — panel toggles', () => {
-  it('togglePalette flips the palette', () => {
-    useUIStore.getState().togglePalette();
-    expect(useUIStore.getState().showPalette).toBe(false);
-    useUIStore.getState().togglePalette();
-    expect(useUIStore.getState().showPalette).toBe(true);
-  });
-
   it('toggleMinimap flips the minimap', () => {
     useUIStore.getState().toggleMinimap();
     expect(useUIStore.getState().showMinimap).toBe(false);

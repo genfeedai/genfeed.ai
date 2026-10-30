@@ -13,9 +13,9 @@ import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
-import { Checkbox } from '@ui/primitives/checkbox';
-import { Label } from '@ui/primitives/label';
-import { SelectField } from '@ui/primitives/select';
+import { ToggleGroup, ToggleGroupItem } from '@ui/primitives/toggle-group';
+import { FileSpreadsheet, FileText } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
@@ -54,11 +54,25 @@ const defaultFields: ExportField[] = [
   'platform',
 ];
 
+const FORMAT_OPTIONS = [
+  { Icon: FileText, hintKey: 'csvHint', label: 'CSV', value: 'csv' },
+  { Icon: FileSpreadsheet, hintKey: 'xlsxHint', label: 'XLSX', value: 'xlsx' },
+] as const;
+
+const FIELD_CHIP_CLASS =
+  'h-8 rounded-full bg-background-secondary px-3 text-xs shadow-border data-[state=on]:bg-primary/10 data-[state=on]:text-primary';
+
+const FORMAT_TILE_CLASS =
+  'h-auto justify-start gap-3 rounded-lg bg-background-secondary p-3 shadow-border data-[state=on]:bg-primary/10 data-[state=on]:shadow-border-strong';
+
+const ALL_FIELDS = availableFields.map((field) => field.value as ExportField);
+
 export default function ModalExport({
   onExport,
   isOpen,
   openKey,
 }: ModalExportProps) {
+  const translate = useTranslations('ui.exportModal');
   const [selectedFields, setSelectedFields] =
     useState<ExportField[]>(defaultFields);
 
@@ -69,121 +83,108 @@ export default function ModalExport({
     },
     resolver: standardSchemaResolver(exportSchema),
   });
+  const format = form.watch('format');
 
   useModalAutoOpen(ModalEnum.EXPORT, { isOpen, openKey });
 
   const handleExport = () => {
-    const values = form.getValues();
-    onExport(values.format, selectedFields);
+    onExport(format, selectedFields);
     closeModal(ModalEnum.EXPORT);
   };
 
-  const toggleField = (field: ExportField) => {
-    setSelectedFields((prev) => {
-      const newFields = prev.includes(field)
-        ? prev.filter((f) => f !== field)
-        : [...prev, field];
-      form.setValue('fields', newFields, { shouldValidate: true });
-      return newFields;
-    });
+  const updateFields = (fields: ExportField[]) => {
+    setSelectedFields(fields);
+    form.setValue('fields', fields, { shouldValidate: true });
   };
 
-  const selectAll = () => {
-    setSelectedFields(availableFields.map((f) => f.value as ExportField));
-  };
-
-  const deselectAll = () => {
-    setSelectedFields([]);
-  };
+  const isEverySelected = selectedFields.length === ALL_FIELDS.length;
 
   return (
-    <Modal id={ModalEnum.EXPORT} title="Export Data">
-      <div className="space-y-4">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="export-format">Export Format</Label>
-
-          <SelectField
-            name="format"
-            control={form.control}
-            onChange={(e) =>
-              form.setValue('format', e.target.value as 'csv' | 'xlsx', {
-                shouldValidate: true,
-              })
+    <Modal id={ModalEnum.EXPORT} size="md" title={translate('title')}>
+      <div className="flex flex-col gap-5">
+        <ToggleGroup
+          aria-label={translate('formatLabel')}
+          className="grid grid-cols-2 gap-2"
+          onValueChange={(value) => {
+            if (value === 'csv' || value === 'xlsx') {
+              form.setValue('format', value, { shouldValidate: true });
             }
-            placeholder="Select format"
+          }}
+          type="single"
+          value={format}
+        >
+          {FORMAT_OPTIONS.map(({ Icon, hintKey, label, value }) => (
+            <ToggleGroupItem
+              className={FORMAT_TILE_CLASS}
+              key={value}
+              value={value}
+            >
+              <span className="flex size-8 items-center justify-center rounded-md bg-background-tertiary text-muted-foreground">
+                <Icon aria-hidden="true" className="size-4" />
+              </span>
+              <span className="flex flex-col items-start">
+                <span className="text-sm font-medium">{label}</span>
+                <span className="text-xs text-muted-foreground">
+                  {translate(hintKey)}
+                </span>
+              </span>
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground">
+              {translate('fieldsCount', {
+                selected: selectedFields.length,
+                total: ALL_FIELDS.length,
+              })}
+            </span>
+            <Button
+              onClick={() => updateFields(isEverySelected ? [] : ALL_FIELDS)}
+              size={ButtonSize.XS}
+              textTransform="none"
+              variant={ButtonVariant.GHOST}
+            >
+              {isEverySelected ? translate('clearAll') : translate('selectAll')}
+            </Button>
+          </div>
+          <ToggleGroup
+            aria-label={translate('fieldsLabel')}
+            className="max-h-64 flex-wrap justify-start gap-1.5 overflow-y-auto"
+            onValueChange={(fields) => updateFields(fields as ExportField[])}
+            type="multiple"
+            value={selectedFields}
           >
-            <option value="csv">CSV</option>
-            <option value="xlsx">Excel (XLSX)</option>
-          </SelectField>
-        </div>
-
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-sm font-medium">Select Fields to Export</span>
-            <div className="text-xs text-foreground/60">
-              <Button
-                withWrapper={false}
-                variant={ButtonVariant.UNSTYLED}
-                className="text-primary hover:underline text-xs"
-                onClick={selectAll}
-                ariaLabel="Select all fields"
+            {availableFields.map((field) => (
+              <ToggleGroupItem
+                className={FIELD_CHIP_CLASS}
+                key={field.value}
+                value={field.value}
               >
-                Select All
-              </Button>
-              {' | '}
-              <Button
-                withWrapper={false}
-                variant={ButtonVariant.UNSTYLED}
-                className="text-primary hover:underline text-xs"
-                onClick={deselectAll}
-                ariaLabel="Deselect all fields"
-              >
-                Deselect All
-              </Button>
-            </div>
-          </div>
-
-          <div className="max-h-64 overflow-y-auto shadow-border p-2">
-            <div className="grid grid-cols-2 gap-2">
-              {availableFields.map((field) => (
-                <div key={field.value} className="hover:bg-background p-1">
-                  <Checkbox
-                    name={`field-${field.value}`}
-                    label={field.label}
-                    isChecked={selectedFields.includes(
-                      field.value as ExportField,
-                    )}
-                    onChange={() => toggleField(field.value as ExportField)}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="text-sm text-foreground/60">
-          {selectedFields.length} field{selectedFields.length !== 1 ? 's' : ''}
-          selected
+                {field.label}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
         </div>
       </div>
 
       <ModalActions>
         <Button
-          label="Cancel"
-          variant={ButtonVariant.SECONDARY}
-          size={ButtonSize.LG}
-          className="md:h-9 md:px-4 md:py-2 mb-4 md:mb-0"
           onClick={() => closeModal(ModalEnum.EXPORT)}
-        />
-
+          textTransform="none"
+          variant={ButtonVariant.GHOST}
+        >
+          {translate('cancel')}
+        </Button>
         <Button
-          label={`Export as ${form.watch('format').toUpperCase()}`}
-          variant={ButtonVariant.DEFAULT}
-          size={ButtonSize.LG}
-          className="md:h-9 md:px-4 md:py-2 mb-4 md:mb-0"
-          onClick={handleExport}
           isDisabled={selectedFields.length === 0}
-        />
+          onClick={handleExport}
+          textTransform="none"
+          variant={ButtonVariant.DEFAULT}
+        >
+          {translate('exportAs', { format: format.toUpperCase() })}
+        </Button>
       </ModalActions>
     </Modal>
   );

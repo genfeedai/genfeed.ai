@@ -6,12 +6,14 @@ import {
   nestedSettingsRecord,
   readObjectRecord,
 } from '@api/collections/users/controllers/users-relationships.helpers';
+import { buildUserSearchWhere } from '@api/collections/users/controllers/users-search.helpers';
 import { AdminUpdateUserProfileDto } from '@api/collections/users/dto/admin-update-user-profile.dto';
 import { CreateAvatarUploadDto } from '@api/collections/users/dto/create-avatar-upload.dto';
 import { RecordSignupAttributionDto } from '@api/collections/users/dto/record-signup-attribution.dto';
 import { UpdateAssetGateDto } from '@api/collections/users/dto/update-asset-gate.dto';
 import { UpdateUserDto } from '@api/collections/users/dto/update-user.dto';
 import { UpdateUserOnboardingDto } from '@api/collections/users/dto/update-user-onboarding.dto';
+import { UsersQueryDto } from '@api/collections/users/dto/users-query.dto';
 import { UserOnboardingCompletionService } from '@api/collections/users/services/user-onboarding-completion.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
@@ -19,7 +21,6 @@ import { UserAccessCacheService } from '@api/common/services/user-access-cache.s
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import {
@@ -140,7 +141,7 @@ export class UsersController {
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAll(
     @Req() request: Request,
-    @Query() query: BaseQueryDto,
+    @Query() query: UsersQueryDto,
   ): Promise<unknown> {
     const options = {
       customLabels,
@@ -152,7 +153,7 @@ export class UsersController {
       {
         include: { signupAttribution: true },
         orderBy: handleQuerySort(query.sort),
-        where: { isDeleted },
+        where: { isDeleted, ...buildUserSearchWhere(query.search) },
       },
       options,
     );

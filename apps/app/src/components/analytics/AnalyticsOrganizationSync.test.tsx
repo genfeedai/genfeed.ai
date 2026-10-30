@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
   organizationId: 'org-1',
   pathname: '/acme/brand/home',
   resetAnalytics: vi.fn(),
+  setSentryAccountContext: vi.fn(),
 }));
 
 vi.mock('@hooks/auth/use-auth-user', () => ({
@@ -46,6 +47,10 @@ vi.mock('@/lib/analytics', () => ({
   identifyAnalyticsUser: mocks.identifyUser,
   isAnalyticsEnabled: mocks.isAnalyticsEnabled,
   resetAnalytics: mocks.resetAnalytics,
+}));
+
+vi.mock('@/lib/analytics/sentry-context', () => ({
+  setSentryAccountContext: mocks.setSentryAccountContext,
 }));
 
 vi.mock('next/navigation', () => ({
@@ -94,6 +99,13 @@ describe('AnalyticsOrganizationSync', () => {
       isInternal: false,
     });
     expect(mocks.identifyOrganization).toHaveBeenCalledWith('org-1');
+    expect(mocks.capturePageview).toHaveBeenCalledWith(expect.any(String), {
+      app: 'other',
+    });
+    expect(mocks.setSentryAccountContext).toHaveBeenCalledWith({
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
     expect(mocks.clearOrganization).not.toHaveBeenCalled();
     expect(mocks.identifyOrganization.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.capturePageview.mock.invocationCallOrder[0] as number,

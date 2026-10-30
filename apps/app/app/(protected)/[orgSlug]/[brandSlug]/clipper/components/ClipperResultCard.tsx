@@ -289,6 +289,7 @@ export default function ClipperResultCard({
             <Button
               variant={ButtonVariant.UNSTYLED}
               className="flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 sm:min-h-8"
+              action="clipper.publish"
               onClick={handlePublish}
               title="Publish to social platforms"
             >

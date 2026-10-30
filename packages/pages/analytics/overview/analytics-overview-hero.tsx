@@ -48,7 +48,7 @@ export default function AnalyticsOverviewHero({
           )}
           {heroContent.badge}
         </div>
-        <p className="min-w-0 text-sm leading-5 text-foreground/65">
+        <p className="min-w-0 text-sm leading-5 text-foreground/70">
           {heroContent.description}
         </p>
       </div>

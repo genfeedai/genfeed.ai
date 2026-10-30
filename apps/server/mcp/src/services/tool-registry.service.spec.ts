@@ -1223,11 +1223,6 @@ describe('ToolRegistryService', () => {
     ).rejects.toThrow('Unknown resource');
   });
 
-  it('setBearerToken delegates to clientService', () => {
-    service.setBearerToken('new-token-123');
-    expect(clientService.setBearerToken).toHaveBeenCalledWith('new-token-123');
-  });
-
   it('logs error when proxy executor throws', async () => {
     clientService.executeAgentTool.mockRejectedValueOnce(new Error('API down'));
 

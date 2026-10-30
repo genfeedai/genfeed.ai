@@ -19,6 +19,7 @@ import {
   LIBRARY_QUERY_KEYS,
   LIBRARY_VIEW_MODES,
   type LibraryViewMode,
+  resolveAdminLibraryAxisRoute,
   resolveLibraryAxisRoute,
 } from '@genfeedai/contracts/constants';
 import type { IIngredientsContextValue } from '@genfeedai/contracts/interfaces/providers/providers.interface';
@@ -115,6 +116,7 @@ export function useLibraryBrowser({
   const searchParams = useSearchParams();
   const place = defaultPlace;
   const shelf = defaultShelf;
+  const isAdminScope = scope === PageScope.SUPERADMIN;
   const { brandId, organizationId } = useCollectionScope();
   const { openUpload } = useUploadModal();
   const { href } = useOrgUrl();
@@ -283,11 +285,15 @@ export function useLibraryBrowser({
         }
       }
 
-      const axisRoute = resolveLibraryAxisRoute({
-        categories: nextCategories,
-        place: nextPlace,
-        shelf: nextShelf,
-      });
+      // Admin has no places or shelves; its path says only the type, and the
+      // organization and brand pickers keep their params through the rewrite.
+      const axisRoute = isAdminScope
+        ? resolveAdminLibraryAxisRoute(nextCategories)
+        : resolveLibraryAxisRoute({
+            categories: nextCategories,
+            place: nextPlace,
+            shelf: nextShelf,
+          });
 
       if (!axisRoute.hasCategoriesInPath) {
         for (const category of nextCategories) {
@@ -326,7 +332,7 @@ export function useLibraryBrowser({
       params.set(LIBRARY_QUERY_KEYS.VIEW, nextViewMode);
 
       const queryString = params.toString();
-      const nextHref = `${libraryScopePrefix(pathname)}${axisRoute.route}${
+      const nextHref = `${isAdminScope ? '' : libraryScopePrefix(pathname)}${axisRoute.route}${
         queryString ? `?${queryString}` : ''
       }`;
       const currentQuery = searchParams?.toString() ?? '';
@@ -341,6 +347,7 @@ export function useLibraryBrowser({
       characters,
       defaultSort,
       folderId,
+      isAdminScope,
       origins,
       pathname,
       place,

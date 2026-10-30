@@ -109,15 +109,15 @@ function TimelineWorkEntryInner({
         status={event.status}
         stopActiveAnimation={stopActiveAnimation}
       />
-      <span className="font-medium text-foreground/85">{label}</span>
+      <span className="font-medium text-foreground/90">{label}</span>
       {detail && (
         <>
-          <span className="text-muted-foreground/35">—</span>
-          <span className="truncate text-muted-foreground/65">{detail}</span>
+          <span className="text-muted-foreground/40">—</span>
+          <span className="truncate text-muted-foreground/70">{detail}</span>
         </>
       )}
       {event.durationMs != null && (
-        <span className="ml-auto shrink-0 text-muted-foreground/45">
+        <span className="ml-auto shrink-0 text-muted-foreground/50">
           {formatDuration(event.durationMs)}
         </span>
       )}

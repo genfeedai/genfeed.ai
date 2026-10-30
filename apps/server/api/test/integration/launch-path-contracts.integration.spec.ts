@@ -253,7 +253,7 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     const registrar = readSourceOf('WorkflowSocialExecutorRegistrarService', {
       root: API_SRC,
     });
-    const palette = readSourceOf('CloudNodePalette', { root: APP });
+    const palette = readSourceOf('useCloudNodeCatalog', { root: APP });
     const credits = readSourceOf('DEFAULT_CREDIT_COSTS', {
       root: 'packages/workflows/src',
     });

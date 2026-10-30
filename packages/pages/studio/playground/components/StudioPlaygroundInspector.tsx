@@ -473,7 +473,7 @@ export default function StudioPlaygroundInspector({
     } else if (job.type === 'image' || job.type === 'image-edit') {
       preview = (
         <div
-          className={`relative w-full overflow-hidden rounded-md bg-foreground/[0.04] ${isFocused ? 'h-[min(62vh,42rem)] min-h-56' : 'aspect-video'}`}
+          className={`relative w-full overflow-hidden rounded-md bg-foreground/5 ${isFocused ? 'h-[min(62vh,42rem)] min-h-56' : 'aspect-video'}`}
         >
           <Image
             key={`${previewScope}:${previewRevision}`}
@@ -498,7 +498,7 @@ export default function StudioPlaygroundInspector({
         <VideoPlayer
           key={`${previewScope}:${previewRevision}`}
           ariaLabel={translate('inspector.previewAlt', { label })}
-          className={`w-full overflow-hidden rounded-md bg-foreground/[0.04] ${isFocused ? 'h-[min(62vh,42rem)] min-h-56' : 'aspect-video'}`}
+          className={`w-full overflow-hidden rounded-md bg-foreground/5 ${isFocused ? 'h-[min(62vh,42rem)] min-h-56' : 'aspect-video'}`}
           config={{
             controls: true,
             loop: false,
@@ -527,7 +527,7 @@ export default function StudioPlaygroundInspector({
     (hasPreviewError || isPreviewUnsupported || isPreviewLoading)
   ) {
     preview = (
-      <div className="flex aspect-video flex-col items-center justify-center gap-2 rounded-md bg-foreground/[0.04] px-4 text-center">
+      <div className="flex aspect-video flex-col items-center justify-center gap-2 rounded-md bg-foreground/5 px-4 text-center">
         <p role="status" className="text-xs text-muted-foreground">
           {translate(
             isPreviewLoading

@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ContentTeamRolePreset } from '@pages/agents/content-team/content-team-presets';
 import { CONTENT_TEAM_ROLE_PRESETS } from '@pages/agents/content-team/content-team-presets';
 import type { AgentMarketplaceProps } from '@props/automation/agent-marketplace.props';
@@ -10,12 +10,11 @@ import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
-import FormSearchbar from '@ui/primitives/searchbar';
 import { useTranslations } from 'next-intl';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import AgentPresetAvatar from './AgentPresetAvatar';
+import { ALL_CATEGORY } from './agent-marketplace-filter';
 
-const ALL_CATEGORY = 'all';
 const FEATURED_COUNT = 4;
 
 function matchesQuery(preset: ContentTeamRolePreset, query: string): boolean {
@@ -42,21 +41,14 @@ function comparePresetName(
 }
 
 export default function AgentMarketplace({
+  category,
   isSubmitting,
   onActivate,
+  searchQuery,
   submittingPresetId,
 }: AgentMarketplaceProps) {
   const translate = useTranslations('common.automation.agentCreation');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [category, setCategory] = useState(ALL_CATEGORY);
   const query = searchQuery.trim().toLowerCase();
-
-  const categories = useMemo(() => {
-    const groups = [
-      ...new Set(CONTENT_TEAM_ROLE_PRESETS.map((preset) => preset.teamGroup)),
-    ].sort();
-    return [ALL_CATEGORY, ...groups];
-  }, []);
 
   const visiblePresets = useMemo(
     () =>
@@ -75,34 +67,6 @@ export default function AgentMarketplace({
 
   return (
     <div className="flex flex-col gap-6" data-testid="agent-marketplace">
-      <FormSearchbar
-        ariaLabel={translate('search')}
-        className="w-full"
-        onChange={(event) => setSearchQuery(event.target.value)}
-        onClear={() => setSearchQuery('')}
-        placeholder={translate('search')}
-        size={ComponentSize.SM}
-        value={searchQuery}
-      />
-
-      <div className="flex flex-wrap gap-2">
-        {categories.map((item) => (
-          <Button
-            key={item}
-            aria-pressed={category === item}
-            size={ButtonSize.SM}
-            variant={
-              category === item
-                ? ButtonVariant.DEFAULT
-                : ButtonVariant.SECONDARY
-            }
-            onClick={() => setCategory(item)}
-          >
-            {item === ALL_CATEGORY ? translate('all') : item}
-          </Button>
-        ))}
-      </div>
-
       <CollectionCarouselSection
         gap="md"
         data-testid="agent-marketplace-featured"

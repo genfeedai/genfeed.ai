@@ -9,9 +9,16 @@ import type { ToolsetName } from './toolset-names';
  * core, generation, content, and scheduler. Generation is the product, so it
  * is never left out to fit a cap; the cap tracks the default instead, and
  * shrinks as related tools merge into parameterized ones.
- * `?profile=full` and an explicit `?toolsets=` reach everything else.
+ * `studio` is the make-review-schedule-measure set for agent clients that
+ * generate (Codex): the default plus brand and analytics. `?profile=full` and an
+ * explicit `?toolsets=` reach everything else.
  */
-export const MCP_PROFILE_NAMES = ['default', 'directory', 'full'] as const;
+export const MCP_PROFILE_NAMES = [
+  'default',
+  'directory',
+  'studio',
+  'full',
+] as const;
 
 export type McpToolsetProfileName = (typeof MCP_PROFILE_NAMES)[number];
 
@@ -19,17 +26,34 @@ export type McpToolsetProfileName = (typeof MCP_PROFILE_NAMES)[number];
 export const BARE_URL_MCP_PROFILE: McpToolsetProfileName = 'default';
 
 /**
- * Hard cap on tools advertised by the bare MCP URL (`tools/list`). Includes
- * native campaign context and publishing readiness so a caller can associate
- * content and select a healthy brand channel before scheduling.
+ * Hard cap on tools the bare MCP URL lists to an ordinary (`user` role)
+ * caller. Includes native campaign context and publishing readiness so a
+ * caller can associate content and select a healthy brand channel before
+ * scheduling. CI fails when a change pushes the default over it.
  */
-export const BARE_MCP_URL_TOOL_CAP = 27;
+export const BARE_MCP_URL_TOOL_CAP = 25;
+
+/** Hard cap on tools any directory-safe or Claude connector listing may carry. */
+export const CONNECTOR_MCP_TOOL_CAP = 30;
+
+/**
+ * Ceiling for `?profile=studio`, listed to a `user` caller. Studio is an
+ * explicit opt-in for agent clients that generate, so it may exceed the
+ * connector cap, but not grow without a decision.
+ */
+export const STUDIO_MCP_PROFILE_TOOL_CAP = 40;
 
 export const DEFAULT_MCP_PROFILE_TOOLSETS: readonly ToolsetName[] = [
   'core',
   'generation',
   'content',
   'scheduler',
+];
+
+export const STUDIO_MCP_PROFILE_TOOLSETS: readonly ToolsetName[] = [
+  ...DEFAULT_MCP_PROFILE_TOOLSETS,
+  'brand',
+  'analytics',
 ];
 
 /**
@@ -79,6 +103,8 @@ export function resolveMcpProfile(
       return { kind: 'all' };
     case 'directory':
       return { kind: 'toolsets', toolsets: DIRECTORY_MCP_PROFILE_TOOLSETS };
+    case 'studio':
+      return { kind: 'toolsets', toolsets: STUDIO_MCP_PROFILE_TOOLSETS };
     case 'default':
       return { kind: 'toolsets', toolsets: DEFAULT_MCP_PROFILE_TOOLSETS };
   }

@@ -39,7 +39,7 @@ function RunRow({
         event.preventDefault();
         onNavigate(href);
       }}
-      className="flex items-center justify-between gap-2 rounded border border-transparent px-2 py-1.5 hover:bg-foreground/[0.045]"
+      className="flex items-center justify-between gap-2 rounded border border-transparent px-2 py-1.5 hover:bg-foreground/5"
     >
       <span className="min-w-0 truncate text-sm text-foreground">
         {run.threadTitle}

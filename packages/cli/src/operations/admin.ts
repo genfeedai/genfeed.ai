@@ -95,6 +95,22 @@ export interface OrganizationCreditGrant {
   organizationId: string;
 }
 
+export interface OrganizationMemberInput {
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  roleKey?: 'admin' | 'member';
+}
+
+export interface OrganizationMemberAdded {
+  isMemberCreated: boolean;
+  isUserCreated: boolean;
+  memberId: string;
+  organizationId: string;
+  roleKey: string;
+  userId: string;
+}
+
 export interface OrganizationBrandInput {
   backgroundColor?: string;
   description?: string;
@@ -109,6 +125,36 @@ export interface OrganizationBrandCreated {
   label: string;
   organizationId: string;
   slug: string;
+}
+
+export interface OrganizationBrandUpdate {
+  backgroundColor?: string;
+  description?: string;
+  fontFamily?: string;
+  label?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  watermarkOpacity?: number;
+  watermarkPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  watermarkText?: string | null;
+}
+
+export interface OrganizationBrandSummary {
+  backgroundColor?: string;
+  description?: string;
+  endCardAssetId: string | null;
+  fontFamily?: string;
+  id: string;
+  isEndCardEnabled?: boolean;
+  label: string;
+  organizationId: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  slug: string;
+  watermarkLogoId: string | null;
+  watermarkOpacity?: number;
+  watermarkPosition?: string;
+  watermarkText: string | null;
 }
 
 export interface OrganizationBrandScan {
@@ -155,6 +201,18 @@ export async function grantOrganizationCredits(
   return response.data;
 }
 
+/** Add a member to any organization with a role, without sending an invitation email. */
+export async function addOrganizationMember(
+  organizationId: string,
+  input: OrganizationMemberInput
+): Promise<OrganizationMemberAdded> {
+  const response = await adminPost<DataEnvelope<OrganizationMemberAdded>>(
+    `/admin/organizations/${encodeURIComponent(organizationId)}/members`,
+    input
+  );
+  return response.data;
+}
+
 /** Create a brand inside any organization, independent of the operator's own orgs. */
 export async function createOrganizationBrand(
   organizationId: string,
@@ -162,6 +220,30 @@ export async function createOrganizationBrand(
 ): Promise<OrganizationBrandCreated> {
   const response = await adminPost<DataEnvelope<OrganizationBrandCreated>>(
     `/admin/organizations/${encodeURIComponent(organizationId)}/brands`,
+    input
+  );
+  return response.data;
+}
+
+/** Read the kit fields of a brand in any organization. */
+export async function readOrganizationBrand(
+  organizationId: string,
+  brandId: string
+): Promise<OrganizationBrandSummary> {
+  const response = await adminGet<DataEnvelope<OrganizationBrandSummary>>(
+    `/admin/organizations/${encodeURIComponent(organizationId)}/brands/${encodeURIComponent(brandId)}`
+  );
+  return response.data;
+}
+
+/** Update the kit fields (colors, font, watermark text, opacity, corner) of a brand in any organization. */
+export async function updateOrganizationBrand(
+  organizationId: string,
+  brandId: string,
+  input: OrganizationBrandUpdate
+): Promise<OrganizationBrandSummary> {
+  const response = await adminPatch<DataEnvelope<OrganizationBrandSummary>>(
+    `/admin/organizations/${encodeURIComponent(organizationId)}/brands/${encodeURIComponent(brandId)}`,
     input
   );
   return response.data;

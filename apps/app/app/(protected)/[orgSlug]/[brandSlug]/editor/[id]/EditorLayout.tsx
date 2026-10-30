@@ -1,10 +1,10 @@
+import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
 import type { EditorLayoutProps } from '@props/studio/editor-layout.props';
-import EditorEffectsPanel from './EditorEffectsPanel';
+import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
+import { useTranslations } from 'next-intl';
+import EditorInspector from './EditorInspector';
 import EditorLockedBanner from './EditorLockedBanner';
-import EditorPreview from './EditorPreview';
-import EditorPropertiesPanel from './EditorPropertiesPanel';
-import EditorTextPanel from './EditorTextPanel';
-import EditorTimeline from './EditorTimeline';
+import EditorOutputPane from './EditorOutputPane';
 import EditorToolbar from './EditorToolbar';
 
 export default function EditorLayout({
@@ -47,6 +47,8 @@ export default function EditorLayout({
   onFrameChange,
   onPlayingChange,
 }: EditorLayoutProps) {
+  const translate = useTranslations('pages.studioEditor');
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
       <EditorToolbar
@@ -87,78 +89,47 @@ export default function EditorLayout({
         />
       )}
 
-      <div className="flex flex-1 overflow-hidden">
-        <div className="w-60 shrink-0 overflow-y-auto">
-          <EditorTextPanel
-            tracks={project.tracks}
-            fps={project.settings.fps}
-            totalFrames={project.totalDurationFrames}
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <AgentOutputShell mode="rail">
+          <EditorOutputPane
+            project={project}
+            previewRef={previewRef}
+            currentFrame={currentFrame}
+            zoom={zoom}
             isReadOnly={isReadOnly}
-            selectedTrackId={selectedTrackId}
             selectedClipId={selectedClipId}
-            onAddTextTrack={onAddTextTrack}
+            onSeek={onSeek}
             onTrackUpdate={onTrackUpdate}
+            onClipMove={onClipMove}
+            onClipResize={onClipResize}
             onClipSelect={onClipSelect}
+            onFrameChange={onFrameChange}
+            onPlayingChange={onPlayingChange}
           />
-        </div>
-
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <div className="flex-1 p-4 bg-muted/30">
-            <div className="h-full flex items-center justify-center">
-              <div className="w-full max-w-4xl">
-                <EditorPreview
-                  ref={previewRef}
-                  backgroundColor={project.settings.backgroundColor}
-                  tracks={project.tracks}
-                  width={project.settings.width}
-                  height={project.settings.height}
-                  fps={project.settings.fps}
-                  totalFrames={project.totalDurationFrames}
-                  onFrameChange={onFrameChange}
-                  onPlayingChange={onPlayingChange}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="h-64 shrink-0 border-t border-border overflow-hidden">
-            <EditorTimeline
-              tracks={project.tracks}
-              currentFrame={currentFrame}
-              totalFrames={project.totalDurationFrames}
-              fps={project.settings.fps}
-              zoom={zoom}
-              isReadOnly={isReadOnly}
-              onSeek={onSeek}
-              onTrackUpdate={onTrackUpdate}
-              onClipMove={onClipMove}
-              onClipResize={onClipResize}
-              onClipSelect={onClipSelect}
-              selectedClipId={selectedClipId}
-            />
-          </div>
-        </div>
-
-        <div className="w-64 shrink-0 overflow-y-auto flex flex-col">
-          <EditorEffectsPanel
-            tracks={project.tracks}
-            isReadOnly={isReadOnly}
-            selectedTrackId={selectedTrackId}
-            selectedClipId={selectedClipId}
-            onTrackUpdate={onTrackUpdate}
-          />
-          <div className="border-t border-border">
-            <EditorPropertiesPanel
-              tracks={project.tracks}
-              fps={project.settings.fps}
-              isReadOnly={isReadOnly}
-              selectedTrackId={selectedTrackId}
-              selectedClipId={selectedClipId}
-              onTrackUpdate={onTrackUpdate}
-            />
-          </div>
-        </div>
+        </AgentOutputShell>
       </div>
+
+      {/* A clip the operator picks opens its inspector in the output pane's
+          Context tab (or the right rail off the split layout); with nothing
+          picked it stays a tab away so Add text is still reachable. */}
+      <ContextSidebarPanel
+        selection={{
+          id: selectedClipId ?? project.id,
+          kind: 'record',
+          origin: selectedClipId ? 'user' : 'automatic',
+          title: translate('inspector'),
+        }}
+      >
+        <EditorInspector
+          project={project}
+          isReadOnly={isReadOnly}
+          selectedTrackId={selectedTrackId}
+          selectedClipId={selectedClipId}
+          onAddTextTrack={onAddTextTrack}
+          onTrackUpdate={onTrackUpdate}
+          onClipSelect={onClipSelect}
+        />
+      </ContextSidebarPanel>
     </div>
   );
 }

@@ -848,7 +848,7 @@ function hasDescriptiveFilename(src: string): boolean {
   );
 }
 
-// ─── Assembly ────────────────────────────────────────────────────────────
+// Assembly
 
 function ratingFor(score: number): SeoRating {
   if (score >= 90) {

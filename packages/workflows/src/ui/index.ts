@@ -38,8 +38,8 @@ export {
 export {
   ActionNodeInspector,
   DebugPanel,
-  NodePalette,
-  type NodePaletteProps,
+  NodeCatalog,
+  type NodeCatalogProps,
   type PaletteNodeDefinition,
   PanelContainer,
 } from './panels';

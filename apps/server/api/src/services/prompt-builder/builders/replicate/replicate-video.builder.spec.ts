@@ -572,6 +572,137 @@ describe('ReplicateVideoBuilder', () => {
     });
   });
 
+  describe('buildPrompt - Wan 3', () => {
+    const baseParams: PromptBuilderParams = {
+      height: 1080,
+      modelCategory: ModelCategory.VIDEO,
+      prompt: 'A slow orbit around a ceramic mug',
+      width: 1920,
+    };
+    const firstFrame = 'https://cdn.example.com/first-frame.jpg';
+
+    it('is a supported model', () => {
+      expect(builder.getSupportedModels()).toContain(
+        MODEL_KEYS.REPLICATE_ALIBABA_WAN_3,
+      );
+    });
+
+    it('builds text-to-video without an image', () => {
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_ALIBABA_WAN_3,
+        { ...baseParams, duration: 8, resolution: '720p', seed: 7 },
+        'A slow orbit around a ceramic mug',
+      );
+
+      expect(result).toEqual({
+        aspect_ratio: '16:9',
+        duration: 8,
+        prompt: 'A slow orbit around a ceramic mug',
+        resolution: '720p',
+        seed: 7,
+      });
+    });
+
+    it('maps the first reference onto the first-frame image', () => {
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_ALIBABA_WAN_3,
+        {
+          ...baseParams,
+          references: [firstFrame, 'https://cdn.example.com/b'],
+        },
+        'A slow orbit around a ceramic mug',
+      );
+
+      expect(result).toHaveProperty('image', firstFrame);
+    });
+
+    it('keeps duration inside the 2 to 30 second range Replicate accepts', () => {
+      const build = (duration: number) =>
+        builder.buildPrompt(
+          MODEL_KEYS.REPLICATE_ALIBABA_WAN_3,
+          { ...baseParams, duration },
+          'A slow orbit around a ceramic mug',
+        );
+
+      expect(build(1)).toHaveProperty('duration', 2);
+      expect(build(45)).toHaveProperty('duration', 30);
+    });
+  });
+
+  describe('buildPrompt - Kling 4.0', () => {
+    const baseParams: PromptBuilderParams = {
+      height: 1080,
+      modelCategory: ModelCategory.VIDEO,
+      prompt: 'A product turntable',
+      width: 1920,
+    };
+    const image = (n: number) => `https://cdn.example.com/${n}.jpg`;
+
+    it('is a supported model', () => {
+      expect(builder.getSupportedModels()).toContain(
+        MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V4,
+      );
+    });
+
+    it('builds text-to-video with resolution and no image fields', () => {
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V4,
+        { ...baseParams, duration: 12, resolution: '720p' },
+        'A product turntable',
+      );
+
+      expect(result).toEqual({
+        aspect_ratio: '16:9',
+        duration: 12,
+        prompt: 'A product turntable',
+        resolution: '720p',
+      });
+    });
+
+    it('sends the first reference as the start frame and the rest as references', () => {
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V4,
+        {
+          ...baseParams,
+          endFrame: image(9),
+          references: [image(1), image(2), image(3)],
+        },
+        'A product turntable',
+      );
+
+      expect(result).toMatchObject({
+        end_image: image(9),
+        reference_images: [image(2), image(3)],
+        start_image: image(1),
+      });
+    });
+
+    it('keeps start, end and reference images within the 10 image cap', () => {
+      const references = Array.from({ length: 14 }, (_, index) =>
+        image(index + 1),
+      );
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V4,
+        { ...baseParams, endFrame: image(99), references },
+        'A product turntable',
+      ) as { reference_images?: string[] };
+
+      expect(result.reference_images).toHaveLength(8);
+    });
+
+    it('keeps duration inside the 3 to 30 second range', () => {
+      const build = (duration: number) =>
+        builder.buildPrompt(
+          MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V4,
+          { ...baseParams, duration },
+          'A product turntable',
+        );
+
+      expect(build(1)).toHaveProperty('duration', 3);
+      expect(build(60)).toHaveProperty('duration', 30);
+    });
+  });
+
   describe('buildPrompt - Kling V2.1', () => {
     it('should require reference image', () => {
       const params: PromptBuilderParams = {

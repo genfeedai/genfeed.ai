@@ -35,7 +35,7 @@ function renderDiagnostics(diagnostics: ClipperReferenceFrameDiagnostic[]) {
   const hiddenCount = diagnostics.length - visibleDiagnostics.length;
 
   return (
-    <div className="mt-3 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-foreground/80">
+    <div className="mt-3 rounded-lg border border-warning/20 bg-warning/10 px-3 py-2 text-xs text-foreground/80">
       {visibleDiagnostics.map((diagnostic) => (
         <p key={`${diagnostic.code}-${diagnostic.candidateId ?? 'set'}`}>
           {diagnostic.message}
@@ -168,7 +168,7 @@ export default function ClipperReferenceFrameSelector({
 
       {error ? (
         <div
-          className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2"
+          className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2"
           role="alert"
         >
           <p className="text-xs text-destructive">{error}</p>

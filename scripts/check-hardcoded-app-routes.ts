@@ -5,7 +5,7 @@
  *
  * The canonical route constants live in
  * `packages/contracts/src/constants/routes.constant.ts`. Restating a route as an inline
- * string (`href="/settings/api-keys"`, `push('/workspace/inbox/unread')`) means a
+ * string (`href="/settings/api-keys"`, `push('/workspace/inbox')`) means a
  * later route rename updates the constant but silently leaves the literal behind.
  *
  * WHAT THIS FLAGS (only navigation sinks — never data/config/comparisons):

@@ -17,7 +17,6 @@ import {
 } from '@web-components/content/NeuralGrid';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
-import { Terminal } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AgentClientContent({
@@ -30,8 +29,6 @@ export default function AgentClientContent({
   return (
     <MarketingEntrance hero={false} sections={false}>
       <PageLayout
-        badge={`Genfeed MCP · ${client.name}`}
-        badgeIcon={Terminal}
         compact
         description={client.description}
         heroActions={
@@ -49,7 +46,7 @@ export default function AgentClientContent({
           </>
         }
         heroDetails={
-          <p className="text-sm leading-6 text-foreground/65">
+          <p className="text-sm leading-6 text-foreground/70">
             {client.installation.method} · Browser sign-in · Your Genfeed
             workspace
           </p>
@@ -66,13 +63,13 @@ export default function AgentClientContent({
             description={client.about}
             title={`Your creative workspace, inside ${client.name}`}
           />
-          <p className="mb-6 text-center text-sm font-semibold text-foreground/75">
+          <p className="mb-6 text-center text-sm font-semibold text-foreground/80">
             Connected to Genfeed, {client.name} can:
           </p>
           <NeuralGrid columns={2}>
             {client.capabilities.map((capability) => (
               <NeuralGridItem key={capability} padding="lg">
-                <p className="text-base leading-7 text-foreground/75">
+                <p className="text-base leading-7 text-foreground/80">
                   {capability}
                 </p>
               </NeuralGridItem>
@@ -95,7 +92,7 @@ export default function AgentClientContent({
             {channels.map((channel) => (
               <li key={channel.slug}>
                 <Link
-                  className="flex items-center justify-between rounded-lg border border-foreground/10 px-4 py-3 text-base text-foreground/85 transition-colors hover:bg-foreground/5 hover:text-primary"
+                  className="flex items-center justify-between rounded-lg border border-foreground/10 px-4 py-3 text-base text-foreground/90 transition-colors hover:bg-foreground/5 hover:text-primary"
                   href={`/${client.slug}/${channel.slug}`}
                 >
                   {channel.name}
@@ -115,7 +112,7 @@ export default function AgentClientContent({
             {others.map((entry) => (
               <li key={entry.slug}>
                 <Link
-                  className="flex items-center justify-between rounded-lg border border-foreground/10 px-4 py-3 text-base text-foreground/85 transition-colors hover:bg-foreground/5 hover:text-primary"
+                  className="flex items-center justify-between rounded-lg border border-foreground/10 px-4 py-3 text-base text-foreground/90 transition-colors hover:bg-foreground/5 hover:text-primary"
                   href={`/${entry.slug}`}
                 >
                   {entry.name}

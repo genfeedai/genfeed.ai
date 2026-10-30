@@ -73,7 +73,7 @@ Return ONLY the rewritten script. No explanation, no markdown, just the script t
       });
     }
 
-    const originalScript = highlight.summary || '';
+    const originalScript = highlight.script || highlight.summary || '';
 
     if (!originalScript.trim()) {
       throw new NotFoundException({
@@ -110,7 +110,7 @@ Return ONLY the rewritten script. No explanation, no markdown, just the script t
 
     // Persist the rewritten script to the highlight in DB
     const updatedHighlights = highlights.map((h) =>
-      h.id === highlightId ? { ...h, summary: rewrittenScript } : h,
+      h.id === highlightId ? { ...h, script: rewrittenScript } : h,
     );
 
     await this.clipperProjectsService.patch(projectId, {

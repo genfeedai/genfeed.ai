@@ -1,3 +1,4 @@
+import { AgentOutputHostContext } from '@contexts/ui/agent-output-host-context';
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type {
   StoryboardPlanEditorProps,
@@ -9,6 +10,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StoryboardDraftPage from './StoryboardDraftPage';
@@ -22,7 +24,11 @@ const mocks = vi.hoisted(() => ({ flush: vi.fn(), push: vi.fn() }));
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/org/brand${path}` }),
 }));
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: mocks.push }) }));
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
+  useRouter: () => ({ push: mocks.push }),
+  useSearchParams: () => new URLSearchParams(),
+}));
 // A settled outbox queue, so the page is not waiting on storage.
 vi.mock(
   '@pages/studio/storyboard/hooks/use-storyboard-autosave',
@@ -363,6 +369,106 @@ describe('draft detail page', () => {
       );
       await waitFor(() => expect(draftPlan).toHaveBeenCalledWith(undefined));
       expect(saveSource).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('on a split page', () => {
+    function renderSplit(
+      props: Partial<Parameters<typeof StoryboardDraftPage>[0]> = {},
+    ) {
+      return render(
+        <AgentOutputHostContext
+          value={{
+            agent: <p>Shell conversation</p>,
+            contextPanel: <p>Shell context</p>,
+            onNewThread: vi.fn(),
+            onOpenFullPage: vi.fn(),
+            threadsPanel: <p>Shell threads</p>,
+          }}
+        >
+          <StoryboardDraftPage
+            run={run}
+            savePlan={vi.fn()}
+            resetPlan={vi.fn()}
+            approvePlan={vi.fn()}
+            draftPlan={vi.fn().mockResolvedValue(run)}
+            {...props}
+          />
+        </AgentOutputHostContext>,
+      );
+    }
+
+    it('puts the board on the right and the composer in the agent column', () => {
+      renderSplit({ saveSource: vi.fn() });
+      const agentPane = screen.getByTestId('agent-output-agent-pane');
+      const outputPane = screen.getByTestId('agent-output-output-pane');
+
+      expect(within(agentPane).getByLabelText('Changes')).toBeInTheDocument();
+      expect(within(outputPane).getByText('Plan editor')).toBeInTheDocument();
+      expect(within(outputPane).queryByLabelText('Changes')).toBeNull();
+      expect(
+        within(agentPane).queryByText('Shell conversation'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('lists each request with its result while the board takes the change', async () => {
+      const draftPlan = vi.fn().mockResolvedValue(run);
+      renderSplit({ saveSource: vi.fn(), draftPlan });
+      const agentPane = screen.getByTestId('agent-output-agent-pane');
+      expect(
+        within(agentPane).getByText(/Ask for a change, like making shot 3/),
+      ).toBeInTheDocument();
+
+      fireEvent.change(within(agentPane).getByLabelText('Changes'), {
+        target: { value: 'Make shot 2 shorter' },
+      });
+      fireEvent.click(within(agentPane).getByRole('button', { name: 'Send' }));
+
+      expect(
+        await within(agentPane).findByText('Updated the board.'),
+      ).toBeInTheDocument();
+      expect(
+        within(within(agentPane).getByRole('log')).getByText(
+          'Make shot 2 shorter',
+        ),
+      ).toBeInTheDocument();
+      expect(draftPlan).toHaveBeenCalledWith('Make shot 2 shorter');
+    });
+
+    it('keeps one entry when a failed request is retried', async () => {
+      const draftPlan = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('Model unavailable'))
+        .mockResolvedValueOnce(run);
+      renderSplit({ saveSource: vi.fn(), draftPlan });
+      const agentPane = screen.getByTestId('agent-output-agent-pane');
+      fireEvent.change(within(agentPane).getByLabelText('Changes'), {
+        target: { value: 'Add a hook' },
+      });
+      fireEvent.click(within(agentPane).getByRole('button', { name: 'Send' }));
+      expect(
+        await within(agentPane).findByText('That did not change the board.'),
+      ).toBeInTheDocument();
+
+      fireEvent.click(within(agentPane).getByRole('button', { name: 'Retry' }));
+
+      expect(
+        await within(agentPane).findByText('Updated the board.'),
+      ).toBeInTheDocument();
+      expect(
+        within(within(agentPane).getByRole('log')).getAllByText('Add a hook'),
+      ).toHaveLength(1);
+    });
+
+    it('says change requests are unavailable once the source cannot be edited', () => {
+      renderSplit();
+      const agentPane = screen.getByTestId('agent-output-agent-pane');
+      expect(
+        within(agentPane).getByText(
+          'Change requests are not available for this storyboard.',
+        ),
+      ).toBeInTheDocument();
+      expect(within(agentPane).queryByLabelText('Changes')).toBeNull();
     });
   });
 });

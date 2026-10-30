@@ -12,6 +12,7 @@ import { AgentMemoriesModule } from '@api/collections/agent-memories/agent-memor
 import { AgentPublishAuditsModule } from '@api/collections/agent-publish-audits/agent-publish-audits.module';
 import { AgentStrategiesModule } from '@api/collections/agent-strategies/agent-strategies.module';
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
+import { AgentTransferRollupModule } from '@api/collections/agent-transfers/agent-transfer-rollup.module';
 import { AgentTransfersModule } from '@api/collections/agent-transfers/agent-transfers.module';
 import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { ArticlesModule } from '@api/collections/articles/articles.module';
@@ -138,6 +139,7 @@ import { Module } from '@nestjs/common';
     AgentCampaignsModule,
     AgentThreadsModule,
     AgentTransfersModule,
+    AgentTransferRollupModule,
     AgentMemoriesModule,
     AgentPublishAuditsModule,
     AgentThreadingModule,

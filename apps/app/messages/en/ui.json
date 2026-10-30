@@ -102,7 +102,6 @@
     "noScopedSounds": "No TikTok sounds observed for these filters. Try another platform, period, or Market.",
     "platformFilter": "Trend platform",
     "timeframeFilter": "Trend timeframe",
-    "hashtagPlatformFilter": "Hashtag platform",
     "allPlatforms": "All platforms"
   },
   "promptBarSubmitSlot": {
@@ -386,11 +385,14 @@
     "scrollLeft": "Scroll left",
     "scrollRight": "Scroll right"
   },
+  "viewMenu": {
+    "label": "View"
+  },
   "recordDetail": {
     "allDetailsCount": "All details ({count})",
     "needsYou": "Needs you",
     "activity": "Activity",
-    "activityFilterAria": "Filter activity",
+    "activityFilterType": "Type",
     "activityFilterAll": "All activity",
     "activityFilterContent": "Content",
     "activityFilterRuns": "Runs",
@@ -499,6 +501,18 @@
     "upgradeTo": "Upgrade to {plan}",
     "redirecting": "Redirecting…"
   },
+  "exportModal": {
+    "title": "Export data",
+    "formatLabel": "Export format",
+    "csvHint": "Opens anywhere",
+    "xlsxHint": "Excel workbook",
+    "fieldsLabel": "Fields to export",
+    "fieldsCount": "Fields · {selected} of {total}",
+    "selectAll": "Select all",
+    "clearAll": "Clear all",
+    "cancel": "Cancel",
+    "exportAs": "Export as {format}"
+  },
   "lowCreditsBanner": {
     "generationUnaffordableTitle": "Not enough credits to keep generating",
     "generationUnaffordableBody": "Everything you made stays in your Library. Buy a credit pack or pick a plan to keep generating.",
@@ -506,6 +520,23 @@
     "trialEndedBody": "Free credits expired. Everything you made stays in your Library.",
     "buyCredits": "Buy credits",
     "seePlans": "See plans"
+  },
+  "uploadModal": {
+    "title": "Upload {category}",
+    "cloneVoiceTitle": "Clone voice",
+    "dropPrompt": "Drop files here or",
+    "browse": "browse",
+    "singleFile": "Single file",
+    "upToFiles": "Up to {count}",
+    "maxSizeEach": "{size} MB each",
+    "uploadingFile": "Uploading {name}",
+    "statusWaiting": "Waiting",
+    "statusUploaded": "Uploaded",
+    "statusFailed": "Upload failed",
+    "fileCount": "{count} of {max} files",
+    "cancel": "Cancel",
+    "upload": "{count, plural, =0 {Upload} one {Upload # file} other {Upload # files}}",
+    "cloneVoice": "Clone voice"
   },
   "tiktokPublishing": {
     "connectAccount": "Connect a TikTok account before posting.",
@@ -558,7 +589,16 @@
     "saving": "Saving…",
     "saved": "YouTube settings saved",
     "refreshFailed": "YouTube settings saved, but the view could not refresh. Reload to see the latest settings.",
-    "saveFailed": "Could not save YouTube settings."
+    "saveFailed": "Could not save YouTube settings.",
+    "coverTitle": "Cover title",
+    "coverFrame": "Cover frame (seconds)",
+    "coverHint": "The cover is a frame from the video with your title over it. It is sent to YouTube with the video. YouTube may not accept custom covers for Shorts through the API; if it does not, download the cover and add it in YouTube Studio.",
+    "coverNeedsVideo": "Add a video to this post to preview a cover.",
+    "preview": "Preview cover",
+    "rendering": "Rendering…",
+    "coverFailed": "Could not render the cover.",
+    "coverPreviewAlt": "Cover preview",
+    "downloadCover": "Download cover"
   },
   "seoScorecard": {
     "seoScore": "SEO score",

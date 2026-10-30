@@ -46,5 +46,5 @@
     "check": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run"
   },
-  "version": "0.3.1"
+  "version": "0.3.2"
 }

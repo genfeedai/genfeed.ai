@@ -1,6 +1,7 @@
 import {
   DEFAULT_MCP_PROFILE_TOOLSETS,
   DIRECTORY_MCP_PROFILE_TOOLSETS,
+  STUDIO_MCP_PROFILE_TOOLSETS,
 } from '@genfeedai/actions';
 import type { McpRequest } from '@mcp/shared/interfaces/mcp-request.interface';
 import {
@@ -73,6 +74,7 @@ describe('resolveMcpToolQuery', () => {
       empty: [],
       toolsets: [...DEFAULT_MCP_PROFILE_TOOLSETS],
       unknown: [],
+      unknownApps: [],
       unknownProfile: null,
     });
   });
@@ -85,8 +87,58 @@ describe('resolveMcpToolQuery', () => {
       empty: [],
       toolsets: [],
       unknown: [],
+      unknownApps: [],
       unknownProfile: null,
     });
+  });
+
+  it('resolves ?profile=studio to the default toolsets plus brand and analytics', () => {
+    expect(resolveMcpToolQuery({ profile: 'studio' }).toolsets).toEqual([
+      ...STUDIO_MCP_PROFILE_TOOLSETS,
+    ]);
+  });
+
+  it('adds the toolsets of ?app= to the default profile', () => {
+    const selection = resolveMcpToolQuery({ app: 'clipper,Motion' });
+
+    expect(selection.toolsets).toEqual([
+      ...DEFAULT_MCP_PROFILE_TOOLSETS,
+      'clipper',
+      'visual-code',
+    ]);
+    expect(selection.unknownApps).toEqual([]);
+  });
+
+  it('adds ?app= on top of ?profile=studio and an explicit ?toolsets=', () => {
+    expect(
+      resolveMcpToolQuery({ app: ['clipper', 'motion'], profile: 'studio' })
+        .toolsets,
+    ).toEqual([...STUDIO_MCP_PROFILE_TOOLSETS, 'clipper', 'visual-code']);
+    expect(
+      resolveMcpToolQuery({ app: 'discovery', toolsets: 'content' }).toolsets,
+    ).toEqual(['content', 'ads', 'inspiration']);
+  });
+
+  it('does not duplicate a toolset the profile already has', () => {
+    expect(resolveMcpToolQuery({ app: 'playground' }).toolsets).toEqual([
+      ...DEFAULT_MCP_PROFILE_TOOLSETS,
+    ]);
+  });
+
+  it('leaves the full profile unfiltered when ?app= is present', () => {
+    expect(resolveMcpToolQuery({ app: 'clipper', profile: 'full' })).toEqual({
+      empty: [],
+      toolsets: [],
+      unknown: [],
+      unknownApps: [],
+      unknownProfile: null,
+    });
+  });
+
+  it('reports unknown apps', () => {
+    expect(
+      resolveMcpToolQuery({ app: 'clipper,nope,studio' }).unknownApps,
+    ).toEqual(['nope', 'studio']);
   });
 
   it('lets an explicit ?toolsets= win over ?profile=', () => {
@@ -191,6 +243,25 @@ describe('toolsetsQueryMiddleware', () => {
     expect(next).toHaveBeenCalledOnce();
   });
 
+  it('responds 400 for an unknown app and names the valid apps', () => {
+    const { req, res, status, json, next } = buildContext({ app: 'nope' });
+
+    toolsetsQueryMiddleware(req, res, next);
+
+    expect(status).toHaveBeenCalledWith(400);
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: expect.objectContaining({
+          code: -32602,
+          message: expect.stringMatching(
+            /Unknown app\(s\): nope\. Valid apps: .*clipper/,
+          ),
+        }),
+      }),
+    );
+    expect(next).not.toHaveBeenCalled();
+  });
+
   it('responds 400 for an unknown profile and never calls next', () => {
     const { req, res, status, json, next } = buildContext({
       profile: 'nope',
@@ -203,7 +274,9 @@ describe('toolsetsQueryMiddleware', () => {
       expect.objectContaining({
         error: expect.objectContaining({
           code: -32602,
-          message: expect.stringContaining('Unknown profile: nope'),
+          message: expect.stringContaining(
+            'Valid profiles: default, directory, studio, full',
+          ),
         }),
         id: null,
         jsonrpc: '2.0',

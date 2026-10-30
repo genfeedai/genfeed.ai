@@ -309,6 +309,23 @@ export interface StoryboardPromptBarProps {
   readonly onRetry: () => void;
   /** Handles the request; failures are reported back through `error`. */
   readonly onSubmit: (text: string) => void | Promise<void>;
+  /** `pane` sits in flow at the foot of the agent column instead of the page. */
+  readonly variant?: 'page' | 'pane';
+}
+
+/** One brief or change request to the storyboard agent and how it went. */
+export interface StoryboardAgentRequest {
+  readonly id: string;
+  readonly kind: 'brief' | 'change';
+  readonly state: 'done' | 'failed' | 'working';
+  readonly text: string;
+}
+
+export interface StoryboardAgentThreadProps
+  extends Omit<StoryboardPromptBarProps, 'variant'> {
+  /** The source is a brief on a plan that is not in production yet. */
+  readonly canCompose: boolean;
+  readonly requests: readonly StoryboardAgentRequest[];
 }
 
 export interface StoryboardShotCardStill {

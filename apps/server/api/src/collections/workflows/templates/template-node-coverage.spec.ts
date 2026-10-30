@@ -166,6 +166,8 @@ function createProductionEngine(): WorkflowEngine {
       presentDependency(),
       presentDependency(),
       presentDependency(),
+      presentDependency(),
+      presentDependency(),
     ),
     new WorkflowMediaGenerationExecutorRegistrarService(
       helper,

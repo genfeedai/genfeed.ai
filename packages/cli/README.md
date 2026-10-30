@@ -50,7 +50,7 @@ bun run --cwd packages/cli type-check
 
 ## Requirements
 
-- Node.js 22.12+
+- Node.js 24+
 - A [Genfeed.ai](https://genfeed.ai) account (existing users can log in; new users can sign up from the CLI)
 
 ## Installation

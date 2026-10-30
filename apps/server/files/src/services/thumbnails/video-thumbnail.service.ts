@@ -3,6 +3,9 @@ import * as fs from 'node:fs';
 import { ConfigService } from '@files/config/config.service';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { S3Service } from '@files/services/s3/s3.service';
+import { overlayTitle } from '@files/services/thumbnails/thumbnail-title-overlay.util';
+import { WatermarkExportService } from '@files/services/watermark-export/watermark-export.service';
+import type { ICoverStyle } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { assertSafeSegment, resolveContainedPath } from '@libs/security';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -19,6 +22,7 @@ export class VideoThumbnailService {
     private readonly loggerService: LoggerService,
     private readonly ffmpegService: FFmpegService,
     private readonly s3Service: S3Service,
+    private readonly watermarkExport: WatermarkExportService,
     @Optional() private readonly configService?: ConfigService,
   ) {}
 
@@ -28,6 +32,8 @@ export class VideoThumbnailService {
    * @param ingredientId - ID of the ingredient/video
    * @param timeInSeconds - Time in seconds to extract frame (default: 1)
    * @param width - Thumbnail width (default: 720, will maintain aspect ratio)
+   * @param title - Optional title laid over the frame as a cover
+   * @param coverStyle - The cover title style and the brand signature laid over the frame
    * @returns Public URL of the uploaded thumbnail
    */
   async generateThumbnail(
@@ -35,6 +41,9 @@ export class VideoThumbnailService {
     ingredientId: string,
     timeInSeconds: number = 1,
     width: number = 720,
+    title?: string,
+    isCover = false,
+    coverStyle?: ICoverStyle,
   ): Promise<string> {
     const safeIngredientId = assertSafeSegment(
       ingredientId,
@@ -111,10 +120,12 @@ export class VideoThumbnailService {
 
       // Resize thumbnail using sharp (maintain aspect ratio)
       const resizeStartTime = Date.now();
-      const resizedThumbnailBuffer = await sharp(thumbnailPath)
-        .resize(width, null, { withoutEnlargement: true })
-        .jpeg({ quality: 85 })
-        .toBuffer();
+      const resizedThumbnailBuffer = await this.composeThumbnail(
+        thumbnailPath,
+        width,
+        title,
+        coverStyle,
+      );
       const resizeDuration = Date.now() - resizeStartTime;
 
       const thumbnailSizeKB = (resizedThumbnailBuffer.length / 1024).toFixed(2);
@@ -136,6 +147,7 @@ export class VideoThumbnailService {
       const { s3Key, publicUrl, uploadDuration } = await this.uploadThumbnail(
         resizedThumbnailPath,
         safeIngredientId,
+        isCover || Boolean(title),
       );
       const totalDuration = Date.now() - thumbnailStartTime;
 
@@ -170,13 +182,35 @@ export class VideoThumbnailService {
     }
   }
 
+  /** Resizes the extracted frame, then lays the cover title and the brand signature over it. */
+  private async composeThumbnail(
+    framePath: string,
+    width: number,
+    title?: string,
+    coverStyle?: ICoverStyle,
+  ): Promise<Buffer> {
+    const resizedFrame = await sharp(framePath)
+      .resize(width, null, { withoutEnlargement: true })
+      .toBuffer();
+    const titled = title
+      ? await overlayTitle(resizedFrame, title, coverStyle?.title)
+      : resizedFrame;
+    const signed = coverStyle?.signature
+      ? await this.watermarkExport.applyToImage(titled, [coverStyle.signature])
+      : titled;
+    return sharp(signed).jpeg({ quality: 85 }).toBuffer();
+  }
+
   private async uploadThumbnail(
     thumbnailPath: string,
     ingredientId: string,
+    isCover: boolean,
   ): Promise<{ s3Key: string; publicUrl: string; uploadDuration: number }> {
+    // A cover or preview must not overwrite the plain still stored under the
+    // ingredient id, whether or not it carries a title.
     const requestedKey = this.s3Service.generateS3Key(
       'thumbnails',
-      this.configService?.isAuthorizedMediaDeliveryEnabled
+      this.configService?.isAuthorizedMediaDeliveryEnabled || isCover
         ? randomUUID()
         : ingredientId,
     );

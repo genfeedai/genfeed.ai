@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize } from '@genfeedai/contracts';
 import type {
   IBrandKitDiagnostic,
   IBrandKitDraft,
@@ -44,14 +44,13 @@ export const BRAND_OS_PREVIEW_STATES = [
 export type BrandOSPreviewStateName = (typeof BRAND_OS_PREVIEW_STATES)[number];
 
 type CampaignScaleRole = 'block' | 'hero' | 'monument';
-type EvidenceKind = 'candidate' | 'extracted' | 'inferred' | 'missing';
+type EvidenceKind = 'extracted' | 'inferred';
 type DiagnosticSeverity = 'info' | 'warning';
 
 interface BrandOSPreviewStateProps {
   announce?: boolean;
   draft?: IBrandKitDraft | undefined;
   scaleRole?: CampaignScaleRole;
-  showEvidence?: boolean;
   state: BrandOSPreviewStateName;
 }
 
@@ -172,79 +171,12 @@ const STATE_DEFINITIONS: Record<BrandOSPreviewStateName, StateDefinition> = {
   },
 };
 
-const EVIDENCE_ITEMS: readonly EvidenceItem[] = [
-  {
-    confidence: 0.98,
-    detail: 'Open-source AI OS for content creation and content operations.',
-    kind: 'extracted',
-    label: 'Category',
-  },
-  {
-    confidence: 0.84,
-    detail: 'Direct, technical, founder-aware, and operational.',
-    kind: 'inferred',
-    label: 'Voice',
-  },
-  {
-    confidence: 0.62,
-    detail:
-      'System calm candidate — nearest-reference only: Deep Indigo #051230, Salvia Blue #97ACC8, and Neutral Gray #B6BFC1. Exploration only — not Genfeed product tokens.',
-    kind: 'candidate',
-    label: 'Campaign palette',
-  },
-  {
-    confidence: null,
-    detail:
-      'No verified customer proof corpus was found in the scanned sources.',
-    kind: 'missing',
-    label: 'Customer proof',
-  },
-];
-
-const SOURCE_ROWS: readonly SourceRow[] = [
-  {
-    detail: 'Public category, product promise, and navigation language',
-    href: 'https://genfeed.ai',
-    label: 'genfeed.ai',
-  },
-  {
-    detail: 'Open-source positioning and product capabilities',
-    href: 'https://github.com/genfeedai/genfeed.ai',
-    label: 'GitHub README',
-  },
-  {
-    detail: 'Current UI tokens, scale rules, and contrast contract',
-    href: 'https://github.com/genfeedai/genfeed.ai/blob/master/DESIGN.md',
-    label: 'DESIGN.md',
-  },
-  {
-    detail:
-      'Candidate harmony references; no exact match to current product tokens',
-    href: 'https://github.com/genfeedai/genfeed.ai/blob/master/skills/genfeed-brand-os/references/brand-os.md',
-    label: 'Brand OS source pack',
-  },
-];
-
-const DIAGNOSTICS: readonly DiagnosticItem[] = [
-  {
-    message:
-      'Candidate palette lacks the metadata required for an exact Wada/Sanzo match.',
-    severity: 'warning',
-  },
-  {
-    message: 'Current product color tokens remain unchanged.',
-    severity: 'info',
-  },
-];
-
 const EVIDENCE_KIND_BADGE_VARIANTS: Record<
   EvidenceKind,
   BadgeProps['variant']
 > = {
-  candidate: 'warning',
   extracted: 'success',
   inferred: 'info',
-  missing: 'destructive',
 };
 
 function formatConfidence(confidence: number | null): string {
@@ -267,11 +199,7 @@ function formatDraftValue(value: unknown): string {
   return value == null ? 'No proposed value' : String(value);
 }
 
-function toEvidenceItems(draft?: IBrandKitDraft): readonly EvidenceItem[] {
-  if (!draft) {
-    return EVIDENCE_ITEMS;
-  }
-
+function toEvidenceItems(draft: IBrandKitDraft): readonly EvidenceItem[] {
   const fields = Object.values(draft.fields).filter(
     (field) => field?.proposedValue !== undefined,
   );
@@ -285,11 +213,8 @@ function toEvidenceItems(draft?: IBrandKitDraft): readonly EvidenceItem[] {
 }
 
 function toSourceRows(
-  evidence?: readonly IBrandKitSourceEvidence[],
+  evidence: readonly IBrandKitSourceEvidence[],
 ): readonly SourceRow[] {
-  if (evidence === undefined) {
-    return SOURCE_ROWS;
-  }
   return evidence.slice(0, 8).map((source, index) => ({
     detail: source.excerpt ?? `Evidence recorded as ${source.sourceType}`,
     href: source.url ?? '#brand-os-preview',
@@ -298,26 +223,24 @@ function toSourceRows(
 }
 
 function toDiagnostics(
-  diagnostics?: readonly IBrandKitDiagnostic[],
+  diagnostics: readonly IBrandKitDiagnostic[],
 ): readonly DiagnosticItem[] {
-  if (diagnostics === undefined) {
-    return DIAGNOSTICS;
-  }
   return diagnostics.slice(0, 8).map((diagnostic) => ({
     message: diagnostic.message,
     severity: diagnostic.severity === 'info' ? 'info' : 'warning',
   }));
 }
 
-function EvidencePreview({ draft }: { draft?: IBrandKitDraft | undefined }) {
+function EvidencePreview({ draft }: { draft: IBrandKitDraft }) {
   const diagnosticsHeadingId = useId();
   const evidenceHeadingId = useId();
   const sourcesHeadingId = useId();
   const evidenceItems = toEvidenceItems(draft);
-  const sourceRows = toSourceRows(draft?.evidence);
-  const diagnostics = toDiagnostics(
-    draft ? [...draft.diagnostics, ...draft.readiness.diagnostics] : undefined,
-  );
+  const sourceRows = toSourceRows(draft.evidence);
+  const diagnostics = toDiagnostics([
+    ...draft.diagnostics,
+    ...draft.readiness.diagnostics,
+  ]);
 
   return (
     <div className="grid gap-px bg-foreground/10 lg:grid-cols-[1.15fr_0.85fr]">
@@ -353,10 +276,10 @@ function EvidencePreview({ draft }: { draft?: IBrandKitDraft | undefined }) {
                   <EvidenceLabel kind={item.kind} />
                 </dt>
                 <dd className="flex flex-col gap-1">
-                  <Text className="text-sm leading-6 text-foreground/75">
+                  <Text className="text-sm leading-6 text-foreground/80">
                     {item.detail}
                   </Text>
-                  <Text className="font-mono text-2xs uppercase text-foreground/55">
+                  <Text className="font-mono text-2xs uppercase text-foreground/60">
                     {formatConfidence(item.confidence)}
                   </Text>
                 </dd>
@@ -395,7 +318,7 @@ function EvidencePreview({ draft }: { draft?: IBrandKitDraft | undefined }) {
                     <span className="text-xs font-semibold text-foreground group-hover:underline">
                       {source.label}
                     </span>
-                    <span className="text-xs leading-5 text-foreground/55">
+                    <span className="text-xs leading-5 text-foreground/60">
                       {source.detail}
                     </span>
                   </Link>
@@ -403,7 +326,7 @@ function EvidencePreview({ draft }: { draft?: IBrandKitDraft | undefined }) {
               ))}
             </ul>
           ) : (
-            <Text className="mt-4 text-xs leading-5 text-foreground/55">
+            <Text className="mt-4 text-xs leading-5 text-foreground/60">
               No source receipt was available.
             </Text>
           )}
@@ -436,7 +359,7 @@ function EvidencePreview({ draft }: { draft?: IBrandKitDraft | undefined }) {
                     />
                   )}
                   <div className="flex flex-col gap-0.5">
-                    <Text className="text-2xs font-black uppercase tracking-[0.12em] text-foreground/55">
+                    <Text className="text-2xs font-black uppercase tracking-[0.12em] text-foreground/60">
                       {diagnostic.severity}
                     </Text>
                     <Text className="text-xs leading-5 text-foreground/70">
@@ -447,7 +370,7 @@ function EvidencePreview({ draft }: { draft?: IBrandKitDraft | undefined }) {
               ))}
             </ul>
           ) : (
-            <Text className="mt-4 text-xs leading-5 text-foreground/55">
+            <Text className="mt-4 text-xs leading-5 text-foreground/60">
               No additional diagnostics.
             </Text>
           )}
@@ -461,7 +384,6 @@ export function BrandOSPreviewState({
   announce = false,
   draft,
   scaleRole = 'block',
-  showEvidence = false,
   state,
 }: BrandOSPreviewStateProps) {
   const headingId = useId();
@@ -482,50 +404,34 @@ export function BrandOSPreviewState({
       <div className="flex flex-col gap-5 p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-start gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-foreground/[0.04] shadow-border">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-foreground/5 shadow-border">
               <Icon
                 aria-hidden="true"
                 className={`size-5 ${definition.toneClassName} ${state === 'scanning' ? 'animate-spin motion-reduce:animate-none' : ''}`}
               />
             </span>
-            <div className="flex flex-col gap-1">
-              <Text className="font-mono text-2xs uppercase tracking-[0.15em] text-foreground/55">
-                {state}
-              </Text>
-              <Heading as="h3" className="text-lg font-semibold" id={headingId}>
-                {definition.label}
-              </Heading>
-            </div>
+            <Heading
+              as="h3"
+              className="self-center text-lg font-semibold"
+              id={headingId}
+            >
+              {definition.label}
+            </Heading>
           </div>
-          <span
-            className={`text-2xs font-black uppercase tracking-[0.14em] ${definition.toneClassName}`}
-          >
-            {state === 'scanning' ? 'In progress' : 'Explicit state'}
-          </span>
         </div>
 
         <div className="grid gap-2">
-          <Text className="text-sm leading-6 text-foreground/65">
+          <Text className="text-sm leading-6 text-foreground/70">
             {definition.description}
           </Text>
-          <Text className="text-xs font-medium leading-5 text-foreground/85">
+          <Text className="text-xs font-medium leading-5 text-foreground/90">
             Next: {definition.action}
           </Text>
         </div>
       </div>
 
-      {showEvidence ? <EvidencePreview draft={draft} /> : null}
+      {draft ? <EvidencePreview draft={draft} /> : null}
     </article>
-  );
-}
-
-export function BrandOSPreviewStateCatalog() {
-  return (
-    <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-      {BRAND_OS_PREVIEW_STATES.map((state) => (
-        <BrandOSPreviewState key={state} state={state} />
-      ))}
-    </div>
   );
 }
 
@@ -534,14 +440,6 @@ export function BrandOSPreviewAction() {
     <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
       <Button asChild size={ButtonSize.PUBLIC} withWrapper={false}>
         <Link href="#brand-os-preview">Build your Brand OS</Link>
-      </Button>
-      <Button
-        asChild
-        size={ButtonSize.PUBLIC}
-        variant={ButtonVariant.SECONDARY}
-        withWrapper={false}
-      >
-        <Link href="#brand-os-states">Inspect every state</Link>
       </Button>
     </div>
   );
