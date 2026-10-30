@@ -30,7 +30,6 @@ const READ_ONLY_PREFIXES = [
   'find_',
   'get_',
   'inspect_',
-  'list_',
   'present_',
   'render_',
   'score_',
@@ -45,7 +44,7 @@ const WRITE_NAMES_WITH_READ_PREFIX = new Set(['present_work_object']);
 /** Read-shaped names that spend credits, so they can carry a mutation policy. */
 const SPENDING_NAMES_WITH_READ_PREFIX = new Set([
   'get_x_posts',
-  'list_x_account_activity',
+  'get_x_account_activity',
 ]);
 
 const READ_ONLY_NAMES = new Set<string>([
@@ -136,7 +135,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   run_clipper: 'approval-required',
   generate_content: 'direct',
   get_x_posts: 'direct',
-  list_x_account_activity: 'direct',
+  get_x_account_activity: 'direct',
   generate_turbo_content: 'approval-required',
   generate_monthly_content: 'direct',
   generate_reply_variants: 'direct',

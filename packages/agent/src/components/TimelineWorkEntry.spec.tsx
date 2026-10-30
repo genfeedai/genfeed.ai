@@ -93,7 +93,7 @@ describe('TimelineWorkEntry', () => {
       <TimelineWorkEntry
         event={buildEvent({
           detail: JSON.stringify({ assets: [], count: 0, type: 'video' }),
-          toolName: 'list_assets',
+          toolName: 'get_assets',
         })}
       />,
     );

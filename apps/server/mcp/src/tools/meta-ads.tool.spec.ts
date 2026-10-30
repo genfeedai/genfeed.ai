@@ -38,7 +38,7 @@ describe('handleMetaAdsTool', () => {
   it('lists ad accounts', async () => {
     const client = buildClient();
 
-    const result = await call(client, 'list_meta_ad_accounts', {});
+    const result = await call(client, 'get_meta_ad_accounts', {});
 
     expect(client.listMetaAdAccounts).toHaveBeenCalled();
     expect(result.content[0].text).toContain('Found 1 ad accounts');
@@ -52,7 +52,7 @@ describe('handleMetaAdsTool', () => {
     const client = buildClient();
     client.listMetaAdAccounts.mockResolvedValue([]);
 
-    const result = await call(client, 'list_meta_ad_accounts', {});
+    const result = await call(client, 'get_meta_ad_accounts', {});
 
     expect(result.content[0].text).toContain('No Meta ad accounts found');
     expect(result.content[0].text).toContain('ads_management');
@@ -61,7 +61,7 @@ describe('handleMetaAdsTool', () => {
   it('lists campaigns with the status and limit filters applied', async () => {
     const client = buildClient();
 
-    const result = await call(client, 'list_meta_campaigns', {
+    const result = await call(client, 'get_meta_campaigns', {
       adAccountId: 'act_1',
       limit: 10,
       status: 'ACTIVE',
@@ -79,7 +79,7 @@ describe('handleMetaAdsTool', () => {
     const client = buildClient();
     client.listMetaCampaigns.mockResolvedValue([]);
 
-    const result = await call(client, 'list_meta_campaigns', {
+    const result = await call(client, 'get_meta_campaigns', {
       adAccountId: 'act_1',
     });
 
@@ -94,7 +94,7 @@ describe('handleMetaAdsTool', () => {
   it('lists ad creatives', async () => {
     const client = buildClient();
 
-    const result = await call(client, 'list_meta_ad_creatives', {
+    const result = await call(client, 'get_meta_ad_creatives', {
       adAccountId: 'act_1',
       limit: 25,
     });
@@ -107,7 +107,7 @@ describe('handleMetaAdsTool', () => {
     const client = buildClient();
     client.listMetaAdCreatives.mockResolvedValue([]);
 
-    const result = await call(client, 'list_meta_ad_creatives', {
+    const result = await call(client, 'get_meta_ad_creatives', {
       adAccountId: 'act_1',
     });
 

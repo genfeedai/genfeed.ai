@@ -23,7 +23,7 @@ export const CLAUDE_MCP_TOOL_NAMES: ReadonlySet<string> = new Set([
   'get_brand_context',
   'get_brand_completeness',
   'get_brand_scan_status',
-  'list_brand_publishing_readiness',
+  'get_brand_publishing_readiness',
   'create_brand_from_url',
   'start_brand_interview',
   'submit_brand_interview_answer',
@@ -45,7 +45,7 @@ export const CLAUDE_MCP_TOOL_NAMES: ReadonlySet<string> = new Set([
   'get_linkedin_analytics',
   'get_linkedin_connection_status',
   'get_trends',
-  'list_assets',
+  'get_assets',
 ]);
 
 /** The onboarding MCP adapter invokes these reviewed internal operations. */

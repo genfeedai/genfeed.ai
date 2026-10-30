@@ -63,7 +63,7 @@ describe('tool registry', () => {
       ['generate_as_identity', 'identity'],
       ['request_asset', 'agent-control'],
       ['get_account', 'social'],
-      ['list_assets', 'generation'],
+      ['get_assets', 'generation'],
     ];
     for (const [name, category] of expected) {
       expect(getToolByName(name)?.category, name).toBe(category);
@@ -91,7 +91,7 @@ describe('tool registry', () => {
     expect(getToolByName('get_account')?.uiActionType).toBe(
       'credits_balance_card',
     );
-    expect(getToolByName('list_assets')?.uiActionType).toBeUndefined();
+    expect(getToolByName('get_assets')?.uiActionType).toBeUndefined();
   });
 
   it('widens the visible set as the role escalates', () => {

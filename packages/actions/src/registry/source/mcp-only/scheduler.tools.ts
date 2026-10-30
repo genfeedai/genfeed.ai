@@ -342,7 +342,7 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'List a brand connected publishing channels with credential ID, schedulability, health, and diagnostics. Read-only; check before scheduling.',
-    name: 'list_brand_publishing_readiness',
+    name: 'get_brand_publishing_readiness',
     parameters: {
       properties: {
         brandId: {

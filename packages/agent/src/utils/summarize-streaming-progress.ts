@@ -28,7 +28,6 @@ const ACTIVE_WORK_STATUSES = new Set([
 function summarizeToolName(toolName: string): string {
   if (
     toolName.startsWith('get_') ||
-    toolName.startsWith('list_') ||
     toolName.startsWith('discover_') ||
     toolName === 'resolve_handle'
   ) {

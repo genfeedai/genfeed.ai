@@ -77,7 +77,7 @@ describe('REST ↔ MCP ↔ CLI scheduler lifecycle parity', () => {
 
   it('keeps brand publishing-readiness discovery reviewed and MCP-only', () => {
     expect(source.mcpDefinitions).toContain(
-      "name: 'list_brand_publishing_readiness'",
+      "name: 'get_brand_publishing_readiness'",
     );
 
     // Read the specific catalog entry's own object literal rather than
@@ -87,7 +87,7 @@ describe('REST ↔ MCP ↔ CLI scheduler lifecycle parity', () => {
     // agent" rather than about catalog-entry line layout.
     const entry = catalogEntrySource(
       source.mcpCatalog,
-      'list_brand_publishing_readiness',
+      'get_brand_publishing_readiness',
     );
     expect(entry).toContain("surfaces: ['mcp']");
     expect(entry).not.toContain("'agent'");

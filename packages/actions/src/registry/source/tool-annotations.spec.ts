@@ -17,7 +17,6 @@ import { deriveMcpToolPresentation } from './tool-annotations';
 const READ_ONLY_PREFIXES = [
   'describe_',
   'get_',
-  'list_',
   'search_',
   'validate_',
 ] as const;
@@ -66,7 +65,7 @@ const AUDITED_PRESENTATIONS = [
       openWorldHint: true,
       readOnlyHint: false,
     },
-    name: 'list_x_account_activity',
+    name: 'get_x_account_activity',
     title: 'List X Account Activity',
   },
   {
@@ -171,7 +170,7 @@ const AUDITED_READ_PRESENTATIONS = [
       openWorldHint: true,
       readOnlyHint: false,
     },
-    name: 'list_ads_research',
+    name: 'get_ads_research',
     title: 'List Ads Research',
   },
   {
@@ -221,7 +220,7 @@ const AUDITED_READ_PRESENTATIONS = [
       idempotentHint: false,
       openWorldHint: true,
     },
-    name: 'list_instagram_inspiration',
+    name: 'get_instagram_inspiration',
     title: 'List Instagram Inspiration',
   },
   {
@@ -637,23 +636,23 @@ const FROZEN_MCP_PRESENTATIONS = [
     false,
     false,
   ],
-  ['list_ads_research', 'List Ads Research', false, false, false, true],
-  ['list_assets', 'List Assets', true, false, true, false],
+  ['get_ads_research', 'List Ads Research', false, false, false, true],
+  ['get_assets', 'List Assets', true, false, true, false],
   [
-    'list_brand_publishing_readiness',
+    'get_brand_publishing_readiness',
     'List Brand Publishing Readiness',
     true,
     false,
     true,
     false,
   ],
-  ['list_activity', 'List Activity', true, false, true, false],
-  ['list_clipper_projects', 'List Clipper Projects', true, false, true, false],
-  ['list_editor_projects', 'List Editor Projects', true, false, true, false],
-  ['list_inbox', 'List Inbox', true, false, true, false],
-  ['list_tasks', 'List Tasks', true, false, true, false],
+  ['get_activity', 'List Activity', true, false, true, false],
+  ['get_clipper_projects', 'List Clipper Projects', true, false, true, false],
+  ['get_editor_projects', 'List Editor Projects', true, false, true, false],
+  ['get_inbox', 'List Inbox', true, false, true, false],
+  ['get_tasks', 'List Tasks', true, false, true, false],
   [
-    'list_google_ads_campaigns',
+    'get_google_ads_campaigns',
     'List Google Ads Campaigns',
     true,
     false,
@@ -661,7 +660,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     false,
   ],
   [
-    'list_google_ads_customers',
+    'get_google_ads_customers',
     'List Google Ads Customers',
     true,
     false,
@@ -669,43 +668,29 @@ const FROZEN_MCP_PRESENTATIONS = [
     false,
   ],
   [
-    'list_instagram_inspiration',
+    'get_instagram_inspiration',
     'List Instagram Inspiration',
     false,
     false,
     false,
     true,
   ],
+  ['get_knowledge_sources', 'List Knowledge Sources', true, false, true, false],
+  ['get_meta_ad_accounts', 'List Meta Ad Accounts', true, false, true, false],
+  ['get_meta_ad_creatives', 'List Meta Ad Creatives', true, false, true, false],
+  ['get_meta_campaigns', 'List Meta Campaigns', true, false, true, false],
+  ['get_orgs', 'List Orgs', true, false, true, false],
   [
-    'list_knowledge_sources',
-    'List Knowledge Sources',
-    true,
-    false,
-    true,
-    false,
-  ],
-  ['list_meta_ad_accounts', 'List Meta Ad Accounts', true, false, true, false],
-  [
-    'list_meta_ad_creatives',
-    'List Meta Ad Creatives',
-    true,
-    false,
-    true,
-    false,
-  ],
-  ['list_meta_campaigns', 'List Meta Campaigns', true, false, true, false],
-  ['list_orgs', 'List Orgs', true, false, true, false],
-  [
-    'list_social_conversations',
+    'get_social_conversations',
     'List Social Conversations',
     true,
     false,
     true,
     true,
   ],
-  ['list_stalled_items', 'List Stalled Items', true, false, true, false],
+  ['get_stalled_items', 'List Stalled Items', true, false, true, false],
   [
-    'list_system_workflow_catalog',
+    'get_system_workflow_catalog',
     'List System Workflow Catalog',
     true,
     false,
@@ -713,28 +698,28 @@ const FROZEN_MCP_PRESENTATIONS = [
     false,
   ],
   [
-    'list_tiktok_ad_accounts',
+    'get_tiktok_ad_accounts',
     'List Tiktok Ad Accounts',
     true,
     false,
     true,
     false,
   ],
-  ['list_tiktok_adgroups', 'List Tiktok Adgroups', true, false, true, false],
-  ['list_tiktok_ads', 'List Tiktok Ads', true, false, true, false],
-  ['list_tiktok_campaigns', 'List Tiktok Campaigns', true, false, true, false],
-  ['list_workflow_runs', 'List Workflow Runs', true, false, true, false],
+  ['get_tiktok_adgroups', 'List Tiktok Adgroups', true, false, true, false],
+  ['get_tiktok_ads', 'List Tiktok Ads', true, false, true, false],
+  ['get_tiktok_campaigns', 'List Tiktok Campaigns', true, false, true, false],
+  ['get_workflow_runs', 'List Workflow Runs', true, false, true, false],
   [
-    'list_workflow_templates',
+    'get_workflow_templates',
     'List Workflow Templates',
     true,
     false,
     true,
     false,
   ],
-  ['list_workflows', 'List Workflows', true, false, true, false],
+  ['get_workflows', 'List Workflows', true, false, true, false],
   [
-    'list_x_account_activity',
+    'get_x_account_activity',
     'List X Account Activity',
     false,
     false,
@@ -1050,7 +1035,7 @@ describe('MCP tool annotations', () => {
         tool.name === 'create_post' ||
         tool.name === 'import_source_post' ||
         tool.name === 'get_x_posts' ||
-        tool.name === 'list_x_account_activity' ||
+        tool.name === 'get_x_account_activity' ||
         tool.name === 'transform_media'
       ) {
         continue;
@@ -1081,7 +1066,7 @@ describe('MCP tool annotations', () => {
   });
 
   it('keeps paid X reads off the read-only hint', () => {
-    for (const name of ['get_x_posts', 'list_x_account_activity'] as const) {
+    for (const name of ['get_x_posts', 'get_x_account_activity'] as const) {
       expect(getToolByName(name)?.annotations, name).toMatchObject({
         destructiveHint: false,
         readOnlyHint: false,
@@ -1104,14 +1089,14 @@ describe('MCP tool annotations', () => {
       'get_account',
       'get_analytics',
       'get_articles',
+      'get_assets',
       'get_brands',
       'get_connection_status',
       'get_content_analytics',
       'get_generation_options',
       'get_social_conversation',
-      'list_assets',
-      'list_social_conversations',
-      'list_workflows',
+      'get_social_conversations',
+      'get_workflows',
       'validate_scheduler_target',
     ]) {
       expect(getToolByName(name)?.annotations?.readOnlyHint, name).toBe(true);
@@ -1133,19 +1118,19 @@ describe('MCP tool annotations', () => {
         tool.name === 'get_ad_research_detail' ||
         tool.name === 'get_articles' ||
         tool.name === 'get_social_conversation' ||
-        tool.name === 'list_ads_research' ||
-        tool.name === 'list_social_conversations' ||
+        tool.name === 'get_ads_research' ||
+        tool.name === 'get_social_conversations' ||
         tool.name === 'get_brand_context' ||
         tool.name === 'get_clipper_project' ||
         tool.name === 'run_clipper' ||
         tool.name === 'get_instagram_inspiration_detail' ||
-        tool.name === 'list_instagram_inspiration' ||
+        tool.name === 'get_instagram_inspiration' ||
         tool.name === 'search_knowledge' ||
         tool.name === 'onboard_brand' ||
         tool.name === 'execute_workflow' ||
         tool.name === 'enhance_prompt' ||
         tool.name === 'get_x_posts' ||
-        tool.name === 'list_x_account_activity' ||
+        tool.name === 'get_x_account_activity' ||
         tool.name === 'get_ads_ad_insights' ||
         tool.name === 'get_ads_adset_insights' ||
         tool.name === 'generate' ||

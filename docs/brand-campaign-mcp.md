@@ -7,7 +7,7 @@ publishing, approval and provider delivery retain their current lifecycles.
 
 ## Readiness before scheduling
 
-Default MCP connections include `list_brand_publishing_readiness` with scheduler.
+Default MCP connections include `get_brand_publishing_readiness` with scheduler.
 Call `get_brands`, select the intended brand, and read readiness with its returned
 ID. Choose a healthy, schedulable credential from that result.
 `check_channel` supplies channel rules and target validation; it does not replace

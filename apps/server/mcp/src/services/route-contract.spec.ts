@@ -458,7 +458,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     method: 'Get',
     sub: '',
     controller: 'organizations',
-    tools: ['list_orgs'],
+    tools: ['get_orgs'],
   },
   {
     method: 'Post',
@@ -490,7 +490,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     method: 'Get',
     sub: 'templates',
     controller: 'workflowMarketplace',
-    tools: ['list_workflow_templates'],
+    tools: ['get_workflow_templates'],
   },
   {
     method: 'Patch',
@@ -502,7 +502,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     method: 'Get',
     sub: '',
     controller: 'workflowExecutions',
-    tools: ['list_workflow_runs'],
+    tools: ['get_workflow_runs'],
   },
   {
     method: 'Get',
@@ -516,7 +516,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     method: 'Get',
     sub: '',
     controller: 'socialInbox',
-    tools: ['list_social_conversations'],
+    tools: ['get_social_conversations'],
   },
   {
     method: 'Get',
@@ -600,7 +600,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     method: 'Get',
     sub: '',
     controller: 'clipperProjects',
-    tools: ['list_clipper_projects'],
+    tools: ['get_clipper_projects'],
   },
   {
     method: 'Post',
@@ -612,7 +612,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     method: 'Get',
     sub: '',
     controller: 'editorProjects',
-    tools: ['list_editor_projects'],
+    tools: ['get_editor_projects'],
   },
   {
     method: 'Get',
@@ -632,7 +632,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     method: 'Get',
     sub: BASE_CRUD_LIST,
     controller: 'tasks',
-    tools: ['list_tasks'],
+    tools: ['get_tasks'],
   },
   { method: 'Get', sub: ':id', controller: 'tasks', tools: ['get_task'] },
   { method: 'Post', sub: '', controller: 'tasks', tools: ['create_task'] },
@@ -640,13 +640,13 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     method: 'Get',
     sub: '',
     controller: 'reviewInbox',
-    tools: ['list_inbox'],
+    tools: ['get_inbox'],
   },
   {
     method: 'Get',
     sub: '',
     controller: 'activities',
-    tools: ['list_activity'],
+    tools: ['get_activity'],
   },
 
   // ── Scheduler releases ──
@@ -685,7 +685,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     method: 'Get',
     sub: 'brand/:brandId/publishing-readiness',
     controller: 'credentialsPublishing',
-    tools: ['list_brand_publishing_readiness'],
+    tools: ['get_brand_publishing_readiness'],
   },
   {
     method: 'Get',
@@ -705,13 +705,13 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     method: 'Get',
     sub: 'accounts',
     controller: 'metaAds',
-    tools: ['list_meta_ad_accounts'],
+    tools: ['get_meta_ad_accounts'],
   },
   {
     method: 'Get',
     sub: 'campaigns',
     controller: 'metaAds',
-    tools: ['list_meta_campaigns'],
+    tools: ['get_meta_campaigns'],
   },
   {
     method: 'Get',
@@ -741,7 +741,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     method: 'Get',
     sub: 'creatives',
     controller: 'metaAds',
-    tools: ['list_meta_ad_creatives'],
+    tools: ['get_meta_ad_creatives'],
   },
   {
     method: 'Get',
@@ -755,13 +755,13 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     method: 'Get',
     sub: 'customers',
     controller: 'googleAds',
-    tools: ['list_google_ads_customers'],
+    tools: ['get_google_ads_customers'],
   },
   {
     method: 'Get',
     sub: 'campaigns',
     controller: 'googleAds',
-    tools: ['list_google_ads_campaigns'],
+    tools: ['get_google_ads_campaigns'],
   },
   {
     method: 'Get',
@@ -793,13 +793,13 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     method: 'Get',
     sub: ':platform/accounts',
     controller: 'adsGateway',
-    tools: ['list_tiktok_ad_accounts'],
+    tools: ['get_tiktok_ad_accounts'],
   },
   {
     method: 'Get',
     sub: ':platform/campaigns',
     controller: 'adsGateway',
-    tools: ['list_tiktok_campaigns'],
+    tools: ['get_tiktok_campaigns'],
   },
   {
     method: 'Get',
@@ -817,13 +817,13 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     method: 'Get',
     sub: ':platform/adsets',
     controller: 'adsGateway',
-    tools: ['list_tiktok_adgroups'],
+    tools: ['get_tiktok_adgroups'],
   },
   {
     method: 'Get',
     sub: ':platform/ads',
     controller: 'adsGateway',
-    tools: ['list_tiktok_ads'],
+    tools: ['get_tiktok_ads'],
   },
 
   // ── Ads gateway (platform-generic, backed by IAdsAdapter) ──

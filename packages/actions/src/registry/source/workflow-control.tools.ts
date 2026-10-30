@@ -69,7 +69,7 @@ export const WORKFLOW_CONTROL_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'List workflow run history with optional workflow, status, trigger, limit, and offset filters.',
-    name: 'list_workflow_runs',
+    name: 'get_workflow_runs',
     parameters: {
       properties: {
         limit: {
@@ -103,7 +103,7 @@ export const WORKFLOW_CONTROL_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'List the code-owned Genfeed system workflow catalog with per-organization install state. Use this to discover official automations before installing one.',
-    name: 'list_system_workflow_catalog',
+    name: 'get_system_workflow_catalog',
     parameters: {
       properties: {
         family: {
@@ -154,7 +154,7 @@ export const WORKFLOW_CONTROL_TOOLS: SourceTool[] = [
         },
         canonicalId: {
           description:
-            'Canonical catalog id to install, as returned by list_system_workflow_catalog.',
+            'Canonical catalog id to install, as returned by get_system_workflow_catalog.',
           type: 'string',
         },
       },

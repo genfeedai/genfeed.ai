@@ -35,8 +35,8 @@ function matchOrganization(
   if (byName.length === 1) return byName[0];
   throw new Error(
     byName.length > 1
-      ? `More than one organization matches "${requested}". Use its id from list_orgs.`
-      : `No organization matches "${requested}". Run list_orgs to see yours.`,
+      ? `More than one organization matches "${requested}". Use its id from get_orgs.`
+      : `No organization matches "${requested}". Run get_orgs to see yours.`,
   );
 }
 
@@ -96,13 +96,13 @@ export function handleAccountManagementTool(
     string,
     (args: Record<string, unknown>) => Promise<AccountManagementToolResult>
   > = {
-    list_orgs: () => describeOrganizations(client),
+    get_orgs: () => describeOrganizations(client),
     switch_org: async (a) => {
       const requested =
         typeof a.organization === 'string' ? a.organization.trim() : '';
       if (!requested) {
         throw new Error(
-          'organization is required: a name, slug or id from list_orgs.',
+          'organization is required: a name, slug or id from get_orgs.',
         );
       }
       if (!(await client.canSwitchOrganizations())) {

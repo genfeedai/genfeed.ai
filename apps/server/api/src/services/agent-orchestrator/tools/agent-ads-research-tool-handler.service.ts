@@ -45,7 +45,7 @@ function adsPlatformHref(platform: AdsResearchPlatform | 'all'): string {
 }
 
 /**
- * Ads research hub tools (`list_ads_research`, `get_ad_research_detail`,
+ * Ads research hub tools (`get_ads_research`, `get_ad_research_detail`,
  * `create_ad_remix_workflow`, `generate_ad_pack`, `prepare_ad_launch_review`).
  * Extracted from AgentToolExecutorService per #519.
  */

@@ -1423,7 +1423,7 @@ describe('AgentToolExecutorService', () => {
       return original(request);
     });
     await service.executeTool(
-      'list_review_queue',
+      'get_review_queue',
       {},
       { organizationId: 'org-1', userId: 'user-1', generationEntry },
     );
@@ -1457,7 +1457,7 @@ describe('AgentToolExecutorService', () => {
     const { service } = createService();
 
     const result = await service.executeTool(
-      'list_genfeed_tools',
+      'get_genfeed_tools',
       {
         category: 'workflow',
         includeParameters: true,
@@ -2195,7 +2195,7 @@ describe('AgentToolExecutorService', () => {
     const { adsResearchService, service } = createService();
 
     const result = await service.executeTool(
-      'list_ads_research',
+      'get_ads_research',
       {
         industry: 'fitness',
         platform: 'google',
@@ -2496,7 +2496,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      'list_instagram_inspiration',
+      'get_instagram_inspiration',
       { sort: 'latest' },
       {
         organizationId: testId('org'),
@@ -2550,7 +2550,7 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     const result = await service.executeTool(
-      'list_instagram_inspiration',
+      'get_instagram_inspiration',
       { brandId: testId('thread') },
       {
         organizationId: testId('org'),
@@ -4813,7 +4813,7 @@ describe('AgentToolExecutorService', () => {
     );
   });
 
-  it('should sanitize colon-prefixed batch ids for list_review_queue and return a conversation card', async () => {
+  it('should sanitize colon-prefixed batch ids for get_review_queue and return a conversation card', async () => {
     const { turboRunService, service } = createService();
     turboRunService.getTurboRun = vi.fn().mockResolvedValue({
       id: testId('batchreview'),
@@ -4838,7 +4838,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      'list_review_queue',
+      'get_review_queue',
       {
         turboRunId: `:${testId('batchreview')}`,
         limit: 25,
@@ -4880,7 +4880,7 @@ describe('AgentToolExecutorService', () => {
     ]);
   });
 
-  it('falls back to the review inbox when list_review_queue gets a placeholder turboRunId', async () => {
+  it('falls back to the review inbox when get_review_queue gets a placeholder turboRunId', async () => {
     const { turboRunService, service } = createService();
     turboRunService.getTurboRun = vi.fn();
     turboRunService.getReviewInboxSummary = vi.fn().mockResolvedValue({
@@ -4904,7 +4904,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      'list_review_queue',
+      'get_review_queue',
       {
         turboRunId: 'pending',
         limit: 10,
@@ -4942,7 +4942,7 @@ describe('AgentToolExecutorService', () => {
     );
   });
 
-  it('loads the review inbox when list_review_queue is called without a turboRunId', async () => {
+  it('loads the review inbox when get_review_queue is called without a turboRunId', async () => {
     const { turboRunService, service } = createService();
     turboRunService.getReviewInboxSummary = vi.fn().mockResolvedValue({
       approvedCount: 0,
@@ -4954,7 +4954,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      'list_review_queue',
+      'get_review_queue',
       {},
       {
         organizationId: testId('org'),
@@ -6936,7 +6936,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.data).toBeUndefined();
   });
 
-  it('list_workflows returns workflows from the org', async () => {
+  it('get_workflows returns workflows from the org', async () => {
     const { service, workflowsService } = createService();
 
     workflowsService.findAll.mockResolvedValue({
@@ -6952,7 +6952,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      'list_workflows',
+      'get_workflows',
       { limit: 5 },
       CTX,
     );
@@ -6968,12 +6968,12 @@ describe('AgentToolExecutorService', () => {
     );
   });
 
-  it('list_workflows returns empty when no workflows exist', async () => {
+  it('get_workflows returns empty when no workflows exist', async () => {
     const { service, workflowsService } = createService();
 
     workflowsService.findAll.mockResolvedValue({ docs: [] });
 
-    const result = await service.executeTool('list_workflows', {}, CTX);
+    const result = await service.executeTool('get_workflows', {}, CTX);
 
     expect(result.success).toBe(true);
     expect(result.data.count).toBe(0);
@@ -7200,14 +7200,14 @@ describe('AgentToolExecutorService', () => {
     );
   });
 
-  it('list_workflow_runs returns scoped run history from the workflow executions service', async () => {
+  it('get_workflow_runs returns scoped run history from the workflow executions service', async () => {
     const { service, workflowExecutionsService } = createService();
     workflowExecutionsService.findAll.mockResolvedValue({
       docs: [{ id: 'run-1', attributes: { status: 'completed' } }],
     });
 
     const result = await service.executeTool(
-      'list_workflow_runs',
+      'get_workflow_runs',
       { limit: 5, status: 'completed', workflowId: 'wf-1' },
       CTX,
     );

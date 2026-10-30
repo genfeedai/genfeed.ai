@@ -25,7 +25,7 @@ export const MCP_WORKSPACE_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'List workspace tasks, newest first. Filter by status or priority. Returns title, status, priority and assignee for each task.',
-    name: 'list_tasks',
+    name: 'get_tasks',
     parameters: {
       additionalProperties: false,
       properties: {
@@ -111,7 +111,7 @@ export const MCP_WORKSPACE_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'List what is waiting for review in the workspace inbox: workflow review gates and queued MCP approvals. Read-only; decisions are made in the app.',
-    name: 'list_inbox',
+    name: 'get_inbox',
     parameters: {
       additionalProperties: false,
       properties: {},
@@ -123,7 +123,7 @@ export const MCP_WORKSPACE_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'List recent account activity, newest first: generations, publishing and credit events. Set activeOnly to see only work still processing.',
-    name: 'list_activity',
+    name: 'get_activity',
     parameters: {
       additionalProperties: false,
       properties: {

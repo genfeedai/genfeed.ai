@@ -115,13 +115,13 @@ export const WEB_FETCH_TOOLS: ReadonlySet<string> = new Set<string>([
   'capture_knowledge',
   'create_clipper_project_from_youtube',
   'get_ad_research_detail',
+  'get_ads_research',
   'get_articles',
   'get_instagram_inspiration_detail',
+  'get_instagram_inspiration',
+  'get_outlier_posts',
   'get_trends',
   'get_x_posts',
-  'list_ads_research',
-  'list_instagram_inspiration',
-  'list_outlier_posts',
   'read_knowledge_source',
   'resolve_handle',
   'scan_brand_url',
@@ -134,10 +134,10 @@ export const WEB_FETCH_TOOLS: ReadonlySet<string> = new Set<string>([
  */
 export const CONNECTOR_TOOLS: ReadonlySet<string> = new Set<string>([
   'discover_engagements',
+  'get_agent_conversations',
   'get_social_conversation',
-  'list_agent_conversations',
-  'list_social_conversations',
-  'list_x_account_activity',
+  'get_social_conversations',
+  'get_x_account_activity',
 ]);
 
 /** Tools whose results carry text extracted from a file the user supplied. */

@@ -20,11 +20,11 @@ const BANNED_GENERIC_CAMPAIGN_ACTIONS = [
 const PROVIDER_ADS_CAMPAIGN_ACTIONS = [
   'compare_meta_campaigns',
   'get_google_ads_campaign_metrics',
+  'get_google_ads_campaigns',
   'get_meta_campaign_insights',
+  'get_meta_campaigns',
   'get_tiktok_campaign_insights',
-  'list_google_ads_campaigns',
-  'list_meta_campaigns',
-  'list_tiktok_campaigns',
+  'get_tiktok_campaigns',
 ] as const;
 
 describe('outreach sequence terminology', () => {

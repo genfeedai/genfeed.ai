@@ -12,7 +12,7 @@ export const CLIPPER_PROJECTS_TOOL_NAMES = new Set([
   'get_clipper_highlights',
   'get_clipper_project',
   'run_clipper',
-  'list_clipper_projects',
+  'get_clipper_projects',
 ]);
 
 /**
@@ -96,7 +96,7 @@ export function handleClipperProjectsTool(
 
       return textDataResult('Clip project', result);
     },
-    list_clipper_projects: async (a) => {
+    get_clipper_projects: async (a) => {
       const result = await client.listClipperProjects({
         limit: optionalNumber(a, 'limit'),
         offset: optionalNumber(a, 'offset'),

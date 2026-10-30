@@ -47,7 +47,7 @@ export const MCP_EDITOR_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'List Studio Editor projects, newest first, with name, status and clip count. Open one with get_editor_project.',
-    name: 'list_editor_projects',
+    name: 'get_editor_projects',
     parameters: {
       additionalProperties: false,
       properties: {

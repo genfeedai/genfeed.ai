@@ -30,7 +30,7 @@ describe('handleWorkflowControlTool system workflow catalog', () => {
   it('lists the catalog with installable-only defaults', async () => {
     const client = buildClient();
 
-    const result = await call(client, 'list_system_workflow_catalog', {});
+    const result = await call(client, 'get_system_workflow_catalog', {});
 
     expect(client.listSystemWorkflowCatalog).toHaveBeenCalledWith({
       family: undefined,
@@ -46,7 +46,7 @@ describe('handleWorkflowControlTool system workflow catalog', () => {
   it('forwards catalog filters', async () => {
     const client = buildClient();
 
-    await call(client, 'list_system_workflow_catalog', {
+    await call(client, 'get_system_workflow_catalog', {
       family: 'reply-polling',
       includeNonInstallable: true,
       installedOnly: true,

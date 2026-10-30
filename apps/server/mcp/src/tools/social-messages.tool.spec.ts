@@ -71,7 +71,7 @@ describe('handleSocialMessagesTool — listing', () => {
   it('passes every supported filter through to the client', async () => {
     const client = buildClient();
 
-    const result = await call(client, 'list_social_conversations', {
+    const result = await call(client, 'get_social_conversations', {
       assignedOwnerId: 'user-1',
       automationState: 'PAUSED',
       conversationType: 'dm',
@@ -106,7 +106,7 @@ describe('handleSocialMessagesTool — listing', () => {
   it('drops blank, non-numeric and non-boolean filters', async () => {
     const client = buildClient();
 
-    await call(client, 'list_social_conversations', {
+    await call(client, 'get_social_conversations', {
       limit: Number.NaN,
       needsReview: 'yes',
       page: 'two',
@@ -129,7 +129,7 @@ describe('handleSocialMessagesTool — listing', () => {
     const client = buildClient();
     client.listSocialConversations.mockResolvedValue({ conversations: [] });
 
-    const result = await call(client, 'list_social_conversations', {});
+    const result = await call(client, 'get_social_conversations', {});
 
     expect(result.content[0].text).toBe('No social conversations found.');
   });

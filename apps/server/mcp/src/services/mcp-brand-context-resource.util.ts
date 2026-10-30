@@ -109,7 +109,7 @@ async function resolveBrandId(
  * coverage for one brand, with the Knowledge sources a client can cite.
  *
  * The resource is a composition of the same agent tools the MCP tools call
- * (`get_brand_context`, `get_context_coverage`, `list_knowledge_sources`), run
+ * (`get_brand_context`, `get_context_coverage`, `get_knowledge_sources`), run
  * with the caller's own bearer token and a `{ brandId }` scope the API
  * authorizes on every call. Nothing is cached here, so a revoked credential or
  * a brand the user lost access to is refused on the very next read; upstream
@@ -153,9 +153,9 @@ export async function readBrandContextResource(
 
   let sources: unknown[] = [];
   let total: number | undefined;
-  if (deps.isToolAllowed('list_knowledge_sources')) {
+  if (deps.isToolAllowed('get_knowledge_sources')) {
     const result = await deps.executeTool(
-      'list_knowledge_sources',
+      'get_knowledge_sources',
       { limit: SOURCE_LIMIT },
       scope,
     );

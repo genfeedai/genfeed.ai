@@ -10,7 +10,7 @@ export const AGENT_CONVERSATION_TRANSFER_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'List safe summaries of active conversations owned by the initiating user and organization. Use this before proposing a cross-conversation handoff.',
-    name: 'list_agent_conversations',
+    name: 'get_agent_conversations',
     parameters: {
       properties: {
         query: { description: 'Optional title search.', type: 'string' },
