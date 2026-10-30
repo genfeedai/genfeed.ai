@@ -2,9 +2,9 @@
 import '@testing-library/jest-dom/vitest';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type { BrandDetailSocialConnection } from '@props/pages/brand-detail.props';
-import type { PublishingOverviewHealthRow } from '@props/publisher/publishing-overview.props';
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import type { PublishingOverviewHealthRow } from '@/features/posts/props/publishing-overview.props';
 import AccountHealthSection from './AccountHealthSection';
 import CadenceGapsSection from './CadenceGapsSection';
 

@@ -1,4 +1,3 @@
-import type { TaskSelectionContextValue } from '@props/tasks/task-selection-context.props';
 import type { ContextSidebarSelectionOrigin } from '@props/ui/context-sidebar.props';
 import type { Task } from '@services/management/tasks.service';
 import {
@@ -9,6 +8,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import type { TaskSelectionContextValue } from '@/features/tasks/props/task-selection-context.props';
 
 const TaskSelectionContext = createContext<TaskSelectionContextValue | null>(
   null,

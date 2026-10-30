@@ -11,7 +11,6 @@ import {
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IEngagementRule } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url/use-org-url';
-import type { ReleaseEngagementRulesProps } from '@props/scheduler/engagement-rules.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { Badge } from '@ui/primitives/badge';
@@ -29,6 +28,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { type ChangeEvent, useCallback, useState } from 'react';
 import { useEngagementRules } from '@/features/posts/hooks/use-engagement-rules';
+import type { ReleaseEngagementRulesProps } from '@/features/posts/props/engagement-rules.props';
 
 function parseMetric(value: string): EngagementMetric {
   switch (value) {

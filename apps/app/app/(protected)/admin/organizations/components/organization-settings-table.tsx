@@ -1,12 +1,6 @@
 import { ModalEnum } from '@genfeedai/contracts';
 import type { IOrganizationSetting } from '@genfeedai/contracts/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
-import type {
-  OrganizationSettingsTableProps,
-  SelectedSetting,
-  SettingGroup,
-  SettingTableRow,
-} from '@props/admin/organization-settings.props';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { EditSettingModal } from '@protected/organizations/components/edit-setting-modal';
 import { useOrganizationSettings } from '@protected/organizations/hooks/use-organization-settings';
@@ -16,6 +10,12 @@ import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Pencil } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type {
+  OrganizationSettingsTableProps,
+  SelectedSetting,
+  SettingGroup,
+  SettingTableRow,
+} from '@/features/admin/props/organization-settings.props';
 
 const SETTING_GROUPS: SettingGroup[] = [
   {

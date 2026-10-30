@@ -1,8 +1,4 @@
 import { AgentAutonomyMode } from '@genfeedai/contracts';
-import type {
-  AgentPolicyCardProps,
-  AgentPolicyState,
-} from '@props/settings/policy.props';
 import Card from '@ui/card/Card';
 import {
   Select,
@@ -11,6 +7,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives';
+import type {
+  AgentPolicyCardProps,
+  AgentPolicyState,
+} from '@/features/settings/props/policy.props';
 
 export default function AgentPolicyCard({
   autonomyDefault,

@@ -18,7 +18,6 @@ import {
   DEFAULT_GENERATION_MARGIN_MULTIPLIER,
 } from '@genfeedai/pricing';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { PlatformSettingsContextValue } from '@props/admin/platform-settings.props';
 import { AdminPlatformSettingsService } from '@services/admin/platform-settings.service';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
@@ -33,6 +32,7 @@ import {
   useEffect,
   useState,
 } from 'react';
+import type { PlatformSettingsContextValue } from '@/features/admin/props/platform-settings.props';
 import {
   liveMultiplierFor,
   marginReadout,

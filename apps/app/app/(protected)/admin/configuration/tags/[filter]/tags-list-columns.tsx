@@ -1,6 +1,6 @@
 import { ComponentSize } from '@genfeedai/contracts';
-import type { TagCellProps } from '@props/admin/tags.props';
 import Badge from '@ui/display/badge/Badge';
+import type { TagCellProps } from '@/features/admin/props/tags.props';
 
 export function TagLabelCell({ tag }: TagCellProps) {
   return (

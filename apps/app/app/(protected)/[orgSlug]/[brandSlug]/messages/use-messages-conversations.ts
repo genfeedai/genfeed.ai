@@ -1,10 +1,6 @@
 import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import type { SocialConversationModel } from '@genfeedai/models/social/social-conversation.model';
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
-import type {
-  MessagesAcknowledgeableCursor,
-  UseMessagesConversationsParams,
-} from '@genfeedai/props/messages/messages-conversations.props';
 import {
   startTransition,
   useCallback,
@@ -13,6 +9,10 @@ import {
   useRef,
   useState,
 } from 'react';
+import type {
+  MessagesAcknowledgeableCursor,
+  UseMessagesConversationsParams,
+} from '@/features/messages/props/messages-conversations.props';
 import {
   EMPTY_MESSAGES_PAGINATION,
   getMessagesErrorMessage,
@@ -21,7 +21,7 @@ import {
 } from './messages-page.helpers';
 import { useMessagesRealtime } from './use-messages-realtime';
 
-export type { UseMessagesConversationsParams } from '@genfeedai/props/messages/messages-conversations.props';
+export type { UseMessagesConversationsParams } from '@/features/messages/props/messages-conversations.props';
 
 export function useMessagesConversations({
   getMessagesService,

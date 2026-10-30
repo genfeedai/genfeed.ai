@@ -4,10 +4,10 @@ import {
 } from '@contexts/ui/context-sidebar-context';
 import '@testing-library/jest-dom/vitest';
 import { MediaType } from '@genfeedai/contracts';
-import type { WorkflowTemplateDetailsPanelProps } from '@genfeedai/props/workflows/workflow-template-details-panel.props';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
+import type { WorkflowTemplateDetailsPanelProps } from '@/features/workflows/props/workflow-template-details-panel.props';
 import { WorkflowTemplateDetailsPanel } from './WorkflowTemplateDetailsPanel';
 
 vi.mock('next-intl', async () => {

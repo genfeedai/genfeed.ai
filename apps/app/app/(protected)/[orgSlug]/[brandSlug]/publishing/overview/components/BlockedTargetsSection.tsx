@@ -1,11 +1,11 @@
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { PublishingOverviewBlockedSectionProps } from '@props/publisher/publishing-overview.props';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import type { PublishingOverviewBlockedSectionProps } from '@/features/posts/props/publishing-overview.props';
 import PublishingOverviewAsyncSection from './PublishingOverviewAsyncSection';
 
 export default function BlockedTargetsSection({

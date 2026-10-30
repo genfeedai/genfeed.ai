@@ -9,10 +9,10 @@ import {
   shouldDisplayEta,
 } from '@helpers/generation-eta.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { WorkflowDetailPageClientProps } from '@props/automation/workflow-detail-page-client.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { ReactFlowProvider } from '@xyflow/react';
+import type { WorkflowDetailPageClientProps } from '@/features/automation/props/workflow-detail-page-client.props';
 import '@xyflow/react/dist/style.css';
 
 import { WorkflowEditorShell } from '@genfeedai/workflows/ui';

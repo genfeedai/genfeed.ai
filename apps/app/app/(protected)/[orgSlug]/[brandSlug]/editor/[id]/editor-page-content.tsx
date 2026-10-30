@@ -1,6 +1,6 @@
 'use client';
 
-import type { EditorPageContentProps } from '@props/studio/editor-page-content.props';
+import type { EditorPageContentProps } from '@/features/studio/props/editor-page-content.props';
 import EditorLayout from './EditorLayout';
 import EditorLoadingState from './EditorLoadingState';
 import EditorNotFound from './EditorNotFound';

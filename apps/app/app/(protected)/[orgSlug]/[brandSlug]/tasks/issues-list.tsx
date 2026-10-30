@@ -6,11 +6,6 @@ import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type {
-  IssuesListAction,
-  IssuesListState,
-  ViewMode,
-} from '@props/tasks/issues-list.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import {
@@ -55,6 +50,11 @@ import {
   useRef,
   useState,
 } from 'react';
+import type {
+  IssuesListAction,
+  IssuesListState,
+  ViewMode,
+} from '@/features/tasks/props/issues-list.props';
 
 import {
   PRIORITY_ORDER,

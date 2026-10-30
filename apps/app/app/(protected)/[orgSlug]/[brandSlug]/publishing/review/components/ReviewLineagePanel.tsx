@@ -7,10 +7,10 @@ import {
 } from '@genfeedai/ui';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { ReviewLineagePanelProps } from '@props/publishing/review-lineage-panel.props';
 import { Button } from '@ui/primitives/button';
 import NextLink from 'next/link';
 import { useTranslations } from 'next-intl';
+import type { ReviewLineagePanelProps } from '@/features/posts/props/review-lineage-panel.props';
 
 export default function ReviewLineagePanel({ item }: ReviewLineagePanelProps) {
   const { href } = useOrgUrl();

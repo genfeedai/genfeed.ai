@@ -1,7 +1,7 @@
-import type { PublishingOverviewAsyncSectionProps } from '@props/publishing/publishing-overview-async-section.props';
 import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { useTranslations } from 'next-intl';
+import type { PublishingOverviewAsyncSectionProps } from '@/features/posts/props/publishing-overview-async-section.props';
 
 export default function PublishingOverviewAsyncSection<TData>({
   children,

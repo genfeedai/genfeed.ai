@@ -10,10 +10,6 @@ import {
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type {
-  OrganizationIdentityCardProps,
-  OrganizationIdentityEditorProps,
-} from '@props/settings/organization-identity-card.props';
 import { useUploadModal } from '@providers/global-modals/global-modals.provider';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
@@ -27,6 +23,10 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type {
+  OrganizationIdentityCardProps,
+  OrganizationIdentityEditorProps,
+} from '@/features/settings/props/organization-identity-card.props';
 
 const ICON_BUTTON_CLASS = 'size-8 shrink-0 p-0 [&_svg]:size-3.5';
 const HANDLE_PATTERN = /^[a-z0-9][a-z0-9-]{0,46}[a-z0-9]$/;

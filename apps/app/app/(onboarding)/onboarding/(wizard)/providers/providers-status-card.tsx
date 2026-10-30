@@ -1,7 +1,7 @@
-import type { ProvidersStatusCardProps } from '@props/onboarding/providers-status-card.props';
 import Card from '@ui/card/Card';
 import { Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { ProvidersStatusCardProps } from '@/features/onboarding/props/providers-status-card.props';
 
 export default function ProvidersStatusCard({
   accessStatusLabel,

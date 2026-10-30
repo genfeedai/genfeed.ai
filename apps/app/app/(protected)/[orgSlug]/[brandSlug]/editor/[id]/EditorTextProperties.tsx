@@ -1,5 +1,4 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { EditorTextPropertiesProps } from '@props/studio/editor-text-properties.props';
 import { Button } from '@ui/primitives/button';
 import { ColorInput } from '@ui/primitives/color-input';
 import { Label } from '@ui/primitives/label';
@@ -12,6 +11,7 @@ import {
 } from '@ui/primitives/select';
 import { Slider } from '@ui/primitives/slider';
 import { Textarea } from '@ui/primitives/textarea';
+import type { EditorTextPropertiesProps } from '@/features/studio/props/editor-text-properties.props';
 
 const FONT_OPTIONS = [
   'Arial',

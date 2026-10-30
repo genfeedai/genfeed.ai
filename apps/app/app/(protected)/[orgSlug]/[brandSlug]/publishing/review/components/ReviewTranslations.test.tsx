@@ -10,7 +10,6 @@ import type {
   ITurboRunItem,
   ITurboRunSummary,
 } from '@genfeedai/contracts/interfaces';
-import type { ReviewDecisionPanelProps } from '@props/publishing/review-decision-panel.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import {
   createTranslator,
@@ -19,6 +18,7 @@ import {
 } from 'next-intl';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
+import type { ReviewDecisionPanelProps } from '@/features/posts/props/review-decision-panel.props';
 import ReviewDecisionPanel from './ReviewDecisionPanel';
 import ReviewDetailPanelAside from './ReviewDetailPanelAside';
 import ReviewDetailPanelEmpty from './ReviewDetailPanelEmpty';

@@ -1,10 +1,10 @@
 import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { SubIssueRowProps } from '@props/tasks/sub-issue-row.props';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
+import type { SubIssueRowProps } from '@/features/tasks/props/sub-issue-row.props';
 
 export function SubIssueRow({ issue, statusLabels }: SubIssueRowProps) {
   const { href } = useOrgUrl();

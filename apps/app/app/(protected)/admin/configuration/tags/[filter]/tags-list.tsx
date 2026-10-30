@@ -1,7 +1,6 @@
 import { ModalEnum } from '@genfeedai/contracts';
 import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import type { ITag } from '@genfeedai/contracts/interfaces';
-import type { TagsListProps } from '@props/tags/tags-list.props';
 import Badge from '@ui/display/badge/Badge';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
@@ -10,6 +9,7 @@ import { Switch } from '@ui/primitives/switch';
 import { Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Suspense, useEffect, useMemo } from 'react';
+import type { TagsListProps } from '@/features/admin/props/tags-list.props';
 import {
   TagAccountCell,
   TagCategoryCell,

@@ -1,6 +1,5 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
-import type { Props } from '@props/settings/byok-provider-card.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
@@ -15,6 +14,7 @@ import { Input } from '@ui/primitives/input';
 import { Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useMemo, useState } from 'react';
+import type { Props } from '@/features/settings/props/byok-provider-card.props';
 
 function providerFaviconDomain(docsUrl: string): string | null {
   try {

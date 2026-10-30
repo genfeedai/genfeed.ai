@@ -4,7 +4,6 @@ import { signIn, signUp } from '@genfeedai/auth-client';
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { ISignupAttribution } from '@genfeedai/contracts/interfaces';
 import { GoogleColorIcon } from '@genfeedai/helpers/ui/icons/brands';
-import type { SignUpBetterAuthProps } from '@props/auth/sign-up-better-auth.props';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
@@ -15,6 +14,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react';
+import type { SignUpBetterAuthProps } from '@/features/auth/props/sign-up-better-auth.props';
 
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import {

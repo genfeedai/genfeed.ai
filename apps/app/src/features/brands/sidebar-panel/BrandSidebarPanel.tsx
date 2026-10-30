@@ -7,7 +7,6 @@ import {
 } from '@genfeedai/contracts/constants';
 import { isPublicAssetScope } from '@genfeedai/helpers';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
-import type { BrandSidebarPanelProps } from '@genfeedai/props/ui/brands/brand-sidebar.props';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import {
   LazyModalBrandGenerate,
@@ -15,6 +14,7 @@ import {
 } from '@ui/lazy/modal/LazyModal';
 import { Badge } from '@ui/primitives/badge';
 import { useTranslations } from 'next-intl';
+import type { BrandSidebarPanelProps } from '@/features/brands/props/brand-sidebar.props';
 import BrandOverviewPanel from '@/features/brands/sidebar-panel/BrandOverviewPanel';
 import { useBrandSidebarPanel } from '@/features/brands/sidebar-panel/useBrandSidebarPanel';
 

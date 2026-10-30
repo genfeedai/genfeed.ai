@@ -15,7 +15,6 @@ import {
   KnowledgeSourcePurpose,
 } from '@genfeedai/contracts';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { CorpusSourceView } from '@props/onboarding/expert-path.props';
 import { KnowledgeSourcesService } from '@services/content/knowledge-sources.service';
 import { logger } from '@services/core/logger.service';
 import Alert from '@ui/feedback/alert/Alert';
@@ -25,6 +24,7 @@ import { Textarea } from '@ui/primitives/textarea';
 import { Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { CorpusSourceView } from '@/features/onboarding/props/expert-path.props';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 
 const POLL_INTERVAL_MS = 3_000;

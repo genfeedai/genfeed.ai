@@ -6,13 +6,13 @@ import {
   PAYG_MIN_PURCHASE_USD,
 } from '@genfeedai/pricing';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import type { CreditTopUpPanelProps } from '@props/settings/credit-top-up-panel.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { CreditCard } from 'lucide-react';
 import type { ReactElement } from 'react';
 import { useMemo, useState } from 'react';
+import type { CreditTopUpPanelProps } from '@/features/settings/props/credit-top-up-panel.props';
 
 function parseUsd(value: string): number | null {
   const normalized = value.trim();

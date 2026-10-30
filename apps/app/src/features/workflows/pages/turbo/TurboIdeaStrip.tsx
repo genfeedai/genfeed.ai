@@ -1,6 +1,6 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { TurboIdeaStripProps } from '@genfeedai/props/studio/turbo-presets.props';
 import type { ReactElement } from 'react';
+import type { TurboIdeaStripProps } from '@/features/workflows/props/turbo-presets.props';
 
 const MAX_TILES = 6;
 

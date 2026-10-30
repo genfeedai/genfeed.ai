@@ -1,8 +1,8 @@
-import type { HarnessIdentityTabProps } from '@props/settings/brand-kit/content-rules.props';
 import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import { useTranslations } from 'next-intl';
+import type { HarnessIdentityTabProps } from '@/features/settings/props/content-rules.props';
 import {
   harnessEditorHtmlToLines,
   harnessLinesToEditorHtml,

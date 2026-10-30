@@ -1,10 +1,10 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { ExpertStepActionsProps } from '@props/onboarding/expert-path.props';
 import { Button } from '@ui/primitives/button';
 import { ArrowRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { ExpertStepActionsProps } from '@/features/onboarding/props/expert-path.props';
 
 export default function ExpertStepActions({
   continueLabel,

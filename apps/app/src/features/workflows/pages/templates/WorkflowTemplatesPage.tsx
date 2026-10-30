@@ -2,7 +2,6 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { DataSource } from '@genfeedai/props/workflows/workflow-templates-page.props';
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionCarouselSection from '@ui/collection/CollectionCarouselSection';
@@ -16,6 +15,7 @@ import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 import { Suspense, useMemo } from 'react';
+import type { DataSource } from '@/features/workflows/props/workflow-templates-page.props';
 import { workflowCollectionHeaderTabs } from '../workflow-library-tabs';
 import { useWorkflowTemplateItems } from './useWorkflowTemplateItems';
 import { useWorkflowTemplatesPage } from './useWorkflowTemplatesPage';

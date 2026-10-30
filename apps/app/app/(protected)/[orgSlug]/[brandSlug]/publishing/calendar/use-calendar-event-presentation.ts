@@ -8,9 +8,9 @@ import type {
   CalendarEventBadge,
   CalendarEventChannel,
 } from '@props/components/calendar.props';
-import type { CalendarEventPresentationOptions } from '@props/publishing/content-calendar-controller.props';
-import type { ContentCalendarItem } from '@props/publishing/content-calendar-page.props';
 import { useCallback } from 'react';
+import type { CalendarEventPresentationOptions } from '@/features/posts/props/content-calendar-controller.props';
+import type { ContentCalendarItem } from '@/features/posts/props/content-calendar-page.props';
 import {
   isReleaseDraggable,
   releaseStatusBadge,

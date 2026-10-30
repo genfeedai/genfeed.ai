@@ -1,6 +1,6 @@
-import type { IssueSubIssuesCardProps } from '@props/tasks/issue-sub-issues-card.props';
 import Card from '@ui/card/Card';
 import { Progress } from '@ui/primitives/progress';
+import type { IssueSubIssuesCardProps } from '@/features/tasks/props/issue-sub-issues-card.props';
 import { SubIssueRow } from './sub-issue-row';
 
 export default function IssueSubIssuesCard({

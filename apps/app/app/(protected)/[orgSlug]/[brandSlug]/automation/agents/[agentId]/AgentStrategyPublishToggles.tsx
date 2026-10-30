@@ -1,10 +1,6 @@
 'use client';
 
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type {
-  AgentStrategyPublishPolicyUpdate,
-  AgentStrategyPublishTogglesProps,
-} from '@props/automation/agent-strategy-publish-toggles.props';
 import { AgentStrategiesService } from '@services/automation/agent-strategies.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -21,6 +17,10 @@ import {
 } from '@ui/primitives/select';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
+import type {
+  AgentStrategyPublishPolicyUpdate,
+  AgentStrategyPublishTogglesProps,
+} from '@/features/automation/props/agent-strategy-publish-toggles.props';
 import {
   approvalsToGraduateChoices,
   buildPlatformApprovalProgress,

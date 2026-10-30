@@ -1,5 +1,5 @@
-import type { ProvidersToolListProps } from '@props/onboarding/providers-tool-list.props';
 import Card from '@ui/card/Card';
+import type { ProvidersToolListProps } from '@/features/onboarding/props/providers-tool-list.props';
 
 import ProvidersRowItem from './providers-row-item';
 

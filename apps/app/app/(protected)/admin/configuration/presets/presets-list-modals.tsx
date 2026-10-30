@@ -1,6 +1,6 @@
 import { PageScope } from '@genfeedai/contracts';
-import type { PresetsListModalsProps } from '@props/admin/presets.props';
 import { LazyModalPreset } from '@ui/lazy/modal/LazyModal';
+import type { PresetsListModalsProps } from '@/features/admin/props/presets.props';
 
 export default function PresetsListModals({
   scope,

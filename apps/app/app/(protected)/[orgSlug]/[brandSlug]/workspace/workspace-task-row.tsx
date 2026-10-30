@@ -2,11 +2,11 @@
 
 import { ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import type { WorkspaceTaskRowProps } from '@props/workspace/workspace-task-row.props';
 import Badge from '@ui/display/badge/Badge';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { ExternalLink } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { WorkspaceTaskRowProps } from '@/features/workspace/props/workspace-task-row.props';
 
 import {
   getTaskBadgeStatus,

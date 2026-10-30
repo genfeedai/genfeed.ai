@@ -1,7 +1,7 @@
 'use client';
 
-import type { UseConnectCardDismissalResult } from '@genfeedai/props/home/connect-card-dismissal.props';
 import { useCallback, useEffect, useState } from 'react';
+import type { UseConnectCardDismissalResult } from '@/features/home/props/connect-card-dismissal.props';
 
 const DISMISS_KEY_PREFIX = 'genfeed:connect-card-dismissed:v1';
 // The Connect page has no other in-app entry, so a dismissed card returns

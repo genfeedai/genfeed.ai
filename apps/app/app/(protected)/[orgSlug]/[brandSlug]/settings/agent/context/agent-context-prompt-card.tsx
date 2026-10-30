@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { AgentContextPromptCardProps } from '@props/settings/agent/context.props';
 import { ClipboardService } from '@services/core/clipboard.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
@@ -14,6 +13,7 @@ import { Pre } from '@ui/primitives/pre';
 import { Copy } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import type { AgentContextPromptCardProps } from '@/features/settings/props/context.props';
 
 /** The exact system prompt a chat turn sends, collapsed by default. */
 export default function AgentContextPromptCard({

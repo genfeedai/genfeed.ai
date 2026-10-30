@@ -1,5 +1,5 @@
 import type { IUnitEconomicsReport } from '@genfeedai/contracts/interfaces';
-import type { UnitEconomicsTableRow } from '@props/admin/unit-economics.props';
+import type { UnitEconomicsTableRow } from '@/features/admin/props/unit-economics.props';
 
 export const UNIT_ECONOMICS_TOTAL_ROW_ID = '__total__';
 

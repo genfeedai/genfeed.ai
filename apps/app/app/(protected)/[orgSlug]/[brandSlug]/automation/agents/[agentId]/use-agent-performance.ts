@@ -4,9 +4,9 @@ import {
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useVisiblePolling } from '@hooks/ui/use-visible-polling/use-visible-polling';
-import type { UseAgentPerformanceResult } from '@props/automation/use-agent-performance.props';
 import { AgentStrategiesService } from '@services/automation/agent-strategies.service';
 import { useQuery } from '@tanstack/react-query';
+import type { UseAgentPerformanceResult } from '@/features/automation/props/use-agent-performance.props';
 
 /**
  * The agent's performance snapshot and reports — shared by the Activity

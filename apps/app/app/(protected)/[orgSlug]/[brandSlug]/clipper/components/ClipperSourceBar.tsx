@@ -1,6 +1,6 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { ClipperSourceBarProps } from '@genfeedai/props/studio/clipper-presets.props';
 import type { ReactElement } from 'react';
+import type { ClipperSourceBarProps } from '@/features/clipper/props/clipper-presets.props';
 
 const SEGMENT_COUNT = 12;
 const MAX_CLIP_FRAMES = 4;

@@ -1,7 +1,7 @@
 import type {
   AgentActivityEntry,
   AgentActivityFilter,
-} from '@props/automation/agent-activity-timeline.props';
+} from '@/features/automation/props/agent-activity-timeline.props';
 
 /**
  * One merged, chronologically sorted feed from every activity source

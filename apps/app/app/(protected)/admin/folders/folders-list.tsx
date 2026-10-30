@@ -11,10 +11,6 @@ import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-aut
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Folder } from '@models/content/folder.model';
-import type {
-  FoldersListAction,
-  FoldersListState,
-} from '@props/admin/folders.props';
 import type { ContentProps } from '@props/layout/content.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { FoldersService } from '@services/content/folders.service';
@@ -32,6 +28,10 @@ import { FolderOpen, Pencil, Plus, Trash2 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useReducer } from 'react';
+import type {
+  FoldersListAction,
+  FoldersListState,
+} from '@/features/admin/props/folders.props';
 import { buildFoldersColumns } from './folders-list-columns';
 import FoldersListModals from './folders-list-modals';
 

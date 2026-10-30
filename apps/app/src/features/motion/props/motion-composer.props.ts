@@ -1,5 +1,5 @@
 import type { IVisualCodeSettings } from '@genfeedai/contracts/interfaces';
-import type { VisualCodeQuoteReview } from './visual-code.props';
+import type { VisualCodeQuoteReview } from '@genfeedai/props/studio/visual-code.props';
 
 /** One Library asset the author may reference from Motion source. */
 export interface MotionLibraryAssetOption {

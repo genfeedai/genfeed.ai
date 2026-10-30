@@ -1,10 +1,10 @@
 'use client';
 
-import type { AgentLatestReportProps } from '@props/automation/agent-latest-report.props';
 import Card from '@ui/card/Card';
 import CollectionSection from '@ui/collection/CollectionSection';
 import { useTranslations } from 'next-intl';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import type { AgentLatestReportProps } from '@/features/automation/props/agent-latest-report.props';
 import { useAgentPerformance } from './use-agent-performance';
 
 /**

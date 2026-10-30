@@ -1,9 +1,9 @@
 import type { IStreakMilestoneState } from '@genfeedai/contracts/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import type { Props } from '@props/settings/settings-progress-rewards-card.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { Flame, Gift, ShieldCheck } from 'lucide-react';
+import type { Props } from '@/features/settings/props/settings-progress-rewards-card.props';
 
 function rewardLabel(milestone: IStreakMilestoneState): string {
   if (milestone.days === 7) {

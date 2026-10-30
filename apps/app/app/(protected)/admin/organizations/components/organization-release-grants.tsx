@@ -5,11 +5,11 @@ import {
   RELEASE_ITEM_IDS,
   type ReleaseItemId,
 } from '@genfeedai/contracts/constants';
-import type { OrganizationReleaseGrantsProps } from '@genfeedai/props/admin/organization-release-grants.props';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Switch } from '@ui/primitives/switch';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
+import type { OrganizationReleaseGrantsProps } from '@/features/admin/props/organization-release-grants.props';
 
 /**
  * Admin → Organization: choose which apps one organization sees. "Released"

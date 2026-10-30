@@ -6,12 +6,12 @@ import {
   EditorTrackType,
 } from '@genfeedai/contracts';
 import type { IEditorClip } from '@genfeedai/contracts/interfaces';
-import type { EditorPropertiesPanelProps } from '@props/studio/editor-properties-panel.props';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import { Slider } from '@ui/primitives/slider';
 import { useCallback } from 'react';
+import type { EditorPropertiesPanelProps } from '@/features/studio/props/editor-properties-panel.props';
 import { formatPreciseFrameTime } from './editor-time-format.util';
 
 function EditorPropertiesPanel({

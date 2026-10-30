@@ -1,9 +1,9 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { FirstDraftCardProps } from '@genfeedai/props/onboarding/first-drafts.props';
 import PlatformPreview from '@ui/posts/platform-preview/PlatformPreview';
 import { Button } from '@ui/primitives/button';
 import { Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { FirstDraftCardProps } from '@/features/onboarding/props/first-drafts.props';
 
 export default function DraftCard({
   draft,

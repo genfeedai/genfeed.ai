@@ -1,16 +1,16 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type {
-  AgentDetailNeedsYouItem,
-  AgentDetailNeedsYouProps,
-} from '@props/automation/agent-detail-needs-you.props';
 import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useMemo } from 'react';
+import type {
+  AgentDetailNeedsYouItem,
+  AgentDetailNeedsYouProps,
+} from '@/features/automation/props/agent-detail-needs-you.props';
 
 /**
  * The agent's own open work: consecutive run failures and content it

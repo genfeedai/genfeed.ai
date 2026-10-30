@@ -1,9 +1,9 @@
 import { ButtonVariant } from '@genfeedai/contracts';
-import type { VoiceCatalogListProps } from '@props/library/voice-catalog-list.props';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import type { VoiceCatalogListProps } from '@/features/library/props/voice-catalog-list.props';
 
 export default function VoiceCatalogList({
   children,

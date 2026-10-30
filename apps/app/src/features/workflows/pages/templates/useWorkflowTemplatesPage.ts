@@ -2,10 +2,6 @@ import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { useRoutedOrganization } from '@genfeedai/contexts/user/organization-context/organization-context';
 import { ViewType } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type {
-  BootstrapAttempt,
-  DataSource,
-} from '@genfeedai/props/workflows/workflow-templates-page.props';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -13,6 +9,10 @@ import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-pr
 import { logger } from '@services/core/logger.service';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import type {
+  BootstrapAttempt,
+  DataSource,
+} from '@/features/workflows/props/workflow-templates-page.props';
 import {
   createWorkflowApiService,
   type SystemWorkflowCatalogEntry,

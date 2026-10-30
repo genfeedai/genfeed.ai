@@ -1,10 +1,10 @@
 'use client';
 
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
-import type { SettingsMcpApprovalCardProps } from '@props/settings/settings-mcp-approval-card.props';
 import Card from '@ui/card/Card';
 import { Switch } from '@ui/primitives/switch';
 import { useTranslations } from 'next-intl';
+import type { SettingsMcpApprovalCardProps } from '@/features/settings/props/settings-mcp-approval-card.props';
 
 /**
  * Settings → Personal: the member half of "Require approval for MCP requests". It can only

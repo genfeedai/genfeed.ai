@@ -5,16 +5,16 @@ import type {
   SourceFilterValue,
   StageFilterValue,
 } from '@props/settings/skill-filters.props';
-import type {
-  SkillAgentActionProps,
-  SkillSearchProps,
-} from '@props/settings/skills.props';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import SearchField from '@ui/content/search-field/SearchField';
 import { Button } from '@ui/primitives/button';
 import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import type {
+  SkillAgentActionProps,
+  SkillSearchProps,
+} from '@/features/settings/props/skills.props';
 
 import {
   MODALITY_FILTERS,

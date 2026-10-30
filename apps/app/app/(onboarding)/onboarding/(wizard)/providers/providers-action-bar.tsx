@@ -1,13 +1,13 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { ProvidersActionBarProps } from '@props/onboarding/providers-action-bar.props';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import Link from 'next/link';
+import type { ProvidersActionBarProps } from '@/features/onboarding/props/providers-action-bar.props';
 
-export type { ProvidersAccessSurface } from '@props/onboarding/providers-action-bar.props';
+export type { ProvidersAccessSurface } from '@/features/onboarding/props/providers-action-bar.props';
 
 const CURRENT_RING = 'ring-1 ring-border-strong';
 

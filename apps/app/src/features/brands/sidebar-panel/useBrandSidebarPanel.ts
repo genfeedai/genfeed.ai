@@ -11,7 +11,6 @@ import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useElements } from '@genfeedai/hooks/data/elements/use-elements/use-elements';
 import { Brand } from '@genfeedai/models/organization/brand.model';
-import type { BrandSidebarPanelProps } from '@genfeedai/props/ui/brands/brand-sidebar.props';
 import { AssetsService } from '@genfeedai/services/content/assets.service';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { logger } from '@genfeedai/services/core/logger.service';
@@ -23,6 +22,7 @@ import {
   getAccountConnectionStatus,
 } from '@ui/modals/brands/brand/ModalBrand.types';
 import { useCallback, useMemo, useState } from 'react';
+import type { BrandSidebarPanelProps } from '@/features/brands/props/brand-sidebar.props';
 
 export type UseBrandSidebarPanelReturn = {
   activeBrand: BrandOverlayRecord | null;

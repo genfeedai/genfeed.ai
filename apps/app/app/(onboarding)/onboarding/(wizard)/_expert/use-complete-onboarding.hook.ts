@@ -8,13 +8,13 @@ import {
   createBrandAppRoute,
   createPublishingPostsFilterRoute,
 } from '@genfeedai/contracts/constants';
-import type { CompleteOnboardingOptions } from '@genfeedai/props/onboarding/complete-onboarding.props';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { logger } from '@services/core/logger.service';
 import { UsersService } from '@services/organization/users.service';
 import { useCallback } from 'react';
+import type { CompleteOnboardingOptions } from '@/features/onboarding/props/complete-onboarding.props';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
 
 /**

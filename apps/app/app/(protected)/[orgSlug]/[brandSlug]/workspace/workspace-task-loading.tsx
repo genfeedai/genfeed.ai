@@ -1,5 +1,5 @@
-import type { WorkspaceTaskRowsSkeletonProps } from '@props/workspace/workspace-task-loading.props';
 import { ListRowsSkeleton } from '@ui/lists/list-row/ListRowsSkeleton';
+import type { WorkspaceTaskRowsSkeletonProps } from '@/features/workspace/props/workspace-task-loading.props';
 
 export function WorkspaceTaskRowsSkeleton({
   rows = 3,

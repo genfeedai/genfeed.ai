@@ -1,4 +1,3 @@
-import type { TurboPreset } from '@genfeedai/props/studio/turbo-presets.props';
 import {
   CalendarDays,
   Clapperboard,
@@ -7,6 +6,7 @@ import {
   MessageCircleQuestion,
   UserRound,
 } from 'lucide-react';
+import type { TurboPreset } from '@/features/workflows/props/turbo-presets.props';
 
 /**
  * Brand-neutral idea projects for the Turbo landing. Angles are content sent to

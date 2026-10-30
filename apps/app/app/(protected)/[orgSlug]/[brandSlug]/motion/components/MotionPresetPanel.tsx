@@ -1,9 +1,9 @@
 'use client';
 
-import type { MotionPresetPanelProps } from '@genfeedai/props/studio/motion-presets.props';
 import CollectionSection from '@ui/collection/CollectionSection';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
+import type { MotionPresetPanelProps } from '@/features/motion/props/motion-presets.props';
 import StudioOnboardingHero from '@/features/studio/shared/components/StudioOnboardingHero';
 import StudioPresetShelf from '@/features/studio/shared/components/StudioPresetShelf';
 import { MOTION_PRESETS } from '../data/motion-presets';

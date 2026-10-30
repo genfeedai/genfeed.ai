@@ -2,12 +2,12 @@
 
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Button } from '@ui/primitives/button';
+import { useImperativeHandle, useState } from 'react';
 import type {
   WorkspaceBrandMentionItem,
   WorkspaceBrandMentionListProps,
-} from '@props/workspace/workspace-task-brand-mention-list.props';
-import { Button } from '@ui/primitives/button';
-import { useImperativeHandle, useState } from 'react';
+} from '@/features/workspace/props/workspace-task-brand-mention-list.props';
 
 export type { WorkspaceBrandMentionItem };
 

@@ -1,7 +1,7 @@
-import type { PublishingOverviewHealthSectionProps } from '@props/publisher/publishing-overview.props';
 import Badge from '@ui/display/badge/Badge';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { useTranslations } from 'next-intl';
+import type { PublishingOverviewHealthSectionProps } from '@/features/posts/props/publishing-overview.props';
 import PublishingAccountRow from './PublishingAccountRow';
 import PublishingOverviewAsyncSection from './PublishingOverviewAsyncSection';
 

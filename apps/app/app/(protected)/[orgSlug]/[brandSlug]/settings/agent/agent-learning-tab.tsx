@@ -14,16 +14,16 @@ import { ContentLearningService } from '@genfeedai/services/analytics/content-le
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import type {
-  AgentLearningStatusProps,
-  AgentLearningTabProps,
-} from '@props/settings/agent/learning.props';
 import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 import Card from '@ui/card/Card';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type {
+  AgentLearningStatusProps,
+  AgentLearningTabProps,
+} from '@/features/settings/props/learning.props';
 
 type SafetyAction = 'pause' | 'shadow' | 'disable';
 const ACTIONS: SafetyAction[] = ['pause', 'shadow', 'disable'];

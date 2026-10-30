@@ -1,11 +1,11 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
-import type { Props } from '@props/settings/settings-progress-overview-card.props';
 import Card from '@ui/card/Card';
 import { MetricSummary } from '@ui/cards/metric-card/MetricCard';
 import { Button } from '@ui/primitives/button';
 import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
+import type { Props } from '@/features/settings/props/settings-progress-overview-card.props';
 
 // Creating starts in the Agent now that the Compose module is gone.
 const CREATE_SOMETHING_AGENT_HREF = buildAgentPromptHref(

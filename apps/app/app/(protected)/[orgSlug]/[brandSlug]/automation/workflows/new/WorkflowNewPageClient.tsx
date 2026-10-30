@@ -2,7 +2,6 @@
 
 import type { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { WorkflowSeed } from '@genfeedai/props/workflows/workflow-new-page.props';
 import {
   buildWorkflowEtaSnapshot,
   formatEtaDuration,
@@ -14,6 +13,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { ReactFlowProvider } from '@xyflow/react';
+import type { WorkflowSeed } from '@/features/automation/props/workflow-new-page.props';
 import '@xyflow/react/dist/style.css';
 
 import { WorkflowEditorShell } from '@genfeedai/workflows/ui';

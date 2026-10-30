@@ -8,11 +8,6 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type {
-  AdminModelOffer,
-  AdminModelPricingRow,
-  AdminModelProviderUsage,
-} from '@props/admin/model-detail.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AdminModelDetailService } from '@services/admin/model-detail.service';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -43,6 +38,11 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import type {
+  AdminModelOffer,
+  AdminModelPricingRow,
+  AdminModelProviderUsage,
+} from '@/features/admin/props/model-detail.props';
 
 const usd = (value: number) =>
   new Intl.NumberFormat('en-US', {

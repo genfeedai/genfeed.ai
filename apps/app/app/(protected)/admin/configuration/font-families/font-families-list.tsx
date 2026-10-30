@@ -10,10 +10,6 @@ import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/el
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { FontFamily } from '@models/elements/font-family.model';
-import type {
-  FontFamiliesAction as Action,
-  FontFamiliesState as State,
-} from '@props/admin/font-families.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
@@ -32,6 +28,10 @@ import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
+import type {
+  FontFamiliesAction as Action,
+  FontFamiliesState as State,
+} from '@/features/admin/props/font-families.props';
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {

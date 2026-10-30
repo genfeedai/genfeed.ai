@@ -1,8 +1,8 @@
 import '@testing-library/jest-dom/vitest';
-import type { SubIssueRowProps } from '@props/tasks/sub-issue-row.props';
 import type { Task, TaskStatus } from '@services/management/tasks.service';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import type { SubIssueRowProps } from '@/features/tasks/props/sub-issue-row.props';
 import { SubIssueRow } from './sub-issue-row';
 
 // The row's href must be scope-aware (#5397): a bare `APP_ROUTES.WORKSPACE.TASKS`

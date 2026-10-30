@@ -6,11 +6,11 @@ import {
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflow-execution.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { WorkflowExecutionCardProps } from '@props/automation/workflow-execution-card.props';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import type { WorkflowExecutionCardProps } from '@/features/automation/props/workflow-execution-card.props';
 
 import {
   formatExecutionDuration,

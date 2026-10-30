@@ -8,11 +8,6 @@ import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/el
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { ElementScene } from '@models/elements/scene.model';
-import type {
-  SceneFetchStatus as FetchStatus,
-  ScenesAction,
-  ScenesState,
-} from '@props/admin/scenes.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
@@ -35,6 +30,11 @@ import {
   useReducer,
   useRef,
 } from 'react';
+import type {
+  SceneFetchStatus as FetchStatus,
+  ScenesAction,
+  ScenesState,
+} from '@/features/admin/props/scenes.props';
 
 function scenesReducer(state: ScenesState, action: ScenesAction): ScenesState {
   switch (action.type) {

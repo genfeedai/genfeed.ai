@@ -1,8 +1,8 @@
 import { formatPlatformLabel } from '@genfeedai/contracts';
 import { normalizePostingTimes } from '@genfeedai/contracts/api-types/contracts/credential-posting-times.contract';
 import type { ReleaseCalendarFilterOption } from '@props/publisher/release-calendar.props';
-import type { CalendarChannelOptionsInput } from '@props/publishing/content-calendar-controller.props';
 import { useMemo } from 'react';
+import type { CalendarChannelOptionsInput } from '@/features/posts/props/content-calendar-controller.props';
 
 export function useCalendarChannelOptions({
   credentials,

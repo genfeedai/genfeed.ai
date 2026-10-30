@@ -1,12 +1,12 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { Voice } from '@models/ingredients/voice.model';
-import type { VoiceCatalogRowProps } from '@props/library/voice-catalog-row.props';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import Badge from '@ui/display/badge/Badge';
 import ListRowSound from '@ui/lists/row-sound/ListRowSound';
 import { Button } from '@ui/primitives/button';
 import { Trash2 } from 'lucide-react';
 import { useMemo } from 'react';
+import type { VoiceCatalogRowProps } from '@/features/library/props/voice-catalog-row.props';
 
 // The API now returns SCREAMING_SNAKE VoiceProvider labels, while older rows and
 // links still carry the lower-cased product spelling — normalize before matching.

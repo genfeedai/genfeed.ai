@@ -14,14 +14,14 @@ import type {
   SkillImportInputErrorCode,
   SkillImportInputFile,
   SkillImportInputOptions,
-} from '@props/settings/skills.props';
+} from '@/features/settings/props/skills.props';
 
 export type {
   SkillImportInput,
   SkillImportInputErrorCode,
   SkillImportInputFile,
   SkillImportInputOptions,
-} from '@props/settings/skills.props';
+} from '@/features/settings/props/skills.props';
 
 export class SkillImportInputError extends Error {
   constructor(readonly code: SkillImportInputErrorCode) {

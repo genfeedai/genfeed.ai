@@ -7,7 +7,6 @@ import {
   getBrowserTimezone,
 } from '@helpers/formatting/timezone/timezone.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { ReviewItemsTableProps } from '@props/publishing/review-items-table.props';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
@@ -19,6 +18,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+import type { ReviewItemsTableProps } from '@/features/posts/props/review-items-table.props';
 import ReviewPostHoverPreview from './ReviewPostHoverPreview';
 import {
   formatReviewItemStatus,

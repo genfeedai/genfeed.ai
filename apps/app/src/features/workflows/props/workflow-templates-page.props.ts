@@ -1,5 +1,5 @@
 import type { WorkflowTemplateExampleOutput } from '@genfeedai/contracts/interfaces';
-import type { WorkflowTemplateCardPreviewProps } from './workflow-template-card-preview.props';
+import type { WorkflowTemplateCardPreviewProps } from '@genfeedai/props/workflows/workflow-template-card-preview.props';
 
 export type CatalogSource = 'all' | 'installed' | 'available';
 export type DataSource = 'templates' | 'systemCatalog' | 'featured';

@@ -1,9 +1,9 @@
 'use client';
 
 import { useOnboarding } from '@contexts/onboarding/onboarding-context';
-import type { ExpertStepHeaderProps } from '@props/onboarding/expert-path.props';
 import { GraduationCap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { ExpertStepHeaderProps } from '@/features/onboarding/props/expert-path.props';
 
 export default function ExpertStepHeader({
   description,

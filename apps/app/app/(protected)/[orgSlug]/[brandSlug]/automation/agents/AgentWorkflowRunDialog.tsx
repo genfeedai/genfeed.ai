@@ -1,6 +1,5 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { AgentWorkflowRunDialogProps } from '@props/automation/agent-workflow-run-dialog.props';
 import { ImagesService } from '@services/ingredients/images.service';
 import { Button } from '@ui/primitives/button';
 import {
@@ -24,6 +23,7 @@ import { Textarea } from '@ui/primitives/textarea';
 import { Workflow } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
+import type { AgentWorkflowRunDialogProps } from '@/features/automation/props/agent-workflow-run-dialog.props';
 import {
   buildAgentWorkflowRunInput,
   listEditableExtraSlots,

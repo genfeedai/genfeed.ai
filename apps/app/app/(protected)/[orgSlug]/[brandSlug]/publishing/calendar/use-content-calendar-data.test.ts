@@ -1,11 +1,11 @@
 import { Article } from '@models/content/article.model';
-import type { ContentCalendarLoadOptions } from '@props/publishing/content-calendar-controller.props';
 import type { ArticlesService } from '@services/content/articles.service';
 import type { NewslettersService } from '@services/content/newsletters.service';
 import type { PostingCadencesService } from '@services/content/posting-cadences.service';
 import type { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import type { ContentCalendarLoadOptions } from '@/features/posts/props/content-calendar-controller.props';
 import { EMPTY_RELEASE_CALENDAR_FILTERS } from './release-calendar-filters';
 import { useContentCalendarData } from './use-content-calendar-data';
 

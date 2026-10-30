@@ -1,9 +1,9 @@
 'use client';
 
-import type { SkillVersionsPanelProps } from '@props/settings/skills.props';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
+import type { SkillVersionsPanelProps } from '@/features/settings/props/skills.props';
 
 export default function SkillVersionsPanel({
   items,

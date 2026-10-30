@@ -9,10 +9,6 @@ import {
   createBrandAppRoute,
 } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type {
-  OrganizationAutomationBrand,
-  OrganizationAutomationBrandCardProps,
-} from '@props/automation/organization-automation-overview-page.props';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import CollectionGrid from '@ui/collection/CollectionGrid';
@@ -25,6 +21,10 @@ import { ChartLine, Cpu, MessageSquare, Workflow } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+import type {
+  OrganizationAutomationBrand,
+  OrganizationAutomationBrandCardProps,
+} from '@/features/automation/props/organization-automation-overview-page.props';
 
 /**
  * Deep links offered per brand. Automation data itself is brand-scoped, so the

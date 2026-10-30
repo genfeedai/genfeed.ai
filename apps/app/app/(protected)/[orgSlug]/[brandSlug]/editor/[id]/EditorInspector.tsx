@@ -1,4 +1,4 @@
-import type { EditorInspectorProps } from '@props/studio/editor-inspector.props';
+import type { EditorInspectorProps } from '@/features/studio/props/editor-inspector.props';
 import EditorEffectsPanel from './EditorEffectsPanel';
 import EditorPropertiesPanel from './EditorPropertiesPanel';
 import EditorTextPanel from './EditorTextPanel';

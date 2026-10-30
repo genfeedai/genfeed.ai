@@ -1,5 +1,4 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { ArticleDetailHeaderProps } from '@props/edit/article-detail-header.props';
 import { Button } from '@ui/primitives/button';
 import {
   Archive,
@@ -9,6 +8,7 @@ import {
   Rocket,
   Trash2,
 } from 'lucide-react';
+import type { ArticleDetailHeaderProps } from '@/features/studio/props/article-detail-header.props';
 
 export default function ArticleDetailHeader({
   state,

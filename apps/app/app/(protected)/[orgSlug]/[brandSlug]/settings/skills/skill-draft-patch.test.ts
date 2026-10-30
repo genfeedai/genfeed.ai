@@ -1,5 +1,5 @@
-import type { SkillDraft } from '@props/settings/skills.props';
 import { describe, expect, it } from 'vitest';
+import type { SkillDraft } from '@/features/settings/props/skills.props';
 import { prepareSkillDraftPatch } from './skill-draft-patch';
 
 const original: SkillDraft = {

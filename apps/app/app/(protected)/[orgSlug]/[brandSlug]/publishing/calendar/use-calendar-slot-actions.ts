@@ -1,9 +1,9 @@
 import { PostCategory } from '@genfeedai/contracts';
 import { createArtifactEditorRoute } from '@genfeedai/contracts/constants';
 import type { IPostingCadence } from '@genfeedai/contracts/interfaces';
-import type { CalendarSlotActionsOptions } from '@props/publishing/content-calendar-controller.props';
 import type { PostingCadencesService } from '@services/content/posting-cadences.service';
 import { useCallback, useState } from 'react';
+import type { CalendarSlotActionsOptions } from '@/features/posts/props/content-calendar-controller.props';
 import { mutationErrorMessage } from '@/features/posts/release/release-mutation-runner';
 
 export function useCalendarSlotActions({

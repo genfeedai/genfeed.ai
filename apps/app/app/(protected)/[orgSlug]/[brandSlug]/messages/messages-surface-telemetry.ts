@@ -1,8 +1,7 @@
-import type { MessagesSurfaceTelemetryData } from '@genfeedai/props/messages/messages-surface-telemetry.props';
-
 import * as Sentry from '@sentry/nextjs';
+import type { MessagesSurfaceTelemetryData } from '@/features/messages/props/messages-surface-telemetry.props';
 
-export type { MessagesSurfaceTelemetryData } from '@genfeedai/props/messages/messages-surface-telemetry.props';
+export type { MessagesSurfaceTelemetryData } from '@/features/messages/props/messages-surface-telemetry.props';
 
 export function captureMessagesSurfaceEvent(
   data: MessagesSurfaceTelemetryData,

@@ -8,11 +8,11 @@ import { useAgentBrandCreate } from '@genfeedai/hooks/agent/use-agent-brand-crea
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { AgentWorkspacePageShellProps } from '@props/agent/agent-workspace-page-shell.props';
 import type { BrandKnowledgeSelection } from '@props/content/knowledge-library.props';
 import { TasksService } from '@services/management/tasks.service';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
+import type { AgentWorkspacePageShellProps } from '@/features/agents/props/agent-workspace-page-shell.props';
 import KnowledgeReferenceSection from '@/features/library/knowledge/components/KnowledgeReferenceSection';
 import { useAgentWorkspace } from './agent-workspace-context';
 

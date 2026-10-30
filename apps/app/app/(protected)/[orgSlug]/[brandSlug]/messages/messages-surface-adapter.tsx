@@ -1,12 +1,11 @@
 import { useAgentChatStore } from '@genfeedai/agent';
-import type { MessagesSurfaceAdapterParams } from '@props/messages/messages-surface-adapter.props';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
-
 import {
   useRegisterWorkspaceSurfacePresentationAdapter,
   type WorkspaceSurfacePresentationAdapter,
 } from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
+import type { MessagesSurfaceAdapterParams } from '@/features/messages/props/messages-surface-adapter.props';
 
 export function useMessagesSurfaceAdapter({
   references,

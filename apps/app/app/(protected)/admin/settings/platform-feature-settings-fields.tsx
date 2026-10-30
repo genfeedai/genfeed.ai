@@ -12,14 +12,6 @@ import type {
   IBrandVisionModelOption,
   IPlatformFeatureSettings,
 } from '@genfeedai/contracts/interfaces';
-import type {
-  PlatformFeatureSettingsFieldsProps,
-  PlatformNullableTextFeatureSettingKey,
-  PlatformNumericFeatureSettingKey,
-  PlatformRequiredTextFeatureSettingKey,
-  PlatformSettingsTab,
-} from '@props/admin/platform-settings.props';
-
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import {
@@ -32,6 +24,13 @@ import {
 import { Switch } from '@ui/primitives/switch';
 import { useFormatter, useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
+import type {
+  PlatformFeatureSettingsFieldsProps,
+  PlatformNullableTextFeatureSettingKey,
+  PlatformNumericFeatureSettingKey,
+  PlatformRequiredTextFeatureSettingKey,
+  PlatformSettingsTab,
+} from '@/features/admin/props/platform-settings.props';
 import PlatformModeSettingField from './platform-mode-setting-field';
 import PlatformNumberSettingField from './platform-number-setting-field';
 import PlatformSettingsGroup from './platform-settings-group';

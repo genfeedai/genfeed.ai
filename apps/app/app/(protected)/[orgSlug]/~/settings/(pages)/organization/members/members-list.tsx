@@ -24,7 +24,6 @@ import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Member } from '@models/organization/member.model';
 import { Member as MemberModel } from '@models/organization/member.model';
-import type { MemberBrandAccessProps } from '@props/settings/members-list.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -43,6 +42,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import type { MemberBrandAccessProps } from '@/features/settings/props/members-list.props';
 import MemberDetails from './member-details';
 
 function formatInvitationStatus(status: IMemberInvitation['status']): string {

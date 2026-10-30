@@ -1,7 +1,7 @@
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
-import type { ReviewFilterMenuProps } from '@props/publishing/review-filter-menu.props';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import { useTranslations } from 'next-intl';
+import type { ReviewFilterMenuProps } from '@/features/posts/props/review-filter-menu.props';
 import type { ReviewStatusFilter } from './review-grid.helpers';
 import { REVIEW_STATUS_FILTER_VALUES } from './review-grid.helpers';
 import {

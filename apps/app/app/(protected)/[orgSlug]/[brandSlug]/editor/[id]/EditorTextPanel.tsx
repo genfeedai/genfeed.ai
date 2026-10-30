@@ -5,9 +5,9 @@ import type {
   IEditorTextOverlay,
   IEditorTrack,
 } from '@genfeedai/contracts/interfaces';
-import type { EditorTextPanelProps } from '@props/studio/editor-text-panel.props';
 import { useCallback, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import type { EditorTextPanelProps } from '@/features/studio/props/editor-text-panel.props';
 import EditorTextPanelHeader from './EditorTextPanelHeader';
 import EditorTextProperties from './EditorTextProperties';
 import EditorTextTrackList from './EditorTextTrackList';

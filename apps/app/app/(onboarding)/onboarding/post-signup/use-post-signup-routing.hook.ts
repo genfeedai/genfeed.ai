@@ -20,7 +20,6 @@ import {
   ONBOARDING_STEPS,
   resolveForcedOnboardingHref,
 } from '@genfeedai/contracts/constants';
-import type { PostSignupRoutingState } from '@genfeedai/props/onboarding/post-signup-routing.props';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
@@ -35,6 +34,7 @@ import { UsersService } from '@services/organization/users.service';
 import { BrandsService } from '@services/social/brands.service';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { PostSignupRoutingState } from '@/features/onboarding/props/post-signup-routing.props';
 import {
   ANALYTICS_EVENTS,
   captureAnalyticsEvent,
@@ -49,7 +49,7 @@ import {
   resolveSelectedPlanParam,
 } from '@/lib/onboarding/onboarding-access.util';
 
-export type { PostSignupRoutingState } from '@genfeedai/props/onboarding/post-signup-routing.props';
+export type { PostSignupRoutingState } from '@/features/onboarding/props/post-signup-routing.props';
 
 const REFERRAL_CLAIM_TIMEOUT_MS = 2_000;
 const SIGNUP_ATTRIBUTION_TIMEOUT_MS = 2_000;

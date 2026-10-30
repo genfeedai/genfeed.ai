@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import type { SkillDraft } from '@props/settings/skills.props';
+
 import type { Skill } from '@services/content/skills.service';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import type { SkillDraft } from '@/features/settings/props/skills.props';
 import SkillDetailCard from './SkillDetailCard';
 import { prepareSkillDraftPatch } from './skill-draft-patch';
 

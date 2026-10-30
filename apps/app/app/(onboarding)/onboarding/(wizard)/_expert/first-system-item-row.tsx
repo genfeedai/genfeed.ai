@@ -5,12 +5,12 @@ import {
   ButtonVariant,
   ContentPlanItemStatus,
 } from '@genfeedai/contracts';
-import type { FirstSystemItemRowProps } from '@props/onboarding/expert-path.props';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import type { FirstSystemItemRowProps } from '@/features/onboarding/props/expert-path.props';
 
 const STATUS_LABEL_KEY: Record<ContentPlanItemStatus, string> = {
   [ContentPlanItemStatus.COMPLETED]: 'completed',

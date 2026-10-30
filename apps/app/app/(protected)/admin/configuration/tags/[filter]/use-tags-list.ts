@@ -8,7 +8,6 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { TagsListProps } from '@props/tags/tags-list.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { TagsService } from '@services/content/tags.service';
 import { logger } from '@services/core/logger.service';
@@ -17,6 +16,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { TagsListProps } from '@/features/admin/props/tags-list.props';
 
 const SUPERADMIN: ContentScope = 'superadmin';
 const ORGANIZATION: ContentScope = 'organization';

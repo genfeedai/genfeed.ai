@@ -5,9 +5,9 @@ import type {
   MessagesInboxView,
   MessagesSurface,
 } from '@genfeedai/props/messages/messages-conversation-sidebar.props';
-import type { MessagesFilterMenuProps } from '@genfeedai/props/messages/messages-filter-menu.props';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import { useTranslations } from 'next-intl';
+import type { MessagesFilterMenuProps } from '@/features/messages/props/messages-filter-menu.props';
 import { ALL_BRANDS_FILTER, AUTOMATION_OPTIONS } from './messages-page.helpers';
 
 export const DEFAULT_MESSAGES_VIEW: MessagesInboxView = 'inbox';

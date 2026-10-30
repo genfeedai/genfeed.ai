@@ -6,7 +6,6 @@ vi.mock('./system-notifications-panel', () => ({
 }));
 
 import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
-import type { PlatformSettingsTab } from '@props/admin/platform-settings.props';
 import {
   fireEvent,
   render,
@@ -24,6 +23,7 @@ import {
   useState,
 } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { PlatformSettingsTab } from '@/features/admin/props/platform-settings.props';
 import PlatformSettingsLayout from './layout';
 import PlatformSettingsSection from './platform-settings-section';
 

@@ -1,10 +1,10 @@
 'use client';
 
-import type { GenerationView } from '@props/admin/generations.props';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { FileText, Music } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
+import type { GenerationView } from '@/features/admin/props/generations.props';
 
 const MEDIA_PLACEHOLDER_ICON_CLASS = 'size-5 text-muted-foreground';
 

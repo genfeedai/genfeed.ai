@@ -4,11 +4,6 @@ import { ButtonSize, ButtonVariant, PlatformRole } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers';
 import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type {
-  AdminUserDetailRowProps,
-  AdminUserDetailSectionProps,
-  AdminUserDetailsProps,
-} from '@props/admin/admin-user.props';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { UsersService } from '@services/organization/users.service';
 import Card from '@ui/card/Card';
@@ -25,6 +20,11 @@ import { getErrorMessage } from '@utils/error/error-handler.util';
 import { Pencil } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
+import type {
+  AdminUserDetailRowProps,
+  AdminUserDetailSectionProps,
+  AdminUserDetailsProps,
+} from '@/features/admin/props/admin-user.props';
 import { EMPTY_VALUE, getUserDisplayName } from './user-display.helpers';
 import UserEmail from './user-email';
 

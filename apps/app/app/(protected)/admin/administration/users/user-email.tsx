@@ -1,11 +1,11 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { AdminUserEmailProps } from '@props/admin/admin-user.props';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { Button } from '@ui/primitives/button';
 import { Copy } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { AdminUserEmailProps } from '@/features/admin/props/admin-user.props';
 import { EMPTY_VALUE } from './user-display.helpers';
 
 /**

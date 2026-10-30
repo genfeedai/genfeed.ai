@@ -3,12 +3,6 @@
 import { AlertCategory } from '@genfeedai/contracts';
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type {
-  ComparisonCardProps,
-  DailySeriesChartProps,
-  LeaderTableProps,
-  ProjectionCardProps,
-} from '@props/admin/analytics.props';
 import {
   AnalyticsService,
   type IBusinessAnalytics,
@@ -21,6 +15,12 @@ import Alert from '@ui/feedback/alert/Alert';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Loading from '@ui/loading/default/Loading';
 import { Banknote, Box, CreditCard, Image, Sparkles } from 'lucide-react';
+import type {
+  ComparisonCardProps,
+  DailySeriesChartProps,
+  LeaderTableProps,
+  ProjectionCardProps,
+} from '@/features/admin/props/analytics.props';
 
 const _currencyFormatter = new Intl.NumberFormat('en-US', {
   currency: 'USD',

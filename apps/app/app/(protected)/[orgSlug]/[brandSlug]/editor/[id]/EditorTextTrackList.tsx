@@ -1,7 +1,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { EditorTextTrackListProps } from '@props/studio/editor-text-track-list.props';
 import { Button } from '@ui/primitives/button';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
+import type { EditorTextTrackListProps } from '@/features/studio/props/editor-text-track-list.props';
 
 function EditorTextTrackList({
   textTracks,

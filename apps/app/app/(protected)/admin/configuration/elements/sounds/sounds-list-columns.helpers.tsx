@@ -1,7 +1,7 @@
 import type { Sound } from '@models/ingredients/sound.model';
-import type { BuildSoundsColumnsParams } from '@props/admin/sounds.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
+import type { BuildSoundsColumnsParams } from '@/features/admin/props/sounds.props';
 import {
   SoundActiveCell,
   SoundCategoryCell,

@@ -7,11 +7,11 @@ import {
   XTwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
+import type { ReactNode } from 'react';
 import type {
   AgentPresetAvatarProps,
   PlatformBrand,
-} from '@props/automation/agent-preset-avatar.props';
-import type { ReactNode } from 'react';
+} from '@/features/automation/props/agent-preset-avatar.props';
 import { getAgentTypeIcon } from '../agents/agent-type-display';
 
 const PLATFORM_BRANDS: Record<string, PlatformBrand> = {

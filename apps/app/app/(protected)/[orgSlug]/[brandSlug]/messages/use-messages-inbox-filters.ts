@@ -4,19 +4,19 @@ import type {
   SocialInboxQuery,
   SocialPlatform,
 } from '@genfeedai/contracts/interfaces';
+import { useCallback, useMemo, useReducer } from 'react';
 import type {
   MessagesInboxFiltersAction,
   MessagesInboxFiltersState,
   UseMessagesInboxFiltersParams,
-} from '@genfeedai/props/messages/messages-inbox-filters.props';
-import { useCallback, useMemo, useReducer } from 'react';
+} from '@/features/messages/props/messages-inbox-filters.props';
 import type {
   MessagesInboxView,
   MessagesSurface,
 } from './messages-conversation-sidebar';
 import { ALL_BRANDS_FILTER } from './messages-page.helpers';
 
-export type { UseMessagesInboxFiltersParams } from '@genfeedai/props/messages/messages-inbox-filters.props';
+export type { UseMessagesInboxFiltersParams } from '@/features/messages/props/messages-inbox-filters.props';
 
 function createInitialFiltersState({
   brandSlug,

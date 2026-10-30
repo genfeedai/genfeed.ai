@@ -1,6 +1,6 @@
 import type { IAgentBrandContextSnapshot } from '@genfeedai/contracts/interfaces';
-import type { AgentContextPageState } from '@props/settings/agent/context.props';
 import { render, screen, within } from '@testing-library/react';
+import type { AgentContextPageState } from '@/features/settings/props/context.props';
 import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';

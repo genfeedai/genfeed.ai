@@ -14,8 +14,6 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCalendarWeekRange } from '@hooks/utils/use-calendar-week-range/use-calendar-week-range';
 import type { CalendarViewKey } from '@props/components/calendar.props';
 import type { ReleaseCalendarFilters as ReleaseFilters } from '@props/publisher/release-calendar.props';
-import type { ContentCalendarPageProps } from '@props/publishing/content-calendar-controller.props';
-import type { ContentCalendarItem } from '@props/publishing/content-calendar-page.props';
 import {
   useConfirmModal,
   usePostRepurposeModal,
@@ -33,6 +31,8 @@ import { FileText, Repeat } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { ContentCalendarPageProps } from '@/features/posts/props/content-calendar-controller.props';
+import type { ContentCalendarItem } from '@/features/posts/props/content-calendar-page.props';
 import ReleaseDetailDrawer from '@/features/posts/release/release-detail-drawer';
 import CalendarRepublishDialog, {
   CALENDAR_MOVE_ACTION,

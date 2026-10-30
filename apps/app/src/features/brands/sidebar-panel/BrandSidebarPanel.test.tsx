@@ -1,8 +1,8 @@
 import { AssetScope, ModalEnum } from '@genfeedai/contracts';
 import type { ILink } from '@genfeedai/contracts/interfaces';
-import type { BrandSidebarPanelProps } from '@genfeedai/props/ui/brands/brand-sidebar.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { BrandSidebarPanelProps } from '@/features/brands/props/brand-sidebar.props';
 import BrandSidebarPanel from '@/features/brands/sidebar-panel/BrandSidebarPanel';
 
 const openModalMock = vi.hoisted(() => vi.fn());

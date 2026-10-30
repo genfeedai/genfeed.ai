@@ -1,7 +1,7 @@
 import type {
   SkillDraft,
   SkillDraftPatchResult,
-} from '@props/settings/skills.props';
+} from '@/features/settings/props/skills.props';
 
 const LIMITS = {
   name: 140,

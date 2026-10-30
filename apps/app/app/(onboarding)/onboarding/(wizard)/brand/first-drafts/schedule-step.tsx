@@ -6,7 +6,6 @@ import {
   TiktokIcon,
   XTwitterIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
-import type { FirstDraftsScheduleProps } from '@genfeedai/props/onboarding/first-drafts.props';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { usePlatformOAuthConnect } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
@@ -17,6 +16,7 @@ import Spinner from '@ui/primitives/spinner';
 import { Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
+import type { FirstDraftsScheduleProps } from '@/features/onboarding/props/first-drafts.props';
 
 const PLATFORMS = [
   { id: 'instagram', Icon: InstagramIcon },

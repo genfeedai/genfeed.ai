@@ -12,13 +12,13 @@ import {
   createPublishingPostsFilterRoute,
   withPlatformQuery,
 } from '@genfeedai/contracts/constants';
+import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
+import { getAccountConnectionStatus } from '@/features/brands/components/integrations/account-connection-status.util';
 import type {
   PlatformConnectionHealth,
   PlatformHomeConnection,
   PlatformHomeDestinations,
-} from '@genfeedai/props/pages/platform-home.props';
-import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
-import { getAccountConnectionStatus } from '@/features/brands/components/integrations/account-connection-status.util';
+} from '@/features/platforms/props/platform-home.props';
 
 export function isSamePlatform(value: unknown, platform: Platform): boolean {
   return parsePlatform(value) === platform;

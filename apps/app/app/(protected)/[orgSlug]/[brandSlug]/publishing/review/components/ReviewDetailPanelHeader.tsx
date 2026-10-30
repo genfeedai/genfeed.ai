@@ -1,8 +1,8 @@
 import { ComponentSize } from '@genfeedai/contracts';
-import type { ReviewDetailPanelHeaderProps } from '@props/publishing/review-detail-panel-header.props';
 import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { useTranslations } from 'next-intl';
+import type { ReviewDetailPanelHeaderProps } from '@/features/posts/props/review-detail-panel-header.props';
 import { getReviewItemBadgeStatus } from './review-item.helpers';
 
 export default function ReviewDetailPanelHeader({

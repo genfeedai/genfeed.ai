@@ -3,11 +3,11 @@ import {
   useContextSidebar,
 } from '@contexts/ui/context-sidebar-context';
 import { useAgentChatStore } from '@genfeedai/agent';
-import type { ReviewWorkspaceSurfaceAdapterProps } from '@props/publishing/review-workspace-surface-adapter.props';
 import { ClipboardCheck, Sparkles, SquarePen, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { createElement, useCallback, useEffect, useState } from 'react';
+import type { ReviewWorkspaceSurfaceAdapterProps } from '@/features/posts/props/review-workspace-surface-adapter.props';
 
 import ReviewDetailPanel from './ReviewDetailPanel';
 import { getReviewItemTitle } from './review-item.helpers';

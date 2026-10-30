@@ -4,7 +4,6 @@ import {
   CadenceGenerateLanding,
   PostCategory,
 } from '@genfeedai/contracts';
-import type { CadenceFormSheetProps } from '@props/publishing/cadence-form-sheet.props';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -18,6 +17,7 @@ import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import type { CadenceFormSheetProps } from '@/features/posts/props/cadence-form-sheet.props';
 
 const CADENCE_FORMATS = [
   PostCategory.ARTICLE,

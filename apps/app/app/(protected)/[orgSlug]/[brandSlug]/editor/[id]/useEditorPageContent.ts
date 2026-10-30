@@ -9,7 +9,6 @@ import type {
   IEditorProject,
   IEditorTrack,
 } from '@genfeedai/contracts/interfaces';
-import type { EditorState } from '@genfeedai/props/studio/editor-page-content.props';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -30,6 +29,7 @@ import { getErrorStatus } from '@utils/error/json-api-status.util';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import type { EditorState } from '@/features/studio/props/editor-page-content.props';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import {
   EditorSaveConflictError,

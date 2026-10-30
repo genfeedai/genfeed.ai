@@ -11,7 +11,6 @@ import { personalizeBrandInterviewExamples } from '@genfeedai/helpers';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import { useBrandInterview } from '@hooks/utils/use-brand-interview/use-brand-interview';
-import type { BrandExampleContext } from '@props/settings/brand-kit/guided-setup-content.props';
 import { logger } from '@services/core/logger.service';
 import { BrandInterviewService } from '@services/social/brand-interview.service';
 import Card from '@ui/card/Card';
@@ -36,6 +35,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import type { BrandExampleContext } from '@/features/settings/props/guided-setup-content.props';
 import { useBrandInterviewDraftStore } from '@/store/brand-interview-draft.store';
 
 const INTERVIEW_CREDIT_COST = 10;

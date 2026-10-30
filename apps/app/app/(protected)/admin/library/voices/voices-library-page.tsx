@@ -4,12 +4,6 @@ import type { VoiceProvider } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { ExternalVoice } from '@models/elements/external-voice.model';
-import type {
-  ProviderFilter,
-  VoiceCatalogToggleField,
-  VoicesLibraryAction,
-  VoicesLibraryState,
-} from '@props/admin/voices.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { VoicesService } from '@services/ingredients/voices.service';
@@ -26,6 +20,12 @@ import {
   useReducer,
   useState,
 } from 'react';
+import type {
+  ProviderFilter,
+  VoiceCatalogToggleField,
+  VoicesLibraryAction,
+  VoicesLibraryState,
+} from '@/features/admin/props/voices.props';
 
 import {
   VoicesCatalogSearch,

@@ -3,10 +3,10 @@ import {
   ContextSidebarProvider,
   useContextSidebar,
 } from '@contexts/ui/context-sidebar-context';
-import type { ReviewWorkspaceSurfaceAdapterProps } from '@props/publishing/review-workspace-surface-adapter.props';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ReviewWorkspaceSurfaceAdapterProps } from '@/features/posts/props/review-workspace-surface-adapter.props';
 
 const setPageContext = vi.fn();
 

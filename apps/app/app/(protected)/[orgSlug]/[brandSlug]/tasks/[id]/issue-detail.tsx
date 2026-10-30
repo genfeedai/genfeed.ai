@@ -7,11 +7,6 @@ import {
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type {
-  IssueDetailAction,
-  IssueDetailProps,
-  IssueDetailState,
-} from '@props/tasks/issue-detail.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { TaskCommentsService } from '@services/management/task-comments.service';
@@ -28,6 +23,11 @@ import Container from '@ui/layout/container/Container';
 import { ArrowLeft, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import type {
+  IssueDetailAction,
+  IssueDetailProps,
+  IssueDetailState,
+} from '@/features/tasks/props/issue-detail.props';
 import IssueCommentsCard from './issue-comments-card';
 import IssueHeader from './issue-header';
 import IssueSidebar from './issue-sidebar';

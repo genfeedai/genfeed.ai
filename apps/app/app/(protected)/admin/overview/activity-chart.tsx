@@ -1,9 +1,9 @@
 import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
-import type { ActivityChartProps } from '@props/admin/dashboard.props';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 import dynamic from 'next/dynamic';
+import type { ActivityChartProps } from '@/features/admin/props/dashboard.props';
 
 const Area = dynamic(() => import('recharts').then((module) => module.Area), {
   ssr: false,

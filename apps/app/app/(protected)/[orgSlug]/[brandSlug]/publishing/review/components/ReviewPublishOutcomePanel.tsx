@@ -5,8 +5,8 @@ import {
 } from '@genfeedai/ui';
 import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
 import { formatDateInTimezone } from '@helpers/formatting/timezone/timezone.helper';
-import type { ReviewPublishOutcomePanelProps } from '@props/publishing/review-publish-outcome-panel.props';
 import { useTranslations } from 'next-intl';
+import type { ReviewPublishOutcomePanelProps } from '@/features/posts/props/review-publish-outcome-panel.props';
 
 export default function ReviewPublishOutcomePanel({
   browserTimezone,

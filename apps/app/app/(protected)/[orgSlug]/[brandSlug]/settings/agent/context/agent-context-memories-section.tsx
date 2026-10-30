@@ -2,16 +2,16 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { IAgentMemoryEntry } from '@genfeedai/contracts/interfaces';
-import type {
-  AgentContextMemoriesSectionProps,
-  AgentContextMemoryRowProps,
-} from '@props/settings/agent/context.props';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { Archive } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type {
+  AgentContextMemoriesSectionProps,
+  AgentContextMemoryRowProps,
+} from '@/features/settings/props/context.props';
 import AgentContextLayerCard from './agent-context-layer-card';
 
 function MemoryRow({

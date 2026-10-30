@@ -1,6 +1,6 @@
-import type { PostSignupFallbackProps } from '@props/onboarding/post-signup-fallback.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import type { PostSignupFallbackProps } from '@/features/onboarding/props/post-signup-fallback.props';
 
 export default function PostSignupFallback({
   resolveOnboardingHref,

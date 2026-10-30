@@ -1,7 +1,7 @@
-import type { PlatformSettingsGroupProps } from '@props/admin/platform-settings.props';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { useId } from 'react';
+import type { PlatformSettingsGroupProps } from '@/features/admin/props/platform-settings.props';
 
 /**
  * A titled stack of fields inside one platform settings tab. The title names

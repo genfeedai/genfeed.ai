@@ -1,11 +1,11 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
-import type { GenerationRowProps } from '@props/admin/generations.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import type { GenerationRowProps } from '@/features/admin/props/generations.props';
 import GenerationStatusBadge from './generation-status-badge';
 import GenerationThumbnail from './generation-thumbnail';
 

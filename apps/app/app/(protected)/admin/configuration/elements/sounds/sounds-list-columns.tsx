@@ -1,11 +1,11 @@
 import { ComponentSize, PageScope } from '@genfeedai/contracts';
 import type { ISound } from '@genfeedai/contracts/interfaces';
+import Badge from '@ui/display/badge/Badge';
+import { Checkbox } from '@ui/primitives/checkbox';
 import type {
   SoundCellProps,
   SoundCheckboxCellProps,
-} from '@props/admin/sounds.props';
-import Badge from '@ui/display/badge/Badge';
-import { Checkbox } from '@ui/primitives/checkbox';
+} from '@/features/admin/props/sounds.props';
 
 export function SoundCategoryCell({ sound }: SoundCellProps) {
   return (

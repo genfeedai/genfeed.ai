@@ -1,5 +1,4 @@
 import { ButtonVariant } from '@genfeedai/contracts';
-import type { SkillDetailCardProps } from '@props/settings/skills.props';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { Button } from '@ui/primitives/button';
 import {
@@ -12,6 +11,7 @@ import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';
 import { Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { SkillDetailCardProps } from '@/features/settings/props/skills.props';
 
 export default function SkillDetailCard({
   customizing,

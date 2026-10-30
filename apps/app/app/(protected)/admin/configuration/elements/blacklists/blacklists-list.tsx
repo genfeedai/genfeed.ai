@@ -8,10 +8,6 @@ import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/el
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { ElementBlacklist } from '@models/elements/blacklist.model';
-import type {
-  BlacklistsAction,
-  BlacklistsState,
-} from '@props/admin/blacklists.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
@@ -29,6 +25,10 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
+import type {
+  BlacklistsAction,
+  BlacklistsState,
+} from '@/features/admin/props/blacklists.props';
 
 function blacklistsReducer(
   state: BlacklistsState,

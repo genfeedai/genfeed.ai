@@ -1,11 +1,11 @@
 'use client';
 
-import type { SkillImportFormProps } from '@props/settings/skills.props';
+import type { SkillImportFormProps } from '@/features/settings/props/skills.props';
 
 export type {
   SkillImportFormLabels,
   SkillImportFormProps,
-} from '@props/settings/skills.props';
+} from '@/features/settings/props/skills.props';
 
 import { Button } from '@ui/primitives/button';
 import { Form } from '@ui/primitives/form';

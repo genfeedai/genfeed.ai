@@ -1,8 +1,8 @@
 import { ButtonVariant } from '@genfeedai/contracts';
-import type { OnboardingProgressProps } from '@props/onboarding/onboarding-progress.props';
 import { Progress } from '@ui/primitives';
 import { Button } from '@ui/primitives/button';
 import { Check } from 'lucide-react';
+import type { OnboardingProgressProps } from '@/features/onboarding/props/onboarding-progress.props';
 
 export default function OnboardingProgress({
   orientation = 'horizontal',

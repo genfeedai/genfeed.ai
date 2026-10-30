@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
-import type { WorkflowPromptPickerProps } from '@genfeedai/props/workflows/workflow-prompt-picker.props';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -17,6 +16,7 @@ import { History } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 import { useWorkflowRecentPrompts } from '@/features/workflows/hooks/useWorkflowRecentPrompts';
+import type { WorkflowPromptPickerProps } from '@/features/workflows/props/workflow-prompt-picker.props';
 
 export function WorkflowPromptPicker({ onSelect }: WorkflowPromptPickerProps) {
   const translate = useTranslations('pages.workflows.promptPicker');

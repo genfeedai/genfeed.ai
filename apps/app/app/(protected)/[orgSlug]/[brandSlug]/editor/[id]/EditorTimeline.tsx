@@ -5,14 +5,14 @@ import {
   ButtonVariant,
   EditorTrackType,
 } from '@genfeedai/contracts';
+import { Badge } from '@ui/primitives/badge';
+import { Button } from '@ui/primitives/button';
+import { useCallback, useRef, useState } from 'react';
 import type {
   ClipBlockProps,
   EditorTimelineProps,
   TrackRowProps,
-} from '@props/studio/editor-timeline.props';
-import { Badge } from '@ui/primitives/badge';
-import { Button } from '@ui/primitives/button';
-import { useCallback, useRef, useState } from 'react';
+} from '@/features/studio/props/editor-timeline.props';
 import { formatTimelineFrameTime } from './editor-time-format.util';
 
 function TimeRuler({

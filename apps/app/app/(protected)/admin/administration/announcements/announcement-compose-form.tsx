@@ -1,4 +1,3 @@
-import type { AnnouncementComposeFormProps as Props } from '@props/admin/announcements.props';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Form } from '@ui/primitives/form';
@@ -6,6 +5,7 @@ import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';
 import { Globe } from 'lucide-react';
+import type { AnnouncementComposeFormProps as Props } from '@/features/admin/props/announcements.props';
 
 const TWEET_MAX_CHARS = 280;
 

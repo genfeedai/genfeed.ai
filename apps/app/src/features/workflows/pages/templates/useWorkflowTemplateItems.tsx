@@ -1,15 +1,15 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
-import type {
-  CatalogSource,
-  WorkflowTemplateItemActionsOptions,
-} from '@genfeedai/props/workflows/workflow-templates-page.props';
 import Card from '@ui/card/Card';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import ListRow from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import type {
+  CatalogSource,
+  WorkflowTemplateItemActionsOptions,
+} from '@/features/workflows/props/workflow-templates-page.props';
 import type { SystemWorkflowCatalogEntry } from '@/features/workflows/services/workflow-api';
 import WorkflowTemplateCardPreview from './WorkflowTemplateCardPreview';
 import { cadenceLabel, categoryLabel } from './workflow-template-catalog';

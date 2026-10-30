@@ -1,9 +1,4 @@
 import { ButtonSize, ButtonVariant, VoiceProvider } from '@genfeedai/contracts';
-import type {
-  ProviderFilter,
-  VoicesCatalogSearchProps,
-  VoicesSyncControlsProps,
-} from '@props/admin/voices.props';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import SearchField from '@ui/content/search-field/SearchField';
 import { Button } from '@ui/primitives/button';
@@ -15,6 +10,11 @@ import {
 } from '@ui/primitives/dropdown-menu';
 import { ChevronDown, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type {
+  ProviderFilter,
+  VoicesCatalogSearchProps,
+  VoicesSyncControlsProps,
+} from '@/features/admin/props/voices.props';
 
 /** The voice search, with the provider filter attached inside it. */
 export function VoicesCatalogSearch({

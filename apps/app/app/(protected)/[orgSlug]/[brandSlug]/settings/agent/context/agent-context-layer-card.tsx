@@ -1,12 +1,12 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { AgentContextLayerCardProps } from '@props/settings/agent/context.props';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import type { AgentContextLayerCardProps } from '@/features/settings/props/context.props';
 
 /** Layers whose gaps the brand interview fills. */
 const INTERVIEW_LAYERS = new Set(['persona', 'prompting', 'strategy', 'voice']);

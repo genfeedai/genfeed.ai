@@ -5,9 +5,9 @@ import type {
   SocialInboxSyncRealtimeEvent,
 } from '@genfeedai/contracts/interfaces';
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
-import type { UseMessagesActionsParams } from '@genfeedai/props/messages/messages-actions.props';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { UseMessagesActionsParams } from '@/features/messages/props/messages-actions.props';
 import {
   getMessagesErrorMessage,
   getMessagesSyncFeedback,
@@ -27,7 +27,7 @@ import {
 } from './messages-surface.helpers';
 import { captureMessagesSurfaceEvent } from './messages-surface-telemetry';
 
-export type { UseMessagesActionsParams } from '@genfeedai/props/messages/messages-actions.props';
+export type { UseMessagesActionsParams } from '@/features/messages/props/messages-actions.props';
 
 export function useMessagesActions({
   canAttachReferences,
