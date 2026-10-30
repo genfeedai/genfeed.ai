@@ -120,9 +120,9 @@ describe('ToolRegistryService.classify', () => {
     // generate_turbo_content is an CuratedActionName, so it routes through the
     // agent-executor to /agent-tools/:name/execute (re-surfaced in PR 5/6).
     ['generate_turbo_content', 'agent-executor'],
-    ['get_instagram_inspiration', 'agent-executor'],
-    ['get_x_posts', 'agent-executor'],
-    ['get_x_account_activity', 'agent-executor'],
+    ['fetch_instagram_inspiration', 'agent-executor'],
+    ['fetch_x_posts', 'agent-executor'],
+    ['fetch_x_account_activity', 'agent-executor'],
     ['create_instagram_remix_workflow', 'agent-executor'],
     ['create_ad_remix_workflow', 'agent-executor'],
     ['analyze_clipper_project', 'clipper-projects'],

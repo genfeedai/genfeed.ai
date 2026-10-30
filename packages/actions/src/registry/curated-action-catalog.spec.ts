@@ -192,8 +192,8 @@ describe('curated action catalog', () => {
     ).toEqual(['voiceProfile']);
   });
 
-  it('merges X post fetch and search into get_x_posts with no required argument', () => {
-    const tool = getToolByName('get_x_posts');
+  it('merges X post fetch and search into fetch_x_posts with no required argument', () => {
+    const tool = getToolByName('fetch_x_posts');
     expect(tool?.parameters.required ?? []).toEqual([]);
     expect(Object.keys(tool?.parameters.properties ?? {}).sort()).toEqual([
       'brandId',
@@ -243,7 +243,7 @@ describe('curated action catalog', () => {
   });
 
   it('exposes headless-safe X read actions on both surfaces and keeps drafts agent-only', () => {
-    for (const name of ['get_x_posts', 'get_x_account_activity']) {
+    for (const name of ['fetch_x_posts', 'fetch_x_account_activity']) {
       expect(getToolByName(name)?.surfaces, name).toMatchObject({
         agent: true,
         mcp: true,
@@ -379,7 +379,7 @@ describe('curated action catalog', () => {
   });
 
   it('publishes Instagram inspiration and review-only remix schemas on both surfaces', () => {
-    const listTool = getToolByName('get_instagram_inspiration');
+    const listTool = getToolByName('fetch_instagram_inspiration');
     const remixTool = getToolByName('create_instagram_remix_workflow');
 
     expect(listTool?.surfaces).toMatchObject({ agent: true, mcp: true });
@@ -441,14 +441,14 @@ describe('curated action catalog', () => {
       ['get_linkedin_connection_status', 'analytics'],
       ['get_social_conversations', 'social-inbox'],
       ['send_social_dm', 'social-inbox'],
-      ['get_x_account_activity', 'social-inbox'],
+      ['fetch_x_account_activity', 'social-inbox'],
       ['get_brand_completeness', 'brand'],
       ['get_brand_context', 'brand'],
       ['get_brand_publishing_readiness', 'scheduler'],
       ['start_brand_interview', 'brand'],
       ['get_meta_ad_accounts', 'ads'],
       ['get_ads_research', 'ads'],
-      ['get_instagram_inspiration', 'inspiration'],
+      ['fetch_instagram_inspiration', 'inspiration'],
       ['get_tiktok_top_performers', 'inspiration'],
       ['analyze_clipper_project', 'clipper'],
       ['open_in_editor', 'editor'],

@@ -13,12 +13,25 @@ after the 2026-08-06 review. Pinned by `curated-action-catalog.spec.ts`.
 ## Both surfaces
 
 `analyze_performance`, `get_analytics`, `get_posts`, `transform_media`,
-`get_x_posts`, and `get_x_account_activity` are headless-safe:
+`fetch_x_posts`, and `fetch_x_account_activity` are headless-safe:
 each returns data or an asset URL from a concrete `AgentToolExecutorService` case, so an MCP client
 reaches them through the existing `/agent-tools/:name/execute` proxy with no new handler. They match
 peers already on both surfaces (`generate`, which covers image, video, voice and music by `type`), and none of
 them publishes, so they carry no approval gate. `draft_x_quote` and `draft_x_repost` stay agent-only
 because they create in-product review drafts rather than a headless publish.
+
+## Data source and the `fetch_` prefix
+
+Every tool carries a `dataSource` (`packages/actions/src/registry/source/tool-data-sources.ts`), and
+the MCP annotations derive from it rather than from per-tool overrides:
+
+- `stored` — our own database. Read-only, closed-world.
+- `provider` — a free live third-party call (ad platforms, `search_knowledge`). Read-only, open-world.
+- `provider-paid` — each call bills credits or a third party. Named `fetch_*`
+  (`fetch_x_posts`, `fetch_x_account_activity`, `fetch_instagram_inspiration`,
+  `fetch_instagram_inspiration_detail`), never read-only, so clients keep asking before they run.
+
+`get_*` therefore never costs money. `tool-data-sources.spec.ts` pins `fetch_*` ⟺ `provider-paid`.
 
 ## Agent only, by design
 

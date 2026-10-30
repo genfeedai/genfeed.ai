@@ -1,4 +1,5 @@
 import type { ToolMutationPolicy } from '../interfaces/tool-definition.interface';
+import { PROVIDER_PAID_TOOLS } from './source/tool-data-sources';
 
 export type { ToolMutationPolicy } from '../interfaces/tool-definition.interface';
 
@@ -40,12 +41,6 @@ const READ_ONLY_PREFIXES = [
 ] as const;
 
 const WRITE_NAMES_WITH_READ_PREFIX = new Set(['present_work_object']);
-
-/** Read-shaped names that spend credits, so they can carry a mutation policy. */
-const SPENDING_NAMES_WITH_READ_PREFIX = new Set([
-  'get_x_posts',
-  'get_x_account_activity',
-]);
 
 const READ_ONLY_NAMES = new Set<string>([
   'storyboard_run_capabilities',
@@ -134,8 +129,10 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   generate_as_identity: 'direct',
   run_clipper: 'approval-required',
   generate_content: 'direct',
-  get_x_posts: 'direct',
-  get_x_account_activity: 'direct',
+  fetch_instagram_inspiration: 'direct',
+  fetch_instagram_inspiration_detail: 'direct',
+  fetch_x_posts: 'direct',
+  fetch_x_account_activity: 'direct',
   generate_turbo_content: 'approval-required',
   generate_monthly_content: 'direct',
   generate_reply_variants: 'direct',
@@ -203,7 +200,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
 
 export function isReadOnlyToolName(name: string): boolean {
   if (WRITE_NAMES_WITH_READ_PREFIX.has(name)) return false;
-  if (SPENDING_NAMES_WITH_READ_PREFIX.has(name)) return false;
+  if (PROVIDER_PAID_TOOLS.has(name)) return false;
   if (READ_ONLY_NAMES.has(name)) {
     return true;
   }

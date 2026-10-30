@@ -51,8 +51,8 @@ export class AgentInstagramInspirationToolHandler {
 
   handles(toolName: CuratedActionName): boolean {
     return (
-      toolName === 'get_instagram_inspiration' ||
-      toolName === 'get_instagram_inspiration_detail' ||
+      toolName === 'fetch_instagram_inspiration' ||
+      toolName === 'fetch_instagram_inspiration_detail' ||
       toolName === 'create_instagram_remix_workflow'
     );
   }
@@ -63,9 +63,9 @@ export class AgentInstagramInspirationToolHandler {
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     switch (toolName) {
-      case 'get_instagram_inspiration':
+      case 'fetch_instagram_inspiration':
         return this.listInstagramInspiration(params, ctx);
-      case 'get_instagram_inspiration_detail':
+      case 'fetch_instagram_inspiration_detail':
         return this.getInstagramInspirationDetail(params, ctx);
       case 'create_instagram_remix_workflow':
         return this.createInstagramRemixWorkflow(params, ctx);

@@ -80,8 +80,8 @@ export class AgentXActionsToolHandler {
 
   handles(toolName: CuratedActionName): boolean {
     return (
-      toolName === 'get_x_posts' ||
-      toolName === 'get_x_account_activity' ||
+      toolName === 'fetch_x_posts' ||
+      toolName === 'fetch_x_account_activity' ||
       toolName === 'draft_x_quote' ||
       toolName === 'draft_x_repost'
     );
@@ -93,9 +93,9 @@ export class AgentXActionsToolHandler {
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     switch (toolName) {
-      case 'get_x_posts':
+      case 'fetch_x_posts':
         return this.getXPosts(params, ctx);
-      case 'get_x_account_activity':
+      case 'fetch_x_account_activity':
         return this.listXAccountActivity(params, ctx);
       case 'draft_x_quote':
         return this.draftXEngagement(params, ctx, 'quote');

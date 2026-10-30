@@ -121,7 +121,7 @@ describe('tool credit pricing', () => {
   });
 
   it('keeps Enhance and X paid and confirmed while options stay free', () => {
-    for (const name of ['enhance_prompt', 'get_x_posts']) {
+    for (const name of ['enhance_prompt', 'fetch_x_posts']) {
       const tool = getToolByName(name);
       expect(tool?.creditCost).toBe(1);
       expect(requiresMcpApproval(tool)).toBe(true);

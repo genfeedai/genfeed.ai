@@ -13,6 +13,7 @@ import {
 import { ALL_TOOLS, getToolByName, getToolsForSurface } from '../tool-registry';
 
 import { deriveMcpToolPresentation } from './tool-annotations';
+import { toolDataSource } from './tool-data-sources';
 
 const READ_ONLY_PREFIXES = [
   'describe_',
@@ -55,8 +56,8 @@ const AUDITED_PRESENTATIONS = [
       openWorldHint: true,
       readOnlyHint: false,
     },
-    name: 'get_x_posts',
-    title: 'Get X Posts',
+    name: 'fetch_x_posts',
+    title: 'Fetch X Posts',
   },
   {
     annotations: {
@@ -65,8 +66,8 @@ const AUDITED_PRESENTATIONS = [
       openWorldHint: true,
       readOnlyHint: false,
     },
-    name: 'get_x_account_activity',
-    title: 'Get X Account Activity',
+    name: 'fetch_x_account_activity',
+    title: 'Fetch X Account Activity',
   },
   {
     annotations: {
@@ -155,20 +156,20 @@ const AUDITED_PRESENTATIONS = [
 const AUDITED_READ_PRESENTATIONS = [
   {
     annotations: {
+      readOnlyHint: true,
       destructiveHint: false,
-      idempotentHint: false,
+      idempotentHint: true,
       openWorldHint: true,
-      readOnlyHint: false,
     },
     name: 'get_ad_research_detail',
     title: 'Get Ad Research Detail',
   },
   {
     annotations: {
+      readOnlyHint: true,
       destructiveHint: false,
-      idempotentHint: false,
+      idempotentHint: true,
       openWorldHint: true,
-      readOnlyHint: false,
     },
     name: 'get_ads_research',
     title: 'Get Ads Research',
@@ -200,8 +201,8 @@ const AUDITED_READ_PRESENTATIONS = [
       idempotentHint: false,
       openWorldHint: true,
     },
-    name: 'get_instagram_inspiration_detail',
-    title: 'Get Instagram Inspiration Detail',
+    name: 'fetch_instagram_inspiration_detail',
+    title: 'Fetch Instagram Inspiration Detail',
   },
   {
     annotations: {
@@ -220,14 +221,14 @@ const AUDITED_READ_PRESENTATIONS = [
       idempotentHint: false,
       openWorldHint: true,
     },
-    name: 'get_instagram_inspiration',
-    title: 'Get Instagram Inspiration',
+    name: 'fetch_instagram_inspiration',
+    title: 'Fetch Instagram Inspiration',
   },
   {
     annotations: {
-      readOnlyHint: false,
+      readOnlyHint: true,
       destructiveHint: false,
-      idempotentHint: false,
+      idempotentHint: true,
       openWorldHint: true,
     },
     name: 'search_knowledge',
@@ -301,14 +302,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     false,
   ],
   ['capture_knowledge', 'Capture Knowledge', false, true, false, false],
-  [
-    'compare_meta_campaigns',
-    'Compare Meta Campaigns',
-    true,
-    false,
-    true,
-    false,
-  ],
+  ['compare_meta_campaigns', 'Compare Meta Campaigns', true, false, true, true],
   [
     'complete_media_upload',
     'Complete Media Upload',
@@ -425,14 +419,7 @@ const FROZEN_MCP_PRESENTATIONS = [
   ],
   ['generate_visual_code', 'Generate Visual Code', false, true, false, true],
   ['get_account', 'Get Account', true, false, true, false],
-  [
-    'get_ad_research_detail',
-    'Get Ad Research Detail',
-    false,
-    false,
-    false,
-    true,
-  ],
+  ['get_ad_research_detail', 'Get Ad Research Detail', true, false, true, true],
   ['get_ads_ad_insights', 'Get Ads Ad Insights', true, false, true, true],
   ['get_ads_adset_insights', 'Get Ads Adset Insights', true, false, true, true],
   ['get_analytics', 'Get Analytics', true, false, true, false],
@@ -478,7 +465,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     true,
     false,
     true,
-    false,
+    true,
   ],
   [
     'get_google_ads_campaign_metrics',
@@ -486,7 +473,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     true,
     false,
     true,
-    false,
+    true,
   ],
   [
     'get_google_ads_keyword_performance',
@@ -494,7 +481,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     true,
     false,
     true,
-    false,
+    true,
   ],
   [
     'get_google_ads_search_terms',
@@ -502,11 +489,11 @@ const FROZEN_MCP_PRESENTATIONS = [
     true,
     false,
     true,
-    false,
+    true,
   ],
   [
-    'get_instagram_inspiration_detail',
-    'Get Instagram Inspiration Detail',
+    'fetch_instagram_inspiration_detail',
+    'Fetch Instagram Inspiration Detail',
     false,
     false,
     false,
@@ -529,14 +516,14 @@ const FROZEN_MCP_PRESENTATIONS = [
     true,
     false,
   ],
-  ['get_meta_ad_insights', 'Get Meta Ad Insights', true, false, true, false],
+  ['get_meta_ad_insights', 'Get Meta Ad Insights', true, false, true, true],
   [
     'get_meta_adset_insights',
     'Get Meta Adset Insights',
     true,
     false,
     true,
-    false,
+    true,
   ],
   [
     'get_meta_campaign_insights',
@@ -544,7 +531,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     true,
     false,
     true,
-    false,
+    true,
   ],
   [
     'get_meta_top_performers',
@@ -552,7 +539,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     true,
     false,
     true,
-    false,
+    true,
   ],
   ['get_posts', 'Get Posts', true, false, true, false],
   ['get_remix_run', 'Get Remix Run', false, true, true, false],
@@ -579,7 +566,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     true,
     false,
     true,
-    false,
+    true,
   ],
   [
     'get_tiktok_top_performers',
@@ -587,7 +574,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     true,
     false,
     true,
-    false,
+    true,
   ],
   ['get_trends', 'Get Trends', true, false, true, false],
   ['get_video_analytics', 'Get Video Analytics', true, false, true, false],
@@ -609,7 +596,7 @@ const FROZEN_MCP_PRESENTATIONS = [
   ],
   ['get_workflow_run', 'Get Workflow Run', true, false, true, false],
   ['get_workflow_status', 'Get Workflow Status', true, false, true, false],
-  ['get_x_posts', 'Get X Posts', false, false, false, true],
+  ['fetch_x_posts', 'Fetch X Posts', false, false, false, true],
   ['import_source_post', 'Import Source Post', false, false, false, true],
   [
     'initiate_oauth_connect',
@@ -636,7 +623,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     false,
     false,
   ],
-  ['get_ads_research', 'Get Ads Research', false, false, false, true],
+  ['get_ads_research', 'Get Ads Research', true, false, true, true],
   ['get_assets', 'Get Assets', true, false, true, false],
   [
     'get_brand_publishing_readiness',
@@ -657,7 +644,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     true,
     false,
     true,
-    false,
+    true,
   ],
   [
     'get_google_ads_customers',
@@ -665,20 +652,20 @@ const FROZEN_MCP_PRESENTATIONS = [
     true,
     false,
     true,
-    false,
+    true,
   ],
   [
-    'get_instagram_inspiration',
-    'Get Instagram Inspiration',
+    'fetch_instagram_inspiration',
+    'Fetch Instagram Inspiration',
     false,
     false,
     false,
     true,
   ],
   ['get_knowledge_sources', 'Get Knowledge Sources', true, false, true, false],
-  ['get_meta_ad_accounts', 'Get Meta Ad Accounts', true, false, true, false],
-  ['get_meta_ad_creatives', 'Get Meta Ad Creatives', true, false, true, false],
-  ['get_meta_campaigns', 'Get Meta Campaigns', true, false, true, false],
+  ['get_meta_ad_accounts', 'Get Meta Ad Accounts', true, false, true, true],
+  ['get_meta_ad_creatives', 'Get Meta Ad Creatives', true, false, true, true],
+  ['get_meta_campaigns', 'Get Meta Campaigns', true, false, true, true],
   ['get_orgs', 'Get Orgs', true, false, true, false],
   [
     'get_social_conversations',
@@ -697,17 +684,10 @@ const FROZEN_MCP_PRESENTATIONS = [
     true,
     false,
   ],
-  [
-    'get_tiktok_ad_accounts',
-    'Get Tiktok Ad Accounts',
-    true,
-    false,
-    true,
-    false,
-  ],
-  ['get_tiktok_adgroups', 'Get Tiktok Adgroups', true, false, true, false],
-  ['get_tiktok_ads', 'Get Tiktok Ads', true, false, true, false],
-  ['get_tiktok_campaigns', 'Get Tiktok Campaigns', true, false, true, false],
+  ['get_tiktok_ad_accounts', 'Get Tiktok Ad Accounts', true, false, true, true],
+  ['get_tiktok_adgroups', 'Get Tiktok Adgroups', true, false, true, true],
+  ['get_tiktok_ads', 'Get Tiktok Ads', true, false, true, true],
+  ['get_tiktok_campaigns', 'Get Tiktok Campaigns', true, false, true, true],
   ['get_workflow_runs', 'Get Workflow Runs', true, false, true, false],
   [
     'get_workflow_templates',
@@ -719,8 +699,8 @@ const FROZEN_MCP_PRESENTATIONS = [
   ],
   ['get_workflows', 'Get Workflows', true, false, true, false],
   [
-    'get_x_account_activity',
-    'Get X Account Activity',
+    'fetch_x_account_activity',
+    'Fetch X Account Activity',
     false,
     false,
     false,
@@ -793,7 +773,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     false,
   ],
   ['rollback_skill', 'Rollback Skill', false, true, false, false],
-  ['search_knowledge', 'Search Knowledge', false, false, false, true],
+  ['search_knowledge', 'Search Knowledge', true, false, true, true],
   ['send_chat_message', 'Send Chat Message', false, true, false, false],
   ['send_social_dm', 'Send Social Dm', false, true, false, true],
   [
@@ -1034,8 +1014,8 @@ describe('MCP tool annotations', () => {
       if (
         tool.name === 'create_post' ||
         tool.name === 'import_source_post' ||
-        tool.name === 'get_x_posts' ||
-        tool.name === 'get_x_account_activity' ||
+        tool.name === 'fetch_x_posts' ||
+        tool.name === 'fetch_x_account_activity' ||
         tool.name === 'transform_media'
       ) {
         continue;
@@ -1066,7 +1046,7 @@ describe('MCP tool annotations', () => {
   });
 
   it('keeps paid X reads off the read-only hint', () => {
-    for (const name of ['get_x_posts', 'get_x_account_activity'] as const) {
+    for (const name of ['fetch_x_posts', 'fetch_x_account_activity'] as const) {
       expect(getToolByName(name)?.annotations, name).toMatchObject({
         destructiveHint: false,
         readOnlyHint: false,
@@ -1116,6 +1096,7 @@ describe('MCP tool annotations', () => {
 
     for (const tool of getToolsForSurface('mcp')) {
       const isOpenWorld =
+        toolDataSource(tool.name) !== 'stored' ||
         tool.name === 'get_ad_research_detail' ||
         tool.name === 'get_articles' ||
         tool.name === 'get_social_conversation' ||
@@ -1124,14 +1105,14 @@ describe('MCP tool annotations', () => {
         tool.name === 'get_brand_context' ||
         tool.name === 'get_clipper_project' ||
         tool.name === 'run_clipper' ||
-        tool.name === 'get_instagram_inspiration_detail' ||
-        tool.name === 'get_instagram_inspiration' ||
+        tool.name === 'fetch_instagram_inspiration_detail' ||
+        tool.name === 'fetch_instagram_inspiration' ||
         tool.name === 'search_knowledge' ||
         tool.name === 'onboard_brand' ||
         tool.name === 'execute_workflow' ||
         tool.name === 'enhance_prompt' ||
-        tool.name === 'get_x_posts' ||
-        tool.name === 'get_x_account_activity' ||
+        tool.name === 'fetch_x_posts' ||
+        tool.name === 'fetch_x_account_activity' ||
         tool.name === 'get_ads_ad_insights' ||
         tool.name === 'get_ads_adset_insights' ||
         tool.name === 'generate' ||

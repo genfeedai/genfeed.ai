@@ -27,8 +27,8 @@ Expose a coherent curated MCP flow that discovers public Instagram inspiration f
 
 ## Interfaces
 
-- `get_instagram_inspiration` derives niche seeds from explicit input or the selected brand and returns ranked public Instagram accounts and sampled posts.
-- `get_instagram_inspiration_detail` fetches latest or top public posts for one Instagram username and returns normalized provenance plus abstract creative signals.
+- `fetch_instagram_inspiration` derives niche seeds from explicit input or the selected brand and returns ranked public Instagram accounts and sampled posts.
+- `fetch_instagram_inspiration_detail` fetches latest or top public posts for one Instagram username and returns normalized provenance plus abstract creative signals.
 - `create_instagram_remix_workflow` creates a draft, review-only workflow from a selected public Instagram post.
 - `get_ads_research`, `get_ad_research_detail`, and `create_ad_remix_workflow` become canonical Agent and MCP actions while continuing to use `AdsResearchService`.
 
