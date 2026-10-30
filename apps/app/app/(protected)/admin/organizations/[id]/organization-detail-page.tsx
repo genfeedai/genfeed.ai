@@ -6,6 +6,7 @@ import {
 } from '@contexts/analytics/analytics-context';
 import { AlertCategory, Timeframe } from '@genfeedai/contracts';
 import { APP_ROUTES, isReleaseItemId } from '@genfeedai/contracts/constants';
+import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import AnalyticsOrganizationOverview from '@pages/analytics/organization-overview/analytics-organization-overview';
 import OrganizationReleaseGrants from '@protected/organizations/components/organization-release-grants';
 import { OrganizationSettingsTable } from '@protected/organizations/components/organization-settings-table';
@@ -14,19 +15,14 @@ import Alert from '@ui/feedback/alert/Alert';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import DateRangePicker from '@ui/primitives/date-range-picker';
 import { Building2 } from 'lucide-react';
-import {
-  useParams,
-  usePathname,
-  useRouter,
-  useSearchParams,
-} from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback } from 'react';
 import { readRouteParam } from '@/lib/route-params';
 
 function OrganizationDetailPageContent() {
   const translate = useTranslations('pages.adminOrganizations');
-  const params = useParams<{ id?: string | string[] }>();
+  const params = useRouteParams<{ id?: string | string[] }>();
   const organizationId = readRouteParam(params?.id);
   const pathname = usePathname();
   const router = useRouter();

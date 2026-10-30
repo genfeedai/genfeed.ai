@@ -6,6 +6,7 @@ import type {
   AdminModelDetail,
   UpdateModelProviderRouting,
 } from '@genfeedai/contracts/interfaces';
+import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {
   AdminModelOffer,
@@ -29,7 +30,6 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import {
@@ -53,7 +53,7 @@ const usd = (value: number) =>
 
 export default function ModelDetailContent() {
   const t = useTranslations('pages.adminModelDetail');
-  const params = useParams<{ type: string; modelId: string }>();
+  const params = useRouteParams<{ type: string; modelId: string }>();
   const [days, setDays] = useState(30);
   const [candidate, setCandidate] = useState('');
   const [modelDraft, setModelDraft] = useState<Pick<
@@ -64,7 +64,9 @@ export default function ModelDetailContent() {
   const getService = useAuthedService((token: string) =>
     AdminModelDetailService.getInstance(token),
   );
-  const key = ['admin-model-detail', params.modelId, days];
+  const modelId = params.modelId ?? '';
+  const modelType = params.type ?? '';
+  const key = ['admin-model-detail', modelId, days];
   const {
     data: model,
     isPending,
@@ -73,15 +75,16 @@ export default function ModelDetailContent() {
   } = useQuery({
     queryKey: key,
     queryFn: async ({ signal }) =>
-      (await getService()).detail(params.modelId, days, signal),
+      (await getService()).detail(modelId, days, signal),
+    enabled: modelId.length > 0,
     retry: false,
   });
   const update = useMutation({
     mutationFn: async (patch: UpdateModelProviderRouting) =>
-      (await getService()).update(params.modelId, patch),
+      (await getService()).update(modelId, patch),
     onSuccess: () =>
       queryClient.invalidateQueries({
-        queryKey: ['admin-model-detail', params.modelId],
+        queryKey: ['admin-model-detail', modelId],
       }),
   });
   const providerUpdate = useMutation({
@@ -150,7 +153,7 @@ export default function ModelDetailContent() {
           {offer.executionModelId !== model.id && (
             <Link
               className="block text-xs text-muted-foreground underline"
-              href={`/admin/automation/models/${params.type}/${encodeURIComponent(offer.executionModelId)}`}
+              href={`/admin/automation/models/${modelType}/${encodeURIComponent(offer.executionModelId)}`}
             >
               {t('registrationSettings')}
             </Link>
@@ -317,7 +320,7 @@ export default function ModelDetailContent() {
       <header className="space-y-3">
         <Link
           className="text-sm text-muted-foreground hover:text-foreground"
-          href={`/admin/automation/models/${params.type}`}
+          href={`/admin/automation/models/${modelType}`}
         >
           {t('backToModels')}
         </Link>

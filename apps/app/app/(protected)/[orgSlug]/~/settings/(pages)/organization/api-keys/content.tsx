@@ -10,6 +10,7 @@ import {
   API_KEY_SCOPE_PRESETS,
   ITEMS_PER_PAGE,
 } from '@genfeedai/contracts/constants';
+import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
@@ -38,7 +39,7 @@ import {
   Trash2,
   TriangleAlert,
 } from 'lucide-react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { isApiKeyLimitReached } from './api-key-create-error';
@@ -115,7 +116,7 @@ export default function SettingsApiKeysPage() {
     confirmedOrganizationSlug,
   } = useRoutedOrganization();
   const { sessionId, userId, orgId } = useAuthIdentity();
-  const { orgSlug } = useParams<{ orgSlug: string }>();
+  const { orgSlug } = useRouteParams<{ orgSlug: string }>();
   const isKeylessSelfHosted =
     isSelfHostedDeployment() && !isBetterAuthEnabled();
   const isAuthorized =

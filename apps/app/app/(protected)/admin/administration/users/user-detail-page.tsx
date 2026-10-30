@@ -2,6 +2,7 @@
 
 import { ButtonVariant, PlatformRole } from '@genfeedai/contracts';
 import type { IUser } from '@genfeedai/contracts/interfaces';
+import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
 import { UsersService } from '@services/organization/users.service';
@@ -9,7 +10,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Button } from '@ui/primitives/button';
 import { Users, VenetianMask } from 'lucide-react';
-import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 import { readRouteParam } from '@/lib/route-params';
@@ -21,7 +21,7 @@ import { EMPTY_VALUE, getUserDisplayName } from './user-display.helpers';
 export default function UserDetailPage() {
   const queryClient = useQueryClient();
   const translate = useTranslations('pages.adminUsers');
-  const params = useParams<{ id: string }>();
+  const params = useRouteParams<{ id: string }>();
   const userId = readRouteParam(params.id);
   const impersonateUser = useImpersonateUser();
   const getUsersService = useAuthedService((token: string) =>

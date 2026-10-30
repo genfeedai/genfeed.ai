@@ -6,6 +6,7 @@ import type {
   BrandedGenerationReceiptReadV1,
   BrandedGenerationReceiptRevisionReadV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation-receipt-read.interface';
+import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import type { BrandedGenerationReceiptInspectorInput } from '@genfeedai/props/content/branded-generation-receipt.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -18,7 +19,7 @@ import { getGenerationReceiptMediaId } from '@ui/generation-receipts/generation-
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { receiptReadUnavailable } from './receipt-read-error.util';
@@ -285,7 +286,7 @@ export default function GenerationReceiptsContent() {
   const detail = useBrandDetail();
   const { href } = useOrgUrl();
   const query = useSearchParams();
-  const params = useParams();
+  const params = useRouteParams();
   const selected = selection(query);
   const slug = params.brandSlug;
   const matched =

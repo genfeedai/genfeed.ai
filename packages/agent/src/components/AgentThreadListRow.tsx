@@ -5,7 +5,6 @@ import {
   ButtonVariant,
 } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -143,7 +142,6 @@ export function AgentThreadListRow({
 }: AgentThreadListRowProps): ReactElement {
   const translate = useTranslations('agent.threadList');
   const threadHref = getThreadHref(conv);
-  const prefetchThreadRoute = useNavigationPrefetch(threadHref);
   const isActiveConversation = conv.id === activeThreadId;
   // Archived view lists only archived threads, so a stale/missing API status
   // must still render with archived chrome.
@@ -205,7 +203,6 @@ export function AgentThreadListRow({
       ) : (
         <Link
           href={threadHref}
-          prefetch={false}
           className="flex min-w-0 flex-1 gap-2 rounded px-2.5 py-1.5 pr-8 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/60"
           onClick={(event) => {
             if (usesProgrammaticNavigation) {
@@ -223,11 +220,9 @@ export function AgentThreadListRow({
             onStartRename(conv);
           }}
           onPointerEnter={() => {
-            prefetchThreadRoute();
             onPrefetch(conv.id);
           }}
           onFocus={() => {
-            prefetchThreadRoute();
             onPrefetch(conv.id);
           }}
           onPointerLeave={() => {

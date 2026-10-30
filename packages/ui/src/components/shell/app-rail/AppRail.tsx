@@ -13,7 +13,6 @@ import type {
   AppRailItemProps,
   AppRailProps,
 } from '@genfeedai/props/ui/app-rail.props';
-import { useNavigationIntentPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { useHoverAnimatedIcon } from '@ui/primitives/animated-icons/use-hover-animated-icon';
 import { Separator } from '@ui/primitives/separator';
 import {
@@ -63,7 +62,6 @@ function AppRailItem({
 }: AppRailItemProps) {
   const t = useTranslations('common.appRail');
   const Icon = app.icon;
-  const intent = useNavigationIntentPrefetch(href);
   const { hoverProps, icon: hoverIcon } = useHoverAnimatedIcon(
     <Icon aria-hidden="true" className="size-4" />,
   );
@@ -115,7 +113,6 @@ function AppRailItem({
       <TooltipTrigger asChild>
         <Link
           href={href}
-          prefetch={false}
           // The slot around the link is the drag source, so the browser's
           // own link drag never competes with reordering.
           draggable={false}
@@ -124,20 +121,16 @@ function AppRailItem({
           aria-label={accessibleLabel}
           data-testid={`app-rail-item-${app.id}`}
           onBlur={(event) => {
-            intent.onBlur();
             hoverProps.onBlur(event);
           }}
           onClick={onNavigateStart}
           onFocus={(event) => {
-            intent.onFocus();
             hoverProps.onFocus(event);
           }}
           onMouseEnter={(event) => {
-            intent.onMouseEnter();
             hoverProps.onMouseEnter(event);
           }}
           onMouseLeave={(event) => {
-            intent.onMouseLeave();
             hoverProps.onMouseLeave(event);
           }}
           className={itemClassName}

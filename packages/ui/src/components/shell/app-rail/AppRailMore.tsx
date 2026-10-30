@@ -64,7 +64,6 @@ export function AppRailMore({ items, onOpen, onTogglePin }: AppRailMoreProps) {
                     onOpen(item);
                     setIsOpen(false);
                   }}
-                  prefetch={false}
                 >
                   <Icon aria-hidden="true" className="size-4 shrink-0" />
                   <span className="truncate">{item.label}</span>
