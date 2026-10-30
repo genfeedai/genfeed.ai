@@ -47,7 +47,6 @@ describe('MenuItem', () => {
 
     expect(activeRow).toHaveClass('bg-foreground/5');
     expect(hoverRow).toHaveClass('hover:bg-foreground/5');
-    expect(hoverRow).not.toHaveClass('hover:bg-foreground/5');
   });
 
   it('uses the canonical 16px icon size for expanded sidebar rows', () => {
