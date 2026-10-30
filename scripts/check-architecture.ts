@@ -98,6 +98,14 @@ const checks = [
     name: 'Local type-guard helpers',
   },
   {
+    command: [
+      'bun',
+      'run',
+      'scripts/architecture/check-mock-interaction-specs.ts',
+    ],
+    name: 'Mock-interaction specs',
+  },
+  {
     command: ['bun', 'run', 'scripts/check-decorator-boundaries.ts'],
     name: 'Nest decorator boundaries',
   },

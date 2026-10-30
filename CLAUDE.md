@@ -95,6 +95,15 @@ bun run test --filter=@genfeedai/[name]              # Test one package
 ### Tests & finish condition
 - Do not add service specs whose assertions are mostly `toHaveBeenCalled` / mock-interaction
   checks. Prefer a real-DB test, a property test, or a Playwright flow.
+  `scripts/architecture/check-mock-interaction-specs.ts` fails a new spec where more than half
+  of the assertions are `toHaveBeenCalled*`. Existing offenders are ratcheted in
+  `mock-interaction-specs.baseline.ts`; remove an entry when you fix its spec.
+- Couple tests to public behavior (returned or persisted results, rendered output), not to
+  internal call order or private structure. A correct refactor must not break a test.
+- Assert what the user sees. In component tests query by role, label or text
+  (`getByRole`, `getByLabelText`), not `getByTestId`.
+- Keep logic out of tests: no loops, branches or re-implementation of the code under test. Use
+  literal expected values or `it.each` tables.
 - A code-changing PR states its finish condition and shows evidence: repro-before and
   pass-after for bugs; a walked flow or read-back value for features. Never loosen a gate
   (i18n, Tests Gate, release suites) to get there.
