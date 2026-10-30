@@ -41,9 +41,17 @@ export function hasWorkflowGenerationBrandSource(
   return brandIds.length > 0 || parentIngredientIds.length > 0;
 }
 
+function isMediaGenerationNode(node: ExecutableNode): boolean {
+  if (node.type !== 'genfeedAction') return false;
+  const action = unwrapExecutableActionNode(node).type;
+  return action === 'imageGen' || action === 'videoGen';
+}
+
 /**
- * Same check on a stored version graph (visual nodes). Null when the graph
- * cannot be read here, so a caller never blocks a save on a guess.
+ * Same check on a stored version graph (visual nodes), for saving a schedule.
+ * Only image/video generation is guarded: a graph without those nodes is left
+ * to run time. Null when the graph cannot be read here, so a caller never
+ * blocks a save on a guess.
  */
 export function hasStoredWorkflowGenerationBrandSource(
   workflowBrandId: string | null | undefined,
@@ -68,6 +76,7 @@ export function hasStoredWorkflowGenerationBrandSource(
         type: node.type,
       }),
     );
+    if (!nodes.some(isMediaGenerationNode)) return true;
     return hasWorkflowGenerationBrandSource(workflowBrandId, nodes);
   } catch {
     return null;
@@ -141,7 +150,12 @@ export async function assertWorkflowGenerationActorAdmission(
       throw new Error('Workflow generation source brand is unavailable');
     brands.add(parent.brandId);
   }
-  if (brands.size === 0)
+  if (brands.size === 0) {
+    // A brand is needed to fund and authorize image/video generation. A graph
+    // without those nodes (for example the seeded Daily Trends Digest) names
+    // no brand and has none to check.
+    if (!nodes.some(isMediaGenerationNode)) return;
     throw new Error('Workflow generation brand is unavailable');
+  }
   for (const brandId of brands) await access.assert(actor, brandId);
 }
