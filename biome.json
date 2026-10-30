@@ -213,6 +213,13 @@
     {
       "includes": [
         "apps/app/src/components/**",
+        "apps/app/src/features/**",
+        "!apps/app/src/features/analytics/**",
+        "!apps/app/src/features/library-remix/**",
+        "!apps/app/src/features/research/**",
+        "!apps/app/src/features/settings/**",
+        "!apps/app/src/features/workflows/**",
+        "!apps/app/src/features/workspace-overview/**",
         "apps/app/src/hooks/**",
         "packages/agent/src/**",
         "packages/hooks/**",

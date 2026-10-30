@@ -43,7 +43,8 @@ bun run test --filter=@genfeedai/[name]              # Test one package
 
 ### Type safety
 - No `any` — define proper interfaces
-- No inline interfaces — use `packages/props/` or `packages/contracts/src/interfaces/`
+- No inline interfaces — use `packages/contracts/src/interfaces/` for shared shapes, `packages/props/`
+  for props shared across packages, or a `props/` file inside the owning `apps/app/src/features/<feature>/`
 - No `console.log` — use the project LoggerService
 - Booleans take an `is`/`has` prefix: `isActive`, `hasPermission`
 

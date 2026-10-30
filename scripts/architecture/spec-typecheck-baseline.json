@@ -4465,6 +4465,30 @@
       "workspace": "app"
     },
     {
+      "code": 2322,
+      "count": 1,
+      "file": "apps/app/src/features/trends/desk/desk-items.test.ts",
+      "fingerprint": "727eaac2a4fec1e759cd",
+      "message": "Type '\"reference\"' is not assignable to type 'TrendSourceIntendedUse'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "apps/app/src/features/trends/desk/desk-items.test.ts",
+      "fingerprint": "b34860b5691c3eab66ce",
+      "message": "Type '\"live\" | \"empty\" | undefined' is not assignable to type '\"live\" | \"empty\" | \"fallback\"'.   Type 'undefined' is not assignable to type '\"live\" | \"empty\" | \"fallback\"'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "apps/app/src/features/trends/desk/desk-items.test.ts",
+      "fingerprint": "e6c482f4ea45fdd3602c",
+      "message": "Type 'number' is not assignable to type 'TrendSourceConfidence'.",
+      "workspace": "app"
+    },
+    {
       "code": 2339,
       "count": 1,
       "file": "apps/app/src/features/workflows/nodes/automation/ReviewGateNode.test.tsx",
@@ -6510,30 +6534,6 @@
       "file": "packages/pages/research/work-surface/research-work-surface.types.test.ts",
       "fingerprint": "bf7bb241591e09d75cd3",
       "message": "Type '\"tiktok\"' is not assignable to type 'AdsPlatform'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/pages/trends/desk/desk-items.test.ts",
-      "fingerprint": "2b73a7c40e48d1ce73e7",
-      "message": "Type '\"reference\"' is not assignable to type 'TrendSourceIntendedUse'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/pages/trends/desk/desk-items.test.ts",
-      "fingerprint": "392839c623dd1a6e2c8f",
-      "message": "Type 'number' is not assignable to type 'TrendSourceConfidence'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/pages/trends/desk/desk-items.test.ts",
-      "fingerprint": "c91341d9f5ab45137e0a",
-      "message": "Type '\"empty\" | \"live\" | undefined' is not assignable to type '\"empty\" | \"live\" | \"fallback\"'.   Type 'undefined' is not assignable to type '\"empty\" | \"live\" | \"fallback\"'.",
       "workspace": "pages"
     },
     {

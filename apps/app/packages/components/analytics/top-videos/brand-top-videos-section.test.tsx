@@ -86,7 +86,7 @@ vi.mock('@services/core/logger.service', () => ({
   logger: { error: mocks.loggerError, info: vi.fn() },
 }));
 
-vi.mock('@pages/trends/list/components/HookRemixModal', () => ({
+vi.mock('@/features/trends/list/components/HookRemixModal', () => ({
   default: ({
     isOpen,
     video,

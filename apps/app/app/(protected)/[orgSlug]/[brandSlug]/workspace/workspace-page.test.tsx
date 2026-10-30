@@ -122,7 +122,7 @@ vi.mock('@hooks/feature-flags/use-feature-flag', () => ({
   useFeatureFlag: () => mocks.studioEnabled,
 }));
 
-vi.mock('@hooks/data/trends/use-trends/use-trends', () => ({
+vi.mock('@/features/trends/hooks/use-trends/use-trends', () => ({
   useTrends: () => ({
     error: null,
     isLoading: false,

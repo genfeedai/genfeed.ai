@@ -1,0 +1,365 @@
+import { render, screen } from '@testing-library/react';
+import TrendsPlatformDetail from './trends-platform-detail';
+import '@testing-library/jest-dom/vitest';
+import type { ReactNode } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const mockUseTrendContent = vi.fn();
+const mockUseQuery = vi.fn();
+const mockUsePathname = vi.fn(() => '/discovery/trends/platforms/tiktok');
+
+// TrendContentCard (rendered for every feed item) calls `useTranslations`.
+// Without this mock it throws for lack of a `NextIntlClientProvider`, and
+// since nothing here catches that error, React discards the render and
+// retries once from the root — silently doubling every `useQuery` call and
+// masking the real failure behind an unrelated "Cannot read properties of
+// undefined" error. See trend-detail.test.tsx / discovery-desk.test.tsx for
+// the same pattern.
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: vi.fn(() => vi.fn()),
+}));
+
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: (...args: unknown[]) => mockUseQuery(...args),
+}));
+
+vi.mock('@/features/trends/hooks/use-trend-content/use-trend-content', () => ({
+  useTrendContent: (...args: unknown[]) => mockUseTrendContent(...args),
+}));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => `/org-1/brand-1${path}`,
+    orgHref: (path: string) => path,
+  }),
+}));
+
+vi.mock('@services/social/trends.service', () => ({
+  TrendsService: {
+    getInstance: vi.fn(),
+  },
+}));
+
+vi.mock('next/navigation', () => ({
+  useParams: () => ({ brandSlug: 'brand-1', orgSlug: 'org-1' }),
+  usePathname: () => mockUsePathname(),
+  useRouter: vi.fn(() => ({
+    push: vi.fn(),
+  })),
+  useSearchParams: vi.fn(() => ({
+    toString: () => '',
+  })),
+}));
+
+vi.mock('next/link', () => ({
+  default: ({
+    children,
+    href,
+    className,
+    ...props
+  }: {
+    children: ReactNode;
+    href: string;
+    className?: string;
+    [key: string]: unknown;
+  }) => (
+    <a href={href} className={className} {...props}>
+      {children}
+    </a>
+  ),
+}));
+
+describe('TrendsPlatformDetail', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUsePathname.mockReturnValue('/discovery/trends/platforms/tiktok');
+
+    mockUseTrendContent.mockReturnValue({
+      error: null,
+      isLoading: false,
+      isRefreshing: false,
+      items: [
+        {
+          authorHandle: 'viralcreator',
+          contentRank: 1,
+          contentType: 'video',
+          id: 'source-1',
+          matchedTrends: ['#AIAgents'],
+          platform: 'tiktok',
+          requiresAuth: false,
+          sourcePreviewState: 'live',
+          sourceUrl: 'https://example.com/video-1',
+          text: 'Three hooks driving the AI agent trend.',
+          thumbnailUrl: 'https://example.com/thumb-1.jpg',
+          title: 'Three hooks driving the AI agent trend',
+          trendId: 'trend-1',
+          trendMentions: 22000,
+          trendTopic: '#AIAgents',
+          trendViralityScore: 91,
+        },
+        {
+          authorHandle: 'builder',
+          contentRank: 2,
+          contentType: 'video',
+          id: 'source-2',
+          matchedTrends: ['#AITools'],
+          platform: 'tiktok',
+          requiresAuth: false,
+          sourcePreviewState: 'live',
+          sourceUrl: 'https://example.com/video-2',
+          text: 'AI tools people are remixing this week.',
+          title: 'AI tools people are remixing this week',
+          trendId: 'trend-2',
+          trendMentions: 12000,
+          trendTopic: '#AITools',
+          trendViralityScore: 78,
+        },
+      ],
+      refreshTrendContent: vi.fn(),
+      summary: {
+        connectedPlatforms: ['tiktok'],
+        lockedPlatforms: [],
+        totalItems: 2,
+        totalTrends: 2,
+      },
+    });
+
+    mockUseQuery
+      .mockReturnValueOnce({
+        data: [
+          {
+            creatorHandle: 'creator',
+            id: 'video-1',
+            platform: 'tiktok',
+            title: 'Viral hook',
+            viralScore: 88,
+          },
+        ],
+        error: null,
+        isLoading: false,
+        refetch: vi.fn(),
+      })
+      .mockReturnValueOnce({
+        data: [{ hashtag: '#AIAgents', platform: 'tiktok', viralityScore: 70 }],
+        error: null,
+        isLoading: false,
+        refetch: vi.fn(),
+      })
+      .mockReturnValueOnce({
+        data: [
+          { soundId: 'sound-1', soundName: 'AI Sound', viralityScore: 75 },
+        ],
+        error: null,
+        isLoading: false,
+        refetch: vi.fn(),
+      });
+  });
+
+  it('renders the full platform feed and supported related sections', () => {
+    render(<TrendsPlatformDetail platform="tiktok" />);
+
+    expect(mockUseTrendContent).toHaveBeenCalledWith('tiktok');
+    expect(screen.getByTestId('socials-platform-filter')).toBeInTheDocument();
+    expect(screen.getByText('TikTok Trends')).toBeInTheDocument();
+    expect(
+      screen.getByText('Three hooks driving the AI agent trend'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Related viral videos')).toBeInTheDocument();
+    expect(screen.getByText('Trending hashtags')).toBeInTheDocument();
+    expect(screen.getByText('Trending sounds')).toBeInTheDocument();
+  });
+
+  it('renders one page heading', () => {
+    render(<TrendsPlatformDetail platform="tiktok" />);
+
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'TikTok Trends' }),
+    ).toBeInTheDocument();
+  });
+
+  it('resolves feed and related-section columns from the panel width', () => {
+    render(<TrendsPlatformDetail platform="tiktok" />);
+
+    const feed = screen.getByTestId('trends-platform-content-grid');
+    expect(feed).toHaveClass('@container');
+    expect(feed.firstElementChild).toHaveClass('@[60rem]:grid-cols-3', 'gap-4');
+
+    for (const testId of [
+      'trends-related-videos-grid',
+      'trends-related-hashtags-grid',
+      'trends-related-sounds-grid',
+    ]) {
+      const grid = screen.getByTestId(testId).firstElementChild as HTMLElement;
+      expect(grid).toHaveClass('@[60rem]:grid-cols-3', 'gap-3');
+      expect(grid.className).not.toMatch(/(^|\s)(sm|md|lg|xl):grid-cols/);
+    }
+  });
+
+  it('shows grid skeletons in every section while it loads', () => {
+    mockUseTrendContent.mockReturnValue({
+      error: null,
+      isLoading: true,
+      isRefreshing: false,
+      items: [],
+      refreshTrendContent: vi.fn(),
+      summary: { connectedPlatforms: [], lockedPlatforms: [] },
+    });
+    mockUseQuery.mockReset();
+    mockUseQuery.mockReturnValue({
+      data: undefined,
+      error: null,
+      isLoading: true,
+      refetch: vi.fn(),
+    });
+
+    render(<TrendsPlatformDetail platform="tiktok" />);
+
+    for (const testId of [
+      'trends-platform-content-grid',
+      'trends-related-videos-grid',
+      'trends-related-hashtags-grid',
+      'trends-related-sounds-grid',
+    ]) {
+      const section = screen.getByTestId(testId);
+      expect(section).toHaveClass('@container');
+      expect(
+        section.querySelectorAll('[role="status"]').length,
+      ).toBeGreaterThan(0);
+    }
+    expect(screen.queryByText(/Loading content feed/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/No remixable source posts/),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows Remix as the only visible action on each feed card', () => {
+    render(<TrendsPlatformDetail platform="tiktok" />);
+
+    expect(
+      screen.queryByRole('button', { name: 'Use as context' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getAllByRole('button', { name: 'More actions' }),
+    ).toHaveLength(2);
+  });
+
+  it('renders LinkedIn through the public-reference feed contract', () => {
+    mockUseTrendContent.mockReturnValue({
+      error: null,
+      isLoading: false,
+      isRefreshing: false,
+      items: [],
+      refreshTrendContent: vi.fn(),
+      summary: {
+        connectedPlatforms: [],
+        lockedPlatforms: ['linkedin'],
+        totalItems: 0,
+        totalTrends: 1,
+      },
+    });
+
+    mockUseQuery.mockReset();
+    mockUseQuery.mockReturnValue({
+      data: [],
+      error: null,
+      isLoading: false,
+      refetch: vi.fn(),
+    });
+
+    render(<TrendsPlatformDetail platform="linkedin" />);
+
+    // Feed type is a MetricCard value now (same hierarchy as Discovery overview).
+    expect(screen.getByText('Feed type')).toBeInTheDocument();
+    expect(screen.getByText('Public references')).toBeInTheDocument();
+    expect(
+      screen.queryByText(/LinkedIn topics are curated/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps LinkedIn on the public-reference feed when the feed is empty', () => {
+    mockUsePathname.mockReturnValue('/discovery/trends/platforms/linkedin');
+
+    mockUseTrendContent.mockReturnValue({
+      error: null,
+      isLoading: false,
+      isRefreshing: false,
+      items: [],
+      refreshTrendContent: vi.fn(),
+      summary: {
+        connectedPlatforms: [],
+        lockedPlatforms: ['linkedin'],
+        totalItems: 0,
+        totalTrends: 0,
+      },
+    });
+
+    mockUseQuery.mockReset();
+    mockUseQuery.mockReturnValue({
+      data: [],
+      error: null,
+      isLoading: false,
+      refetch: vi.fn(),
+    });
+
+    render(<TrendsPlatformDetail platform="linkedin" />);
+
+    expect(screen.getByText('Feed type')).toBeInTheDocument();
+    expect(screen.getByText('Public references')).toBeInTheDocument();
+    expect(screen.queryByText('Real-time')).not.toBeInTheDocument();
+  });
+
+  it('activates the matching platform tab for reference-feed pages too', () => {
+    mockUsePathname.mockReturnValue('/discovery/trends/platforms/linkedin');
+
+    mockUseTrendContent.mockReturnValue({
+      error: null,
+      isLoading: false,
+      isRefreshing: false,
+      items: [],
+      refreshTrendContent: vi.fn(),
+      summary: {
+        connectedPlatforms: [],
+        lockedPlatforms: ['linkedin'],
+        totalItems: 0,
+        totalTrends: 0,
+      },
+    });
+
+    mockUseQuery.mockReset();
+    mockUseQuery.mockReturnValue({
+      data: [],
+      error: null,
+      isLoading: false,
+      refetch: vi.fn(),
+    });
+
+    render(<TrendsPlatformDetail platform="linkedin" />);
+
+    expect(screen.getByText('LinkedIn Trends')).toBeInTheDocument();
+  });
+
+  it('links the platform switcher to Discovery trends routes', () => {
+    render(<TrendsPlatformDetail platform="twitter" />);
+
+    const filter = screen.getByTestId('socials-platform-filter');
+    expect(filter).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'X' })).toHaveAttribute(
+      'data-state',
+      'active',
+    );
+    expect(screen.getByRole('link', { name: 'All platforms' })).toHaveAttribute(
+      'href',
+      '/org-1/brand-1/discovery/trends',
+    );
+    expect(screen.getByRole('link', { name: 'TikTok' })).toHaveAttribute(
+      'href',
+      '/org-1/brand-1/discovery/trends/platforms/tiktok',
+    );
+  });
+});
