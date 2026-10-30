@@ -154,6 +154,25 @@ export function resolveLibraryAxisRoute({
 }
 
 /**
+ * The admin Library path for a set of categories. Admin has no places or
+ * shelves, so the type is the only axis the path can own: a type set with a
+ * route of its own (`/admin/content/ingredients/images`) or the root.
+ */
+export function resolveAdminLibraryAxisRoute(
+  categories: readonly IngredientCategory[] = [],
+): LibraryAxisRoute {
+  const axisRoute = resolveLibraryAxisRoute({ categories });
+  const typeSegment = axisRoute.route.slice(axisRoute.route.lastIndexOf('/'));
+
+  return {
+    hasCategoriesInPath: axisRoute.hasCategoriesInPath,
+    route: axisRoute.hasCategoriesInPath
+      ? `${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}${typeSegment}`
+      : APP_ROUTES.ADMIN.CONTENT.INGREDIENTS,
+  };
+}
+
+/**
  * Attach the type / character / origin / tag / folder / search filters to any Library browser route.
  *
  * Pass the result through `useOrgUrl().href()` to scope it to org + brand.

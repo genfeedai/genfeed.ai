@@ -59,6 +59,19 @@ export const LIBRARY_TYPE_PRESETS: Readonly<Record<string, LibraryTypePreset>> =
     },
   };
 
+/**
+ * The preset behind a type path segment (`images` for `/library/images` and
+ * `/admin/content/ingredients/images`), or undefined when the segment is not a
+ * type view.
+ */
+export function findLibraryTypePresetBySegment(
+  segment: string,
+): LibraryTypePreset | undefined {
+  return Object.entries(LIBRARY_TYPE_PRESETS).find(([route]) =>
+    route.endsWith(`/${segment}`),
+  )?.[1];
+}
+
 export interface LibraryDestinationCopy {
   label: string;
 }

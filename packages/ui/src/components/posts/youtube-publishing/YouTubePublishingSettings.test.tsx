@@ -271,6 +271,7 @@ describe('YouTube publishing settings', () => {
   describe('cover', () => {
     const postWithVideo = {
       ...post,
+      brand: { id: 'brand-1' },
       ingredients: [{ id: 'video-1', category: IngredientCategory.VIDEO }],
     } as unknown as IPost;
 
@@ -297,7 +298,12 @@ describe('YouTube publishing settings', () => {
       expect(await screen.findByAltText('Cover preview')).toBeInTheDocument();
       expect(getCover).toHaveBeenCalledWith(
         'video-1',
-        { timeInSeconds: 2.5, title: 'Ship the studio', width: 1080 },
+        {
+          brandId: 'brand-1',
+          timeInSeconds: 2.5,
+          title: 'Ship the studio',
+          width: 1080,
+        },
         expect.any(AbortSignal),
       );
 

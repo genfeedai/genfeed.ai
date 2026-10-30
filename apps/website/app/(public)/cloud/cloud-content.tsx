@@ -74,11 +74,10 @@ export default function CloudContent() {
         {/* Benefits */}
         <WebSection maxWidth="xl">
           <NeuralGrid columns={4} className="gsap-grid">
-            {BENEFITS.map((benefit, index) => (
+            {BENEFITS.map((benefit) => (
               <NeuralGridItem
                 key={benefit.title}
                 className="gsap-card"
-                tierLabel={`${String(index + 1).padStart(2, '0')} / ${benefit.shortLabel}`}
                 icon={benefit.icon}
                 title={benefit.title}
                 description={benefit.description}
@@ -99,7 +98,7 @@ export default function CloudContent() {
                   <div className="size-3 rounded-full bg-foreground/20" />
                 </div>
                 <div className="flex-1 mx-4">
-                  <div className="bg-foreground/[0.03] border border-foreground/5 px-3 py-1.5 text-xs text-foreground/55 text-center font-mono uppercase tracking-widest">
+                  <div className="bg-foreground/[0.03] border border-foreground/5 px-3 py-1.5 text-xs text-foreground/55 text-center font-mono">
                     app.genfeed.ai
                   </div>
                 </div>
@@ -143,12 +142,6 @@ export default function CloudContent() {
         {/* Who is it for */}
         <WebSection maxWidth="xl" className="gsap-section">
           <div className="text-center mb-16">
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <Users className="size-5 text-foreground/60" />
-              <span className="text-xs font-black uppercase tracking-widest text-foreground/55">
-                Built for Growing Teams
-              </span>
-            </div>
             <p className="text-foreground/55 max-w-xl mx-auto">
               Built for agencies, marketing teams, and operators managing
               multiple brands or organizations
@@ -156,10 +149,9 @@ export default function CloudContent() {
           </div>
 
           <NeuralGrid columns={3}>
-            {TEAMS.map((team, index) => (
+            {TEAMS.map((team) => (
               <NeuralGridItem
                 key={team.title}
-                tierLabel={String(index + 1).padStart(2, '0')}
                 title={team.title}
                 description={team.description}
               />

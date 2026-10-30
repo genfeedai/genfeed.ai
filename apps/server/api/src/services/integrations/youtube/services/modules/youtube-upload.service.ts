@@ -1,4 +1,5 @@
 import { Readable } from 'node:stream';
+import { BrandCoverStyleService } from '@api/collections/brands/services/brand-cover-style.service';
 import type {
   ServerYoutubeUploader,
   YoutubeUploadPostInput,
@@ -44,6 +45,8 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
     private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
     @Optional()
     private readonly filesClient?: FilesClientService,
+    @Optional()
+    private readonly brandCoverStyle?: BrandCoverStyleService,
   ) {
     // Create YouTube API client without default auth
     // Each upload will pass its own per-request auth
@@ -119,6 +122,8 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
         uploadSignal,
         url,
         settings,
+        organizationId,
+        brandId,
       );
       const mediaResponse = await firstValueFrom(
         this.httpService.get<Readable>(sourceUrl, {
@@ -233,6 +238,8 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
     signal: AbortSignal,
     logPrefix: string,
     settings: ChannelTargetSettings,
+    organizationId: string,
+    brandId: string,
   ): Promise<Buffer | undefined> {
     if (!this.filesClient) return undefined;
 
@@ -241,6 +248,10 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
     );
 
     try {
+      const titleStyle = await this.brandCoverStyle?.resolveTitleStyle(
+        brandId,
+        organizationId,
+      );
       const frame = await this.filesClient.generateThumbnail(
         sourceUrl,
         ingredientId,
@@ -250,6 +261,7 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
         THUMBNAIL_WIDTH,
         readChannelSettingString(settings, 'thumbnailText')?.trim(),
         true,
+        titleStyle,
       );
       if (!frame?.thumbnailUrl) return undefined;
 

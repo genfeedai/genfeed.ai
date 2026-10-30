@@ -31,6 +31,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { BookmarksService } from '@api/collections/bookmarks/services/bookmarks.service';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import { BrandCoverStyleService } from '@api/collections/brands/services/brand-cover-style.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
@@ -110,6 +111,7 @@ describe('VideosController', () => {
   let brandsService: vi.Mocked<BrandsService>;
   let votesService: vi.Mocked<VotesService>;
   let filesClientService: vi.Mocked<FilesClientService>;
+  let brandCoverStyle: vi.Mocked<BrandCoverStyleService>;
   let sharedService: vi.Mocked<SharedService>;
   let replicateService: vi.Mocked<ReplicateService>;
   let klingAIService: vi.Mocked<KlingAIService>;
@@ -291,6 +293,10 @@ describe('VideosController', () => {
           useValue: {
             findOne: vi.fn().mockResolvedValue(null),
           },
+        },
+        {
+          provide: BrandCoverStyleService,
+          useValue: { resolveTitleStyle: vi.fn().mockResolvedValue(undefined) },
         },
         {
           provide: FilesClientService,
@@ -578,6 +584,7 @@ describe('VideosController', () => {
     brandsService = testingModule.get(BrandsService);
     votesService = testingModule.get(VotesService);
     filesClientService = testingModule.get(FilesClientService);
+    brandCoverStyle = testingModule.get(BrandCoverStyleService);
     sharedService = testingModule.get(SharedService);
     replicateService = testingModule.get(ReplicateService);
     klingAIService = testingModule.get(KlingAIService);
@@ -1236,6 +1243,7 @@ describe('VideosController', () => {
         undefined,
         undefined,
         true,
+        undefined,
       );
     });
 
@@ -1267,6 +1275,7 @@ describe('VideosController', () => {
         1920,
         undefined,
         true,
+        undefined,
       );
       expect(result).toBeInstanceOf(StreamableFile);
     });
@@ -1288,6 +1297,36 @@ describe('VideosController', () => {
         1080,
         'x'.repeat(120),
         true,
+        undefined,
+      );
+    });
+
+    it('renders the cover in the brand style the publish uses', async () => {
+      const titleStyle = { accentColor: '#E83B3B', fontFamily: 'INTER_BOLD' };
+      brandCoverStyle.resolveTitleStyle.mockResolvedValueOnce(titleStyle);
+
+      await controller.getThumbnail(
+        mockVideoId.toString(),
+        mockUser,
+        mockResponse as never,
+        2,
+        1080,
+        'Ship it',
+        'brand-1',
+      );
+
+      expect(brandCoverStyle.resolveTitleStyle).toHaveBeenCalledWith(
+        'brand-1',
+        mockUser.organizationId,
+      );
+      expect(filesClientService.generateThumbnail).toHaveBeenCalledWith(
+        expect.any(String),
+        mockVideoId.toString(),
+        2,
+        1080,
+        'Ship it',
+        true,
+        titleStyle,
       );
     });
 
@@ -1305,6 +1344,7 @@ describe('VideosController', () => {
         undefined,
         undefined,
         true,
+        undefined,
       );
       expect(result).toBeInstanceOf(StreamableFile);
     });

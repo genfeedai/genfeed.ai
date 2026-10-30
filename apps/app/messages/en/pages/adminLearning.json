@@ -1,6 +1,5 @@
 {
   "title": "Learning",
-  "intro": "Which prompt slots go with better measured results. Compares posts that fill a slot against posts that leave it empty, per media type and objective. These are correlations from observed posts, not tested causes.",
   "form": {
     "organizationIds": "Organization IDs",
     "organizationIdsHelp": "One organization, or several separated by commas for a pooled view.",

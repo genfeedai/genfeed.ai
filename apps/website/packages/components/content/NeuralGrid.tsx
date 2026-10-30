@@ -38,8 +38,6 @@ NeuralGrid.displayName = 'NeuralGrid';
 export interface NeuralGridItemProps
   extends Omit<HTMLAttributes<HTMLDivElement>, 'title'>,
     VariantProps<typeof neuralGridItemVariants> {
-  /** Tier label like "01 / Quick Start" */
-  tierLabel?: string;
   /** Optional icon component */
   icon?: React.ComponentType<{ className?: string }>;
   /** Item title */
@@ -52,7 +50,6 @@ function NeuralGridItem({
   className,
   padding,
   align,
-  tierLabel,
   icon: Icon,
   title,
   description,
@@ -66,11 +63,6 @@ function NeuralGridItem({
       ref={ref}
       {...props}
     >
-      {tierLabel && (
-        <div className="text-xs font-black uppercase tracking-widest mb-6 text-foreground/55">
-          {tierLabel}
-        </div>
-      )}
       {Icon && (
         <Icon className="size-8 mb-4 text-foreground/60 group-hover:text-foreground transition-colors" />
       )}

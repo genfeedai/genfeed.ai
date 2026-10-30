@@ -26,13 +26,6 @@ const DEFAULT_LIBRARY_ASSET_STATUSES = [
   IngredientStatus.VALIDATED,
 ] as const;
 
-const ALL_ASSETS_TYPE = 'ingredients';
-
-/** The admin library opens on every asset type; brand scopes keep Videos. */
-function getFallbackType(scope: PageScope): string {
-  return scope === PageScope.SUPERADMIN ? ALL_ASSETS_TYPE : 'videos';
-}
-
 function getIngredientTypeFromPathname(pathname: string | null): string | null {
   if (!pathname) {
     return null;
@@ -97,7 +90,7 @@ export function useIngredientsLayout({
     const defaultFormat = formatParam || '';
 
     const initialIngredientType =
-      defaultType ?? routeIngredientType ?? getFallbackType(scope);
+      defaultType ?? routeIngredientType ?? 'videos';
 
     // Default statuses live in state only (not URL) so clean library links
     // stay clean. Voices load without implicit status narrowing.
@@ -142,7 +135,7 @@ export function useIngredientsLayout({
     setQuery(next.query);
   }, [getInitialState]);
   const [selectedIngredientType, setIngredientType] = useState(
-    defaultType ?? getFallbackType(scope),
+    defaultType ?? 'videos',
   );
   const routeIngredientType = getIngredientTypeFromPathname(pathname);
   const ingredientType =

@@ -1,5 +1,6 @@
 import { Readable } from 'node:stream';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandCoverStyleService } from '@api/collections/brands/services/brand-cover-style.service';
 import { ContentEvaluationProjectionService } from '@api/collections/evaluations/services/content-evaluation-projection.service';
 import { IngredientCharacterFilterService } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -106,6 +107,8 @@ export class VideosController {
     @Optional() private readonly mediaIssuer?: AuthorizedMediaUrlService,
     @Optional()
     private readonly characterFilter?: IngredientCharacterFilterService,
+    @Optional()
+    private readonly brandCoverStyle?: BrandCoverStyleService,
   ) {}
 
   @Get()
@@ -299,6 +302,7 @@ export class VideosController {
     @Query('timeInSeconds') timeInSeconds?: number,
     @Query('width') width?: number,
     @Query('title') title?: string,
+    @Query('brandId') brandId?: string,
   ): Promise<StreamableFile> {
     const video = await this.videosService.findOne({
       id: videoId,
@@ -333,6 +337,12 @@ export class VideosController {
         videoUrl = projection.grant.url;
       }
 
+      // The same brand style the YouTube publish applies, so the preview is
+      // the file that gets sent.
+      const titleStyle = await this.brandCoverStyle?.resolveTitleStyle(
+        brandId,
+        user.organizationId,
+      );
       const { thumbnailUrl } = await this.filesClientService.generateThumbnail(
         videoUrl,
         videoId,
@@ -340,6 +350,7 @@ export class VideosController {
         width ? Number(width) : undefined,
         title?.trim() ? title.trim().slice(0, 120) : undefined,
         true,
+        titleStyle,
       );
 
       const thumbnailResponse = await fetch(thumbnailUrl);

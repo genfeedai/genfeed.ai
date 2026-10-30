@@ -4,7 +4,7 @@
   "description": "Review expired media holds. Charging uses the original quoted amount and payer. Every action records your reason.",
   "loading": "Loading holds…",
   "loadError": "Credit holds could not be loaded.",
-  "empty": "No stuck media holds.",
+  "empty": "No stuck media holds found",
   "unknownProvider": "Unknown provider",
   "holdSummary": "{id} · {provider} · {status} · {amount} credits",
   "releaseHold": "Release hold",

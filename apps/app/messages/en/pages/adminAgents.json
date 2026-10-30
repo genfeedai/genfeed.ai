@@ -1,6 +1,7 @@
 {
   "title": "Agents",
   "empty": "No agents found",
+  "searchAgents": "Search agents",
   "loadError": "Failed to load agents",
   "columns": {
     "agent": "Agent",

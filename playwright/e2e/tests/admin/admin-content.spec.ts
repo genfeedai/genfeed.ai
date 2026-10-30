@@ -9,7 +9,8 @@ test.describe('Admin Content', () => {
     APP_ROUTES.ADMIN.CONTENT.POSTS,
     `${APP_ROUTES.ADMIN.CONTENT.POSTS}/mock-id`,
     APP_ROUTES.ADMIN.CONTENT.GENERATIONS,
-    `${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/image`,
+    APP_ROUTES.ADMIN.CONTENT.INGREDIENTS,
+    `${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/images`,
   ];
 
   for (const route of routes) {

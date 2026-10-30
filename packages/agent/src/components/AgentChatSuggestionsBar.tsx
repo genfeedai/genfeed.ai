@@ -73,28 +73,33 @@ export function AgentChatSuggestionsBar({
     Boolean(action.description?.trim()),
   );
 
+  // Columns follow the width of the column the chips sit in, not the
+  // viewport: the agent + output layout puts them in a narrow left pane on a
+  // wide screen, where viewport breakpoints squeezed four labels into "P...".
   return (
-    <PromptBarSuggestions
-      suggestions={normalized}
-      onSuggestionSelect={(action) => {
-        // Full prompt is sent (or typed into the turn) — label stays short.
-        onSend(action.prompt);
-      }}
-      isDisabled={isReadOnly}
-      maxSuggestions={4}
-      variant={hasDescriptions ? 'cards' : 'chips'}
-      className={
-        layout === 'equal' && !hasDescriptions
-          ? cn(
-              'grid grid-cols-1 [&>button]:w-full [&>button]:max-w-none',
-              // A fourth tile (the leading "About this page" action) gets
-              // its own column instead of orphaning onto a second row.
-              normalized.length > 3
-                ? 'sm:grid-cols-2 lg:grid-cols-4'
-                : 'sm:grid-cols-3',
-            )
-          : undefined
-      }
-    />
+    <div className="@container w-full min-w-0">
+      <PromptBarSuggestions
+        suggestions={normalized}
+        onSuggestionSelect={(action) => {
+          // Full prompt is sent (or typed into the turn) — label stays short.
+          onSend(action.prompt);
+        }}
+        isDisabled={isReadOnly}
+        maxSuggestions={4}
+        variant={hasDescriptions ? 'cards' : 'chips'}
+        className={
+          layout === 'equal' && !hasDescriptions
+            ? cn(
+                'grid grid-cols-1 [&>button]:w-full [&>button]:max-w-none',
+                // A fourth tile (the leading "About this page" action) gets
+                // its own column instead of orphaning onto a second row.
+                normalized.length > 3
+                  ? '@md:grid-cols-2 @3xl:grid-cols-4'
+                  : '@xl:grid-cols-3',
+              )
+            : undefined
+        }
+      />
+    </div>
   );
 }
