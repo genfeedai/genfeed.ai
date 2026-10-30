@@ -1,7 +1,7 @@
 'use client';
 
-import StoryboardRunPage from '@pages/studio/storyboard/StoryboardRunPage';
 import { useParams } from 'next/navigation';
+import StoryboardRunPage from '@/features/studio/storyboard/StoryboardRunPage';
 import { readRouteParam } from '@/lib/route-params';
 
 export default function StudioStoryboardRunRoute() {

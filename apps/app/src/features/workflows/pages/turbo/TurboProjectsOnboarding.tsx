@@ -3,7 +3,6 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import StudioOnboardingHero from '@pages/studio/shared/components/StudioOnboardingHero';
 import Card from '@ui/card/Card';
 import CollectionSection from '@ui/collection/CollectionSection';
 import { Button } from '@ui/primitives/button';
@@ -11,6 +10,7 @@ import { Workflow } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
+import StudioOnboardingHero from '@/features/studio/shared/components/StudioOnboardingHero';
 import TurboIdeaStrip from './TurboIdeaStrip';
 import TurboPresetGrid from './TurboPresetGrid';
 import { TURBO_PRESETS } from './turbo-presets';

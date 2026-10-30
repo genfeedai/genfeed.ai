@@ -1,10 +1,10 @@
 'use client';
 
 import type { MotionPresetGridProps } from '@genfeedai/props/studio/motion-presets.props';
-import StudioPresetCard from '@pages/studio/shared/components/StudioPresetCard';
-import StudioPresetList from '@pages/studio/shared/components/StudioPresetList';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
+import StudioPresetCard from '@/features/studio/shared/components/StudioPresetCard';
+import StudioPresetList from '@/features/studio/shared/components/StudioPresetList';
 import MotionFramePreview from './MotionFramePreview';
 
 const FPS = 30;
