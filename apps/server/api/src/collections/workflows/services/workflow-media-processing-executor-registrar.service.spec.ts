@@ -79,6 +79,14 @@ describe('WorkflowMediaProcessingExecutorRegistrarService brandCover', () => {
         return typeof value === 'string' && value ? value : undefined;
       },
       getRequiredBrandId: () => 'brand-1',
+      requireMediaAsset: vi.fn(
+        async (id: string, organizationId: string, categories: string[]) => {
+          if (organizationId !== 'org-1') {
+            throw new Error('Library media asset not found');
+          }
+          return { category: categories[0], id, storageKey: `key-${id}` };
+        },
+      ),
       readConfigString: (source: Record<string, unknown>, key: string) =>
         typeof source[key] === 'string' ? source[key] : undefined,
       wrapEngineExecutor,
@@ -201,6 +209,25 @@ describe('WorkflowMediaProcessingExecutorRegistrarService brandCover', () => {
     );
     expect(files.generateThumbnail.mock.calls[0]?.[1]).toBe('video-asset');
     expect(files.generateThumbnail.mock.calls[0]?.[2]).toBe(12);
+  });
+
+  it('rejects a source ingredient that belongs to another organization', async () => {
+    const { config, engine, files } = registerBrandCover();
+
+    await expect(
+      getActionExecutor(engine, 'brandCover')?.(
+        {
+          config,
+          id: 'cover-1',
+          inputs: [],
+          label: 'Cover',
+          type: 'brandCover',
+        },
+        new Map([['image', 'image-asset']]),
+        { ...context, organizationId: 'org-2' },
+      ),
+    ).rejects.toThrow('Library media asset not found');
+    expect(files.generateThumbnail).not.toHaveBeenCalled();
   });
 
   it('rejects a cover without a source image ingredient', async () => {

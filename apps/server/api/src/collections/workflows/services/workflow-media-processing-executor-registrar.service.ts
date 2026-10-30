@@ -594,17 +594,15 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
         );
       }
 
+      const asset = await this.helper.requireMediaAsset(
+        ingredientId,
+        context.organizationId,
+        [isVideo ? IngredientCategory.VIDEO : IngredientCategory.IMAGE],
+      );
       const mediaUrl = this.configService.isAuthorizedMediaDeliveryEnabled
-        ? await this.processingMediaUrl(
-            context.organizationId,
-            await this.helper.requireMediaAsset(
-              ingredientId,
-              context.organizationId,
-              [isVideo ? IngredientCategory.VIDEO : IngredientCategory.IMAGE],
-            ),
-          )
+        ? await this.processingMediaUrl(context.organizationId, asset)
         : await filesClientService.getPresignedDownloadUrl(
-            ingredientId,
+            asset.id,
             isVideo ? 'videos' : 'images',
           );
 
