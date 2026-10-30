@@ -234,7 +234,7 @@ function RunControls({
         disabled={isActive}
         className={`rounded-l-none rounded-r border-l px-1.5 ${
           isActive
-            ? 'border-destructive/30 bg-destructive/90'
+            ? 'border-destructive/20 bg-destructive/90'
             : canRunWorkflow
               ? 'border-border-strong'
               : 'border-border bg-muted text-muted-foreground'
@@ -430,7 +430,7 @@ export function BottomBar() {
 
   return (
     <div className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2">
-      <div className="flex items-center gap-1 bg-muted/95 px-2 py-1 shadow-dropdown backdrop-blur-sm">
+      <div className="flex items-center gap-1 bg-muted/90 px-2 py-1 shadow-dropdown backdrop-blur-sm">
         <BatchCounter
           batchCount={batchCount}
           isActive={isActive}

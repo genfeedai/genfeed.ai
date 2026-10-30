@@ -145,6 +145,23 @@ describe('packages/ui design-system guards', () => {
     );
   });
 
+  it('flags colour opacity modifiers that are not on the ladder', () => {
+    const findings = findPackageUiGuardFindings(
+      '<><div className="bg-foreground/[0.04] hover:text-primary/72 border-white/[0.1] from-background/55" /><p className="bg-foreground/5 text-foreground/70 border-border/0 bg-black/100 text-sm/6 w-1/2 shadow-lg/20" /></>',
+      'apps/website/example.tsx',
+    );
+
+    expect(findings.map((entry) => entry.token)).toEqual([
+      'bg-foreground/[0.04]',
+      'border-white/[0.1]',
+      'from-background/55',
+      'hover:text-primary/72',
+    ]);
+    expect(findings.every((entry) => entry.kind === 'off-ladder-opacity')).toBe(
+      true,
+    );
+  });
+
   it('keeps the control-height rule inside packages/ui', () => {
     expect(
       findPackageUiGuardFindings(
