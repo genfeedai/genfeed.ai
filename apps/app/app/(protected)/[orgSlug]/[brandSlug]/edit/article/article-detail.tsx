@@ -4,6 +4,7 @@ import {
 } from '@genfeedai/agent';
 import { ArticleCategory, ArticleStatus } from '@genfeedai/contracts';
 import { PUBLIC_ARTICLES_ORGANIZATION_SLUG } from '@genfeedai/contracts/constants';
+import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import type { Article } from '@genfeedai/models/content/article.model';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -21,7 +22,7 @@ import XArticleAssetsBar from '@ui/articles/x-article/XArticleAssetsBar';
 import Card from '@ui/card/Card';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Image from 'next/image';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 import ArticleDetailHeader from './article-detail-header';
@@ -91,7 +92,7 @@ export default function ArticleDetail({
   credentialId,
 }: ArticleEditorProps) {
   const { openConfirm } = useConfirmModal();
-  const params = useParams<{ brandSlug?: string; orgSlug?: string }>();
+  const params = useRouteParams<{ brandSlug?: string; orgSlug?: string }>();
   const { push } = useRouter();
   const translate = useTranslations('common.articleDetail');
   const [generatingTeaserFormat, setGeneratingTeaserFormat] =

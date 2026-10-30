@@ -3,7 +3,6 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import { Kbd } from '@genfeedai/ui';
-import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
@@ -27,7 +26,6 @@ export default function MenuSharedConversations({
   onCollapsedChange,
 }: MenuSharedConversationsProps) {
   const isDesktop = useIsDesktopClient();
-  const prefetchNewAgentThreadHref = useNavigationPrefetch(newAgentThreadHref);
 
   return (
     <div
@@ -55,9 +53,6 @@ export default function MenuSharedConversations({
         <div className="pb-1">
           <Link
             href={newAgentThreadHref}
-            prefetch={false}
-            onFocus={prefetchNewAgentThreadHref}
-            onMouseEnter={prefetchNewAgentThreadHref}
             className="group flex h-8 w-full items-center gap-3 rounded px-3 py-1.5 text-left text-foreground/80 transition-colors duration-150 cursor-pointer hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
           >
             <Plus className="size-4 text-muted-foreground group-hover:text-foreground/80" />

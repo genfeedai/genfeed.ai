@@ -62,7 +62,6 @@ export default function RailAccount() {
             )}
             data-testid="app-rail-help"
             href={APP_ROUTES.SETTINGS.HELP}
-            prefetch={false}
           >
             <CircleQuestionMark aria-hidden="true" className="size-4" />
           </Link>

@@ -4,6 +4,10 @@ import { parseScopedAppPath } from '@genfeedai/contracts/constants';
 import type { IBrand, ICredential } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
+import {
+  stripOpaqueRouteParam,
+  useRouteParams,
+} from '@genfeedai/hooks/navigation/use-route-params/use-route-params';
 import { Brand } from '@genfeedai/models/organization/brand.model';
 import { OrganizationSetting } from '@genfeedai/models/organization/organization-setting.model';
 import type { ProtectedBootstrapData } from '@genfeedai/props/layout/protected-bootstrap.props';
@@ -17,7 +21,7 @@ import {
   getPlaywrightAuthState,
 } from '@helpers/auth/auth.helper';
 import { useQuery } from '@tanstack/react-query';
-import { useParams, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import {
   startTransition,
   useCallback,
@@ -50,7 +54,7 @@ interface UseBrandProviderStateParams {
 export function useBrandProviderState({
   initialBootstrap = null,
 }: UseBrandProviderStateParams) {
-  const params = useParams<{ brandSlug?: string; orgSlug?: string }>();
+  const params = useRouteParams<{ brandSlug?: string; orgSlug?: string }>();
   const pathname = usePathname();
   const pathScope = parseScopedAppPath(pathname ?? '');
   const {
@@ -220,11 +224,12 @@ export function useBrandProviderState({
   const brands = useMemo(() => brandsData ?? [], [brandsData]);
   const routeOrgSlug =
     (typeof params?.orgSlug === 'string' ? params.orgSlug : '') ||
-    pathScope.orgSlug;
+    stripOpaqueRouteParam(pathScope.orgSlug) ||
+    '';
   const routeBrandSlug =
     typeof params?.brandSlug === 'string'
       ? params.brandSlug
-      : pathScope.brandSlug;
+      : (stripOpaqueRouteParam(pathScope.brandSlug) ?? '');
   const isOrgRoute = routeOrgSlug.length > 0 && routeBrandSlug.length === 0;
   const selectedBrand = useMemo(
     () => brands.find((brand: Brand) => getBrandEntityId(brand) === brandId),

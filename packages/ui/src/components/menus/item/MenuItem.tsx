@@ -5,7 +5,6 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { MenuItemProps } from '@genfeedai/props/navigation/menu.props';
 import ComingSoonBadge from '@ui/badges/ComingSoonBadge';
 import Badge from '@ui/display/badge/Badge';
-import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { useHoverAnimatedIcon } from '@ui/primitives/animated-icons/use-hover-animated-icon';
 import { Button } from '@ui/primitives/button';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
@@ -32,7 +31,6 @@ export default function MenuItem({
   const isIconVariant = variant === 'icon';
   const shouldRenderBadge = typeof badgeCount === 'number' && badgeCount > 0;
   const shouldRenderCount = typeof count === 'number' && !shouldRenderBadge;
-  const prefetchHref = useNavigationPrefetch(href);
 
   // Determine layout: horizontal when expanded on desktop, vertical otherwise
   const isHorizontalLayout = isIconVariant && !isCollapsed;
@@ -208,14 +206,11 @@ export default function MenuItem({
       <Link
         href={href}
         onClick={onClick}
-        prefetch={false}
         onBlur={hoverProps.onBlur}
         onFocus={(event) => {
-          prefetchHref();
           hoverProps.onFocus(event);
         }}
         onMouseEnter={(event) => {
-          prefetchHref();
           hoverProps.onMouseEnter(event);
         }}
         onMouseLeave={hoverProps.onMouseLeave}
