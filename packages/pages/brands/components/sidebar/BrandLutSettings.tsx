@@ -80,7 +80,7 @@ export default function BrandLutSettings({
           >
             {brand.lutFileName ?? translate('noFile')}
           </p>
-          <Label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-sm text-muted-foreground hover:border-foreground/30 font-normal leading-normal">
+          <Label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-sm text-muted-foreground hover:border-foreground/40 font-normal leading-normal">
             <span>{translate(hasLut ? 'replace' : 'upload')}</span>
             <Input
               id="brand-lut-file"
