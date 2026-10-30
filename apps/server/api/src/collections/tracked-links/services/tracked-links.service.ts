@@ -247,7 +247,10 @@ export class TrackedLinksService {
    */
   async shortenPostLinks(input: PostLinkShorteningInput): Promise<string> {
     const { description, organizationId, platform, postId } = input;
-    const urls = extractPostUrls(description).slice(0, MAX_SHORT_LINKS_PER_POST);
+    const urls = extractPostUrls(description).slice(
+      0,
+      MAX_SHORT_LINKS_PER_POST,
+    );
     if (urls.length === 0) return description;
 
     const shortHost = new URL(this.getShortLinkBaseUrl()).host;
@@ -294,7 +297,10 @@ export class TrackedLinksService {
 
     return (
       existing ??
-      (await this.generateTrackingLink({ platform, postId, url }, organizationId))
+      (await this.generateTrackingLink(
+        { platform, postId, url },
+        organizationId,
+      ))
     );
   }
 

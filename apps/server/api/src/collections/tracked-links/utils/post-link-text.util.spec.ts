@@ -30,8 +30,8 @@ describe('post link text', () => {
   it('replaces every occurrence of a repeated URL', () => {
     const replacements = new Map([['https://a.com', 'https://go.x/1']]);
 
-    expect(replacePostUrls('https://a.com and https://a.com', replacements)).toBe(
-      'https://go.x/1 and https://go.x/1',
-    );
+    expect(
+      replacePostUrls('https://a.com and https://a.com', replacements),
+    ).toBe('https://go.x/1 and https://go.x/1');
   });
 });

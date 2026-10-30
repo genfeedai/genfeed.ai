@@ -28,9 +28,9 @@ describe('createShortLinkHostRewrite', () => {
   });
 
   it('leaves other hosts untouched', () => {
-    expect(
-      run(rewrite, { hostname: 'api.genfeed.ai', url: '/v1/posts' }),
-    ).toBe('/v1/posts');
+    expect(run(rewrite, { hostname: 'api.genfeed.ai', url: '/v1/posts' })).toBe(
+      '/v1/posts',
+    );
   });
 
   it('leaves non-GET requests on the short host untouched', () => {
