@@ -24,6 +24,7 @@ export default function AgentOutputLayout({
   agentHeader,
   className,
   headerActions,
+  isOutputExpandable = false,
   labels,
   mode = 'split',
   onTabChange,
@@ -31,7 +32,9 @@ export default function AgentOutputLayout({
 }: AgentOutputLayoutProps) {
   const [mobileView, setMobileView] = useState<MobileView>('agent');
   const [isRailExpanded, setIsRailExpanded] = useState(false);
+  const [isOutputExpanded, setIsOutputExpanded] = useState(false);
   const isRail = mode === 'rail' && !isRailExpanded;
+  const isAgentHidden = isOutputExpandable && isOutputExpanded;
 
   return (
     <div
@@ -63,9 +66,11 @@ export default function AgentOutputLayout({
       <div
         className={cn(
           'grid min-h-0 flex-1 grid-cols-1',
-          isRail
-            ? 'xl:grid-cols-[22.5rem_minmax(0,1fr)]'
-            : 'xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]',
+          isAgentHidden && 'xl:grid-cols-[minmax(0,1fr)]',
+          !isAgentHidden &&
+            (isRail
+              ? 'xl:grid-cols-[22.5rem_minmax(0,1fr)]'
+              : 'xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]'),
         )}
       >
         <section
@@ -73,6 +78,7 @@ export default function AgentOutputLayout({
           className={cn(
             'flex min-h-0 min-w-0 flex-col border-border xl:border-r',
             mobileView === 'output' && 'max-xl:hidden',
+            isAgentHidden && 'xl:hidden',
           )}
           data-testid="agent-output-agent-pane"
         >
@@ -127,6 +133,33 @@ export default function AgentOutputLayout({
             />
             <div className="ml-auto flex items-center gap-2 empty:hidden">
               {headerActions}
+              {isOutputExpandable ? (
+                <Button
+                  ariaLabel={
+                    isOutputExpanded
+                      ? labels.collapseOutput
+                      : labels.expandOutput
+                  }
+                  className="max-xl:hidden"
+                  data-testid="agent-output-expand-output"
+                  icon={
+                    isOutputExpanded ? (
+                      <Minimize2 className="size-4" />
+                    ) : (
+                      <Maximize2 className="size-4" />
+                    )
+                  }
+                  onClick={() => setIsOutputExpanded((current) => !current)}
+                  size={ButtonSize.SM}
+                  tooltip={
+                    isOutputExpanded
+                      ? labels.collapseOutput
+                      : labels.expandOutput
+                  }
+                  variant={ButtonVariant.GHOST}
+                  withWrapper={false}
+                />
+              ) : null}
             </div>
           </header>
           {/* Every tab stays mounted: the page output keeps its scroll and
