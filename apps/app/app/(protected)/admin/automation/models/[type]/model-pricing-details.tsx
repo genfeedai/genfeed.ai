@@ -8,10 +8,6 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { exportModelPricingCsv } from '@genfeedai/pricing';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type {
-  ModelPricingDetailsProps,
-  ModelPricingToolbarProps,
-} from '@props/admin/models.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AdminModelPricingService } from '@services/admin/model-pricing.service';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -20,6 +16,10 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
+import type {
+  ModelPricingDetailsProps,
+  ModelPricingToolbarProps,
+} from '@/features/models/props/models.props';
 import {
   ADMIN_MODEL_PRICING_QUERY_KEY,
   useAdminModelPricingReport,

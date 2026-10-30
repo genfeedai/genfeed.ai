@@ -1,8 +1,8 @@
 'use client';
 
 import ModelsTypePageClientContent from '@app/(protected)/[orgSlug]/~/settings/models/[type]/page-content';
-import { resolveModelCategoryGroupKey } from '@pages/models/list/components/models-catalog-overview.helpers';
 import { useSearchParams } from 'next/navigation';
+import { resolveModelCategoryGroupKey } from '@/features/models/list/components/models-catalog-overview.helpers';
 
 // The catalog filter lives in `?type=`. Only catalog groups (and the `images`
 // / `videos` aliases) filter the list; anything else, including the body

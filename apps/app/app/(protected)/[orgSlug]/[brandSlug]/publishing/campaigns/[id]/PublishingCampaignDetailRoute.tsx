@@ -1,8 +1,10 @@
 'use client';
 
-import { CampaignDetailOverview, CampaignDetailShell } from '@pages/campaigns';
-
 import { useParams } from 'next/navigation';
+import {
+  CampaignDetailOverview,
+  CampaignDetailShell,
+} from '@/features/campaigns';
 import { readRouteParam } from '@/lib/route-params';
 
 export default function PublishingCampaignDetailRoute() {

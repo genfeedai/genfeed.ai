@@ -1,8 +1,7 @@
 'use client';
 
-import { CampaignFormPage } from '@pages/campaigns';
-
 import { useParams } from 'next/navigation';
+import { CampaignFormPage } from '@/features/campaigns';
 import { readRouteParam } from '@/lib/route-params';
 
 export default function PublishingCampaignEditRoute() {

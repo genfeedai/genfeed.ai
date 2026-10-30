@@ -1,9 +1,9 @@
 'use client';
 
-import LibraryAssetTypeFilter from '@pages/ingredients/layout/library-asset-type-filter';
 import Container from '@ui/layout/container/Container';
 import { MessageSquareText } from 'lucide-react';
 import type { ReactNode } from 'react';
+import LibraryAssetTypeFilter from '@/features/ingredients/layout/library-asset-type-filter';
 
 export default function LibraryCaptionsPage({
   children,

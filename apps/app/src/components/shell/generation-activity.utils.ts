@@ -10,7 +10,7 @@ import {
   getBackgroundTaskStatus,
   isBackgroundTask,
   parseActivityValue,
-} from '@pages/activities/activities-list.utils';
+} from '@/features/activities/activities-list.utils';
 
 /**
  * A row is in flight only when its key is one the server's `activeOnly` filter

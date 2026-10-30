@@ -1,8 +1,7 @@
 'use client';
 
-import ContentRunDetailPage from '@pages/content-runs/detail/content-run-detail';
-
 import { useParams } from 'next/navigation';
+import ContentRunDetailPage from '@/features/content-runs/detail/content-run-detail';
 import { readRouteParam } from '@/lib/route-params';
 
 export default function ContentRunRoute() {

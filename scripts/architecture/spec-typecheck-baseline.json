@@ -4521,6 +4521,14 @@
       "workspace": "app"
     },
     {
+      "code": 2339,
+      "count": 2,
+      "file": "apps/app/src/features/ingredients/detail/use-ingredient-detail.test.ts",
+      "fingerprint": "e3a58ecb563fbad3d98c",
+      "message": "Property 'label' does not exist on type 'IIngredient'.",
+      "workspace": "app"
+    },
+    {
       "code": 2322,
       "count": 3,
       "file": "apps/app/src/features/library-remix/LibraryPickerOverlay.test.tsx",
@@ -6478,14 +6486,6 @@
       "file": "packages/pages/brands/components/system-prompt/BrandDetailSystemPrompt.test.tsx",
       "fingerprint": "0b64a1946299a101f807",
       "message": "Type '{}' is missing the following properties from type 'BrandDetailSystemPromptProps': text, onCopy",
-      "workspace": "pages"
-    },
-    {
-      "code": 2339,
-      "count": 2,
-      "file": "packages/pages/ingredients/detail/use-ingredient-detail.test.ts",
-      "fingerprint": "2866ec87f39a5e056a16",
-      "message": "Property 'label' does not exist on type 'IIngredient'.",
       "workspace": "pages"
     },
     {

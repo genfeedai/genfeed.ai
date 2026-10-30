@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import ContentRunDetailPage from '@pages/content-runs/detail/content-run-detail';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import ContentRunDetailPage from '@/features/content-runs/detail/content-run-detail';
 
 const findOne = vi.fn();
 const createRemixPack = vi.fn();

@@ -1,7 +1,7 @@
 import { PageScope } from '@genfeedai/contracts';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import { CampaignDetailShell } from '@pages/campaigns';
 import { Suspense } from 'react';
+import { CampaignDetailShell } from '@/features/campaigns';
 import type { PostsListSearchParams } from '../../../publishing-list-page';
 import { renderPostsListPage } from '../../../publishing-list-page';
 

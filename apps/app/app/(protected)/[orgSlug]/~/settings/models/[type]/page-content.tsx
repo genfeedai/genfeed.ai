@@ -4,8 +4,8 @@ import OrganizationCustomModelsCard from '@app/(protected)/[orgSlug]/~/settings/
 import { useModelsContext } from '@contexts/models/models-context/models-context';
 import { useTrainingsContext } from '@contexts/models/trainings-context/trainings-context';
 import { PageScope } from '@genfeedai/contracts';
-import ModelsList from '@pages/models/list/models-list';
-import TrainingsList from '@pages/trainings/list/trainings-list';
+import ModelsList from '@/features/models/list/models-list';
+import TrainingsList from '@/features/trainings/list/trainings-list';
 
 export default function ModelsTypePageClientContent({
   type,

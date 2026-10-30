@@ -113,7 +113,7 @@ export const ALLOWLIST = {
     'packages/pages/brands/components/latest-images/BrandDetailLatestImages.tsx',
     'packages/pages/brands/components/latest-videos/BrandDetailLatestVideos.tsx',
     'packages/pages/brands/components/sidebar/BrandDetailExternalLinksCard.tsx',
-    'packages/pages/ingredients/detail/ingredient-detail.tsx',
+    'apps/app/src/features/ingredients/detail/ingredient-detail.tsx',
     'packages/pages/mission-control/components/AgentRunCard.tsx',
     'packages/pages/not-found/not-found-page.tsx',
     'packages/pages/settings/help/settings-help-page.tsx',

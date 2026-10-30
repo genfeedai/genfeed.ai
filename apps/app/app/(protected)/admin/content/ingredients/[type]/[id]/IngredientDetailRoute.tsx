@@ -1,9 +1,8 @@
 'use client';
 
-import IngredientDetail from '@pages/ingredients/detail/ingredient-detail';
 import type { IngredientDetailPageProps } from '@props/content/ingredient.props';
-
 import { notFound, useParams } from 'next/navigation';
+import IngredientDetail from '@/features/ingredients/detail/ingredient-detail';
 import { readRouteParam } from '@/lib/route-params';
 
 const DETAIL_TYPES = new Set(['images', 'videos']);

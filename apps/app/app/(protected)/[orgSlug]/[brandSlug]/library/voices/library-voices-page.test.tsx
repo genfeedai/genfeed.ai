@@ -83,7 +83,7 @@ vi.mock('@pages/library/voices/hooks/use-voice-catalog', () => ({
   useVoiceCatalog: (...args: unknown[]) => mockUseVoiceCatalog(...args),
 }));
 
-vi.mock('@pages/ingredients/layout/ingredients-layout', () => ({
+vi.mock('@/features/ingredients/layout/ingredients-layout', () => ({
   default: ({ children, scope }: { children: ReactNode; scope: PageScope }) => (
     <div data-scope={scope} data-testid="ingredients-layout">
       {children}

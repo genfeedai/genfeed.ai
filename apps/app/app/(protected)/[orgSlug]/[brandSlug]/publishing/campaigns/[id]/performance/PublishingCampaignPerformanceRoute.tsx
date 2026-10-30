@@ -1,11 +1,10 @@
 'use client';
 
+import { useParams } from 'next/navigation';
 import {
   CampaignDetailPerformance,
   CampaignDetailShell,
-} from '@pages/campaigns';
-
-import { useParams } from 'next/navigation';
+} from '@/features/campaigns';
 import { readRouteParam } from '@/lib/route-params';
 
 export default function PublishingCampaignPerformanceRoute() {

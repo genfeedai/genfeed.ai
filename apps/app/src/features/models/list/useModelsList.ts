@@ -1,0 +1,715 @@
+import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { ModalEnum, ModelLifecycle, PageScope } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import type {
+  IModel,
+  IOrganizationSetting,
+} from '@genfeedai/contracts/interfaces';
+import { openModal } from '@helpers/ui/modal/modal.helper';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { Model } from '@models/ai/model.model';
+import type { TableSortDirection } from '@props/ui/display/table.props';
+import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
+import { ModelsService } from '@services/ai/models.service';
+import { logger } from '@services/core/logger.service';
+import { NotificationsService } from '@services/core/notifications.service';
+import { OrganizationsService } from '@services/organization/organizations.service';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ErrorHandler } from '@utils/error/error-handler.util';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type ModelsListProps,
+  resolveAdminModelFilters,
+} from '@/features/models/props/models.props';
+import { buildModelsTableColumns } from './components/ModelsTableColumns';
+import {
+  buildModelCatalogOverviewCards,
+  getModelCategoryGroupCategories,
+  type ModelCategoryGroupKey,
+  resolveModelCategoryGroupKey,
+} from './components/models-catalog-overview.helpers';
+
+export function useModelsList({
+  type,
+  category,
+  scope = PageScope.ORGANIZATION,
+  onRefreshRegister,
+  onRefresh,
+  isModelPinned,
+}: ModelsListProps) {
+  const { organizationId } = useBrand();
+  const translate = useTranslations('pages.models');
+  const notificationsService = useMemo(
+    () => NotificationsService.getInstance(),
+    [],
+  );
+
+  const { openConfirm } = useConfirmModal();
+
+  const getModelsService = useAuthedService((token: string) =>
+    ModelsService.getInstance(token),
+  );
+
+  const getOrganizationsService = useAuthedService((token: string) =>
+    OrganizationsService.getInstance(token),
+  );
+
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const { replace } = useRouter();
+  const searchParamsString = searchParams?.toString() ?? '';
+  const parsedSearchParams = useMemo(
+    () => new URLSearchParams(searchParamsString),
+    [searchParamsString],
+  );
+  const currentPage = Number(searchParams?.get('page')) || 1;
+  const [searchTerm, setSearchTerm] = useState('');
+  const normalizedSearchTerm = searchTerm.trim();
+
+  const isAdminScope = scope === PageScope.SUPERADMIN;
+
+  // Admin org/brand filters live in the models layout toolbar and write URL
+  // query params. Derive here so list queries stay in sync with the header.
+  const adminOrg = parsedSearchParams.get('organization') || '';
+  const adminBrand = parsedSearchParams.get('brand') || '';
+
+  // Track which model is being toggled to prevent multiple simultaneous toggles
+  const [togglingModelId, setTogglingModelId] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState('label');
+  const [sortDirection, setSortDirection] = useState<TableSortDirection>('asc');
+
+  // Track if component is mounted to avoid calling callbacks during initial render
+  const isMountedRef = useRef(false);
+
+  // Admin-specific state
+  const [selectedModel, setSelectedModel] = useState<IModel>();
+
+  const queryClient = useQueryClient();
+
+  // Fetch organization settings to get enabled models (only for non-admin scopes)
+  const settingsQueryKey = [
+    'studio-models-settings',
+    organizationId,
+    isAdminScope,
+  ] as const;
+  const {
+    data: settings,
+    refetch: refreshSettings,
+    error: settingsError,
+  } = useQuery<IOrganizationSetting | null>({
+    enabled: !isAdminScope && !!organizationId,
+    queryFn: async () => {
+      if (isAdminScope || !organizationId) {
+        return null;
+      }
+      const service = await getOrganizationsService();
+      const data = await service.findOne(organizationId);
+      logger.info(
+        `GET /organizations/${organizationId}/settings success`,
+        data,
+      );
+
+      return data.settings;
+    },
+    queryKey: settingsQueryKey,
+  });
+
+  useEffect(() => {
+    if (settingsError instanceof Error) {
+      logger.error(
+        `GET /organizations/${organizationId}/settings failed`,
+        settingsError,
+      );
+    }
+  }, [settingsError, organizationId]);
+
+  // Org scope filters by catalog group (Image spans image, image-edit and
+  // image-upscale) so the list always agrees with the group counts.
+  const selectedGroupKey = useMemo(
+    () => (isAdminScope ? null : resolveModelCategoryGroupKey(type)),
+    [isAdminScope, type],
+  );
+  const groupCategories = useMemo(
+    () =>
+      selectedGroupKey ? getModelCategoryGroupCategories(selectedGroupKey) : [],
+    [selectedGroupKey],
+  );
+
+  const adminFilters = useMemo(
+    () => resolveAdminModelFilters(parsedSearchParams, category),
+    [parsedSearchParams, category],
+  );
+  const categoryFilter = isAdminScope
+    ? adminFilters.categories.join(',')
+    : null;
+  const providerFilter = isAdminScope ? adminFilters.providers.join(',') : null;
+  const statusFilter =
+    isAdminScope && adminFilters.statuses.length === 1
+      ? adminFilters.statuses[0]
+      : null;
+  const includeRetired =
+    isAdminScope &&
+    (category === 'all' ||
+      parsedSearchParams.get('status') === 'all' ||
+      adminFilters.statuses.length === 2);
+
+  // Fetch all system models with pagination
+  const modelsQueryKey = [
+    'studio-models',
+    categoryFilter,
+    providerFilter,
+    statusFilter,
+    selectedGroupKey,
+    category ?? type ?? 'active',
+    includeRetired,
+    currentPage,
+    isAdminScope,
+    adminOrg,
+    adminBrand,
+    normalizedSearchTerm,
+    sortKey,
+    sortDirection,
+  ] as const;
+
+  const {
+    data: models = [],
+    isLoading,
+    refetch: refetchModels,
+    error: modelsError,
+  } = useQuery<IModel[]>({
+    queryFn: async () => {
+      const service = await getModelsService();
+      const query: Record<string, unknown> = {
+        limit: ITEMS_PER_PAGE,
+        page: currentPage,
+        sort: `${sortKey}: ${sortDirection === 'asc' ? 1 : -1}`,
+      };
+
+      // Filter inactive models for non-admin scopes
+      if (!isAdminScope) {
+        query.isActive = true;
+      }
+
+      // Add category filter
+      if (groupCategories.length > 0) {
+        query.categories = groupCategories.join(',');
+      } else if (categoryFilter && categoryFilter !== 'all') {
+        query.categories = categoryFilter;
+      }
+
+      if (normalizedSearchTerm) {
+        query.search = normalizedSearchTerm;
+      }
+
+      if (isAdminScope) {
+        query.includeRetired = includeRetired;
+        if (providerFilter) query.providers = providerFilter;
+        if (statusFilter) query.isActive = statusFilter === 'active';
+        if (adminOrg) {
+          query.organizationId = adminOrg;
+        }
+        if (adminBrand) {
+          query.brandId = adminBrand;
+        }
+      }
+
+      const data: IModel[] = await service.findAll(query);
+      logger.info('GET /models success', data);
+      // Instantiate Model class for each item to enable getter methods
+      return data.map((m) => new Model(m));
+    },
+    queryKey: modelsQueryKey,
+  });
+
+  useEffect(() => {
+    if (modelsError instanceof Error) {
+      logger.error('GET /models failed', modelsError);
+    }
+  }, [modelsError]);
+
+  const setModels = useCallback(
+    (updatedModels: IModel[]) => {
+      queryClient.setQueryData(modelsQueryKey, updatedModels);
+    },
+    [queryClient, modelsQueryKey],
+  );
+
+  const {
+    data: catalogModels = [],
+    isLoading: isLoadingCatalog,
+    error: catalogModelsError,
+    refetch: refetchCatalogModels,
+  } = useQuery<IModel[]>({
+    queryFn: async () => {
+      const query: Record<string, unknown> = {
+        sort: 'label: 1',
+      };
+      if (!isAdminScope) {
+        query.isActive = true;
+      }
+      if (isAdminScope && adminOrg) {
+        query.organizationId = adminOrg;
+      }
+      const service = await getModelsService();
+      const allModels: IModel[] = await service.findAllPages(query);
+      return allModels.map((m) => new Model(m));
+    },
+    queryKey: ['studio-models-catalog-overview', isAdminScope, adminOrg],
+  });
+
+  useEffect(() => {
+    if (catalogModelsError instanceof Error) {
+      logger.error('Failed to load model catalog overview', catalogModelsError);
+    }
+  }, [catalogModelsError]);
+
+  const catalogOverviewCards = useMemo(
+    () =>
+      buildModelCatalogOverviewCards(
+        catalogModels,
+        category ?? type ?? 'active',
+      ),
+    [catalogModels, category, type],
+  );
+
+  // Models that need an operator lead the first page, whatever page they sit
+  // on in the sort order, so required work is never buried. The rest of the
+  // list keeps the server's sort and pagination.
+  const displayModels = useMemo(() => {
+    if (!isAdminScope || !isModelPinned) return models;
+    const search = normalizedSearchTerm.toLowerCase();
+    const matchesFilters = (model: IModel) =>
+      (adminFilters.categories.length === 0 ||
+        adminFilters.categories.some((value) => value === model.category)) &&
+      (adminFilters.providers.length === 0 ||
+        adminFilters.providers.some((value) => value === model.provider)) &&
+      (adminFilters.statuses.length !== 1 ||
+        model.isActive === (adminFilters.statuses[0] === 'active')) &&
+      (includeRetired || model.lifecycle !== ModelLifecycle.RETIRED) &&
+      (!search ||
+        [model.label, model.key, model.description].some((value) =>
+          value?.toLowerCase().includes(search),
+        ));
+    const pageIds = new Set(models.map((model) => model.id));
+    const offPage =
+      currentPage === 1
+        ? catalogModels.filter(
+            (model) =>
+              isModelPinned(model) &&
+              !pageIds.has(model.id) &&
+              matchesFilters(model),
+          )
+        : [];
+    return [
+      ...models.filter((model) => isModelPinned(model) && currentPage === 1),
+      ...offPage,
+      ...models.filter((model) => !isModelPinned(model)),
+    ];
+  }, [
+    adminFilters,
+    catalogModels,
+    currentPage,
+    includeRetired,
+    isAdminScope,
+    isModelPinned,
+    models,
+    normalizedSearchTerm,
+  ]);
+
+  const refresh = useCallback(async () => {
+    await Promise.all([refetchModels(), refetchCatalogModels(), onRefresh?.()]);
+  }, [onRefresh, refetchCatalogModels, refetchModels]);
+
+  // Mark component as mounted after first render
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // Register refresh function with context
+  useEffect(() => {
+    if (!onRefreshRegister) {
+      return;
+    }
+
+    // Register the async refresh function
+    onRefreshRegister(refresh);
+
+    // Cleanup on unmount
+    return () => {
+      onRefreshRegister(null);
+    };
+  }, [refresh, onRefreshRegister]);
+
+  const isModelEnabled = useCallback(
+    (modelId: string): boolean => {
+      // Admin scope doesn't use organization settings
+      if (isAdminScope) {
+        return true;
+      }
+
+      // Normalize modelId to string and trim
+      const normalizedModelId = String(modelId || '').trim();
+      if (!normalizedModelId) {
+        return false;
+      }
+
+      // Strict mode: an absent or empty allowlist enables no models.
+      if (!settings?.enabledModelIds || settings.enabledModelIds.length === 0) {
+        return false;
+      }
+
+      const model = models.find(
+        (entry) => String(entry.id || '').trim() === normalizedModelId,
+      );
+      const modelKey = String(model?.key || '').trim();
+
+      return settings.enabledModelIds.some((enabledId) => {
+        const normalizedEnabledId = String(enabledId || '').trim();
+        return (
+          normalizedEnabledId === normalizedModelId ||
+          (modelKey.length > 0 && normalizedEnabledId === modelKey)
+        );
+      });
+    },
+    [isAdminScope, models, settings],
+  );
+
+  const handleCategorySelect = useCallback(
+    (key: ModelCategoryGroupKey | 'all') => {
+      const params = new URLSearchParams(searchParamsString);
+      params.delete('page');
+      if (key === 'all') {
+        params.delete('type');
+      } else {
+        params.set('type', key);
+      }
+      const queryString = params.toString();
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
+        scroll: false,
+      });
+    },
+    [pathname, replace, searchParamsString],
+  );
+
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearchTerm(value);
+      if (currentPage === 1) {
+        return;
+      }
+      const params = new URLSearchParams(searchParamsString);
+      params.delete('page');
+      const queryString = params.toString();
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
+        scroll: false,
+      });
+    },
+    [currentPage, pathname, replace, searchParamsString],
+  );
+
+  // Helper to check if a model is the only default in its category (admin only)
+  const isOnlyDefaultInCategory = useCallback(
+    (model: IModel): boolean => {
+      if (!isAdminScope || !model.isDefault) {
+        return false;
+      }
+      // Don't disable if model is inactive - inactive defaults shouldn't block toggling
+      if (!model.isActive) {
+        return false;
+      }
+
+      const otherDefaultsInCategory = models.filter(
+        (m) =>
+          m.id !== model.id &&
+          m.category === model.category &&
+          m.isDefault &&
+          m.isActive, // Only count active models
+      );
+
+      return otherDefaultsInCategory.length === 0;
+    },
+    [isAdminScope, models],
+  );
+
+  // Admin toggle handler (isActive/isDefault)
+  const handleAdminToggle = useCallback(
+    async (model: IModel, field: 'isDefault') => {
+      if (!model.id) {
+        return;
+      }
+
+      // Prevent multiple simultaneous toggles for the same model
+      if (togglingModelId === model.id) {
+        return;
+      }
+
+      setTogglingModelId(model.id);
+
+      const service = await getModelsService();
+      const url = `PATCH /models/${model.id}`;
+      const newValue = !model[field];
+
+      try {
+        await service.patch(model.id, {
+          ...model,
+          [field]: newValue,
+        });
+
+        // Optimistic update
+        const updatedModels = models.map((m) => {
+          if (m.id === model.id) {
+            return new Model({ ...m, [field]: newValue });
+          }
+          // If setting isDefault to true, clear other defaults in same category
+          if (
+            field === 'isDefault' &&
+            newValue &&
+            m.category === model.category
+          ) {
+            return new Model({ ...m, isDefault: false });
+          }
+          return m;
+        });
+        setModels(updatedModels);
+
+        // Refresh to get updated default models
+        await refresh();
+
+        notificationsService.success('Model default status updated');
+      } catch (error: unknown) {
+        logger.error(`${url} failed`, error);
+        const errorDetails = ErrorHandler.extractErrorDetails(error);
+        notificationsService.error(
+          errorDetails.message || 'Failed to update model',
+        );
+        // Refresh on error to revert optimistic update
+        await refresh();
+      } finally {
+        setTogglingModelId(null);
+      }
+    },
+    [
+      getModelsService,
+      refresh,
+      notificationsService,
+      togglingModelId,
+      setModels,
+      models,
+    ],
+  );
+
+  const handleLifecycleChange = useCallback(
+    async (model: IModel, lifecycle: ModelLifecycle, succeededBy?: string) => {
+      if (!model.id || togglingModelId === model.id) return;
+      setTogglingModelId(model.id);
+      try {
+        const service = await getModelsService();
+        await service.patch(model.id, { lifecycle, succeededBy });
+        await refresh();
+        notificationsService.success('Model lifecycle updated');
+      } catch (error: unknown) {
+        logger.error(`PATCH /models/${model.id} lifecycle failed`, error);
+        notificationsService.error(
+          ErrorHandler.extractErrorDetails(error).message ||
+            'Failed to update model lifecycle',
+        );
+        await refresh();
+      } finally {
+        setTogglingModelId(null);
+      }
+    },
+    [getModelsService, refresh, notificationsService, togglingModelId],
+  );
+
+  // Organization toggle handler (enabled/disabled for org)
+  const handleToggleModel = useCallback(
+    async (model: IModel, enabled: boolean) => {
+      if (!organizationId || !model.id || isAdminScope) {
+        return;
+      }
+
+      // Prevent multiple simultaneous toggles for the same model
+      if (togglingModelId === model.id) {
+        return;
+      }
+
+      setTogglingModelId(model.id);
+
+      try {
+        const service = await getOrganizationsService();
+        await service.toggleModel(organizationId, model.id, enabled);
+        logger.info(
+          `PATCH /organizations/${organizationId}/settings/models/${model.id} success`,
+        );
+
+        // Refresh both settings and models list to ensure UI is in sync
+        await Promise.all([refreshSettings(), refresh()]);
+      } catch (error: unknown) {
+        logger.error(
+          `PATCH /organizations/${organizationId}/settings/models/${model.id} failed`,
+          error,
+        );
+        const errorDetails = ErrorHandler.extractErrorDetails(error);
+        notificationsService.error(
+          errorDetails.message || 'Failed to update model availability',
+        );
+      } finally {
+        setTogglingModelId(null);
+      }
+    },
+    [
+      organizationId,
+      getOrganizationsService,
+      refreshSettings,
+      refresh,
+      notificationsService,
+      togglingModelId,
+      isAdminScope,
+    ],
+  );
+
+  // Admin delete handler
+  const handleDelete = useCallback(async () => {
+    if (!selectedModel?.id) {
+      return;
+    }
+    const url = `DELETE /models/${selectedModel.id}`;
+    try {
+      const service = await getModelsService();
+      await service.delete(selectedModel.id);
+      await refresh();
+      notificationsService.success('Model deleted successfully');
+      setSelectedModel(undefined);
+    } catch (error) {
+      logger.error(`${url} failed`, error);
+      notificationsService.error('Failed to delete model');
+    }
+  }, [selectedModel, getModelsService, refresh, notificationsService]);
+
+  const handleApproveRegistryModel = useCallback(
+    async (model: IModel) => {
+      if (!model.id) {
+        return;
+      }
+
+      const url = `PATCH /models/${model.id}/approve`;
+      try {
+        const service = await getModelsService();
+        await service.approveRegistryModel(model.id, {
+          label: model.label,
+        });
+        await refresh();
+        notificationsService.success('Model approved');
+      } catch (error) {
+        logger.error(`${url} failed`, error);
+        const errorDetails = ErrorHandler.extractErrorDetails(error);
+        notificationsService.error(
+          errorDetails.message || 'Failed to approve model',
+        );
+      }
+    },
+    [getModelsService, refresh, notificationsService],
+  );
+
+  const handleRejectRegistryModel = useCallback(
+    async (model: IModel) => {
+      if (!model.id) {
+        return;
+      }
+
+      const url = `PATCH /models/${model.id}/reject`;
+      try {
+        const service = await getModelsService();
+        await service.rejectRegistryModel(
+          model.id,
+          'Rejected from model registry review',
+        );
+        await refresh();
+        notificationsService.success('Model rejected');
+      } catch (error) {
+        logger.error(`${url} failed`, error);
+        const errorDetails = ErrorHandler.extractErrorDetails(error);
+        notificationsService.error(
+          errorDetails.message || 'Failed to reject model',
+        );
+      }
+    },
+    [getModelsService, refresh, notificationsService],
+  );
+
+  const handleViewDetails = useCallback((model: IModel) => {
+    setSelectedModel(model);
+    openModal(ModalEnum.MODEL);
+  }, []);
+
+  const handleSortChange = useCallback(
+    (key: string, direction: TableSortDirection) => {
+      setSortKey(key);
+      setSortDirection(direction);
+    },
+    [],
+  );
+
+  const columns = useMemo(
+    () =>
+      buildModelsTableColumns({
+        isAdminScope,
+        isModelEnabled,
+        isOnlyDefaultInCategory,
+        handleAdminToggle,
+        handleLifecycleChange,
+        handleToggleModel,
+        onOpenDetails: handleViewDetails,
+        togglingModelId,
+        models,
+        translate,
+      }),
+    [
+      isAdminScope,
+      isModelEnabled,
+      isOnlyDefaultInCategory,
+      handleAdminToggle,
+      handleLifecycleChange,
+      handleToggleModel,
+      handleViewDetails,
+      togglingModelId,
+      models,
+      translate,
+    ],
+  );
+
+  return {
+    isError: Boolean(modelsError),
+    isAdminScope,
+    adminOrg,
+    adminBrand,
+    catalogOverviewCards,
+    catalogModels,
+    adminFilters,
+    catalogTotal: catalogModels.length,
+    handleCategorySelect,
+    isLoadingCatalog,
+    isLoading,
+    selectedGroupKey,
+    columns,
+    models: displayModels,
+    searchTerm,
+    sortKey,
+    sortDirection,
+    selectedModel,
+    setSelectedModel,
+    refresh,
+    handleViewDetails,
+    handleDelete,
+    handleApproveRegistryModel,
+    handleRejectRegistryModel,
+    handleSortChange,
+    handleSearchChange,
+    openConfirm,
+  };
+}

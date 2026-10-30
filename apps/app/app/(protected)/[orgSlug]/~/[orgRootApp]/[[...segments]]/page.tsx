@@ -17,15 +17,6 @@ import {
   createOrganizationAppRoute,
   resolveLegacyLibraryRoute,
 } from '@genfeedai/contracts/constants';
-import {
-  CampaignDetailAds,
-  CampaignDetailOverview,
-  CampaignDetailPerformance,
-  CampaignDetailShell,
-  CampaignFormPage,
-  CampaignsListPage,
-} from '@pages/campaigns';
-import IngredientsList from '@pages/ingredients/list/ingredients-list';
 import LibraryBrowser from '@pages/library/browser/library-browser';
 import { LIBRARY_TYPE_PRESETS } from '@pages/library/browser/library-browser.config';
 import LibraryOverview from '@pages/library/overview/library-overview';
@@ -35,6 +26,15 @@ import type { PostsListSearchParams } from '@props/publishing/publishing-list-pa
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import { notFound, permanentRedirect, redirect } from 'next/navigation';
 import { Suspense } from 'react';
+import {
+  CampaignDetailAds,
+  CampaignDetailOverview,
+  CampaignDetailPerformance,
+  CampaignDetailShell,
+  CampaignFormPage,
+  CampaignsListPage,
+} from '@/features/campaigns';
+import IngredientsList from '@/features/ingredients/list/ingredients-list';
 import EditorProjectsPage from '../../../[brandSlug]/editor/editor-projects-page';
 import EditorNewPage from '../../../[brandSlug]/editor/new/page';
 import AssetDeepLink from '../../../[brandSlug]/library/assets/asset-deep-link';

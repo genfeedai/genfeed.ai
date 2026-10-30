@@ -5,8 +5,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import type { IModel } from '@genfeedai/contracts/interfaces';
-import type { ModelsListProps } from '@props/admin/models.props';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ModelsListProps } from '@/features/models/props/models.props';
 import AdminModelsPageContent from './admin-models-page-content';
 import ModelPricingAttentionPanel from './model-pricing-attention-panel';
 import ModelPricingDetails from './model-pricing-details';
@@ -45,7 +45,7 @@ vi.mock('@services/core/notifications.service', () => ({
     }),
   },
 }));
-vi.mock('@pages/models/list/models-list', () => ({
+vi.mock('@/features/models/list/models-list', () => ({
   default: (props: ModelsListProps) => {
     listProps.current = props;
     return null;

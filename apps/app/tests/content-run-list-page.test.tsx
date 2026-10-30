@@ -1,10 +1,10 @@
 import '@testing-library/jest-dom/vitest';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
-import ContentRunListPage from '@pages/content-runs/list/content-run-list';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import ContentRunListPage from '@/features/content-runs/list/content-run-list';
 
 const list = vi.fn();
 const replace = vi.fn();
