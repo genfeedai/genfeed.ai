@@ -5,6 +5,7 @@ import { FilesService } from '@files/services/files/files.service';
 import { ImagesSplitService } from '@files/services/images/images-split.service';
 import { VideoThumbnailService } from '@files/services/thumbnails/video-thumbnail.service';
 import { UploadService } from '@files/services/upload/upload.service';
+import type { ICoverStyle } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { HttpService } from '@nestjs/axios';
@@ -40,10 +41,21 @@ export class FilesProcessingController {
       ingredientId: string;
       timeInSeconds?: number;
       width?: number;
+      title?: string;
+      isCover?: boolean;
+      coverStyle?: ICoverStyle;
     },
   ) {
     try {
-      const { videoUrl, ingredientId, timeInSeconds, width } = body;
+      const {
+        videoUrl,
+        ingredientId,
+        timeInSeconds,
+        width,
+        title,
+        isCover,
+        coverStyle,
+      } = body;
 
       if (!videoUrl || !ingredientId) {
         throw new HttpException(
@@ -61,6 +73,9 @@ export class FilesProcessingController {
         ingredientId,
         timeInSeconds,
         width,
+        title,
+        isCover,
+        coverStyle,
       );
 
       return {

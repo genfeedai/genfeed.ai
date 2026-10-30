@@ -1,7 +1,9 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { CancelVisualProjectDto } from '@api/collections/visual-projects/dto/cancel-visual-project.dto';
 import { CreateVisualProjectDto } from '@api/collections/visual-projects/dto/create-visual-project.dto';
 import { ExportVisualProjectDto } from '@api/collections/visual-projects/dto/export-visual-project.dto';
 import { QuoteVisualProjectDto } from '@api/collections/visual-projects/dto/quote-visual-project.dto';
+import { RetryVisualProjectDto } from '@api/collections/visual-projects/dto/retry-visual-project.dto';
 import { ReviseVisualProjectDto } from '@api/collections/visual-projects/dto/revise-visual-project.dto';
 import { VisualProjectsService } from '@api/collections/visual-projects/services/visual-projects.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
@@ -148,7 +150,7 @@ export class VisualProjectsController {
     @Req() req: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
-    @Body() input: unknown,
+    @Body() input: CancelVisualProjectDto,
   ) {
     return serializeSingle(
       req,
@@ -160,7 +162,7 @@ export class VisualProjectsController {
     @Req() req: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
-    @Body() input: unknown,
+    @Body() input: RetryVisualProjectDto,
   ) {
     return serializeSingle(
       req,

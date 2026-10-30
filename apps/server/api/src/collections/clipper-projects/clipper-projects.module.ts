@@ -8,7 +8,6 @@ import { ClipperProjectsController } from '@api/collections/clipper-projects/cli
 import { ClipperProjectsCoreModule } from '@api/collections/clipper-projects/clipper-projects-core.module';
 import { ClipperHandoffWorkflowService } from '@api/collections/clipper-projects/services/clipper-handoff-workflow.service';
 import { ClipperProjectClientSourceService } from '@api/collections/clipper-projects/services/clipper-project-client-source.service';
-import { ClipperProjectIngestionService } from '@api/collections/clipper-projects/services/clipper-project-ingestion.service';
 import { ClipperProjectLibrarySourceService } from '@api/collections/clipper-projects/services/clipper-project-library-source.service';
 import { PublicYoutubeClipperClaimService } from '@api/collections/clipper-projects/services/public-youtube-clipper-claim.service';
 import { ClipperResultsModule } from '@api/collections/clipper-results/clipper-results.module';
@@ -45,7 +44,6 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     ClipperProjectClientSourceService,
-    ClipperProjectIngestionService,
     ClipperProjectLibrarySourceService,
     ClipperHandoffWorkflowService,
     PublicYoutubeClipperClaimService,

@@ -332,6 +332,20 @@ const channelCapabilities = [
         label: 'Playlist',
         type: 'string',
       },
+      {
+        description:
+          'Text laid over the bottom of the cover frame. Leave blank for the plain frame.',
+        key: 'thumbnailText',
+        label: 'Cover title',
+        type: 'string',
+      },
+      {
+        description:
+          'Second of the video the cover frame is taken from. Defaults to 1.',
+        key: 'thumbnailFrameSeconds',
+        label: 'Cover frame (seconds)',
+        type: 'string',
+      },
     ],
     status: 'supported',
   },

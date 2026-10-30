@@ -1,4 +1,5 @@
 import { Readable } from 'node:stream';
+import { BrandCoverStyleService } from '@api/collections/brands/services/brand-cover-style.service';
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
@@ -42,6 +43,7 @@ describe('YoutubeUploadService', () => {
     processFile: ReturnType<typeof vi.fn>;
     waitForJob: ReturnType<typeof vi.fn>;
   };
+  let brandCoverStyle: { resolveCoverStyle: ReturnType<typeof vi.fn> };
   let tagResolutionService: { resolveTagLabels: ReturnType<typeof vi.fn> };
   let authService: { refreshToken: ReturnType<typeof vi.fn> };
   let filesClient: { generateThumbnail: ReturnType<typeof vi.fn> };
@@ -98,6 +100,10 @@ describe('YoutubeUploadService', () => {
         .mockResolvedValue({ outputPath: '/tmp/test-video.mp4' }),
     };
 
+    brandCoverStyle = {
+      resolveCoverStyle: vi.fn().mockResolvedValue(undefined),
+    };
+
     tagResolutionService = {
       resolveTagLabels: vi.fn().mockResolvedValue(['ai', 'tech']),
     };
@@ -124,6 +130,7 @@ describe('YoutubeUploadService', () => {
         { provide: TagResolutionService, useValue: tagResolutionService },
         { provide: YoutubeAuthService, useValue: authService },
         { provide: FilesClientService, useValue: filesClient },
+        { provide: BrandCoverStyleService, useValue: brandCoverStyle },
         { provide: LoggerService, useValue: loggerService },
         {
           provide: ConfigService,
@@ -203,6 +210,9 @@ describe('YoutubeUploadService', () => {
         videoId,
         1,
         1080,
+        undefined,
+        true,
+        undefined,
       );
       expect(mockThumbnailsSet).toHaveBeenCalledTimes(1);
       const params = mockThumbnailsSet.mock.calls[0][0];
@@ -214,6 +224,64 @@ describe('YoutubeUploadService', () => {
       const chunks: Buffer[] = [];
       for await (const chunk of params.media.body) chunks.push(chunk);
       expect(Buffer.concat(chunks).toString()).toBe('jpeg bytes');
+    });
+
+    it('renders the cover from the post’s title and frame settings', async () => {
+      await service.uploadVideo(orgId, brandId, videoId, createPost(), {
+        thumbnailFrameSeconds: '4.5',
+        thumbnailText: '  Ship the studio  ',
+      });
+
+      expect(filesClient.generateThumbnail).toHaveBeenCalledWith(
+        expect.any(String),
+        videoId,
+        4.5,
+        1080,
+        'Ship the studio',
+        true,
+        undefined,
+      );
+    });
+
+    it('renders the cover in the style of the brand it publishes for', async () => {
+      const coverStyle = {
+        title: { accentColor: '#E83B3B', fontFamily: 'INTER_BOLD' },
+      };
+      brandCoverStyle.resolveCoverStyle.mockResolvedValueOnce(coverStyle);
+
+      await service.uploadVideo(orgId, brandId, videoId, createPost(), {
+        thumbnailText: 'Ship the studio',
+      });
+
+      expect(brandCoverStyle.resolveCoverStyle).toHaveBeenCalledWith(
+        brandId,
+        orgId,
+      );
+      expect(filesClient.generateThumbnail).toHaveBeenCalledWith(
+        expect.any(String),
+        videoId,
+        1,
+        1080,
+        'Ship the studio',
+        true,
+        coverStyle,
+      );
+    });
+
+    it('falls back to the default frame when the frame setting is not a number', async () => {
+      await service.uploadVideo(orgId, brandId, videoId, createPost(), {
+        thumbnailFrameSeconds: 'soon',
+      });
+
+      expect(filesClient.generateThumbnail).toHaveBeenCalledWith(
+        expect.any(String),
+        videoId,
+        1,
+        1080,
+        undefined,
+        true,
+        undefined,
+      );
     });
 
     it('still returns the video id when the frame cannot be generated', async () => {

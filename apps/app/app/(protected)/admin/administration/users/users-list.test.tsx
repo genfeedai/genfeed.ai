@@ -13,12 +13,16 @@ const mocks = vi.hoisted(() => ({
   impersonateUser: vi.fn(),
   loggerError: vi.fn(),
   notificationsError: vi.fn(),
+  query: { value: 'page=2' },
   refetch: vi.fn(),
+  replace: vi.fn(),
   useQuery: vi.fn(),
 }));
 
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams('page=2'),
+  usePathname: () => '/admin/administration/users',
+  useRouter: () => ({ replace: mocks.replace }),
+  useSearchParams: () => new URLSearchParams(mocks.query.value),
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
@@ -219,6 +223,8 @@ describe('UsersList', () => {
     mocks.notificationsError.mockReset();
     mocks.refetch.mockReset();
     mocks.useQuery.mockReset();
+    mocks.replace.mockReset();
+    mocks.query.value = 'page=2';
     locationAssign.mockReset();
     mocks.useQuery.mockReturnValue({
       data: [regularUser, superAdminUser],
@@ -247,12 +253,27 @@ describe('UsersList', () => {
     render(<UsersList />);
 
     const options = mocks.useQuery.mock.calls[0]?.[0];
-    expect(options.queryKey).toEqual(['admin-users', 2]);
+    expect(options.queryKey).toEqual(['admin-users', 2, '']);
     await options.queryFn();
     expect(mocks.findAll).toHaveBeenCalledWith({ limit: 15, page: 2 });
     expect(
       screen.getByRole('navigation', { name: 'pagination' }),
     ).toBeVisible();
+  });
+
+  it('sends the q search to the API and keeps it in the query key', async () => {
+    mocks.query.value = 'page=2&q=jane';
+    mocks.findAll.mockResolvedValue([regularUser]);
+    render(<UsersList />);
+
+    const options = mocks.useQuery.mock.calls[0]?.[0];
+    expect(options.queryKey).toEqual(['admin-users', 2, 'jane']);
+    await options.queryFn();
+    expect(mocks.findAll).toHaveBeenCalledWith({
+      limit: 15,
+      page: 2,
+      search: 'jane',
+    });
   });
 
   it('offers Impersonate only for non-superadmin users', () => {

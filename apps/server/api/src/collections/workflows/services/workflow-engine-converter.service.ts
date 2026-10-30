@@ -45,6 +45,7 @@ const BRAND_ID_REQUIRED_NODE_TYPES = new Set([
   'aiAvatarVideo',
   'analyticsFeedback',
   'brandContext',
+  'brandCover',
   'effect-captions',
   'imageGen',
   'musicSource',

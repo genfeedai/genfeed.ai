@@ -38,8 +38,6 @@ export const APP_ROUTES = {
       BOTS: '/admin/automation/bots',
       FAILURES: '/admin/automation/failures',
       MODELS: '/admin/automation/models',
-      MODELS_ACTIVE: '/admin/automation/models?type=active',
-      MODELS_ALL: '/admin/automation/models?type=all',
       TRAININGS: '/admin/automation/trainings',
       WORKFLOWS: '/admin/automation/workflows',
     },
@@ -58,13 +56,11 @@ export const APP_ROUTES = {
       FONT_FAMILIES: '/admin/configuration/font-families',
       PRESETS: '/admin/configuration/presets',
       TAGS: '/admin/configuration/tags',
-      TAGS_ALL: '/admin/configuration/tags?filter=all',
     },
     CONTENT: {
       // Ghost CRM routes (analytics/companies/leads/tasks) removed — no pages.
       GENERATIONS: '/admin/content/generations',
       INGREDIENTS: '/admin/content/ingredients',
-      INGREDIENTS_VIDEOS: '/admin/content/ingredients/videos',
       POSTS: '/admin/content/posts',
       TEMPLATES: '/admin/content/templates',
     },

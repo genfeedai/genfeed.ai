@@ -1,4 +1,8 @@
 import { createHash } from 'node:crypto';
+import {
+  watermarkLogoIdFor,
+  watermarkPlacementFor,
+} from '@api/collections/brands/utils/brand-watermark-layer.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
@@ -7,7 +11,7 @@ import { isSelfHostedDeployment } from '@genfeedai/config';
 import type {
   IIngredientExportResult,
   IWatermarkLayer,
-  WatermarkPosition,
+  WatermarkVariant,
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { resolveIngredientMediaUrl } from '@libs/media/media-url.util';
@@ -32,6 +36,7 @@ export class IngredientExportService {
   async export(
     ingredientId: string,
     organizationId: string,
+    variant: WatermarkVariant = 'default',
   ): Promise<IIngredientExportResult & { id: string }> {
     const ingredient = await this.prisma.ingredient.findFirst({
       where: { id: ingredientId, organizationId, isDeleted: false },
@@ -65,10 +70,11 @@ export class IngredientExportService {
     const text = brand.watermarkText?.trim();
     let logoStorageKey: string | undefined;
     let logoVersion: string | undefined;
-    if (brand.watermarkLogoId) {
+    const logoId = watermarkLogoIdFor(brand, variant);
+    if (logoId) {
       const logo = await this.prisma.asset.findFirst({
         where: {
-          id: brand.watermarkLogoId,
+          id: logoId,
           parentOrgId: organizationId,
           parentBrandId: brand.id,
           parentType: 'BRAND',
@@ -103,8 +109,7 @@ export class IngredientExportService {
       {
         text: text || undefined,
         logoStorageKey,
-        opacity: brand.watermarkOpacity,
-        position: brand.watermarkPosition as WatermarkPosition,
+        ...watermarkPlacementFor(brand),
       },
     ];
     const result = await this.files.watermarkExport({

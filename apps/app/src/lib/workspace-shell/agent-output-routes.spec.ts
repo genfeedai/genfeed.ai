@@ -52,6 +52,39 @@ describe('isAgentOutputRoute', () => {
     expect(isAgentOutputRoute('/clipper/new')).toBe(false);
   });
 
+  it('matches the Publishing desks', () => {
+    expect(isAgentOutputRoute('/publishing/posts')).toBe(true);
+    expect(isAgentOutputRoute('/publishing/calendar/')).toBe(true);
+    expect(isAgentOutputRoute('/publishing/overview')).toBe(true);
+  });
+
+  it('matches Approvals, a run and an item', () => {
+    expect(isAgentOutputRoute('/publishing/approvals')).toBe(true);
+    expect(isAgentOutputRoute('/publishing/approvals/run-1')).toBe(true);
+    expect(isAgentOutputRoute('/publishing/approvals/run-1/item-1/')).toBe(
+      true,
+    );
+    expect(isAgentOutputRoute('/publishing/approvals/run-1/item-1/x')).toBe(
+      false,
+    );
+  });
+
+  it('keeps the post editor, campaigns and the rest of Publishing off the split', () => {
+    expect(isAgentOutputRoute('/publishing')).toBe(false);
+    expect(isAgentOutputRoute('/publishing/posts/post-1')).toBe(false);
+    expect(isAgentOutputRoute('/publishing/campaigns')).toBe(false);
+    expect(isAgentOutputRoute('/publishing/review')).toBe(false);
+    expect(isAgentOutputRoute('/publishing/remix')).toBe(false);
+  });
+
+  it('matches an editor project and leaves the list and the create form', () => {
+    expect(isAgentOutputRoute('/editor/project-1')).toBe(true);
+    expect(isAgentOutputRoute('/editor/project-1/')).toBe(true);
+    expect(isAgentOutputRoute('/editor')).toBe(false);
+    expect(isAgentOutputRoute('/editor/new')).toBe(false);
+    expect(isAgentOutputRoute('/editor/new/')).toBe(false);
+  });
+
   it('does not match other apps or nested paths', () => {
     expect(isAgentOutputRoute('/agent/thread-1')).toBe(false);
     expect(isAgentOutputRoute('/storyboard/run-1/extra')).toBe(false);

@@ -54,6 +54,7 @@ export default function ReviewQueueView({
   turboRunList,
   turboRunsError,
   canDiscardTurboRun,
+  deepLinkedItemId = null,
   filterCounts,
   hasInvalidTurboRunPayload,
   isActioning,
@@ -85,11 +86,15 @@ export default function ReviewQueueView({
   const translateReview = useTranslations('pages.publishing.review');
   const translateInbox = useTranslations('pages.publishing.review.inbox');
   // Rows the operator tapped, as opposed to the first item the queue picks
-  // for them: only a tap opens the mobile drawer, and every tap reveals it.
+  // for them: only a tap opens the mobile drawer, and every tap reveals it. A
+  // link to one item counts as a tap on it.
   const [rowTap, setRowTap] = useState<{
     readonly count: number;
     readonly itemId: string | null;
-  }>({ count: 0, itemId: null });
+  }>(() => ({
+    count: deepLinkedItemId ? 1 : 0,
+    itemId: deepLinkedItemId,
+  }));
   const handleSelectRow = useCallback(
     (itemId: string) => {
       setRowTap((current) => ({ count: current.count + 1, itemId }));
@@ -102,7 +107,7 @@ export default function ReviewQueueView({
   const activeItemId = activeItem?.id ?? null;
   useEffect(() => {
     setRowTap((current) =>
-      current.itemId && current.itemId !== activeItemId
+      current.itemId && activeItemId && current.itemId !== activeItemId
         ? { count: current.count, itemId: null }
         : current,
     );

@@ -33,7 +33,7 @@ const STATE_COPY: Record<string, string> = {
 };
 
 const LABEL_CLASS =
-  'text-xs font-bold uppercase tracking-[0.16em] text-foreground/55';
+  'text-xs font-bold uppercase tracking-[0.16em] text-foreground/60';
 
 function SeasonSignal({ data }: BenchmarkContentProps) {
   const runnableTasks = data?.tasks.filter((task) => !task.isDraft).length ?? 0;
@@ -51,7 +51,7 @@ function SeasonSignal({ data }: BenchmarkContentProps) {
             { label: 'Matches', value: data.season.matchCount },
           ].map((item) => (
             <div key={item.label}>
-              <Text className="text-4xl font-semibold tracking-[-0.05em] text-foreground sm:text-5xl">
+              <Text className="text-4xl font-semibold tracking-[-0.02em] text-foreground sm:text-5xl">
                 {item.value}
               </Text>
               <Text className="mt-2 text-xs uppercase tracking-[0.04em] text-foreground/60 sm:tracking-[0.12em]">
@@ -61,7 +61,7 @@ function SeasonSignal({ data }: BenchmarkContentProps) {
           ))}
         </div>
       ) : (
-        <div className="mt-6 flex items-center gap-3 text-foreground/65">
+        <div className="mt-6 flex items-center gap-3 text-foreground/70">
           <RefreshCw className="size-5" />
           <Text>Bench data unavailable</Text>
         </div>
@@ -85,11 +85,11 @@ function Ladder({ data }: { data: BenchmarkData }) {
         <Text className={LABEL_CLASS}>No matches yet</Text>
         <Heading
           as="h2"
-          className="mt-5 text-4xl font-semibold tracking-[-0.04em] text-foreground"
+          className="mt-5 text-4xl font-semibold tracking-[-0.02em] text-foreground"
         >
           The ladder is empty on purpose.
         </Heading>
-        <Text className="mt-5 max-w-xl text-base leading-7 text-foreground/65">
+        <Text className="mt-5 max-w-xl text-base leading-7 text-foreground/70">
           {season.title} is announced with {season.contestantIds.length}{' '}
           contestants entered and no match recorded. Ranking models that have
           never met would be inventing a result, so there is nothing here until
@@ -124,7 +124,7 @@ function Ladder({ data }: { data: BenchmarkData }) {
                     {contestant?.label ?? entry.contestantId}
                   </span>
                   {contestant?.isCompiled ? (
-                    <span className="ml-2 rounded-full border border-foreground/20 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-foreground/60">
+                    <span className="ml-2 rounded-full border border-foreground/20 px-2 py-0.5 text-2xs uppercase tracking-[0.12em] text-foreground/60">
                       Genfeed
                     </span>
                   ) : null}
@@ -150,20 +150,20 @@ function TaskCard({ task }: { task: BenchmarkTask }) {
       <div className="flex flex-wrap items-center gap-3">
         <Heading
           as="h3"
-          className="text-2xl font-semibold tracking-[-0.03em] text-foreground"
+          className="text-2xl font-semibold tracking-[-0.02em] text-foreground"
         >
           {task.title}
         </Heading>
-        <span className="rounded-full border border-foreground/20 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-foreground/60">
+        <span className="rounded-full border border-foreground/20 px-2 py-0.5 text-2xs uppercase tracking-[0.12em] text-foreground/60">
           {task.medium}
         </span>
         {task.isDraft ? (
-          <span className="rounded-full border border-foreground/20 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-foreground/60">
+          <span className="rounded-full border border-foreground/20 px-2 py-0.5 text-2xs uppercase tracking-[0.12em] text-foreground/60">
             Season Two draft
           </span>
         ) : null}
       </div>
-      <Text className="mt-4 max-w-2xl text-base leading-7 text-foreground/65">
+      <Text className="mt-4 max-w-2xl text-base leading-7 text-foreground/70">
         {task.rationale}
       </Text>
       <Text className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-foreground/40">
@@ -232,11 +232,11 @@ export default function BenchmarkContent({ data }: BenchmarkContentProps) {
               <Text className={LABEL_CLASS}>Bench unavailable</Text>
               <Heading
                 as="h2"
-                className="mt-5 text-4xl font-semibold tracking-[-0.04em] text-foreground"
+                className="mt-5 text-4xl font-semibold tracking-[-0.02em] text-foreground"
               >
                 The bench could not be read.
               </Heading>
-              <Text className="mt-5 max-w-xl text-base leading-7 text-foreground/65">
+              <Text className="mt-5 max-w-xl text-base leading-7 text-foreground/70">
                 This page never substitutes a cached or hand-written ladder. The
                 data lives in the public repository and will render again when
                 it can be reached.
@@ -251,7 +251,7 @@ export default function BenchmarkContent({ data }: BenchmarkContentProps) {
                   <Text className={LABEL_CLASS}>{data.season.title}</Text>
                   <Heading
                     as="h2"
-                    className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-foreground sm:text-5xl"
+                    className="mt-4 text-4xl font-semibold tracking-[-0.02em] text-foreground sm:text-5xl"
                   >
                     Standings.
                   </Heading>
@@ -270,7 +270,7 @@ export default function BenchmarkContent({ data }: BenchmarkContentProps) {
                   <Text className={LABEL_CLASS}>The suite</Text>
                   <Heading
                     as="h2"
-                    className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-foreground sm:text-5xl"
+                    className="mt-4 text-4xl font-semibold tracking-[-0.02em] text-foreground sm:text-5xl"
                   >
                     What we ask models to make.
                   </Heading>
@@ -293,7 +293,7 @@ export default function BenchmarkContent({ data }: BenchmarkContentProps) {
                     <Text className={LABEL_CLASS}>Season Two</Text>
                     <Heading
                       as="h2"
-                      className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-foreground sm:text-5xl"
+                      className="mt-4 text-4xl font-semibold tracking-[-0.02em] text-foreground sm:text-5xl"
                     >
                       Video, not yet running.
                     </Heading>
@@ -314,11 +314,11 @@ export default function BenchmarkContent({ data }: BenchmarkContentProps) {
               <Text className={LABEL_CLASS}>Contestants</Text>
               <Heading
                 as="h2"
-                className="mt-4 max-w-2xl text-3xl font-semibold tracking-[-0.04em] text-foreground"
+                className="mt-4 max-w-2xl text-3xl font-semibold tracking-[-0.02em] text-foreground"
               >
                 Genfeed is entered as a contestant, not as the scoreboard.
               </Heading>
-              <Text className="mt-5 max-w-xl text-base leading-7 text-foreground/65">
+              <Text className="mt-5 max-w-xl text-base leading-7 text-foreground/70">
                 One route runs through Genfeed's brief compiler; the rest are
                 raw provider routes, including the same model the compiled route
                 wraps. If the compile step makes a task worse, the ladder says
@@ -327,12 +327,12 @@ export default function BenchmarkContent({ data }: BenchmarkContentProps) {
               <div className="mt-8 flex flex-wrap gap-3">
                 {data.contestants.map((contestant) => (
                   <span
-                    className="rounded-full border border-foreground/15 px-4 py-2 text-sm text-foreground/70"
+                    className="rounded-full border border-foreground/10 px-4 py-2 text-sm text-foreground/70"
                     key={contestant.id}
                   >
                     {contestant.label}
                     {contestant.isCompiled ? (
-                      <span className="ml-2 text-xs uppercase tracking-[0.12em] text-foreground/45">
+                      <span className="ml-2 text-xs uppercase tracking-[0.12em] text-foreground/50">
                         Genfeed
                       </span>
                     ) : null}

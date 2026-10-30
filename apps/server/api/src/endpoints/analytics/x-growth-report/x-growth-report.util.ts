@@ -4,10 +4,12 @@ import type {
 } from '@api/endpoints/analytics/x-growth-report/x-growth-report.types';
 import {
   AnalyticsMetricAvailability,
-  DEFAULT_FLEET_EVALUATION_COVERAGE,
-  DEFAULT_FLEET_EVALUATION_FRESHNESS_HOURS,
   TargetAnalyticsCollectionState,
 } from '@genfeedai/contracts';
+import {
+  DEFAULT_FLEET_EVALUATION_COVERAGE,
+  DEFAULT_FLEET_EVALUATION_FRESHNESS_HOURS,
+} from '@genfeedai/contracts/analytics';
 import type {
   IXActivityRow,
   IXActivitySummary,

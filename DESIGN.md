@@ -588,13 +588,19 @@ complaint, and one point of size buys more legibility here than any contrast cha
 ### Tracking
 
 `-0.011em` on body and controls, `-0.02em` on anything 18px and up, `0.02em` on
-uppercase micro-labels. Larger type needs *more* negative tracking, not less.
+uppercase micro-labels. `-0.02em` is the floor for negative tracking at every
+size; display type does not get tighter. `tracking-tight` is that value. The
+design-system check fails on any `tracking-[-…em]` below `-0.02em`.
 
 ### Fonts
 
 Satoshi is the product sans and Zodiak the editorial serif, both loaded as
 `--font-satoshi` / `--font-zodiak` with a system stack behind them. Satoshi has a
 low x-height for its point size, which is the second reason the 11px floor exists.
+
+Zodiak is for editorial covers only: no prices, headings, or product chrome. Italic
+is not a heading style either — no half-italic accent word in a headline, and no
+italic blockquotes. Emphasis comes from weight and colour.
 
 ## Layout
 
@@ -968,6 +974,9 @@ animations in chrome.
 - **Do** use `--focus-ring` for every focus state.
 - **Do** verify System, Light, and Dark whenever application chrome changes.
 - **Don't** put words on anything below `gray-800`.
+- **Don't** invent opacity stops. Colour modifiers use `/5 /10 /20 /40 /50 /60 /70 /80 /90`
+  and nothing else: no `/[0.04]`, no `/72`, no `/35`. Body copy on a tinted
+  surface goes up the ladder, not down it.
 - **Don't** write `text-[10px]`, `text-[11px]`, or any arbitrary size — 11px is the
   floor and it has a name.
 - **Don't** add a per-theme override. If a component needs one, the step it picked

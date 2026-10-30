@@ -1,6 +1,5 @@
 'use client';
 
-import type { SubscriptionTier } from '@genfeedai/contracts';
 import type {
   GlobalModalRenderer,
   GlobalModalsProviderProps,
@@ -222,9 +221,7 @@ export default function GlobalModalsRenderer({
           />,
         )}
 
-      <ModalUpgradePrompt
-        currentTier={settings?.subscriptionTier as SubscriptionTier | undefined}
-      />
+      <ModalUpgradePrompt currentTier={settings?.subscriptionTier} />
       <ModalUpgradePrompt reason="credits" />
 
       {postRemixData &&

@@ -1,6 +1,7 @@
 import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 import { BrandAssetAutofillListener } from '@api/collections/brands/listeners/brand-asset-autofill.listener';
 import { BrandAssetAutofillService } from '@api/collections/brands/services/brand-asset-autofill.service';
+import { BrandCoverStyleService } from '@api/collections/brands/services/brand-cover-style.service';
 import { BrandDataMapper } from '@api/collections/brands/services/brand-data.mapper';
 import { BrandFontAssetsService } from '@api/collections/brands/services/brand-font-assets.service';
 import { BrandGenerationService } from '@api/collections/brands/services/brand-generation.service';
@@ -38,6 +39,7 @@ import { Module } from '@nestjs/common';
     BrandScraperModule,
     BrandsService,
     DefaultRecurringContentService,
+    BrandCoverStyleService,
     BrandDataMapper,
     BrandOsPreviewService,
     BrandOsRevisionsService,
@@ -69,6 +71,7 @@ import { Module } from '@nestjs/common';
     BrandOsScanService,
     BrandFontAssetsService,
     BrandRelocationService,
+    BrandCoverStyleService,
     BrandDataMapper,
     BrandVoiceCorpusService,
     SystemBrandService,

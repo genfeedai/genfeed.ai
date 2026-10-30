@@ -93,7 +93,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
                 {category.label}
               </div>
               <h2 className="text-5xl font-semibold mb-6">{category.title}</h2>
-              <p className="text-foreground/65 max-w-xl mx-auto">
+              <p className="text-foreground/70 max-w-xl mx-auto">
                 {category.subtitle}
               </p>
             </div>
@@ -108,11 +108,10 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
               }
               className="gsap-grid"
             >
-              {category.skills.map((skill, index) => (
+              {category.skills.map((skill) => (
                 <NeuralGridItem
                   key={skill.slug}
                   className="gsap-card"
-                  tierLabel={`${String(index + 1).padStart(2, '0')} / ${category.label}`}
                   icon={skill.icon}
                   title={skill.name}
                   description={skill.description}
@@ -121,7 +120,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
             </NeuralGrid>
 
             <div className="text-center mt-8">
-              <Code className="bg-transparent text-foreground/55">
+              <Code className="bg-transparent text-foreground/60">
                 bunx skills add genfeedai/skills/{category.skills[0]?.slug}
               </Code>
             </div>
@@ -136,7 +135,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
                 Premium
               </div>
               <h2 className="text-5xl font-semibold mb-6">Pro Skills</h2>
-              <p className="text-foreground/65 max-w-xl mx-auto">
+              <p className="text-foreground/70 max-w-xl mx-auto">
                 Paid operating systems for source-to-brief, brand voice,
                 production queues, performance loops, and platform warmup. All
                 included in the bundle.
@@ -151,18 +150,15 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
               }
               className="gsap-grid"
             >
-              {registry.skills.map(
-                (skill: SkillRegistryEntry, index: number) => (
-                  <NeuralGridItem
-                    key={skill.slug}
-                    className="gsap-card"
-                    padding="lg"
-                    tierLabel={`${String(index + 1).padStart(2, '0')} / ${skill.category}`}
-                    title={skill.name}
-                    description={skill.description}
-                  />
-                ),
-              )}
+              {registry.skills.map((skill: SkillRegistryEntry) => (
+                <NeuralGridItem
+                  key={skill.slug}
+                  className="gsap-card"
+                  padding="lg"
+                  title={skill.name}
+                  description={skill.description}
+                />
+              ))}
             </NeuralGrid>
           </WebSection>
         )}
@@ -185,12 +181,12 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
                   Quick Start
                 </div>
                 <h2 className="text-4xl font-semibold mb-4">One Command</h2>
-                <p className="text-foreground/65 text-sm leading-relaxed mb-6">
+                <p className="text-foreground/70 text-sm leading-relaxed mb-6">
                   Install all {FREE_SKILL_COUNT} free skills with a single
                   command. Your agent loads each skill and activates it at
                   exactly the right moment.
                 </p>
-                <div className="space-y-3 text-sm text-foreground/65">
+                <div className="space-y-3 text-sm text-foreground/70">
                   <p>
                     <span className="text-foreground/60 font-medium">
                       Install all:

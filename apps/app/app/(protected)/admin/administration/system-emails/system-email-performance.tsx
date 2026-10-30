@@ -158,9 +158,8 @@ export default function SystemEmailPerformance({
   ];
 
   return (
-    <WorkspaceSurface title={translate('title')} tone="muted">
+    <WorkspaceSurface tone="muted">
       <div className="space-y-4">
-        <p className="text-sm text-muted-foreground">{translate('intro')}</p>
         {state === 'loading' ? (
           <div role="status" aria-label={translate('loading')}>
             <SkeletonCard showImage={false} />

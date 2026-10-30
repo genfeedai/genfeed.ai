@@ -47,8 +47,6 @@ describe('ProductPage', () => {
     expect(
       screen.getByText(/Operate Genfeed through a unified agent interface\./i),
     ).toBeInTheDocument();
-    expect(screen.getByText('Live workspace')).toBeInTheDocument();
-    expect(screen.getByText(/Tell Genfeed what to do in/i)).toBeInTheDocument();
 
     expect(screen.getByText('Social / Engagement Agents')).toBeInTheDocument();
     expect(screen.getByText('Workflow Agents')).toBeInTheDocument();

@@ -164,7 +164,7 @@ function CastPromptNodeComponent(props: NodeProps) {
             <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
               {vocabulary.map((entry) => (
                 <div key={entry.kind} className="space-y-1">
-                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                  <div className="text-2xs uppercase tracking-wide text-muted-foreground">
                     {entry.label}
                   </div>
                   <p className="text-xs leading-snug text-foreground/90">

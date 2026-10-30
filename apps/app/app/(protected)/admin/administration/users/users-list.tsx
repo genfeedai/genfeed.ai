@@ -9,6 +9,8 @@ import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
 import { UsersService } from '@services/organization/users.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
+import SearchField from '@ui/content/search-field/SearchField';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -32,6 +34,7 @@ export default function UsersList() {
   const translate = useTranslations('pages.adminUsers');
   const impersonateUser = useImpersonateUser();
   const currentPage = Number(useSearchParams().get('page')) || 1;
+  const { search, setSearch } = useAdminSearchParam();
   const getUsersService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
   );
@@ -43,10 +46,14 @@ export default function UsersList() {
     error: usersError,
     refetch,
   } = useQuery<IUser[]>({
-    queryKey: ['admin-users', currentPage],
+    queryKey: ['admin-users', currentPage, search],
     queryFn: async () => {
       const service = await getUsersService();
-      return service.findAll({ limit: ITEMS_PER_PAGE, page: currentPage });
+      return service.findAll({
+        limit: ITEMS_PER_PAGE,
+        page: currentPage,
+        ...(search ? { search } : {}),
+      });
     },
   });
 
@@ -114,6 +121,14 @@ export default function UsersList() {
     <AdminPageShell
       title={translate('title')}
       icon={Users}
+      search={
+        <SearchField
+          ariaLabel={translate('searchUsers')}
+          onSearch={setSearch}
+          placeholder={translate('searchUsers')}
+          value={search}
+        />
+      }
       onRefresh={() => refresh()}
       isRefreshing={isRefreshing}
     >
@@ -133,7 +148,7 @@ export default function UsersList() {
               user={u}
               onUpdated={(updated) => {
                 queryClient.setQueryData<IUser[]>(
-                  ['admin-users', currentPage],
+                  ['admin-users', currentPage, search],
                   (current) =>
                     current?.map((item) =>
                       item.id === updated.id ? updated : item,

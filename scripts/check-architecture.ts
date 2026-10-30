@@ -142,6 +142,14 @@ const checks = [
     name: 'System-workflow dispatch-class boundary',
   },
   {
+    command: [
+      'bun',
+      'run',
+      'scripts/architecture/check-admin-route-convention.ts',
+    ],
+    name: 'Admin route convention (#8564)',
+  },
+  {
     command: ['bun', 'run', 'scripts/architecture/check-route-shadowing.ts'],
     name: 'Controller route shadowing',
   },

@@ -235,17 +235,17 @@ export default function YoutubeLongFormContent(): React.ReactElement {
         {result ? (
           <article className="grid gap-5 bg-background p-6 shadow-border">
             <div className="grid gap-2">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-foreground/55">
+              <Text className="text-xs font-semibold uppercase tracking-wider text-foreground/60">
                 {OUTPUT_OPTIONS.find(
                   (option) => option.value === result.outputType,
                 )?.label ?? result.outputType}
               </Text>
               <Heading as="h2">{result.title}</Heading>
-              <Text className="text-sm leading-6 text-foreground/65">
+              <Text className="text-sm leading-6 text-foreground/70">
                 {result.summary}
               </Text>
             </div>
-            <pre className="whitespace-pre-wrap font-sans text-sm leading-7 text-foreground/85">
+            <pre className="whitespace-pre-wrap font-sans text-sm leading-7 text-foreground/90">
               {result.content}
             </pre>
             <Button
@@ -269,8 +269,8 @@ export default function YoutubeLongFormContent(): React.ReactElement {
                 withWrapper={false}
               />
             ) : (
-              <div className="grid gap-3 bg-foreground/[0.04] p-4">
-                <Text className="text-sm leading-6 text-foreground/65">
+              <div className="grid gap-3 bg-foreground/5 p-4">
+                <Text className="text-sm leading-6 text-foreground/70">
                   Sign in before your next run to save the generated text and
                   optionally keep the source video in your Library.
                 </Text>
@@ -295,7 +295,7 @@ export default function YoutubeLongFormContent(): React.ReactElement {
         <Heading as="h2" className="mt-4 text-lg">
           One transcript, four formats
         </Heading>
-        <Text className="mt-3 text-sm leading-6 text-foreground/65">
+        <Text className="mt-3 text-sm leading-6 text-foreground/70">
           Every format uses the same source and transcription actions. Only the
           selected output is generated. Signed-in results are saved; temporary
           media expires unless you explicitly keep the source in your Library.

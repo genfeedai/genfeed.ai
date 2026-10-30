@@ -20,7 +20,6 @@ export interface OutputFormat {
 
 export interface HowStep {
   description: string;
-  step: string;
   title: string;
 }
 

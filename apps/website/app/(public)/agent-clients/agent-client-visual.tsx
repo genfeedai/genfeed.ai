@@ -11,7 +11,7 @@ export default function AgentClientVisual({
   const asset = getPageMarketingAsset(`/${client.slug}`);
   return (
     <figure className="w-full max-w-2xl overflow-hidden rounded-2xl border border-foreground/10 bg-card">
-      <div className="flex items-center justify-between gap-4 border-b border-foreground/10 px-5 py-4 text-sm text-foreground/75">
+      <div className="flex items-center justify-between gap-4 border-b border-foreground/10 px-5 py-4 text-sm text-foreground/80">
         <span className="flex items-center gap-3 font-semibold text-foreground">
           <AgentClientLogo client={client} />
           {client.name}
@@ -30,7 +30,7 @@ export default function AgentClientVisual({
           src={asset.src}
         />
       </div>
-      <figcaption className="grid grid-cols-3 gap-3 border-t border-foreground/10 px-5 py-4 text-xs leading-5 text-foreground/75">
+      <figcaption className="grid grid-cols-3 gap-3 border-t border-foreground/10 px-5 py-4 text-xs leading-5 text-foreground/80">
         <span className="flex items-center gap-2">
           <ImageIcon aria-hidden className="size-4 shrink-0" />
           Brand context

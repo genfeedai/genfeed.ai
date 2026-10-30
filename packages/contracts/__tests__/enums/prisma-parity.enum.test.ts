@@ -215,6 +215,7 @@ const PRISMA_REQUIRED: Record<string, readonly string[]> = {
     'ANTON',
     'ARCHIVO_BLACK',
     'BANGERS',
+    'SPACE_GROTESK_BOLD',
   ],
   GenerationPriority: ['QUALITY', 'SPEED', 'COST', 'BALANCED'],
   IngredientCategory: [

@@ -134,8 +134,7 @@ export default function ReleasePostsList({
   );
   const platform = normalizePostsPlatform(platformParam);
   const platformFilter = platform === 'all' ? undefined : platform;
-  const { setLeadingNode, setFiltersNode, setRefresh, setViewToggleNode } =
-    usePostsLayout();
+  const { setLeadingNode, setRefresh, setViewToggleNode } = usePostsLayout();
   const browserTimezone = useMemo(() => getBrowserTimezone(), []);
   const viewMode = parsePublishingPostsViewMode(
     searchParams?.get(PUBLISHING_POSTS_QUERY_KEYS.VIEW),
@@ -438,35 +437,31 @@ export default function ReleasePostsList({
 
   useEffect(() => {
     setLeadingNode(
-      <PostsListSearch
-        searchValue={search}
-        onSearchChange={handleSearchChange}
-      />,
-    );
-    setFiltersNode(
-      <PostsListToolbar
-        onSourceChange={handleSourceChange}
-        sourceValue={source}
-        onSortChange={(nextSort) =>
-          replaceSearchParams((params) => {
-            if (nextSort === 'createdAt: -1') {
-              params.delete('sort');
-            } else {
-              params.set('sort', nextSort);
-            }
-            params.delete('page');
-          })
-        }
-        sortOptions={
-          isCapturedView
-            ? CAPTURED_POSTS_SORT_OPTIONS
-            : RELEASE_POSTS_SORT_OPTIONS
-        }
-        sortValue={isCapturedView ? normalizeCapturedPostsSort(sort) : sort}
-      />,
+      <PostsListSearch searchValue={search} onSearchChange={handleSearchChange}>
+        <PostsListToolbar
+          isAttached
+          onSourceChange={handleSourceChange}
+          sourceValue={source}
+          onSortChange={(nextSort) =>
+            replaceSearchParams((params) => {
+              if (nextSort === 'createdAt: -1') {
+                params.delete('sort');
+              } else {
+                params.set('sort', nextSort);
+              }
+              params.delete('page');
+            })
+          }
+          sortOptions={
+            isCapturedView
+              ? CAPTURED_POSTS_SORT_OPTIONS
+              : RELEASE_POSTS_SORT_OPTIONS
+          }
+          sortValue={isCapturedView ? normalizeCapturedPostsSort(sort) : sort}
+        />
+      </PostsListSearch>,
     );
     return () => {
-      setFiltersNode(null);
       setLeadingNode(null);
     };
   }, [
@@ -475,7 +470,6 @@ export default function ReleasePostsList({
     isCapturedView,
     replaceSearchParams,
     search,
-    setFiltersNode,
     setLeadingNode,
     sort,
     source,

@@ -764,7 +764,7 @@ test.describe('Clip Factory', () => {
     await authenticatedPage.route(API_CLIP_RESULTS, async (route) => {
       const editedHighlight = (
         generateRequestBody?.editedHighlights as
-          | Array<{ id: string; summary: string; title: string }>
+          | Array<{ id: string; script?: string; title: string }>
           | undefined
       )?.find((highlight) => highlight.id === 'h1');
 
@@ -775,7 +775,7 @@ test.describe('Clip Factory', () => {
                 {
                   attributes: {
                     ...mockCompletedClipperResult,
-                    summary: editedHighlight.summary,
+                    summary: editedHighlight.script,
                     title: editedHighlight.title,
                   },
                   id: 'clip-1',
@@ -826,7 +826,7 @@ test.describe('Clip Factory', () => {
       editedHighlights: expect.arrayContaining([
         expect.objectContaining({
           id: 'h1',
-          summary: 'Edited hook summary for generation.',
+          script: 'Edited hook summary for generation.',
           title: 'Edited Hook Title',
         }),
       ]),
@@ -840,6 +840,7 @@ test.describe('Clip Factory', () => {
       (
         submittedEditedHighlights as Array<{
           id: string;
+          script: string;
           summary: string;
           title: string;
         }>
@@ -847,7 +848,8 @@ test.describe('Clip Factory', () => {
     ).toEqual([
       {
         id: 'h1',
-        summary: 'Edited hook summary for generation.',
+        script: 'Edited hook summary for generation.',
+        summary: mockHighlights[0].summary,
         title: 'Edited Hook Title',
       },
     ]);

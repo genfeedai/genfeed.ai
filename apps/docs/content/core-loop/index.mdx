@@ -1,70 +1,36 @@
 ---
 title: Content Creation Loop
-description: "Understand Genfeed's trends-to-create-to-publish-to-analytics operating loop and the server modules, product surfaces, and smoke paths behind it."
+description: "Understand Genfeed's trends-to-create-to-publish-to-analytics operating loop and how each step feeds the next."
 ---
 
 # Core Loop
 
-The v1 release is organized around one operating loop:
+Genfeed is organized around one operating loop:
 
 `trends -> create -> publish -> analytics -> repeat`
 
 In the product navigation, **Create** is the parent phase for Studio, Remix, Library, and Turbo. Remix and generation stay visible, but they sit under the same creation phase instead of becoming separate first-level app surfaces.
 
-The repo already contains the live server surfaces for this loop. This section makes the wiring explicit so the OSS v1 story is inspectable instead of implicit.
+```mermaid
+flowchart LR
+  A["Trends"] --> B["Create"]
+  B --> C["Publish"]
+  C --> D["Analytics"]
+  D --> A
+```
 
 ## What This Section Covers
 
-- **Step 1: Trend Ingestion**: how trend signals enter the platform and end up in `collections/trends`
-- **Prelaunch Corpus Health**: launch-minimum targets, health metrics, and freshness expectations for the global trend/reference corpus
-- **Prelaunch Corpus Backfill**: the credential-free global seed path for launch cold-start coverage
-- **Agent Orchestration**: how the V1 agent runtime should own turn state while campaigns, skills, and content pipelines stay as adapters or deterministic execution layers
-- **Step 3: Create**: how remix, library, Turbo, and generation-facing modules route into provider-backed media and text paths
-- **Step 5: Analytics Backbone**: how analytics-facing services aggregate activity into dashboard-visible output
+- **[Trend Ingestion](/core-loop/trend-ingestion)**: how trend signals enter the platform, how fresh they are, and how the refresh is monitored
+- **[Agent Orchestration](/core-loop/agent-orchestration)**: how one agent runtime owns a conversation while campaigns, skills, and content pipelines stay deterministic layers around it
+- **[Generation Service](/core-loop/generation-service)**: how a request for an image, video, voice, or track reaches a provider and comes back as an asset
+- **[Analytics Backbone](/core-loop/analytics-backbone)**: how provider metrics become dashboards and feed back into the next round of creation
 
-## Why This Matters For V1
+## Checking The Loop
 
-The v1 milestone is not blocked on inventing these systems from scratch. It is blocked on making the current surfaces:
+Each area has one narrow check that proves it is wired:
 
-- visible in docs
-- easier to verify
-- easier to reason about as one release candidate
-
-## Core Module Spine
-
-The main server app already wires the three v1 surfaces directly in [`apps/server/api/src/app.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/app.module.ts):
-
-- `TrendsModule`
-- `TurboRunModule`
-- `BusinessAnalyticsModule`
-- `AnalyticsModule`
-- `TwitterPipelineModule`
-
-## Loop Map
-
-```mermaid
-flowchart LR
-  A["External signals\nTwitter / TikTok / Reddit / YouTube / Instagram"] --> B["Trend ingestion\nTrendsModule + TwitterPipelineModule"]
-  B --> C["Stored trends\ncollections/trends"]
-  C --> D["Agent runtime\norchestrator + threading + tools"]
-  D --> E["Create workspace\nStudio + Remix + Library + Turbo"]
-  E --> F["Generation service\nTurboRunModule + provider services"]
-  F --> G["Generated assets / posts / Turbo runs"]
-  G --> H["Analytics ingestion\nPostsAnalyticsController + PostAnalyticsService"]
-  H --> I["Stored post analytics\npostAnalytics"]
-  I --> J["Analytics aggregation\nPerformanceSummaryService + BusinessAnalyticsService"]
-  I --> K["Closed-loop sync\nAnalyticsSyncService -> contentPerformance"]
-  J --> L["Dashboard-visible summaries\npost analytics / performance / business views"]
-  K --> L
-```
-
-## Representative Smoke Paths
-
-Each v1 area now has one narrow verification path:
-
-- **Trend ingestion**: verify `TrendsService` falls through the cached path into the live-fetch path when cache is empty — empty feed when no real data (no synthetic seed)
-- **Agent orchestration**: verify new agent-facing automation routes through one runtime boundary instead of adding another peer orchestrator
-- **Generation service**: verify dynamic provider-backed model discovery merges into the stable generation-facing model surface
-- **Analytics backbone**: verify provider metrics are stored in `postAnalytics`, visible in publication analytics, and included in content-performance summaries once the data is no longer current-day incomplete
-
-Continue with the step-specific pages for the concrete module inventories and smoke-path details.
+- **Trends**: with an empty cache, a read falls through to a live fetch, and it returns an empty feed when there is no real data (never synthetic seed data)
+- **Agents**: new automation starts its work through the one agent runtime instead of adding another peer orchestrator
+- **Generation**: models discovered from providers merge into the reviewed model catalog before anyone can generate with them
+- **Analytics**: provider metrics are stored per post and day, show in publication analytics at once, and join the content-performance summaries once the day is complete

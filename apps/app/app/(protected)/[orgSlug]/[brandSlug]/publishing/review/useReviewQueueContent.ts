@@ -92,6 +92,9 @@ export function useReviewQueueContent() {
   const [activeItemId, setActiveItemId] = useState<string | null>(
     requestedItemId,
   );
+  // The item the page was opened on (a link from a project or the agent). It
+  // is the operator's pick, unlike the first row the queue chooses itself.
+  const [deepLinkedItemId] = useState<string | null>(requestedItemId);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isActioning, setIsActioning] = useState(false);
@@ -730,6 +733,7 @@ export function useReviewQueueContent() {
     turboRunList,
     turboRunsError,
     canDiscardTurboRun,
+    deepLinkedItemId,
     filterCounts,
     hasInvalidTurboRunPayload,
     isActioning,

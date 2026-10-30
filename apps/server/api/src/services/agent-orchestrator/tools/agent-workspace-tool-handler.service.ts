@@ -17,6 +17,7 @@ import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-ke
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { readAccountIdentity } from '@api/services/agent-orchestrator/tools/agent-account-identity.util';
+import { starLibraryAsset } from '@api/services/agent-orchestrator/tools/agent-asset-star.util';
 import { readAgentLibraryFilters } from '@api/services/agent-orchestrator/tools/agent-library-filters.util';
 import {
   agentPostPreviewInclude,
@@ -572,6 +573,14 @@ export class AgentWorkspaceToolHandler {
       },
       success: true,
     };
+  }
+
+  /** Stars or unstars a Library asset; the rules live in `starLibraryAsset`. */
+  starAsset(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    return starLibraryAsset(this.ingredientsService, params, ctx);
   }
 
   async requestMediaUpload(

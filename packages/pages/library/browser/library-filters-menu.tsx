@@ -50,12 +50,13 @@ function CharacterAvatar({
 }
 
 /**
- * Every filter axis and the sort order behind one trigger, so the toolbar is a
- * single line at any width. What is applied shows as chips beside the trigger
- * (see `LibraryActiveFilters`); the menu only ever has to say what is
- * possible.
+ * Every filter axis and the sort order behind one trigger, attached inside the
+ * Library's search field. The trigger counts what is applied; the menu only has
+ * to say what is possible.
  */
 export default function LibraryFiltersMenu({
+  isAdminScope = false,
+  isAttached,
   onClearAllFilters,
   onCharactersChange,
   onSortChange,
@@ -86,29 +87,36 @@ export default function LibraryFiltersMenu({
     characterOptions.length > 0 || characters.length > 0;
   const isTagFilterVisible = tagOptions.length > 0 || tags.length > 0;
 
-  const facets: FilterMenuFacet[] = [
-    {
-      defaultValue: 'all',
-      key: 'status',
-      label: translate('statusAria'),
-      onChange: model.onStatusValueChange,
-      options: model.statusChoices,
-      selection: 'single',
-      value: model.statusValue,
-    },
-    {
-      defaultValue: 'all',
-      key: 'show',
-      label: translate('showAria'),
-      onChange: model.onPlaceValueChange,
-      options: [
-        { label: translate('showAll'), value: 'all' },
-        { label: translate('showRecent'), value: LibraryPlace.RECENT },
-        { label: translate('showStarred'), value: LibraryPlace.STARRED },
-      ],
-      selection: 'single',
-      value: model.placeValue,
-    },
+  // Shelves and places are per-brand views of generated work; the admin
+  // Library lists every organization, so only type, origin and tags apply.
+  const facets: FilterMenuFacet[] = isAdminScope
+    ? []
+    : [
+        {
+          defaultValue: 'all',
+          key: 'status',
+          label: translate('statusAria'),
+          onChange: model.onStatusValueChange,
+          options: model.statusChoices,
+          selection: 'single',
+          value: model.statusValue,
+        },
+        {
+          defaultValue: 'all',
+          key: 'show',
+          label: translate('showAria'),
+          onChange: model.onPlaceValueChange,
+          options: [
+            { label: translate('showAll'), value: 'all' },
+            { label: translate('showRecent'), value: LibraryPlace.RECENT },
+            { label: translate('showStarred'), value: LibraryPlace.STARRED },
+          ],
+          selection: 'single',
+          value: model.placeValue,
+        },
+      ];
+
+  facets.push(
     {
       key: 'type',
       label: translate('type'),
@@ -125,7 +133,7 @@ export default function LibraryFiltersMenu({
       selection: 'multiple',
       values: filterProps.origins,
     },
-  ];
+  );
 
   if (isCharacterFilterVisible) {
     facets.push({
@@ -208,6 +216,7 @@ export default function LibraryFiltersMenu({
       clearLabel={translate('clearAllFilters')}
       facets={facets}
       getActiveCountLabel={(count) => translate('activeFilterCount', { count })}
+      isAttached={isAttached}
       label={translate('filters')}
       onClear={onClearAllFilters}
     />

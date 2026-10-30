@@ -51,7 +51,7 @@ import {
 } from 'react';
 import SkillDetailPanel from './skill-detail-panel';
 import { prepareSkillDraftPatch } from './skill-draft-patch';
-import SkillFilters, { SkillSearch } from './skill-filters';
+import SkillAgentAction, { SkillSearch } from './skill-filters';
 import SkillImportForm, {
   type SkillImportFormLabels,
 } from './skill-import-form';
@@ -981,19 +981,12 @@ export default function BrandSettingsSkillsPage() {
       label={translate('heading')}
       leading={
         <SkillSearch
-          onSearchQueryChange={(value) =>
-            dispatch({ type: 'SET_SEARCH_QUERY', value })
-          }
-          searchQuery={searchQuery}
-        />
-      }
-      refresh={<ButtonRefresh onClick={() => void refreshCatalog()} />}
-      right={
-        <SkillFilters
-          agentHref={href(APP_ROUTES.AGENT.ROOT)}
           modalityFilter={modalityFilter}
           onModalityFilterChange={(value) =>
             dispatch({ type: 'SET_MODALITY_FILTER', value })
+          }
+          onSearchQueryChange={(value) =>
+            dispatch({ type: 'SET_SEARCH_QUERY', value })
           }
           onSourceFilterChange={(value) =>
             dispatch({ type: 'SET_SOURCE_FILTER', value })
@@ -1001,10 +994,13 @@ export default function BrandSettingsSkillsPage() {
           onStageFilterChange={(value) =>
             dispatch({ type: 'SET_STAGE_FILTER', value })
           }
+          searchQuery={searchQuery}
           sourceFilter={sourceFilter}
           stageFilter={stageFilter}
         />
       }
+      refresh={<ButtonRefresh onClick={() => void refreshCatalog()} />}
+      right={<SkillAgentAction agentHref={href(APP_ROUTES.AGENT.ROOT)} />}
       titleVisibility="sr-only"
     >
       {error && !selectedSkill ? (

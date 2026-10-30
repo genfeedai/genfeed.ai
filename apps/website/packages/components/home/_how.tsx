@@ -2,24 +2,18 @@ import type { HowStep } from '@props/website/home.props';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 
-const EYEBROW_CLASS =
-  'text-xs font-bold uppercase tracking-widest text-foreground/72';
-
 const HOW_STEPS: HowStep[] = [
   {
     description: 'Say what you want, or drop in a reference.',
-    step: '01',
     title: 'Ask',
   },
   {
     description: 'Create videos, images and posts using your brand context.',
-    step: '02',
     title: 'Create',
   },
   {
     description:
       'Review, publish and use the results to plan your next campaign.',
-    step: '03',
     title: 'Grow',
   },
 ];
@@ -32,11 +26,10 @@ export default function HomeHow(): React.ReactElement {
     >
       <div className="container mx-auto px-6">
         <div className="flex flex-col mb-10 max-w-3xl gap-4" data-reveal="up">
-          <Text className={EYEBROW_CLASS}>How it works</Text>
           <Heading
             id="home-workflow-heading"
             as="h2"
-            className="text-4xl font-semibold leading-tight tracking-[-0.03em] sm:text-5xl"
+            className="text-4xl font-semibold leading-tight tracking-[-0.02em] sm:text-5xl"
           >
             Watch it work.
           </Heading>
@@ -52,20 +45,17 @@ export default function HomeHow(): React.ReactElement {
         >
           {HOW_STEPS.map((item) => (
             <li
-              key={item.step}
+              key={item.title}
               className="flex flex-col gap-3 bg-background p-8"
               data-reveal="up"
             >
-              <Text className="text-sm font-black tracking-[-0.02em] text-foreground/72">
-                {item.step}
-              </Text>
               <Heading
                 as="h3"
                 className="text-xl font-semibold text-foreground"
               >
                 {item.title}
               </Heading>
-              <Text className="text-sm leading-6 text-foreground/72">
+              <Text className="text-sm leading-6 text-foreground/80">
                 {item.description}
               </Text>
             </li>

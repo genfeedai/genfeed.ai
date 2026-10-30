@@ -8,7 +8,6 @@ import { Text } from '@ui/typography/text';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import PageLayout from '@web-components/PageLayout';
-import ProductInterfacePreview from '@web-components/product/ProductInterfacePreview';
 import { Check } from 'lucide-react';
 import Link from 'next/link';
 
@@ -67,7 +66,6 @@ export default function ProductPage({ product }: { product: Product }) {
           }))}
         />
       }
-      heroVisual={<ProductInterfacePreview product={product} />}
     >
       <section className="max-w-6xl mx-auto pb-20">
         <Heading size="2xl" className="text-center mb-12">

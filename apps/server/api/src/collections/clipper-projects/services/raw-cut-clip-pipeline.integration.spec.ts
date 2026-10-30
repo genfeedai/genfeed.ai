@@ -236,6 +236,7 @@ describe('raw-cut clip pipeline integration', () => {
     getProvider: ReturnType<typeof vi.fn>;
   };
   let clipperProjectsService: {
+    findOne: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
     reconcileTerminalState: ReturnType<typeof vi.fn>;
   };
@@ -253,6 +254,7 @@ describe('raw-cut clip pipeline integration', () => {
       getProvider: vi.fn().mockReturnValue(avatarProvider),
     };
     clipperProjectsService = {
+      findOne: vi.fn().mockResolvedValue({ captionStyle: 'default' }),
       patch: vi.fn().mockResolvedValue(undefined),
       reconcileTerminalState: vi.fn().mockResolvedValue(undefined),
     };
@@ -399,6 +401,7 @@ describe('raw-cut clip pipeline integration', () => {
       organizationId: ORGANIZATION_ID,
       params: {
         captionContent: '1\n00:00:01,960 --> 00:00:06,120\nKeep this caption',
+        captionStyle: { fontSizeRatio: 0.058, textCase: 'as-is' },
         s3Key: 'videos/clipper-result-1-portrait.mp4',
       },
       room: undefined,
