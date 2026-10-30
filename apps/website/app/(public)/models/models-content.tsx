@@ -2,6 +2,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { PublicModelCatalogItem } from '@public/models/models-loader';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
+import { Badge } from '@ui/primitives/badge';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
@@ -69,9 +70,6 @@ function CatalogSignal({ models }: ModelsContentProps) {
 
   return (
     <div className="w-full max-w-xl border-l border-foreground/10 pl-7 sm:pl-10">
-      <Text className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/60">
-        Live catalog
-      </Text>
       {models && models.length > 0 ? (
         <div className="mt-6 grid grid-cols-3 gap-3 sm:gap-5">
           {[
@@ -83,7 +81,7 @@ function CatalogSignal({ models }: ModelsContentProps) {
               <Text className="text-4xl font-semibold tracking-[-0.02em] text-foreground sm:text-5xl">
                 {item.value}
               </Text>
-              <Text className="mt-2 text-xs uppercase tracking-[0.04em] text-foreground/60 sm:tracking-[0.12em]">
+              <Text className="mt-2 text-sm text-foreground/60">
                 {item.label}
               </Text>
             </div>
@@ -167,12 +165,9 @@ export default function ModelsContent({ models }: ModelsContentProps) {
         {models === null ? (
           <section className="container mx-auto px-6 pb-16 md:pb-32">
             <div className="max-w-3xl border-y border-foreground/10 py-16">
-              <Text className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/60">
-                Catalog unavailable
-              </Text>
               <Heading
                 as="h2"
-                className="mt-5 text-4xl font-semibold tracking-[-0.02em] text-foreground"
+                className="text-4xl font-semibold tracking-[-0.02em] text-foreground"
               >
                 The registry could not be reached.
               </Heading>
@@ -185,12 +180,9 @@ export default function ModelsContent({ models }: ModelsContentProps) {
         ) : models.length === 0 ? (
           <section className="container mx-auto px-6 pb-16 md:pb-32">
             <div className="max-w-3xl border-y border-foreground/10 py-16">
-              <Text className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/60">
-                Catalog empty
-              </Text>
               <Heading
                 as="h2"
-                className="mt-5 text-4xl font-semibold tracking-[-0.02em] text-foreground"
+                className="text-4xl font-semibold tracking-[-0.02em] text-foreground"
               >
                 No public models are listed yet.
               </Heading>
@@ -204,12 +196,9 @@ export default function ModelsContent({ models }: ModelsContentProps) {
           <div className="container mx-auto px-6 pb-16 md:pb-32">
             <div className="mb-20 flex flex-col justify-between gap-6 border-b border-foreground/10 pb-10 sm:flex-row sm:items-end">
               <div>
-                <Text className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/60">
-                  Current availability
-                </Text>
                 <Heading
                   as="h2"
-                  className="mt-4 text-4xl font-semibold tracking-[-0.02em] text-foreground sm:text-5xl"
+                  className="text-4xl font-semibold tracking-[-0.02em] text-foreground sm:text-5xl"
                 >
                   Choose by output.
                 </Heading>
@@ -254,9 +243,7 @@ export default function ModelsContent({ models }: ModelsContentProps) {
                               {model.label}
                             </Heading>
                             {model.isDefault ? (
-                              <span className="rounded-full border border-foreground/10 px-2.5 py-1 text-2xs font-bold uppercase tracking-[0.12em] text-foreground/60">
-                                Default
-                              </span>
+                              <Badge variant="secondary">Default</Badge>
                             ) : null}
                           </div>
                           {model.description ? (
@@ -270,7 +257,7 @@ export default function ModelsContent({ models }: ModelsContentProps) {
                                 .slice(0, 4)
                                 .map((capability) => (
                                   <Text
-                                    className="text-[11px] uppercase tracking-[0.1em] text-foreground/50"
+                                    className="text-xs text-foreground/50"
                                     key={capability}
                                   >
                                     {titleCase(capability)}
@@ -279,7 +266,7 @@ export default function ModelsContent({ models }: ModelsContentProps) {
                             </div>
                           ) : null}
                         </div>
-                        <Text className="text-xs font-bold uppercase tracking-[0.12em] text-foreground/50 sm:pt-1">
+                        <Text className="text-sm text-foreground/50 sm:pt-1">
                           {titleCase(model.provider)}
                         </Text>
                       </li>
