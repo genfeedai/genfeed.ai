@@ -10,7 +10,7 @@
     "unpinNamed": "Unpin {label} from Featured"
   },
   "catalog": {
-    "empty": "No system workflows in the catalog",
+    "empty": "No system workflows found",
     "loadError": "The system workflow catalog could not be loaded.",
     "status": {
       "available": "Not installed",
