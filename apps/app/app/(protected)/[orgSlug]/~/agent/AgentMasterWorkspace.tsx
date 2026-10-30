@@ -115,7 +115,9 @@ export default function AgentMasterWorkspace() {
       labels={{
         agent: translateWorkspace('master'),
         collapseAgent: translate('collapseAgent'),
+        collapseOutput: translate('collapseOutput'),
         expandAgent: translate('expandAgent'),
+        expandOutput: translate('expandOutput'),
         output: translate('threads'),
         views: translateWorkspace('views'),
       }}

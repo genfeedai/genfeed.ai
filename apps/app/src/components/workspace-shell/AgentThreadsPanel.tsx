@@ -11,7 +11,6 @@ import {
   ButtonSize,
   ButtonVariant,
 } from '@genfeedai/contracts';
-import type { AgentThreadsPanelProps } from '@props/ui/agent-threads-panel.props';
 import { Button } from '@ui/primitives/button';
 import Searchbar from '@ui/primitives/searchbar';
 import {
@@ -23,6 +22,7 @@ import {
 } from '@ui/primitives/select';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
+import type { AgentThreadsPanelProps } from '@/components/workspace-shell/props/agent-threads-panel.props';
 import AgentThreadLightView from './AgentThreadLightView';
 
 const ALL_BRANDS = '__all_brands__';

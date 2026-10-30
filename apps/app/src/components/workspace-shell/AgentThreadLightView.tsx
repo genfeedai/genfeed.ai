@@ -3,13 +3,13 @@
 import { getThreadStatusMeta } from '@genfeedai/agent/components/agent-thread-list.helpers';
 import type { AgentChatMessage } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { AgentThreadLightViewProps } from '@props/ui/agent-threads-panel.props';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { Video } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useId, useMemo, useState } from 'react';
+import type { AgentThreadLightViewProps } from '@/components/workspace-shell/props/agent-threads-panel.props';
 import { collectThreadAssets } from './agent-thread-assets.util';
 
 const MESSAGE_LIMIT = 20;
