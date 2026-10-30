@@ -6,7 +6,6 @@ import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IAnalytics } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Post } from '@models/content/post.model';
-import PostDetailPanel from '@pages/posts/detail/PostDetailPanel';
 import type { PlatformComparisonData } from '@props/analytics/analytics.props';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import { logger } from '@services/core/logger.service';
@@ -14,6 +13,7 @@ import { BrandsService } from '@services/social/brands.service';
 import Container from '@ui/layout/container/Container';
 import { ChartColumn } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import PostDetailPanel from '@/features/posts/detail/PostDetailPanel';
 
 import BrandChartsGrid from './BrandChartsGrid';
 import BrandKPISection from './BrandKPISection';

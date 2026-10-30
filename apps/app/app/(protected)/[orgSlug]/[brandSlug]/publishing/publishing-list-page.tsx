@@ -10,19 +10,19 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { normalizePostsPlatform } from '@helpers/content/posts.helper';
+import type { PostsListSearchParams } from '@props/publishing/publishing-list-page.props';
 import {
   parsePostsPublicationState,
   parsePostsSource,
   parsePostsStatus,
-} from '@pages/posts/list/posts-list-query';
-import ReleasePostsList from '@pages/posts/list/release-posts-list';
+} from '@/features/posts/list/posts-list-query';
+import ReleasePostsList from '@/features/posts/list/release-posts-list';
 import {
   buildReleasePostsListQueryKey,
   normalizeReleaseExecutionStates,
   normalizeReleasePostContentTypes,
   normalizeReleasePostsSort,
-} from '@pages/posts/list/release-posts-list-query';
-import type { PostsListSearchParams } from '@props/publishing/publishing-list-page.props';
+} from '@/features/posts/list/release-posts-list-query';
 
 export type { PostsListSearchParams } from '@props/publishing/publishing-list-page.props';
 

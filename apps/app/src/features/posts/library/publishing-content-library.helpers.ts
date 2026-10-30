@@ -1,0 +1,337 @@
+import {
+  ArticleCategory,
+  formatPlatformLabel,
+  IngredientCategory,
+  Platform,
+  PostFormat,
+} from '@genfeedai/contracts';
+import type {
+  ICredential,
+  IPost,
+  IReleaseGroup,
+} from '@genfeedai/contracts/interfaces';
+import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
+import type { Article } from '@models/content/article.model';
+import type { Newsletter } from '@models/content/newsletter.model';
+import type {
+  PublishingContentAccount,
+  PublishingContentFormat,
+} from '@/features/posts/props/publishing-content-entry.props';
+
+export const PUBLISHING_CONTENT_TYPES = [
+  'post',
+  'article',
+  'newsletter',
+] as const;
+
+export type PublishingContentType = (typeof PUBLISHING_CONTENT_TYPES)[number];
+export type PublishingContentTypeFilter = PublishingContentType | 'all';
+
+export interface PublishingContentLibraryItem {
+  accounts?: PublishingContentAccount[];
+  channels?: string[];
+  format?: PublishingContentFormat;
+  release?: IReleaseGroup;
+  scheduledAt?: string | null;
+  channel: string;
+  createdAt: string;
+  id: string;
+  status: string;
+  summary: string;
+  title: string;
+  type: PublishingContentType;
+}
+
+export interface PublishingContentLibraryFilters {
+  channel: string;
+  search: string;
+  status: string | string[];
+  type: PublishingContentTypeFilter;
+}
+
+function stripHtml(value?: string): string {
+  return stripHtmlToPlainText(value).replace(/\s+/g, ' ');
+}
+
+export function publishingContentTitle(value?: string): string {
+  return stripHtml(value) || 'Untitled post';
+}
+
+function normalizedStatus(status?: string): string {
+  const value = status?.trim().toLowerCase() || 'draft';
+  return value === 'public' ? 'published' : value;
+}
+
+function newestFirst(
+  left: PublishingContentLibraryItem,
+  right: PublishingContentLibraryItem,
+): number {
+  return Date.parse(right.createdAt) - Date.parse(left.createdAt);
+}
+
+export function formatPublishingContentType(
+  type: PublishingContentType,
+): string {
+  switch (type) {
+    case 'article':
+      return 'Article';
+    case 'newsletter':
+      return 'Newsletter';
+    case 'post':
+      return 'Social post';
+  }
+}
+
+export function formatPublishingContentFormat(
+  format: PublishingContentFormat,
+): string {
+  switch (format) {
+    case 'article':
+      return 'Article';
+    case 'long-post':
+      return 'Long post';
+    case 'newsletter':
+      return 'Newsletter';
+    case 'thread':
+      return 'Thread';
+    case 'video':
+      return 'Video';
+  }
+}
+
+function resolvePostFormat(post: IPost): PublishingContentFormat | undefined {
+  if (post.format === PostFormat.THREAD) {
+    return 'thread';
+  }
+  if (post.format === PostFormat.LONG_FORM) {
+    return 'long-post';
+  }
+  if (
+    post.ingredients?.some(
+      (ingredient) => ingredient.category === IngredientCategory.VIDEO,
+    )
+  ) {
+    return 'video';
+  }
+  return undefined;
+}
+
+export function createPublishingContentAccounts(
+  credentials: (ICredential | undefined)[],
+): PublishingContentAccount[] {
+  return credentials.flatMap((credential) =>
+    credential
+      ? [
+          {
+            avatarUrl: credential.externalAvatar,
+            id: credential.id,
+            label:
+              credential.label ||
+              credential.externalHandle ||
+              credential.externalName ||
+              credential.platform,
+            platform: credential.platform,
+          },
+        ]
+      : [],
+  );
+}
+
+function toAccounts(
+  credentials: (ICredential | undefined)[],
+): PublishingContentAccount[] | undefined {
+  const accounts = createPublishingContentAccounts(credentials);
+  return accounts.length > 0 ? accounts : undefined;
+}
+
+export function formatPublishingContentStatus(status: string): string {
+  return status
+    .split(/[_-]/g)
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(' ');
+}
+
+export function formatPublishingContentChannel(channel: string): string {
+  switch (channel) {
+    case 'email':
+      return 'Email';
+    case 'social':
+      return 'Social';
+    case 'web':
+      return 'Website';
+    default:
+      return (
+        formatPlatformLabel(channel) ?? formatPublishingContentStatus(channel)
+      );
+  }
+}
+
+export function createPublishingContentLibraryItems({
+  articles,
+  newsletters,
+  posts,
+  releases = [],
+}: {
+  articles: Pick<
+    Article,
+    'id' | 'createdAt' | 'label' | 'status' | 'summary' | 'content' | 'category'
+  >[];
+  newsletters: Newsletter[];
+  posts: IPost[];
+  releases?: IReleaseGroup[];
+}): PublishingContentLibraryItem[] {
+  const releasePostIds = new Set(
+    releases.flatMap((release) =>
+      (Array.isArray(release.targets) ? release.targets : []).map(
+        (target) => target.id,
+      ),
+    ),
+  );
+  const releaseIds = new Set(releases.map((release) => release.id));
+  const releaseItems: PublishingContentLibraryItem[] = releases.map(
+    (release) => ({
+      accounts: toAccounts(
+        (Array.isArray(release.targets) ? release.targets : []).map(
+          (target) => target.credential,
+        ),
+      ),
+      channel: release.targets?.[0]?.platform ?? 'social',
+      channels: (Array.isArray(release.targets) ? release.targets : []).map(
+        (target) => target.platform,
+      ),
+      createdAt: release.createdAt,
+      id: release.id,
+      release,
+      scheduledAt: release.scheduledAt,
+      status: normalizedStatus(release.status),
+      summary: stripHtml(release.baseContent),
+      title:
+        stripHtml(release.title) ||
+        stripHtml(release.baseContent) ||
+        'Untitled post',
+      type: 'post',
+    }),
+  );
+  const postItems: PublishingContentLibraryItem[] = posts
+    .filter(
+      (post) =>
+        !releasePostIds.has(post.id) &&
+        !(post.groupId && releaseIds.has(post.groupId)),
+    )
+    .map((post) => ({
+      accounts: toAccounts([post.credential]),
+      channel: post.platform ?? 'social',
+      createdAt: post.createdAt,
+      format: resolvePostFormat(post),
+      id: post.id,
+      scheduledAt: post.scheduledDate
+        ? new Date(post.scheduledDate).toISOString()
+        : null,
+      status: normalizedStatus(post.status),
+      summary: stripHtml(post.description),
+      title:
+        post.label?.trim() || stripHtml(post.description) || 'Untitled post',
+      type: 'post',
+    }));
+
+  const articleItems: PublishingContentLibraryItem[] = articles.map(
+    (article) => ({
+      channel:
+        article.category === ArticleCategory.X_ARTICLE
+          ? Platform.TWITTER
+          : 'web',
+      createdAt: article.createdAt,
+      format: 'article',
+      id: article.id,
+      status: normalizedStatus(article.status),
+      summary: stripHtml(article.summary || article.content),
+      title: article.label?.trim() || 'Untitled article',
+      type: 'article',
+    }),
+  );
+
+  const newsletterItems: PublishingContentLibraryItem[] = newsletters.map(
+    (newsletter) => ({
+      channel: 'email',
+      createdAt: newsletter.createdAt,
+      format: 'newsletter',
+      id: newsletter.id,
+      status: normalizedStatus(newsletter.status),
+      summary: stripHtml(newsletter.summary || newsletter.topic),
+      title: newsletter.label?.trim() || 'Untitled newsletter',
+      type: 'newsletter',
+    }),
+  );
+
+  return [
+    ...releaseItems,
+    ...postItems,
+    ...articleItems,
+    ...newsletterItems,
+  ].sort(newestFirst);
+}
+
+const CHANNEL_ACCOUNT_PREFIX = 'account:';
+
+function matchesChannel(
+  item: PublishingContentLibraryItem,
+  channel: string,
+): boolean {
+  if (channel.startsWith(CHANNEL_ACCOUNT_PREFIX)) {
+    const accountId = channel.slice(CHANNEL_ACCOUNT_PREFIX.length);
+    return item.accounts?.some((account) => account.id === accountId) ?? false;
+  }
+  return (item.channels ?? [item.channel]).includes(channel);
+}
+
+export function filterPublishingContentLibraryItems(
+  items: PublishingContentLibraryItem[],
+  filters: PublishingContentLibraryFilters,
+): PublishingContentLibraryItem[] {
+  const normalizedSearch = filters.search.trim().toLowerCase();
+
+  return items.filter((item) => {
+    if (filters.type !== 'all' && item.type !== filters.type) {
+      return false;
+    }
+
+    if (filters.channel !== 'all' && !matchesChannel(item, filters.channel)) {
+      return false;
+    }
+
+    const statuses = Array.isArray(filters.status)
+      ? filters.status
+      : filters.status === 'all'
+        ? []
+        : [filters.status];
+    if (
+      statuses.length &&
+      !statuses.includes(item.status) &&
+      !(statuses.includes('not-posted') && item.status !== 'published')
+    ) {
+      return false;
+    }
+
+    if (!normalizedSearch) {
+      return true;
+    }
+
+    return [
+      item.title,
+      item.summary,
+      formatPublishingContentType(item.type),
+      formatPublishingContentChannel(item.channel),
+      formatPublishingContentStatus(item.status),
+    ].some((value) => value.toLowerCase().includes(normalizedSearch));
+  });
+}
+
+export function parsePublishingContentType(
+  value: string | null,
+): PublishingContentTypeFilter {
+  return value &&
+    PUBLISHING_CONTENT_TYPES.includes(value as PublishingContentType)
+    ? (value as PublishingContentType)
+    : 'all';
+}

@@ -13,13 +13,13 @@ import {
 } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
-import type {
-  ReleasePostsPublicationState,
-  ReleasePostsSort,
-} from '@pages/posts/list/release-posts-list-query';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { logger } from '@services/core/logger.service';
 import { cache } from 'react';
+import type {
+  ReleasePostsPublicationState,
+  ReleasePostsSort,
+} from '@/features/posts/list/release-posts-list-query';
 
 export interface ReleasePostsPageData {
   brandId: string | null;

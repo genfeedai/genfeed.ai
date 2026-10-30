@@ -6,7 +6,7 @@ import type { Image as ImageModel } from '@models/ingredients/image.model';
 import type { Video } from '@models/ingredients/video.model';
 import type { Brand } from '@models/organization/brand.model';
 import type { Link as LinkModel } from '@models/social/link.model';
-import NotFoundPage from '@pages/not-found/not-found-page';
+import NotFoundPage from '@ui/error/not-found/not-found-page';
 import ProfileArticles from '@web-components/profile/ProfileArticles';
 import ProfileEmptyState from '@web-components/profile/ProfileEmptyState';
 import ProfileFooter from '@web-components/profile/ProfileFooter';

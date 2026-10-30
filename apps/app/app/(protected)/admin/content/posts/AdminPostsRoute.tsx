@@ -1,9 +1,8 @@
 'use client';
 
 import { PageScope } from '@genfeedai/contracts';
-import PostsList from '@pages/posts/list/posts-list';
-
 import { useSearchParams } from 'next/navigation';
+import PostsList from '@/features/posts/list/posts-list';
 
 export default function AdminPostsRoute() {
   const searchParams = useSearchParams();

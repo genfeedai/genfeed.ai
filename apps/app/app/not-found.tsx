@@ -1,4 +1,4 @@
-import NotFoundPage from '@pages/not-found/not-found-page';
+import NotFoundPage from '@ui/error/not-found/not-found-page';
 
 export default function Page() {
   return (

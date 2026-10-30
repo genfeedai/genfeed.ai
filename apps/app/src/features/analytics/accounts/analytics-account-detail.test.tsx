@@ -24,7 +24,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   }),
 }));
 
-vi.mock('@pages/posts/detail/PostDetailPanel', () => ({
+vi.mock('@/features/posts/detail/PostDetailPanel', () => ({
   __esModule: true,
   default: ({ postId }: { postId: string | null }) => (
     <div data-testid="post-detail-panel">{postId ?? 'closed'}</div>

@@ -313,7 +313,7 @@ describe('control-guard detection', () => {
 describe('control-guard allowlist', () => {
   it('honours the button baseline file allowlist', () => {
     const file = write(
-      'packages/pages/not-found/not-found-page.tsx',
+      'apps/app/src/features/studio/page/StudioPageContent.tsx',
       'export default function N(){return <button>Home</button>;}',
     );
     expect(categoriesFor(file)).not.toContain('raw-button');
@@ -321,7 +321,7 @@ describe('control-guard allowlist', () => {
 
   it('still flags a non-allowlisted sibling in the same tree', () => {
     const file = write(
-      'packages/pages/not-found/other-page.tsx',
+      'apps/app/src/features/studio/page/OtherPage.tsx',
       'export default function O(){return <button>Home</button>;}',
     );
     expect(categoriesFor(file)).toContain('raw-button');

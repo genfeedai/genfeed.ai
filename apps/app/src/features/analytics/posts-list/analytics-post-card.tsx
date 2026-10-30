@@ -5,7 +5,6 @@ import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { resolveCapturedAudience } from '@pages/posts/list/captured-post.helpers';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
@@ -16,6 +15,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { memo } from 'react';
 import type { AnalyticsPostCardProps } from '@/features/analytics/props/analytics-posts-grid.props';
+import { resolveCapturedAudience } from '@/features/posts/list/captured-post.helpers';
 
 const VIDEO_CONFIG = {
   controls: false,

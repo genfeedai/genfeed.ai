@@ -45,7 +45,7 @@ vi.mock(
   }),
 );
 
-vi.mock('@pages/posts/detail/post-detail', () => ({
+vi.mock('@/features/posts/detail/post-detail', () => ({
   default: ({ postId, presentation, scope }: PostDetailMockProps) => (
     <div
       data-testid="post-detail"

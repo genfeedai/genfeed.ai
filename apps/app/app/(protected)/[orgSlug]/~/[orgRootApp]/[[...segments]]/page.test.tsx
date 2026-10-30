@@ -230,7 +230,7 @@ vi.mock('../../../[brandSlug]/publishing/overview/page', () => ({
   default: () => <div data-testid="publishing-overview-page" />,
 }));
 
-vi.mock('@pages/posts/library/publishing-desk-view-toggle', () => ({
+vi.mock('@/features/posts/library/publishing-desk-view-toggle', () => ({
   default: ({ activeView }: { activeView: string }) => (
     <div data-active-view={activeView} data-testid="publishing-view-toggle" />
   ),

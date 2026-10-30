@@ -329,7 +329,7 @@ vi.mock('@contexts/posts/posts-layout-context', () => ({
   }),
 }));
 
-vi.mock('@pages/posts/detail/PostDetailPanel', () => ({
+vi.mock('@/features/posts/detail/PostDetailPanel', () => ({
   default: ({ postId }: { postId: string | null }) => (
     <div data-testid="post-detail-overlay">{postId ?? 'closed'}</div>
   ),

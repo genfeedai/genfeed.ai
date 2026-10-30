@@ -22,7 +22,6 @@ import {
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import PostDetailPanel from '@pages/posts/detail/PostDetailPanel';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
@@ -38,6 +37,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import AnalyticsAccountXGrowth from '@/features/analytics/accounts/analytics-account-x-growth';
+import PostDetailPanel from '@/features/posts/detail/PostDetailPanel';
 
 export default function AnalyticsAccountDetail() {
   const translate = useTranslations('pages.analytics.accounts');

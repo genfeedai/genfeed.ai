@@ -1,6 +1,6 @@
 import { ViewType } from '@genfeedai/contracts';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import PublishingDeskViewToggle from '@pages/posts/library/publishing-desk-view-toggle';
+import PublishingDeskViewToggle from '@/features/posts/library/publishing-desk-view-toggle';
 import ReviewQueueContent from '../review/review-queue-content';
 
 export const generateMetadata = createPageMetadata('Approvals');
