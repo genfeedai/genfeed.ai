@@ -17,7 +17,6 @@ const READ_ONLY_HINT_PREFIXES = [
   'describe_',
   'find_',
   'get_',
-  'list_',
   'search_',
   'validate_',
 ] as const;
@@ -27,10 +26,11 @@ const GENERATION_OPEN_WORLD_NAMES: ReadonlySet<string> = new Set([
   'execute_workflow',
   'onboard_brand',
   'get_x_posts',
-  'list_x_account_activity',
+  'get_x_account_activity',
   'get_articles',
+  'get_brand_context',
   'get_social_conversation',
-  'list_social_conversations',
+  'get_social_conversations',
   'get_ads_ad_insights',
   'get_ads_adset_insights',
   'import_source_post',
@@ -76,7 +76,7 @@ const NON_DESTRUCTIVE_WRITE_NAMES: ReadonlySet<string> = new Set([
   'request_media_upload',
   'create_post',
   'get_x_posts',
-  'list_x_account_activity',
+  'get_x_account_activity',
   'open_in_editor',
   'create_task',
   'start_editor_render',
@@ -102,7 +102,7 @@ const AUDITED_BEHAVIOR_HINT_OVERRIDES: ReadonlyMap<string, ToolAnnotations> =
       },
     ],
     [
-      'list_ads_research',
+      'get_ads_research',
       {
         destructiveHint: false,
         idempotentHint: false,
@@ -125,15 +125,6 @@ const AUDITED_BEHAVIOR_HINT_OVERRIDES: ReadonlyMap<string, ToolAnnotations> =
         destructiveHint: false,
         idempotentHint: false,
         openWorldHint: false,
-        readOnlyHint: false,
-      },
-    ],
-    [
-      'get_brand_context',
-      {
-        destructiveHint: false,
-        idempotentHint: false,
-        openWorldHint: true,
         readOnlyHint: false,
       },
     ],
@@ -165,7 +156,7 @@ const AUDITED_BEHAVIOR_HINT_OVERRIDES: ReadonlyMap<string, ToolAnnotations> =
       },
     ],
     [
-      'list_instagram_inspiration',
+      'get_instagram_inspiration',
       {
         destructiveHint: false,
         idempotentHint: false,

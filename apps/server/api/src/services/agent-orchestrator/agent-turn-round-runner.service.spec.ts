@@ -162,12 +162,12 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
     };
     await executeCampaignRound({
       message: 'Show review queue',
-      toolName: 'list_review_queue',
+      toolName: 'get_review_queue',
       toolParams: {},
       generationEntry,
     });
     expect(executeTool).toHaveBeenCalledWith(
-      'list_review_queue',
+      'get_review_queue',
       {},
       expect.objectContaining({
         generationEntry,
@@ -193,7 +193,7 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
     });
     const { messages, state } = await executeCampaignRound({
       message: "Show me what's waiting for review",
-      toolName: 'list_review_queue',
+      toolName: 'get_review_queue',
       toolParams: {},
     });
     expect(state.toolCalls[0]?.resultSummary).toBe(

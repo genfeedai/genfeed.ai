@@ -13,7 +13,7 @@ after the 2026-08-06 review. Pinned by `curated-action-catalog.spec.ts`.
 ## Both surfaces
 
 `analyze_performance`, `get_analytics`, `get_posts`, `transform_media`,
-`get_x_posts`, and `list_x_account_activity` are headless-safe:
+`get_x_posts`, and `get_x_account_activity` are headless-safe:
 each returns data or an asset URL from a concrete `AgentToolExecutorService` case, so an MCP client
 reaches them through the existing `/agent-tools/:name/execute` proxy with no new handler. They match
 peers already on both surfaces (`generate`, which covers image, video, voice and music by `type`), and none of
@@ -48,9 +48,9 @@ because they create in-product review drafts rather than a headless publish.
 
 ## MCP only, by design
 
-The 14 Meta and Google ads reporting tools (`list_meta_*`, `get_meta_*`, `compare_meta_*`,
-`list_google_ads_*`, `get_google_ads_*`) stay on MCP. The in-app agent's ads story is research and
-remix — `list_ads_research`, `get_ad_research_detail`, and `create_ad_remix_workflow` are already
+The 14 Meta and Google ads reporting tools (`get_meta_*`, `compare_meta_*`,
+`get_google_ads_*`) stay on MCP. The in-app agent's ads story is research and
+remix — `get_ads_research`, `get_ad_research_detail`, and `create_ad_remix_workflow` are already
 on both surfaces. Adding 14 per-account reporting tools to the agent would enlarge its selection
 space for a job it does not do.
 

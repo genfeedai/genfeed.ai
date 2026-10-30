@@ -4433,75 +4433,11 @@
       "workspace": "app"
     },
     {
-      "code": 2740,
-      "count": 1,
-      "file": "apps/app/src/features/agents/library/LivestreamChatBotPage.test.tsx",
-      "fingerprint": "10441925ae79fc8e1294",
-      "message": "Type '{ context: {}; deliveryHistory: never[]; platformStates: never[]; status: \"active\"; }' is missing the following properties from type 'LivestreamSession': bot, transcriptChunks, id, isDeleted, and 2 more.",
-      "workspace": "app"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/app/src/features/analytics/organization-overview/analytics-organization-overview.test.tsx",
-      "fingerprint": "277edab6b1e16a46a1d5",
-      "message": "Conversion of type '{ viewsGrowth: null; totalPosts: number; totalViews: number; totalLikes?: number; totalComments?: number; totalShares?: number; totalSaves?: number; totalCredentialsConnected: number; ... 17 more ...; recentActivities?: number; }' to type 'IAnalytics' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Types of property 'viewsGrowth' are incompatible.     Type 'null' is not comparable to type 'number'.",
-      "workspace": "app"
-    },
-    {
-      "code": 5097,
-      "count": 1,
-      "file": "apps/app/src/features/analytics/overview/analytics-agent-dashboard.test.tsx",
-      "fingerprint": "7b84a4e74d136301efa9",
-      "message": "An import path can only end with a '.tsx' extension when 'allowImportingTsExtensions' is enabled.",
-      "workspace": "app"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
-      "fingerprint": "32d106e6b775768f6f4d",
-      "message": "Type '{ date: string; instagram: number; }' is not assignable to type 'never'.",
-      "workspace": "app"
-    },
-    {
-      "code": 2322,
+      "code": 2339,
       "count": 2,
-      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
-      "fingerprint": "37a37b83cc1d7986bba4",
-      "message": "Type '{ description: string; platform: string; postId: string; totalComments: number; totalLikes: number; totalViews: number; }' is not assignable to type 'never'.",
-      "workspace": "app"
-    },
-    {
-      "code": 2322,
-      "count": 2,
-      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
-      "fingerprint": "41ae292aba8557f84668",
-      "message": "Type 'string' is not assignable to type 'never'.",
-      "workspace": "app"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
-      "fingerprint": "8e326bcdb4de0b31ffac",
-      "message": "Type '{ date: string; instagram: number; youtube: number; }' is not assignable to type 'never'.",
-      "workspace": "app"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
-      "fingerprint": "a02ddff1b593c73750e1",
-      "message": "Type 'string' is not assignable to type 'never'.",
-      "workspace": "app"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
-      "fingerprint": "0a031ac93141cc2cf4dd",
-      "message": "Conversion of type 'typeof (Anonymous class)' to type '{ new (callback: IntersectionObserverCallback, options?: IntersectionObserverInit | undefined): IntersectionObserver; prototype: IntersectionObserver; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Types of property 'prototype' are incompatible.     Type '(Anonymous class)' is missing the following properties from type 'IntersectionObserver': root, rootMargin, scrollMargin, thresholds, takeRecords",
+      "file": "apps/app/src/features/ingredients/detail/use-ingredient-detail.test.ts",
+      "fingerprint": "e3a58ecb563fbad3d98c",
+      "message": "Property 'label' does not exist on type 'IIngredient'.",
       "workspace": "app"
     },
     {
@@ -4534,6 +4470,30 @@
       "file": "apps/app/src/features/settings/cost-usage/CostUsagePage.test.tsx",
       "fingerprint": "f15d1815727d86819e21",
       "message": "No overload matches this call.   Overload 1 of 2, '(role: ByRoleMatcher, options?: ByRoleOptions | undefined): HTMLElement', gave the following error.     Object literal may only specify known properties, and 'exact' does not exist in type 'ByRoleOptions'.   Overload 2 of 2, '(role: ByRoleMatcher, options?: ByRoleOptions | undefined): HTMLElement', gave the following error.     Object literal may only specify known properties, and 'exact' does not exist in type 'ByRoleOptions'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "apps/app/src/features/trends/desk/desk-items.test.ts",
+      "fingerprint": "727eaac2a4fec1e759cd",
+      "message": "Type '\"reference\"' is not assignable to type 'TrendSourceIntendedUse'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "apps/app/src/features/trends/desk/desk-items.test.ts",
+      "fingerprint": "b34860b5691c3eab66ce",
+      "message": "Type '\"live\" | \"empty\" | undefined' is not assignable to type '\"live\" | \"empty\" | \"fallback\"'.   Type 'undefined' is not assignable to type '\"live\" | \"empty\" | \"fallback\"'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "apps/app/src/features/trends/desk/desk-items.test.ts",
+      "fingerprint": "e6c482f4ea45fdd3602c",
+      "message": "Type 'number' is not assignable to type 'TrendSourceConfidence'.",
       "workspace": "app"
     },
     {
@@ -4637,7 +4597,7 @@
       "count": 1,
       "file": "packages/contracts/src/constants/self-hosted-models.constant.test.ts",
       "fingerprint": "34456683a759b2d7ade1",
-      "message": "Property 'pricingType' does not exist on type '{ category: ModelCategory; cost: number; costTier: CostTier; description: string; isDefault: boolean; isHighlighted: boolean; key: \"black-forest-labs/flux-3-image\" | \"black-forest-labs/flux-3-image-edit\"; ... 5 more ...; providerCostUsd: number; } | ... 21 more ... | { ...; }'.   Property 'pricingType' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite — fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; }'.",
+      "message": "Property 'pricingType' does not exist on type '{ category: ModelCategory; cost: number; costTier: CostTier; description: string; isDefault: boolean; isHighlighted: boolean; key: \"black-forest-labs/flux-3-image\" | \"black-forest-labs/flux-3-image-edit\"; ... 5 more ...; providerCostUsd: number; } | ... 21 more ... | { ...; }'.   Property 'pricingType' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite \u2014 fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; }'.",
       "workspace": "contracts"
     },
     {
@@ -6377,14 +6337,6 @@
       "workspace": "pages"
     },
     {
-      "code": 2339,
-      "count": 2,
-      "file": "packages/pages/ingredients/detail/use-ingredient-detail.test.ts",
-      "fingerprint": "2866ec87f39a5e056a16",
-      "message": "Property 'label' does not exist on type 'IIngredient'.",
-      "workspace": "pages"
-    },
-    {
       "code": 5097,
       "count": 1,
       "file": "packages/pages/members/invite/ModalMember.test.tsx",
@@ -6494,30 +6446,6 @@
       "file": "packages/pages/research/work-surface/research-work-surface.types.test.ts",
       "fingerprint": "bf7bb241591e09d75cd3",
       "message": "Type '\"tiktok\"' is not assignable to type 'AdsPlatform'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/pages/trends/desk/desk-items.test.ts",
-      "fingerprint": "2b73a7c40e48d1ce73e7",
-      "message": "Type '\"reference\"' is not assignable to type 'TrendSourceIntendedUse'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/pages/trends/desk/desk-items.test.ts",
-      "fingerprint": "392839c623dd1a6e2c8f",
-      "message": "Type 'number' is not assignable to type 'TrendSourceConfidence'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/pages/trends/desk/desk-items.test.ts",
-      "fingerprint": "c91341d9f5ab45137e0a",
-      "message": "Type '\"empty\" | \"live\" | undefined' is not assignable to type '\"empty\" | \"live\" | \"fallback\"'.   Type 'undefined' is not assignable to type '\"empty\" | \"live\" | \"fallback\"'.",
       "workspace": "pages"
     },
     {
@@ -9071,6 +8999,78 @@
       "fingerprint": "9d4449567c5f19e343e0",
       "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
       "workspace": "workers"
+    },
+    {
+      "code": 2740,
+      "count": 1,
+      "file": "apps/app/src/features/agents/library/LivestreamChatBotPage.test.tsx",
+      "fingerprint": "10441925ae79fc8e1294",
+      "message": "Type '{ context: {}; deliveryHistory: never[]; platformStates: never[]; status: \"active\"; }' is missing the following properties from type 'LivestreamSession': bot, transcriptChunks, id, isDeleted, and 2 more.",
+      "workspace": "app"
+    },
+    {
+      "code": 2352,
+      "count": 1,
+      "file": "apps/app/src/features/analytics/organization-overview/analytics-organization-overview.test.tsx",
+      "fingerprint": "277edab6b1e16a46a1d5",
+      "message": "Conversion of type '{ viewsGrowth: null; totalPosts: number; totalViews: number; totalLikes?: number; totalComments?: number; totalShares?: number; totalSaves?: number; totalCredentialsConnected: number; ... 17 more ...; recentActivities?: number; }' to type 'IAnalytics' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Types of property 'viewsGrowth' are incompatible.     Type 'null' is not comparable to type 'number'.",
+      "workspace": "app"
+    },
+    {
+      "code": 5097,
+      "count": 1,
+      "file": "apps/app/src/features/analytics/overview/analytics-agent-dashboard.test.tsx",
+      "fingerprint": "7b84a4e74d136301efa9",
+      "message": "An import path can only end with a '.tsx' extension when 'allowImportingTsExtensions' is enabled.",
+      "workspace": "app"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
+      "fingerprint": "32d106e6b775768f6f4d",
+      "message": "Type '{ date: string; instagram: number; }' is not assignable to type 'never'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2322,
+      "count": 2,
+      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
+      "fingerprint": "37a37b83cc1d7986bba4",
+      "message": "Type '{ description: string; platform: string; postId: string; totalComments: number; totalLikes: number; totalViews: number; }' is not assignable to type 'never'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2322,
+      "count": 2,
+      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
+      "fingerprint": "41ae292aba8557f84668",
+      "message": "Type 'string' is not assignable to type 'never'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
+      "fingerprint": "8e326bcdb4de0b31ffac",
+      "message": "Type '{ date: string; instagram: number; youtube: number; }' is not assignable to type 'never'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
+      "fingerprint": "a02ddff1b593c73750e1",
+      "message": "Type 'string' is not assignable to type 'never'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2352,
+      "count": 1,
+      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
+      "fingerprint": "0a031ac93141cc2cf4dd",
+      "message": "Conversion of type 'typeof (Anonymous class)' to type '{ new (callback: IntersectionObserverCallback, options?: IntersectionObserverInit | undefined): IntersectionObserver; prototype: IntersectionObserver; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Types of property 'prototype' are incompatible.     Type '(Anonymous class)' is missing the following properties from type 'IntersectionObserver': root, rootMargin, scrollMargin, thresholds, takeRecords",
+      "workspace": "app"
     }
   ],
   "version": 2

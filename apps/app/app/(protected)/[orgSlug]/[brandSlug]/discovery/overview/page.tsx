@@ -1,8 +1,8 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import DiscoveryDesk from '@pages/trends/desk/discovery-desk';
-import type { DiscoveryOverviewPageProps } from '@props/trends/discovery-desk.props';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
+import DiscoveryDesk from '@/features/trends/desk/discovery-desk';
+import type { DiscoveryOverviewPageProps } from '@/features/trends/props/discovery-desk.props';
 
 export const generateMetadata = createPageMetadata('Discovery');
 

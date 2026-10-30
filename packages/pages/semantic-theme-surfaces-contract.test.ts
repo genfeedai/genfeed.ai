@@ -38,23 +38,6 @@ describe('page semantic theme surfaces', () => {
   });
 
   it.each([
-    ['trends/detail/trend-detail.tsx', 'border-white', 'border-border'],
-    [
-      'trends/detail/trend-detail-analysis-card.tsx',
-      'border-white',
-      'border-border',
-    ],
-    // Delegates its border to `@ui/card/Card`.
-    [
-      'trends/platform-detail/components/related-metric-card.tsx',
-      'border-white',
-      null,
-    ],
-    [
-      'trends/list/components/HookRemixModal.tsx',
-      'bg-white/5',
-      'bg-foreground/5',
-    ],
     [
       'posts/detail/components/PostDetailCardBody.tsx',
       'border-white',
@@ -92,43 +75,13 @@ describe('page semantic theme surfaces', () => {
     expect(source).not.toContain('text-black');
   });
 
-  it('themes progress and loading indicators', () => {
-    const streaks = readPage('streaks/streaks-page.tsx');
+  it.each(['posts/list/components/PostsGrid.tsx'])(
+    'uses the shared Card for semantic card surfaces in %s',
+    (path) => {
+      const source = readPage(path);
 
-    // The streak page renders its loading state through `@ui` cards now, so it
-    // carries no spinner chrome of its own — the ban still applies.
-    expect(streaks).not.toContain('border-t-white');
-  });
-
-  it('uses semantic borders in the Desk surfaces while preserving media canvases', () => {
-    const sourcesMenu = readPage('trends/desk/desk-sources-menu.tsx');
-    const lightTable = readPage('trends/desk/desk-light-table-view.tsx');
-
-    expect(sourcesMenu).toContain('border-border');
-    expect(sourcesMenu).toContain('divide-border');
-    expect(sourcesMenu).not.toContain('border-white');
-    expect(sourcesMenu).not.toContain('divide-white');
-    expect(lightTable).toContain(
-      'aspect-video w-full overflow-hidden bg-black',
-    );
-  });
-
-  it('uses a semantic checkbox boundary in the follow-source picker', () => {
-    const source = readPage('trends/following/FollowSourceModal.tsx');
-
-    expect(source).toContain('!border-foreground/50');
-    expect(source).not.toContain('!border-white');
-  });
-
-  it.each([
-    'content-runs/detail/content-run-detail.tsx',
-    'posts/list/components/PostsGrid.tsx',
-    'trends/platform-detail/components/related-metric-card.tsx',
-    'trends/shared/trend-content-card.tsx',
-  ])('uses the shared Card for semantic card surfaces in %s', (path) => {
-    const source = readPage(path);
-
-    expect(source).toContain("import Card from '@ui/card/Card'");
-    expect(source).toContain('<Card');
-  });
+      expect(source).toContain("import Card from '@ui/card/Card'");
+      expect(source).toContain('<Card');
+    },
+  );
 });

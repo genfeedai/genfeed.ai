@@ -37,7 +37,7 @@ export function getMcpToolResultFamily(
   tool: Pick<CanonicalToolDefinition, 'name' | 'category'>,
 ) {
   if (tool.name === 'find_tools') return 'discovery';
-  if (['get_account', 'list_orgs', 'switch_org'].includes(tool.name))
+  if (['get_account', 'get_orgs', 'switch_org'].includes(tool.name))
     return 'object';
   if (
     tool.category === 'generation' ||

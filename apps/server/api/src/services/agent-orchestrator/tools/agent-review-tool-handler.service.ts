@@ -17,7 +17,7 @@ import type {
 import { Injectable, Optional } from '@nestjs/common';
 
 /**
- * Review-queue tools (`list_review_queue`, `review_turbo_items`).
+ * Review-queue tools (`get_review_queue`, `review_turbo_items`).
  * Extracted from AgentToolExecutorService per #519.
  */
 @Injectable()

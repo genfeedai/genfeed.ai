@@ -17,7 +17,6 @@ import type {
   PublishingLayoutState,
 } from '@props/publishing/publishing-layout-content.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
 import Container from '@ui/layout/container/Container';
 import {
   LazyModalArticle,
@@ -118,18 +117,6 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
   const hasOwnPageLayout =
     (routeSuffix[0] === 'posts' && routeSuffix.length === 2) ||
     routeSuffix[0] === 'campaigns';
-  // Each desk is the output half of the agent + output layout; the calendar
-  // needs the width, so its agent stays a rail until the operator expands it.
-  const outputLabel = (() => {
-    switch (routeSuffix[0]) {
-      case 'calendar':
-        return translate('outputCalendar');
-      case 'overview':
-        return translate('outputOverview');
-      default:
-        return translate('outputQueue');
-    }
-  })();
   const handleRefresh = useCallback(() => {
     if (typeof refreshFn !== 'function') {
       refresh();
@@ -224,52 +211,43 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
 
   return (
     <PostsLayoutContext.Provider value={mainContextValue}>
-      <AgentOutputShell
-        defaultMobileView="output"
-        mode={routeSuffix[0] === 'calendar' ? 'rail' : 'split'}
-        outputLabel={outputLabel}
-      >
-        <Container
-          // Page-width container: the toolbar compacts when the inspector
-          // narrows the page (see the `@…/publishing:` tiers below and in the
-          // posts library toolbar) instead of wrapping onto a second row.
-          className="@container/publishing"
-          label={translate('title')}
-          icon={Newspaper}
-          titleVisibility="sr-only"
-          leading={leadingNode}
-          refresh={
-            <ButtonRefresh
-              onClick={handleRefresh}
-              isRefreshing={isRefreshing}
+      <Container
+        // Page-width container: the toolbar compacts when the inspector
+        // narrows the page (see the `@…/publishing:` tiers below and in the
+        // posts library toolbar) instead of wrapping onto a second row.
+        className="@container/publishing"
+        label={translate('title')}
+        icon={Newspaper}
+        titleVisibility="sr-only"
+        leading={leadingNode}
+        refresh={
+          <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
+        }
+        iconActions={exportNode}
+        right={
+          <div className="flex min-w-0 items-center justify-end gap-2">
+            {filtersNode}
+            {viewToggleNode}
+            {scheduleActionsNode}
+            <Button
+              size={ButtonSize.SM}
+              variant={ButtonVariant.DEFAULT}
+              withWrapper={false}
+              className="shrink-0"
+              ariaLabel={translate('newPost')}
+              icon={<Plus className="size-4" />}
+              label={
+                <span className="hidden @[64rem]/publishing:inline">
+                  {translate('newPost')}
+                </span>
+              }
+              onClick={handleNewPost}
             />
-          }
-          iconActions={exportNode}
-          right={
-            <div className="flex min-w-0 items-center justify-end gap-2">
-              {filtersNode}
-              {viewToggleNode}
-              {scheduleActionsNode}
-              <Button
-                size={ButtonSize.SM}
-                variant={ButtonVariant.DEFAULT}
-                withWrapper={false}
-                className="shrink-0"
-                ariaLabel={translate('newPost')}
-                icon={<Plus className="size-4" />}
-                label={
-                  <span className="hidden @[64rem]/publishing:inline">
-                    {translate('newPost')}
-                  </span>
-                }
-                onClick={handleNewPost}
-              />
-            </div>
-          }
-        >
-          {children}
-        </Container>
-      </AgentOutputShell>
+          </div>
+        }
+      >
+        {children}
+      </Container>
       <LazyModalArticle
         onCreated={(ids) => {
           const id = Array.isArray(ids) ? ids[0] : ids;

@@ -4,7 +4,7 @@ import { OVERLAP_TOOLS } from './source/overlap.tools';
 
 describe('character generation tool params (#3441)', () => {
   const generate = OVERLAP_TOOLS.find((tool) => tool.name === 'generate');
-  const listAssets = OVERLAP_TOOLS.find((tool) => tool.name === 'list_assets');
+  const listAssets = OVERLAP_TOOLS.find((tool) => tool.name === 'get_assets');
 
   it('declares every image parameter consumed by confirmed generation', () => {
     expect(generate?.parameters.properties).toMatchObject({
@@ -26,16 +26,16 @@ describe('character generation tool params (#3441)', () => {
     });
   });
 
-  it('registers list_assets as a zero-credit read tool that covers characters', () => {
+  it('registers get_assets as a zero-credit read tool that covers characters', () => {
     expect(listAssets?.creditCost).toBe(0);
     expect(listAssets?.parameters.properties.type).toMatchObject({
       enum: ['image', 'video', 'music', 'avatar', 'character'],
     });
     expect(listAssets?.parameters.required).toEqual(['type']);
     expect(
-      CURATED_ACTION_CATALOG.find((entry) => entry.name === 'list_assets'),
+      CURATED_ACTION_CATALOG.find((entry) => entry.name === 'get_assets'),
     ).toEqual({
-      name: 'list_assets',
+      name: 'get_assets',
       surfaces: ['agent', 'mcp'],
       toolset: 'generation',
     });
@@ -44,7 +44,7 @@ describe('character generation tool params (#3441)', () => {
     );
   });
 
-  it('lets agent and MCP callers filter list_assets by up to 25 characters (#6053)', () => {
+  it('lets agent and MCP callers filter get_assets by up to 25 characters (#6053)', () => {
     expect(listAssets?.parameters.properties.characterIds).toMatchObject({
       items: { type: 'string' },
       maxItems: 25,
@@ -53,7 +53,7 @@ describe('character generation tool params (#3441)', () => {
     expect(listAssets?.parameters.required).not.toContain('characterIds');
   });
 
-  it('lets list_assets filter by tags, any or all, like characters and origin', () => {
+  it('lets get_assets filter by tags, any or all, like characters and origin', () => {
     expect(listAssets?.parameters.properties.tags).toMatchObject({
       items: { type: 'string' },
       maxItems: 25,

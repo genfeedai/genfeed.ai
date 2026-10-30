@@ -37,6 +37,7 @@ full inventory; this file records only what `ls` cannot tell you.
 - API domain services `apps/server/api/src/services/{name}/` (30+); integrations at
   `.../integrations/{platform}/` (48+)
 - Admin routes live in `apps/app/app/(protected)/admin`
+- App-only feature code lives in `apps/app/src/features/<feature>/` (see system-patterns → Feature folders)
 - Packages export through `packages/{name}/src/index.ts`
 - Serializers: `packages/serializers/src/{attributes,configs,server}/{category}/`
 - Tests colocated as `*.test.ts` / `*.spec.ts`

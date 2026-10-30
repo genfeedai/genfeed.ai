@@ -59,7 +59,7 @@ const MOCK_TOOLS = [
     requiredRole: undefined,
     surfaces: { mcp: true },
   },
-  { name: 'list_workflows', requiredRole: undefined, surfaces: { mcp: true } },
+  { name: 'get_workflows', requiredRole: undefined, surfaces: { mcp: true } },
   {
     name: 'inspect_workflow',
     requiredRole: undefined,
@@ -76,7 +76,7 @@ const MOCK_TOOLS = [
     surfaces: { mcp: true },
   },
   {
-    name: 'list_workflow_runs',
+    name: 'get_workflow_runs',
     requiredRole: undefined,
     surfaces: { mcp: true },
   },
@@ -111,7 +111,7 @@ const MOCK_TOOLS = [
     surfaces: { mcp: true },
   },
   {
-    name: 'list_social_conversations',
+    name: 'get_social_conversations',
     requiredRole: 'user',
     surfaces: { mcp: true },
   },
@@ -844,10 +844,10 @@ describe('ToolRegistryService', () => {
     ).toContain('0 9 * * *');
   });
 
-  it('handleToolCall list_workflow_runs returns workflow run history', async () => {
+  it('handleToolCall get_workflow_runs returns workflow run history', async () => {
     const result = await service.handleToolCall({
       arguments: { limit: 5, workflowId: 'wf-1' },
-      name: 'list_workflow_runs',
+      name: 'get_workflow_runs',
     });
 
     expect(clientService.listWorkflowRuns).toHaveBeenCalledWith({
@@ -894,7 +894,7 @@ describe('ToolRegistryService', () => {
     ).toContain('Completed');
   });
 
-  it('handleToolCall list_social_conversations forwards bounded filters', async () => {
+  it('handleToolCall get_social_conversations forwards bounded filters', async () => {
     const result = await service.handleToolCall({
       arguments: {
         limit: 5,
@@ -902,7 +902,7 @@ describe('ToolRegistryService', () => {
         platform: 'youtube',
         status: 'open',
       },
-      name: 'list_social_conversations',
+      name: 'get_social_conversations',
     });
 
     expect(clientService.listSocialConversations).toHaveBeenCalledWith(

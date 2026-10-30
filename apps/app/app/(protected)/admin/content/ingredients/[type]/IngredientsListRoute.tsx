@@ -2,11 +2,11 @@
 
 import { PageScope } from '@genfeedai/contracts';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
-import IngredientsList from '@pages/ingredients/list/ingredients-list';
 import LibraryBrowser from '@pages/library/browser/library-browser';
 import { findLibraryTypePresetBySegment } from '@pages/library/browser/library-browser.config';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
+import IngredientsList from '@/features/ingredients/list/ingredients-list';
 import { readRouteParam } from '@/lib/route-params';
 
 /**

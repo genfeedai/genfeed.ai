@@ -156,7 +156,7 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     1,
   ),
   legacyUiAllowance(
-    'apps/website/packages/ui/workflow-builder/nodes/RssInputNode.tsx',
+    'apps/website/src/ui/workflow-builder/nodes/RssInputNode.tsx',
     'to-locale-date-string',
     1,
   ),
@@ -218,7 +218,7 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     1,
   ),
   legacyUiAllowance(
-    'packages/pages/trends/list/components/HookRemixModal.tsx',
+    'apps/app/src/features/trends/list/components/HookRemixModal.tsx',
     'to-locale-string',
     1,
   ),

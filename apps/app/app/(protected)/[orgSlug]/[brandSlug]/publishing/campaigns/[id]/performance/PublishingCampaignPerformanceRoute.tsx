@@ -4,7 +4,7 @@ import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import {
   CampaignDetailPerformance,
   CampaignDetailShell,
-} from '@pages/campaigns';
+} from '@/features/campaigns';
 import { readRouteParam } from '@/lib/route-params';
 
 export default function PublishingCampaignPerformanceRoute() {

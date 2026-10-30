@@ -12,10 +12,6 @@ import {
   onForeground,
 } from '@hooks/utils/on-foreground/on-foreground';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import {
-  getActivityDescription,
-  isBackgroundTask,
-} from '@pages/activities/activities-list.utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -26,6 +22,10 @@ import {
   isActiveGenerationActivity,
   mergeGenerationActivities,
 } from '@/components/shell/generation-activity.utils';
+import {
+  getActivityDescription,
+  isBackgroundTask,
+} from '@/features/activities/activities-list.utils';
 import { useActivityMessageFormatter } from '@/hooks/i18n/useActivityMessageFormatter';
 
 export const LIVE_ACTIVITY_LIMIT = 50;

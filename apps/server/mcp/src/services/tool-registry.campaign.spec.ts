@@ -61,7 +61,7 @@ describe('native campaign registry journey', () => {
       expect(registry.getTools().map((tool) => tool.name)).toEqual(
         expect.arrayContaining([
           'manage_campaign',
-          'list_brand_publishing_readiness',
+          'get_brand_publishing_readiness',
           'create_scheduled_release',
         ]),
       );

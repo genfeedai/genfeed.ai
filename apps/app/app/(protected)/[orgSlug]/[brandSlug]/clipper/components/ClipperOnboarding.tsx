@@ -3,13 +3,13 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import StudioOnboardingHero from '@pages/studio/shared/components/StudioOnboardingHero';
 import CollectionSection from '@ui/collection/CollectionSection';
 import { Button } from '@ui/primitives/button';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
+import StudioOnboardingHero from '@/features/studio/shared/components/StudioOnboardingHero';
 import { CLIPPER_PRESETS } from '../data/clipper-presets';
 import ClipperPresetGrid from './ClipperPresetGrid';
 import ClipperSourceBar from './ClipperSourceBar';

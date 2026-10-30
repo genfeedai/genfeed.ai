@@ -119,7 +119,7 @@ export const OVERLAP_KNOWLEDGE_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'List the brand Knowledge sources with their purpose, processing state and failure reason.',
-    name: 'list_knowledge_sources',
+    name: 'get_knowledge_sources',
     parameters: {
       properties: {
         limit: {

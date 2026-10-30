@@ -68,7 +68,7 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-vi.mock('@pages/ingredients/layout/ingredients-layout', () => ({
+vi.mock('@/features/ingredients/layout/ingredients-layout', () => ({
   default: ({
     children,
     defaultType,
@@ -88,7 +88,7 @@ vi.mock('@pages/ingredients/layout/ingredients-layout', () => ({
   ),
 }));
 
-vi.mock('@pages/ingredients/list/ingredients-list', () => ({
+vi.mock('@/features/ingredients/list/ingredients-list', () => ({
   default: ({
     folderNavigation,
     scope,
@@ -284,7 +284,7 @@ vi.mock(
   }),
 );
 
-vi.mock('@pages/campaigns', () => ({
+vi.mock('@/features/campaigns', () => ({
   CampaignDetailAds: ({ campaignId }: { campaignId: string }) => (
     <div data-campaign-id={campaignId} data-testid="campaign-ads" />
   ),

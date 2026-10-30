@@ -9,7 +9,7 @@ const MAX_NAME_LENGTH = 120;
 
 export const EDITOR_TOOL_NAMES = new Set([
   'get_editor_project',
-  'list_editor_projects',
+  'get_editor_projects',
   'open_in_editor',
   'start_editor_render',
 ]);
@@ -30,7 +30,7 @@ export async function handleEditorTool(
     throw new Error(`Unknown Editor tool: ${name}`);
   }
 
-  if (name === 'list_editor_projects') {
+  if (name === 'get_editor_projects') {
     const projects = await client.listEditorProjects({
       limit: readCount(args.limit, 1, MAX_LIST_LIMIT),
       page: readCount(args.page, 1, Number.MAX_SAFE_INTEGER),

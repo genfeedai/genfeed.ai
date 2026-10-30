@@ -9,7 +9,7 @@ vi.mock('@pages/library/browser/library-browser', () => ({
   ),
 }));
 
-vi.mock('@pages/ingredients/list/ingredients-list', () => ({
+vi.mock('@/features/ingredients/list/ingredients-list', () => ({
   default: () => <div data-testid="ingredients-list" />,
 }));
 

@@ -40,7 +40,7 @@ describe('getAgentTypeConfig', () => {
     expect(config.defaultTools).toEqual(
       expect.arrayContaining([
         'get_x_posts',
-        'list_x_account_activity',
+        'get_x_account_activity',
         'draft_x_quote',
         'draft_x_repost',
       ]),

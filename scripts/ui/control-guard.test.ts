@@ -390,7 +390,7 @@ describe('control-guard run modes', () => {
 describe('shared media boundary', () => {
   it.each([
     'apps/app/src/Preview.tsx',
-    'packages/pages/studio/Card.tsx',
+    'apps/app/src/features/studio/Card.tsx',
     'packages/agent/src/components/Card.tsx',
     'packages/workflows/src/ui/nodes/Preview.tsx',
     'packages/ui/src/components/workflow-builder/Preview.tsx',

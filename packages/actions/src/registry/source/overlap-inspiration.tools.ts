@@ -169,7 +169,7 @@ export const OVERLAP_INSPIRATION_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'List top-performing public and connected ads by niche, platform, source, metric, and timeframe.',
-    name: 'list_ads_research',
+    name: 'get_ads_research',
     parameters: {
       properties: {
         adAccountId: {
@@ -235,7 +235,7 @@ export const OVERLAP_INSPIRATION_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Discover public Instagram accounts and content patterns relevant to the selected brand niche.',
-    name: 'list_instagram_inspiration',
+    name: 'get_instagram_inspiration',
     parameters: {
       properties: {
         brandId: {

@@ -82,7 +82,7 @@ describe('applyAgentBriefTargets', () => {
     ).toBe(article);
     const review = { limit: 5 };
     expect(
-      parametersOf(applyAgentBriefTargets('list_review_queue', review, brief)),
+      parametersOf(applyAgentBriefTargets('get_review_queue', review, brief)),
     ).toBe(review);
   });
 });

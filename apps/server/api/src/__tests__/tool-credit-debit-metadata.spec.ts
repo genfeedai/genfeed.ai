@@ -55,7 +55,7 @@ const TOOLS_BY_FILE: Record<string, readonly string[]> = {
   'agent-thread-tool-handler.service.ts': ['draft_thread'],
   'agent-x-actions-tool-handler.service.ts': [
     'get_x_posts',
-    'list_x_account_activity',
+    'get_x_account_activity',
   ],
   'turbo-run-credits.service.ts': ['generate_turbo_content'],
   'brand-from-url.service.ts': ['create_brand_from_url'],

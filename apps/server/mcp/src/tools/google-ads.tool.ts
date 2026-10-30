@@ -86,7 +86,7 @@ export function handleGoogleAdsTool(
         ],
       };
     },
-    list_google_ads_campaigns: async (a) => {
+    get_google_ads_campaigns: async (a) => {
       const result = await client.listGoogleAdsCampaigns(
         a.customerId as string,
         a.status as string | undefined,
@@ -106,7 +106,7 @@ export function handleGoogleAdsTool(
         ],
       };
     },
-    list_google_ads_customers: async () => {
+    get_google_ads_customers: async () => {
       const result = await client.listGoogleAdsCustomers();
       return {
         structuredContent: { data: result },

@@ -154,7 +154,7 @@ export const TURBO_RUN_SCOPED_ALLOWED_TOOLS: CuratedActionName[] = [
   'review_turbo_items',
   'get_current_brand',
   'get_brands',
-  'list_review_queue',
+  'get_review_queue',
 ];
 
 export function buildAgentChatCompletionParams(params: {

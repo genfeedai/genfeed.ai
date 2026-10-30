@@ -62,7 +62,7 @@ Source and unit tests on branch `claude/wonderful-volta-ozvu4p` (PR to `master`)
 
 Paths are relative to repository root:
 
-- `packages/pages/trends/following/FollowSourceModal.tsx`
+- `apps/app/src/features/trends/following/FollowSourceModal.tsx`
 - `packages/services/social/social-sources.service.ts`
 - `apps/server/api/src/collections/social-sources/controllers/social-sources.controller.ts`
 - `packages/prisma/prisma/schema.prisma` (`SourcePost`)
@@ -71,7 +71,7 @@ Paths are relative to repository root:
 - `apps/extensions/browser/app/src/platforms/{menu-actions,reply-media}.ts` and `.../platforms/ui/`
 - `apps/extensions/browser/app/src/services/knowledge-capture.service.ts`
 - `apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/knowledge/`
-- `packages/pages/studio/generate/components/StudioRemixRunPanel.tsx`
+- `apps/app/src/features/studio/generate/components/StudioRemixRunPanel.tsx`
 - `apps/server/api/src/collections/posts/services/post-variation.service.ts`
 
 ## Maintenance

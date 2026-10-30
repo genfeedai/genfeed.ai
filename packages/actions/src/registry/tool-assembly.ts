@@ -46,9 +46,9 @@ const UI_ACTION_MAP: Partial<
   get_analytics: 'analytics_snapshot_card',
   get_outreach_sequence_analytics: 'analytics_snapshot_card',
   get_posts: 'content_calendar_card',
+  get_review_queue: 'review_gate_card',
   get_trends: 'trending_topics_card',
   initiate_oauth_connect: 'oauth_connect_card',
-  list_review_queue: 'review_gate_card',
   open_studio_handoff: 'studio_handoff_card',
   pause_outreach_sequence: 'outreach_sequence_control_card',
   prepare_clipper_workflow_run: 'clipper_workflow_run_card',
@@ -72,7 +72,7 @@ export function inferCategory(name: string): ToolCategory {
       'get_generation_options',
       'set_generation_settings',
       'enhance_prompt',
-      'list_assets',
+      'get_assets',
     ].includes(name)
   )
     return 'generation';
@@ -129,9 +129,7 @@ export function inferCategory(name: string): ToolCategory {
     name.includes('ads') ||
     name.startsWith('meta_') ||
     name.startsWith('google_') ||
-    name.startsWith('list_meta_') ||
     name.startsWith('get_meta_') ||
-    name.startsWith('list_google_') ||
     name.startsWith('get_google_')
   )
     return 'ads';

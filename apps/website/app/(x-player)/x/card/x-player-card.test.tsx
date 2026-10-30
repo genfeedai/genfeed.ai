@@ -69,7 +69,7 @@ describe('X player card page', () => {
 
   it('is not listed in the LLM discovery index', () => {
     const source = readFileSync(
-      join(import.meta.dirname, '../../../../packages/data/llms-text.data.ts'),
+      join(import.meta.dirname, '../../../../src/data/llms-text.data.ts'),
       'utf8',
     );
 

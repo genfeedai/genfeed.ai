@@ -60,7 +60,7 @@ export const AGENT_ANALYTICS_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'List posts that beat their account baseline, with outlier ratio, tier, and snapshot provenance. Ratios are comparable only within one platform.',
-    name: 'list_outlier_posts',
+    name: 'get_outlier_posts',
     parameters: {
       properties: {
         accountId: {

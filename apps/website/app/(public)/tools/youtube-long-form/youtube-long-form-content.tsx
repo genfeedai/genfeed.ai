@@ -18,8 +18,8 @@ import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
   WEBSITE_ANALYTICS_EVENTS,
   type WebsiteAnalyticsEventProperties,
-} from '../../../../packages/analytics/analytics-events';
-import { captureWebsiteAnalyticsEvent } from '../../../../packages/analytics/posthog-client';
+} from '../../../../src/analytics/analytics-events';
+import { captureWebsiteAnalyticsEvent } from '../../../../src/analytics/posthog-client';
 
 const OUTPUT_OPTIONS: ReadonlyArray<{
   description: string;

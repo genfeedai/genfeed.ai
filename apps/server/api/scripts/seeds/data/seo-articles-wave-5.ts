@@ -4,7 +4,7 @@
  * a numbered, day-by-day playbook. `content` is sanitized HTML (see the note
  * in `launch-articles.ts`). Each article ends with the done-for-you section;
  * keep its price and scope wording aligned with
- * `apps/website/packages/components/landing/service-offering.data.ts`.
+ * `apps/website/src/components/landing/service-offering.data.ts`.
  */
 
 import { ArticleCategory } from '@genfeedai/contracts';

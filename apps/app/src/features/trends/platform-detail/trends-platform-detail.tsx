@@ -1,0 +1,326 @@
+'use client';
+
+import { useBrandId } from '@contexts/user/brand-context/brand-context';
+import {
+  AlertCategory,
+  ButtonVariant,
+  Platform,
+  ViewType,
+} from '@genfeedai/contracts';
+import type {
+  ITrendHashtag,
+  ITrendSound,
+  ITrendVideo,
+} from '@genfeedai/contracts/interfaces';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import {
+  useOptionalResearchWorkSurface,
+  useResearchPagination,
+  useRestoreResearchFinding,
+} from '@pages/research/work-surface/ResearchWorkSurfaceProvider';
+import {
+  isSameResearchFindingReference,
+  toTrendContentFinding,
+  toTrendHashtagFinding,
+  toTrendSoundFinding,
+  toTrendVideoFinding,
+} from '@pages/research/work-surface/research-work-surface.types';
+import type { TrendContentItem } from '@props/trends/trends-page.props';
+import { TrendsService } from '@services/social/trends.service';
+import { useQuery } from '@tanstack/react-query';
+import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import CollectionView from '@ui/collection/CollectionView';
+import Badge from '@ui/display/badge/Badge';
+import Alert from '@ui/feedback/alert/Alert';
+import Container from '@ui/layout/container/Container';
+import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
+import { Button } from '@ui/primitives/button';
+import { TrendingUp } from 'lucide-react';
+import { type ReactNode, useMemo } from 'react';
+import { useTrendContent } from '@/features/trends/hooks/use-trend-content/use-trend-content';
+import { SocialsNavigation } from '@/features/trends/shared/socials-navigation';
+import TrendContentCard from '@/features/trends/shared/trend-content-card';
+import {
+  getTrendPlatformLabel,
+  PLATFORM_RELATED_CONTENT,
+  type TrendPlatform,
+} from '@/features/trends/shared/trends-platforms';
+
+import TrendsPlatformRelatedSections from './components/trends-platform-related-sections';
+import TrendsPlatformStatBar from './components/trends-platform-stat-bar';
+
+function SectionHeader({
+  badge,
+  icon,
+  title,
+}: {
+  badge?: string;
+  icon: ReactNode;
+  title: string;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {icon}
+      <h2 className="text-base font-semibold tracking-[-0.01em] text-foreground">
+        {title}
+      </h2>
+      {badge ? <Badge variant="ghost">{badge}</Badge> : null}
+    </div>
+  );
+}
+
+function EmptyBlock({ children }: { children: ReactNode }) {
+  return (
+    <div className="rounded-card bg-background px-4 py-6 text-sm text-muted-foreground shadow-border">
+      {children}
+    </div>
+  );
+}
+
+export default function TrendsPlatformDetail({
+  platform,
+}: {
+  platform: TrendPlatform;
+}) {
+  const brandId = useBrandId();
+  const surface = useOptionalResearchWorkSurface();
+  const label = getTrendPlatformLabel(platform);
+  const relatedContent = PLATFORM_RELATED_CONTENT[platform];
+  const unsupportedContentFeed = ![
+    Platform.TWITTER,
+    Platform.INSTAGRAM,
+    Platform.LINKEDIN,
+    Platform.TIKTOK,
+    Platform.YOUTUBE,
+    Platform.REDDIT,
+  ].includes(platform as Platform);
+
+  const {
+    error,
+    isLoading,
+    isRefreshing,
+    items,
+    refreshTrendContent,
+    summary,
+  } = useTrendContent(platform);
+
+  const getTrendsService = useAuthedService((token: string) =>
+    TrendsService.getInstance(token),
+  );
+
+  const {
+    data: viralVideos = [],
+    isLoading: isLoadingVideos,
+    refetch: refetchVideos,
+  } = useQuery<ITrendVideo[]>({
+    enabled: relatedContent.videos,
+    queryFn: async () => {
+      const service = await getTrendsService();
+      return service.getViralVideos({ limit: 12, platform });
+    },
+    queryKey: [
+      'trends-platform-viral-videos',
+      brandId,
+      platform,
+      relatedContent.videos,
+    ],
+  });
+
+  const {
+    data: hashtags = [],
+    isLoading: isLoadingHashtags,
+    refetch: refetchHashtags,
+  } = useQuery<ITrendHashtag[]>({
+    enabled: relatedContent.hashtags,
+    queryFn: async () => {
+      const service = await getTrendsService();
+      return service.getTrendingHashtags({ limit: 12, platform });
+    },
+    queryKey: [
+      'trends-platform-hashtags',
+      brandId,
+      platform,
+      relatedContent.hashtags,
+    ],
+  });
+
+  const {
+    data: sounds = [],
+    isLoading: isLoadingSounds,
+    refetch: refetchSounds,
+  } = useQuery<ITrendSound[]>({
+    enabled: relatedContent.sounds,
+    queryFn: async () => {
+      const service = await getTrendsService();
+      return service.getTrendingSounds({ limit: 12 });
+    },
+    queryKey: [
+      'trends-platform-sounds',
+      brandId,
+      platform,
+      relatedContent.sounds,
+    ],
+  });
+
+  const feedModeLabel = useMemo(() => {
+    if (unsupportedContentFeed) {
+      return 'Metadata only';
+    }
+
+    return 'Public references';
+  }, [unsupportedContentFeed]);
+  const findings = useMemo(
+    () => [
+      ...items.map(toTrendContentFinding),
+      ...viralVideos.map(toTrendVideoFinding),
+      ...hashtags.map(toTrendHashtagFinding),
+      ...sounds.map(toTrendSoundFinding),
+    ],
+    [hashtags, items, sounds, viralVideos],
+  );
+  const { pageItems, pagination } = useResearchPagination(items);
+
+  useRestoreResearchFinding(
+    findings,
+    isLoading || isLoadingVideos || isLoadingHashtags || isLoadingSounds,
+  );
+
+  // Visual-first feed: always a grid, so the list renderer is never reached.
+  const renderContentCard = (item: TrendContentItem) => {
+    const finding = toTrendContentFinding(item);
+    return (
+      <TrendContentCard
+        finding={finding}
+        isSelected={isSameResearchFindingReference(
+          surface?.authorizedFinding?.reference ?? null,
+          finding.reference,
+        )}
+        item={item}
+        onSelectAction={surface?.isEmbedded ? surface.selectFinding : undefined}
+      />
+    );
+  };
+
+  const handleRefresh = async () => {
+    await refreshTrendContent();
+
+    const refreshJobs: Array<Promise<unknown>> = [];
+    if (relatedContent.videos) {
+      refreshJobs.push(refetchVideos());
+    }
+    if (relatedContent.hashtags) {
+      refreshJobs.push(refetchHashtags());
+    }
+    if (relatedContent.sounds) {
+      refreshJobs.push(refetchSounds());
+    }
+
+    await Promise.all(refreshJobs);
+  };
+
+  return (
+    <>
+      <SectionTopbar
+        title={`${label} Trends`}
+        icon={TrendingUp}
+        refresh={
+          <ButtonRefresh isRefreshing={isRefreshing} onClick={handleRefresh} />
+        }
+        tabs={<SocialsNavigation active={platform} />}
+      />
+
+      <Container moduleChrome={false}>
+        {!isLoading && !error ? (
+          <TrendsPlatformStatBar
+            feedModeLabel={feedModeLabel}
+            totalItems={summary.totalItems ?? items.length}
+            totalTrends={summary.totalTrends}
+            videoCount={relatedContent.videos ? viralVideos.length : undefined}
+          />
+        ) : null}
+
+        {unsupportedContentFeed ? (
+          <EmptyBlock>
+            No public source-post feed is available for this platform yet. Only
+            adjacent trend metadata is shown for now.
+          </EmptyBlock>
+        ) : null}
+
+        {error && !isLoading ? (
+          <Alert type={AlertCategory.ERROR}>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="space-y-1">
+                <div className="font-medium">
+                  Failed to load platform content
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Retry to fetch the latest saved trend feed.
+                </div>
+              </div>
+              <Button
+                label="Retry"
+                onClick={() => {
+                  handleRefresh().catch(() => {
+                    /* surfaced via hook */
+                  });
+                }}
+                variant={ButtonVariant.SECONDARY}
+              />
+            </div>
+          </Alert>
+        ) : null}
+
+        {!error ? (
+          <div className="space-y-5">
+            <section className="space-y-3">
+              <SectionHeader
+                title={`${label} content feed`}
+                badge="Remix-ready"
+                icon={<TrendingUp className="size-4 text-muted-foreground" />}
+              />
+
+              {unsupportedContentFeed ? (
+                <EmptyBlock>
+                  No public content feed available for this platform right now.
+                </EmptyBlock>
+              ) : (
+                <CollectionView
+                  data-testid="trends-platform-content-grid"
+                  emptyState={
+                    <EmptyBlock>
+                      No remixable source posts are available for this platform
+                      right now.
+                    </EmptyBlock>
+                  }
+                  getItemKey={(item) => item.id}
+                  isLoading={isLoading}
+                  items={pageItems}
+                  maxColumns={3}
+                  renderGridItem={renderContentCard}
+                  renderListItem={renderContentCard}
+                  skeletonCount={6}
+                  view={ViewType.GRID}
+                />
+              )}
+              {pagination ? <div className="pt-2">{pagination}</div> : null}
+            </section>
+
+            <TrendsPlatformRelatedSections
+              hashtags={hashtags}
+              isLoadingHashtags={isLoadingHashtags}
+              isLoadingSounds={isLoadingSounds}
+              isLoadingVideos={isLoadingVideos}
+              showHashtags={relatedContent.hashtags}
+              showSounds={relatedContent.sounds}
+              showVideos={relatedContent.videos}
+              sounds={sounds}
+              viralVideos={viralVideos}
+              selectedReference={surface?.authorizedFinding?.reference ?? null}
+              onSelect={surface?.isEmbedded ? surface.selectFinding : undefined}
+            />
+          </div>
+        ) : null}
+      </Container>
+    </>
+  );
+}

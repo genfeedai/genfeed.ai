@@ -27,12 +27,12 @@ const CREATIVE_AGENT_MODEL = LLM_DEFAULTS.creativeAgent;
  * fill slots, and run the same deterministic graphs as Team → Run Workflow.
  */
 const WORKFLOW_RUN_TOOLS: CuratedActionName[] = [
-  'list_workflows',
+  'get_workflows',
   'inspect_workflow',
   'get_workflow_inputs',
   'execute_workflow',
   'prepare_workflow_trigger',
-  'list_system_workflow_catalog',
+  'get_system_workflow_catalog',
   'install_system_workflow',
 ];
 
@@ -51,28 +51,28 @@ const SHARED_READ_TOOLS: CuratedActionName[] = [
   'get_dashboard_layout',
   'get_trends',
   'get_brands',
-  'list_assets',
-  'list_outlier_posts',
+  'get_assets',
+  'get_outlier_posts',
   'get_posts',
   'request_media_upload',
   'complete_media_upload',
-  'list_review_queue',
+  'get_review_queue',
   'get_connection_status',
   'update_strategy_state',
   'get_approval_summary',
-  'list_stalled_items',
+  'get_stalled_items',
   'build_prep_brief',
   'analyze_performance',
-  'list_genfeed_tools',
+  'get_genfeed_tools',
   'capture_memory',
   'create_workflow',
   ...WORKFLOW_RUN_TOOLS,
   'create_livestream_bot',
   'manage_livestream_bot',
-  'list_ads_research',
+  'get_ads_research',
   'get_ad_research_detail',
   'create_ad_remix_workflow',
-  'list_instagram_inspiration',
+  'get_instagram_inspiration',
   'get_instagram_inspiration_detail',
   'create_instagram_remix_workflow',
   'generate_ad_pack',
@@ -109,7 +109,7 @@ For a voice note, transcript or idea dump that should become a long talking-head
 const WORKFLOW_FIRST_PROMPT = `
 ## Workflow-first content creation
 Prefer deterministic workflows over one-off generation when the user wants production content:
-1. list_workflows or list_system_workflow_catalog to find a matching graph
+1. get_workflows or get_system_workflow_catalog to find a matching graph
 2. get_workflow_inputs to discover required slots (topic, prompt, assets)
 3. Fill only the variable slots — never rewrite the workflow graph
 4. execute_workflow with complete inputs
@@ -125,7 +125,7 @@ export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {
         .filter((tool) => tool.name !== 'scan_brand_url')
         .map((tool) => tool.name),
       'capture_memory',
-      'list_ads_research',
+      'get_ads_research',
       'get_ad_research_detail',
       'create_ad_remix_workflow',
       'generate_ad_pack',
@@ -154,7 +154,7 @@ export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {
       'discover_engagements',
       'draft_engagement_reply',
       'get_x_posts',
-      'list_x_account_activity',
+      'get_x_account_activity',
       'draft_x_quote',
       'draft_x_repost',
       'draft_thread',
@@ -389,7 +389,7 @@ LinkedIn-specific guidelines:
       'ai_action',
       ...PREPARE_MEDIA_TOOLS,
       'create_workflow',
-      'list_ads_research',
+      'get_ads_research',
       'get_ad_research_detail',
       'create_ad_remix_workflow',
       'generate_ad_pack',
@@ -548,7 +548,7 @@ YouTube-specific guidelines:
     defaultModel: VOLUME_AGENT_MODEL,
     defaultTools: [
       ...SHARED_READ_TOOLS,
-      'list_review_queue',
+      'get_review_queue',
       'update_strategy_state',
       'save_content_agent',
       'get_approval_summary',

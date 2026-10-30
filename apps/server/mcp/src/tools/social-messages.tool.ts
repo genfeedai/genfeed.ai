@@ -6,7 +6,7 @@ import type { ClientService } from '@mcp/services/client.service';
 import { formatToolData } from '@mcp/shared/utils/tool-result-text.util';
 
 export const SOCIAL_MESSAGES_TOOL_NAMES = new Set([
-  'list_social_conversations',
+  'get_social_conversations',
   'get_social_conversation',
   'create_social_reply_draft',
   'approve_social_draft',
@@ -64,7 +64,7 @@ export function handleSocialMessagesTool(
 
       return textDataResult('Social conversation', result);
     },
-    list_social_conversations: async (a) => {
+    get_social_conversations: async (a) => {
       const result = await client.listSocialConversations(listParams(a));
 
       return {

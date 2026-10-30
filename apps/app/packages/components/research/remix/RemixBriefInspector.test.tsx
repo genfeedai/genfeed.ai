@@ -91,7 +91,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ brandId: 'brand-1', organizationId: 'org-1' }),
 }));
 
-vi.mock('@hooks/data/campaigns/use-campaign-accounts', () => ({
+vi.mock('@/features/campaigns/hooks/use-campaign-accounts', () => ({
   useCampaignAccounts: (...args: unknown[]) => mocks.accountsHook(...args),
 }));
 

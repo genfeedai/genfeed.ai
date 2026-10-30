@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
-import StoryboardRunPage from '@pages/studio/storyboard/StoryboardRunPage';
+import StoryboardRunPage from '@/features/studio/storyboard/StoryboardRunPage';
 import { readRouteParam } from '@/lib/route-params';
 
 export default function StudioStoryboardRunRoute() {

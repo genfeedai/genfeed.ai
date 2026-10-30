@@ -59,7 +59,7 @@ export function handleTikTokAdsTool(
         ],
       };
     },
-    list_tiktok_ad_accounts: async (a) => {
+    get_tiktok_ad_accounts: async (a) => {
       const result = await client.listTikTokAdAccounts(
         a.credentialId as string,
       );
@@ -76,7 +76,7 @@ export function handleTikTokAdsTool(
         ],
       };
     },
-    list_tiktok_adgroups: async (a) => {
+    get_tiktok_adgroups: async (a) => {
       const result = await client.listTikTokAdGroups(
         a.credentialId as string,
         a.adAccountId as string,
@@ -95,7 +95,7 @@ export function handleTikTokAdsTool(
         ],
       };
     },
-    list_tiktok_ads: async (a) => {
+    get_tiktok_ads: async (a) => {
       const result = await client.listTikTokAds(
         a.credentialId as string,
         a.adAccountId as string,
@@ -114,7 +114,7 @@ export function handleTikTokAdsTool(
         ],
       };
     },
-    list_tiktok_campaigns: async (a) => {
+    get_tiktok_campaigns: async (a) => {
       const result = await client.listTikTokCampaigns(
         a.credentialId as string,
         a.adAccountId as string,

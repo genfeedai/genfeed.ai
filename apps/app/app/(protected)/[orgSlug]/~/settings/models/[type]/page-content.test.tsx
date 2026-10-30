@@ -10,11 +10,11 @@ const mockTrainingsList = vi.hoisted(() =>
   vi.fn(() => <div data-testid="trainings-list" />),
 );
 
-vi.mock('@pages/models/list/models-list', () => ({
+vi.mock('@/features/models/list/models-list', () => ({
   default: mockModelsList,
 }));
 
-vi.mock('@pages/trainings/list/trainings-list', () => ({
+vi.mock('@/features/trainings/list/trainings-list', () => ({
   default: mockTrainingsList,
 }));
 

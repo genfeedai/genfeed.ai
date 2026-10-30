@@ -17,14 +17,14 @@ describe('MCP Apps card contract', () => {
     const tools = toMcpTools(getToolsForSurface('mcp'));
     for (const name of [
       'get_posts',
-      'list_assets',
+      'get_assets',
       'generate',
       'transform_media',
       'get_articles',
       'get_account',
       'get_brands',
       'get_scheduled_release',
-      'list_orgs',
+      'get_orgs',
       'switch_org',
     ]) {
       const tool = tools.find((item) => item.name === name);
@@ -259,9 +259,9 @@ describe('MCP Apps card contract', () => {
       buildCardView('get_job_status', { id: 'job', category: 'VIDEO' })
         ?.cards[0].kind,
     ).toBe('video');
-    expect(buildCardView('list_assets', [])?.cards).toEqual([]);
+    expect(buildCardView('get_assets', [])?.cards).toEqual([]);
     const view = buildCardView(
-      'list_assets',
+      'get_assets',
       Array.from({ length: 30 }, () => ({ prompt: 'x'.repeat(5000) })),
     );
     expect(view?.cards).toHaveLength(24);
@@ -389,7 +389,7 @@ describe('MCP Apps card contract', () => {
         { id: 'org-b', isActive: true, label: 'Beta' },
       ],
     };
-    for (const name of ['list_orgs', 'switch_org']) {
+    for (const name of ['get_orgs', 'switch_org']) {
       const view = buildCardView(name, data);
       expect(view?.layout).toBe('organizations');
       expect(view?.cards.map((card) => card.title)).toEqual(['Beta Studio']);
@@ -406,13 +406,13 @@ describe('MCP Apps card contract', () => {
 
   it('offers no switching with a single organization or without consent', () => {
     expect(
-      buildCardView('list_orgs', {
+      buildCardView('get_orgs', {
         canSwitchOrganizations: true,
         organizations: [{ id: 'org-a', isActive: true, label: 'Acme' }],
       })?.organizations?.canSwitch,
     ).toBe(false);
     expect(
-      buildCardView('list_orgs', {
+      buildCardView('get_orgs', {
         organizations: [
           { id: 'org-a', isActive: true, label: 'Acme' },
           { id: 'org-b', isActive: false, label: 'Beta' },
@@ -642,7 +642,7 @@ describe('MCP Apps card contract', () => {
 
   it('chooses the post, media or card layout from the tool kind', () => {
     expect(buildCardView('get_posts', { posts: [] })?.layout).toBe('posts');
-    expect(buildCardView('list_assets', [])?.layout).toBe('media');
+    expect(buildCardView('get_assets', [])?.layout).toBe('media');
     expect(buildCardView('get_articles', [])?.layout).toBe('cards');
   });
 

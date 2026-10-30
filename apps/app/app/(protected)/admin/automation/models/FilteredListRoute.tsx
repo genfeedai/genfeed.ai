@@ -1,8 +1,8 @@
 'use client';
 
 import AdminModelsPageContent from '@app/(protected)/admin/automation/models/[type]/admin-models-page-content';
-import { resolveAdminModelType } from '@props/admin/models.props';
 import { useSearchParams } from 'next/navigation';
+import { resolveAdminModelType } from '@/features/models/props/models.props';
 
 export default function FilteredListRoute() {
   const searchParams = useSearchParams();

@@ -293,7 +293,7 @@ const KNOWLEDGE_TOOL_CONTRACTS: Record<string, ActionContractSchemas> = {
     }),
     outputSchema: toolActionOutputSchema(GET_CONTEXT_COVERAGE_DATA_SCHEMA),
   },
-  list_knowledge_sources: {
+  get_knowledge_sources: {
     inputSchema: closedObjectSchema({
       limit: INTEGER_SCHEMA,
       page: INTEGER_SCHEMA,
@@ -331,7 +331,7 @@ export function getKnowledgeToolActionContract(
 }
 
 export const KNOWLEDGE_WORKFLOW_READ_ACTION_IDS = [
-  'list_knowledge_sources',
+  'get_knowledge_sources',
   'read_knowledge_source',
   'search_knowledge',
 ] as const;

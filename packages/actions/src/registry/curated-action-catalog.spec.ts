@@ -243,7 +243,7 @@ describe('curated action catalog', () => {
   });
 
   it('exposes headless-safe X read actions on both surfaces and keeps drafts agent-only', () => {
-    for (const name of ['get_x_posts', 'list_x_account_activity']) {
+    for (const name of ['get_x_posts', 'get_x_account_activity']) {
       expect(getToolByName(name)?.surfaces, name).toMatchObject({
         agent: true,
         mcp: true,
@@ -314,10 +314,8 @@ describe('curated action catalog', () => {
   it('keeps per-account ad performance reporting on the MCP surface only', () => {
     const adsReportingTools = ALL_TOOLS.filter(
       (tool) =>
-        tool.name.startsWith('list_meta_') ||
         tool.name.startsWith('get_meta_') ||
         tool.name.startsWith('compare_meta_') ||
-        tool.name.startsWith('list_google_ads_') ||
         tool.name.startsWith('get_google_ads_'),
     );
 
@@ -332,8 +330,8 @@ describe('curated action catalog', () => {
 
   it('exposes read-only scheduler capability discovery on MCP only', () => {
     for (const name of [
+      'get_brand_publishing_readiness',
       'get_scheduler_capabilities',
-      'list_brand_publishing_readiness',
       'validate_scheduler_target',
     ]) {
       const tool = getToolByName(name);
@@ -348,7 +346,7 @@ describe('curated action catalog', () => {
     }
 
     expect(
-      getToolByName('list_brand_publishing_readiness')?.parameters.required,
+      getToolByName('get_brand_publishing_readiness')?.parameters.required,
     ).toEqual(['brandId']);
     expect(
       getToolByName('get_scheduler_capabilities')?.parameters.properties,
@@ -381,7 +379,7 @@ describe('curated action catalog', () => {
   });
 
   it('publishes Instagram inspiration and review-only remix schemas on both surfaces', () => {
-    const listTool = getToolByName('list_instagram_inspiration');
+    const listTool = getToolByName('get_instagram_inspiration');
     const remixTool = getToolByName('create_instagram_remix_workflow');
 
     expect(listTool?.surfaces).toMatchObject({ agent: true, mcp: true });
@@ -391,7 +389,7 @@ describe('curated action catalog', () => {
     expect(remixTool?.description).toContain('review-only');
 
     for (const name of [
-      'list_ads_research',
+      'get_ads_research',
       'get_ad_research_detail',
       'create_ad_remix_workflow',
     ]) {
@@ -429,7 +427,7 @@ describe('curated action catalog', () => {
       ['get_brands', 'core'],
       ['onboard_brand', 'core'],
       ['get_posts', 'content'],
-      ['list_assets', 'generation'],
+      ['get_assets', 'generation'],
       ['resolve_approval', 'core'],
       ['create_post', 'content'],
       ['repurpose_post', 'content'],
@@ -441,16 +439,16 @@ describe('curated action catalog', () => {
       ['create_ad_remix_workflow', 'workflows'],
       ['analyze_performance', 'analytics'],
       ['get_linkedin_connection_status', 'analytics'],
-      ['list_social_conversations', 'social-inbox'],
+      ['get_social_conversations', 'social-inbox'],
       ['send_social_dm', 'social-inbox'],
-      ['list_x_account_activity', 'social-inbox'],
+      ['get_x_account_activity', 'social-inbox'],
       ['get_brand_completeness', 'brand'],
       ['get_brand_context', 'brand'],
-      ['list_brand_publishing_readiness', 'scheduler'],
+      ['get_brand_publishing_readiness', 'scheduler'],
       ['start_brand_interview', 'brand'],
-      ['list_meta_ad_accounts', 'ads'],
-      ['list_ads_research', 'ads'],
-      ['list_instagram_inspiration', 'inspiration'],
+      ['get_meta_ad_accounts', 'ads'],
+      ['get_ads_research', 'ads'],
+      ['get_instagram_inspiration', 'inspiration'],
       ['get_tiktok_top_performers', 'inspiration'],
       ['analyze_clipper_project', 'clipper'],
       ['open_in_editor', 'editor'],

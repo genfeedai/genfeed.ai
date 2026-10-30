@@ -1,9 +1,9 @@
 'use client';
 
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
-import IngredientDetail from '@pages/ingredients/detail/ingredient-detail';
 import type { IngredientDetailPageProps } from '@props/content/ingredient.props';
 import { notFound } from 'next/navigation';
+import IngredientDetail from '@/features/ingredients/detail/ingredient-detail';
 import { readRouteParam } from '@/lib/route-params';
 
 const DETAIL_TYPES = new Set(['images', 'videos']);

@@ -27,13 +27,6 @@ import { useActivities } from '@hooks/data/activities/use-activities/use-activit
 import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';
 import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import {
-  getActivityDescription,
-  getActivityDestinationPath,
-  getActivityDetailText,
-  getActivityLifecycleText,
-} from '@pages/activities/activities-list.utils';
-import ActivityThumbnailCell from '@pages/activities/components/ActivityThumbnailCell';
 import AccountCell from '@pages/brands/components/integrations/AccountCell';
 import PublishingPostHoverPreview from '@pages/posts/library/publishing-post-hover-preview';
 import {
@@ -70,6 +63,13 @@ import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import {
+  getActivityDescription,
+  getActivityDestinationPath,
+  getActivityDetailText,
+  getActivityLifecycleText,
+} from '@/features/activities/activities-list.utils';
+import ActivityThumbnailCell from '@/features/activities/components/ActivityThumbnailCell';
 import { useActivityMessageFormatter } from '@/hooks/i18n/useActivityMessageFormatter';
 import {
   getActivityBadge,

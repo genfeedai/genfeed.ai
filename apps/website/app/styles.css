@@ -3,7 +3,6 @@
 /* Marketing-site class sources only. Do not add apps/app here. */
 @source ".";
 @source "../src";
-@source "../packages";
 @source "../../../packages/agent";
 @source "../../../packages/auth-client";
 @source "../../../packages/contexts";

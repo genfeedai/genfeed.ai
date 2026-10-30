@@ -35,7 +35,7 @@ credit quantities. Platform administrators can audit full reward records under
 genfeed.ai/affiliates describes this contract. The rate, window and settlement
 hold come from `AFFILIATE_*` in `@genfeedai/contracts/constants`, the same
 values the referral service settles with; the rest of the copy is in
-`apps/website/packages/data/affiliate-program.data.ts`. Change the billing
+`apps/website/src/data/affiliate-program.data.ts`. Change the billing
 behaviour first, then the page.
 
 ## Attribution and abuse controls

@@ -1,8 +1,8 @@
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
-import CorpusHealthPanel from '@pages/trends/shared/corpus-health-panel';
-import type { Props } from '@props/analytics/trends-page-header.props';
 import { Text } from '@ui/typography/text';
 import { useTranslations } from 'next-intl';
+import type { Props } from '@/features/trends/props/trends-page-header.props';
+import CorpusHealthPanel from '@/features/trends/shared/corpus-health-panel';
 
 export default function TrendsPageHeader({
   corpusHealth,

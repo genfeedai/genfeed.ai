@@ -30,7 +30,7 @@ export function buildClaudeMcpServerInstructions(): string {
     'Genfeed connects Claude to brands, drafts, scheduling and analytics.',
     'Call get_account and get_brands first; use onboard_brand when onboarding is incomplete.',
     'Write copy yourself, then use create_post or create_article_draft to save it for review.',
-    'Never schedule anything unless the user explicitly asks. Use existing assets from list_assets.',
+    'Never schedule anything unless the user explicitly asks. Use existing assets from get_assets.',
     'Image, video and audio generation, workflows, batches and remix are unavailable through this connector.',
     'Use find_tools to discover supported content operations. Toolset changes cannot enable generation.',
   ].join(' ');

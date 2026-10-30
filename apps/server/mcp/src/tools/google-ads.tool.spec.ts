@@ -36,7 +36,7 @@ describe('handleGoogleAdsTool', () => {
   it('lists accessible customer accounts', async () => {
     const client = buildClient();
 
-    const result = await call(client, 'list_google_ads_customers', {});
+    const result = await call(client, 'get_google_ads_customers', {});
 
     expect(client.listGoogleAdsCustomers).toHaveBeenCalled();
     expect(result.content[0].text).toContain('Found 1 Google Ads accounts');
@@ -50,7 +50,7 @@ describe('handleGoogleAdsTool', () => {
     const client = buildClient();
     client.listGoogleAdsCustomers.mockResolvedValue([]);
 
-    const result = await call(client, 'list_google_ads_customers', {});
+    const result = await call(client, 'get_google_ads_customers', {});
 
     expect(result.content[0].text).toBe('No Google Ads accounts found.');
   });
@@ -58,7 +58,7 @@ describe('handleGoogleAdsTool', () => {
   it('lists campaigns with status, limit and the manager account', async () => {
     const client = buildClient();
 
-    const result = await call(client, 'list_google_ads_campaigns', {
+    const result = await call(client, 'get_google_ads_campaigns', {
       customerId: '123-456',
       limit: 20,
       loginCustomerId: '999-888',
@@ -78,7 +78,7 @@ describe('handleGoogleAdsTool', () => {
     const client = buildClient();
     client.listGoogleAdsCampaigns.mockResolvedValue([]);
 
-    const result = await call(client, 'list_google_ads_campaigns', {
+    const result = await call(client, 'get_google_ads_campaigns', {
       customerId: '123-456',
     });
 

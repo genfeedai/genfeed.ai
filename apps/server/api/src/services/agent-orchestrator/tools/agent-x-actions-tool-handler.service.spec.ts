@@ -59,7 +59,7 @@ describe('AgentXActionsToolHandler', () => {
   it('handles the X action tool names', () => {
     const { handler } = createHandler();
     expect(handler.handles('get_x_posts')).toBe(true);
-    expect(handler.handles('list_x_account_activity')).toBe(true);
+    expect(handler.handles('get_x_account_activity')).toBe(true);
     expect(handler.handles('draft_x_quote')).toBe(true);
     expect(handler.handles('draft_x_repost')).toBe(true);
     expect(handler.handles('create_post')).toBe(false);
@@ -186,7 +186,7 @@ describe('AgentXActionsToolHandler', () => {
       ctx,
     );
     const timelineResult = await handler.execute(
-      'list_x_account_activity',
+      'get_x_account_activity',
       { username: 'genfeed' },
       ctx,
     );
@@ -337,7 +337,7 @@ describe('AgentXActionsToolHandler', () => {
     ]);
 
     const result = await handler.execute(
-      'list_x_account_activity',
+      'get_x_account_activity',
       { limit: 10, username: '@genfeed' },
       ctx,
     );
