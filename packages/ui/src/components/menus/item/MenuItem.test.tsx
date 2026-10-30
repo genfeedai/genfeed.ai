@@ -45,9 +45,8 @@ describe('MenuItem', () => {
     const activeRow = screen.getByRole('link', { name: 'Dashboard' });
     const hoverRow = screen.getByRole('link', { name: 'Inbox' });
 
-    expect(activeRow).toHaveClass('bg-foreground/[0.06]');
-    expect(hoverRow).toHaveClass('hover:bg-foreground/[0.06]');
-    expect(hoverRow).not.toHaveClass('hover:bg-foreground/[0.035]');
+    expect(activeRow).toHaveClass('bg-foreground/5');
+    expect(hoverRow).toHaveClass('hover:bg-foreground/5');
   });
 
   it('uses the canonical 16px icon size for expanded sidebar rows', () => {

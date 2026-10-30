@@ -27,7 +27,7 @@ export default function IllustrationPromptSection({
         data-testid="illustration-prompt-composer"
         density="compact"
         beforeBody={
-          <p className="flex items-center gap-1.5 px-3.5 pt-2.5 text-2xs font-medium text-foreground/55">
+          <p className="flex items-center gap-1.5 px-3.5 pt-2.5 text-2xs font-medium text-foreground/60">
             {translate('title')}
             <span className="rounded bg-tertiary px-1.5 py-0.5 text-foreground/80">
               {formatLabel}

@@ -76,7 +76,7 @@ export default function ModalVideo({
       }
     >
       <div className="bg-card max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="p-6 border-b border-white/[0.08]">
+        <div className="p-6 border-b border-white/10">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-xl font-semibold">

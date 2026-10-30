@@ -9,7 +9,7 @@ export const kbdVariants = cva(
     },
     variants: {
       variant: {
-        default: 'bg-background border border-white/[0.08]',
+        default: 'bg-background border border-white/10',
         subtle: 'bg-tertiary font-medium text-muted-foreground',
         muted: 'bg-muted',
         ghost: 'bg-transparent text-muted-foreground',

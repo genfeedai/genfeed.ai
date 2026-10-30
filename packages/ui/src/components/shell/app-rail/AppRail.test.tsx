@@ -663,13 +663,13 @@ describe('AppRail', () => {
       'focus-visible:ring-ring/60',
       'focus-visible:ring-offset-gray-100',
       'rounded-lg',
-      'bg-foreground/[0.12]',
+      'bg-foreground/10',
       'text-foreground',
     );
-    expect(analytics).not.toHaveClass('bg-foreground/[0.12]');
+    expect(analytics).not.toHaveClass('bg-foreground/10');
     expect(analytics).toHaveClass(
       'text-foreground/50',
-      'hover:bg-foreground/[0.06]',
+      'hover:bg-foreground/5',
       'hover:text-foreground',
     );
   });
@@ -1512,7 +1512,7 @@ describe('AppRail', () => {
         view.rerender(<AppRail {...props} pinnedAppIds={[appId]} />);
         const pinned = screen.getByTestId(`app-rail-item-${appId}`);
         expect(pinned).toHaveAttribute('aria-current', 'page');
-        expect(pinned).toHaveClass('bg-foreground/[0.12]', 'text-foreground');
+        expect(pinned).toHaveClass('bg-foreground/10', 'text-foreground');
         expect(
           view.container.querySelectorAll('[aria-current="page"]'),
         ).toHaveLength(1);

@@ -526,7 +526,7 @@ describe('WorkflowLibraryPage card semantics', () => {
     const { unmount } = render(<WorkflowLibraryPage />);
 
     expect(screen.getByText('synced')).toHaveClass(
-      'bg-success/15',
+      'bg-success/10',
       'text-success',
     );
 
@@ -534,7 +534,7 @@ describe('WorkflowLibraryPage card semantics', () => {
     mocks.isSystemWorkflow = true;
     render(<WorkflowLibraryPage />);
 
-    expect(screen.getByText('System')).toHaveClass('bg-info/15', 'text-info');
+    expect(screen.getByText('System')).toHaveClass('bg-info/10', 'text-info');
   });
 
   it('labels unsynced desktop workflows as local', () => {

@@ -339,7 +339,7 @@ const PromptBarExpandedView = memo(function PromptBarExpandedView() {
         <div className="flex h-full items-center justify-center">
           <div
             className={
-              'rounded-2xl border border-primary/30 bg-black/50 px-4 py-3 text-center backdrop-blur-sm' /* design-system-allow-content-color -- drop-target scrim */
+              'rounded-2xl border border-primary/20 bg-black/50 px-4 py-3 text-center backdrop-blur-sm' /* design-system-allow-content-color -- drop-target scrim */
             }
           >
             <p

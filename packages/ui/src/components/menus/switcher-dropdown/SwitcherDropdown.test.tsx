@@ -293,15 +293,15 @@ describe('SwitcherDropdown', () => {
     const betaRow = screen.getByRole('option', { name: /Beta/ }).parentElement;
 
     // Active row: persistent selected wash + check
-    expect(alphaRow).toHaveClass('bg-foreground/[0.08]');
-    expect(alphaRow).not.toHaveClass('hover:bg-foreground/[0.05]');
+    expect(alphaRow).toHaveClass('bg-foreground/10');
+    expect(alphaRow).not.toHaveClass('hover:bg-foreground/5');
     expect(
       screen.getByTestId('switcher-item-active-check'),
     ).toBeInTheDocument();
 
     // Inactive row: hover only — never the active selected wash
-    expect(betaRow).toHaveClass('hover:bg-foreground/[0.04]');
-    expect(betaRow).not.toHaveClass('bg-foreground/[0.08]');
+    expect(betaRow).toHaveClass('hover:bg-foreground/5');
+    expect(betaRow).not.toHaveClass('bg-foreground/10');
     expect(screen.queryAllByTestId('switcher-item-active-check')).toHaveLength(
       1,
     );

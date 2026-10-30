@@ -64,7 +64,7 @@ export default function GenerationReceiptListItem({
       : t(`cost.${cost.status}`);
   return (
     <li className="flex items-start gap-3 rounded-lg border border-border p-3">
-      <div className="relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-md bg-foreground/4">
+      <div className="relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-md bg-foreground/5">
         {media ? (
           <GenerationReceiptMediaPreview ingredient={media} label={kindLabel} />
         ) : kind === 'video' ? (

@@ -135,7 +135,7 @@ export default function MasonryImageMediaArea({
         {isFleetNsfwLocked && (
           <div
             className={
-              'absolute inset-0 flex items-center justify-center bg-black/35 px-4 text-center backdrop-blur-sm' /* design-system-allow-content-color -- media overlay */
+              'absolute inset-0 flex items-center justify-center bg-black/40 px-4 text-center backdrop-blur-sm' /* design-system-allow-content-color -- media overlay */
             }
           >
             <div

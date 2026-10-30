@@ -115,7 +115,7 @@ export default function PostSidebarLineage({
           </div>
         </div>
         {reviewSummary.reviewFeedback && (
-          <p className="mt-3 whitespace-pre-wrap text-sm text-foreground/75">
+          <p className="mt-3 whitespace-pre-wrap text-sm text-foreground/80">
             {reviewSummary.reviewFeedback}
           </p>
         )}
@@ -143,7 +143,7 @@ export default function PostSidebarLineage({
                   </span>
                 </div>
                 {event.feedback && (
-                  <p className="mt-2 whitespace-pre-wrap text-foreground/75">
+                  <p className="mt-2 whitespace-pre-wrap text-foreground/80">
                     {event.feedback}
                   </p>
                 )}

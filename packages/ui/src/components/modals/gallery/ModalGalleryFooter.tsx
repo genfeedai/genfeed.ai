@@ -27,7 +27,7 @@ export default function ModalGalleryFooter({
   onPageChange,
 }: ModalGalleryFooterProps) {
   return (
-    <div className="border-t border-white/[0.08] p-4 mt-4">
+    <div className="border-t border-white/10 p-4 mt-4">
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center">
           {!isLoading && (

@@ -133,7 +133,7 @@ export function ScopeSelector({
                       variant === 'panel'
                         ? value === option.value
                           ? 'text-accent-foreground'
-                          : 'text-foreground/85'
+                          : 'text-foreground/90'
                         : 'text-foreground',
                     )}
                   >
@@ -146,7 +146,7 @@ export function ScopeSelector({
                     'text-xs',
                     variant === 'panel'
                       ? value === option.value
-                        ? 'text-accent-foreground/75'
+                        ? 'text-accent-foreground/80'
                         : 'text-muted-foreground'
                       : 'text-foreground/70',
                   )}
@@ -182,9 +182,9 @@ export function ScopeBadge({ scope, className = '' }: ScopeBadgeProps) {
 
   const bgColor = {
     [AssetScope.USER]: 'bg-muted',
-    [AssetScope.BRAND]: 'bg-info/15',
-    [AssetScope.ORGANIZATION]: 'bg-success/15',
-    [AssetScope.PUBLIC]: 'bg-primary/15',
+    [AssetScope.BRAND]: 'bg-info/10',
+    [AssetScope.ORGANIZATION]: 'bg-success/10',
+    [AssetScope.PUBLIC]: 'bg-primary/10',
   }[scope];
 
   return (

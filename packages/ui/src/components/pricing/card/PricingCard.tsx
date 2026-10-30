@@ -60,7 +60,7 @@ export default function PricingCard({
 
               {/* Output-driven display (NEW) */}
               {plan.outputs && (
-                <div className="mt-4 py-4 border-y border-white/[0.08]">
+                <div className="mt-4 py-4 border-y border-white/10">
                   <div className="text-2xl font-semibold text-primary tabular-nums">
                     {plan.outputs.videoMinutes} min video
                   </div>

@@ -124,9 +124,9 @@ export default function CreditsMenuSection({
       {!isLoadingState && !isUnavailable && planLimit > 0 ? (
         <div className="px-2 pb-2">
           <Progress
-            className="h-1 bg-foreground/[0.08]"
+            className="h-1 bg-foreground/10"
             indicatorClassName={
-              isCritical ? 'bg-destructive' : 'bg-foreground/45'
+              isCritical ? 'bg-destructive' : 'bg-foreground/40'
             }
             value={Math.min(planUsagePercent, 100)}
           />

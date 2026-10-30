@@ -504,10 +504,10 @@ function EvaluationCardContent({
           className={cn(
             'p-2 text-sm',
             flags.severity === EvaluationSeverity.CRITICAL
-              ? 'bg-destructive/10 border border-destructive/30 text-destructive'
+              ? 'bg-destructive/10 border border-destructive/20 text-destructive'
               : flags.severity === EvaluationSeverity.WARNING
-                ? 'bg-warning/10 border border-warning/30 text-warning'
-                : 'bg-info/10 border border-info/30 text-info',
+                ? 'bg-warning/10 border border-warning/20 text-warning'
+                : 'bg-info/10 border border-info/20 text-info',
           )}
         >
           <span className="font-medium capitalize">{flags.severity}:</span>{' '}
@@ -588,7 +588,7 @@ function EvaluationCardContent({
                   {analysis?.strengths?.slice(0, 3).map((s) => (
                     <li
                       key={s}
-                      className="text-xs text-foreground/70 pl-3 border-l-2 border-success/30"
+                      className="text-xs text-foreground/70 pl-3 border-l-2 border-success/20"
                     >
                       {s}
                     </li>
@@ -605,7 +605,7 @@ function EvaluationCardContent({
                   {analysis?.weaknesses?.slice(0, 3).map((w) => (
                     <li
                       key={w}
-                      className="text-xs text-foreground/70 pl-3 border-l-2 border-destructive/30"
+                      className="text-xs text-foreground/70 pl-3 border-l-2 border-destructive/20"
                     >
                       {w}
                     </li>

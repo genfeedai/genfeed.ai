@@ -58,7 +58,7 @@ function IngredientLineageItem({ ingredient }: IngredientLineageItemProps) {
 
   return (
     <li className="flex w-24 shrink-0 flex-col gap-1.5">
-      <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-md bg-foreground/4">
+      <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-md bg-foreground/5">
         {videoUrl ? (
           <VideoPlayer
             ariaLabel={label}
@@ -95,7 +95,7 @@ function IngredientLineageItem({ ingredient }: IngredientLineageItemProps) {
       <span
         className={cn(
           'truncate text-xs',
-          isTrashed ? 'italic text-muted-foreground' : 'text-foreground/78',
+          isTrashed ? 'italic text-muted-foreground' : 'text-foreground/80',
         )}
         title={label}
       >

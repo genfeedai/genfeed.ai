@@ -60,8 +60,8 @@ export default function DrillDownGroupRow({
     'flex w-full items-center gap-3 rounded px-3 py-1.5 transition-colors duration-150 group',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
     isActive
-      ? 'bg-foreground/[0.06] text-foreground'
-      : 'text-foreground/80 hover:bg-foreground/[0.06] hover:text-foreground',
+      ? 'bg-foreground/5 text-foreground'
+      : 'text-foreground/80 hover:bg-foreground/5 hover:text-foreground',
   );
 
   const content = (

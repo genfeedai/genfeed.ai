@@ -115,7 +115,7 @@ export default function ModalPostBatchResultsView({
           platformStatuses.every(
             (s) => s.status === 'completed' || s.status === 'failed',
           ) && (
-            <div className="w-full space-y-4 pt-4 border-t border-white/[0.08]">
+            <div className="w-full space-y-4 pt-4 border-t border-white/10">
               <Alert type={AlertCategory.SUCCESS} className="w-full">
                 <div className="space-y-1">
                   <p className="font-semibold">All posts have been created</p>

@@ -66,7 +66,7 @@ export default function CaptionText({
   }
 
   return (
-    <p className="description whitespace-pre-wrap break-words text-sm leading-6 text-foreground/85">
+    <p className="description whitespace-pre-wrap break-words text-sm leading-6 text-foreground/90">
       {renderCaptionEntities(text)}
     </p>
   );
@@ -90,7 +90,7 @@ export function ValidationIssues({ target }: PlatformPreviewRendererProps) {
       className="mt-3 border-t border-border pt-3"
       role={target.validation.errors.length > 0 ? 'alert' : 'status'}
     >
-      <ul className="grid gap-1 text-xs text-foreground/65">
+      <ul className="grid gap-1 text-xs text-foreground/70">
         {target.captionState.isOverLimit && target.captionState.maxLength ? (
           <li className="text-destructive">
             {translate('truncated', { count: target.captionState.maxLength })}
@@ -185,14 +185,14 @@ export function ThreadSegments({ target }: PlatformPreviewRendererProps) {
             </div>
             <div className="min-w-0 flex-1 rounded-lg border border-border bg-background/10 p-3">
               <div className="mb-2 flex items-center justify-between gap-2">
-                <span className="text-xs font-medium text-foreground/65">
+                <span className="text-xs font-medium text-foreground/70">
                   {segment.label ??
                     translate('threadPost', { count: index + 1 })}
                 </span>
                 <CharacterCounter state={state} />
               </div>
               {segment.caption.trim() ? (
-                <p className="description whitespace-pre-wrap break-words text-sm leading-6 text-foreground/85">
+                <p className="description whitespace-pre-wrap break-words text-sm leading-6 text-foreground/90">
                   {renderCaptionEntities(state.previewText)}
                 </p>
               ) : (

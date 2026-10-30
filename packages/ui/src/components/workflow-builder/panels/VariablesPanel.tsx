@@ -47,7 +47,7 @@ function VariableItem({ variable, onUpdate, onDelete }: VariableItemProps) {
   const requiredId = `${idPrefix}-required`;
 
   return (
-    <div className=" border border-white/[0.08] bg-card">
+    <div className=" border border-white/10 bg-card">
       <Button
         className="flex cursor-pointer items-center gap-2 p-3"
         onClick={() => setIsExpanded(!isExpanded)}
@@ -68,7 +68,7 @@ function VariableItem({ variable, onUpdate, onDelete }: VariableItemProps) {
       </Button>
 
       {isExpanded && (
-        <div className="border-t border-white/[0.08] p-3 space-y-3">
+        <div className="border-t border-white/10 p-3 space-y-3">
           <div>
             <Label htmlFor={keyId} className="text-xs">
               Key
@@ -185,7 +185,7 @@ export default function VariablesPanel({
     <div className="flex flex-col">
       {/* Header */}
       <Button
-        className="flex cursor-pointer items-center justify-between border-b border-white/[0.08] px-4 py-3"
+        className="flex cursor-pointer items-center justify-between border-b border-white/10 px-4 py-3"
         onClick={onToggleCollapse}
         type="button"
         variant={ButtonVariant.UNSTYLED}

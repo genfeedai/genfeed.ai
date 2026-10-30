@@ -45,17 +45,15 @@ export default function PricingStrip({
               className={cn(
                 'px-6 py-5 text-center',
                 isFeatured &&
-                  (inverted
-                    ? 'bg-primary-foreground/[0.03]'
-                    : 'bg-foreground/5'),
+                  (inverted ? 'bg-primary-foreground/5' : 'bg-foreground/5'),
               )}
             >
               <div
                 className={cn(
                   'mb-2 flex items-center justify-center gap-2 text-2xs font-black uppercase tracking-widest',
                   inverted
-                    ? 'text-primary-foreground/30'
-                    : 'text-foreground/30',
+                    ? 'text-primary-foreground/40'
+                    : 'text-foreground/40',
                 )}
               >
                 {column.subtitle}

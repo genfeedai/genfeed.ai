@@ -161,7 +161,7 @@ function SocialPublishNodeComponent({
           value={data.description}
           onChange={handleDescriptionChange}
           placeholder="Video description…"
-          className="w-full h-16 px-2 py-1.5 text-sm bg-background border border-white/[0.08] resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+          className="w-full h-16 px-2 py-1.5 text-sm bg-background border border-white/10 resize-none focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
 

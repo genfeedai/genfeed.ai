@@ -28,7 +28,7 @@ export default function IngredientTimeGroupHeading({
       }}
     >
       {label}
-      <span className="text-foreground/55"> · {count}</span>
+      <span className="text-foreground/60"> · {count}</span>
     </h3>
   );
 }

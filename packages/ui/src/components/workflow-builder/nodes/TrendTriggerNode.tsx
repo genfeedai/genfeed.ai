@@ -252,7 +252,7 @@ function TrendTriggerNodeComponent({
 
       {/* Last Triggered Info */}
       {data.lastTriggeredAt && (
-        <div className="p-2 bg-background border border-white/[0.08]">
+        <div className="p-2 bg-background border border-white/10">
           <div className="text-xs text-muted-foreground">Last triggered:</div>
           <div className="text-sm text-foreground mt-1">
             {data.lastTrendTopic || 'Unknown topic'}

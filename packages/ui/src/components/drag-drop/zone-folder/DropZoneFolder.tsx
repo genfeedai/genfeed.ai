@@ -68,8 +68,8 @@ export default function DropZoneFolder({
         ${className}
         ${
           isDragOver || isSelected
-            ? 'border-primary/50 bg-primary/[0.10]'
-            : 'border-white/[0.08]'
+            ? 'border-primary/50 bg-primary/10'
+            : 'border-white/10'
         }
 
       `}

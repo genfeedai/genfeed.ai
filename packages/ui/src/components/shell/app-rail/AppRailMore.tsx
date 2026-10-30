@@ -53,7 +53,7 @@ export function AppRailMore({ items, onOpen, onTogglePin }: AppRailMoreProps) {
             const Icon = item.app.icon;
             return (
               <div
-                className="flex items-center gap-1 rounded-md hover:bg-foreground/[0.06]"
+                className="flex items-center gap-1 rounded-md hover:bg-foreground/5"
                 key={item.app.id}
               >
                 <Link

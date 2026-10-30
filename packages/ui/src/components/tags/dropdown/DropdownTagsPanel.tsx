@@ -77,7 +77,7 @@ export default function DropdownTagsPanel({
       className={cn('w-80 rounded-md bg-card shadow-dropdown')}
     >
       {/* Search Input */}
-      <div className="p-3 border-b border-white/[0.08]">
+      <div className="p-3 border-b border-white/10">
         <Input
           ref={searchInputRef}
           type="text"
@@ -94,7 +94,7 @@ export default function DropdownTagsPanel({
 
       {/* Selected Tags */}
       {selectedTagObjects.length > 0 && (
-        <div className="p-3 border-b border-white/[0.08]">
+        <div className="p-3 border-b border-white/10">
           <div className="text-xs uppercase text-foreground/60 mb-2">
             Selected ({selectedTagObjects.length})
           </div>
@@ -160,7 +160,7 @@ export default function DropdownTagsPanel({
                       'flex-shrink-0 size-4 border-2 flex items-center justify-center',
                       selected
                         ? 'bg-primary border-primary'
-                        : 'border-white/[0.08]',
+                        : 'border-white/10',
                     )}
                   >
                     {selected && (
@@ -183,7 +183,7 @@ export default function DropdownTagsPanel({
       </div>
 
       {/* Footer */}
-      <div className="p-2 border-t border-white/[0.08] flex items-center justify-between">
+      <div className="p-2 border-t border-white/10 flex items-center justify-between">
         <div className="text-xs text-foreground/60 tabular-nums">
           {selectedTagCount} selected
         </div>

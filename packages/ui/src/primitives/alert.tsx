@@ -11,11 +11,11 @@ const alertVariants = cva(
     variants: {
       variant: {
         default: 'bg-muted border-border text-foreground',
-        destructive: 'bg-destructive/10 border-destructive/30 text-destructive',
-        info: 'border-info/30 bg-info/10 text-info [&>svg]:text-info',
+        destructive: 'bg-destructive/10 border-destructive/20 text-destructive',
+        info: 'border-info/20 bg-info/10 text-info [&>svg]:text-info',
         success:
-          'border-success/30 bg-success/10 text-success [&>svg]:text-success',
-        warning: 'bg-warning/10 border-warning/30 text-warning',
+          'border-success/20 bg-success/10 text-success [&>svg]:text-success',
+        warning: 'bg-warning/10 border-warning/20 text-warning',
       },
     },
   },

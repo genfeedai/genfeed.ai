@@ -231,7 +231,7 @@ describe('AppLayout', () => {
       // Same plane as the topbar, no divider.
       'bg-gray-100',
     );
-    expect(appRail).not.toHaveClass('border-r', 'bg-foreground/[0.04]');
+    expect(appRail).not.toHaveClass('border-r', 'bg-foreground/5');
     expect(appRail).toHaveStyle({ top: 'var(--desktop-titlebar-height)' });
     expect(appRail).not.toHaveClass('pt-[var(--shell-topbar-height)]');
     const mark = screen.getByTestId('app-rail-mark');

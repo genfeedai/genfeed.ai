@@ -61,7 +61,7 @@ export default function RichTextEditorToolbar({
 }: RichTextEditorToolbarProps) {
   return (
     <div
-      className="toolbar flex flex-wrap gap-2 p-2 border-b border-white/[0.08] bg-background/50"
+      className="toolbar flex flex-wrap gap-2 p-2 border-b border-white/10 bg-background/50"
       role="toolbar"
       aria-label="Formatting options"
     >

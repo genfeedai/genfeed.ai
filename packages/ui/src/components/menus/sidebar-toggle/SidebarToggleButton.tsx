@@ -29,8 +29,8 @@ export default function SidebarToggleButton({
       onMouseDown={(event) => event.preventDefault()}
       ariaLabel={ariaLabel}
       className={cn(
-        'group relative flex size-8 flex-shrink-0 items-center justify-center rounded-md border-0 bg-transparent p-0 text-foreground/72 shadow-none transition-colors',
-        'hover:bg-foreground/[0.06] hover:text-foreground',
+        'group relative flex size-8 flex-shrink-0 items-center justify-center rounded-md border-0 bg-transparent p-0 text-foreground/80 shadow-none transition-colors',
+        'hover:bg-foreground/5 hover:text-foreground',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
         className,
       )}
@@ -39,7 +39,7 @@ export default function SidebarToggleButton({
     >
       <PanelLeft
         aria-hidden="true"
-        className="size-4 stroke-[1.75] text-foreground/62 transition-colors group-hover:text-foreground group-focus-visible:text-foreground"
+        className="size-4 stroke-[1.75] text-foreground/70 transition-colors group-hover:text-foreground group-focus-visible:text-foreground"
       />
     </Button>
   );

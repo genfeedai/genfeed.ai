@@ -46,7 +46,7 @@ export default function LibraryTagChip({
       {onRemove ? (
         <Button
           ariaLabel={removeLabel}
-          className="flex size-4 shrink-0 items-center justify-center rounded-full hover:bg-foreground/15"
+          className="flex size-4 shrink-0 items-center justify-center rounded-full hover:bg-foreground/10"
           icon={<X className="size-3" />}
           onClick={() => onRemove(tag)}
           type="button"

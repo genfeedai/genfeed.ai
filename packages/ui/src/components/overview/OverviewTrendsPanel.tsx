@@ -72,7 +72,7 @@ export function OverviewTrendsPanel({
       ) : topTrends.length === 0 ? (
         <div
           data-testid="overview-trends-empty"
-          className="flex items-center justify-center rounded-card bg-background p-8 text-sm text-foreground/55 shadow-border"
+          className="flex items-center justify-center rounded-card bg-background p-8 text-sm text-foreground/60 shadow-border"
         >
           No trends yet.
         </div>

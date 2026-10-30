@@ -116,7 +116,7 @@ function TweetRemixNodeComponent({
       </div>
 
       {data.inputTweet && (
-        <div className="p-2 bg-background border border-white/[0.08]">
+        <div className="p-2 bg-background border border-white/10">
           <div className="text-xs text-muted-foreground mb-1">Original</div>
           <div className="text-sm text-foreground line-clamp-2">
             {data.inputTweet}
@@ -138,7 +138,7 @@ function TweetRemixNodeComponent({
               className={`w-full p-2 text-left border transition ${
                 data.selectedIndex === index
                   ? 'border-primary bg-primary/10'
-                  : 'border-white/[0.08] bg-background hover:border-primary/50'
+                  : 'border-white/10 bg-background hover:border-primary/50'
               }`}
             >
               <div className="flex items-start gap-2">
@@ -146,7 +146,7 @@ function TweetRemixNodeComponent({
                   className={`size-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
                     data.selectedIndex === index
                       ? 'border-primary bg-primary'
-                      : 'border-white/[0.08]'
+                      : 'border-white/10'
                   }`}
                 >
                   {data.selectedIndex === index && (

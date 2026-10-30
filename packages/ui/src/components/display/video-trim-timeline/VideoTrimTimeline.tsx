@@ -44,7 +44,7 @@ export default function VideoTrimTimeline({
             {thumbnails.map((thumbnail) => (
               <div
                 key={thumbnail.dataUrl}
-                className="flex-1 h-full bg-cover bg-center border-r border-white/[0.08] last:border-r-0"
+                className="flex-1 h-full bg-cover bg-center border-r border-white/10 last:border-r-0"
                 style={{
                   backgroundImage: `url(${thumbnail.dataUrl})`,
                 }}
