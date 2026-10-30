@@ -32,6 +32,8 @@ import sharp from 'sharp';
 const BEAT_SYNC_MIN_TRIM_SECONDS = 1 / 30;
 const END_CARD_MAX_BYTES = 20 * 1024 * 1024;
 const END_CARD_MAX_PIXELS = 40_000_000;
+/** Bound on a brand `.cube` LUT, matching the API's upload limit. */
+const BRAND_LUT_MAX_BYTES = 8 * 1024 * 1024;
 
 type MergeStep = NonNullable<JobProgress['step']>;
 type BackgroundTaskStatus = 'pending' | 'processing' | 'completed' | 'failed';
@@ -67,8 +69,13 @@ export class VideoMergeJobService {
         tempPath,
       );
       await this.mergeVideos(job, beatSync.paths, outputPath, musicPath);
-      const mergedOutput = await this.resizeVideo(job, outputPath, tempPath);
-      const finalOutput = await this.appendEndCard(job, mergedOutput, tempPath);
+      const resizedOutput = await this.resizeVideo(job, outputPath, tempPath);
+      const gradedOutput = await this.applyBrandLut(
+        job,
+        resizedOutput,
+        tempPath,
+      );
+      const finalOutput = await this.appendEndCard(job, gradedOutput, tempPath);
       const probe = await this.ffmpegService.probe(finalOutput);
       const videoStream = probe.streams.find(
         (stream) => stream.codec_type === 'video',
@@ -79,8 +86,9 @@ export class VideoMergeJobService {
         ...inputPaths,
         ...beatSync.trimmedPaths,
         ...(job.data.params.isPersistedOutputOnly ? [finalOutput] : []),
-        ...(mergedOutput !== outputPath ? [outputPath] : []),
-        ...(finalOutput !== mergedOutput ? [mergedOutput] : []),
+        ...(resizedOutput !== outputPath ? [outputPath] : []),
+        ...(gradedOutput !== resizedOutput ? [resizedOutput] : []),
+        ...(finalOutput !== gradedOutput ? [gradedOutput] : []),
         ...(musicPath ? [musicPath] : []),
       );
       this.webSocketService.emitSuccess(
@@ -479,6 +487,75 @@ export class VideoMergeJobService {
   }
 
   /**
+   * Grades the merged video with the brand's `.cube` LUT. The API resolved the
+   * stored file; it runs before the end card so the card's own colours are
+   * left as the brand drew them.
+   */
+  private async applyBrandLut(
+    job: Job<VideoJobData>,
+    videoPath: string,
+    tempPath: string,
+  ): Promise<string> {
+    const { lutStorageKey } = job.data.params;
+    if (!lutStorageKey) {
+      return videoPath;
+    }
+
+    this.emitStepProgress(
+      job,
+      'color-grading',
+      0,
+      90,
+      'Applying the brand colour grade',
+    );
+    const storageKey = this.configService?.isAuthorizedMediaDeliveryEnabled
+      ? assertStoredObjectKey(lutStorageKey, (message) => new Error(message))
+      : assertSafeObjectKey(lutStorageKey, (message) => new Error(message));
+    const lutPath = path.join(tempPath, 'brand-lut.cube');
+    await this.downloadStoredFile(storageKey, lutPath, BRAND_LUT_MAX_BYTES);
+
+    const gradedPath = path.join(tempPath, 'graded.mp4');
+    await this.ffmpegService.applyColorLut(
+      videoPath,
+      lutPath,
+      gradedPath,
+      this.createProgressCallback(
+        job,
+        'color-grading',
+        90,
+        95,
+        'Applying the brand colour grade',
+      ),
+    );
+    await this.ffmpegService.cleanupTempFiles(lutPath);
+    this.emitStepProgress(
+      job,
+      'color-grading',
+      100,
+      95,
+      'Colour grade applied',
+    );
+    return gradedPath;
+  }
+
+  /** Fetches one stored object, through a signed URL when delivery is authorized. */
+  private async downloadStoredFile(
+    storageKey: string,
+    destination: string,
+    maxBytes: number,
+  ): Promise<void> {
+    if (this.configService?.isAuthorizedMediaDeliveryEnabled) {
+      const url = await this.s3Service.getPresignedDownloadUrlForStoredKey(
+        storageKey,
+        300,
+      );
+      await this.s3Service.downloadFromUrl(url, destination, maxBytes);
+    } else {
+      await this.s3Service.downloadFile(storageKey, destination);
+    }
+  }
+
+  /**
    * Closes the finished video with the brand's end card. The API resolved and
    * validated the stored image; here it is fitted to the video's own frame so
    * the join keeps the original untouched.
@@ -514,19 +591,11 @@ export class VideoMergeJobService {
         )
       : assertSafeObjectKey(endCardStorageKey, (message) => new Error(message));
     const downloadedPath = path.join(tempPath, 'end-card-source');
-    if (this.configService?.isAuthorizedMediaDeliveryEnabled) {
-      const url = await this.s3Service.getPresignedDownloadUrlForStoredKey(
-        storageKey,
-        300,
-      );
-      await this.s3Service.downloadFromUrl(
-        url,
-        downloadedPath,
-        END_CARD_MAX_BYTES,
-      );
-    } else {
-      await this.s3Service.downloadFile(storageKey, downloadedPath);
-    }
+    await this.downloadStoredFile(
+      storageKey,
+      downloadedPath,
+      END_CARD_MAX_BYTES,
+    );
 
     const probe = await this.ffmpegService.probe(videoPath);
     const videoStream = probe.streams.find(
@@ -625,7 +694,9 @@ export class VideoMergeJobService {
         step,
         stepProgress,
         totalSteps:
-          (params.isResizeEnabled ? 5 : 4) + (params.endCardStorageKey ? 1 : 0),
+          (params.isResizeEnabled ? 5 : 4) +
+          (params.lutStorageKey ? 1 : 0) +
+          (params.endCardStorageKey ? 1 : 0),
       },
       userId,
       room,

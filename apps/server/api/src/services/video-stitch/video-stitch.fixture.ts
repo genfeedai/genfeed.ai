@@ -50,6 +50,8 @@ export interface StitchFixtureBrand {
   id: string;
   isDeleted: boolean;
   isEndCardEnabled: boolean;
+  isLutEnabled?: boolean;
+  lutStorageKey?: string | null;
   organizationId: string;
 }
 
@@ -200,6 +202,22 @@ export class VideoStitchFixture {
       id: 'brand-1',
       isDeleted: false,
       isEndCardEnabled: true,
+      organizationId: 'org-1',
+      ...overrides,
+    });
+  }
+
+  /** A brand that grades finished videos with a `.cube` LUT. */
+  addBrandWithLut(overrides: Partial<StitchFixtureBrand> = {}): void {
+    this.brands.set('brand-1', {
+      backgroundColor: '#112233',
+      endCardAssetId: null,
+      endCardDurationSeconds: 3,
+      id: 'brand-1',
+      isDeleted: false,
+      isEndCardEnabled: false,
+      isLutEnabled: true,
+      lutStorageKey: 'brand-luts/org-1/brand-1/lut.cube',
       organizationId: 'org-1',
       ...overrides,
     });

@@ -77,10 +77,16 @@ export interface VideoStitchEndCard {
   storageKey: string;
 }
 
+/** The brand's `.cube` colour LUT, resolved to its stored file. */
+export interface VideoStitchLut {
+  storageKey: string;
+}
+
 /** A validated request resolved to the clips' stored objects. */
 export interface VideoStitchPlan {
   clipIds: string[];
   endCard?: VideoStitchEndCard;
+  lut?: VideoStitchLut;
   musicStorageKey?: string;
   output?: VideoStitchOutput;
   settings: IVideoMergeSettings;
@@ -97,6 +103,7 @@ export interface VideoStitchJobParams {
   isMuteVideoAudio?: boolean;
   isPersistedOutputOnly: true;
   isResizeEnabled?: boolean;
+  lutStorageKey?: string;
   music?: string;
   musicStorageKey?: string;
   /** Worker gain, 0–1. */

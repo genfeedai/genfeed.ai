@@ -136,6 +136,12 @@ export class UpdateBrandDto extends PartialType(CreateBrandDto) {
   @ApiProperty({ required: false })
   readonly isEndCardEnabled?: boolean;
 
+  // The LUT file itself only arrives through PUT /brands/:id/lut, never here.
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsBoolean()
+  @ApiProperty({ required: false })
+  readonly isLutEnabled?: boolean;
+
   // isDeleted is deliberately not a settable field here (#5295). A plain
   // PATCH bypassed remove()'s last-brand guard and member reassignment,
   // letting an organization end up with zero live brands and members
