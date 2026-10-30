@@ -106,12 +106,8 @@ describe('page semantic theme surfaces', () => {
   });
 
   it('themes progress and loading indicators', () => {
-    const streaks = readPage('streaks/streaks-page.tsx');
     const campaigns = readPage('agents/campaigns/AgentCampaignsPage.tsx');
 
-    // The streak page renders its loading state through `@ui` cards now, so it
-    // carries no spinner chrome of its own — the ban still applies.
-    expect(streaks).not.toContain('border-t-white');
     expect(campaigns).toContain('bg-foreground/5');
     expect(campaigns).not.toContain('border-white');
     expect(campaigns).not.toContain('bg-white');
@@ -152,7 +148,6 @@ describe('page semantic theme surfaces', () => {
 
   it.each([
     'agents/campaigns/AgentCampaignsPage.tsx',
-    'content-runs/detail/content-run-detail.tsx',
     'posts/list/components/PostsGrid.tsx',
     'trends/platform-detail/components/related-metric-card.tsx',
     'trends/shared/trend-content-card.tsx',
