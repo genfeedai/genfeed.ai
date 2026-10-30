@@ -6,6 +6,7 @@ import {
   hasProposedPlanBody,
 } from '@genfeedai/agent/utils/proposed-plan.util';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { AgentUiActionOutcome } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -20,7 +21,7 @@ export interface AgentPlanDecision {
   /** Resolves to false when the request was not accepted, so the note stays. */
   onRequestChanges: (
     revisionNote: string,
-  ) => boolean | void | Promise<boolean | void>;
+  ) => AgentUiActionOutcome | Promise<AgentUiActionOutcome>;
 }
 
 interface AgentPlanCardProps {
