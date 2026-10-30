@@ -102,7 +102,7 @@ vi.mock('@app-i18n/AppGlobalModalIntlBoundary', () => ({
   AppAssetCatalogBoundary: ({ children }: { children: ReactNode }) => children,
 }));
 
-vi.mock('@ui/brands/sidebar/BrandSidebarPanel', () => ({
+vi.mock('@/features/brands/sidebar-panel/BrandSidebarPanel', () => ({
   default: ({ brand }: { brand: { label: string } }) => (
     <div data-testid="brand-sidebar-panel">{brand.label}</div>
   ),

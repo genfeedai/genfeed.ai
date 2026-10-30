@@ -1,8 +1,8 @@
 import { LibraryPlace, PageScope } from '@genfeedai/contracts';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import LibraryBrowser from '@pages/library/browser/library-browser';
 import { Suspense } from 'react';
 import IngredientsList from '@/features/ingredients/list/ingredients-list';
+import LibraryBrowser from '@/features/library/browser/library-browser';
 
 export const generateMetadata = createPageMetadata('Recent');
 

@@ -4,19 +4,6 @@ import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import { AlertCategory, ButtonVariant, ViewType } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useOptionalDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
-import {
-  useOptionalResearchWorkSurface,
-  useResearchQueryState,
-  useResearchSearchParamState,
-  useRestoreResearchFinding,
-} from '@pages/research/work-surface/ResearchWorkSurfaceProvider';
-import {
-  type AuthorizedResearchFinding,
-  toSourcePostFinding,
-  toTrendContentFinding,
-  toTrendVideoFinding,
-} from '@pages/research/work-surface/research-work-surface.types';
 import type { ViewOption } from '@props/ui/navigation/view-option.props';
 import { NotificationsService } from '@services/core/notifications.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
@@ -31,6 +18,19 @@ import { LayoutGrid, TableProperties, TrendingUp } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useReducer } from 'react';
+import { useOptionalDiscoveryRemix } from '@/features/research/remix/DiscoveryRemixProvider';
+import {
+  useOptionalResearchWorkSurface,
+  useResearchQueryState,
+  useResearchSearchParamState,
+  useRestoreResearchFinding,
+} from '@/features/research/work-surface/ResearchWorkSurfaceProvider';
+import {
+  type AuthorizedResearchFinding,
+  toSourcePostFinding,
+  toTrendContentFinding,
+  toTrendVideoFinding,
+} from '@/features/research/work-surface/research-work-surface.types';
 import {
   DeskEmptyState,
   DiscoveryReadinessCards,

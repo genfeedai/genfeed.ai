@@ -66,7 +66,7 @@ vi.mock('next-intl', async () => {
 
 import { translateFromPseudoCatalog } from '@app-tests/next-intl.stub';
 
-vi.mock('@pages/research/remix/DiscoveryRemixProvider', () => ({
+vi.mock('@/features/research/remix/DiscoveryRemixProvider', () => ({
   useOptionalDiscoveryRemix: () => ({ openRemix: mocks.openRemix }),
 }));
 

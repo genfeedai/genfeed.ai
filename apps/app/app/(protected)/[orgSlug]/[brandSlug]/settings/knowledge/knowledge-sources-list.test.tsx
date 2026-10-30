@@ -63,7 +63,7 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: mocks.replace }),
 }));
 
-vi.mock('@pages/library/knowledge/hooks/use-knowledge-library', () => ({
+vi.mock('@/features/library/knowledge/hooks/use-knowledge-library', () => ({
   useKnowledgeLibrary: (options: unknown) => mocks.useKnowledgeLibrary(options),
 }));
 

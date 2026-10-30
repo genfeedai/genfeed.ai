@@ -10,7 +10,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => vi.fn(),
 }));
-vi.mock('@pages/research/remix/DiscoveryRemixProvider', () => ({
+vi.mock('@/features/research/remix/DiscoveryRemixProvider', () => ({
   useOptionalDiscoveryRemix: () => null,
 }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));

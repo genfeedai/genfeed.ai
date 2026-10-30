@@ -43,11 +43,6 @@ describe('page semantic theme surfaces', () => {
       'border-white',
       'border-border',
     ],
-    [
-      'brands/components/sidebar/BrandDetailManualKitCard.tsx',
-      'border-white',
-      'border-border',
-    ],
   ])(
     'removes fixed dark-only chrome from %s',
     (relativePath, forbiddenToken, semanticToken: string | null) => {

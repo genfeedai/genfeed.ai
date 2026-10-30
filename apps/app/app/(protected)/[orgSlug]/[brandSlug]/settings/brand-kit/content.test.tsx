@@ -1,8 +1,8 @@
 import type { IBrandKitDraft } from '@genfeedai/contracts/interfaces';
-import type { BrandOsSettingsCardProps } from '@props/pages/brand-os-settings.props';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { ComponentProps, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { BrandOsSettingsCardProps } from '@/features/brands/props/brand-os-settings.props';
 import BrandKitPage from './content';
 
 const mocks = vi.hoisted(() => ({
@@ -78,7 +78,7 @@ vi.mock('@hooks/pages/use-brand-detail/use-brand-detail', () => ({
     isLoading: false,
   }),
 }));
-vi.mock('@pages/brands/components/brand-kit/BrandOsSettingsCard', () => ({
+vi.mock('@/features/brands/components/brand-kit/BrandOsSettingsCard', () => ({
   default: ({ renderWorkspace }: BrandOsSettingsCardProps) =>
     renderWorkspace?.({
       content: mocks.revisionContent,
@@ -92,7 +92,7 @@ vi.mock('@pages/brands/components/brand-kit/BrandOsSettingsCard', () => ({
       onSave: vi.fn(),
     }),
 }));
-vi.mock('@pages/brands/components/brand-kit/BrandKitReviewCard', () => ({
+vi.mock('@/features/brands/components/brand-kit/BrandKitReviewCard', () => ({
   default: (props: {
     loadClaimedBrandOsDraft?: boolean;
     onDraftCreated?: unknown;
@@ -106,17 +106,23 @@ vi.mock('@pages/brands/components/brand-kit/BrandKitReviewCard', () => ({
     </p>
   ),
 }));
-vi.mock('@pages/brands/components/sidebar/BrandDetailManualKitCard', () => ({
-  default: () => <p>Manual draft workflow</p>,
-}));
 vi.mock(
-  '@pages/brands/components/brand-kit/writing-voice/BrandWritingVoiceEditor',
+  '@/features/brands/components/sidebar/BrandDetailManualKitCard',
+  () => ({
+    default: () => <p>Manual draft workflow</p>,
+  }),
+);
+vi.mock(
+  '@/features/brands/components/brand-kit/writing-voice/BrandWritingVoiceEditor',
   () => ({ default: () => <p>Writing editor</p> }),
 );
-vi.mock('@pages/brands/components/sidebar/BrandDetailReferencesCard', () => ({
-  default: () => <p>References</p>,
-}));
-vi.mock('@pages/brands/components/sidebar/BrandWatermarkSettings', () => ({
+vi.mock(
+  '@/features/brands/components/sidebar/BrandDetailReferencesCard',
+  () => ({
+    default: () => <p>References</p>,
+  }),
+);
+vi.mock('@/features/brands/components/sidebar/BrandWatermarkSettings', () => ({
   default: () => <p>Watermark</p>,
 }));
 vi.mock('@ui/cards/brand-completeness-card/BrandCompletenessCard', () => ({

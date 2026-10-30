@@ -259,7 +259,7 @@ describe('control-guard detection', () => {
 
   it('ignores raw <input> documented in JSDoc / block comments', () => {
     const file = write(
-      'packages/pages/brands/kit.tsx',
+      'apps/app/src/features/brands/kit.tsx',
       [
         '/** Native `<input type="color">` requires `#rrggbb`. */',
         'export default function K(){return <div />;}',
@@ -271,7 +271,7 @@ describe('control-guard detection', () => {
 
   it('ignores raw elements on multi-line JSDoc body lines', () => {
     const file = write(
-      'packages/pages/brands/docs.tsx',
+      'apps/app/src/features/brands/docs.tsx',
       [
         '/**',
         ' * Prefer ColorInput over raw <input type="color">.',

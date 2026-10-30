@@ -21,9 +21,9 @@ import {
 import { useAvatarImages } from '@hooks/data/ingredients/use-avatar-images/use-avatar-images';
 import { useHeyGenCatalog } from '@hooks/data/integrations/use-heygen-catalog';
 import type { Voice } from '@models/ingredients/voice.model';
-import { useVoiceCatalog } from '@pages/library/voices/hooks/use-voice-catalog';
 import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
 import { useMemo } from 'react';
+import { useVoiceCatalog } from '@/features/library/voices/hooks/use-voice-catalog';
 import { useHeyGenSpeechVoices } from '@/features/studio/hooks/use-heygen-speech-voices';
 import type { StudioPlaygroundType } from '@/features/studio/playground/types';
 import { normalizeIdentityGender } from '@/features/studio/playground/utils/studio-identity-selection';

@@ -10,7 +10,6 @@ import type {
 import { AdsPlatform } from '@genfeedai/contracts/interfaces';
 import { publicAdYouTubeEmbedUrl } from '@genfeedai/integrations/ads';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useOptionalDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
 import { AdsResearchService } from '@services/ads/ads-research.service';
 import Card from '@ui/card/Card';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
@@ -27,6 +26,7 @@ import {
 import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import { useOptionalDiscoveryRemix } from '@/features/research/remix/DiscoveryRemixProvider';
 
 const EUROPE =
   'FR AT BE BG HR CY CZ DK EE FI DE GR HU IS IE IT LV LI LT LU MT NL NO PL PT RO SK SI ES SE CH GB'

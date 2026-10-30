@@ -18,7 +18,7 @@ import type {
   PlatformHomeDestinations,
 } from '@genfeedai/props/pages/platform-home.props';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
-import { getAccountConnectionStatus } from '@pages/brands/components/integrations/account-connection-status.util';
+import { getAccountConnectionStatus } from '@/features/brands/components/integrations/account-connection-status.util';
 
 export function isSamePlatform(value: unknown, platform: Platform): boolean {
   return parsePlatform(value) === platform;

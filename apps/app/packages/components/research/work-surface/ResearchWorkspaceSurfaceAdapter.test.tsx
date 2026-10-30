@@ -47,13 +47,13 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/acme/moonrise/discovery/overview',
 }));
 
-vi.mock('@pages/research/work-surface/ResearchFindingInspector', () => ({
+vi.mock('@/features/research/work-surface/ResearchFindingInspector', () => ({
   default: ({ finding }: { finding: { title: string } }) => (
     <div>Research inspector: {finding.title}</div>
   ),
 }));
 
-vi.mock('@pages/research/work-surface/ResearchWorkSurfaceProvider', () => ({
+vi.mock('@/features/research/work-surface/ResearchWorkSurfaceProvider', () => ({
   useOptionalResearchWorkSurface: () => ({
     authorizedFinding: mocks.authorizedFinding,
     clearFinding: mocks.clearFinding,

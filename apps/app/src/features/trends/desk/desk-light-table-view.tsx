@@ -4,7 +4,6 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
-import { useOptionalDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
 import type { CollectionOverflowAction } from '@props/ui/collection/collection.props';
 import Card from '@ui/card/Card';
 import CollectionGrid from '@ui/collection/CollectionGrid';
@@ -16,6 +15,7 @@ import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { ExternalLink, Sparkles, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
+import { useOptionalDiscoveryRemix } from '@/features/research/remix/DiscoveryRemixProvider';
 import DeskMediaPreview from '@/features/trends/desk/desk-media-preview';
 import type {
   DeskLightCardProps,

@@ -10,7 +10,6 @@ import type { StoryboardRunPanelProps } from '@genfeedai/props/studio/storyboard
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { useAvatarImages } from '@hooks/data/ingredients/use-avatar-images/use-avatar-images';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useVoiceCatalog } from '@pages/library/voices/hooks/use-voice-catalog';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
@@ -19,6 +18,7 @@ import NextImage from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
+import { useVoiceCatalog } from '@/features/library/voices/hooks/use-voice-catalog';
 import StoryboardRunScenes from '@/features/studio/storyboard/components/StoryboardRunScenes';
 import { useStoryboardAssets } from '@/features/studio/storyboard/hooks/use-storyboard-assets';
 import { getStoryboardAssetLabel } from '@/features/studio/storyboard/utils/storyboard-asset-label';

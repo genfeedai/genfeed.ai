@@ -17,7 +17,7 @@ const state = vi.hoisted(() => ({
 }));
 const discover = vi.hoisted(() => vi.fn());
 const openRemix = vi.hoisted(() => vi.fn());
-vi.mock('@pages/research/remix/DiscoveryRemixProvider', () => ({
+vi.mock('@/features/research/remix/DiscoveryRemixProvider', () => ({
   useOptionalDiscoveryRemix: () => ({ openRemix, status: 'idle' }),
 }));
 const getService = vi.hoisted(() => vi.fn());

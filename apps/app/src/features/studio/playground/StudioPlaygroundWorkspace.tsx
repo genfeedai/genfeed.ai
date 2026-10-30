@@ -65,9 +65,6 @@ import { useFailedIngredientRecovery } from '@hooks/data/ingredients/use-ingredi
 import { usePromptBarResting } from '@hooks/prompt-bar/use-prompt-bar-resting/use-prompt-bar-resting';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
-import KnowledgeReferenceSection, {
-  countKnowledgeSelection,
-} from '@pages/library/knowledge/components/KnowledgeReferenceSection';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -111,6 +108,9 @@ import {
   useRef,
   useState,
 } from 'react';
+import KnowledgeReferenceSection, {
+  countKnowledgeSelection,
+} from '@/features/library/knowledge/components/KnowledgeReferenceSection';
 import { useAdvancedModePreference } from '@/features/studio/hooks/use-advanced-mode-preference/use-advanced-mode-preference';
 import StudioPlaygroundAgentProposals from '@/features/studio/playground/components/StudioPlaygroundAgentProposals';
 import StudioPlaygroundComposer from '@/features/studio/playground/components/StudioPlaygroundComposer';

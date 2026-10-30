@@ -697,14 +697,6 @@
       "workspace": "agent"
     },
     {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/ui/src/components/lazy/modal/LazyModal.tsx",
-      "fingerprint": "a2070866c3d8101756c2",
-      "message": "Cannot find module '@pages/members/invite/ModalMember' or its corresponding type declarations.",
-      "workspace": "agent"
-    },
-    {
       "code": 2554,
       "count": 1,
       "file": "apps/server/api/src/auth/better-auth/better-auth.factory.spec.ts",
@@ -4433,6 +4425,118 @@
       "workspace": "app"
     },
     {
+      "code": 2740,
+      "count": 1,
+      "file": "apps/app/src/features/agents/library/LivestreamChatBotPage.test.tsx",
+      "fingerprint": "10441925ae79fc8e1294",
+      "message": "Type '{ context: {}; deliveryHistory: never[]; platformStates: never[]; status: \"active\"; }' is missing the following properties from type 'LivestreamSession': bot, transcriptChunks, id, isDeleted, and 2 more.",
+      "workspace": "app"
+    },
+    {
+      "code": 2352,
+      "count": 1,
+      "file": "apps/app/src/features/analytics/organization-overview/analytics-organization-overview.test.tsx",
+      "fingerprint": "277edab6b1e16a46a1d5",
+      "message": "Conversion of type '{ viewsGrowth: null; totalPosts: number; totalViews: number; totalLikes?: number; totalComments?: number; totalShares?: number; totalSaves?: number; totalCredentialsConnected: number; ... 17 more ...; recentActivities?: number; }' to type 'IAnalytics' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Types of property 'viewsGrowth' are incompatible.     Type 'null' is not comparable to type 'number'.",
+      "workspace": "app"
+    },
+    {
+      "code": 5097,
+      "count": 1,
+      "file": "apps/app/src/features/analytics/overview/analytics-agent-dashboard.test.tsx",
+      "fingerprint": "7b84a4e74d136301efa9",
+      "message": "An import path can only end with a '.tsx' extension when 'allowImportingTsExtensions' is enabled.",
+      "workspace": "app"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
+      "fingerprint": "32d106e6b775768f6f4d",
+      "message": "Type '{ date: string; instagram: number; }' is not assignable to type 'never'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2322,
+      "count": 2,
+      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
+      "fingerprint": "37a37b83cc1d7986bba4",
+      "message": "Type '{ description: string; platform: string; postId: string; totalComments: number; totalLikes: number; totalViews: number; }' is not assignable to type 'never'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2322,
+      "count": 2,
+      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
+      "fingerprint": "41ae292aba8557f84668",
+      "message": "Type 'string' is not assignable to type 'never'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
+      "fingerprint": "8e326bcdb4de0b31ffac",
+      "message": "Type '{ date: string; instagram: number; youtube: number; }' is not assignable to type 'never'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
+      "fingerprint": "a02ddff1b593c73750e1",
+      "message": "Type 'string' is not assignable to type 'never'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2352,
+      "count": 1,
+      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
+      "fingerprint": "0a031ac93141cc2cf4dd",
+      "message": "Conversion of type 'typeof (Anonymous class)' to type '{ new (callback: IntersectionObserverCallback, options?: IntersectionObserverInit | undefined): IntersectionObserver; prototype: IntersectionObserver; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Types of property 'prototype' are incompatible.     Type '(Anonymous class)' is missing the following properties from type 'IntersectionObserver': root, rootMargin, scrollMargin, thresholds, takeRecords",
+      "workspace": "app"
+    },
+    {
+      "code": 2769,
+      "count": 1,
+      "file": "apps/app/src/features/brands/components/brand-kit/BrandOsSettingsCard.test.tsx",
+      "fingerprint": "195fe539b9f49acbb3fc",
+      "message": "No overload matches this call.   Overload 1 of 2, '(role: ByRoleMatcher, options?: ByRoleOptions | undefined): HTMLElement', gave the following error.     Object literal may only specify known properties, and 'exact' does not exist in type 'ByRoleOptions'.   Overload 2 of 2, '(role: ByRoleMatcher, options?: ByRoleOptions | undefined): HTMLElement', gave the following error.     Object literal may only specify known properties, and 'exact' does not exist in type 'ByRoleOptions'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2352,
+      "count": 1,
+      "file": "apps/app/src/features/brands/components/sidebar/BrandDetailReferencesCard.test.tsx",
+      "fingerprint": "8a75bb8a10a5fb311861",
+      "message": "Conversion of type '{ references: never[]; }' to type 'IBrand' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ references: never[]; }' is missing the following properties from type 'IBrand': user, organization, credentials, links, and 16 more.",
+      "workspace": "app"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "apps/app/src/features/brands/components/sidebar/BrandDetailSocialMediaCard.test.tsx",
+      "fingerprint": "e2790dec374b007f94a6",
+      "message": "Type '{ assessedAt: string; credentialId: string; holdPublishing: boolean; holdReason: string; label: string; override: { isActive: boolean; }; platform: CredentialPlatform; ... 4 more ...; thresholds: { ...; }; }' is not assignable to type 'AccountHealthSummary'.   Types of property 'riskLevel' are incompatible.     Type 'string' is not assignable to type 'AccountHealthRiskLevel'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2556,
+      "count": 1,
+      "file": "apps/app/src/features/brands/components/sidebar/social-warmup/SocialWarmupProgram.test.tsx",
+      "fingerprint": "3d89f29eeea15c20dce5",
+      "message": "A spread argument must either have a tuple type or be passed to a rest parameter.",
+      "workspace": "app"
+    },
+    {
+      "code": 2739,
+      "count": 3,
+      "file": "apps/app/src/features/brands/components/system-prompt/BrandDetailSystemPrompt.test.tsx",
+      "fingerprint": "cf6828ecb05417755884",
+      "message": "Type '{}' is missing the following properties from type 'BrandDetailSystemPromptProps': text, onCopy",
+      "workspace": "app"
+    },
+    {
       "code": 2339,
       "count": 2,
       "file": "apps/app/src/features/ingredients/detail/use-ingredient-detail.test.ts",
@@ -4462,6 +4566,38 @@
       "file": "apps/app/src/features/library-remix/use-library-remix-source.test.ts",
       "fingerprint": "bbd0b82706fa576f2ec9",
       "message": "Conversion of type '{ id: string; isDeleted: false; parent: string; parentModel: AssetParent; url: string; }' to type 'IAsset' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ id: string; isDeleted: false; parent: string; parentModel: AssetParent; url: string; }' is missing the following properties from type 'IAsset': userId, parentType, category, createdAt, updatedAt",
+      "workspace": "app"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "apps/app/src/features/research/remix/DiscoveryRemixProvider.test.tsx",
+      "fingerprint": "81ee6244ec2cfee2ce62",
+      "message": "Type '\"tiktok\"' is not assignable to type 'BrandRemixAdPlatform | BrandRemixOrganicPlatform'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2322,
+      "count": 2,
+      "file": "apps/app/src/features/research/remix/DiscoveryRemixProvider.test.tsx",
+      "fingerprint": "8994cd41b02e3e2eb335",
+      "message": "Type '\"tiktok\"' is not assignable to type 'BrandRemixSourcePlatform'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "apps/app/src/features/research/work-surface/research-work-surface.types.test.ts",
+      "fingerprint": "05d7fe4300fdba0c97b4",
+      "message": "Type '\"tiktok\"' is not assignable to type 'AdsPlatform'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "apps/app/src/features/research/work-surface/research-work-surface.types.test.ts",
+      "fingerprint": "c4bbd0c0786631c14495",
+      "message": "Type '\"all\"' is not assignable to type 'AdsChannel'.",
       "workspace": "app"
     },
     {
@@ -4597,7 +4733,7 @@
       "count": 1,
       "file": "packages/contracts/src/constants/self-hosted-models.constant.test.ts",
       "fingerprint": "34456683a759b2d7ade1",
-      "message": "Property 'pricingType' does not exist on type '{ category: ModelCategory; cost: number; costTier: CostTier; description: string; isDefault: boolean; isHighlighted: boolean; key: \"black-forest-labs/flux-3-image\" | \"black-forest-labs/flux-3-image-edit\"; ... 5 more ...; providerCostUsd: number; } | ... 21 more ... | { ...; }'.   Property 'pricingType' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite \u2014 fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; }'.",
+      "message": "Property 'pricingType' does not exist on type '{ category: ModelCategory; cost: number; costTier: CostTier; description: string; isDefault: boolean; isHighlighted: boolean; key: \"black-forest-labs/flux-3-image\" | \"black-forest-labs/flux-3-image-edit\"; ... 5 more ...; providerCostUsd: number; } | ... 21 more ... | { ...; }'.   Property 'pricingType' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite — fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; }'.",
       "workspace": "contracts"
     },
     {
@@ -6297,54 +6433,6 @@
       "workspace": "notifications"
     },
     {
-      "code": 2769,
-      "count": 1,
-      "file": "packages/pages/brands/components/brand-kit/BrandOsSettingsCard.test.tsx",
-      "fingerprint": "3ac95e65c8e0deaa7882",
-      "message": "No overload matches this call.   Overload 1 of 2, '(role: ByRoleMatcher, options?: ByRoleOptions | undefined): HTMLElement', gave the following error.     Object literal may only specify known properties, and 'exact' does not exist in type 'ByRoleOptions'.   Overload 2 of 2, '(role: ByRoleMatcher, options?: ByRoleOptions | undefined): HTMLElement', gave the following error.     Object literal may only specify known properties, and 'exact' does not exist in type 'ByRoleOptions'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "packages/pages/brands/components/sidebar/BrandDetailReferencesCard.test.tsx",
-      "fingerprint": "fe9fc4478e5a34b9c639",
-      "message": "Conversion of type '{ references: never[]; }' to type 'IBrand' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ references: never[]; }' is missing the following properties from type 'IBrand': user, organization, credentials, links, and 16 more.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/pages/brands/components/sidebar/BrandDetailSocialMediaCard.test.tsx",
-      "fingerprint": "77b5c05d3d20a6eebbd2",
-      "message": "Type '{ assessedAt: string; credentialId: string; holdPublishing: boolean; holdReason: string; label: string; override: { isActive: boolean; }; platform: CredentialPlatform; ... 4 more ...; thresholds: { ...; }; }' is not assignable to type 'AccountHealthSummary'.   Types of property 'riskLevel' are incompatible.     Type 'string' is not assignable to type 'AccountHealthRiskLevel'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2556,
-      "count": 1,
-      "file": "packages/pages/brands/components/sidebar/social-warmup/SocialWarmupProgram.test.tsx",
-      "fingerprint": "b3c0e11d01de6f57c5cd",
-      "message": "A spread argument must either have a tuple type or be passed to a rest parameter.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2739,
-      "count": 3,
-      "file": "packages/pages/brands/components/system-prompt/BrandDetailSystemPrompt.test.tsx",
-      "fingerprint": "0b64a1946299a101f807",
-      "message": "Type '{}' is missing the following properties from type 'BrandDetailSystemPromptProps': text, onCopy",
-      "workspace": "pages"
-    },
-    {
-      "code": 5097,
-      "count": 1,
-      "file": "packages/pages/members/invite/ModalMember.test.tsx",
-      "fingerprint": "8dfe9ba8587158731716",
-      "message": "An import path can only end with a '.tsx' extension when 'allowImportingTsExtensions' is enabled.",
-      "workspace": "pages"
-    },
-    {
       "code": 2322,
       "count": 3,
       "file": "packages/pages/posts/[id]/ingredient-posts.test.tsx",
@@ -6414,38 +6502,6 @@
       "file": "packages/pages/posts/release/release-engagement-rules.test.tsx",
       "fingerprint": "b76ba3234e348e83ac31",
       "message": "Conversion of type '{ executionState: TargetExecutionState.PUBLISHED; id: string; platform: CredentialPlatform.INSTAGRAM; retryCount: number; scheduledAt: string; source: ReleaseTargetSource.MANUAL; timezone: string; validationIssues: never[]; validationState: TargetValidationState.VALID; }' to type 'IChannelTarget' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ executionState: TargetExecutionState.PUBLISHED; id: string; platform: Platform.INSTAGRAM; retryCount: number; scheduledAt: string; source: ReleaseTargetSource.MANUAL; timezone: string; validationIssues: never[]; validationState: TargetValidationState.VALID; }' is missing the following properties from type 'IChannelTarget': releaseId, credentialId, settings, visibility, and 5 more.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/pages/research/remix/DiscoveryRemixProvider.test.tsx",
-      "fingerprint": "bc91d58aa5c52a70152c",
-      "message": "Type '\"tiktok\"' is not assignable to type 'BrandRemixAdPlatform | BrandRemixOrganicPlatform'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2322,
-      "count": 2,
-      "file": "packages/pages/research/remix/DiscoveryRemixProvider.test.tsx",
-      "fingerprint": "d5fc9678b987ddfdb088",
-      "message": "Type '\"tiktok\"' is not assignable to type 'BrandRemixSourcePlatform'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/pages/research/work-surface/research-work-surface.types.test.ts",
-      "fingerprint": "aa8502eac7178047deab",
-      "message": "Type '\"all\"' is not assignable to type 'AdsChannel'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/pages/research/work-surface/research-work-surface.types.test.ts",
-      "fingerprint": "bf7bb241591e09d75cd3",
-      "message": "Type '\"tiktok\"' is not assignable to type 'AdsPlatform'.",
       "workspace": "pages"
     },
     {
@@ -8305,6 +8361,14 @@
       "workspace": "ui"
     },
     {
+      "code": 5097,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/members/invite/ModalMember.test.tsx",
+      "fingerprint": "b1a33327a136a27d270f",
+      "message": "An import path can only end with a '.tsx' extension when 'allowImportingTsExtensions' is enabled.",
+      "workspace": "ui"
+    },
+    {
       "code": 2352,
       "count": 1,
       "file": "packages/ui/src/components/modals/trainings/ModalTraining.test.tsx",
@@ -8999,78 +9063,6 @@
       "fingerprint": "9d4449567c5f19e343e0",
       "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
       "workspace": "workers"
-    },
-    {
-      "code": 2740,
-      "count": 1,
-      "file": "apps/app/src/features/agents/library/LivestreamChatBotPage.test.tsx",
-      "fingerprint": "10441925ae79fc8e1294",
-      "message": "Type '{ context: {}; deliveryHistory: never[]; platformStates: never[]; status: \"active\"; }' is missing the following properties from type 'LivestreamSession': bot, transcriptChunks, id, isDeleted, and 2 more.",
-      "workspace": "app"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/app/src/features/analytics/organization-overview/analytics-organization-overview.test.tsx",
-      "fingerprint": "277edab6b1e16a46a1d5",
-      "message": "Conversion of type '{ viewsGrowth: null; totalPosts: number; totalViews: number; totalLikes?: number; totalComments?: number; totalShares?: number; totalSaves?: number; totalCredentialsConnected: number; ... 17 more ...; recentActivities?: number; }' to type 'IAnalytics' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Types of property 'viewsGrowth' are incompatible.     Type 'null' is not comparable to type 'number'.",
-      "workspace": "app"
-    },
-    {
-      "code": 5097,
-      "count": 1,
-      "file": "apps/app/src/features/analytics/overview/analytics-agent-dashboard.test.tsx",
-      "fingerprint": "7b84a4e74d136301efa9",
-      "message": "An import path can only end with a '.tsx' extension when 'allowImportingTsExtensions' is enabled.",
-      "workspace": "app"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
-      "fingerprint": "32d106e6b775768f6f4d",
-      "message": "Type '{ date: string; instagram: number; }' is not assignable to type 'never'.",
-      "workspace": "app"
-    },
-    {
-      "code": 2322,
-      "count": 2,
-      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
-      "fingerprint": "37a37b83cc1d7986bba4",
-      "message": "Type '{ description: string; platform: string; postId: string; totalComments: number; totalLikes: number; totalViews: number; }' is not assignable to type 'never'.",
-      "workspace": "app"
-    },
-    {
-      "code": 2322,
-      "count": 2,
-      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
-      "fingerprint": "41ae292aba8557f84668",
-      "message": "Type 'string' is not assignable to type 'never'.",
-      "workspace": "app"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
-      "fingerprint": "8e326bcdb4de0b31ffac",
-      "message": "Type '{ date: string; instagram: number; youtube: number; }' is not assignable to type 'never'.",
-      "workspace": "app"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
-      "fingerprint": "a02ddff1b593c73750e1",
-      "message": "Type 'string' is not assignable to type 'never'.",
-      "workspace": "app"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
-      "fingerprint": "0a031ac93141cc2cf4dd",
-      "message": "Conversion of type 'typeof (Anonymous class)' to type '{ new (callback: IntersectionObserverCallback, options?: IntersectionObserverInit | undefined): IntersectionObserver; prototype: IntersectionObserver; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Types of property 'prototype' are incompatible.     Type '(Anonymous class)' is missing the following properties from type 'IntersectionObserver': root, rootMargin, scrollMargin, thresholds, takeRecords",
-      "workspace": "app"
     }
   ],
   "version": 2

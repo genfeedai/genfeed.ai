@@ -24,9 +24,6 @@
   "packages/services/hook-remix/hook-remix.service.ts": 1,
   "packages/services/ingredients/images.service.ts": 1,
   "packages/services/social/trends.service.ts": 1,
-  "packages/ui/src/components/brands/sidebar/BrandOverviewPanel.tsx": 4,
   "packages/ui/src/components/ingredients/tabs/posts/IngredientTabsPosts.tsx": 1,
-  "packages/ui/src/components/lazy/modal/LazyModal.tsx": 1,
-  "packages/ui/src/components/modals/brands/brand/BrandOverviewPanel.tsx": 4,
   "packages/utils/url/desktop-loop-url.util.ts": 1
 }

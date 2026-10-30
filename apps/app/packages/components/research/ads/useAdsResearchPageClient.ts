@@ -20,17 +20,6 @@ import {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSavedAds } from '@hooks/data/analytics/use-saved-ads/use-saved-ads';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useOptionalDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
-import {
-  useOptionalResearchWorkSurface,
-  useResearchQueryState,
-  useResearchSearchParamState,
-  useRestoreResearchFinding,
-} from '@pages/research/work-surface/ResearchWorkSurfaceProvider';
-import {
-  getResearchFindingReferenceKey,
-  toAdsResearchFinding,
-} from '@pages/research/work-surface/research-work-surface.types';
 import {
   AdsResearchService,
   type UnifiedAdAccountOption,
@@ -38,6 +27,17 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
+import { useOptionalDiscoveryRemix } from '@/features/research/remix/DiscoveryRemixProvider';
+import {
+  useOptionalResearchWorkSurface,
+  useResearchQueryState,
+  useResearchSearchParamState,
+  useRestoreResearchFinding,
+} from '@/features/research/work-surface/ResearchWorkSurfaceProvider';
+import {
+  getResearchFindingReferenceKey,
+  toAdsResearchFinding,
+} from '@/features/research/work-surface/research-work-surface.types';
 
 const EMPTY_RESPONSE: AdsResearchResponse = {
   connectedAds: [],

@@ -1,0 +1,185 @@
+'use client';
+
+import { ButtonVariant } from '@genfeedai/contracts';
+import Container from '@ui/layout/container/Container';
+import { Button } from '@ui/primitives/button';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@ui/primitives/collapsible';
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@ui/primitives/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@ui/primitives/dropdown-menu';
+import { Ellipsis } from 'lucide-react';
+import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { useState } from 'react';
+import type { BrandKitWorkspaceProps } from '@/features/brands/props/brand-kit-workspace.props';
+import BrandKitLocalPreview from './BrandKitLocalPreview';
+
+export default function BrandKitWorkspace({
+  brand,
+  tab,
+  onTabChange,
+  onScan,
+  onManualImport,
+  guidedSetupHref,
+  contentRulesHref,
+  overview,
+  writingEditor,
+  assets,
+  editor,
+  review,
+  content,
+  approvedContent,
+  isDirty,
+  isLoading,
+  isSaveDisabled,
+  error,
+  onSave,
+}: BrandKitWorkspaceProps) {
+  const t = useTranslations('pages.brandKitSettings');
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const revisionStatus = content ? (
+    <div className="flex items-center justify-between gap-3 border-t border-border py-3">
+      <span className="text-xs text-muted-foreground" role="status">
+        {isDirty ? t('unsaved') : t('saved')}
+      </span>
+      <Button onClick={onSave} isDisabled={isSaveDisabled}>
+        {t('saveDraft')}
+      </Button>
+    </div>
+  ) : null;
+  return (
+    <Container
+      label={t('settingsAriaLabel')}
+      titleVisibility="sr-only"
+      moduleChrome
+      headerTabs={{
+        activeTab: tab,
+        onTabChange,
+        ariaLabel: t('sectionsLabel'),
+        fullWidth: false,
+        tabs: [
+          { id: 'overview', label: t('overview') },
+          { id: 'visual', label: t('visual') },
+          { id: 'voice', label: t('voice') },
+          { id: 'strategy', label: t('strategy') },
+        ],
+      }}
+      right={
+        <>
+          <Button
+            variant={ButtonVariant.SECONDARY}
+            onClick={onScan}
+            isDisabled={isDirty}
+          >
+            {t('scan')}
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant={ButtonVariant.SECONDARY}
+                aria-label={t('actionsLabel')}
+                withWrapper={false}
+              >
+                <Ellipsis className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild disabled={isDirty}>
+                <Link href={guidedSetupHref}>{t('guidedSetup')}</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={onManualImport} disabled={isDirty}>
+                {t('manualImport')}
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild disabled={isDirty}>
+                <Link href={contentRulesHref}>{t('contentRules')}</Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button onClick={() => setIsReviewOpen(true)}>{t('review')}</Button>
+        </>
+      }
+    >
+      <div
+        className="flex min-w-0 flex-col gap-5"
+        data-control-baseline="32px"
+        data-scale-role="product"
+      >
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
+        <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+          <div className="min-w-0 space-y-4">
+            {tab === 'overview' ? (
+              overview
+            ) : tab === 'voice' || tab === 'strategy' ? (
+              writingEditor
+            ) : isLoading ? (
+              <p role="status" className="text-sm text-muted-foreground">
+                {t('loading')}
+              </p>
+            ) : (
+              editor || (
+                <p className="text-sm text-muted-foreground">
+                  {t('startDraft')}
+                </p>
+              )
+            )}
+            {tab === 'visual' && (
+              <Collapsible>
+                <CollapsibleTrigger>{t('assets')}</CollapsibleTrigger>
+                <CollapsibleContent className="space-y-3">
+                  {assets}
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+            {(tab === 'voice' || tab === 'strategy') && (
+              <Collapsible>
+                <CollapsibleTrigger>{t('snapshot')}</CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4">
+                  <p className="text-xs text-muted-foreground">
+                    {t('snapshotHelp')}
+                  </p>
+                  {editor}
+                  {revisionStatus}
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+            {tab === 'voice' || tab === 'strategy' ? null : revisionStatus}
+          </div>
+          <div className="min-w-0 xl:sticky xl:top-4 xl:self-start">
+            <BrandKitLocalPreview
+              key={brand.id}
+              brand={brand}
+              content={content}
+              approvedContent={approvedContent}
+            />
+          </div>
+        </div>
+        <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
+          <DialogContent size="lg">
+            <DialogHeader>
+              <DialogTitle>{t('review')}</DialogTitle>
+            </DialogHeader>
+            <DialogBody>{review}</DialogBody>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </Container>
+  );
+}

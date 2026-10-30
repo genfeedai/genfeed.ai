@@ -10,19 +10,6 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
-import {
-  BrandKitReviewActionsProvider,
-  BrandKitReviewApplyBar,
-} from '@pages/brands/components/brand-kit/BrandKitReviewApplyBar';
-import BrandKitReviewCard from '@pages/brands/components/brand-kit/BrandKitReviewCard';
-import BrandKitWorkspace from '@pages/brands/components/brand-kit/BrandKitWorkspace';
-import BrandOsSettingsCard from '@pages/brands/components/brand-kit/BrandOsSettingsCard';
-import BrandWritingVoiceEditor from '@pages/brands/components/brand-kit/writing-voice/BrandWritingVoiceEditor';
-import BrandDetailManualKitCard from '@pages/brands/components/sidebar/BrandDetailManualKitCard';
-import BrandDetailReferencesCard from '@pages/brands/components/sidebar/BrandDetailReferencesCard';
-import BrandEndCardSettings from '@pages/brands/components/sidebar/BrandEndCardSettings';
-import BrandLutSettings from '@pages/brands/components/sidebar/BrandLutSettings';
-import BrandWatermarkSettings from '@pages/brands/components/sidebar/BrandWatermarkSettings';
 import { BrandsService } from '@services/social/brands.service';
 import BrandCompletenessCard from '@ui/cards/brand-completeness-card/BrandCompletenessCard';
 import Container from '@ui/layout/container/Container';
@@ -43,6 +30,19 @@ import {
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import {
+  BrandKitReviewActionsProvider,
+  BrandKitReviewApplyBar,
+} from '@/features/brands/components/brand-kit/BrandKitReviewApplyBar';
+import BrandKitReviewCard from '@/features/brands/components/brand-kit/BrandKitReviewCard';
+import BrandKitWorkspace from '@/features/brands/components/brand-kit/BrandKitWorkspace';
+import BrandOsSettingsCard from '@/features/brands/components/brand-kit/BrandOsSettingsCard';
+import BrandWritingVoiceEditor from '@/features/brands/components/brand-kit/writing-voice/BrandWritingVoiceEditor';
+import BrandDetailManualKitCard from '@/features/brands/components/sidebar/BrandDetailManualKitCard';
+import BrandDetailReferencesCard from '@/features/brands/components/sidebar/BrandDetailReferencesCard';
+import BrandEndCardSettings from '@/features/brands/components/sidebar/BrandEndCardSettings';
+import BrandLutSettings from '@/features/brands/components/sidebar/BrandLutSettings';
+import BrandWatermarkSettings from '@/features/brands/components/sidebar/BrandWatermarkSettings';
 import { captureBrandOsFunnelStage } from '@/lib/analytics';
 import { BRAND_KIT_TAB_PATHS, isBrandKitPathTab } from './brand-kit-tabs';
 

@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import LibraryMusicRoute, * as PageModule from './page';
 
-vi.mock('@pages/library/browser/library-browser', () => ({
+vi.mock('@/features/library/browser/library-browser', () => ({
   default: ({ children }: { children: ReactNode }) => (
     <div data-testid="library-browser">{children}</div>
   ),

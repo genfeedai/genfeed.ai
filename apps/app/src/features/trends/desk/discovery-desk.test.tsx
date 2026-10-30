@@ -94,7 +94,7 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-vi.mock('@pages/research/work-surface/ResearchWorkSurfaceProvider', () => ({
+vi.mock('@/features/research/work-surface/ResearchWorkSurfaceProvider', () => ({
   useOptionalResearchWorkSurface: () => null,
   useResearchQueryState: () => ['', vi.fn()],
   useResearchSearchParamState: ({
@@ -110,7 +110,7 @@ vi.mock('@pages/research/work-surface/ResearchWorkSurfaceProvider', () => ({
   useRestoreResearchFinding: vi.fn(),
 }));
 
-vi.mock('@pages/research/remix/DiscoveryRemixProvider', () => ({
+vi.mock('@/features/research/remix/DiscoveryRemixProvider', () => ({
   useOptionalDiscoveryRemix: () => ({ openRemix: mocks.openRemix }),
 }));
 

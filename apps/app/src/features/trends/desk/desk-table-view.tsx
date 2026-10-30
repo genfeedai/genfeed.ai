@@ -14,7 +14,6 @@ import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useOptionalDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
 import type {
   TrendItem,
   TrendSourceItem,
@@ -61,6 +60,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
+import { useOptionalDiscoveryRemix } from '@/features/research/remix/DiscoveryRemixProvider';
 import DeskMediaPreview from '@/features/trends/desk/desk-media-preview';
 import type { DiscoveryDeskItem } from '@/features/trends/props/discovery-desk.props';
 import { getSafeExternalUrl } from '@/features/trends/shared/safe-external-url';

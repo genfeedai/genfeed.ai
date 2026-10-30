@@ -73,7 +73,7 @@ const run: BrandRemixRunView = {
   version: 1,
 };
 
-vi.mock('@pages/research/remix/DiscoveryRemixProvider', () => ({
+vi.mock('@/features/research/remix/DiscoveryRemixProvider', () => ({
   useDiscoveryRemix: () => ({
     close: mocks.close,
     confirm: mocks.confirm,
@@ -99,7 +99,7 @@ vi.mock('@hooks/data/ingredients/use-avatar-images/use-avatar-images', () => ({
   useAvatarImages: (...args: unknown[]) => mocks.avatarHook(...args),
 }));
 
-vi.mock('@pages/library/voices/hooks/use-voice-catalog', () => ({
+vi.mock('@/features/library/voices/hooks/use-voice-catalog', () => ({
   useVoiceCatalog: (...args: unknown[]) => mocks.voiceHook(...args),
 }));
 

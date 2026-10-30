@@ -27,7 +27,7 @@ vi.mock('@genfeedai/agent', () => ({
 }));
 
 vi.mock(
-  '@pages/library/knowledge/components/KnowledgeReferenceSection',
+  '@/features/library/knowledge/components/KnowledgeReferenceSection',
   () => ({
     default: () => null,
   }),

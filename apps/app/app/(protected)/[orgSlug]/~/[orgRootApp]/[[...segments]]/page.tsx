@@ -17,9 +17,6 @@ import {
   createOrganizationAppRoute,
   resolveLegacyLibraryRoute,
 } from '@genfeedai/contracts/constants';
-import LibraryBrowser from '@pages/library/browser/library-browser';
-import { LIBRARY_TYPE_PRESETS } from '@pages/library/browser/library-browser.config';
-import LibraryOverview from '@pages/library/overview/library-overview';
 import PublishingDeskViewToggle from '@pages/posts/library/publishing-desk-view-toggle';
 import type { OrgRootAppPageProps } from '@props/layout/org-root-app-page.props';
 import type { PostsListSearchParams } from '@props/publishing/publishing-list-page.props';
@@ -35,6 +32,9 @@ import {
   CampaignsListPage,
 } from '@/features/campaigns';
 import IngredientsList from '@/features/ingredients/list/ingredients-list';
+import LibraryBrowser from '@/features/library/browser/library-browser';
+import { LIBRARY_TYPE_PRESETS } from '@/features/library/browser/library-browser.config';
+import LibraryOverview from '@/features/library/overview/library-overview';
 import EditorProjectsPage from '../../../[brandSlug]/editor/editor-projects-page';
 import EditorNewPage from '../../../[brandSlug]/editor/new/page';
 import AssetDeepLink from '../../../[brandSlug]/library/assets/asset-deep-link';

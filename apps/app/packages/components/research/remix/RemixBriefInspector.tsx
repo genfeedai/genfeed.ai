@@ -27,8 +27,6 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { useAvatarImages } from '@hooks/data/ingredients/use-avatar-images/use-avatar-images';
 import type { Voice } from '@models/ingredients/voice.model';
-import { useVoiceCatalog } from '@pages/library/voices/hooks/use-voice-catalog';
-import { useDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
@@ -46,7 +44,9 @@ import { Library, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, useEffect, useMemo, useState } from 'react';
 import { useCampaignAccounts } from '@/features/campaigns/hooks/use-campaign-accounts';
+import { useVoiceCatalog } from '@/features/library/voices/hooks/use-voice-catalog';
 import LibraryPickerOverlay from '@/features/library-remix/LibraryPickerOverlay';
+import { useDiscoveryRemix } from '@/features/research/remix/DiscoveryRemixProvider';
 import RemixConceptFields, {
   type RemixStoryboardDraft,
 } from './RemixConceptFields';

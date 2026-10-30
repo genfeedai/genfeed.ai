@@ -107,13 +107,13 @@ vi.mock('@/features/ingredients/list/ingredients-list', () => ({
   ),
 }));
 
-vi.mock('@pages/library/overview/library-overview', () => ({
+vi.mock('@/features/library/overview/library-overview', () => ({
   default: ({ scope }: { scope?: string }) => (
     <div data-scope={scope} data-testid="library-overview" />
   ),
 }));
 
-vi.mock('@pages/library/browser/library-browser', () => ({
+vi.mock('@/features/library/browser/library-browser', () => ({
   default: ({
     children,
     place,

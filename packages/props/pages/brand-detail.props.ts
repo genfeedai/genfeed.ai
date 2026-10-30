@@ -68,7 +68,7 @@ export interface BrandDetailLatestArticlesProps {
  * still be missing `externalId` (identity never captured) or hold an expired
  * `accessTokenExpiry`. All three states resolve to "Needs reconnect" — see
  * `getAccountConnectionStatus` in
- * `packages/pages/brands/components/integrations/account-connection-status.util.ts`.
+ * `apps/app/src/features/brands/components/integrations/account-connection-status.util.ts`.
  */
 export interface BrandDetailSocialConnection {
   accessTokenExpiry?: string | null;

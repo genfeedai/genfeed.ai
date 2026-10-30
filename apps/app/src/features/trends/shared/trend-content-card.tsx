@@ -7,8 +7,6 @@ import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useOptionalDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
-import type { AuthorizedResearchFinding } from '@pages/research/work-surface/research-work-surface.types';
 import type {
   TrendContentItem,
   TrendItem,
@@ -41,6 +39,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
+import { useOptionalDiscoveryRemix } from '@/features/research/remix/DiscoveryRemixProvider';
+import type { AuthorizedResearchFinding } from '@/features/research/work-surface/research-work-surface.types';
 import { getTrendRemixAvailability } from '@/features/trends/shared/remix-availability';
 import { getSafeExternalUrl } from '@/features/trends/shared/safe-external-url';
 

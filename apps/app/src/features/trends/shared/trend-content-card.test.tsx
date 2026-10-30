@@ -51,7 +51,7 @@ vi.mock('@services/core/notifications.service', () => ({
     }),
   },
 }));
-vi.mock('@pages/research/remix/DiscoveryRemixProvider', () => ({
+vi.mock('@/features/research/remix/DiscoveryRemixProvider', () => ({
   useOptionalDiscoveryRemix: () =>
     mocks.isRemixAvailable ? { openRemix: mocks.openRemix } : null,
 }));

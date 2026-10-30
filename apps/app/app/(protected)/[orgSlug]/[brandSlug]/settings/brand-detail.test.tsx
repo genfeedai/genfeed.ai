@@ -115,7 +115,7 @@ vi.mock('@ui/layout/container/Container', () => ({
   default: ({ children }: { children: ReactNode }) => <main>{children}</main>,
 }));
 
-vi.mock('@pages/brands/components/banner/BrandDetailBanner', () => ({
+vi.mock('@/features/brands/components/banner/BrandDetailBanner', () => ({
   default: ({
     onGenerateBanner,
     onUploadBanner,
@@ -135,7 +135,7 @@ vi.mock('@pages/brands/components/banner/BrandDetailBanner', () => ({
   ),
 }));
 
-vi.mock('@pages/brands/components/overview/BrandDetailOverview', () => ({
+vi.mock('@/features/brands/components/overview/BrandDetailOverview', () => ({
   default: ({
     onCopyPublicProfile,
     onGenerateLogo,
@@ -198,7 +198,7 @@ vi.mock('./BrandDetailLatestVideos', () => ({
 }));
 
 vi.mock(
-  '@pages/brands/components/system-prompt/BrandDetailSystemPrompt',
+  '@/features/brands/components/system-prompt/BrandDetailSystemPrompt',
   () => ({
     default: ({
       onCopy,
@@ -214,28 +214,33 @@ vi.mock(
   }),
 );
 
-vi.mock('@pages/brands/components/detail-sidebar/BrandDetailSidebar', () => ({
-  default: ({
-    manageSocialHref,
-    onRefreshBrand,
-    onTogglePublicProfile,
-  }: {
-    manageSocialHref?: string;
-    onRefreshBrand: () => void;
-    onTogglePublicProfile: (value: boolean) => void;
-  }) => (
-    <section>
-      Sidebar
-      {manageSocialHref ? <span>Manage social: {manageSocialHref}</span> : null}
-      <button type="button" onClick={() => onTogglePublicProfile(false)}>
-        Disable Public
-      </button>
-      <button type="button" onClick={onRefreshBrand}>
-        Refresh Brand
-      </button>
-    </section>
-  ),
-}));
+vi.mock(
+  '@/features/brands/components/detail-sidebar/BrandDetailSidebar',
+  () => ({
+    default: ({
+      manageSocialHref,
+      onRefreshBrand,
+      onTogglePublicProfile,
+    }: {
+      manageSocialHref?: string;
+      onRefreshBrand: () => void;
+      onTogglePublicProfile: (value: boolean) => void;
+    }) => (
+      <section>
+        Sidebar
+        {manageSocialHref ? (
+          <span>Manage social: {manageSocialHref}</span>
+        ) : null}
+        <button type="button" onClick={() => onTogglePublicProfile(false)}>
+          Disable Public
+        </button>
+        <button type="button" onClick={onRefreshBrand}>
+          Refresh Brand
+        </button>
+      </section>
+    ),
+  }),
+);
 
 vi.mock('@ui/lazy/modal/LazyModal', () => ({
   LazyModalBrandLink: () => null,

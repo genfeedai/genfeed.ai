@@ -3,13 +3,13 @@ import { render, screen } from '@testing-library/react';
 import type { PropsWithChildren } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@pages/research/work-surface/ResearchWorkSurfaceProvider', () => ({
+vi.mock('@/features/research/work-surface/ResearchWorkSurfaceProvider', () => ({
   ResearchWorkSurfaceProvider: ({ children }: PropsWithChildren) => (
     <div data-testid="research-provider">{children}</div>
   ),
 }));
 
-vi.mock('@pages/research/remix/DiscoveryRemixProvider', () => ({
+vi.mock('@/features/research/remix/DiscoveryRemixProvider', () => ({
   DiscoveryRemixProvider: ({ children }: PropsWithChildren) => (
     <div data-testid="remix-provider">{children}</div>
   ),

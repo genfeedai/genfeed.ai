@@ -6,7 +6,6 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import { useClientPagination } from '@hooks/data/pagination/use-client-pagination/use-client-pagination';
-import { useOptionalDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
@@ -15,6 +14,7 @@ import { Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import type { AnalyticsWinnersTableProps } from '@/features/analytics/props/analytics-winners-table.props';
+import { useOptionalDiscoveryRemix } from '@/features/research/remix/DiscoveryRemixProvider';
 
 const WINNERS_PAGE_SIZE = 12;
 

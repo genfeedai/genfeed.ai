@@ -50,7 +50,7 @@ import type { ComponentType } from 'react';
 
 // Automation modals
 export const LazyModalMember = dynamic(
-  () => import('@pages/members/invite/ModalMember'),
+  () => import('@ui/modals/members/invite/ModalMember'),
 ) as ComponentType<ModalMemberProps>;
 
 export const LazyModalBot = dynamic(

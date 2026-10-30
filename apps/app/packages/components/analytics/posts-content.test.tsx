@@ -20,7 +20,7 @@ vi.mock('@/features/analytics/posts-list/analytics-posts-list', () => ({
   default: () => <div data-testid="posts-list" />,
 }));
 
-vi.mock('@pages/research/remix/DiscoveryRemixProvider', () => ({
+vi.mock('@/features/research/remix/DiscoveryRemixProvider', () => ({
   DiscoveryRemixProvider: ({ children }: { children: React.ReactNode }) => (
     <>{children}</>
   ),

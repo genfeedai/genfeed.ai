@@ -1,6 +1,6 @@
 import { PageScope } from '@genfeedai/contracts';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import LibraryOverview from '@pages/library/overview/library-overview';
+import LibraryOverview from '@/features/library/overview/library-overview';
 
 export const generateMetadata = createPageMetadata('Library Overview');
 

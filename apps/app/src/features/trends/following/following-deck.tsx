@@ -8,7 +8,6 @@ import {
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
-import { useOptionalDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
 import CardEmpty, { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
@@ -28,6 +27,7 @@ import {
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
+import { useOptionalDiscoveryRemix } from '@/features/research/remix/DiscoveryRemixProvider';
 import FollowSourceModal from '@/features/trends/following/FollowSourceModal';
 import type { DiscoveryDeskItem } from '@/features/trends/props/discovery-desk.props';
 import type {
