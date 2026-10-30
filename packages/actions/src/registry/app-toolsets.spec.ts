@@ -37,20 +37,15 @@ describe('MCP app toolsets', () => {
     }
   });
 
-  it('opens at least one MCP tool beyond core for every app except workspace', () => {
+  it('opens at least one MCP tool beyond core for every app', () => {
     const coreNames = new Set(
       getToolsForToolsets('mcp', ['core']).map((tool) => tool.name),
     );
     for (const app of MCP_APP_NAMES) {
-      const toolsets = resolveMcpAppToolsets([app]);
-      if (app === 'workspace') {
-        // An empty list would select the whole catalog, so assert it directly.
-        expect(toolsets).toEqual([]);
-        continue;
-      }
-      const beyondCore = getToolsForToolsets('mcp', toolsets).filter(
-        (tool) => !coreNames.has(tool.name),
-      );
+      const beyondCore = getToolsForToolsets(
+        'mcp',
+        resolveMcpAppToolsets([app]),
+      ).filter((tool) => !coreNames.has(tool.name));
       expect(beyondCore.length, app).toBeGreaterThan(0);
     }
   });
@@ -74,6 +69,7 @@ describe('MCP app toolsets', () => {
   it('unions the toolsets of several apps without duplicates', () => {
     expect(resolveMcpAppToolsets(['clipper', 'editor', 'motion'])).toEqual([
       'clipper',
+      'editor',
       'visual-code',
     ]);
   });

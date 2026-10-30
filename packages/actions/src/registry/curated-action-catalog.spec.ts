@@ -23,10 +23,10 @@ describe('curated action catalog', () => {
     },
   );
   it('retains internal targets while listing only the two consolidated MCP envelopes', () => {
-    expect(ALL_TOOLS).toHaveLength(226);
-    expect(ALL_TOOLS.filter((tool) => tool.surfaces.mcp)).toHaveLength(155);
+    expect(ALL_TOOLS).toHaveLength(233);
+    expect(ALL_TOOLS.filter((tool) => tool.surfaces.mcp)).toHaveLength(162);
     const listed = getToolsForSurface('mcp').map((tool) => tool.name);
-    expect(listed).toHaveLength(151);
+    expect(listed).toHaveLength(158);
     expect(listed).toContain('check_channel');
     expect(listed).toContain('upload_media');
     for (const name of [
@@ -453,7 +453,7 @@ describe('curated action catalog', () => {
       ['list_instagram_inspiration', 'inspiration'],
       ['get_tiktok_top_performers', 'inspiration'],
       ['analyze_clipper_project', 'clipper'],
-      ['open_in_editor', 'clipper'],
+      ['open_in_editor', 'editor'],
       ['search_knowledge', 'knowledge'],
       ['create_chat', 'agent-chat'],
       ['send_chat_message', 'agent-chat'],
