@@ -171,7 +171,14 @@ export default function IngredientsMediaGrid({
   return (
     <div className="relative z-0 flex flex-col gap-6">
       {timeGroups.map((group) => (
-        <section key={group.label} className="flex flex-col gap-3">
+        <section
+          key={group.label}
+          // The page body pads its top edge (py-5 / sm:py-6) so a plain grid
+          // clears the topbar. The first group heading docks on that topbar
+          // anyway, so it climbs back over the padding instead of leaving a
+          // dead band above it before the first scroll.
+          className="flex flex-col gap-3 first:-mt-5 sm:first:-mt-6"
+        >
           <IngredientTimeGroupHeading
             count={group.items.length}
             label={group.label}
