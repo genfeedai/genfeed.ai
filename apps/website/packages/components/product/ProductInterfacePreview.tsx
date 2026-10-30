@@ -109,21 +109,18 @@ export default function ProductInterfacePreview({
               <MoreHorizontal className="size-4 text-foreground/35" />
             </div>
             <div className="divide-y divide-foreground/10">
-              {recentWork.map((useCase, index) => (
+              {recentWork.map((useCase) => (
                 <div
                   className="grid grid-cols-[1fr_auto] gap-3 px-3 py-3.5 sm:px-4 sm:py-4"
                   key={useCase.title}
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-foreground/[0.06] text-2xs font-semibold text-foreground/45">
-                        {String(index + 1).padStart(2, '0')}
-                      </span>
                       <p className="truncate text-xs font-semibold text-foreground sm:text-sm">
                         {useCase.title}
                       </p>
                     </div>
-                    <p className="mt-2 line-clamp-2 pl-7 text-2xs leading-4 text-foreground/42 sm:text-[11px]">
+                    <p className="mt-2 line-clamp-2 text-2xs leading-4 text-foreground/42 sm:text-[11px]">
                       {useCase.description}
                     </p>
                   </div>

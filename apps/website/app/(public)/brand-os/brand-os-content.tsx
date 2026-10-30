@@ -6,7 +6,6 @@ import { Text } from '@ui/typography/text';
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import HomeFooter from '@web-components/home/_footer';
 import MarketingEntrance from '@web-components/MarketingEntrance';
-import { Layers } from 'lucide-react';
 import Link from 'next/link';
 import { BrandOsFunnel } from './brand-os-funnel';
 import {
@@ -170,9 +169,7 @@ const DONTS: string[] = [
 
 function SectionLabel({ children }: { children: string }): React.ReactElement {
   return (
-    <Text className="text-2xs font-black uppercase tracking-[0.2em] text-foreground/55">
-      {children}
-    </Text>
+    <Text className="text-sm font-semibold text-foreground/70">{children}</Text>
   );
 }
 
@@ -190,7 +187,7 @@ function SwatchTile({ swatch }: { swatch: Swatch }): React.ReactElement {
           <Text className="text-xs font-semibold text-foreground">
             {swatch.name}
           </Text>
-          <Text className="font-mono text-2xs uppercase text-foreground/55">
+          <Text className="font-mono text-2xs text-foreground/55">
             {swatch.hex}
           </Text>
         </div>
@@ -213,13 +210,6 @@ export default function BrandOSContent(): React.ReactElement {
           <div className="container mx-auto px-6">
             <div className="grid items-center gap-10 lg:grid-cols-2">
               <div className="flex flex-col max-w-4xl gap-6">
-                <div className="flex flex-row w-fit items-center gap-2 border border-foreground/10 bg-foreground/[0.02] px-3 py-1.5 text-2xs font-black uppercase tracking-[0.15em] text-foreground/45">
-                  <Layers className="size-3.5" />
-                  <Text>Brand OS</Text>
-                  <span className="text-foreground/45">/</span>
-                  <Text className="text-foreground/55">version alpha</Text>
-                </div>
-
                 <Heading
                   as="h1"
                   className="max-w-3xl font-semibold tracking-[-0.02em] text-5xl leading-none text-foreground sm:text-6xl lg:text-7xl"
@@ -420,7 +410,7 @@ export default function BrandOSContent(): React.ReactElement {
                     <Text className="text-xs font-medium text-foreground/80">
                       {platform.name}
                     </Text>
-                    <Text className="font-mono text-2xs uppercase text-foreground/55">
+                    <Text className="font-mono text-2xs text-foreground/55">
                       {platform.hex}
                     </Text>
                   </div>
@@ -457,7 +447,7 @@ export default function BrandOSContent(): React.ReactElement {
                     <Text className="text-sm text-foreground/70">
                       {row.element}
                     </Text>
-                    <Text className="font-mono text-2xs uppercase text-foreground/60">
+                    <Text className="font-mono text-2xs text-foreground/60">
                       {row.size}
                     </Text>
                   </div>
@@ -494,7 +484,7 @@ export default function BrandOSContent(): React.ReactElement {
                       <Text className="text-xs font-semibold text-foreground">
                         {step.name}
                       </Text>
-                      <Text className="font-mono text-2xs uppercase text-foreground/60">
+                      <Text className="font-mono text-2xs text-foreground/60">
                         {step.px}px
                       </Text>
                     </div>
