@@ -23,12 +23,15 @@ vi.mock('@/features/posts/detail/components/PostDetailThreadFooter', () => ({
   default: () => <div data-testid="thread-footer" />,
 }));
 
-vi.mock('@ui/posts/composer-prompt-bar/PostComposerPromptBar', () => ({
-  default: (props: Record<string, unknown>) => {
-    barProps.current = props;
-    return <div data-testid="prompt-bar">{String(props.targetLabel)}</div>;
-  },
-}));
+vi.mock(
+  '@/features/posts/components/composer-prompt-bar/PostComposerPromptBar',
+  () => ({
+    default: (props: Record<string, unknown>) => {
+      barProps.current = props;
+      return <div data-testid="prompt-bar">{String(props.targetLabel)}</div>;
+    },
+  }),
+);
 
 vi.mock('@ui/posts/preview/thread-preview-panel/ThreadPreviewPanel', () => ({
   default: ({

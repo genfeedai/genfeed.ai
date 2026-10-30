@@ -213,79 +213,82 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-vi.mock('@ui/calendar/content-calendar/ContentCalendar', () => ({
-  default: ({
-    emptyState,
-    filterControls,
-    getEventActions,
-    getEventBadge,
-    getEventChannels,
-    getEventColor,
-    isItemDraggable,
-    isLoading,
-    items,
-    modal,
-    onEventClick,
-    onEventDrop,
-    onViewChange,
-    preferredTimes,
-    timezone,
-  }: {
-    emptyState?: ReactNode;
-    filterControls: ReactNode;
-    getEventActions?: (item: CalendarItemShape) => CalendarEventAction[];
-    getEventBadge: (item: CalendarItemShape) => CalendarEventBadge | null;
-    getEventChannels: (item: CalendarItemShape) => CalendarEventChannel[];
-    getEventColor: (item: CalendarItemShape) => string;
-    isItemDraggable: (item: CalendarItemShape) => boolean;
-    isLoading?: boolean;
-    items: CalendarItemShape[];
-    modal: ReactNode;
-    onEventClick: (item: CalendarItemShape) => void;
-    onEventDrop: (change: CalendarEventDrop<CalendarItemShape>) => void;
-    onViewChange?: (view: CalendarViewKey) => void;
-    preferredTimes?: Array<{ hour: number; minute: number }>;
-    timezone?: string;
-  }) => {
-    calendarRenderProps.push({
+vi.mock(
+  '@/features/posts/components/calendar/content-calendar/ContentCalendar',
+  () => ({
+    default: ({
       emptyState,
-      getEventActions: getEventActions ?? (() => []),
+      filterControls,
+      getEventActions,
       getEventBadge,
       getEventChannels,
       getEventColor,
       isItemDraggable,
-      isLoading: Boolean(isLoading),
+      isLoading,
       items,
+      modal,
+      onEventClick,
       onEventDrop,
       onViewChange,
-      preferredTimes: preferredTimes ?? [],
-      timezone: timezone ?? 'UTC',
-    });
+      preferredTimes,
+      timezone,
+    }: {
+      emptyState?: ReactNode;
+      filterControls: ReactNode;
+      getEventActions?: (item: CalendarItemShape) => CalendarEventAction[];
+      getEventBadge: (item: CalendarItemShape) => CalendarEventBadge | null;
+      getEventChannels: (item: CalendarItemShape) => CalendarEventChannel[];
+      getEventColor: (item: CalendarItemShape) => string;
+      isItemDraggable: (item: CalendarItemShape) => boolean;
+      isLoading?: boolean;
+      items: CalendarItemShape[];
+      modal: ReactNode;
+      onEventClick: (item: CalendarItemShape) => void;
+      onEventDrop: (change: CalendarEventDrop<CalendarItemShape>) => void;
+      onViewChange?: (view: CalendarViewKey) => void;
+      preferredTimes?: Array<{ hour: number; minute: number }>;
+      timezone?: string;
+    }) => {
+      calendarRenderProps.push({
+        emptyState,
+        getEventActions: getEventActions ?? (() => []),
+        getEventBadge,
+        getEventChannels,
+        getEventColor,
+        isItemDraggable,
+        isLoading: Boolean(isLoading),
+        items,
+        onEventDrop,
+        onViewChange,
+        preferredTimes: preferredTimes ?? [],
+        timezone: timezone ?? 'UTC',
+      });
 
-    return (
-      <div>
-        {filterControls}
-        {items.map((item) => (
-          <div key={item.id}>
-            <button type="button" onClick={() => onEventClick(item)}>
-              {`open:${item.id}`}
-            </button>
-            {(getEventActions?.(item) ?? []).map((action) => (
-              <button
-                key={`${item.id}:${action.id}`}
-                type="button"
-                onClick={action.onClick}
-              >
-                {action.label}
+      return (
+        <div>
+          {filterControls}
+          {items.map((item) => (
+            <div key={item.id}>
+              <button type="button" onClick={() => onEventClick(item)}>
+                {`open:${item.id}`}
               </button>
-            ))}
-          </div>
-        ))}
-        {modal}
-      </div>
-    );
-  },
-}));
+              {(getEventActions?.(item) ?? []).map((action) => (
+                <button
+                  key={`${item.id}:${action.id}`}
+                  type="button"
+                  onClick={action.onClick}
+                >
+                  {action.label}
+                </button>
+              ))}
+            </div>
+          ))}
+          {modal}
+        </div>
+      );
+    },
+  }),
+);
 
 vi.mock('./release-calendar-filters', async (importOriginal) => {
   const actual =

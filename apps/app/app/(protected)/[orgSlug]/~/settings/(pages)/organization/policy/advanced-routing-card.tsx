@@ -13,8 +13,8 @@ import {
 } from '@ui/primitives';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { Switch } from '@ui/primitives/switch';
-import AgentModelLockNotice from '@ui/settings/agent-model-lock-notice/AgentModelLockNotice';
 import { useTranslations } from 'next-intl';
+import AgentModelLockNotice from '@/features/settings/components/agent-model-lock-notice/AgentModelLockNotice';
 
 const AUTO_MODEL_SELECT_VALUE = '__auto__';
 const UNRESOLVED_MODEL_SELECT_VALUE = '__unresolved__';

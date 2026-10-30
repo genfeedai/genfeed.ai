@@ -14,7 +14,6 @@ import { logger } from '@services/core/logger.service';
 import { ServicesService } from '@services/external/services.service';
 import ConnectionSuccess from '@ui/feedback/connection-success/ConnectionSuccess';
 import { resolvePlatformConnectionBrand } from '@ui/feedback/connection-success/connection-brand';
-import InstagramAccountSelector from '@ui/modals/brands/instagram/InstagramAccountSelector';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 import { CircleX } from 'lucide-react';
@@ -23,6 +22,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import AnalyticsPublicRouteSync from '@/components/analytics/AnalyticsPublicRouteSync';
+import InstagramAccountSelector from '@/features/auth/components/modals/brands/instagram/InstagramAccountSelector';
 import type {
   OAuthPlatformFormProps,
   VerifyResult,

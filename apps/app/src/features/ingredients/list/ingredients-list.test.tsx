@@ -53,29 +53,35 @@ vi.mock('@providers/global-modals/global-modals.provider', () => ({
   })),
 }));
 
-vi.mock('@ui/ingredients/list/header/IngredientsListHeader', () => ({
-  default: ({
-    canPublishCampaign,
-    onPublishCampaign,
-    placement,
-    tagAction,
-  }: {
-    canPublishCampaign: boolean;
-    onPublishCampaign: () => void;
-    placement?: string;
-    tagAction?: React.ReactNode;
-  }) => (
-    <div data-placement={placement ?? 'overlay'} data-testid="selection-header">
-      {tagAction}
-      <span data-testid="publish-campaign-state">
-        {canPublishCampaign ? 'enabled' : 'disabled'}
-      </span>
-      <button type="button" onClick={onPublishCampaign}>
-        Publish Campaign
-      </button>
-    </div>
-  ),
-}));
+vi.mock(
+  '@/features/ingredients/components/list/header/IngredientsListHeader',
+  () => ({
+    default: ({
+      canPublishCampaign,
+      onPublishCampaign,
+      placement,
+      tagAction,
+    }: {
+      canPublishCampaign: boolean;
+      onPublishCampaign: () => void;
+      placement?: string;
+      tagAction?: React.ReactNode;
+    }) => (
+      <div
+        data-placement={placement ?? 'overlay'}
+        data-testid="selection-header"
+      >
+        {tagAction}
+        <span data-testid="publish-campaign-state">
+          {canPublishCampaign ? 'enabled' : 'disabled'}
+        </span>
+        <button type="button" onClick={onPublishCampaign}>
+          Publish Campaign
+        </button>
+      </div>
+    ),
+  }),
+);
 
 vi.mock(
   '@ui/ingredients/list/selection-actions-bar/SelectionTagAction',
@@ -92,33 +98,42 @@ vi.mock(
   }),
 );
 
-vi.mock('@ui/ingredients/list/content/IngredientsListContent', () => ({
-  default: ({
-    filteredIngredients,
-    hasFilteredEmptyState,
-    viewMode,
-  }: {
-    filteredIngredients: unknown[];
-    hasFilteredEmptyState: boolean;
-    viewMode?: string;
-  }) => (
-    <div
-      data-filtered-empty={hasFilteredEmptyState}
-      data-testid="ingredients-content"
-      data-view-mode={viewMode}
-    >
-      {filteredIngredients.length} assets
-    </div>
-  ),
-}));
+vi.mock(
+  '@/features/ingredients/components/list/content/IngredientsListContent',
+  () => ({
+    default: ({
+      filteredIngredients,
+      hasFilteredEmptyState,
+      viewMode,
+    }: {
+      filteredIngredients: unknown[];
+      hasFilteredEmptyState: boolean;
+      viewMode?: string;
+    }) => (
+      <div
+        data-filtered-empty={hasFilteredEmptyState}
+        data-testid="ingredients-content"
+        data-view-mode={viewMode}
+      >
+        {filteredIngredients.length} assets
+      </div>
+    ),
+  }),
+);
 
-vi.mock('@ui/ingredients/list/footer/IngredientsListFooter', () => ({
-  default: () => <div data-testid="ingredients-footer" />,
-}));
+vi.mock(
+  '@/features/ingredients/components/list/footer/IngredientsListFooter',
+  () => ({
+    default: () => <div data-testid="ingredients-footer" />,
+  }),
+);
 
-vi.mock('@ui/ingredients/list/sidebar/IngredientsListSidebar', () => ({
-  default: () => <div data-testid="ingredients-sidebar" />,
-}));
+vi.mock(
+  '@/features/ingredients/components/list/sidebar/IngredientsListSidebar',
+  () => ({
+    default: () => <div data-testid="ingredients-sidebar" />,
+  }),
+);
 
 let capturedConversionModal: ModalImageToVideoProps | undefined;
 vi.mock('@ui/lazy/modal/LazyModal', () => ({

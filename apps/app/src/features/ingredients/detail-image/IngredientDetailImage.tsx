@@ -14,17 +14,17 @@ import { EnvironmentService } from '@genfeedai/services/core/environment.service
 import { logger } from '@genfeedai/services/core/logger.service';
 import { ImagesService } from '@genfeedai/services/ingredients/images.service';
 import EvaluationCard from '@ui/evaluation/card/EvaluationCard';
-import IngredientWorkspacePanel from '@ui/ingredients/detail/shared/IngredientWorkspacePanel';
-import IngredientTabsChildren from '@ui/ingredients/tabs/children/IngredientTabsChildren';
-import IngredientTabsInfo from '@ui/ingredients/tabs/info/IngredientTabsInfo';
-import IngredientTabsMetadata from '@ui/ingredients/tabs/metadata/IngredientTabsMetadata';
 import IngredientTabsPrompts from '@ui/ingredients/tabs/prompts/IngredientTabsPrompts';
-import IngredientTabsSharing from '@ui/ingredients/tabs/sharing/IngredientTabsSharing';
-import IngredientTabsTags from '@ui/ingredients/tabs/tags/IngredientTabsTags';
 import LoadingOverlay from '@ui/loading/overlay/LoadingOverlay';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
 import Image from 'next/image';
 import { useCallback, useEffect, useState } from 'react';
+import IngredientWorkspacePanel from '@/features/ingredients/components/detail/shared/IngredientWorkspacePanel';
+import IngredientTabsChildren from '@/features/ingredients/components/tabs/children/IngredientTabsChildren';
+import IngredientTabsInfo from '@/features/ingredients/components/tabs/info/IngredientTabsInfo';
+import IngredientTabsMetadata from '@/features/ingredients/components/tabs/metadata/IngredientTabsMetadata';
+import IngredientTabsSharing from '@/features/ingredients/components/tabs/sharing/IngredientTabsSharing';
+import IngredientTabsTags from '@/features/ingredients/components/tabs/tags/IngredientTabsTags';
 import IngredientTabsPosts from '@/features/ingredients/tabs-posts/IngredientTabsPosts';
 
 type ImageDetailTab =
