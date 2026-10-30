@@ -108,12 +108,7 @@ export default function SelfHostedContent() {
         heroMedia={<MarketingArtwork page="/self-hosted" kind="integration" />}
         badge="Open Source"
         badgeIcon={GitBranch}
-        title={
-          <>
-            Open source. Self-host on{' '}
-            <span className="italic font-light">your own infra</span>.
-          </>
-        }
+        title={<>Open source. Self-host on your own infra.</>}
         description="Genfeed is open source under AGPL-3.0. Install it with one command or a checksummed release bundle, run it with Docker Compose, and add your own model provider keys. Or skip the ops and start free on managed cloud."
       >
         <WebSection maxWidth="lg" py="md">
@@ -265,12 +260,7 @@ export default function SelfHostedContent() {
           />
 
           <NeuralGrid columns={2}>
-            <NeuralGridItem
-              icon={Terminal}
-              title="Self-host"
-              tierLabel="Free / open source"
-              padding="lg"
-            >
+            <NeuralGridItem icon={Terminal} title="Self-host" padding="lg">
               <ul className="space-y-3">
                 {[
                   'Run it on your own infrastructure',
@@ -292,7 +282,6 @@ export default function SelfHostedContent() {
             <NeuralGridItem
               icon={Cloud}
               title="Managed cloud"
-              tierLabel="Free to start"
               padding="lg"
               className="bg-[var(--gen-accent-bg)]"
             >

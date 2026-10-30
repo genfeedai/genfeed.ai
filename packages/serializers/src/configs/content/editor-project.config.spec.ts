@@ -48,4 +48,21 @@ describe('editor project serializer lock contract', () => {
       false,
     ]);
   });
+
+  it('exposes a finished render stored as renderedVideoId', () => {
+    const output = EditorProjectSerializer.serialize({
+      id: 'project-5',
+      renderedVideoId: 'video-9',
+    });
+
+    expect(output.data).toMatchObject({
+      attributes: { renderedVideo: 'video-9' },
+    });
+  });
+
+  it('leaves renderedVideo out until a render finishes', () => {
+    const output = EditorProjectSerializer.serialize({ id: 'project-6' });
+
+    expect(JSON.stringify(output)).not.toContain('renderedVideo');
+  });
 });

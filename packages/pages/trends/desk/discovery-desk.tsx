@@ -1,12 +1,7 @@
 'use client';
 
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
-import {
-  AlertCategory,
-  ButtonVariant,
-  ComponentSize,
-  ViewType,
-} from '@genfeedai/contracts';
+import { AlertCategory, ButtonVariant, ViewType } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useOptionalDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
@@ -49,12 +44,12 @@ import type { ViewOption } from '@props/ui/navigation/view-option.props';
 import { NotificationsService } from '@services/core/notifications.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import CollectionView from '@ui/collection/CollectionView';
+import SearchField from '@ui/content/search-field/SearchField';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
 import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Button } from '@ui/primitives/button';
-import FormSearchbar from '@ui/primitives/searchbar';
 import { LayoutGrid, TableProperties, TrendingUp } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -374,17 +369,15 @@ export default function DiscoveryDesk() {
         icon={TrendingUp}
         label={translateDesk('title')}
         leading={
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <FormSearchbar
-              isCollapsible
-              onSearch={setSearch}
-              placeholder={translateDesk('searchPlaceholder')}
-              size={ComponentSize.SM}
-              value={search}
-            />
+          <SearchField
+            onSearch={setSearch}
+            placeholder={translateDesk('searchPlaceholder')}
+            value={search}
+          >
             <DeskFilterRail
               activePlatforms={state.filters.platforms}
               contentType={state.filters.contentType}
+              isAttached
               items={items}
               onContentTypeChange={handleContentTypeChange}
               onSort={handleSort}
@@ -395,7 +388,7 @@ export default function DiscoveryDesk() {
               source={sourceParam}
               summary={summary}
             />
-          </div>
+          </SearchField>
         }
         refresh={
           <ButtonRefresh isRefreshing={isRefreshing} onClick={handleRefresh} />

@@ -1,15 +1,19 @@
 import {
   BARE_URL_MCP_PROFILE,
   getToolsetNames,
+  isMcpAppName,
   isMcpToolsetProfileName,
+  MCP_APP_NAMES,
   MCP_PROFILE_NAMES,
   parseToolsetSelection,
+  resolveMcpAppToolsets,
   resolveMcpProfile,
   type ToolsetSelection,
 } from '@genfeedai/actions';
 import type { McpRequest } from '@mcp/shared/interfaces/mcp-request.interface';
 import {
   hasExplicitToolsetsQuery,
+  readAppQueryParam,
   readProfileQueryParam,
   readToolsetsQueryParam,
 } from '@mcp/shared/utils/toolsets-query.util';
@@ -22,6 +26,7 @@ const MAX_ECHOED_UNKNOWN_TOOLSETS = 5;
 const MAX_ECHOED_PROFILE_LENGTH = 80;
 
 export interface McpToolQueryResolution extends ToolsetSelection {
+  unknownApps: string[];
   unknownProfile: string | null;
 }
 
@@ -45,10 +50,33 @@ export function resolveRequestToolsets(
  * `default`. `full` is the unfiltered catalog (empty `toolsets`). A declared
  * toolset with no tools on this deploy stays in `toolsets` and `empty`
  * instead of failing the connection.
+ *
+ * `?app=` is additive: it unions the toolsets of the named apps into
+ * whichever selection the rest of the query made, and changes nothing for
+ * `full`. An unknown app name is reported in `unknownApps`.
  */
 export function resolveMcpToolQuery(
   query: Request['query'],
 ): McpToolQueryResolution {
+  const requestedApps = readAppQueryParam(query);
+  const apps = requestedApps.filter(isMcpAppName);
+  const unknownApps = requestedApps.filter((app) => !isMcpAppName(app));
+  const base = resolveBaseToolQuery(query);
+
+  if (base.unknownProfile || apps.length === 0 || isFullSelection(base)) {
+    return { ...base, unknownApps };
+  }
+
+  return {
+    ...base,
+    toolsets: [...new Set([...base.toolsets, ...resolveMcpAppToolsets(apps)])],
+    unknownApps,
+  };
+}
+
+function resolveBaseToolQuery(
+  query: Request['query'],
+): Omit<McpToolQueryResolution, 'unknownApps'> {
   const rawToolsets = readToolsetsQueryParam(query);
   if (hasExplicitToolsetsQuery(rawToolsets)) {
     return {
@@ -76,6 +104,13 @@ export function resolveMcpToolQuery(
     ...parseToolsetSelection(profile.toolsets.join(','), 'mcp'),
     unknownProfile: null,
   };
+}
+
+/** An empty toolset list with no complaints is the unfiltered catalog. */
+function isFullSelection(
+  selection: Omit<McpToolQueryResolution, 'unknownApps'>,
+): boolean {
+  return selection.toolsets.length === 0 && selection.unknown.length === 0;
 }
 
 /**
@@ -109,6 +144,20 @@ export function buildUnknownToolsetsJsonRpcError(unknown: readonly string[]) {
   return jsonRpcInvalidParams(buildUnknownToolsetsMessage(unknown));
 }
 
+export function buildUnknownAppsMessage(unknown: readonly string[]): string {
+  const shown = unknown.slice(0, MAX_ECHOED_UNKNOWN_TOOLSETS);
+  const remaining = unknown.length - shown.length;
+  const shownList =
+    remaining > 0
+      ? `${shown.join(', ')} (+${remaining} more)`
+      : shown.join(', ');
+  return `Unknown app(s): ${shownList}. Valid apps: ${MCP_APP_NAMES.join(', ')}.`;
+}
+
+export function buildUnknownAppsJsonRpcError(unknown: readonly string[]) {
+  return jsonRpcInvalidParams(buildUnknownAppsMessage(unknown));
+}
+
 export function buildUnknownProfileJsonRpcError(profile: string) {
   return jsonRpcInvalidParams(buildUnknownProfileMessage(profile));
 }
@@ -125,7 +174,7 @@ function jsonRpcInvalidParams(message: string) {
 }
 
 /**
- * Reads `?toolsets=` and `?profile=` before authentication so an unknown
+ * Reads `?toolsets=`, `?profile=` and `?app=` before authentication so an unknown
  * name is rejected the same way for an authenticated caller and an
  * unauthenticated public discovery request (`tools/list`). On success it
  * stores the parsed selection on `req.toolsets` for
@@ -149,6 +198,11 @@ export function toolsetsQueryMiddleware(
 
   if (selection.unknown.length > 0) {
     res.status(400).json(buildUnknownToolsetsJsonRpcError(selection.unknown));
+    return;
+  }
+
+  if (selection.unknownApps.length > 0) {
+    res.status(400).json(buildUnknownAppsJsonRpcError(selection.unknownApps));
     return;
   }
 

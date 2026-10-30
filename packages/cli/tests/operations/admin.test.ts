@@ -21,6 +21,7 @@ import {
   readNotificationStatus,
   readOnboardingFunnel,
   readOrganizationAppsReport,
+  readOrganizationBrand,
   readOrganizationsReport,
   readTrainingsReport,
   scanOrganizationBrand,
@@ -28,16 +29,18 @@ import {
   seedTemplates,
   seedWorkflows,
   syncProviderPrices,
+  updateOrganizationBrand,
 } from '../../src/operations/admin';
 
-const { adminPost, mockAdminGet } = vi.hoisted(() => ({
+const { adminPatch, adminPost, mockAdminGet } = vi.hoisted(() => ({
+  adminPatch: vi.fn(),
   adminPost: vi.fn(),
   mockAdminGet: vi.fn(),
 }));
 
 vi.mock('../../src/api/admin-client', () => ({
   adminGet: (path: string) => mockAdminGet(path),
-  adminPatch: vi.fn(),
+  adminPatch,
   adminPost,
 }));
 
@@ -455,6 +458,24 @@ describe('operations/admin', () => {
         label: 'Gobl',
       });
       expect(brand.slug).toBe('gobl');
+    });
+
+    it('reads and updates the kit fields of a brand in any organization', async () => {
+      mockAdminGet.mockResolvedValue({
+        data: { id: 'brand-1', label: 'Show', organizationId: 'org-1', slug: 'show' },
+      });
+      expect((await readOrganizationBrand('org-1', 'brand-1')).slug).toBe('show');
+      expect(mockAdminGet).toHaveBeenCalledWith('/admin/organizations/org-1/brands/brand-1');
+
+      adminPatch.mockResolvedValue({ data: { id: 'brand-1', label: 'Show' } });
+      await updateOrganizationBrand('org-1', 'brand-1', {
+        watermarkPosition: 'top-right',
+        watermarkText: null,
+      });
+      expect(adminPatch).toHaveBeenCalledWith('/admin/organizations/org-1/brands/brand-1', {
+        watermarkPosition: 'top-right',
+        watermarkText: null,
+      });
     });
 
     it('scans a url into the brand kit of the given brand', async () => {

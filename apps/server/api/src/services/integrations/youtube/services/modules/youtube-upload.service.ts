@@ -1,4 +1,5 @@
 import { Readable } from 'node:stream';
+import { BrandCoverStyleService } from '@api/collections/brands/services/brand-cover-style.service';
 import type {
   ServerYoutubeUploader,
   YoutubeUploadPostInput,
@@ -44,6 +45,8 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
     private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
     @Optional()
     private readonly filesClient?: FilesClientService,
+    @Optional()
+    private readonly brandCoverStyle?: BrandCoverStyleService,
   ) {
     // Create YouTube API client without default auth
     // Each upload will pass its own per-request auth
@@ -118,6 +121,9 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
         sourceUrl,
         uploadSignal,
         url,
+        settings,
+        organizationId,
+        brandId,
       );
       const mediaResponse = await firstValueFrom(
         this.httpService.get<Readable>(sourceUrl, {
@@ -222,23 +228,40 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
   }
 
   /**
-   * Extracts a still from the source video through the files service. Never
-   * rejects: the thumbnail is an enhancement and must not fail the upload.
+   * Renders the cover through the files service: a still from the source video,
+   * with the post's cover title laid over it when one is set. Never rejects:
+   * the thumbnail is an enhancement and must not fail the upload.
    */
   private async prepareThumbnail(
     ingredientId: string,
     sourceUrl: string,
     signal: AbortSignal,
     logPrefix: string,
+    settings: ChannelTargetSettings,
+    organizationId: string,
+    brandId: string,
   ): Promise<Buffer | undefined> {
     if (!this.filesClient) return undefined;
 
+    const frameSeconds = Number(
+      readChannelSettingString(settings, 'thumbnailFrameSeconds'),
+    );
+
     try {
+      const coverStyle = await this.brandCoverStyle?.resolveCoverStyle(
+        brandId,
+        organizationId,
+      );
       const frame = await this.filesClient.generateThumbnail(
         sourceUrl,
         ingredientId,
-        THUMBNAIL_FRAME_SECONDS,
+        Number.isFinite(frameSeconds) && frameSeconds >= 0
+          ? frameSeconds
+          : THUMBNAIL_FRAME_SECONDS,
         THUMBNAIL_WIDTH,
+        readChannelSettingString(settings, 'thumbnailText')?.trim(),
+        true,
+        coverStyle,
       );
       if (!frame?.thumbnailUrl) return undefined;
 

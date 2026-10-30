@@ -107,6 +107,12 @@ test.describe('Persisted Turbo projects', () => {
     await expect(
       page.getByText('Saved project output', { exact: true }).first(),
     ).toBeVisible();
+    // Approvals is on the agent + output layout: the item inspector is the
+    // output pane's Context tab.
+    await page
+      .getByTestId('agent-output-output-pane')
+      .getByRole('tab', { name: 'Context' })
+      .click();
     await expect(
       page.getByText('turbo-project-item:item-1', { exact: true }),
     ).toBeVisible();

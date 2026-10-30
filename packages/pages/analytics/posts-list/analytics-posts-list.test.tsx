@@ -143,7 +143,6 @@ describe('AnalyticsPostsList', () => {
     const searchInput = screen.getByPlaceholderText('Search posts...');
     expect(searchInput).toHaveAttribute('name', 'search');
     // The search is a persistent field and holds the Filters menu inside it.
-    expect(screen.queryByTestId('collapsible-search')).toBeNull();
     expect(
       within(
         searchInput.parentElement?.parentElement as HTMLElement,
@@ -372,7 +371,6 @@ describe('AnalyticsPostsList', () => {
     expect(
       screen.queryByRole('button', { name: 'Open In Agent' }),
     ).not.toBeInTheDocument();
-    expect(screen.queryByTestId('collapsible-search')).toBeNull();
     expect(screen.getAllByTestId('filter-menu')).toHaveLength(1);
   });
 

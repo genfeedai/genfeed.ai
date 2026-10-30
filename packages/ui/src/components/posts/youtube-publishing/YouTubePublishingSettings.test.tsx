@@ -1,4 +1,8 @@
-import { PostVisibility, TargetExecutionState } from '@genfeedai/contracts';
+import {
+  IngredientCategory,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import YouTubePublishingSettings from '@ui/posts/youtube-publishing/YouTubePublishingSettings';
@@ -8,16 +12,27 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
-const { updateTarget, ensureFromPost, notifySuccess, notifyWarning } =
-  vi.hoisted(() => ({
-    updateTarget: vi.fn(),
-    notifySuccess: vi.fn(),
-    notifyWarning: vi.fn(),
-    ensureFromPost: vi.fn(),
-  }));
+const {
+  updateTarget,
+  ensureFromPost,
+  getCover,
+  saveDownloadBlob,
+  notifySuccess,
+  notifyWarning,
+} = vi.hoisted(() => ({
+  updateTarget: vi.fn(),
+  notifySuccess: vi.fn(),
+  notifyWarning: vi.fn(),
+  ensureFromPost: vi.fn(),
+  getCover: vi.fn(),
+  saveDownloadBlob: vi.fn(),
+}));
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => () =>
-    Promise.resolve({ updateTarget, ensureFromPost }),
+    Promise.resolve({ updateTarget, ensureFromPost, getCover }),
+}));
+vi.mock('@genfeedai/helpers/media/download/download.helper', () => ({
+  saveDownloadBlob,
 }));
 vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
@@ -36,6 +51,9 @@ describe('YouTube publishing settings', () => {
     vi.clearAllMocks();
     updateTarget.mockResolvedValue({});
     ensureFromPost.mockResolvedValue({ id: 'created-group' });
+    getCover.mockResolvedValue(new Blob(['jpeg'], { type: 'image/jpeg' }));
+    URL.createObjectURL = vi.fn(() => 'blob:cover');
+    URL.revokeObjectURL = vi.fn();
     Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
       configurable: true,
       value: vi.fn(),
@@ -248,5 +266,111 @@ describe('YouTube publishing settings', () => {
     expect(
       screen.getByRole('button', { name: 'Save YouTube settings' }),
     ).toBeDisabled();
+  });
+
+  describe('cover', () => {
+    const postWithVideo = {
+      ...post,
+      brand: { id: 'brand-1' },
+      ingredients: [{ id: 'video-1', category: IngredientCategory.VIDEO }],
+    } as unknown as IPost;
+
+    it('asks for a video before a cover can be previewed', () => {
+      render(<YouTubePublishingSettings post={post} />);
+      expect(
+        screen.getByText('Add a video to this post to preview a cover.'),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Preview cover' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('renders the cover with the title and frame, and offers it for download', async () => {
+      render(<YouTubePublishingSettings post={postWithVideo} />);
+      fireEvent.change(screen.getByLabelText('Cover title'), {
+        target: { value: '  Ship the studio  ' },
+      });
+      fireEvent.change(screen.getByLabelText('Cover frame (seconds)'), {
+        target: { value: '2.5' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Preview cover' }));
+
+      expect(await screen.findByAltText('Cover preview')).toBeInTheDocument();
+      expect(getCover).toHaveBeenCalledWith(
+        'video-1',
+        {
+          brandId: 'brand-1',
+          timeInSeconds: 2.5,
+          title: 'Ship the studio',
+          width: 1080,
+        },
+        expect.any(AbortSignal),
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Download cover' }));
+      expect(saveDownloadBlob).toHaveBeenCalledWith(
+        expect.any(Blob),
+        'youtube-cover-post-1.jpg',
+      );
+    });
+
+    it('drops the preview and its download once the title or frame changes', async () => {
+      render(<YouTubePublishingSettings post={postWithVideo} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Preview cover' }));
+      expect(await screen.findByAltText('Cover preview')).toBeInTheDocument();
+
+      fireEvent.change(screen.getByLabelText('Cover title'), {
+        target: { value: 'New title' },
+      });
+
+      expect(screen.queryByAltText('Cover preview')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Download cover' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('reports a cover that could not be rendered', async () => {
+      getCover.mockRejectedValueOnce(new Error('render failed'));
+      render(<YouTubePublishingSettings post={postWithVideo} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Preview cover' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Could not render the cover.',
+      );
+    });
+
+    it('saves the cover title and frame with the other settings', async () => {
+      render(
+        <YouTubePublishingSettings
+          post={{
+            ...postWithVideo,
+            targetSettings: { privacyStatus: 'private' },
+          }}
+        />,
+      );
+      fireEvent.change(screen.getByLabelText('Cover title'), {
+        target: { value: 'Ship the studio' },
+      });
+      fireEvent.change(screen.getByLabelText('Cover frame (seconds)'), {
+        target: { value: '3' },
+      });
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Save YouTube settings' }),
+      );
+
+      await waitFor(() =>
+        expect(updateTarget).toHaveBeenCalledWith(
+          'created-group',
+          'post-1',
+          expect.objectContaining({
+            settings: {
+              madeForKids: false,
+              privacyStatus: 'private',
+              thumbnailFrameSeconds: '3',
+              thumbnailText: 'Ship the studio',
+            },
+          }),
+        ),
+      );
+    });
   });
 });

@@ -22,6 +22,7 @@ describe('font.enum', () => {
           'ANTON',
           'ARCHIVO_BLACK',
           'BANGERS',
+          'SPACE_GROTESK_BOLD',
         ]),
       );
     });

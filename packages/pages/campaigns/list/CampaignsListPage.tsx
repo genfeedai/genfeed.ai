@@ -28,6 +28,7 @@ import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import Container from '@ui/layout/container/Container';
+import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Button } from '@ui/primitives/button';
 import { Flag, Plus } from 'lucide-react';
@@ -188,30 +189,34 @@ export default function CampaignsListPage({
       icon={Flag}
       label={translate('title')}
       right={
-        <div className="flex items-center gap-2">
-          <FilterMenu
-            facets={[
-              {
-                defaultValue: 'all',
-                key: 'status',
-                label: translate('statusFilter'),
-                onChange: replaceStatus,
-                options: CAMPAIGN_STATUS_FILTERS,
-                selection: 'single',
-                value: status ?? 'all',
-              },
-            ]}
-            onClear={() => replaceStatus('all')}
-          />
-          <Button
-            onClick={() => setIsCreating(true)}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.DEFAULT}
-          >
-            <Plus className="size-4" />
-            {translate('newCampaign')}
-          </Button>
-        </div>
+        <SubbarControls
+          filters={
+            <FilterMenu
+              facets={[
+                {
+                  defaultValue: 'all',
+                  key: 'status',
+                  label: translate('statusFilter'),
+                  onChange: replaceStatus,
+                  options: CAMPAIGN_STATUS_FILTERS,
+                  selection: 'single',
+                  value: status ?? 'all',
+                },
+              ]}
+              onClear={() => replaceStatus('all')}
+            />
+          }
+          primaryAction={
+            <Button
+              onClick={() => setIsCreating(true)}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.DEFAULT}
+            >
+              <Plus className="size-4" />
+              {translate('newCampaign')}
+            </Button>
+          }
+        />
       }
       titleVisibility="sr-only"
     >

@@ -41,10 +41,6 @@ class TestWebhookController extends BaseWebhookController {
     return this.handleWebhook(request, payload, options);
   }
 
-  public callHandleWebhookWithRawBody(request: Request) {
-    return this.handleWebhookWithRawBody(request);
-  }
-
   public callGetLogUrl(method?: string) {
     return this.getLogUrl(method);
   }
@@ -179,22 +175,6 @@ describe('BaseWebhookController', () => {
       await expect(controller.callHandleWebhook(mockRequest)).rejects.toThrow(
         HttpException,
       );
-    });
-  });
-
-  describe('handleWebhookWithRawBody', () => {
-    it('should parse raw buffer body and delegate to handleWebhook', async () => {
-      const payload = { event: 'raw.test' };
-      const rawRequest = {
-        body: Buffer.from(JSON.stringify(payload)),
-        headers: {},
-      } as unknown as Request;
-
-      controller.validateResult = { event: payload, isValid: true };
-
-      const result = await controller.callHandleWebhookWithRawBody(rawRequest);
-
-      expect(result).toEqual({ success: true });
     });
   });
 

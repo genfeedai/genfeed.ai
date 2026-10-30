@@ -39,6 +39,33 @@ describe('BrandWatermarkLogoService', () => {
     vi.clearAllMocks();
   });
 
+  describe('validateKitSettings', () => {
+    it('checks the light and live marks like the default one', async () => {
+      delegate.findFirst.mockResolvedValue({ id: 'brand-1' });
+      assetDelegate.findFirst.mockResolvedValue({ mimeType: 'image/png' });
+
+      await service.validateKitSettings('brand-1', 'org-1', {
+        watermarkLightLogoId: 'logo-light',
+        watermarkLiveLogoId: 'logo-live',
+      });
+
+      expect(
+        assetDelegate.findFirst.mock.calls.map((call) => call[0].where.id),
+      ).toEqual(['logo-light', 'logo-live']);
+    });
+
+    it('rejects a live mark from another brand', async () => {
+      delegate.findFirst.mockResolvedValue({ id: 'brand-1' });
+      assetDelegate.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.validateKitSettings('brand-1', 'org-1', {
+          watermarkLiveLogoId: 'foreign',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
   describe('validateWatermarkLogo', () => {
     it('rejects watermark logos outside the current brand', async () => {
       delegate.findFirst.mockResolvedValue({

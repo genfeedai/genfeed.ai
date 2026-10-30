@@ -96,6 +96,53 @@ describe('standalone system notification delivery', () => {
       ),
     ).rejects.toThrow('System notification delivery failed');
   });
+  it('answers authorized malformed bodies with 400 before any delivery', async () => {
+    const sendSystemNotification = vi.fn();
+    const sendChannelTest = vi.fn();
+    const module = await Test.createTestingModule({
+      controllers: [SystemNotificationsController],
+      providers: [
+        { provide: TelegramService, useValue: { sendSystemMessage: vi.fn() } },
+        { provide: ResendService, useValue: { sendEmail: vi.fn() } },
+        {
+          provide: DiscordService,
+          useValue: { sendSystemNotification, sendChannelTest },
+        },
+        {
+          provide: ConfigService,
+          useValue: { get: () => 'deployment-key', isDevelopment: false },
+        },
+        { provide: LoggerService, useValue: { warn: vi.fn() } },
+      ],
+    }).compile();
+    const app: INestApplication = module.createNestApplication();
+    await app.listen(0, '127.0.0.1');
+    const base = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}/internal/system-notifications`;
+    const post = (path: string, body: string) =>
+      fetch(`${base}${path}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer deployment-key',
+        },
+        body,
+      });
+    try {
+      for (const body of [
+        '{}',
+        '[]',
+        JSON.stringify({ event, target: {}, idempotencyKey: 'bad key!' }),
+        JSON.stringify({ event: { ...event, type: 'nope' }, target: {} }),
+      ])
+        expect((await post('', body)).status).toBe(400);
+      for (const body of ['{}', '[]', JSON.stringify({ channel: 'unknown' })])
+        expect((await post('/discord-channel-test', body)).status).toBe(400);
+      expect(sendSystemNotification).not.toHaveBeenCalled();
+      expect(sendChannelTest).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
   it('requires the deployment internal credential for status and delivery', async () => {
     const sendSystemNotification = vi.fn();
     const module = await Test.createTestingModule({

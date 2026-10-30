@@ -60,6 +60,8 @@ export interface IHighlight {
   end_time: number;
   title: string;
   summary: string;
+  /** What was said in the window; the avatar speaks this. */
+  script?: string;
   virality_score: number;
   tags: string[];
   clip_type: string;

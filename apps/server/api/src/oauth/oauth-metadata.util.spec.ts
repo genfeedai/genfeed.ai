@@ -176,6 +176,10 @@ describe('canonicalizeRequestedMcpResource', () => {
       'https://mcp.genfeed.ai/mcp/?profile=directory&toolsets=core',
       'https://mcp.genfeed.ai/mcp',
     ],
+    [
+      'https://mcp.genfeed.ai/mcp?profile=studio&app=clipper,motion',
+      'https://mcp.genfeed.ai/mcp',
+    ],
   ])('drops MCP routing params from %s', (requested, canonical) => {
     expect(canonicalizeRequestedMcpResource(requested)).toBe(canonical);
   });

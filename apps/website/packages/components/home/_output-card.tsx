@@ -120,12 +120,12 @@ export default function HomeOutputCard({
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_42%,rgba(5,6,7,0.92))]" />
 
       <figcaption className="absolute inset-x-0 bottom-0 z-10 p-6 text-left sm:p-7">
-        <Text className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/65">
+        <Text className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/70">
           {asset.format}
         </Text>
         <Heading
           as="h2"
-          className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-white sm:text-3xl"
+          className="mt-2 text-2xl font-semibold tracking-[-0.02em] text-white sm:text-3xl"
         >
           {asset.title}
         </Heading>

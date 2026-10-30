@@ -119,7 +119,6 @@ export default function SystemEmailsPage() {
       ) : (
         <WorkspaceSurface
           framed={false}
-          title="Lifecycle Email Registry"
           tone="muted"
           data-testid="system-emails-surface"
         >

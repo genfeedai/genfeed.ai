@@ -7,6 +7,7 @@ import {
 } from '@api/collections/visual-projects/utils/visual-code-validation.util';
 import { VisualCodeStatus } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
+import { UnprocessableEntityException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
 function fixture() {
@@ -453,6 +454,34 @@ describe('permanent visual request identity conflicts', () => {
       expect(dispatch).toHaveBeenCalledOnce();
       expect(f.prisma.$transaction).toHaveBeenCalledOnce();
       expect(f.prisma.visualRevision.findFirst).toHaveBeenCalledTimes(2);
+    },
+  );
+});
+
+describe('malformed visual request bodies', () => {
+  it.each([
+    ['cancel', undefined],
+    ['cancel', null],
+    ['cancel', {}],
+    ['cancel', { revision: 'one' }],
+    ['cancel', { revision: 1, extra: true }],
+    ['retry', undefined],
+    ['retry', { requestId: 42 }],
+    ['export', { requestId: 'request', revision: 'one' }],
+    ['revise', { requestId: '' }],
+  ] as const)(
+    'rejects %s body %j as a client error before any write or dispatch',
+    async (operation, body) => {
+      const f = fixture();
+      const failure = await f.service[operation](
+        f.user as never,
+        'project',
+        body as never,
+      ).catch((error: unknown) => error);
+      expect(failure).toBeInstanceOf(UnprocessableEntityException);
+      expect(f.prisma.visualRevision.updateMany).not.toHaveBeenCalled();
+      expect(f.billing.reserve).not.toHaveBeenCalled();
+      expect(f.workflows.enqueueWorkflow).not.toHaveBeenCalled();
     },
   );
 });

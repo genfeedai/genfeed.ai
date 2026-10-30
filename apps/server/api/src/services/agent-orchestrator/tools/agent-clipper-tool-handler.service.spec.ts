@@ -1,6 +1,7 @@
 import type { ClipperProjectsService } from '@api/collections/clipper-projects/clipper-projects.service';
 import { ClipperClipEditService } from '@api/collections/clipper-projects/services/clipper-clip-edit.service';
 import type { ClipperGenerationService } from '@api/collections/clipper-projects/services/clipper-generation.service';
+import type { ClipperProjectIngestionService } from '@api/collections/clipper-projects/services/clipper-project-ingestion.service';
 import type { ClipperResultsService } from '@api/collections/clipper-results/clipper-results.service';
 import { AgentClipperToolHandler } from '@api/services/agent-orchestrator/tools/agent-clipper-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
@@ -13,7 +14,20 @@ const ctx = {
 } as ToolExecutionContext;
 
 const PROJECT = {
+  highlights: [
+    {
+      clip_type: 'story',
+      end_time: 30,
+      id: 'highlight-1',
+      script: 'We almost shut the company down.',
+      start_time: 10,
+      summary: 'Why this works',
+      title: 'The turnaround',
+      virality_score: 88,
+    },
+  ],
   id: 'project-1',
+  status: 'completed',
   organizationId: 'org-1',
   source: { durationSeconds: 120 },
   sourceVideoS3Key: 'sources/project-1.mp4',
@@ -44,6 +58,7 @@ const AVATAR = { ...RAW_CUT, id: 'clip-2', mode: 'avatar' };
 
 interface Harness {
   generated: Array<{ endTime: number; startTime: number; title: string }>;
+  analyzeYoutube: ReturnType<typeof vi.fn>;
   handler: AgentClipperToolHandler;
   patches: Array<{ id: string; patch: Record<string, unknown> }>;
   projectPatches: Array<Record<string, unknown>>;
@@ -128,9 +143,19 @@ function buildHarness(): Harness {
     generationService,
     { log: vi.fn() } as unknown as LoggerService,
   );
+  const analyzeYoutube = vi.fn(async () => ({
+    identity: {},
+    projectId: 'project-new',
+    status: 'pending',
+  }));
   return {
+    analyzeYoutube,
     generated,
-    handler: new AgentClipperToolHandler(service),
+    handler: new AgentClipperToolHandler(
+      service,
+      { analyzeYoutube } as unknown as ClipperProjectIngestionService,
+      projectsService,
+    ),
     patches,
     projectPatches,
     queuedCount,
@@ -208,6 +233,83 @@ describe('AgentClipperToolHandler', () => {
 
       expect(result.success).toBe(false);
       expect(result.data).toBeUndefined();
+    });
+  });
+
+  describe('start_clip_analysis', () => {
+    it('starts the free analysis as the calling organization', async () => {
+      const result = await harness.handler.analyzeProject(
+        {
+          maxClips: 99,
+          youtubeUrl: 'https://www.youtube.com/watch?v=abc123def45',
+        },
+        { ...ctx, brandId: 'brand-1' },
+      );
+
+      expect(result).toEqual({
+        creditsUsed: 0,
+        data: { projectId: 'project-new', status: 'pending' },
+        success: true,
+      });
+      expect(harness.analyzeYoutube).toHaveBeenCalledWith(
+        {
+          brandId: 'brand-1',
+          id: 'user-1',
+          organizationId: 'org-1',
+          userId: 'user-1',
+        },
+        {
+          maxClips: 30,
+          youtubeUrl: 'https://www.youtube.com/watch?v=abc123def45',
+        },
+      );
+    });
+
+    it('needs a video link', async () => {
+      const result = await harness.handler.analyzeProject({}, ctx);
+
+      expect(result).toMatchObject({
+        error: 'youtubeUrl is required',
+        success: false,
+      });
+      expect(harness.analyzeYoutube).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('get_clip_highlights', () => {
+    it('returns the highlights with what was said in each', async () => {
+      const result = await harness.handler.getHighlights(
+        { projectId: 'project-1' },
+        ctx,
+      );
+
+      expect(result.data).toEqual({
+        highlights: [
+          {
+            clipType: 'story',
+            endTime: 30,
+            id: 'highlight-1',
+            script: 'We almost shut the company down.',
+            startTime: 10,
+            title: 'The turnaround',
+            viralityScore: 88,
+          },
+        ],
+        projectId: 'project-1',
+        status: 'completed',
+      });
+    });
+
+    it('cannot read another organization project', async () => {
+      const result = await harness.handler.getHighlights(
+        { projectId: 'project-1' },
+        { ...ctx, organizationId: 'org-2' },
+      );
+
+      expect(result).toMatchObject({
+        error: 'Clip project not found',
+        success: false,
+      });
     });
   });
 

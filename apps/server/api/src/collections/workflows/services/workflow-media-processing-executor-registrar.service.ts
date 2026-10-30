@@ -1,3 +1,4 @@
+import { BrandCoverStyleService } from '@api/collections/brands/services/brand-cover-style.service';
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
@@ -6,6 +7,7 @@ import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { VideoQaContinuityResolverService } from '@api/collections/workflows/services/video-qa-continuity-resolver.service';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
+import { buildCaptionBurnStyleFromConfig } from '@api/collections/workflows/utils/caption-burn-style.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
@@ -26,6 +28,7 @@ import {
   MusicSourceType,
   TransformationCategory,
 } from '@genfeedai/contracts';
+import type { CoverTitlePlacement } from '@genfeedai/contracts/interfaces';
 import {
   createVideoQaExecutor,
   createVideoStitchExecutor,
@@ -82,6 +85,8 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
     @Optional() private readonly videoStitchService?: VideoStitchService,
     @Optional()
     private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
+    @Optional()
+    private readonly brandCoverStyleService?: BrandCoverStyleService,
   ) {}
 
   private processingMediaUrl(
@@ -106,6 +111,7 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
 
   register(engine: WorkflowEngine): void {
     this.registerAvatarVideoExecutor(engine);
+    this.registerBrandCoverExecutor(engine);
     this.registerCaptionsExecutor(engine);
     this.registerMusicSourceExecutor(engine);
     this.registerSoundOverlayExecutor(engine);
@@ -288,6 +294,7 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
           organizationId: context.organizationId,
           params: {
             captionContent,
+            captionStyle: buildCaptionBurnStyleFromConfig(node.config),
             inputPath: sourceVideoUrl,
           },
           room: getUserRoomName(context.userId),
@@ -566,6 +573,86 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
     }
 
     return resolved;
+  }
+
+  /** Lays the brand title and signature over one image as a cover. */
+  private registerBrandCoverExecutor(engine: WorkflowEngine): void {
+    const filesClientService = this.filesClientService;
+    const brandCoverStyleService = this.brandCoverStyleService;
+    if (!filesClientService || !brandCoverStyleService) {
+      return;
+    }
+
+    engine.registerExecutor('brandCover', async (node, inputs, context) => {
+      const brandId = this.helper.getRequiredBrandId(node);
+      const isVideo = inputs.has('video');
+      const source = inputs.get(isVideo ? 'video' : 'image');
+      const ingredientId = this.helper.extractIngredientId(source);
+      if (!ingredientId) {
+        throw new Error(
+          'brandCover requires a source image or video ingredient',
+        );
+      }
+
+      const asset = await this.helper.requireMediaAsset(
+        ingredientId,
+        context.organizationId,
+        [isVideo ? IngredientCategory.VIDEO : IngredientCategory.IMAGE],
+      );
+      const mediaUrl = this.configService.isAuthorizedMediaDeliveryEnabled
+        ? await this.processingMediaUrl(context.organizationId, asset)
+        : await filesClientService.getPresignedDownloadUrl(
+            asset.id,
+            isVideo ? 'videos' : 'images',
+          );
+
+      const variant = this.helper.readConfigString(node.config, 'variant');
+      const configuredPlacement = this.helper.readConfigString(
+        node.config,
+        'placement',
+      );
+      const placement: CoverTitlePlacement | undefined =
+        configuredPlacement === 'top-left' || configuredPlacement === 'bottom'
+          ? configuredPlacement
+          : undefined;
+      const title =
+        this.helper.getOptionalStringInput(inputs, 'title') ??
+        this.helper.readConfigString(node.config, 'title');
+      const coverStyle = await brandCoverStyleService.resolveCoverStyle(
+        brandId,
+        context.organizationId,
+        variant === 'light' || variant === 'live' ? variant : 'default',
+      );
+      const styled = {
+        ...coverStyle,
+        title: {
+          ...coverStyle?.title,
+          ...(placement ? { placement } : {}),
+        },
+      };
+
+      const result = await filesClientService.generateThumbnail(
+        mediaUrl,
+        ingredientId,
+        isVideo
+          ? this.helper.getOptionalNumberConfig(
+              node.config,
+              'timestampSeconds',
+              1,
+            )
+          : 0,
+        this.helper.getOptionalNumberConfig(node.config, 'width', 1280),
+        title,
+        true,
+        styled,
+      );
+
+      return {
+        id: ingredientId,
+        image: result.thumbnailUrl,
+        status: 'generated',
+      };
+    });
   }
 
   private registerVideoFrameExtractExecutor(engine: WorkflowEngine): void {

@@ -72,14 +72,11 @@ export default function TermsPage() {
           <div className="container mx-auto px-6">
             <div className="max-w-4xl mx-auto">
               <div className="grid gap-px bg-foreground/5">
-                {termsOfService.map((term, index) => (
+                {termsOfService.map((term) => (
                   <div
                     key={term.title}
-                    className="bg-background p-6 sm:p-12 group hover:bg-foreground/[0.02] transition-colors"
+                    className="bg-background p-6 sm:p-12 group hover:bg-foreground/5 transition-colors"
                   >
-                    <div className="text-foreground/50 text-xs font-black uppercase tracking-widest mb-6">
-                      {String(index + 1).padStart(2, '0')} / {term.shortLabel}
-                    </div>
                     <h2 className="text-2xl font-semibold mb-6">
                       {term.title}
                     </h2>
@@ -99,7 +96,7 @@ export default function TermsPage() {
                       <ul className="space-y-3">
                         {term.listItems.map((item) => (
                           <li key={item} className="flex items-start gap-3">
-                            <Check className="size-4 text-foreground/65 mt-0.5 shrink-0" />
+                            <Check className="size-4 text-foreground/70 mt-0.5 shrink-0" />
                             <span className="text-foreground/60 text-sm">
                               {item}
                             </span>
@@ -115,34 +112,31 @@ export default function TermsPage() {
         </section>
 
         {/* Additional Legal Info */}
-        <section className="py-16 md:py-32 bg-foreground/[0.02] gsap-section">
+        <section className="py-16 md:py-32 bg-foreground/5 gsap-section">
           <div className="container mx-auto px-6">
             <div className="text-center mb-16">
               <h2 className="text-5xl font-semibold mb-6">
                 Additional Legal Info
               </h2>
-              <p className="text-foreground/65 max-w-xl mx-auto">
+              <p className="text-foreground/70 max-w-xl mx-auto">
                 Important policies governing your use of Genfeed.
               </p>
             </div>
 
             <div className="max-w-5xl mx-auto">
               <div className="grid grid-cols-1 gap-px bg-foreground/5 md:grid-cols-2 lg:grid-cols-4">
-                {legalInfo.map((info, index) => {
+                {legalInfo.map((info) => {
                   const Icon = info.icon;
                   return (
                     <div
                       key={info.title}
-                      className="bg-background p-6 sm:p-10 group hover:bg-foreground/[0.02] transition-colors"
+                      className="bg-background p-6 sm:p-10 group hover:bg-foreground/5 transition-colors"
                     >
-                      <div className="text-foreground/50 text-xs font-black uppercase tracking-widest mb-6">
-                        {String(index + 1).padStart(2, '0')} / {info.shortLabel}
-                      </div>
-                      <Icon className="size-8 text-foreground/65 mb-4 group-hover:text-foreground transition-colors" />
+                      <Icon className="size-8 text-foreground/70 mb-4 group-hover:text-foreground transition-colors" />
                       <h3 className="text-lg font-semibold mb-3">
                         {info.title}
                       </h3>
-                      <p className="text-foreground/65 text-sm leading-relaxed">
+                      <p className="text-foreground/70 text-sm leading-relaxed">
                         {info.content}
                       </p>
                     </div>
@@ -157,9 +151,9 @@ export default function TermsPage() {
         <section className="py-20 md:py-40 gsap-section">
           <div className="container mx-auto px-6">
             <div className="text-center max-w-3xl mx-auto">
-              <Mail className="size-12 mx-auto text-foreground/55 mb-8" />
+              <Mail className="size-12 mx-auto text-foreground/60 mb-8" />
               <h2 className="text-5xl font-semibold mb-10">Questions?</h2>
-              <p className="text-foreground/65 text-xl mb-12 font-medium">
+              <p className="text-foreground/70 text-xl mb-12 font-medium">
                 If you have any questions about these terms, please contact our
                 support team.
               </p>

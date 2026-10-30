@@ -38,7 +38,7 @@ const LABEL_CLASS =
   'text-2xs font-bold uppercase tracking-[0.16em] text-muted-foreground';
 
 const VALUE_CLASS =
-  'font-semibold tracking-[-0.03em] tabular-nums text-foreground';
+  'font-semibold tracking-[-0.02em] tabular-nums text-foreground';
 
 function AnimatedValue({ value }: { value: string }): ReactElement {
   const match = value.match(/^([\d.]+)(.*)$/);

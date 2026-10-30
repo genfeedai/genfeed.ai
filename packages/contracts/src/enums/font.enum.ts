@@ -16,6 +16,7 @@ export enum FontFamily {
   ANTON = 'ANTON',
   ARCHIVO_BLACK = 'ARCHIVO_BLACK',
   BANGERS = 'BANGERS',
+  SPACE_GROTESK_BOLD = 'SPACE_GROTESK_BOLD',
 }
 
 export interface FontFamilyMetadata {
@@ -92,6 +93,13 @@ export const FONT_FAMILY_METADATA: Record<FontFamily, FontFamilyMetadata> = {
     description: 'Friendly geometric sans in bold.',
     key: 'poppins-bold',
     label: 'Poppins Bold',
+  },
+  [FontFamily.SPACE_GROTESK_BOLD]: {
+    cssFamily: 'Space Grotesk',
+    cssWeight: 700,
+    description: 'Broad, compact grotesque in bold for captions and headlines.',
+    key: 'space-grotesk-bold',
+    label: 'Space Grotesk Bold',
   },
 };
 

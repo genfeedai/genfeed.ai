@@ -32,7 +32,7 @@ export default function HomeHero(): React.ReactElement {
       <div className="container relative mx-auto px-6 text-center">
         <Heading
           as="h1"
-          className="animate-gen-stagger-rise mx-auto max-w-5xl text-[clamp(2.25rem,10.5vw,3rem)] font-semibold leading-[0.95] tracking-[-0.055em] text-foreground [--gen-stagger-delay:90ms] sm:text-6xl md:text-7xl lg:text-[5.5rem]"
+          className="animate-gen-stagger-rise mx-auto max-w-5xl text-[clamp(2.25rem,10.5vw,3rem)] font-semibold leading-[0.95] tracking-[-0.02em] text-foreground [--gen-stagger-delay:90ms] sm:text-6xl md:text-7xl lg:text-[5.5rem]"
         >
           {/* The line break is a layout lock, not a sentence boundary. Keep the
               explicit space so the accessible name stays two spoken sentences
@@ -42,7 +42,7 @@ export default function HomeHero(): React.ReactElement {
         </Heading>
         <Text
           as="p"
-          className="animate-gen-stagger-in mx-auto mt-7 max-w-2xl text-base leading-7 text-foreground/72 [--gen-stagger-delay:180ms] md:text-lg"
+          className="animate-gen-stagger-in mx-auto mt-7 max-w-2xl text-base leading-7 text-foreground/80 [--gen-stagger-delay:180ms] md:text-lg"
         >
           {metadata.description}
         </Text>
@@ -64,7 +64,7 @@ export default function HomeHero(): React.ReactElement {
               </a>
             </ButtonTracked>
           </div>
-          <Text as="p" className="mt-5 text-center text-sm text-foreground/72">
+          <Text as="p" className="mt-5 text-center text-sm text-foreground/80">
             Create your free account with Google or email. No card required.
           </Text>
         </div>

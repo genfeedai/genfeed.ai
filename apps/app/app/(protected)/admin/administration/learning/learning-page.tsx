@@ -248,7 +248,6 @@ export default function LearningPage() {
       isRefreshing={state === 'loading'}
     >
       <div className="space-y-6">
-        <p className="text-sm text-muted-foreground">{translate('intro')}</p>
         <Form onSubmit={handleSubmit}>
           <Field
             label={translate('form.organizationIds')}

@@ -76,6 +76,12 @@ https://mcp.genfeed.ai/mcp?toolsets=content,generation
 - **`core` is always included** and cannot be excluded — it holds the
   discovery meta tool (`find_tools`) plus
   a handful of always-needed account/status tools.
+- **`?app=clipper,motion` adds the toolsets behind those apps** to the
+  selection made by the rest of the URL (default, `?profile=`, or
+  `?toolsets=`). Apps are `agent`, `analytics`, `automation`, `clipper`,
+  `discovery`, `editor`, `library`, `messages`, `motion`, `playground`,
+  `publishing`, `storyboard`, `turbo` and `workspace`. The map
+  is `MCP_APP_TOOLSETS` in `packages/actions`.
 - **Omitting the parameter (or passing an empty value) uses `?profile=`**, and
   a bare URL gets the `default` profile: `core`, `generation`, `content` and
   `scheduler`, capped at 25 tools. `?profile=studio` adds `brand` and

@@ -11,7 +11,6 @@ import {
   parseLibraryShelf,
 } from '@genfeedai/contracts';
 import type {
-  LibraryActiveFilter,
   LibraryBrowserStatus,
   LibraryFilterChoice,
   LibraryFilterModel,
@@ -177,78 +176,7 @@ export function useLibraryFilters({
     );
   };
 
-  const activeFilters: LibraryActiveFilter[] = [];
-
-  if (statusValue === 'trash') {
-    activeFilters.push({
-      id: 'status',
-      label: translate('statusTrash'),
-      onRemove: () => onStatusChange(null),
-    });
-  } else {
-    const activeShelf = parseLibraryShelf(statusValue);
-    if (activeShelf) {
-      activeFilters.push({
-        id: 'status',
-        label: LIBRARY_SHELF_LABELS[activeShelf],
-        onRemove: () => onStatusChange(null),
-      });
-    }
-  }
-
-  if (placeValue !== 'all') {
-    activeFilters.push({
-      id: 'place',
-      label:
-        placeValue === LibraryPlace.RECENT
-          ? translate('showRecent')
-          : translate('showStarred'),
-      onRemove: () => onPlaceChange(null),
-    });
-  }
-
-  for (const typeId of typeValues) {
-    const choice = TYPE_CHOICES.find((option) => option.value === typeId);
-    activeFilters.push({
-      id: `type:${typeId}`,
-      label: choice?.label ?? typeId,
-      onRemove: () =>
-        onCategoriesChange(
-          categoriesFromAssetTypeIds(typeValues.filter((id) => id !== typeId)),
-        ),
-    });
-  }
-
-  for (const origin of origins) {
-    activeFilters.push({
-      id: `origin:${origin}`,
-      label: INGREDIENT_ORIGIN_LABELS[origin],
-      onRemove: () =>
-        onOriginsChange(origins.filter((value) => value !== origin)),
-    });
-  }
-
-  for (const characterId of characters) {
-    const option = characterOptions.find(({ id }) => id === characterId);
-    activeFilters.push({
-      id: `character:${characterId}`,
-      label: option?.label ?? translate('character'),
-      onRemove: () =>
-        onCharactersChange(characters.filter((id) => id !== characterId)),
-    });
-  }
-
-  for (const tagId of tags) {
-    const option = tagOptions.find(({ id }) => id === tagId);
-    activeFilters.push({
-      id: `tag:${tagId}`,
-      label: option?.label ?? translate('tags'),
-      onRemove: () => onTagsChange(tags.filter((id) => id !== tagId)),
-    });
-  }
-
   return {
-    activeFilters,
     onOriginValuesChange: handleOriginValuesChange,
     onPlaceValueChange: handlePlaceValueChange,
     onStatusValueChange: handleStatusValueChange,

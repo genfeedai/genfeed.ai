@@ -2,7 +2,6 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ReactNode } from 'react';
 
 export interface SectionHeaderProps {
-  tierLabel?: string;
   title: ReactNode;
   description?: ReactNode;
   extra?: ReactNode;
@@ -13,17 +12,11 @@ export default function SectionHeader({
   className,
   description,
   extra,
-  tierLabel,
   title,
 }: SectionHeaderProps) {
   return (
     <div className={cn('mb-16 text-center', className)}>
-      {tierLabel ? (
-        <div className="mb-6 text-xs font-black uppercase tracking-widest text-foreground/55">
-          {tierLabel}
-        </div>
-      ) : null}
-      <h2 className="mb-6 text-6xl font-semibold leading-tight tracking-[-0.03em]">
+      <h2 className="mb-6 text-6xl font-semibold leading-tight tracking-[-0.02em]">
         {title}
       </h2>
       {description ? (

@@ -498,7 +498,10 @@ export class AdsResearchService {
               return items.slice(0, limit);
             }
           }
-        } catch {}
+        } catch {
+          // Best effort: one failing connected account must not blank the
+          // research feed, so skip it and keep loading the remaining ones.
+        }
       }
     }
 

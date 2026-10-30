@@ -15,5 +15,13 @@
   "save": "Save watermark",
   "saved": "Watermark settings saved.",
   "error": "Could not save watermark settings. Please try again.",
-  "savedLogo": "Saved watermark logo"
+  "savedLogo": "Saved watermark logo",
+  "lightLogo": "Mark for light footage",
+  "liveLogo": "Mark for livestreams",
+  "sameAsDefault": "Same as the watermark logo",
+  "size": "Size (% of width)",
+  "insetX": "From side edge (% of width)",
+  "insetY": "From top or bottom edge (% of width)",
+  "automatic": "Automatic",
+  "placementHelp": "Leave size and distances empty to fit the mark automatically. Distances are measured from the corner chosen above, as a share of the picture width, so every export size places the mark in the same spot. Choose the light or livestream mark when you export."
 }

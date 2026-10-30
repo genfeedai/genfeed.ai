@@ -11,7 +11,7 @@ export default function HomeCTA(): React.ReactElement {
         >
           <Heading
             as="h2"
-            className="text-5xl font-semibold leading-none tracking-[-0.03em] sm:text-6xl"
+            className="text-5xl font-semibold leading-none tracking-[-0.02em] sm:text-6xl"
           >
             Start with one brief.
           </Heading>

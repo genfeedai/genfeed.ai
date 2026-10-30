@@ -11,5 +11,5 @@ export const EMPTY_STATES = {
   POSTS_PERIOD: 'No posts found for this period',
   POSTS_YET: 'No posts yet',
   RESULTS_FOUND: 'No results found',
-  TAGS_YET: 'No tags yet',
+  TAGS_FOUND: 'No tags found',
 } as const;

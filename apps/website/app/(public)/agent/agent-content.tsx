@@ -109,20 +109,20 @@ export default function AgentContent() {
           <Heading as="h2" className="text-2xl font-bold mb-2 text-foreground">
             What people ask it for
           </Heading>
-          <Text as="p" className="text-foreground/65 mb-8">
+          <Text as="p" className="text-foreground/70 mb-8">
             Six requests, and what lands in your workspace.
           </Text>
           <div className="gsap-grid grid grid-cols-1 gap-1.5 md:grid-cols-2">
             {AGENT_PROMPTS.map((prompt) => (
               <Link
-                className="flex flex-col gap-3 rounded-card border border-foreground/[0.08] bg-foreground/5 p-6 transition-colors hover:border-foreground/20 hover:bg-foreground/10"
+                className="flex flex-col gap-3 rounded-card border border-foreground/10 bg-foreground/5 p-6 transition-colors hover:border-foreground/20 hover:bg-foreground/10"
                 href={prompt.href}
                 key={prompt.ask}
               >
                 <Heading as="h3" className="font-semibold text-foreground">
                   &ldquo;{prompt.ask}&rdquo;
                 </Heading>
-                <Text className="text-sm text-foreground/65">
+                <Text className="text-sm text-foreground/70">
                   {prompt.result}
                 </Text>
                 <Text className="mt-auto text-[13px] font-semibold text-foreground/50">
@@ -141,7 +141,7 @@ export default function AgentContent() {
             {CAPABILITIES.map((capability) => (
               <div
                 key={capability}
-                className="gen-contact-sheet flex items-center justify-center rounded-card p-6 bg-foreground/[0.02]"
+                className="gen-contact-sheet flex items-center justify-center rounded-card p-6 bg-foreground/5"
               >
                 <Text className="text-center text-sm font-semibold tracking-[-0.01em] text-foreground/70">
                   {capability}
@@ -152,11 +152,11 @@ export default function AgentContent() {
         </section>
 
         {/* Optional ways to use Genfeed’s agent and tools. */}
-        <section className="gsap-section max-w-6xl mx-auto border-t border-foreground/[0.08] pb-10 px-6 pt-16">
+        <section className="gsap-section max-w-6xl mx-auto border-t border-foreground/10 pb-10 px-6 pt-16">
           <Heading as="h2" className="text-2xl font-bold mb-2 text-foreground">
             Use Genfeed where you already work
           </Heading>
-          <Text as="p" className="text-foreground/65">
+          <Text as="p" className="text-foreground/70">
             Run Genfeed’s agent in your terminal, or give the agent you already
             use access to Genfeed’s tools. Connect directly from this page, then
             sign in or create your Genfeed account when your agent requests
@@ -196,7 +196,7 @@ export default function AgentContent() {
                   >
                     {surface.title}
                   </Heading>
-                  <Text className="text-sm text-foreground/65">
+                  <Text className="text-sm text-foreground/70">
                     {surface.description}
                   </Text>
                 </div>
@@ -209,7 +209,7 @@ export default function AgentContent() {
           <Heading as="h2" className="text-2xl font-bold mb-2 text-foreground">
             Install the CLI
           </Heading>
-          <Text as="p" className="text-foreground/65 mb-8">
+          <Text as="p" className="text-foreground/70 mb-8">
             Three commands from an empty terminal to a running agent.
           </Text>
           <div className="space-y-0">
@@ -222,7 +222,7 @@ export default function AgentContent() {
                   <pre className="overflow-x-auto rounded-sm border gen-border bg-card p-4 text-sm text-foreground">
                     {step.code}
                   </pre>
-                  <Text className="text-sm text-foreground/65">
+                  <Text className="text-sm text-foreground/70">
                     {step.sublabel}
                   </Text>
                 </div>
@@ -246,7 +246,7 @@ export default function AgentContent() {
                 <Heading as="h2" className="text-2xl font-bold text-foreground">
                   Teach your agent the craft
                 </Heading>
-                <Text as="p" className="text-foreground/65">
+                <Text as="p" className="text-foreground/70">
                   Genfeed publishes an open catalog of product skills — portable{' '}
                   <span className="text-foreground">SKILL.md</span> packages
                   that encode a repeatable content discipline. They work in any
@@ -280,7 +280,7 @@ export default function AgentContent() {
             <div className="flex flex-row items-center flex-wrap gap-4 justify-center">
               <AgentFirstActions trackingName="agent_cta_click" />
             </div>
-            <Text as="p" className="mt-6 text-sm text-foreground/65">
+            <Text as="p" className="mt-6 text-sm text-foreground/70">
               <a
                 className="underline underline-offset-4 hover:text-foreground"
                 href={SKILLS_DOCS_URL}

@@ -31,7 +31,7 @@ function PublishedLinkedInPost({ winner }: { winner: Winner }) {
             <p className="truncate text-sm font-semibold text-foreground">
               {proof.authorName}
             </p>
-            <p className="truncate text-xs text-foreground/55">
+            <p className="truncate text-xs text-foreground/60">
               {proof.authorHeadline}
             </p>
             <p className="mt-0.5 truncate text-xs text-foreground/60">
@@ -45,7 +45,7 @@ function PublishedLinkedInPost({ winner }: { winner: Winner }) {
         <LinkedinIcon className="size-6 shrink-0 text-platform-linkedin" />
       </div>
 
-      <p className="px-5 pb-5 text-[15px] leading-7 text-foreground/88 sm:px-7 sm:text-base">
+      <p className="px-5 pb-5 text-[15px] leading-7 text-foreground/90 sm:px-7 sm:text-base">
         {proof.captionExcerpt}
       </p>
 
@@ -61,7 +61,7 @@ function PublishedLinkedInPost({ winner }: { winner: Winner }) {
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-xs text-foreground/55 sm:px-7">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-xs text-foreground/60 sm:px-7">
         <span className="inline-flex items-center gap-2">
           <span className="flex size-5 items-center justify-center rounded-full bg-platform-linkedin text-white">
             <ThumbsUp className="size-3" />
@@ -73,7 +73,7 @@ function PublishedLinkedInPost({ winner }: { winner: Winner }) {
         </span>
       </div>
 
-      <div className="grid grid-cols-3 border-t border-foreground/10 px-3 py-3 text-xs font-medium text-foreground/55 sm:px-5">
+      <div className="grid grid-cols-3 border-t border-foreground/10 px-3 py-3 text-xs font-medium text-foreground/60 sm:px-5">
         <span className="inline-flex items-center justify-center gap-2">
           <ThumbsUp className="size-4" />
           Like
@@ -113,7 +113,7 @@ function PublishedOutputPreview({ winner }: { winner: Winner }) {
         </div>
       )}
       <div className="p-6 sm:p-8">
-        <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-foreground/55">
+        <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-foreground/60">
           <PlatformBadge platform={winner.platform} size={ComponentSize.SM} />
           {winner.mediaType}
         </p>
@@ -160,16 +160,16 @@ export default function ProofWinners(): React.ReactElement | null {
 
             <div className="flex flex-col justify-between border-t border-foreground/10 p-7 lg:border-l lg:border-t-0 lg:p-10">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/55">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/60">
                   {winner.metricLabel}
                 </p>
-                <p className="mt-5 text-5xl font-semibold tracking-[-0.05em] text-success sm:text-6xl">
+                <p className="mt-5 text-5xl font-semibold tracking-[-0.02em] text-success sm:text-6xl">
                   {winner.metricValue}
                 </p>
                 <p className="mt-6 text-xl font-medium leading-8 text-foreground">
                   {winner.title}
                 </p>
-                <p className="mt-4 text-sm leading-6 text-foreground/65">
+                <p className="mt-4 text-sm leading-6 text-foreground/70">
                   {winner.provenance}
                 </p>
                 <p className="mt-2 flex items-center gap-2 text-sm text-foreground/60">

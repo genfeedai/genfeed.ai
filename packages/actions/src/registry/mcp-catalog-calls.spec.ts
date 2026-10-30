@@ -111,7 +111,7 @@ describe('MCP catalog bindings', () => {
 
   it('never projects retired names even when passed the entire raw catalog', () => {
     const listed = toMcpTools(ALL_TOOLS).map((tool) => tool.name);
-    expect(listed).toHaveLength(151);
+    expect(listed).toHaveLength(159);
     expect(listed).toEqual(getToolsForSurface('mcp').map((tool) => tool.name));
     for (const operation of operations)
       expect(listed).not.toContain(operation.executionName);

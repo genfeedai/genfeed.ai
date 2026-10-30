@@ -174,9 +174,43 @@ export const FLOW_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
   'effect-captions': {
     category: 'effects',
     configSchema: {
+      activeWordColor: {
+        description:
+          'Hex color of the word being spoken. Empty draws every word in the font color.',
+        label: 'Active Word Color',
+        type: 'string',
+      },
+      backgroundColor: {
+        description:
+          'Hex color of a full-width band behind the text. Empty draws an outline instead.',
+        label: 'Background Band Color',
+        type: 'string',
+      },
+      backgroundOpacity: {
+        default: 0.96,
+        label: 'Background Band Opacity',
+        max: 1,
+        min: 0,
+        type: 'number',
+      },
+      bottomAnchorRatio: {
+        default: 0.8,
+        description:
+          'Where the text block ends for bottom captions, as a share of the video height',
+        label: 'Bottom Edge',
+        max: 0.95,
+        min: 0.5,
+        type: 'number',
+      },
       fontColor: {
         default: '#FFFFFF',
         label: 'Font Color',
+        type: 'string',
+      },
+      fontFamily: {
+        description:
+          'Brand font name such as INTER_BOLD or MONTSERRAT_BLACK. Empty uses the default caption font.',
+        label: 'Font Family',
         type: 'string',
       },
       fontSize: {
@@ -184,6 +218,13 @@ export const FLOW_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
         label: 'Font Size',
         options: ['small', 'medium', 'large'],
         type: 'select',
+      },
+      maxWordsPerGroup: {
+        description: 'Most words shown at once',
+        label: 'Words Per Phrase',
+        max: 12,
+        min: 1,
+        type: 'number',
       },
       position: {
         default: 'bottom',
@@ -195,6 +236,12 @@ export const FLOW_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
         default: 'dynamic',
         label: 'Style',
         options: ['minimal', 'dynamic', 'youtube', 'tiktok'],
+        type: 'select',
+      },
+      textCase: {
+        default: 'as-is',
+        label: 'Text Case',
+        options: ['as-is', 'upper'],
         type: 'select',
       },
     },

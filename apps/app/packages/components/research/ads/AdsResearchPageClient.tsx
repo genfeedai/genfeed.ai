@@ -5,18 +5,17 @@ import {
   AlertCategory,
   ButtonSize,
   ButtonVariant,
-  ComponentSize,
   ViewType,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { AdsChannel, AdsPlatform } from '@genfeedai/contracts/interfaces';
 import { useResearchPagination } from '@pages/research/work-surface/ResearchWorkSurfaceProvider';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import SearchField from '@ui/content/search-field/SearchField';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
 import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Button } from '@ui/primitives/button';
-import FormSearchbar from '@ui/primitives/searchbar';
 import { Columns2, Eye, Megaphone, Table } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -132,7 +131,29 @@ export default function AdsResearchPageClient() {
       >
         {translate('actions.watchCompetitors')}
       </Button>
+      <ViewMenu
+        options={[
+          {
+            icon: <Columns2 className="size-4" />,
+            label: 'Grid view',
+            type: ViewType.GRID,
+          },
+          {
+            icon: <Table className="size-4" />,
+            label: 'Table view',
+            type: ViewType.TABLE,
+          },
+        ]}
+        activeView={viewType}
+        onChange={setViewType}
+      />
+    </div>
+  );
+
+  const adsSearch = (
+    <SearchField onSearch={setSearch} placeholder="Search ads" value={search}>
       <AdsResearchFilterMenu
+        isAttached
         adAccountId={adAccountId}
         adAccounts={adAccounts}
         channel={channel}
@@ -165,23 +186,7 @@ export default function AdsResearchPageClient() {
         source={source}
         timeframe={timeframe}
       />
-      <ViewMenu
-        options={[
-          {
-            icon: <Columns2 className="size-4" />,
-            label: 'Grid view',
-            type: ViewType.GRID,
-          },
-          {
-            icon: <Table className="size-4" />,
-            label: 'Table view',
-            type: ViewType.TABLE,
-          },
-        ]}
-        activeView={viewType}
-        onChange={setViewType}
-      />
-    </div>
+    </SearchField>
   );
 
   const headerRefresh = (
@@ -196,15 +201,7 @@ export default function AdsResearchPageClient() {
   return (
     <Container
       label="Ads"
-      leading={
-        <FormSearchbar
-          isCollapsible
-          value={search}
-          onSearch={setSearch}
-          placeholder="Search ads"
-          size={ComponentSize.SM}
-        />
-      }
+      leading={adsSearch}
       icon={Megaphone}
       refresh={headerRefresh}
       right={headerRight}

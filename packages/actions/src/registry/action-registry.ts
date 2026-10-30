@@ -212,6 +212,13 @@ const WORKFLOW_ACTIONS = [
   ],
   ['castPrompt', 'Cast', 'Cast-aware prompt.', 'input', 'Film'],
   [
+    'brandCover',
+    'Compose Brand Cover',
+    'Lays the brand title and signature over one image.',
+    'composition',
+    'Image',
+  ],
+  [
     'cinematicColorGrade',
     'Apply Cinematic Color Grade',
     'Applies cinematic color grading to media.',
@@ -592,6 +599,7 @@ const WORKFLOW_ACTIONS = [
 const WORKFLOW_ACTION_CREDIT_POLICIES: Readonly<
   Record<string, ActionCreditPolicy>
 > = {
+  brandCover: { amount: 1, mode: 'fixed' },
   cinematicColorGrade: { amount: 2, mode: 'fixed' },
   colorGrade: { amount: 1, mode: 'fixed' },
   'effect-captions': { amount: 1, mode: 'fixed' },

@@ -7,6 +7,7 @@ import type { ModalTrimProps } from '@genfeedai/props/modals/modal.props';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import VideoTrimTimeline from '@ui/display/video-trim-timeline/VideoTrimTimeline';
 import Alert from '@ui/feedback/alert/Alert';
+import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import { Play, X } from 'lucide-react';
@@ -92,7 +93,7 @@ export default function ModalTrim({
           {error && <Alert type={AlertCategory.ERROR}>{error}</Alert>}
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-between gap-4">
+          <ModalActions className="justify-between gap-4">
             <div className="flex items-center gap-2">
               <Button
                 label="Preview Clip"
@@ -123,7 +124,7 @@ export default function ModalTrim({
                 }
               />
             </div>
-          </div>
+          </ModalActions>
         </div>
       </div>
     </Modal>

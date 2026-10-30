@@ -120,6 +120,18 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'collections/editor-projects/editor-projects.controller.ts',
     prefix: 'editor-projects',
   },
+  tasks: {
+    file: 'collections/tasks/controllers/tasks.controller.ts',
+    prefix: 'tasks',
+  },
+  activities: {
+    file: 'collections/activities/controllers/activities.controller.ts',
+    prefix: 'activities',
+  },
+  reviewInbox: {
+    file: 'collections/review-inbox/controllers/review-inbox.controller.ts',
+    prefix: 'review-inbox',
+  },
   clipperProjectGeneration: {
     file: 'collections/clipper-projects/clipper-project-generation.controller.ts',
     prefix: 'clipper-projects',
@@ -595,6 +607,46 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     sub: '',
     controller: 'editorProjects',
     tools: ['open_in_editor'],
+  },
+  {
+    method: 'Get',
+    sub: '',
+    controller: 'editorProjects',
+    tools: ['list_editor_projects'],
+  },
+  {
+    method: 'Get',
+    sub: ':id',
+    controller: 'editorProjects',
+    tools: ['get_editor_project'],
+  },
+  {
+    method: 'Post',
+    sub: ':id/render',
+    controller: 'editorProjects',
+    tools: ['start_editor_render'],
+  },
+
+  // ── Workspace: tasks, review inbox, activity ──
+  {
+    method: 'Get',
+    sub: BASE_CRUD_LIST,
+    controller: 'tasks',
+    tools: ['list_tasks'],
+  },
+  { method: 'Get', sub: ':id', controller: 'tasks', tools: ['get_task'] },
+  { method: 'Post', sub: '', controller: 'tasks', tools: ['create_task'] },
+  {
+    method: 'Get',
+    sub: '',
+    controller: 'reviewInbox',
+    tools: ['list_inbox'],
+  },
+  {
+    method: 'Get',
+    sub: '',
+    controller: 'activities',
+    tools: ['list_activity'],
   },
 
   // ── Scheduler releases ──

@@ -1,43 +1,9 @@
 import * as crypto from 'node:crypto';
+import type { ParsedVercelWebhookPayload } from '@api/endpoints/webhooks/vercel/webhooks.vercel.schema';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ConfigService } from '@libs/config/config.service';
-import { VercelWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-
-type VercelWebhookMeta = {
-  githubCommitMessage?: string;
-  githubCommitSha?: string;
-};
-
-type VercelWebhookActor = {
-  name?: string;
-  username?: string;
-};
-
-type VercelWebhookDeployment = {
-  meta?: VercelWebhookMeta;
-  target?: string;
-  url?: string;
-};
-
-type VercelWebhookBody = {
-  alias?: string[];
-  creator?: VercelWebhookActor;
-  deployment?: VercelWebhookDeployment;
-  environment?: string;
-  event?: string;
-  /** Vercel's webhook event id, unique per delivery attempt's event. */
-  id?: string;
-  meta?: VercelWebhookMeta;
-  name?: string;
-  payload?: VercelWebhookBody;
-  project?: { name?: string };
-  target?: string;
-  type?: string;
-  url?: string;
-  user?: VercelWebhookActor;
-};
 
 @Injectable()
 export class VercelWebhookService {
@@ -78,8 +44,8 @@ export class VercelWebhookService {
     }
   }
 
-  async handleWebhook(payload: VercelWebhookPayload): Promise<void> {
-    const body = payload as VercelWebhookBody;
+  async handleWebhook(payload: ParsedVercelWebhookPayload): Promise<void> {
+    const body = payload;
     const type = body.type || body.event || 'deployment.unknown';
     const p = body.payload || body;
 
