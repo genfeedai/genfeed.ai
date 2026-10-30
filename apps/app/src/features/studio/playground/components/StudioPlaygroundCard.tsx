@@ -1,0 +1,742 @@
+'use client';
+
+import {
+  ButtonSize,
+  ButtonVariant,
+  ComponentSize,
+  IngredientStatus,
+  ViewType,
+} from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type {
+  IImage,
+  IMetadata,
+  IVideo,
+} from '@genfeedai/contracts/interfaces';
+import { formatDuration } from '@genfeedai/helpers/video-duration.helper';
+import { Image as IngredientImage } from '@genfeedai/models/ingredients/image.model';
+import { Video } from '@genfeedai/models/ingredients/video.model';
+import { getIngredientRecovery } from '@genfeedai/utils/media/ingredient-recovery.util';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { logger } from '@services/core/logger.service';
+import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
+import TileBadge from '@ui/display/badge/Badge';
+import { Skeleton } from '@ui/display/skeleton/skeleton';
+import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
+import AssetHoverDetails from '@ui/ingredients/asset-hover-details';
+import BrandModeBadge from '@ui/ingredients/brand-mode-badge';
+import IngredientTileOverlays from '@ui/ingredients/ingredient-tile-overlays';
+import {
+  LazyMasonryImage,
+  LazyMasonryVideo,
+} from '@ui/lazy/masonry/LazyMasonry';
+import { Badge } from '@ui/primitives/badge';
+import { Button } from '@ui/primitives/button';
+import { buttonVariants } from '@ui/primitives/button.variants';
+import {
+  Film,
+  GitBranch,
+  ImageOff,
+  ImagePlus,
+  Pencil,
+  RotateCcw,
+  Scissors,
+  Search,
+  Trash2,
+} from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import {
+  type MouseEvent,
+  type ReactElement,
+  useCallback,
+  useMemo,
+  useState,
+} from 'react';
+import StudioPlaygroundFailureDetailsDialog from '@/features/studio/playground/components/StudioPlaygroundFailureDetailsDialog';
+import StudioPlaygroundFailureNotice from '@/features/studio/playground/components/StudioPlaygroundFailureNotice';
+import { studioAssetAccessibleLabel } from '@/features/studio/playground/utils/studio-playground-recipe';
+import { getStudioPlaygroundTypeConfig } from '@/features/studio/playground/utils/studio-playground-types';
+import type { StudioPlaygroundCardProps } from '@/features/studio/props/studio-playground.props';
+
+function GenerationReferencePreview({
+  url,
+}: {
+  url: string;
+}): ReactElement | null {
+  const [isBroken, setIsBroken] = useState(false);
+  if (isBroken) return null;
+
+  return (
+    <>
+      <Image
+        alt=""
+        className="z-[1] scale-110 object-cover blur-2xl"
+        data-testid="studio-generation-reference"
+        fill
+        onError={() => setIsBroken(true)}
+        sizes="320px"
+        src={url}
+        unoptimized
+      />
+      <div aria-hidden className="absolute inset-0 z-[1] bg-background/50" />
+    </>
+  );
+}
+
+// Every action on the card shares one ghost style, so the row reads as one set.
+const ACTION_CLASS = 'px-2 text-xs';
+const REMOVE_ACTION_CLASS = `${ACTION_CLASS} hover:text-destructive`;
+const AUDIO_TYPES = new Set(['music', 'voice']);
+const VIDEO_TYPES = new Set(['video', 'avatar']);
+const MODEL_GETTER_FIELDS = new Set([
+  '_ingredientUrl',
+  'aspectRatio',
+  'brandLogoUrl',
+  'ingredientFormat',
+  'ingredientUrl',
+  'metadataDescription',
+  'metadataDuration',
+  'metadataExtension',
+  'metadataHeight',
+  'metadataLabel',
+  'metadataModel',
+  'metadataModelLabel',
+  'metadataSize',
+  'metadataStyle',
+  'metadataTags',
+  'metadataWidth',
+  'primaryReference',
+  'primaryReferenceUrl',
+  'promptText',
+  'thumbnailUrl',
+]);
+
+function buildMasonryIngredient(
+  job: StudioPlaygroundCardProps['job'],
+): IImage | IVideo | null {
+  if (
+    job.type !== 'image' &&
+    job.type !== 'image-edit' &&
+    !VIDEO_TYPES.has(job.type)
+  ) {
+    return null;
+  }
+
+  const sourceMetadata =
+    typeof job.ingredient?.metadata === 'object'
+      ? job.ingredient.metadata
+      : undefined;
+  const metadata =
+    sourceMetadata?.width && sourceMetadata?.height
+      ? sourceMetadata
+      : job.width && job.height
+        ? ({
+            ...sourceMetadata,
+            height: job.height,
+            width: job.width,
+          } as IMetadata)
+        : sourceMetadata;
+  const persistedIngredient = Object.fromEntries(
+    Object.entries(job.ingredient ?? {}).filter(
+      ([key]) => !MODEL_GETTER_FIELDS.has(key),
+    ),
+  );
+  const ingredient = {
+    ...persistedIngredient,
+    cdnUrl: job.url || job.ingredient?.cdnUrl,
+    id: job.ingredient?.id || job.id,
+    status: job.ingredient?.status || job.status,
+    metadata,
+    prompt: job.ingredient?.prompt || job.prompt,
+  };
+
+  return job.type === 'image' || job.type === 'image-edit'
+    ? new IngredientImage(ingredient as IImage)
+    : new Video(ingredient as IVideo);
+}
+
+/**
+ * One asset in the results grid. A card is the whole lifecycle — queued,
+ * rendered, or failed — so a generation never disappears and reappears
+ * somewhere else once the socket resolves it.
+ */
+export default function StudioPlaygroundCard({
+  assetActions,
+  isSelected = false,
+  job,
+  isUseAsReferenceEnabled,
+  onReprompt,
+  onSelect,
+  onUseAsReference,
+  parentJob,
+  previewRevision = 0,
+  view,
+}: StudioPlaygroundCardProps): ReactElement {
+  const translate = useTranslations('pages.studioPlayground');
+  const translateRecovery = useTranslations('pages.library.recovery');
+  const { href } = useOrgUrl();
+  const { label } = getStudioPlaygroundTypeConfig(job.type);
+  const accessibleLabel = studioAssetAccessibleLabel(job);
+  // A failure belongs to the URL and retry revision it happened under, so a
+  // successful Inspector retry (a new revision) brings the tile back.
+  const [failedMediaKey, setFailedMediaKey] = useState<string | null>(null);
+  const delivery = job.ingredient?.mediaDelivery;
+  // Inspector recovery carries a revision for protected media, not a stored URL.
+  // Mount the shared tile so it can obtain its own current authorized grant.
+  const retrySource =
+    previewRevision > 0 &&
+    !job.ingredient?.isDeleted &&
+    delivery?.id === job.ingredient?.id &&
+    delivery?.id === (job.ingredientId ?? job.id) &&
+    delivery?.purpose === 'preview' &&
+    delivery.state !== 'UNSUPPORTED'
+      ? delivery.id
+      : undefined;
+  const mediaSource = job.url || retrySource;
+  const mediaKey = mediaSource
+    ? `${previewRevision}\u0001${mediaSource}`
+    : null;
+  const [isFailureDetailsOpen, setIsFailureDetailsOpen] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const cancelGeneration = async () => {
+    setIsCancelling(true);
+    try {
+      await assetActions.onCancelGeneration?.(job);
+    } catch (error: unknown) {
+      // The click handler discards this promise, so a rejection here would be
+      // an unhandled rejection. The job keeps its current status and the
+      // Studio reconciler corrects it on the next pass.
+      logger.error('Failed to cancel the Studio generation', error);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+  const isFailed = job.status === IngredientStatus.FAILED;
+  const isPending =
+    job.status === IngredientStatus.PROCESSING ||
+    job.status === IngredientStatus.DRAFT;
+  const isPreviewUnavailable =
+    !isPending && !isFailed && (!mediaKey || failedMediaKey === mediaKey);
+  const mediaState = isPending
+    ? 'processing'
+    : isFailed
+      ? 'failed'
+      : isPreviewUnavailable
+        ? 'fallback'
+        : 'ready';
+  const width = Math.max(1, job.width || 1080);
+  const height = Math.max(1, job.height || 1080);
+  const masonryIngredient = useMemo(() => buildMasonryIngredient(job), [job]);
+  const isListView = view === ViewType.LIST;
+  // Cards flag only a prompt that carried no brand at all. A provisional kit
+  // stays in the inspector receipt and the publish hold, not on every card.
+  const brandMode = job.ingredient?.generationHarness?.brandMode;
+  const unbrandedMode = brandMode === 'raw' ? brandMode : undefined;
+
+  const isVideo = VIDEO_TYPES.has(job.type);
+  const ingredientMetadata = job.ingredient?.metadata;
+  const videoDuration =
+    isVideo && typeof ingredientMetadata === 'object'
+      ? ingredientMetadata?.duration
+      : undefined;
+
+  const handleMediaError = useCallback(() => {
+    if (mediaKey) {
+      setFailedMediaKey(mediaKey);
+    }
+  }, [mediaKey]);
+
+  const handleCardActivate = useCallback(
+    (event: MouseEvent<HTMLElement>) => {
+      // The failure dialog is portaled out of the card, yet its clicks still
+      // bubble through React to this handler.
+      if (
+        event.target instanceof Node &&
+        !event.currentTarget.contains(event.target)
+      ) {
+        return;
+      }
+      if (
+        event.target instanceof Element &&
+        event.target.closest('a, button, input, [role="slider"]')
+      ) {
+        return;
+      }
+      onSelect(job);
+    },
+    [job, onSelect],
+  );
+
+  const canMakeClips =
+    job.type === 'video' &&
+    Boolean(job.ingredient?.id) &&
+    mediaState === 'ready';
+
+  function renderRecoveryAction(): ReactElement | null {
+    const ingredient = job.ingredient;
+    const capability = assetActions.failedRecovery;
+    if (
+      !capability ||
+      !isFailed ||
+      !ingredient ||
+      ingredient.status !== IngredientStatus.FAILED ||
+      ingredient.isDeleted ||
+      job.id !== ingredient.id ||
+      job.ingredientId !== ingredient.id
+    )
+      return null;
+    const recovery = getIngredientRecovery(ingredient);
+    const hasRetried = capability.retriedIds.includes(ingredient.id);
+    return (
+      <Button
+        label={
+          hasRetried
+            ? translateRecovery('started')
+            : translateRecovery(`actions.${recovery.action}`)
+        }
+        className={ACTION_CLASS}
+        icon={
+          recovery.action === 'retry' ? (
+            <RotateCcw className="size-3.5" />
+          ) : recovery.action === 'viewDetails' ? (
+            <Search className="size-3.5" />
+          ) : (
+            <Pencil className="size-3.5" />
+          )
+        }
+        withWrapper={false}
+        size={ButtonSize.SM}
+        variant={ButtonVariant.GHOST}
+        isDisabled={capability.isRecovering || hasRetried}
+        onClick={() =>
+          recovery.action === 'retry'
+            ? capability.onRetryFailedIngredient(ingredient)
+            : recovery.action === 'viewDetails'
+              ? assetActions.onSeeDetails(ingredient)
+              : capability.onReviewFailedIngredient(ingredient)
+        }
+      />
+    );
+  }
+
+  function renderMakeClipsAction(): ReactElement | null {
+    if (!canMakeClips) {
+      return null;
+    }
+    return (
+      <Link
+        className={buttonVariants({
+          className: ACTION_CLASS,
+          size: ButtonSize.SM,
+          variant: ButtonVariant.GHOST,
+        })}
+        href={href(
+          `${APP_ROUTES.STUDIO.CLIPPER_NEW}?video=${job.ingredient?.id}`,
+        )}
+      >
+        <Scissors aria-hidden="true" className="size-3.5" />
+        {translate('makeClips')}
+      </Link>
+    );
+  }
+
+  // Transformations (extend, upscale, reframe, resize, GIF) point back at the
+  // asset they came from; the link selects that card's inspector.
+  function renderUseAsReferenceAction(className: string): ReactElement | null {
+    if (
+      !onUseAsReference ||
+      isUseAsReferenceEnabled === false ||
+      mediaState !== 'ready' ||
+      (job.type !== 'image' &&
+        job.type !== 'image-edit' &&
+        job.type !== 'video' &&
+        job.type !== 'avatar')
+    ) {
+      return null;
+    }
+
+    return (
+      <Button
+        ariaLabel={translate('useAsReferenceAria', {
+          prompt: accessibleLabel,
+          type: label.toLowerCase(),
+        })}
+        className={className}
+        data-testid={`studio-asset-reference-${job.id}`}
+        icon={<ImagePlus className="size-3.5" />}
+        label={translate('useAsReference')}
+        onClick={() => onUseAsReference(job)}
+        size={ButtonSize.SM}
+        variant={ButtonVariant.GHOST}
+        withWrapper={false}
+      />
+    );
+  }
+
+  function renderSourceAction(className: string): ReactElement | null {
+    if (!parentJob) {
+      return null;
+    }
+
+    return (
+      <Button
+        ariaLabel={translate('sourceAssetAria', { type: label.toLowerCase() })}
+        className={className}
+        data-testid={`studio-asset-source-${job.id}`}
+        icon={<GitBranch className="size-3.5" />}
+        label={translate('sourceAsset')}
+        onClick={() => onSelect(parentJob)}
+        size={ButtonSize.SM}
+        variant={ButtonVariant.GHOST}
+        withWrapper={false}
+      />
+    );
+  }
+
+  function renderDetails(showLifecycleActions = false): ReactElement {
+    const referenceAction = renderUseAsReferenceAction(ACTION_CLASS);
+    const hasDetailActions =
+      Boolean(referenceAction) ||
+      showLifecycleActions ||
+      Boolean(parentJob) ||
+      canMakeClips;
+
+    return (
+      <div
+        className={`flex min-w-0 flex-col gap-3 bg-card p-3 ${
+          isListView ? 'justify-center sm:p-4' : 'border-t border-border'
+        }`}
+        data-asset-details
+      >
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-1">
+            <Badge className="w-fit shrink-0" variant="secondary">
+              {label}
+            </Badge>
+            {unbrandedMode ? (
+              <BrandModeBadge brandMode={unbrandedMode} />
+            ) : null}
+          </div>
+          <span className="truncate text-2xs text-muted-foreground">
+            {job.modelKey || 'Auto'}
+          </span>
+        </div>
+
+        <p
+          className={`break-words text-sm leading-relaxed text-foreground ${
+            isListView ? '' : 'line-clamp-2'
+          }`}
+        >
+          {job.prompt}
+        </p>
+
+        {hasDetailActions ? (
+          <div className="flex flex-wrap items-center gap-1 border-t border-border pt-2">
+            {referenceAction}
+            {renderSourceAction(ACTION_CLASS)}
+            {renderMakeClipsAction()}
+            {showLifecycleActions && isFailed ? renderRecoveryAction() : null}
+            {showLifecycleActions && isFailed ? (
+              <Button
+                ariaLabel={translate('removeGenerationAria', {
+                  prompt: accessibleLabel,
+                  type: label,
+                })}
+                className={REMOVE_ACTION_CLASS}
+                icon={<Trash2 className="size-3.5" />}
+                label={translate('remove')}
+                onClick={() => assetActions.onRemoveGeneration(job)}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              />
+            ) : null}
+            {showLifecycleActions ? (
+              <Button
+                ariaLabel={translate('repromptGenerationAria', {
+                  prompt: accessibleLabel,
+                  type: label,
+                })}
+                className={ACTION_CLASS}
+                icon={<RotateCcw className="size-3.5" />}
+                label={translate('reprompt')}
+                onClick={() => onReprompt(job)}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              />
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  function renderHoverDetails(showLifecycleActions = false): ReactElement {
+    const referenceAction = renderUseAsReferenceAction(ACTION_CLASS);
+    const hasLifecycleActions =
+      showLifecycleActions || Boolean(parentJob) || canMakeClips;
+
+    return (
+      <AssetHoverDetails
+        actions={
+          referenceAction || hasLifecycleActions ? (
+            <>
+              {referenceAction}
+              {hasLifecycleActions ? (
+                <>
+                  {renderMakeClipsAction()}
+                  {renderSourceAction(ACTION_CLASS)}
+                  {showLifecycleActions && isFailed
+                    ? renderRecoveryAction()
+                    : null}
+                  {showLifecycleActions && isFailed ? (
+                    <Button
+                      ariaLabel={translate('removeGenerationAria', {
+                        prompt: accessibleLabel,
+                        type: label,
+                      })}
+                      className={REMOVE_ACTION_CLASS}
+                      icon={<Trash2 className="size-3.5" />}
+                      label={translate('remove')}
+                      onClick={() => assetActions.onRemoveGeneration(job)}
+                      size={ButtonSize.SM}
+                      variant={ButtonVariant.GHOST}
+                      withWrapper={false}
+                    />
+                  ) : null}
+                  {showLifecycleActions ? (
+                    <Button
+                      ariaLabel={translate('repromptGenerationAria', {
+                        prompt: accessibleLabel,
+                        type: label,
+                      })}
+                      className={ACTION_CLASS}
+                      icon={<RotateCcw className="size-3.5" />}
+                      label={translate('reprompt')}
+                      onClick={() => onReprompt(job)}
+                      size={ButtonSize.SM}
+                      variant={ButtonVariant.GHOST}
+                      withWrapper={false}
+                    />
+                  ) : null}
+                </>
+              ) : null}
+            </>
+          ) : undefined
+        }
+        badge={
+          unbrandedMode ? <BrandModeBadge brandMode={unbrandedMode} /> : null
+        }
+        metadata={job.modelKey || 'Auto'}
+        typeLabel={label}
+      />
+    );
+  }
+
+  if (mediaState === 'ready' && masonryIngredient) {
+    const sharedProps = {
+      accessibleLabel,
+      isActionsEnabled: Boolean(job.ingredient),
+      isContainerHovered: true,
+      isDragEnabled: false,
+      onClickIngredient: () => onSelect(job),
+      transformActions: assetActions.transformActions,
+      onCopyPrompt: assetActions.onCopyPrompt,
+      onDeleteIngredient: assetActions.onDeleteIngredient,
+      onMarkRejected: assetActions.onMarkRejected,
+      onMarkValidated: assetActions.onMarkValidated,
+      onPublishIngredient: assetActions.onPublishIngredient,
+      onRefresh: assetActions.onRefresh,
+      onReprompt: () => onReprompt(job),
+      onSeeDetails: assetActions.onSeeDetails,
+      onToggleFavorite: assetActions.onToggleFavorite,
+      previewRetryRevision: previewRevision,
+    };
+
+    return (
+      <article
+        aria-label={`${label} generation`}
+        className={`group relative w-full cursor-pointer rounded-card bg-card shadow-border transition-shadow duration-200 hover:shadow-border-strong ${
+          isListView
+            ? 'grid min-h-32 grid-cols-[7rem_minmax(0,1fr)] overflow-hidden sm:min-h-40 sm:grid-cols-[12rem_minmax(0,1fr)]'
+            : 'overflow-hidden'
+        } ${isSelected ? 'ring-2 ring-primary' : ''}`}
+        data-asset-media-state={mediaState}
+        data-selected={isSelected ? 'true' : 'false'}
+        data-testid={`studio-asset-${job.id}`}
+        onClick={handleCardActivate}
+      >
+        <div
+          className={
+            isListView
+              ? 'relative h-32 overflow-hidden border-r border-border sm:h-40'
+              : 'relative min-w-0 overflow-hidden'
+          }
+        >
+          {job.type === 'image' || job.type === 'image-edit' ? (
+            <LazyMasonryImage
+              {...sharedProps}
+              image={masonryIngredient as IImage}
+              onConvertToVideo={assetActions.onConvertToVideo}
+              onCreateVariation={assetActions.onCreateVariation}
+              onMarkArchived={assetActions.onMarkArchived}
+              onMediaError={handleMediaError}
+              onUseAsVideoReference={assetActions.onUseAsVideoReference}
+            />
+          ) : (
+            <LazyMasonryVideo
+              {...sharedProps}
+              video={masonryIngredient as IVideo}
+              onMediaError={handleMediaError}
+              onOpenInEditor={assetActions.onOpenInEditor}
+              onResize={assetActions.onResize}
+            />
+          )}
+        </div>
+
+        {/* Grid cards share the Library tile overlays; Inspector carries
+            reference, clips and source. */}
+        {isListView ? (
+          renderDetails(!job.ingredient)
+        ) : (
+          <>
+            {/* Always visible, so a still poster never reads as an image. */}
+            {isVideo || (job.ingredient && unbrandedMode) ? (
+              <div className="pointer-events-none absolute top-1.5 left-1.5 z-10 flex items-center gap-1">
+                {isVideo ? (
+                  <TileBadge
+                    icon={<Film aria-hidden="true" className="size-3" />}
+                    size={ComponentSize.SM}
+                    variant="slate"
+                  >
+                    <span className="sr-only">{translate('videoBadge')}</span>
+                    {videoDuration ? formatDuration(videoDuration) : null}
+                  </TileBadge>
+                ) : null}
+                {job.ingredient && unbrandedMode ? (
+                  <BrandModeBadge brandMode={unbrandedMode} />
+                ) : null}
+              </div>
+            ) : null}
+            {job.ingredient ? (
+              <IngredientTileOverlays
+                ingredient={job.ingredient}
+                isReviewEnabled
+                onReviewUpdated={assetActions.onRefresh}
+              />
+            ) : (
+              renderHoverDetails(true)
+            )}
+          </>
+        )}
+      </article>
+    );
+  }
+
+  return (
+    <article
+      aria-label={`${label} generation`}
+      className={`group relative w-full cursor-pointer overflow-hidden rounded-card bg-card shadow-border transition-shadow duration-200 hover:shadow-border-strong ${
+        isListView
+          ? 'grid min-h-32 grid-cols-[7rem_minmax(0,1fr)] sm:min-h-40 sm:grid-cols-[12rem_minmax(0,1fr)]'
+          : ''
+      } ${isSelected ? 'ring-2 ring-primary' : ''}`}
+      data-asset-media-state={mediaState}
+      data-selected={isSelected ? 'true' : 'false'}
+      data-testid={`studio-asset-${job.id}`}
+      onClick={handleCardActivate}
+    >
+      <div
+        className={`pointer-events-none relative z-0 flex items-center justify-center overflow-hidden bg-foreground/5 ${
+          isListView ? 'h-32 border-r border-border sm:h-40' : 'w-full min-h-40'
+        }`}
+        style={isListView ? undefined : { aspectRatio: `${width} / ${height}` }}
+      >
+        {job.referencePreviewUrl ? (
+          <GenerationReferencePreview
+            key={job.referencePreviewUrl}
+            url={job.referencePreviewUrl}
+          />
+        ) : null}
+        {isPending ? (
+          <>
+            <Skeleton
+              className="absolute inset-0 size-full rounded-card"
+              variant="rounded"
+            />
+            <GenerationStatus
+              assetLabel={label.toLowerCase()}
+              className="relative z-10"
+              detail={job.error}
+              isCancelling={isCancelling}
+              isStacked
+              onCancel={
+                job.ingredientId && assetActions.onCancelGeneration
+                  ? () => void cancelGeneration()
+                  : undefined
+              }
+              startedAt={job.createdAt || undefined}
+              status={job.phase ?? 'generating'}
+            />
+          </>
+        ) : null}
+
+        {isFailed && job.phase === 'cancelled' ? (
+          <GenerationStatus
+            assetLabel={label.toLowerCase()}
+            className="relative z-10"
+            status="cancelled"
+          />
+        ) : isFailed ? (
+          <StudioPlaygroundFailureNotice
+            assetId={job.id}
+            onShowDetails={() => setIsFailureDetailsOpen(true)}
+            rawError={job.error}
+          />
+        ) : isPreviewUnavailable ? (
+          <div
+            data-testid={`studio-asset-media-status-${job.id}`}
+            role="status"
+            className="relative z-10 flex flex-col items-center gap-2 px-3 text-center text-muted-foreground"
+          >
+            <ImageOff className="size-5" />
+            <span className="text-xs">{translate('previewUnavailable')}</span>
+            <span className="max-w-48 text-2xs leading-relaxed text-muted-foreground/80">
+              {translate('previewUnavailableDescription')}
+            </span>
+          </div>
+        ) : null}
+
+        {mediaState === 'ready' && job.url && AUDIO_TYPES.has(job.type) ? (
+          <AudioPreviewPlayer
+            audioUrl={job.url}
+            className="pointer-events-auto w-full px-3"
+            isTimelineVisible
+            label={accessibleLabel}
+            onError={handleMediaError}
+          />
+        ) : null}
+      </div>
+
+      {/* A failed card carries its reason and a details link in the media area, so
+          its actions sit in a footer instead of a hover bar that would cover them. */}
+      {isListView || isFailed ? renderDetails(true) : renderHoverDetails(true)}
+
+      {isFailed ? (
+        <StudioPlaygroundFailureDetailsDialog
+          isOpen={isFailureDetailsOpen}
+          modelLabel={job.modelKey || 'Auto'}
+          onOpenChange={setIsFailureDetailsOpen}
+          onRemove={() => assetActions.onRemoveGeneration(job)}
+          onReprompt={() => onReprompt(job)}
+          prompt={job.prompt}
+          rawError={job.error}
+          typeLabel={label}
+        />
+      ) : null}
+    </article>
+  );
+}

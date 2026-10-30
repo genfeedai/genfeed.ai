@@ -102,9 +102,9 @@ export const ALLOWLIST = {
     'apps/website/app/(public)/agencies/agencies-content.tsx',
     'apps/website/app/(public)/articles/[slug]/article-detail.tsx',
     'apps/website/app/(public)/influencers/ai-influencers-content.tsx',
-    'apps/website/packages/components/NotFoundContent.tsx',
-    'apps/website/packages/components/content/post-card/PostCard.tsx',
-    'apps/website/packages/components/home/_marketplace-cta.tsx',
+    'apps/website/src/components/NotFoundContent.tsx',
+    'apps/website/src/components/content/post-card/PostCard.tsx',
+    'apps/website/src/components/home/_marketplace-cta.tsx',
     'packages/pages/analytics/overview/analytics-overview.tsx',
     'packages/pages/analytics/trend-turnover/analytics-trend-turnover.tsx',
     'packages/pages/automation/agents/new/AgentWizardPage.tsx',
@@ -118,7 +118,7 @@ export const ALLOWLIST = {
     'packages/pages/not-found/not-found-page.tsx',
     'packages/pages/settings/help/settings-help-page.tsx',
     'packages/pages/settings/voice/settings-voice-page.tsx',
-    'packages/pages/studio/page/StudioPageContent.tsx',
+    'apps/app/src/features/studio/page/StudioPageContent.tsx',
   ]),
 
   /**

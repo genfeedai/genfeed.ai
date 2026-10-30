@@ -8,8 +8,8 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { WEBSITE_ANALYTICS_EVENTS } from '../../../../packages/analytics/analytics-events';
-import { captureWebsiteAnalyticsEvent } from '../../../../packages/analytics/posthog-client';
+import { WEBSITE_ANALYTICS_EVENTS } from '../../../../src/analytics/analytics-events';
+import { captureWebsiteAnalyticsEvent } from '../../../../src/analytics/posthog-client';
 import { hasArticleExperience } from './article-experience-slugs';
 import { copyText } from './copy-text';
 

@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({ redirect: vi.fn() }));
 vi.mock('next/navigation', () => ({
   redirect: (url: string) => mocks.redirect(url),
 }));
-vi.mock('@pages/trends/desk/discovery-desk', () => ({
+vi.mock('@/features/trends/desk/discovery-desk', () => ({
   default: () => <div>Discovery overview</div>,
 }));
 

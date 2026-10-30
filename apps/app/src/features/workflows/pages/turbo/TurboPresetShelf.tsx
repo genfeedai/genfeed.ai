@@ -1,8 +1,8 @@
 'use client';
 
-import StudioPresetShelf from '@pages/studio/shared/components/StudioPresetShelf';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
+import StudioPresetShelf from '@/features/studio/shared/components/StudioPresetShelf';
 import TurboPresetGrid from './TurboPresetGrid';
 import { TURBO_PRESETS } from './turbo-presets';
 

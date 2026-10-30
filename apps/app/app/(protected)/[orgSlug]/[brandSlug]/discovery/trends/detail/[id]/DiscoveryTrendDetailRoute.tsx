@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
-import TrendDetail from '@pages/trends/detail/trend-detail';
+import TrendDetail from '@/features/trends/detail/trend-detail';
 import { readRouteParam } from '@/lib/route-params';
 
 export default function DiscoveryTrendDetailRoute() {

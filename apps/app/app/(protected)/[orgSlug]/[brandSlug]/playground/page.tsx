@@ -1,6 +1,6 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import StudioPlaygroundWorkspace from '@pages/studio/playground/StudioPlaygroundWorkspace';
 import { Suspense } from 'react';
+import StudioPlaygroundWorkspace from '@/features/studio/playground/StudioPlaygroundWorkspace';
 
 export const generateMetadata = createPageMetadata('Playground');
 

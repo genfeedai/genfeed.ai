@@ -1,7 +1,7 @@
-import type { TrendFlowChartProps } from '@props/analytics/trend-flow-chart.props';
 import { Skeleton } from '@ui/primitives/skeleton';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
+import type { TrendFlowChartProps } from '@/features/trends/props/trend-flow-chart.props';
 
 const Area = dynamic(() => import('recharts').then((module) => module.Area), {
   ssr: false,

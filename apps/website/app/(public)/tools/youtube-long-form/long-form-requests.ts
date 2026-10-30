@@ -3,7 +3,7 @@ import type {
   IYoutubeLongFormSourceLibraryResult,
   PublicYoutubeLongFormOutputType,
 } from '@genfeedai/contracts/interfaces';
-import { loadPublicService } from '../../../../packages/api/load-public-service';
+import { loadPublicService } from '../../../../src/api/load-public-service';
 
 /**
  * The long-form tool's API calls, imported when the visitor submits.

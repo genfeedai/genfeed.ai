@@ -1,0 +1,263 @@
+import {
+  BrandRemixAdPlatform,
+  BrandRemixOrganicPlatform,
+  type BrandRemixRunView,
+} from '@genfeedai/contracts/api-types/contracts';
+import type { BrandRemixScenePipeline } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
+import type { StoryboardRunRecipe } from '@genfeedai/contracts/interfaces';
+import type {
+  StoryboardRunPanelProps,
+  StoryboardRunRecipeProps,
+} from '@genfeedai/props/studio/storyboard.props';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import type { ComponentProps } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const mocks = vi.hoisted(() => ({
+  panelProps: null as StoryboardRunPanelProps | null,
+  preparePausedDraft: vi.fn(),
+  recipeProps: null as StoryboardRunRecipeProps | null,
+  refresh: vi.fn(),
+  start: vi.fn(),
+  state: {
+    error: null as string | null,
+    run: null as BrandRemixRunView | null,
+    status: 'loading' as string,
+  },
+  useStoryboardRun: vi.fn(),
+}));
+
+vi.mock('@/features/studio/storyboard/hooks/use-storyboard-run', () => ({
+  useStoryboardRun: (runId: string) => {
+    mocks.useStoryboardRun(runId);
+    return {
+      ...mocks.state,
+      attachSceneSource: vi.fn(),
+      cancelScenes: vi.fn(),
+      executeScenes: vi.fn(),
+      preparePausedDraft: mocks.preparePausedDraft,
+      quoteScenes: vi.fn(),
+      refresh: mocks.refresh,
+      resumeScenes: vi.fn(),
+      runId,
+      saveScenes: vi.fn(),
+      start: mocks.start,
+      submitForReview: vi.fn(),
+      vary: vi.fn(),
+    };
+  },
+}));
+
+// The composer pulls in the Agent chat store, which this suite does not exercise.
+vi.mock('@/features/studio/storyboard/components/StoryboardPromptBar', () => ({
+  default: () => null,
+}));
+
+vi.mock('@/features/studio/storyboard/components/StoryboardRunPanel', () => ({
+  default: (props: StoryboardRunPanelProps) => {
+    mocks.panelProps = props;
+    return <section aria-label="Remix run" />;
+  },
+}));
+
+vi.mock('@/features/studio/storyboard/components/StoryboardRunRecipe', () => ({
+  default: (props: StoryboardRunRecipeProps) => {
+    mocks.recipeProps = props;
+    return <section aria-label="Run recipe" />;
+  },
+}));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/acme/northstar${path}` }),
+}));
+
+vi.mock('next/link', () => ({
+  default: ({ children, href, ...props }: ComponentProps<'a'>) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
+import { LegacyStoryboardRunPage as StoryboardRunPage } from './StoryboardRunPage';
+
+const run = {
+  draft: {
+    fidelityMode: 'guided',
+    identity: {},
+    intent: { objective: 'Original objective' },
+    output: { aspectRatio: '9:16', count: 1, kind: 'image' },
+    references: [],
+    reviewRequired: true,
+    target: { kind: 'organic', platform: BrandRemixOrganicPlatform.TIKTOK },
+  },
+  id: 'run-1',
+  revision: 3,
+  sourceSnapshot: {
+    selector: {
+      adAccountId: 'act_1',
+      adId: 'ad-1',
+      credentialId: 'credential-1',
+      kind: 'connected_ad',
+      platform: BrandRemixAdPlatform.META,
+    },
+    title: 'Proof-led hook',
+  },
+} as unknown as BrandRemixRunView;
+
+function handoffPipeline(
+  videos: Record<string, BrandRemixScenePipeline['scenes'][string]['video']>,
+): BrandRemixScenePipeline {
+  return {
+    version: 1,
+    language: 'en',
+    state: 'ready',
+    cancellationGeneration: 0,
+    receipts: [],
+    replacedAssetIds: [],
+    scenes: Object.fromEntries(
+      Object.entries(videos).map(([id, video]) => [
+        id,
+        {
+          identity: { avatarAssetId: 'avatar', speechVoiceId: 'voice' },
+          referenceAssetIds: [],
+          image: { attempt: 1, state: 'ready', assetId: `image-${id}` },
+          video,
+          replacedAssetIds: [],
+        },
+      ]),
+    ),
+    assembly: {
+      assetId: 'assembled',
+      orderedAssetIds: [],
+      transcription: { attempt: 1, state: 'ready' },
+    },
+  };
+}
+
+describe('StoryboardRunPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.panelProps = null;
+    mocks.recipeProps = null;
+    mocks.state = { error: null, run: null, status: 'loading' };
+  });
+
+  it('loads the routed run and links back to the runs list', () => {
+    render(<StoryboardRunPage runId="run-1" />);
+
+    expect(mocks.useStoryboardRun).toHaveBeenCalledWith('run-1');
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Loading storyboard run…',
+    );
+    expect(
+      screen.getByRole('link', { name: 'All storyboards' }),
+    ).toHaveAttribute('href', '/acme/northstar/storyboard');
+  });
+
+  it('keeps a failed load recoverable', () => {
+    mocks.state = { error: 'Run not found', run: null, status: 'error' };
+
+    render(<StoryboardRunPage runId="run-1" />);
+
+    expect(screen.getByText('Run not found')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('starts the run from the saved recipe through the run contract', () => {
+    mocks.state = { error: null, run, status: 'ready' };
+
+    render(<StoryboardRunPage runId="run-1" />);
+
+    expect(screen.getAllByText('Proof-led hook').length).toBeGreaterThan(0);
+    expect(screen.getByRole('region', { name: 'Remix run' })).toBeVisible();
+    const recipe: StoryboardRunRecipe = {
+      aspectRatio: '1:1',
+      count: 2,
+      objective: ' Sharper proof ',
+      referenceAssetIds: ['library-1'],
+    };
+    act(() => mocks.recipeProps?.onGenerate(recipe));
+
+    expect(mocks.start).toHaveBeenCalledWith(
+      expect.objectContaining({
+        intent: { objective: 'Sharper proof' },
+        output: {
+          aspectRatio: '1:1',
+          count: 2,
+          durationSeconds: null,
+          kind: 'image',
+        },
+        references: [{ assetId: 'library-1', role: 'style' }],
+      }),
+    );
+  });
+
+  it('prepares a paused Meta draft for a connected Meta source', () => {
+    mocks.state = { error: null, run, status: 'ready' };
+
+    render(<StoryboardRunPage runId="run-1" />);
+    act(() => mocks.panelProps?.onPreparePaidDraft?.());
+
+    expect(mocks.preparePausedDraft).toHaveBeenCalledWith({
+      destination: { adAccountId: 'act_1', credentialId: 'credential-1' },
+    });
+  });
+  it('links ready shot videos to the existing scoped Editor creation route in order', () => {
+    mocks.state = {
+      error: null,
+      status: 'ready',
+      run: {
+        ...run,
+        concept: {
+          savedAt: '2026-09-30T00:00:00Z',
+          storyboard: [
+            { id: 'b', ordinal: 1, visualIntent: 'Second' },
+            { id: 'a', ordinal: 2, visualIntent: 'First' },
+          ],
+        },
+        scenePipeline: handoffPipeline({
+          a: { attempt: 1, state: 'ready', assetId: 'clip-a' },
+          b: { attempt: 1, state: 'ready', assetId: 'clip-b' },
+        }),
+      },
+    };
+    render(<StoryboardRunPage runId="run-1" />);
+    const href = screen
+      .getByRole('link', { name: 'Open in Editor' })
+      .getAttribute('href');
+    expect(href?.startsWith('/acme/northstar/editor/new?')).toBe(true);
+    expect(
+      new URL(href ?? '', 'https://example.test').searchParams.getAll('video'),
+    ).toEqual(['clip-b', 'clip-a']);
+  });
+  it('blocks incomplete individual clips even when assembly is ready', () => {
+    mocks.state = {
+      error: null,
+      status: 'ready',
+      run: {
+        ...run,
+        concept: {
+          savedAt: '2026-09-30T00:00:00Z',
+          storyboard: [
+            { id: 'b', ordinal: 1, visualIntent: 'Second' },
+            { id: 'a', ordinal: 2, visualIntent: 'First' },
+          ],
+        },
+        scenePipeline: handoffPipeline({
+          a: { attempt: 1, state: 'failed' },
+          b: { attempt: 1, state: 'ready', assetId: 'clip-b' },
+        }),
+      },
+    };
+    render(<StoryboardRunPage runId="run-1" />);
+    expect(screen.queryByRole('link', { name: 'Open in Editor' })).toBeNull();
+    expect(screen.getByRole('status')).toHaveTextContent('incomplete');
+  });
+});

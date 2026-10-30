@@ -1,5 +1,5 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import StoryboardRunsPage from '@pages/studio/storyboard/StoryboardRunsPage';
+import StoryboardRunsPage from '@/features/studio/storyboard/StoryboardRunsPage';
 
 export const generateMetadata = createPageMetadata('Storyboard');
 

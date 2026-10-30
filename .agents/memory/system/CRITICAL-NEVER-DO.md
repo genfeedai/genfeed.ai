@@ -38,7 +38,7 @@ as a one-line index, not restated in full.
 
 - **Organization scoping + `isDeleted: false` on every tenant-scoped query** — enforced by
   `bun run check:tenant-scope` (`scripts/architecture/check-tenant-scope.ts`).
-- **No inline interfaces** (props -> `packages/props/`, state/helpers -> `packages/contracts/src/interfaces/`)
+- **No inline interfaces** (props -> `packages/props/` or the owning `apps/app/src/features/<feature>/props/`, state/helpers -> `packages/contracts/src/interfaces/`)
   — enforced for `apps/app/app/**` by `bun run check:inline-types`.
 - **Serializers live only in `packages/serializers/`, never in API modules; never return a raw DB record**
   — see `context/system-patterns.md` (Serializer triplet); cross-checked by `bun run check:serializer-drift`.
