@@ -128,6 +128,7 @@ export default function ModalPostSimpleActions({
                 type="button"
                 label={translate('publishNow')}
                 variant={ButtonVariant.DEFAULT}
+                action="post.publish-now"
                 onClick={onPublishNow}
                 isDisabled={isBlocked || !hasAccount}
               />

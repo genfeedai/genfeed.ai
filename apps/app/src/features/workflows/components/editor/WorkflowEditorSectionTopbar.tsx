@@ -171,6 +171,7 @@ export function WorkflowEditorSectionTopbar({
             }
             className="shrink-0"
             disabled={!canPublish}
+            action="workflow.publish"
             onClick={onPublish}
             size={ButtonSize.SM}
             tooltip={publishUnavailableMessage ?? undefined}

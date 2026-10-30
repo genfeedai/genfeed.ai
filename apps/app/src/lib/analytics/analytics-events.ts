@@ -56,12 +56,19 @@ export const ANALYTICS_EVENTS = {
   SIGNUP_COMPLETED: 'signup_completed',
   SIGNUP_STARTED: 'signup_started',
   STUDIO_EDITOR_OPENED: 'studio_editor_opened',
+  UI_ACTION_CLICKED: 'ui_action_clicked',
   WORKFLOW_RUN_COMPLETED: 'workflow_run_completed',
   WORKFLOW_RUN_STARTED: 'workflow_run_started',
 } as const;
 
 export type AnalyticsEvent =
   (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS];
+
+/** Extra bounded properties the app adds to `$pageview`. */
+export interface AnalyticsPageviewProperties {
+  /** Product app slug from `resolveAnalyticsApp`, e.g. `clipper` or `agent`. */
+  readonly app?: string;
+}
 
 /** Terminal outcome of a tracked action. */
 export type AnalyticsOutcome = 'failure' | 'success';
@@ -283,6 +290,12 @@ export interface AnalyticsEventProperties {
     /** Connected-platform slug (e.g. "x", "linkedin"), never post content. */
     readonly platform: string;
     readonly surface: ActivationSurface;
+  };
+  [ANALYTICS_EVENTS.UI_ACTION_CLICKED]: {
+    /** `action` slug set on the Button, e.g. `clipper.export`; never user text. */
+    readonly action: string;
+    /** Product app slug the click happened in. */
+    readonly app: string;
   };
   [ANALYTICS_EVENTS.WORKFLOW_RUN_STARTED]: {
     readonly workflowType: WorkflowRunType;

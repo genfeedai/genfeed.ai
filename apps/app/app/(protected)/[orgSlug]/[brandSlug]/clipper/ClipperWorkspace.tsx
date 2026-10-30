@@ -494,6 +494,7 @@ function ClipperProjectControls({
 
               <Button
                 variant={ButtonVariant.DEFAULT}
+                action="clipper.generate"
                 onClick={handleGenerate}
                 isDisabled={
                   isSubmitting ||

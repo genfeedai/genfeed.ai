@@ -22,3 +22,5 @@ export function captureMessage(
 }
 
 export function addBreadcrumb(_breadcrumb: unknown): void {}
+
+export function setTag(_key: string, _value?: string): void {}
