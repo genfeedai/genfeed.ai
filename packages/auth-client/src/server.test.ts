@@ -35,6 +35,19 @@ describe('getBetterAuthServerToken', () => {
     });
   });
 
+  it('requests the token from the URL the caller names', async () => {
+    const fetchMock = vi.fn(async () => Response.json({ token: 'jwt' }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await getBetterAuthServerToken('session=abc', {
+      tokenUrl: 'http://api.internal:3010/v1/auth/token',
+    });
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      'http://api.internal:3010/v1/auth/token',
+    );
+  });
+
   it('retries once after a 5xx and reports the failed attempt', async () => {
     const fetchMock = vi
       .fn()

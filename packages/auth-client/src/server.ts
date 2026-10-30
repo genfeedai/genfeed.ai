@@ -20,6 +20,8 @@ export interface BetterAuthServerTokenFailure {
 
 export interface BetterAuthServerTokenOptions {
   onFailure?: (failure: BetterAuthServerTokenFailure) => void;
+  /** Overrides the `/token` URL for callers that reach the API by an internal address. */
+  tokenUrl?: string;
 }
 
 const TOKEN_ATTEMPTS = 2;
@@ -114,10 +116,11 @@ function isRetryable(failure: BetterAuthServerTokenFailure): boolean {
 async function requestToken(
   cookieHeader: string,
   attempt: number,
+  tokenUrl?: string,
 ): Promise<string | BetterAuthServerTokenFailure> {
   try {
     const response = await fetch(
-      `${getApiOrigin()}${BETTER_AUTH_BASE_PATH}/token`,
+      tokenUrl ?? `${getApiOrigin()}${BETTER_AUTH_BASE_PATH}/token`,
       {
         cache: 'no-store',
         headers: {
@@ -194,7 +197,7 @@ async function fetchServerToken(
   options: BetterAuthServerTokenOptions,
 ): Promise<string | null> {
   for (let attempt = 1; attempt <= TOKEN_ATTEMPTS; attempt += 1) {
-    const result = await requestToken(cookieHeader, attempt);
+    const result = await requestToken(cookieHeader, attempt, options.tokenUrl);
     if (typeof result === 'string') {
       return result;
     }
