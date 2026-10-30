@@ -175,10 +175,10 @@ describe('handleEditorTool', () => {
     });
 
     expect(client.startEditorRender).toHaveBeenCalledWith('editor-1');
-    expect(result.structuredContent.data).toMatchObject({
+    expect(result.structuredContent.data).toEqual({
       editorPath: '/editor/editor-1',
-      job: { attributes: { status: 'rendering' }, id: 'job-1' },
       projectId: 'editor-1',
+      status: 'rendering',
     });
     expect(result.content[0]?.text).toContain('Render queued');
     expect(result.content[0]?.text).toContain('get_editor_project');

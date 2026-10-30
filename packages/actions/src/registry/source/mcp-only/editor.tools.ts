@@ -72,7 +72,7 @@ export const MCP_EDITOR_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Get one Studio Editor project by id: tracks, clips in timeline order, render status and the /editor path.',
+      'Get one Studio Editor project by id: tracks, clips in timeline order, render status, the rendered video id once a render finishes, and the /editor path.',
     name: 'get_editor_project',
     parameters: {
       additionalProperties: false,
@@ -91,7 +91,7 @@ export const MCP_EDITOR_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Queue the render of an Editor project into a new video, the same export the Editor runs. Costs no credits. Returns the job id and status; check progress with get_editor_project. Fails if the project is already rendering or has no clips.',
+      'Queue the render of an Editor project into a new video, the same export the Editor runs. Costs no credits. Returns the render status; check progress and the finished video with get_editor_project (status and renderedVideo). Fails if the project is already rendering or has no clips.',
     name: 'start_editor_render',
     parameters: {
       additionalProperties: false,

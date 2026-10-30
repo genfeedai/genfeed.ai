@@ -52,12 +52,13 @@ export async function handleEditorTool(
   if (name === 'start_editor_render') {
     const projectId = readProjectIdArg(args);
     const job = await client.startEditorRender(projectId);
+    const status = readRenderStatus(job);
     const editorPath = `${APP_ROUTES.STUDIO.EDITOR}/${projectId}`;
     return {
-      structuredContent: { data: { editorPath, job, projectId } },
+      structuredContent: { data: { editorPath, projectId, status } },
       content: [
         {
-          text: `Render queued for Editor project ${projectId}. Check progress with get_editor_project, or [open it in the Editor](${getPublicAppUrl()}${editorPath}).\n\n${formatToolData(job)}`,
+          text: `Render queued for Editor project ${projectId} (status: ${status}). Check progress with get_editor_project; the finished video appears as renderedVideo. Or [open it in the Editor](${getPublicAppUrl()}${editorPath}).`,
           type: 'text' as const,
         },
       ],
@@ -105,6 +106,15 @@ function readProjectIdArg(args: Record<string, unknown>): string {
     throw new Error('projectId is required');
   }
   return projectId.trim();
+}
+
+function readRenderStatus(job: Record<string, unknown>): string {
+  const attributes = job.attributes;
+  const status =
+    typeof attributes === 'object' && attributes !== null
+      ? (attributes as Record<string, unknown>).status
+      : undefined;
+  return typeof status === 'string' && status.length > 0 ? status : 'rendering';
 }
 
 function readCount(
