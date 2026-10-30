@@ -156,7 +156,7 @@ export default function AppProductContent({ product }: AppProductContentProps) {
             eyebrow="Outputs"
             title={`What ${product.name} produces`}
           />
-          <div className="gsap-grid grid grid-cols-1 gap-px bg-foreground/5 md:grid-cols-2 lg:grid-cols-3">
+          <div className="gsap-grid grid grid-cols-1 gap-px bg-foreground/10 md:grid-cols-2 lg:grid-cols-3">
             {product.outputs.map((output) => (
               <div
                 className="gsap-card bg-background p-6 sm:p-8"

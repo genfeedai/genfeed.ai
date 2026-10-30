@@ -304,17 +304,21 @@ config.generateBuildId = async () => {
   return buildId;
 };
 
-// Hosted fallback shells leaked opaque %%drp:...%% tenant params into links
-// and API lookups (#6303). Resolve web routes per request until the hosted
-// prerender path has production navigation coverage. Preserve the existing
-// packaged desktop rendering configuration during this hosted recovery.
-config.cacheComponents = IS_DESKTOP_BUNDLE;
-config.partialPrefetching = IS_DESKTOP_BUNDLE;
+// Cache Components + partial prefetching make in-app navigation instant: the
+// static shell prerenders and prefetches, only the dynamic holes wait on the
+// server. Prerendered fallback shells expose opaque %%drp:...%% tenant params
+// (#6303); every consumer reads them through useRouteParams, which maps them
+// to undefined, so no link or API request is built from one.
+config.cacheComponents = true;
+config.partialPrefetching = true;
 
 config.experimental = {
   ...(config.experimental ?? {}),
   // Let bounded AI handlers return before the same-origin API proxy closes.
   proxyTimeout: 300_000,
+  // Keep visited routes in the client router cache so back/forward and repeat
+  // clicks are instant; React Query owns data freshness.
+  staleTimes: { dynamic: 300, static: 300 },
   optimizePackageImports: [
     ...(config.experimental?.optimizePackageImports ?? []),
     '@tiptap/core',

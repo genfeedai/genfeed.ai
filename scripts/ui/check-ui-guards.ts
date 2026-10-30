@@ -75,6 +75,11 @@ const checks = [
     name: 'Hardcoded app routes (nav sinks must use APP_ROUTES / route builders)',
     required: true,
   },
+  {
+    command: ['bun', 'run', 'scripts/check-route-params-guard.ts'],
+    name: 'Route params (useRouteParams, never next/navigation useParams)',
+    required: true,
+  },
 ] as const;
 
 let failed = false;

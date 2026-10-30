@@ -18,10 +18,8 @@ import { expectNoErrorOverlay } from '../../utils/route-assertions';
  * @module agent-dock.spec
  */
 
-// Library References keeps the dock; the asset browser routes host the agent in
-// their own left column instead (`agent-output-routes.ts`).
 async function openLibrary(page: Page): Promise<void> {
-  await page.goto(brandPath(APP_ROUTES.LIBRARY.REFERENCES), {
+  await page.goto(brandPath(APP_ROUTES.LIBRARY.IMAGES), {
     waitUntil: 'domcontentloaded',
   });
   await expect(page.getByTestId('topbar-agent-dock-toggle')).toBeVisible();

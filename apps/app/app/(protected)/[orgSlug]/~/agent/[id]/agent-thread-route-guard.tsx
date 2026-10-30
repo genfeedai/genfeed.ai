@@ -1,14 +1,15 @@
 'use client';
 
 import { isRenderableThreadId } from '@genfeedai/agent';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
+import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 // The conversation shell is hosted by the agent layout
 // (AgentConversationRouteHost) so switching threads never remounts it; this
 // component only guards the route.
 export default function AgentThreadRouteGuard() {
-  const params = useParams<{ id: string; orgSlug: string }>();
+  const params = useRouteParams<{ id: string; orgSlug: string }>();
   const { replace } = useRouter();
   const isValidThreadId = isRenderableThreadId(params.id);
 

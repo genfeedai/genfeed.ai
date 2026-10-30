@@ -12,6 +12,7 @@ import type {
   IAccountAnalyticsDetail,
   ITopContent,
 } from '@genfeedai/contracts/interfaces';
+import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
@@ -34,7 +35,7 @@ import LoadingState from '@ui/feedback/LoadingState';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -42,8 +43,8 @@ export default function AnalyticsAccountDetail() {
   const translate = useTranslations('pages.analytics.accounts');
   const router = useRouter();
   const { href } = useOrgUrl();
-  const params = useParams<{ id: string }>();
-  const credentialId = params.id;
+  const params = useRouteParams<{ id: string }>();
+  const credentialId = params.id ?? '';
   const scope = useCollectionScope();
   const { brandId, organizationId } = scope;
   const isFetchReady = isCollectionFetchReady(scope);
@@ -57,7 +58,12 @@ export default function AnalyticsAccountDetail() {
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isFetchReady || !organizationId || refreshTrigger < 0) {
+    if (
+      !isFetchReady ||
+      !organizationId ||
+      !credentialId ||
+      refreshTrigger < 0
+    ) {
       return;
     }
 

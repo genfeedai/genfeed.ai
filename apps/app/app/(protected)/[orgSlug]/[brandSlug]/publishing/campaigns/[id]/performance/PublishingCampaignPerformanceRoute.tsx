@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import {
   CampaignDetailPerformance,
   CampaignDetailShell,
@@ -8,7 +8,7 @@ import {
 import { readRouteParam } from '@/lib/route-params';
 
 export default function PublishingCampaignPerformanceRoute() {
-  const params = useParams<{ id: string }>();
+  const params = useRouteParams<{ id: string }>();
   const id = readRouteParam(params.id);
 
   return (

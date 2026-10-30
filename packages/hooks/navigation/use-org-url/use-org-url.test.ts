@@ -70,6 +70,22 @@ describe('useOrgUrl', () => {
     expect(result.current.orgHref('billing')).toBe('/genfeed-ai/~/billing');
   });
 
+  it('never builds a link from opaque fallback params (#6303)', () => {
+    mockUseParams.mockReturnValue({
+      brandSlug: '%%drp:brandSlug:abc',
+      orgSlug: '%%drp:orgSlug:abc',
+    });
+    mockUsePathname.mockReturnValue(
+      '/%%drp:orgSlug:abc/%%drp:brandSlug:abc/workspace',
+    );
+    const { result } = renderHook(() => useOrgUrl());
+
+    expect(result.current.orgSlug).toBe('fallback-org');
+    expect(result.current.brandSlug).toBe('fallback-brand');
+    expect(result.current.href('/workspace')).not.toContain('%%drp:');
+    expect(result.current.orgHref('/settings')).not.toContain('%%drp:');
+  });
+
   it('falls back to brand context slugs when route params are missing', () => {
     mockUseParams.mockReturnValue({});
     mockUsePathname.mockReturnValue('/admin/organizations');

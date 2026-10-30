@@ -44,9 +44,6 @@ vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
     getSocketManager: () => transport.manager,
   }),
 }));
-vi.mock('@ui/navigation/prefetch/useNavigationPrefetch', () => ({
-  useNavigationPrefetch: () => () => {},
-}));
 const noop = () => {};
 const dispatches: string[] = [];
 const apiService = {

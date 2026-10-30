@@ -1,9 +1,6 @@
 {
   "layout": {
     "newPost": "New post",
-    "outputCalendar": "Calendar",
-    "outputOverview": "Overview",
-    "outputQueue": "Queue",
     "title": "Publishing"
   },
   "campaigns": {

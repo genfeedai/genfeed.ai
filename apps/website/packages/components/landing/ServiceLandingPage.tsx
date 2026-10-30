@@ -272,7 +272,7 @@ export default function ServiceLandingPage({
               ))}
             </NeuralGrid>
 
-            <div className="mt-8 grid gap-px bg-foreground/5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-8 grid gap-px bg-foreground/10 sm:grid-cols-2 lg:grid-cols-4">
               {config.includes.map((item) => (
                 <div
                   key={item}

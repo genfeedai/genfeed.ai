@@ -25,13 +25,12 @@ const GUARDED_ORG_SLUG = ':orgSlug((?!v1(?:/|$))[^/]+)';
 
 describe('app next.config', () => {
   it.each([
-    { bundle: '', cloud: '1', expected: false, name: 'hosted web' },
-    { bundle: '', cloud: '', expected: false, name: 'self-hosted web' },
-    { bundle: '1', cloud: '', expected: true, name: 'packaged desktop' },
-  ])('limits prerendered route shells for $name', async (mode) => {
-    // Hosted fallback shells leaked opaque %%drp:...%% values into useParams,
-    // navigation hrefs and brand lookups after #6229. Web builds must resolve
-    // tenant params at request time; preserve the packaged desktop behavior.
+    { bundle: '', cloud: '1', name: 'hosted web' },
+    { bundle: '', cloud: '', name: 'self-hosted web' },
+    { bundle: '1', cloud: '', name: 'packaged desktop' },
+  ])('prerenders and prefetches route shells for $name', async (mode) => {
+    // Opaque %%drp:...%% fallback params (#6303) are neutralised at the read
+    // site by useRouteParams, so every mode ships the same navigation config.
     vi.stubEnv('GENFEED_DESKTOP_BUNDLE', mode.bundle);
     vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', mode.bundle);
     vi.stubEnv('GENFEED_CLOUD', mode.cloud);
@@ -39,8 +38,12 @@ describe('app next.config', () => {
     vi.resetModules();
     try {
       const { default: modeConfig } = await import('./next.config');
-      expect(modeConfig.cacheComponents).toBe(mode.expected);
-      expect(modeConfig.partialPrefetching).toBe(mode.expected);
+      expect(modeConfig.cacheComponents).toBe(true);
+      expect(modeConfig.partialPrefetching).toBe(true);
+      expect(modeConfig.experimental?.staleTimes).toEqual({
+        dynamic: 300,
+        static: 300,
+      });
     } finally {
       vi.unstubAllEnvs();
       vi.resetModules();

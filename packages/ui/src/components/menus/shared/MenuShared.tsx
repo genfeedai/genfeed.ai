@@ -6,7 +6,6 @@ import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
 import { SIDEBAR_DEFAULT_WIDTH } from '@ui/layouts/app/app-layout.utils';
 import MenuItem from '@ui/menus/item/MenuItem';
 import SidebarNested from '@ui/menus/sidebar-nested/SidebarNested';
-import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import TopbarLogo from '@ui/topbars/logo/TopbarLogo';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -68,7 +67,6 @@ export default function MenuShared({
   const resolvedBackHref = backHref
     ? (prefixHref({ href: backHref }) ?? backHref)
     : undefined;
-  const prefetchBackHref = useNavigationPrefetch(resolvedBackHref);
   const secondaryNavigationContent =
     secondaryItems.length > 0 ? (
       <div
@@ -112,9 +110,6 @@ export default function MenuShared({
         <div className="pb-1">
           <Link
             href={resolvedBackHref ?? backHref}
-            prefetch={false}
-            onFocus={prefetchBackHref}
-            onMouseEnter={prefetchBackHref}
             className={cn(
               'group flex h-control-sm w-full items-center gap-2 rounded px-2.5 py-1 transition-colors duration-150',
               'text-foreground/80 hover:bg-foreground/5 hover:text-foreground',

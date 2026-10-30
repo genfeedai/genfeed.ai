@@ -2,14 +2,13 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type {
-  AgentOutputLayoutProps,
-  AgentOutputMobileView,
-} from '@genfeedai/props/ui/agent-output-shell.props';
+import type { AgentOutputLayoutProps } from '@genfeedai/props/ui/agent-output-shell.props';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { useState } from 'react';
+
+type MobileView = 'agent' | 'output';
 
 /**
  * The agent on the left and the page output on the right. Both panes stay
@@ -24,15 +23,13 @@ export default function AgentOutputLayout({
   agent,
   agentHeader,
   className,
-  defaultMobileView = 'agent',
   headerActions,
   labels,
   mode = 'split',
   onTabChange,
   tabs,
 }: AgentOutputLayoutProps) {
-  const [mobileView, setMobileView] =
-    useState<AgentOutputMobileView>(defaultMobileView);
+  const [mobileView, setMobileView] = useState<MobileView>('agent');
   const [isRailExpanded, setIsRailExpanded] = useState(false);
   const isRail = mode === 'rail' && !isRailExpanded;
 
