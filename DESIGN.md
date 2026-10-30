@@ -977,7 +977,7 @@ animations in chrome.
 - **Don't** invent opacity stops. Colour modifiers use `/5 /10 /20 /40 /50 /60 /70 /80 /90`
   and nothing else: no `/[0.04]`, no `/72`, no `/35`. Body copy on a tinted
   surface goes up the ladder, not down it. `bun run check:design-system` fails on any
-  other stop (`off-ladder-opacity`).
+  other stop (`off-ladder-opacity`); `/0` and `/100` are the only endpoints it accepts.
 - **Don't** write `text-[10px]`, `text-[11px]`, or any arbitrary size — 11px is the
   floor and it has a name.
 - **Don't** add a per-theme override. If a component needs one, the step it picked

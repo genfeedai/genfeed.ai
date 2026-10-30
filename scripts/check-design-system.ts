@@ -364,7 +364,7 @@ const OPACITY_LADDER_STOPS = new Set([
   0, 5, 10, 20, 40, 50, 60, 70, 80, 90, 100,
 ]);
 const OPACITY_COLOR_UTILITY_PATTERN =
-  /^(?:bg|text|border(?:-[xytblrse])?|from|via|to|ring|shadow|fill|stroke|divide|outline|decoration|placeholder|accent|caret)-([a-z][\w-]*)\/(\[[\d.]+\]|\d+)$/u;
+  /^(?:bg|text|border(?:-[xytblrse])?|from|via|to|ring|shadow|fill|stroke|divide|outline|decoration|placeholder|accent|caret)-(?:([a-z][\w-]*)|\[[^\]]+\])\/(\[[\d.]+%?\]|\d+(?:\.\d+)?)$/u;
 const OPACITY_NON_COLOR_NAMES = new Set([
   '2xl',
   '2xs',
@@ -385,21 +385,52 @@ const OPACITY_NON_COLOR_NAMES = new Set([
   'xs',
 ]);
 
+function stripVariants(token: string): string {
+  let depth = 0;
+  let start = 0;
+  for (let index = 0; index < token.length; index += 1) {
+    const char = token[index];
+    if (char === '[') {
+      depth += 1;
+    } else if (char === ']') {
+      depth -= 1;
+    } else if (char === ':' && depth === 0) {
+      start = index + 1;
+    }
+  }
+  return token.slice(start).replace(/^!/u, '');
+}
+
 export function isOffLadderOpacityToken(token: string): boolean {
-  const match = OPACITY_COLOR_UTILITY_PATTERN.exec(baseClassToken(token));
-  if (!match || OPACITY_NON_COLOR_NAMES.has(match[1])) {
+  const match = OPACITY_COLOR_UTILITY_PATTERN.exec(stripVariants(token));
+  if (!match || (match[1] && OPACITY_NON_COLOR_NAMES.has(match[1]))) {
     return false;
   }
 
   const modifier = match[2];
-  const percent = modifier.startsWith('[')
-    ? Number(modifier.slice(1, -1)) * 100
-    : Number(modifier);
+  const isBracketed = modifier.startsWith('[');
+  const raw = isBracketed ? modifier.slice(1, -1) : modifier;
+  const isPercent = raw.endsWith('%');
+  const value = Number(isPercent ? raw.slice(0, -1) : raw);
+  const percent = isBracketed && !isPercent ? value * 100 : value;
   return (
     !Number.isFinite(percent) ||
     !OPACITY_LADDER_STOPS.has(Math.round(percent * 1000) / 1000) ||
-    modifier.startsWith('[')
+    isBracketed
   );
+}
+
+type TemplatePartNode = ts.TemplateHead | ts.TemplateMiddle | ts.TemplateTail;
+
+function completeTemplateTokens(part: TemplatePartNode): string[] {
+  const tokens = classTokens(part.text);
+  if (!ts.isTemplateHead(part) && !/^\s/u.test(part.text)) {
+    tokens.shift();
+  }
+  if (!ts.isTemplateTail(part) && !/\s$/u.test(part.text)) {
+    tokens.pop();
+  }
+  return tokens;
 }
 
 const MIN_NEGATIVE_TRACKING_EM = -0.02;
@@ -501,7 +532,7 @@ export function findPackageUiGuardFindings(
   const isUiPackageFile = file.startsWith('packages/ui/');
 
   const addFinding = (
-    literal: ts.StringLiteralLike,
+    literal: ts.StringLiteralLike | TemplatePartNode,
     kind: DesignSystemFindingKind,
     token: string,
   ): void => {
@@ -566,6 +597,16 @@ export function findPackageUiGuardFindings(
       ts.isNoSubstitutionTemplateLiteral(node)
     ) {
       scanLiterals([node], isControlScaleLiteral(node, file));
+    } else if (
+      ts.isTemplateHead(node) ||
+      ts.isTemplateMiddle(node) ||
+      ts.isTemplateTail(node)
+    ) {
+      for (const token of completeTemplateTokens(node)) {
+        if (isOffLadderOpacityToken(token)) {
+          addFinding(node, 'off-ladder-opacity', token);
+        }
+      }
     }
 
     ts.forEachChild(node, visit);
@@ -778,7 +819,9 @@ export function formatDesignSystemRegressions(
               ? 'use h-control-sm (the 32px minimum control-scale token)'
               : finding.kind === 'tight-tracking'
                 ? 'use tracking-tight (-0.02em, the tightest tracking DESIGN.md allows)'
-                : 'use text-2xs (the 11px typography floor) or a larger semantic text token';
+                : finding.kind === 'off-ladder-opacity'
+                  ? 'use an opacity stop from the ladder: /5 /10 /20 /40 /50 /60 /70 /80 /90 (or /0, /100)'
+                  : 'use text-2xs (the 11px typography floor) or a larger semantic text token';
       return `${finding.file}:${finding.line}: ${finding.token} — ${remedy}\n  ${finding.source}`;
     })
     .join('\n');
