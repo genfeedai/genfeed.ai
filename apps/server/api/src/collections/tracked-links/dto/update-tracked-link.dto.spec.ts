@@ -22,6 +22,9 @@ describe('UpdateTrackedLinkDto', () => {
   it.each([
     { isActive: 'false' },
     { isActive: 1 },
+    { isActive: null },
+    { originalUrl: null },
+    { title: null },
     { originalUrl: 42 },
     { originalUrl: '' },
     { title: { nested: true } },
