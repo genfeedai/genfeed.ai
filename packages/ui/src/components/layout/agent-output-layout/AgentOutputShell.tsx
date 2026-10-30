@@ -35,6 +35,7 @@ export default function AgentOutputShell({
   agentTitle,
   children,
   headerActions,
+  isOutputExpandable,
   mode,
   outputLabel,
 }: AgentOutputShellProps) {
@@ -136,10 +137,13 @@ export default function AgentOutputShell({
         </>
       }
       headerActions={headerActions}
+      isOutputExpandable={isOutputExpandable}
       labels={{
         agent: translate('agent'),
         collapseAgent: translate('collapseAgent'),
+        collapseOutput: translate('collapseOutput'),
         expandAgent: translate('expandAgent'),
+        expandOutput: translate('expandOutput'),
         output: translate('output'),
         views: translate('views'),
       }}

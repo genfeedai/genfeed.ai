@@ -16,7 +16,9 @@ export interface AgentOutputTabDefinition {
 export interface AgentOutputLayoutLabels {
   readonly agent: string;
   readonly collapseAgent: string;
+  readonly collapseOutput: string;
   readonly expandAgent: string;
+  readonly expandOutput: string;
   readonly output: string;
   readonly views: string;
 }
@@ -31,6 +33,11 @@ export interface AgentOutputLayoutProps {
   readonly className?: string;
   /** Page-specific actions on the right of the output pane's tab strip. */
   readonly headerActions?: ReactNode;
+  /**
+   * Adds a button that hides the agent so the output fills the page, and
+   * brings it back. The agent stays mounted, so a draft or stream survives.
+   */
+  readonly isOutputExpandable?: boolean;
   readonly labels: AgentOutputLayoutLabels;
   readonly mode?: AgentOutputLayoutMode;
   readonly onTabChange: (tabId: string) => void;
@@ -63,6 +70,8 @@ export interface AgentOutputShellProps {
   /** The page output. */
   readonly children: ReactNode;
   readonly headerActions?: ReactNode;
+  /** Lets the operator hide the agent to see the output full size. */
+  readonly isOutputExpandable?: boolean;
   readonly mode?: AgentOutputLayoutMode;
   /** Tab label for the page output. Defaults to "Output". */
   readonly outputLabel?: string;
