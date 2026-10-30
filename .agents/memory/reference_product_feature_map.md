@@ -62,7 +62,7 @@ Source and unit tests on branch `claude/wonderful-volta-ozvu4p` (PR to `master`)
 
 Paths are relative to repository root:
 
-- `packages/pages/trends/following/FollowSourceModal.tsx`
+- `apps/app/src/features/trends/following/FollowSourceModal.tsx`
 - `packages/services/social/social-sources.service.ts`
 - `apps/server/api/src/collections/social-sources/controllers/social-sources.controller.ts`
 - `packages/prisma/prisma/schema.prisma` (`SourcePost`)

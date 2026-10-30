@@ -3,8 +3,6 @@
 import { Timeframe } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import HookRemixModal from '@pages/trends/list/components/HookRemixModal';
-import { SocialsNavigation } from '@pages/trends/shared/socials-navigation';
 import { TrendingHashtags, TrendingSounds } from '@ui/analytics/trends';
 import TrendVideoGallery from '@ui/analytics/trends/trend-video-gallery';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
@@ -15,6 +13,8 @@ import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import { Flame } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import HookRemixModal from '@/features/trends/list/components/HookRemixModal';
+import { SocialsNavigation } from '@/features/trends/shared/socials-navigation';
 
 import TrendingTopicsSection from './TrendingTopicsSection';
 import TrendsPageHeader from './TrendsPageHeader';

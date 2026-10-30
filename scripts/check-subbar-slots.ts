@@ -16,7 +16,12 @@ import {
  * drifted from the shared design.
  */
 
-const INCLUDE_GLOBS = ['apps/app/app/**/*.tsx', 'packages/pages/**/*.tsx'];
+const INCLUDE_GLOBS = [
+  'apps/app/app/**/*.tsx',
+  // Features moved out of packages/pages keep this guard (#8684).
+  'apps/app/src/features/trends/**/*.tsx',
+  'packages/pages/**/*.tsx',
+];
 
 const EXCLUDE_GLOBS = [
   '**/*.test.*',

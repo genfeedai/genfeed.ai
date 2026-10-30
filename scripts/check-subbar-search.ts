@@ -10,7 +10,12 @@ import { globSync } from 'glob';
  * shared subbar.
  */
 
-const INCLUDE_GLOBS = ['apps/app/app/**/*.tsx', 'packages/pages/**/*.tsx'];
+const INCLUDE_GLOBS = [
+  'apps/app/app/**/*.tsx',
+  // Features moved out of packages/pages keep this guard (#8684).
+  'apps/app/src/features/trends/**/*.tsx',
+  'packages/pages/**/*.tsx',
+];
 
 const EXCLUDE_GLOBS = [
   '**/*.test.*',
@@ -22,7 +27,7 @@ const EXCLUDE_GLOBS = [
 /** Searches that live inside a modal or connect flow, not a list page's subbar. */
 export const SUBBAR_SEARCH_ALLOWLIST: readonly string[] = [
   'packages/pages/brands/components/integrations/connect-account/ConnectAccountShell.tsx',
-  'packages/pages/trends/following/FollowSourceModal.tsx',
+  'apps/app/src/features/trends/following/FollowSourceModal.tsx',
 ];
 
 /** The `@ui` alias or a relative path to the primitive; `\s` spans a line break after `from`. */

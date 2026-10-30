@@ -172,7 +172,7 @@ vi.mock('@helpers/auth/auth.helper', () => ({
   resolveAuthToken: vi.fn(),
 }));
 
-vi.mock('@hooks/data/trends/use-trends/use-trends', () => ({
+vi.mock('@/features/trends/hooks/use-trends/use-trends', () => ({
   useTrends: () => ({
     error: null,
     isLoading: false,

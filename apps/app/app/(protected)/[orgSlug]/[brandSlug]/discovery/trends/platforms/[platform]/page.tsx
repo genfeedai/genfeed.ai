@@ -1,12 +1,12 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import TrendsPlatformDetail from '@pages/trends/platform-detail/trends-platform-detail';
+import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
+import TrendsPlatformDetail from '@/features/trends/platform-detail/trends-platform-detail';
 import {
   getTrendPlatformLabel,
   isTrendPlatform,
   type TrendPlatform,
-} from '@pages/trends/shared/trends-platforms';
-import { notFound } from 'next/navigation';
-import { Suspense } from 'react';
+} from '@/features/trends/shared/trends-platforms';
 
 export async function generateMetadata({
   params,

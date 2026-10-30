@@ -50,7 +50,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getTrendsService,
 }));
 
-vi.mock('@pages/trends/list/components/HookRemixModal', () => ({
+vi.mock('@/features/trends/list/components/HookRemixModal', () => ({
   default: ({
     isOpen,
     onClose,

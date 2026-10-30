@@ -1,8 +1,7 @@
 'use client';
 
-import TrendDetail from '@pages/trends/detail/trend-detail';
-
 import { useParams } from 'next/navigation';
+import TrendDetail from '@/features/trends/detail/trend-detail';
 import { readRouteParam } from '@/lib/route-params';
 
 export default function DiscoveryTrendDetailRoute() {
