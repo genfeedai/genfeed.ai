@@ -33,7 +33,9 @@ const SERIALIZER_ROOT = 'packages/serializers/src';
 // The workflow-execution hard cut (#3924) deletes the AgentRun, Run, and
 // Transcript models outright, so their three serializer triplets have no schema
 // left to pair with.
-const SERIALIZER_MATCH_FLOOR = 98;
+// Removing the public Lead serializer triplet drops one more pair; the Lead
+// model stays in Prisma until the leads table is exported and dropped.
+const SERIALIZER_MATCH_FLOOR = 97;
 
 const SCHEMA_TO_SERIALIZER_BASENAME_OVERRIDES: Record<string, string> = {
   analytic: 'analytics',
@@ -611,7 +613,6 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'dashboard-layout:DashboardLayout': [],
   'evaluation:Evaluation': [],
   'font-family:FontFamilyRecord': [],
-  'lead:Lead': [],
   'link:Link': [],
   'member:Member': [],
   'mood-board:MoodBoard': [],

@@ -350,7 +350,7 @@ describe('check-serializer-drift', () => {
     writeFixture(
       'packages/prisma/prisma/schema.prisma',
       [
-        'model Lead {',
+        'model AuditNote {',
         '  id String @id',
         '}',
         'model Widget {',
@@ -360,8 +360,8 @@ describe('check-serializer-drift', () => {
       ].join('\n'),
     );
     writeFixture(
-      'apps/server/api/src/collections/leads/schemas/lead.schema.ts',
-      "export type { Lead as LeadDocument } from '@genfeedai/prisma';",
+      'apps/server/api/src/collections/audit-notes/schemas/audit-note.schema.ts',
+      "export type { AuditNote as AuditNoteDocument } from '@genfeedai/prisma';",
     );
     writeFixture(
       'apps/server/api/src/collections/widgets/schemas/widget.schema.ts',
@@ -373,7 +373,7 @@ describe('check-serializer-drift', () => {
       projections: {},
       rootDir: fixtureRoot,
       unserializedSchemas: {
-        'lead:Lead': 'Internal onboarding persistence.',
+        'audit-note:AuditNote': 'Internal audit persistence.',
       },
     });
     expect(classified.errors).toHaveLength(0);
@@ -386,7 +386,7 @@ describe('check-serializer-drift', () => {
       unserializedSchemas: {},
     });
     expect(unclassified.errors).toContain(
-      'Unmatched schema lead:Lead needs a reason in INTENTIONALLY_UNSERIALIZED_SCHEMAS',
+      'Unmatched schema audit-note:AuditNote needs a reason in INTENTIONALLY_UNSERIALIZED_SCHEMAS',
     );
   });
 

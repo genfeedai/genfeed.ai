@@ -81,7 +81,6 @@ describe('StripeCheckoutWebhookHandler', () => {
     recordProcessingFee: vi.fn(),
     recordRevenueEvent: vi.fn(),
     resolveCheckoutCredits: vi.fn().mockReturnValue(100),
-    upsertSkillsProLead: vi.fn(),
     withCheckoutSessionProcessing: vi.fn(),
   };
   const attributionTracker = {
@@ -622,7 +621,6 @@ describe('StripeCheckoutWebhookHandler', () => {
       userSetupService.initializeUserResources.mockResolvedValue({
         organization: { id: 'org_skills_1' },
       });
-      supportService.upsertSkillsProLead.mockResolvedValue(undefined);
     });
 
     it('creates a skill receipt from the session', async () => {
@@ -685,14 +683,6 @@ describe('StripeCheckoutWebhookHandler', () => {
           to: 'buyer@example.com',
         }),
       );
-      expect(supportService.upsertSkillsProLead).toHaveBeenCalledWith({
-        email: 'buyer@example.com',
-        organizationId: 'org_skills_1',
-        productType: 'bundle',
-        receiptId: createdReceiptId,
-        skillSlugs: [],
-        userId: 'user_skills_1',
-      });
     });
 
     it('finds or creates the buyer by email and links the receipt to that user', async () => {
@@ -723,12 +713,6 @@ describe('StripeCheckoutWebhookHandler', () => {
           receiptId: expect.stringMatching(/^sk_rcpt_/),
         },
       });
-      expect(supportService.upsertSkillsProLead).toHaveBeenCalledWith(
-        expect.objectContaining({
-          organizationId: null,
-          userId: 'user_skills_new',
-        }),
-      );
     });
 
     it('resolves a mixed-case buyer email to the existing lower-case user', async () => {
@@ -773,7 +757,6 @@ describe('StripeCheckoutWebhookHandler', () => {
       expect(prisma.skillReceipt.create).toHaveBeenCalledTimes(1);
       expect(notificationsService.deliverEmail).toHaveBeenCalledTimes(1);
       expect(prisma.skillReceipt.update).not.toHaveBeenCalled();
-      expect(supportService.upsertSkillsProLead).not.toHaveBeenCalled();
 
       // Stripe retries: the receipt now exists, so it is not recorded again.
       prisma.skillReceipt.findFirst.mockResolvedValueOnce(stored);
@@ -796,7 +779,6 @@ describe('StripeCheckoutWebhookHandler', () => {
         },
         where: { id: 'row_1', isDeleted: false },
       });
-      expect(supportService.upsertSkillsProLead).toHaveBeenCalledTimes(1);
     });
 
     it('keeps the receipt pending when resource setup fails after the user exists, then recovers once on retry', async () => {
@@ -828,7 +810,6 @@ describe('StripeCheckoutWebhookHandler', () => {
       expect(eventEmitter.emitAsync).toHaveBeenCalledTimes(1);
       expect(userSetupService.initializeUserResources).toHaveBeenCalledTimes(2);
       expect(prisma.skillReceipt.update).toHaveBeenCalledTimes(1);
-      expect(supportService.upsertSkillsProLead).toHaveBeenCalledTimes(1);
     });
 
     it('stores the stripe customer id on the receipt', async () => {
@@ -920,12 +901,6 @@ describe('StripeCheckoutWebhookHandler', () => {
       expect(loggerService.log).toHaveBeenCalledWith(
         expect.stringContaining('skills-pro receipt already exists'),
         expect.objectContaining({ sessionId: 'cs_skills_1' }),
-      );
-      expect(supportService.upsertSkillsProLead).toHaveBeenCalledWith(
-        expect.objectContaining({
-          receiptId: 'sk_rcpt_existing',
-          userId: 'user_skills_1',
-        }),
       );
     });
 
