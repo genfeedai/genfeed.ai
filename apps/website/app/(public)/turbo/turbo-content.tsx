@@ -70,7 +70,6 @@ export default function TurboContent() {
   return (
     <MarketingEntrance>
       <PageLayout
-        badge="Turbo"
         compact
         description="Tell Genfeed about your business once. Turbo drafts images, video and captions that sound like you."
         heroActions={

@@ -17,7 +17,6 @@ import {
 } from '@web-components/content/NeuralGrid';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
-import { Terminal } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AgentClientContent({
@@ -30,8 +29,6 @@ export default function AgentClientContent({
   return (
     <MarketingEntrance hero={false} sections={false}>
       <PageLayout
-        badge={`Genfeed MCP · ${client.name}`}
-        badgeIcon={Terminal}
         compact
         description={client.description}
         heroActions={

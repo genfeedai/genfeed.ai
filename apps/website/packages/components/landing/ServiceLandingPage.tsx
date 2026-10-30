@@ -25,7 +25,7 @@ import {
 } from '@web-components/landing/service-landings.data';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
-import { BadgeCheck, CalendarRange, Sparkles } from 'lucide-react';
+import { BadgeCheck, CalendarRange } from 'lucide-react';
 import Link from 'next/link';
 
 export interface ServiceLandingPageProps {
@@ -141,8 +141,6 @@ export default function ServiceLandingPage({
         <PageLayout
           heroMedia={<MarketingArtwork page={`/${slug}`} />}
           isHeroVisualStacked={config.isAgentFirst}
-          badge={config.badge}
-          badgeIcon={Sparkles}
           title={
             <>
               {config.heroTitle} <span>{config.heroAccent}</span>.

@@ -5,8 +5,6 @@ import HomeFooter from '@web-components/home/_footer';
 
 export default function PageLayout({
   children,
-  badge,
-  badgeIcon: BadgeIcon,
   compact,
   description,
   heroActions,
@@ -38,8 +36,6 @@ export default function PageLayout({
   if (variant === 'proof') {
     return (
       <ProofHeroPage
-        badge={badge}
-        badgeIcon={BadgeIcon}
         compact={compact}
         description={description}
         heroActions={heroActions}
@@ -54,8 +50,6 @@ export default function PageLayout({
 
   return (
     <PosterHeroPage
-      badge={badge}
-      badgeIcon={BadgeIcon}
       compact={compact}
       description={description}
       heroActions={heroActions}

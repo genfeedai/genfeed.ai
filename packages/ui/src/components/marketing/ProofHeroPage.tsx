@@ -1,8 +1,6 @@
-import type { ComponentType, ReactNode, SVGProps } from 'react';
+import type { ReactNode } from 'react';
 
 export interface ProofHeroPageProps {
-  badge?: string;
-  badgeIcon?: ComponentType<SVGProps<SVGSVGElement>>;
   children: ReactNode;
   compact?: boolean;
   description?: ReactNode;

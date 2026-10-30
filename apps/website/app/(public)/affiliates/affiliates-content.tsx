@@ -16,7 +16,7 @@ import {
 } from '@web-components/content/NeuralGrid';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
-import { Coins, Gift, Link2, Share2 } from 'lucide-react';
+import { Coins, Gift, Link2 } from 'lucide-react';
 
 const AFFILIATE_HUB_PATH = '/settings/referrals';
 
@@ -28,8 +28,6 @@ export default function AffiliatesContent() {
   return (
     <MarketingEntrance hero={false} sections={false}>
       <PageLayout
-        badge="Affiliates"
-        badgeIcon={Share2}
         title={<>Share Genfeed. Earn credits.</>}
         description={AFFILIATE_PROGRAM.earnings.description}
       >

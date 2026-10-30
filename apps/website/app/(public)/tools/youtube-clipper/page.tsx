@@ -2,7 +2,6 @@ import YoutubeClipperContent from '@public/tools/youtube-clipper/youtube-clipper
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 import PageLayout from '@web-components/PageLayout';
-import { Scissors } from 'lucide-react';
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'YouTube Transcript to Clips — Free AI Tool',
@@ -21,8 +20,6 @@ export default function YoutubeClipperPage(): React.ReactElement {
           kind="creator"
         />
       }
-      badge="Free AI tool"
-      badgeIcon={Scissors}
       compact
       description="Paste a public YouTube URL. Get a timestamped transcript, three AI-selected short-form moments, and one rendered preview before signup."
       title="YouTube transcript to clips"

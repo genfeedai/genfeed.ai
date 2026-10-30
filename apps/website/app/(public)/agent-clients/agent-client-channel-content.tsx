@@ -18,7 +18,6 @@ import {
 } from '@web-components/content/NeuralGrid';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
-import { Terminal } from 'lucide-react';
 import Link from 'next/link';
 
 const LINK_CLASS_NAME =
@@ -42,8 +41,6 @@ export default function AgentClientChannelContent({
   return (
     <MarketingEntrance hero={false} sections={false}>
       <PageLayout
-        badge={`${client.name} · ${page.channelName}`}
-        badgeIcon={Terminal}
         compact
         description={page.description}
         heroActions={

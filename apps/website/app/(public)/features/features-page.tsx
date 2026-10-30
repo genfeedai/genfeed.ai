@@ -9,7 +9,6 @@ import {
   ArrowRight,
   Cpu,
   Database,
-  Layers,
   MonitorPlay,
   ShieldCheck,
 } from 'lucide-react';
@@ -68,8 +67,6 @@ export default function FeaturesPage(): React.ReactElement {
         heroMedia={
           <MarketingArtwork page="/features" isCompact kind="workflow" />
         }
-        badge="Platform Capabilities"
-        badgeIcon={Layers}
         compact
         heroVisual={HERO_VISUAL}
         title={<>What Genfeed Does For You</>}

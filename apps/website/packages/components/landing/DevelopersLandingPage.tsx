@@ -119,8 +119,6 @@ export default function DevelopersLandingPage(): React.ReactElement {
     <MarketingEntrance>
       <PageLayout
         heroMedia={<MarketingArtwork page="/developers" />}
-        badge="Genfeed for Developers"
-        badgeIcon={Terminal}
         title="Distribution for developers"
         description="Connect your agent to Genfeed to turn product updates into content drafts, media and scheduled posts. Use the hosted MCP server or run the open-source stack yourself."
         heroActions={

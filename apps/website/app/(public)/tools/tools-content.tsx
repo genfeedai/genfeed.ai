@@ -8,8 +8,6 @@ export default function ToolsContent(): React.ReactElement {
   return (
     <PageLayout
       heroMedia={<MarketingArtwork page="/tools" kind="creator" />}
-      badge="Free tools"
-      badgeIcon={Scissors}
       compact
       description="Choose an AI model or turn a public YouTube video into useful content. Get a result before signup, then continue in the full Genfeed workspace."
       title="Free AI tools for models and content"

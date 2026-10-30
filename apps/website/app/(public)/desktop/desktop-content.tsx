@@ -18,7 +18,6 @@ import {
   HardDrive,
   KeyRound,
   Monitor,
-  MonitorDown,
   RefreshCw,
 } from 'lucide-react';
 
@@ -106,8 +105,6 @@ export default function DesktopContent({
     <MarketingEntrance hero={false} sections={false}>
       <PageLayout
         heroMedia={<MarketingArtwork page="/desktop" kind="integration" />}
-        badge="Desktop"
-        badgeIcon={MonitorDown}
         title={<>Genfeed, running on your Mac.</>}
         description="The full content OS as a native desktop app. A local workspace that works offline, generation through your own provider keys, and the same account you already use on the web."
         heroActions={

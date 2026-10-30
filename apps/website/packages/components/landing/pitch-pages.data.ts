@@ -4,7 +4,6 @@ import { Bot, Cpu, Server } from 'lucide-react';
 export const pitchLandingConfigs: ServiceLandingConfig[] = [
   // ── Custom Models ────────────────────────────────────────────────────────────
   {
-    badge: 'Custom Models',
     closingDescription:
       'If you need owned models and AI influencers running at scale, book a call and we will design your custom models, or start free on Genfeed to try the workflow first.',
     closingTitle: 'Your Own Models. Your Own AI Influencers.',

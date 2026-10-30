@@ -15,8 +15,6 @@ export default function SkillsSuccessContent() {
   return (
     <MarketingEntrance cards={false}>
       <PageLayout
-        badge="Complete"
-        badgeIcon={Check}
         compact
         title={<>Purchase Complete</>}
         description="Check your email for your receipt ID, then install your skills."
