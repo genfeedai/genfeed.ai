@@ -236,6 +236,14 @@ export function AgentChatContainer({
       composerShell?.placement !== 'dock',
     overlayHeightPx: composerOverlayHeightPx,
   });
+  const planDecision = {
+    isBusy:
+      container.isBusy ||
+      container.isPlanReviewPending ||
+      Boolean(container.activeUiAction),
+    onApprove: container.handleApprovePlan,
+    onRequestChanges: container.handleRequestPlanChanges,
+  };
   const placeComposerInColumn = isColumnComposer && !container.isEmpty;
   const dockedComposer = shouldShowDockedComposer ? (
     shouldShowArchivedComposer && onUnarchive ? (
@@ -280,13 +288,6 @@ export function AgentChatContainer({
         isSubmittingInputRequest={container.isSubmittingInputRequest}
         isTurnStalled={container.isTurnStalled}
         latestProposedPlan={container.latestProposedPlan}
-        isPlanReviewBusy={
-          container.isBusy ||
-          container.isPlanReviewPending ||
-          Boolean(container.activeUiAction)
-        }
-        onApprovePlan={container.handleApprovePlan}
-        onRequestPlanChanges={container.handleRequestPlanChanges}
         layoutMode={promptBarLayoutMode}
         onClearError={() => container.setError(null)}
         onKeepWaiting={container.handleKeepWaiting}
@@ -414,6 +415,7 @@ export function AgentChatContainer({
             onIngredientSelect={container.handleIngredientSelect}
             onOAuthConnect={onOAuthConnect}
             onOpenInStudio={onOpenInStudio}
+            planDecision={planDecision}
             onRegenerate={onRegenerate}
             onRetry={container.handleRetry}
             onRetryLastFailedRun={handleRetryLastFailedRun}

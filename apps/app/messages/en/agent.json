@@ -561,10 +561,10 @@
     "statusSuperseded": "Superseded",
     "empty": "This plan came back empty. Ask the agent to try again.",
     "decisionLabel": "Plan decision",
-    "decisionPrompt": "Plan ready. Type changes below to revise it.",
     "approve": "Approve",
     "requestChanges": "Request changes",
-    "requestChangesHint": "Type the changes in the prompt bar first.",
+    "sendChanges": "Send changes",
+    "cancel": "Cancel",
     "revisePlaceholder": "Describe what to change in the plan",
     "createFollowUpTasks": "Create follow-up tasks",
     "creatingFollowUpTasks": "Creating tasks..."

@@ -2498,7 +2498,7 @@ describe('AgentChatContainer', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the latest proposed plan in the conversation and its decision in the prompt bar', () => {
+  it('renders the latest proposed plan in the conversation with its decision inside the card', async () => {
     const apiService = createApiService();
 
     storeState.pendingInputRequest = null;
@@ -2516,19 +2516,29 @@ describe('AgentChatContainer', () => {
     const card = screen.getByTestId('agent-plan-card');
     expect(card).toBeInTheDocument();
     expect(card).toHaveTextContent('Add a toggle');
-    // The decision is not part of the conversation.
-    expect(within(card).queryByRole('button')).toBeNull();
-    const decision = screen.getByTestId('agent-plan-decision');
+    const decision = within(card).getByTestId('agent-plan-decision');
     expect(
       within(decision).getByRole('button', { name: 'approve' }),
     ).toBeInTheDocument();
     expect(
       within(decision).getByRole('button', { name: 'requestChanges' }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('Composer paste')).toHaveAttribute(
+    // The prompt bar stays an ordinary composer: a message typed there is
+    // sent as a turn, not as a plan revision.
+    expect(screen.getByLabelText('Composer paste')).not.toHaveAttribute(
       'placeholder',
       'revisePlaceholder',
     );
+    fireEvent.paste(screen.getByLabelText('Composer paste'), {
+      clipboardData: { getData: () => 'Continue with this plan' },
+    });
+    await waitFor(() =>
+      expect(sendNonStreaming).toHaveBeenCalledWith(
+        'Continue with this plan',
+        expect.objectContaining({ agentMode: AgentThreadMode.MANUAL }),
+      ),
+    );
+    expect(apiService.respondToUiAction).not.toHaveBeenCalled();
   });
 
   it('locks the plan controls while an approval of that plan is still running', () => {

@@ -36,8 +36,8 @@ export class AgentPage {
       name: /^Agent mode:/,
     });
     this.planCard = page.getByTestId('agent-plan-card');
-    // The decision lives in the prompt bar, not in the conversation.
-    this.planDecision = page.getByTestId('agent-plan-decision');
+    // The decision lives inside the plan card.
+    this.planDecision = this.planCard.getByTestId('agent-plan-decision');
     this.approvePlanButton = this.planDecision.getByRole('button', {
       name: 'Approve',
     });
@@ -99,10 +99,15 @@ export class AgentPage {
     await this.chatInput.press('Enter');
   }
 
-  /** Types the requested plan changes into the prompt bar. */
-  async typePlanFeedback(feedback: string): Promise<void> {
-    await this.chatInput.click();
-    await this.chatInput.pressSequentially(feedback);
+  /** Opens the plan card's note field, types the changes and sends them. */
+  async requestPlanChanges(feedback: string): Promise<void> {
+    await this.requestPlanChangesButton.click();
+    await this.planDecision
+      .getByPlaceholder('Describe what to change in the plan')
+      .fill(feedback);
+    await this.planDecision
+      .getByRole('button', { name: 'Send changes' })
+      .click();
   }
 
   async enablePlanMode(): Promise<void> {

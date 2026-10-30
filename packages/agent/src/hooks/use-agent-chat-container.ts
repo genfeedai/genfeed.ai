@@ -916,12 +916,11 @@ export function useAgentChatContainer({
   }, [handleUiAction, latestProposedPlan?.id]);
 
   const handleRequestPlanChanges = useCallback(
-    async (revisionNote: string) => {
-      await handleUiAction('revise_plan', {
+    (revisionNote: string) =>
+      handleUiAction('revise_plan', {
         planId: latestProposedPlan?.id,
         revisionNote,
-      });
-    },
+      }),
     [handleUiAction, latestProposedPlan?.id],
   );
 
