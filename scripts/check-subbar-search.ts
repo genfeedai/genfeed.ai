@@ -29,7 +29,7 @@ const EXCLUDE_GLOBS = [
 
 /** Searches that live inside a modal or connect flow, not a list page's subbar. */
 export const SUBBAR_SEARCH_ALLOWLIST: readonly string[] = [
-  'packages/pages/brands/components/integrations/connect-account/ConnectAccountShell.tsx',
+  'apps/app/src/features/brands/components/integrations/connect-account/ConnectAccountShell.tsx',
   'apps/app/src/features/trends/following/FollowSourceModal.tsx',
 ];
 

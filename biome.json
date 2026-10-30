@@ -216,7 +216,7 @@
         "apps/app/src/features/**",
         "!apps/app/src/features/analytics/work-surface/**",
         "!apps/app/src/features/library-remix/**",
-        "!apps/app/src/features/research/**",
+        "!apps/app/src/features/research/work-surface/research-workspace-surface-adapter-context.tsx",
         "!apps/app/src/features/settings/**",
         "!apps/app/src/features/workflows/**",
         "!apps/app/src/features/workspace-overview/**",

@@ -6,6 +6,10 @@ import type {
   ITrendSound,
   ITrendVideo,
 } from '@genfeedai/contracts/interfaces';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
+import CollectionView from '@ui/collection/CollectionView';
+import { Film, Hash, Music } from 'lucide-react';
+import type { ReactNode } from 'react';
 import {
   type AuthorizedResearchFinding,
   isSameResearchFindingReference,
@@ -13,11 +17,7 @@ import {
   toTrendHashtagFinding,
   toTrendSoundFinding,
   toTrendVideoFinding,
-} from '@pages/research/work-surface/research-work-surface.types';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
-import CollectionView from '@ui/collection/CollectionView';
-import { Film, Hash, Music } from 'lucide-react';
-import type { ReactNode } from 'react';
+} from '@/features/research/work-surface/research-work-surface.types';
 import RelatedMetricCard from './related-metric-card';
 
 type TrendsPlatformRelatedSectionsProps = {

@@ -18,7 +18,6 @@ import { useHeyGenCatalog } from '@hooks/data/integrations/use-heygen-catalog';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Voice } from '@models/ingredients/voice.model';
-import { useVoiceCatalog } from '@pages/library/voices/hooks/use-voice-catalog';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -39,6 +38,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useVoiceCatalog } from '@/features/library/voices/hooks/use-voice-catalog';
 
 function getVoiceName(voice: Voice): string {
   return voice.metadataLabel || voice.externalVoiceId || voice.id;

@@ -1,10 +1,10 @@
 import { PageScope } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import LibraryBrowser from '@pages/library/browser/library-browser';
-import { LIBRARY_TYPE_PRESETS } from '@pages/library/browser/library-browser.config';
 import { Suspense } from 'react';
 import IngredientsList from '@/features/ingredients/list/ingredients-list';
+import LibraryBrowser from '@/features/library/browser/library-browser';
+import { LIBRARY_TYPE_PRESETS } from '@/features/library/browser/library-browser.config';
 
 export const generateMetadata = createPageMetadata('Videos');
 

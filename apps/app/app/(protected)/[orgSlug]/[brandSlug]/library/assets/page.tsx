@@ -5,10 +5,10 @@ import {
   resolveLegacyLibraryRoute,
 } from '@genfeedai/contracts/constants';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import LibraryBrowser from '@pages/library/browser/library-browser';
 import { permanentRedirect } from 'next/navigation';
 import { Suspense } from 'react';
 import IngredientsList from '@/features/ingredients/list/ingredients-list';
+import LibraryBrowser from '@/features/library/browser/library-browser';
 import LibraryCreditNotice from '../library-credit-notice';
 
 export const generateMetadata = createPageMetadata('All assets');

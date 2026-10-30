@@ -11,11 +11,11 @@ import {
   useAnalyticsToolbar,
 } from '@genfeedai/contexts/analytics/analytics-context';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
-import { DiscoveryRemixProvider } from '@pages/research/remix/DiscoveryRemixProvider';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import AnalyticsOutliers from '@/features/analytics/outliers/analytics-outliers';
+import { DiscoveryRemixProvider } from '@/features/research/remix/DiscoveryRemixProvider';
 
 const PLATFORM_VALUES = [
   'instagram',

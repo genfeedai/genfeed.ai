@@ -386,7 +386,7 @@ vi.mock(
 );
 
 vi.mock(
-  '@pages/library/knowledge/components/KnowledgeReferenceSection',
+  '@/features/library/knowledge/components/KnowledgeReferenceSection',
   () => ({
     countKnowledgeSelection: (selection: {
       sourceIds?: string[];

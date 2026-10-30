@@ -31,7 +31,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 vi.mock('@hooks/data/ingredients/use-avatar-images/use-avatar-images', () => ({
   useAvatarImages: () => ({ avatars: [], isLoading: false }),
 }));
-vi.mock('@pages/library/voices/hooks/use-voice-catalog', () => ({
+vi.mock('@/features/library/voices/hooks/use-voice-catalog', () => ({
   useVoiceCatalog: () => ({ voices: mocks.catalogVoices, isLoading: false }),
 }));
 vi.mock('@hooks/data/integrations/use-heygen-catalog', () => ({

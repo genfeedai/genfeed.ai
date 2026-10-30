@@ -13,18 +13,6 @@ import type {
   ITrendVideo,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import {
-  useOptionalResearchWorkSurface,
-  useResearchPagination,
-  useRestoreResearchFinding,
-} from '@pages/research/work-surface/ResearchWorkSurfaceProvider';
-import {
-  isSameResearchFindingReference,
-  toTrendContentFinding,
-  toTrendHashtagFinding,
-  toTrendSoundFinding,
-  toTrendVideoFinding,
-} from '@pages/research/work-surface/research-work-surface.types';
 import type { TrendContentItem } from '@props/trends/trends-page.props';
 import { TrendsService } from '@services/social/trends.service';
 import { useQuery } from '@tanstack/react-query';
@@ -37,6 +25,18 @@ import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import { Button } from '@ui/primitives/button';
 import { TrendingUp } from 'lucide-react';
 import { type ReactNode, useMemo } from 'react';
+import {
+  useOptionalResearchWorkSurface,
+  useResearchPagination,
+  useRestoreResearchFinding,
+} from '@/features/research/work-surface/ResearchWorkSurfaceProvider';
+import {
+  isSameResearchFindingReference,
+  toTrendContentFinding,
+  toTrendHashtagFinding,
+  toTrendSoundFinding,
+  toTrendVideoFinding,
+} from '@/features/research/work-surface/research-work-surface.types';
 import { useTrendContent } from '@/features/trends/hooks/use-trend-content/use-trend-content';
 import { SocialsNavigation } from '@/features/trends/shared/socials-navigation';
 import TrendContentCard from '@/features/trends/shared/trend-content-card';

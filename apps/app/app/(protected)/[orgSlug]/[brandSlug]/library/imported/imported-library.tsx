@@ -6,10 +6,10 @@ import {
   LibraryPlace,
   PageScope,
 } from '@genfeedai/contracts';
-import LibraryBrowser from '@pages/library/browser/library-browser';
 import { useTranslations } from 'next-intl';
 import { Suspense } from 'react';
 import IngredientsList from '@/features/ingredients/list/ingredients-list';
+import LibraryBrowser from '@/features/library/browser/library-browser';
 import LibraryCreditNotice from '../library-credit-notice';
 
 const IMPORTED_ORIGINS = [

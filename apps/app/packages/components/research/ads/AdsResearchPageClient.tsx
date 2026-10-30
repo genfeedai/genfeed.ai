@@ -9,7 +9,6 @@ import {
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { AdsChannel, AdsPlatform } from '@genfeedai/contracts/interfaces';
-import { useResearchPagination } from '@pages/research/work-surface/ResearchWorkSurfaceProvider';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import SearchField from '@ui/content/search-field/SearchField';
 import Alert from '@ui/feedback/alert/Alert';
@@ -20,6 +19,7 @@ import { Columns2, Eye, Megaphone, Table } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { useResearchPagination } from '@/features/research/work-surface/ResearchWorkSurfaceProvider';
 
 import AdsPublicDiscoveryPanel from './AdsPublicDiscoveryPanel';
 import { AdsResearchAdGrid, AdsResearchAdTable } from './AdsResearchAdCards';

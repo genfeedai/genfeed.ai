@@ -77,7 +77,7 @@ vi.mock('@ui/content/filter-menu/FilterMenu', () => ({
   ),
 }));
 
-vi.mock('@pages/research/remix/DiscoveryRemixProvider', () => ({
+vi.mock('@/features/research/remix/DiscoveryRemixProvider', () => ({
   useOptionalDiscoveryRemix: () => ({ openRemix: openRemixMock }),
 }));
 

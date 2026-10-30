@@ -4,11 +4,11 @@ import {
   parseLibraryShelf,
 } from '@genfeedai/contracts';
 import { createDynamicPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import LibraryBrowser from '@pages/library/browser/library-browser';
 import type { LibraryShelfPageProps } from '@props/library/library-shelf-page.props';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import IngredientsList from '@/features/ingredients/list/ingredients-list';
+import LibraryBrowser from '@/features/library/browser/library-browser';
 
 export const generateMetadata = createDynamicPageMetadata('shelf', (value) => {
   const parsed = parseLibraryShelf(value);

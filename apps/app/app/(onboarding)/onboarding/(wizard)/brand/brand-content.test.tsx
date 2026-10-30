@@ -5,9 +5,9 @@ import type {
   BrandGuidePanelProps,
   UseBrandGuideScanResult,
 } from '@genfeedai/props/onboarding/brand-guide.props';
-import type { BrandOsSettingsCardProps } from '@genfeedai/props/pages/brand-os-settings.props';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { BrandOsSettingsCardProps } from '@/features/brands/props/brand-os-settings.props';
 import BrandGuidePanel from './brand-guide-panel';
 
 const mocks = vi.hoisted(() => ({
@@ -30,7 +30,7 @@ vi.mock('next-intl', async () => {
   return { useTranslations: () => translate };
 });
 vi.mock(
-  '@genfeedai/pages/brands/components/brand-kit/BrandOsSettingsCard',
+  '@/features/brands/components/brand-kit/BrandOsSettingsCard',
   async () => {
     const { useEffect } = await import('react');
     return {

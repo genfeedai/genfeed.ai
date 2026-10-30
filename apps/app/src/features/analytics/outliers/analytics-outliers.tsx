@@ -12,7 +12,6 @@ import {
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useOptionalDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
 import type {
   TableAction,
   TableColumn,
@@ -29,6 +28,7 @@ import { ScanSearch, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AnalyticsOutliersProps } from '@/features/analytics/props/analytics-outliers.props';
+import { useOptionalDiscoveryRemix } from '@/features/research/remix/DiscoveryRemixProvider';
 import OutlierBaselinePanel from './outlier-baseline-panel';
 
 const PAGE_SIZE = 20;

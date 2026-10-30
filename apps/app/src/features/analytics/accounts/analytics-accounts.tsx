@@ -29,7 +29,6 @@ import {
   isCollectionFetchReady,
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import AccountCell from '@pages/brands/components/integrations/AccountCell';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
@@ -46,6 +45,7 @@ import { Input } from '@ui/primitives/input';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import AccountCell from '@/features/brands/components/integrations/AccountCell';
 
 type HealthBadgeLabelKey =
   | 'healthHealthy'

@@ -7,14 +7,14 @@ import {
   useAgentChatStore,
 } from '@genfeedai/agent';
 import type { ScopedResearchFindingReference } from '@genfeedai/contracts/interfaces';
-import ResearchFindingInspector from '@pages/research/work-surface/ResearchFindingInspector';
-import { useOptionalResearchWorkSurface } from '@pages/research/work-surface/ResearchWorkSurfaceProvider';
+import { usePathname } from 'next/navigation';
+import { useCallback, useEffect, useMemo } from 'react';
+import ResearchFindingInspector from '@/features/research/work-surface/ResearchFindingInspector';
+import { useOptionalResearchWorkSurface } from '@/features/research/work-surface/ResearchWorkSurfaceProvider';
 import {
   getResearchFindingReferenceKey,
   isAdsResearchFindingReference,
-} from '@pages/research/work-surface/research-work-surface.types';
-import { usePathname } from 'next/navigation';
-import { useCallback, useEffect, useMemo } from 'react';
+} from '@/features/research/work-surface/research-work-surface.types';
 import {
   type ResearchWorkspaceSurfaceAdapterRegistration,
   useRegisterResearchWorkspaceSurfaceAdapter,

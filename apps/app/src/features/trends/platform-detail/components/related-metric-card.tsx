@@ -1,10 +1,10 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { AuthorizedResearchFinding } from '@pages/research/work-surface/research-work-surface.types';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
+import type { AuthorizedResearchFinding } from '@/features/research/work-surface/research-work-surface.types';
 
 type RelatedMetricCardProps = {
   badgeValue: number;

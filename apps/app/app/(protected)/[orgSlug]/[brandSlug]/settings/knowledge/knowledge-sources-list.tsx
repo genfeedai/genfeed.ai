@@ -16,7 +16,6 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useKnowledgeLibrary } from '@pages/library/knowledge/hooks/use-knowledge-library';
 import type {
   KnowledgeSourceRow,
   KnowledgeSourcesListProps,
@@ -34,6 +33,7 @@ import { RotateCcw } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useKnowledgeLibrary } from '@/features/library/knowledge/hooks/use-knowledge-library';
 import KnowledgeAddSourceSheet from './knowledge-add-source-sheet';
 import KnowledgeSourceDetailPanel from './knowledge-source-detail-panel';
 import KnowledgeStateBadge from './knowledge-state-badge';

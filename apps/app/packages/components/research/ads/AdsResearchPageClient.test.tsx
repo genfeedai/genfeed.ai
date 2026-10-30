@@ -220,7 +220,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => useBrandMock(),
 }));
 
-vi.mock('@pages/research/remix/DiscoveryRemixProvider', () => ({
+vi.mock('@/features/research/remix/DiscoveryRemixProvider', () => ({
   useOptionalDiscoveryRemix: () =>
     remixAvailability.isAvailable ? { openRemix: openRemixMock } : null,
 }));

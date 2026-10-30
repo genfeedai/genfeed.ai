@@ -1,10 +1,10 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import AccountCell from '@pages/brands/components/integrations/AccountCell';
 import type { PublishingAccountRowProps } from '@props/publisher/publishing-overview.props';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
+import AccountCell from '@/features/brands/components/integrations/AccountCell';
 
 export default function PublishingAccountRow({
   accountLabel,

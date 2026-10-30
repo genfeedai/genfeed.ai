@@ -89,7 +89,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   }),
 }));
 
-vi.mock('@pages/library/voices/hooks/use-voice-catalog', () => ({
+vi.mock('@/features/library/voices/hooks/use-voice-catalog', () => ({
   useVoiceCatalog: () => ({
     isLoading: mocks.isLoadingCatalog,
     voices: mocks.voices,

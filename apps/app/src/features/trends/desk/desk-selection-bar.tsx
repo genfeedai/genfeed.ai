@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { useOptionalDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { Button } from '@ui/primitives/button';
@@ -9,6 +8,7 @@ import { Kbd } from '@ui/primitives/kbd';
 import { Sparkles, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
+import { useOptionalDiscoveryRemix } from '@/features/research/remix/DiscoveryRemixProvider';
 import type { DeskSelectionBarProps } from '@/features/trends/props/discovery-desk.props';
 
 /**

@@ -24,7 +24,7 @@ vi.mock('@hooks/data/ingredients/use-avatar-images/use-avatar-images', () => ({
     ],
   }),
 }));
-vi.mock('@pages/library/voices/hooks/use-voice-catalog', () => ({
+vi.mock('@/features/library/voices/hooks/use-voice-catalog', () => ({
   useVoiceCatalog: () => ({
     voices: [
       { id: 'voice-row-1', brandId: 'brand-1', metadataLabel: 'Narrator' },
