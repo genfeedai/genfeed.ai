@@ -7,6 +7,8 @@ import {
 } from '@api/collections/outliers/services/breakout-publication-fence.util';
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { ScheduledPostWorkflowInput } from '@api/collections/posts/services/scheduled-post-workflow-definition';
+import { PostLinkShortenerService } from '@api/collections/tracked-links/services/post-link-shortener.service';
+import { TrackedLinksService } from '@api/collections/tracked-links/services/tracked-links.service';
 import {
   type CredentialDocument,
   type ServerCredentialStore,
@@ -71,6 +73,8 @@ export function readDeliveryIds(post: PostEntity): PostDeliveryIds {
  * target.
  */
 export class ScheduledPostDeliveryGates {
+  private readonly linkShortener: PostLinkShortenerService;
+
   constructor(
     private readonly logger: LoggerService,
     private readonly credentialsService: ServerCredentialStore,
@@ -80,7 +84,11 @@ export class ScheduledPostDeliveryGates {
     private readonly publishingReadinessService: CredentialPublishingReadinessService,
     private readonly prisma: PrismaService,
     private readonly mediaReadinessService: MediaReadinessService,
-  ) {}
+  ) {
+    this.linkShortener = new PostLinkShortenerService(
+      new TrackedLinksService(prisma),
+    );
+  }
 
   async loadResources(
     post: PostEntity,
@@ -247,14 +255,14 @@ export class ScheduledPostDeliveryGates {
     };
   }
 
-  prepare(
+  async prepare(
     post: PostEntity,
     source: ScheduledPostWorkflowInput['source'],
     ids: PostDeliveryIds,
     credential: CredentialDocument,
     organization: OrganizationDocument,
     url: string,
-  ): DeliveryLoad<PreparedPostDelivery> {
+  ): Promise<DeliveryLoad<PreparedPostDelivery>> {
     const prepared = this.buildPreparedDelivery(
       post,
       source,
@@ -263,7 +271,7 @@ export class ScheduledPostDeliveryGates {
       organization,
     );
     if (prepared) {
-      return { ok: true, value: prepared };
+      return { ok: true, value: await this.withShortLinks(prepared, url) };
     }
 
     const platform = String(credential.platform ?? '');
@@ -280,6 +288,38 @@ export class ScheduledPostDeliveryGates {
         platform: fromPrismaCredentialPlatform(platform) ?? platform,
       },
     };
+  }
+
+  /**
+   * The delivery with the caption's URLs swapped for tracked short links.
+   * Best effort: any failure keeps the caption as written, since a missed
+   * click count must never block a post.
+   */
+  private async withShortLinks(
+    prepared: PreparedPostDelivery,
+    url: string,
+  ): Promise<PreparedPostDelivery> {
+    const { context } = prepared;
+    try {
+      const description = await this.linkShortener.shortenPostLinks({
+        description: context.post.description,
+        organizationId: context.organizationId,
+        platform: prepared.platform,
+        postId: context.postId,
+      });
+      return description === context.post.description
+        ? prepared
+        : {
+            ...prepared,
+            context: { ...context, post: { ...context.post, description } },
+          };
+    } catch (error: unknown) {
+      this.logger.warn(`${url} short links skipped`, {
+        error: getErrorMessage(error),
+        postId: context.postId,
+      });
+      return prepared;
+    }
   }
 
   /**

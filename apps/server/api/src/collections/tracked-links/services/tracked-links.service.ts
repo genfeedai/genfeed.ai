@@ -1,12 +1,8 @@
 import { isIP } from 'node:net';
-import process from 'node:process';
 import { CreateTrackedLinkDto } from '@api/collections/tracked-links/dto/create-tracked-link.dto';
 import { TrackClickDto } from '@api/collections/tracked-links/dto/track-click.dto';
 import type { TrackedLinkDocument } from '@api/collections/tracked-links/schemas/tracked-link.schema';
-import {
-  extractPostUrls,
-  replacePostUrls,
-} from '@api/collections/tracked-links/utils/post-link-text.util';
+import { getShortLinkBaseUrl } from '@api/collections/tracked-links/utils/short-link-base-url.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { buildPaginatedResult } from '@api/helpers/utils/paginated-result/paginated-result.util';
 import { scopedWhere } from '@api/index';
@@ -48,17 +44,6 @@ type ClickBreakdowns = {
   clicksByReferrer: Record<string, number>;
 };
 type RequestHeaders = Record<string, string | string[] | undefined>;
-
-/** A post shortens at most this many distinct URLs; further ones stay as written. */
-const MAX_SHORT_LINKS_PER_POST = 10;
-const DEFAULT_SHORT_LINK_BASE_URL = 'https://go.genfeed.ai';
-
-type PostLinkShorteningInput = {
-  description: string;
-  organizationId: string;
-  platform?: string;
-  postId: string;
-};
 
 /** The CTA stats rollup reads at most this many of a content item's links. */
 const CONTENT_STATS_LINK_LIMIT = 500;
@@ -193,7 +178,7 @@ export class TrackedLinksService {
     });
 
     // Generate short URL
-    const shortUrl = `${this.getShortLinkBaseUrl()}/${shortCode}`;
+    const shortUrl = `${getShortLinkBaseUrl()}/${shortCode}`;
 
     // Create tracked link
     const trackedLink = await this.prisma.trackedLink.create({
@@ -233,75 +218,26 @@ export class TrackedLinksService {
     return trackedLink;
   }
 
-  private getShortLinkBaseUrl(): string {
-    return (
-      process.env.SHORT_LINK_BASE_URL || DEFAULT_SHORT_LINK_BASE_URL
-    ).replace(/\/+$/, '');
-  }
-
   /**
-   * Shorten the URLs in a post caption so every click on them is counted for
-   * that post. Safe to call again for the same post (a retry): an existing link
-   * for the same destination is reused. A URL that cannot be shortened stays as
-   * written and never blocks the caller.
+   * The link already created for this post and destination, so a retried
+   * publish reuses it instead of minting a second short code.
    */
-  async shortenPostLinks(input: PostLinkShorteningInput): Promise<string> {
-    const { description, organizationId, platform, postId } = input;
-    const urls = extractPostUrls(description).slice(
-      0,
-      MAX_SHORT_LINKS_PER_POST,
-    );
-    if (urls.length === 0) return description;
-
-    const shortHost = new URL(this.getShortLinkBaseUrl()).host;
-    const replacements = new Map<string, string>();
-
-    for (const url of urls) {
-      try {
-        if (new URL(url).host === shortHost) continue;
-        const link = await this.findOrCreatePostLink(
-          url,
-          postId,
-          organizationId,
-          platform,
-        );
-        replacements.set(url, link.shortUrl);
-      } catch (error: unknown) {
-        this.logger.warn(`Post link left unshortened: ${url}`, {
-          error: error instanceof Error ? error.message : String(error),
-          postId,
-        });
-      }
-    }
-
-    return replacePostUrls(description, replacements);
-  }
-
-  private async findOrCreatePostLink(
-    url: string,
+  async findPostLink(
     postId: string,
     organizationId: string,
+    url: string,
     platform: string | undefined,
-  ): Promise<TrackedLink> {
-    const destination = this.buildUTMUrl(url, {
-      medium: 'social',
-      source: platform || 'genfeed',
-    });
-    const existing = await this.prisma.trackedLink.findFirst({
+  ): Promise<TrackedLink | null> {
+    return this.prisma.trackedLink.findFirst({
       where: scopedWhere(organizationId, {
         isActive: true,
-        originalUrl: destination,
+        originalUrl: this.buildUTMUrl(url, {
+          medium: 'social',
+          source: platform || 'genfeed',
+        }),
         postId,
       }),
     });
-
-    return (
-      existing ??
-      (await this.generateTrackingLink(
-        { platform, postId, url },
-        organizationId,
-      ))
-    );
   }
 
   /**

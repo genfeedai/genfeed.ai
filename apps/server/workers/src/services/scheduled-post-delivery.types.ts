@@ -1,4 +1,3 @@
-import type { TrackedLinksService } from '@api/collections/tracked-links/services/tracked-links.service';
 import type {
   CredentialDocument,
   IPublisher,
@@ -13,9 +12,6 @@ export type PostDeliveryIds = {
   organizationId: string | undefined;
   userId: string | undefined;
 };
-
-/** Shortens the URLs in a post caption for click tracking. */
-export type PostLinkShortener = Pick<TrackedLinksService, 'shortenPostLinks'>;
 
 export type PreparedPostDelivery = {
   context: PublishContext;

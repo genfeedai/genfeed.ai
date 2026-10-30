@@ -1,6 +1,5 @@
+import { DEFAULT_SHORT_LINK_BASE_URL } from '@api/collections/tracked-links/utils/short-link-base-url.util';
 import type { NextFunction, Request, Response } from 'express';
-
-const DEFAULT_SHORT_LINK_BASE_URL = 'https://go.genfeed.ai';
 
 /**
  * Serve short links from the root of their own host. A GET to
