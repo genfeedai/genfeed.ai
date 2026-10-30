@@ -566,7 +566,14 @@ const FROZEN_MCP_PRESENTATIONS = [
     true,
     false,
   ],
-  ['get_social_conversation', 'Get Social Conversation', true, false, true, true],
+  [
+    'get_social_conversation',
+    'Get Social Conversation',
+    true,
+    false,
+    true,
+    true,
+  ],
   [
     'get_tiktok_campaign_insights',
     'Get Tiktok Campaign Insights',
@@ -688,7 +695,14 @@ const FROZEN_MCP_PRESENTATIONS = [
   ],
   ['list_meta_campaigns', 'List Meta Campaigns', true, false, true, false],
   ['list_orgs', 'List Orgs', true, false, true, false],
-  ['list_social_conversations', 'List Social Conversations', true, false, true, true],
+  [
+    'list_social_conversations',
+    'List Social Conversations',
+    true,
+    false,
+    true,
+    true,
+  ],
   ['list_stalled_items', 'List Stalled Items', true, false, true, false],
   [
     'list_system_workflow_catalog',
