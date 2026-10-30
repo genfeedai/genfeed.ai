@@ -22,12 +22,15 @@ vi.mock('next/navigation', () => ({
     prefetch: vi.fn(),
   }),
 }));
-vi.mock('@pages/analytics/platform-detail/analytics-platform-detail', () => ({
-  default: (props: Record<string, unknown>) => {
-    viewMock(props);
-    return <div data-testid="view" />;
-  },
-}));
+vi.mock(
+  '@/features/analytics/platform-detail/analytics-platform-detail',
+  () => ({
+    default: (props: Record<string, unknown>) => {
+      viewMock(props);
+      return <div data-testid="view" />;
+    },
+  }),
+);
 describe('AnalyticsBrandPlatformDetailRoute', () => {
   it('passes narrowed URL params to the view and follows navigation', () => {
     navigation.params = { id: 'brand-1', platform: 'instagram' };

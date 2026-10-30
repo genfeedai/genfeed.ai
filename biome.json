@@ -214,7 +214,7 @@
       "includes": [
         "apps/app/src/components/**",
         "apps/app/src/features/**",
-        "!apps/app/src/features/analytics/**",
+        "!apps/app/src/features/analytics/work-surface/**",
         "!apps/app/src/features/library-remix/**",
         "!apps/app/src/features/research/**",
         "!apps/app/src/features/settings/**",

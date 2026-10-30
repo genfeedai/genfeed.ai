@@ -39,19 +39,6 @@ describe('page semantic theme surfaces', () => {
 
   it.each([
     [
-      'analytics/overview/analytics-overview-placeholder-card.tsx',
-      'bg-white/5',
-      'bg-foreground/5',
-    ],
-    [
-      'analytics/platform-detail/analytics-platform-detail.tsx',
-      'bg-white/10',
-      'bg-foreground/10',
-    ],
-    // Delegates its surface to `@ui/kpi/kpi-section`; only the forbidden token
-    // is still this file's concern.
-    ['analytics/brand-overview/BrandKPISection.tsx', 'bg-white/10', null],
-    [
       'posts/detail/components/PostDetailCardBody.tsx',
       'border-white',
       'border-border',
@@ -88,34 +75,13 @@ describe('page semantic theme surfaces', () => {
     expect(source).not.toContain('text-black');
   });
 
-  it('themes progress and loading indicators', () => {
-    const campaigns = readPage('agents/campaigns/AgentCampaignsPage.tsx');
+  it.each(['posts/list/components/PostsGrid.tsx'])(
+    'uses the shared Card for semantic card surfaces in %s',
+    (path) => {
+      const source = readPage(path);
 
-    expect(campaigns).toContain('bg-foreground/5');
-    expect(campaigns).not.toContain('border-white');
-    expect(campaigns).not.toContain('bg-white');
-  });
-
-  it('themes campaign controls and platform icons', () => {
-    const table = readPage('agents/campaigns/OutreachCampaignsTable.tsx');
-    const header = readPage(
-      'agents/campaigns/OutreachCampaignDetailHeader.tsx',
-    );
-    const wizard = readPage('agents/campaigns/OutreachCampaignWizardStep1.tsx');
-
-    expect(table).not.toContain('text-slate');
-    expect(header).not.toContain('text-slate');
-    expect(wizard).toContain('border-border');
-    expect(wizard).not.toContain('border-white');
-  });
-
-  it.each([
-    'agents/campaigns/AgentCampaignsPage.tsx',
-    'posts/list/components/PostsGrid.tsx',
-  ])('uses the shared Card for semantic card surfaces in %s', (path) => {
-    const source = readPage(path);
-
-    expect(source).toContain("import Card from '@ui/card/Card'");
-    expect(source).toContain('<Card');
-  });
+      expect(source).toContain("import Card from '@ui/card/Card'");
+      expect(source).toContain('<Card');
+    },
+  );
 });

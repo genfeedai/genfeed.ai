@@ -2,13 +2,13 @@
 
 import RemixBriefInspector from '@app-components/research/remix/RemixBriefInspector';
 import type { BrandRemixSourceSelector } from '@genfeedai/contracts/api-types/contracts';
-import AnalyticsPostsList from '@pages/analytics/posts-list/analytics-posts-list';
 import {
   DiscoveryRemixProvider,
   useDiscoveryRemix,
 } from '@pages/research/remix/DiscoveryRemixProvider';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef } from 'react';
+import AnalyticsPostsList from '@/features/analytics/posts-list/analytics-posts-list';
 
 const REMIX_POST_PARAM = 'remixPostId';
 const REMIX_SOURCE_POST_PARAM = 'remixSourcePostId';

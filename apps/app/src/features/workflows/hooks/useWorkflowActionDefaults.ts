@@ -3,8 +3,8 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { getActionDefinition } from '@genfeedai/actions';
 import { Platform } from '@genfeedai/contracts';
-import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
 import { useCallback, useMemo } from 'react';
+import { useAgentStrategies } from '@/features/agents/hooks/agent-strategies/use-agent-strategies';
 
 const PUBLISHING_PLATFORMS = new Set<string>([
   Platform.TWITTER,

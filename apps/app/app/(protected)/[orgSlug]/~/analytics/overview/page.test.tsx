@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import OrgAnalyticsOverviewPage, * as PageModule from './page';
 
 vi.mock(
-  '@pages/analytics/organization-overview/analytics-organization-overview',
+  '@/features/analytics/organization-overview/analytics-organization-overview',
   () => ({
     default: () => <div data-testid="organization-analytics-overview" />,
   }),

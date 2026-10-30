@@ -19,7 +19,7 @@ vi.mock('next/navigation', () => ({
     prefetch: vi.fn(),
   }),
 }));
-vi.mock('@pages/analytics/brand-overview/analytics-brand-overview', () => ({
+vi.mock('@/features/analytics/brand-overview/analytics-brand-overview', () => ({
   default: (props: Record<string, unknown>) => {
     viewMock(props);
     return <div data-testid="view" />;

@@ -1,0 +1,616 @@
+import { PageScope } from '@genfeedai/contracts';
+import type { AnchorHTMLAttributes, ImgHTMLAttributes, ReactNode } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server.node';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import AnalyticsOverview from '@/features/analytics/overview/analytics-overview';
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
+vi.mock('next/dynamic', () => ({
+  default: () =>
+    function MockDynamicComponent() {
+      return <div data-testid="platform-time-series-chart" />;
+    },
+}));
+
+vi.mock('next/image', () => ({
+  default: ({
+    alt,
+    fill: _fill,
+    ...props
+  }: ImgHTMLAttributes<HTMLImageElement> & { fill?: boolean }) => (
+    <img alt={alt} {...props} />
+  ),
+}));
+
+vi.mock('next/link', () => ({
+  default: ({
+    children,
+    href,
+    ...props
+  }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}));
+
+const mockRoute = vi.hoisted(() => ({ brandSlug: 'brand-x' }));
+
+vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
+  useCollectionScope: () => ({
+    brandId: 'brand_1',
+    isReady: true,
+    organizationId: 'org_1',
+    pageScope: 'brand',
+  }),
+}));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    brandSlug: mockRoute.brandSlug,
+    href: (path: string) => `/acme/${mockRoute.brandSlug || '~'}${path}`,
+    orgHref: (path: string) => `/acme/~${path}`,
+  }),
+}));
+
+vi.mock('@genfeedai/contracts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/contracts')>();
+  return {
+    ...actual,
+    AlertCategory: {
+      ERROR: 'error',
+      INFO: 'info',
+      SUCCESS: 'success',
+      WARNING: 'warning',
+    },
+    AnalyticsMetric: {
+      COMMENTS: 'comments',
+      ENGAGEMENT: 'engagement',
+      ENGAGEMENT_RATE: 'engagement_rate',
+      LIKES: 'likes',
+      POSTS: 'posts',
+      SAVES: 'saves',
+      SHARES: 'shares',
+      VIEWS: 'views',
+    },
+    ButtonSize: {
+      LG: 'lg',
+      MD: 'md',
+      SM: 'sm',
+      XS: 'xs',
+    },
+    ButtonVariant: {
+      DEFAULT: 'default',
+      DESTRUCTIVE: 'destructive',
+      GHOST: 'ghost',
+      LINK: 'link',
+      OUTLINE: 'outline',
+      SECONDARY: 'secondary',
+      UNSTYLED: 'unstyled',
+    },
+    CardVariant: {
+      DEFAULT: 'default',
+      GHOST: 'ghost',
+      OUTLINE: 'outline',
+    },
+    PageScope: {
+      BRAND: 'brand',
+      ORGANIZATION: 'organization',
+      PERSONAL: 'personal',
+      SUPERADMIN: 'superadmin',
+    },
+  };
+});
+
+const mockAnalyticsContext = {
+  dateRange: {
+    endDate: new Date('2026-03-09'),
+    startDate: new Date('2026-03-03'),
+  },
+  refreshTrigger: 0,
+};
+
+const mockAnalyticsStore = {
+  blocks: [],
+  hydrateState: vi.fn(),
+  isAgentModified: false,
+  resetToDefaults: vi.fn(),
+};
+
+const mockUserContext = {
+  currentUser: null,
+  mutateUser: vi.fn(),
+};
+
+const mockAnalyticsReturn = {
+  analytics: {
+    activePlatforms: [],
+    avgEngagementRate: 0,
+    engagementGrowth: 0,
+    totalBrands: 0,
+    totalCredentialsConnected: 0,
+    totalEngagement: 0,
+    totalImages: 0,
+    totalPosts: 0,
+    totalSubscriptions: 0,
+    totalUsers: 0,
+    totalVideos: 0,
+    totalViews: 0,
+    viewsGrowth: 0,
+  },
+  cachedAt: null,
+  error: null,
+  isLoading: false,
+  isRefreshing: false,
+  isUsingCache: false,
+  refresh: vi.fn().mockResolvedValue(undefined),
+};
+
+const mockHealthChecksReturn = {
+  healthAlertMessage: null,
+  healthCheckedAt: null,
+  runHealthChecks: vi.fn(),
+};
+
+const mockLeaderboardsReturn = {
+  brandsLeaderboard: [],
+  fetchLeaderboards: vi.fn(),
+  isLeaderboardLoading: false,
+  isLeaderboardUsingCache: false,
+  leaderboardCachedAt: null,
+  orgsLeaderboard: [],
+};
+
+const mockTimeseriesReturn = {
+  fetchTimeseries: vi.fn(),
+  isTimeseriesLoading: false,
+  isTimeseriesUsingCache: false,
+  timeseriesCachedAt: null,
+  timeseriesData: [],
+};
+
+const mockTopPostsReturn = {
+  cachedAt: null,
+  isLoading: false,
+  isUsingCache: false,
+  topPosts: [],
+};
+const mockUseAgentDashboardPersistence = vi.hoisted(() => vi.fn());
+const mockDataHookOptions = vi.hoisted(() => ({
+  leaderboards: vi.fn(),
+  timeseries: vi.fn(),
+  topPosts: vi.fn(),
+}));
+
+vi.mock('@contexts/analytics/analytics-context', () => ({
+  useAnalyticsContext: () => mockAnalyticsContext,
+}));
+
+vi.mock('@contexts/user/user-context/user-context', () => ({
+  useOptionalUser: () => mockUserContext,
+}));
+
+vi.mock('@genfeedai/agent/hooks/use-agent-dashboard-persistence', () => ({
+  useAgentDashboardPersistence: mockUseAgentDashboardPersistence,
+}));
+
+vi.mock('@genfeedai/agent/components/blocks', () => ({
+  DashboardOpenUIRenderer: () => (
+    <div data-testid="dashboard-openui-renderer" />
+  ),
+  DynamicBlockGrid: () => <div data-testid="dynamic-block-grid" />,
+}));
+
+vi.mock('@genfeedai/agent', () => ({
+  DashboardOpenUIRenderer: () => (
+    <div data-testid="dashboard-openui-renderer" />
+  ),
+  DynamicBlockGrid: () => <div data-testid="dynamic-block-grid" />,
+  useAgentDashboardStore: (
+    selector: (state: typeof mockAnalyticsStore) => unknown,
+  ) => selector(mockAnalyticsStore),
+}));
+
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => vi.fn(),
+}));
+
+vi.mock('@hooks/data/analytics/use-analytics/use-analytics', () => ({
+  useAnalytics: () => mockAnalyticsReturn,
+}));
+
+vi.mock('@hooks/data/analytics/use-health-checks/use-health-checks', () => ({
+  useHealthChecks: () => mockHealthChecksReturn,
+}));
+
+vi.mock('@hooks/data/analytics/use-leaderboards/use-leaderboards', () => ({
+  useLeaderboards: (options: unknown) => {
+    mockDataHookOptions.leaderboards(options);
+    return mockLeaderboardsReturn;
+  },
+}));
+
+vi.mock('@hooks/data/analytics/use-timeseries/use-timeseries', () => ({
+  useTimeseries: (options: unknown) => {
+    mockDataHookOptions.timeseries(options);
+    return mockTimeseriesReturn;
+  },
+}));
+
+vi.mock('@hooks/data/analytics/use-top-posts/use-top-posts', () => ({
+  useTopPosts: (options: unknown) => {
+    mockDataHookOptions.topPosts(options);
+    return mockTopPostsReturn;
+  },
+}));
+
+vi.mock('@models/auth/user.model', () => ({
+  User: class User {},
+}));
+
+vi.mock('@services/analytics/analytics.service', () => ({
+  AnalyticsService: class AnalyticsService {},
+}));
+
+vi.mock('@services/organization/users.service', () => ({
+  UsersService: class UsersService {},
+}));
+
+vi.mock('@/features/analytics/accounts/analytics-top-accounts', () => ({
+  default: () => <div data-testid="top-accounts-section" />,
+}));
+
+vi.mock('./analytics-overview-performance-dataset', () => ({
+  default: () => <div data-testid="performance-dataset-section" />,
+}));
+
+vi.mock('@ui/analytics/top-posts/TopPostsSection', () => ({
+  default: () => <div data-testid="top-posts-section" />,
+}));
+
+vi.mock('@ui/buttons/base/Button', () => ({
+  default: () => <button type="button" />,
+}));
+
+vi.mock('@ui/card/Card', () => ({
+  default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+}));
+
+vi.mock('@ui/display/table/Table', () => ({
+  default: () => <div data-testid="table" />,
+}));
+
+vi.mock('@ui/feedback/alert/Alert', () => ({
+  default: () => <div data-testid="alert" />,
+}));
+
+vi.mock('@ui/kpi/kpi-section/KPISection', () => ({
+  default: ({ title, isLoading }: { title: string; isLoading: boolean }) => (
+    <div data-testid="kpi-section" data-loading={isLoading}>
+      {title}
+    </div>
+  ),
+}));
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
+vi.mock('@ui/primitives/button', () => ({
+  Button: ({
+    children,
+    onClick,
+    ariaLabel,
+  }: {
+    children?: ReactNode;
+    onClick?: () => void;
+    ariaLabel?: string;
+  }) => (
+    <button type="button" onClick={onClick} aria-label={ariaLabel}>
+      {children}
+    </button>
+  ),
+  buttonVariants: () => '',
+}));
+
+describe('AnalyticsOverview', () => {
+  function renderOverview() {
+    return renderToStaticMarkup(<AnalyticsOverview />);
+  }
+
+  beforeEach(() => {
+    globalThis.IntersectionObserver = class {
+      disconnect() {}
+      observe() {}
+      unobserve() {}
+    } as typeof IntersectionObserver;
+
+    mockAnalyticsStore.blocks = [];
+    mockAnalyticsStore.isAgentModified = false;
+    mockAnalyticsReturn.isLoading = false;
+    mockAnalyticsReturn.isRefreshing = false;
+    mockAnalyticsReturn.analytics = {
+      activePlatforms: [],
+      avgEngagementRate: 0,
+      engagementGrowth: 0,
+      totalBrands: 0,
+      totalCredentialsConnected: 0,
+      totalEngagement: 0,
+      totalImages: 0,
+      totalPosts: 0,
+      totalSubscriptions: 0,
+      totalUsers: 0,
+      totalVideos: 0,
+      totalViews: 0,
+      viewsGrowth: 0,
+    };
+    mockLeaderboardsReturn.isLeaderboardLoading = false;
+    mockTimeseriesReturn.isTimeseriesLoading = false;
+    mockTopPostsReturn.isLoading = false;
+    mockLeaderboardsReturn.brandsLeaderboard = [];
+    mockLeaderboardsReturn.orgsLeaderboard = [];
+    mockTimeseriesReturn.timeseriesData = [];
+    mockTopPostsReturn.topPosts = [];
+    mockUseAgentDashboardPersistence.mockClear();
+    mockDataHookOptions.leaderboards.mockClear();
+    mockDataHookOptions.timeseries.mockClear();
+    mockDataHookOptions.topPosts.mockClear();
+  });
+
+  // genfeedai/genfeed.ai#5418: the data hooks skip their mount fetch whenever
+  // they receive initial data with `revalidateOnMount: false`, so a page that
+  // passes no server data must not hand them an empty array ("hydrated").
+  it('lets the chart, leaderboard and top-post hooks fetch when no server data is passed', () => {
+    renderOverview();
+
+    expect(mockDataHookOptions.timeseries).toHaveBeenCalledWith(
+      expect.objectContaining({ initialData: undefined }),
+    );
+    expect(mockDataHookOptions.leaderboards).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initialBrandsLeaderboard: undefined,
+        initialOrgsLeaderboard: undefined,
+      }),
+    );
+    expect(mockDataHookOptions.topPosts).toHaveBeenCalledWith(
+      expect.objectContaining({ initialData: undefined }),
+    );
+  });
+
+  it('scopes top posts to the selected brand on a brand page', () => {
+    renderToStaticMarkup(<AnalyticsOverview scope={PageScope.BRAND} />);
+
+    expect(mockDataHookOptions.topPosts).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: 'brand_1' }),
+    );
+    expect(mockDataHookOptions.topPosts).not.toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: undefined }),
+    );
+  });
+
+  it('keeps top posts organization-wide outside brand scope', () => {
+    renderOverview();
+
+    expect(mockDataHookOptions.topPosts).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: undefined }),
+    );
+  });
+
+  it('hands server-provided data to the hooks as hydrated initial data', () => {
+    const timeseriesData = [{ date: '2026-03-03', instagram: 10 }];
+
+    renderToStaticMarkup(
+      <AnalyticsOverview
+        brandsLeaderboard={[]}
+        orgsLeaderboard={[]}
+        timeseriesData={timeseriesData}
+        topPosts={[]}
+      />,
+    );
+
+    expect(mockDataHookOptions.timeseries).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initialData: timeseriesData,
+        revalidateOnMount: false,
+      }),
+    );
+    expect(mockDataHookOptions.leaderboards).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initialBrandsLeaderboard: [],
+        initialOrgsLeaderboard: [],
+        revalidateOnMount: false,
+      }),
+    );
+    expect(mockDataHookOptions.topPosts).toHaveBeenCalledWith(
+      expect.objectContaining({ initialData: [], revalidateOnMount: false }),
+    );
+  });
+
+  it('blocks the overview with connect-account onboarding when no analytics data exists', () => {
+    const markup = renderOverview();
+
+    expect(markup).toContain('Connect accounts to see analytics');
+    expect(markup).toContain('Connect accounts');
+    expect(markup).toContain('card-empty');
+    expect(markup).not.toContain('First run');
+    expect(markup).not.toContain(
+      'Trend lines will appear here once performance data lands',
+    );
+    expect(markup).not.toContain('Top posts will surface here');
+    expect(markup).not.toContain(
+      'Brand rankings will unlock after the first measurable wins',
+    );
+    expect(markup).not.toContain('top-accounts-section');
+    expect(markup).not.toContain('performance-dataset-section');
+    expect(markup).not.toContain('Your analytics home is ready');
+    expect(markup).not.toContain('Coverage so far');
+    expect(markup).not.toContain('Setup progress');
+    expect(markup).not.toContain('font-serif');
+  });
+
+  it('does not flash empty dashboard chrome while its queries are loading', () => {
+    mockAnalyticsReturn.isLoading = true;
+    mockLeaderboardsReturn.isLeaderboardLoading = true;
+    mockTimeseriesReturn.isTimeseriesLoading = true;
+    mockTopPostsReturn.isLoading = true;
+
+    const markup = renderOverview();
+
+    expect(markup).not.toContain('analytics-overview-loading');
+    expect(markup).toContain('data-testid="kpi-section" data-loading="true"');
+    expect(markup).toContain('top-accounts-section');
+    expect(markup).toContain('performance-dataset-section');
+    expect(markup).not.toContain('First run');
+    expect(markup).not.toContain('Connect accounts to see analytics');
+    expect(markup).not.toContain(
+      'Trend lines will appear here once performance data lands',
+    );
+    expect(markup).not.toContain('Top posts will surface here');
+    expect(markup).not.toContain(
+      'Brand rankings will unlock after the first measurable wins',
+    );
+  });
+
+  it('shows settled empty panels while core metrics are still loading', () => {
+    mockAnalyticsReturn.isLoading = true;
+    const markup = renderOverview();
+    expect(markup).toContain('data-testid="kpi-section" data-loading="true"');
+    expect(markup).toContain(
+      'Trend lines will appear here once performance data lands',
+    );
+    expect(markup).toContain('Top posts will surface here');
+    expect(markup).toContain(
+      'Brand rankings will unlock after the first measurable wins',
+    );
+  });
+
+  it('keeps populated KPI cards visible during a background refresh', () => {
+    mockAnalyticsReturn.analytics.totalViews = 200;
+    mockAnalyticsReturn.isRefreshing = true;
+    const markup = renderOverview();
+    expect(markup).toContain('data-testid="kpi-section" data-loading="false"');
+    expect(markup).not.toContain('data-loading="true"');
+  });
+
+  it('mounts agent dashboard persistence before the customized dashboard is visible', async () => {
+    const { default: AnalyticsAgentDashboard } = await import(
+      './analytics-agent-dashboard'
+    );
+
+    renderToStaticMarkup(
+      <AnalyticsAgentDashboard
+        agentBlocks={[]}
+        currentUser={null}
+        getLocalSnapshot={() => ({
+          blocks: [],
+          isAgentModified: false,
+        })}
+        hydrateState={() => {}}
+        isAgentModified={false}
+        onResetToDefaults={() => {}}
+        persistState={async () => {}}
+      />,
+    );
+
+    expect(mockUseAgentDashboardPersistence).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves superadmin destinations despite a selected brand payload', () => {
+    const markup = renderToStaticMarkup(
+      <AnalyticsOverview scope={PageScope.SUPERADMIN} basePath="/admin" />,
+    );
+    expect(markup).toContain('/acme/~/settings/integrations');
+    expect(markup).not.toContain('/acme/brand-x/settings/connected-accounts');
+    expect(markup).not.toContain('/acme/brand-x/publishing');
+    expect(markup).toContain('href="/publishing');
+    expect(markup).toContain('/admin/brands');
+  });
+
+  it('offers brand selection instead of provider settings in organization scope', () => {
+    mockRoute.brandSlug = '';
+    mockAnalyticsReturn.analytics.totalCredentialsConnected = 2;
+    const markup = renderOverview();
+    mockRoute.brandSlug = 'brand-x';
+    expect(markup).toContain('/acme/~/settings/brands');
+    expect(markup).not.toContain('/acme/~/settings/integrations');
+  });
+
+  it('renders warming-up messaging when setup exists but performance is still sparse', () => {
+    mockAnalyticsReturn.analytics = {
+      ...mockAnalyticsReturn.analytics,
+      activePlatforms: ['instagram'],
+      totalCredentialsConnected: 2,
+      totalPosts: 6,
+    };
+
+    const markup = renderOverview();
+
+    expect(markup).toContain('Warming up');
+    expect(markup).toContain('/acme/brand-x/publishing');
+    expect(markup).toContain('/acme/brand-x/settings/connected-accounts');
+    expect(markup).not.toContain('/settings/api-keys');
+    expect(markup).not.toContain('Data is starting to come through');
+    expect(markup).not.toContain('Coverage so far');
+    expect(markup).not.toContain('Setup progress');
+    expect(markup).not.toContain('font-serif');
+    expect(markup).not.toContain('rounded-2xl border');
+    expect(markup).not.toContain('bg-black/10 p-4');
+  });
+
+  it('renders the active dashboard when metrics and time series data are available', () => {
+    mockAnalyticsReturn.analytics = {
+      ...mockAnalyticsReturn.analytics,
+      activePlatforms: ['instagram', 'youtube'],
+      avgEngagementRate: 4.75,
+      engagementGrowth: 16,
+      totalCredentialsConnected: 3,
+      totalEngagement: 824,
+      totalPosts: 18,
+      totalViews: 12450,
+      viewsGrowth: 21,
+    };
+    mockTimeseriesReturn.timeseriesData = [
+      { date: '2026-03-03', instagram: 10 },
+      { date: '2026-03-04', instagram: 25, youtube: 5 },
+    ];
+    mockTopPostsReturn.topPosts = [
+      {
+        description: 'Top performer',
+        platform: 'instagram',
+        postId: 'post-1',
+        totalComments: 4,
+        totalLikes: 30,
+        totalViews: 240,
+      },
+    ];
+    mockLeaderboardsReturn.brandsLeaderboard = [
+      {
+        activePlatforms: ['instagram'],
+        avgEngagementRate: 5.2,
+        createdAt: '2026-03-01',
+        growth: 10,
+        id: 'brand-1',
+        logo: '',
+        name: 'Acme',
+        organizationId: 'org-1',
+        organizationName: 'Org',
+        totalEngagement: 120,
+        totalPosts: 8,
+        totalViews: 2400,
+      },
+    ];
+
+    const markup = renderOverview();
+
+    expect(markup).toContain('Top brands');
+    expect(markup).not.toContain('Performance snapshot');
+    expect(markup).not.toContain('What moved in this range');
+    expect(markup).not.toContain('First run');
+    expect(markup).toContain('platform-time-series-chart');
+    expect(markup).toContain('top-posts-section');
+  });
+});
