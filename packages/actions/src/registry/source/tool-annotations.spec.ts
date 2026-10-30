@@ -168,16 +168,6 @@ const AUDITED_READ_PRESENTATIONS = [
     annotations: {
       destructiveHint: false,
       idempotentHint: false,
-      openWorldHint: true,
-      readOnlyHint: false,
-    },
-    name: 'get_articles',
-    title: 'Get Articles',
-  },
-  {
-    annotations: {
-      destructiveHint: false,
-      idempotentHint: false,
       openWorldHint: false,
       readOnlyHint: false,
     },
@@ -228,16 +218,6 @@ const AUDITED_READ_PRESENTATIONS = [
     annotations: {
       readOnlyHint: false,
       destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-    name: 'get_account',
-    title: 'Get Account',
-  },
-  {
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
       idempotentHint: false,
       openWorldHint: false,
     },
@@ -273,16 +253,6 @@ const AUDITED_READ_PRESENTATIONS = [
     },
     name: 'get_content_analytics',
     title: 'Get Content Analytics',
-  },
-  {
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: true,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-    name: 'get_generation_options',
-    title: 'Get Generation Options',
   },
   {
     annotations: {
@@ -515,7 +485,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     true,
   ],
   ['generate_visual_code', 'Generate Visual Code', false, true, false, true],
-  ['get_account', 'Get Account', false, false, true, false],
+  ['get_account', 'Get Account', true, false, true, false],
   [
     'get_ad_research_detail',
     'Get Ad Research Detail',
@@ -528,7 +498,7 @@ const FROZEN_MCP_PRESENTATIONS = [
   ['get_ads_adset_insights', 'Get Ads Adset Insights', true, false, true, true],
   ['get_analytics', 'Get Analytics', false, false, false, false],
   ['get_article_preview', 'Get Article Preview', true, false, true, false],
-  ['get_articles', 'Get Articles', false, false, false, true],
+  ['get_articles', 'Get Articles', true, false, true, true],
   [
     'get_brand_completeness',
     'Get Brand Completeness',
@@ -572,8 +542,8 @@ const FROZEN_MCP_PRESENTATIONS = [
   [
     'get_generation_options',
     'Get Generation Options',
-    false,
     true,
+    false,
     true,
     false,
   ],
@@ -1076,13 +1046,13 @@ describe('MCP tool annotations', () => {
       destructiveHint: false,
       idempotentHint: true,
       openWorldHint: false,
-      readOnlyHint: false,
+      readOnlyHint: true,
     });
     expect(second.annotations).toEqual({
       destructiveHint: false,
       idempotentHint: true,
       openWorldHint: false,
-      readOnlyHint: false,
+      readOnlyHint: true,
     });
     expect(
       deriveMcpToolPresentation('get_brands', undefined).annotations,
@@ -1205,7 +1175,10 @@ describe('MCP tool annotations', () => {
       expect(getToolByName(name)?.annotations?.readOnlyHint, name).toBe(false);
     }
     for (const name of [
+      'get_account',
+      'get_articles',
       'get_brands',
+      'get_generation_options',
       'list_assets',
       'validate_scheduler_target',
     ]) {
