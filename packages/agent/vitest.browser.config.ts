@@ -138,14 +138,6 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../models/$1'),
       },
       {
-        find: /^@genfeedai\/pages$/,
-        replacement: path.resolve(__dirname, '../pages'),
-      },
-      {
-        find: /^@genfeedai\/pages\/(.*)$/,
-        replacement: path.resolve(__dirname, '../pages/$1'),
-      },
-      {
         find: /^@genfeedai\/props$/,
         replacement: path.resolve(__dirname, '../props'),
       },

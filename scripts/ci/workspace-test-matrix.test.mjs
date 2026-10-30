@@ -4,7 +4,6 @@ import { buildPackageTestMatrix } from './workspace-test-matrix.mjs';
 
 const tasks = [
   '@genfeedai/ui#test',
-  '@genfeedai/pages#test',
   '@genfeedai/agent#test',
   '@genfeedai/workflows#test',
   '@genfeedai/hooks#test',

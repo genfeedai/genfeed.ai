@@ -107,16 +107,11 @@ export const ALLOWLIST = {
     'apps/website/src/components/home/_marketplace-cta.tsx',
     'apps/app/src/features/analytics/overview/analytics-overview.tsx',
     'apps/app/src/features/analytics/trend-turnover/analytics-trend-turnover.tsx',
-    'packages/pages/automation/agents/new/AgentWizardPage.tsx',
-    'packages/pages/automation/bots/BotsList.tsx',
     'apps/app/src/features/brands/components/latest-articles/BrandDetailLatestArticles.tsx',
     'apps/app/src/features/brands/components/latest-images/BrandDetailLatestImages.tsx',
     'apps/app/src/features/brands/components/latest-videos/BrandDetailLatestVideos.tsx',
     'apps/app/src/features/brands/components/sidebar/BrandDetailExternalLinksCard.tsx',
     'apps/app/src/features/ingredients/detail/ingredient-detail.tsx',
-    'packages/pages/mission-control/components/AgentRunCard.tsx',
-    'packages/pages/settings/help/settings-help-page.tsx',
-    'packages/pages/settings/voice/settings-voice-page.tsx',
     'apps/app/src/features/studio/page/StudioPageContent.tsx',
   ]),
 
@@ -189,7 +184,7 @@ function lineOf(content: string, index: number): number {
 
 // Rule definitions
 
-const APP_PAGES_PREFIXES = ['apps/app/', 'packages/pages/'] as const;
+const APP_PAGES_PREFIXES = ['apps/app/'] as const;
 const PRODUCT_UI_PREFIXES = [
   ...APP_PAGES_PREFIXES,
   'apps/server/mcp/src/ui/',
@@ -698,7 +693,6 @@ export function detectViolations(
 const BOUNDED_GLOBS = [
   'apps/app/**/*.{tsx,jsx}',
   'packages/agent/src/**/*.{tsx,jsx}',
-  'packages/pages/**/*.{tsx,jsx}',
   'packages/ui/src/**/*.{tsx,jsx}',
   'packages/ui/src/components/workflow-builder/**/*.{tsx,jsx}',
   'packages/workflows/src/ui/**/*.{tsx,jsx}',

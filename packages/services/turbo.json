@@ -13,7 +13,6 @@
         "$TURBO_ROOT$/packages/hooks/**",
         "$TURBO_ROOT$/packages/models/**",
         "$TURBO_ROOT$/packages/next-config/**",
-        "$TURBO_ROOT$/packages/pages/**",
         "$TURBO_ROOT$/packages/pricing/**",
         "$TURBO_ROOT$/packages/props/**",
         "$TURBO_ROOT$/packages/ui/**",

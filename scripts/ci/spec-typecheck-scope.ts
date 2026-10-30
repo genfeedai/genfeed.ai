@@ -47,7 +47,6 @@ const APP_WORKSPACE_ROOTS = new Set<string>(['apps/server', 'apps']);
 export const FRONTEND_GRAPH_WORKSPACES: ReadonlySet<string> = new Set([
   'agent',
   'hooks',
-  'pages',
   'props',
   'ui',
 ]);

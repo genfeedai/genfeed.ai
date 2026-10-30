@@ -50,7 +50,6 @@ const INCLUDE_GLOBS = [
   'packages/hooks/**/*.ts',
   'packages/contracts/src/interfaces/**/*.ts',
   'packages/models/**/*.ts',
-  'packages/pages/**/*.ts',
   'packages/serializers/src/**/*.ts',
   'packages/services/**/*.ts',
 ];

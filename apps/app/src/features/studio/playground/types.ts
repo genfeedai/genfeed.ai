@@ -1,5 +1,5 @@
 // The Studio Playground domain shapes live in `@genfeedai/contracts/interfaces` so the
-// props package can reference them without depending on `@genfeedai/pages`.
+// props package can reference them without depending on the app.
 export type {
   StudioGenerateDraftPayload,
   StudioGenerateDraftReference,

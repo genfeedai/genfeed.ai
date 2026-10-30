@@ -53,8 +53,8 @@ carry `source`. Indexes are `@@index` in `packages/prisma/prisma/schema.prisma`.
 **Feature folders (#8684)** — app-only screens, hooks and prop types live together in
 `apps/app/src/features/<feature>/` (`hooks/`, `props/`, plus the screen folders), imported as
 `@/features/<feature>/...`. Shared packages hold only what a second app or package needs:
-`contracts`, the `ui` design system, helpers and data clients. `packages/pages`, `packages/hooks`
-and app-only `packages/props` files move into feature folders one feature per PR.
+`contracts`, the `ui` design system, helpers and data clients. `packages/pages` is gone; app-only
+`packages/hooks` and `packages/props` files move into feature folders one feature per PR.
 `bun run check:package-layering` blocks new upward imports between shared packages.
 
 **Page split** — `page.tsx` server component does `createPageMetadataWithCanonical()` + `Suspense`

@@ -40,7 +40,6 @@ const logger = {
 const INCLUDE_GLOBS = [
   'apps/app/**/*.{ts,tsx}',
   'packages/ui/src/**/*.{ts,tsx}',
-  'packages/pages/**/*.{ts,tsx}',
 ];
 
 const PLAYWRIGHT_INCLUDE_GLOBS = ['playwright/e2e/**/*.{ts,tsx}'];

@@ -48,7 +48,6 @@ const PROTECTED_PACKAGES = new Set([
   'agent',
   'contexts',
   'hooks',
-  'pages',
   'props',
   'styles',
   'ui',

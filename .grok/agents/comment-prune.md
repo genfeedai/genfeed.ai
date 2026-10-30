@@ -55,7 +55,7 @@ Slices:
 2. `apps/server/api/src` collections and modules.
 3. The rest of `apps/server/api/src` (services, auth, jobs, guards).
 4. Other `apps/server/*` source except `api/` and `dist/`.
-5. `packages/ui` and `packages/pages` source.
+5. `packages/ui` and `apps/app/src/features` source.
 6. `packages/serializers`, `packages/contracts`, `packages/helpers`, and `packages/client` source.
 7. `packages/agent`, `packages/workflows`, `packages/hooks`, and `packages/workflow-ui` source.
 8. `apps/website`, `apps/extensions`, `apps/mobile`, `apps/desktop`, `apps/docs`, and `scripts`.

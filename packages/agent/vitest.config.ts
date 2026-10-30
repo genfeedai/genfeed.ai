@@ -77,7 +77,7 @@ export default defineConfig({
       {
         // The real Better Auth React client schedules a delayed nanostores
         // cleanup that touches `window` after jsdom teardown, so resolve it to
-        // the same timer-free stub as apps/app and packages/pages.
+        // the same timer-free stub as apps/app.
         find: /^better-auth\/react$/,
         replacement: path.resolve(
           __dirname,
@@ -150,14 +150,6 @@ export default defineConfig({
       {
         find: /^@genfeedai\/models\/(.*)$/,
         replacement: path.resolve(__dirname, '../models/$1'),
-      },
-      {
-        find: /^@genfeedai\/pages$/,
-        replacement: path.resolve(__dirname, '../pages'),
-      },
-      {
-        find: /^@genfeedai\/pages\/(.*)$/,
-        replacement: path.resolve(__dirname, '../pages/$1'),
       },
       {
         find: /^@genfeedai\/props$/,

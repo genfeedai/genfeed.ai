@@ -163,7 +163,6 @@ automatically available here.
 @helpers/*       -> packages/helpers/src/*
 @serializers/*   -> packages/serializers/src/*
 @models/*        -> packages/models/*
-@pages/*         -> packages/pages/*
 @utils/*         -> packages/utils/*
 @styles/*        -> packages/styles/*
 @config/*        -> packages/config/src/*

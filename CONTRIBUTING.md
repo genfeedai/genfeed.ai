@@ -376,7 +376,7 @@ are enforced by repository code and which remain GitHub administrator settings.
   API code.
 - Match at least three existing examples before introducing a new code pattern.
 - New user-visible copy in `apps/app` or shared product packages
-  (`packages/ui`, `packages/pages`, `packages/agent`, `packages/contexts`) goes
+  (`packages/ui`, `packages/agent`, `packages/contexts`) goes
   through the host app message catalog (`apps/app/messages/en/<namespace>.json`
   + `useTranslations` / `getTranslations`). Do not hoist strings into a
   module-level `COPY` const to satisfy `bun run check:untranslated-strings`.

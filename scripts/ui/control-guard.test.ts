@@ -155,7 +155,7 @@ describe('control-guard detection', () => {
       'import { Tabs } from "@ui/primitives/tabs";\nexport default Tabs;',
     );
     const radixFile = write(
-      'packages/pages/radix-tabs.tsx',
+      'apps/app/src/features/radix-tabs.tsx',
       'import * as Tabs from "@radix-ui/react-tabs";\nexport default Tabs;',
     );
     const relativeFile = write(
@@ -430,7 +430,7 @@ describe('shared media boundary', () => {
 describe('control-guard form spacing', () => {
   it('bans a raw form element', () => {
     const file = write(
-      'packages/pages/RawForm.tsx',
+      'apps/app/src/features/RawForm.tsx',
       'export function RawForm(){return <form onSubmit={() => undefined}><span /></form>;}',
     );
     expect(categoriesFor(file)).toContain('raw-html');
@@ -438,7 +438,7 @@ describe('control-guard form spacing', () => {
 
   it('flags stack classes that re-own the rhythm on Form', () => {
     const file = write(
-      'packages/pages/StackedForm.tsx',
+      'apps/app/src/features/StackedForm.tsx',
       'export function StackedForm(){return <Form className="max-w-xl space-y-6"><span /></Form>;}',
     );
     expect(categoriesFor(file)).toEqual(['form-spacing']);
@@ -446,7 +446,7 @@ describe('control-guard form spacing', () => {
 
   it('allows layout classes on a spacing="none" form', () => {
     const file = write(
-      'packages/pages/LayoutForm.tsx',
+      'apps/app/src/features/LayoutForm.tsx',
       'export function LayoutForm(){return <Form spacing="none" className="flex items-center gap-1"><span /></Form>;}',
     );
     expect(categoriesFor(file)).toEqual([]);
@@ -459,7 +459,7 @@ describe('control-guard form spacing', () => {
     ['Label', 'sm:mb-2'],
   ])('flags a vertical margin on %s', (tag, marginClass) => {
     const file = write(
-      `packages/pages/Margin${tag}.tsx`,
+      `apps/app/src/features/Margin${tag}.tsx`,
       `export function Margin(){return <${tag} className={cn('flex', '${marginClass}')} />;}`,
     );
     expect(categoriesFor(file)).toEqual(['form-spacing']);
@@ -467,7 +467,7 @@ describe('control-guard form spacing', () => {
 
   it('accepts spacing="none" written as an expression', () => {
     const file = write(
-      'packages/pages/ExpressionSpacing.tsx',
+      'apps/app/src/features/ExpressionSpacing.tsx',
       'export function ExpressionSpacing(){return <Form spacing={\'none\'} className="flex gap-1"><span /></Form>;}',
     );
     expect(categoriesFor(file)).toEqual([]);
@@ -475,7 +475,7 @@ describe('control-guard form spacing', () => {
 
   it('flags margins behind arbitrary variant prefixes', () => {
     const file = write(
-      'packages/pages/VariantMargin.tsx',
+      'apps/app/src/features/VariantMargin.tsx',
       'export function VariantMargin(){return <DialogFooter className="data-[state=open]:mt-2" />;}',
     );
     expect(categoriesFor(file)).toEqual(['form-spacing']);
@@ -483,7 +483,7 @@ describe('control-guard form spacing', () => {
 
   it('flags a margin on a direct child of a stack owner, through conditionals', () => {
     const file = write(
-      'packages/pages/ChildMargin.tsx',
+      'apps/app/src/features/ChildMargin.tsx',
       [
         'export function ChildMargin({ error }: { error?: string }){',
         '  return <Form>',
@@ -500,7 +500,7 @@ describe('control-guard form spacing', () => {
 
   it('treats DialogContent as a stack owner and DialogHeader as margin-free', () => {
     const file = write(
-      'packages/pages/DialogMargins.tsx',
+      'apps/app/src/features/DialogMargins.tsx',
       [
         'export function DialogMargins(){',
         '  return <DialogContent>',
@@ -517,7 +517,7 @@ describe('control-guard form spacing', () => {
 
   it('covers the compound Modal footer', () => {
     const file = write(
-      'packages/pages/CompoundFooter.tsx',
+      'apps/app/src/features/CompoundFooter.tsx',
       'export function CompoundFooter(){return <Modal.Content><Modal.Footer className="mt-2" /></Modal.Content>;}',
     );
     expect(categoriesFor(file)).toEqual(['form-spacing']);
@@ -525,7 +525,7 @@ describe('control-guard form spacing', () => {
 
   it('leaves margins inside a nested container alone', () => {
     const file = write(
-      'packages/pages/NestedMargin.tsx',
+      'apps/app/src/features/NestedMargin.tsx',
       'export function NestedMargin(){return <Modal><div className="flex flex-col"><p className="mt-1">hint</p></div></Modal>;}',
     );
     expect(categoriesFor(file)).toEqual([]);
@@ -533,7 +533,7 @@ describe('control-guard form spacing', () => {
 
   it('allows padding and alignment on ModalActions', () => {
     const file = write(
-      'packages/pages/PaddedActions.tsx',
+      'apps/app/src/features/PaddedActions.tsx',
       'export function PaddedActions(){return <ModalActions className="border-t pt-6 justify-between" />;}',
     );
     expect(categoriesFor(file)).toEqual([]);

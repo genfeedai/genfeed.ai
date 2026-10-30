@@ -223,7 +223,6 @@
         "apps/app/src/hooks/**",
         "packages/agent/src/**",
         "packages/hooks/**",
-        "packages/pages/**",
         "packages/ui/src/components/**",
         "packages/workflows/src/ui/**"
       ],

@@ -8,7 +8,6 @@ const SCAN_ROOTS = [
   join(process.cwd(), 'app'),
   join(process.cwd(), 'packages'),
   join(process.cwd(), 'src'),
-  join(REPO_ROOT, 'packages/pages'),
   join(REPO_ROOT, 'packages/ui/src'),
   join(REPO_ROOT, 'apps/website/app'),
   join(REPO_ROOT, 'apps/website/src'),
