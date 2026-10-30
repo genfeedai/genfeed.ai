@@ -120,20 +120,12 @@ export class VideoThumbnailService {
 
       // Resize thumbnail using sharp (maintain aspect ratio)
       const resizeStartTime = Date.now();
-      const resizedFrame = await sharp(thumbnailPath)
-        .resize(width, null, { withoutEnlargement: true })
-        .toBuffer();
-      const titled = title
-        ? await overlayTitle(resizedFrame, title, coverStyle?.title)
-        : resizedFrame;
-      const signed = coverStyle?.signature
-        ? await this.watermarkExport.applyToImage(titled, [
-            coverStyle.signature,
-          ])
-        : titled;
-      const resizedThumbnailBuffer = await sharp(signed)
-        .jpeg({ quality: 85 })
-        .toBuffer();
+      const resizedThumbnailBuffer = await this.composeThumbnail(
+        thumbnailPath,
+        width,
+        title,
+        coverStyle,
+      );
       const resizeDuration = Date.now() - resizeStartTime;
 
       const thumbnailSizeKB = (resizedThumbnailBuffer.length / 1024).toFixed(2);
@@ -188,6 +180,25 @@ export class VideoThumbnailService {
       });
       throw error;
     }
+  }
+
+  /** Resizes the extracted frame, then lays the cover title and the brand signature over it. */
+  private async composeThumbnail(
+    framePath: string,
+    width: number,
+    title?: string,
+    coverStyle?: ICoverStyle,
+  ): Promise<Buffer> {
+    const resizedFrame = await sharp(framePath)
+      .resize(width, null, { withoutEnlargement: true })
+      .toBuffer();
+    const titled = title
+      ? await overlayTitle(resizedFrame, title, coverStyle?.title)
+      : resizedFrame;
+    const signed = coverStyle?.signature
+      ? await this.watermarkExport.applyToImage(titled, [coverStyle.signature])
+      : titled;
+    return sharp(signed).jpeg({ quality: 85 }).toBuffer();
   }
 
   private async uploadThumbnail(
