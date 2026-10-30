@@ -25,7 +25,6 @@ import type {
   AgentArtifactReference,
   IAvatar,
 } from '@genfeedai/contracts/interfaces';
-import { useCampaignAccounts } from '@hooks/data/campaigns/use-campaign-accounts';
 import { useAvatarImages } from '@hooks/data/ingredients/use-avatar-images/use-avatar-images';
 import type { Voice } from '@models/ingredients/voice.model';
 import { useVoiceCatalog } from '@pages/library/voices/hooks/use-voice-catalog';
@@ -46,6 +45,7 @@ import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
 import { Library, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, useEffect, useMemo, useState } from 'react';
+import { useCampaignAccounts } from '@/features/campaigns/hooks/use-campaign-accounts';
 import LibraryPickerOverlay from '@/features/library-remix/LibraryPickerOverlay';
 import RemixConceptFields, {
   type RemixStoryboardDraft,

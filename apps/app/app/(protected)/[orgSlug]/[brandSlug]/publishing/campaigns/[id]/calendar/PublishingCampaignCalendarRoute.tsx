@@ -2,7 +2,7 @@
 
 import ContentCalendarPage from '@app/(protected)/[orgSlug]/[brandSlug]/publishing/calendar/content-calendar-page';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
-import { CampaignDetailShell } from '@pages/campaigns';
+import { CampaignDetailShell } from '@/features/campaigns';
 import { readRouteParam } from '@/lib/route-params';
 
 export default function PublishingCampaignCalendarRoute() {

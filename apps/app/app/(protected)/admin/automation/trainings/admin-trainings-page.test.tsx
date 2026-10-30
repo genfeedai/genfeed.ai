@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   refreshTrainings: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('@pages/trainings/list/trainings-list', async () => {
+vi.mock('@/features/trainings/list/trainings-list', async () => {
   const { useEffect } = await import('react');
 
   return {

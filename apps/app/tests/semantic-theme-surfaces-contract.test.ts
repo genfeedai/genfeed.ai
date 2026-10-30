@@ -54,6 +54,7 @@ const CARD_MIGRATION_SOURCES = [
   'app/(protected)/[orgSlug]/[brandSlug]/clipper/components/ClipperProgressView.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/clipper/components/HighlightReviewCard.tsx',
   'packages/components/research/ads/AdsResearchWatchlistPanel.tsx',
+  'src/features/content-runs/detail/content-run-detail.tsx',
 ] as const;
 
 const OVERLAY_MENU_SOURCES = [
@@ -120,6 +121,14 @@ describe('semantic theme surface contracts', () => {
       expect(source).toContain('text-foreground');
     },
   );
+
+  // The streak page renders its loading state through `@ui` cards, so it
+  // carries no spinner chrome of its own — the ban still applies.
+  it('keeps fixed spinner chrome out of the streaks page', () => {
+    const source = readSource('src/features/streaks/streaks-page.tsx');
+
+    expect(source).not.toContain('border-t-white');
+  });
 
   it('uses semantic CSS colors for library canvas navigation chrome', () => {
     const source = readSource(

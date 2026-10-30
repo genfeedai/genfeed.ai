@@ -1,7 +1,10 @@
 'use client';
 
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
-import { CampaignDetailOverview, CampaignDetailShell } from '@pages/campaigns';
+import {
+  CampaignDetailOverview,
+  CampaignDetailShell,
+} from '@/features/campaigns';
 import { readRouteParam } from '@/lib/route-params';
 
 export default function PublishingCampaignDetailRoute() {

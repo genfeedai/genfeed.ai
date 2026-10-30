@@ -2,13 +2,13 @@
 
 import { PageScope } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
-import ModelsList from '@pages/models/list/models-list';
-import type { AdminModelsPageContentProps } from '@props/admin/models.props';
 import type { TableAction } from '@props/ui/display/table.props';
 import { useQueryClient } from '@tanstack/react-query';
 import { Wrench } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo } from 'react';
+import ModelsList from '@/features/models/list/models-list';
+import type { AdminModelsPageContentProps } from '@/features/models/props/models.props';
 import ModelPricingAttentionPanel from './model-pricing-attention-panel';
 import { ModelPricingToolbar } from './model-pricing-details';
 import {
