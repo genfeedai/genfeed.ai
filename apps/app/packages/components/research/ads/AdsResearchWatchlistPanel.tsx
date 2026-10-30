@@ -213,7 +213,7 @@ export function AdsResearchWatchlistPanel({
         <div className="text-sm font-semibold text-foreground">
           {translate('title')}
         </div>
-        <p className="text-xs text-foreground/55">{translate('description')}</p>
+        <p className="text-xs text-foreground/60">{translate('description')}</p>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

@@ -58,7 +58,7 @@ export function WorkspaceTaskToolbar({
             <Button
               size={ButtonSize.XS}
               variant={ButtonVariant.GHOST}
-              className="px-2 text-xs text-foreground/55"
+              className="px-2 text-xs text-foreground/60"
               onClick={onUndoEnhancement}
             >
               {translate('undo')}

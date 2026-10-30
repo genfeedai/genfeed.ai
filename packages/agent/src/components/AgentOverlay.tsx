@@ -70,7 +70,7 @@ export function AgentOverlay({
 
       <aside
         className={cn(
-          'fixed right-0 top-0 z-50 h-screen w-[400px] max-w-[90vw] border-l border-foreground/[0.06] bg-background shadow-2xl transition-transform duration-300 ease-out',
+          'fixed right-0 top-0 z-50 h-screen w-[400px] max-w-[90vw] border-l border-foreground/5 bg-background shadow-2xl transition-transform duration-300 ease-out',
           isOpen ? 'translate-x-0' : 'translate-x-full',
         )}
       >

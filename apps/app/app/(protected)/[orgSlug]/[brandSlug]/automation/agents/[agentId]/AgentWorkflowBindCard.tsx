@@ -161,7 +161,7 @@ export default function AgentWorkflowBindCard({
           <h3 className="text-sm font-semibold text-foreground">
             {translate('title')}
           </h3>
-          <p className="text-xs text-foreground/55">
+          <p className="text-xs text-foreground/60">
             {translate('description')}
           </p>
           {currentTemplate && !strategy.preferredWorkflowId ? (

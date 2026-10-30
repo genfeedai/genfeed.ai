@@ -255,7 +255,7 @@ function EditorPropertiesPanel({
             {selectedClip.effects.map((effect) => (
               <div
                 key={effect.type}
-                className="flex items-center justify-between text-xs bg-muted/30 rounded px-2 py-1"
+                className="flex items-center justify-between text-xs bg-muted/20 rounded px-2 py-1"
               >
                 <span className="capitalize">{effect.type}</span>
                 <span className="text-muted-foreground">

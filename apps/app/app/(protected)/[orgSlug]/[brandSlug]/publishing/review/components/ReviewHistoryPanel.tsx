@@ -48,7 +48,7 @@ export default function ReviewHistoryPanel({
               </p>
             </div>
             {event.feedback ? (
-              <p className="whitespace-pre-wrap text-sm leading-6 text-foreground/75">
+              <p className="whitespace-pre-wrap text-sm leading-6 text-foreground/80">
                 {event.feedback}
               </p>
             ) : null}

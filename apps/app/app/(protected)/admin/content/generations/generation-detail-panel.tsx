@@ -107,7 +107,7 @@ export default function GenerationDetailPanel({
 
         {generation.error ? (
           <p
-            className="rounded-md bg-destructive/15 p-3 text-sm text-destructive"
+            className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
             role="alert"
           >
             {generation.error}

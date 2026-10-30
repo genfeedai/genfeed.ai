@@ -28,15 +28,15 @@ export function AgentPlanDecisionBar({
   return (
     <div
       aria-label={translate('decisionLabel')}
-      className="flex min-w-0 items-center gap-2 rounded-lg border bg-card/95 px-2.5 py-1.5 shadow-sm backdrop-blur-sm"
+      className="flex min-w-0 items-center gap-2 rounded-lg border bg-card/90 px-2.5 py-1.5 shadow-sm backdrop-blur-sm"
       data-testid="agent-plan-decision"
       role="group"
     >
       <ListChecks
         aria-hidden
-        className="size-3.5 shrink-0 text-foreground/55"
+        className="size-3.5 shrink-0 text-foreground/60"
       />
-      <span className="min-w-0 flex-1 truncate text-xs text-foreground/82">
+      <span className="min-w-0 flex-1 truncate text-xs text-foreground/90">
         {translate('decisionPrompt')}
       </span>
       <div className="flex shrink-0 items-center gap-2">

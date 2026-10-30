@@ -50,7 +50,7 @@ export default function ActivityChart({ data, isLoading }: ActivityChartProps) {
       data-testid="activity-chart"
     >
       <div className="flex items-center justify-between mb-6">
-        <div className="text-sm text-foreground/55">
+        <div className="text-sm text-foreground/60">
           Real-time throughput metrics
         </div>
         <div className="flex bg-muted/50 rounded-full p-1">

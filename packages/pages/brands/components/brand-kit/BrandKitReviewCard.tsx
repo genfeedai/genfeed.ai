@@ -237,7 +237,7 @@ export default function BrandKitReviewCard(props: BrandKitReviewCardProps) {
 
         {error ? (
           <div
-            className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+            className="rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive"
             role="alert"
           >
             {error}

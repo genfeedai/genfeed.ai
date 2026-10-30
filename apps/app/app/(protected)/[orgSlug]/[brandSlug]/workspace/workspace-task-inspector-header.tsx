@@ -55,7 +55,7 @@ export function WorkspaceTaskInspectorHeader({
           <h2 className="text-2xl tracking-[-0.02em] text-foreground">
             {task.title}
           </h2>
-          <p className="text-sm leading-6 text-foreground/55">{task.request}</p>
+          <p className="text-sm leading-6 text-foreground/60">{task.request}</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

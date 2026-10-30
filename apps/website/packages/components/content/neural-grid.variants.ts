@@ -29,7 +29,7 @@ export const neuralGridVariants = cva('grid gap-px bg-foreground/5', {
  * of the card, where the eye expects to find it in every column.
  */
 export const neuralGridItemVariants = cva(
-  'group flex flex-col bg-background transition-colors hover:bg-foreground/[0.02]',
+  'group flex flex-col bg-background transition-colors hover:bg-foreground/5',
   {
     defaultVariants: {
       align: 'left',

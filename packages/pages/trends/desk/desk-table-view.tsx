@@ -496,7 +496,7 @@ function DeskContentCell({
               </span>
             )}
             {item.text && item.title ? (
-              <span className="block truncate text-xs text-foreground/55">
+              <span className="block truncate text-xs text-foreground/60">
                 {item.text}
               </span>
             ) : null}
@@ -673,7 +673,7 @@ export default function DeskTableView({
         render: (item) => formatCompactNumber(item.engagement),
       },
       {
-        className: 'text-xs text-foreground/55',
+        className: 'text-xs text-foreground/60',
         header: translateDesk('tableHeaders.published'),
         key: 'published',
         render: (item) =>

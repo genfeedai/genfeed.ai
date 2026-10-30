@@ -143,7 +143,7 @@ function getWorkTaskLabel(event: AgentWorkEvent): string | null {
 // Composer-owned status (Claude/T3): sits above the glass bar, not in the
 // timeline. Compact surfaces so the stack never steals half the viewport.
 const STATUS_SURFACE_CLASS =
-  'rounded-lg border bg-card/95 px-2.5 py-1.5 shadow-sm backdrop-blur-sm';
+  'rounded-lg border bg-card/90 px-2.5 py-1.5 shadow-sm backdrop-blur-sm';
 
 function splitComposerError(error: string): {
   detail: string | null;
@@ -602,7 +602,7 @@ export function AgentComposerStatusStack({
           aria-live="polite"
           className={cn(
             STATUS_SURFACE_CLASS,
-            'flex min-w-0 items-center gap-2 border-warning/50 bg-warning/15 text-sm leading-5 text-warning',
+            'flex min-w-0 items-center gap-2 border-warning/50 bg-warning/10 text-sm leading-5 text-warning',
           )}
           role="status"
         >
@@ -621,7 +621,7 @@ export function AgentComposerStatusStack({
         <div
           aria-live="polite"
           aria-label={`${progressTitle} progress, ${completedTaskCount} of ${visibleTasks.length} steps`}
-          className="overflow-hidden rounded-t-lg rounded-b-none border border-border/70 bg-background/72 shadow-sm backdrop-blur-xl"
+          className="overflow-hidden rounded-t-lg rounded-b-none border border-border/70 bg-background/70 shadow-sm backdrop-blur-xl"
           data-testid="agent-composer-tasks"
           role="region"
         >
@@ -633,8 +633,8 @@ export function AgentComposerStatusStack({
             </p>
           ) : null}
           <div className="flex min-h-8 items-center gap-2 px-2.5 py-1">
-            <ListChecks aria-hidden className="size-3.5 text-foreground/55" />
-            <span className="text-xs font-medium text-foreground/82">
+            <ListChecks aria-hidden className="size-3.5 text-foreground/60" />
+            <span className="text-xs font-medium text-foreground/90">
               {progressTitle}
             </span>
             <span className="text-2xs tabular-nums text-muted-foreground">
@@ -650,7 +650,7 @@ export function AgentComposerStatusStack({
                     task.status === 'failed' && 'bg-destructive',
                     (task.status === 'pending' ||
                       task.status === 'cancelled') &&
-                      'bg-foreground/16',
+                      'bg-foreground/20',
                   )}
                   key={task.id}
                 />
@@ -692,7 +692,7 @@ export function AgentComposerStatusStack({
                       task.status === 'active' && 'animate-text-shimmer',
                       task.status === 'completed' || task.status === 'cancelled'
                         ? 'text-muted-foreground'
-                        : 'text-foreground/78',
+                        : 'text-foreground/80',
                     )}
                   >
                     {task.label}

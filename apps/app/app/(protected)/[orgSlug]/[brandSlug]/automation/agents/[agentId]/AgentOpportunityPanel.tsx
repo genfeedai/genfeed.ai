@@ -27,7 +27,7 @@ export default function AgentOpportunityPanel({
           <h3 className="text-sm font-medium text-foreground">
             {translate('reviewContext')}
           </h3>
-          <p className="mt-1 text-sm text-foreground/55">
+          <p className="mt-1 text-sm text-foreground/60">
             {translate('reviewContextDescription')}
           </p>
         </div>
@@ -44,7 +44,7 @@ export default function AgentOpportunityPanel({
           <DefinitionTerm>{translate('opportunity')}</DefinitionTerm>
           <DefinitionDetail
             variant="inline"
-            className="mt-1 text-foreground/85"
+            className="mt-1 text-foreground/90"
           >
             {selectedOpportunity?.topic ??
               (isOpportunitiesLoading
@@ -56,7 +56,7 @@ export default function AgentOpportunityPanel({
           <DefinitionTerm>{translate('status')}</DefinitionTerm>
           <DefinitionDetail
             variant="inline"
-            className="mt-1 capitalize text-foreground/85"
+            className="mt-1 capitalize text-foreground/90"
           >
             {selectedOpportunity?.status ??
               (isOpportunitiesLoading
@@ -68,7 +68,7 @@ export default function AgentOpportunityPanel({
           <DefinitionTerm>{translate('reason')}</DefinitionTerm>
           <DefinitionDetail
             variant="inline"
-            className="mt-1 text-foreground/85"
+            className="mt-1 text-foreground/90"
           >
             {selectedOpportunity?.decisionReason ?? translate('notRecorded')}
           </DefinitionDetail>
@@ -77,7 +77,7 @@ export default function AgentOpportunityPanel({
           <DefinitionTerm>{translate('expectedTraffic')}</DefinitionTerm>
           <DefinitionDetail
             variant="inline"
-            className="mt-1 text-foreground/85"
+            className="mt-1 text-foreground/90"
           >
             {selectedOpportunity?.expectedTrafficScore ??
               translate('notRecorded')}
@@ -108,7 +108,7 @@ export default function AgentOpportunityPanel({
             ))}
           </InsetSurface>
         ) : (
-          <p className="text-sm text-foreground/55">
+          <p className="text-sm text-foreground/60">
             {isOpportunitiesLoading
               ? translate('loadingOpportunities')
               : translate('noOpenOpportunities')}

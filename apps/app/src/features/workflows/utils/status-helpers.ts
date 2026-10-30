@@ -58,11 +58,11 @@ export function getStatusColor(status: WorkflowExecutionStatus): string {
 export function getStatusBorderColor(status: WorkflowExecutionStatus): string {
   switch (status) {
     case WorkflowExecutionStatus.COMPLETED:
-      return 'border-success/30 bg-success/10';
+      return 'border-success/20 bg-success/10';
     case WorkflowExecutionStatus.FAILED:
-      return 'border-destructive/30 bg-destructive/10';
+      return 'border-destructive/20 bg-destructive/10';
     case WorkflowExecutionStatus.RUNNING:
-      return 'border-warning/30 bg-warning/10';
+      return 'border-warning/20 bg-warning/10';
     case WorkflowExecutionStatus.CANCELLED:
       return 'border-border bg-muted';
     default:

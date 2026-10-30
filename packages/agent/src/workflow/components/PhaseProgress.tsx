@@ -36,14 +36,14 @@ function PhaseStep({
         isCurrent &&
           'bg-foreground/10 text-foreground ring-1 ring-foreground/20',
         isFuture && 'text-muted-foreground',
-        canRollback && 'hover:ring-1 hover:ring-emerald-500/30',
+        canRollback && 'hover:ring-1 hover:ring-emerald-500/20',
       )}
     >
       <span
         className={cn(
           'flex items-center justify-center size-6 rounded-full text-xs',
           isComplete && 'bg-success/10',
-          isCurrent && 'bg-foreground/15',
+          isCurrent && 'bg-foreground/10',
           isFuture && 'bg-foreground/5',
         )}
       >
@@ -116,7 +116,7 @@ function PhaseProgressInner() {
               variant={ButtonVariant.UNSTYLED}
               withWrapper={false}
               onClick={confirmRollback}
-              className="px-3 py-1.5 text-sm font-medium bg-warning/10 text-warning rounded-md hover:bg-warning/30 transition-colors"
+              className="px-3 py-1.5 text-sm font-medium bg-warning/10 text-warning rounded-md hover:bg-warning/20 transition-colors"
             >
               Confirm rollback
             </Button>

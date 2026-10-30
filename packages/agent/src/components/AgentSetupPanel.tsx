@@ -120,7 +120,7 @@ export function AgentSetupPanel({
         <h2 className="mt-1 text-base font-semibold text-foreground">
           Finish setting up
         </h2>
-        <p className="mt-1 text-xs leading-5 text-foreground/55">
+        <p className="mt-1 text-xs leading-5 text-foreground/60">
           Complete your brand context and connect a channel so the agent creates
           on-brand, publishable content.
         </p>

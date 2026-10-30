@@ -20,7 +20,7 @@ export function AgentComposerContextRail({
         aria-hidden="true"
         className="size-3 shrink-0 text-muted-foreground"
       />
-      <span className="min-w-0 truncate text-2xs font-medium text-foreground/55">
+      <span className="min-w-0 truncate text-2xs font-medium text-foreground/60">
         {contextLabel}
       </span>
       {referenceCount > 0 ? (

@@ -27,7 +27,7 @@ export function WorkspaceTaskOutputsCard({
   return (
     <Card
       label="Generated outputs"
-      bodyClassName="space-y-3 border-l border-border p-4 text-sm text-foreground/75"
+      bodyClassName="space-y-3 border-l border-border p-4 text-sm text-foreground/80"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-foreground/70">

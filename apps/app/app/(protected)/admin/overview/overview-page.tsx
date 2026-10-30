@@ -105,7 +105,7 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
               key={org.organization.id}
               className={cn(
                 'flex items-center justify-between py-3 px-3',
-                'bg-foreground/[0.02] hover:bg-muted/40',
+                'bg-foreground/5 hover:bg-muted/40',
                 'transition-colors duration-150',
               )}
             >

@@ -19,11 +19,11 @@ const PLATFORM_BRANDS: Record<string, PlatformBrand> = {
   instagram: { faceClassName: 'bg-pink-500', Icon: InstagramIcon },
   linkedin: { faceClassName: 'bg-blue-700', Icon: LinkedinIcon },
   tiktok: {
-    faceClassName: 'bg-zinc-900 ring-1 ring-inset ring-white/15',
+    faceClassName: 'bg-zinc-900 ring-1 ring-inset ring-white/10',
     Icon: TiktokIcon,
   },
   twitter: {
-    faceClassName: 'bg-zinc-900 ring-1 ring-inset ring-white/15',
+    faceClassName: 'bg-zinc-900 ring-1 ring-inset ring-white/10',
     Icon: XTwitterIcon,
   },
   youtube: { faceClassName: 'bg-red-500', Icon: YoutubeIcon },

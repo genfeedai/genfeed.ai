@@ -79,7 +79,7 @@ describe('AgentRunFailureCard', () => {
     expect(card).toHaveClass('max-w-2xl');
     expect(card).toHaveClass('bg-card');
     expect(card).toHaveClass('shadow-border');
-    expect(card).not.toHaveClass('bg-destructive/15');
+    expect(card).not.toHaveClass('bg-destructive/10');
   });
 
   it('offers retry for a transient failure', () => {

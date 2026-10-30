@@ -402,7 +402,7 @@ describe('AgentThreadList', () => {
 
     expect(archivedRow).toHaveClass('bg-muted/50');
     expect(archivedRow).not.toHaveClass('opacity-40');
-    expect(archivedTitle).toHaveClass('text-foreground/65');
+    expect(archivedTitle).toHaveClass('text-foreground/70');
 
     fireEvent.pointerDown(
       screen.getByRole('button', { name: 'Conversation list actions' }),

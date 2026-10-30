@@ -158,7 +158,7 @@ export default function DesktopServerSettings() {
 
   return (
     <Card bodyClassName="p-5">
-      <div className="text-sm font-medium text-foreground/88">
+      <div className="text-sm font-medium text-foreground/90">
         {translate('title')}
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
@@ -166,7 +166,7 @@ export default function DesktopServerSettings() {
       </p>
 
       {state ? (
-        <p className="mt-3 text-xs text-foreground/64">
+        <p className="mt-3 text-xs text-foreground/70">
           {translate('current', { server: state.active.label })}
           {state.isUsingDefault ? ` ${translate('defaultNote')}` : null}
         </p>
@@ -178,7 +178,7 @@ export default function DesktopServerSettings() {
             key={option}
             ariaLabel={translate(`options.${option}.label`)}
             className={cn(
-              'rounded border border-border px-3 py-2 text-left text-xs text-foreground/64',
+              'rounded border border-border px-3 py-2 text-left text-xs text-foreground/70',
               kind === option && 'border-border bg-hover text-foreground',
             )}
             isDisabled={isBusy}
@@ -295,7 +295,7 @@ export default function DesktopServerSettings() {
       </div>
 
       {status ? (
-        <p className="mt-2 break-words text-2xs text-foreground/56">{status}</p>
+        <p className="mt-2 break-words text-2xs text-foreground/60">{status}</p>
       ) : null}
     </Card>
   );

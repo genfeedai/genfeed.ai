@@ -66,7 +66,7 @@ function ModelTile({
       withWrapper={false}
     >
       <span className="flex w-full items-center gap-3">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
           <Sparkles className="size-4" />
         </span>
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">

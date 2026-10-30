@@ -703,7 +703,7 @@ export default function MessagesPage() {
         <>
           {error ? (
             <div
-              className="mx-4 mt-3 shrink-0 rounded border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              className="mx-4 mt-3 shrink-0 rounded border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive"
               role="alert"
             >
               {error}

@@ -360,7 +360,7 @@ export default function TrendContentCard({
             {previewTitle}
           </h3>
           {previewText ? (
-            <p className="line-clamp-4 text-sm leading-6 text-foreground/65">
+            <p className="line-clamp-4 text-sm leading-6 text-foreground/70">
               {previewText}
             </p>
           ) : null}
@@ -374,7 +374,7 @@ export default function TrendContentCard({
           ))}
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 text-xs text-foreground/55">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-foreground/60">
           <span>
             {translate('metrics.mentions', {
               count: formatCompactNumber(item.trendMentions),

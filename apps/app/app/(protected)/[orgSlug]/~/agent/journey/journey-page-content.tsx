@@ -73,7 +73,7 @@ export default function JourneyPageContent() {
           <h1 className="sr-only">{translate('title')}</h1>
           <Button
             asChild
-            className="inline-flex rounded-full border border-primary/30 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10"
+            className="inline-flex rounded-full border border-primary/20 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10"
             variant={ButtonVariant.SECONDARY}
             withWrapper={false}
           >

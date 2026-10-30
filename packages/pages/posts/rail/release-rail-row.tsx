@@ -96,7 +96,7 @@ export default function ReleaseRailRow({
         <p className="truncate text-sm font-medium text-foreground">
           {releaseDisplayTitle(release) || translate('open')}
         </p>
-        <p className="truncate text-xs text-foreground/55">
+        <p className="truncate text-xs text-foreground/60">
           {releaseContentPreview(release)}
         </p>
       </div>
@@ -121,7 +121,7 @@ export default function ReleaseRailRow({
         ) : null}
       </div>
 
-      <div className="flex shrink-0 items-center gap-2 text-xs text-foreground/55">
+      <div className="flex shrink-0 items-center gap-2 text-xs text-foreground/60">
         {outcome.published > 0 ? (
           <span>
             {translate('outcome.published', { count: outcome.published })}

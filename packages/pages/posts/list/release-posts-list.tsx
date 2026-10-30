@@ -644,7 +644,7 @@ export default function ReleasePostsList({
               render: (release) => {
                 const outcome = releaseOutcomeSummary(release);
                 return (
-                  <div className="flex flex-wrap gap-2 text-xs text-foreground/55">
+                  <div className="flex flex-wrap gap-2 text-xs text-foreground/60">
                     {outcome.published > 0 ? (
                       <span>
                         {translateRail('outcome.published', {

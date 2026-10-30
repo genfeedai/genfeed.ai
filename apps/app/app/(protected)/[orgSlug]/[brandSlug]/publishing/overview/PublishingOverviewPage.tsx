@@ -404,7 +404,7 @@ export default function PublishingOverviewPage() {
 
   const cards: OverviewCard[] = [
     {
-      color: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300',
+      color: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
       cta: 'Open Review',
       description: turboRunsQuery.isError
         ? 'Review queue could not be loaded.'
@@ -419,7 +419,7 @@ export default function PublishingOverviewPage() {
       label: 'Review queue',
     },
     {
-      color: 'bg-amber-500/12 text-amber-700 dark:text-amber-300',
+      color: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
       cta: 'Browse drafts',
       description: notPostedTotalQuery.isError
         ? 'Not-posted posts could not be loaded.'
@@ -434,7 +434,7 @@ export default function PublishingOverviewPage() {
       label: 'Not posted',
     },
     {
-      color: 'bg-sky-500/12 text-sky-700 dark:text-sky-300',
+      color: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
       cta: 'Open calendar',
       href: href(APP_ROUTES.PUBLISHING.CALENDAR),
       icon: Calendar,
@@ -442,7 +442,7 @@ export default function PublishingOverviewPage() {
       label: 'Calendar',
     },
     {
-      color: 'bg-violet-500/12 text-violet-700 dark:text-violet-300',
+      color: 'bg-violet-500/10 text-violet-700 dark:text-violet-300',
       cta: 'View published',
       description: publishedTotalQuery.isError
         ? 'Published posts could not be loaded.'

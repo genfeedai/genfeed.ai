@@ -26,22 +26,22 @@ export function AgentConversationSkeleton({
                 {title}
               </p>
             ) : (
-              <Skeleton className="h-4 w-28 rounded-full bg-foreground/[0.04]" />
+              <Skeleton className="h-4 w-28 rounded-full bg-foreground/5" />
             )}
           </div>
 
           <div className="flex flex-1 flex-col gap-12 pt-1">
             <div className="flex justify-start">
-              <Skeleton className="h-16 w-full rounded-xl bg-foreground/[0.05]" />
+              <Skeleton className="h-16 w-full rounded-xl bg-foreground/5" />
             </div>
 
             <div className="max-w-[40rem] space-y-3 pt-2">
-              <Skeleton className="h-4 w-[78%] rounded-full bg-foreground/[0.04]" />
-              <Skeleton className="h-4 w-[74%] rounded-full bg-foreground/[0.04]" />
-              <Skeleton className="h-4 w-[60%] rounded-full bg-foreground/[0.04]" />
-              <Skeleton className="h-4 w-[76%] rounded-full bg-foreground/[0.04]" />
-              <Skeleton className="h-4 w-[66%] rounded-full bg-foreground/[0.04]" />
-              <Skeleton className="h-4 w-[52%] rounded-full bg-foreground/[0.04]" />
+              <Skeleton className="h-4 w-[78%] rounded-full bg-foreground/5" />
+              <Skeleton className="h-4 w-[74%] rounded-full bg-foreground/5" />
+              <Skeleton className="h-4 w-[60%] rounded-full bg-foreground/5" />
+              <Skeleton className="h-4 w-[76%] rounded-full bg-foreground/5" />
+              <Skeleton className="h-4 w-[66%] rounded-full bg-foreground/5" />
+              <Skeleton className="h-4 w-[52%] rounded-full bg-foreground/5" />
             </div>
           </div>
         </div>
@@ -54,18 +54,18 @@ export function AgentConversationSkeleton({
         zIndex={40}
       >
         <PromptBarComposer>
-          <Skeleton className="my-2 h-5 w-28 rounded-full bg-foreground/[0.04]" />
+          <Skeleton className="my-2 h-5 w-28 rounded-full bg-foreground/5" />
           <PromptBarToolbar
             leading={
               <>
-                <Skeleton className="size-8 rounded-full bg-foreground/[0.04]" />
-                <Skeleton className="h-4 w-40 rounded-full bg-foreground/[0.04]" />
+                <Skeleton className="size-8 rounded-full bg-foreground/5" />
+                <Skeleton className="h-4 w-40 rounded-full bg-foreground/5" />
               </>
             }
             trailing={
               <>
-                <Skeleton className="h-4 w-16 rounded-full bg-foreground/[0.04]" />
-                <Skeleton className="size-9 rounded-full bg-foreground/[0.04]" />
+                <Skeleton className="h-4 w-16 rounded-full bg-foreground/5" />
+                <Skeleton className="size-9 rounded-full bg-foreground/5" />
               </>
             }
           />

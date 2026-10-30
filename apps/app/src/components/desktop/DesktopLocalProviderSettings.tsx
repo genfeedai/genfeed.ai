@@ -309,7 +309,7 @@ function DesktopLocalProviderSettingsPanel({
   if (isLocalMode !== true) {
     const inactiveContent = (
       <>
-        <div className="text-sm font-medium text-foreground/88">
+        <div className="text-sm font-medium text-foreground/90">
           {translate('inactive.title')}
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -350,7 +350,7 @@ function DesktopLocalProviderSettingsPanel({
   const content = (
     <>
       <div className={cn(isCard ? 'mb-4' : 'mb-2')}>
-        <div className="text-sm font-medium text-foreground/88">
+        <div className="text-sm font-medium text-foreground/90">
           {translate('title')}
         </div>
         {isCard ? (
@@ -369,7 +369,7 @@ function DesktopLocalProviderSettingsPanel({
               withWrapper={false}
               onClick={() => applyPreset(key)}
               className={cn(
-                'rounded border border-border px-1.5 py-1 text-2xs text-foreground/56',
+                'rounded border border-border px-1.5 py-1 text-2xs text-foreground/60',
                 provider === key && 'border-border bg-hover text-foreground',
                 isCard && 'py-2 text-xs',
               )}

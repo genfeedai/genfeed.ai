@@ -60,7 +60,7 @@ export function AdGridCard({
         onClick={() => onSelect(item)}
         className={cn(
           'group h-full w-full rounded-card border border-border bg-card p-4 text-left transition-[border-color,box-shadow] duration-200 hover:border-border-strong',
-          isSelected && 'border-primary/45 shadow-lg shadow-primary/10',
+          isSelected && 'border-primary/40 shadow-lg shadow-primary/10',
         )}
       >
         <div className="flex items-start justify-between gap-3">
@@ -105,7 +105,7 @@ export function AdGridCard({
           </div>
         </div>
 
-        <p className="mt-4 line-clamp-4 min-h-[5rem] text-sm leading-6 text-foreground/72">
+        <p className="mt-4 line-clamp-4 min-h-[5rem] text-sm leading-6 text-foreground/80">
           {item.headline ||
             item.body ||
             item.explanation ||

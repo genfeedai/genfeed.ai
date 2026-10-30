@@ -125,7 +125,7 @@ export function WorkspaceOverviewSidebar({
           {taskStreamContent}
 
           <div className="border-t border-border pt-4">
-            <div className="flex items-center justify-between text-sm text-foreground/55">
+            <div className="flex items-center justify-between text-sm text-foreground/60">
               <span>{translate('liveRuns')}</span>
               <span>{activeExecutions.length}</span>
             </div>
@@ -160,7 +160,7 @@ export function WorkspaceOverviewSidebar({
                     <p className="text-sm font-semibold text-foreground">
                       {item.summary}
                     </p>
-                    <p className="text-sm text-foreground/55">
+                    <p className="text-sm text-foreground/60">
                       {item.format}
                       {item.platform ? ` on ${item.platform}` : ''}
                     </p>
@@ -188,7 +188,7 @@ export function WorkspaceOverviewSidebar({
                         {item.continuityQa.clips.map((clip) => (
                           <div
                             key={clip.clipId}
-                            className="text-xs text-foreground/55"
+                            className="text-xs text-foreground/60"
                           >
                             <p>
                               {translate('clipperContinuitySummary', {
@@ -282,7 +282,7 @@ export function WorkspaceOverviewSidebar({
                 <p className="text-sm font-semibold text-foreground">
                   {item.label}
                 </p>
-                <p className="mt-1 text-sm text-foreground/55">
+                <p className="mt-1 text-sm text-foreground/60">
                   {item.description}
                 </p>
               </Link>
@@ -307,7 +307,7 @@ export function WorkspaceOverviewSidebar({
                 <p className="text-sm font-semibold text-foreground">
                   {tool.label}
                 </p>
-                <p className="mt-1 text-sm text-foreground/55">
+                <p className="mt-1 text-sm text-foreground/60">
                   {tool.description}
                 </p>
               </Link>

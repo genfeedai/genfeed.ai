@@ -252,7 +252,7 @@ export function MutationApprovalCard({
           role="alert"
         >
           <div className="flex flex-wrap items-start gap-3">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-destructive/15 text-destructive">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
               <AlertTriangle className="size-4" aria-hidden="true" />
             </span>
             <div className="min-w-0 flex-1 basis-48">

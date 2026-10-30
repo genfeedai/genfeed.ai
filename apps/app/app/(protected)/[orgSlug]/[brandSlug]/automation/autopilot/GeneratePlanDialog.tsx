@@ -97,7 +97,7 @@ export default function GeneratePlanDialog({
             </div>
 
             {isLowConfidence ? (
-              <p className="text-xs text-foreground/55">
+              <p className="text-xs text-foreground/60">
                 {translate('dialogColdStartHint')}
               </p>
             ) : null}
@@ -188,7 +188,7 @@ export default function GeneratePlanDialog({
                       {translate('seedAdvertisersTitle')}
                     </p>
                     {seedPreview.advertisers.length === 0 ? (
-                      <p className="text-xs text-foreground/55">
+                      <p className="text-xs text-foreground/60">
                         {translate('seedAdvertisersEmpty')}{' '}
                         <Link
                           href={href(APP_ROUTES.DISCOVERY.ADS)}
@@ -232,7 +232,7 @@ export default function GeneratePlanDialog({
                       {translate('seedSourcesTitle')}
                     </p>
                     {followableSources.length === 0 ? (
-                      <p className="text-xs text-foreground/55">
+                      <p className="text-xs text-foreground/60">
                         {translate('seedSourcesEmpty')}{' '}
                         <Link
                           href={href(APP_ROUTES.DISCOVERY.OVERVIEW)}

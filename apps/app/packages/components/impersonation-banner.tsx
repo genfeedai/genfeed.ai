@@ -61,7 +61,7 @@ export default function ImpersonationBanner() {
           void handleExit();
         }}
         isDisabled={isExiting}
-        className="rounded-md border border-warning-foreground/30 px-2 py-0.5 font-bold transition-colors hover:bg-warning-foreground/10"
+        className="rounded-md border border-warning-foreground/20 px-2 py-0.5 font-bold transition-colors hover:bg-warning-foreground/10"
         label="Exit"
       />
       {exitError ? <span role="status">{exitError}</span> : null}

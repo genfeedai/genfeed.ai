@@ -468,7 +468,7 @@ function WorkspaceDashboardFirstRun({ trendsHref }: { trendsHref: string }) {
             key={step}
             className="flex gap-3 text-xs leading-5 text-muted-foreground"
           >
-            <span className="mt-px inline-flex size-4 shrink-0 items-center justify-center rounded-full border border-border text-2xs font-medium text-foreground/55">
+            <span className="mt-px inline-flex size-4 shrink-0 items-center justify-center rounded-full border border-border text-2xs font-medium text-foreground/60">
               {index + 1}
             </span>
             {step}

@@ -154,7 +154,7 @@ function AccountGridTile({
       )}
       <span
         className={
-          'absolute inset-x-0 bottom-0 bg-black/55 px-2 py-1 text-2xs text-white' /* design-system-allow-content-color -- media overlay scrim */
+          'absolute inset-x-0 bottom-0 bg-black/50 px-2 py-1 text-2xs text-white' /* design-system-allow-content-color -- media overlay scrim */
         }
       >
         {tone === 'review'
