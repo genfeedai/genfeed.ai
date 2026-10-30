@@ -222,7 +222,7 @@ export function WorkflowScheduleDialog({
         ) : (
           <div className="space-y-4">
             {error ? (
-              <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
+              <div className="flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
                 <TriangleAlert className="mt-0.5 size-4 shrink-0" />
                 <p>{error}</p>
               </div>

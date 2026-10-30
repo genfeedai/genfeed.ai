@@ -138,7 +138,7 @@ export default function ReviewInboxApprovalsTable({
       columns={columns}
       getRowClassName={(item) =>
         cn(
-          item.id === highlightedItemId && 'bg-primary/[0.08]',
+          item.id === highlightedItemId && 'bg-primary/10',
           item.id === decidingItemId && 'opacity-60',
         )
       }

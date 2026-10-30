@@ -12,7 +12,7 @@ export function WorkspaceTaskThreadCard({
   return (
     <Card
       label="Task thread"
-      bodyClassName="space-y-3 border-l border-border p-4 text-sm text-foreground/75"
+      bodyClassName="space-y-3 border-l border-border p-4 text-sm text-foreground/80"
     >
       <div
         className="divide-y divide-border"

@@ -25,7 +25,7 @@ export default function NewsletterContextReview({ contextPreview }: Props) {
             <div className="mt-3 space-y-2">
               {contextPreview.selectedContext.length > 0 ? (
                 contextPreview.selectedContext.map((item) => (
-                  <div key={item.id} className="rounded bg-muted/30 p-3">
+                  <div key={item.id} className="rounded bg-muted/20 p-3">
                     <div className="flex items-center justify-between gap-3">
                       <div className="text-sm font-medium text-foreground">
                         {item.label}
@@ -63,7 +63,7 @@ export default function NewsletterContextReview({ contextPreview }: Props) {
                 contextPreview.contextSources.slice(0, 5).map((source) => (
                   <div
                     key={`${source.label}-${source.url ?? 'internal'}`}
-                    className="rounded bg-muted/30 p-3"
+                    className="rounded bg-muted/20 p-3"
                   >
                     <div className="text-sm font-medium text-foreground">
                       {source.label}

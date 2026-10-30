@@ -462,7 +462,7 @@ function ClipperProjectControls({
                         avatarProvider === opt.value
                           ? 'border-primary bg-primary/10'
                           : opt.disabled
-                            ? 'cursor-not-allowed border-border bg-muted/30 opacity-50'
+                            ? 'cursor-not-allowed border-border bg-muted/20 opacity-50'
                             : 'border-border bg-muted hover:border-primary/60'
                       }`}
                     >

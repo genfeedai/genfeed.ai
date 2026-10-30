@@ -190,19 +190,19 @@ export default function SystemEmailsPage() {
                           <span className="text-xs font-medium uppercase text-foreground/50">
                             Preheader
                           </span>
-                          <p className="text-sm text-foreground/75">
+                          <p className="text-sm text-foreground/80">
                             {email.preheader}
                           </p>
                           <span className="text-xs font-medium uppercase text-foreground/50">
                             Title
                           </span>
-                          <p className="text-sm text-foreground/75">
+                          <p className="text-sm text-foreground/80">
                             {email.title}
                           </p>
                           <span className="text-xs font-medium uppercase text-foreground/50">
                             CTA
                           </span>
-                          <p className="text-sm text-foreground/75">
+                          <p className="text-sm text-foreground/80">
                             {resolvePreviewAction(email)}
                           </p>
                         </div>

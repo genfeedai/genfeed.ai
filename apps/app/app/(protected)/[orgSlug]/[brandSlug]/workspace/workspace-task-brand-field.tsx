@@ -19,7 +19,7 @@ export function WorkspaceTaskBrandField({
           <Button
             size={ButtonSize.XS}
             variant={ButtonVariant.GHOST}
-            className="px-2 text-xs text-foreground/55"
+            className="px-2 text-xs text-foreground/60"
             onClick={onClear}
           >
             Clear
@@ -35,7 +35,7 @@ export function WorkspaceTaskBrandField({
       )}
       <p className="text-xs text-muted-foreground">
         Targeting{' '}
-        <span className="font-medium text-foreground/55">
+        <span className="font-medium text-foreground/60">
           {selectedTargetBrandLabel}
         </span>
         {taskTargetBrandId ? ' from this modal' : ' by default'}.

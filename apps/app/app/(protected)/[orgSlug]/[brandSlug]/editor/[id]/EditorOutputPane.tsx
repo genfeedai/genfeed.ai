@@ -19,7 +19,7 @@ export default function EditorOutputPane({
 }: EditorOutputPaneProps) {
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="flex-1 p-4 bg-muted/30">
+      <div className="flex-1 p-4 bg-muted/20">
         <div className="h-full flex items-center justify-center">
           <div className="w-full max-w-4xl">
             <EditorPreview

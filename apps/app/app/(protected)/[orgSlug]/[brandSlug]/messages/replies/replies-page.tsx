@@ -379,7 +379,7 @@ export default function RepliesPage() {
           {translate('description')}
         </p>
         {inboxError ? (
-          <p className="rounded border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          <p className="rounded border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
             {inboxError}
           </p>
         ) : null}

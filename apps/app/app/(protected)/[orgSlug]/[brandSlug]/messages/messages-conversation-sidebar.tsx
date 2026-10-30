@@ -143,7 +143,7 @@ function ConversationRow({
               src={conversation.participantAvatarUrl}
             />
           ) : null}
-          <AvatarFallback className="text-2xs font-semibold text-foreground/65">
+          <AvatarFallback className="text-2xs font-semibold text-foreground/70">
             {participantInitials || '?'}
           </AvatarFallback>
         </Avatar>
@@ -164,7 +164,7 @@ function ConversationRow({
                 ? 'bg-warning'
                 : conversation.unreadCount > 0
                   ? 'bg-info'
-                  : 'bg-foreground/15',
+                  : 'bg-foreground/10',
             )}
           />
           <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground/90">
@@ -271,7 +271,7 @@ export function MessagesConversationSidebar({
     hasSyncableAccounts && conversations.length > 0 ? (
       <Button
         ariaLabel={syncLabel}
-        className="size-8 shrink-0 rounded-md border border-border bg-foreground/[0.025] text-muted-foreground hover:bg-foreground/[0.07] hover:text-foreground"
+        className="size-8 shrink-0 rounded-md border border-border bg-foreground/5 text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
         icon={<RefreshCw className="size-4" />}
         isDisabled={
           Boolean(writeBlockedReason) ||

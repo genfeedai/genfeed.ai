@@ -52,7 +52,7 @@ function OrganizationUnavailable() {
 
         {organizations.length > 0 ? (
           <div className="mt-7 w-full">
-            <p className="mb-2 text-left text-xs font-medium text-foreground/55">
+            <p className="mb-2 text-left text-xs font-medium text-foreground/60">
               {translate('chooseOrganization')}
             </p>
             <ul className="flex flex-col gap-2">
@@ -70,7 +70,7 @@ function OrganizationUnavailable() {
                       })}
                       href={getOrgSwitchHref(organization.slug, pathname)}
                     >
-                      <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-foreground/[0.05] text-foreground/65 transition group-hover:text-foreground">
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-foreground/5 text-foreground/70 transition group-hover:text-foreground">
                         <Building2 aria-hidden="true" className="size-4" />
                       </span>
                       <span className="min-w-0 flex-1">

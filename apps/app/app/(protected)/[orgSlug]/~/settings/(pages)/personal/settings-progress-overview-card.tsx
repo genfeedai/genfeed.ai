@@ -30,7 +30,7 @@ export default function SettingsProgressOverviewCard({
         nextSetupStep ? (
           <Button
             asChild
-            className="inline-flex items-center gap-2 rounded-full border border-orange-400/25 bg-orange-400/10 px-4 py-2 text-sm font-medium text-orange-700 dark:text-orange-100 transition-colors hover:bg-orange-400/15"
+            className="inline-flex items-center gap-2 rounded-full border border-orange-400/20 bg-orange-400/10 px-4 py-2 text-sm font-medium text-orange-700 dark:text-orange-100 transition-colors hover:bg-orange-400/10"
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
           >
@@ -42,7 +42,7 @@ export default function SettingsProgressOverviewCard({
         ) : (
           <Button
             asChild
-            className="inline-flex items-center gap-2 rounded-full border border-orange-400/25 bg-orange-400/10 px-4 py-2 text-sm font-medium text-orange-700 dark:text-orange-100 transition-colors hover:bg-orange-400/15"
+            className="inline-flex items-center gap-2 rounded-full border border-orange-400/20 bg-orange-400/10 px-4 py-2 text-sm font-medium text-orange-700 dark:text-orange-100 transition-colors hover:bg-orange-400/10"
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
           >
@@ -72,7 +72,7 @@ export default function SettingsProgressOverviewCard({
           },
         ]}
       />
-      <p className="text-xs text-foreground/55">
+      <p className="text-xs text-foreground/60">
         {isLoading
           ? 'Loading streak'
           : nextMilestone

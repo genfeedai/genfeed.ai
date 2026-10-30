@@ -359,7 +359,7 @@ export default function SettingsWebhooksPage() {
                 Test delivery
               </Button>
               {!isWebhookConfigured ? (
-                <Text as="span" className="text-xs text-foreground/55">
+                <Text as="span" className="text-xs text-foreground/60">
                   Save an enabled endpoint before sending a test.
                 </Text>
               ) : null}

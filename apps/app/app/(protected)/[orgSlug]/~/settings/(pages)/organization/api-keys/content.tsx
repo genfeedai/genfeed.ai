@@ -571,8 +571,8 @@ function AuthorizedApiKeysContent({
                       className={cn(
                         'h-8 rounded-md border px-3 text-xs font-medium',
                         isActive
-                          ? 'border-foreground/25 bg-foreground/[0.08] text-foreground'
-                          : 'border-border text-foreground/70 hover:bg-foreground/[0.04] hover:text-foreground',
+                          ? 'border-foreground/20 bg-foreground/10 text-foreground'
+                          : 'border-border text-foreground/70 hover:bg-foreground/5 hover:text-foreground',
                       )}
                       onClick={() => handlePresetSelect(preset.scopes)}
                     >
@@ -597,7 +597,7 @@ function AuthorizedApiKeysContent({
                     className={cn(
                       'flex items-center gap-2 rounded-md border px-3 py-2 text-xs transition-colors',
                       isFullySelected
-                        ? 'border-foreground/20 bg-foreground/[0.04]'
+                        ? 'border-foreground/20 bg-foreground/5'
                         : isPartiallySelected
                           ? 'border-border bg-muted/20'
                           : 'border-border',

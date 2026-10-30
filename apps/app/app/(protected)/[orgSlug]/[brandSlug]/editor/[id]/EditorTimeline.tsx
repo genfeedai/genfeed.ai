@@ -50,7 +50,7 @@ function TimeRuler({
           style={{ left: `${marker.frame * zoom}px` }}
         >
           <div
-            className={`w-px ${marker.major ? 'h-4 bg-foreground/60' : 'h-2 bg-foreground/30'}`}
+            className={`w-px ${marker.major ? 'h-4 bg-foreground/60' : 'h-2 bg-foreground/20'}`}
           />
           {marker.major && (
             <span className="text-2xs text-muted-foreground whitespace-nowrap">
@@ -220,7 +220,7 @@ function ClipBlock({
       ? 'bg-foreground/70'
       : trackType === EditorTrackType.AUDIO
         ? 'bg-foreground/50'
-        : 'bg-foreground/30';
+        : 'bg-foreground/20';
 
   return (
     /* biome-ignore lint/a11y/useSemanticElements: complex drag-and-drop timeline clip with nested resize handles */

@@ -75,7 +75,7 @@ function ProgressBar({ label, percent }: { label: string; percent: number }) {
     <div className="flex items-center gap-3">
       <Progress
         aria-label={label}
-        className="h-1.5 min-w-0 flex-1 bg-foreground/[0.06]"
+        className="h-1.5 min-w-0 flex-1 bg-foreground/5"
         value={Math.max(0, Math.min(100, percent))}
       />
       <span className="w-16 shrink-0 text-right text-xs text-muted-foreground">
@@ -286,7 +286,7 @@ function StepStatusIcon({ status }: { status: IBrandInterviewStep['status'] }) {
   if (status === 'skipped') {
     return <Circle className="size-3.5 text-muted-foreground/50" aria-hidden />;
   }
-  return <Circle className="size-3.5 text-muted-foreground/30" aria-hidden />;
+  return <Circle className="size-3.5 text-muted-foreground/40" aria-hidden />;
 }
 
 function InterviewStepsSidebar({

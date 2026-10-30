@@ -177,7 +177,7 @@ export default function ReviewDetailPanelAside({
             </div>
           </DefinitionList>
           {(item.gateReasons?.length ?? 0) > 0 ? (
-            <ul className="mt-3 space-y-1.5 text-sm text-foreground/75">
+            <ul className="mt-3 space-y-1.5 text-sm text-foreground/80">
               {item.gateReasons?.map((reason) => (
                 <li key={`${item.id}-${reason}`} className="leading-5">
                   · {reason}

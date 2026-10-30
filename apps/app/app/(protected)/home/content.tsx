@@ -40,7 +40,7 @@ function ConnectionStatusLine({
   if (connection.status === 'configured') {
     return (
       <div
-        className="flex items-center justify-end gap-2 text-xs text-foreground/55"
+        className="flex items-center justify-end gap-2 text-xs text-foreground/60"
         data-testid="operational-home-connected"
       >
         <ShieldCheck aria-hidden="true" className="size-3.5 text-success" />

@@ -17,10 +17,10 @@ const TONE_SURFACE_CLASSES: Record<PluginThumbnailTone, string> = {
 };
 
 const TONE_ICON_CLASSES: Record<PluginThumbnailTone, string> = {
-  info: 'bg-info/15 text-info',
-  primary: 'bg-primary/15 text-primary',
-  success: 'bg-success/15 text-success',
-  warning: 'bg-warning/15 text-warning',
+  info: 'bg-info/10 text-info',
+  primary: 'bg-primary/10 text-primary',
+  success: 'bg-success/10 text-success',
+  warning: 'bg-warning/10 text-warning',
 };
 
 const TONE_FILL_CLASSES: Record<PluginThumbnailTone, string> = {
@@ -160,9 +160,9 @@ function ThumbnailArt({
       return (
         <div className="flex items-center">
           <div className={cn(PANEL_CLASSES, 'size-8')} />
-          <div className="h-px w-5 bg-foreground/25" />
+          <div className="h-px w-5 bg-foreground/20" />
           <div className={cn('size-8 rounded-sm', fill)} />
-          <div className="h-px w-5 bg-foreground/25" />
+          <div className="h-px w-5 bg-foreground/20" />
           <div className={cn(PANEL_CLASSES, 'size-8')} />
         </div>
       );

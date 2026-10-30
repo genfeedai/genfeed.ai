@@ -49,7 +49,7 @@ function TaskCommentRow({ comment }: { comment: TaskComment }) {
             {getRelativeTime(comment.createdAt)}
           </span>
         </div>
-        <p className="mt-0.5 whitespace-pre-wrap text-sm leading-relaxed text-foreground/85">
+        <p className="mt-0.5 whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
           {comment.body}
         </p>
       </div>
