@@ -129,6 +129,30 @@ describe('packages/ui design-system guards', () => {
     ]);
     expect(findings.every((entry) => entry.kind === 'sub-11-text')).toBe(true);
   });
+
+  it('flags negative tracking tighter than -0.02em and nothing else', () => {
+    const findings = findPackageUiGuardFindings(
+      '<><h1 className="tracking-[-0.05em]" /><h2 className="md:tracking-tighter" /><h3 className="tracking-[-0.02em] tracking-tight tracking-[-0.011em] tracking-[0.12em]" /></>',
+      'apps/website/example.tsx',
+    );
+
+    expect(findings.map((entry) => entry.token)).toEqual([
+      'md:tracking-tighter',
+      'tracking-[-0.05em]',
+    ]);
+    expect(findings.every((entry) => entry.kind === 'tight-tracking')).toBe(
+      true,
+    );
+  });
+
+  it('keeps the control-height rule inside packages/ui', () => {
+    expect(
+      findPackageUiGuardFindings(
+        '<button className="h-6" />',
+        'apps/website/example-button.tsx',
+      ),
+    ).toEqual([]);
+  });
 });
 
 describe('design-system debt baseline', () => {

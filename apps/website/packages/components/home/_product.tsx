@@ -16,7 +16,7 @@ export default function HomeProduct(): React.ReactElement {
             </Text>
             <Heading
               as="h2"
-              className="mt-5 text-5xl font-semibold leading-[0.98] tracking-[-0.045em] text-foreground sm:text-6xl"
+              className="mt-5 text-5xl font-semibold leading-[0.98] tracking-[-0.02em] text-foreground sm:text-6xl"
             >
               One prompt. <span className="block">Every feed.</span>
             </Heading>

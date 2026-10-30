@@ -18,6 +18,12 @@ import {
 } from './schema-builders';
 
 type InputField =
+  | 'activeWordColor'
+  | 'backgroundOpacity'
+  | 'bottomAnchorRatio'
+  | 'fontFamily'
+  | 'maxWordsPerGroup'
+  | 'textCase'
   | 'identityReferences'
   | 'isEndCardEnabled'
   | 'sourceLanguage'
@@ -667,10 +673,14 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
     },
     'effect-captions': {
       inputSchema: inputSchema([
+        'activeWordColor',
         'autoSync',
         'backgroundColor',
+        'backgroundOpacity',
+        'bottomAnchorRatio',
         'brandId',
         'fontColor',
+        'fontFamily',
         'fontSize',
         'generateChapters',
         'generateTranscript',
@@ -679,9 +689,11 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
         'includeEmojis',
         'includeHashtags',
         'languages',
+        'maxWordsPerGroup',
         'platform',
         'position',
         'style',
+        'textCase',
         'tone',
         'video',
       ]),

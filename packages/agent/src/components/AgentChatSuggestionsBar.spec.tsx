@@ -75,7 +75,7 @@ describe('AgentChatSuggestionsBar', () => {
     expect(onSend).not.toHaveBeenCalled();
   });
 
-  it('aligns new-conversation actions to three equal desktop columns', () => {
+  it('aligns new-conversation actions to three equal columns once the pane is wide enough', () => {
     render(
       <AgentChatSuggestionsBar
         isReadOnly={false}
@@ -90,13 +90,13 @@ describe('AgentChatSuggestionsBar', () => {
     ).toHaveClass(
       'grid',
       'grid-cols-1',
-      'sm:grid-cols-3',
+      '@xl:grid-cols-3',
       '[&>button]:w-full',
       '[&>button]:max-w-none',
     );
   });
 
-  it('gives four new-conversation actions four desktop columns', () => {
+  it('gives four new-conversation actions four columns only in a wide pane', () => {
     render(
       <AgentChatSuggestionsBar
         isReadOnly={false}
@@ -110,7 +110,8 @@ describe('AgentChatSuggestionsBar', () => {
     );
 
     const toolbar = screen.getByRole('toolbar', { name: 'Prompt suggestions' });
-    expect(toolbar).toHaveClass('lg:grid-cols-4');
-    expect(toolbar).not.toHaveClass('sm:grid-cols-3');
+    expect(toolbar).toHaveClass('@md:grid-cols-2', '@3xl:grid-cols-4');
+    expect(toolbar).not.toHaveClass('lg:grid-cols-4');
+    expect(toolbar.parentElement).toHaveClass('@container');
   });
 });

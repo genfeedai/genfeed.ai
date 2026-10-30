@@ -80,7 +80,7 @@ https://mcp.genfeed.ai/mcp?toolsets=content,generation
   selection made by the rest of the URL (default, `?profile=`, or
   `?toolsets=`). Apps are `agent`, `analytics`, `automation`, `clipper`,
   `discovery`, `editor`, `library`, `messages`, `motion`, `playground`,
-  `publishing`, `storyboard`, `turbo` and `workspace` (no tools yet). The map
+  `publishing`, `storyboard`, `turbo` and `workspace`. The map
   is `MCP_APP_TOOLSETS` in `packages/actions`.
 - **Omitting the parameter (or passing an empty value) uses `?profile=`**, and
   a bare URL gets the `default` profile: `core`, `generation`, `content` and

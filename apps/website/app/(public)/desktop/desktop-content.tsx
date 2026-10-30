@@ -108,12 +108,7 @@ export default function DesktopContent({
         heroMedia={<MarketingArtwork page="/desktop" kind="integration" />}
         badge="Desktop"
         badgeIcon={MonitorDown}
-        title={
-          <>
-            Genfeed, running{' '}
-            <span className="italic font-light">on your Mac</span>.
-          </>
-        }
+        title={<>Genfeed, running on your Mac.</>}
         description="The full content OS as a native desktop app. A local workspace that works offline, generation through your own provider keys, and the same account you already use on the web."
         heroActions={
           <>

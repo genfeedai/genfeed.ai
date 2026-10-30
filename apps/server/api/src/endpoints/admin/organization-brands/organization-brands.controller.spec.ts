@@ -13,7 +13,18 @@ function createController() {
       label: 'Gobl',
       slug: 'gobl',
     }),
-    findOne: vi.fn().mockResolvedValue({ id: 'brand-1' }),
+    findOne: vi.fn().mockResolvedValue({
+      id: 'brand-1',
+      label: 'Gobl',
+      slug: 'gobl',
+      watermarkPosition: 'bottom-right',
+    }),
+    patch: vi.fn().mockResolvedValue({
+      id: 'brand-1',
+      label: 'Gobl',
+      slug: 'gobl',
+      watermarkPosition: 'top-right',
+    }),
   };
   const signupPrefillService = {
     scanBrandUrl: vi.fn().mockResolvedValue({
@@ -104,5 +115,52 @@ describe('admin organization brands', () => {
     await expect(
       controller.create({} as never, 'org-1', { label: 'Gobl' }),
     ).rejects.toThrow();
+  });
+
+  it('reads the kit fields of a brand in the path organization', async () => {
+    const { brandsService, controller } = createController();
+    const result = await controller.read('org-1', 'brand-1');
+    expect(brandsService.findOne).toHaveBeenCalledWith({
+      id: 'brand-1',
+      isDeleted: false,
+      organizationId: 'org-1',
+    });
+    expect(result.data).toMatchObject({
+      id: 'brand-1',
+      organizationId: 'org-1',
+      watermarkPosition: 'bottom-right',
+    });
+  });
+
+  it('updates only the listed kit fields of a brand that belongs to the path organization', async () => {
+    const { brandsService, controller } = createController();
+    const result = await controller.update('org-1', 'brand-1', {
+      watermarkPosition: 'top-right',
+      watermarkText: null,
+    });
+    expect(brandsService.patch).toHaveBeenCalledWith('brand-1', {
+      watermarkPosition: 'top-right',
+      watermarkText: null,
+    });
+    expect(result.data.watermarkPosition).toBe('top-right');
+  });
+
+  it('rejects empty updates, unknown fields and a brand outside the organization before any write', async () => {
+    const { brandsService, controller } = createController();
+    for (const body of [
+      {},
+      { organizationId: 'other' },
+      { watermarkOpacity: 2 },
+      { watermarkPosition: 'middle' },
+    ]) {
+      await expect(
+        controller.update('org-1', 'brand-1', body),
+      ).rejects.toThrow();
+    }
+    brandsService.findOne.mockResolvedValue(null);
+    await expect(
+      controller.update('org-1', 'brand-9', { label: 'X' }),
+    ).rejects.toThrow();
+    expect(brandsService.patch).not.toHaveBeenCalled();
   });
 });

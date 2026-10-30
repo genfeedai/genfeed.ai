@@ -469,7 +469,7 @@ function ClipperProjectControls({
                       <div className="text-xs font-medium text-foreground">
                         {opt.label}
                       </div>
-                      <div className="text-[10px] text-muted-foreground">
+                      <div className="text-2xs text-muted-foreground">
                         {opt.description}
                       </div>
                     </Button>

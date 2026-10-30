@@ -8,6 +8,7 @@ import type {
   IIngredientExportResult,
   IWatermarkLayer,
   WatermarkPosition,
+  WatermarkVariant,
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { resolveIngredientMediaUrl } from '@libs/media/media-url.util';
@@ -28,10 +29,29 @@ export class IngredientExportService {
     private readonly mediaUrlService: MediaUrlService,
   ) {}
 
+  /** The mark for a background: its own asset when the brand set one, else the default. */
+  private logoIdFor(
+    brand: {
+      watermarkLightLogoId?: string | null;
+      watermarkLiveLogoId?: string | null;
+      watermarkLogoId?: string | null;
+    },
+    variant: WatermarkVariant,
+  ): string | null {
+    const own =
+      variant === 'light'
+        ? brand.watermarkLightLogoId
+        : variant === 'live'
+          ? brand.watermarkLiveLogoId
+          : null;
+    return own ?? brand.watermarkLogoId ?? null;
+  }
+
   /** Brand-watermarked copy of an ingredient, cached by source and settings. */
   async export(
     ingredientId: string,
     organizationId: string,
+    variant: WatermarkVariant = 'default',
   ): Promise<IIngredientExportResult & { id: string }> {
     const ingredient = await this.prisma.ingredient.findFirst({
       where: { id: ingredientId, organizationId, isDeleted: false },
@@ -65,10 +85,11 @@ export class IngredientExportService {
     const text = brand.watermarkText?.trim();
     let logoStorageKey: string | undefined;
     let logoVersion: string | undefined;
-    if (brand.watermarkLogoId) {
+    const logoId = this.logoIdFor(brand, variant);
+    if (logoId) {
       const logo = await this.prisma.asset.findFirst({
         where: {
-          id: brand.watermarkLogoId,
+          id: logoId,
           parentOrgId: organizationId,
           parentBrandId: brand.id,
           parentType: 'BRAND',
@@ -105,6 +126,15 @@ export class IngredientExportService {
         logoStorageKey,
         opacity: brand.watermarkOpacity,
         position: brand.watermarkPosition as WatermarkPosition,
+        ...(brand.watermarkSizeRatio != null
+          ? { sizeRatio: brand.watermarkSizeRatio }
+          : {}),
+        ...(brand.watermarkInsetXRatio != null
+          ? { insetXRatio: brand.watermarkInsetXRatio }
+          : {}),
+        ...(brand.watermarkInsetYRatio != null
+          ? { insetYRatio: brand.watermarkInsetYRatio }
+          : {}),
       },
     ];
     const result = await this.files.watermarkExport({

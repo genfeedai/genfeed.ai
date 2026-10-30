@@ -36,6 +36,7 @@ import {
 import { ContentClient } from '@mcp/services/client/content.client';
 import {
   EditorClient,
+  type ListEditorProjectsParams,
   type OpenInEditorParams,
 } from '@mcp/services/client/editor.client';
 import { LinkedInClient } from '@mcp/services/client/linkedin.client';
@@ -60,6 +61,12 @@ import {
 import { parseStoryboardRun } from '@mcp/services/client/storyboard.client';
 import { WorkflowClient } from '@mcp/services/client/workflow.client';
 import { WorkspaceClient } from '@mcp/services/client/workspace.client';
+import {
+  type CreateWorkspaceTaskParams,
+  type ListWorkspaceActivityParams,
+  type ListWorkspaceTasksParams,
+  WorkspaceAppClient,
+} from '@mcp/services/client/workspace-app.client';
 import type {
   Analytics,
   OrganizationAnalytics,
@@ -137,6 +144,7 @@ export class ClientService {
   private readonly content: ContentClient;
   private readonly clipper: ClipperClient;
   private readonly editor: EditorClient;
+  private readonly workspaceApp: WorkspaceAppClient;
   private readonly scheduler: SchedulerClient;
   private readonly campaigns: CampaignClient;
   private readonly remix: RemixClient;
@@ -161,6 +169,7 @@ export class ClientService {
     this.content = new ContentClient(this.base);
     this.clipper = new ClipperClient(this.base);
     this.editor = new EditorClient(this.base);
+    this.workspaceApp = new WorkspaceAppClient(this.base);
     this.scheduler = new SchedulerClient(this.base);
     this.campaigns = new CampaignClient(this.base);
     this.remix = new RemixClient(this.base);
@@ -374,6 +383,42 @@ export class ClientService {
 
   openInEditor(params: OpenInEditorParams): Promise<Record<string, unknown>> {
     return this.editor.openInEditor(params);
+  }
+
+  listEditorProjects(
+    params: ListEditorProjectsParams = {},
+  ): Promise<Array<Record<string, unknown>>> {
+    return this.editor.listEditorProjects(params);
+  }
+
+  getEditorProject(projectId: string): Promise<Record<string, unknown>> {
+    return this.editor.getEditorProject(projectId);
+  }
+
+  listTasks(
+    params: ListWorkspaceTasksParams = {},
+  ): Promise<Array<Record<string, unknown>>> {
+    return this.workspaceApp.listTasks(params);
+  }
+
+  getTask(taskId: string): Promise<Record<string, unknown>> {
+    return this.workspaceApp.getTask(taskId);
+  }
+
+  createTask(
+    params: CreateWorkspaceTaskParams,
+  ): Promise<Record<string, unknown>> {
+    return this.workspaceApp.createTask(params);
+  }
+
+  listInbox(): Promise<Array<Record<string, unknown>>> {
+    return this.workspaceApp.listInbox();
+  }
+
+  listActivity(
+    params: ListWorkspaceActivityParams = {},
+  ): Promise<Array<Record<string, unknown>>> {
+    return this.workspaceApp.listActivity(params);
   }
 
   importSourcePost(input: RemixToolInput<'import_source_post'>) {

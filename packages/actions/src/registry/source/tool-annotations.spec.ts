@@ -486,6 +486,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     false,
     false,
   ],
+  ['create_task', 'Create Task', false, false, false, false],
   ['create_workflow', 'Create Workflow', false, true, false, false],
   ['duplicate_workflow', 'Duplicate Workflow', false, true, false, false],
   ['edit_clip', 'Edit Clip', false, true, false, false],
@@ -549,6 +550,8 @@ const FROZEN_MCP_PRESENTATIONS = [
   ],
   ['get_clip_context', 'Get Clip Context', true, false, true, false],
   ['get_clipper_project', 'Get Clipper Project', false, true, true, true],
+  ['get_editor_project', 'Get Editor Project', true, false, true, false],
+  ['get_task', 'Get Task', true, false, true, false],
   [
     'get_connection_status',
     'Get Connection Status',
@@ -748,7 +751,11 @@ const FROZEN_MCP_PRESENTATIONS = [
     true,
     false,
   ],
+  ['list_activity', 'List Activity', true, false, true, false],
   ['list_clipper_projects', 'List Clipper Projects', true, false, true, false],
+  ['list_editor_projects', 'List Editor Projects', true, false, true, false],
+  ['list_inbox', 'List Inbox', true, false, true, false],
+  ['list_tasks', 'List Tasks', true, false, true, false],
   [
     'list_google_ads_campaigns',
     'List Google Ads Campaigns',
@@ -1049,7 +1056,7 @@ describe('MCP tool annotations', () => {
         tool?.annotations?.openWorldHint,
       ]).toEqual(row);
     }
-    expect(rows).toHaveLength(151);
+    expect(rows).toHaveLength(158);
     expect(rows.map((row) => row[0])).toEqual(expected.map((row) => row[0]));
     expect(rows).toEqual(expected);
   });
@@ -1301,7 +1308,7 @@ describe('MCP tool annotations', () => {
       readOnlyHint: false,
     });
     expect(tool?.mutationPolicy).toBe('direct');
-    expect(tool?.toolset).toBe('clipper');
+    expect(tool?.toolset).toBe('editor');
     expect(tool?.creditCost).toBe(0);
   });
 

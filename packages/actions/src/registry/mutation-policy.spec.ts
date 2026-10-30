@@ -70,7 +70,7 @@ describe('mutation policy map', () => {
     expect(getToolByName('open_in_editor')).toMatchObject({
       creditCost: 0,
       mutationPolicy: 'direct',
-      toolset: 'clipper',
+      toolset: 'editor',
     });
     expect(isReadOnlyToolName('open_in_editor')).toBe(false);
     expect(toolRequiresMutationPolicy('open_in_editor')).toBe(true);

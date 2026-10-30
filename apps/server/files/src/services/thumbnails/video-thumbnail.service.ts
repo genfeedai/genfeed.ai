@@ -4,6 +4,7 @@ import { ConfigService } from '@files/config/config.service';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { S3Service } from '@files/services/s3/s3.service';
 import { overlayTitle } from '@files/services/thumbnails/thumbnail-title-overlay.util';
+import type { ICoverTitleStyle } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { assertSafeSegment, resolveContainedPath } from '@libs/security';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -29,7 +30,8 @@ export class VideoThumbnailService {
    * @param ingredientId - ID of the ingredient/video
    * @param timeInSeconds - Time in seconds to extract frame (default: 1)
    * @param width - Thumbnail width (default: 720, will maintain aspect ratio)
-   * @param title - Optional title laid over the bottom of the frame as a cover
+   * @param title - Optional title laid over the frame as a cover
+   * @param titleStyle - Font, colours and placement of the cover title
    * @returns Public URL of the uploaded thumbnail
    */
   async generateThumbnail(
@@ -39,6 +41,7 @@ export class VideoThumbnailService {
     width: number = 720,
     title?: string,
     isCover = false,
+    titleStyle?: ICoverTitleStyle,
   ): Promise<string> {
     const safeIngredientId = assertSafeSegment(
       ingredientId,
@@ -119,7 +122,9 @@ export class VideoThumbnailService {
         .resize(width, null, { withoutEnlargement: true })
         .toBuffer();
       const resizedThumbnailBuffer = await sharp(
-        title ? await overlayTitle(resizedFrame, title) : resizedFrame,
+        title
+          ? await overlayTitle(resizedFrame, title, titleStyle)
+          : resizedFrame,
       )
         .jpeg({ quality: 85 })
         .toBuffer();

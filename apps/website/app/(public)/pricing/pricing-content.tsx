@@ -167,7 +167,7 @@ export default function PricingContent() {
                   ) : null}
 
                   <div className="mb-2 flex items-baseline gap-1.5 whitespace-nowrap">
-                    <span className="text-4xl font-semibold tracking-[-0.03em] xl:text-5xl">
+                    <span className="text-4xl font-semibold tracking-[-0.02em] xl:text-5xl">
                       {isPayg
                         ? `$${CREDIT_VALUE_DOLLARS.toFixed(2)}`
                         : formatPrice(plan.price)}
@@ -229,7 +229,7 @@ export default function PricingContent() {
                 <span className="text-sm font-medium text-foreground/55">
                   From
                 </span>
-                <span className="text-4xl font-semibold tracking-[-0.03em] xl:text-5xl">
+                <span className="text-4xl font-semibold tracking-[-0.02em] xl:text-5xl">
                   {formatPrice(serviceOffering.startingMonthlyPrice)}
                 </span>
                 <span className="text-sm font-medium text-foreground/55">
