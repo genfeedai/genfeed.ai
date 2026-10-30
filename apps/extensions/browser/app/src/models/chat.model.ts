@@ -6,6 +6,14 @@ export interface ChatMessageMetadata {
   platform?: string;
   mediaUrl?: string;
   wasInserted?: boolean;
+  /** Set when the agent stopped on a plan that waits for approval. */
+  proposedPlan?: ProposedPlan;
+  reviewRequired?: boolean;
+}
+
+export interface ProposedPlan {
+  content?: string;
+  steps?: { status?: string; step?: string }[];
 }
 
 export interface ChatMessage {
