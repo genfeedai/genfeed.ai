@@ -73,8 +73,8 @@ describe('BrandOSContent', () => {
     expect(primaryCta).toHaveAttribute('href', '#brand-os-preview');
     expect(primaryCta).toHaveClass('bg-primary');
     expect(
-      screen.getByRole('link', { name: /inspect every state/i }),
-    ).toHaveClass('bg-tertiary');
+      screen.queryByRole('link', { name: /inspect every state/i }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /open the studio/i }),
     ).toHaveAttribute('href', 'https://app.genfeed.ai');
@@ -88,12 +88,11 @@ describe('BrandOSContent', () => {
     );
   });
 
-  it('shows the explicit preview and review state contracts', () => {
+  it('shows the idle preview state before a source is submitted', () => {
     render(<BrandOSContent />);
 
     expect(screen.getAllByText('Waiting for a source').length).toBeGreaterThan(
       0,
     );
-    expect(screen.getByText('No silent state changes.')).toBeInTheDocument();
   });
 });

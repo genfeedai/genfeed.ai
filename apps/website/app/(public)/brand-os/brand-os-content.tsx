@@ -8,10 +8,7 @@ import HomeFooter from '@web-components/home/_footer';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import Link from 'next/link';
 import { BrandOsFunnel } from './brand-os-funnel';
-import {
-  BrandOSPreviewAction,
-  BrandOSPreviewStateCatalog,
-} from './brand-os-preview-state';
+import { BrandOSPreviewAction } from './brand-os-preview-state';
 
 interface Swatch {
   hex: string;
@@ -256,35 +253,6 @@ export default function BrandOSContent(): React.ReactElement {
               </div>
 
               <BrandOsFunnel />
-            </div>
-          </div>
-        </section>
-
-        {/* The catalog documents every explicit state used by the live funnel. */}
-        <section
-          className="border-b border-foreground/5 py-16 sm:py-20"
-          id="brand-os-states"
-        >
-          <div className="container mx-auto px-6">
-            <div className="mx-auto flex max-w-6xl flex-col gap-8">
-              <div className="grid gap-4 lg:grid-cols-[0.7fr_1fr] lg:items-end">
-                <div className="flex flex-col gap-3">
-                  <SectionLabel>State contract</SectionLabel>
-                  <Heading
-                    as="h2"
-                    className="max-w-xl text-4xl font-semibold tracking-[-0.02em] text-foreground"
-                  >
-                    No silent state changes.
-                  </Heading>
-                </div>
-                <Text className="max-w-2xl text-sm leading-6 text-foreground/60 lg:justify-self-end">
-                  The public preview names progress, partial evidence, recovery,
-                  conversion, and review outcomes. The live preview above uses
-                  the same state contract before authenticated review.
-                </Text>
-              </div>
-
-              <BrandOSPreviewStateCatalog />
             </div>
           </div>
         </section>
