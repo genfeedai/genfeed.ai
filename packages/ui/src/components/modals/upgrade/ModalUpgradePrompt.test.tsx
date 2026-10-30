@@ -119,6 +119,20 @@ describe('ModalUpgradePrompt', () => {
     expect(prompt).toHaveTextContent('$499/mo');
   });
 
+  it('treats a stored tier outside the plan catalog as the free plan', () => {
+    render(
+      <ModalUpgradePrompt
+        currentTier={'pro' as SubscriptionTier}
+        lockedQualityTier={QualityTier.HIGH}
+      />,
+    );
+
+    const prompt = screen.getByTestId(ModalEnum.UPGRADE_PROMPT);
+    expect(prompt).toHaveTextContent('Premium quality is on Scale');
+    expect(prompt).toHaveTextContent('Free');
+    expect(prompt).toHaveTextContent('Your plan');
+  });
+
   it('sends the user to the subscription page from the upgrade action', () => {
     render(<ModalUpgradePrompt lockedQualityTier={QualityTier.ULTRA} />);
 

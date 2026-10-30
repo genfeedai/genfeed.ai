@@ -370,6 +370,48 @@ describe('PublicBrandsController', () => {
     });
   });
 
+  describe('public brand asset queries', () => {
+    it('sorts links, videos and images by createdAt only', async () => {
+      brandsService.findOne.mockResolvedValue(
+        mockBrand as unknown as BrandEntity,
+      );
+      linksService.findAll.mockResolvedValue({ docs: [] } as never);
+      videosService.findAll.mockResolvedValue({ docs: [] } as never);
+      imagesService.findAll.mockResolvedValue({ docs: [] } as never);
+
+      await controller.findBrandLinks(mockReq, brandId);
+      await controller.findBrandVideos(brandId, mockReq);
+      await controller.findBrandImages(brandId, mockReq);
+
+      for (const findAll of [
+        linksService.findAll,
+        videosService.findAll,
+        imagesService.findAll,
+      ]) {
+        expect(findAll.mock.calls[0]?.[0]).toMatchObject({
+          orderBy: { createdAt: -1 },
+        });
+        expect(findAll.mock.calls[0]?.[0]).not.toHaveProperty('orderBy.type');
+      }
+    });
+
+    it('does not filter links by a scope column the model lacks', async () => {
+      brandsService.findOne.mockResolvedValue(
+        mockBrand as unknown as BrandEntity,
+      );
+      linksService.findAll.mockResolvedValue({ docs: [] } as never);
+
+      await controller.findBrandLinks(mockReq, brandId);
+
+      expect(linksService.findAll.mock.calls[0]?.[0]).toMatchObject({
+        where: { brandId, isDeleted: false },
+      });
+      expect(linksService.findAll.mock.calls[0]?.[0]).not.toHaveProperty(
+        'where.scope',
+      );
+    });
+  });
+
   describe('public brand asset filters', () => {
     it('uses brandId for links, videos, images, and articles', async () => {
       brandsService.findOne.mockResolvedValue(

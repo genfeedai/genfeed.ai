@@ -7,7 +7,11 @@ import {
   SubscriptionTier,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { QUALITY_TIER_OPTIONS, TIER_QUALITY_ACCESS } from '@genfeedai/helpers';
+import {
+  hasQualityAccess,
+  QUALITY_TIER_OPTIONS,
+  TIER_QUALITY_ACCESS,
+} from '@genfeedai/helpers';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
@@ -137,9 +141,14 @@ export default function ModalUpgradePrompt({
 }
 
 function PlanUpgradePrompt({
-  currentTier = SubscriptionTier.FREE,
+  currentTier: storedTier = SubscriptionTier.FREE,
   lockedQualityTier,
 }: ModalUpgradePromptProps) {
+  // subscriptionTier is a free string column; a legacy or unknown value is
+  // treated as the free plan instead of crashing the tier comparison.
+  const currentTier = TIER_ORDER.includes(storedTier)
+    ? storedTier
+    : SubscriptionTier.FREE;
   const translate = useTranslations('ui.upgradePrompt');
   const { isNavigating, navigateTo } = useAppNavigation();
 
@@ -223,7 +232,7 @@ function PlanUpgradePrompt({
             </div>
             <ul className="flex flex-col gap-2">
               {QUALITY_TIER_OPTIONS.map(({ label, value }) => {
-                const hasAccess = TIER_QUALITY_ACCESS[tier].includes(value);
+                const hasAccess = hasQualityAccess(tier, value);
                 return (
                   <li
                     key={value}

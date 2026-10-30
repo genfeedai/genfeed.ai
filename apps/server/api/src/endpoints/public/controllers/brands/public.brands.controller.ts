@@ -251,9 +251,8 @@ export class PublicBrandsController {
       where: {
         brandId,
         isDeleted: false,
-        scope: AssetScope.PUBLIC,
       },
-      orderBy: { createdAt: -1, type: 1 },
+      orderBy: { createdAt: -1 },
     };
 
     const data = await this.linksService.findAll(aggregate, options);
@@ -309,7 +308,7 @@ export class PublicBrandsController {
         scope: AssetScope.PUBLIC,
         status: IngredientStatus.GENERATED,
       },
-      orderBy: { createdAt: -1, type: 1 },
+      orderBy: { createdAt: -1 },
     };
 
     const data = await this.videosService.findAll(aggregate, options);
@@ -366,7 +365,7 @@ export class PublicBrandsController {
         scope: AssetScope.PUBLIC,
         status: IngredientStatus.GENERATED,
       },
-      orderBy: { createdAt: -1, type: 1 },
+      orderBy: { createdAt: -1 },
     };
 
     const data = await this.imagesService.findAll(aggregate, options);
