@@ -11,6 +11,14 @@ export class TrackedLinksQueryDto extends PageQueryDto {
   @IsString()
   contentId?: string;
 
+  @ApiProperty({
+    description: 'List the short links created for one scheduled post',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  postId?: string;
+
   @ApiProperty({ description: 'Filter by platform', required: false })
   @IsOptional()
   @IsString()

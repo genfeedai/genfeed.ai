@@ -1,8 +1,8 @@
 import { isIP } from 'node:net';
-import process from 'node:process';
 import { CreateTrackedLinkDto } from '@api/collections/tracked-links/dto/create-tracked-link.dto';
 import { TrackClickDto } from '@api/collections/tracked-links/dto/track-click.dto';
 import type { TrackedLinkDocument } from '@api/collections/tracked-links/schemas/tracked-link.schema';
+import { getShortLinkBaseUrl } from '@api/collections/tracked-links/utils/short-link-base-url.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { buildPaginatedResult } from '@api/helpers/utils/paginated-result/paginated-result.util';
 import { scopedWhere } from '@api/index';
@@ -98,6 +98,24 @@ export class TrackedLinksService {
     return content.id;
   }
 
+  private async assertPostAccess(
+    postId: string | undefined,
+    organizationId: string,
+  ): Promise<string | undefined> {
+    if (!postId) return undefined;
+
+    const post = await findOrThrow(
+      this.prisma.post,
+      {
+        where: scopedWhere(organizationId, { id: postId }),
+      },
+      'Post',
+      postId,
+    );
+
+    return post.id;
+  }
+
   /**
    * Generate tracking link with UTM parameters
    */
@@ -111,6 +129,7 @@ export class TrackedLinksService {
       organizationId,
       brandId,
     );
+    const postId = await this.assertPostAccess(dto.postId, organizationId);
 
     // Generate unique short code
     let shortCode = dto.customSlug || nanoid(8);
@@ -159,8 +178,7 @@ export class TrackedLinksService {
     });
 
     // Generate short URL
-    const baseUrl = process.env.SHORT_LINK_BASE_URL || 'https://genfeed.ai/l';
-    const shortUrl = `${baseUrl}/${shortCode}`;
+    const shortUrl = `${getShortLinkBaseUrl()}/${shortCode}`;
 
     // Create tracked link
     const trackedLink = await this.prisma.trackedLink.create({
@@ -175,6 +193,7 @@ export class TrackedLinksService {
         organizationId,
         originalUrl: utmUrl,
         platform: dto.platform,
+        postId,
         shortCode,
         shortUrl,
         stats: toPrismaJson({
@@ -200,6 +219,28 @@ export class TrackedLinksService {
   }
 
   /**
+   * The link already created for this post and destination, so a retried
+   * publish reuses it instead of minting a second short code.
+   */
+  async findPostLink(
+    postId: string,
+    organizationId: string,
+    url: string,
+    platform: string | undefined,
+  ): Promise<TrackedLink | null> {
+    return this.prisma.trackedLink.findFirst({
+      where: scopedWhere(organizationId, {
+        isActive: true,
+        originalUrl: this.buildUTMUrl(url, {
+          medium: 'social',
+          source: platform || 'genfeed',
+        }),
+        postId,
+      }),
+    });
+  }
+
+  /**
    * Build URL with UTM parameters
    */
   private buildUTMUrl(
@@ -208,20 +249,13 @@ export class TrackedLinksService {
   ): string {
     const urlObj = this.parseRedirectUrl(url);
 
-    if (utm.source) {
-      urlObj.searchParams.set('utm_source', utm.source);
-    }
-    if (utm.medium) {
-      urlObj.searchParams.set('utm_medium', utm.medium);
-    }
-    if (utm.campaign) {
-      urlObj.searchParams.set('utm_campaign', utm.campaign);
-    }
-    if (utm.content) {
-      urlObj.searchParams.set('utm_content', utm.content);
-    }
-    if (utm.term) {
-      urlObj.searchParams.set('utm_term', utm.term);
+    // UTM parameters the destination already carries are the sender's own
+    // campaign tagging; keep them instead of overwriting.
+    for (const [key, value] of Object.entries(utm)) {
+      const param = `utm_${key}`;
+      if (value && !urlObj.searchParams.has(param)) {
+        urlObj.searchParams.set(param, value);
+      }
     }
 
     return urlObj.toString();
@@ -416,6 +450,7 @@ export class TrackedLinksService {
       platform?: string;
       campaignName?: string;
       isActive?: boolean;
+      postId?: string;
     },
     paging: LinkPageOptions,
   ): Promise<AggregatePaginateResult<TrackedLink>> {
@@ -427,6 +462,7 @@ export class TrackedLinksService {
           ? { isActive: filters.isActive }
           : {}),
         ...(filters.platform ? { platform: filters.platform } : {}),
+        ...(filters.postId ? { postId: filters.postId } : {}),
       },
       paging,
     );

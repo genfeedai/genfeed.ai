@@ -2814,6 +2814,8 @@ model TrackedLink {
   brand          Brand?       @relation(fields: [brandId], references: [id])
   contentId      String?
   content        Ingredient?  @relation(fields: [contentId], references: [id])
+  postId         String?
+  post           Post?        @relation(fields: [postId], references: [id])
   originalUrl    String
   shortUrl       String
   shortCode      String       @unique
@@ -2834,6 +2836,7 @@ model TrackedLink {
   subscriptionAttributions SubscriptionAttribution[] @relation("attribution_link")
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, postId, isDeleted], map: "tracked_links_org_post_idx")
   @@map("tracked_links")
 }
 
@@ -3024,6 +3027,7 @@ learningCheckpoints ContentLearningCheckpoint[]
   contentPerformances      ContentPerformance[]
   trendRemixLineages       TrendRemixLineage[]
   subscriptionAttributions SubscriptionAttribution[] @relation("attribution_content")
+  trackedLinks             TrackedLink[]
 
   @@unique([organizationId, targetIdempotencyKey], map: "posts_organizationId_targetIdempotencyKey_key")
   @@index([externalId])

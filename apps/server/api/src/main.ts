@@ -21,6 +21,7 @@ import {
   shouldBypassBetterAuthHandler,
 } from '@api/auth/better-auth/better-auth-route-bypass.util';
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
+import { createShortLinkHostRewrite } from '@api/common/middleware/short-link-host.middleware';
 import { BULL_BOARD_QUEUE_NAMES } from '@api/config/bull-board-queue-names';
 import { DocsService } from '@api/endpoints/docs/docs.service';
 import { createReplicateWebhookBodyParser } from '@api/endpoints/webhooks/replicate/replicate-webhook-body.util';
@@ -216,6 +217,12 @@ async function main() {
     );
 
     app.setGlobalPrefix(API_GLOBAL_PREFIX);
+    app.use(
+      createShortLinkHostRewrite(
+        configService.get('SHORT_LINK_BASE_URL'),
+        API_GLOBAL_PREFIX,
+      ),
+    );
 
     // Internal routes are reachable only over the private network; anything the
     // public ALB forwarded to them is refused before any parsing or auth.

@@ -41,6 +41,8 @@ export const genfeedaiUrlsSchema = {
   GENFEEDAI_API_URL: conditionalRequired(Joi.string().uri()),
   GENFEEDAI_APP_URL: conditionalRequired(Joi.string().uri()),
   GENFEEDAI_CDN_URL: conditionalRequired(Joi.string().uri()),
+  // Short-link host (no trailing path); defaults to https://go.genfeed.ai.
+  SHORT_LINK_BASE_URL: Joi.string().uri().optional(),
   GENFEEDAI_MEDIA_PREPARATION_ENABLED: Joi.string()
     .valid('true', 'false')
     .default('false'),

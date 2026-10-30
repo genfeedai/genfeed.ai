@@ -325,7 +325,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // an organization.
     {
       file: 'apps/server/api/src/collections/tracked-links/services/tracked-links.service.ts',
-      line: 125,
+      line: 144,
     },
     // #6120: superadmin platform-wide announcement history.
     {

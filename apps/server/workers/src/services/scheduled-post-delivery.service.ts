@@ -293,7 +293,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         if (failure) return await fail(failure);
       }
 
-      const prepared = this.gates.prepare(
+      const prepared = await this.gates.prepare(
         post,
         source,
         ids,
