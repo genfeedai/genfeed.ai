@@ -1048,23 +1048,12 @@ export class StripeCheckoutWebhookHandler {
 
           // Provisioning failure rethrows so Stripe retries; the receipt
           // already exists, so the retry provisions exactly once.
-          const { dbUser, organizationId } = await this.resolveSkillsProBuyer(
-            session,
-            email,
-          );
+          const dbUser = await this.resolveSkillsProBuyer(session, email);
           await this.markSkillsProReceiptProvisioned(
             receipt,
             receiptId,
             String(dbUser.id),
           );
-          await this.supportService.upsertSkillsProLead({
-            email,
-            organizationId,
-            productType,
-            receiptId,
-            skillSlugs,
-            userId: String(dbUser.id),
-          });
 
           return true;
         },
@@ -1104,36 +1093,26 @@ export class StripeCheckoutWebhookHandler {
 
   /**
    * Find-or-create the buyer's user account by email, the same way the
-   * managed-credits checkout path does (`resolveManagedCheckoutUser`), so an
-   * anonymous Skills Pro buyer is never invisible to the console CRM. Returns
-   * the buyer's organization id when one already exists (or was just
-   * provisioned for a new user).
+   * managed-credits checkout path does (`resolveManagedCheckoutUser`), and
+   * run the idempotent account setup so the buyer can claim the purchase.
    */
   private async resolveSkillsProBuyer(
     session: StripeCheckoutSession,
     email: string,
-  ): Promise<{ dbUser: UserDocument; organizationId: string | null }> {
+  ): Promise<UserDocument> {
     const { dbUser } = await this.resolveManagedCheckoutUser(session, email);
 
     // The user-created listener swallows provisioning errors and only fires
     // for a brand-new user, so a retry would never repair a half-provisioned
     // buyer. Run the idempotent get-or-create setup directly on every attempt;
     // it throws on failure, which keeps the receipt `pending` and Stripe retrying.
-    const setupResult = await this.userSetupService.initializeUserResources(
+    await this.userSetupService.initializeUserResources(
       String(dbUser.id),
       OrganizationCategory.BUSINESS,
       { email },
     );
-    const organization =
-      setupResult.organization ??
-      (await this.organizationsService.findOne({
-        userId: String(dbUser.id),
-      }));
 
-    return {
-      dbUser,
-      organizationId: organization ? String(organization.id) : null,
-    };
+    return dbUser;
   }
 
   private async markSkillsProReceiptProvisioned(

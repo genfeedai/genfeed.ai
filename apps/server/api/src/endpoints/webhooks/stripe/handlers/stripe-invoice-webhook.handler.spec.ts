@@ -51,7 +51,6 @@ describe('StripeInvoiceWebhookHandler', () => {
     recordRevenueEvent: vi.fn(),
     resolveTierFromPriceId: vi.fn().mockReturnValue(null),
     setHasEverHadCredits: vi.fn(),
-    upsertSubscriptionLead: vi.fn(),
   };
   const creditGrantService = {
     logUnresolvedGrant: vi.fn(),
@@ -451,78 +450,6 @@ describe('StripeInvoiceWebhookHandler', () => {
           referenceType: 'stripe-invoice:subscription-grant',
         }),
       );
-    });
-
-    it('upserts a Pro subscription lead for the invoice organization', async () => {
-      billingService.resolve.mockResolvedValue({
-        billingAccountId: 'ba_1',
-        stripeSubscriptionId: 'sub_stripe_1',
-        subscription: {
-          ...monthlySubscription,
-          stripePriceId: 'price_scale',
-        },
-      });
-      supportService.resolveTierFromPriceId.mockReturnValue(
-        SubscriptionTier.SCALE,
-      );
-
-      await handler.handleInvoicePaid(
-        invoiceWith({
-          parent: { subscription_details: { subscription: 'sub_stripe_1' } },
-        }),
-        'test',
-      );
-
-      expect(supportService.resolveTierFromPriceId).toHaveBeenCalledWith(
-        'price_scale',
-      );
-      expect(supportService.upsertSubscriptionLead).toHaveBeenCalledWith({
-        organizationId: 'org_1',
-        stripeSubscriptionId: 'sub_stripe_1',
-        tier: SubscriptionTier.SCALE,
-        userId: 'user_1',
-      });
-    });
-
-    it('does not create a lead for a tier below Pro', async () => {
-      billingService.resolve.mockResolvedValue({
-        billingAccountId: 'ba_1',
-        stripeSubscriptionId: 'sub_stripe_1',
-        subscription: {
-          ...monthlySubscription,
-          stripePriceId: 'price_free',
-        },
-      });
-      supportService.resolveTierFromPriceId.mockReturnValue(
-        SubscriptionTier.FREE,
-      );
-
-      await handler.handleInvoicePaid(
-        invoiceWith({
-          parent: { subscription_details: { subscription: 'sub_stripe_1' } },
-        }),
-        'test',
-      );
-
-      expect(supportService.upsertSubscriptionLead).not.toHaveBeenCalled();
-    });
-
-    it('does not attempt lead creation when the subscription has no price id', async () => {
-      billingService.resolve.mockResolvedValue({
-        billingAccountId: 'ba_1',
-        stripeSubscriptionId: 'sub_stripe_1',
-        subscription: monthlySubscription,
-      });
-
-      await handler.handleInvoicePaid(
-        invoiceWith({
-          parent: { subscription_details: { subscription: 'sub_stripe_1' } },
-        }),
-        'test',
-      );
-
-      expect(supportService.resolveTierFromPriceId).not.toHaveBeenCalled();
-      expect(supportService.upsertSubscriptionLead).not.toHaveBeenCalled();
     });
 
     it('grants the verified yearly allocation for a yearly Scale subscription', async () => {
