@@ -438,7 +438,7 @@ export default function BrandOSContent(): React.ReactElement {
                   containment instead of a CSS border.
                 </Text>
               </div>
-              <div className="grid gap-px bg-foreground/5 sm:grid-cols-2">
+              <div className="grid gap-px bg-foreground/10 sm:grid-cols-2">
                 {RADIUS_STEPS.map((step) => (
                   <div
                     className="flex flex-col gap-3 bg-background p-5"
@@ -485,7 +485,7 @@ export default function BrandOSContent(): React.ReactElement {
               </Text>
             </div>
 
-            <div className="mx-auto mt-12 grid max-w-6xl gap-px bg-foreground/5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mx-auto mt-12 grid max-w-6xl gap-px bg-foreground/10 sm:grid-cols-2 lg:grid-cols-4">
               {COLOR_DOORS.map((door) => (
                 <div
                   className="flex flex-col gap-4 bg-background p-6"
@@ -512,7 +512,7 @@ export default function BrandOSContent(): React.ReactElement {
         {/* Do's and Don'ts */}
         <section className="py-16 sm:py-20">
           <div className="container mx-auto px-6">
-            <div className="mx-auto grid max-w-6xl gap-px bg-foreground/5 lg:grid-cols-2">
+            <div className="mx-auto grid max-w-6xl gap-px bg-foreground/10 lg:grid-cols-2">
               <div className="flex flex-col gap-5 bg-background p-6 sm:p-8">
                 <SectionLabel>Do</SectionLabel>
                 <ul className="space-y-3.5">
