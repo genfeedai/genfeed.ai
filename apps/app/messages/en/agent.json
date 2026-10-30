@@ -405,7 +405,8 @@
   },
   "transferProvenance": {
     "copy": "Copy",
-    "openConversation": "Open conversation"
+    "openConversation": "Open conversation",
+    "openInThreads": "Open in Threads"
   },
   "settings": {
     "autoDescription": "Use the platform default model",

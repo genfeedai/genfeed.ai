@@ -25,6 +25,10 @@ vi.mock('./AgentWorkspacePageShell', () => ({
   },
 }));
 
+vi.mock('./AgentMasterWorkspace', () => ({
+  default: () => <div data-testid="master-workspace" />,
+}));
+
 function renderHost(pathname: string) {
   pathnameState.current = pathname;
   return render(
@@ -46,16 +50,24 @@ describe('AgentConversationRouteHost', () => {
     expect(AgentConversationRouteHost.name).toBe('AgentConversationRouteHost');
   });
 
-  it('renders the conversation shell ahead of the route page on /agent', () => {
-    const { getByTestId } = renderHost('/test-org/~/agent');
+  it('renders the master workspace ahead of the route page on /agent', () => {
+    const { getByTestId, queryByTestId } = renderHost('/test-org/~/agent');
 
-    const shell = getByTestId('conversation-shell');
+    const workspace = getByTestId('master-workspace');
     const page = getByTestId('route-page');
 
-    expect(shell).toHaveTextContent('none');
+    expect(queryByTestId('conversation-shell')).toBeNull();
     expect(
-      shell.compareDocumentPosition(page) & Node.DOCUMENT_POSITION_FOLLOWING,
+      workspace.compareDocumentPosition(page) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it('renders a single full-page conversation on /agent/new', () => {
+    const { getByTestId, queryByTestId } = renderHost('/test-org/~/agent/new');
+
+    expect(getByTestId('conversation-shell')).toHaveTextContent('none');
+    expect(queryByTestId('master-workspace')).toBeNull();
   });
 
   it('keeps one mounted shell while the thread route changes', () => {

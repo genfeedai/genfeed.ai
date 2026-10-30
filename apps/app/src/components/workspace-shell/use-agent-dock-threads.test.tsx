@@ -1,5 +1,5 @@
 import { type AgentThread, useAgentChatStore } from '@genfeedai/agent';
-import { AgentThreadStatus } from '@genfeedai/contracts';
+import { AgentThreadKind, AgentThreadStatus } from '@genfeedai/contracts';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAgentDockThreads } from './use-agent-dock-threads';
@@ -95,5 +95,73 @@ describe('useAgentDockThreads history and lifecycle', () => {
     expect(result.current.activeThreadId).toBeNull();
     expect(useAgentChatStore.getState().messages).toEqual([]);
     expect(result.current.threads).toHaveLength(2);
+  });
+
+  describe('master conversation', () => {
+    const master: AgentThread = {
+      ...makeThread('master-1', 'Master'),
+      kind: AgentThreadKind.MASTER,
+    };
+    const getMasterThread = vi.fn(async (): Promise<AgentThread> => master);
+    const apiWithMaster = { getMasterThread, getMessages, getThreads };
+
+    beforeEach(() => {
+      getMasterThread.mockClear();
+      useAgentChatStore.getState().setThreads([]);
+    });
+
+    it('opens the master when the dock has no thread of its own', async () => {
+      const { result } = renderHook(() =>
+        useAgentDockThreads(apiWithMaster, true),
+      );
+
+      await waitFor(() =>
+        expect(result.current.activeThreadId).toBe('master-1'),
+      );
+      expect(getMessages).toHaveBeenCalledWith('master-1', { limit: 100 });
+    });
+
+    it('keeps a thread that is already open', async () => {
+      useAgentChatStore.getState().setActiveThread('thread-1');
+
+      renderHook(() => useAgentDockThreads(apiWithMaster, true));
+
+      await waitFor(() => expect(getThreads).toHaveBeenCalled());
+      expect(getMasterThread).not.toHaveBeenCalled();
+    });
+
+    it('does not undo a blank conversation the operator asked for', async () => {
+      const { result } = renderHook(() =>
+        useAgentDockThreads(apiWithMaster, true),
+      );
+      await waitFor(() =>
+        expect(result.current.activeThreadId).toBe('master-1'),
+      );
+
+      act(() => result.current.startThread());
+
+      expect(result.current.activeThreadId).toBeNull();
+      await act(async () => undefined);
+      expect(getMasterThread).toHaveBeenCalledTimes(1);
+      expect(result.current.activeThreadId).toBeNull();
+    });
+
+    it('leads the thread list with the master under its own name', async () => {
+      getThreads.mockResolvedValue([
+        makeThread('thread-1', 'Spring launch plan'),
+        master,
+      ]);
+
+      const { result } = renderHook(() =>
+        useAgentDockThreads(apiWithMaster, true),
+      );
+
+      await waitFor(() =>
+        expect(result.current.threads.map((thread) => thread.title)).toEqual([
+          'Master',
+          'Spring launch plan',
+        ]),
+      );
+    });
   });
 });

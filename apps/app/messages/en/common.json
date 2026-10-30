@@ -1200,6 +1200,10 @@
   "workspaceOverlay": {
     "noContent": "No content configured for this overlay."
   },
+  "agentWorkspace": {
+    "master": "Master",
+    "views": "Master or Threads"
+  },
   "agentOutput": {
     "agent": "Agent",
     "collapseAgent": "Collapse agent",
@@ -1217,6 +1221,7 @@
     "close": "Close agent",
     "description": "Chat with the agent without leaving this page.",
     "label": "Agent",
+    "masterThread": "Master",
     "newChat": "New chat",
     "newThread": "New thread",
     "noThreads": "No threads yet",
@@ -1227,6 +1232,37 @@
     "threadsLoading": "Loading threads",
     "untitledThread": "Untitled",
     "title": "Agent"
+  },
+  "agentThreads": {
+    "allBrands": "All brands",
+    "back": "Back",
+    "brandFilter": "Filter by brand",
+    "empty": "No threads yet. Ask the master to start one.",
+    "groups": {
+      "needsYou": "Needs you",
+      "readyForReview": "Ready for review",
+      "recent": "Recent",
+      "working": "Working"
+    },
+    "loadFailed": "Failed to load this thread.",
+    "loading": "Loading threads",
+    "loadingMessages": "Loading messages",
+    "noMatches": "No threads match.",
+    "noMessages": "No messages yet.",
+    "openFull": "Open full page",
+    "openOutput": "Open output",
+    "outputs": "Outputs",
+    "roleAgent": "Agent",
+    "roleYou": "You",
+    "search": "Search threads",
+    "startedByMaster": "Started by Master",
+    "statusIdle": "Idle",
+    "steer": "Steer",
+    "steerFailed": "Could not send. Try again.",
+    "steerLabel": "Steer this thread",
+    "steerPlaceholder": "Tell this thread what to change",
+    "steerSent": "Sent.",
+    "untitled": "Untitled"
   },
   "contextSidebar": {
     "close": "Close details",

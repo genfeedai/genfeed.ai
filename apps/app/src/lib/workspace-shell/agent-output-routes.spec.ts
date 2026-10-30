@@ -17,6 +17,13 @@ describe('isAgentOutputRoute', () => {
     expect(isAgentOutputRoute('/storyboard/new-run')).toBe(true);
   });
 
+  it('matches the master conversation but not a single full-page thread', () => {
+    expect(isAgentOutputRoute('/agent')).toBe(true);
+    expect(isAgentOutputRoute('/agent/')).toBe(true);
+    expect(isAgentOutputRoute('/agent/new')).toBe(false);
+    expect(isAgentOutputRoute('/agent/journey')).toBe(false);
+  });
+
   it('matches the workflow editor, new or saved', () => {
     expect(isAgentOutputRoute('/automation/workflows/new')).toBe(true);
     expect(isAgentOutputRoute('/automation/workflows/wf-1')).toBe(true);

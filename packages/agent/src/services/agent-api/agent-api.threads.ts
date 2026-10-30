@@ -353,6 +353,19 @@ export async function getThread(
   );
 }
 
+/** The caller's master thread; the server creates it on first read. */
+export async function getMasterThread(
+  api: AgentBaseApiService,
+  signal?: AbortSignal,
+): Promise<AgentThread> {
+  return api.fetchResource<AgentThread>(
+    `${api.config.baseUrl}${AGENT_THREADS_ENDPOINT}/master`,
+    { signal },
+    'Failed to fetch master thread',
+    'Failed to deserialize master thread',
+  );
+}
+
 export async function getThreadSnapshot(
   api: AgentBaseApiService,
   threadId: string,

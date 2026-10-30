@@ -101,33 +101,11 @@ test.describe('Chat flow interactions', () => {
     await assertHealthy(authenticatedPage);
   });
 
-  test('thread list and new-chat navigation are reachable', async ({
+  test('new-chat navigation is reachable from a thread', async ({
     authenticatedPage,
   }) => {
     await assertRouteRenders(authenticatedPage, `${ORG}/agent/thread-1`);
-    await tryClick(
-      authenticatedPage,
-      '[data-testid="agent-thread-list-content"] a',
-    );
     await tryClick(authenticatedPage, 'a[href*="/agent/new"]');
-    await assertHealthy(authenticatedPage);
-  });
-
-  test('double-clicking a thread title opens the inline rename input', async ({
-    authenticatedPage,
-  }) => {
-    await assertRouteRenders(authenticatedPage, `${ORG}/agent/thread-1`);
-    const threadLink = authenticatedPage
-      .locator('[data-testid="agent-thread-list-content"] a')
-      .first();
-
-    if (await threadLink.isVisible({ timeout: 8_000 }).catch(() => false)) {
-      await threadLink.dblclick({ timeout: 5_000 }).catch(() => {});
-      await expect(
-        authenticatedPage.getByRole('textbox', { name: /^Rename / }),
-      ).toBeVisible({ timeout: 5_000 });
-      await authenticatedPage.keyboard.press('Escape');
-    }
     await assertHealthy(authenticatedPage);
   });
 

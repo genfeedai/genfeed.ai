@@ -9,6 +9,8 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
  * `AgentOutputShell` adds its route here in the same change.
  */
 const AGENT_OUTPUT_ROUTE_PATTERNS: readonly RegExp[] = [
+  // The master conversation; `/agent/new` and `/agent/[id]` stay full-page.
+  new RegExp(`^${APP_ROUTES.AGENT.ROOT}/?$`),
   // A Storyboard run; `/storyboard/new` is the create form.
   new RegExp(`^${APP_ROUTES.STUDIO.STORYBOARD}/(?!new/?$)[^/]+/?$`),
   // The workflow editor, new or saved; `/automation/workflows/templates` is
