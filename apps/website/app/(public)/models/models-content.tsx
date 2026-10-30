@@ -81,7 +81,7 @@ function CatalogSignal({ models }: ModelsContentProps) {
               <Text className="text-4xl font-semibold tracking-[-0.02em] text-foreground sm:text-5xl">
                 {item.value}
               </Text>
-              <Text className="mt-2 text-sm text-foreground/60">
+              <Text className="mt-3 text-sm text-foreground/70">
                 {item.label}
               </Text>
             </div>
@@ -257,7 +257,7 @@ export default function ModelsContent({ models }: ModelsContentProps) {
                                 .slice(0, 4)
                                 .map((capability) => (
                                   <Text
-                                    className="text-xs text-foreground/50"
+                                    className="text-xs text-foreground/60"
                                     key={capability}
                                   >
                                     {titleCase(capability)}
@@ -266,7 +266,7 @@ export default function ModelsContent({ models }: ModelsContentProps) {
                             </div>
                           ) : null}
                         </div>
-                        <Text className="text-sm text-foreground/50 sm:pt-1">
+                        <Text className="text-sm text-foreground/60 sm:pt-1">
                           {titleCase(model.provider)}
                         </Text>
                       </li>
