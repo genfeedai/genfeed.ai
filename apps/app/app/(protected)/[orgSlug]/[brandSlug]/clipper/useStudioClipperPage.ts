@@ -470,7 +470,7 @@ export function useStudioClipperPage(options?: { projectId?: string }) {
     ],
   );
 
-  // ─── Draft autosave ───────────────────────────────────────────
+  // Draft autosave
   // Saves run one at a time and are never aborted: an aborted request can
   // still land on the server. After each save the latest form state is
   // compared with what was confirmed saved, so a change made while a save
@@ -654,7 +654,7 @@ export function useStudioClipperPage(options?: { projectId?: string }) {
     ],
   );
 
-  // ─── Step 1: Analyze ─────────────────────────────────────────
+  // Step 1: Analyze
   const handleAnalyze = useCallback(async () => {
     if (sourceKind === 'youtube' && !youtubeUrl) {
       setError('YouTube URL is required.');
@@ -711,7 +711,7 @@ export function useStudioClipperPage(options?: { projectId?: string }) {
     startUploadedSource,
   ]);
 
-  // ─── Step 1: One-click YouTube clip factory ───────────────────
+  // Step 1: One-click YouTube clip factory
   const handleStartFromYoutube = useCallback(async () => {
     if (sourceKind === 'youtube' && !youtubeUrl) {
       setError('YouTube URL is required.');
@@ -818,7 +818,7 @@ export function useStudioClipperPage(options?: { projectId?: string }) {
     startUploadedSource,
   ]);
 
-  // ─── Poll for analysis completion ─────────────────────────────
+  // Poll for analysis completion
   useEffect(() => {
     if (step !== 'review' || !project?.projectId) return;
     if (project.status === 'failed') return;
@@ -1073,7 +1073,7 @@ export function useStudioClipperPage(options?: { projectId?: string }) {
     }
   }, [clipsService, project?.projectId]);
 
-  // ─── Step 2: Generate selected highlights ─────────────────────
+  // Step 2: Generate selected highlights
   const handleGenerate = useCallback(async () => {
     if (!project?.projectId) {
       setError('Clip project is required to generate clips.');
@@ -1168,7 +1168,7 @@ export function useStudioClipperPage(options?: { projectId?: string }) {
     clipsService,
   ]);
 
-  // ─── Poll for clip results (Step 3) ───────────────────────────
+  // Poll for clip results (Step 3)
   useEffect(() => {
     if (step !== 'progress' || !project?.projectId) return;
     if (!isDocumentVisible) return;
@@ -1282,7 +1282,7 @@ export function useStudioClipperPage(options?: { projectId?: string }) {
     isDocumentVisible,
   ]);
 
-  // ─── Highlight edit helpers ────────────────────────────────────
+  // Highlight edit helpers
   const toggleHighlight = useCallback((id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);

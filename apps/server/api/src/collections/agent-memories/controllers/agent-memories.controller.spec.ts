@@ -176,7 +176,7 @@ describe('AgentMemoriesController', () => {
     });
   });
 
-  // ── personal / brand visibility ───────────────────────────────────────────
+  // personal / brand visibility
 
   describe('personal and brand memories', () => {
     const serializingRequest = { originalUrl: '/v1/agent/memories' } as Request;
@@ -231,7 +231,7 @@ describe('AgentMemoriesController', () => {
     });
   });
 
-  // ── list ──────────────────────────────────────────────────────────────────
+  // list
 
   describe('list', () => {
     it('returns memory entries for current user', async () => {
@@ -324,7 +324,7 @@ describe('AgentMemoriesController', () => {
     });
   });
 
-  // ── create ────────────────────────────────────────────────────────────────
+  // create
 
   describe('create', () => {
     const baseBody = { content: 'Test memory content', tags: ['tag1'] };
@@ -433,7 +433,7 @@ describe('AgentMemoriesController', () => {
     });
   });
 
-  // ── remove ────────────────────────────────────────────────────────────────
+  // remove
 
   describe('remove', () => {
     const MEMORY_ID = 'mem-to-delete';

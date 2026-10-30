@@ -6891,9 +6891,7 @@ describe('AgentToolExecutorService', () => {
     });
   });
 
-  // ──────────────────────────────────────────────
   // Workflow agent-tool path tests
-  // ──────────────────────────────────────────────
 
   const CTX = {
     organizationId: testId('org2'),
@@ -7315,9 +7313,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.error).toContain('not found');
   });
 
-  // ──────────────────────────────────────────────
   // BRAND CONTEXT INTERVIEW TOOLS
-  // ──────────────────────────────────────────────
 
   it('start_brand_interview calls engine start and returns interview data', async () => {
     const { brandInterviewService, executeApprovedTool } = createService();

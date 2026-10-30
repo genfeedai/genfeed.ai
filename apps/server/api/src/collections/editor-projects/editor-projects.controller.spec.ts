@@ -159,7 +159,7 @@ describe('EditorProjectsController', () => {
     expect(controller).toBeDefined();
   });
 
-  // ── create ────────────────────────────────────────────────────────────────
+  // create
   describe('create', () => {
     it('creates and returns a project without source videos', async () => {
       const project = makeProject();
@@ -299,7 +299,7 @@ describe('EditorProjectsController', () => {
     });
   });
 
-  // ── findAll ───────────────────────────────────────────────────────────────
+  // findAll
   describe('findAll', () => {
     it('returns paginated projects', async () => {
       const paginatedResult = {
@@ -330,7 +330,7 @@ describe('EditorProjectsController', () => {
     });
   });
 
-  // ── findOne ───────────────────────────────────────────────────────────────
+  // findOne
   describe('findOne', () => {
     it('returns a project by id', async () => {
       const projectId = testId('project', 2);
@@ -359,7 +359,7 @@ describe('EditorProjectsController', () => {
     });
   });
 
-  // ── update ────────────────────────────────────────────────────────────────
+  // update
   describe('update', () => {
     it('applies Editor edits through the row-locked service update', async () => {
       const project = makeProject({ config: { name: 'My Project' } });
@@ -411,7 +411,7 @@ describe('EditorProjectsController', () => {
     });
   });
 
-  // ── remove ────────────────────────────────────────────────────────────────
+  // remove
   describe('remove', () => {
     it('soft-deletes a project by setting isDeleted=true', async () => {
       const project = makeProject();
@@ -440,7 +440,7 @@ describe('EditorProjectsController', () => {
     });
   });
 
-  // ── duplicate ─────────────────────────────────────────────────────────────
+  // duplicate
   describe('duplicate', () => {
     const tracks = [
       {
@@ -683,7 +683,7 @@ describe('EditorProjectsController', () => {
     expect(editorRenderService.cancel).not.toHaveBeenCalled();
   });
 
-  // ── render ────────────────────────────────────────────────────────────────
+  // render
   describe('render', () => {
     it('triggers render and returns the result', async () => {
       const project = makeProject();

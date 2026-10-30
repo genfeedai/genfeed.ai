@@ -30,7 +30,7 @@ import SkillsHowItWorks from './skills-how-it-works';
 import SkillsStatsBar from './skills-stats-bar';
 import TerminalDemo from './terminal-demo';
 
-/* ─── Main Content ─── */
+/* Main Content */
 
 interface SkillsContentProps {
   initialRegistry: SkillRegistry | null;

@@ -124,7 +124,7 @@ export class StepExecutorService {
     }
   }
 
-  // ── Text-to-Image ───────────────────────────────────────────────────
+  // Text-to-Image
 
   private async executeTextToImage(
     step: TextToImageStep,
@@ -148,7 +148,7 @@ export class StepExecutorService {
     }
   }
 
-  // ── Image-to-Video ──────────────────────────────────────────────────
+  // Image-to-Video
 
   private async executeImageToVideo(
     step: ImageToVideoStep,
@@ -211,7 +211,7 @@ export class StepExecutorService {
     }
   }
 
-  // ── Text-to-Speech ──────────────────────────────────────────────────
+  // Text-to-Speech
 
   private async executeTextToSpeech(
     step: TextToSpeechStep,
@@ -242,7 +242,7 @@ export class StepExecutorService {
     }
   }
 
-  // ── Text-to-Music ──────────────────────────────────────────────────
+  // Text-to-Music
 
   /**
    * The model comes from the same policy as the music API: an explicit step
@@ -316,7 +316,7 @@ export class StepExecutorService {
     return byokKey?.apiKey;
   }
 
-  // ── Helpers ─────────────────────────────────────────────────────────
+  // Helpers
 
   private async pollComfyUIJob(
     jobId: string,

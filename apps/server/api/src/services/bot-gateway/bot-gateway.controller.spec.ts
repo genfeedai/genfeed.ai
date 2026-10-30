@@ -90,7 +90,7 @@ describe('BotGatewayController', () => {
     expect(controller).toBeDefined();
   });
 
-  // ── Discord ──────────────────────────────────────────────────────────
+  // Discord
 
   describe('handleDiscordInteraction', () => {
     const makeReq = (rawBody?: Buffer) =>
@@ -255,7 +255,7 @@ describe('BotGatewayController', () => {
     });
   });
 
-  // ── Telegram ─────────────────────────────────────────────────────────
+  // Telegram
 
   describe('handleTelegramEvent', () => {
     const makeReq = (rawBody?: Buffer) =>
@@ -290,7 +290,7 @@ describe('BotGatewayController', () => {
     });
   });
 
-  // ── Slack ────────────────────────────────────────────────────────────
+  // Slack
 
   describe('handleSlackEvent', () => {
     const makeReq = (rawBody?: Buffer) =>

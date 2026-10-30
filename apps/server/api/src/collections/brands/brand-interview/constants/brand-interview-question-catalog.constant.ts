@@ -65,7 +65,7 @@ export const BRAND_FIELD_META: Record<string, BrandFieldMeta> = {
  * This order determines the sequence in which gaps are asked.
  */
 export const BRAND_INTERVIEW_QUESTION_CATALOG: IBrandInterviewQuestion[] = [
-  // ── IDENTITY ──────────────────────────────────────────────────────────────
+  // IDENTITY
   {
     answerType: 'text',
     examples: [
@@ -95,7 +95,7 @@ export const BRAND_INTERVIEW_QUESTION_CATALOG: IBrandInterviewQuestion[] = [
     weight: 9,
   },
 
-  // ── VOICE ─────────────────────────────────────────────────────────────────
+  // VOICE
   {
     answerType: 'text',
     examples: [
@@ -196,7 +196,7 @@ export const BRAND_INTERVIEW_QUESTION_CATALOG: IBrandInterviewQuestion[] = [
     weight: 5,
   },
 
-  // ── STRATEGY ──────────────────────────────────────────────────────────────
+  // STRATEGY
   {
     answerType: 'list',
     examples: [

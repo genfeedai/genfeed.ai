@@ -51,7 +51,7 @@ const logger = {
   log: (message: string) => console.log(`[home-video] ${message}`),
 };
 
-// ─── Model ──────────────────────────────────────────────────────────────────
+// Model
 
 /**
  * Seedance 2.5 tops out at 720p, which is the right ceiling here: every clip
@@ -84,7 +84,7 @@ const SHARED_STYLE = [
   'practical lighting, slow deliberate camera motion.',
 ].join(' ');
 
-// ─── Scenes ─────────────────────────────────────────────────────────────────
+// Scenes
 
 type Scene = {
   aspectRatio: '16:9' | '9:16';
@@ -163,7 +163,7 @@ const FORMAT_SCENES: Scene[] = [
   },
 ];
 
-// ─── Encoding ───────────────────────────────────────────────────────────────
+// Encoding
 
 /**
  * Length of the crossfade that closes a loop, and the one that joins two hero
@@ -191,7 +191,7 @@ const OUTPUT_DIR = path.resolve(import.meta.dirname, '../.home-video');
 const RAW_DIR = path.join(OUTPUT_DIR, 'raw');
 const BUILD_DIR = path.join(OUTPUT_DIR, 'build');
 
-// ─── Shell ──────────────────────────────────────────────────────────────────
+// Shell
 
 function run(command: string, args: readonly string[]): string {
   const result = spawnSync(command, [...args], {
@@ -234,7 +234,7 @@ function probeDuration(file: string): number {
   return duration;
 }
 
-// ─── Credentials ────────────────────────────────────────────────────────────
+// Credentials
 
 /**
  * Read one key out of the repo-root `.env.local` without pulling a dotenv
@@ -257,7 +257,7 @@ function readEnvLocal(key: string): string | undefined {
   return undefined;
 }
 
-// ─── 1. Generate ────────────────────────────────────────────────────────────
+// 1. Generate
 
 const THROTTLE_ATTEMPTS = 4;
 const THROTTLE_BACKOFF_MS = 15_000;
@@ -349,7 +349,7 @@ async function generateScene(
   return destination;
 }
 
-// ─── 2. Stitch ──────────────────────────────────────────────────────────────
+// 2. Stitch
 
 /**
  * Chain several scenes into one montage, each crossfading into the next.
@@ -402,7 +402,7 @@ function stitch(sources: readonly string[], destination: string): string {
   return destination;
 }
 
-// ─── 3. Close the loop ──────────────────────────────────────────────────────
+// 3. Close the loop
 
 /**
  * Make a clip loop without a cut.
@@ -448,7 +448,7 @@ function closeLoop(source: string, destination: string): string {
   return destination;
 }
 
-// ─── 4 & 5. Encode and poster ───────────────────────────────────────────────
+// 4 & 5. Encode and poster
 
 type Artefacts = {
   mp4: string;
@@ -531,7 +531,7 @@ function encode(source: string, name: string, width: number): Artefacts {
   return artefacts;
 }
 
-// ─── 6. Upload ──────────────────────────────────────────────────────────────
+// 6. Upload
 
 const CONTENT_TYPES: Record<string, string> = {
   '.jpg': 'image/jpeg',

@@ -166,11 +166,9 @@ export class PublicPostsController {
     return serializeCollection(request, IngredientSerializer, data);
   }
 
-  // ────────────────────────────────────────────────────────────────────────────
   // Wildcard param routes — keep last. Nest matches in declaration order, so a
   // `:postId` route declared earlier swallows every static sibling path
   // (`GET /public/posts/ingredients` would resolve to getPostMetadata).
-  // ────────────────────────────────────────────────────────────────────────────
 
   @Get(':postId')
   @Cache({

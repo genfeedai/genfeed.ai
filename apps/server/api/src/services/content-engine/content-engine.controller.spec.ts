@@ -162,7 +162,7 @@ describe('ContentEngineController', () => {
     expect(controller).toBeDefined();
   });
 
-  // ── Plans ──────────────────────────────────────────────────────────
+  // Plans
 
   describe('generatePlan', () => {
     it('should generate a plan scoped to organization and brand', async () => {
@@ -488,7 +488,7 @@ describe('ContentEngineController', () => {
     });
   });
 
-  // ── Execution ──────────────────────────────────────────────────────
+  // Execution
 
   describe('executePlan', () => {
     it('should execute a plan with org, brand, plan, and user ids', async () => {
@@ -540,5 +540,5 @@ describe('ContentEngineController', () => {
     });
   });
 
-  // ── Review Queue ───────────────────────────────────────────────────
+  // Review Queue
 });

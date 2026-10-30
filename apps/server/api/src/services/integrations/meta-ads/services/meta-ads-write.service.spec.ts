@@ -205,7 +205,7 @@ describe('MetaAdsService - Write Operations', () => {
     });
   });
 
-  // ─── updateCampaign ──────────────────────────────────────────────────────
+  // updateCampaign
 
   describe('updateCampaign', () => {
     it('should update campaign name', async () => {
@@ -282,7 +282,7 @@ describe('MetaAdsService - Write Operations', () => {
     });
   });
 
-  // ─── pauseCampaign ───────────────────────────────────────────────────────
+  // pauseCampaign
 
   describe('pauseCampaign', () => {
     it('should set campaign status to PAUSED', async () => {
@@ -321,7 +321,7 @@ describe('MetaAdsService - Write Operations', () => {
     });
   });
 
-  // ─── updateCampaignBudget ────────────────────────────────────────────────
+  // updateCampaignBudget
 
   describe('updateCampaignBudget', () => {
     it('should update daily budget in cents', async () => {
@@ -385,7 +385,7 @@ describe('MetaAdsService - Write Operations', () => {
     });
   });
 
-  // ─── createAdSet ─────────────────────────────────────────────────────────
+  // createAdSet
 
   describe('createAdSet', () => {
     const defaultAdSetParams: CreateAdSetParams = {
@@ -518,7 +518,7 @@ describe('MetaAdsService - Write Operations', () => {
     });
   });
 
-  // ─── updateAdSet ─────────────────────────────────────────────────────────
+  // updateAdSet
 
   describe('updateAdSet', () => {
     it('should update adset name', async () => {
@@ -585,7 +585,7 @@ describe('MetaAdsService - Write Operations', () => {
     });
   });
 
-  // ─── createAd ────────────────────────────────────────────────────────────
+  // createAd
 
   describe('createAd', () => {
     const defaultAdParams: CreateAdParams = {
@@ -732,7 +732,7 @@ describe('MetaAdsService - Write Operations', () => {
     });
   });
 
-  // ─── pauseAd ─────────────────────────────────────────────────────────────
+  // pauseAd
 
   describe('pauseAd', () => {
     it('should set ad status to PAUSED', async () => {
@@ -759,7 +759,7 @@ describe('MetaAdsService - Write Operations', () => {
     });
   });
 
-  // ─── deleteAd ────────────────────────────────────────────────────────────
+  // deleteAd
 
   describe('deleteAd', () => {
     it('should call delete endpoint for ad', async () => {
@@ -799,7 +799,7 @@ describe('MetaAdsService - Write Operations', () => {
     });
   });
 
-  // ─── uploadAdImage ───────────────────────────────────────────────────────
+  // uploadAdImage
 
   describe('uploadAdImage', () => {
     beforeEach(() => {
@@ -903,7 +903,7 @@ describe('MetaAdsService - Write Operations', () => {
     });
   });
 
-  // ─── uploadAdVideo ───────────────────────────────────────────────────────
+  // uploadAdVideo
 
   describe('uploadAdVideo', () => {
     it('should upload a video and return video ID', async () => {

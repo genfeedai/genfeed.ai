@@ -364,7 +364,7 @@ export class ContentQualityScorerService {
     );
   }
 
-  // ─── LLM Calls ──────────────────────────────────────────────────────
+  // LLM Calls
 
   /**
    * Call vision-capable model with an image URL.
@@ -442,7 +442,7 @@ export class ContentQualityScorerService {
     }
   }
 
-  // ─── Data Resolution ────────────────────────────────────────────────
+  // Data Resolution
 
   private async resolveIngredientUrl(
     contentId: string,
@@ -490,7 +490,7 @@ export class ContentQualityScorerService {
     }
   }
 
-  // ─── Helpers ────────────────────────────────────────────────────────
+  // Helpers
 
   /**
    * Map a numeric score to a category label.

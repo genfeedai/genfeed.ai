@@ -57,7 +57,7 @@ export class BrandInterviewService {
     private readonly expertPositioningService: ExpertPositioningService,
   ) {}
 
-  // ── Public API ─────────────────────────────────────────────────────────────
+  // Public API
 
   async start(
     brandId: string,
@@ -537,7 +537,7 @@ export class BrandInterviewService {
     };
   }
 
-  // ── Private helpers ────────────────────────────────────────────────────────
+  // Private helpers
 
   private async isExpertOrganization(organizationId: string): Promise<boolean> {
     const organization = await this.prisma.organization.findFirst({

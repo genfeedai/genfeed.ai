@@ -51,7 +51,7 @@ describe('StreaksController', () => {
     expect(controller).toBeDefined();
   });
 
-  // ── assertUserOrgAccess ───────────────────────────────────────────────────
+  // assertUserOrgAccess
 
   describe('org access guard', () => {
     it('throws BadRequestException when organizationId does not match user metadata', async () => {
@@ -91,7 +91,7 @@ describe('StreaksController', () => {
     });
   });
 
-  // ── getMyStreak ───────────────────────────────────────────────────────────
+  // getMyStreak
 
   describe('getMyStreak', () => {
     it('returns streak summary for current user', async () => {
@@ -119,7 +119,7 @@ describe('StreaksController', () => {
     });
   });
 
-  // ── getMyCalendar ─────────────────────────────────────────────────────────
+  // getMyCalendar
 
   describe('getMyCalendar', () => {
     it('returns calendar data without date filters', async () => {
@@ -156,7 +156,7 @@ describe('StreaksController', () => {
     });
   });
 
-  // ── patchMyStreak (freeze) ───────────────────────────────────────────────
+  // patchMyStreak (freeze)
 
   describe('patchMyStreak', () => {
     it('applies freeze and returns message + remaining freezes', async () => {

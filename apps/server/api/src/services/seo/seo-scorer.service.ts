@@ -213,7 +213,7 @@ export class SeoScorerService {
     return JSON.parse(JSON.stringify(value ?? null)) as Prisma.InputJsonValue;
   }
 
-  // ─── LLM qualitative layer ────────────────────────────────────────────────
+  // LLM qualitative layer
 
   private applyQualitativeScores(
     checks: SeoCheck[],

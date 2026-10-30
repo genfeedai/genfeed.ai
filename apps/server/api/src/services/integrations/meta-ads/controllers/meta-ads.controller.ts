@@ -218,7 +218,7 @@ export class MetaAdsController {
     );
   }
 
-  // ─── Write Endpoints ──────────────────────────────────────────────────────
+  // Write Endpoints
 
   @Post('campaigns')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
@@ -387,7 +387,7 @@ export class MetaAdsController {
     );
   }
 
-  // ─── Private Helpers ──────────────────────────────────────────────────────
+  // Private Helpers
 
   /**
    * The direct Meta routes reach the provider without the unified gateway, so
