@@ -21,6 +21,22 @@ export const TIER_QUALITY_ACCESS: Record<SubscriptionTier, QualityTier[]> = {
 };
 
 /**
+ * Resolve a persisted `subscriptionTier` (a free-text column that can hold
+ * legacy or differently cased values) to a known tier. Unknown values fall
+ * back to FREE.
+ */
+export function resolveSubscriptionTier(
+  value: string | null | undefined,
+): SubscriptionTier {
+  const normalized = value?.trim().toLowerCase();
+
+  return (
+    Object.values(SubscriptionTier).find((tier) => tier === normalized) ??
+    SubscriptionTier.FREE
+  );
+}
+
+/**
  * Get all allowed quality tiers for a subscription tier.
  * Returns BASIC only for unknown tiers.
  */

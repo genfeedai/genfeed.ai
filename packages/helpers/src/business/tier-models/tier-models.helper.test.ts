@@ -2,6 +2,7 @@ import { QualityTier, SubscriptionTier } from '@genfeedai/contracts';
 import {
   getQualityTiersForSubscription,
   hasQualityAccess,
+  resolveSubscriptionTier,
   TIER_QUALITY_ACCESS,
 } from '@helpers/business/tier-models/tier-models.helper';
 import { describe, expect, it } from 'vitest';
@@ -97,6 +98,22 @@ describe('tier-models.helper', () => {
       expect(
         hasQualityAccess('UNKNOWN' as SubscriptionTier, QualityTier.BASIC),
       ).toBe(false);
+    });
+  });
+
+  describe('resolveSubscriptionTier', () => {
+    it('keeps known tiers regardless of casing', () => {
+      expect(resolveSubscriptionTier('scale')).toBe(SubscriptionTier.SCALE);
+      expect(resolveSubscriptionTier('ENTERPRISE')).toBe(
+        SubscriptionTier.ENTERPRISE,
+      );
+    });
+
+    it('falls back to FREE for legacy, empty or missing values', () => {
+      expect(resolveSubscriptionTier('pro')).toBe(SubscriptionTier.FREE);
+      expect(resolveSubscriptionTier('')).toBe(SubscriptionTier.FREE);
+      expect(resolveSubscriptionTier(null)).toBe(SubscriptionTier.FREE);
+      expect(resolveSubscriptionTier(undefined)).toBe(SubscriptionTier.FREE);
     });
   });
 });

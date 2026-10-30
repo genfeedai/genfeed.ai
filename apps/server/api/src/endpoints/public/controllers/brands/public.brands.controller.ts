@@ -13,7 +13,11 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import { AssetScope, IngredientStatus } from '@genfeedai/contracts';
+import {
+  AssetScope,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -248,12 +252,9 @@ export class PublicBrandsController {
     };
 
     const aggregate = {
-      where: {
-        brandId,
-        isDeleted: false,
-        scope: AssetScope.PUBLIC,
-      },
-      orderBy: { createdAt: -1, type: 1 },
+      // Link has no `scope` column; the PUBLIC gate is the brand lookup above.
+      where: { brandId, isDeleted: false },
+      orderBy: { createdAt: -1, category: 1 },
     };
 
     const data = await this.linksService.findAll(aggregate, options);
@@ -305,11 +306,12 @@ export class PublicBrandsController {
     const aggregate = {
       where: {
         brandId,
+        category: IngredientCategory.VIDEO,
         isDeleted: false,
         scope: AssetScope.PUBLIC,
         status: IngredientStatus.GENERATED,
       },
-      orderBy: { createdAt: -1, type: 1 },
+      orderBy: { createdAt: -1 },
     };
 
     const data = await this.videosService.findAll(aggregate, options);
@@ -362,11 +364,12 @@ export class PublicBrandsController {
     const aggregate = {
       where: {
         brandId,
+        category: IngredientCategory.IMAGE,
         isDeleted: false,
         scope: AssetScope.PUBLIC,
         status: IngredientStatus.GENERATED,
       },
-      orderBy: { createdAt: -1, type: 1 },
+      orderBy: { createdAt: -1 },
     };
 
     const data = await this.imagesService.findAll(aggregate, options);

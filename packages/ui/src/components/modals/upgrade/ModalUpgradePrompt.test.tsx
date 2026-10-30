@@ -104,6 +104,14 @@ describe('ModalUpgradePrompt', () => {
     expect(screen.queryByTestId(ModalEnum.CREDITS_REQUIRED)).toBeNull();
   });
 
+  it('treats a legacy persisted tier as the free plan instead of crashing', () => {
+    render(<ModalUpgradePrompt currentTier="pro" />);
+
+    const prompt = screen.getByTestId(ModalEnum.UPGRADE_PROMPT);
+    expect(prompt).toHaveTextContent('Your plan');
+    expect(prompt).toHaveTextContent('Recommended');
+  });
+
   it('names the locked quality and the plan that unlocks it', () => {
     render(
       <ModalUpgradePrompt

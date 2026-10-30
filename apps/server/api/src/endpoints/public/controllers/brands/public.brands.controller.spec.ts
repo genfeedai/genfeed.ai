@@ -381,9 +381,32 @@ describe('PublicBrandsController', () => {
       articlesService.findAll.mockResolvedValue({ docs: [] } as never);
 
       await controller.findBrandLinks(mockReq, brandId);
+      // Link has neither `scope` nor `type`; Prisma rejects unknown arguments.
+      expect(linksService.findAll).toHaveBeenCalledWith(
+        {
+          orderBy: { category: 1, createdAt: -1 },
+          where: { brandId, isDeleted: false },
+        },
+        expect.any(Object),
+      );
       await controller.findBrandVideos(brandId, mockReq);
       await controller.findBrandImages(brandId, mockReq);
       await controller.findBrandArticles(brandId, mockReq);
+
+      expect(videosService.findAll).toHaveBeenCalledWith(
+        {
+          orderBy: { createdAt: -1 },
+          where: expect.objectContaining({ category: 'VIDEO' }),
+        },
+        expect.any(Object),
+      );
+      expect(imagesService.findAll).toHaveBeenCalledWith(
+        {
+          orderBy: { createdAt: -1 },
+          where: expect.objectContaining({ category: 'IMAGE' }),
+        },
+        expect.any(Object),
+      );
 
       for (const findAll of [
         linksService.findAll,
