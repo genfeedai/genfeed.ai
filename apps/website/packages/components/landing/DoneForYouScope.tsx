@@ -39,8 +39,8 @@ export default function DoneForYouScope(): React.ReactElement {
               <ul className="mt-6 space-y-4">
                 {option.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-3">
-                    <Check className="mt-0.5 size-4 shrink-0 text-foreground/55" />
-                    <span className="text-sm text-foreground/65">
+                    <Check className="mt-0.5 size-4 shrink-0 text-foreground/60" />
+                    <span className="text-sm text-foreground/70">
                       {feature}
                     </span>
                   </li>
@@ -72,7 +72,7 @@ export default function DoneForYouScope(): React.ReactElement {
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center justify-between bg-background p-4 transition-colors hover:bg-foreground/[0.02]"
+              className="flex items-center justify-between bg-background p-4 transition-colors hover:bg-foreground/5"
             >
               <span className="text-xs font-black uppercase tracking-widest text-foreground/60">
                 {item.label}

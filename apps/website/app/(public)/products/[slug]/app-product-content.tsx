@@ -28,7 +28,7 @@ function SectionHeading({
 }) {
   return (
     <div className="mb-10 max-w-2xl">
-      <Text className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/55">
+      <Text className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/60">
         {eyebrow}
       </Text>
       <Heading
@@ -72,7 +72,7 @@ export default function AppProductContent({ product }: AppProductContentProps) {
         <section className="gsap-section mx-auto max-w-6xl px-6 pb-24">
           <div className="grid gap-12 border-y border-foreground/10 py-14 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-24 lg:py-20">
             <div>
-              <Text className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/55">
+              <Text className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/60">
                 What it is
               </Text>
               <Heading
@@ -83,13 +83,13 @@ export default function AppProductContent({ product }: AppProductContentProps) {
               </Heading>
             </div>
             <div className="flex flex-col gap-8">
-              <Text className="max-w-xl text-base leading-7 text-foreground/75">
+              <Text className="max-w-xl text-base leading-7 text-foreground/80">
                 {product.definition}
               </Text>
               <ul className="flex flex-col gap-3">
                 {product.highlights.map((highlight) => (
                   <li
-                    className="flex items-start gap-3 text-sm text-foreground/75"
+                    className="flex items-start gap-3 text-sm text-foreground/80"
                     key={highlight}
                   >
                     <Check className="mt-0.5 size-4 shrink-0 text-[color:hsl(var(--gen-accent))]" />
@@ -121,7 +121,7 @@ export default function AppProductContent({ product }: AppProductContentProps) {
                 <Heading as="h3" className="font-semibold text-foreground">
                   {step.title}
                 </Heading>
-                <Text className="mt-2 text-sm leading-6 text-foreground/65">
+                <Text className="mt-2 text-sm leading-6 text-foreground/70">
                   {step.description}
                 </Text>
               </li>
@@ -143,7 +143,7 @@ export default function AppProductContent({ product }: AppProductContentProps) {
                 <Heading as="h3" className="font-semibold text-foreground">
                   {useCase.title}
                 </Heading>
-                <Text className="mt-3 text-sm leading-6 text-foreground/65">
+                <Text className="mt-3 text-sm leading-6 text-foreground/70">
                   {useCase.description}
                 </Text>
               </div>
@@ -165,7 +165,7 @@ export default function AppProductContent({ product }: AppProductContentProps) {
                 <Heading as="h3" className="font-semibold text-foreground">
                   {output.title}
                 </Heading>
-                <Text className="mt-3 text-sm leading-6 text-foreground/65">
+                <Text className="mt-3 text-sm leading-6 text-foreground/70">
                   {output.description}
                 </Text>
               </div>
@@ -178,7 +178,7 @@ export default function AppProductContent({ product }: AppProductContentProps) {
             eyebrow="Access and pricing"
             title="Start free, pay for output"
           />
-          <Text className="mb-8 max-w-xl text-base leading-7 text-foreground/65">
+          <Text className="mb-8 max-w-xl text-base leading-7 text-foreground/70">
             {APP_PRODUCT_ACCESS_LABELS[product.access]}. Generation spends
             credits, and the open source Community build is free to self-host.
           </Text>
@@ -199,14 +199,14 @@ export default function AppProductContent({ product }: AppProductContentProps) {
             <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
               {related.map((item) => (
                 <Link
-                  className="group flex flex-col rounded-lg border border-foreground/10 p-6 transition-colors hover:border-foreground/25"
+                  className="group flex flex-col rounded-lg border border-foreground/10 p-6 transition-colors hover:border-foreground/20"
                   href={`/products/${item.slug}`}
                   key={item.slug}
                 >
                   <Heading as="h3" className="font-semibold text-foreground">
                     {item.name}
                   </Heading>
-                  <Text className="mt-2 text-sm leading-6 text-foreground/65">
+                  <Text className="mt-2 text-sm leading-6 text-foreground/70">
                     {item.tagline}
                   </Text>
                   <span className="mt-auto inline-flex items-center gap-2 pt-4 text-sm font-semibold text-foreground">

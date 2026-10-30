@@ -187,7 +187,7 @@ function SwatchTile({ swatch }: { swatch: Swatch }): React.ReactElement {
           <Text className="text-xs font-semibold text-foreground">
             {swatch.name}
           </Text>
-          <Text className="font-mono text-2xs text-foreground/55">
+          <Text className="font-mono text-2xs text-foreground/60">
             {swatch.hex}
           </Text>
         </div>
@@ -217,7 +217,7 @@ export default function BrandOSContent(): React.ReactElement {
                   Turn your website into an AI-readable Brand OS.
                 </Heading>
 
-                <Text className="max-w-2xl text-base leading-7 text-foreground/55 sm:text-lg">
+                <Text className="max-w-2xl text-base leading-7 text-foreground/60 sm:text-lg">
                   Build a reviewable system for voice, visual direction, content
                   pillars, and generation rules. Every recommendation shows its
                   source, confidence, and gaps before anything reaches your
@@ -233,7 +233,7 @@ export default function BrandOSContent(): React.ReactElement {
 
         {/* Source-backed preview — one monument-scale campaign object. */}
         <section
-          className="border-b border-foreground/5 bg-foreground/[0.02] py-16 sm:py-20 lg:py-24"
+          className="border-b border-foreground/5 bg-foreground/5 py-16 sm:py-20 lg:py-24"
           id="brand-os-preview"
         >
           <div className="container mx-auto px-6">
@@ -290,7 +290,7 @@ export default function BrandOSContent(): React.ReactElement {
         </section>
 
         {/* Color: backgrounds + text */}
-        <section className="border-b border-foreground/5 bg-foreground/[0.02] py-16 sm:py-20">
+        <section className="border-b border-foreground/5 bg-foreground/5 py-16 sm:py-20">
           <div className="container mx-auto grid gap-12 px-6 lg:grid-cols-[0.32fr_1fr] lg:gap-16">
             <div className="flex flex-col gap-4">
               <SectionLabel>Foundations</SectionLabel>
@@ -300,7 +300,7 @@ export default function BrandOSContent(): React.ReactElement {
               >
                 Depth without borders.
               </Heading>
-              <Text className="text-sm leading-6 text-foreground/55">
+              <Text className="text-sm leading-6 text-foreground/60">
                 Five background tones create elevation from the deepest canvas
                 to the most raised surface, with no heavy strokes, just tonal
                 shift. Text resolves in three tiers over the top.
@@ -350,7 +350,7 @@ export default function BrandOSContent(): React.ReactElement {
               >
                 Color that means something.
               </Heading>
-              <Text className="text-sm leading-6 text-foreground/55">
+              <Text className="text-sm leading-6 text-foreground/60">
                 Status and domain colors map directly to state and workflow,
                 never decoration. Four semantic tones, two domain tones.
               </Text>
@@ -378,7 +378,7 @@ export default function BrandOSContent(): React.ReactElement {
         </section>
 
         {/* Platform identifiers */}
-        <section className="border-b border-foreground/5 bg-foreground/[0.02] py-16 sm:py-20">
+        <section className="border-b border-foreground/5 bg-foreground/5 py-16 sm:py-20">
           <div className="container mx-auto grid gap-12 px-6 lg:grid-cols-[0.32fr_1fr] lg:gap-16">
             <div className="flex flex-col gap-4">
               <SectionLabel>Identifiers</SectionLabel>
@@ -388,7 +388,7 @@ export default function BrandOSContent(): React.ReactElement {
               >
                 Platform tokens.
               </Heading>
-              <Text className="text-sm leading-6 text-foreground/55">
+              <Text className="text-sm leading-6 text-foreground/60">
                 Twenty-four brand colors used as identifiers only, on platform
                 icons, connection badges, and analytics breakdowns. Never for
                 layout chrome or primary actions.
@@ -410,7 +410,7 @@ export default function BrandOSContent(): React.ReactElement {
                     <Text className="text-xs font-medium text-foreground/80">
                       {platform.name}
                     </Text>
-                    <Text className="font-mono text-2xs text-foreground/55">
+                    <Text className="font-mono text-2xs text-foreground/60">
                       {platform.hex}
                     </Text>
                   </div>
@@ -432,7 +432,7 @@ export default function BrandOSContent(): React.ReactElement {
                 >
                   A dense, deliberate scale.
                 </Heading>
-                <Text className="text-sm leading-6 text-foreground/55">
+                <Text className="text-sm leading-6 text-foreground/60">
                   System sans for the interface, mono for code and tokens. Body
                   sits at 13px with −0.01em tracking; headings tighten to
                   −0.03em.
@@ -464,7 +464,7 @@ export default function BrandOSContent(): React.ReactElement {
                 >
                   Four-step radius.
                 </Heading>
-                <Text className="text-sm leading-6 text-foreground/55">
+                <Text className="text-sm leading-6 text-foreground/60">
                   Corners map to purpose, matching the ShipCode and Linear
                   language. Elevated surfaces use inset box-shadow for
                   containment instead of a CSS border.
@@ -477,7 +477,7 @@ export default function BrandOSContent(): React.ReactElement {
                     key={step.name}
                   >
                     <div
-                      className="h-16 w-full bg-foreground/[0.06] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+                      className="h-16 w-full bg-foreground/5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
                       style={{ borderRadius: `${step.px}px` }}
                     />
                     <div className="flex flex-row items-center justify-between gap-2">
@@ -499,7 +499,7 @@ export default function BrandOSContent(): React.ReactElement {
         </section>
 
         {/* Content is the accent: centerpiece */}
-        <section className="border-b border-foreground/5 bg-foreground/[0.02] py-20 sm:py-24">
+        <section className="border-b border-foreground/5 bg-foreground/5 py-20 sm:py-24">
           <div className="container mx-auto px-6">
             <div className="flex flex-col mx-auto max-w-3xl gap-5 text-center">
               <SectionLabel>The principle</SectionLabel>
@@ -509,7 +509,7 @@ export default function BrandOSContent(): React.ReactElement {
               >
                 Content is the accent.
               </Heading>
-              <Text className="text-base leading-7 text-foreground/55">
+              <Text className="text-base leading-7 text-foreground/60">
                 Genfeed chrome is a neutral studio, the gallery wall, not the
                 art. The product's output is inherently colorful, so the
                 interface never competes with it. Color enters through exactly
@@ -523,7 +523,7 @@ export default function BrandOSContent(): React.ReactElement {
                   className="flex flex-col gap-4 bg-background p-6"
                   key={door.index}
                 >
-                  <Text className="font-mono text-xs text-foreground/55">
+                  <Text className="font-mono text-xs text-foreground/60">
                     {door.index}
                   </Text>
                   <Heading
@@ -532,7 +532,7 @@ export default function BrandOSContent(): React.ReactElement {
                   >
                     {door.title}
                   </Heading>
-                  <Text className="text-sm leading-6 text-foreground/55">
+                  <Text className="text-sm leading-6 text-foreground/60">
                     {door.body}
                   </Text>
                 </div>
@@ -550,7 +550,7 @@ export default function BrandOSContent(): React.ReactElement {
                 <ul className="space-y-3.5">
                   {DOS.map((item) => (
                     <li
-                      className="flex gap-3 text-sm leading-6 text-foreground/65"
+                      className="flex gap-3 text-sm leading-6 text-foreground/70"
                       key={item}
                     >
                       <span className="mt-2 size-1.5 shrink-0 rounded-full bg-success" />
@@ -564,7 +564,7 @@ export default function BrandOSContent(): React.ReactElement {
                 <ul className="space-y-3.5">
                   {DONTS.map((item) => (
                     <li
-                      className="flex gap-3 text-sm leading-6 text-foreground/65"
+                      className="flex gap-3 text-sm leading-6 text-foreground/70"
                       key={item}
                     >
                       <span className="mt-2 size-1.5 shrink-0 rounded-full bg-destructive" />

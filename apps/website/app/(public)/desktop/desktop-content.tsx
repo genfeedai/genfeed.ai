@@ -174,7 +174,7 @@ export default function DesktopContent({
                 detectedOs === DesktopOs.MAC_OS && 'bg-[var(--gen-accent-bg)]',
               )}
             >
-              <p className="mt-2 text-sm text-foreground/65">
+              <p className="mt-2 text-sm text-foreground/70">
                 {MAC_REQUIREMENT}
               </p>
 
@@ -200,7 +200,7 @@ export default function DesktopContent({
               {hasMacBuild ? (
                 <p className="mt-4 text-xs text-foreground/50">
                   Prefer Homebrew?{' '}
-                  <span className="font-mono text-foreground/75">
+                  <span className="font-mono text-foreground/80">
                     brew install --cask genfeedai/tap/genfeed
                   </span>
                 </p>
@@ -213,7 +213,7 @@ export default function DesktopContent({
               padding="lg"
               className={cn(isWindows && 'bg-[var(--gen-accent-bg)]')}
             >
-              <p className="mt-2 text-sm text-foreground/65">
+              <p className="mt-2 text-sm text-foreground/70">
                 Not built yet. Use Genfeed in the browser in the meantime, or
                 self-host the open-source core on your own machine.
               </p>
@@ -260,7 +260,7 @@ export default function DesktopContent({
                 padding="lg"
                 title={item.step}
                 description={item.description}
-                className={cn(index === 0 && 'bg-foreground/[0.02]')}
+                className={cn(index === 0 && 'bg-foreground/5')}
               />
             ))}
           </NeuralGrid>

@@ -67,6 +67,7 @@
     "build:web:sequential": "bunx turbo run build --filter=@genfeedai/app --filter=@genfeedai/website --filter=@genfeedai/docs --concurrency=1",
     "build:website": "bunx turbo run build --filter=@genfeedai/website",
     "check:action-versions": "bun run scripts/architecture/check-github-action-versions.ts",
+    "check:admin-route-convention": "bun run scripts/architecture/check-admin-route-convention.ts",
     "check:agent-tool-dispatch": "bun run scripts/architecture/check-agent-tool-dispatch.ts",
     "check:architecture": "bun run scripts/check-architecture.ts",
     "check:bull-board-parity": "bun run scripts/architecture/check-bull-board-queue-parity.ts",

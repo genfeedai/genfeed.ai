@@ -64,7 +64,7 @@ export default function ArticlesList({
                 href={`/articles/${article.slug || article.id}`}
                 className="group block"
               >
-                <Card className="h-full border border-foreground/[0.08] transition-all hover:shadow-lg">
+                <Card className="h-full border border-foreground/10 transition-all hover:shadow-lg">
                   <ArticleCover
                     category={article.category}
                     className="mb-4 aspect-[16/9]"
@@ -98,7 +98,7 @@ export default function ArticlesList({
                     </p>
                   )}
 
-                  <div className="flex flex-wrap items-center gap-4 border-t border-foreground/[0.08] pt-4 text-sm text-foreground/60">
+                  <div className="flex flex-wrap items-center gap-4 border-t border-foreground/10 pt-4 text-sm text-foreground/60">
                     {article.publishedAt && (
                       <div className="flex items-center gap-2">
                         <Calendar className="size-4" />

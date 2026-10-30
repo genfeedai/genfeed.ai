@@ -49,14 +49,14 @@ export default function ProductsHubContent() {
               >
                 {group}
               </Heading>
-              <Text className="mt-3 text-base leading-7 text-foreground/65">
+              <Text className="mt-3 text-base leading-7 text-foreground/70">
                 {GROUP_DESCRIPTIONS[group]}
               </Text>
             </div>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {getAppProductsByGroup(group).map((product) => (
                 <Link
-                  className="group flex flex-col overflow-hidden rounded-lg border border-foreground/10 bg-card transition-colors hover:border-foreground/25"
+                  className="group flex flex-col overflow-hidden rounded-lg border border-foreground/10 bg-card transition-colors hover:border-foreground/20"
                   href={`/products/${product.slug}`}
                   key={product.slug}
                 >
@@ -75,10 +75,10 @@ export default function ProductsHubContent() {
                     >
                       {product.name}
                     </Heading>
-                    <Text className="mt-2 text-sm leading-6 text-foreground/65">
+                    <Text className="mt-2 text-sm leading-6 text-foreground/70">
                       {product.tagline}
                     </Text>
-                    <Text className="mt-4 text-xs font-bold uppercase tracking-[0.12em] text-foreground/45">
+                    <Text className="mt-4 text-xs font-bold uppercase tracking-[0.12em] text-foreground/50">
                       {APP_PRODUCT_ACCESS_LABELS[product.access]}
                     </Text>
                     <span className="mt-auto inline-flex items-center gap-2 pt-5 text-sm font-semibold text-foreground">
@@ -99,7 +99,7 @@ export default function ProductsHubContent() {
           >
             Build your workspace
           </Heading>
-          <Text className="mx-auto mt-4 max-w-xl text-base leading-7 text-foreground/65">
+          <Text className="mx-auto mt-4 max-w-xl text-base leading-7 text-foreground/70">
             Playground, Storyboard, Publishing, Analytics, Discovery, Agent and
             Library are ready from the start. Add Clipper, Motion, Turbo,
             Editor, Automation and Messages from Apps when you need them.

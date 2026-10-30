@@ -208,7 +208,7 @@ export default function AgentConnectDialog({
                         1. Add Genfeed
                       </AccordionTrigger>
                       <AccordionContent className="space-y-4">
-                        <p className="text-sm leading-6 text-foreground/75">
+                        <p className="text-sm leading-6 text-foreground/80">
                           {client.connectInstruction}
                         </p>
                         {client.installation.command ? (
@@ -260,7 +260,7 @@ export default function AgentConnectDialog({
                           CLI setup
                         </AccordionTrigger>
                         <AccordionContent className="space-y-4">
-                          <p className="text-sm leading-6 text-foreground/75">
+                          <p className="text-sm leading-6 text-foreground/80">
                             {client.oauth.authorizationInstruction}
                           </p>
                           {getAgentClientMcpBlocks(client).map((block) => (
@@ -287,7 +287,7 @@ export default function AgentConnectDialog({
                         2. Approve and check the connection
                       </AccordionTrigger>
                       <AccordionContent>
-                        <p className="text-sm leading-6 text-foreground/75">
+                        <p className="text-sm leading-6 text-foreground/80">
                           Sign in or create your free Genfeed account when
                           prompted, then approve access. Ask {client.name} to
                           show your brands. Generation in Genfeed uses your
@@ -301,7 +301,7 @@ export default function AgentConnectDialog({
                           Skills-only alternative
                         </AccordionTrigger>
                         <AccordionContent className="space-y-4">
-                          <p className="text-sm leading-6 text-foreground/75">
+                          <p className="text-sm leading-6 text-foreground/80">
                             {AGENT_CLIENT_SKILLS_ONLY_COPY}
                           </p>
                           <CommandBlock
@@ -317,7 +317,7 @@ export default function AgentConnectDialog({
                           Setup prompt
                         </AccordionTrigger>
                         <AccordionContent className="space-y-4">
-                          <p className="text-sm leading-6 text-foreground/75">
+                          <p className="text-sm leading-6 text-foreground/80">
                             To let {client.name} configure the connector with
                             local shell access, paste this setup prompt.
                           </p>

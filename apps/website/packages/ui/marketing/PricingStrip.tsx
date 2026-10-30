@@ -55,7 +55,7 @@ export default function PricingStrip({ className }: PricingStripProps) {
       <div className="border-t border-foreground/5 py-3 text-center">
         <Link
           href="/pricing"
-          className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-foreground/55 transition-colors hover:text-foreground/80"
+          className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-foreground/60 transition-colors hover:text-foreground/80"
         >
           View all plans
         </Link>

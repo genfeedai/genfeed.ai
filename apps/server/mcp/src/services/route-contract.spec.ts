@@ -620,6 +620,12 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     controller: 'editorProjects',
     tools: ['get_editor_project'],
   },
+  {
+    method: 'Post',
+    sub: ':id/render',
+    controller: 'editorProjects',
+    tools: ['start_editor_render'],
+  },
 
   // ── Workspace: tasks, review inbox, activity ──
   {

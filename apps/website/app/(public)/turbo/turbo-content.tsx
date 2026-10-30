@@ -76,7 +76,7 @@ export default function TurboContent() {
         heroActions={
           <div className="flex flex-col items-start gap-3">
             <TurboSignupButton />
-            <Text className="text-sm text-foreground/65">
+            <Text className="text-sm text-foreground/70">
               No credit card needed.
             </Text>
           </div>
@@ -110,7 +110,7 @@ export default function TurboContent() {
                 <Heading as="h3" className="font-semibold mb-2 text-foreground">
                   {step.title}
                 </Heading>
-                <Text className="text-sm text-foreground/65">
+                <Text className="text-sm text-foreground/70">
                   {step.description}
                 </Text>
               </div>
@@ -121,7 +121,7 @@ export default function TurboContent() {
           <Heading as="h2" className="text-2xl font-bold mb-2 text-foreground">
             Nothing posts without you.
           </Heading>
-          <Text className="text-foreground/65">
+          <Text className="text-foreground/70">
             Every draft waits for your approval. Reject one and tell us why; the
             next batch learns from it.
           </Text>
@@ -130,7 +130,7 @@ export default function TurboContent() {
           <Heading as="h2" className="text-2xl font-bold mb-2 text-foreground">
             Gets sharper every batch.
           </Heading>
-          <Text className="text-foreground/65">
+          <Text className="text-foreground/70">
             Turbo learns from what you approve and what performs, so each batch
             fits your brand better.
           </Text>

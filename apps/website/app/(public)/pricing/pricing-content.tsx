@@ -172,7 +172,7 @@ export default function PricingContent() {
                         ? `$${CREDIT_VALUE_DOLLARS.toFixed(2)}`
                         : formatPrice(plan.price)}
                     </span>
-                    <span className="text-sm font-medium text-foreground/55">
+                    <span className="text-sm font-medium text-foreground/60">
                       {isPayg ? '/credit' : '/mo'}
                     </span>
                   </div>
@@ -187,7 +187,7 @@ export default function PricingContent() {
                   <ul className="mb-auto space-y-3">
                     {plan.features.map((feature) => (
                       <li key={feature} className="flex items-start gap-3">
-                        <CircleCheck className="mt-0.5 size-4 shrink-0 text-foreground/55" />
+                        <CircleCheck className="mt-0.5 size-4 shrink-0 text-foreground/60" />
                         <span className="text-sm text-foreground/60">
                           {feature}
                         </span>
@@ -220,19 +220,19 @@ export default function PricingContent() {
               aria-label={serviceOffering.name}
             >
               <div className="absolute right-6 top-6">
-                <span className="border border-foreground/20 px-2.5 py-1 text-2xs font-bold uppercase tracking-widest text-foreground/65">
+                <span className="border border-foreground/20 px-2.5 py-1 text-2xs font-bold uppercase tracking-widest text-foreground/70">
                   We run it
                 </span>
               </div>
 
               <div className="mb-2 flex items-baseline gap-1.5 whitespace-nowrap">
-                <span className="text-sm font-medium text-foreground/55">
+                <span className="text-sm font-medium text-foreground/60">
                   From
                 </span>
                 <span className="text-4xl font-semibold tracking-[-0.02em] xl:text-5xl">
                   {formatPrice(serviceOffering.startingMonthlyPrice)}
                 </span>
-                <span className="text-sm font-medium text-foreground/55">
+                <span className="text-sm font-medium text-foreground/60">
                   /mo
                 </span>
               </div>
@@ -244,7 +244,7 @@ export default function PricingContent() {
               <ul className="mb-auto space-y-3">
                 {serviceOffering.includes.map((feature) => (
                   <li key={feature} className="flex items-start gap-3">
-                    <CircleCheck className="mt-0.5 size-4 shrink-0 text-foreground/55" />
+                    <CircleCheck className="mt-0.5 size-4 shrink-0 text-foreground/60" />
                     <span className="text-sm text-foreground/60">
                       {feature}
                     </span>
@@ -278,10 +278,10 @@ export default function PricingContent() {
                 key={row.label}
                 className="flex items-baseline justify-between gap-4 bg-background px-5 py-4"
               >
-                <span className="text-sm text-foreground/65">{row.label}</span>
+                <span className="text-sm text-foreground/70">{row.label}</span>
                 <span className="text-sm font-semibold text-foreground">
                   {formatCredits(row.credits, row.maxCredits)}
-                  <span className="ml-2 font-normal text-foreground/55">
+                  <span className="ml-2 font-normal text-foreground/60">
                     ≈ {formatCreditsDollars(row.credits, row.maxCredits)}
                     {row.suffix ?? ''}
                   </span>
@@ -289,7 +289,7 @@ export default function PricingContent() {
               </div>
             ))}
           </div>
-          <p className="mt-3 text-xs text-foreground/55">
+          <p className="mt-3 text-xs text-foreground/60">
             Image prices are for FLUX.3. Other models are priced per model, and
             Studio shows the exact credits before you run.
           </p>

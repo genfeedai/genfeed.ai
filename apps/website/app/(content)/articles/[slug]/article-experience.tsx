@@ -164,7 +164,7 @@ function EffectPreview({
   const preview = getPreviewStyle(effect.kind, intensity, isApplied);
 
   return (
-    <figure className="m-0 overflow-hidden border border-foreground/[0.08] bg-background">
+    <figure className="m-0 overflow-hidden border border-foreground/10 bg-background">
       <div
         aria-label={`${effect.label} ${isApplied ? 'applied' : 'before'} preview`}
         className="relative aspect-video overflow-hidden bg-gradient-to-b from-foreground/20 via-foreground/10 to-background"
@@ -186,8 +186,8 @@ function EffectPreview({
                 'polygon(0 82%, 18% 38%, 34% 72%, 53% 20%, 72% 68%, 88% 34%, 100% 78%, 100% 100%, 0 100%)',
             }}
           />
-          <div className="absolute inset-x-0 bottom-0 h-[28%] bg-foreground/30" />
-          <div className="absolute right-[15%] top-[30%] h-24 w-10 bg-foreground/15 md:h-32 md:w-14" />
+          <div className="absolute inset-x-0 bottom-0 h-[28%] bg-foreground/20" />
+          <div className="absolute right-[15%] top-[30%] h-24 w-10 bg-foreground/10 md:h-32 md:w-14" />
         </div>
 
         <div
@@ -224,7 +224,7 @@ function EffectPreview({
           {isApplied ? effect.label : 'Before'}
         </div>
       </div>
-      <figcaption className="border-t border-foreground/[0.08] px-4 py-3 text-sm text-foreground/60">
+      <figcaption className="border-t border-foreground/10 px-4 py-3 text-sm text-foreground/60">
         A simplified preview isolates the visual principle. Real output also
         depends on the source, model, duration, and shot composition.
       </figcaption>
@@ -249,7 +249,7 @@ function FilmmakingEffectLab(): React.ReactElement {
   return (
     <section
       aria-labelledby="filmmaking-effect-lab-title"
-      className="mb-8 border-y border-foreground/[0.08] bg-foreground/[0.04] py-6 md:px-6"
+      className="mb-8 border-y border-foreground/10 bg-foreground/5 py-6 md:px-6"
     >
       <div className="mb-5 flex items-start gap-3 px-4 md:px-0">
         <div className="mt-0.5 bg-foreground/10 p-2 text-foreground">
@@ -265,7 +265,7 @@ function FilmmakingEffectLab(): React.ReactElement {
           >
             See the effect, then apply it
           </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-foreground/65">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-foreground/70">
             Select a term, change its strength, and compare the untreated frame
             with the effect. The handoff opens Genfeed with a production-ready
             starting prompt.
@@ -288,7 +288,7 @@ function FilmmakingEffectLab(): React.ReactElement {
             {FILMMAKING_EFFECTS.map((effect) => (
               <Button
                 aria-pressed={selectedKind === effect.kind}
-                className="justify-start border border-foreground/[0.08] px-3 py-2 text-left text-sm text-foreground/60 transition-colors hover:bg-foreground/10 hover:text-foreground aria-pressed:bg-foreground/15 aria-pressed:text-foreground"
+                className="justify-start border border-foreground/10 px-3 py-2 text-left text-sm text-foreground/60 transition-colors hover:bg-foreground/10 hover:text-foreground aria-pressed:bg-foreground/10 aria-pressed:text-foreground"
                 key={effect.kind}
                 onClick={() => {
                   setSelectedKind(effect.kind);
@@ -307,7 +307,7 @@ function FilmmakingEffectLab(): React.ReactElement {
             <h3 className="text-base font-semibold text-foreground">
               {selectedEffect.label}
             </h3>
-            <p className="mt-1 text-sm leading-6 text-foreground/65">
+            <p className="mt-1 text-sm leading-6 text-foreground/70">
               {selectedEffect.description}
             </p>
           </div>

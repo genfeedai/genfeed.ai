@@ -113,7 +113,7 @@ export const TOOLSETS: readonly ToolsetDefinition[] = [
   },
   {
     description:
-      'Studio Editor projects: open videos on the timeline, then list and read projects.',
+      'Studio Editor projects: open videos on the timeline, list and read projects, and queue a render.',
     isAlwaysOn: false,
     name: 'editor',
   },

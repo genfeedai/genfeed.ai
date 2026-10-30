@@ -32,7 +32,7 @@ export default function TerminalDemo({
           <div className="size-3 rounded-full bg-foreground/20" />
           <div className="size-3 rounded-full bg-foreground/20" />
         </div>
-        <div className="flex-1 text-center text-xs text-foreground/30 font-mono">
+        <div className="flex-1 text-center text-xs text-foreground/40 font-mono">
           terminal
         </div>
       </div>
@@ -41,7 +41,7 @@ export default function TerminalDemo({
         {lines.slice(0, currentLine).map((line) => (
           <div key={line.command} className="flex flex-wrap gap-2">
             {line.prompt && (
-              <span className="text-foreground/30">{line.prompt}</span>
+              <span className="text-foreground/40">{line.prompt}</span>
             )}
             {line.prompt && <span className="text-foreground/40">$</span>}
             <span
@@ -51,7 +51,7 @@ export default function TerminalDemo({
                   : line.command.startsWith('✓')
                     ? 'text-success/40'
                     : line.command.startsWith('...')
-                      ? 'text-foreground/30'
+                      ? 'text-foreground/40'
                       : 'text-foreground/80'
               }
             >
@@ -61,7 +61,7 @@ export default function TerminalDemo({
         ))}
         {isTyping && (
           <div className="flex items-center gap-2">
-            <span className="text-foreground/30">
+            <span className="text-foreground/40">
               {lines[currentLine]?.prompt || ''}
             </span>
             {lines[currentLine]?.prompt && (

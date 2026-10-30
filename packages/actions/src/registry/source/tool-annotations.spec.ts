@@ -933,6 +933,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     false,
   ],
   ['start_brand_interview', 'Start Brand Interview', false, true, false, false],
+  ['start_editor_render', 'Start Editor Render', false, false, false, false],
   [
     'start_remix_generation',
     'Start Remix Generation',
@@ -1056,7 +1057,7 @@ describe('MCP tool annotations', () => {
         tool?.annotations?.openWorldHint,
       ]).toEqual(row);
     }
-    expect(rows).toHaveLength(158);
+    expect(rows).toHaveLength(159);
     expect(rows.map((row) => row[0])).toEqual(expected.map((row) => row[0]));
     expect(rows).toEqual(expected);
   });
@@ -1301,6 +1302,19 @@ describe('MCP tool annotations', () => {
 
   it('marks Open in Editor as a non-destructive draft create', () => {
     const tool = getToolByName('open_in_editor');
+    expect(tool?.annotations).toMatchObject({
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+      readOnlyHint: false,
+    });
+    expect(tool?.mutationPolicy).toBe('direct');
+    expect(tool?.toolset).toBe('editor');
+    expect(tool?.creditCost).toBe(0);
+  });
+
+  it('marks Start Editor Render as a free, direct, non-destructive write', () => {
+    const tool = getToolByName('start_editor_render');
     expect(tool?.annotations).toMatchObject({
       destructiveHint: false,
       idempotentHint: false,

@@ -22,11 +22,11 @@ export default function BenefitGrid({ benefits, className }: BenefitGridProps) {
         return (
           <div
             key={benefit.title}
-            className="group bg-background p-6 sm:p-10 text-center transition-colors hover:bg-foreground/[0.02]"
+            className="group bg-background p-6 sm:p-10 text-center transition-colors hover:bg-foreground/5"
           >
-            <Icon className="size-8 mx-auto mb-4 text-foreground/65 group-hover:text-foreground transition-all" />
+            <Icon className="size-8 mx-auto mb-4 text-foreground/70 group-hover:text-foreground transition-all" />
             <h3 className="text-lg font-semibold mb-2">{benefit.title}</h3>
-            <p className="text-foreground/65 text-sm">{benefit.description}</p>
+            <p className="text-foreground/70 text-sm">{benefit.description}</p>
           </div>
         );
       })}

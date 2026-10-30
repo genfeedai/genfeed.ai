@@ -83,7 +83,7 @@ export default function FAQContent() {
                       <AccordionItem
                         key={item.question}
                         value={item.question}
-                        className="bg-foreground/5 border border-foreground/10 px-2 data-[state=open]:bg-foreground/[0.07]"
+                        className="bg-foreground/5 border border-foreground/10 px-2 data-[state=open]:bg-foreground/5"
                       >
                         <AccordionTrigger className="p-4 text-base font-medium hover:no-underline text-left">
                           {item.question}
