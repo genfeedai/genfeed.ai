@@ -543,7 +543,7 @@ Use this during Phase 3 (Days 7-10) to draft the warmup Short brief directly int
 
 ### Publishing through Genfeed
 
-Resolve the chosen brand with `get_brands` and its connected channel with `get_brand_publishing_readiness`. Call `check_channel` with `action: capabilities`, then `action: validate` and the proposed target in `input` before creating a release with `create_scheduled_release`. Use `control_scheduled_release` for an approved publish-now request. A pending approval is not a completed publication; hand the user its review link and wait for their decision.
+Resolve the chosen brand with `get_brands` and its connected channel with `list_brand_publishing_readiness`. Call `check_channel` with `action: capabilities`, then `action: validate` and the proposed target in `input` before creating a release with `create_scheduled_release`. Use `control_scheduled_release` for an approved publish-now request. A pending approval is not a completed publication; hand the user its review link and wait for their decision.
 
 Only request scheduling or publishing after the user confirms:
 

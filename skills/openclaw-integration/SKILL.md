@@ -73,7 +73,7 @@ Resolve a brand before generation; never invent an identifier or select the firs
 | `get_generation_options` | List models, settings, and credit estimates | | `type`, `modelKey`, `brandId` |
 | `generate` | Generate image, video, voice, or music | `type`, `prompt`, `brandId` | Type-specific settings from discovery |
 | `get_job_status` | Read a generation's progress and result | `jobId` | |
-| `get_assets` | List media or characters | `type` | `brandId`, `limit`, `offset`, `origin` |
+| `list_assets` | List media or characters | `type` | `brandId`, `limit`, `offset`, `origin` |
 | `generate_content` | Generate article drafts or social copy | `topic`, `type`, `brandId` | `tone`, `length`, `platform`, `keywords` |
 | `get_articles` | Search articles or retrieve one | `query` or `articleId` | `category`, `limit` (search only) |
 | `get_trends` | Find current topic ideas | | `category`, `timeframe` |
@@ -81,7 +81,7 @@ Resolve a brand before generation; never invent an identifier or select the firs
 | `get_content_analytics` | Read content performance | `contentId`, `contentType` | `timeRange` |
 | `create_post` | Save a text draft | | Discover the accepted draft fields |
 | `get_posts` | Read posts or the calendar | | `postId`, `executionState`, `limit`, `days` |
-| `get_brand_publishing_readiness` | Read connected channels and credentials | `brandId` | |
+| `list_brand_publishing_readiness` | Read connected channels and credentials | `brandId` | |
 | `check_channel` | Read constraints or validate a proposed target | `action` (`capabilities` or `validate`) | `input` contains original channel parameters; `input.platform` is required for validate |
 | `create_scheduled_release` | Create a draft or scheduled release | `release` with title, baseContent, timezone, targets | `idempotencyKey` |
 | `get_scheduled_release` | Inspect release state | `releaseId` | |
@@ -89,8 +89,8 @@ Resolve a brand before generation; never invent an identifier or select the firs
 | `create_workflow` | Create an automation workflow | `label` | Discover current workflow fields |
 | `execute_workflow` | Run a saved workflow | `workflowId` | `variables`, `nodeIds`, `respectLocks` |
 | `get_workflow_status` | Read saved workflow status | `workflowId` | |
-| `get_workflows` | List saved workflows | | `status`, `limit` |
-| `get_workflow_templates` | List available templates | | |
+| `list_workflows` | List saved workflows | | `status`, `limit` |
+| `list_workflow_templates` | List available templates | | |
 
 Tool text is readable display content. Use `structuredContent.data` for identifiers
 and follow-up inputs. Errors and pending approvals keep their code and references
@@ -121,7 +121,7 @@ its documented commands. CLI commands and MCP tool names are separate interfaces
 
 ### Publish to Social
 
-1. Resolve the brand and connected credential with `get_brands` and `get_brand_publishing_readiness`.
+1. Resolve the brand and connected credential with `get_brands` and `list_brand_publishing_readiness`.
 2. Call `check_channel` with `action: capabilities`, then `action: validate` with the exact platform, caption, media, and channel settings in `input`.
 3. Confirm the exact content, destination, and time with the user.
 4. Call `create_scheduled_release` with a release containing `title`, `baseContent`, `timezone`, and `targets` with the verified `credentialId` and `platform`.

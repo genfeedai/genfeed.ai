@@ -71,7 +71,7 @@ Use `find_tools` to discover the connected account's tools and input schemas.
 | `get_generation_options` | Read supported models and credit estimates |
 | `generate` | Generate image, video, voice, or music for an approved request |
 | `generate_content` | Generate article drafts or social copy |
-| `get_assets` | List media and named characters |
+| `list_assets` | List media and named characters |
 | `get_job_status` | Read generation progress and results |
 | `get_articles` | Search articles or retrieve one |
 | `get_posts` | Read posts or the content calendar |
