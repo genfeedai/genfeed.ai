@@ -2496,7 +2496,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      'get_instagram_inspiration',
+      'fetch_instagram_inspiration',
       { sort: 'latest' },
       {
         organizationId: testId('org'),
@@ -2550,7 +2550,7 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     const result = await service.executeTool(
-      'get_instagram_inspiration',
+      'fetch_instagram_inspiration',
       { brandId: testId('thread') },
       {
         organizationId: testId('org'),

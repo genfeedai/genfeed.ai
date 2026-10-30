@@ -293,7 +293,7 @@ const TOOL_DOCUMENTATION = new Map([
     },
   ],
   [
-    'get_x_posts',
+    'fetch_x_posts',
     {
       original:
         "Read X posts. Costs 1 credit and requires confirmation. postIdOrUrl opens one post and returns its text and stats. query searches recent posts by topic through the brand's connected X account and returns author, text, stats, and link; it explains clearly if that account cannot search. Pass exactly one of postIdOrUrl or query.",

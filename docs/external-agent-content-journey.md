@@ -56,7 +56,7 @@ or approved spending. Selecting a profile does not authorize writes or costs.
 | Stage | Existing curated MCP actions | Availability / acceptance boundary |
 | --- | --- | --- |
 | Discover tools and select a brand | `find_tools`, `get_brands` | Exposed; explicit brand lookup still needs the deployed #5017 retest. |
-| Research | `get_articles`, `get_x_posts`, `get_trends` | Exposed through content and analytics; does not establish generic URL import. |
+| Research | `get_articles`, `fetch_x_posts`, `get_trends` | Exposed through content and analytics; does not establish generic URL import. |
 | Upload local media | `upload_media(action=request\|complete)` | Exposed; reservation and completion are writes. Upload the bytes using the returned instructions between these calls. |
 | Import a post | `import_source_post` | Exposed through inspiration for public X, Instagram, and TikTok post URLs only; approval required. Arbitrary URL or media fetch stays unavailable. Fixture coverage only, not a live pass. |
 | Save, edit, and quote concepts | `create_remix_concept`, `get_remix_run`, `update_remix_concept`, `attach_remix_analysis_source`, `quote_remix_generation`, `start_remix_generation`, `control_remix_generation` | Exposed through inspiration and generation; see [Imported remix handoff](#imported-remix-handoff). Fixture coverage only, not a live pass. |

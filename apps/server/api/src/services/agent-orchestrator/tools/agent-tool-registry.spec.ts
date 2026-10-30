@@ -99,8 +99,8 @@ describe('agent-tool-registry', () => {
     expect(names).toContain('get_ads_research');
     expect(names).toContain('get_ad_research_detail');
     expect(names).toContain('create_ad_remix_workflow');
-    expect(names).toContain('get_instagram_inspiration');
-    expect(names).toContain('get_instagram_inspiration_detail');
+    expect(names).toContain('fetch_instagram_inspiration');
+    expect(names).toContain('fetch_instagram_inspiration_detail');
     expect(names).toContain('create_instagram_remix_workflow');
     expect(names).toContain('generate_ad_pack');
     expect(names).toContain('prepare_ad_launch_review');
@@ -307,8 +307,8 @@ describe('agent-tool-registry', () => {
     expect(AGENT_CREDIT_COSTS.get_ads_research).toBe(0);
     expect(AGENT_CREDIT_COSTS.get_ad_research_detail).toBe(0);
     expect(AGENT_CREDIT_COSTS.create_ad_remix_workflow).toBe(0);
-    expect(AGENT_CREDIT_COSTS.get_instagram_inspiration).toBe(0);
-    expect(AGENT_CREDIT_COSTS.get_instagram_inspiration_detail).toBe(0);
+    expect(AGENT_CREDIT_COSTS.fetch_instagram_inspiration).toBe(0);
+    expect(AGENT_CREDIT_COSTS.fetch_instagram_inspiration_detail).toBe(0);
     expect(AGENT_CREDIT_COSTS.create_instagram_remix_workflow).toBe(0);
     expect(AGENT_CREDIT_COSTS.generate_ad_pack).toBe(0);
     expect(AGENT_CREDIT_COSTS.prepare_ad_launch_review).toBe(0);

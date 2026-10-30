@@ -54,8 +54,8 @@ const TOOLS_BY_FILE: Record<string, readonly string[]> = {
   'agent-publish-tool-handler.service.ts': ['repurpose_post'],
   'agent-thread-tool-handler.service.ts': ['draft_thread'],
   'agent-x-actions-tool-handler.service.ts': [
-    'get_x_posts',
-    'get_x_account_activity',
+    'fetch_x_posts',
+    'fetch_x_account_activity',
   ],
   'turbo-run-credits.service.ts': ['generate_turbo_content'],
   'brand-from-url.service.ts': ['create_brand_from_url'],

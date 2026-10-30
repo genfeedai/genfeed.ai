@@ -45,8 +45,8 @@ const AUDITED_PRESENTATIONS = [
     },
     creditCost: 1,
     mutationPolicy: 'direct',
-    name: 'get_x_posts',
-    title: 'Get X Posts',
+    name: 'fetch_x_posts',
+    title: 'Fetch X Posts',
   },
   {
     annotations: {
@@ -57,8 +57,8 @@ const AUDITED_PRESENTATIONS = [
     },
     creditCost: 1,
     mutationPolicy: 'direct',
-    name: 'get_x_account_activity',
-    title: 'Get X Account Activity',
+    name: 'fetch_x_account_activity',
+    title: 'Fetch X Account Activity',
   },
   {
     annotations: {
@@ -182,10 +182,10 @@ const OPEN_WORLD_PRESENTATIONS = [
 const AUDITED_READ_PRESENTATIONS = [
   {
     annotations: {
+      readOnlyHint: true,
       destructiveHint: false,
-      idempotentHint: false,
+      idempotentHint: true,
       openWorldHint: true,
-      readOnlyHint: false,
     },
     name: 'get_ad_research_detail',
     title: 'Get Ad Research Detail',
@@ -222,10 +222,10 @@ const AUDITED_READ_PRESENTATIONS = [
   },
   {
     annotations: {
+      readOnlyHint: true,
       destructiveHint: false,
-      idempotentHint: false,
+      idempotentHint: true,
       openWorldHint: true,
-      readOnlyHint: false,
     },
     name: 'get_ads_research',
     title: 'Get Ads Research',
@@ -317,8 +317,8 @@ const AUDITED_READ_PRESENTATIONS = [
       idempotentHint: false,
       openWorldHint: true,
     },
-    name: 'get_instagram_inspiration_detail',
-    title: 'Get Instagram Inspiration Detail',
+    name: 'fetch_instagram_inspiration_detail',
+    title: 'Fetch Instagram Inspiration Detail',
   },
   {
     annotations: {
@@ -337,14 +337,14 @@ const AUDITED_READ_PRESENTATIONS = [
       idempotentHint: false,
       openWorldHint: true,
     },
-    name: 'get_instagram_inspiration',
-    title: 'Get Instagram Inspiration',
+    name: 'fetch_instagram_inspiration',
+    title: 'Fetch Instagram Inspiration',
   },
   {
     annotations: {
-      readOnlyHint: false,
+      readOnlyHint: true,
       destructiveHint: false,
-      idempotentHint: false,
+      idempotentHint: true,
       openWorldHint: true,
     },
     name: 'search_knowledge',

@@ -81,7 +81,7 @@ describe('MCP toolset profiles', () => {
     );
     expect(names).toEqual(expect.arrayContaining(['generate', 'get_assets']));
     expect(names).toEqual(
-      expect.arrayContaining(['get_analytics', 'get_x_posts']),
+      expect.arrayContaining(['get_analytics', 'fetch_x_posts']),
     );
   });
 

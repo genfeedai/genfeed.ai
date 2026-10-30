@@ -44,7 +44,7 @@ describe('readAgentUntrustedContentSource', () => {
   });
 
   it('treats the merged X and article read tools as web_fetch and the removed names as internal', () => {
-    for (const name of ['get_articles', 'get_x_posts']) {
+    for (const name of ['get_articles', 'fetch_x_posts']) {
       expect(readAgentUntrustedContentSource(name), name).toBe('web_fetch');
     }
     for (const name of ['search_articles', 'fetch_x_post', 'search_x_posts']) {

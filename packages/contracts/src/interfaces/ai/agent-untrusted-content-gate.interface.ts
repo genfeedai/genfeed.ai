@@ -114,14 +114,14 @@ export interface IAgentUntrustedContentAuditDocument {
 export const WEB_FETCH_TOOLS: ReadonlySet<string> = new Set<string>([
   'capture_knowledge',
   'create_clipper_project_from_youtube',
+  'fetch_instagram_inspiration_detail',
+  'fetch_instagram_inspiration',
+  'fetch_x_posts',
   'get_ad_research_detail',
   'get_ads_research',
   'get_articles',
-  'get_instagram_inspiration_detail',
-  'get_instagram_inspiration',
   'get_outlier_posts',
   'get_trends',
-  'get_x_posts',
   'read_knowledge_source',
   'resolve_handle',
   'scan_brand_url',
@@ -134,10 +134,10 @@ export const WEB_FETCH_TOOLS: ReadonlySet<string> = new Set<string>([
  */
 export const CONNECTOR_TOOLS: ReadonlySet<string> = new Set<string>([
   'discover_engagements',
+  'fetch_x_account_activity',
   'get_agent_conversations',
   'get_social_conversation',
   'get_social_conversations',
-  'get_x_account_activity',
 ]);
 
 /** Tools whose results carry text extracted from a file the user supplied. */

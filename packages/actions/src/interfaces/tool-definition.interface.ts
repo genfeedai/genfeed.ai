@@ -48,6 +48,14 @@ export type ToolRequiredRole = 'user' | 'admin' | 'superadmin';
 export type ToolMutationPolicy = 'approval-required' | 'direct';
 
 /**
+ * Where a read gets its data. `stored` reads our own database. `provider`
+ * calls a live third party at no cost to the caller. `provider-paid` calls a
+ * third party that bills credits or a platform fee per call, so it keeps the
+ * cost confirmation and is named `fetch_*`. See `tool-data-sources.ts`.
+ */
+export type ToolDataSource = 'provider' | 'provider-paid' | 'stored';
+
+/**
  * What one call can cost. `creditCost` stays the orchestrator floor so a
  * delegated handler is not charged twice. This field is the amount clients
  * and approval cards show, taken from the same helpers the debit path uses.
@@ -95,6 +103,8 @@ export interface CanonicalToolDefinition {
    * and the orchestrator floor is intentionally zero.
    */
   creditPricing?: ToolCreditPricing;
+  /** Assembly always sets it; hand-built fixtures may omit it (= stored). */
+  dataSource?: ToolDataSource;
   requiredRole: ToolRequiredRole;
   surfaces: ToolSurfaceConfig;
   category: ToolCategory;

@@ -13,6 +13,7 @@ import {
 } from './mutation-policy';
 import { SOURCE_TOOLS } from './source/index';
 import { deriveMcpToolPresentation } from './source/tool-annotations';
+import { toolDataSource } from './source/tool-data-sources';
 import {
   appendCreditPricingDescription,
   toolCreditPricingFor,
@@ -220,6 +221,7 @@ const CANONICAL_SOURCE_TOOLS: CanonicalToolDefinition[] =
       category: inferCategory(tool.name),
       creditCost: tool.creditCost,
       creditPricing,
+      dataSource: toolDataSource(tool.name),
       description: appendCreditPricingDescription(
         tool.description,
         creditPricing,

@@ -7,11 +7,13 @@ import {
   isPublishingApprovalRequired,
 } from '../curated-action-catalog';
 import { isReadOnlyToolName } from '../mutation-policy';
+import { toolDataSource } from './tool-data-sources';
 
 /**
  * Prefixes the issue treats as reads. The mutation-policy classifier covers
- * the rest (`compare_`, `fetch_`, `inspect_`, named reads, and so on) so a
- * tool that is already non-mutating is not confirmed on every call.
+ * the rest (`compare_`, `inspect_`, named reads, and so on) so a tool that is
+ * already non-mutating is not confirmed on every call. `fetch_` tools are the
+ * paid provider reads (`tool-data-sources.ts`) and always keep the prompt.
  */
 const READ_ONLY_HINT_PREFIXES = [
   'describe_',
@@ -25,8 +27,6 @@ const GENERATION_OPEN_WORLD_NAMES: ReadonlySet<string> = new Set([
   'enhance_prompt',
   'execute_workflow',
   'onboard_brand',
-  'get_x_posts',
-  'get_x_account_activity',
   'get_articles',
   'get_brand_context',
   'get_social_conversation',
@@ -75,8 +75,6 @@ const NON_DESTRUCTIVE_WRITE_NAMES: ReadonlySet<string> = new Set([
   'complete_media_upload',
   'request_media_upload',
   'create_post',
-  'get_x_posts',
-  'get_x_account_activity',
   'open_in_editor',
   'create_task',
   'start_editor_render',
@@ -92,24 +90,6 @@ const PUBLISHING_TOOL_NAMES: ReadonlySet<string> = new Set(
 /** Presentation-only corrections for audited handlers that write or incur spend. */
 const AUDITED_BEHAVIOR_HINT_OVERRIDES: ReadonlyMap<string, ToolAnnotations> =
   new Map([
-    [
-      'get_ad_research_detail',
-      {
-        destructiveHint: false,
-        idempotentHint: false,
-        openWorldHint: true,
-        readOnlyHint: false,
-      },
-    ],
-    [
-      'get_ads_research',
-      {
-        destructiveHint: false,
-        idempotentHint: false,
-        openWorldHint: true,
-        readOnlyHint: false,
-      },
-    ],
     [
       'check_channel',
       {
@@ -138,38 +118,11 @@ const AUDITED_BEHAVIOR_HINT_OVERRIDES: ReadonlyMap<string, ToolAnnotations> =
       },
     ],
     [
-      'get_instagram_inspiration_detail',
-      {
-        destructiveHint: false,
-        idempotentHint: false,
-        openWorldHint: true,
-        readOnlyHint: false,
-      },
-    ],
-    [
       'get_remix_run',
       {
         destructiveHint: true,
         idempotentHint: true,
         openWorldHint: false,
-        readOnlyHint: false,
-      },
-    ],
-    [
-      'get_instagram_inspiration',
-      {
-        destructiveHint: false,
-        idempotentHint: false,
-        openWorldHint: true,
-        readOnlyHint: false,
-      },
-    ],
-    [
-      'search_knowledge',
-      {
-        destructiveHint: false,
-        idempotentHint: false,
-        openWorldHint: true,
         readOnlyHint: false,
       },
     ],
@@ -193,6 +146,7 @@ export function toolTitleFromName(name: string): string {
 
 function isOpenWorldTool(name: string): boolean {
   return (
+    toolDataSource(name) !== 'stored' ||
     name === 'generate' ||
     name.startsWith('generate_') ||
     GENERATION_OPEN_WORLD_NAMES.has(name) ||
@@ -205,6 +159,7 @@ function isDefaultReadOnly(
   policy: ToolMutationPolicy | undefined,
 ): boolean {
   if (policy === 'approval-required') return false;
+  if (toolDataSource(name) === 'provider-paid') return false;
   if (READ_ONLY_HINT_PREFIXES.some((prefix) => name.startsWith(prefix))) {
     return true;
   }
@@ -230,7 +185,10 @@ export function deriveMcpToolPresentation(
     readOnlyHint = true;
     destructiveHint = false;
   }
-  if (NON_DESTRUCTIVE_WRITE_NAMES.has(name)) {
+  if (
+    NON_DESTRUCTIVE_WRITE_NAMES.has(name) ||
+    toolDataSource(name) === 'provider-paid'
+  ) {
     readOnlyHint = false;
     destructiveHint = false;
   }

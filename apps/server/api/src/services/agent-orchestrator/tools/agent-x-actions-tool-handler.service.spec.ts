@@ -58,8 +58,8 @@ describe('AgentXActionsToolHandler', () => {
 
   it('handles the X action tool names', () => {
     const { handler } = createHandler();
-    expect(handler.handles('get_x_posts')).toBe(true);
-    expect(handler.handles('get_x_account_activity')).toBe(true);
+    expect(handler.handles('fetch_x_posts')).toBe(true);
+    expect(handler.handles('fetch_x_account_activity')).toBe(true);
     expect(handler.handles('draft_x_quote')).toBe(true);
     expect(handler.handles('draft_x_repost')).toBe(true);
     expect(handler.handles('create_post')).toBe(false);
@@ -83,7 +83,7 @@ describe('AgentXActionsToolHandler', () => {
     ]);
 
     const result = await handler.execute(
-      'get_x_posts',
+      'fetch_x_posts',
       { limit: 5, query: 'genfeed' },
       ctx,
     );
@@ -115,7 +115,7 @@ describe('AgentXActionsToolHandler', () => {
     twitterService.searchRecentTweets.mockResolvedValue([]);
 
     const result = await handler.execute(
-      'get_x_posts',
+      'fetch_x_posts',
       { brandId: 'brand-explicit', query: 'genfeed' },
       { ...ctx, brandId: undefined },
     );
@@ -132,7 +132,7 @@ describe('AgentXActionsToolHandler', () => {
     const { handler, twitterService } = createHandler();
 
     const result = await handler.execute(
-      'get_x_posts',
+      'fetch_x_posts',
       { query: 'genfeed' },
       { ...ctx, brandId: undefined },
     );
@@ -147,7 +147,7 @@ describe('AgentXActionsToolHandler', () => {
     twitterService.resolveBrandUserAccessToken.mockResolvedValue(null);
 
     const result = await handler.execute(
-      'get_x_posts',
+      'fetch_x_posts',
       { query: 'genfeed' },
       ctx,
     );
@@ -163,7 +163,7 @@ describe('AgentXActionsToolHandler', () => {
       new Error('403 Client Forbidden — access level'),
     );
 
-    const result = await handler.execute('get_x_posts', { query: 'ai' }, ctx);
+    const result = await handler.execute('fetch_x_posts', { query: 'ai' }, ctx);
 
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/cannot do that yet/i);
@@ -181,12 +181,12 @@ describe('AgentXActionsToolHandler', () => {
     });
 
     const fetchResult = await handler.execute(
-      'get_x_posts',
+      'fetch_x_posts',
       { postIdOrUrl: '1234567890' },
       ctx,
     );
     const timelineResult = await handler.execute(
-      'get_x_account_activity',
+      'fetch_x_account_activity',
       { username: 'genfeed' },
       ctx,
     );
@@ -209,7 +209,7 @@ describe('AgentXActionsToolHandler', () => {
     });
 
     const rateLimited = await handler.execute(
-      'get_x_posts',
+      'fetch_x_posts',
       { query: 'ai' },
       ctx,
     );
@@ -222,7 +222,7 @@ describe('AgentXActionsToolHandler', () => {
       new Error('401 Unauthorized — token expired'),
     );
     const missingCredential = await handler.execute(
-      'get_x_posts',
+      'fetch_x_posts',
       { postIdOrUrl: '1234567890' },
       ctx,
     );
@@ -243,7 +243,7 @@ describe('AgentXActionsToolHandler', () => {
     });
 
     const result = await handler.execute(
-      'get_x_posts',
+      'fetch_x_posts',
       { postIdOrUrl: 'https://x.com/someone/status/99999?s=20' },
       ctx,
     );
@@ -256,12 +256,12 @@ describe('AgentXActionsToolHandler', () => {
     expect(result.data?.id).toBe('99999');
   });
 
-  it('rejects get_x_posts unless exactly one of postIdOrUrl or query is given', async () => {
+  it('rejects fetch_x_posts unless exactly one of postIdOrUrl or query is given', async () => {
     const { handler, twitterService } = createHandler();
 
-    const neither = await handler.execute('get_x_posts', {}, ctx);
+    const neither = await handler.execute('fetch_x_posts', {}, ctx);
     const both = await handler.execute(
-      'get_x_posts',
+      'fetch_x_posts',
       { postIdOrUrl: '1234567890', query: 'genfeed' },
       ctx,
     );
@@ -281,7 +281,7 @@ describe('AgentXActionsToolHandler', () => {
     const { handler, twitterService } = createHandler();
 
     const result = await handler.execute(
-      'get_x_posts',
+      'fetch_x_posts',
       { brandId: 'brand-explicit', limit: 5, postIdOrUrl: '1234567890' },
       ctx,
     );
@@ -294,7 +294,7 @@ describe('AgentXActionsToolHandler', () => {
     expect(twitterService.getTweetById).not.toHaveBeenCalled();
   });
 
-  it('routes get_x_posts to search when only query is given and to fetch when only postIdOrUrl is given', async () => {
+  it('routes fetch_x_posts to search when only query is given and to fetch when only postIdOrUrl is given', async () => {
     const { handler, twitterService } = createHandler();
     twitterService.searchRecentTweets.mockResolvedValue([]);
     twitterService.getTweetById.mockResolvedValue({
@@ -303,11 +303,11 @@ describe('AgentXActionsToolHandler', () => {
       text: 'quoted',
     });
 
-    await handler.execute('get_x_posts', { query: 'genfeed' }, ctx);
+    await handler.execute('fetch_x_posts', { query: 'genfeed' }, ctx);
     expect(twitterService.searchRecentTweets).toHaveBeenCalledTimes(1);
     expect(twitterService.getTweetById).not.toHaveBeenCalled();
 
-    await handler.execute('get_x_posts', { postIdOrUrl: '99999' }, ctx);
+    await handler.execute('fetch_x_posts', { postIdOrUrl: '99999' }, ctx);
     expect(twitterService.getTweetById).toHaveBeenCalledTimes(1);
     expect(twitterService.searchRecentTweets).toHaveBeenCalledTimes(1);
   });
@@ -315,7 +315,7 @@ describe('AgentXActionsToolHandler', () => {
   it('rejects unparseable post ids', async () => {
     const { handler } = createHandler();
     const result = await handler.execute(
-      'get_x_posts',
+      'fetch_x_posts',
       { postIdOrUrl: 'not-a-tweet' },
       ctx,
     );
@@ -337,7 +337,7 @@ describe('AgentXActionsToolHandler', () => {
     ]);
 
     const result = await handler.execute(
-      'get_x_account_activity',
+      'fetch_x_account_activity',
       { limit: 10, username: '@genfeed' },
       ctx,
     );

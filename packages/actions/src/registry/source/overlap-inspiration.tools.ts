@@ -123,7 +123,7 @@ export const OVERLAP_INSPIRATION_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Fetch latest or top public posts from one Instagram account and return provenance plus abstract hook, format, pacing, and style signals.',
-    name: 'get_instagram_inspiration_detail',
+    name: 'fetch_instagram_inspiration_detail',
     parameters: {
       properties: {
         brandId: {
@@ -235,7 +235,7 @@ export const OVERLAP_INSPIRATION_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Discover public Instagram accounts and content patterns relevant to the selected brand niche.',
-    name: 'get_instagram_inspiration',
+    name: 'fetch_instagram_inspiration',
     parameters: {
       properties: {
         brandId: {

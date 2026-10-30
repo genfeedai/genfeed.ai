@@ -177,11 +177,7 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'workflows',
   },
   { name: 'edit_clip', surfaces: ['agent', 'mcp'], toolset: 'clipper' },
-  {
-    name: 'enhance_prompt',
-    surfaces: ['agent', 'mcp'],
-    toolset: 'generation',
-  },
+  { name: 'enhance_prompt', surfaces: ['agent', 'mcp'], toolset: 'generation' },
   {
     name: 'execute_workflow',
     surfaces: ['agent', 'mcp'],
@@ -193,6 +189,22 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'visual-code',
   },
+  {
+    name: 'fetch_instagram_inspiration',
+    surfaces: ['agent', 'mcp'],
+    toolset: 'inspiration',
+  },
+  {
+    name: 'fetch_instagram_inspiration_detail',
+    surfaces: ['agent', 'mcp'],
+    toolset: 'inspiration',
+  },
+  {
+    name: 'fetch_x_account_activity',
+    surfaces: ['agent', 'mcp'],
+    toolset: 'social-inbox',
+  },
+  { name: 'fetch_x_posts', surfaces: ['agent', 'mcp'], toolset: 'analytics' },
   { name: 'find_tools', surfaces: ['mcp'], toolset: 'core' },
   { name: 'fork_skill', surfaces: ['mcp'], toolset: 'skills-pro' },
   { name: 'generate', surfaces: ['agent', 'mcp'], toolset: 'generation' },
@@ -293,16 +305,6 @@ export const CURATED_ACTION_CATALOG = [
   },
   { name: 'get_google_ads_search_terms', surfaces: ['mcp'], toolset: 'ads' },
   { name: 'get_inbox', surfaces: ['mcp'], toolset: 'workspace' },
-  {
-    name: 'get_instagram_inspiration',
-    surfaces: ['agent', 'mcp'],
-    toolset: 'inspiration',
-  },
-  {
-    name: 'get_instagram_inspiration_detail',
-    surfaces: ['agent', 'mcp'],
-    toolset: 'inspiration',
-  },
   { name: 'get_job_status', surfaces: ['mcp'], toolset: 'core' },
   {
     name: 'get_knowledge_sources',
@@ -323,11 +325,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'get_meta_campaigns', surfaces: ['mcp'], toolset: 'ads' },
   { name: 'get_meta_top_performers', surfaces: ['mcp'], toolset: 'ads' },
   { name: 'get_orgs', surfaces: ['mcp'], toolset: 'onboarding' },
-  {
-    name: 'get_outlier_posts',
-    surfaces: ['agent'],
-    toolset: 'analytics',
-  },
+  { name: 'get_outlier_posts', surfaces: ['agent'], toolset: 'analytics' },
   {
     name: 'get_outreach_sequence_analytics',
     surfaces: ['agent'],
@@ -401,12 +399,6 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'get_workflow_status', surfaces: ['mcp'], toolset: 'workflows' },
   { name: 'get_workflow_templates', surfaces: ['mcp'], toolset: 'workflows' },
   { name: 'get_workflows', surfaces: ['agent', 'mcp'], toolset: 'workflows' },
-  {
-    name: 'get_x_account_activity',
-    surfaces: ['agent', 'mcp'],
-    toolset: 'social-inbox',
-  },
-  { name: 'get_x_posts', surfaces: ['agent', 'mcp'], toolset: 'analytics' },
   { name: 'import_source_post', surfaces: ['mcp'], toolset: 'inspiration' },
   { name: 'ingest_source_media', surfaces: ['agent'], toolset: 'ui' },
   {
