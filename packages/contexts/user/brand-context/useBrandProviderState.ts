@@ -7,7 +7,7 @@ import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
 import {
   stripOpaqueRouteParam,
   useRouteParams,
-} from '@genfeedai/hooks/navigation/use-route-params';
+} from '@genfeedai/hooks/navigation/use-route-params/use-route-params';
 import { Brand } from '@genfeedai/models/organization/brand.model';
 import { OrganizationSetting } from '@genfeedai/models/organization/organization-setting.model';
 import type { ProtectedBootstrapData } from '@genfeedai/props/layout/protected-bootstrap.props';
