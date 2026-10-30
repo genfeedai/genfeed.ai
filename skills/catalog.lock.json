@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "compilerVersion": "legacy-v1-char-caps",
   "sourceRepository": "https://github.com/genfeedai/skills",
-  "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
-  "sourceCommittedAt": "2026-10-22T13:24:19.000Z",
+  "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
+  "sourceCommittedAt": "2026-10-30T15:18:19.000Z",
   "sourceSkillSlugs": [
     "ad-copy-creator",
     "ad-performance-analyzer",
@@ -55,14 +55,24 @@
     "social-poster",
     "startup-icp-definer",
     "support-systems-architect",
+    "tiktok-description",
+    "tiktok-title",
+    "tiktok-video",
     "tiktok-warmup",
     "traffic-architect",
     "traffic-validator",
     "trend-scout",
+    "ugc-ad-prompts",
+    "video-brand-profile",
+    "video-model-benchmark",
     "visual-brand-kit",
     "x-content-creator",
     "x-warmup",
     "youtube-content-creator",
+    "youtube-description",
+    "youtube-shorts",
+    "youtube-thumbnail",
+    "youtube-title",
     "youtube-video-analyst",
     "youtube-warmup"
   ],
@@ -70,7 +80,7 @@
     {
       "slug": "ad-copy-creator",
       "ownership": "upstream",
-      "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
+      "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
       "sourceRepository": "https://github.com/genfeedai/skills",
       "sourcePath": "ad-copy-creator",
       "declaredVersion": "1.0.0",
@@ -81,21 +91,21 @@
         },
         {
           "path": "SKILL.md",
-          "sha256": "dab5d324b656e07c231c6f41fd31c3286516f53f379e4fbb6a79b345522d3d48"
+          "sha256": "013a22d1876e526c5023f7dbb65185d1f9d117079945a267e7927925c76b9595"
         },
         {
           "path": "metadata.json",
           "sha256": "c04ab910dafc1251bca7f5cb8487235f2765e46153f43d7a61f0e716f3fbf0a7"
         }
       ],
-      "packageHash": "7c379864b1d1a68316f7528c06a0be37ce53c57969190b1169f112f1fd0fb5eb",
-      "instructionsHash": "a94d1e1207e6f046d48fde13f315ca9c773a0db5c9e973c72c44dc3f9e9967fa",
+      "packageHash": "88b75320b07bc33f67214e5a3bcda725a81bacfc61d899c2c039b28be0c0efaf",
+      "instructionsHash": "18e438f44aaf14f2a5b391b6d0a8dc7c4ef913d9aa586ae94708aa511d337702",
       "excludedReferences": []
     },
     {
       "slug": "ad-performance-analyzer",
       "ownership": "upstream",
-      "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
+      "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
       "sourceRepository": "https://github.com/genfeedai/skills",
       "sourcePath": "ad-performance-analyzer",
       "declaredVersion": "1.0.0",
@@ -106,21 +116,21 @@
         },
         {
           "path": "SKILL.md",
-          "sha256": "231b9cf0093dff1b5787acef6decb1a305a8d7a9354827371dea3080f7732ffb"
+          "sha256": "79a2ad73145f9791682e6c7cf806e2116b700e77868ce17da8c73d1218f2ff19"
         },
         {
           "path": "metadata.json",
           "sha256": "319f4f084b42cf01b1c60a2b708c057f6bd589fbde740ff6400590b2f52a2957"
         }
       ],
-      "packageHash": "3e94eb10b7b7e9434d632967aae90b1b094080c8d98583379d43e5d90817df23",
-      "instructionsHash": "6b4a6715bfb7a7720f5dfd62953b239d119fd7d60009d56d8c2b47db375e5207",
+      "packageHash": "b3f6d1b8382e170fe0ba49a1544af6ea274c9610a5dfe7f10a0d98bbd93ea482",
+      "instructionsHash": "5003f624a2fbb23c55a2dc0e181bea7266df6299dadb13175f8c70021b97f5af",
       "excludedReferences": []
     },
     {
       "slug": "blog-content-creator",
       "ownership": "upstream",
-      "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
+      "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
       "sourceRepository": "https://github.com/genfeedai/skills",
       "sourcePath": "blog-content-creator",
       "declaredVersion": "1.1.0",
@@ -170,7 +180,7 @@
     {
       "slug": "brand-os-architect",
       "ownership": "upstream",
-      "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
+      "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
       "sourceRepository": "https://github.com/genfeedai/skills",
       "sourcePath": "brand-os-architect",
       "declaredVersion": "1.0.0",
@@ -199,7 +209,7 @@
     {
       "slug": "cinematic-prompting",
       "ownership": "upstream",
-      "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
+      "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
       "sourceRepository": "https://github.com/genfeedai/skills",
       "sourcePath": "cinematic-prompting",
       "declaredVersion": "1.0.0",
@@ -249,7 +259,7 @@
     {
       "slug": "competitor-analyzer",
       "ownership": "upstream",
-      "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
+      "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
       "sourceRepository": "https://github.com/genfeedai/skills",
       "sourcePath": "competitor-analyzer",
       "declaredVersion": "1.0.0",
@@ -260,21 +270,21 @@
         },
         {
           "path": "SKILL.md",
-          "sha256": "58f7724cb096939a2552e861121cffcc21ef8f50dd05ba0833ebb1c8567c23f8"
+          "sha256": "986533674c965fdb60fcfe12b32127c98e584d0c45b18728191fa4c9ae0c01dc"
         },
         {
           "path": "metadata.json",
           "sha256": "7c1de9426c7a2b86449022da8d0083e80c267d4e5d6fe447d003055774a06404"
         }
       ],
-      "packageHash": "066a04c6d48991882925baa2f7f78157b37338508a06275cb4f232d1f51a1af8",
-      "instructionsHash": "f5fdbc34d9241f5588e8a02f4e85bef21b9c0740832b191d0274236bbecf9e85",
+      "packageHash": "293b75b97da7316e062673c97a3f5ac864933d0ac63e107a04ace0ca93500f03",
+      "instructionsHash": "487ecd6104e403270f1986bfc447a683e79de7c9feb3c8dc409fc249ae8f21a9",
       "excludedReferences": []
     },
     {
       "slug": "content-atomizer",
       "ownership": "upstream",
-      "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
+      "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
       "sourceRepository": "https://github.com/genfeedai/skills",
       "sourcePath": "content-atomizer",
       "declaredVersion": "1.0.0",
@@ -299,7 +309,7 @@
     {
       "slug": "content-geo-optimizer",
       "ownership": "upstream",
-      "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
+      "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
       "sourceRepository": "https://github.com/genfeedai/skills",
       "sourcePath": "content-geo-optimizer",
       "declaredVersion": "1.0.0",
@@ -324,7 +334,7 @@
     {
       "slug": "content-reviewer",
       "ownership": "upstream",
-      "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
+      "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
       "sourceRepository": "https://github.com/genfeedai/skills",
       "sourcePath": "content-reviewer",
       "declaredVersion": "1.1.0",
@@ -349,7 +359,7 @@
     {
       "slug": "content-seo-optimizer",
       "ownership": "upstream",
-      "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
+      "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
       "sourceRepository": "https://github.com/genfeedai/skills",
       "sourcePath": "content-seo-optimizer",
       "declaredVersion": "1.1.0",
@@ -374,7 +384,7 @@
     {
       "slug": "content-strategist",
       "ownership": "upstream",
-      "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
+      "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
       "sourceRepository": "https://github.com/genfeedai/skills",
       "sourcePath": "content-strategist",
       "declaredVersion": "1.0.0",
@@ -399,7 +409,7 @@
     {
       "slug": "genfeed-brand-os",
       "ownership": "upstream",
-      "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
+      "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
       "sourceRepository": "https://github.com/genfeedai/skills",
       "sourcePath": "genfeed-brand-os",
       "declaredVersion": "0.1.0",
@@ -437,7 +447,7 @@
     {
       "slug": "image-prompt-engineer",
       "ownership": "upstream",
-      "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
+      "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
       "sourceRepository": "https://github.com/genfeedai/skills",
       "sourcePath": "image-prompt-engineer",
       "declaredVersion": "1.0.0",
@@ -462,7 +472,7 @@
     {
       "slug": "instagram-content-creator",
       "ownership": "upstream",
-      "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
+      "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
       "sourceRepository": "https://github.com/genfeedai/skills",
       "sourcePath": "instagram-content-creator",
       "declaredVersion": "1.0.0",
@@ -487,7 +497,7 @@
     {
       "slug": "instagram-warmup",
       "ownership": "upstream",
-      "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
+      "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
       "sourceRepository": "https://github.com/genfeedai/skills",
       "sourcePath": "instagram-warmup",
       "declaredVersion": "1.0.0",
@@ -498,21 +508,21 @@
         },
         {
           "path": "SKILL.md",
-          "sha256": "371087b3cb54a2f8d95f207aa166d942477733c24d0069d9925326f08d7a2662"
+          "sha256": "4a8d0d8121fec940d13653526456b2f28942eef35779d14a171a24d1c5a78ddb"
         },
         {
           "path": "metadata.json",
           "sha256": "6e1d23ebac2d4dcfc0eadfae210fca924ce6340600eb7abc49741a89bb23f9da"
         }
       ],
-      "packageHash": "134c4b0a62478b505fa3d129e518a5e3fab189aabf80b3a18309055901047e37",
-      "instructionsHash": "dc013de3766bfaeacb4266b6e1ba4bf784bfdc88c7bb588c55a3e3913ce43078",
+      "packageHash": "8b74e2c2116e44c1ed48b346c49883dfc264a0fd12491be1aa654fb0a67a7716",
+      "instructionsHash": "0b6758410a448f7f96a019f1307097062e34c093996aa82267ba4f746ca23267",
       "excludedReferences": []
     },
     {
       "slug": "launch-copy-creator",
       "ownership": "upstream",
-      "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
+      "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
       "sourceRepository": "https://github.com/genfeedai/skills",
       "sourcePath": "launch-copy-creator",
       "declaredVersion": "1.0.0",
@@ -537,7 +547,7 @@
     {
       "slug": "linkedin-content-creator",
       "ownership": "upstream",
-      "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
+      "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
       "sourceRepository": "https://github.com/genfeedai/skills",
       "sourcePath": "linkedin-content-creator",
       "declaredVersion": "1.0.0",
@@ -562,7 +572,7 @@
     {
       "slug": "linkedin-warmup",
       "ownership": "upstream",
-      "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
+      "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
       "sourceRepository": "https://github.com/genfeedai/skills",
       "sourcePath": "linkedin-warmup",
       "declaredVersion": "1.0.0",
@@ -573,15 +583,15 @@
         },
         {
           "path": "SKILL.md",
-          "sha256": "9f32e662daa282e88665c275ef4354b50a9b22c1bdcd88d3134c969684ecb2d3"
+          "sha256": "7185b979f3e699c5a28df0f9c68293ed1190fc77103a2ed011f5905c4c4387ee"
         },
         {
           "path": "metadata.json",
           "sha256": "210f2a0615b4c5c5d29bde3b11684ad5903192b6a458bc8e31ced4dc512e4cc3"
         }
       ],
-      "packageHash": "a5a139b3b35ec2f8fabbb833163f9963bb9b5ad34227900d9644816a5e451588",
-      "instructionsHash": "5db80a426fa673e64af3b93e7d78fbb678f111cfa7bfaab6dbe2ab37cd457260",
+      "packageHash": "9890321d5cf2e1791788fc99909057651095ed1f4058837af8bef083847dd851",
+      "instructionsHash": "6dfcddfa6d11611a892ce8d0a65147e218b2c0960a7362cebbc4e97dad5f846f",
       "excludedReferences": []
     },
     {
@@ -612,7 +622,7 @@
     {
       "slug": "newsletter-creator",
       "ownership": "upstream",
-      "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
+      "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
       "sourceRepository": "https://github.com/genfeedai/skills",
       "sourcePath": "newsletter-creator",
       "declaredVersion": "1.0.0",
@@ -712,7 +722,7 @@
     {
       "slug": "prompt-generator",
       "ownership": "upstream",
-      "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
+      "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
       "sourceRepository": "https://github.com/genfeedai/skills",
       "sourcePath": "prompt-generator",
       "declaredVersion": "1.0.0",
@@ -762,7 +772,7 @@
     {
       "slug": "tiktok-warmup",
       "ownership": "upstream",
-      "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
+      "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
       "sourceRepository": "https://github.com/genfeedai/skills",
       "sourcePath": "tiktok-warmup",
       "declaredVersion": "2.0.0",
@@ -787,7 +797,7 @@
     {
       "slug": "visual-brand-kit",
       "ownership": "upstream",
-      "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
+      "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
       "sourceRepository": "https://github.com/genfeedai/skills",
       "sourcePath": "visual-brand-kit",
       "declaredVersion": "1.0.0",
@@ -837,7 +847,7 @@
     {
       "slug": "x-content-creator",
       "ownership": "upstream",
-      "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
+      "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
       "sourceRepository": "https://github.com/genfeedai/skills",
       "sourcePath": "x-content-creator",
       "declaredVersion": "1.0.0",
@@ -862,7 +872,7 @@
     {
       "slug": "x-warmup",
       "ownership": "upstream",
-      "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
+      "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
       "sourceRepository": "https://github.com/genfeedai/skills",
       "sourcePath": "x-warmup",
       "declaredVersion": "1.2.0",
@@ -873,7 +883,7 @@
         },
         {
           "path": "SKILL.md",
-          "sha256": "029ea4e0b03aaa4df8612b7aac4b42e0cd67055c48502800c9a0167c27351f86"
+          "sha256": "df2c61c513c62d9c9e38ee519505d96a83a98d382c8b1ec7d8835e340393464a"
         },
         {
           "path": "metadata.json",
@@ -888,14 +898,14 @@
           "sha256": "1ad10aad941c3e42bde43a45fc9b22925e4236b4897d84337c61dfac41e74675"
         }
       ],
-      "packageHash": "46ae0288627498fa0b8906ae8ec92d6dca82fd1f67b66b0f4b6bca6c0dd3f280",
-      "instructionsHash": "c98b831cfa2bdb006476e22473fb31300db28851f39e06743186651f89ad998d",
+      "packageHash": "5c753817183530fb2c1909c7ceec082e912893296e78877340a6e78b3c4951e4",
+      "instructionsHash": "a7ed677a31be59411ba4c0d560ccdaed90a9d1f1437b71da30186a05033ea5b8",
       "excludedReferences": []
     },
     {
       "slug": "youtube-content-creator",
       "ownership": "upstream",
-      "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
+      "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
       "sourceRepository": "https://github.com/genfeedai/skills",
       "sourcePath": "youtube-content-creator",
       "declaredVersion": "1.0.0",
@@ -920,7 +930,7 @@
     {
       "slug": "youtube-warmup",
       "ownership": "upstream",
-      "sourceCommit": "7134fc281ab95276e72fdd478becdf13b52b06aa",
+      "sourceCommit": "06717894088ccdea8083b51a38135ff51c9c07ae",
       "sourceRepository": "https://github.com/genfeedai/skills",
       "sourcePath": "youtube-warmup",
       "declaredVersion": "1.0.0",
@@ -931,15 +941,15 @@
         },
         {
           "path": "SKILL.md",
-          "sha256": "ffd3a913a46486cb788761a789a453147b21ab92912abde21173106a0b3b331d"
+          "sha256": "9e056865edd9610b2b34088a8edf4f30247e644bb85df6e88f06ad1419746de8"
         },
         {
           "path": "metadata.json",
           "sha256": "dc828c2844bbe563b7a64c791b9ddeffe55526e2fc22501c12676a944e9786ed"
         }
       ],
-      "packageHash": "a4f0528367c0c42b4e2c8d1755b1643e37672dce08a27524f4c963c4164d71b4",
-      "instructionsHash": "8bccc29e689356255802b129d2bfed9b97693af660f83b5315847d1d948583fc",
+      "packageHash": "e24706bfc1d6eb5436b9184e136df2ba4c3ecd1f84e95f4ba35d6f5f79a7a792",
+      "instructionsHash": "0201a7d6072aaea5db005b7f814aac86782e32ded78c3fb07ec1aae5cb30e981",
       "excludedReferences": []
     }
   ]
