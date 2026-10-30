@@ -241,6 +241,45 @@ describe('AgentOrchestratorPlanModeService — #4672 mode field', () => {
     expect(agentMessagesService.addMessage).not.toHaveBeenCalled();
   });
 
+  it('posts a prose answer as a normal reply instead of a plan awaiting approval', async () => {
+    agentThreadsService.findOne.mockResolvedValue({ mode: 'plan' });
+    const answer =
+      "I can't verify Krea Ad Studio pricing. Which do you want: a reply, or a post?";
+    llmDispatcher.chatCompletion.mockResolvedValue({
+      choices: [{ message: { content: answer } }],
+      model: 'test-model',
+    });
+
+    const result = await service.tryHandlePlanModeTurn(
+      baseParams as never,
+      host,
+    );
+
+    expect(result?.message.content).toBe(answer);
+    expect(result?.message.metadata).not.toHaveProperty('proposedPlan');
+    expect(result?.message.metadata).not.toHaveProperty('reviewRequired');
+    expect(threadEventRecorder.recordPlanUpserted).not.toHaveBeenCalled();
+    expect(agentMessagesService.addMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ content: answer }),
+    );
+  });
+
+  it('still sends a reply cut off inside its JSON to review as a plan', async () => {
+    agentThreadsService.findOne.mockResolvedValue({ mode: 'plan' });
+    llmDispatcher.chatCompletion.mockResolvedValue({
+      choices: [{ message: { content: '{"content":"Step one, then' } }],
+      model: 'test-model',
+    });
+
+    const result = await service.tryHandlePlanModeTurn(
+      baseParams as never,
+      host,
+    );
+
+    expect(result?.message.metadata).toHaveProperty('proposedPlan');
+    expect(threadEventRecorder.recordPlanUpserted).toHaveBeenCalledTimes(1);
+  });
+
   it('does not plan on a thread started from the extension, even in plan mode', async () => {
     agentThreadsService.findOne.mockResolvedValue({
       mode: 'plan',

@@ -91,6 +91,16 @@ const PLAN_MODE_QUESTION_INSTRUCTION = `If the request leaves out something that
 const PLAN_MODE_NO_QUESTION_INSTRUCTION =
   'You have already asked the questions you are allowed. Do not ask another one: plan now and state each assumption you made in the plan.';
 
+/**
+ * A reply that is not JSON-shaped. Text that opens a JSON object but does not
+ * parse (a reply cut off at the token limit) still goes to review as a plan.
+ */
+function isProseReply(
+  response: ReturnType<typeof parsePlanResponse>,
+): boolean {
+  return !response.parsed && !response.candidate.startsWith('{');
+}
+
 @Injectable()
 export class AgentOrchestratorPlanModeService {
   constructor(
@@ -234,8 +244,9 @@ export class AgentOrchestratorPlanModeService {
     const assistantContent = sanitizeAgentOutputText(
       choice.message.content || '',
     );
+    const parsedResponse = parsePlanResponse(assistantContent);
     const question = canAskQuestions
-      ? parsePlanQuestion(parsePlanResponse(assistantContent).parsed)
+      ? parsePlanQuestion(parsedResponse.parsed)
       : null;
     const persistInput = {
       autoRouting,
@@ -247,8 +258,12 @@ export class AgentOrchestratorPlanModeService {
       resolvedModel: response.model ?? params.model,
     };
 
-    return question
-      ? this.persistPlanQuestion({ ...persistInput, question })
+    if (question) {
+      return this.persistPlanQuestion({ ...persistInput, question });
+    }
+    // Prose is an answer, not a plan: nothing in it is there to approve.
+    return isProseReply(parsedResponse)
+      ? this.persistPlanReply(persistInput)
       : this.persistPlanProposal(persistInput);
   }
 
@@ -386,6 +401,93 @@ export class AgentOrchestratorPlanModeService {
       context: params.context,
       detail: 'Plan proposed and awaiting approval',
       runId: params.context.executionId,
+      threadId: params.threadId,
+    });
+
+    return {
+      creditsRemaining,
+      creditsUsed: input.reservedRound.credits,
+      message: {
+        content,
+        metadata: assistantMetadata,
+        role: 'assistant',
+      },
+      threadId: params.threadId,
+      toolCalls: [],
+    };
+  }
+
+  /**
+   * The planner answered in plain text instead of a plan, for example that it
+   * cannot verify something. It is posted as an ordinary reply that asks for
+   * no approval.
+   */
+  private async persistPlanReply(input: {
+    autoRouting: AgentAutoRoutingResolution | undefined;
+    assistantContent: string;
+    defaultModelKey: string;
+    host: AgentOrchestratorPlanModeHost;
+    params: PlanModeResponseParams;
+    reservedRound: { credits: number };
+    resolvedModel: string;
+  }): Promise<AgentChatResult> {
+    const { params } = input;
+    const runId = params.context.executionId;
+    const { title } = this.extractPlanEnvelope({
+      assistantContent: input.assistantContent,
+      prompt: params.request.content,
+      reviewMetadata: params.reviewMetadata,
+      seedTitle: params.seedTitle,
+    });
+
+    await input.host.maybeUpdateThreadTitle({
+      context: params.context,
+      seedTitle: params.seedTitle,
+      threadId: params.threadId,
+      title,
+    });
+
+    const creditsRemaining =
+      await this.creditsUtilsService.getOrganizationCreditsBalance(
+        params.context.organizationId,
+      );
+    const assistantMetadata = {
+      ...buildAgentScopeMetadata(params.context),
+      ...buildAgentRoutingMetadata({
+        autoRouting: input.autoRouting,
+        defaultModelKey: input.defaultModelKey,
+        model: params.model,
+        prompt: params.request.content,
+      }),
+      ...buildResolvedModelMetadata(params.model, [input.resolvedModel]),
+      totalCreditsUsed: input.reservedRound.credits,
+    };
+    const content = input.assistantContent.trim();
+
+    await this.agentMessagesService.addMessage({
+      brandId: params.context.scope?.brandId,
+      content,
+      metadata: buildPersistedAgentResponseMetadata(
+        assistantMetadata,
+        creditsRemaining,
+        runId,
+      ),
+      organizationId: params.context.organizationId,
+      role: AgentMessageRole.ASSISTANT,
+      room: params.threadId,
+      userId: params.context.userId,
+    });
+    await this.threadEventRecorder.recordAssistantFinalized({
+      content,
+      context: params.context,
+      metadata: assistantMetadata,
+      runId,
+      threadId: params.threadId,
+    });
+    await this.threadEventRecorder.recordRunCompleted({
+      context: params.context,
+      detail: 'Plan mode answered without a plan',
+      runId,
       threadId: params.threadId,
     });
 
