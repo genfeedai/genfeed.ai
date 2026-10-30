@@ -1,4 +1,5 @@
 import { Readable } from 'node:stream';
+import { BrandCoverStyleService } from '@api/collections/brands/services/brand-cover-style.service';
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
@@ -42,6 +43,7 @@ describe('YoutubeUploadService', () => {
     processFile: ReturnType<typeof vi.fn>;
     waitForJob: ReturnType<typeof vi.fn>;
   };
+  let brandCoverStyle: { resolveTitleStyle: ReturnType<typeof vi.fn> };
   let tagResolutionService: { resolveTagLabels: ReturnType<typeof vi.fn> };
   let authService: { refreshToken: ReturnType<typeof vi.fn> };
   let filesClient: { generateThumbnail: ReturnType<typeof vi.fn> };
@@ -98,6 +100,10 @@ describe('YoutubeUploadService', () => {
         .mockResolvedValue({ outputPath: '/tmp/test-video.mp4' }),
     };
 
+    brandCoverStyle = {
+      resolveTitleStyle: vi.fn().mockResolvedValue(undefined),
+    };
+
     tagResolutionService = {
       resolveTagLabels: vi.fn().mockResolvedValue(['ai', 'tech']),
     };
@@ -124,6 +130,7 @@ describe('YoutubeUploadService', () => {
         { provide: TagResolutionService, useValue: tagResolutionService },
         { provide: YoutubeAuthService, useValue: authService },
         { provide: FilesClientService, useValue: filesClient },
+        { provide: BrandCoverStyleService, useValue: brandCoverStyle },
         { provide: LoggerService, useValue: loggerService },
         {
           provide: ConfigService,
@@ -205,6 +212,7 @@ describe('YoutubeUploadService', () => {
         1080,
         undefined,
         true,
+        undefined,
       );
       expect(mockThumbnailsSet).toHaveBeenCalledTimes(1);
       const params = mockThumbnailsSet.mock.calls[0][0];
@@ -231,6 +239,30 @@ describe('YoutubeUploadService', () => {
         1080,
         'Ship the studio',
         true,
+        undefined,
+      );
+    });
+
+    it('renders the cover in the style of the brand it publishes for', async () => {
+      const titleStyle = { accentColor: '#E83B3B', fontFamily: 'INTER_BOLD' };
+      brandCoverStyle.resolveTitleStyle.mockResolvedValueOnce(titleStyle);
+
+      await service.uploadVideo(orgId, brandId, videoId, createPost(), {
+        thumbnailText: 'Ship the studio',
+      });
+
+      expect(brandCoverStyle.resolveTitleStyle).toHaveBeenCalledWith(
+        brandId,
+        orgId,
+      );
+      expect(filesClient.generateThumbnail).toHaveBeenCalledWith(
+        expect.any(String),
+        videoId,
+        1,
+        1080,
+        'Ship the studio',
+        true,
+        titleStyle,
       );
     });
 
@@ -246,6 +278,7 @@ describe('YoutubeUploadService', () => {
         1080,
         undefined,
         true,
+        undefined,
       );
     });
 
