@@ -330,11 +330,8 @@ test.describe('Agent Plan Mode', () => {
       'Pause execution after the plan is proposed',
     );
 
-    // The decision sits above the prompt bar, never inside the conversation.
+    // The decision sits inside the plan card it decides.
     await expect(agentPage.planDecision).toBeVisible();
-    await expect(
-      agentPage.planCard.getByRole('button', { name: 'Approve' }),
-    ).toHaveCount(0);
     await expect(
       authenticatedPage.getByText('A plan is ready for explicit review'),
     ).toHaveCount(0);
@@ -567,10 +564,9 @@ test.describe('Agent Plan Mode', () => {
 
     await expect(agentPage.planCard).toBeVisible();
     await expect(agentPage.planDecision).toBeVisible();
-    await agentPage.typePlanFeedback(
+    await agentPage.requestPlanChanges(
       'Show clearer plan status in the conversation and keep execution paused.',
     );
-    await agentPage.requestPlanChangesButton.click();
 
     await expect(agentPage.planCard).toContainText(
       'Keep execution paused until explicit approval',

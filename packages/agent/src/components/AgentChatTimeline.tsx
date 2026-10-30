@@ -2,7 +2,10 @@ import {
   AgentChatMessage,
   UiActionRenderer,
 } from '@genfeedai/agent/components/AgentChatMessage';
-import { AgentPlanCard } from '@genfeedai/agent/components/AgentPlanCard';
+import {
+  AgentPlanCard,
+  type AgentPlanDecision,
+} from '@genfeedai/agent/components/AgentPlanCard';
 import { AgentRunFailureCard } from '@genfeedai/agent/components/AgentRunFailureCard';
 import { AnimatedStatusText } from '@genfeedai/agent/components/AnimatedStatusText';
 import { TimelineStreamingRow } from '@genfeedai/agent/components/TimelineStreamingRow';
@@ -76,6 +79,8 @@ type AgentChatTimelineProps = {
   latestProposedPlan?: AgentProposedPlan | null;
   /** Right-aligned actions on the current plan's card. */
   planActions?: ReactNode;
+  /** Approve or revise the current plan from its own card. */
+  planDecision?: AgentPlanDecision;
   planFooterMessage?: string | null;
 };
 
@@ -102,6 +107,7 @@ export function AgentChatTimeline({
   suppressThinkingPlaceholder = true,
   latestProposedPlan = null,
   planActions,
+  planDecision,
   planFooterMessage = null,
 }: AgentChatTimelineProps): ReactElement {
   const translate = useTranslations('agent.timeline');
@@ -157,6 +163,7 @@ export function AgentChatTimeline({
     return (
       <AgentPlanCard
         actions={isCurrentPlan ? planActions : undefined}
+        decision={isCurrentPlan && !isReadOnly ? planDecision : undefined}
         footerMessage={isCurrentPlan ? planFooterMessage : null}
         plan={plan}
       />

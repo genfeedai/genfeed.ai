@@ -2498,7 +2498,7 @@ describe('AgentChatContainer', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the latest proposed plan in the conversation and its decision in the prompt bar', () => {
+  it('renders the latest proposed plan in the conversation with its decision inside the card', () => {
     const apiService = createApiService();
 
     storeState.pendingInputRequest = null;
@@ -2516,16 +2516,15 @@ describe('AgentChatContainer', () => {
     const card = screen.getByTestId('agent-plan-card');
     expect(card).toBeInTheDocument();
     expect(card).toHaveTextContent('Add a toggle');
-    // The decision is not part of the conversation.
-    expect(within(card).queryByRole('button')).toBeNull();
-    const decision = screen.getByTestId('agent-plan-decision');
+    const decision = within(card).getByTestId('agent-plan-decision');
     expect(
       within(decision).getByRole('button', { name: 'approve' }),
     ).toBeInTheDocument();
     expect(
       within(decision).getByRole('button', { name: 'requestChanges' }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('Composer paste')).toHaveAttribute(
+    // The prompt bar stays an ordinary composer.
+    expect(screen.getByLabelText('Composer paste')).not.toHaveAttribute(
       'placeholder',
       'revisePlaceholder',
     );

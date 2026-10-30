@@ -3,6 +3,7 @@
 import { AgentChatTimeline } from '@genfeedai/agent/components/AgentChatTimeline';
 import { AgentConversationTurnNavigator } from '@genfeedai/agent/components/AgentConversationTurnNavigator';
 import { AgentInputRequestOverlay } from '@genfeedai/agent/components/AgentInputRequestOverlay';
+import type { AgentPlanDecision } from '@genfeedai/agent/components/AgentPlanCard';
 import { AgentWorkObjects } from '@genfeedai/agent/components/AgentWorkObjects';
 import {
   AGENT_CONVERSATION_SCROLL_CLASS,
@@ -59,6 +60,8 @@ export type AgentChatContainerThreadViewProps = {
   onOAuthConnect?: (platform: string) => void;
   /** #4670 Open in Studio: navigates to the ready-to-use Studio generate URL. */
   onOpenInStudio?: (studioUrl: string) => void;
+  /** Approve or revise the current plan from its card. */
+  planDecision?: AgentPlanDecision;
   onRegenerate?: (message: AgentChatMessageType) => void | Promise<void>;
   onRetry: (message: AgentChatMessageType) => Promise<void>;
   onRetryLastFailedRun: () => void | Promise<void>;
@@ -110,6 +113,7 @@ export function AgentChatContainerThreadView({
   onIngredientSelect,
   onOAuthConnect,
   onOpenInStudio,
+  planDecision,
   onRegenerate,
   onRetry,
   onRetryLastFailedRun,
@@ -221,6 +225,7 @@ export function AgentChatContainerThreadView({
             timeline={timeline}
             latestProposedPlan={latestProposedPlan}
             planActions={planActions}
+            planDecision={planDecision}
             planFooterMessage={followUpTaskMessage}
             pendingUiActions={pendingUiActions}
             isGenerating={isGenerating}
