@@ -140,8 +140,68 @@ describe('hasStoredWorkflowGenerationBrandSource', () => {
     ).toBe(true);
   });
 
+  it('leaves a graph without image or video generation to run time', () => {
+    const digest = {
+      nodes: [
+        {
+          data: { config: { actionId: 'trendDigest' }, label: 'Digest' },
+          id: 'trend-digest',
+          type: 'genfeedAction',
+        },
+        {
+          data: { config: { actionId: 'sendEmail' }, label: 'Email' },
+          id: 'send-email',
+          type: 'genfeedAction',
+        },
+      ],
+    };
+    expect(hasStoredWorkflowGenerationBrandSource(null, digest)).toBe(true);
+  });
+
   it('is null when the stored graph cannot be read', () => {
     expect(hasStoredWorkflowGenerationBrandSource(null, undefined)).toBeNull();
     expect(hasStoredWorkflowGenerationBrandSource(null, {})).toBeNull();
+  });
+});
+
+describe('workflow generation brand requirement', () => {
+  it('needs no brand for a workflow without image or video generation', async () => {
+    const f = fixture();
+    f.source.apiKeyId = undefined;
+    f.source.brandId = null;
+    f.source.workflow.brandId = undefined;
+    f.source.workflow.nodes = [
+      {
+        id: 'send-email',
+        label: 'Email',
+        inputs: [],
+        type: 'genfeedAction',
+        config: { actionId: 'sendEmail' },
+      },
+    ];
+    f.source.selectedNodeIds = ['send-email'];
+
+    await expect(f.run()).resolves.toBeUndefined();
+    expect(f.access.assert).not.toHaveBeenCalled();
+  });
+
+  it('still requires a brand when the workflow generates video', async () => {
+    const f = fixture();
+    f.source.apiKeyId = undefined;
+    f.source.brandId = null;
+    f.source.workflow.brandId = undefined;
+    f.source.workflow.nodes = [
+      {
+        id: 'video',
+        label: 'Video',
+        inputs: [],
+        type: 'genfeedAction',
+        config: { actionId: 'videoGen' },
+      },
+    ];
+
+    await expect(f.run()).rejects.toThrow(
+      'Workflow generation brand is unavailable',
+    );
   });
 });
