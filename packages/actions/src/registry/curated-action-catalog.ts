@@ -236,6 +236,7 @@ export const CURATED_ACTION_CATALOG = [
   },
   { name: 'get_brands', surfaces: ['agent', 'mcp'], toolset: 'core' },
   { name: 'get_clip_context', surfaces: ['agent', 'mcp'], toolset: 'clipper' },
+  { name: 'get_clip_highlights', surfaces: ['agent'], toolset: 'clipper' },
   { name: 'get_clipper_highlights', surfaces: ['mcp'], toolset: 'clipper' },
   { name: 'get_clipper_project', surfaces: ['mcp'], toolset: 'clipper' },
   {
@@ -564,6 +565,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent', 'mcp'],
     toolset: 'brand',
   },
+  { name: 'start_clip_analysis', surfaces: ['agent'], toolset: 'clipper' },
   { name: 'start_outreach_sequence', surfaces: ['agent'], toolset: 'outreach' },
   { name: 'start_remix_generation', surfaces: ['mcp'], toolset: 'inspiration' },
   {
