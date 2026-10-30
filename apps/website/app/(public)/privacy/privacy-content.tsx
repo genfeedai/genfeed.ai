@@ -107,7 +107,7 @@ export default function PrivacyContent() {
         <section className="py-16 md:py-32 gsap-hero">
           <div className="container mx-auto px-6">
             <div className="max-w-4xl mx-auto">
-              <div className="grid gap-px bg-foreground/5">
+              <div className="grid gap-px bg-foreground/10">
                 {privacyPolicySections.map((section) => (
                   <div
                     key={section.title}
@@ -177,7 +177,7 @@ export default function PrivacyContent() {
             </div>
 
             <div className="max-w-4xl mx-auto">
-              <div className="grid grid-cols-1 gap-px bg-foreground/5 md:grid-cols-3">
+              <div className="grid grid-cols-1 gap-px bg-foreground/10 md:grid-cols-3">
                 {privacyRights.map((right) => {
                   const Icon = right.icon;
                   return (

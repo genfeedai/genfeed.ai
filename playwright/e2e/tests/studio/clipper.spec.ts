@@ -1144,11 +1144,18 @@ test.describe('Clip Factory', () => {
     expect(analyzeRequestBody).toMatchObject({ youtubeUrl: MOCK_YOUTUBE_URL });
     expect(createRequestBody).not.toHaveProperty('avatarId');
     expect(createRequestBody).not.toHaveProperty('voiceId');
+    // The /clipper list stays mounted (hidden) behind /clipper/new while
+    // the route is retained, so its preset badges also match these labels.
+    // Scope to the visible route; the assertions are unchanged.
     await expect(
-      authenticatedPage.getByText('Raw cut', { exact: true }),
+      authenticatedPage
+        .getByText('Raw cut', { exact: true })
+        .filter({ visible: true }),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByText('In Library', { exact: true }),
+      authenticatedPage
+        .getByText('In Library', { exact: true })
+        .filter({ visible: true }),
     ).toBeVisible();
     await expect(
       authenticatedPage.getByLabel('Preview Edited Hook Title'),

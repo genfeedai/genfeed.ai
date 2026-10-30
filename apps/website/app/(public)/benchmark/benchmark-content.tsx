@@ -54,7 +54,7 @@ function SeasonSignal({ data }: BenchmarkContentProps) {
               <Text className="text-4xl font-semibold tracking-[-0.02em] text-foreground sm:text-5xl">
                 {item.value}
               </Text>
-              <Text className="mt-2 text-sm text-foreground/60">
+              <Text className="mt-3 text-sm text-foreground/70">
                 {item.label}
               </Text>
             </div>
@@ -161,13 +161,13 @@ function TaskCard({ task }: { task: BenchmarkTask }) {
       <Text className="mt-4 max-w-2xl text-base leading-7 text-foreground/70">
         {task.rationale}
       </Text>
-      <Text className="mt-6 text-sm font-medium text-foreground/60">
+      <Text className="mt-6 text-sm font-medium text-foreground/70">
         The prompt, in full
       </Text>
       <Text className="mt-3 max-w-2xl whitespace-pre-line border-l border-foreground/20 pl-5 font-mono text-sm leading-6 text-foreground/70">
         {task.prompt}
       </Text>
-      <Text className="mt-5 text-sm text-foreground/50">
+      <Text className="mt-5 text-sm text-foreground/70">
         {task.outputSpec.count}{' '}
         {task.outputSpec.count === 1 ? 'output' : 'outputs'} ·{' '}
         {task.outputSpec.aspectRatio}
@@ -323,7 +323,7 @@ export default function BenchmarkContent({ data }: BenchmarkContentProps) {
                   >
                     {contestant.label}
                     {contestant.isCompiled ? (
-                      <span className="ml-2 text-xs text-foreground/50">
+                      <span className="ml-2 text-xs text-foreground/60">
                         Genfeed
                       </span>
                     ) : null}

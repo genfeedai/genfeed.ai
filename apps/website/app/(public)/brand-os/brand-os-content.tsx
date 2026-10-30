@@ -8,10 +8,7 @@ import HomeFooter from '@web-components/home/_footer';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import Link from 'next/link';
 import { BrandOsFunnel } from './brand-os-funnel';
-import {
-  BrandOSPreviewAction,
-  BrandOSPreviewStateCatalog,
-} from './brand-os-preview-state';
+import { BrandOSPreviewAction } from './brand-os-preview-state';
 
 interface Swatch {
   hex: string;
@@ -260,35 +257,6 @@ export default function BrandOSContent(): React.ReactElement {
           </div>
         </section>
 
-        {/* The catalog documents every explicit state used by the live funnel. */}
-        <section
-          className="border-b border-foreground/5 py-16 sm:py-20"
-          id="brand-os-states"
-        >
-          <div className="container mx-auto px-6">
-            <div className="mx-auto flex max-w-6xl flex-col gap-8">
-              <div className="grid gap-4 lg:grid-cols-[0.7fr_1fr] lg:items-end">
-                <div className="flex flex-col gap-3">
-                  <SectionLabel>State contract</SectionLabel>
-                  <Heading
-                    as="h2"
-                    className="max-w-xl text-4xl font-semibold tracking-[-0.02em] text-foreground"
-                  >
-                    No silent state changes.
-                  </Heading>
-                </div>
-                <Text className="max-w-2xl text-sm leading-6 text-foreground/60 lg:justify-self-end">
-                  The public preview names progress, partial evidence, recovery,
-                  conversion, and review outcomes. The live preview above uses
-                  the same state contract before authenticated review.
-                </Text>
-              </div>
-
-              <BrandOSPreviewStateCatalog />
-            </div>
-          </div>
-        </section>
-
         {/* Color: backgrounds + text */}
         <section className="border-b border-foreground/5 bg-foreground/5 py-16 sm:py-20">
           <div className="container mx-auto grid gap-12 px-6 lg:grid-cols-[0.32fr_1fr] lg:gap-16">
@@ -470,7 +438,7 @@ export default function BrandOSContent(): React.ReactElement {
                   containment instead of a CSS border.
                 </Text>
               </div>
-              <div className="grid gap-px bg-foreground/5 sm:grid-cols-2">
+              <div className="grid gap-px bg-foreground/10 sm:grid-cols-2">
                 {RADIUS_STEPS.map((step) => (
                   <div
                     className="flex flex-col gap-3 bg-background p-5"
@@ -517,7 +485,7 @@ export default function BrandOSContent(): React.ReactElement {
               </Text>
             </div>
 
-            <div className="mx-auto mt-12 grid max-w-6xl gap-px bg-foreground/5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mx-auto mt-12 grid max-w-6xl gap-px bg-foreground/10 sm:grid-cols-2 lg:grid-cols-4">
               {COLOR_DOORS.map((door) => (
                 <div
                   className="flex flex-col gap-4 bg-background p-6"
@@ -544,7 +512,7 @@ export default function BrandOSContent(): React.ReactElement {
         {/* Do's and Don'ts */}
         <section className="py-16 sm:py-20">
           <div className="container mx-auto px-6">
-            <div className="mx-auto grid max-w-6xl gap-px bg-foreground/5 lg:grid-cols-2">
+            <div className="mx-auto grid max-w-6xl gap-px bg-foreground/10 lg:grid-cols-2">
               <div className="flex flex-col gap-5 bg-background p-6 sm:p-8">
                 <SectionLabel>Do</SectionLabel>
                 <ul className="space-y-3.5">

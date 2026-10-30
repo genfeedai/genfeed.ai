@@ -1,11 +1,11 @@
 'use client';
 
+import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import StoryboardRunPage from '@pages/studio/storyboard/StoryboardRunPage';
-import { useParams } from 'next/navigation';
 import { readRouteParam } from '@/lib/route-params';
 
 export default function StudioStoryboardRunRoute() {
-  const params = useParams<{ runId: string }>();
+  const params = useRouteParams<{ runId: string }>();
   const runId = readRouteParam(params.runId);
   return <StoryboardRunPage key={runId} runId={runId} />;
 }

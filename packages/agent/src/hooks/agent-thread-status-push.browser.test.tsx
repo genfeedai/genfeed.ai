@@ -36,9 +36,6 @@ vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
     subscribe: transport.subscribe,
   }),
 }));
-vi.mock('@ui/navigation/prefetch/useNavigationPrefetch', () => ({
-  useNavigationPrefetch: () => () => {},
-}));
 
 const noop = () => {};
 

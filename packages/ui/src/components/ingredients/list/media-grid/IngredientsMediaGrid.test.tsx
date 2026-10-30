@@ -241,6 +241,30 @@ describe('IngredientsMediaGrid', () => {
     );
   });
 
+  it('pulls only the first group over the page body padding', () => {
+    render(
+      <IngredientsMediaGrid
+        {...baseProps}
+        items={
+          [
+            { ...items[0], createdAt: '2026-09-20T12:00:00.000Z' },
+            { ...items[1], createdAt: '2026-08-02T12:00:00.000Z' },
+          ] as IIngredient[]
+        }
+      />,
+    );
+
+    const sections = screen
+      .getAllByTestId('ingredient-time-group-heading')
+      .map((heading) => heading.closest('section'));
+
+    expect(sections).toHaveLength(2);
+    expect(sections[0]).toHaveClass('first:-mt-5', 'sm:first:-mt-6');
+    expect(sections[1]).toHaveClass('first:-mt-5');
+    expect(sections[0]?.parentElement?.firstElementChild).toBe(sections[0]);
+    expect(sections[1]?.parentElement?.firstElementChild).not.toBe(sections[1]);
+  });
+
   it('renders loading skeletons while fetching items', () => {
     const { container } = render(
       <IngredientsMediaGrid {...baseProps} isLoading={true} />,

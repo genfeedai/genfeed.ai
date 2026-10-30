@@ -48,7 +48,6 @@ export default function TopbarAppsLink({ orgSlug }: TopbarAppsLinkProps) {
         aria-current={isActive ? 'page' : undefined}
         aria-label={translate('launcher')}
         href={appsHref}
-        prefetch={false}
       >
         <Puzzle aria-hidden="true" className="size-4" />
       </Link>

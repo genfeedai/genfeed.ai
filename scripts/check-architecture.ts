@@ -253,6 +253,10 @@ const checks = [
     command: ['bun', 'run', 'scripts/architecture/check-single-claude-md.ts'],
     name: 'Single root CLAUDE.md',
   },
+  {
+    command: ['bun', 'run', 'scripts/architecture/check-package-layering.ts'],
+    name: 'Shared package layering',
+  },
 ] as const;
 
 let failed = false;

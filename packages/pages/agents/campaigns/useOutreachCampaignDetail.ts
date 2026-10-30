@@ -1,6 +1,7 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { CampaignTargetStatus } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
@@ -10,14 +11,14 @@ import {
 } from '@services/automation/outreach-campaigns.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export function useOutreachCampaignDetail() {
   const router = useRouter();
   const { href } = useOrgUrl();
-  const params = useParams();
+  const params = useRouteParams();
   const campaignId = params.id as string;
   const { organizationId } = useBrand();
   const translate = useTranslations('common.outreachCampaign');
