@@ -80,7 +80,6 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import PromptBarAttachedAssetsTray from '@ui/prompt-bars/components/attached-assets-tray/PromptBarAttachedAssetsTray';
-import PromptBarContextRow from '@ui/prompt-bars/components/context-row/PromptBarContextRow';
 import PromptBarCrunControls from '@ui/prompt-bars/components/crun-controls/PromptBarCrunControls';
 import PromptBarCrunVideoControls from '@ui/prompt-bars/components/crun-controls/PromptBarCrunVideoControls';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
@@ -93,6 +92,7 @@ import { Bookmark, ImageIcon, Video } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import PromptBarContextRow from '@/features/studio/components/prompt-bars/components/context-row/PromptBarContextRow';
 import { useAdvancedModePreference } from '@/features/studio/hooks/use-advanced-mode-preference/use-advanced-mode-preference';
 import StudioGenerationSummary from '@/features/studio/playground/components/StudioGenerationSummary';
 import StudioIdentityFields from '@/features/studio/playground/components/StudioIdentityFields';

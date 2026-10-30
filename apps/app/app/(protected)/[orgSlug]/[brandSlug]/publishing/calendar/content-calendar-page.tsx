@@ -24,13 +24,13 @@ import { PostingCadencesService } from '@services/content/posting-cadences.servi
 import { PostsService } from '@services/content/posts.service';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import ContentCalendar from '@ui/calendar/content-calendar/ContentCalendar';
 import { LazyModalArticle } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
 import { FileText, Repeat } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import ContentCalendar from '@/features/posts/components/calendar/content-calendar/ContentCalendar';
 import type { ContentCalendarPageProps } from '@/features/posts/props/content-calendar-controller.props';
 import type { ContentCalendarItem } from '@/features/posts/props/content-calendar-page.props';
 import ReleaseDetailDrawer from '@/features/posts/release/release-detail-drawer';

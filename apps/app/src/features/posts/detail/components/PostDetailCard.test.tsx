@@ -34,7 +34,7 @@ vi.mock('@/features/posts/detail/components/PostDetailCardBody', () => ({
   ),
 }));
 
-vi.mock('@ui/posts/card-footer/PostCardFooter', () => ({
+vi.mock('@/features/posts/components/card-footer/PostCardFooter', () => ({
   default: () => <div data-testid="card-footer" />,
 }));
 

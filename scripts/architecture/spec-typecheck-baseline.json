@@ -4497,6 +4497,22 @@
       "workspace": "app"
     },
     {
+      "code": 2344,
+      "count": 1,
+      "file": "apps/app/src/features/auth/components/modals/brands/instagram/InstagramAccountSelector.test.tsx",
+      "fingerprint": "a0070ae5bf6d6bd1cded",
+      "message": "Type 'Mock<Procedure | Constructable>' does not satisfy the constraint '(...args: any) => any'.   Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' is not assignable to type '(...args: any) => any'.     Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' provides no match for the signature '(...args: any): any'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2348,
+      "count": 1,
+      "file": "apps/app/src/features/auth/components/modals/brands/instagram/InstagramAccountSelector.test.tsx",
+      "fingerprint": "f75dff6f64621accf6b4",
+      "message": "Value of type 'Mock<Procedure | Constructable>' is not callable. Did you mean to include 'new'?",
+      "workspace": "app"
+    },
+    {
       "code": 2769,
       "count": 1,
       "file": "apps/app/src/features/brands/components/brand-kit/BrandOsSettingsCard.test.tsx",
@@ -4537,6 +4553,22 @@
       "workspace": "app"
     },
     {
+      "code": 2740,
+      "count": 3,
+      "file": "apps/app/src/features/ingredients/components/list/header/IngredientsListHeader.test.tsx",
+      "fingerprint": "d4016a42b77d13273032",
+      "message": "Type '{}' is missing the following properties from type 'IngredientsListHeaderProps': selectedCount, canMerge, isMerging, onClearSelection, and 2 more.",
+      "workspace": "app"
+    },
+    {
+      "code": 2352,
+      "count": 1,
+      "file": "apps/app/src/features/ingredients/components/tabs/tags/IngredientTabsTags.test.tsx",
+      "fingerprint": "9d6ff52f7b5d624ca2f0",
+      "message": "Conversion of type '{ category: IngredientCategory.IMAGE; id: string; tags: never[]; }' to type 'IIngredient' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ category: IngredientCategory.IMAGE; id: string; tags: never[]; }' is missing the following properties from type 'IIngredient': status, user, organization, scope, and 10 more.",
+      "workspace": "app"
+    },
+    {
       "code": 2339,
       "count": 2,
       "file": "apps/app/src/features/ingredients/detail/use-ingredient-detail.test.ts",
@@ -4574,6 +4606,14 @@
       "file": "apps/app/src/features/posts/[id]/ingredient-posts.test.tsx",
       "fingerprint": "9fb4d7b5ee952b947c56",
       "message": "Type '{ id: string; page: number; ingredient: Ingredient & { totalPosts?: number | undefined; totalViews?: number | undefined; }; posts: never[]; }' is not assignable to type 'IntrinsicAttributes & IngredientPostsProps'.   Property 'page' does not exist on type 'IntrinsicAttributes & IngredientPostsProps'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2741,
+      "count": 1,
+      "file": "apps/app/src/features/posts/components/evaluation/badge/EvaluationBadge.test.tsx",
+      "fingerprint": "cfeb33858b42f740457d",
+      "message": "Property 'score' is missing in type '{}' but required in type 'EvaluationBadgeProps'.",
       "workspace": "app"
     },
     {
@@ -7929,14 +7969,6 @@
       "workspace": "ui"
     },
     {
-      "code": 2741,
-      "count": 1,
-      "file": "packages/ui/src/components/evaluation/badge/EvaluationBadge.test.tsx",
-      "fingerprint": "9a1ced1c9a10b97fb929",
-      "message": "Property 'score' is missing in type '{}' but required in type 'EvaluationBadgeProps'.",
-      "workspace": "ui"
-    },
-    {
       "code": 2739,
       "count": 2,
       "file": "packages/ui/src/components/evaluation/card/EvaluationCard.test.tsx",
@@ -7950,14 +7982,6 @@
       "file": "packages/ui/src/components/evaluation/card/EvaluationCard.test.tsx",
       "fingerprint": "e948562c6d801e0b65f9",
       "message": "Type '{ overall: number; }' is missing the following properties from type 'IBrandScores': styleAlignment, messageAlignment, toneAlignment",
-      "workspace": "ui"
-    },
-    {
-      "code": 2740,
-      "count": 3,
-      "file": "packages/ui/src/components/ingredients/list/header/IngredientsListHeader.test.tsx",
-      "fingerprint": "60407aaf4f5e1e693fcb",
-      "message": "Type '{}' is missing the following properties from type 'IngredientsListHeaderProps': selectedCount, canMerge, isMerging, onClearSelection, and 2 more.",
       "workspace": "ui"
     },
     {
@@ -8006,14 +8030,6 @@
       "file": "packages/ui/src/components/ingredients/list/selection-actions-bar/SelectionActionsBar.test.tsx",
       "fingerprint": "baa2bb4176e254b59913",
       "message": "Property 'onBulkDelete' is missing in type '{ count: number; onClear: Mock<Procedure>; }' but required in type 'SelectionActionsBarProps'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "packages/ui/src/components/ingredients/tabs/tags/IngredientTabsTags.test.tsx",
-      "fingerprint": "f6c8bf0f94e728fa189b",
-      "message": "Conversion of type '{ category: IngredientCategory.IMAGE; id: string; tags: never[]; }' to type 'IIngredient' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ category: IngredientCategory.IMAGE; id: string; tags: never[]; }' is missing the following properties from type 'IIngredient': status, user, organization, scope, and 10 more.",
       "workspace": "ui"
     },
     {
@@ -8158,22 +8174,6 @@
       "file": "packages/ui/src/components/modals/actions/ModalActions.test.tsx",
       "fingerprint": "8ba10d9d5e38146a1d47",
       "message": "Property 'children' is missing in type '{}' but required in type 'ModalActionsProps'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2344,
-      "count": 1,
-      "file": "packages/ui/src/components/modals/brands/instagram/InstagramAccountSelector.test.tsx",
-      "fingerprint": "d20145dc02b0baeb7cb4",
-      "message": "Type 'Mock<Procedure | Constructable>' does not satisfy the constraint '(...args: any) => any'.   Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' is not assignable to type '(...args: any) => any'.     Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' provides no match for the signature '(...args: any): any'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2348,
-      "count": 1,
-      "file": "packages/ui/src/components/modals/brands/instagram/InstagramAccountSelector.test.tsx",
-      "fingerprint": "acd7be2f021f5901cf3c",
-      "message": "Value of type 'Mock<Procedure | Constructable>' is not callable. Did you mean to include 'new'?",
       "workspace": "ui"
     },
     {

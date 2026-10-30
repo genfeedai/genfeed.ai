@@ -59,25 +59,28 @@ vi.mock('@/components/analytics/AnalyticsPublicRouteSync', () => ({
   default: () => <div data-testid="analytics-public-route-sync" />,
 }));
 
-vi.mock('@ui/modals/brands/instagram/InstagramAccountSelector', () => ({
-  default: (props: {
-    credentialId: string;
-    onBack?: () => void;
-    onConnected: () => void;
-  }) => {
-    mockInstagramAccountSelector(props);
-    return (
-      <div data-testid="instagram-account-selector">
-        <button onClick={props.onConnected} type="button">
-          confirm-selection
-        </button>
-        <button onClick={props.onBack} type="button">
-          cancel-selection
-        </button>
-      </div>
-    );
-  },
-}));
+vi.mock(
+  '@/features/auth/components/modals/brands/instagram/InstagramAccountSelector',
+  () => ({
+    default: (props: {
+      credentialId: string;
+      onBack?: () => void;
+      onConnected: () => void;
+    }) => {
+      mockInstagramAccountSelector(props);
+      return (
+        <div data-testid="instagram-account-selector">
+          <button onClick={props.onConnected} type="button">
+            confirm-selection
+          </button>
+          <button onClick={props.onBack} type="button">
+            cancel-selection
+          </button>
+        </div>
+      );
+    },
+  }),
+);
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',

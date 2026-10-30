@@ -1,6 +1,6 @@
 'use client';
 
-import PostCardFooter from '@ui/posts/card-footer/PostCardFooter';
+import PostCardFooter from '@/features/posts/components/card-footer/PostCardFooter';
 import type { PostDetailCardProps } from '@/features/posts/props/post-detail-card.props';
 import PostDetailCardBody from './PostDetailCardBody';
 import { usePostDetailCard } from './usePostDetailCard';

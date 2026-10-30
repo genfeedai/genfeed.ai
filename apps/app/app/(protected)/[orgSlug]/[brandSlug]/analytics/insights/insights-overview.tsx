@@ -4,9 +4,9 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useInsights } from '@hooks/data/analytics/use-insights/use-insights';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import type { InsightsOverviewProps } from '@props/analytics/insights.props';
-import { InsightListCard } from '@ui/analytics/insights';
 import Card from '@ui/card/Card';
 import { memo } from 'react';
+import { InsightListCard } from '@/features/analytics/components/insights';
 import SocialIntelligenceInbox from './social-intelligence-inbox';
 
 const InsightsOverview = memo(function InsightsOverview({

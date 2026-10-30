@@ -1,0 +1,57 @@
+// @vitest-environment jsdom
+import '@testing-library/jest-dom/vitest';
+import type { TabsEnhancedProps } from '@genfeedai/props/ui/navigation/tabs.props';
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import IngredientWorkspacePanel from '@/features/ingredients/components/detail/shared/IngredientWorkspacePanel';
+
+vi.mock('@ui/navigation/tabs/Tabs', () => ({
+  default: ({
+    children,
+    contentClassName,
+    fullWidth,
+    listClassName,
+  }: TabsEnhancedProps) => (
+    <div
+      data-content-class={contentClassName}
+      data-list-class={listClassName}
+      data-full-width={String(fullWidth)}
+      data-testid="workspace-tabs"
+    >
+      {children}
+    </div>
+  ),
+}));
+
+describe('IngredientWorkspacePanel', () => {
+  it('uses shared navigation for dense asset details', () => {
+    render(
+      <IngredientWorkspacePanel
+        activeTab="info"
+        onTabChange={vi.fn()}
+        tabs={[
+          { id: 'info', label: 'Info' },
+          { id: 'quality', label: 'Quality' },
+        ]}
+        title="Refine image details"
+      >
+        <div>Details</div>
+      </IngredientWorkspacePanel>,
+    );
+
+    expect(screen.getByTestId('workspace-tabs')).toHaveAttribute(
+      'data-full-width',
+      'false',
+    );
+    expect(screen.getByTestId('workspace-tabs')).toHaveAttribute(
+      'data-content-class',
+      'mt-5 space-y-5',
+    );
+    expect(screen.getByTestId('workspace-tabs')).toHaveAttribute(
+      'data-list-class',
+      'mr-auto ml-0 max-w-full overflow-x-auto',
+    );
+    expect(screen.queryByText('Asset Workspace')).not.toBeInTheDocument();
+    expect(screen.getByText('Details')).toBeInTheDocument();
+  });
+});

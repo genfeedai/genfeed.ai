@@ -50,4 +50,18 @@ describe('posts semantic theme surfaces', () => {
     expect(source).toContain("import Card from '@ui/card/Card'");
     expect(source).toContain('<Card');
   });
+
+  it('keeps the content calendar on semantic borders', () => {
+    const source = readPost(
+      'components/calendar/content-calendar/ContentCalendarView.tsx',
+    );
+
+    expect(source).toContain('border-border');
+    expect(source).toContain("'--fc-classic-border': 'hsl(var(--border))'");
+    expect(source).toContain(
+      "'--fc-classic-strong-border': 'hsl(var(--border-strong))'",
+    );
+    expect(source).not.toContain('border-white');
+    expect(source).not.toContain('rgba(255, 255, 255');
+  });
 });

@@ -33,11 +33,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Alert from '@ui/feedback/alert/Alert';
 import InfiniteScroll from '@ui/feedback/infinite-scroll/InfiniteScroll';
-import IngredientsListContent from '@ui/ingredients/list/content/IngredientsListContent';
-import IngredientsListFooter from '@ui/ingredients/list/footer/IngredientsListFooter';
-import IngredientsListHeader from '@ui/ingredients/list/header/IngredientsListHeader';
 import SelectionTagAction from '@ui/ingredients/list/selection-actions-bar/SelectionTagAction';
-import IngredientsListSidebar from '@ui/ingredients/list/sidebar/IngredientsListSidebar';
 import { LazyModalImageToVideo } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
 import {
@@ -47,6 +43,10 @@ import {
 import { format } from 'date-fns';
 import { useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import IngredientsListContent from '@/features/ingredients/components/list/content/IngredientsListContent';
+import IngredientsListFooter from '@/features/ingredients/components/list/footer/IngredientsListFooter';
+import IngredientsListHeader from '@/features/ingredients/components/list/header/IngredientsListHeader';
+import IngredientsListSidebar from '@/features/ingredients/components/list/sidebar/IngredientsListSidebar';
 
 /**
  * Categories the merge action actually supports. Kept local to this file

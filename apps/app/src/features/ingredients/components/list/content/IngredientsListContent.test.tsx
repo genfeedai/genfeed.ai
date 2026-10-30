@@ -1,0 +1,1440 @@
+import {
+  IngredientCategory,
+  IngredientStatus,
+  PageScope,
+} from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
+import type DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
+import { format } from 'date-fns';
+import type { ComponentProps, ReactNode } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import IngredientsListContent from '@/features/ingredients/components/list/content/IngredientsListContent';
+
+const previewVisibility = vi.hoisted(() => ({ visible: false }));
+const library = vi.hoisted(() => ({
+  settings: { hasOrganizationBilling: false, moduleOverrides: {} } as Record<
+    string,
+    unknown
+  > | null,
+}));
+
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({ settings: library.settings, settingsLoading: false }),
+}));
+
+vi.mock('@genfeedai/hooks/feature-flags/provider', () => ({
+  useFeatureFlagContext: () => ({
+    flags: {},
+    isConfigured: true,
+    isReady: true,
+  }),
+}));
+
+vi.mock(
+  '@genfeedai/hooks/ui/use-intersection-observer/use-intersection-observer',
+  async () => {
+    const { useRef } = await import('react');
+    return {
+      useIntersectionObserver: () => ({
+        ref: useRef<HTMLDivElement>(null),
+        isIntersecting: previewVisibility.visible,
+      }),
+    };
+  },
+);
+
+beforeEach(() => {
+  previewVisibility.visible = false;
+  library.settings = { hasOrganizationBilling: false, moduleOverrides: {} };
+});
+
+const { assetSelection, setSelectedAsset, revealSidebar } = vi.hoisted(() => ({
+  assetSelection: {
+    lightboxRequestCount: 0,
+    requestedLightboxIngredient: null as IIngredient | null,
+    published: null as { id: string } | null,
+  },
+  setSelectedAsset: vi.fn(),
+  revealSidebar: vi.fn(),
+}));
+
+// The grid hands its single selection to the shared asset selection, and the
+// library surface adapter renders the rail from there. Stubbing the context is
+// what lets this test assert the handoff instead of the rail's markup.
+vi.mock('@genfeedai/hooks/media/use-authorized-media-preview', () => ({
+  useAuthorizedMediaPreview: (ingredient: IIngredient) =>
+    ingredient.mediaDelivery ?? null,
+}));
+
+vi.mock('@hooks/ui/use-storyboard-entry/use-storyboard-entry', () => ({
+  useStoryboardEntry: () => ({
+    createFromAsset: vi.fn(),
+    canCreateFromAsset: () => false,
+    pendingAssetId: null,
+  }),
+}));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
+vi.mock('@genfeedai/contexts/ui/asset-selection.context', () => ({
+  useAssetSelection: () => ({
+    lightboxRequestCount: assetSelection.lightboxRequestCount,
+    requestedLightboxIngredient: assetSelection.requestedLightboxIngredient,
+    selectedIngredient: assetSelection.published,
+    setSelectedAsset,
+  }),
+}));
+
+vi.mock('@genfeedai/contexts/ui/context-sidebar-context', () => ({
+  useContextSidebar: () => ({ reveal: revealSidebar }),
+}));
+
+vi.mock('next/image', () => ({
+  default: ({ alt, src }: { alt: string; src: string }) => (
+    <img alt={alt} src={src} />
+  ),
+}));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
+vi.mock('@ui/ingredients/IngredientReviewActions', () => ({
+  default: () => null,
+}));
+
+vi.mock('@ui/dropdowns/status/DropdownStatus', () => ({
+  default: ({
+    entity,
+    onStatusChange,
+  }: ComponentProps<typeof DropdownStatus>) => (
+    <button
+      data-testid="status-dropdown"
+      onClick={() =>
+        onStatusChange?.(IngredientStatus.REJECTED, {
+          ...entity,
+          status: IngredientStatus.REJECTED,
+        } as IIngredient)
+      }
+      type="button"
+    >
+      Reject from status menu
+    </button>
+  ),
+}));
+
+// The canvas pulls React Flow in behind next/dynamic, whose loader never
+// resolves under jsdom. Stubbing the boundary keeps this test on the view
+// switch, which is what IngredientsListContent actually owns.
+vi.mock('next/dynamic', async () => {
+  const { Checkbox } = await import('@ui/primitives/checkbox');
+  return {
+    default: (loader: () => Promise<unknown>) => {
+      if (loader.toString().includes('checkbox')) return Checkbox;
+      function LibraryCanvasStub({
+        ingredients,
+      }: {
+        ingredients: IIngredient[];
+      }) {
+        return (
+          <div data-testid="library-canvas">{(ingredients ?? []).length}</div>
+        );
+      }
+
+      return LibraryCanvasStub;
+    },
+  };
+});
+
+vi.mock('@ui/ingredients/list/media-grid/IngredientsMediaGrid', () => ({
+  default: ({
+    emptyActions,
+    items,
+    onClickIngredient,
+    onSeeDetails,
+    onReviewUpdated,
+  }: {
+    emptyActions?: ReactNode;
+    items: IIngredient[];
+    onClickIngredient: (ingredient: IIngredient) => void;
+    onSeeDetails: (ingredient: IIngredient) => void;
+    onReviewUpdated: (ingredient: IIngredient) => void;
+  }) => (
+    <>
+      {items.length === 0 ? (
+        <div data-testid="media-grid-empty">{emptyActions}</div>
+      ) : null}
+      <button
+        data-testid="media-grid-item"
+        onClick={() => onClickIngredient(items[0])}
+        type="button"
+      >
+        {items[0]?.metadataLabel ?? 'Media item'}
+      </button>
+      <button onClick={() => onSeeDetails(items[0])} type="button">
+        See Details
+      </button>
+      {items[0] ? (
+        <button
+          onClick={() =>
+            onReviewUpdated({ ...items[0], status: IngredientStatus.REJECTED })
+          }
+          type="button"
+        >
+          Reject from grid
+        </button>
+      ) : null}
+    </>
+  ),
+}));
+
+const baseIngredient = {
+  category: IngredientCategory.AVATAR,
+  createdAt: new Date().toISOString(),
+  id: 'avatar-source-1',
+  ingredientUrl: 'https://cdn.genfeed.ai/mock/avatar-source.jpg',
+  metadataLabel: 'Avatar Source',
+  status: 'GENERATED',
+  updatedAt: new Date().toISOString(),
+} as unknown as IIngredient;
+
+function renderContent(
+  overrides: Partial<ComponentProps<typeof IngredientsListContent>> = {},
+) {
+  const onOpenLightbox = vi.fn(() => false);
+
+  const renderElement = () => (
+    <IngredientsListContent
+      type="avatars"
+      scope={PageScope.ORGANIZATION}
+      singularType={IngredientCategory.AVATAR}
+      formatFilter={undefined}
+      isLoading={false}
+      filteredIngredients={[baseIngredient]}
+      hasFilteredEmptyState={false}
+      selectedIngredientIds={[]}
+      isActionsEnabled={true}
+      isDragEnabled={false}
+      isPortraiting={false}
+      isGeneratingCaptions={false}
+      isMirroring={false}
+      isReversing={false}
+      onSelectionChange={vi.fn()}
+      onDeleteIngredient={vi.fn()}
+      onArchiveIngredient={vi.fn()}
+      onConvertToPortrait={vi.fn()}
+      onGenerateCaptions={vi.fn()}
+      onReverse={vi.fn()}
+      onMirror={vi.fn()}
+      onUpdateParent={vi.fn()}
+      onRefresh={vi.fn()}
+      onPublishIngredient={vi.fn()}
+      onOpenLightbox={onOpenLightbox}
+      onClearFilters={vi.fn()}
+      onSetIngredients={vi.fn()}
+      onScopeChange={vi.fn()}
+      onConvertToVideo={vi.fn()}
+      onCopyPrompt={vi.fn()}
+      onReprompt={vi.fn()}
+      {...overrides}
+    />
+  );
+  const { rerender, unmount } = render(renderElement());
+  // A fresh element each time: React bails out of re-rendering an identical one.
+  const rerenderContent = (
+    nextOverrides: Partial<ComponentProps<typeof IngredientsListContent>> = {},
+  ) => {
+    Object.assign(overrides, nextOverrides);
+    rerender(renderElement());
+  };
+
+  return { onOpenLightbox, rerenderContent, unmount };
+}
+
+const videoIngredient = {
+  category: IngredientCategory.VIDEO,
+  createdAt: new Date().toISOString(),
+  id: 'video-1',
+  ingredientFormat: 'landscape',
+  ingredientUrl: 'https://cdn.genfeed.ai/mock/clip.mp4',
+  metadataLabel: 'A red apple on a table',
+  status: 'GENERATED',
+  thumbnailUrl: 'https://cdn.genfeed.ai/mock/clip-poster.jpg',
+  updatedAt: new Date().toISOString(),
+} as unknown as IIngredient;
+
+const musicIngredient = {
+  category: IngredientCategory.MUSIC,
+  createdAt: new Date().toISOString(),
+  id: 'music-1',
+  ingredientUrl: 'https://cdn.genfeed.ai/mock/theme.mp3',
+  metadataLabel: 'Opening Theme',
+  status: 'GENERATED',
+  updatedAt: new Date().toISOString(),
+} as unknown as IIngredient;
+
+const voiceIngredient = {
+  category: IngredientCategory.VOICE,
+  createdAt: new Date().toISOString(),
+  id: 'voice-1',
+  ingredientUrl: 'https://cdn.genfeed.ai/mock/narration.mp3',
+  metadataLabel: 'Narration Take',
+  status: 'GENERATED',
+  updatedAt: new Date().toISOString(),
+} as unknown as IIngredient;
+
+// A local, non-UTC-parsed Date so `format(createdAt, ...)` below and the
+// component's own `format(new Date(ingredient.createdAt), ...)` always agree,
+// regardless of the machine's timezone — both derive from the same instant.
+const ledgerCreatedAt = new Date(2026, 0, 15, 9, 30);
+
+const ledgerIngredient = {
+  ...baseIngredient,
+  createdAt: ledgerCreatedAt.toISOString(),
+  id: 'ledger-1',
+  metadataHeight: 1080,
+  metadataWidth: 1920,
+  modelUsed: 'Nano Banana Pro',
+  provider: 'genfeedai',
+} as unknown as IIngredient;
+
+const failedIngredient = {
+  ...baseIngredient,
+  generationError: 'Provider rejected the prompt for a policy violation.',
+  id: 'failed-1',
+  status: IngredientStatus.FAILED,
+} as unknown as IIngredient;
+
+const staleErrorIngredient = {
+  ...baseIngredient,
+  generationError: 'Stale error from a prior failed attempt.',
+  id: 'stale-error-1',
+  status: IngredientStatus.GENERATED,
+} as unknown as IIngredient;
+
+describe('IngredientsListContent', () => {
+  it('removes a rejected asset from the contact sheet while preserving other cards', () => {
+    const onSetIngredients = vi.fn();
+    const asset = { ...baseIngredient, category: IngredientCategory.IMAGE };
+    const otherAsset = { ...asset, id: 'other-asset' };
+    renderContent({
+      filteredIngredients: [asset, otherAsset],
+      onSetIngredients,
+      type: 'ingredients',
+      singularType: IngredientCategory.INGREDIENT,
+      viewMode: 'grid',
+    });
+    fireEvent.click(screen.getByText('Reject from grid'));
+    const update = onSetIngredients.mock.lastCall?.[0];
+    expect(update([asset, otherAsset])).toEqual([otherAsset]);
+  });
+
+  it('removes a rejected asset after changing status from the list menu', () => {
+    const onSetIngredients = vi.fn();
+    const otherAsset = { ...baseIngredient, id: 'other-asset' };
+    const { rerenderContent } = renderContent({
+      filteredIngredients: [baseIngredient, otherAsset],
+      onSetIngredients,
+      viewMode: 'list',
+    });
+
+    fireEvent.click(screen.getAllByText('Reject from status menu')[0]);
+
+    const update = onSetIngredients.mock.lastCall?.[0];
+    const remaining = update([baseIngredient, otherAsset]);
+    expect(remaining).toEqual([otherAsset]);
+    rerenderContent({ filteredIngredients: remaining });
+    expect(screen.getAllByText('Reject from status menu')).toHaveLength(1);
+  });
+
+  it('never feeds a protected video capability or stale original poster into an image thumbnail', () => {
+    renderContent({
+      viewMode: 'list',
+      type: 'videos',
+      singularType: IngredientCategory.VIDEO,
+      filteredIngredients: [
+        {
+          ...videoIngredient,
+          mediaDelivery: {
+            id: videoIngredient.id,
+            purpose: 'preview',
+            state: 'READY',
+            url: 'https://media.test/protected.mp4?grant=fresh',
+            expiresAt: null,
+          },
+        },
+      ],
+    });
+    expect(
+      screen.getByTestId('ingredient-preview-fallback'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByAltText(videoIngredient.metadataLabel as string),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders generic Library media as a contact sheet in grid mode', () => {
+    const { onOpenLightbox } = renderContent({
+      filteredIngredients: [videoIngredient],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+      viewMode: 'grid',
+    });
+
+    expect(screen.getByTestId('media-grid-item')).toHaveTextContent(
+      'A red apple on a table',
+    );
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('media-grid-item'));
+
+    expect(setSelectedAsset).toHaveBeenCalledWith(videoIngredient);
+    expect(onOpenLightbox).not.toHaveBeenCalled();
+  });
+
+  it('honors the Library list control for visual assets', () => {
+    renderContent({
+      filteredIngredients: [videoIngredient],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+      viewMode: 'list',
+    });
+
+    expect(
+      screen.getByRole('img', { name: 'A red apple on a table' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('media-grid-item')).not.toBeInTheDocument();
+  });
+
+  it('arranges the same filtered set on the canvas view', () => {
+    renderContent({
+      filteredIngredients: [videoIngredient, musicIngredient],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+      viewMode: 'canvas',
+    });
+
+    expect(screen.getByTestId('library-canvas')).toHaveTextContent('2');
+    expect(screen.queryByTestId('media-grid-item')).not.toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+
+  it('renders avatar rows in the table view', () => {
+    renderContent();
+
+    expect(screen.getByText('Avatar Source')).toBeInTheDocument();
+  });
+
+  it('renders a video poster instead of the mp4 and a muted Video pill', () => {
+    renderContent({
+      filteredIngredients: [videoIngredient],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+    });
+
+    expect(
+      screen.getByRole('img', { name: 'A red apple on a table' }),
+    ).toHaveAttribute('src', 'https://cdn.genfeed.ai/mock/clip-poster.jpg');
+    expect(screen.queryByAltText('Ingredient URL')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Video').closest('[class*="bg-primary/10"]'),
+    ).not.toBeNull();
+    expect(screen.queryByText('VIDEO')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Landscape').closest('[class*="bg-tertiary"]'),
+    ).not.toBeNull();
+  });
+
+  it('shows the origin of every list row in its own column', () => {
+    renderContent({
+      filteredIngredients: [
+        { ...videoIngredient, origin: 'IMPORTED' } as unknown as IIngredient,
+      ],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+    });
+
+    expect(
+      screen.getByRole('columnheader', { name: 'Origin' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Imported')).toBeInTheDocument();
+  });
+
+  it('shows the tags of every list row in their own column', () => {
+    renderContent({
+      filteredIngredients: [
+        {
+          ...videoIngredient,
+          tags: [
+            { backgroundColor: '#000000', id: 'tag-1', label: 'S1E12' },
+            { backgroundColor: '#112233', id: 'tag-2', label: 'Launch' },
+          ],
+        } as unknown as IIngredient,
+      ],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+    });
+
+    expect(
+      screen.getByRole('columnheader', { name: 'Tags' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('S1E12')).toBeInTheDocument();
+    expect(screen.getByText('+1')).toHaveAttribute('title', 'Launch');
+  });
+
+  it('shows a dash instead of tags for an untagged row', () => {
+    renderContent({
+      filteredIngredients: [
+        { ...videoIngredient, tags: [] } as unknown as IIngredient,
+      ],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+    });
+
+    expect(
+      screen.queryByRole('list', { name: 'Tags' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('falls back to a video placeholder when there is no poster', () => {
+    renderContent({
+      filteredIngredients: [
+        {
+          ...videoIngredient,
+          thumbnailUrl: undefined,
+        },
+      ],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+    });
+
+    expect(
+      screen.getByTestId('ingredient-preview-fallback'),
+    ).toBeInTheDocument();
+    expect(document.querySelector('img')).toBeNull();
+  });
+
+  it('inspects avatar rows in organization scope like a brand', () => {
+    const { onOpenLightbox } = renderContent();
+    const row = screen.getByText('Avatar Source').closest('tr');
+
+    expect(row).not.toBeNull();
+
+    fireEvent.click(within(row as HTMLElement).getByTestId('action-button'));
+
+    expect(setSelectedAsset).toHaveBeenCalledWith(baseIngredient);
+    expect(onOpenLightbox).not.toHaveBeenCalled();
+  });
+
+  it('names the empty audio library instead of rendering a blank pane', () => {
+    renderContent({
+      filteredIngredients: [],
+      singularType: IngredientCategory.MUSIC,
+      type: 'ingredients',
+    });
+
+    expect(screen.getByText('No music yet')).toBeInTheDocument();
+  });
+
+  it('points an empty media library at the Playground when the organization has it', () => {
+    renderContent({
+      filteredIngredients: [],
+      singularType: IngredientCategory.IMAGE,
+      type: 'images',
+    });
+
+    expect(
+      screen.getByRole('link', { name: 'Open Playground' }),
+    ).toBeInTheDocument();
+  });
+
+  it('does not send an organization without the Playground there', () => {
+    library.settings = {
+      hasOrganizationBilling: true,
+      moduleOverrides: { playground: false },
+    };
+
+    renderContent({
+      filteredIngredients: [],
+      singularType: IngredientCategory.IMAGE,
+      type: 'images',
+    });
+
+    expect(screen.getByTestId('media-grid-empty')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Open Playground' })).toBeNull();
+  });
+
+  it('still lists audio ingredients when the library has some', () => {
+    renderContent({
+      filteredIngredients: [musicIngredient],
+      singularType: IngredientCategory.MUSIC,
+      type: 'ingredients',
+    });
+
+    expect(screen.getByText('Opening Theme')).toBeInTheDocument();
+    expect(screen.queryByText('No music yet')).toBeNull();
+  });
+
+  it('plays a music row from the Library list, regardless of page type', () => {
+    // The unified Library list is `singularType: INGREDIENT` on every route —
+    // audio rendering has to key off the row's own category, not the page.
+    renderContent({
+      filteredIngredients: [videoIngredient, musicIngredient],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+      viewMode: 'list',
+    });
+
+    expect(
+      screen.getByRole('button', { name: 'Play preview for Opening Theme' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {
+        name: 'Play preview for A red apple on a table',
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('plays a music row inside the grid view’s mixed "other assets" table', () => {
+    renderContent({
+      filteredIngredients: [videoIngredient, musicIngredient],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+      viewMode: 'grid',
+    });
+
+    expect(screen.getByTestId('media-grid-item')).toHaveTextContent(
+      'A red apple on a table',
+    );
+    expect(
+      screen.getByRole('button', { name: 'Play preview for Opening Theme' }),
+    ).toBeInTheDocument();
+  });
+
+  it('disables the music row control while the asset is still processing', () => {
+    // A real PROCESSING row still carries `ingredientUrl` — the model falls
+    // back to a placeholder image rather than an empty string — so readiness
+    // has to come from status, not from whether a URL string is present.
+    renderContent({
+      filteredIngredients: [
+        { ...musicIngredient, status: IngredientStatus.PROCESSING },
+      ],
+      singularType: IngredientCategory.MUSIC,
+      type: 'ingredients',
+      viewMode: 'list',
+    });
+
+    expect(
+      screen.getByRole('button', { name: 'Play preview for Opening Theme' }),
+    ).toBeDisabled();
+  });
+
+  it('disables the music row control for a FAILED asset', () => {
+    renderContent({
+      filteredIngredients: [
+        { ...musicIngredient, status: IngredientStatus.FAILED },
+      ],
+      singularType: IngredientCategory.MUSIC,
+      type: 'ingredients',
+      viewMode: 'list',
+    });
+
+    expect(
+      screen.getByRole('button', { name: 'Play preview for Opening Theme' }),
+    ).toBeDisabled();
+  });
+
+  it('plays a voice row, not just music', () => {
+    renderContent({
+      filteredIngredients: [voiceIngredient],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+      viewMode: 'list',
+    });
+
+    expect(
+      screen.getByRole('button', { name: 'Play preview for Narration Take' }),
+    ).toBeEnabled();
+  });
+});
+
+describe('IngredientsListContent audio playback', () => {
+  class PreviewAudio extends EventTarget {
+    src = '';
+    preload = '';
+    currentTime = 0;
+    duration = 30;
+    volume = 1;
+    paused = true;
+    ended = false;
+    play = vi.fn(async () => {
+      this.paused = false;
+      this.dispatchEvent(new Event('playing'));
+    });
+    pause = vi.fn(() => {
+      this.paused = true;
+      this.dispatchEvent(new Event('pause'));
+    });
+  }
+
+  let audio = new PreviewAudio();
+
+  beforeEach(() => {
+    vi.stubGlobal(
+      'Audio',
+      class extends PreviewAudio {
+        constructor() {
+          super();
+          audio = this;
+        }
+      },
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('plays a single track at a time across rows', async () => {
+    const secondMusic = {
+      ...musicIngredient,
+      id: 'music-2',
+      ingredientUrl: 'https://cdn.genfeed.ai/mock/theme-2.mp3',
+      metadataLabel: 'Closing Theme',
+    } as unknown as IIngredient;
+
+    renderContent({
+      filteredIngredients: [musicIngredient, secondMusic],
+      singularType: IngredientCategory.MUSIC,
+      type: 'ingredients',
+      viewMode: 'list',
+    });
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Play preview for Opening Theme' }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Pause preview for Opening Theme' }),
+      ).toBeInTheDocument(),
+    );
+    expect(
+      screen.getByRole('button', { name: 'Play preview for Closing Theme' }),
+    ).toBeInTheDocument();
+
+    // Starting the second track hands the one shared <audio> element to it,
+    // so the first row falls back to "Play" without anyone pausing it by hand.
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Play preview for Closing Theme' }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Pause preview for Closing Theme' }),
+      ).toBeInTheDocument(),
+    );
+    expect(
+      screen.getByRole('button', { name: 'Play preview for Opening Theme' }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows a playback error on one row without disturbing the rest of the list', async () => {
+    renderContent({
+      filteredIngredients: [videoIngredient, musicIngredient],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+      viewMode: 'list',
+    });
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Play preview for Opening Theme' }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Pause preview for Opening Theme' }),
+      ).toBeInTheDocument(),
+    );
+
+    act(() => audio.dispatchEvent(new Event('error')));
+
+    expect(screen.getByText('Preview failed')).toBeInTheDocument();
+    expect(screen.getByText('A red apple on a table')).toBeInTheDocument();
+  });
+});
+
+describe('IngredientsListContent inspector handoff', () => {
+  afterEach(() => {
+    setSelectedAsset.mockClear();
+    assetSelection.lightboxRequestCount = 0;
+    assetSelection.requestedLightboxIngredient = null;
+    assetSelection.published = null;
+  });
+
+  it.each([
+    baseIngredient,
+    videoIngredient,
+    musicIngredient,
+    voiceIngredient,
+    { ...baseIngredient, category: IngredientCategory.IMAGE },
+    { ...baseIngredient, category: IngredientCategory.GIF },
+  ])(
+    'inspects brand list row, thumbnail, title and View for $category',
+    (ingredient) => {
+      const onSelectionChange = vi.fn();
+      const { onOpenLightbox } = renderContent({
+        filteredIngredients: [ingredient],
+        onSelectionChange,
+        scope: PageScope.BRAND,
+        singularType: IngredientCategory.INGREDIENT,
+        type: 'ingredients',
+        viewMode: 'list',
+      });
+      const title = screen.getByText(ingredient.metadataLabel as string);
+      const row = title.closest('tr') as HTMLElement;
+      for (const target of [
+        row,
+        within(row).getByRole('img'),
+        title,
+        within(row).getByTestId('action-button'),
+      ]) {
+        setSelectedAsset.mockClear();
+        fireEvent.click(target);
+        expect(setSelectedAsset).toHaveBeenCalledExactlyOnceWith(ingredient);
+        expect(onSelectionChange).not.toHaveBeenCalled();
+      }
+      for (const key of ['Enter', ' ']) {
+        setSelectedAsset.mockClear();
+        fireEvent.keyDown(row, { key });
+        expect(setSelectedAsset).toHaveBeenCalledExactlyOnceWith(ingredient);
+        expect(onSelectionChange).not.toHaveBeenCalled();
+      }
+      expect(row).toHaveAttribute('tabindex', '0');
+      expect(onOpenLightbox).not.toHaveBeenCalled();
+    },
+  );
+
+  it('inspects a nonvisual brand asset in the grid fallback table', () => {
+    const onSelectionChange = vi.fn();
+    renderContent({
+      filteredIngredients: [musicIngredient],
+      onSelectionChange,
+      scope: PageScope.BRAND,
+      singularType: IngredientCategory.INGREDIENT,
+      viewMode: 'grid',
+    });
+    fireEvent.click(screen.getByText('Opening Theme'));
+    expect(setSelectedAsset).toHaveBeenCalledWith(musicIngredient);
+    expect(onSelectionChange).not.toHaveBeenCalled();
+  });
+
+  it('keeps retry and audio controls independent of brand row inspection', () => {
+    const onSelectionChange = vi.fn();
+    const onReprompt = vi.fn();
+    renderContent({
+      filteredIngredients: [failedIngredient, musicIngredient],
+      onReprompt,
+      onSelectionChange,
+      scope: PageScope.BRAND,
+      singularType: IngredientCategory.INGREDIENT,
+      viewMode: 'list',
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Retry generation' }));
+    fireEvent.keyDown(
+      screen.getByRole('button', { name: 'Play preview for Opening Theme' }),
+      { key: ' ' },
+    );
+    expect(onReprompt).toHaveBeenCalledExactlyOnceWith(failedIngredient);
+    expect(onSelectionChange).not.toHaveBeenCalled();
+  });
+
+  it('keeps checkbox multiselection separate from row inspection', () => {
+    const onSelectionChange = vi.fn();
+    renderContent({
+      filteredIngredients: [baseIngredient, videoIngredient],
+      selectedIngredientIds: [videoIngredient.id],
+      onSelectionChange,
+      scope: PageScope.BRAND,
+      viewMode: 'list',
+    });
+    const row = screen.getByText('Avatar Source').closest('tr') as HTMLElement;
+    const checkbox = within(row).getByRole('checkbox');
+    fireEvent.keyDown(checkbox, { key: 'Enter' });
+    expect(onSelectionChange).not.toHaveBeenCalled();
+    fireEvent.click(checkbox);
+    expect(onSelectionChange).toHaveBeenCalledExactlyOnceWith([
+      videoIngredient.id,
+      baseIngredient.id,
+    ]);
+  });
+
+  it('inspects a superadmin row in the sidebar like the workspace does', () => {
+    const onSelectionChange = vi.fn();
+    const { onOpenLightbox } = renderContent({
+      onSelectionChange,
+      scope: PageScope.SUPERADMIN,
+    });
+    const row = screen.getByText('Avatar Source').closest('tr') as HTMLElement;
+    fireEvent.click(row);
+    expect(setSelectedAsset).toHaveBeenCalledExactlyOnceWith(baseIngredient);
+    expect(revealSidebar).toHaveBeenCalled();
+    expect(onSelectionChange).not.toHaveBeenCalled();
+    expect(onOpenLightbox).not.toHaveBeenCalled();
+    expect(row).toHaveAttribute('tabindex', '0');
+  });
+
+  it('links a superadmin asset name to its admin page without opening the sidebar', () => {
+    renderContent({
+      filteredIngredients: [
+        { ...baseIngredient, category: IngredientCategory.IMAGE },
+      ],
+      scope: PageScope.SUPERADMIN,
+      singularType: IngredientCategory.IMAGE,
+      viewMode: 'list',
+    });
+    setSelectedAsset.mockClear();
+
+    const name = screen.getByRole('link', { name: 'Avatar Source' });
+    expect(name).toHaveAttribute(
+      'href',
+      '/admin/content/ingredients/images/avatar-source-1',
+    );
+    fireEvent.click(name);
+    expect(setSelectedAsset).not.toHaveBeenCalled();
+  });
+
+  it('leaves the asset name as text in the workspace', () => {
+    renderContent({ scope: PageScope.BRAND, viewMode: 'list' });
+
+    expect(
+      screen.queryByRole('link', { name: 'Avatar Source' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('selects a clicked brand asset instead of opening the lightbox', () => {
+    const onSelectionChange = vi.fn();
+    const { onOpenLightbox } = renderContent({
+      filteredIngredients: [videoIngredient],
+      onSelectionChange,
+      scope: PageScope.BRAND,
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+      viewMode: 'grid',
+    });
+
+    fireEvent.click(screen.getByTestId('media-grid-item'));
+
+    expect(setSelectedAsset).toHaveBeenCalledWith(videoIngredient);
+    expect(onSelectionChange).not.toHaveBeenCalled();
+    expect(onOpenLightbox).not.toHaveBeenCalled();
+  });
+
+  it('keeps inspecting a brand asset when its tile is clicked again', () => {
+    const onSelectionChange = vi.fn();
+    const { onOpenLightbox } = renderContent({
+      filteredIngredients: [videoIngredient, baseIngredient],
+      onSelectionChange,
+      scope: PageScope.BRAND,
+      selectedIngredientIds: [videoIngredient.id, baseIngredient.id],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+      viewMode: 'grid',
+    });
+
+    fireEvent.click(screen.getByTestId('media-grid-item'));
+
+    expect(setSelectedAsset).toHaveBeenCalledWith(videoIngredient);
+    expect(onSelectionChange).not.toHaveBeenCalled();
+    expect(onOpenLightbox).not.toHaveBeenCalled();
+  });
+
+  it('opens the lightbox for the inspected asset when the sidebar asks', () => {
+    const { onOpenLightbox, rerenderContent } = renderContent({
+      filteredIngredients: [videoIngredient],
+      scope: PageScope.BRAND,
+      selectedIngredientIds: [videoIngredient.id],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+      viewMode: 'grid',
+    });
+    expect(onOpenLightbox).not.toHaveBeenCalled();
+
+    assetSelection.lightboxRequestCount = 1;
+    assetSelection.requestedLightboxIngredient = videoIngredient;
+    rerenderContent();
+
+    expect(onOpenLightbox).toHaveBeenCalledWith(videoIngredient);
+  });
+
+  it('opens the clicked ingredient through a multi-selection transition and never replays it for a later selection', () => {
+    const { onOpenLightbox, rerenderContent } = renderContent({
+      filteredIngredients: [videoIngredient, baseIngredient],
+      scope: PageScope.BRAND,
+      selectedIngredientIds: [videoIngredient.id],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+      viewMode: 'grid',
+    });
+    assetSelection.lightboxRequestCount = 1;
+    assetSelection.requestedLightboxIngredient = videoIngredient;
+    rerenderContent({
+      selectedIngredientIds: [videoIngredient.id, baseIngredient.id],
+    });
+    expect(onOpenLightbox).toHaveBeenCalledWith(videoIngredient);
+    rerenderContent({ selectedIngredientIds: [baseIngredient.id] });
+    expect(onOpenLightbox).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves checkbox selection when the sidebar closes', () => {
+    const onSelectionChange = vi.fn();
+    const { rerenderContent } = renderContent({
+      onSelectionChange,
+      selectedIngredientIds: [baseIngredient.id],
+    });
+    // Before the publish lands, the empty shared selection is not a close.
+    expect(onSelectionChange).not.toHaveBeenCalled();
+
+    assetSelection.published = baseIngredient;
+    rerenderContent();
+    expect(onSelectionChange).not.toHaveBeenCalled();
+
+    assetSelection.published = null;
+    rerenderContent();
+    expect(onSelectionChange).not.toHaveBeenCalled();
+  });
+
+  it('keeps a reselected asset selected while its new publish lands', () => {
+    const onSelectionChange = vi.fn();
+    const { rerenderContent } = renderContent({
+      onSelectionChange,
+      selectedIngredientIds: [baseIngredient.id],
+    });
+    assetSelection.published = baseIngredient;
+    rerenderContent();
+
+    // Deselect in the grid, then select the same asset again.
+    assetSelection.published = null;
+    rerenderContent({ selectedIngredientIds: [] });
+    rerenderContent({ selectedIngredientIds: [baseIngredient.id] });
+
+    expect(onSelectionChange).not.toHaveBeenCalled();
+  });
+
+  it('keeps the remaining asset when a second one is added and removed', () => {
+    const onSelectionChange = vi.fn();
+    const { rerenderContent } = renderContent({
+      onSelectionChange,
+      selectedIngredientIds: [baseIngredient.id],
+    });
+    assetSelection.published = baseIngredient;
+    rerenderContent();
+
+    assetSelection.published = null;
+    rerenderContent({ selectedIngredientIds: [baseIngredient.id, 'other-id'] });
+    rerenderContent({ selectedIngredientIds: [baseIngredient.id] });
+
+    expect(onSelectionChange).not.toHaveBeenCalled();
+  });
+
+  it('does not publish checkbox selection to the workspace rail', () => {
+    renderContent({ selectedIngredientIds: [baseIngredient.id] });
+
+    expect(setSelectedAsset).not.toHaveBeenCalled();
+  });
+
+  it('publishes nothing for a multi-selection', () => {
+    renderContent({ selectedIngredientIds: [baseIngredient.id, 'other-id'] });
+
+    expect(setSelectedAsset).not.toHaveBeenCalled();
+  });
+
+  it('clears the published asset when the library unmounts', () => {
+    const { unmount } = renderContent({
+      selectedIngredientIds: [baseIngredient.id],
+    });
+
+    setSelectedAsset.mockClear();
+    unmount();
+
+    expect(setSelectedAsset).toHaveBeenCalledWith(null);
+  });
+
+  it('renders no inspector of its own', () => {
+    renderContent({ selectedIngredientIds: [baseIngredient.id] });
+
+    expect(screen.queryByLabelText('Asset details')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+});
+
+describe('IngredientsListContent generation ledger columns', () => {
+  it('renders the ledger column headers in order', () => {
+    renderContent({ viewMode: 'list' });
+
+    const headers = screen
+      .getAllByRole('columnheader')
+      .map((header) => header.textContent);
+
+    // The first header is the selectable checkbox column, owned by AppTable
+    // itself — the ledger contract is the remaining columns, ending in the
+    // unlabeled actions header.
+    expect(headers.slice(1)).toEqual([
+      '',
+      'Asset',
+      'Type',
+      'Origin',
+      'Tags',
+      'Model',
+      'Size',
+      'Created',
+      'Status',
+      '',
+    ]);
+  });
+
+  it("shows a normal asset's model, size, and created date", () => {
+    renderContent({
+      filteredIngredients: [ledgerIngredient],
+      viewMode: 'list',
+    });
+
+    expect(screen.getByText('Nano Banana Pro')).toBeInTheDocument();
+    expect(screen.getByText('genfeedai')).toBeInTheDocument();
+    expect(screen.getByText('1920 × 1080')).toBeInTheDocument();
+    expect(
+      screen.getByText(format(ledgerCreatedAt, 'd MMM yy')),
+    ).toHaveAttribute('title', format(ledgerCreatedAt, 'd MMM yyyy'));
+    expect(
+      screen.getByText(format(ledgerCreatedAt, 'd MMM yy')),
+    ).toHaveAttribute('datetime', ledgerCreatedAt.toISOString());
+    expect(
+      screen.getByRole('region', { name: 'Scroll table horizontally' }),
+    ).toHaveAttribute('tabindex', '0');
+  });
+
+  it('surfaces the failure reason for a FAILED asset', () => {
+    renderContent({
+      filteredIngredients: [failedIngredient],
+      viewMode: 'list',
+    });
+
+    expect(
+      screen.getByTestId(`ingredient-failure-reason-${failedIngredient.id}`),
+    ).toHaveTextContent('Provider rejected the prompt for a policy violation.');
+  });
+
+  it('does not surface a stale generationError on a non-failed asset', () => {
+    renderContent({
+      filteredIngredients: [staleErrorIngredient],
+      viewMode: 'list',
+    });
+
+    expect(
+      screen.queryByTestId(
+        `ingredient-failure-reason-${staleErrorIngredient.id}`,
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Stale error from a prior failed attempt.'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders an em dash when model, size and tags are unavailable', () => {
+    renderContent({ viewMode: 'list' });
+
+    expect(screen.getAllByText('—')).toHaveLength(3);
+  });
+
+  it('offers a retry row action for a FAILED asset', () => {
+    const onReprompt = vi.fn();
+    renderContent({
+      filteredIngredients: [failedIngredient],
+      onReprompt,
+      viewMode: 'list',
+    });
+
+    const retryButton = screen.getByRole('button', {
+      name: 'Retry generation',
+    });
+    fireEvent.click(retryButton);
+
+    expect(onReprompt).toHaveBeenCalledWith(failedIngredient);
+  });
+
+  it('does not offer a retry action for a non-failed asset', () => {
+    renderContent({
+      filteredIngredients: [ledgerIngredient],
+      viewMode: 'list',
+    });
+
+    expect(
+      screen.queryByRole('button', { name: 'Retry generation' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not offer a retry action when onReprompt is not provided', () => {
+    renderContent({
+      filteredIngredients: [failedIngredient],
+      onReprompt: undefined,
+      viewMode: 'list',
+    });
+
+    expect(
+      screen.queryByRole('button', { name: 'Retry generation' }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe('Library See Details sidebar routing', () => {
+  it('selects the asset without opening the lightbox or toggling it off', () => {
+    const onSelectionChange = vi.fn();
+    const { onOpenLightbox } = renderContent({
+      scope: PageScope.BRAND,
+      singularType: IngredientCategory.IMAGE,
+      filteredIngredients: [
+        { ...baseIngredient, category: IngredientCategory.IMAGE },
+      ],
+      selectedIngredientIds: [baseIngredient.id],
+      onSelectionChange,
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'See Details' }));
+    expect(setSelectedAsset).toHaveBeenCalledWith(
+      expect.objectContaining({ id: baseIngredient.id }),
+    );
+    expect(onSelectionChange).not.toHaveBeenCalled();
+    expect(revealSidebar).toHaveBeenCalled();
+    expect(onOpenLightbox).not.toHaveBeenCalled();
+  });
+  it('inspects in the sidebar for the superadmin lists too', () => {
+    const onSelectionChange = vi.fn();
+    renderContent({
+      scope: PageScope.SUPERADMIN,
+      singularType: IngredientCategory.IMAGE,
+      filteredIngredients: [
+        { ...baseIngredient, category: IngredientCategory.IMAGE },
+      ],
+      onSelectionChange,
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'See Details' }));
+    expect(setSelectedAsset).toHaveBeenCalledWith(
+      expect.objectContaining({ id: baseIngredient.id }),
+    );
+    expect(onSelectionChange).not.toHaveBeenCalled();
+  });
+  describe('paused video frame thumbnails', () => {
+    function getVideoPreview() {
+      const video = screen
+        .getByTestId('ingredient-video-preview')
+        .querySelector('video');
+      if (!video) throw new Error('Video thumbnail was not mounted');
+      return video;
+    }
+
+    const withoutPoster = { ...videoIngredient, thumbnailUrl: undefined };
+
+    it('defers video loading until visible, decodes an opening frame and falls back on media errors', () => {
+      const { rerenderContent } = renderContent({
+        filteredIngredients: [withoutPoster],
+        viewMode: 'list',
+      });
+      expect(
+        screen.queryByTestId('ingredient-video-preview'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByTestId('ingredient-preview-fallback'),
+      ).toBeInTheDocument();
+      previewVisibility.visible = true;
+      rerenderContent();
+      const video = getVideoPreview();
+      expect(video).toHaveAttribute('src', videoIngredient.ingredientUrl);
+      expect(video).toHaveAttribute('preload', 'metadata');
+      expect(video.autoplay).toBe(false);
+      expect(video.controls).toBe(false);
+      expect(video.muted).toBe(true);
+      expect(video.paused).toBe(true);
+      Object.defineProperty(video, 'duration', { value: 0.04 });
+      fireEvent.loadedMetadata(video);
+      expect(video.currentTime).toBe(0.02);
+      fireEvent.seeked(video);
+      expect(
+        screen.queryByTestId('ingredient-preview-fallback'),
+      ).not.toBeInTheDocument();
+      fireEvent.error(video);
+      expect(
+        screen.queryByTestId('ingredient-video-preview'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByTestId('ingredient-preview-fallback'),
+      ).toBeInTheDocument();
+    });
+
+    it('uses only the current authorized video, clears it when access becomes pending, and resets frame state on renewal', () => {
+      previewVisibility.visible = true;
+      const readyGrant = {
+        id: videoIngredient.id,
+        purpose: 'preview' as const,
+        state: 'READY' as const,
+        url: 'https://media.test/current.mp4',
+        expiresAt: null,
+      };
+      const { rerenderContent } = renderContent({
+        filteredIngredients: [
+          { ...videoIngredient, mediaDelivery: readyGrant },
+        ],
+        viewMode: 'list',
+      });
+      const video = getVideoPreview();
+      expect(video).toHaveAttribute('src', readyGrant.url);
+      expect(document.querySelector('img')).toBeNull();
+      fireEvent.loadedData(video);
+      expect(
+        screen.queryByTestId('ingredient-preview-fallback'),
+      ).not.toBeInTheDocument();
+      rerenderContent({
+        filteredIngredients: [
+          {
+            ...videoIngredient,
+            mediaDelivery: { ...readyGrant, state: 'PENDING', url: null },
+          },
+        ],
+      });
+      expect(
+        screen.queryByTestId('ingredient-video-preview'),
+      ).not.toBeInTheDocument();
+      expect(document.querySelector('img')).toBeNull();
+      rerenderContent({
+        filteredIngredients: [
+          {
+            ...videoIngredient,
+            mediaDelivery: {
+              ...readyGrant,
+              url: 'https://media.test/renewed.mp4',
+            },
+          },
+        ],
+      });
+      expect(getVideoPreview()).toHaveAttribute(
+        'src',
+        'https://media.test/renewed.mp4',
+      );
+      expect(
+        screen.getByTestId('ingredient-preview-fallback'),
+      ).toBeInTheDocument();
+    });
+
+    it.each(['PENDING', 'FAILED', 'UNSUPPORTED'] as const)(
+      'never falls back to the original video or poster for a %s grant',
+      (state) => {
+        previewVisibility.visible = true;
+        renderContent({
+          filteredIngredients: [
+            {
+              ...videoIngredient,
+              mediaDelivery: {
+                id: videoIngredient.id,
+                purpose: 'preview',
+                state,
+                url: null,
+                expiresAt: null,
+              },
+            },
+          ],
+          viewMode: 'list',
+        });
+        expect(
+          screen.queryByTestId('ingredient-video-preview'),
+        ).not.toBeInTheDocument();
+        expect(document.querySelector('img')).toBeNull();
+        expect(
+          screen.getByTestId('ingredient-preview-fallback'),
+        ).toBeInTheDocument();
+      },
+    );
+
+    it('treats an extensionless authorized video endpoint as video rather than an image', () => {
+      previewVisibility.visible = true;
+      renderContent({
+        filteredIngredients: [
+          {
+            ...videoIngredient,
+            mediaDelivery: {
+              id: videoIngredient.id,
+              purpose: 'preview',
+              state: 'READY',
+              url: 'https://media.test/preview/asset',
+              expiresAt: null,
+            },
+          },
+        ],
+        viewMode: 'list',
+      });
+      expect(getVideoPreview()).toHaveAttribute(
+        'src',
+        'https://media.test/preview/asset',
+      );
+      expect(document.querySelector('img')).toBeNull();
+    });
+
+    it('ignores the model placeholder poster and loads its extensionless local video endpoint', () => {
+      previewVisibility.visible = true;
+      renderContent({
+        filteredIngredients: [
+          {
+            ...videoIngredient,
+            thumbnailUrl: `${EnvironmentService.assetsEndpoint}/placeholders/landscape.jpg`,
+            ingredientUrl: 'https://ingredients.test/videos/video-1',
+          },
+        ],
+        viewMode: 'list',
+      });
+      expect(getVideoPreview()).toHaveAttribute(
+        'src',
+        'https://ingredients.test/videos/video-1',
+      );
+      expect(document.querySelector('img')).toBeNull();
+    });
+
+    it('prefers a poster without mounting a video', () => {
+      previewVisibility.visible = true;
+      renderContent({
+        filteredIngredients: [videoIngredient],
+        viewMode: 'list',
+      });
+      expect(
+        screen.getByRole('img', { name: 'A red apple on a table' }),
+      ).toHaveAttribute('src', videoIngredient.thumbnailUrl);
+      expect(
+        screen.queryByTestId('ingredient-video-preview'),
+      ).not.toBeInTheDocument();
+    });
+
+    it.each([IngredientStatus.PROCESSING, IngredientStatus.FAILED])(
+      'leaves %s videos as placeholders',
+      (status) => {
+        previewVisibility.visible = true;
+        renderContent({
+          filteredIngredients: [{ ...withoutPoster, status }],
+          viewMode: 'list',
+        });
+        expect(
+          screen.queryByTestId('ingredient-video-preview'),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.getByTestId('ingredient-preview-fallback'),
+        ).toBeInTheDocument();
+      },
+    );
+  });
+});

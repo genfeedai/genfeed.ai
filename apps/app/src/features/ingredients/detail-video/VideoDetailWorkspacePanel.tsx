@@ -10,14 +10,14 @@ import type {
 import type { TabItem } from '@genfeedai/props/ui/navigation/tabs.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import EvaluationCard from '@ui/evaluation/card/EvaluationCard';
-import IngredientWorkspacePanel from '@ui/ingredients/detail/shared/IngredientWorkspacePanel';
-import IngredientTabsCaptions from '@ui/ingredients/tabs/captions/IngredientTabsCaptions';
-import IngredientTabsChildren from '@ui/ingredients/tabs/children/IngredientTabsChildren';
-import IngredientTabsInfo from '@ui/ingredients/tabs/info/IngredientTabsInfo';
-import IngredientTabsMetadata from '@ui/ingredients/tabs/metadata/IngredientTabsMetadata';
 import IngredientTabsPrompts from '@ui/ingredients/tabs/prompts/IngredientTabsPrompts';
-import IngredientTabsSharing from '@ui/ingredients/tabs/sharing/IngredientTabsSharing';
-import IngredientTabsTags from '@ui/ingredients/tabs/tags/IngredientTabsTags';
+import IngredientWorkspacePanel from '@/features/ingredients/components/detail/shared/IngredientWorkspacePanel';
+import IngredientTabsCaptions from '@/features/ingredients/components/tabs/captions/IngredientTabsCaptions';
+import IngredientTabsChildren from '@/features/ingredients/components/tabs/children/IngredientTabsChildren';
+import IngredientTabsInfo from '@/features/ingredients/components/tabs/info/IngredientTabsInfo';
+import IngredientTabsMetadata from '@/features/ingredients/components/tabs/metadata/IngredientTabsMetadata';
+import IngredientTabsSharing from '@/features/ingredients/components/tabs/sharing/IngredientTabsSharing';
+import IngredientTabsTags from '@/features/ingredients/components/tabs/tags/IngredientTabsTags';
 import IngredientTabsPosts from '@/features/ingredients/tabs-posts/IngredientTabsPosts';
 
 type VideoDetailTab =
