@@ -222,7 +222,7 @@ describe('TrackedLinksController', () => {
 
   describe('updateLink', () => {
     it('should update a tracked link', async () => {
-      const updates = { campaignName: 'Updated Campaign' };
+      const updates = { title: 'Updated Campaign' };
 
       const updated = { ...mockTrackedLink, ...updates };
       mockTrackedLinksService.update.mockResolvedValue(updated);
