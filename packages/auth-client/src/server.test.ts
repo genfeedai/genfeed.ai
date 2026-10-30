@@ -2,12 +2,20 @@ import {
   UNATTRIBUTED_FORWARDED_HEADER,
   UNATTRIBUTED_FORWARDED_VALUE,
 } from '@genfeedai/contracts/constants';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getBetterAuthServerToken } from './server';
+import {
+  getBetterAuthServerToken,
+  resetBetterAuthServerTokenCache,
+} from './server';
 
 describe('getBetterAuthServerToken', () => {
+  beforeEach(() => {
+    resetBetterAuthServerTokenCache();
+  });
+
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -105,5 +113,74 @@ describe('getBetterAuthServerToken', () => {
 
     await expect(getBetterAuthServerToken('')).resolves.toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+  it('serves repeat calls for the same session from one request', async () => {
+    const fetchMock = vi.fn(async () => Response.json({ token: 'jwt' }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(getBetterAuthServerToken('session=abc')).resolves.toBe('jwt');
+    await expect(getBetterAuthServerToken('session=abc')).resolves.toBe('jwt');
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('shares one request between concurrent calls', async () => {
+    const fetchMock = vi.fn(async () => Response.json({ token: 'jwt' }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      Promise.all([
+        getBetterAuthServerToken('session=abc'),
+        getBetterAuthServerToken('session=abc'),
+        getBetterAuthServerToken('session=abc'),
+      ]),
+    ).resolves.toEqual(['jwt', 'jwt', 'jwt']);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('never shares a token between different sessions', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ token: 'jwt-a' }))
+      .mockResolvedValueOnce(Response.json({ token: 'jwt-b' }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(getBetterAuthServerToken('session=a')).resolves.toBe('jwt-a');
+    await expect(getBetterAuthServerToken('session=b')).resolves.toBe('jwt-b');
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('asks again after 30 seconds', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ token: 'jwt-1' }))
+      .mockResolvedValueOnce(Response.json({ token: 'jwt-2' }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(getBetterAuthServerToken('session=abc')).resolves.toBe(
+      'jwt-1',
+    );
+    vi.advanceTimersByTime(30_001);
+    await expect(getBetterAuthServerToken('session=abc')).resolves.toBe(
+      'jwt-2',
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not cache a failed exchange', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 429 }))
+      .mockResolvedValueOnce(Response.json({ token: 'jwt' }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(getBetterAuthServerToken('session=abc')).resolves.toBeNull();
+    await expect(getBetterAuthServerToken('session=abc')).resolves.toBe('jwt');
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

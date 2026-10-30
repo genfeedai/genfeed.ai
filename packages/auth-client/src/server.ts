@@ -24,6 +24,82 @@ export interface BetterAuthServerTokenOptions {
 
 const TOKEN_ATTEMPTS = 2;
 
+// Every protected render, prefetch and server action asks for the same session's
+// token, and the `/token` route is rate limited per client. Share one answer
+// across them for as long as the browser-side cache does (client.ts).
+const TOKEN_CACHE_TTL_MS = 30_000;
+const TOKEN_EXPIRY_SKEW_MS = 5_000;
+const TOKEN_CACHE_MAX_ENTRIES = 500;
+
+interface ServerTokenCacheEntry {
+  expiresAt: number;
+  promise?: Promise<string | null>;
+  token?: string;
+}
+
+const serverTokenCache = new Map<string, ServerTokenCacheEntry>();
+
+/** Drops every cached token. Tests only. */
+export function resetBetterAuthServerTokenCache(): void {
+  serverTokenCache.clear();
+}
+
+/**
+ * Keys the cache by a digest of the cookie header so session cookies are never
+ * held as map keys.
+ */
+async function getTokenCacheKey(cookieHeader: string): Promise<string> {
+  const digest = await globalThis.crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(cookieHeader),
+  );
+  return Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, '0'),
+  ).join('');
+}
+
+function getTokenExpiry(token: string): number {
+  const fallbackExpiry = Date.now() + TOKEN_CACHE_TTL_MS;
+  const payload = token.split('.')[1];
+
+  if (!payload) {
+    return fallbackExpiry;
+  }
+
+  try {
+    const normalizedPayload = payload
+      .replace(/-/g, '+')
+      .replace(/_/g, '/')
+      .padEnd(Math.ceil(payload.length / 4) * 4, '=');
+    const parsed = JSON.parse(atob(normalizedPayload)) as { exp?: number };
+
+    if (typeof parsed.exp !== 'number') {
+      return fallbackExpiry;
+    }
+
+    return Math.min(fallbackExpiry, parsed.exp * 1000 - TOKEN_EXPIRY_SKEW_MS);
+  } catch {
+    return fallbackExpiry;
+  }
+}
+
+function pruneServerTokenCache(): void {
+  const now = Date.now();
+  for (const [key, entry] of serverTokenCache) {
+    if (!entry.promise && entry.expiresAt <= now) {
+      serverTokenCache.delete(key);
+    }
+  }
+
+  while (serverTokenCache.size >= TOKEN_CACHE_MAX_ENTRIES) {
+    const oldestKey = serverTokenCache.keys().next().value;
+    if (oldestKey === undefined) {
+      break;
+    }
+    serverTokenCache.delete(oldestKey);
+  }
+}
+
 /**
  * Network errors and 5xx answers are transient; a 4xx means the session itself
  * is missing or refused, and asking again returns the same answer.
@@ -75,7 +151,9 @@ async function requestToken(
  *
  * Retries once after a network error or 5xx. Returns `null` when there is no
  * session cookie or no attempt succeeded, so callers degrade gracefully instead
- * of throwing during render; `onFailure` reports each failed attempt.
+ * of throwing during render; `onFailure` reports each failed attempt. A token is
+ * reused for the same cookie header for up to 30 seconds (never past its own
+ * expiry), and concurrent callers share one request. Failures are not cached.
  */
 export async function getBetterAuthServerToken(
   cookieHeader: string,
@@ -85,6 +163,36 @@ export async function getBetterAuthServerToken(
     return null;
   }
 
+  const cacheKey = await getTokenCacheKey(cookieHeader);
+  const cached = serverTokenCache.get(cacheKey);
+  if (cached?.promise) {
+    return cached.promise;
+  }
+  if (cached?.token && cached.expiresAt > Date.now()) {
+    return cached.token;
+  }
+
+  pruneServerTokenCache();
+  const entry: ServerTokenCacheEntry = { expiresAt: 0 };
+  entry.promise = fetchServerToken(cookieHeader, options).then((token) => {
+    delete entry.promise;
+    if (token && serverTokenCache.get(cacheKey) === entry) {
+      entry.token = token;
+      entry.expiresAt = getTokenExpiry(token);
+    } else {
+      serverTokenCache.delete(cacheKey);
+    }
+    return token;
+  });
+  serverTokenCache.set(cacheKey, entry);
+
+  return entry.promise;
+}
+
+async function fetchServerToken(
+  cookieHeader: string,
+  options: BetterAuthServerTokenOptions,
+): Promise<string | null> {
   for (let attempt = 1; attempt <= TOKEN_ATTEMPTS; attempt += 1) {
     const result = await requestToken(cookieHeader, attempt);
     if (typeof result === 'string') {
