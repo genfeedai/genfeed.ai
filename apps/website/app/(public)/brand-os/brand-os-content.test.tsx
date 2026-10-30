@@ -73,8 +73,8 @@ describe('BrandOSContent', () => {
     expect(primaryCta).toHaveAttribute('href', '#brand-os-preview');
     expect(primaryCta).toHaveClass('bg-primary');
     expect(
-      screen.getByRole('link', { name: /inspect every state/i }),
-    ).toHaveClass('bg-tertiary');
+      screen.queryByRole('link', { name: /inspect every state/i }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /open the studio/i }),
     ).toHaveAttribute('href', 'https://app.genfeed.ai');
