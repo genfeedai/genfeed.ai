@@ -71,7 +71,7 @@ Paths are relative to repository root:
 - `apps/extensions/browser/app/src/platforms/{menu-actions,reply-media}.ts` and `.../platforms/ui/`
 - `apps/extensions/browser/app/src/services/knowledge-capture.service.ts`
 - `apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/knowledge/`
-- `packages/pages/studio/generate/components/StudioRemixRunPanel.tsx`
+- `apps/app/src/features/studio/generate/components/StudioRemixRunPanel.tsx`
 - `apps/server/api/src/collections/posts/services/post-variation.service.ts`
 
 ## Maintenance

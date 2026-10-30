@@ -373,7 +373,7 @@
     "packages/pages/posts/release/release-engagement-rules.tsx": 5,
     "packages/pages/scheduler/posting-set-picker.tsx": 5,
     "packages/pages/streaks/streaks-page.tsx": 8,
-    "packages/pages/studio/playground/components/StudioIdentityFields.tsx": 1,
+    "apps/app/src/features/studio/playground/components/StudioIdentityFields.tsx": 1,
     "packages/pages/trainings/list/components/TrainingsTableActions.tsx": 2,
     "packages/pages/trainings/list/components/TrainingsTableColumns.tsx": 8,
     "packages/pages/trainings/list/trainings-list.tsx": 5,

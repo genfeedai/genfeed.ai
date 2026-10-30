@@ -7,7 +7,7 @@
  *
  * Field vocabulary matches {@link GenerationSetupValues}. Aspect ratio /
  * duration defaults are local to this package (not imported from
- * `packages/pages/studio/playground/utils/studio-playground-settings.ts`, which
+ * `apps/app/src/features/studio/playground/utils/studio-playground-settings.ts`, which
  * would invert the package dependency direction) — see
  * `GENERATION_SETUP_DEFAULT_ASPECT_RATIO_BY_TYPE` below.
  */

@@ -1,6 +1,6 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import StoryboardWorkspace from '@pages/studio/storyboard/StoryboardWorkspace';
 import { Suspense } from 'react';
+import StoryboardWorkspace from '@/features/studio/storyboard/StoryboardWorkspace';
 
 export const generateMetadata = createPageMetadata('New storyboard');
 

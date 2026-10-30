@@ -10,12 +10,12 @@ import type {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import StudioPresetCard from '@pages/studio/shared/components/StudioPresetCard';
-import StudioPresetList from '@pages/studio/shared/components/StudioPresetList';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, useRef, useState } from 'react';
+import StudioPresetCard from '@/features/studio/shared/components/StudioPresetCard';
+import StudioPresetList from '@/features/studio/shared/components/StudioPresetList';
 import TurboIdeaStrip from './TurboIdeaStrip';
 import { createTurboProjectsApi } from './turbo-projects-api';
 

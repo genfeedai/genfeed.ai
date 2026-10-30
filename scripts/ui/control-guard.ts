@@ -118,7 +118,7 @@ export const ALLOWLIST = {
     'packages/pages/not-found/not-found-page.tsx',
     'packages/pages/settings/help/settings-help-page.tsx',
     'packages/pages/settings/voice/settings-voice-page.tsx',
-    'packages/pages/studio/page/StudioPageContent.tsx',
+    'apps/app/src/features/studio/page/StudioPageContent.tsx',
   ]),
 
   /**
