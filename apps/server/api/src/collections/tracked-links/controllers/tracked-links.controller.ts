@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CreateTrackedLinkDto } from '@api/collections/tracked-links/dto/create-tracked-link.dto';
 import { TrackClickDto } from '@api/collections/tracked-links/dto/track-click.dto';
 import { TrackedLinksQueryDto } from '@api/collections/tracked-links/dto/tracked-links-query.dto';
+import { UpdateTrackedLinkDto } from '@api/collections/tracked-links/dto/update-tracked-link.dto';
 import { TrackedLinksService } from '@api/collections/tracked-links/services/tracked-links.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -147,7 +148,7 @@ export class TrackedLinksController {
   async updateLink(
     @Req() req: ExpressRequest,
     @Param('id') linkId: string,
-    @Body() updates: Record<string, unknown>,
+    @Body() updates: UpdateTrackedLinkDto,
     @CurrentUser() user: User,
   ) {
     const organization = user.organizationId;
