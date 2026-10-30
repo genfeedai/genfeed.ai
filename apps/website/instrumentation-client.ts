@@ -1,7 +1,7 @@
-import { initWebsiteAnalytics } from './packages/analytics/posthog-client';
-import { initSignupAttribution } from './packages/analytics/signup-attribution';
-import { initDeferredSentry } from './packages/sentry/deferred-sentry';
-import { dropNonBrowserRuntimeEvent } from './packages/sentry/drop-non-browser-runtime-event';
+import { initWebsiteAnalytics } from './src/analytics/posthog-client';
+import { initSignupAttribution } from './src/analytics/signup-attribution';
+import { initDeferredSentry } from './src/sentry/deferred-sentry';
+import { dropNonBrowserRuntimeEvent } from './src/sentry/drop-non-browser-runtime-event';
 
 // Error reporting starts once the page is idle; see deferred-sentry.ts.
 initDeferredSentry({
@@ -50,12 +50,12 @@ initDeferredSentry({
 
 // PostHog is the single tracker on the marketing site — cookieless, anonymous
 // pageviews + CTA conversions. No-ops (and never loads posthog-js) when no
-// build-time key is present. See packages/analytics/posthog-client.ts.
+// build-time key is present. See src/analytics/posthog-client.ts.
 initWebsiteAnalytics();
 
 // In-memory first-touch source forwarded onto app sign-up links, so a signup
 // can be traced to where the visitor came from. Stores nothing on the device.
-// See packages/analytics/signup-attribution.ts.
+// See src/analytics/signup-attribution.ts.
 initSignupAttribution();
 
 // No `onRouterTransitionStart` export: it only records navigation spans, and

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { appProducts } from '../../../../apps/website/packages/data/app-products.data';
+import { appProducts } from '../../../../apps/website/src/data/app-products.data';
 
 async function readJsonLdTypes(
   page: import('@playwright/test').Page,

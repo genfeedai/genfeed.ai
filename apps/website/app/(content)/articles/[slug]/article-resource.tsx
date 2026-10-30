@@ -4,8 +4,8 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import type { ArticleResourceProps } from '@props/content/public-article.props';
 import { Button } from '@ui/primitives/button';
 import { useState } from 'react';
-import { WEBSITE_ANALYTICS_EVENTS } from '../../../../packages/analytics/analytics-events';
-import { captureWebsiteAnalyticsEvent } from '../../../../packages/analytics/posthog-client';
+import { WEBSITE_ANALYTICS_EVENTS } from '../../../../src/analytics/analytics-events';
+import { captureWebsiteAnalyticsEvent } from '../../../../src/analytics/posthog-client';
 import { copyText } from './copy-text';
 
 export default function ArticleResource({

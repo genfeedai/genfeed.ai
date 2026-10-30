@@ -38,7 +38,7 @@
     "deps:update": "bunx npm-check-updates -u --reject typescript,@types/node && bun install",
     "dev": "bun run ../../scripts/dev/run-portless.ts website -- bun run dev:process",
     "generate:llms": "bun run scripts/generate-llms-txt.ts",
-    "lint": "biome check app src packages scripts instrumentation.ts instrumentation-client.ts next.config.ts postcss.config.mjs tailwind.config.ts package.json tsconfig.json vercel.json sentry.edge.config.ts sentry.server.config.ts README.md",
+    "lint": "biome check app src scripts instrumentation.ts instrumentation-client.ts next.config.ts postcss.config.mjs tailwind.config.ts package.json tsconfig.json vercel.json sentry.edge.config.ts sentry.server.config.ts README.md",
     "prebuild": "bun run scripts/generate-llms-txt.ts",
     "start": "next start",
     "test": "vitest run --config ../vitest.config.mts",

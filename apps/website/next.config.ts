@@ -4,7 +4,7 @@ import { createAppNextConfig } from '@genfeedai/next-config';
 import {
   X_PLAYER_CARD_PATH,
   X_PLAYER_FRAME_ANCESTORS,
-} from './packages/data/x-player-card';
+} from './src/data/x-player-card';
 
 const websiteDir = path.dirname(fileURLToPath(import.meta.url));
 

@@ -187,7 +187,7 @@ const TURBO_PROJECT_ID = 'turbo-project-1';
 
 /**
  * One frame per app surface, named after its /products/<slug> page. The slugs
- * come from `apps/website/packages/data/app-products.data.ts`, so a surface
+ * come from `apps/website/src/data/app-products.data.ts`, so a surface
  * added there needs a target here.
  */
 const WEBSITE_PRODUCT_TARGETS: CaptureTarget[] = [
