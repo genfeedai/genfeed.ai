@@ -47,6 +47,7 @@ enum FontFamily {
   ANTON
   ARCHIVO_BLACK
   BANGERS
+  SPACE_GROTESK_BOLD
 }
 
 enum IngredientCategory {
