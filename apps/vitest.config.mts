@@ -18,7 +18,7 @@ const packageName =
   typeof packageJson?.name === 'string'
     ? packageJson.name
     : path.relative(repoRoot, appRoot);
-const localUiRoot = path.resolve(appRoot, './packages/ui');
+const localUiRoot = path.resolve(appRoot, './src/ui');
 const hasLocalUiRoot = fs.existsSync(localUiRoot);
 const isAppShell = appRoot === path.resolve(repoRoot, './apps/app');
 const pagesRoot = isAppShell
@@ -397,19 +397,19 @@ export default defineConfig({
       },
       {
         find: /^@web-components$/,
-        replacement: path.resolve(appRoot, './packages/components'),
+        replacement: path.resolve(appRoot, './src/components'),
       },
       {
         find: /^@data$/,
-        replacement: path.resolve(appRoot, './packages/data'),
+        replacement: path.resolve(appRoot, './src/data'),
       },
       {
         find: /^@data\/(.*)$/,
-        replacement: path.resolve(appRoot, './packages/data/$1'),
+        replacement: path.resolve(appRoot, './src/data/$1'),
       },
       {
         find: /^@web-components\/(.*)$/,
-        replacement: path.resolve(appRoot, './packages/components/$1'),
+        replacement: path.resolve(appRoot, './src/components/$1'),
       },
       {
         find: /^@styles$/,

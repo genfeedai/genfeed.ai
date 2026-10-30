@@ -1,11 +1,11 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
-import { captureWebsiteAnalyticsEvent } from '../../../../packages/analytics/posthog-client';
+import { captureWebsiteAnalyticsEvent } from '../../../../src/analytics/posthog-client';
 import ArticleResource from './article-resource';
 import { copyText } from './copy-text';
 
 vi.mock('./copy-text', () => ({ copyText: vi.fn() }));
-vi.mock('../../../../packages/analytics/posthog-client', () => ({
+vi.mock('../../../../src/analytics/posthog-client', () => ({
   captureWebsiteAnalyticsEvent: vi.fn(),
 }));
 const resource = {

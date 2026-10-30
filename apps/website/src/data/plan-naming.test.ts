@@ -28,13 +28,13 @@ const APP_ROOT = process.cwd();
  * rename or a price change in @genfeedai/pricing propagates on its own.
  */
 const COPY_SOURCES = [
-  'packages/data/faq.data.ts',
-  'packages/data/products.data.ts',
-  'packages/data/use-cases.data.ts',
-  'packages/ui/marketing/PricingStrip.tsx',
+  'src/data/faq.data.ts',
+  'src/data/products.data.ts',
+  'src/data/use-cases.data.ts',
+  'src/ui/marketing/PricingStrip.tsx',
   'app/(public)/pricing/page.tsx',
   'app/(public)/pricing/pricing-content.tsx',
-  'packages/data/llms-text.data.ts',
+  'src/data/llms-text.data.ts',
 ];
 
 /** Digits only, so the assertion survives any change to number formatting. */

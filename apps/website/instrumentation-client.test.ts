@@ -13,11 +13,11 @@ vi.mock('@sentry/nextjs', () => ({
   init: mocks.init,
 }));
 
-vi.mock('./packages/analytics/posthog-client', () => ({
+vi.mock('./src/analytics/posthog-client', () => ({
   initWebsiteAnalytics: mocks.initWebsiteAnalytics,
 }));
 
-vi.mock('./packages/analytics/signup-attribution', () => ({
+vi.mock('./src/analytics/signup-attribution', () => ({
   initSignupAttribution: mocks.initSignupAttribution,
 }));
 

@@ -13,10 +13,10 @@ import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
   WEBSITE_ANALYTICS_EVENTS,
   type WebsiteAnalyticsEventProperties,
-} from '../../../packages/analytics/analytics-events';
-import { captureWebsiteAnalyticsEvent } from '../../../packages/analytics/posthog-client';
-import { loadPublicService } from '../../../packages/api/load-public-service';
-import { buildAuthHandoffHref } from '../../../packages/auth/auth-handoff';
+} from '../../../src/analytics/analytics-events';
+import { captureWebsiteAnalyticsEvent } from '../../../src/analytics/posthog-client';
+import { loadPublicService } from '../../../src/api/load-public-service';
+import { buildAuthHandoffHref } from '../../../src/auth/auth-handoff';
 import {
   BrandOSPreviewState,
   type BrandOSPreviewStateName,

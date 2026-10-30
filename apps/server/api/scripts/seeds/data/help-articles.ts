@@ -18,7 +18,7 @@
  * - Every help article has permanent editorial artwork shared by its header
  *   and OG card; the website renders the short OG headline in code.
  *
- * Keep `helpArticleSlugs` in `apps/website/packages/data/help-articles.data.ts`
+ * Keep `helpArticleSlugs` in `apps/website/src/data/help-articles.data.ts`
  * aligned with the slugs below; `help-articles.spec.ts` enforces it.
  */
 

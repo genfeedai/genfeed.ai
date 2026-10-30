@@ -47,13 +47,13 @@ vi.mock('@services/core/environment.service', () => ({
   },
 }));
 
-vi.mock('../../../../packages/api/load-public-service', () => ({
+vi.mock('../../../../src/api/load-public-service', () => ({
   loadPublicService: async () => ({
     createPublicYoutubeLongForm: mocks.publicCreate,
   }),
 }));
 
-vi.mock('../../../../packages/analytics/posthog-client', () => ({
+vi.mock('../../../../src/analytics/posthog-client', () => ({
   captureWebsiteAnalyticsEvent: mocks.capture,
 }));
 
