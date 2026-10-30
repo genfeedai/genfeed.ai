@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { classifyAccountEvaluation } from '../../src/analytics';
 import {
   AccountEvaluationState,
   AnalyticsMetric,
   AnalyticsMetricAvailability,
-  classifyAccountEvaluation,
-} from '../../src';
+} from '../../src/enums';
 import type { IFleetEvaluationPolicy } from '../../src/interfaces';
 
 const policy: IFleetEvaluationPolicy = {

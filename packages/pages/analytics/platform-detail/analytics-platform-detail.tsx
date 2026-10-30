@@ -1,11 +1,7 @@
 'use client';
 
-import {
-  ButtonSize,
-  ButtonVariant,
-  PageScope,
-  sumEngagement,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, PageScope } from '@genfeedai/contracts';
+import { sumEngagement } from '@genfeedai/contracts/analytics';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import {
