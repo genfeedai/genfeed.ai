@@ -6,6 +6,7 @@ import {
   SCHEDULED_POST_ACTION_IDS,
   type ScheduledPostWorkflowInput,
 } from '@api/collections/posts/services/scheduled-post-workflow-definition';
+import { TrackedLinksService } from '@api/collections/tracked-links/services/tracked-links.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import {
@@ -29,7 +30,12 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
-import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  type OnModuleInit,
+  Optional,
+} from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import {
   createChannelTargetError,
@@ -53,6 +59,7 @@ import { loadScheduledActionPost } from '@workers/services/scheduled-post-action
 import type {
   DeliveryGateFailure,
   PostDeliveryIds,
+  PostLinkShortener,
   PreparedPostDelivery,
 } from '@workers/services/scheduled-post-delivery.types';
 import {
@@ -124,6 +131,9 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     private readonly prisma: PrismaService,
     mediaReadinessService: MediaReadinessService,
     private readonly workflowQueue: WorkflowExecutionQueueService,
+    @Optional()
+    @Inject(TrackedLinksService)
+    private readonly linkShortener?: PostLinkShortener,
   ) {
     this.gates = new ScheduledPostDeliveryGates(
       logger,
@@ -514,6 +524,37 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     };
   }
 
+  /**
+   * The publish context with the caption's URLs swapped for tracked short
+   * links. Shortening is best effort: any failure publishes the caption as
+   * written, since a missed click count must never block a post.
+   */
+  private async withShortLinks(
+    prepared: PreparedPostDelivery,
+    url: string,
+  ): Promise<PreparedPostDelivery['context']> {
+    const { context } = prepared;
+    if (!this.linkShortener) return context;
+
+    try {
+      const description = await this.linkShortener.shortenPostLinks({
+        description: context.post.description,
+        organizationId: context.organizationId,
+        platform: prepared.platform,
+        postId: context.postId,
+      });
+      return description === context.post.description
+        ? context
+        : { ...context, post: { ...context.post, description } };
+    } catch (error: unknown) {
+      this.logger.warn(`${url} short links skipped`, {
+        error: getErrorMessage(error),
+        postId: context.postId,
+      });
+      return context;
+    }
+  }
+
   private async callProvider(
     post: PostEntity,
     prepared: PreparedPostDelivery,
@@ -525,8 +566,9 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     try {
       // The provider call itself stays in this documented workflow action
       // adapter; the attempt only renews its lease around it.
+      const context = await this.withShortLinks(prepared, url);
       result = await this.attempts.publishUnderLease(post, attempt, url, () =>
-        prepared.publisher.publish(prepared.context),
+        prepared.publisher.publish(context),
       );
     } catch (error: unknown) {
       // A timeout or dropped connection may hide an accepted publish: keep

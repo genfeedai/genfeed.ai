@@ -98,7 +98,11 @@ export class TrackedLinksController {
         )
       : await this.trackedLinksService.listOrganizationLinks(
           organization,
-          { campaignName: query.campaignName, platform: query.platform },
+          {
+            campaignName: query.campaignName,
+            platform: query.platform,
+            postId: query.postId,
+          },
           paging,
         );
     return serializeCollection(req, TrackedLinkSerializer, result);

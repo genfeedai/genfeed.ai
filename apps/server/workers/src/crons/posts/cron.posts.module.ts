@@ -5,6 +5,7 @@ import { CredentialsModule } from '@api/collections/credentials/credentials.modu
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
+import { TrackedLinksModule } from '@api/collections/tracked-links/tracked-links.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import {
   AgentArtifactReferenceService,
@@ -54,6 +55,7 @@ import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-d
     QuotaModule,
     forwardRef(() => ReplyBotModule),
     PrismaModule,
+    TrackedLinksModule,
     forwardRef(() => WorkersQueuesModule),
     forwardRef(() => WorkflowsModule),
   ],

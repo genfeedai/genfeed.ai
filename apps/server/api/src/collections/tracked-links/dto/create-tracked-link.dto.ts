@@ -38,6 +38,10 @@ export class CreateTrackedLinkDto {
 
   @IsOptional()
   @IsString()
+  postId?: string;
+
+  @IsOptional()
+  @IsString()
   contentType?: string;
 
   @IsOptional()
