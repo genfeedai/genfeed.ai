@@ -248,7 +248,7 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
     );
 
     try {
-      const titleStyle = await this.brandCoverStyle?.resolveTitleStyle(
+      const coverStyle = await this.brandCoverStyle?.resolveCoverStyle(
         brandId,
         organizationId,
       );
@@ -261,7 +261,7 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
         THUMBNAIL_WIDTH,
         readChannelSettingString(settings, 'thumbnailText')?.trim(),
         true,
-        titleStyle,
+        coverStyle,
       );
       if (!frame?.thumbnailUrl) return undefined;
 

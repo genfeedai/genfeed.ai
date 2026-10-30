@@ -2,6 +2,7 @@ import { ConfigService } from '@files/config/config.service';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { S3Service } from '@files/services/s3/s3.service';
 import { VideoThumbnailService } from '@files/services/thumbnails/video-thumbnail.service';
+import { WatermarkExportService } from '@files/services/watermark-export/watermark-export.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -26,6 +27,7 @@ describe('VideoThumbnailService', () => {
   let service: VideoThumbnailService;
   let ffmpegService: Mocked<FFmpegService>;
   let s3Service: Mocked<S3Service>;
+  const applyToImage = vi.fn(async (image: Buffer) => image);
 
   beforeEach(async () => {
     config.isAuthorizedMediaDeliveryEnabled = false;
@@ -85,6 +87,10 @@ describe('VideoThumbnailService', () => {
           provide: LoggerService,
           useValue: mockLoggerService,
         },
+        {
+          provide: WatermarkExportService,
+          useValue: { applyToImage: applyToImage },
+        },
       ],
     }).compile();
 
@@ -115,6 +121,43 @@ describe('VideoThumbnailService', () => {
       'thumbnails/actual-stored-object.jpg',
       300,
     );
+  });
+
+  it('lays the brand signature over the cover, with or without a title', async () => {
+    const signature = {
+      insetXRatio: 0.096,
+      insetYRatio: 0.235,
+      logoStorageKey: 'logos/mark',
+      opacity: 1,
+      position: 'top-right' as const,
+      sizeRatio: 0.067,
+    };
+
+    await service.generateThumbnail(
+      'https://example.com/video.mp4',
+      'ingredient-id',
+      1,
+      1080,
+      undefined,
+      true,
+      { signature },
+    );
+
+    expect(applyToImage).toHaveBeenCalledWith(expect.any(Buffer), [signature]);
+  });
+
+  it('does not touch the watermark service for a cover without a signature', async () => {
+    await service.generateThumbnail(
+      'https://example.com/video.mp4',
+      'ingredient-id',
+      1,
+      1080,
+      'Ship the studio',
+      true,
+      { title: { fontFamily: 'INTER_BOLD' } },
+    );
+
+    expect(applyToImage).not.toHaveBeenCalled();
   });
 
   it('stores a titled cover under its own key so it never replaces the plain still', async () => {

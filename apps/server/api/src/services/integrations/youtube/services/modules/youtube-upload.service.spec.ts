@@ -43,7 +43,7 @@ describe('YoutubeUploadService', () => {
     processFile: ReturnType<typeof vi.fn>;
     waitForJob: ReturnType<typeof vi.fn>;
   };
-  let brandCoverStyle: { resolveTitleStyle: ReturnType<typeof vi.fn> };
+  let brandCoverStyle: { resolveCoverStyle: ReturnType<typeof vi.fn> };
   let tagResolutionService: { resolveTagLabels: ReturnType<typeof vi.fn> };
   let authService: { refreshToken: ReturnType<typeof vi.fn> };
   let filesClient: { generateThumbnail: ReturnType<typeof vi.fn> };
@@ -101,7 +101,7 @@ describe('YoutubeUploadService', () => {
     };
 
     brandCoverStyle = {
-      resolveTitleStyle: vi.fn().mockResolvedValue(undefined),
+      resolveCoverStyle: vi.fn().mockResolvedValue(undefined),
     };
 
     tagResolutionService = {
@@ -244,14 +244,16 @@ describe('YoutubeUploadService', () => {
     });
 
     it('renders the cover in the style of the brand it publishes for', async () => {
-      const titleStyle = { accentColor: '#E83B3B', fontFamily: 'INTER_BOLD' };
-      brandCoverStyle.resolveTitleStyle.mockResolvedValueOnce(titleStyle);
+      const coverStyle = {
+        title: { accentColor: '#E83B3B', fontFamily: 'INTER_BOLD' },
+      };
+      brandCoverStyle.resolveCoverStyle.mockResolvedValueOnce(coverStyle);
 
       await service.uploadVideo(orgId, brandId, videoId, createPost(), {
         thumbnailText: 'Ship the studio',
       });
 
-      expect(brandCoverStyle.resolveTitleStyle).toHaveBeenCalledWith(
+      expect(brandCoverStyle.resolveCoverStyle).toHaveBeenCalledWith(
         brandId,
         orgId,
       );
@@ -262,7 +264,7 @@ describe('YoutubeUploadService', () => {
         1080,
         'Ship the studio',
         true,
-        titleStyle,
+        coverStyle,
       );
     });
 

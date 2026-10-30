@@ -215,6 +215,64 @@ describe('WatermarkExportService', () => {
     expect(data[(15 * info.width + 45) * info.channels]).toBeLessThan(140);
   });
 
+  it('lays a layer over an image the caller holds, at the same size and insets as an export', async () => {
+    const { service, storage } = setup();
+    vi.mocked(storage.download).mockImplementation(async (_key, target) => {
+      await writeFile(
+        target,
+        await sharp({
+          create: {
+            width: 100,
+            height: 100,
+            channels: 4,
+            background: '#ffffff',
+          },
+        })
+          .png()
+          .toBuffer(),
+      );
+    });
+
+    const result = await service.applyToImage(await original(), [
+      {
+        insetXRatio: 0.1,
+        insetYRatio: 0.2,
+        logoStorageKey: 'logos/brand.png',
+        opacity: 1,
+        position: 'top-right',
+        sizeRatio: 0.1,
+      },
+    ]);
+
+    const { data, info } = await sharp(result)
+      .removeAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const red = (x: number, y: number) =>
+      data[(y * info.width + x) * info.channels];
+    expect([info.width, info.height]).toEqual([400, 300]);
+    expect(red(340, 100)).toBe(255);
+    expect(red(318, 100)).toBe(0);
+    expect(red(340, 121)).toBe(0);
+    // Nothing is stored: the caller keeps the bytes.
+    expect(storage.uploadFromFile).not.toHaveBeenCalled();
+  });
+
+  it('refuses a layer outside the allowed size when laying it over an image', async () => {
+    const { service } = setup();
+
+    await expect(
+      service.applyToImage(await original(), [
+        {
+          logoStorageKey: 'logos/brand.png',
+          opacity: 1,
+          position: 'top-right',
+          sizeRatio: 0.9,
+        },
+      ]),
+    ).rejects.toThrow('Invalid watermark size');
+  });
+
   it('places a logo at the brand size and insets, in ratios of the canvas width', async () => {
     const { service, storage, getExported } = setup();
     vi.mocked(storage.download).mockImplementation(async (key, target) => {

@@ -296,7 +296,7 @@ describe('VideosController', () => {
         },
         {
           provide: BrandCoverStyleService,
-          useValue: { resolveTitleStyle: vi.fn().mockResolvedValue(undefined) },
+          useValue: { resolveCoverStyle: vi.fn().mockResolvedValue(undefined) },
         },
         {
           provide: FilesClientService,
@@ -1302,8 +1302,10 @@ describe('VideosController', () => {
     });
 
     it('renders the cover in the brand style the publish uses', async () => {
-      const titleStyle = { accentColor: '#E83B3B', fontFamily: 'INTER_BOLD' };
-      brandCoverStyle.resolveTitleStyle.mockResolvedValueOnce(titleStyle);
+      const coverStyle = {
+        title: { accentColor: '#E83B3B', fontFamily: 'INTER_BOLD' },
+      };
+      brandCoverStyle.resolveCoverStyle.mockResolvedValueOnce(coverStyle);
 
       await controller.getThumbnail(
         mockVideoId.toString(),
@@ -1315,7 +1317,7 @@ describe('VideosController', () => {
         'brand-1',
       );
 
-      expect(brandCoverStyle.resolveTitleStyle).toHaveBeenCalledWith(
+      expect(brandCoverStyle.resolveCoverStyle).toHaveBeenCalledWith(
         'brand-1',
         mockUser.organizationId,
       );
@@ -1326,7 +1328,7 @@ describe('VideosController', () => {
         1080,
         'Ship it',
         true,
-        titleStyle,
+        coverStyle,
       );
     });
 

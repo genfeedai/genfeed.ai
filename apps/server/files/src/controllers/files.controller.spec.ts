@@ -1162,12 +1162,14 @@ describe('FilesController', () => {
     });
 
     it('should pass the cover title and its style through to the thumbnail service', async () => {
-      const titleStyle = { accentColor: '#E83B3B', fontFamily: 'INTER_BOLD' };
+      const coverStyle = {
+        title: { accentColor: '#E83B3B', fontFamily: 'INTER_BOLD' },
+      };
       await controller.generateThumbnail({
         ingredientId: 'ingredient_123',
         timeInSeconds: 5,
         title: 'Launch day',
-        titleStyle,
+        coverStyle,
         videoUrl: 'https://example.com/video.mp4',
         width: 320,
       });
@@ -1179,7 +1181,7 @@ describe('FilesController', () => {
         320,
         'Launch day',
         undefined,
-        titleStyle,
+        coverStyle,
       );
     });
 
