@@ -55,7 +55,7 @@ export default function HomeHow(): React.ReactElement {
               >
                 {item.title}
               </Heading>
-              <Text className="text-sm leading-6 text-foreground/72">
+              <Text className="text-sm leading-6 text-foreground/80">
                 {item.description}
               </Text>
             </li>

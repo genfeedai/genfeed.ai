@@ -42,7 +42,7 @@ export default function HomeHero(): React.ReactElement {
         </Heading>
         <Text
           as="p"
-          className="animate-gen-stagger-in mx-auto mt-7 max-w-2xl text-base leading-7 text-foreground/72 [--gen-stagger-delay:180ms] md:text-lg"
+          className="animate-gen-stagger-in mx-auto mt-7 max-w-2xl text-base leading-7 text-foreground/80 [--gen-stagger-delay:180ms] md:text-lg"
         >
           {metadata.description}
         </Text>
@@ -64,7 +64,7 @@ export default function HomeHero(): React.ReactElement {
               </a>
             </ButtonTracked>
           </div>
-          <Text as="p" className="mt-5 text-center text-sm text-foreground/72">
+          <Text as="p" className="mt-5 text-center text-sm text-foreground/80">
             Create your free account with Google or email. No card required.
           </Text>
         </div>

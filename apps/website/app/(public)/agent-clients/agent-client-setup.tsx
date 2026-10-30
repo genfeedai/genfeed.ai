@@ -29,7 +29,7 @@ export default function AgentClientSetup({
     >
       <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
         <div>
-          <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-foreground/65">
+          <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-foreground/70">
             01 / {installation.method}
           </p>
           <h2 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
@@ -37,7 +37,7 @@ export default function AgentClientSetup({
             <br />
             Now connected.
           </h2>
-          <p className="mt-5 max-w-md text-base leading-7 text-foreground/75">
+          <p className="mt-5 max-w-md text-base leading-7 text-foreground/80">
             {client.connectInstruction}
           </p>
           {installation.destination ? (
@@ -81,7 +81,7 @@ export default function AgentClientSetup({
           ) : null}
           {client.skillsCommand ? (
             <>
-              <p className="text-sm leading-6 text-foreground/75">
+              <p className="text-sm leading-6 text-foreground/80">
                 {AGENT_CLIENT_SKILLS_ONLY_COPY}
               </p>
               <CommandBlock
@@ -92,7 +92,7 @@ export default function AgentClientSetup({
           ) : null}
           {client.setupPrompt ? (
             <>
-              <p className="text-sm leading-6 text-foreground/75">
+              <p className="text-sm leading-6 text-foreground/80">
                 Skills add the Genfeed playbook. To connect your account too,
                 paste the setup prompt into {client.name} with local shell
                 access.
@@ -104,7 +104,7 @@ export default function AgentClientSetup({
             label="Genfeed connector URL"
             value={client.connectUrl}
           />
-          <div className="flex items-start gap-3 text-sm leading-6 text-foreground/75">
+          <div className="flex items-start gap-3 text-sm leading-6 text-foreground/80">
             <Check aria-hidden className="mt-1 size-4 shrink-0" />
             <p>
               Sign in to Genfeed in your browser. Then ask {client.name} to show
@@ -121,7 +121,7 @@ export default function AgentClientSetup({
                 </AccordionTrigger>
                 <AccordionContent className="space-y-4">
                   {client.slug === 'hermes' ? (
-                    <p className="text-sm leading-6 text-foreground/75">
+                    <p className="text-sm leading-6 text-foreground/80">
                       {client.oauth.authorizationInstruction}
                     </p>
                   ) : null}
@@ -136,7 +136,7 @@ export default function AgentClientSetup({
                     {AGENT_CLIENT_MANUAL_KEY_HEADING}
                   </AccordionTrigger>
                   <AccordionContent className="space-y-4">
-                    <p className="leading-6 text-foreground/75">
+                    <p className="leading-6 text-foreground/80">
                       {client.manualKey.authorizationInstruction}
                     </p>
                     {getAgentClientManualBlocks(client).map((block) => (

@@ -90,7 +90,7 @@ export default function CloudContent() {
         <WebSection maxWidth="lg" bg="subtle">
           <div className="border border-foreground/5 overflow-hidden">
             {/* Browser chrome */}
-            <div className="bg-foreground/[0.03] px-4 py-3 border-b border-foreground/5">
+            <div className="bg-foreground/5 px-4 py-3 border-b border-foreground/5">
               <div className="flex items-center gap-2">
                 <div className="flex gap-1.5">
                   <div className="size-3 rounded-full bg-foreground/20" />
@@ -98,7 +98,7 @@ export default function CloudContent() {
                   <div className="size-3 rounded-full bg-foreground/20" />
                 </div>
                 <div className="flex-1 mx-4">
-                  <div className="bg-foreground/[0.03] border border-foreground/5 px-3 py-1.5 text-xs text-foreground/55 text-center font-mono">
+                  <div className="bg-foreground/5 border border-foreground/5 px-3 py-1.5 text-xs text-foreground/60 text-center font-mono">
                     app.genfeed.ai
                   </div>
                 </div>
@@ -106,7 +106,7 @@ export default function CloudContent() {
             </div>
             {/* Dashboard content */}
             <div className="relative aspect-[16/9]">
-              <div className="absolute inset-0 bg-gradient-to-br from-foreground/[0.03] via-transparent to-foreground/[0.02]" />
+              <div className="absolute inset-0 bg-gradient-to-br from-foreground/5 via-transparent to-foreground/5" />
               <div className="absolute inset-0 p-6">
                 <div className="grid grid-cols-3 gap-1.5 h-full">
                   {[
@@ -142,7 +142,7 @@ export default function CloudContent() {
         {/* Who is it for */}
         <WebSection maxWidth="xl" className="gsap-section">
           <div className="text-center mb-16">
-            <p className="text-foreground/55 max-w-xl mx-auto">
+            <p className="text-foreground/60 max-w-xl mx-auto">
               Built for agencies, marketing teams, and operators managing
               multiple brands or organizations
             </p>

@@ -353,10 +353,10 @@ function EvidencePreview({ draft }: { draft?: IBrandKitDraft | undefined }) {
                   <EvidenceLabel kind={item.kind} />
                 </dt>
                 <dd className="flex flex-col gap-1">
-                  <Text className="text-sm leading-6 text-foreground/75">
+                  <Text className="text-sm leading-6 text-foreground/80">
                     {item.detail}
                   </Text>
-                  <Text className="font-mono text-2xs uppercase text-foreground/55">
+                  <Text className="font-mono text-2xs uppercase text-foreground/60">
                     {formatConfidence(item.confidence)}
                   </Text>
                 </dd>
@@ -395,7 +395,7 @@ function EvidencePreview({ draft }: { draft?: IBrandKitDraft | undefined }) {
                     <span className="text-xs font-semibold text-foreground group-hover:underline">
                       {source.label}
                     </span>
-                    <span className="text-xs leading-5 text-foreground/55">
+                    <span className="text-xs leading-5 text-foreground/60">
                       {source.detail}
                     </span>
                   </Link>
@@ -403,7 +403,7 @@ function EvidencePreview({ draft }: { draft?: IBrandKitDraft | undefined }) {
               ))}
             </ul>
           ) : (
-            <Text className="mt-4 text-xs leading-5 text-foreground/55">
+            <Text className="mt-4 text-xs leading-5 text-foreground/60">
               No source receipt was available.
             </Text>
           )}
@@ -436,7 +436,7 @@ function EvidencePreview({ draft }: { draft?: IBrandKitDraft | undefined }) {
                     />
                   )}
                   <div className="flex flex-col gap-0.5">
-                    <Text className="text-2xs font-black uppercase tracking-[0.12em] text-foreground/55">
+                    <Text className="text-2xs font-black uppercase tracking-[0.12em] text-foreground/60">
                       {diagnostic.severity}
                     </Text>
                     <Text className="text-xs leading-5 text-foreground/70">
@@ -447,7 +447,7 @@ function EvidencePreview({ draft }: { draft?: IBrandKitDraft | undefined }) {
               ))}
             </ul>
           ) : (
-            <Text className="mt-4 text-xs leading-5 text-foreground/55">
+            <Text className="mt-4 text-xs leading-5 text-foreground/60">
               No additional diagnostics.
             </Text>
           )}
@@ -482,14 +482,14 @@ export function BrandOSPreviewState({
       <div className="flex flex-col gap-5 p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-start gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-foreground/[0.04] shadow-border">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-foreground/5 shadow-border">
               <Icon
                 aria-hidden="true"
                 className={`size-5 ${definition.toneClassName} ${state === 'scanning' ? 'animate-spin motion-reduce:animate-none' : ''}`}
               />
             </span>
             <div className="flex flex-col gap-1">
-              <Text className="font-mono text-2xs uppercase tracking-[0.15em] text-foreground/55">
+              <Text className="font-mono text-2xs uppercase tracking-[0.15em] text-foreground/60">
                 {state}
               </Text>
               <Heading as="h3" className="text-lg font-semibold" id={headingId}>
@@ -505,10 +505,10 @@ export function BrandOSPreviewState({
         </div>
 
         <div className="grid gap-2">
-          <Text className="text-sm leading-6 text-foreground/65">
+          <Text className="text-sm leading-6 text-foreground/70">
             {definition.description}
           </Text>
-          <Text className="text-xs font-medium leading-5 text-foreground/85">
+          <Text className="text-xs font-medium leading-5 text-foreground/90">
             Next: {definition.action}
           </Text>
         </div>
