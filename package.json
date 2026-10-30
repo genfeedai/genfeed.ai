@@ -75,6 +75,7 @@
     "check:cron-boundary": "bun run scripts/architecture/check-platform-cron-boundary.ts",
     "check:canonical-json-helpers": "bun run scripts/architecture/check-canonical-json-helpers.ts",
     "check:local-type-guards": "bun run scripts/architecture/check-local-type-guards.ts",
+    "check:mock-interaction-specs": "bun run scripts/architecture/check-mock-interaction-specs.ts",
     "check:package-layering": "bun run scripts/architecture/check-package-layering.ts",
     "check:deterministic-locale": "bun run scripts/architecture/check-deterministic-locale.ts",
     "check:env-product-flags": "bun run scripts/architecture/check-env-product-flags.ts",
