@@ -4,7 +4,7 @@ import type {
   AgentProposedPlan,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { AgentThreadMode } from '@genfeedai/contracts';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import type { ComponentProps, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

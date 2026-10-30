@@ -67,7 +67,9 @@ export function AgentPlanCard({
     superseded: translate('statusSuperseded'),
   } as const;
   const isDecisionOpen =
-    Boolean(decision) && status === 'awaiting_approval' && hasProposedPlanBody(plan);
+    Boolean(decision) &&
+    status === 'awaiting_approval' &&
+    hasProposedPlanBody(plan);
   const trimmedNote = revisionNote.trim();
 
   return (

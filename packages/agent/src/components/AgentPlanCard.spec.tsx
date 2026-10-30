@@ -87,7 +87,12 @@ describe('AgentPlanCard decision', () => {
     );
     expect(screen.queryByTestId('agent-plan-decision')).toBeNull();
 
-    rerender(<AgentPlanCard decision={buildDecision()} plan={{ ...plan, content: '' }} />);
+    rerender(
+      <AgentPlanCard
+        decision={buildDecision()}
+        plan={{ ...plan, content: '' }}
+      />,
+    );
     expect(screen.queryByTestId('agent-plan-decision')).toBeNull();
   });
 });
