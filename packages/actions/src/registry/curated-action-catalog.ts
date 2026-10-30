@@ -564,6 +564,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent', 'mcp'],
     toolset: 'brand',
   },
+  { name: 'start_editor_render', surfaces: ['mcp'], toolset: 'editor' },
   { name: 'start_outreach_sequence', surfaces: ['agent'], toolset: 'outreach' },
   { name: 'start_remix_generation', surfaces: ['mcp'], toolset: 'inspiration' },
   {

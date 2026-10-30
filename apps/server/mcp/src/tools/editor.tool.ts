@@ -11,13 +11,15 @@ export const EDITOR_TOOL_NAMES = new Set([
   'get_editor_project',
   'list_editor_projects',
   'open_in_editor',
+  'start_editor_render',
 ]);
 const MAX_LIST_LIMIT = 100;
 
 /**
  * Editor MCP handler (issue #5461). `open_in_editor` creates the seeded project
  * the Studio "Open in Editor" action creates and returns its path; the list and
- * get reads return the organization's Editor projects.
+ * get reads return the organization's Editor projects; `start_editor_render`
+ * queues the same export the Editor's Export button runs.
  */
 export async function handleEditorTool(
   client: ClientService,
@@ -47,13 +49,25 @@ export async function handleEditorTool(
     };
   }
 
+  if (name === 'start_editor_render') {
+    const projectId = readProjectIdArg(args);
+    const job = await client.startEditorRender(projectId);
+    const editorPath = `${APP_ROUTES.STUDIO.EDITOR}/${projectId}`;
+    return {
+      structuredContent: { data: { editorPath, job, projectId } },
+      content: [
+        {
+          text: `Render queued for Editor project ${projectId}. Check progress with get_editor_project, or [open it in the Editor](${getPublicAppUrl()}${editorPath}).\n\n${formatToolData(job)}`,
+          type: 'text' as const,
+        },
+      ],
+    };
+  }
+
   if (name === 'get_editor_project') {
-    const projectId = args.projectId;
-    if (typeof projectId !== 'string' || projectId.trim().length === 0) {
-      throw new Error('projectId is required');
-    }
-    const project = await client.getEditorProject(projectId.trim());
-    const editorPath = `${APP_ROUTES.STUDIO.EDITOR}/${projectId.trim()}`;
+    const projectId = readProjectIdArg(args);
+    const project = await client.getEditorProject(projectId);
+    const editorPath = `${APP_ROUTES.STUDIO.EDITOR}/${projectId}`;
     return {
       structuredContent: { data: { editorPath, project } },
       content: [
@@ -83,6 +97,14 @@ export async function handleEditorTool(
       },
     ],
   };
+}
+
+function readProjectIdArg(args: Record<string, unknown>): string {
+  const projectId = args.projectId;
+  if (typeof projectId !== 'string' || projectId.trim().length === 0) {
+    throw new Error('projectId is required');
+  }
+  return projectId.trim();
 }
 
 function readCount(

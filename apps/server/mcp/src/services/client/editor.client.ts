@@ -65,4 +65,19 @@ export class EditorClient {
       this.base.failWithDetail('Failed to get Editor project'),
     );
   }
+
+  startEditorRender(projectId: string): Promise<Record<string, unknown>> {
+    this.base.logger.debug(`Starting Editor render: ${projectId}`);
+
+    return this.base.request(
+      'starting Editor render',
+      async (http) => {
+        const response = await http.post(
+          `/editor-projects/${encodeURIComponent(projectId)}/render`,
+        );
+        return this.base.unwrapObject(response);
+      },
+      this.base.failWithDetail('Failed to start the Editor render'),
+    );
+  }
 }

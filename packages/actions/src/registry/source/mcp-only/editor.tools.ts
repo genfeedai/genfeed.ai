@@ -9,8 +9,10 @@ import type { SourceTool } from '../../../interfaces/source-tool.interface';
  * the caller. Content stays off this tool because core + scheduler + content
  * is already at the bare MCP URL cap.
  *
- * Reads: list the organization's Editor projects and read one back. Rendering
- * stays in the Editor until its credit hold is exposed here.
+ * Reads: list the organization's Editor projects and read one back. Render:
+ * queue the project's export, the same call as the Editor's Export button.
+ * The render route holds no credits, so the tool is a free direct write; the
+ * result is read back with get_editor_project.
  */
 export const MCP_EDITOR_TOOLS: SourceTool[] = [
   {
@@ -72,6 +74,25 @@ export const MCP_EDITOR_TOOLS: SourceTool[] = [
     description:
       'Get one Studio Editor project by id: tracks, clips in timeline order, render status and the /editor path.',
     name: 'get_editor_project',
+    parameters: {
+      additionalProperties: false,
+      properties: {
+        projectId: {
+          description: 'Editor project id',
+          minLength: 1,
+          type: 'string',
+        },
+      },
+      required: ['projectId'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
+      'Queue the render of an Editor project into a new video, the same export the Editor runs. Costs no credits. Returns the job id and status; check progress with get_editor_project. Fails if the project is already rendering or has no clips.',
+    name: 'start_editor_render',
     parameters: {
       additionalProperties: false,
       properties: {

@@ -395,6 +395,10 @@ export class ClientService {
     return this.editor.getEditorProject(projectId);
   }
 
+  startEditorRender(projectId: string): Promise<Record<string, unknown>> {
+    return this.editor.startEditorRender(projectId);
+  }
+
   listTasks(
     params: ListWorkspaceTasksParams = {},
   ): Promise<Array<Record<string, unknown>>> {

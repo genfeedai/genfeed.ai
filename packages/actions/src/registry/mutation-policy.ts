@@ -77,6 +77,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   control_remix_generation: 'approval-required',
   create_remix_concept: 'direct',
   create_task: 'direct',
+  start_editor_render: 'direct',
   create_brand_from_url: 'direct',
   import_source_post: 'approval-required',
   quote_remix_generation: 'direct',

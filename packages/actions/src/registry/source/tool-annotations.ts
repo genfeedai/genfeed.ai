@@ -76,6 +76,7 @@ const NON_DESTRUCTIVE_WRITE_NAMES: ReadonlySet<string> = new Set([
   'list_x_account_activity',
   'open_in_editor',
   'create_task',
+  'start_editor_render',
   'transform_media',
 ]);
 
