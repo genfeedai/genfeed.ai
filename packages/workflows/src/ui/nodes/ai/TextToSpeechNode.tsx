@@ -130,7 +130,7 @@ function TextToSpeechNodeComponent(props: NodeProps) {
     <BaseNode {...props} headerActions={headerActions}>
       <div className="space-y-3">
         {!TTS_ENABLED && (
-          <div className="flex items-start gap-2 p-2 bg-warning/10 border border-warning/30 rounded text-xs">
+          <div className="flex items-start gap-2 p-2 bg-warning/10 border border-warning/20 rounded text-xs">
             <TriangleAlert className="size-4 text-warning flex-shrink-0 mt-0.5" />
             <div className="text-warning">
               <p className="font-medium">ElevenLabs not configured</p>

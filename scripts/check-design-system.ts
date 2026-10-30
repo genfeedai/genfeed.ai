@@ -41,6 +41,7 @@ const DESIGN_SYSTEM_BASELINE_PATH = path.join(
 
 export type DesignSystemFindingKind =
   | 'dark-only-palette-text'
+  | 'off-ladder-opacity'
   | 'raw-chrome-color'
   | 'sub-11-text'
   | 'tight-tracking'
@@ -330,6 +331,7 @@ const NATIVE_CONTROL_NAMES = new Set([
 const PACKAGE_UI_EXTENSIONS = new Set(['.js', '.jsx', '.ts', '.tsx']);
 const DESIGN_SYSTEM_FINDING_KINDS: readonly DesignSystemFindingKind[] = [
   'dark-only-palette-text',
+  'off-ladder-opacity',
   'raw-chrome-color',
   'sub-11-text',
   'tight-tracking',
@@ -356,6 +358,48 @@ function isSubElevenArbitraryTextToken(token: string): boolean {
   const value = Number(match[1]);
   const pixels = match[2] === 'rem' ? value * 16 : value;
   return Number.isFinite(pixels) && pixels < 11;
+}
+
+const OPACITY_LADDER_STOPS = new Set([
+  0, 5, 10, 20, 40, 50, 60, 70, 80, 90, 100,
+]);
+const OPACITY_COLOR_UTILITY_PATTERN =
+  /^(?:bg|text|border(?:-[xytblrse])?|from|via|to|ring|shadow|fill|stroke|divide|outline|decoration|placeholder|accent|caret)-([a-z][\w-]*)\/(\[[\d.]+\]|\d+)$/u;
+const OPACITY_NON_COLOR_NAMES = new Set([
+  '2xl',
+  '2xs',
+  '3xl',
+  '4xl',
+  '5xl',
+  '6xl',
+  '7xl',
+  '8xl',
+  '9xl',
+  'base',
+  'inner',
+  'lg',
+  'md',
+  'none',
+  'sm',
+  'xl',
+  'xs',
+]);
+
+export function isOffLadderOpacityToken(token: string): boolean {
+  const match = OPACITY_COLOR_UTILITY_PATTERN.exec(baseClassToken(token));
+  if (!match || OPACITY_NON_COLOR_NAMES.has(match[1])) {
+    return false;
+  }
+
+  const modifier = match[2];
+  const percent = modifier.startsWith('[')
+    ? Number(modifier.slice(1, -1)) * 100
+    : Number(modifier);
+  return (
+    !Number.isFinite(percent) ||
+    !OPACITY_LADDER_STOPS.has(Math.round(percent * 1000) / 1000) ||
+    modifier.startsWith('[')
+  );
 }
 
 const MIN_NEGATIVE_TRACKING_EM = -0.02;
@@ -496,6 +540,9 @@ export function findPackageUiGuardFindings(
         }
         if (isTightTrackingToken(token)) {
           addFinding(literal, 'tight-tracking', token);
+        }
+        if (isOffLadderOpacityToken(token)) {
+          addFinding(literal, 'off-ladder-opacity', token);
         }
       }
     }

@@ -288,7 +288,7 @@ function OutputGallery({
                   onDownload(index);
                 }}
                 className={
-                  'size-6 bg-white/20 hover:bg-white/30' /* design-system-allow-content-color */
+                  'size-6 bg-white/20 hover:bg-white/40' /* design-system-allow-content-color */
                 }
               >
                 <Download

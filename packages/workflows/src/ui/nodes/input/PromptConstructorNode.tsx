@@ -313,7 +313,7 @@ function PromptConstructorNodeComponent(props: NodeProps) {
 
         {/* Warning badge for unresolved variables */}
         {unresolvedVars.length > 0 && (
-          <div className="px-2 py-1 bg-warning/10 border border-warning/30 rounded text-2xs text-warning">
+          <div className="px-2 py-1 bg-warning/10 border border-warning/20 rounded text-2xs text-warning">
             <span className="font-semibold">Unresolved:</span>{' '}
             {unresolvedVars.map((v) => `@${v}`).join(', ')}
           </div>
@@ -321,7 +321,7 @@ function PromptConstructorNodeComponent(props: NodeProps) {
 
         {jsonWarning ? (
           <div
-            className="px-2 py-1 bg-warning/10 border border-warning/30 rounded text-2xs text-warning"
+            className="px-2 py-1 bg-warning/10 border border-warning/20 rounded text-2xs text-warning"
             data-testid="json-warning"
           >
             {jsonWarning}
