@@ -102,15 +102,16 @@ describe('tier-models.helper', () => {
   });
 
   describe('resolveSubscriptionTier', () => {
-    it('keeps known tiers regardless of casing', () => {
+    it('keeps known tiers', () => {
       expect(resolveSubscriptionTier('scale')).toBe(SubscriptionTier.SCALE);
-      expect(resolveSubscriptionTier('ENTERPRISE')).toBe(
+      expect(resolveSubscriptionTier('enterprise')).toBe(
         SubscriptionTier.ENTERPRISE,
       );
     });
 
-    it('falls back to FREE for legacy, empty or missing values', () => {
+    it('falls back to FREE for legacy, miscased, empty or missing values', () => {
       expect(resolveSubscriptionTier('pro')).toBe(SubscriptionTier.FREE);
+      expect(resolveSubscriptionTier('ENTERPRISE')).toBe(SubscriptionTier.FREE);
       expect(resolveSubscriptionTier('')).toBe(SubscriptionTier.FREE);
       expect(resolveSubscriptionTier(null)).toBe(SubscriptionTier.FREE);
       expect(resolveSubscriptionTier(undefined)).toBe(SubscriptionTier.FREE);

@@ -311,7 +311,8 @@ export class PublicBrandsController {
         scope: AssetScope.PUBLIC,
         status: IngredientStatus.GENERATED,
       },
-      orderBy: { createdAt: -1 },
+      // `id` breaks createdAt ties so offset pages never repeat or skip rows.
+      orderBy: { createdAt: -1, id: -1 },
     };
 
     const data = await this.videosService.findAll(aggregate, options);
@@ -369,7 +370,8 @@ export class PublicBrandsController {
         scope: AssetScope.PUBLIC,
         status: IngredientStatus.GENERATED,
       },
-      orderBy: { createdAt: -1 },
+      // `id` breaks createdAt ties so offset pages never repeat or skip rows.
+      orderBy: { createdAt: -1, id: -1 },
     };
 
     const data = await this.imagesService.findAll(aggregate, options);

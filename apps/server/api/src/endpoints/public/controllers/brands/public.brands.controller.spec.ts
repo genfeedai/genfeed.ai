@@ -395,14 +395,14 @@ describe('PublicBrandsController', () => {
 
       expect(videosService.findAll).toHaveBeenCalledWith(
         {
-          orderBy: { createdAt: -1 },
+          orderBy: { createdAt: -1, id: -1 },
           where: expect.objectContaining({ category: 'VIDEO' }),
         },
         expect.any(Object),
       );
       expect(imagesService.findAll).toHaveBeenCalledWith(
         {
-          orderBy: { createdAt: -1 },
+          orderBy: { createdAt: -1, id: -1 },
           where: expect.objectContaining({ category: 'IMAGE' }),
         },
         expect.any(Object),
