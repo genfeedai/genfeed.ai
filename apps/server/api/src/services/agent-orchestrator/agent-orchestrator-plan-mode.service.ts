@@ -95,9 +95,7 @@ const PLAN_MODE_NO_QUESTION_INSTRUCTION =
  * A reply that is not JSON-shaped. Text that opens a JSON object but does not
  * parse (a reply cut off at the token limit) still goes to review as a plan.
  */
-function isProseReply(
-  response: ReturnType<typeof parsePlanResponse>,
-): boolean {
+function isProseReply(response: ReturnType<typeof parsePlanResponse>): boolean {
   return !response.parsed && !response.candidate.startsWith('{');
 }
 
