@@ -12,14 +12,7 @@ import {
 } from '@web-components/content/NeuralGrid';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
-import {
-  Cloud,
-  Cpu,
-  GitBranch,
-  Server,
-  ShieldCheck,
-  Terminal,
-} from 'lucide-react';
+import { Cloud, Cpu, Server, ShieldCheck, Terminal } from 'lucide-react';
 
 const QUICKSTART_DOCS_URL = 'https://docs.genfeed.ai/self-host/installation';
 
@@ -106,8 +99,6 @@ export default function SelfHostedContent() {
     <MarketingEntrance hero={false} sections={false}>
       <PageLayout
         heroMedia={<MarketingArtwork page="/self-hosted" kind="integration" />}
-        badge="Open Source"
-        badgeIcon={GitBranch}
         title={<>Open source. Self-host on your own infra.</>}
         description="Genfeed is open source under AGPL-3.0. Install it with one command or a checksummed release bundle, run it with Docker Compose, and add your own model provider keys. Or skip the ops and start free on managed cloud."
       >

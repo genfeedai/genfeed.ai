@@ -62,8 +62,6 @@ export default function TermsPage() {
   return (
     <MarketingEntrance cards={false}>
       <PageLayout
-        badge="Legal"
-        badgeIcon={FileText}
         compact
         title={<>Terms of Service</>}
         description="Legal terms for using Genfeed. All purchases final. No refunds."

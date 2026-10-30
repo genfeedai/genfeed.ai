@@ -18,7 +18,7 @@ import {
 } from '@web-components/content/NeuralGrid';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
-import { ArrowRight, BrainCircuit, Sparkles } from 'lucide-react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 import InstallCommand from './install-command';
@@ -43,8 +43,6 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
     <MarketingEntrance>
       <PageLayout
         heroMedia={<MarketingArtwork page="/skills" kind="workflow" />}
-        badge="Open Source Skills"
-        badgeIcon={BrainCircuit}
         compact
         title={<>{FREE_SKILL_COUNT} Skills. One Command.</>}
         description="Content creation, SEO, advertising, GTM, image prompting, platform development, and analysis as Claude Code skills. Works standalone. Works better with Genfeed."

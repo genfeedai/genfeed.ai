@@ -2,7 +2,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
-import { Check, Cookie, Eye, Lock, Mail, Shield } from 'lucide-react';
+import { Check, Cookie, Eye, Lock, Mail } from 'lucide-react';
 import Link from 'next/link';
 
 const privacyPolicySections = [
@@ -100,8 +100,6 @@ export default function PrivacyContent() {
   return (
     <MarketingEntrance cards={false}>
       <PageLayout
-        badge="Legal"
-        badgeIcon={Shield}
         compact
         title={<>Privacy Policy</>}
         description="How we protect your data. We don't sell your information."
