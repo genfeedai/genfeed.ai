@@ -532,7 +532,6 @@ describe('TrackedLinksService', () => {
       'Episode: https://youtu.be/abc, podcast https://example.com/p. http://insecure.test/x';
 
     beforeEach(() => {
-      vi.stubEnv('SHORT_LINKS_ENABLED', 'true');
       vi.stubEnv('SHORT_LINK_BASE_URL', 'https://go.test');
     });
 
@@ -586,19 +585,6 @@ describe('TrackedLinksService', () => {
       });
 
       expect(text).toBe('Watch https://go.test/KEEP1234');
-    });
-
-    it('returns the caption unchanged unless short links are enabled', async () => {
-      vi.stubEnv('SHORT_LINKS_ENABLED', 'false');
-      const { service } = makeService();
-
-      const text = await service.shortenPostLinks({
-        description: caption,
-        organizationId: 'org-1',
-        postId: 'post-1',
-      });
-
-      expect(text).toBe(caption);
     });
 
     it('leaves a URL as written when its link cannot be created', async () => {

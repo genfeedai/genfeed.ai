@@ -276,7 +276,6 @@ export interface IEnvConfig {
   CHROME_EXTENSION_ID?: string;
 
   SHORT_LINK_BASE_URL?: string;
-  SHORT_LINKS_ENABLED?: string;
 
   OPUS_PRO_KEY?: string;
 

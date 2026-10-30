@@ -247,8 +247,6 @@ export class TrackedLinksService {
    */
   async shortenPostLinks(input: PostLinkShorteningInput): Promise<string> {
     const { description, organizationId, platform, postId } = input;
-    if (process.env.SHORT_LINKS_ENABLED !== 'true') return description;
-
     const urls = extractPostUrls(description).slice(0, MAX_SHORT_LINKS_PER_POST);
     if (urls.length === 0) return description;
 
