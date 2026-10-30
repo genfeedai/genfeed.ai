@@ -40,7 +40,7 @@ vi.mock('@services/external/public.service', () => ({
   },
 }));
 
-vi.mock('../../../../packages/analytics/posthog-client', () => ({
+vi.mock('../../../../src/analytics/posthog-client', () => ({
   captureWebsiteAnalyticsEvent: mocks.capture,
 }));
 

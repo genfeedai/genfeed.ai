@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
-import { CampaignFormPage } from '@pages/campaigns';
+import { CampaignFormPage } from '@/features/campaigns';
 import { readRouteParam } from '@/lib/route-params';
 
 export default function PublishingCampaignEditRoute() {

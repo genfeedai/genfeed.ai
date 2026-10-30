@@ -11,7 +11,7 @@ const SCAN_ROOTS = [
   join(REPO_ROOT, 'packages/pages'),
   join(REPO_ROOT, 'packages/ui/src'),
   join(REPO_ROOT, 'apps/website/app'),
-  join(REPO_ROOT, 'apps/website/packages'),
+  join(REPO_ROOT, 'apps/website/src'),
 ];
 
 const SKIP_DIRECTORIES = new Set(['.next', 'coverage', 'dist', 'node_modules']);

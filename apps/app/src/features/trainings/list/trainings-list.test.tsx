@@ -1,0 +1,236 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import {
+  ContextSidebarOutlet,
+  ContextSidebarProvider,
+} from '@contexts/ui/context-sidebar-context';
+import { PageScope, SubscriptionTier } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import type { ITraining } from '@genfeedai/contracts/interfaces';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
+import TrainingsList from '@/features/trainings/list/trainings-list';
+import '@testing-library/jest-dom/vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const mockFindAll = vi.fn();
+const searchParamsState = vi.hoisted(() => ({
+  current: new URLSearchParams(''),
+}));
+const mockSubscribe = vi.fn(() => () => undefined);
+const mockOpenConfirm = vi.fn();
+
+const brandState = {
+  brandId: 'brand-1',
+  isReady: true,
+  organizationId: 'org-1',
+  settings: { subscriptionTier: SubscriptionTier.SCALE },
+};
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => brandState,
+}));
+
+vi.mock('@genfeedai/config/deployment', () => ({
+  isSelfHostedDeployment: () => false,
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({ isSignedIn: true }),
+}));
+
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: <TService,>(factory: (token: string) => TService) =>
+    vi.fn(async () => factory('test-token')),
+}));
+
+vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
+  useSocketManager: () => ({ subscribe: mockSubscribe }),
+}));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    brandHref: (route: string) => route,
+    orgHref: (route: string) => route,
+  }),
+}));
+
+vi.mock('@providers/global-modals/global-modals.provider', () => ({
+  useConfirmModal: () => ({ openConfirm: mockOpenConfirm }),
+}));
+
+vi.mock('@services/ai/trainings.service', () => ({
+  TrainingsService: {
+    getInstance: () => ({
+      delete: vi.fn(),
+      findAll: mockFindAll,
+      patch: vi.fn(),
+    }),
+  },
+}));
+
+vi.mock('@services/core/notifications.service', () => ({
+  NotificationsService: {
+    getInstance: () => ({ error: vi.fn(), success: vi.fn() }),
+  },
+}));
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/trainings',
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useSearchParams: () => searchParamsState.current,
+}));
+
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: () => <nav aria-label="pagination" />,
+}));
+
+function buildTraining(overrides: Partial<ITraining> = {}): ITraining {
+  return {
+    id: 'training-1',
+    isActive: true,
+    isDeleted: false,
+    label: 'Brand Style v1',
+    status: 'completed',
+    steps: 1200,
+    trigger: 'brandstyle',
+    ...overrides,
+  } as unknown as ITraining;
+}
+
+function renderTrainingsList(scope: PageScope = PageScope.ORGANIZATION) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <ContextSidebarProvider>
+        <TrainingsList scope={scope} />
+        <ContextSidebarOutlet testId="rail" />
+      </ContextSidebarProvider>
+    </QueryClientProvider>,
+  );
+}
+
+describe('TrainingsList', () => {
+  it('uses the canonical admin images route for training details', () => {
+    const source = readFileSync(
+      join(import.meta.dirname, 'trainings-list.tsx'),
+      'utf8',
+    );
+
+    expect(source).toContain('APP_ROUTES.ADMIN.AUTOMATION.TRAININGS');
+    expect(source).toMatch(/TRAININGS}\/\${training\.id}`/);
+    expect(source).not.toMatch(/router\.push\(`\/trainings\//);
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    searchParamsState.current = new URLSearchParams('');
+    brandState.settings = { subscriptionTier: SubscriptionTier.SCALE };
+    mockFindAll.mockResolvedValue([buildTraining()]);
+  });
+
+  it('renders the fetched trainings in the table', async () => {
+    renderTrainingsList();
+
+    await waitFor(() => {
+      expect(screen.getByText('Brand Style v1')).toBeInTheDocument();
+    });
+    expect(screen.getByText('brandstyle')).toBeInTheDocument();
+  });
+
+  it('requests the URL page with the page size and renders pagination', async () => {
+    searchParamsState.current = new URLSearchParams('page=2');
+
+    renderTrainingsList(PageScope.SUPERADMIN);
+
+    await waitFor(() => {
+      expect(mockFindAll).toHaveBeenCalledWith(
+        { limit: ITEMS_PER_PAGE, page: 2 },
+        expect.anything(),
+      );
+    });
+    expect(
+      await screen.findByRole('navigation', { name: 'pagination' }),
+    ).toBeVisible();
+  });
+
+  it('links the admin name to the training page', async () => {
+    renderTrainingsList(PageScope.SUPERADMIN);
+
+    const nameLink = await screen.findByRole('link', {
+      name: 'Open Brand Style v1',
+    });
+    expect(nameLink).toHaveAttribute(
+      'href',
+      '/admin/automation/trainings/training-1',
+    );
+  });
+
+  it('opens a summary with an Edit action in the sidebar on row click', async () => {
+    renderTrainingsList();
+
+    fireEvent.click(await screen.findByText('Brand Style v1'));
+
+    expect(await screen.findByText('Trigger word')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('rail')).getByRole('button', { name: 'Edit' }),
+    ).toBeInTheDocument();
+  });
+
+  it('does not link the name in the organization scope', async () => {
+    renderTrainingsList();
+
+    await waitFor(() => {
+      expect(screen.getByText('Brand Style v1')).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByRole('link', { name: 'Open Brand Style v1' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders the empty state when no trainings come back', async () => {
+    mockFindAll.mockResolvedValue([]);
+
+    renderTrainingsList();
+
+    await waitFor(() => {
+      expect(screen.getByText('No trainings yet')).toBeInTheDocument();
+    });
+  });
+
+  it('locks the surface behind an upgrade CTA on unentitled tiers', async () => {
+    brandState.settings = { subscriptionTier: SubscriptionTier.FREE };
+
+    renderTrainingsList();
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Unlock trainings with Scale/i),
+      ).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Brand Style v1')).not.toBeInTheDocument();
+  });
+
+  it('renders the admin org/brand filter in the superadmin scope', async () => {
+    renderTrainingsList(PageScope.SUPERADMIN);
+
+    await waitFor(() => {
+      expect(screen.getByText('Brand Style v1')).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/Unlock trainings/i)).not.toBeInTheDocument();
+  });
+});

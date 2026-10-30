@@ -24,7 +24,7 @@ describe('readAgentUntrustedContentSource', () => {
   });
 
   it('classifies connected-account tools as connector', () => {
-    expect(readAgentUntrustedContentSource('list_social_conversations')).toBe(
+    expect(readAgentUntrustedContentSource('get_social_conversations')).toBe(
       'connector',
     );
   });

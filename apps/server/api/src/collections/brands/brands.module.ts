@@ -9,6 +9,7 @@ import { ArticlesModule } from '@api/collections/articles/articles.module';
 import { BrandRelocationJobsModule } from '@api/collections/brands/brand-relocation-jobs.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { BrandFontAssetsController } from '@api/collections/brands/controllers/brand-font-assets.controller';
+import { BrandLutController } from '@api/collections/brands/controllers/brand-lut.controller';
 import { BrandOsRevisionsController } from '@api/collections/brands/controllers/brand-os-revisions.controller';
 import { BrandOsScanController } from '@api/collections/brands/controllers/brand-os-scan.controller';
 import { BrandRelocationsController } from '@api/collections/brands/controllers/brand-relocations.controller';
@@ -17,6 +18,7 @@ import { BrandsAgentConfigController } from '@api/collections/brands/controllers
 import { BrandsSetupController } from '@api/collections/brands/controllers/brands-setup.controller';
 import { BrandsRelationshipsController } from '@api/collections/brands/controllers/relationships/brands-relationships.controller';
 import { BrandFromUrlService } from '@api/collections/brands/services/brand-from-url.service';
+import { BrandLutService } from '@api/collections/brands/services/brand-lut.service';
 import { BrandPersistenceService } from '@api/collections/brands/services/brand-persistence.service';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
 import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
@@ -48,6 +50,7 @@ import { Module } from '@nestjs/common';
     BrandOsRevisionsController,
     BrandOsScanController,
     BrandFontAssetsController,
+    BrandLutController,
     BrandsAgentConfigController,
     BrandsSetupController,
     BrandsController,
@@ -94,6 +97,7 @@ import { Module } from '@nestjs/common';
     // routes no longer round-trip back through OnboardingService and close an
     // OnboardingModule ↔ BrandsModule import cycle.
     BrandSetupService,
+    BrandLutService,
     BrandWatermarkLogoService,
     BrandWebsitePreviewService,
     BrandPersistenceService,

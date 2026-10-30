@@ -116,7 +116,7 @@ export const MCP_ADS_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description: 'List accessible Google Ads customer accounts',
-    name: 'list_google_ads_customers',
+    name: 'get_google_ads_customers',
     parameters: {
       properties: {},
       type: 'object',
@@ -256,7 +256,7 @@ export const MCP_ADS_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'List creative assets (headlines, body text, CTAs, images) for Meta ads',
-    name: 'list_meta_ad_creatives',
+    name: 'get_meta_ad_creatives',
     parameters: {
       properties: {
         adAccountId: {
@@ -313,7 +313,7 @@ export const MCP_ADS_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description: 'List TikTok advertiser accounts for a connected credential',
-    name: 'list_tiktok_ad_accounts',
+    name: 'get_tiktok_ad_accounts',
     parameters: {
       properties: {
         credentialId: {
@@ -329,7 +329,7 @@ export const MCP_ADS_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description: 'List TikTok ad groups within a campaign',
-    name: 'list_tiktok_adgroups',
+    name: 'get_tiktok_adgroups',
     parameters: {
       properties: {
         adAccountId: {
@@ -354,7 +354,7 @@ export const MCP_ADS_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'List TikTok ads, optionally narrowed to a single ad group. Returns creative details alongside each ad',
-    name: 'list_tiktok_ads',
+    name: 'get_tiktok_ads',
     parameters: {
       properties: {
         adAccountId: {

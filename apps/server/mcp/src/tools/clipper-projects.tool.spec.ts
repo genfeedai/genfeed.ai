@@ -54,7 +54,7 @@ describe('CLIPPER_PROJECTS_TOOL_NAMES', () => {
       'create_clipper_project_from_youtube',
       'get_clipper_highlights',
       'get_clipper_project',
-      'list_clipper_projects',
+      'get_clipper_projects',
       'run_clipper',
     ]);
   });
@@ -159,10 +159,10 @@ describe('handleClipperProjectsTool', () => {
       expect(client.getClipperProject).toHaveBeenCalledWith('proj-1');
     });
 
-    it('list_clipper_projects reports an empty result', async () => {
+    it('get_clipper_projects reports an empty result', async () => {
       const client = buildClient();
       client.listClipperProjects.mockResolvedValue([]);
-      const result = await call(client, 'list_clipper_projects', {});
+      const result = await call(client, 'get_clipper_projects', {});
       expect(result.content[0].text).toContain('No clip projects found');
     });
   });

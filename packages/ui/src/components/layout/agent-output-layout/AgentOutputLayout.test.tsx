@@ -11,12 +11,20 @@ vi.mock('next/navigation', () => ({
 const labels = {
   agent: 'Agent',
   collapseAgent: 'Collapse agent',
+  collapseOutput: 'Show agent',
   expandAgent: 'Expand agent',
+  expandOutput: 'Full size',
   output: 'Output',
   views: 'Agent or output',
 };
 
-function Harness({ mode }: { mode?: 'rail' | 'split' }) {
+function Harness({
+  isOutputExpandable,
+  mode,
+}: {
+  isOutputExpandable?: boolean;
+  mode?: 'rail' | 'split';
+}) {
   const [activeTabId, setActiveTabId] = useState('board');
   return (
     <AgentOutputLayout
@@ -24,6 +32,7 @@ function Harness({ mode }: { mode?: 'rail' | 'split' }) {
       agent={<p>Agent transcript</p>}
       agentHeader={<span>Run thread</span>}
       headerActions={<span>Page action</span>}
+      isOutputExpandable={isOutputExpandable}
       labels={labels}
       mode={mode}
       onTabChange={setActiveTabId}
@@ -98,5 +107,23 @@ describe('AgentOutputLayout', () => {
   it('has no rail toggle in split mode', () => {
     render(<Harness />);
     expect(screen.queryByTestId('agent-output-rail-toggle')).toBeNull();
+  });
+
+  it('hides the agent for a full-size output without unmounting it', () => {
+    render(<Harness isOutputExpandable mode="rail" />);
+    const agentPane = screen.getByTestId('agent-output-agent-pane');
+    expect(agentPane).not.toHaveClass('xl:hidden');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Full size' }));
+    expect(agentPane).toHaveClass('xl:hidden');
+    expect(screen.getByText('Agent transcript')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show agent' }));
+    expect(agentPane).not.toHaveClass('xl:hidden');
+  });
+
+  it('has no full-size button unless the page opts in', () => {
+    render(<Harness />);
+    expect(screen.queryByTestId('agent-output-expand-output')).toBeNull();
   });
 });

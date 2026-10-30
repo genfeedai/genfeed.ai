@@ -8,7 +8,6 @@ import {
 } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
 import {
   isBrandResourceReady,
   isCollectionFetchReady,
@@ -60,6 +59,7 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useAgentStrategies } from '@/features/agents/hooks/agent-strategies/use-agent-strategies';
 import AddAgentDialog from './AddAgentDialog';
 import AgentWorkflowRunDialog from './AgentWorkflowRunDialog';
 import { getAgentTypeIcon, getAgentTypeLabel } from './agent-type-display';

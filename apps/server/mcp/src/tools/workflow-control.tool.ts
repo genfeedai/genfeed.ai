@@ -91,7 +91,7 @@ export function handleWorkflowControlTool(
       );
       return textDataResult('Workflow', workflow);
     },
-    list_system_workflow_catalog: async (a) => {
+    get_system_workflow_catalog: async (a) => {
       const entries = await client.listSystemWorkflowCatalog({
         family: optionalStringArg(a, 'family'),
         includeNonInstallable: a.includeNonInstallable === true,
@@ -99,7 +99,7 @@ export function handleWorkflowControlTool(
       });
       return textDataResult('System workflow catalog', entries);
     },
-    list_workflow_runs: async (a) => {
+    get_workflow_runs: async (a) => {
       const runs = await client.listWorkflowRuns({
         limit: optionalNumberArg(a, 'limit'),
         offset: optionalNumberArg(a, 'offset'),

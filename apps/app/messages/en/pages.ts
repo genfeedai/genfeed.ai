@@ -31,6 +31,7 @@ import brandHarnessSettings from './pages/brandHarnessSettings.json';
 import brandIntegrations from './pages/brandIntegrations.json';
 import brandKitReview from './pages/brandKitReview.json';
 import brandKitSettings from './pages/brandKitSettings.json';
+import brandLut from './pages/brandLut.json';
 import brandOsSettings from './pages/brandOsSettings.json';
 import brandPublishingSettings from './pages/brandPublishingSettings.json';
 import brandSocialMedia from './pages/brandSocialMedia.json';
@@ -106,6 +107,7 @@ const pages = {
   brandIntegrations,
   brandKitReview,
   brandKitSettings,
+  brandLut,
   brandOsSettings,
   brandPublishingSettings,
   brandSocialMedia,

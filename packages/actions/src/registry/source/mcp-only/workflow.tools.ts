@@ -22,7 +22,7 @@ export const MCP_WORKFLOW_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'List available workflow templates that can be used to quickly create new workflows.',
-    name: 'list_workflow_templates',
+    name: 'get_workflow_templates',
     parameters: {
       properties: {},
       type: 'object',

@@ -156,7 +156,7 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     1,
   ),
   legacyUiAllowance(
-    'apps/website/packages/ui/workflow-builder/nodes/RssInputNode.tsx',
+    'apps/website/src/ui/workflow-builder/nodes/RssInputNode.tsx',
     'to-locale-date-string',
     1,
   ),
@@ -193,22 +193,22 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     'Shared opt-in local-time helper intentionally formats for the executing client environment.',
   ),
   legacyUiAllowance(
-    'packages/pages/agents/campaigns/AgentCampaignDetailHeader.tsx',
+    'apps/app/src/features/agents/campaigns/AgentCampaignDetailHeader.tsx',
     'to-locale-string',
     2,
   ),
   legacyUiAllowance(
-    'packages/pages/agents/campaigns/AgentCampaignsPage.tsx',
+    'apps/app/src/features/agents/campaigns/AgentCampaignsPage.tsx',
     'to-locale-string',
     5,
   ),
   legacyUiAllowance(
-    'packages/pages/agents/campaigns/OutreachCampaignTargetsTable.tsx',
+    'apps/app/src/features/agents/campaigns/OutreachCampaignTargetsTable.tsx',
     'to-locale-string',
     3,
   ),
   legacyUiAllowance(
-    'packages/pages/agents/campaigns/OutreachCampaignsKPI.tsx',
+    'apps/app/src/features/agents/campaigns/OutreachCampaignsKPI.tsx',
     'to-locale-string',
     1,
   ),
@@ -218,7 +218,7 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     1,
   ),
   legacyUiAllowance(
-    'packages/pages/trends/list/components/HookRemixModal.tsx',
+    'apps/app/src/features/trends/list/components/HookRemixModal.tsx',
     'to-locale-string',
     1,
   ),

@@ -40,7 +40,7 @@ describe('dispatchAgentToolEffects', () => {
 
   it('reloads the Library once when a run starred an asset', () => {
     dispatchAgentToolEffects([
-      { status: 'completed', toolName: 'list_assets' },
+      { status: 'completed', toolName: 'get_assets' },
       { status: 'completed', toolName: 'star_asset' },
       { status: 'completed', toolName: 'star_asset' },
     ]);
@@ -64,7 +64,7 @@ describe('dispatchAgentToolEffects', () => {
   it('ignores tools that do not change Publishing content', () => {
     dispatchAgentToolEffects([
       { status: 'completed', toolName: 'get_posts' },
-      { status: 'completed', toolName: 'list_assets' },
+      { status: 'completed', toolName: 'get_assets' },
     ]);
     dispatchAgentToolEffects(undefined);
     dispatchAgentToolEffects([]);

@@ -40,11 +40,14 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
-vi.mock('@hooks/data/agent-strategies/use-agent-strategies', () => ({
-  useAgentStrategies: () => ({
-    strategies: [{ id: 'strategy-1', label: 'Daily ship' }],
+vi.mock(
+  '@/features/agents/hooks/agent-strategies/use-agent-strategies',
+  () => ({
+    useAgentStrategies: () => ({
+      strategies: [{ id: 'strategy-1', label: 'Daily ship' }],
+    }),
   }),
-}));
+);
 
 describe('useWorkflowActionDefaults', () => {
   it('prefills brand, timezone, and connected X/LinkedIn accounts', () => {

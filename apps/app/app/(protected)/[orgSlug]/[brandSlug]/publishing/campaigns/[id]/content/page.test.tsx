@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 
 import { PageScope } from '@genfeedai/contracts';
-import type { CampaignDetailShell } from '@pages/campaigns';
 import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
 import { render, screen } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
+import type { CampaignDetailShell } from '@/features/campaigns';
 import Page from './page';
 
 assertSourceHasExport(
@@ -21,7 +21,7 @@ vi.mock('../../../publishing-list-page', () => ({
     return <div data-testid="posts-list" />;
   },
 }));
-vi.mock('@pages/campaigns', () => ({
+vi.mock('@/features/campaigns', () => ({
   CampaignDetailShell: ({
     campaignId,
     section,

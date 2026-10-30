@@ -15,6 +15,9 @@ locals {
     mcp           = 20
     notifications = 30
   }
+  # Must stay below every public_listener_priorities entry (and the separately
+  # managed console-api rule) so the block wins for the api host.
+  internal_api_block_priority = 10
 
   vpc_id             = var.vpc_id
   public_subnet_ids  = var.public_subnet_ids                # ALB (internet-facing)

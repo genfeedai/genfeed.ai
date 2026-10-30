@@ -184,6 +184,31 @@ test.describe('Workflows builder & canvas interactions', () => {
     await expectNoErrorOverlay(authenticatedPage);
   });
 
+  test('canvas can go full size and bring the agent back', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.goto(
+      brandPath(APP_ROUTES.AUTOMATION.WORKFLOWS_NEW),
+      {
+        waitUntil: 'domcontentloaded',
+      },
+    );
+
+    const agent = authenticatedPage.getByTestId('agent-output-agent-pane');
+    const output = authenticatedPage.getByTestId('agent-output-output-pane');
+    await expect(output.locator('.react-flow').first()).toBeVisible({
+      timeout: 20_000,
+    });
+
+    await authenticatedPage.getByTestId('agent-output-expand-output').click();
+    await expect(agent).toBeHidden();
+    await expect(output.locator('.react-flow').first()).toBeVisible();
+
+    await authenticatedPage.getByTestId('agent-output-expand-output').click();
+    await expect(agent).toBeVisible();
+    await expectNoErrorOverlay(authenticatedPage);
+  });
+
   test('builder toolbar exposes Run and draft lifecycle actions', async ({
     authenticatedPage,
   }) => {

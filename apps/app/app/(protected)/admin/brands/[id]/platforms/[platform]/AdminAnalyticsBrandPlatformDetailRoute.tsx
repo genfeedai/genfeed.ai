@@ -2,7 +2,7 @@
 
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
-import AnalyticsPlatformDetail from '@pages/analytics/platform-detail/analytics-platform-detail';
+import AnalyticsPlatformDetail from '@/features/analytics/platform-detail/analytics-platform-detail';
 import { readRouteParam } from '@/lib/route-params';
 
 export default function AdminAnalyticsBrandPlatformDetailRoute() {

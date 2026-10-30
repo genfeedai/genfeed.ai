@@ -96,9 +96,9 @@ function dispatchCatalogAndTransfer(
   ctx: ToolExecutionContext,
 ): FamilyResult {
   switch (toolName) {
-    case 'list_genfeed_tools':
+    case 'get_genfeed_tools':
       return handlers.catalogHandler.listGenfeedTools(params);
-    case 'list_agent_conversations':
+    case 'get_agent_conversations':
     case 'transfer_agent_conversation':
       return dispatchConversationTransfer(handlers, toolName, params, ctx);
     default:
@@ -119,7 +119,7 @@ function dispatchConversationTransfer(
       success: false,
     });
   }
-  return toolName === 'list_agent_conversations'
+  return toolName === 'get_agent_conversations'
     ? handlers.transferHandler.listConversations(params, ctx)
     : handlers.transferHandler.transfer(params, ctx);
 }
@@ -135,7 +135,7 @@ function dispatchWorkspaceFamily(
       return handlers.workspaceHandler.getAccount(params, ctx);
     case 'get_brands':
       return handlers.workspaceHandler.getBrands(params, ctx);
-    case 'list_assets':
+    case 'get_assets':
       return handlers.workspaceHandler.listAssets(params, ctx);
     case 'get_current_brand':
       return handlers.workspaceHandler.getCurrentBrand(ctx);
@@ -217,11 +217,11 @@ function dispatchWorkflowFamily(
   switch (toolName) {
     case 'install_official_workflow':
       return handlers.workflowHandler.installOfficialWorkflow(params, ctx);
-    case 'list_system_workflow_catalog':
+    case 'get_system_workflow_catalog':
       return handlers.workflowHandler.listSystemWorkflowCatalog(params, ctx);
     case 'install_system_workflow':
       return handlers.workflowHandler.installSystemWorkflow(params, ctx);
-    case 'list_workflows':
+    case 'get_workflows':
       return handlers.workflowHandler.listWorkflows(params, ctx);
     case 'inspect_workflow':
       return handlers.workflowHandler.inspectWorkflow(params, ctx);
@@ -233,7 +233,7 @@ function dispatchWorkflowFamily(
       return handlers.workflowHandler.executeWorkflow(params, ctx);
     case 'set_workflow_schedule':
       return handlers.workflowHandler.setWorkflowSchedule(params, ctx);
-    case 'list_workflow_runs':
+    case 'get_workflow_runs':
       return handlers.workflowHandler.listWorkflowRuns(params, ctx);
     case 'get_workflow_run':
       return handlers.workflowHandler.getWorkflowRun(params, ctx);
@@ -259,7 +259,7 @@ function dispatchInsightsFamily(
       return handlers.analyticsHandler.trackPostLink(params, ctx);
     case 'get_analytics':
       return handlers.analyticsHandler.getAnalytics(params, ctx);
-    case 'list_outlier_posts':
+    case 'get_outlier_posts':
       return handlers.analyticsHandler.listOutlierPosts(params, ctx);
     case 'get_connection_status':
       return handlers.connectionHandler.getConnectionStatus(params, ctx);
@@ -271,7 +271,7 @@ function dispatchInsightsFamily(
       return handlers.connectionHandler.connectSocialAccount(params, ctx);
     case 'get_trends':
       return handlers.trendsHandler.getTrends(params, ctx);
-    case 'list_ads_research':
+    case 'get_ads_research':
       return handlers.adsResearchHandler.listAdsResearch(params, ctx);
     case 'get_ad_research_detail':
       return handlers.adsResearchHandler.getAdResearchDetail(params, ctx);
@@ -321,7 +321,7 @@ function dispatchGrowthFamily(
   ctx: ToolExecutionContext,
 ): FamilyResult {
   switch (toolName) {
-    case 'list_review_queue':
+    case 'get_review_queue':
       return handlers.reviewHandler.listReviewQueue(params, ctx);
     case 'review_turbo_items':
       return handlers.reviewHandler.reviewTurboItems(params, ctx);
@@ -364,7 +364,7 @@ function dispatchGrowthFamily(
       return handlers.proactiveHandler.getApprovalSummary(ctx);
     case 'build_prep_brief':
       return handlers.prepBriefHandler.buildPrepBrief(params, ctx);
-    case 'list_stalled_items':
+    case 'get_stalled_items':
       return handlers.proactiveHandler.listStalledItems(params, ctx);
     case 'analyze_performance':
       return handlers.proactiveHandler.analyzePerformance(params, ctx);
@@ -448,7 +448,7 @@ function dispatchKnowledgeFamily(
   switch (toolName) {
     case 'search_knowledge':
     case 'get_context_coverage':
-    case 'list_knowledge_sources':
+    case 'get_knowledge_sources':
     case 'read_knowledge_source':
     case 'capture_knowledge':
     case 'assign_knowledge_purpose':

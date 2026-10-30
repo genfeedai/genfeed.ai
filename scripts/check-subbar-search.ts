@@ -10,19 +10,27 @@ import { globSync } from 'glob';
  * shared subbar.
  */
 
-const INCLUDE_GLOBS = ['apps/app/app/**/*.tsx', 'packages/pages/**/*.tsx'];
+const INCLUDE_GLOBS = [
+  'apps/app/app/**/*.tsx',
+  'apps/app/src/features/**/*.tsx',
+  'packages/pages/**/*.tsx',
+];
 
 const EXCLUDE_GLOBS = [
   '**/*.test.*',
   '**/*.spec.*',
   '**/dist/**',
   '**/node_modules/**',
+  // Feature folders that predate the move out of packages/pages (#8684) and
+  // were never scanned; they join once their existing findings are fixed.
+  'apps/app/src/features/settings/**',
+  'apps/app/src/features/workflows/**',
 ];
 
 /** Searches that live inside a modal or connect flow, not a list page's subbar. */
 export const SUBBAR_SEARCH_ALLOWLIST: readonly string[] = [
   'packages/pages/brands/components/integrations/connect-account/ConnectAccountShell.tsx',
-  'packages/pages/trends/following/FollowSourceModal.tsx',
+  'apps/app/src/features/trends/following/FollowSourceModal.tsx',
 ];
 
 /** The `@ui` alias or a relative path to the primitive; `\s` spans a line break after `from`. */

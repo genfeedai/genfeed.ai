@@ -361,7 +361,7 @@ describe('StreamableHttpService (real SDK integration)', () => {
             }),
           }),
           expect.objectContaining({
-            name: 'list_assets',
+            name: 'get_assets',
             _meta: expect.objectContaining({
               ui: { resourceUri: MCP_CARD_RESOURCE_URI },
             }),
@@ -512,7 +512,7 @@ describe('StreamableHttpService (real SDK integration)', () => {
           .sort(),
       ).toEqual(expected);
       const gallery = listing.body.result.tools.find(
-        (tool: { name: string }) => tool.name === 'list_assets',
+        (tool: { name: string }) => tool.name === 'get_assets',
       );
       expect(gallery._meta.ui.resourceUri).toBe(MCP_CARD_RESOURCE_URI);
       expect(gallery._meta['openai/outputTemplate']).toBe(
@@ -520,7 +520,7 @@ describe('StreamableHttpService (real SDK integration)', () => {
       );
       const described = await postModern(baseUrl, 'tools/call', {
         name: 'find_tools',
-        arguments: { name: 'list_assets' },
+        arguments: { name: 'get_assets' },
       });
       expect(described.body.result.structuredContent.connection).toEqual({
         isListed: true,
@@ -559,7 +559,7 @@ describe('StreamableHttpService (real SDK integration)', () => {
     try {
       await withServer(async (baseUrl) => {
         const result = await postModern(baseUrl, 'tools/call', {
-          name: 'list_assets',
+          name: 'get_assets',
           arguments: { type: 'image' },
         });
         expect(result.body.result.isError).not.toBe(true);

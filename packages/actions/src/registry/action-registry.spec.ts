@@ -696,7 +696,7 @@ describe('Genfeed action registry', () => {
       'archive_knowledge_source',
       'assign_knowledge_purpose',
       'capture_knowledge',
-      'list_knowledge_sources',
+      'get_knowledge_sources',
       'read_knowledge_source',
       'retry_knowledge_ingestion',
       'search_knowledge',

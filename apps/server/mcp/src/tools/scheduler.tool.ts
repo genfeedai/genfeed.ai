@@ -9,9 +9,9 @@ import { formatToolData } from '@mcp/shared/utils/tool-result-text.util';
 export const SCHEDULER_TOOL_NAMES = new Set([
   'control_scheduled_release',
   'create_scheduled_release',
+  'get_brand_publishing_readiness',
   'get_scheduled_release',
   'get_scheduler_capabilities',
-  'list_brand_publishing_readiness',
   'update_scheduled_release',
   'validate_scheduler_target',
 ]);
@@ -105,7 +105,7 @@ export function handleSchedulerTool(
         ],
       };
     },
-    list_brand_publishing_readiness: async (a) => {
+    get_brand_publishing_readiness: async (a) => {
       const result = await client.listBrandPublishingReadiness(
         requiredString(a, 'brandId'),
       );

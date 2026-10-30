@@ -4,7 +4,7 @@ export const AGENT_LIBRARY_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Star or unstar a Library asset so it appears under Starred. Starring is idempotent; pass isStarred false to remove the star. Use list_assets to find the asset id.',
+      'Star or unstar a Library asset so it appears under Starred. Starring is idempotent; pass isStarred false to remove the star. Use get_assets to find the asset id.',
     name: 'star_asset',
     parameters: {
       properties: {

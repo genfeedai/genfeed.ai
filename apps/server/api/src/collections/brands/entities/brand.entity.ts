@@ -38,6 +38,9 @@ export class BrandEntity extends BaseEntity implements Brand {
   declare readonly endCardAssetId: BrandDocument['endCardAssetId'];
   declare readonly endCardDurationSeconds: BrandDocument['endCardDurationSeconds'];
   declare readonly isEndCardEnabled: BrandDocument['isEndCardEnabled'];
+  declare readonly isLutEnabled: BrandDocument['isLutEnabled'];
+  declare readonly lutFileName: BrandDocument['lutFileName'];
+  declare readonly lutStorageKey: BrandDocument['lutStorageKey'];
 
   declare readonly primaryColor: BrandDocument['primaryColor'];
   declare readonly secondaryColor: BrandDocument['secondaryColor'];

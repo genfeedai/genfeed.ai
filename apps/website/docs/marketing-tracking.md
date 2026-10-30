@@ -1,7 +1,7 @@
 # Website Marketing Tracking
 
 The website owns one canonical marketing event layer in
-`apps/website/packages/marketing`.
+`apps/website/src/analytics`.
 
 ## Event Contract
 

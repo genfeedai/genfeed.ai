@@ -1207,8 +1207,10 @@
   "agentOutput": {
     "agent": "Agent",
     "collapseAgent": "Collapse agent",
+    "collapseOutput": "Show agent",
     "context": "Context",
     "expandAgent": "Expand agent",
+    "expandOutput": "Full size",
     "newThread": "New thread",
     "openFullPage": "Open full page",
     "output": "Output",

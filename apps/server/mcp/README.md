@@ -126,7 +126,7 @@ reconnecting. Keep the existing authentication and endpoint restrictions.
 The transport is stateless and does not send tool/resource list-change
 notifications. Its discovery and setup examples both advertise `listChanged:
 false`; clients need a fresh discovery after server upgrades or scope changes.
-Library galleries use `list_assets` in the generation toolset. The clipper
+Library galleries use `get_assets` in the generation toolset. The clipper
 toolset also exposes `get_clip_context` and `edit_clip` for the installed
 clip-editor skill, using the same tenant-scoped handlers as the in-app agent.
 

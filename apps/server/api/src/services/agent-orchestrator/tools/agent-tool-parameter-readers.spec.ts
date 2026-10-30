@@ -12,7 +12,7 @@ import {
 import { describe, expect, it } from 'vitest';
 
 /**
- * `readAdsPlatform` is the gate on `list_ads_research` / `get_ad_research_detail`
+ * `readAdsPlatform` is the gate on `get_ads_research` / `get_ad_research_detail`
  * — a platform it rejects is silently dropped from the filters, so the tool
  * answers about the wrong platform instead of erroring. It must accept exactly
  * the `AdsPlatform` product-channel enum.

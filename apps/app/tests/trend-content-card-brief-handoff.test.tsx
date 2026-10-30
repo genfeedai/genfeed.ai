@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import TrendContentCard from '@pages/trends/shared/trend-content-card';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import TrendContentCard from '@/features/trends/shared/trend-content-card';
 
 const createResearchBriefRun = vi.fn();
 const notifyError = vi.fn();

@@ -320,7 +320,7 @@ const TOOL_DOCUMENTATION = new Map([
     },
   ],
   [
-    'list_assets',
+    'get_assets',
     {
       original:
         'List library assets of one type, newest first, for one brand: brandId, else the thread brand, else your current brand; with none of those it lists the whole organization. Failed, archived and rejected assets are left out. Types image, video, music and avatar return id, category, status, url, label or prompt, origin, tags (id and label) and createdAt. Type character lists the active named characters the brand can use, including characters another organization granted to yours for use only (handle, label, description, whether a reference image exists, and who granted it). A revoked grant disappears on the next call.',
@@ -329,7 +329,7 @@ const TOOL_DOCUMENTATION = new Map([
     },
   ],
   [
-    'list_orgs',
+    'get_orgs',
     {
       original:
         'List every organization you belong to, which one this connection works inside, and the brands in it. get_account, get_brands and every other tool act only in the active organization. When the connection allows switching, use switch_org to change it; otherwise reconnect and choose another on the consent screen.',
@@ -338,7 +338,7 @@ const TOOL_DOCUMENTATION = new Map([
     },
   ],
   [
-    'list_system_workflow_catalog',
+    'get_system_workflow_catalog',
     {
       original:
         'List the code-owned Genfeed system workflow catalog with per-organization install state. Use this to discover official automations before installing one.',
@@ -476,9 +476,9 @@ const TOOL_DOCUMENTATION = new Map([
     'switch_org',
     {
       original:
-        'Switch which organization this connection works inside, by its name, slug or id from list_orgs. Only available when the connection was approved with organization switching on. Your role in the organization is checked on every request.',
+        'Switch which organization this connection works inside, by its name, slug or id from get_orgs. Only available when the connection was approved with organization switching on. Your role in the organization is checked on every request.',
       concise:
-        'Switch active organization by name/slug/id from list_orgs. Requires organization-switching consent; role checked each request.',
+        'Switch active organization by name/slug/id from get_orgs. Requires organization-switching consent; role checked each request.',
     },
   ],
   [

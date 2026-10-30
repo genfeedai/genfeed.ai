@@ -301,7 +301,7 @@ describe('handleToolDiscoveryTool', () => {
       'reports whether a discovered tool is listed (%s) and how to load it',
       (isListed) => {
         const gallery = tool({
-          name: 'list_assets',
+          name: 'get_assets',
           _meta: { 'genfeed.ai/toolset': 'generation' },
         });
         const registry = {
@@ -309,7 +309,7 @@ describe('handleToolDiscoveryTool', () => {
           getTools: () => (isListed ? [gallery] : []),
         };
         const result = handleToolDiscoveryTool(registry, 'find_tools', {
-          name: 'list_assets',
+          name: 'get_assets',
         });
         expectSuccess(result);
         expect(result.structuredContent?.connection).toEqual({

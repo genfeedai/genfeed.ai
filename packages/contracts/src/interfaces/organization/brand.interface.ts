@@ -48,6 +48,11 @@ export interface IBrand extends IBaseEntity {
   endCardDurationSeconds?: number;
   isEndCardEnabled?: boolean;
 
+  /** Name of the `.cube` colour LUT uploaded to the brand, when there is one. */
+  lutFileName?: string | null;
+  /** Grade the brand's finished videos with the uploaded LUT. */
+  isLutEnabled?: boolean;
+
   logo?: IAsset;
   banner?: IAsset;
   references?: IAsset[];

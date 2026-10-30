@@ -81,7 +81,7 @@ Every article needs a distinct thesis. Reject a draft if changing only the title
 
 Use `blog-content-creator` to draft, `content-reviewer` to validate evidence and usefulness, and `content-seo-optimizer` to check search presentation. Use `content-atomizer` only to distribute the approved article. Do not duplicate those stages with more article-writing skills.
 
-For Genfeed-owned articles, map one existing public skill in `apps/website/packages/data/article-resources.data.ts`. Verify it exists in `genfeedai/skills`; use `bunx skills add genfeedai/skills --skill <skill-name>` for a focused install. The article resource component links Skills Pro at `/skills` and agent/plugin/MCP setup at `/agent`. Never send public readers to the private skills-pro repository. Promotion belongs to Genfeed-owned articles, not customer publications or previews.
+For Genfeed-owned articles, map one existing public skill in `apps/website/src/data/article-resources.data.ts`. Verify it exists in `genfeedai/skills`; use `bunx skills add genfeedai/skills --skill <skill-name>` for a focused install. The article resource component links Skills Pro at `/skills` and agent/plugin/MCP setup at `/agent`. Never send public readers to the private skills-pro repository. Promotion belongs to Genfeed-owned articles, not customer publications or previews.
 
 Record model version and check date for volatile workflows. Improve the canonical guide after a model release when the reader's task is unchanged; create a release article only for distinct intent and new evidence. Never fabricate outputs, screenshots, benchmarks, or model availability to fill a calendar slot. Verify the model in Genfeed's actual deployed catalog, even when a provider announcement exists.
 

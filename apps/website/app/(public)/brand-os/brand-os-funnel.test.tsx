@@ -30,7 +30,7 @@ vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: { apps: { app: 'https://app.genfeed.ai' } },
 }));
 
-vi.mock('../../../packages/analytics/posthog-client', () => ({
+vi.mock('../../../src/analytics/posthog-client', () => ({
   captureWebsiteAnalyticsEvent: mocks.capture,
 }));
 

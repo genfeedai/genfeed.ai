@@ -11,14 +11,18 @@ interface WorkflowAgentLayoutProps {
 /**
  * The workflow editor's place in the shared agent + output layout. The agent
  * sits in a collapsed rail beside the canvas and expands to half the page on
- * request; the canvas, its inspector and the run panel stay in the output
- * pane. Both pages wrap their editor here, so the layout has one owner.
+ * request, or hides to give the canvas the full page; the canvas, its
+ * inspector and the run panel stay in the output pane. Both pages wrap their editor here, so the layout has one owner.
  */
 export function WorkflowAgentLayout({ children }: WorkflowAgentLayoutProps) {
   const translate = useTranslations('pages.workflows.agentLayout');
 
   return (
-    <AgentOutputShell mode="rail" outputLabel={translate('canvas')}>
+    <AgentOutputShell
+      isOutputExpandable
+      mode="rail"
+      outputLabel={translate('canvas')}
+    >
       {children}
     </AgentOutputShell>
   );

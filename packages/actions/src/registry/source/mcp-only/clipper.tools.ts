@@ -213,7 +213,7 @@ export const MCP_CLIP_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'List clip projects in your organization, most recent first. Returns id, name, status, and progress for each.',
-    name: 'list_clipper_projects',
+    name: 'get_clipper_projects',
     parameters: {
       properties: {
         limit: {

@@ -1,0 +1,93 @@
+'use client';
+
+import { ComponentSize } from '@genfeedai/contracts';
+import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
+import Badge from '@ui/display/badge/Badge';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import TableRowSummary from '@ui/display/table/TableRowSummary';
+import { useTranslations } from 'next-intl';
+import type { TrendRowSummaryProps } from '@/features/trends/props/trend-row-summary.props';
+
+/** Right-sidebar body for a trend row in the trend tables. */
+export default function TrendRowSummary({
+  trend,
+  openHref,
+  openLabel,
+}: TrendRowSummaryProps) {
+  const translate = useTranslations('pages.analytics.trends');
+  const discovery = useTranslations('ui.discovery');
+  const metadata = trend.metadata;
+  const growth =
+    metadata?.growthMeasured === true
+      ? `${trend.growthRate > 0 ? '+' : ''}${trend.growthRate}%`
+      : discovery('notMeasured');
+  const hashtags = metadata?.hashtags ?? [];
+
+  return (
+    <TableRowSummary
+      badges={
+        <PlatformBadge platform={trend.platform} size={ComponentSize.SM} />
+      }
+      facts={[
+        {
+          id: 'mentions',
+          label: translate('detail.metrics.mentions.label'),
+          value: formatCompactNumber(trend.mentions),
+        },
+        {
+          id: 'growth',
+          label: translate('detail.metrics.growthRate.label'),
+          value: growth,
+        },
+        {
+          id: 'virality',
+          label: translate('detail.metrics.viralityScore.label'),
+          value: Math.round(trend.viralityScore),
+        },
+        {
+          id: 'engagementRate',
+          label: translate('detail.metrics.engagementRate.label'),
+          value:
+            metadata?.engagementRate === undefined
+              ? undefined
+              : `${metadata.engagementRate}%`,
+        },
+        {
+          id: 'reach',
+          label: translate('detail.metrics.reach.label'),
+          value:
+            metadata?.reach === undefined
+              ? undefined
+              : formatCompactNumber(metadata.reach),
+        },
+      ]}
+      openHref={openHref}
+      openLabel={openLabel}
+    >
+      {hashtags.length > 0 ? (
+        <div>
+          <p className="mb-1 text-xs text-muted-foreground">
+            {translate('detail.relatedHashtags')}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {hashtags.map((hashtag) => (
+              <Badge key={hashtag} variant="outline">
+                {hashtag}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {metadata?.sampleContent ? (
+        <div>
+          <p className="mb-1 text-xs text-muted-foreground">
+            {translate('detail.sampleContent')}
+          </p>
+          <p className="whitespace-pre-wrap text-sm text-foreground/80">
+            {metadata.sampleContent}
+          </p>
+        </div>
+      ) : null}
+    </TableRowSummary>
+  );
+}

@@ -1,6 +1,6 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import { OutreachCampaignDetail } from '@pages/agents';
 import { Suspense } from 'react';
+import { OutreachCampaignDetail } from '@/features/agents';
 
 export const generateMetadata = createPageMetadata('Outreach sequence');
 

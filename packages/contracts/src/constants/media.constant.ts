@@ -46,6 +46,14 @@ export const BRAND_END_CARD_MIME_TYPES: readonly string[] = [
   'image/webp',
 ];
 
+/** Bounds for the `.cube` colour LUT a brand grades its finished videos with. */
+export const BRAND_LUT_LIMITS = {
+  /** 3D LUTs above 65 points per side are not a colour grade. */
+  MAX_BYTES: 8 * 1024 * 1024,
+  MAX_GRID_SIZE: 65,
+  MIN_GRID_SIZE: 2,
+} as const;
+
 export const CLIPPER_REFERENCE_FRAME_MAX_CANDIDATES = 5;
 /** Minimum source duration accepted when a Library asset starts a clip project. */
 export const CLIPPER_SOURCE_MIN_DURATION_SECONDS = 15;

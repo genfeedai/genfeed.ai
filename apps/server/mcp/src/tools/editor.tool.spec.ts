@@ -37,7 +37,7 @@ describe('EDITOR_TOOL_NAMES', () => {
   it('lists the handoff, the two project reads and the render', () => {
     expect([...EDITOR_TOOL_NAMES].sort()).toEqual([
       'get_editor_project',
-      'list_editor_projects',
+      'get_editor_projects',
       'open_in_editor',
       'start_editor_render',
     ]);
@@ -126,7 +126,7 @@ describe('handleEditorTool', () => {
 
   it('lists Editor projects with a clamped page size', async () => {
     const client = buildClient();
-    const result = await call(client, 'list_editor_projects', {
+    const result = await call(client, 'get_editor_projects', {
       limit: 500,
       page: 0,
     });
@@ -142,7 +142,7 @@ describe('handleEditorTool', () => {
   it('says so when there are no Editor projects', async () => {
     const client = buildClient();
     client.listEditorProjects.mockResolvedValueOnce([]);
-    const result = await call(client, 'list_editor_projects', {});
+    const result = await call(client, 'get_editor_projects', {});
 
     expect(result.content[0]?.text).toBe('No Editor projects found.');
   });

@@ -68,8 +68,8 @@ const TOOL_KINDS: Readonly<Record<string, McpCardKind>> = {
   get_job_status: 'media',
   get_posts: 'post',
   get_scheduled_release: 'summary',
-  list_assets: 'media',
-  list_orgs: 'summary',
+  get_assets: 'media',
+  get_orgs: 'summary',
   switch_org: 'summary',
   transform_media: 'media',
   update_scheduled_release: 'summary',
@@ -460,7 +460,7 @@ export function withoutBrandLogos(data: Record<string, unknown>) {
 }
 
 /**
- * `list_orgs` / `switch_org`: the organization dropdown plus the brands of the
+ * `get_orgs` / `switch_org`: the organization dropdown plus the brands of the
  * organization the connection works inside. Identifiers stay in the
  * structured data; the card shows names.
  */
@@ -552,7 +552,7 @@ export function buildCardView(
   const data = record(payload);
   if (name === 'get_account') return buildAccountView(data);
   if (name === 'get_brands') return buildBrandsView(data);
-  if (name === 'list_orgs' || name === 'switch_org') {
+  if (name === 'get_orgs' || name === 'switch_org') {
     return buildOrganizationsView(data);
   }
   if (baseKind === 'summary') return buildReleaseView(data);

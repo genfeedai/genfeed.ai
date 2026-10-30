@@ -1,11 +1,11 @@
 'use client';
 
 import { PageScope } from '@genfeedai/contracts';
-import TrainingsList from '@pages/trainings/list/trainings-list';
 import AdminOrgBrandUrlFilter from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { GraduationCap } from 'lucide-react';
 import { useCallback, useRef, useState } from 'react';
+import TrainingsList from '@/features/trainings/list/trainings-list';
 
 /**
  * Admin trainings surface: owns page chrome. TrainingsList is body-only

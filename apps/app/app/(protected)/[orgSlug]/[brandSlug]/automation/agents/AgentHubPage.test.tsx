@@ -35,20 +35,23 @@ const mocks = vi.hoisted(() => ({
   pagedStrategies: null as unknown[] | null,
 }));
 
-vi.mock('@hooks/data/agent-strategies/use-agent-strategies', () => ({
-  useAgentStrategies: (options: { page?: number }) => {
-    mocks.hookOptions.push(options);
-    return {
-      error: mocks.loadError,
-      isLoading: mocks.isLoading,
-      refresh: mocks.refresh,
-      // The paged "all agents" query can differ from the full set.
-      strategies: options.page
-        ? (mocks.pagedStrategies ?? mocks.strategies)
-        : mocks.strategies,
-    };
-  },
-}));
+vi.mock(
+  '@/features/agents/hooks/agent-strategies/use-agent-strategies',
+  () => ({
+    useAgentStrategies: (options: { page?: number }) => {
+      mocks.hookOptions.push(options);
+      return {
+        error: mocks.loadError,
+        isLoading: mocks.isLoading,
+        refresh: mocks.refresh,
+        // The paged "all agents" query can differ from the full set.
+        strategies: options.page
+          ? (mocks.pagedStrategies ?? mocks.strategies)
+          : mocks.strategies,
+      };
+    },
+  }),
+);
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
   default: () => <nav aria-label="pagination" />,

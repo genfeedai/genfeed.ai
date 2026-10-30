@@ -152,11 +152,11 @@ const AGENT_CHAT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
 
 const WORKFLOW_CONTROL_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'duplicate_workflow',
+  'get_system_workflow_catalog',
   'get_workflow_run',
+  'get_workflow_runs',
   'inspect_workflow',
   'install_system_workflow',
-  'list_system_workflow_catalog',
-  'list_workflow_runs',
   'set_workflow_schedule',
 ]);
 
@@ -171,7 +171,7 @@ const PRE_DISPATCH_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
 
 const ACCOUNT_MANAGEMENT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'get_job_status',
-  'list_orgs',
+  'get_orgs',
   'switch_org',
 ]);
 

@@ -5,10 +5,10 @@ import { formatToolData } from '@mcp/shared/utils/tool-result-text.util';
 
 export const WORKSPACE_APP_TOOL_NAMES = new Set([
   'create_task',
+  'get_activity',
+  'get_inbox',
   'get_task',
-  'list_activity',
-  'list_inbox',
-  'list_tasks',
+  'get_tasks',
 ]);
 
 const TASK_STATUSES = [
@@ -35,7 +35,7 @@ export async function handleWorkspaceAppTool(
   args: Record<string, unknown>,
 ) {
   switch (name) {
-    case 'list_tasks': {
+    case 'get_tasks': {
       const tasks = await client.listTasks({
         limit: readLimit(args),
         page: readPage(args),
@@ -57,7 +57,7 @@ export async function handleWorkspaceAppTool(
       });
       return dataResult('Task created', task);
     }
-    case 'list_inbox': {
+    case 'get_inbox': {
       const items = await client.listInbox();
       return {
         structuredContent: { data: items },
@@ -72,7 +72,7 @@ export async function handleWorkspaceAppTool(
         ],
       };
     }
-    case 'list_activity': {
+    case 'get_activity': {
       const activities = await client.listActivity({
         activeOnly: args.activeOnly === true,
         limit: readLimit(args),

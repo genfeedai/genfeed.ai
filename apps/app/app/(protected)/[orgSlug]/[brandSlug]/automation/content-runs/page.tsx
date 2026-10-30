@@ -1,7 +1,7 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import ContentRunListPage from '@pages/content-runs/list/content-run-list';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import { Suspense } from 'react';
+import ContentRunListPage from '@/features/content-runs/list/content-run-list';
 
 export const generateMetadata = createPageMetadata('Content Runs');
 

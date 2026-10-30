@@ -90,7 +90,7 @@ export function handleMetaAdsTool(
         ],
       };
     },
-    list_meta_ad_accounts: async () => {
+    get_meta_ad_accounts: async () => {
       const result = await client.listMetaAdAccounts();
       return {
         structuredContent: { data: result },
@@ -105,7 +105,7 @@ export function handleMetaAdsTool(
         ],
       };
     },
-    list_meta_ad_creatives: async (a) => {
+    get_meta_ad_creatives: async (a) => {
       const result = await client.listMetaAdCreatives(
         a.adAccountId as string,
         a.limit as number | undefined,
@@ -123,7 +123,7 @@ export function handleMetaAdsTool(
         ],
       };
     },
-    list_meta_campaigns: async (a) => {
+    get_meta_campaigns: async (a) => {
       const result = await client.listMetaCampaigns(
         a.adAccountId as string,
         a.status as string | undefined,

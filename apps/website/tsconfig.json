@@ -29,7 +29,7 @@
       "@genfeedai/utils/*": ["../../packages/utils/*"],
       "@configs/*": ["../../packages/next-config/*"],
       "@contexts/*": ["../../packages/contexts/*"],
-      "@data/*": ["./packages/data/*"],
+      "@data/*": ["./src/data/*"],
       "@genfeedai/client": ["../../packages/client/dist/index"],
       "@genfeedai/client/*": ["../../packages/client/dist/*"],
       "@genfeedai/client/models": ["../../packages/client/src/models/index.ts"],
@@ -59,7 +59,7 @@
       "@hooks/*": ["../../packages/hooks/*"],
       "@models/*": ["../../packages/models/*"],
       "@pages/*": ["./src/page-modules/*", "../../packages/pages/*"],
-      "@props/*": ["./packages/props/*", "../../packages/props/*"],
+      "@props/*": ["./src/props/*", "../../packages/props/*"],
       "@protected/*": ["./app/(protected)/*"],
       "@providers/*": ["../../packages/contexts/providers/*"],
       "@public/*": ["./app/(public)/*"],
@@ -76,16 +76,16 @@
       "@styles/*": ["./styles/*", "../../packages/styles/*"],
       "@u/*": ["./app/u/*"],
       "@ui-constants/*": [
-        "./packages/ui/constants/*",
+        "./src/ui/constants/*",
         "../../packages/ui/src/components/constants/*"
       ],
       "@ui/*": [
-        "./packages/ui/*",
+        "./src/ui/*",
         "../../packages/ui/src/*",
         "../../packages/ui/src/components/*"
       ],
       "@utils/*": ["../../packages/utils/*"],
-      "@web-components/*": ["./packages/components/*"],
+      "@web-components/*": ["./src/components/*"],
       "@website/*": ["./app/*"]
     }
   },

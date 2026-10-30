@@ -406,6 +406,54 @@ export class FFmpegEffectsService {
   }
 
   /**
+   * Grade a video with a `.cube` 3D LUT. The picture is re-encoded; the audio
+   * is copied untouched.
+   */
+  async applyColorLut(
+    inputPath: string,
+    lutPath: string,
+    outputPath: string,
+    onProgress?: (progress: FFmpegProgress) => void,
+  ): Promise<void> {
+    const video = SecurityUtil.validateFilePath(inputPath);
+    SecurityUtil.validateFileExtension(video);
+    await SecurityUtil.validateFileExists(video);
+    const lut = SecurityUtil.validateFilePath(lutPath);
+    await SecurityUtil.validateFileExists(lut);
+    // The path is written into the filtergraph, where `:`, `'`, `\` and `,`
+    // mean something, so only plain path characters are let through.
+    if (!/^[A-Za-z0-9_./-]+\.cube$/.test(lut)) {
+      throw new Error('LUT path must be a plain .cube file path');
+    }
+    const output = SecurityUtil.validateFilePath(outputPath);
+    await this.core.ensureOutputDir(output);
+
+    await this.core.executeFFmpeg(
+      [
+        '-y',
+        '-i',
+        video,
+        '-vf',
+        `lut3d=file=${lut}`,
+        '-c:v',
+        'libx264',
+        '-preset',
+        'veryfast',
+        '-crf',
+        '18',
+        '-pix_fmt',
+        'yuv420p',
+        '-c:a',
+        'copy',
+        '-movflags',
+        '+faststart',
+        output,
+      ],
+      onProgress,
+    );
+  }
+
+  /**
    * Add captions to video
    */
   async addCaptions(

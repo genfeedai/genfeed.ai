@@ -4,7 +4,7 @@ export const MCP_SOCIAL_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description: 'List connected Meta (Facebook) ad accounts',
-    name: 'list_meta_ad_accounts',
+    name: 'get_meta_ad_accounts',
     parameters: {
       properties: {},
       type: 'object',
@@ -15,7 +15,7 @@ export const MCP_SOCIAL_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'List social inbox conversations across connected YouTube and Instagram accounts, with filters for review state, assignee, tags, and platform.',
-    name: 'list_social_conversations',
+    name: 'get_social_conversations',
     parameters: {
       properties: {
         assignedOwnerId: {

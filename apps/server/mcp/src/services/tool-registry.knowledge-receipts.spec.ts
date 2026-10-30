@@ -116,7 +116,7 @@ describe('search_knowledge over MCP', () => {
 
     const result = await registry().handleToolCall({
       arguments: { brandId: 'brand-1' },
-      name: 'list_knowledge_sources',
+      name: 'get_knowledge_sources',
     });
 
     expect(structuredContentOf(result)).not.toHaveProperty('receipts');

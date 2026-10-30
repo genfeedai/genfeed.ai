@@ -27,8 +27,8 @@ describe('review result follow-ups', () => {
       toolCalls: [
         {
           status: 'completed',
-          toolName: 'list_review_queue',
-          reviewQueue: readReviewQueueSnapshot('list_review_queue', result),
+          toolName: 'get_review_queue',
+          reviewQueue: readReviewQueueSnapshot('get_review_queue', result),
         },
       ],
       uiActions: result.nextActions ?? [],
@@ -149,8 +149,8 @@ describe('review result follow-ups', () => {
       toolCalls: [
         {
           status: 'completed',
-          toolName: 'list_review_queue',
-          reviewQueue: readReviewQueueSnapshot('list_review_queue', filtered),
+          toolName: 'get_review_queue',
+          reviewQueue: readReviewQueueSnapshot('get_review_queue', filtered),
         },
       ],
       uiActions: filtered.nextActions ?? [],
@@ -180,8 +180,8 @@ describe('review result follow-ups', () => {
         toolCalls: [
           {
             status: 'completed',
-            toolName: 'list_review_queue',
-            reviewQueue: readReviewQueueSnapshot('list_review_queue', result),
+            toolName: 'get_review_queue',
+            reviewQueue: readReviewQueueSnapshot('get_review_queue', result),
           },
         ],
         uiActions: result.nextActions ?? [],

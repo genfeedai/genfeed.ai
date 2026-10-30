@@ -22,7 +22,7 @@ export const MCP_OTHER_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'List every organization you belong to, which one this connection works inside, and the brands in it. get_account, get_brands and every other tool act only in the active organization. When the connection allows switching, use switch_org to change it; otherwise reconnect and choose another on the consent screen.',
-    name: 'list_orgs',
+    name: 'get_orgs',
     parameters: {
       properties: {},
       type: 'object',
@@ -32,13 +32,13 @@ export const MCP_OTHER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Switch which organization this connection works inside, by its name, slug or id from list_orgs. Only available when the connection was approved with organization switching on. Your role in the organization is checked on every request.',
+      'Switch which organization this connection works inside, by its name, slug or id from get_orgs. Only available when the connection was approved with organization switching on. Your role in the organization is checked on every request.',
     name: 'switch_org',
     parameters: {
       properties: {
         organization: {
           description:
-            'The organization to switch to: its name, slug or id from list_orgs.',
+            'The organization to switch to: its name, slug or id from get_orgs.',
           type: 'string',
         },
       },

@@ -293,7 +293,7 @@ export class AgentWorkspaceToolHandler {
   }
 
   /**
-   * `list_assets`: library assets of one type for the organization, or the
+   * `get_assets`: library assets of one type for the organization, or the
    * named characters the current brand can use.
    */
   async listAssets(
@@ -303,7 +303,7 @@ export class AgentWorkspaceToolHandler {
     const type = readAssetType(params.type);
     if (!type) {
       return toolFailure(
-        `list_assets requires type: ${ASSET_TYPES.join(', ')}.`,
+        `get_assets requires type: ${ASSET_TYPES.join(', ')}.`,
       );
     }
 
