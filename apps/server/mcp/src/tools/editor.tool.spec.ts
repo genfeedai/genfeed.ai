@@ -17,6 +17,11 @@ function buildClient() {
       id: 'editor-1',
       type: 'editor-project',
     }),
+    startEditorRender: vi.fn().mockResolvedValue({
+      attributes: { status: 'rendering' },
+      id: 'job-1',
+      type: 'editor-project',
+    }),
   };
 }
 
@@ -29,11 +34,12 @@ function call(
 }
 
 describe('EDITOR_TOOL_NAMES', () => {
-  it('lists the handoff and the two project reads', () => {
+  it('lists the handoff, the two project reads and the render', () => {
     expect([...EDITOR_TOOL_NAMES].sort()).toEqual([
       'get_editor_project',
       'list_editor_projects',
       'open_in_editor',
+      'start_editor_render',
     ]);
   });
 });
@@ -160,5 +166,29 @@ describe('handleEditorTool', () => {
       /projectId is required/,
     );
     expect(client.getEditorProject).not.toHaveBeenCalled();
+  });
+
+  it('queues a render and returns the job with the Editor path', async () => {
+    const client = buildClient();
+    const result = await call(client, 'start_editor_render', {
+      projectId: ' editor-1 ',
+    });
+
+    expect(client.startEditorRender).toHaveBeenCalledWith('editor-1');
+    expect(result.structuredContent.data).toEqual({
+      editorPath: '/editor/editor-1',
+      projectId: 'editor-1',
+      status: 'rendering',
+    });
+    expect(result.content[0]?.text).toContain('Render queued');
+    expect(result.content[0]?.text).toContain('get_editor_project');
+  });
+
+  it('requires a projectId to start a render', async () => {
+    const client = buildClient();
+    await expect(call(client, 'start_editor_render', {})).rejects.toThrow(
+      /projectId is required/,
+    );
+    expect(client.startEditorRender).not.toHaveBeenCalled();
   });
 });
