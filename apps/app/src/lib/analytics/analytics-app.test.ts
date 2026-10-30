@@ -1,5 +1,19 @@
+import {
+  ADMIN_RAIL_CATEGORIES,
+  APP_RAIL_REGISTRY,
+} from '@ui/shell/app-rail/app-rail.registry';
 import { describe, expect, it } from 'vitest';
-import { resolveAnalyticsApp } from './analytics-app';
+import { ANALYTICS_APP_PATH_ROOTS, resolveAnalyticsApp } from './analytics-app';
+
+describe('ANALYTICS_APP_PATH_ROOTS', () => {
+  it('matches the app rail registry so app slugs never drift', () => {
+    const registry = [...APP_RAIL_REGISTRY, ...ADMIN_RAIL_CATEGORIES].map(
+      ({ activePathRoots, id }) => ({ activePathRoots, id }),
+    );
+
+    expect(ANALYTICS_APP_PATH_ROOTS).toEqual(registry);
+  });
+});
 
 describe('resolveAnalyticsApp', () => {
   it.each([
