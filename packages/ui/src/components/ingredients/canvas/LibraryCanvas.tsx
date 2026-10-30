@@ -83,7 +83,7 @@ function LibraryCanvasInner({
             className="gen-glass flex items-center gap-0.5 rounded-lg p-0.5"
           >
             {isLoading ? (
-              <span className="px-2 text-xs text-foreground/55">
+              <span className="px-2 text-xs text-foreground/60">
                 {translate('loading', { count: ingredients.length })}
               </span>
             ) : null}

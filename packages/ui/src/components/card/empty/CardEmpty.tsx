@@ -11,7 +11,7 @@ const SIZE_CLASSES = {
   },
   [CardEmptySize.LG]: {
     icon: 'size-14',
-    title: 'text-base font-medium text-foreground/75',
+    title: 'text-base font-medium text-foreground/80',
   },
   [CardEmptySize.SM]: {
     icon: 'size-8',

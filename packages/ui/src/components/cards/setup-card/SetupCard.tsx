@@ -18,7 +18,7 @@ export default function SetupCard() {
 
   return (
     <Card
-      className="mx-3 mb-3 bg-foreground/[0.03] shadow-border"
+      className="mx-3 mb-3 bg-foreground/5 shadow-border"
       bodyClassName="gap-0 p-3"
     >
       <div className="flex items-center justify-between mb-2">
@@ -30,7 +30,7 @@ export default function SetupCard() {
         </span>
       </div>
 
-      <Progress className="mb-3 h-1 bg-foreground/[0.06]" value={progress} />
+      <Progress className="mb-3 h-1 bg-foreground/5" value={progress} />
 
       {/* Steps */}
       <div className="flex flex-col gap-0.5">
@@ -42,7 +42,7 @@ export default function SetupCard() {
               'flex items-center gap-2.5 px-2 py-1.5 text-xs transition-colors duration-150',
               step.isCompleted
                 ? 'text-muted-foreground'
-                : 'text-foreground/60 hover:bg-foreground/[0.04] hover:text-foreground/80',
+                : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground/80',
             )}
           >
             {step.isCompleted ? (

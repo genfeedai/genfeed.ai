@@ -160,7 +160,7 @@ export default function ModalMonitoredAccount({
                   className={`flex items-center gap-2 cursor-pointer p-2 border font-normal leading-normal ${
                     form.watch('platform') === platform
                       ? 'border-primary bg-primary/10'
-                      : 'border-white/[0.08]'
+                      : 'border-white/10'
                   }`}
                 >
                   <RadioGroupItem value={platform} disabled={isSubmitting} />

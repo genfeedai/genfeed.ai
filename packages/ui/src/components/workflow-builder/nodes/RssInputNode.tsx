@@ -163,7 +163,7 @@ function RssInputNodeComponent({ id, data, onUpdate }: RssInputNodeProps) {
             value={data.rawXml || ''}
             onChange={handleRawXmlChange}
             placeholder="Paste RSS XML here…"
-            className="w-full h-20 px-2 py-1.5 text-sm bg-background border border-white/[0.08] resize-none focus:outline-none focus:ring-2 focus:ring-ring font-mono text-xs"
+            className="w-full h-20 px-2 py-1.5 text-sm bg-background border border-white/10 resize-none focus:outline-none focus:ring-2 focus:ring-ring font-mono text-xs"
           />
           <Button
             onClick={handleFetchFeed}
@@ -186,7 +186,7 @@ function RssInputNodeComponent({ id, data, onUpdate }: RssInputNodeProps) {
 
       {/* Feed Preview */}
       {data.feedItems && data.feedItems.length > 0 && (
-        <div className="p-2 bg-background border border-white/[0.08] space-y-2">
+        <div className="p-2 bg-background border border-white/10 space-y-2">
           {/* Feed Title */}
           {data.feedTitle && (
             <div className="text-xs text-muted-foreground font-medium">

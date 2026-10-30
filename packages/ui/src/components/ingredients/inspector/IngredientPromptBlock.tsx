@@ -64,7 +64,7 @@ export default function IngredientPromptBlock({
       <InsetSurface className="flex flex-col gap-2" density="compact">
         <p
           className={cn(
-            'min-w-0 select-text whitespace-pre-wrap break-words text-xs leading-relaxed text-foreground/78',
+            'min-w-0 select-text whitespace-pre-wrap break-words text-xs leading-relaxed text-foreground/80',
             isClamped && 'line-clamp-4',
           )}
           data-testid="ingredient-prompt-text"
@@ -75,7 +75,7 @@ export default function IngredientPromptBlock({
         {isLong ? (
           <Button
             aria-expanded={isExpanded}
-            className="flex w-fit items-center gap-1 text-xs text-foreground/55 hover:text-foreground"
+            className="flex w-fit items-center gap-1 text-xs text-foreground/60 hover:text-foreground"
             onClick={() => setIsExpanded((current) => !current)}
             type="button"
             variant={ButtonVariant.UNSTYLED}

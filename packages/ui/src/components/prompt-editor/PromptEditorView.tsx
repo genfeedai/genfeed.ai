@@ -52,7 +52,7 @@ function PromptEditorView({
         'aria-multiline': 'true',
         class: cn(
           'prose prose-sm dark:prose-invert max-w-none flex-1 bg-transparent py-1.5 text-sm text-foreground focus:outline-none',
-          '[&_.mention]:rounded-md [&_.mention]:bg-primary/15 [&_.mention]:px-1 [&_.mention]:py-0.5 [&_.mention]:font-medium',
+          '[&_.mention]:rounded-md [&_.mention]:bg-primary/10 [&_.mention]:px-1 [&_.mention]:py-0.5 [&_.mention]:font-medium',
           editorClassName,
         ),
         role: 'textbox',

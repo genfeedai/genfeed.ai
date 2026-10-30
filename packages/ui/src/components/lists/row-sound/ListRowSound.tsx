@@ -121,7 +121,7 @@ export default function ListRowSound({
 
           <div className="min-w-0 space-y-1 text-sm text-muted-foreground">
             {resolvedProvider ? (
-              <div className="truncate font-medium text-foreground/85">
+              <div className="truncate font-medium text-foreground/90">
                 {resolvedProvider}
               </div>
             ) : null}

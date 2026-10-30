@@ -111,7 +111,7 @@ export default function PostDraftGenerator({
         data-testid="post-draft-composer"
         density="compact"
         beforeBody={
-          <p className="px-3.5 pt-2.5 text-2xs font-medium text-foreground/55">
+          <p className="px-3.5 pt-2.5 text-2xs font-medium text-foreground/60">
             {translate('topic')}
           </p>
         }

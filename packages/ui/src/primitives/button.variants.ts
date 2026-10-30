@@ -105,7 +105,7 @@ const nativeButtonVariants = cva(
         default:
           'justify-center rounded-md bg-primary text-primary-foreground hover:bg-accent-hover shadow-border',
         destructive:
-          'justify-center rounded-md bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25',
+          'justify-center rounded-md bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20',
         ghost:
           'rounded-md bg-transparent text-muted-foreground hover:bg-hover hover:text-foreground',
         link: 'justify-center text-foreground underline-offset-4 hover:underline',

@@ -41,24 +41,24 @@ export default function SidebarActionTrigger({
       data-testid={testId}
       isDisabled={isDisabled}
       className={cn(
-        'group relative flex h-control-sm w-full flex-row items-center gap-2 rounded px-2.5 py-1 text-left text-foreground/72 transition-[background-color,color] duration-200',
-        'hover:bg-foreground/[0.06] hover:text-foreground',
+        'group relative flex h-control-sm w-full flex-row items-center gap-2 rounded px-2.5 py-1 text-left text-foreground/80 transition-[background-color,color] duration-200',
+        'hover:bg-foreground/5 hover:text-foreground',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         isDisabled && 'pointer-events-none opacity-40',
         className,
       )}
     >
-      <span className="flex size-4 shrink-0 items-center justify-center text-muted-foreground transition-colors duration-200 group-hover:text-foreground/78">
+      <span className="flex size-4 shrink-0 items-center justify-center text-muted-foreground transition-colors duration-200 group-hover:text-foreground/80">
         {hoverIcon}
       </span>
-      <span className="min-w-0 flex-1 truncate text-sm font-medium tracking-[-0.01em] text-foreground/88 transition-colors duration-200">
+      <span className="min-w-0 flex-1 truncate text-sm font-medium tracking-[-0.01em] text-foreground/90 transition-colors duration-200">
         {label}
       </span>
       {shortcut ? (
         <Kbd
           variant="ghost"
           className={cn(
-            'ml-auto rounded-md border border-foreground/[0.08] bg-foreground/[0.03] text-xs tracking-[0.2em] text-foreground/55 transition-opacity duration-200',
+            'ml-auto rounded-md border border-foreground/10 bg-foreground/5 text-xs tracking-[0.2em] text-foreground/60 transition-opacity duration-200',
             hoverRevealClassName({ isInteractive: false }),
           )}
         >

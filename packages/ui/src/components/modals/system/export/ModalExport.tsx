@@ -60,7 +60,7 @@ const FORMAT_OPTIONS = [
 ] as const;
 
 const FIELD_CHIP_CLASS =
-  'h-8 rounded-full bg-background-secondary px-3 text-xs shadow-border data-[state=on]:bg-primary/15 data-[state=on]:text-primary';
+  'h-8 rounded-full bg-background-secondary px-3 text-xs shadow-border data-[state=on]:bg-primary/10 data-[state=on]:text-primary';
 
 const FORMAT_TILE_CLASS =
   'h-auto justify-start gap-3 rounded-lg bg-background-secondary p-3 shadow-border data-[state=on]:bg-primary/10 data-[state=on]:shadow-border-strong';

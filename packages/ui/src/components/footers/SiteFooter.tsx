@@ -114,7 +114,7 @@ export default function SiteFooter({
                   className="group rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                   aria-label={social.label}
                 >
-                  <div className="flex size-11 items-center justify-center rounded-md text-muted-foreground transition-colors group-hover:bg-foreground/[0.06] group-hover:text-foreground">
+                  <div className="flex size-11 items-center justify-center rounded-md text-muted-foreground transition-colors group-hover:bg-foreground/5 group-hover:text-foreground">
                     <social.icon className="size-4" />
                   </div>
                 </Link>

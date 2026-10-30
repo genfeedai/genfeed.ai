@@ -188,7 +188,7 @@ export default function PlatformPreview({
                 className={cn(
                   'inline-flex h-8 items-center gap-2 rounded-lg border px-2.5 text-xs font-medium transition',
                   isSelected
-                    ? 'border-primary/35 bg-primary/10 text-primary'
+                    ? 'border-primary/40 bg-primary/10 text-primary'
                     : 'border-border text-muted-foreground hover:bg-hover hover:text-foreground',
                 )}
               >

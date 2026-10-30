@@ -37,11 +37,11 @@ export type FlowNodeShellProps = Omit<ComponentProps<'div'>, 'title'> & {
 
 const toneClassName: Record<FlowNodeTone, string> = {
   accent: 'border-border-strong',
-  danger: 'border-destructive/25',
+  danger: 'border-destructive/20',
   default: 'border-border',
-  info: 'border-info/25',
-  success: 'border-success/25',
-  warning: 'border-warning/25',
+  info: 'border-info/20',
+  success: 'border-success/20',
+  warning: 'border-warning/20',
 };
 
 const statusVariant = {
@@ -84,7 +84,7 @@ export function FlowNodeShell({
       className={cn(
         'relative min-w-[220px] rounded-xl border bg-muted text-foreground shadow-ambient-md transition-[border-color,box-shadow,opacity] duration-200',
         toneClassName[tone],
-        selected && 'ring-1 ring-foreground/25',
+        selected && 'ring-1 ring-foreground/20',
         dimmed && 'opacity-60',
         className,
       )}
@@ -95,7 +95,7 @@ export function FlowNodeShell({
           isVisible={selected}
           minWidth={minWidth}
           minHeight={minHeight}
-          lineClassName="border-info/35"
+          lineClassName="border-info/40"
           handleClassName="rounded-full border border-border bg-elevated"
         />
       ) : null}

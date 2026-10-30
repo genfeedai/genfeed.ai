@@ -170,9 +170,9 @@ export default function AuthShowcase({
         </>
       ) : null}
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-4 bg-gradient-to-t from-black/85 via-black/45 to-transparent p-6 pt-32 text-white">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6 pt-32 text-white">
         <div className="flex flex-col items-start gap-3">
-          <span className="rounded-full border border-white/25 bg-black/40 px-3 py-1 text-xs font-medium backdrop-blur">
+          <span className="rounded-full border border-white/20 bg-black/40 px-3 py-1 text-xs font-medium backdrop-blur">
             {activeSlide.modelLabel}
           </span>
           <p className="text-2xl font-semibold tracking-tight">
@@ -199,7 +199,7 @@ export default function AuthShowcase({
               >
                 <span
                   aria-hidden="true"
-                  className="block h-0.5 overflow-hidden rounded-full bg-white/25"
+                  className="block h-0.5 overflow-hidden rounded-full bg-white/20"
                 >
                   <span
                     className="block h-full origin-left rounded-full bg-white transition-transform duration-300 ease-linear"

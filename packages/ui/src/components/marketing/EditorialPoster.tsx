@@ -64,7 +64,7 @@ export default function EditorialPoster({
             ) : null}
 
             {detail ? (
-              <p className="max-w-xl text-base leading-relaxed text-foreground/72 sm:text-lg">
+              <p className="max-w-xl text-base leading-relaxed text-foreground/80 sm:text-lg">
                 {detail}
               </p>
             ) : null}
@@ -79,7 +79,7 @@ export default function EditorialPoster({
                   <p className="text-2xs font-bold uppercase tracking-[0.18em] text-[var(--gen-accent-text)]">
                     {item.label}
                   </p>
-                  <div className="text-sm font-medium text-foreground/88 sm:text-base">
+                  <div className="text-sm font-medium text-foreground/90 sm:text-base">
                     {item.value}
                   </div>
                 </div>

@@ -124,7 +124,7 @@ function IngredientTableVideoPreview({
       ref={ref}
       role="img"
       aria-label={label}
-      className="relative flex size-10 items-center justify-center overflow-hidden rounded-md bg-foreground/6 text-muted-foreground"
+      className="relative flex size-10 items-center justify-center overflow-hidden rounded-md bg-foreground/5 text-muted-foreground"
     >
       {!isReady || hasError ? (
         <Film className="size-4" data-testid="ingredient-preview-fallback" />
@@ -227,7 +227,7 @@ function IngredientTablePreview({ ingredient }: { ingredient: IIngredient }) {
     return (
       <div
         aria-label={label}
-        className="flex size-10 items-center justify-center rounded-md bg-foreground/6 text-muted-foreground"
+        className="flex size-10 items-center justify-center rounded-md bg-foreground/5 text-muted-foreground"
         data-testid="ingredient-preview-fallback"
         role="img"
       >
@@ -255,7 +255,7 @@ function IngredientTablePreview({ ingredient }: { ingredient: IIngredient }) {
       {videoAsset ? (
         <span
           className={
-            'pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25' /* design-system-allow-content-color -- media overlay */
+            'pointer-events-none absolute inset-0 flex items-center justify-center bg-black/20' /* design-system-allow-content-color -- media overlay */
           }
         >
           <Film

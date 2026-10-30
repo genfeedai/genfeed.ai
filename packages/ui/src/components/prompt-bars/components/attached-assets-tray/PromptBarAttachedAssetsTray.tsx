@@ -175,7 +175,7 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
       </div>
 
       {dragError ? (
-        <div className="mt-2 border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+        <div className="mt-2 border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
           {dragError}
         </div>
       ) : null}

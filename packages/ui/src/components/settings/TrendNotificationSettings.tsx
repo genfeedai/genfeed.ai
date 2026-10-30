@@ -87,7 +87,7 @@ export default function TrendNotificationSettings({
         </div>
       </div>
 
-      <div className="space-y-4 p-4 border border-white/[0.08] bg-card">
+      <div className="space-y-4 p-4 border border-white/10 bg-card">
         <h4 className="text-sm font-medium text-foreground">
           Notification Channels
         </h4>
@@ -173,7 +173,7 @@ export default function TrendNotificationSettings({
         </div>
       </div>
 
-      <div className="space-y-4 p-4 border border-white/[0.08] bg-card">
+      <div className="space-y-4 p-4 border border-white/10 bg-card">
         <h4 className="text-sm font-medium text-foreground">Preferences</h4>
 
         <div className="space-y-2">

@@ -10,8 +10,8 @@ describe('InsetSurface', () => {
 
     expect(surface).toHaveClass('rounded-2xl');
     expect(surface).toHaveClass('shadow-border');
-    expect(surface).toHaveClass('bg-foreground/[0.03]');
-    expect(surface).not.toHaveClass('bg-white/[0.03]');
+    expect(surface).toHaveClass('bg-foreground/5');
+    expect(surface).not.toHaveClass('bg-white/5');
     expect(surface).toHaveTextContent('Body');
   });
 

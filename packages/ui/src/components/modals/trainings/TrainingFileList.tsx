@@ -91,7 +91,7 @@ export default function TrainingFileList({
       </div>
 
       {files.length === 0 ? (
-        <div className="flex items-center justify-center h-full min-h-52 border-2 border-dashed border-white/[0.08]">
+        <div className="flex items-center justify-center h-full min-h-52 border-2 border-dashed border-white/10">
           <p className="text-sm opacity-50">
             No files uploaded yet. Upload at least 10 images to start.
           </p>

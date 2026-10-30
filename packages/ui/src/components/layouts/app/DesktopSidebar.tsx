@@ -114,7 +114,7 @@ export default function DesktopSidebar({
           aria-valuemin={SIDEBAR_MIN_WIDTH}
           aria-valuenow={width}
           ariaLabel="Resize navigation sidebar"
-          className="absolute inset-y-0 right-0 z-10 w-1.5 cursor-col-resize focus-visible:bg-primary/25 focus-visible:outline-none hover:bg-foreground/10"
+          className="absolute inset-y-0 right-0 z-10 w-1.5 cursor-col-resize focus-visible:bg-primary/20 focus-visible:outline-none hover:bg-foreground/10"
           onKeyDown={onResizeKeyDown}
           onPointerDown={onResizeStart}
           role="separator"

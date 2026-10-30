@@ -80,8 +80,8 @@ function AppRailItem({
     // Codex-style selection: a filled tile two steps above the rail,
     // hover one step. The icon is the only foreground either way.
     isActive
-      ? 'bg-foreground/[0.12] text-foreground'
-      : 'text-foreground/50 hover:bg-foreground/[0.06] hover:text-foreground',
+      ? 'bg-foreground/10 text-foreground'
+      : 'text-foreground/50 hover:bg-foreground/5 hover:text-foreground',
     isLocked && 'opacity-60',
   );
   const itemBody = (
@@ -154,7 +154,7 @@ function AppRailItem({
         <span className="flex items-center justify-between gap-3">
           <span className="font-semibold">{label}</span>
           {shortcutLabel ? (
-            <kbd className="inline-flex items-center rounded-md px-1.5 py-0.5 border border-foreground/[0.08] bg-foreground/[0.03] text-xs tracking-[0.2em] text-foreground/70 font-mono">
+            <kbd className="inline-flex items-center rounded-md px-1.5 py-0.5 border border-foreground/10 bg-foreground/5 text-xs tracking-[0.2em] text-foreground/70 font-mono">
               {shortcutLabel}
             </kbd>
           ) : null}

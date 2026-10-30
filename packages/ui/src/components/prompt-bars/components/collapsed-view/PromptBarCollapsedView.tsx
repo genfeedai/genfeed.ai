@@ -89,7 +89,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
 
   return (
     <div className="animate-fade-in">
-      <div className="flex items-center gap-1.5 bg-card/95 p-1.5 shadow-border-strong backdrop-blur-xl">
+      <div className="flex items-center gap-1.5 bg-card/90 p-1.5 shadow-border-strong backdrop-blur-xl">
         {hasReferences && firstReference && (
           <>
             <Button

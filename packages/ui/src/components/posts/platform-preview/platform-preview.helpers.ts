@@ -29,7 +29,7 @@ export function getPreviewStatus(
     target.validation.errors.length > 0
   ) {
     return {
-      className: 'border-destructive/30 bg-destructive/10 text-destructive',
+      className: 'border-destructive/20 bg-destructive/10 text-destructive',
       messageKey: 'blocked',
     };
   }
@@ -39,13 +39,13 @@ export function getPreviewStatus(
     target.validation.warnings.length > 0
   ) {
     return {
-      className: 'border-warning/30 bg-warning/10 text-warning',
+      className: 'border-warning/20 bg-warning/10 text-warning',
       messageKey: 'warnings',
     };
   }
 
   return {
-    className: 'border-success/25 bg-success/10 text-success',
+    className: 'border-success/20 bg-success/10 text-success',
     messageKey: 'valid',
   };
 }

@@ -42,7 +42,7 @@ const ModelSelectorFilterPills = memo(function ModelSelectorFilterPills({
           'text-[11px] font-medium transition-colors',
           isActive
             ? 'border-transparent bg-accent text-accent-foreground'
-            : 'border-border text-foreground/55 hover:bg-accent/70 hover:text-foreground',
+            : 'border-border text-foreground/60 hover:bg-accent/70 hover:text-foreground',
         )}
       >
         {FilterIcon ? <FilterIcon className="size-3" aria-hidden /> : null}

@@ -51,7 +51,7 @@ export default function MediaCanvasShell({
                     {title}
                   </span>
                   {meta && (
-                    <span className="text-xs text-foreground/55">{meta}</span>
+                    <span className="text-xs text-foreground/60">{meta}</span>
                   )}
                 </div>
               ))}

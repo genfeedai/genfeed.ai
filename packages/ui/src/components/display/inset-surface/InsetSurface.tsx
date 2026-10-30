@@ -13,7 +13,7 @@ const DENSITY_CLASSES: Record<InsetSurfaceDensity, string> = {
 // border — CSS border is reserved for structural dividers per DESIGN.md.
 const TONE_CLASSES: Record<InsetSurfaceTone, string> = {
   contrast: 'shadow-border bg-card',
-  default: 'shadow-border bg-foreground/[0.03]',
+  default: 'shadow-border bg-foreground/5',
   muted: 'shadow-border bg-background',
 };
 

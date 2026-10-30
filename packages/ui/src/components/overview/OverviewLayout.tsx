@@ -87,7 +87,7 @@ export function OverviewContent({
                     <CardIcon
                       icon={card.icon}
                       className={cn(
-                        'gen-shell-surface flex size-11 items-center justify-center rounded-md border-white/[0.08]',
+                        'gen-shell-surface flex size-11 items-center justify-center rounded-md border-white/10',
                         card.color,
                       )}
                       iconClassName="size-5"

@@ -64,7 +64,7 @@ export default function MenuSharedPrimaryAction({
               <Kbd
                 variant="subtle"
                 size="xs"
-                className="bg-foreground/10 text-foreground/52"
+                className="bg-foreground/10 text-foreground/60"
               >
                 {'⌘⇧'}N
               </Kbd>
@@ -96,7 +96,7 @@ export default function MenuSharedPrimaryAction({
               <Kbd
                 variant="subtle"
                 size="xs"
-                className="bg-foreground/10 text-foreground/52"
+                className="bg-foreground/10 text-foreground/60"
               >
                 {'⌘⇧'}N
               </Kbd>
