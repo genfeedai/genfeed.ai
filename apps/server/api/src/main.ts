@@ -37,6 +37,7 @@ import {
   isAdminIpAllowed,
   resolveAdminClientIp,
 } from '@api/helpers/utils/admin-ip-allowlist/admin-ip-allowlist.util';
+import { createInternalRouteEdgeGuard } from '@api/helpers/utils/internal-route-edge/internal-route-edge.util';
 import {
   buildStableOpenApiDocument,
   createOpenApiBuilderOptions,
@@ -49,7 +50,10 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createBullBoard } from '@bull-board/api';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { ExpressAdapter } from '@bull-board/express';
-import { resolveTrustProxyFromReader } from '@genfeedai/config/deployment';
+import {
+  isProductionCloudFromReader,
+  resolveTrustProxyFromReader,
+} from '@genfeedai/config/deployment';
 import {
   initializeLicenseVerification,
   reportLicenseVerificationWarning,
@@ -212,6 +216,14 @@ async function main() {
     );
 
     app.setGlobalPrefix(API_GLOBAL_PREFIX);
+
+    // Internal routes are reachable only over the private network; anything the
+    // public ALB forwarded to them is refused before any parsing or auth.
+    app.use(
+      createInternalRouteEdgeGuard(
+        isProductionCloudFromReader((key) => configService.get(key)),
+      ),
+    );
 
     app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
