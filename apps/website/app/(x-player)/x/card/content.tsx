@@ -22,7 +22,7 @@ export default function XPlayerCardContent() {
         <source src={HOME_SOCIAL_VIDEO.url} type="video/mp4" />
         <track kind="captions" />
       </video>
-      <div className="absolute inset-0 bg-background/75" />
+      <div className="absolute inset-0 bg-background/70" />
       <div className="relative flex h-[70dvh] flex-col justify-between px-6 py-6 sm:h-full sm:px-8 sm:py-8">
         <div className="flex min-h-0 flex-col gap-4">
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-foreground/60">
@@ -37,7 +37,7 @@ export default function XPlayerCardContent() {
           </Heading>
           <Text
             as="p"
-            className="max-w-[38ch] text-sm leading-6 text-foreground/72"
+            className="max-w-[38ch] text-sm leading-6 text-foreground/80"
           >
             {site.description}
           </Text>

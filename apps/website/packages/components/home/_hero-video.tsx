@@ -126,7 +126,7 @@ export default function HomeHeroVideo({
         overlapping layers rather than one surface.
       */}
       <div className="absolute inset-0 bg-[linear-gradient(180deg,hsl(var(--background)/0.9)_0%,hsl(var(--background)/0.55)_28%,hsl(var(--background)/0.72)_58%,hsl(var(--background)/0.95)_82%,hsl(var(--background))_100%)]" />
-      <div className="absolute inset-0 bg-background/25" />
+      <div className="absolute inset-0 bg-background/20" />
     </div>
   );
 }

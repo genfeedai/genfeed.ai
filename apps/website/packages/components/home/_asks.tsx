@@ -65,12 +65,12 @@ export default function HomeAsks(): React.ReactElement {
                   block or the destination link wraps onto the same line. */}
               <Text
                 as="p"
-                className="mt-3 text-sm leading-6 text-foreground/72"
+                className="mt-3 text-sm leading-6 text-foreground/80"
               >
                 {prompt.result}
               </Text>
               <Link
-                className="mt-4 inline-flex text-[13px] font-semibold text-foreground/72 underline underline-offset-4 transition-colors hover:text-foreground"
+                className="mt-4 inline-flex text-[13px] font-semibold text-foreground/80 underline underline-offset-4 transition-colors hover:text-foreground"
                 href={prompt.href}
               >
                 {prompt.hrefLabel}

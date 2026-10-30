@@ -38,7 +38,7 @@ export default function PublicListPage({
             {label}
           </h1>
           {description ? (
-            <p className="mt-1 max-w-3xl text-xs leading-snug text-foreground/55">
+            <p className="mt-1 max-w-3xl text-xs leading-snug text-foreground/60">
               {description}
             </p>
           ) : null}

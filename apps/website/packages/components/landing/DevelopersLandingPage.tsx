@@ -152,7 +152,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
         }
         heroVisual={
           <div className="overflow-hidden rounded-lg bg-card shadow-border-strong">
-            <p className="border-b border-foreground/5 bg-background/95 px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-foreground/60">
+            <p className="border-b border-foreground/5 bg-background/90 px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-foreground/60">
               Connect your agent
             </p>
             <Pre className="overflow-x-auto bg-background/80 p-6 text-sm leading-6">
@@ -160,7 +160,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
                 {MCP_SNIPPET}
               </Code>
             </Pre>
-            <p className="border-t border-foreground/5 bg-background/95 px-4 py-3 text-xs text-foreground/55">
+            <p className="border-t border-foreground/5 bg-background/90 px-4 py-3 text-xs text-foreground/60">
               Connect Claude for drafts, scheduling and analytics, then open
               Genfeed Studio for media creation. Cursor and other MCP clients
               can also generate assets through the standard connector.
@@ -177,7 +177,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
               <Heading as="h3" className="text-2xl font-bold">
                 Distribution As Tool Calls
               </Heading>
-              <Text as="p" className="text-foreground/65">
+              <Text as="p" className="text-foreground/70">
                 Your agent calls Genfeed over MCP: read brand context, create
                 drafts, check publishing readiness and schedule approved posts.
                 Read available analytics before the next run. Use the hosted
@@ -221,7 +221,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
                   >
                     {feature.title}
                   </Heading>
-                  <Text className="text-sm text-foreground/65">
+                  <Text className="text-sm text-foreground/70">
                     {feature.description}
                   </Text>
                 </div>
@@ -248,7 +248,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
                       <Text className="text-lg font-bold text-foreground">
                         {step.label}
                       </Text>
-                      <Text className="text-sm text-foreground/65">
+                      <Text className="text-sm text-foreground/70">
                         {step.sublabel}
                       </Text>
                     </div>
@@ -280,7 +280,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
                 >
                   {client.name}
                 </Link>
-                <Text className="mt-2 text-sm text-foreground/65">
+                <Text className="mt-2 text-sm text-foreground/70">
                   {client.description}
                 </Text>
               </div>

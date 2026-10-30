@@ -50,7 +50,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
               {useCase.painPoints.map((pain: string) => (
                 <li key={pain} className="flex items-start gap-3">
                   <X className="size-4 text-destructive mt-0.5 shrink-0" />
-                  <Text className="text-sm text-foreground/65">{pain}</Text>
+                  <Text className="text-sm text-foreground/70">{pain}</Text>
                 </li>
               ))}
             </ul>
@@ -63,7 +63,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
               {useCase.solutions.map((solution: string) => (
                 <li key={solution} className="flex items-start gap-3">
                   <Check className="size-4 text-success mt-0.5 shrink-0" />
-                  <Text className="text-sm text-foreground/65">{solution}</Text>
+                  <Text className="text-sm text-foreground/70">{solution}</Text>
                 </li>
               ))}
             </ul>
@@ -88,7 +88,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
                 <Heading as="h4" className="font-semibold mb-1">
                   {step.title}
                 </Heading>
-                <Text className="text-sm text-foreground/55">
+                <Text className="text-sm text-foreground/60">
                   {step.description}
                 </Text>
                 <Text className="text-sm text-foreground/60 mt-1">
@@ -112,7 +112,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
                 className="flex items-start gap-3 bg-background p-5"
               >
                 <Check className="size-4 text-success mt-0.5 shrink-0" />
-                <Text className="text-sm text-foreground/65">{result}</Text>
+                <Text className="text-sm text-foreground/70">{result}</Text>
               </div>
             ))}
           </div>
@@ -124,7 +124,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
           <Heading as="h3" className="text-3xl font-bold mb-2">
             {recommendedPlan}
           </Heading>
-          <Text className="text-foreground/65 mb-6">{useCase.pricing.why}</Text>
+          <Text className="text-foreground/70 mb-6">{useCase.pricing.why}</Text>
           <ButtonRequestAccess />
           <Link href="/pricing" className="link mt-4 block">
             View All Pricing

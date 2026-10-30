@@ -7,7 +7,7 @@ import { Text } from '@ui/typography/text';
 import Link from 'next/link';
 
 const EYEBROW_CLASS =
-  'text-xs font-bold uppercase tracking-widest text-foreground/72';
+  'text-xs font-bold uppercase tracking-widest text-foreground/80';
 
 const FEATURED_PROVIDER_COUNT = 5;
 

@@ -69,7 +69,7 @@ export default function ProofTestimonials({
               <div className="text-sm font-semibold text-foreground">
                 {testimonial.attribution}
               </div>
-              <div className="mt-1 text-sm text-foreground/55">
+              <div className="mt-1 text-sm text-foreground/60">
                 {testimonial.role}
               </div>
               <div className="mt-4 text-xs font-bold uppercase tracking-widest text-success">

@@ -179,7 +179,7 @@ export default function ServiceLandingPage({
                   {config.intro}
                 </p>
 
-                <div className="flex flex-wrap items-center gap-3 text-sm text-foreground/65">
+                <div className="flex flex-wrap items-center gap-3 text-sm text-foreground/70">
                   <span className="border border-foreground/10 px-3 py-2 text-foreground/70">
                     {config.isAgentFirst
                       ? 'Start for $0'
@@ -206,7 +206,7 @@ export default function ServiceLandingPage({
               </div>
 
               <div className="bg-background/60 p-6">
-                <div className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-foreground/65">
+                <div className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-foreground/70">
                   <CalendarRange className="size-4" />
                   {config.fitLabel}
                 </div>
@@ -214,7 +214,7 @@ export default function ServiceLandingPage({
                   {config.fitSignals.map((signal) => (
                     <li
                       key={signal}
-                      className="flex gap-3 text-sm text-foreground/65"
+                      className="flex gap-3 text-sm text-foreground/70"
                     >
                       <BadgeCheck className="mt-0.5 size-4 shrink-0 text-foreground/50" />
                       <span>{signal}</span>

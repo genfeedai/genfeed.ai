@@ -22,7 +22,7 @@ export default function ProfileFooter({
 
       <Link
         href="/"
-        className="flex flex-col items-center gap-3 text-foreground/55 hover:text-foreground/75 transition-colors"
+        className="flex flex-col items-center gap-3 text-foreground/60 hover:text-foreground/80 transition-colors"
       >
         {logoUrl && (
           <Image

@@ -974,6 +974,9 @@ animations in chrome.
 - **Do** use `--focus-ring` for every focus state.
 - **Do** verify System, Light, and Dark whenever application chrome changes.
 - **Don't** put words on anything below `gray-800`.
+- **Don't** invent opacity stops. Colour modifiers use `/5 /10 /20 /40 /50 /60 /70 /80 /90`
+  and nothing else: no `/[0.04]`, no `/72`, no `/35`. Body copy on a tinted
+  surface goes up the ladder, not down it.
 - **Don't** write `text-[10px]`, `text-[11px]`, or any arbitrary size — 11px is the
   floor and it has a name.
 - **Don't** add a per-theme override. If a component needs one, the step it picked

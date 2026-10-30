@@ -33,7 +33,7 @@ const STATE_COPY: Record<string, string> = {
 };
 
 const LABEL_CLASS =
-  'text-xs font-bold uppercase tracking-[0.16em] text-foreground/55';
+  'text-xs font-bold uppercase tracking-[0.16em] text-foreground/60';
 
 function SeasonSignal({ data }: BenchmarkContentProps) {
   const runnableTasks = data?.tasks.filter((task) => !task.isDraft).length ?? 0;
@@ -61,7 +61,7 @@ function SeasonSignal({ data }: BenchmarkContentProps) {
           ))}
         </div>
       ) : (
-        <div className="mt-6 flex items-center gap-3 text-foreground/65">
+        <div className="mt-6 flex items-center gap-3 text-foreground/70">
           <RefreshCw className="size-5" />
           <Text>Bench data unavailable</Text>
         </div>
@@ -89,7 +89,7 @@ function Ladder({ data }: { data: BenchmarkData }) {
         >
           The ladder is empty on purpose.
         </Heading>
-        <Text className="mt-5 max-w-xl text-base leading-7 text-foreground/65">
+        <Text className="mt-5 max-w-xl text-base leading-7 text-foreground/70">
           {season.title} is announced with {season.contestantIds.length}{' '}
           contestants entered and no match recorded. Ranking models that have
           never met would be inventing a result, so there is nothing here until
@@ -163,7 +163,7 @@ function TaskCard({ task }: { task: BenchmarkTask }) {
           </span>
         ) : null}
       </div>
-      <Text className="mt-4 max-w-2xl text-base leading-7 text-foreground/65">
+      <Text className="mt-4 max-w-2xl text-base leading-7 text-foreground/70">
         {task.rationale}
       </Text>
       <Text className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-foreground/40">
@@ -236,7 +236,7 @@ export default function BenchmarkContent({ data }: BenchmarkContentProps) {
               >
                 The bench could not be read.
               </Heading>
-              <Text className="mt-5 max-w-xl text-base leading-7 text-foreground/65">
+              <Text className="mt-5 max-w-xl text-base leading-7 text-foreground/70">
                 This page never substitutes a cached or hand-written ladder. The
                 data lives in the public repository and will render again when
                 it can be reached.
@@ -318,7 +318,7 @@ export default function BenchmarkContent({ data }: BenchmarkContentProps) {
               >
                 Genfeed is entered as a contestant, not as the scoreboard.
               </Heading>
-              <Text className="mt-5 max-w-xl text-base leading-7 text-foreground/65">
+              <Text className="mt-5 max-w-xl text-base leading-7 text-foreground/70">
                 One route runs through Genfeed's brief compiler; the rest are
                 raw provider routes, including the same model the compiled route
                 wraps. If the compile step makes a task worse, the ladder says
@@ -327,12 +327,12 @@ export default function BenchmarkContent({ data }: BenchmarkContentProps) {
               <div className="mt-8 flex flex-wrap gap-3">
                 {data.contestants.map((contestant) => (
                   <span
-                    className="rounded-full border border-foreground/15 px-4 py-2 text-sm text-foreground/70"
+                    className="rounded-full border border-foreground/10 px-4 py-2 text-sm text-foreground/70"
                     key={contestant.id}
                   >
                     {contestant.label}
                     {contestant.isCompiled ? (
-                      <span className="ml-2 text-xs uppercase tracking-[0.12em] text-foreground/45">
+                      <span className="ml-2 text-xs uppercase tracking-[0.12em] text-foreground/50">
                         Genfeed
                       </span>
                     ) : null}

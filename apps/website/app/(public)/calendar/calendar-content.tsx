@@ -119,7 +119,7 @@ export default function CalendarContent() {
                 <Heading as="h3" className="text-2xl font-bold">
                   One Calendar, Every Channel
                 </Heading>
-                <Text as="p" className="text-foreground/65">
+                <Text as="p" className="text-foreground/70">
                   Plan drafts, schedule posts, and route approvals from a single
                   visual calendar. See exactly what is going out, on which
                   channel, and when, before it ever publishes.
@@ -175,7 +175,7 @@ export default function CalendarContent() {
                   >
                     {feature.title}
                   </Heading>
-                  <Text className="text-sm text-foreground/65">
+                  <Text className="text-sm text-foreground/70">
                     {feature.description}
                   </Text>
                 </div>
@@ -195,7 +195,7 @@ export default function CalendarContent() {
               return (
                 <div
                   key={step.label}
-                  className="gen-contact-sheet flex flex-col items-center gap-3 bg-foreground/[0.02] p-6 text-center"
+                  className="gen-contact-sheet flex flex-col items-center gap-3 bg-foreground/5 p-6 text-center"
                 >
                   <div className="flex size-14 items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
                     <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
@@ -207,7 +207,7 @@ export default function CalendarContent() {
               );
             })}
           </div>
-          <Text className="text-sm text-foreground/65 text-center mt-8">
+          <Text className="text-sm text-foreground/70 text-center mt-8">
             Once it is approved here, publish it everywhere from the{' '}
             <Link
               href="/products/publishing"
