@@ -3,4 +3,4 @@ export {
   sanitizeRouteParams,
   stripOpaqueRouteParam,
   useRouteParams,
-} from '@hooks/navigation/use-route-params/use-route-params';
+} from './use-route-params';
