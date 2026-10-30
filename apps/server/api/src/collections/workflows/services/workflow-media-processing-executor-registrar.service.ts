@@ -28,6 +28,7 @@ import {
   MusicSourceType,
   TransformationCategory,
 } from '@genfeedai/contracts';
+import type { CoverTitlePlacement } from '@genfeedai/contracts/interfaces';
 import {
   createVideoQaExecutor,
   createVideoStitchExecutor,
@@ -608,7 +609,14 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
           );
 
       const variant = this.helper.readConfigString(node.config, 'variant');
-      const placement = this.helper.readConfigString(node.config, 'placement');
+      const configuredPlacement = this.helper.readConfigString(
+        node.config,
+        'placement',
+      );
+      const placement: CoverTitlePlacement | undefined =
+        configuredPlacement === 'top-left' || configuredPlacement === 'bottom'
+          ? configuredPlacement
+          : undefined;
       const title =
         this.helper.getOptionalStringInput(inputs, 'title') ??
         this.helper.readConfigString(node.config, 'title');
@@ -621,9 +629,7 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
         ...coverStyle,
         title: {
           ...coverStyle?.title,
-          ...(placement === 'top-left' || placement === 'bottom'
-            ? { placement }
-            : {}),
+          ...(placement ? { placement } : {}),
         },
       };
 
