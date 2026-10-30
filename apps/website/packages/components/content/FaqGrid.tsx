@@ -12,7 +12,7 @@ export interface FaqGridProps {
 export default function FaqGrid({ className, items }: FaqGridProps) {
   return (
     <div
-      className={`grid grid-cols-1 gap-px bg-foreground/5 md:grid-cols-2 ${className ?? ''}`}
+      className={`grid grid-cols-1 gap-px bg-foreground/10 md:grid-cols-2 ${className ?? ''}`}
     >
       {items.map((item) => (
         <div

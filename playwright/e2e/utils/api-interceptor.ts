@@ -2641,6 +2641,22 @@ export async function setupApiMocks(
     await handleNewslettersRoute(r);
   });
 
+  // The warm-up targets endpoint returns a bare array (not a JSON:API
+  // envelope). The generic fallback's `{ data: [], meta }` object would crash
+  // RepliesWarmupTargets (`targets.map`), and a retained hidden route keeps
+  // that error fallback in the DOM.
+  await routeApi('/reply-bot-configs/warmup/targets**', async (r) => {
+    if (r.request().method() !== 'GET') {
+      await r.fallback();
+      return;
+    }
+    await r.fulfill({
+      body: JSON.stringify([]),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
   await routeApi('/onboarding/**', async (r) => {
     await handleOnboardingRoute(r);
   });

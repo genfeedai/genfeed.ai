@@ -3,7 +3,6 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { Button } from '@ui/primitives/button';
 import { ChevronRight, FileText } from 'lucide-react';
 
@@ -28,7 +27,6 @@ export default function DrillDownGroupRow({
   onEnter: () => void;
 }) {
   const { push } = useRouter();
-  const prefetchDefaultHref = useNavigationPrefetch(defaultHref);
   const firstItem = group.items[0];
   const OutlineIcon =
     DRILL_DOWN_GROUP_ICON_OVERRIDES[
@@ -90,14 +88,7 @@ export default function DrillDownGroupRow({
 
   if (defaultHref) {
     return (
-      <Link
-        href={defaultHref}
-        onClick={handleLinkClick}
-        prefetch={false}
-        onFocus={prefetchDefaultHref}
-        onMouseEnter={prefetchDefaultHref}
-        className={rowClasses}
-      >
+      <Link href={defaultHref} onClick={handleLinkClick} className={rowClasses}>
         {content}
       </Link>
     );

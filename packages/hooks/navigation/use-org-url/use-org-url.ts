@@ -7,7 +7,11 @@ import {
   parseScopedAppPath,
 } from '@genfeedai/contracts/constants';
 import type { IBrand } from '@genfeedai/contracts/interfaces';
-import { useParams, usePathname } from 'next/navigation';
+import {
+  stripOpaqueRouteParam,
+  useRouteParams,
+} from '@hooks/navigation/use-route-params';
+import { usePathname } from 'next/navigation';
 import { useCallback } from 'react';
 
 export interface OrgUrlContext {
@@ -53,18 +57,19 @@ function getBrandOrganizationSlug(brand: IBrand | null | undefined): string {
  * ```
  */
 export function useOrgUrl(): OrgUrlContext {
-  const params = useParams<{ orgSlug: string; brandSlug: string }>();
+  const params = useRouteParams<{ orgSlug: string; brandSlug: string }>();
   const pathname = usePathname();
   const { selectedBrand } = useBrand();
   const pathScope = parseScopedAppPath(pathname ?? '');
 
   const routeOrgSlug =
     (typeof params.orgSlug === 'string' ? params.orgSlug : '') ||
-    pathScope.orgSlug;
+    stripOpaqueRouteParam(pathScope.orgSlug) ||
+    '';
   const routeBrandSlug =
     typeof params.brandSlug === 'string'
       ? params.brandSlug
-      : pathScope.brandSlug;
+      : (stripOpaqueRouteParam(pathScope.brandSlug) ?? '');
 
   const orgSlug = routeOrgSlug || getBrandOrganizationSlug(selectedBrand);
   const brandSlug = routeBrandSlug || (routeOrgSlug ? '' : selectedBrand?.slug);

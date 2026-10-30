@@ -36,13 +36,14 @@ import { ErrorHandler } from '@genfeedai/utils/error/error-handler.util';
 import { buildLatestBrandArticlesQuery } from '@helpers/content/latest-brand-articles-query.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useRouteParams } from '@hooks/navigation/use-route-params';
 import { useSaveQueue } from '@hooks/utils/use-save-queue/use-save-queue';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import {
   buildSocialConnections,
   getAccountConnectionStatus,
 } from '@ui/modals/brands/brand/ModalBrand.types';
-import { useParams, usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   useCallback,
   useEffect,
@@ -103,7 +104,7 @@ function brandMediaReducer(
 }
 
 export function useBrandDetail(): UseBrandDetailReturn {
-  const params = useParams();
+  const params = useRouteParams();
   const pathname = usePathname();
   const router = useRouter();
   const { brands, refreshBrands } = useBrand();

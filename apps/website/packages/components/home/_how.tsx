@@ -41,7 +41,7 @@ export default function HomeHow(): React.ReactElement {
 
         <ol
           aria-labelledby="home-workflow-heading"
-          className="grid grid-cols-1 gap-px bg-foreground/5 sm:grid-cols-3"
+          className="grid grid-cols-1 gap-px bg-foreground/10 sm:grid-cols-3"
         >
           {HOW_STEPS.map((item) => (
             <li

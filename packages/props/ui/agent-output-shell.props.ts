@@ -7,9 +7,6 @@ import type { ReactNode } from 'react';
  */
 export type AgentOutputLayoutMode = 'rail' | 'split';
 
-/** The pane a phone opens on, below `xl` where one pane shows at a time. */
-export type AgentOutputMobileView = 'agent' | 'output';
-
 export interface AgentOutputTabDefinition {
   readonly content: ReactNode;
   readonly id: string;
@@ -32,8 +29,6 @@ export interface AgentOutputLayoutProps {
   /** Title and thread actions above the agent pane body. */
   readonly agentHeader?: ReactNode;
   readonly className?: string;
-  /** Phone only: the pane that shows first. Defaults to the agent. */
-  readonly defaultMobileView?: AgentOutputMobileView;
   /** Page-specific actions on the right of the output pane's tab strip. */
   readonly headerActions?: ReactNode;
   readonly labels: AgentOutputLayoutLabels;
@@ -67,11 +62,6 @@ export interface AgentOutputShellProps {
   readonly agentTitle?: string;
   /** The page output. */
   readonly children: ReactNode;
-  /**
-   * Phone only: the pane that shows first. Browse-first pages (a library, a
-   * calendar) open on their output; a page led by its agent keeps the default.
-   */
-  readonly defaultMobileView?: AgentOutputMobileView;
   readonly headerActions?: ReactNode;
   readonly mode?: AgentOutputLayoutMode;
   /** Tab label for the page output. Defaults to "Output". */

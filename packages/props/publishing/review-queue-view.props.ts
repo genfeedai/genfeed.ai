@@ -20,8 +20,6 @@ export interface ReviewQueueViewProps {
   turboRunList: ITurboRunSummary[];
   turboRunsError: Error | null;
   canDiscardTurboRun: boolean;
-  /** Item the page was opened on; its details open like a row tap. */
-  deepLinkedItemId?: string | null;
   filterCounts: ReviewFilterCounts;
   hasInvalidTurboRunPayload: boolean;
   isActioning: boolean;

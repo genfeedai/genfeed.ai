@@ -511,36 +511,7 @@ describe('AppRail', () => {
     }
   });
 
-  it('warms only the intended resolved item after a sustained interaction', () => {
-    vi.useFakeTimers();
-    render(
-      <AppRail
-        orgSlug="acme"
-        brandSlug="my-brand"
-        resolveNavigation={(href) => ({ href: `${href}?thread=123` })}
-      />,
-    );
-    expect(router.prefetch).not.toHaveBeenCalled();
-    const workspace = screen.getByRole('link', { name: 'Workspace' });
-    const analytics = screen.getByRole('link', { name: 'Analytics' });
-    fireEvent.mouseEnter(workspace);
-    fireEvent.mouseLeave(workspace);
-    fireEvent.focus(analytics);
-    act(() => {
-      vi.advanceTimersByTime(99);
-    });
-    expect(router.prefetch).not.toHaveBeenCalled();
-    act(() => {
-      vi.advanceTimersByTime(1);
-    });
-    expect(router.prefetch).toHaveBeenCalledTimes(1);
-    expect(router.prefetch).toHaveBeenCalledWith(
-      '/acme/my-brand/analytics/overview?thread=123',
-      { kind: 'auto', onInvalidate: expect.any(Function) },
-    );
-  });
-
-  it('never viewport-prefetches the rail destinations', () => {
+  it('leaves rail destinations on the default Link prefetch', () => {
     render(
       <AppRail
         orgSlug="acme"
@@ -550,7 +521,7 @@ describe('AppRail', () => {
       />,
     );
     for (const link of screen.getAllByRole('link')) {
-      expect(link).toHaveAttribute('data-prefetch', 'false');
+      expect(link).not.toHaveAttribute('data-prefetch', 'false');
     }
   });
   it('renders only the core loop when nothing is pinned (#5502)', () => {

@@ -1,6 +1,6 @@
 import { cva } from 'class-variance-authority';
 
-export const neuralGridVariants = cva('grid gap-px bg-foreground/5', {
+export const neuralGridVariants = cva('grid gap-px bg-foreground/10', {
   defaultVariants: {
     columns: 3,
     radius: 'lg',
