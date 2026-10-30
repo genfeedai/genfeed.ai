@@ -21,7 +21,7 @@ describe('tool data sources', () => {
   });
 
   it('only lists tools that exist, once', () => {
-    const names = new Set(ALL_TOOLS.map((tool) => tool.name));
+    const names = new Set<string>(ALL_TOOLS.map((tool) => tool.name));
 
     for (const name of [...PROVIDER_PAID_TOOLS, ...PROVIDER_FREE_TOOLS]) {
       expect(names.has(name), name).toBe(true);
