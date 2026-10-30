@@ -162,6 +162,43 @@ describe('packages/ui design-system guards', () => {
     );
   });
 
+  it('recognises arbitrary colours, percent and decimal modifiers', () => {
+    const findings = findPackageUiGuardFindings(
+      '<div className="bg-[#0088cc]/35 bg-red-500/[35%] bg-red-500/2.5 bg-[color:var(--x)]/20 bg-[#0088cc]/20 bg-red-500/[50%]" />',
+      'apps/website/example.tsx',
+    );
+
+    expect(findings.map((entry) => entry.token)).toEqual([
+      'bg-[#0088cc]/35',
+      'bg-red-500/[35%]',
+      'bg-red-500/[50%]',
+      'bg-red-500/2.5',
+    ]);
+  });
+
+  it('scans the static parts of interpolated class templates', () => {
+    const findings = findPackageUiGuardFindings(
+      'const a = <div className={`bg-primary/35 ${active ? "ring-1" : ""} text-foreground/72 border-border/10 hover:bg-primary/3${n}`} />;',
+      'apps/website/example.tsx',
+    );
+
+    expect(findings.map((entry) => entry.token)).toEqual([
+      'bg-primary/35',
+      'text-foreground/72',
+    ]);
+  });
+
+  it('names the ladder in the remedy for opacity findings', () => {
+    const findings = findPackageUiGuardFindings(
+      '<div className="bg-primary/35" />',
+      'apps/website/example.tsx',
+    );
+
+    expect(formatDesignSystemRegressions(findings)).toContain(
+      '/5 /10 /20 /40 /50 /60 /70 /80 /90',
+    );
+  });
+
   it('keeps the control-height rule inside packages/ui', () => {
     expect(
       findPackageUiGuardFindings(
