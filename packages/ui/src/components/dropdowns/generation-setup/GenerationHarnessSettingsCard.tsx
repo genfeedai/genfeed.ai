@@ -8,6 +8,16 @@ import GenerationTriStateControl from '@ui/dropdowns/generation-setup/Generation
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 
+function getBrandHintKey(
+  brandEnabled: boolean | null,
+  isOrganizationEnabled: boolean,
+) {
+  if (brandEnabled !== null) {
+    return 'brandHintOverride';
+  }
+  return isOrganizationEnabled ? 'brandHintFollowsOn' : 'brandHintFollowsOff';
+}
+
 export default function GenerationHarnessSettingsCard({
   showTitle = true,
   className,
@@ -20,7 +30,12 @@ export default function GenerationHarnessSettingsCard({
   settings,
 }: GenerationHarnessSettingsCardProps) {
   const translate = useTranslations('ui.generationHarness');
-  const isDisabled = isLoading || isSaving || !settings;
+  const isDisabled = isLoading || !settings;
+  const isOrganizationEnabled = settings?.organizationEnabled ?? true;
+  const brandHintKey = getBrandHintKey(
+    settings?.brandEnabled ?? null,
+    isOrganizationEnabled,
+  );
   return (
     <div
       className={cn('flex flex-col gap-4 p-4', className)}
@@ -38,19 +53,26 @@ export default function GenerationHarnessSettingsCard({
       ) : null}
       {settings ? (
         <>
-          <GenerationToggleRow label={translate('organizationDefault')}>
+          <GenerationToggleRow
+            description={translate('organizationHint')}
+            label={translate('organization')}
+          >
             <GenerationTriStateControl
               ariaLabel={translate('organizationLabel')}
+              hasInherit={false}
               isDisabled={isDisabled}
               onChange={(value) => {
                 void onSave('organization', value);
               }}
-              resolvedValue={settings.organizationEnabled ?? true}
-              value={settings.organizationEnabled}
+              resolvedValue={isOrganizationEnabled}
+              value={isOrganizationEnabled}
             />
           </GenerationToggleRow>
           {brandId ? (
-            <GenerationToggleRow label={translate('brand')}>
+            <GenerationToggleRow
+              description={translate(brandHintKey)}
+              label={translate('brand')}
+            >
               <GenerationTriStateControl
                 ariaLabel={translate('brandLabel')}
                 isDisabled={isDisabled}
@@ -61,11 +83,6 @@ export default function GenerationHarnessSettingsCard({
                 value={settings.brandEnabled}
               />
             </GenerationToggleRow>
-          ) : null}
-          {isSaving ? (
-            <p className="text-xs text-muted-foreground" role="status">
-              {translate('saving')}
-            </p>
           ) : null}
         </>
       ) : null}

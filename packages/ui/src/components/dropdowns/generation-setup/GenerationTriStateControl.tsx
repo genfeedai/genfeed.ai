@@ -11,12 +11,14 @@ import { useTranslations } from 'next-intl';
 import { useId } from 'react';
 
 /**
- * Inherit / On / Off, the one control every Brand-popover row uses. While
- * Inherit is selected the segment the setting resolves to is outlined, so the
- * current effective value is never hidden behind "Inherit".
+ * Default / On / Off, the one control every Brand-popover row uses. While
+ * Default is selected the segment the setting resolves to is outlined, so the
+ * current effective value is never hidden behind "Default". `hasInherit` false
+ * drops the Default segment for a setting with nothing to inherit from.
  */
 export default function GenerationTriStateControl({
   ariaLabel,
+  hasInherit = true,
   isDisabled,
   onChange,
   resolvedValue,
@@ -28,7 +30,9 @@ export default function GenerationTriStateControl({
     label: string;
     value: GenerationTriStateValue;
   }> = [
-    { label: translate('inherit'), value: null },
+    ...(hasInherit
+      ? [{ label: translate('inherit'), value: null } as const]
+      : []),
     { label: translate('on'), value: true },
     { label: translate('off'), value: false },
   ];
@@ -37,7 +41,10 @@ export default function GenerationTriStateControl({
     <div
       aria-describedby={value === null ? resolvedDescriptionId : undefined}
       aria-label={ariaLabel}
-      className="grid w-full grid-cols-3 gap-1"
+      className={cn(
+        'grid w-full gap-1',
+        hasInherit ? 'grid-cols-3' : 'grid-cols-2',
+      )}
       role="group"
     >
       {value === null ? (

@@ -33,7 +33,7 @@ function props() {
 }
 
 describe('GenerationHarnessSettingsCard', () => {
-  it('offers a distinct brand override and inheritance without changing the organization', () => {
+  it('offers a distinct brand override and default without changing the organization', () => {
     const input = props();
     render(<GenerationHarnessSettingsCard {...input} />, {
       wrapper: EnglishMessages,
@@ -41,16 +41,16 @@ describe('GenerationHarnessSettingsCard', () => {
     const group = within(
       screen.getByRole('group', { name: 'Brand prompt enhancement' }),
     );
-    expect(group.getByRole('button', { name: 'Inherit' })).toHaveAttribute(
+    expect(group.getByRole('button', { name: 'Default' })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
     fireEvent.click(group.getByRole('button', { name: 'Off' }));
     expect(input.onSave).toHaveBeenCalledWith('brand', false);
-    fireEvent.click(group.getByRole('button', { name: 'Inherit' }));
+    fireEvent.click(group.getByRole('button', { name: 'Default' }));
     expect(input.onSave).toHaveBeenCalledWith('brand', null);
   });
-  it('uses the same Inherit / On / Off control for the organization default', () => {
+  it('gives the organization a plain On / Off control with no Default segment', () => {
     const input = props();
     render(<GenerationHarnessSettingsCard {...input} />, {
       wrapper: EnglishMessages,
@@ -64,8 +64,52 @@ describe('GenerationHarnessSettingsCard', () => {
     );
     fireEvent.click(group.getByRole('button', { name: 'Off' }));
     expect(input.onSave).toHaveBeenCalledWith('organization', false);
-    fireEvent.click(group.getByRole('button', { name: 'Inherit' }));
-    expect(input.onSave).toHaveBeenCalledWith('organization', null);
+    expect(
+      group.queryByRole('button', { name: 'Default' }),
+    ).not.toBeInTheDocument();
+  });
+  it('shows an unset organization as On, the system default', () => {
+    render(
+      <GenerationHarnessSettingsCard
+        {...props()}
+        settings={{ ...settings, organizationEnabled: null }}
+      />,
+      { wrapper: EnglishMessages },
+    );
+    const group = within(
+      screen.getByRole('group', { name: 'Organization prompt enhancement' }),
+    );
+    expect(group.getByRole('button', { name: 'On' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+  it('says what the brand row does with the organization setting', () => {
+    const { rerender } = render(
+      <GenerationHarnessSettingsCard {...props()} />,
+      { wrapper: EnglishMessages },
+    );
+    expect(
+      screen.getByText('Follows the organization, which is on.'),
+    ).toBeInTheDocument();
+    rerender(
+      <GenerationHarnessSettingsCard
+        {...props()}
+        settings={{ ...settings, organizationEnabled: false, isEnabled: false }}
+      />,
+    );
+    expect(
+      screen.getByText('Follows the organization, which is off.'),
+    ).toBeInTheDocument();
+    rerender(
+      <GenerationHarnessSettingsCard
+        {...props()}
+        settings={{ ...settings, brandEnabled: false, isEnabled: false }}
+      />,
+    );
+    expect(
+      screen.getByText('Overrides the organization setting for this brand.'),
+    ).toBeInTheDocument();
   });
   it('describes the resolved value for assistive technology while inheriting', () => {
     render(<GenerationHarnessSettingsCard {...props()} />, {
@@ -89,14 +133,17 @@ describe('GenerationHarnessSettingsCard', () => {
     expect(columns[0]).toBe(columns[1]);
     expect(columns[0]).toContain('w-44');
   });
-  it('disables writes while saving and makes an error recoverable', () => {
+  it('adds nothing to the layout while saving and makes an error recoverable', () => {
     const input = props();
-    const { rerender } = render(
-      <GenerationHarnessSettingsCard {...input} isSaving />,
+    const { container, rerender } = render(
+      <GenerationHarnessSettingsCard {...input} />,
       { wrapper: EnglishMessages },
     );
-    expect(screen.getAllByRole('button', { name: 'Off' })[0]).toBeDisabled();
-    expect(screen.getByText('Saving…')).toBeInTheDocument();
+    const idleCount = container.querySelectorAll('p, button').length;
+    rerender(<GenerationHarnessSettingsCard {...input} isSaving />);
+    expect(container.querySelectorAll('p, button')).toHaveLength(idleCount);
+    expect(screen.queryByText(/Saving/)).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Off' })[0]).toBeEnabled();
     rerender(<GenerationHarnessSettingsCard {...input} error="Save failed" />);
     expect(screen.getByRole('alert')).toHaveTextContent('Save failed');
     fireEvent.click(screen.getByRole('button', { name: 'Refresh settings' }));
