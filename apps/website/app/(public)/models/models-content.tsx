@@ -80,7 +80,7 @@ function CatalogSignal({ models }: ModelsContentProps) {
             { label: 'Providers', value: providerCount },
           ].map((item) => (
             <div key={item.label}>
-              <Text className="text-4xl font-semibold tracking-[-0.05em] text-foreground sm:text-5xl">
+              <Text className="text-4xl font-semibold tracking-[-0.02em] text-foreground sm:text-5xl">
                 {item.value}
               </Text>
               <Text className="mt-2 text-xs uppercase tracking-[0.04em] text-foreground/60 sm:tracking-[0.12em]">
@@ -172,7 +172,7 @@ export default function ModelsContent({ models }: ModelsContentProps) {
               </Text>
               <Heading
                 as="h2"
-                className="mt-5 text-4xl font-semibold tracking-[-0.04em] text-foreground"
+                className="mt-5 text-4xl font-semibold tracking-[-0.02em] text-foreground"
               >
                 The registry could not be reached.
               </Heading>
@@ -190,7 +190,7 @@ export default function ModelsContent({ models }: ModelsContentProps) {
               </Text>
               <Heading
                 as="h2"
-                className="mt-5 text-4xl font-semibold tracking-[-0.04em] text-foreground"
+                className="mt-5 text-4xl font-semibold tracking-[-0.02em] text-foreground"
               >
                 No public models are listed yet.
               </Heading>
@@ -209,7 +209,7 @@ export default function ModelsContent({ models }: ModelsContentProps) {
                 </Text>
                 <Heading
                   as="h2"
-                  className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-foreground sm:text-5xl"
+                  className="mt-4 text-4xl font-semibold tracking-[-0.02em] text-foreground sm:text-5xl"
                 >
                   Choose by output.
                 </Heading>
@@ -221,18 +221,15 @@ export default function ModelsContent({ models }: ModelsContentProps) {
             </div>
 
             <div className="space-y-24">
-              {groups.map(([category, categoryModels], groupIndex) => (
+              {groups.map(([category, categoryModels]) => (
                 <section
                   className="gsap-section grid gap-10 lg:grid-cols-[minmax(12rem,0.35fr)_minmax(0,1fr)] lg:gap-20"
                   key={category}
                 >
                   <div>
-                    <Text className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/45">
-                      {String(groupIndex + 1).padStart(2, '0')}
-                    </Text>
                     <Heading
                       as="h2"
-                      className="mt-4 text-3xl font-semibold tracking-[-0.035em] text-foreground"
+                      className="text-3xl font-semibold tracking-[-0.02em] text-foreground"
                     >
                       {titleCase(category)}
                     </Heading>
@@ -243,24 +240,21 @@ export default function ModelsContent({ models }: ModelsContentProps) {
                   </div>
 
                   <ol className="border-t border-foreground/10">
-                    {categoryModels.map((model, index) => (
+                    {categoryModels.map((model) => (
                       <li
-                        className="grid gap-5 border-b border-foreground/10 py-7 sm:grid-cols-[3rem_minmax(0,1fr)_auto] sm:py-8"
+                        className="grid gap-5 border-b border-foreground/10 py-7 sm:grid-cols-[minmax(0,1fr)_auto] sm:py-8"
                         key={model.id}
                       >
-                        <Text className="text-xs font-bold tracking-[0.12em] text-foreground/40">
-                          {String(index + 1).padStart(2, '0')}
-                        </Text>
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <Heading
                               as="h3"
-                              className="text-xl font-semibold tracking-[-0.025em] text-foreground"
+                              className="text-xl font-semibold tracking-[-0.02em] text-foreground"
                             >
                               {model.label}
                             </Heading>
                             {model.isDefault ? (
-                              <span className="rounded-full border border-foreground/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-foreground/55">
+                              <span className="rounded-full border border-foreground/10 px-2.5 py-1 text-2xs font-bold uppercase tracking-[0.12em] text-foreground/55">
                                 Default
                               </span>
                             ) : null}

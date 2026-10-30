@@ -13,6 +13,7 @@ import { hashReviewedProviderRates } from '../reviewed-rate-hash';
 import { mapReplicateBillingTiers } from './replicate-billing-tiers';
 import { REPLICATE_VARIANT_SELECTORS } from './replicate-variant-selectors';
 import { REPLICATE_VARIANT_FIXTURES } from './replicate-variants.fixture';
+import { REVIEWED_RATE_SHEET_ENTRIES } from './reviewed-rate-sheet.data';
 import { hashReviewedRateSheetEntry } from './reviewed-rate-sheet-hash';
 import { parseReviewedVariantRules } from './variant-rule-validation';
 import { resolveVariantSelectors } from './variant-selectors';
@@ -196,18 +197,6 @@ describe('checked-in Replicate variant selectors', () => {
     ).toMatchObject({ status: 'failed' });
   });
 
-  it('quarantines Seedance 1.5 when billing resolution is absent from the schema', () => {
-    const fixture = REPLICATE_VARIANT_FIXTURES['bytedance/seedance-1.5-pro'];
-    if (!fixture) throw new Error('missing Seedance 1.5 evidence');
-    expect(fixture.inputProperties).not.toHaveProperty('resolution');
-    expect(
-      mapReplicateBillingTiers(
-        fixture.tiers,
-        fixture.inputProperties,
-        'bytedance/seedance-1.5-pro',
-      ).status,
-    ).toBe('failed');
-  });
   it('prices FLUX 3 draft and continuation independently of audio', () => {
     const { rates, variantRules } = mapped('black-forest-labs/flux-3');
     expect(rates).toEqual(
@@ -254,6 +243,143 @@ describe('checked-in Replicate variant selectors', () => {
       expect(result.rates.length).toBeGreaterThan(0);
     },
   );
+  it('prices the video upscaler by tier, resolution and frame-rate band', () => {
+    const endpoint = 'bytedance/video-upscaler';
+    const upscaler = mapped(endpoint);
+    expect(upscaler.selectorKeys).toEqual([
+      'model_variant',
+      'target_fps_band',
+      'target_resolution',
+    ]);
+    expect(upscaler.rates).toHaveLength(16);
+    // The checked-in sheet is exactly what the live tiers map to.
+    const sheet = REVIEWED_RATE_SHEET_ENTRIES.find(
+      (entry) => entry.endpoint === endpoint,
+    );
+    const normalized = (rates: readonly { when: object }[]) =>
+      rates
+        .map((rate) => ({
+          ...rate,
+          when: Object.fromEntries(Object.entries(rate.when).sort()),
+        }))
+        .sort((left, right) =>
+          JSON.stringify(left.when).localeCompare(JSON.stringify(right.when)),
+        );
+    expect(normalized(sheet?.rates ?? [])).toEqual(normalized(upscaler.rates));
+    expect(sheet?.variantRules).toEqual(upscaler.variantRules);
+    // Dispatch supplies tier, fps and resolution; 24 and 30 fps share a band.
+    const resolve = (targetFps: number) =>
+      resolveVariantSelectors(upscaler.variantRules ?? [], {
+        kind: 'dispatch',
+        input: {
+          processing_type: 'standard',
+          target_fps: targetFps,
+          target_resolution: '1080p',
+        },
+      });
+    expect(resolve(30)).toMatchObject({
+      status: 'ok',
+      selectors: { model_variant: 'standard', target_fps_band: 'up-to-30' },
+    });
+    expect(resolve(24)).toMatchObject({
+      selectors: { target_fps_band: 'up-to-30' },
+    });
+    expect(resolve(60)).toMatchObject({
+      selectors: { target_fps_band: 'above-30' },
+    });
+    expect(resolve(120)).toMatchObject({
+      selectors: { target_fps_band: 'above-30' },
+    });
+    expect(resolve(15)).toMatchObject({ status: 'unresolved' });
+    expect(upscaler.rates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          unitPriceUsd: 0.006887,
+          when: {
+            model_variant: 'standard',
+            target_fps_band: 'up-to-30',
+            target_resolution: '1080p',
+          },
+        }),
+        expect.objectContaining({
+          unitPriceUsd: 0.013773,
+          when: {
+            model_variant: 'standard',
+            target_fps_band: 'above-30',
+            target_resolution: '1080p',
+          },
+        }),
+      ]),
+    );
+  });
+  it('maps one-sided range criteria only through a resolver entry', () => {
+    const endpoint = 'bytedance/video-upscaler';
+    const fixture = REPLICATE_VARIANT_FIXTURES[endpoint];
+    if (!fixture) throw new Error('missing fixture');
+    const tier = (
+      range: Record<string, unknown>,
+      title = 'target frames per second',
+    ) => [
+      {
+        criteria: [{ ...range, title, type: 'range' }],
+        prices: [
+          {
+            metric: 'video_output_duration_seconds',
+            price: '$0.01',
+            type: 'per-unit',
+          },
+        ],
+      },
+    ];
+    const below = { subtype: 'open-closed', value: [null, 30] };
+    const above = { subtype: 'open', value: [30, null] };
+    expect(
+      mapReplicateBillingTiers(
+        [...tier(below), ...tier(above)],
+        fixture.inputProperties,
+        endpoint,
+      ),
+    ).toMatchObject({
+      status: 'ok',
+      rates: [
+        { when: { target_fps_band: 'up-to-30' } },
+        { when: { target_fps_band: 'above-30' } },
+      ],
+    });
+    // A band outside the reviewed domain, or a shape with no label, fails.
+    for (const range of [
+      { subtype: 'open-closed', value: [null, 60] },
+      { subtype: 'open', value: [60, null] },
+      { subtype: 'closed', value: [24, 60] },
+      { subtype: 'open', value: [null, 30] },
+      { subtype: 'open-closed', value: [null, null] },
+      { subtype: 'open-closed', value: 30 },
+    ])
+      expect(
+        mapReplicateBillingTiers(
+          tier(range),
+          fixture.inputProperties,
+          endpoint,
+        ),
+      ).toMatchObject({ status: 'failed' });
+    // A range never reads as the value of an input that shares its title.
+    expect(
+      mapReplicateBillingTiers(
+        tier(below, 'target fps'),
+        fixture.inputProperties,
+        endpoint,
+      ),
+    ).toEqual({
+      reason: 'unmapped_criterion:target fps',
+      status: 'failed',
+    });
+    expect(
+      mapReplicateBillingTiers(tier(below), fixture.inputProperties),
+    ).toEqual({
+      reason: 'unmapped_criterion:target frames per second',
+      status: 'failed',
+    });
+  });
   it('keeps Seedance resolution direct while Pixverse derives it from quality', () => {
     expect(mapped('bytedance/seedance-2.5').selectorKeys).toEqual([
       'model_variant',

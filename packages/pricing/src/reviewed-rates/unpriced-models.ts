@@ -12,8 +12,6 @@ const FAL_NO_PUBLIC_RATE =
   'The fal model page publishes no list price (2026-10-21).';
 const LEGACY_KEY =
   'Legacy registry key, not a provider endpoint, so no provider page or rate exists.';
-const BILLING_RESOLUTION_NOT_AN_INPUT =
-  'Replicate prices it by output resolution, which the model does not take as an input, so a request cannot select its rate (2026-10-27).';
 const RANGE_CRITERION =
   'Replicate prices it with a range criterion the importer cannot map yet (2026-10-27).';
 const UNMAPPED_METRIC =
@@ -38,8 +36,6 @@ export const UNPRICED_MODELS: Readonly<Record<string, string>> = {
   'black-forest-labs/flux-2-klein-4b': INPUT_MEGAPIXELS,
   'black-forest-labs/flux-2-max': INPUT_MEGAPIXELS,
   'black-forest-labs/flux-2-pro': INPUT_MEGAPIXELS,
-  'bytedance/video-upscaler':
-    'The public readme says the price depends on tier, resolution and frame rate, and the numeric table is only on the pricing tab.',
   'fal-ai/clarity-upscaler': FAL_NO_PUBLIC_RATE,
   'fal-ai/eleven-labs-tts': FAL_ENDPOINT_GONE,
   'fal-ai/face-swap': FAL_ENDPOINT_GONE,
@@ -80,7 +76,6 @@ export const UNPRICED_MODELS: Readonly<Record<string, string>> = {
   'meta/musicgen': NO_PUBLIC_RATE,
   'mureka/v9':
     'The provider pricing page was unreachable (HTTP 404) when captured.',
-  'bytedance/seedance-1.5-pro': BILLING_RESOLUTION_NOT_AN_INPUT,
   'google/gemini-3.1-pro': RANGE_CRITERION,
   'local/mistral-small': LOCAL_MODEL,
   'local/qwen-32b': LOCAL_MODEL,

@@ -31,6 +31,12 @@ import {
   PUBLIC_MCP_RESOURCES,
 } from '@mcp/mcp/resource-catalog';
 import { getPublicAppUrl, getPublicMcpUrl } from '@mcp/mcp/setup-page';
+import {
+  isAdsGatewayTool,
+  isGoogleAdsTool,
+  isMetaAdsTool,
+  isTikTokAdsTool,
+} from '@mcp/services/ads-tool-names.util';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
 import {
@@ -113,6 +119,10 @@ import {
   handleWorkflowStatusTool,
   WORKFLOW_STATUS_TOOL_NAMES,
 } from '@mcp/tools/workflow-status.tool';
+import {
+  handleWorkspaceAppTool,
+  WORKSPACE_APP_TOOL_NAMES,
+} from '@mcp/tools/workspace-app.tool';
 import { cardResource } from '@mcp/ui/card-app';
 import {
   isContentCardsUri,
@@ -171,24 +181,6 @@ const BRAND_NAMED_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'get_brands',
 ]);
 
-const isMetaAdsTool = (name: string): boolean =>
-  name.startsWith('list_meta_') ||
-  name.startsWith('get_meta_') ||
-  name.startsWith('compare_meta_');
-
-const isGoogleAdsTool = (name: string): boolean =>
-  name.startsWith('list_google_ads_') || name.startsWith('get_google_ads_');
-
-const isTikTokAdsTool = (name: string): boolean =>
-  name.startsWith('list_tiktok_') || name.startsWith('get_tiktok_');
-
-/**
- * Platform-generic ads gateway tools (`/ads/:platform/*`). The `get_ads_` prefix
- * is reserved for this executor — per-platform tools use their own platform
- * prefix (`get_meta_`, `get_google_ads_`), so the namespaces cannot overlap.
- */
-const isAdsGatewayTool = (name: string): boolean => name.startsWith('get_ads_');
-
 /**
  * Which executor handles a tool name. `'unknown'` means no dispatch path exists
  * — the drift guard rejects any MCP-surfaced tool that classifies as unknown so
@@ -217,6 +209,7 @@ type ExecutorKind =
   | 'social-messages'
   | 'clipper-projects'
   | 'editor'
+  | 'workspace-app'
   | 'storyboard-capabilities'
   | 'remix'
   | 'scheduler'
@@ -528,6 +521,7 @@ export class ToolRegistryService implements OnModuleInit {
     if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) return 'social-messages';
     if (CLIPPER_PROJECTS_TOOL_NAMES.has(name)) return 'clipper-projects';
     if (EDITOR_TOOL_NAMES.has(name)) return 'editor';
+    if (WORKSPACE_APP_TOOL_NAMES.has(name)) return 'workspace-app';
     if (STORYBOARD_TOOL_NAMES.has(name)) return 'storyboard-capabilities';
     if (REMIX_TOOL_NAMES.has(name)) return 'remix';
     if (SCHEDULER_TOOL_NAMES.has(name)) return 'scheduler';
@@ -612,6 +606,8 @@ export class ToolRegistryService implements OnModuleInit {
         return handleClipperProjectsTool(this.clientService, name, args);
       case 'editor':
         return handleEditorTool(this.clientService, name, args);
+      case 'workspace-app':
+        return handleWorkspaceAppTool(this.clientService, name, args);
       case 'storyboard-capabilities':
         return handleStoryboardTool(this.clientService, name, args);
       case 'remix':

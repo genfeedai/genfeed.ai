@@ -261,6 +261,47 @@ describe('ClipperGenerationService workflow boundary', () => {
     );
   });
 
+  describe('avatar script', () => {
+    async function scriptFor(overrides: Partial<ClipperGenerationInput>) {
+      const { actions, provider } = createHarness();
+      const executor = actions.get('clipper.generation.generate-one');
+      if (!executor) {
+        throw new Error('generate-one action was not registered');
+      }
+      await executor({
+        context: { organizationId: 'org-1', userId: 'user-1' } as never,
+        input: { originalIndex: 0, request: { ...request, ...overrides } },
+        provenance: {
+          executionId: 'execution-1',
+          workflowId: 'workflow-1',
+          workflowLabel: 'Clip Generation',
+        },
+      });
+      return vi.mocked(provider.generateVideo).mock.calls[0]?.[0].script;
+    }
+
+    it('says the reviewed script, not the clip description', async () => {
+      const [hook, body] = request.highlights;
+      await expect(
+        scriptFor({
+          highlights: [{ ...hook, script: ' Ship on Fridays. ' }, body],
+        }),
+      ).resolves.toBe('Ship on Fridays.');
+    });
+
+    it('says the tightened words from the transcript when no script was saved', async () => {
+      await expect(
+        scriptFor({
+          transcriptSegments: [
+            { end: 8, start: 0, text: 'Um, we we ship on Fridays.' },
+            { end: 18, start: 10, text: 'No exceptions.' },
+            { end: 30, start: 25, text: 'Outside the clip.' },
+          ],
+        }),
+      ).resolves.toBe('We ship on Fridays. No exceptions.');
+    });
+  });
+
   it('funds each HeyGen clip on its own clip result before the provider submits', async () => {
     const { actions, clipperAvatarBilling, provider } = createHarness();
     const executor = actions.get('clipper.generation.generate-one');

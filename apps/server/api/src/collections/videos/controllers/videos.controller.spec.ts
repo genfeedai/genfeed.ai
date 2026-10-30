@@ -31,6 +31,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { BookmarksService } from '@api/collections/bookmarks/services/bookmarks.service';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import { BrandCoverStyleService } from '@api/collections/brands/services/brand-cover-style.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
@@ -110,6 +111,7 @@ describe('VideosController', () => {
   let brandsService: vi.Mocked<BrandsService>;
   let votesService: vi.Mocked<VotesService>;
   let filesClientService: vi.Mocked<FilesClientService>;
+  let brandCoverStyle: vi.Mocked<BrandCoverStyleService>;
   let sharedService: vi.Mocked<SharedService>;
   let replicateService: vi.Mocked<ReplicateService>;
   let klingAIService: vi.Mocked<KlingAIService>;
@@ -293,11 +295,16 @@ describe('VideosController', () => {
           },
         },
         {
+          provide: BrandCoverStyleService,
+          useValue: { resolveTitleStyle: vi.fn().mockResolvedValue(undefined) },
+        },
+        {
           provide: FilesClientService,
           useValue: {
-            generateThumbnail: vi
-              .fn()
-              .mockResolvedValue('https://cdn.example.com/thumbnail.jpg'),
+            generateThumbnail: vi.fn().mockResolvedValue({
+              ingredientId: 'video-id',
+              thumbnailUrl: 'https://cdn.example.com/thumbnail.jpg',
+            }),
             uploadToS3: vi.fn(),
           },
         },
@@ -577,6 +584,7 @@ describe('VideosController', () => {
     brandsService = testingModule.get(BrandsService);
     votesService = testingModule.get(VotesService);
     filesClientService = testingModule.get(FilesClientService);
+    brandCoverStyle = testingModule.get(BrandCoverStyleService);
     sharedService = testingModule.get(SharedService);
     replicateService = testingModule.get(ReplicateService);
     klingAIService = testingModule.get(KlingAIService);
@@ -1233,6 +1241,9 @@ describe('VideosController', () => {
         mockVideoId,
         undefined,
         undefined,
+        undefined,
+        true,
+        undefined,
       );
     });
 
@@ -1262,8 +1273,61 @@ describe('VideosController', () => {
         mockVideoId.toString(),
         10,
         1920,
+        undefined,
+        true,
+        undefined,
       );
       expect(result).toBeInstanceOf(StreamableFile);
+    });
+
+    it('passes a trimmed, length-capped title through to render a cover', async () => {
+      await controller.getThumbnail(
+        mockVideoId.toString(),
+        mockUser,
+        mockResponse as never,
+        2,
+        1080,
+        `  ${'x'.repeat(200)}  `,
+      );
+
+      expect(filesClientService.generateThumbnail).toHaveBeenCalledWith(
+        expect.any(String),
+        mockVideoId.toString(),
+        2,
+        1080,
+        'x'.repeat(120),
+        true,
+        undefined,
+      );
+    });
+
+    it('renders the cover in the brand style the publish uses', async () => {
+      const titleStyle = { accentColor: '#E83B3B', fontFamily: 'INTER_BOLD' };
+      brandCoverStyle.resolveTitleStyle.mockResolvedValueOnce(titleStyle);
+
+      await controller.getThumbnail(
+        mockVideoId.toString(),
+        mockUser,
+        mockResponse as never,
+        2,
+        1080,
+        'Ship it',
+        'brand-1',
+      );
+
+      expect(brandCoverStyle.resolveTitleStyle).toHaveBeenCalledWith(
+        'brand-1',
+        mockUser.organizationId,
+      );
+      expect(filesClientService.generateThumbnail).toHaveBeenCalledWith(
+        expect.any(String),
+        mockVideoId.toString(),
+        2,
+        1080,
+        'Ship it',
+        true,
+        titleStyle,
+      );
     });
 
     it('should use default parameters if not provided', async () => {
@@ -1277,6 +1341,9 @@ describe('VideosController', () => {
         expect.any(String),
         mockVideoId.toString(),
         undefined,
+        undefined,
+        undefined,
+        true,
         undefined,
       );
       expect(result).toBeInstanceOf(StreamableFile);

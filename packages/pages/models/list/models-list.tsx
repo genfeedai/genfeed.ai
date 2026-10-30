@@ -4,7 +4,7 @@ import {
   type ModelsToolbar,
   usePublishModelsToolbar,
 } from '@contexts/models/models-toolbar-context/models-toolbar-context';
-import { ButtonVariant, ComponentSize, PageScope } from '@genfeedai/contracts';
+import { ButtonVariant, PageScope } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import type { ModelsListProps } from '@props/admin/models.props';
 import type {
@@ -16,7 +16,6 @@ import AppTable from '@ui/display/table/Table';
 import { LazyModalModel } from '@ui/lazy/modal/LazyModal';
 import ModelDetailPanel from '@ui/models/ModelDetailPanel';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import FormSearchbar from '@ui/primitives/searchbar';
 import { CircleCheck, CircleX, Cpu, Pencil, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -84,17 +83,13 @@ export default function ModelsList({
   );
 
   // Outside the admin the search and the category filter live in the
-  // settings layout's subbar, in its one Filters menu.
-  const searchNode = useMemo(
-    () => (
-      <FormSearchbar
-        isCollapsible
-        onSearch={handleSearchChange}
-        placeholder={translate('searchModels')}
-        size={ComponentSize.SM}
-        value={searchTerm}
-      />
-    ),
+  // settings layout's subbar: the Filters menu sits inside the search field.
+  const search = useMemo(
+    () => ({
+      onSearch: handleSearchChange,
+      placeholder: translate('searchModels'),
+      value: searchTerm,
+    }),
     [handleSearchChange, searchTerm, translate],
   );
   const modelsToolbar = useMemo<ModelsToolbar | null>(
@@ -128,7 +123,7 @@ export default function ModelsList({
               },
             ],
             onClear: () => handleCategorySelect('all'),
-            searchNode,
+            search,
           },
     [
       catalogOverviewCards,
@@ -136,7 +131,7 @@ export default function ModelsList({
       handleCategorySelect,
       isAdminScope,
       isLoadingCatalog,
-      searchNode,
+      search,
       selectedGroupKey,
       translate,
     ],

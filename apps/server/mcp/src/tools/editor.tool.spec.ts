@@ -3,6 +3,16 @@ import { EDITOR_TOOL_NAMES, handleEditorTool } from '@mcp/tools/editor.tool';
 
 function buildClient() {
   return {
+    getEditorProject: vi.fn().mockResolvedValue({
+      attributes: { name: 'Launch cut', status: 'draft' },
+      id: 'editor-1',
+      type: 'editor-project',
+    }),
+    listEditorProjects: vi
+      .fn()
+      .mockResolvedValue([
+        { attributes: { name: 'Launch cut' }, id: 'editor-1' },
+      ]),
     openInEditor: vi.fn().mockResolvedValue({
       id: 'editor-1',
       type: 'editor-project',
@@ -19,8 +29,12 @@ function call(
 }
 
 describe('EDITOR_TOOL_NAMES', () => {
-  it('lists only the Open in Editor handoff', () => {
-    expect([...EDITOR_TOOL_NAMES]).toEqual(['open_in_editor']);
+  it('lists the handoff and the two project reads', () => {
+    expect([...EDITOR_TOOL_NAMES].sort()).toEqual([
+      'get_editor_project',
+      'list_editor_projects',
+      'open_in_editor',
+    ]);
   });
 });
 
@@ -102,5 +116,49 @@ describe('handleEditorTool', () => {
     await expect(
       call(client, 'open_in_editor', { sourceVideoIds: ['video-1'] }),
     ).rejects.toThrow(/did not return an id/);
+  });
+
+  it('lists Editor projects with a clamped page size', async () => {
+    const client = buildClient();
+    const result = await call(client, 'list_editor_projects', {
+      limit: 500,
+      page: 0,
+    });
+
+    expect(client.listEditorProjects).toHaveBeenCalledWith({
+      limit: 100,
+      page: 1,
+    });
+    expect(result.content[0]?.text).toContain('Found 1 Editor projects');
+    expect(result.content[0]?.text).toContain('Launch cut');
+  });
+
+  it('says so when there are no Editor projects', async () => {
+    const client = buildClient();
+    client.listEditorProjects.mockResolvedValueOnce([]);
+    const result = await call(client, 'list_editor_projects', {});
+
+    expect(result.content[0]?.text).toBe('No Editor projects found.');
+  });
+
+  it('reads one project and links its Editor path', async () => {
+    const client = buildClient();
+    const result = await call(client, 'get_editor_project', {
+      projectId: ' editor-1 ',
+    });
+
+    expect(client.getEditorProject).toHaveBeenCalledWith('editor-1');
+    expect(result.structuredContent.data).toMatchObject({
+      editorPath: '/editor/editor-1',
+    });
+    expect(result.content[0]?.text).toContain('[Open in Editor](');
+  });
+
+  it('requires a projectId to read a project', async () => {
+    const client = buildClient();
+    await expect(call(client, 'get_editor_project', {})).rejects.toThrow(
+      /projectId is required/,
+    );
+    expect(client.getEditorProject).not.toHaveBeenCalled();
   });
 });

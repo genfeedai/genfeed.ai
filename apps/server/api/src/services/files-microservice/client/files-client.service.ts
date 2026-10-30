@@ -19,6 +19,7 @@ import {
 } from '@genfeedai/contracts/api-types/contracts';
 import type {
   IApiUploadSource,
+  ICoverTitleStyle,
   IFFprobeResult,
   IFFprobeStream,
   IFileMetadata,
@@ -397,6 +398,9 @@ export class FilesClientService {
     ingredientId: string,
     timeInSeconds?: number,
     width?: number,
+    title?: string,
+    isCover?: boolean,
+    titleStyle?: ICoverTitleStyle,
   ) {
     try {
       const response = await this.send('generateThumbnail', () =>
@@ -404,7 +408,10 @@ export class FilesClientService {
           `${this.filesServiceUrl}/v1/files/processing/generate-thumbnail`,
           {
             ingredientId,
+            isCover,
             timeInSeconds,
+            title,
+            titleStyle,
             videoUrl,
             width,
           },

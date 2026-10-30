@@ -1,5 +1,7 @@
 import { Readable } from 'node:stream';
+import { BrandCoverStyleService } from '@api/collections/brands/services/brand-cover-style.service';
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { YoutubeUploadService } from '@api/services/integrations/youtube/services/modules/youtube-upload.service';
@@ -14,11 +16,13 @@ import { of, throwError } from 'rxjs';
 // Mock googleapis
 const mockVideosInsert = vi.fn();
 const mockPlaylistItemsInsert = vi.fn();
+const mockThumbnailsSet = vi.fn();
 
 vi.mock('googleapis', () => ({
   google: {
     youtube: () => ({
       playlistItems: { insert: mockPlaylistItemsInsert },
+      thumbnails: { set: mockThumbnailsSet },
       videos: { insert: mockVideosInsert },
     }),
   },
@@ -29,6 +33,8 @@ vi.mock('@api/shared/utils/html-to-text/html-to-text.util', () => ({
   htmlToText: vi.fn((html: string) => html || ''),
 }));
 
+const THUMBNAIL_URL = 'https://cdn.test.com/thumbnails/frame.jpg';
+
 describe('YoutubeUploadService', () => {
   let service: YoutubeUploadService;
   let mediaStream: Readable;
@@ -37,11 +43,14 @@ describe('YoutubeUploadService', () => {
     processFile: ReturnType<typeof vi.fn>;
     waitForJob: ReturnType<typeof vi.fn>;
   };
+  let brandCoverStyle: { resolveTitleStyle: ReturnType<typeof vi.fn> };
   let tagResolutionService: { resolveTagLabels: ReturnType<typeof vi.fn> };
   let authService: { refreshToken: ReturnType<typeof vi.fn> };
+  let filesClient: { generateThumbnail: ReturnType<typeof vi.fn> };
   let loggerService: {
     error: ReturnType<typeof vi.fn>;
     log: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
   };
 
   const mockAuth = { credentials: { access_token: 'test-token' } };
@@ -71,13 +80,28 @@ describe('YoutubeUploadService', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     mediaStream = Readable.from([Buffer.from('original video')]);
-    httpService = { get: vi.fn().mockReturnValue(of({ data: mediaStream })) };
+    httpService = {
+      get: vi.fn((url: string) =>
+        of({
+          data: url === THUMBNAIL_URL ? Buffer.from('jpeg bytes') : mediaStream,
+        }),
+      ),
+    };
+    filesClient = {
+      generateThumbnail: vi
+        .fn()
+        .mockResolvedValue({ thumbnailUrl: THUMBNAIL_URL }),
+    };
 
     fileQueueService = {
       processFile: vi.fn().mockResolvedValue({ jobId: 'job-123' }),
       waitForJob: vi
         .fn()
         .mockResolvedValue({ outputPath: '/tmp/test-video.mp4' }),
+    };
+
+    brandCoverStyle = {
+      resolveTitleStyle: vi.fn().mockResolvedValue(undefined),
     };
 
     tagResolutionService = {
@@ -91,8 +115,10 @@ describe('YoutubeUploadService', () => {
     loggerService = {
       error: vi.fn(),
       log: vi.fn(),
+      warn: vi.fn(),
     };
 
+    mockThumbnailsSet.mockResolvedValue({ data: {} });
     mockVideosInsert.mockResolvedValue({ data: { id: 'yt-uploaded-123' } });
     mockPlaylistItemsInsert.mockResolvedValue({ data: { id: 'playlist-1' } });
 
@@ -103,6 +129,8 @@ describe('YoutubeUploadService', () => {
         { provide: FileQueueService, useValue: fileQueueService },
         { provide: TagResolutionService, useValue: tagResolutionService },
         { provide: YoutubeAuthService, useValue: authService },
+        { provide: FilesClientService, useValue: filesClient },
+        { provide: BrandCoverStyleService, useValue: brandCoverStyle },
         { provide: LoggerService, useValue: loggerService },
         {
           provide: ConfigService,
@@ -171,6 +199,110 @@ describe('YoutubeUploadService', () => {
     );
     expect(chunks).toBeGreaterThan(0);
     expect(mediaStream.destroyed).toBe(true);
+  });
+
+  describe('custom thumbnail', () => {
+    it('sets a 1080px still from the source video on the uploaded video', async () => {
+      await service.uploadVideo(orgId, brandId, videoId, createPost());
+
+      expect(filesClient.generateThumbnail).toHaveBeenCalledWith(
+        `https://api.test.com/ingredients/videos/${videoId}`,
+        videoId,
+        1,
+        1080,
+        undefined,
+        true,
+        undefined,
+      );
+      expect(mockThumbnailsSet).toHaveBeenCalledTimes(1);
+      const params = mockThumbnailsSet.mock.calls[0][0];
+      expect(params).toMatchObject({
+        auth: mockAuth,
+        media: { mimeType: 'image/jpeg' },
+        videoId: 'yt-uploaded-123',
+      });
+      const chunks: Buffer[] = [];
+      for await (const chunk of params.media.body) chunks.push(chunk);
+      expect(Buffer.concat(chunks).toString()).toBe('jpeg bytes');
+    });
+
+    it('renders the cover from the post’s title and frame settings', async () => {
+      await service.uploadVideo(orgId, brandId, videoId, createPost(), {
+        thumbnailFrameSeconds: '4.5',
+        thumbnailText: '  Ship the studio  ',
+      });
+
+      expect(filesClient.generateThumbnail).toHaveBeenCalledWith(
+        expect.any(String),
+        videoId,
+        4.5,
+        1080,
+        'Ship the studio',
+        true,
+        undefined,
+      );
+    });
+
+    it('renders the cover in the style of the brand it publishes for', async () => {
+      const titleStyle = { accentColor: '#E83B3B', fontFamily: 'INTER_BOLD' };
+      brandCoverStyle.resolveTitleStyle.mockResolvedValueOnce(titleStyle);
+
+      await service.uploadVideo(orgId, brandId, videoId, createPost(), {
+        thumbnailText: 'Ship the studio',
+      });
+
+      expect(brandCoverStyle.resolveTitleStyle).toHaveBeenCalledWith(
+        brandId,
+        orgId,
+      );
+      expect(filesClient.generateThumbnail).toHaveBeenCalledWith(
+        expect.any(String),
+        videoId,
+        1,
+        1080,
+        'Ship the studio',
+        true,
+        titleStyle,
+      );
+    });
+
+    it('falls back to the default frame when the frame setting is not a number', async () => {
+      await service.uploadVideo(orgId, brandId, videoId, createPost(), {
+        thumbnailFrameSeconds: 'soon',
+      });
+
+      expect(filesClient.generateThumbnail).toHaveBeenCalledWith(
+        expect.any(String),
+        videoId,
+        1,
+        1080,
+        undefined,
+        true,
+        undefined,
+      );
+    });
+
+    it('still returns the video id when the frame cannot be generated', async () => {
+      filesClient.generateThumbnail.mockRejectedValueOnce(new Error('ffmpeg'));
+
+      await expect(
+        service.uploadVideo(orgId, brandId, videoId, createPost()),
+      ).resolves.toBe('yt-uploaded-123');
+      expect(mockThumbnailsSet).not.toHaveBeenCalled();
+      expect(loggerService.warn).toHaveBeenCalled();
+    });
+
+    it('still returns the video id when YouTube rejects the thumbnail', async () => {
+      mockThumbnailsSet.mockRejectedValueOnce(new Error('forbidden'));
+
+      await expect(
+        service.uploadVideo(orgId, brandId, videoId, createPost()),
+      ).resolves.toBe('yt-uploaded-123');
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('failed to set custom thumbnail'),
+        expect.objectContaining({ youtubeVideoId: 'yt-uploaded-123' }),
+      );
+    });
   });
 
   it('should be defined', () => {

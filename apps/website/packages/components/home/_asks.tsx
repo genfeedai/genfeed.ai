@@ -24,7 +24,7 @@ export default function HomeAsks(): React.ReactElement {
           <div className="flex flex-col gap-4" data-reveal="up">
             <Heading
               as="h2"
-              className="max-w-3xl text-5xl font-semibold leading-tight tracking-[-0.04em] sm:text-6xl"
+              className="max-w-3xl text-5xl font-semibold leading-tight tracking-[-0.02em] sm:text-6xl"
             >
               Ask for the job, not the file.
             </Heading>
@@ -57,7 +57,7 @@ export default function HomeAsks(): React.ReactElement {
             >
               <Heading
                 as="h3"
-                className="text-xl font-semibold tracking-[-0.025em] text-foreground"
+                className="text-xl font-semibold tracking-[-0.02em] text-foreground"
               >
                 &ldquo;{prompt.ask}&rdquo;
               </Heading>

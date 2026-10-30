@@ -100,7 +100,7 @@ describe('HighlightRewriteService', () => {
         highlights: expect.arrayContaining([
           expect.objectContaining({
             id: 'h1',
-            summary: 'Stop scrolling. AI just changed everything. Here is why.',
+            script: 'Stop scrolling. AI just changed everything. Here is why.',
           }),
         ]),
       }),

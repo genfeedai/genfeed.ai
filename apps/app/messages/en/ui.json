@@ -102,7 +102,6 @@
     "noScopedSounds": "No TikTok sounds observed for these filters. Try another platform, period, or Market.",
     "platformFilter": "Trend platform",
     "timeframeFilter": "Trend timeframe",
-    "hashtagPlatformFilter": "Hashtag platform",
     "allPlatforms": "All platforms"
   },
   "promptBarSubmitSlot": {
@@ -590,7 +589,16 @@
     "saving": "Saving…",
     "saved": "YouTube settings saved",
     "refreshFailed": "YouTube settings saved, but the view could not refresh. Reload to see the latest settings.",
-    "saveFailed": "Could not save YouTube settings."
+    "saveFailed": "Could not save YouTube settings.",
+    "coverTitle": "Cover title",
+    "coverFrame": "Cover frame (seconds)",
+    "coverHint": "The cover is a frame from the video with your title over it. It is sent to YouTube with the video. YouTube may not accept custom covers for Shorts through the API; if it does not, download the cover and add it in YouTube Studio.",
+    "coverNeedsVideo": "Add a video to this post to preview a cover.",
+    "preview": "Preview cover",
+    "rendering": "Rendering…",
+    "coverFailed": "Could not render the cover.",
+    "coverPreviewAlt": "Cover preview",
+    "downloadCover": "Download cover"
   },
   "seoScorecard": {
     "seoScore": "SEO score",

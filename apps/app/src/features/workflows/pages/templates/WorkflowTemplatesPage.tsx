@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { DataSource } from '@genfeedai/props/workflows/workflow-templates-page.props';
 import Card from '@ui/card/Card';
@@ -11,9 +11,9 @@ import CollectionSection from '@ui/collection/CollectionSection';
 import CollectionView from '@ui/collection/CollectionView';
 import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
+import SearchField from '@ui/content/search-field/SearchField';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import FormSearchbar from '@ui/primitives/searchbar';
 import { useTranslations } from 'next-intl';
 import { Suspense, useMemo } from 'react';
 import { workflowCollectionHeaderTabs } from '../workflow-library-tabs';
@@ -170,19 +170,15 @@ function WorkflowTemplatesPageContent() {
     headerTabs: workflowCollectionHeaderTabs(href),
     label: translateWorkflows('library.title'),
     leading: (
-      <FormSearchbar
-        isCollapsible
+      <SearchField
         onSearch={(value) =>
           dispatch({ type: 'SET_SEARCH', searchQuery: value })
         }
         placeholder={translate('searchPlaceholder')}
-        size={ComponentSize.SM}
         value={searchQuery}
-      />
-    ),
-    right: (
-      <div className="flex items-center gap-2">
+      >
         <FilterMenu
+          isAttached
           facets={[
             {
               defaultValue: 'all',
@@ -216,9 +212,9 @@ function WorkflowTemplatesPageContent() {
           ]}
           onClear={clearFilters}
         />
-        <CollectionViewToggle onViewChange={setView} view={view} />
-      </div>
+      </SearchField>
     ),
+    right: <CollectionViewToggle onViewChange={setView} view={view} />,
     titleVisibility: 'sr-only' as const,
   };
 

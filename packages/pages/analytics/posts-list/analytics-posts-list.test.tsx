@@ -142,10 +142,12 @@ describe('AnalyticsPostsList', () => {
 
     const searchInput = screen.getByPlaceholderText('Search posts...');
     expect(searchInput).toHaveAttribute('name', 'search');
-    expect(screen.getByTestId('collapsible-search')).toHaveAttribute(
-      'data-state',
-      'closed',
-    );
+    // The search is a persistent field and holds the Filters menu inside it.
+    expect(
+      within(
+        searchInput.parentElement?.parentElement as HTMLElement,
+      ).getByTestId('filter-menu'),
+    ).toBeInTheDocument();
 
     expect(screen.queryAllByRole('combobox')).toHaveLength(0);
     expect(screen.getAllByTestId('filter-menu')).toHaveLength(1);
@@ -369,7 +371,6 @@ describe('AnalyticsPostsList', () => {
     expect(
       screen.queryByRole('button', { name: 'Open In Agent' }),
     ).not.toBeInTheDocument();
-    expect(screen.getByTestId('collapsible-search')).toHaveClass('w-8');
     expect(screen.getAllByTestId('filter-menu')).toHaveLength(1);
   });
 

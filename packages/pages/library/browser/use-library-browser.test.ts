@@ -77,6 +77,38 @@ describe('useLibraryBrowser', () => {
     expect(next.has('shelf')).toBe(false);
   });
 
+  it('moves the admin Library between type paths and keeps the organization picker', () => {
+    state.pathname = '/admin/content/ingredients';
+    state.search = 'organization=org-9&brand=b-9&page=2';
+    const { result } = renderHook(() =>
+      useLibraryBrowser({ scope: PageScope.SUPERADMIN }),
+    );
+
+    act(() =>
+      result.current.handleCategoriesChange([
+        IngredientCategory.VIDEO,
+        IngredientCategory.VIDEO_EDIT,
+      ]),
+    );
+    expect(lastPushedPath()).toBe('/admin/content/ingredients/videos');
+    const typed = new URLSearchParams(lastPushedSearch());
+    expect(typed.get('organization')).toBe('org-9');
+    expect(typed.get('brand')).toBe('b-9');
+    expect(typed.has('categories')).toBe(false);
+    expect(typed.has('page')).toBe(false);
+
+    act(() =>
+      result.current.handleCategoriesChange([
+        IngredientCategory.VIDEO,
+        IngredientCategory.IMAGE,
+      ]),
+    );
+    expect(lastPushedPath()).toBe('/admin/content/ingredients');
+    expect(
+      new URLSearchParams(lastPushedSearch()).getAll('categories'),
+    ).toEqual(['VIDEO', 'IMAGE']);
+  });
+
   it('reads Starred and Trash from the route, not the query', () => {
     state.search = 'place=trash';
     const starred = renderHook(() =>

@@ -3,7 +3,6 @@
 import { IngredientsProvider } from '@contexts/content/ingredients-context/ingredients-context';
 import { IngredientsHeaderProvider } from '@contexts/content/ingredients-header-context/ingredients-header-context';
 import {
-  ComponentSize,
   LIBRARY_SHELF_LABELS,
   LibraryPlace,
   LibraryShelf,
@@ -15,18 +14,19 @@ import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-c
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { LibraryBrowserProps } from '@props/pages/library-browser.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import AdminOrgBrandUrlFilter from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
+import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
 import Container from '@ui/layout/container/Container';
-import FormSearchbar from '@ui/primitives/searchbar';
 import { useLibraryTags } from '@ui/tags/library-tag-picker/use-library-tags';
 import { Library } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import LibraryActiveFilters from './library-active-filters';
 import {
   LIBRARY_PLACE_COPY,
   LIBRARY_SORT_OPTIONS,
 } from './library-browser.config';
 import LibraryBrowserToolbar, {
   LibraryBrowserIconActions,
+  LibraryBrowserSearch,
 } from './library-browser-toolbar';
 import { useLibraryBrowser } from './use-library-browser';
 import { useLibraryCharacterOptions } from './use-library-character-options';
@@ -37,7 +37,13 @@ import { useLibraryCharacterOptions } from './use-library-character-options';
  * Places, shelves, type and folder are query filters; legacy props provide
  * defaults only when the URL does not specify them. The list itself is the existing
  * ingredients engine pointed at the unified `GET /ingredients` endpoint — the
- * redesign changes what gets asked for, not how results are rendered.
+ * redesign changes what gets asked for, not how results are rendered. On the
+ * split routes (`agent-output-routes.ts`) the browser is the output half, with
+ * the agent beside it; the folder tree stays in the shell nav.
+ *
+ * `PageScope.SUPERADMIN` is the admin Library: every organization, narrowed by
+ * the organization and brand pickers (`?organization=`, `?brand=`). It has the
+ * type routes and the filters, but no shelves, places, upload or tag manager.
  */
 export default function LibraryBrowser({
   place: defaultPlace,
@@ -82,6 +88,8 @@ export default function LibraryBrowser({
     shelf: defaultShelf,
   });
 
+  const isAdminScope = scope === PageScope.SUPERADMIN;
+
   // Character availability is resolved for one brand, so the filter belongs to
   // brand-scoped views only.
   const { brandId } = useCollectionScope();
@@ -92,7 +100,7 @@ export default function LibraryBrowser({
           `${APP_ROUTES.AGENT.NEW}?agentMode=manual&prompt=${encodeURIComponent(`Use list_assets with shelf=unsorted and origin=GENERATED, paginating each supported media type for the current brand. Review those unsorted generated assets. Check the actual media against the approved brand kit, especially logo fidelity. Suggest approve/reject decisions with reasons and folders or tags for sorting. Use the available review tools; disclose any unavailable checks. Do not approve, reject, move, delete, publish, generate, or change learning settings. Return suggestions for me to review.`)}`,
         )
       : undefined;
-  const { summary } = useLibrarySummary();
+  const { summary } = useLibrarySummary({ isEnabled: !isAdminScope });
   const characterOptions = useLibraryCharacterOptions({
     brandId,
     isEnabled: scope === PageScope.BRAND,
@@ -102,6 +110,7 @@ export default function LibraryBrowser({
   // across brands, so the filter can only offer what the list can match.
   const { tags: tagOptions } = useLibraryTags({
     brandId: brandId || undefined,
+    isEnabled: !isAdminScope,
   });
 
   const [selectionSlot, setSelectionSlot] = useState<HTMLElement | null>(null);
@@ -135,109 +144,98 @@ export default function LibraryBrowser({
   return (
     <IngredientsHeaderProvider value={headerContextValue}>
       <IngredientsProvider value={contextValue}>
-        <Container
-          className="@container/library"
-          icon={Library}
-          isTopbarPinned
-          label={destination.label}
-          titleVisibility="sr-only"
-          leading={
-            <FormSearchbar
-              isCollapsible
-              onSearch={handleSearchChange}
-              placeholder={
-                scope === PageScope.ORGANIZATION
-                  ? 'Search organization assets'
-                  : "Search this brand's assets"
-              }
-              size={ComponentSize.SM}
-              value={search}
-            />
-          }
-          right={
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <LibraryBrowserToolbar
-                isRecoveryView={isRecoveryView}
+        <AgentOutputShell
+          defaultMobileView="output"
+          outputLabel={destination.label}
+        >
+          <Container
+            className="@container/library"
+            icon={Library}
+            isTopbarPinned
+            label={destination.label}
+            titleVisibility="sr-only"
+            leading={
+              <LibraryBrowserSearch
                 categories={categories}
                 characterOptions={characterOptions}
                 characters={characters}
+                isAdminScope={isAdminScope}
                 onCategoriesChange={handleCategoriesChange}
                 onCharactersChange={handleCharactersChange}
                 onClearAllFilters={handleClearAllFilters}
                 onOriginsChange={handleOriginsChange}
                 onPlaceChange={handlePlaceChange}
-                onStatusChange={handleStatusChange}
-                origins={origins}
-                place={place}
-                shelf={shelf}
-                shelfCounts={summary?.byShelf}
-                trashedCount={summary?.trashedCount}
+                onSearch={handleSearchChange}
                 onSortChange={handleSortChange}
+                onStatusChange={handleStatusChange}
                 onTagMatchChange={handleTagMatchChange}
                 onTagsChange={handleTagsChange}
-                onViewModeChange={handleViewModeChange}
+                origins={origins}
+                place={place}
+                placeholder={
+                  isAdminScope
+                    ? 'Search all assets'
+                    : scope === PageScope.ORGANIZATION
+                      ? 'Search organization assets'
+                      : "Search this brand's assets"
+                }
+                search={search}
+                shelf={shelf}
+                shelfCounts={summary?.byShelf}
                 sort={sort}
                 sortOptions={[...LIBRARY_SORT_OPTIONS]}
                 tagMatch={tagMatch}
                 tagOptions={tagOptions}
                 tags={tags}
-                viewMode={viewMode}
-              />
-              {isRecoveryView ? (
-                <div
-                  className="empty:hidden"
-                  ref={setActionSlot}
-                  data-testid="library-recovery-action-slot"
-                />
-              ) : null}
-            </div>
-          }
-          iconActionsPlacement="before-controls"
-          refresh={
-            <ButtonRefresh
-              isRefreshing={isRefreshing}
-              onClick={handleRefresh}
-            />
-          }
-          iconActions={
-            <LibraryBrowserIconActions
-              reviewUnsortedHref={reviewUnsortedHref}
-              onUpload={handleUpload}
-            />
-          }
-          topbarFooter={
-            <>
-              <LibraryActiveFilters
-                categories={categories}
-                characterOptions={characterOptions}
-                characters={characters}
-                onCategoriesChange={handleCategoriesChange}
-                onCharactersChange={handleCharactersChange}
-                onClearAllFilters={handleClearAllFilters}
-                onOriginsChange={handleOriginsChange}
-                onPlaceChange={handlePlaceChange}
-                onStatusChange={handleStatusChange}
-                onTagMatchChange={handleTagMatchChange}
-                onTagsChange={handleTagsChange}
-                origins={origins}
-                place={place}
-                shelf={shelf}
-                shelfCounts={summary?.byShelf}
-                tagMatch={tagMatch}
-                tagOptions={tagOptions}
-                tags={tags}
                 trashedCount={summary?.trashedCount}
               />
-              <div
-                className="empty:hidden"
-                data-testid="library-selection-slot"
-                ref={setSelectionSlot}
+            }
+            right={
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                {/* Subbar order: the organization picker first, then filters. */}
+                {isAdminScope ? <AdminOrgBrandUrlFilter /> : null}
+                <LibraryBrowserToolbar
+                  isRecoveryView={isRecoveryView}
+                  onViewModeChange={handleViewModeChange}
+                  viewMode={viewMode}
+                />
+                {isRecoveryView ? (
+                  <div
+                    className="empty:hidden"
+                    ref={setActionSlot}
+                    data-testid="library-recovery-action-slot"
+                  />
+                ) : null}
+              </div>
+            }
+            iconActionsPlacement="before-controls"
+            refresh={
+              <ButtonRefresh
+                isRefreshing={isRefreshing}
+                onClick={handleRefresh}
               />
-            </>
-          }
-        >
-          {children}
-        </Container>
+            }
+            iconActions={
+              isAdminScope ? undefined : (
+                <LibraryBrowserIconActions
+                  reviewUnsortedHref={reviewUnsortedHref}
+                  onUpload={handleUpload}
+                />
+              )
+            }
+            topbarFooter={
+              <>
+                <div
+                  className="empty:hidden"
+                  data-testid="library-selection-slot"
+                  ref={setSelectionSlot}
+                />
+              </>
+            }
+          >
+            {children}
+          </Container>
+        </AgentOutputShell>
       </IngredientsProvider>
     </IngredientsHeaderProvider>
   );

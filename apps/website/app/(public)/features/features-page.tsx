@@ -118,7 +118,7 @@ export default function FeaturesPage(): React.ReactElement {
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/45">
                 Made in Genfeed
               </p>
-              <h2 className="mt-5 text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">
+              <h2 className="mt-5 text-4xl font-semibold tracking-[-0.02em] sm:text-5xl">
                 The output is the proof.
               </h2>
               <p className="mt-5 max-w-2xl text-base leading-7 text-foreground/60">
@@ -141,7 +141,7 @@ export default function FeaturesPage(): React.ReactElement {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                   <figcaption className="absolute inset-x-0 bottom-0 p-6">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/60">
+                    <p className="text-2xs font-bold uppercase tracking-[0.14em] text-white/60">
                       {output.format}
                     </p>
                     <p className="mt-2 text-xl font-semibold text-white">

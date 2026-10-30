@@ -55,6 +55,21 @@ describe('HighlightReviewCard', () => {
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
 
+  it('shows what was said as the script when the highlight has one', () => {
+    render(
+      <HighlightReviewCard
+        highlight={{ ...mockHighlight, script: 'We ship on Fridays.' }}
+        selected={true}
+        onToggle={vi.fn()}
+        onTitleEdit={vi.fn()}
+        onScriptEdit={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByDisplayValue('We ship on Fridays.')).toBeDefined();
+    expect(screen.queryByDisplayValue(mockHighlight.summary)).toBeNull();
+  });
+
   it('calls onScriptEdit when the summary textarea is changed', () => {
     const onScriptEdit = vi.fn();
     render(

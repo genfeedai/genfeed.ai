@@ -628,14 +628,14 @@ describe('AdsResearchPageClient', () => {
     expect(screen.getByText('2.40')).toBeInTheDocument();
 
     const refreshButton = screen.getByRole('button', { name: 'Refresh' });
-    // Refresh is passed through the Container `refresh` slot, ahead of the filters.
+    // Refresh is passed through the Container `refresh` slot; the filters sit
+    // inside the search field in the leading slot.
     expect(screen.getByTestId('container-refresh')).toContainElement(
       refreshButton,
     );
-    expect(
-      refreshButton.compareDocumentPosition(screen.getByTestId('filter-menu')) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    const searchField = screen.getByPlaceholderText('Search ads').closest('div')
+      ?.parentElement as HTMLElement;
+    expect(searchField).toContainElement(screen.getByTestId('filter-menu'));
     fireEvent.click(refreshButton);
     expect(useQueryStates[0].refetch).toHaveBeenCalled();
 

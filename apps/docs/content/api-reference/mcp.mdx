@@ -335,6 +335,34 @@ The bare endpoint uses the `default` profile. Profiles shape the advertised
 | `?profile=studio` | The default selection plus `brand` and `analytics`, capped at 40 tools. Generation, content, scheduling, brand and analytics, without ads tools. Codex installs use this profile. |
 | `?profile=full` | All toolsets, subject to the caller's permissions. |
 
+### Add an app with `?app=`
+
+`?app=` adds the tools behind a Genfeed app to whatever the rest of the URL
+selects (the default, `?profile=`, or `?toolsets=`). It is additive and accepts
+several names, so `?profile=studio&app=clipper,motion` is the studio set plus
+Clipper and Motion. Added apps are not counted against the profile caps.
+`?profile=full` already includes everything.
+
+| App | Toolsets it adds |
+| --- | --- |
+| `agent` | `agent-chat` |
+| `analytics` | `analytics` |
+| `automation` | `workflows` |
+| `clipper` | `clipper` |
+| `editor` | `editor` |
+| `discovery` | `ads`, `inspiration` |
+| `library`, `playground` | `generation` |
+| `messages` | `social-inbox` |
+| `motion` | `visual-code` |
+| `publishing` | `articles`, `content`, `onboarding`, `scheduler` |
+| `storyboard` | `inspiration` |
+| `turbo` | `content` |
+| `workspace` | `workspace` |
+
+`brand`, `engagement`, `knowledge`, and `skills-pro` have no app; select them
+with `?toolsets=`. An unknown app name returns HTTP 400 listing the valid
+names. The Claude connector at `/mcp/claude` keeps its fixed tool list.
+
 To expose the available content journey, including generation and analytics,
 select these toolsets explicitly:
 

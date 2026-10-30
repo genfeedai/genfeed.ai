@@ -276,7 +276,7 @@ test.describe('Context sidebar — selection driven', () => {
     await expect(card).toHaveAttribute('data-selected', 'false');
   });
 
-  test('opens Library asset details from the tile and keeps bulk selection independent of close', async ({
+  test('opens Library asset details in the output pane and keeps bulk selection independent of it', async ({
     authenticatedPage,
   }) => {
     await mockLibraryData(authenticatedPage);
@@ -285,17 +285,21 @@ test.describe('Context sidebar — selection driven', () => {
       waitUntil: 'domcontentloaded',
     });
 
+    // The Library is a split page: the record opens in the output pane's
+    // Context tab, not in the right-hand side panel.
+    const output = authenticatedPage.getByTestId('agent-output-output-pane');
+    const contextTab = output.getByRole('tab', { name: 'Context' });
     const selectToggle = authenticatedPage.getByTestId(
       'masonry-select-ingredient-image-1',
     );
     const tile = authenticatedPage.getByTestId(
       'masonry-ingredient-ingredient-image-1',
     );
-    const contextSidebar = authenticatedPage.getByRole('complementary', {
-      name: 'Side panel',
-    });
     await expect(selectToggle).toHaveAttribute('aria-pressed', 'false');
-    await expect(contextSidebar).toHaveCount(0);
+    await expect(contextTab).toHaveAttribute('aria-selected', 'false');
+    await expect(
+      authenticatedPage.getByRole('complementary', { name: 'Side panel' }),
+    ).toHaveCount(0);
 
     // The select control stays opacity-0 on a hover-capable pointer until the
     // tile group is hovered. Playwright refuses to hover a hidden target, so
@@ -304,23 +308,18 @@ test.describe('Context sidebar — selection driven', () => {
     await expect(selectToggle).toBeVisible();
     await selectToggle.click();
     await expect(selectToggle).toHaveAttribute('aria-pressed', 'true');
-    await expect(contextSidebar).toHaveCount(0);
+    await expect(contextTab).toHaveAttribute('aria-selected', 'false');
 
     await tile.click();
-    await expect(contextSidebar).toBeVisible();
-    await expect(contextSidebar.getByLabel('Asset details')).toBeVisible();
-    await expect(
-      contextSidebar.getByTestId('context-sidebar-title'),
-    ).toHaveText('Product Photo');
+    await expect(contextTab).toHaveAttribute('aria-selected', 'true');
+    await expect(output.getByLabel('Asset details')).toBeVisible();
     await expect(selectToggle).toHaveAttribute('aria-pressed', 'true');
 
-    await contextSidebar.getByTestId('workspace-panel-close').click();
-
-    await expect(contextSidebar).toHaveCount(0);
+    // Stepping back to the assets leaves the bulk selection alone.
+    await output.getByRole('tab', { name: 'Images' }).click();
     await expect(selectToggle).toHaveAttribute('aria-pressed', 'true');
 
     await selectToggle.click();
     await expect(selectToggle).toHaveAttribute('aria-pressed', 'false');
-    await expect(contextSidebar).toHaveCount(0);
   });
 });

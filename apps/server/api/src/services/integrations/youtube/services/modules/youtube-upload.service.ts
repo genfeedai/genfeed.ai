@@ -1,8 +1,10 @@
-import type { Readable } from 'node:stream';
+import { Readable } from 'node:stream';
+import { BrandCoverStyleService } from '@api/collections/brands/services/brand-cover-style.service';
 import type {
   ServerYoutubeUploader,
   YoutubeUploadPostInput,
 } from '@api/server.dependencies';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { requireStoredMediaKey } from '@api/services/media-urls/media-delivery-policy.util';
@@ -23,6 +25,11 @@ import { Injectable, Optional } from '@nestjs/common';
 import { google, type youtube_v3 } from 'googleapis';
 import { firstValueFrom } from 'rxjs';
 
+/** Second of the video the thumbnail still is taken from. */
+const THUMBNAIL_FRAME_SECONDS = 1;
+/** 1080 wide gives a 1080x1920 still for a 9:16 Short (YouTube minimum is 640px). */
+const THUMBNAIL_WIDTH = 1080;
+
 @Injectable()
 export class YoutubeUploadService implements ServerYoutubeUploader {
   private readonly constructorName = this.constructor.name;
@@ -36,6 +43,10 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
     private readonly configService: ConfigService,
     @Optional()
     private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
+    @Optional()
+    private readonly filesClient?: FilesClientService,
+    @Optional()
+    private readonly brandCoverStyle?: BrandCoverStyleService,
   ) {
     // Create YouTube API client without default auth
     // Each upload will pass its own per-request auth
@@ -94,51 +105,7 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
         post.tags || [],
       );
 
-      // Determine YouTube privacy status and handle scheduled uploads
-      // If scheduledDate is in the future, upload as PRIVATE with publishAt
-      // YouTube will automatically publish the video at the specified time
-      const hasFutureScheduledDate =
-        post.scheduledDate && new Date(post.scheduledDate) > new Date();
-
-      const requestedPrivacy = resolveYouTubeUploadVisibility(
-        post.visibility,
-        readChannelSettingString(settings, 'privacyStatus'),
-      );
-      const madeForKids = readChannelSettingBoolean(settings, 'madeForKids');
-      // `selfDeclaredMadeForKids` is only accepted alongside the `status` part,
-      // and YouTube rejects the field when it is absent rather than defaulting.
-      const audienceConfig =
-        madeForKids === undefined
-          ? {}
-          : { selfDeclaredMadeForKids: madeForKids };
-
-      let privacyStatus: string;
-      let statusConfig: youtube_v3.Schema$VideoStatus;
-
-      if (hasFutureScheduledDate) {
-        // Future scheduled date: upload as private with publishAt
-        // YouTube will automatically make it public at the scheduled time.
-        // `publishAt` always publishes publicly, so an explicit non-public
-        // choice has to drop the timer rather than silently override it.
-        const honoursTimer = requestedPrivacy === PostVisibility.PUBLIC;
-
-        statusConfig = honoursTimer
-          ? {
-              ...audienceConfig,
-              privacyStatus: PostVisibility.PRIVATE,
-              publishAt: new Date(post.scheduledDate).toISOString(),
-            }
-          : { ...audienceConfig, privacyStatus: requestedPrivacy };
-
-        this.loggerService.log(
-          honoursTimer
-            ? `Scheduling video for future publication: ${post.scheduledDate.toISOString()}`
-            : `Uploading video as ${requestedPrivacy}; YouTube's publish timer only supports public releases`,
-        );
-      } else {
-        privacyStatus = requestedPrivacy;
-        statusConfig = { ...audienceConfig, privacyStatus };
-      }
+      const statusConfig = this.buildStatusConfig(post, settings);
 
       // Sanitize HTML to plain text - YouTube doesn't support HTML markup
       const description = htmlToText(post.description);
@@ -146,6 +113,18 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
       const playlistId = readChannelSettingString(settings, 'playlistId');
 
       const uploadSignal = AbortSignal.timeout(10 * 60_000);
+
+      // Grab the frame while the video uploads: the source URL can expire
+      // during a long upload, and the frame is ready by the time it finishes.
+      const thumbnailPromise = this.prepareThumbnail(
+        videoId,
+        sourceUrl,
+        uploadSignal,
+        url,
+        settings,
+        organizationId,
+        brandId,
+      );
       const mediaResponse = await firstValueFrom(
         this.httpService.get<Readable>(sourceUrl, {
           responseType: 'stream',
@@ -180,6 +159,13 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
 
       const youtubeVideoId = res.data.id;
 
+      await this.setThumbnail(
+        youtubeVideoId,
+        await thumbnailPromise,
+        auth,
+        url,
+      );
+
       if (playlistId) {
         await this.addToPlaylist(youtubeVideoId, playlistId, auth, url);
       }
@@ -194,6 +180,136 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
       throw error;
     } finally {
       mediaStream?.destroy();
+    }
+  }
+
+  /**
+   * If scheduledDate is in the future, upload as PRIVATE with publishAt and
+   * YouTube publishes the video at that time.
+   */
+  private buildStatusConfig(
+    post: YoutubeUploadPostInput,
+    settings: ChannelTargetSettings,
+  ): youtube_v3.Schema$VideoStatus {
+    const hasFutureScheduledDate =
+      post.scheduledDate && new Date(post.scheduledDate) > new Date();
+
+    const requestedPrivacy = resolveYouTubeUploadVisibility(
+      post.visibility,
+      readChannelSettingString(settings, 'privacyStatus'),
+    );
+    const madeForKids = readChannelSettingBoolean(settings, 'madeForKids');
+    // `selfDeclaredMadeForKids` is only accepted alongside the `status` part,
+    // and YouTube rejects the field when it is absent rather than defaulting.
+    const audienceConfig =
+      madeForKids === undefined ? {} : { selfDeclaredMadeForKids: madeForKids };
+
+    if (!hasFutureScheduledDate) {
+      return { ...audienceConfig, privacyStatus: requestedPrivacy };
+    }
+
+    // `publishAt` always publishes publicly, so an explicit non-public
+    // choice has to drop the timer rather than silently override it.
+    const honoursTimer = requestedPrivacy === PostVisibility.PUBLIC;
+
+    this.loggerService.log(
+      honoursTimer
+        ? `Scheduling video for future publication: ${post.scheduledDate.toISOString()}`
+        : `Uploading video as ${requestedPrivacy}; YouTube's publish timer only supports public releases`,
+    );
+
+    return honoursTimer
+      ? {
+          ...audienceConfig,
+          privacyStatus: PostVisibility.PRIVATE,
+          publishAt: new Date(post.scheduledDate).toISOString(),
+        }
+      : { ...audienceConfig, privacyStatus: requestedPrivacy };
+  }
+
+  /**
+   * Renders the cover through the files service: a still from the source video,
+   * with the post's cover title laid over it when one is set. Never rejects:
+   * the thumbnail is an enhancement and must not fail the upload.
+   */
+  private async prepareThumbnail(
+    ingredientId: string,
+    sourceUrl: string,
+    signal: AbortSignal,
+    logPrefix: string,
+    settings: ChannelTargetSettings,
+    organizationId: string,
+    brandId: string,
+  ): Promise<Buffer | undefined> {
+    if (!this.filesClient) return undefined;
+
+    const frameSeconds = Number(
+      readChannelSettingString(settings, 'thumbnailFrameSeconds'),
+    );
+
+    try {
+      const titleStyle = await this.brandCoverStyle?.resolveTitleStyle(
+        brandId,
+        organizationId,
+      );
+      const frame = await this.filesClient.generateThumbnail(
+        sourceUrl,
+        ingredientId,
+        Number.isFinite(frameSeconds) && frameSeconds >= 0
+          ? frameSeconds
+          : THUMBNAIL_FRAME_SECONDS,
+        THUMBNAIL_WIDTH,
+        readChannelSettingString(settings, 'thumbnailText')?.trim(),
+        true,
+        titleStyle,
+      );
+      if (!frame?.thumbnailUrl) return undefined;
+
+      const response = await firstValueFrom(
+        this.httpService.get<ArrayBuffer>(frame.thumbnailUrl, {
+          responseType: 'arraybuffer',
+          signal,
+          timeout: 30_000,
+        }),
+      );
+      return Buffer.from(response.data);
+    } catch (error: unknown) {
+      this.loggerService.warn(`${logPrefix} thumbnail generation failed`, {
+        error: getErrorMessage(error),
+      });
+      return undefined;
+    }
+  }
+
+  /**
+   * `thumbnails.set` is a separate API call (~50 quota units) that runs after
+   * a successful upload. Non-fatal for the same reason as the playlist call:
+   * the video is already on YouTube. YouTube Help documents custom Shorts
+   * thumbnails as a Studio-on-desktop feature, and the Data API reference does
+   * not say whether it accepts them, so a rejection here is logged, not thrown.
+   */
+  private async setThumbnail(
+    youtubeVideoId: string,
+    thumbnail: Buffer | undefined,
+    auth: unknown,
+    logPrefix: string,
+  ): Promise<void> {
+    if (!thumbnail) return;
+
+    try {
+      await this.youtubeAPI.thumbnails.set({
+        auth,
+        media: { body: Readable.from(thumbnail), mimeType: 'image/jpeg' },
+        videoId: youtubeVideoId,
+      } as youtube_v3.Params$Resource$Thumbnails$Set);
+      this.loggerService.log(`${logPrefix} custom thumbnail set`, {
+        youtubeVideoId,
+      });
+    } catch (error: unknown) {
+      this.loggerService.warn(`${logPrefix} failed to set custom thumbnail`, {
+        error: getErrorMessage(error),
+        youtubeVideoId,
+      });
     }
   }
 

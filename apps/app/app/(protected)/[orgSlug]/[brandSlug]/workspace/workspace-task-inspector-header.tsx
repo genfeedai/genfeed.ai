@@ -52,7 +52,7 @@ export function WorkspaceTaskInspectorHeader({
             ) : null}
           </div>
 
-          <h2 className="text-2xl tracking-[-0.03em] text-foreground">
+          <h2 className="text-2xl tracking-[-0.02em] text-foreground">
             {task.title}
           </h2>
           <p className="text-sm leading-6 text-foreground/55">{task.request}</p>

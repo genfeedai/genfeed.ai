@@ -140,7 +140,7 @@ export default function PricingContent() {
       <PageLayout compact title="Pricing">
         <WebSection maxWidth="full" py="sm" className="pt-0 md:pt-0">
           <NeuralGrid columns={3} className="gsap-grid md:grid-cols-3">
-            {getOrderedPlans().map((plan, index) => {
+            {getOrderedPlans().map((plan) => {
               const isFeatured = plan.tier === FEATURED_TIER;
               const isPayg = plan.type === 'payg';
               const ctaHref = isPayg
@@ -155,7 +155,7 @@ export default function PricingContent() {
                     'relative gsap-card flex min-w-0 flex-col p-6 sm:p-6',
                     isFeatured && 'bg-card hover:bg-card',
                   )}
-                  tierLabel={`${String(index + 1).padStart(2, '0')} / ${isPayg ? 'PAYG' : getPlanLabel(plan.tier)}`}
+                  title={isPayg ? 'PAYG' : getPlanLabel(plan.tier)}
                   aria-label={getPlanLabel(plan.tier)}
                 >
                   {isFeatured ? (
@@ -167,7 +167,7 @@ export default function PricingContent() {
                   ) : null}
 
                   <div className="mb-2 flex items-baseline gap-1.5 whitespace-nowrap">
-                    <span className="text-4xl font-semibold tracking-[-0.03em] xl:text-5xl">
+                    <span className="text-4xl font-semibold tracking-[-0.02em] xl:text-5xl">
                       {isPayg
                         ? `$${CREDIT_VALUE_DOLLARS.toFixed(2)}`
                         : formatPrice(plan.price)}
@@ -216,7 +216,7 @@ export default function PricingContent() {
             <NeuralGridItem
               padding="lg"
               className="relative gsap-card flex min-w-0 flex-col p-6 sm:p-6"
-              tierLabel={`03 / ${serviceOffering.name}`}
+              title={serviceOffering.name}
               aria-label={serviceOffering.name}
             >
               <div className="absolute right-6 top-6">
@@ -229,7 +229,7 @@ export default function PricingContent() {
                 <span className="text-sm font-medium text-foreground/55">
                   From
                 </span>
-                <span className="text-4xl font-semibold tracking-[-0.03em] xl:text-5xl">
+                <span className="text-4xl font-semibold tracking-[-0.02em] xl:text-5xl">
                   {formatPrice(serviceOffering.startingMonthlyPrice)}
                 </span>
                 <span className="text-sm font-medium text-foreground/55">

@@ -275,10 +275,9 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/admin/content/ingredients/:type/:id': ':type Ingredient',
   '/admin/content/posts/:id': 'Post',
   '/admin/content/templates/:id': 'Template',
-  '/admin/organizations/:id': 'Organization Configuration',
+  '/admin/organizations/:id': 'Organization Details',
   '/admin/brands/:id': 'Brand Details',
   '/admin/brands/:id/platforms/:platform': ':platform',
-  '/admin/overview/analytics/organizations/:id': 'Organization Details',
   '/settings': 'Settings',
   '/settings/personal': 'Personal',
   '/settings/help': 'Help',
@@ -564,7 +563,6 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
   ...registerRoutes(
     [
       '/:orgSlug/~/workspace/inbox',
-      '/:orgSlug/~/workspace/inbox/:view',
       '/:orgSlug/~/workspace/activity',
       '/:orgSlug/~/workspace/tasks',
       '/:orgSlug/~/workspace/tasks/:id',
@@ -804,7 +802,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ...registerRoutes(
     [
       '/:orgSlug/:brandSlug/workspace/inbox',
-      '/:orgSlug/:brandSlug/workspace/inbox/:view',
       '/:orgSlug/:brandSlug/workspace/activity',
       '/:orgSlug/:brandSlug/workspace/tasks',
       '/:orgSlug/:brandSlug/workspace/tasks/:id',
@@ -1191,8 +1188,6 @@ const ADMIN_ANALYTICS_ROUTE_PATTERNS = [
   '/admin/brands/:id/platforms/:platform',
   '/admin/overview/analytics/all',
   '/admin/overview/analytics/business',
-  '/admin/overview/analytics/organizations',
-  '/admin/overview/analytics/organizations/:id',
 ] as const;
 
 const ADMIN_ROUTE_REGISTRATIONS = [

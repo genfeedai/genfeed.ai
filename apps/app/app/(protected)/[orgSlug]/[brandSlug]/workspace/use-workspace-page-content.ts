@@ -25,8 +25,11 @@ import {
 import { usePlanningConversation } from './use-planning-conversation';
 import {
   applyRealtimeTaskUpdate,
+  DEFAULT_INBOX_VIEW,
   DEFAULT_REVIEW_INBOX,
+  type InboxView,
   isTaskInInboxQueue,
+  parseInboxView,
   useWorkspaceSectionCopy,
   type WorkspaceTaskRealtimePayload,
 } from './workspace-task.helpers';
@@ -60,7 +63,6 @@ function addWorkspaceLoadTimeoutBreadcrumb(
 }
 
 export function useWorkspacePageContent({
-  defaultInboxView = 'unread',
   initialAnalytics,
   initialReviewInbox = DEFAULT_REVIEW_INBOX,
   initialTimeSeriesData,
@@ -78,6 +80,7 @@ export function useWorkspacePageContent({
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const requestedTaskId = searchParams.get('taskId');
+  const inboxView = parseInboxView(searchParams.get('status'));
 
   const [isTaskComposerOpen, setTaskComposerOpen] = useState(false);
   const [workspaceActionError, setWorkspaceActionError] = useState<
@@ -235,8 +238,27 @@ export function useWorkspacePageContent({
     [pathname, replace, searchParamsString],
   );
 
+  // The default view is the bare URL, so a shared link never carries it.
+  const setInboxView = useCallback(
+    (view: InboxView) => {
+      const nextSearchParams = new URLSearchParams(searchParamsString);
+
+      if (view === DEFAULT_INBOX_VIEW) {
+        nextSearchParams.delete('status');
+      } else {
+        nextSearchParams.set('status', view);
+      }
+
+      const nextQuery = nextSearchParams.toString();
+      replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
+        scroll: false,
+      });
+    },
+    [pathname, replace, searchParamsString],
+  );
+
   const visibleInboxTasks = useMemo(() => {
-    switch (defaultInboxView) {
+    switch (inboxView) {
       case 'unread':
         return unreadInboxTasks;
       case 'all':
@@ -244,7 +266,7 @@ export function useWorkspacePageContent({
       default:
         return recentInboxTasks;
     }
-  }, [defaultInboxView, queueTasks, recentInboxTasks, unreadInboxTasks]);
+  }, [inboxView, queueTasks, recentInboxTasks, unreadInboxTasks]);
 
   const summaryItems = useMemo(
     () => [
@@ -457,8 +479,8 @@ export function useWorkspacePageContent({
   return {
     activityItems,
     inboxRead,
+    inboxView,
     busyTaskId,
-    defaultInboxView,
     historyPreviewItems,
     inProgressTasks,
     activeExecutions,
@@ -482,6 +504,7 @@ export function useWorkspacePageContent({
     sectionCopy,
     selectedTask,
     selectedTaskId,
+    setInboxView,
     setSelectedTaskId,
     setTaskComposerOpen,
     setWorkspaceTasks,

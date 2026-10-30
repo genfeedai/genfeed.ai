@@ -30,7 +30,7 @@ export default function ProductInterfacePreview({
     <div className="w-full max-w-[720px] overflow-hidden rounded-2xl border border-foreground/15 bg-background shadow-[0_32px_100px_rgba(0,0,0,0.35)]">
       <div className="flex h-11 items-center justify-between border-b border-foreground/10 px-4">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-foreground text-[10px] font-black text-background">
+          <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-foreground text-2xs font-black text-background">
             G
           </div>
           <span className="truncate text-xs font-semibold text-foreground">
@@ -41,7 +41,7 @@ export default function ProductInterfacePreview({
             {product.category}
           </span>
         </div>
-        <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.12em] text-foreground/45">
+        <div className="flex items-center gap-2 text-2xs font-bold uppercase tracking-[0.12em] text-foreground/45">
           <span className="size-1.5 rounded-full bg-emerald-400" />
           Live workspace
         </div>
@@ -49,14 +49,14 @@ export default function ProductInterfacePreview({
 
       <div className="grid min-h-[430px] grid-cols-[126px_minmax(0,1fr)] sm:min-h-[480px] sm:grid-cols-[170px_minmax(0,1fr)]">
         <aside className="border-r border-foreground/10 p-3">
-          <p className="px-2 pb-3 pt-1 text-[9px] font-bold uppercase tracking-[0.16em] text-foreground/35">
+          <p className="px-2 pb-3 pt-1 text-2xs font-bold uppercase tracking-[0.16em] text-foreground/35">
             Product
           </p>
           <div className="space-y-1">
             {primaryFeatures.map((feature, index) => (
               <Button
                 ariaLabel={feature.title}
-                className={`h-auto w-full justify-start px-2.5 py-2 text-left text-[10px] leading-4 sm:text-[11px] ${
+                className={`h-auto w-full justify-start px-2.5 py-2 text-left text-2xs leading-4 sm:text-[11px] ${
                   index === 0
                     ? 'bg-foreground/8 text-foreground'
                     : 'text-foreground/45'
@@ -72,7 +72,7 @@ export default function ProductInterfacePreview({
             ))}
           </div>
           <div className="mt-8 border-t border-foreground/10 px-2 pt-4">
-            <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-foreground/30">
+            <p className="text-2xs font-bold uppercase tracking-[0.14em] text-foreground/30">
               Workspace
             </p>
             <p className="mt-2 text-[11px] text-foreground/60">Campaign HQ</p>
@@ -85,13 +85,13 @@ export default function ProductInterfacePreview({
               <p className="truncate text-base font-semibold text-foreground sm:text-lg">
                 {product.name}
               </p>
-              <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-foreground/45 sm:text-xs">
+              <p className="mt-1 line-clamp-2 text-2xs leading-4 text-foreground/45 sm:text-xs">
                 {product.headline}
               </p>
             </div>
             <Button
               ariaLabel={`Create in ${product.name}`}
-              className="shrink-0 gap-1.5 bg-foreground px-2.5 text-[10px] text-background sm:px-3"
+              className="shrink-0 gap-1.5 bg-foreground px-2.5 text-2xs text-background sm:px-3"
               size={ButtonSize.SM}
               type="button"
               withWrapper={false}
@@ -103,31 +103,28 @@ export default function ProductInterfacePreview({
 
           <div className="mt-5 min-h-0 flex-1 overflow-hidden rounded-xl border border-foreground/10 bg-background/55">
             <div className="flex items-center justify-between border-b border-foreground/10 px-3 py-2.5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-foreground/45">
+              <p className="text-2xs font-bold uppercase tracking-[0.12em] text-foreground/45">
                 Active work
               </p>
               <MoreHorizontal className="size-4 text-foreground/35" />
             </div>
             <div className="divide-y divide-foreground/10">
-              {recentWork.map((useCase, index) => (
+              {recentWork.map((useCase) => (
                 <div
                   className="grid grid-cols-[1fr_auto] gap-3 px-3 py-3.5 sm:px-4 sm:py-4"
                   key={useCase.title}
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-foreground/[0.06] text-[9px] font-semibold text-foreground/45">
-                        {String(index + 1).padStart(2, '0')}
-                      </span>
                       <p className="truncate text-xs font-semibold text-foreground sm:text-sm">
                         {useCase.title}
                       </p>
                     </div>
-                    <p className="mt-2 line-clamp-2 pl-7 text-[10px] leading-4 text-foreground/42 sm:text-[11px]">
+                    <p className="mt-2 line-clamp-2 text-2xs leading-4 text-foreground/42 sm:text-[11px]">
                       {useCase.description}
                     </p>
                   </div>
-                  <div className="flex items-start gap-1.5 pt-0.5 text-[9px] uppercase tracking-[0.1em] text-success/75">
+                  <div className="flex items-start gap-1.5 pt-0.5 text-2xs uppercase tracking-[0.1em] text-success/75">
                     <Check className="size-3" />
                     <span className="hidden sm:inline">Ready</span>
                   </div>
@@ -141,7 +138,7 @@ export default function ProductInterfacePreview({
               Tell Genfeed what to do in {product.name}
             </div>
             <div className="flex items-center justify-between border-t border-white/[0.06] px-2 py-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-foreground/10 px-2 py-1 text-[9px] text-foreground/45">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-foreground/10 px-2 py-1 text-2xs text-foreground/45">
                 <Command className="size-3" /> Product agent
               </span>
               <Button

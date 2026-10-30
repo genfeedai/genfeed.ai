@@ -11,11 +11,42 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 const AGENT_OUTPUT_ROUTE_PATTERNS: readonly RegExp[] = [
   // A Storyboard run; `/storyboard/new` is the create form.
   new RegExp(`^${APP_ROUTES.STUDIO.STORYBOARD}/(?!new/?$)[^/]+/?$`),
+  // The Library asset browser: every destination that renders `LibraryBrowser`
+  // (the unified browser, its type presets, places and shelves). Overview,
+  // References, Voices and Captions have their own pages and keep the dock.
+  new RegExp(
+    `^(?:${[
+      APP_ROUTES.LIBRARY.ASSETS,
+      APP_ROUTES.LIBRARY.AVATARS,
+      APP_ROUTES.LIBRARY.GIFS,
+      APP_ROUTES.LIBRARY.IMAGES,
+      APP_ROUTES.LIBRARY.IMPORTED,
+      APP_ROUTES.LIBRARY.MUSIC,
+      APP_ROUTES.LIBRARY.RECENT,
+      APP_ROUTES.LIBRARY.STARRED,
+      APP_ROUTES.LIBRARY.TRASH,
+      APP_ROUTES.LIBRARY.VIDEOS,
+      `${APP_ROUTES.LIBRARY.SHELF}/[^/]+`,
+    ].join('|')})/?$`,
+  ),
   // The workflow editor, new or saved; `/automation/workflows/templates` is
   // the template gallery and stays on the dock.
   new RegExp(`^${APP_ROUTES.AUTOMATION.WORKFLOWS}/(?!templates/?$)[^/]+/?$`),
   // A Clipper project; `/clipper/new` creates one.
   new RegExp(`^${APP_ROUTES.STUDIO.CLIPPER}/(?!new/?$)[^/]+/?$`),
+  // Publishing desks that share `publishing-layout-content.tsx`: the posts
+  // queue, the calendar and the overview. A post's editor and Campaigns keep
+  // their own layouts, and Approvals stays on the dock: its item inspector is
+  // the work surface, not a side detail.
+  new RegExp(
+    `^(?:${[
+      APP_ROUTES.PUBLISHING.POSTS,
+      APP_ROUTES.PUBLISHING.CALENDAR,
+      APP_ROUTES.PUBLISHING.OVERVIEW,
+    ].join('|')})/?$`,
+  ),
+  // An Editor project; `/editor/new` creates one.
+  new RegExp(`^${APP_ROUTES.STUDIO.EDITOR}/(?!new/?$)[^/]+/?$`),
 ];
 
 export function isAgentOutputRoute(normalizedPathname: string): boolean {

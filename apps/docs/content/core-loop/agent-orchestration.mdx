@@ -1,115 +1,59 @@
 ---
-description: 'Follow the V1 agent-runtime ownership target that separates turn orchestration from campaigns, skills, tools, and deterministic execution layers.'
+description: 'See how one agent runtime owns a conversation while campaigns, skills, and content pipelines stay deterministic layers around it.'
 ---
 
 # Agent Orchestration
 
-This page documents how agent orchestration is organized in the V1 codebase.
-
-## Current Pain Points
-
-The repo has a real agent runtime, but the ownership model is hard to read because several modules still look like competing orchestrators:
-
-- [`apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts)
-  - owns the chat entrypoint, tool loop, model selection, and stream start
-  - imports a broad graph of collections, integrations, workflow modules, and agent helpers through `forwardRef`
-- [`apps/server/api/src/services/agent-threading/agent-threading.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/agent-threading/agent-threading.module.ts)
-  - owns the event log, projected thread snapshot, runtime session binding, input requests, and per-thread execution lane
-- [`apps/server/api/src/services/agent-spawn/agent-spawn.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/agent-spawn/agent-spawn.module.ts)
-  - delegates work to sub-agents by reaching back into the main orchestrator
-- [`apps/server/api/src/services/agent-campaign/agent-campaign-orchestrator.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/agent-campaign/agent-campaign-orchestrator.module.ts)
-  - owns recurring campaign queues, trigger evaluation, campaign memory extraction, and an older `ContentEngineService`
-- [`apps/server/api/src/services/content-engine/content-engine.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/content-engine/content-engine.module.ts)
-  - owns content plans, drafts, execution, review, and skill-driven content work
-- [`apps/server/api/src/services/content-orchestration/content-orchestration.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/content-orchestration/content-orchestration.module.ts)
-  - owns deterministic media pipeline execution and queueing
-- [`apps/server/api/src/services/skill-executor/skill-executor.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/skill-executor/skill-executor.module.ts)
-  - owns deterministic skill handlers for trend discovery, content writing, and image generation
-
-The pain is not that these modules exist. The pain is that their names and dependencies make it unclear which layer is allowed to own long-running agent state, which layer owns deterministic execution, and which layer is just scheduling or adaptation.
-
-## V1 Target Model
-
-For V1, agent orchestration should read as one runtime with adapter layers around it:
+Agents run through one runtime. Campaigns, sub-agents, skills, and content pipelines work around it instead of competing with it.
 
 ```mermaid
 flowchart LR
-  A["User / campaign / automation trigger"] --> B["Agent runtime facade"]
-  B --> C["AgentOrchestratorService\nturn loop + model + tools"]
-  B --> D["AgentThreadingModule\nevents + snapshots + sessions + lanes"]
-  C --> E["AgentToolExecutorService"]
-  E --> F["SkillExecutorModule\ncontent / trend / image skills"]
-  E --> G["ContentEngineModule\nplans / drafts / review"]
-  E --> H["ContentOrchestrationModule\nmedia pipeline jobs"]
-  I["AgentCampaignModule\nscheduling + trigger policy"] --> B
-  J["AgentSpawnModule\nsub-agent delegation"] --> B
+  A["Trigger"] --> B["Agent runtime"]
+  C["Campaigns"] --> B
+  D["Sub-agents"] --> B
+  B --> E["Tools"]
+  E --> F["Deterministic execution"]
 ```
 
-The target ownership rules are:
+## Who Owns What
 
-- **Agent runtime** owns conversational state, thread events, run state, cancellation, input requests, stream events, and tool-loop sequencing.
-- **Agent campaign** owns recurrence, trigger policy, queue scheduling, and campaign memory extraction. It should start or resume agent runs through the runtime instead of acting like a second runtime.
-- **Agent spawn** owns delegation inputs and child-agent metadata. It should call the runtime through a narrow facade instead of importing the orchestrator directly.
-- **Skill executor** owns deterministic skill handlers. It should stay below the tool executor and should not own agent turn state.
-- **Content engine** owns content plans, drafts, review, and deterministic execution primitives. It should be callable by agent tools or product controllers.
-- **Content orchestration** owns media pipeline jobs and generated asset persistence. It should remain a worker-friendly pipeline executor, not an agent state machine.
+- **The agent runtime** owns the conversation: thread events, run state, cancellation, input requests, streaming, the model, and the order of tool calls.
+- **Campaigns** own recurrence, trigger rules, scheduling, and campaign memory. They start or resume agent runs through the runtime instead of acting as a second runtime.
+- **Sub-agents** own delegation inputs and child-agent metadata, and call the runtime through its narrow interface.
+- **Skills** are deterministic handlers for work such as trend discovery, content writing, and image generation. They sit below the tools and hold no conversation state.
+- **The content engine** owns content plans, drafts, and review, and the **media pipeline** owns generation jobs and saving the assets. Neither is an agent state machine, and both can run in workers.
 
-## Simplified Runtime Boundary
-
-The V1 runtime boundary should be named and documented as a facade even if the implementation is still split internally:
-
-```typescript
-interface AgentRuntime {
-  startTurn(input: AgentTurnInput): Promise<AgentTurnHandle>;
-  startStreamingTurn(input: AgentTurnInput): Promise<AgentTurnHandle>;
-  cancelRun(input: AgentRunReference): Promise<void>;
-  resolveInput(input: AgentInputResolution): Promise<void>;
-  getSnapshot(input: AgentThreadReference): Promise<AgentThreadSnapshot>;
-}
-```
-
-That facade becomes the only allowed dependency for campaign orchestration, sub-agent spawning, recurring automation, and future CLI/MCP agent triggers.
-
-## Follow-On Implementation Scope
-
-The follow-on work is intentionally narrow enough to land after V1 setup:
-
-1. Add an `AgentRuntimeModule` facade that exports runtime operations backed by `AgentOrchestratorService`, `AgentThreadEngineService`, `AgentRuntimeSessionService`, and `AgentExecutionLaneService`. **Started:** `AgentRuntimeService.startTurn` exists for campaign callers (thread + run + queue + best-effort `thread.turn_requested`).
-2. Migrate `AgentSpawnService` to depend on the runtime facade instead of resolving `AgentOrchestratorService` through `ModuleRef`.
-3. Migrate campaign orchestration to create or resume runtime turns through the facade, keeping only recurrence, trigger evaluation, queue scheduling, and memory extraction in `agent-campaign`. **Partial:** `AgentCampaignExecutionService` uses `startTurn`; `content-engine.service.ts` still create-and-queues directly.
-4. Add a smoke test that proves a campaign trigger creates a runtime run, appends thread events, and records completion through the same snapshot path used by chat.
+New automation, such as a campaign, a recurring job, or a CLI or MCP trigger, starts its work through the runtime. The path is always trigger, runtime, tools, then deterministic execution.
 
 ## Turn Context Assembly
 
-`AgentOrchestratorContextService.resolveTurnContext` is the single assembly path
-for a chat turn: scope, feedback memories, brand context layers, skills, model,
+One assembly path builds the context for a chat turn: scope, feedback memories, brand context layers, skills, model,
 and system prompt. Two callers share it, so what a user inspects is what the
 agent sees:
 
-- the chat turn (`resolveSystemPromptAndModel`); and
-- the read-only snapshot (`AgentBrandContextSnapshotService`) behind
+- the chat turn; and
+- the read-only snapshot behind
   `GET /v1/brands/:brandId/agent-context`, the **Brand settings → Agent context**
   page, and the curated `get_brand_context` action (agent and MCP surfaces). The
   snapshot runs a threadless turn and persists nothing.
 
-`AgentContextAssemblyService.assembleContext` builds the brand layers. The chat
-path turns on `brandIdentity`, `brandGuidance`, `brandMemory`,
+The brand layers the chat
+path turns on are `brandIdentity`, `brandGuidance`, `brandMemory`,
 `performancePatterns`, `recentPosts`, `ragContext`, and `brandKnowledge`; the
 retrieval layers (`ragContext` and `brandKnowledge`) load only when the turn has
 message text.
 
-- `ragContext` retrieves saved brand context through `ContextsService.enhancePrompt`
-  with the active `brandId`. Only the brand's own context bases and
+- `ragContext` retrieves saved brand context for the active brand. Only the brand's own context bases and
   organization-wide bases are eligible; personal Knowledge never is. It renders
   as `## Retrieved Brand Memory`.
-- `brandKnowledge` calls `ContextsService.retrieveBrandKnowledge`: ready chunks of
+- `brandKnowledge` uses ready chunks of
   `BRAND_TRUTH` Knowledge sources owned by the brand or shared org-wide. It
   renders as `## Brand Knowledge`. `INSPIRATION` and `RESEARCH` sources stay
   behind the explicit `search_knowledge` tool.
 - Strategy topics render in the strategy section; voice writing rules and
   verbatim exemplar posts render in the voice section.
 
-`renderSystemPrompt` fits the brand context to one character budget and reports
+The prompt renderer fits the brand context to one character budget and reports
 every section as kept, trimmed, or dropped. Reduction order, first to last:
 retrieved brand memory, recent posts, historical performance, brand Knowledge,
 general, custom instructions, guardrails, brand voice.
@@ -120,8 +64,8 @@ invalidate that tag.
 
 ## Model Cost
 
-Each LLM round inside a turn is run through `runReservedAgentLlmRound`. The
-round's maximum estimate comes from `AgentChatModelRegistryService`. On a
+Each LLM round inside a turn reserves its maximum estimated cost from the model
+registry before it runs. On a
 self-hosted instance the provider key you configured pays for the call and
 Genfeed does not bill you. Settlement metadata records model, token counts,
 provider cost, and cost source, never prompt or completion text.
@@ -138,10 +82,6 @@ without reserving a model hold and keeps the CLI session id in
 `AgentThread.config.externalRuntime` so the next turn resumes it. See the
 [desktop README](https://github.com/genfeedai/genfeed.ai/blob/master/apps/desktop/README.md#agent-on-your-claude-code-or-codex-subscription).
 
-## V1 Boundary
+## Boundary
 
-V1 does not require deleting every old module. It requires the repo to stop treating every module with "orchestrator" or "executor" in the name as a peer runtime.
-
-The V1 setup target is complete when new work has one obvious path:
-
-`trigger -> AgentRuntime -> AgentOrchestrator + AgentThreading -> tools -> deterministic execution modules`
+Older modules with "orchestrator" or "executor" in the name still exist. What matters is that new work has one obvious path, and that none of them is treated as a peer runtime.

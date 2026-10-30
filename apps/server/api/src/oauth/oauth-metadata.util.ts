@@ -64,7 +64,7 @@ export function resolveMcpResourceUrl(
  * setup page and the plugin bundle hand out endpoint URLs carrying them, and
  * a client may send that URL as its RFC 8707 `resource`.
  */
-const MCP_ROUTING_QUERY_PARAMS = new Set(['profile', 'toolsets']);
+const MCP_ROUTING_QUERY_PARAMS = new Set(['app', 'profile', 'toolsets']);
 
 /**
  * The resource a client asked for, without the MCP routing query. Any other

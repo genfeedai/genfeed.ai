@@ -42,7 +42,7 @@
   "operatorLabel": "Operator model pricing",
   "search": "Search pricing by model",
   "title": "Model pricing reconciliation",
-  "empty": "No pricing rows",
+  "empty": "No pricing rows found",
   "description": "Configured quotes are single-output samples. Provider variants and account discounts require approved evidence.",
   "refresh": "Refresh snapshot",
   "export": "Export displayed pricing",

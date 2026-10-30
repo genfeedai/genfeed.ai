@@ -28,6 +28,7 @@ import {
   buildClipperGenerationWorkflowDefinition,
   CLIPPER_GENERATION_WORKFLOW_ID,
 } from './clipper-generation-workflow-definition';
+import { buildSpokenScript } from './clipper-spoken-script.util';
 import {
   getRawCutTrimJobId,
   RAW_CUT_PROVIDER_NAME,
@@ -43,6 +44,8 @@ export interface ClipperHighlight {
   end_time: number;
   title: string;
   summary: string;
+  /** What the speaker said in the window; the avatar speaks this. */
+  script?: string;
   virality_score: number;
   tags: string[];
   clip_type: string;
@@ -246,6 +249,7 @@ export class ClipperGenerationService implements OnModuleInit {
       provider = 'heygen',
       referenceImageUrl,
       runReferences = [],
+      transcriptSegments = [],
     } = input;
 
     this.logger.log(
@@ -269,7 +273,10 @@ export class ClipperGenerationService implements OnModuleInit {
 
     return this.runGenerationLoop({
       dispatch: async ({ clipperResultId, highlight }) => {
-        const scriptText = this.buildAvatarScript(highlight);
+        const scriptText = this.buildAvatarScript(
+          highlight,
+          transcriptSegments,
+        );
         let providerMetadataPersisted = false;
 
         const result = await avatarProvider.generateVideo({
@@ -595,7 +602,7 @@ export class ClipperGenerationService implements OnModuleInit {
       constraints: [],
       fidelityMode: 'guided',
       intent: {
-        objective: this.buildAvatarScript(highlight),
+        objective: this.describeClip(highlight),
         requestedText: [],
         subjects: [],
       },
@@ -646,7 +653,26 @@ export class ClipperGenerationService implements OnModuleInit {
   /**
    * Build a concise, engaging avatar script from a highlight.
    */
-  private buildAvatarScript(highlight: ClipperHighlight): string {
+  /**
+   * The avatar says what the speaker said: the reviewed script, else the
+   * tightened transcript of the window. The title and summary describe the
+   * clip, so they are only the last resort for a source with no transcript.
+   */
+  private buildAvatarScript(
+    highlight: ClipperHighlight,
+    transcriptSegments: readonly TranscriptSegment[],
+  ): string {
+    const reviewed = highlight.script?.trim();
+    if (reviewed) return reviewed;
+    const spoken = buildSpokenScript(
+      transcriptSegments,
+      highlight.start_time,
+      highlight.end_time,
+    );
+    return spoken || this.describeClip(highlight);
+  }
+
+  private describeClip(highlight: ClipperHighlight): string {
     return `${highlight.title}. ${highlight.summary}`;
   }
 

@@ -18,24 +18,18 @@ export class LocalhostOnlyGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
 
-    const hostCandidates = [
-      request.hostname,
-      this.normalizeHostHeader(request.headers.host),
-      this.normalizeHostHeader(request.headers['x-forwarded-host']),
-    ];
-    const ipCandidates = [
-      request.ip,
-      request.socket.remoteAddress,
-      this.extractForwardedIp(request.headers['x-forwarded-for']),
-    ];
+    // Transport is judged on the peer address only. `Host`, `X-Forwarded-Host`
+    // and `X-Forwarded-For` are caller-controlled, so a remote client could
+    // otherwise claim to be local. `request.ip` already honors TRUST_PROXY.
+    const ipCandidates = [request.ip, request.socket.remoteAddress];
     const originCandidates = [
       this.extractUrlHostname(request.headers.origin),
       this.extractUrlHostname(request.headers.referer),
     ].filter((value): value is string => Boolean(value));
 
-    const isLocalTransport =
-      hostCandidates.some((value) => this.isLocalHost(value)) ||
-      ipCandidates.some((value) => this.isLocalIp(value));
+    const isLocalTransport = ipCandidates.some((value) =>
+      this.isLocalIp(value),
+    );
     const isLocalOrigin =
       originCandidates.length === 0 ||
       originCandidates.some((value) => this.isLocalHost(value));
@@ -54,13 +48,6 @@ export class LocalhostOnlyGuard implements CanActivate {
       },
     );
     throw new ForbiddenException('Access denied');
-  }
-
-  private extractForwardedIp(
-    header: string | string[] | undefined,
-  ): string | undefined {
-    const raw = Array.isArray(header) ? header[0] : header;
-    return raw?.split(',')[0]?.trim();
   }
 
   private extractUrlHostname(
@@ -96,29 +83,6 @@ export class LocalhostOnlyGuard implements CanActivate {
     }
 
     return LOOPBACK_HOSTS.has(this.normalizeIpOrHost(value));
-  }
-
-  private normalizeHostHeader(
-    value: string | string[] | undefined,
-  ): string | undefined {
-    const raw = Array.isArray(value) ? value[0] : value;
-    if (!raw) {
-      return undefined;
-    }
-
-    const trimmed = raw.trim().toLowerCase();
-    if (!trimmed) {
-      return undefined;
-    }
-
-    if (trimmed.startsWith('[')) {
-      const closingBracketIndex = trimmed.indexOf(']');
-      if (closingBracketIndex !== -1) {
-        return this.normalizeIpOrHost(trimmed.slice(1, closingBracketIndex));
-      }
-    }
-
-    return this.normalizeIpOrHost(trimmed.split(':')[0]);
   }
 
   private normalizeIpOrHost(value: string): string {

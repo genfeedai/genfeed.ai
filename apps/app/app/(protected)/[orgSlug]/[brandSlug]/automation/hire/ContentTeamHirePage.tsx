@@ -17,6 +17,8 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 import AgentMarketplace from './AgentMarketplace';
+import AgentMarketplaceSearch from './AgentMarketplaceSearch';
+import { ALL_CATEGORY } from './agent-marketplace-filter';
 
 export default function ContentTeamHirePage({
   isEmbedded = false,
@@ -32,6 +34,8 @@ export default function ContentTeamHirePage({
   const [submittingPresetId, setSubmittingPresetId] = useState<string | null>(
     null,
   );
+  const [searchQuery, setSearchQuery] = useState('');
+  const [category, setCategory] = useState(ALL_CATEGORY);
   const isSubmitting = submittingPresetId !== null;
 
   const getStrategiesService = useAuthedService((token: string) =>
@@ -91,6 +95,15 @@ export default function ContentTeamHirePage({
     ],
   );
 
+  const search = (
+    <AgentMarketplaceSearch
+      category={category}
+      onCategoryChange={setCategory}
+      onSearchQueryChange={setSearchQuery}
+      searchQuery={searchQuery}
+    />
+  );
+
   const content =
     !isBrandReady || !brandId ? (
       <CardEmptyContent
@@ -98,18 +111,30 @@ export default function ContentTeamHirePage({
       />
     ) : (
       <AgentMarketplace
+        category={category}
         isSubmitting={isSubmitting}
         onActivate={handleActivate}
+        searchQuery={searchQuery}
         submittingPresetId={submittingPresetId}
       />
     );
 
+  // Embedded in a dialog there is no subbar, so the same search field heads it.
   if (isEmbedded) {
-    return content;
+    return (
+      <div className="flex flex-col gap-6">
+        {isBrandReady && brandId ? search : null}
+        {content}
+      </div>
+    );
   }
 
   return (
-    <Container icon={UserPlus} label={translate('title')}>
+    <Container
+      icon={UserPlus}
+      label={translate('title')}
+      leading={isBrandReady && brandId ? search : undefined}
+    >
       {content}
     </Container>
   );

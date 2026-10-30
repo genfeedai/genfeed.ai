@@ -24,7 +24,6 @@ export default function SkillsHowItWorks(): React.ReactElement {
           <NeuralGridItem
             key={step.number}
             className="gsap-card"
-            tierLabel={`${step.number} / ${step.title}`}
             icon={step.icon}
             title={step.title}
             description={step.description}

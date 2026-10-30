@@ -1,6 +1,5 @@
 {
   "title": "Email performance",
-  "intro": "Unique tracked messages queued during the selected UTC dates. Queued is the cohort total, including messages already sent. Outcomes can arrive after the period ends.",
   "invalidRange": "Choose a date range of 1–90 days.",
   "loading": "Loading email performance",
   "loadFailed": "Email performance could not be loaded.",

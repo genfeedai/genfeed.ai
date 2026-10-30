@@ -19,10 +19,6 @@ vi.mock('@ui/buttons/base/Button', () => ({
   ),
 }));
 
-vi.mock('@ui/content/admin-filters/AdminOrgBrandUrlFilter', () => ({
-  default: () => <div data-testid="admin-org-filter" />,
-}));
-
 vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
   default: ({ onClick }: { onClick?: () => void }) => (
     <button type="button" onClick={onClick}>
@@ -74,27 +70,15 @@ vi.mock('@ui/content/filters-button/FiltersButton', () => ({
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
-    headerTabs,
     label,
     right,
   }: {
     children?: ReactNode;
-    headerTabs?: {
-      activeTab: string;
-      tabs: { href: string; label: string }[];
-    };
     label?: ReactNode;
     right?: ReactNode;
   }) => (
     <div>
       <div>{label}</div>
-      <nav data-active={headerTabs?.activeTab}>
-        {headerTabs?.tabs.map((tab) => (
-          <a key={tab.href} href={tab.href}>
-            {tab.label}
-          </a>
-        ))}
-      </nav>
       <div>{right}</div>
       <div>{children}</div>
     </div>
@@ -130,26 +114,14 @@ describe('IngredientsLayout', () => {
   });
 
   it('uses the canonical catalog namespace for upload actions', () => {
-    render(
-      <IngredientsLayout
-        defaultType="videos"
-        hideTypeTabs
-        scope={PageScope.BRAND}
-      />,
-    );
+    render(<IngredientsLayout defaultType="videos" scope={PageScope.BRAND} />);
     expect(translationNamespaceSpy).toHaveBeenCalledWith(
       'pages.library.browser.toolbar',
     );
   });
 
   it('keeps default video statuses out of the URL on mount', async () => {
-    render(
-      <IngredientsLayout
-        defaultType="videos"
-        hideTypeTabs
-        scope={PageScope.BRAND}
-      />,
-    );
+    render(<IngredientsLayout defaultType="videos" scope={PageScope.BRAND} />);
 
     await waitFor(() => {
       expect(replaceSpy).not.toHaveBeenCalled();
@@ -168,30 +140,14 @@ describe('IngredientsLayout', () => {
       `/library/videos?status=${IngredientStatus.GENERATED}&status=${IngredientStatus.PROCESSING}&status=${IngredientStatus.VALIDATED}`,
     );
 
-    render(
-      <IngredientsLayout
-        defaultType="videos"
-        hideTypeTabs
-        scope={PageScope.BRAND}
-      />,
-    );
+    render(<IngredientsLayout defaultType="videos" scope={PageScope.BRAND} />);
 
     await waitFor(() => {
       expect(replaceSpy).not.toHaveBeenCalled();
     });
   });
 
-  it('opens the admin library on All assets when no asset type is chosen', () => {
-    window.history.replaceState({}, '', '/admin/content/ingredients');
-
-    const { getByText } = render(
-      <IngredientsLayout scope={PageScope.SUPERADMIN} />,
-    );
-
-    expect(getByText('Assets')).toBeTruthy();
-  });
-
-  it('keeps Videos as the fallback outside the admin scope', () => {
+  it('keeps Videos as the fallback type', () => {
     window.history.replaceState({}, '', '/library');
 
     const { getAllByText } = render(
@@ -199,30 +155,5 @@ describe('IngredientsLayout', () => {
     );
 
     expect(getAllByText('Videos').length).toBeGreaterThan(0);
-  });
-
-  it('links the admin asset type tabs by path and keeps the filters', () => {
-    mockPathname = '/admin/content/ingredients/images';
-    mockSearchParams = new URLSearchParams('search=hero');
-
-    const { container } = render(
-      <IngredientsLayout scope={PageScope.SUPERADMIN} />,
-    );
-
-    const nav = container.querySelector('nav');
-    expect(
-      Array.from(nav?.querySelectorAll('a') ?? []).map((link) =>
-        link.getAttribute('href'),
-      ),
-    ).toEqual([
-      '/admin/content/ingredients?search=hero',
-      '/admin/content/ingredients/videos?search=hero',
-      '/admin/content/ingredients/images?search=hero',
-      '/admin/content/ingredients/gifs?search=hero',
-      '/admin/content/ingredients/musics?search=hero',
-    ]);
-    expect(nav?.getAttribute('data-active')).toBe(
-      '/admin/content/ingredients/images?search=hero',
-    );
   });
 });

@@ -75,19 +75,16 @@
     "readActions": "Read actions",
     "readError": "Could not load or save inbox read status. Try again.",
     "retry": "Retry",
-    "viewsAriaLabel": "Inbox views",
+    "statusLabel": "Status",
     "views": {
       "unread": {
-        "label": "Unread",
-        "description": "Items that still need operator attention."
+        "label": "Unread"
       },
       "recent": {
-        "label": "Recent",
-        "description": "Latest queue movement, regardless of status."
+        "label": "Recent"
       },
       "all": {
-        "label": "All",
-        "description": "Everything in the workspace queue, including done items."
+        "label": "All"
       }
     },
     "groups": {

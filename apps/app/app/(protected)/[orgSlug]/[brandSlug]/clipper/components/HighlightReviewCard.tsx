@@ -106,7 +106,7 @@ export default function HighlightReviewCard({
 
     // Save original before overwriting
     if (!hasBeenRewritten) {
-      originalScriptRef.current = highlight.summary;
+      originalScriptRef.current = highlight.script ?? highlight.summary;
     }
 
     try {
@@ -127,6 +127,7 @@ export default function HighlightReviewCard({
     projectId,
     clipsService,
     highlight.id,
+    highlight.script,
     highlight.summary,
     hasBeenRewritten,
     platform,
@@ -183,7 +184,7 @@ export default function HighlightReviewCard({
 
       {/* Editable script/transcript */}
       <Textarea
-        value={highlight.summary}
+        value={highlight.script ?? highlight.summary}
         onChange={(e) => onScriptEdit(e.target.value)}
         rows={3}
         className="w-full resize-none text-xs"

@@ -111,13 +111,44 @@ describe('LocalhostOnlyGuard', () => {
     ).toThrow(ForbiddenException);
   });
 
-  it('allows forwarded localhost ip addresses', () => {
+  it('ignores a spoofed X-Forwarded-For from a remote peer', () => {
+    expect(() =>
+      guard.canActivate(
+        makeContext({
+          forwardedFor: '127.0.0.1, 52.10.10.10',
+          host: 'api.genfeed.ai',
+          ip: '52.10.10.10',
+        }),
+      ),
+    ).toThrow(ForbiddenException);
+  });
+
+  it('ignores a spoofed X-Forwarded-Host or Host from a remote peer', () => {
+    expect(() =>
+      guard.canActivate(
+        makeContext({
+          forwardedHost: 'localhost',
+          host: 'api.genfeed.ai',
+          ip: '52.10.10.10',
+        }),
+      ),
+    ).toThrow(ForbiddenException);
+    expect(() =>
+      guard.canActivate(
+        makeContext({
+          host: 'localhost:3010',
+          ip: '52.10.10.10',
+        }),
+      ),
+    ).toThrow(ForbiddenException);
+  });
+
+  it('allows an IPv4-mapped loopback peer', () => {
     expect(
       guard.canActivate(
         makeContext({
-          forwardedFor: '::ffff:127.0.0.1',
-          host: 'localhost:3010',
-          ip: '10.10.10.10',
+          host: 'api.genfeed.localhost:3010',
+          ip: '::ffff:127.0.0.1',
         }),
       ),
     ).toBe(true);
