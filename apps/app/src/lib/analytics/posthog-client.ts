@@ -11,6 +11,7 @@ import {
   ANALYTICS_EVENTS,
   type AnalyticsEvent,
   type AnalyticsEventProperties,
+  type AnalyticsPageviewProperties,
 } from './analytics-events';
 import { sanitizeAnalyticsUrl } from './analytics-url';
 import {
@@ -40,6 +41,7 @@ const POSTHOG_HOST =
   process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com';
 
 interface PendingPageview {
+  app?: string;
   key: string;
   url: string;
 }
@@ -592,7 +594,10 @@ function applyPendingPageview(): void {
   }
 
   try {
-    client.capture('$pageview', { $current_url: pageview.url });
+    client.capture('$pageview', {
+      $current_url: pageview.url,
+      ...(pageview.app ? { app: pageview.app } : {}),
+    });
     lastCapturedPageviewKey = pageview.key;
   } catch {
     // Best-effort pageview capture.
@@ -834,12 +839,16 @@ export function captureBrandOsFunnelStage(stage: BrandOsFunnelStage): void {
 }
 
 /** Capture the current route after identity and tenant scope are synchronized. */
-export function captureAnalyticsPageview(pageviewKey?: string): void {
+export function captureAnalyticsPageview(
+  pageviewKey?: string,
+  properties: AnalyticsPageviewProperties = {},
+): void {
   if (typeof window === 'undefined') {
     return;
   }
 
   pendingPageview = {
+    app: properties.app,
     key: pageviewKey ?? window.location.href,
     url: window.location.href,
   };

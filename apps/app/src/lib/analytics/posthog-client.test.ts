@@ -845,6 +845,20 @@ describe('analytics identity lifecycle', () => {
     expect(mocks.posthogCapture).not.toHaveBeenCalled();
   });
 
+  it('adds the bounded app slug to the pageview when provided', async () => {
+    const client = await loadClient();
+    client.captureAnalyticsPageview('user-1:org-1:/clipper', {
+      app: 'clipper',
+    });
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogCapture).toHaveBeenCalledWith(
+      '$pageview',
+      expect.objectContaining({ app: 'clipper' }),
+    );
+  });
+
   it('deduplicates repeated renders of the same scoped route', async () => {
     const client = await loadClient();
     expect(mocks.posthogCapture).not.toHaveBeenCalled();
@@ -904,6 +918,7 @@ describe('event taxonomy', () => {
         'signup_completed',
         'signup_started',
         'studio_editor_opened',
+        'ui_action_clicked',
         'workflow_run_completed',
         'workflow_run_started',
       ]),

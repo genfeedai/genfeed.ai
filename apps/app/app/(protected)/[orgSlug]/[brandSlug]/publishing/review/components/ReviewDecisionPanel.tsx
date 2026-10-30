@@ -95,6 +95,7 @@ export default function ReviewDecisionPanel({
             variant={ButtonVariant.DEFAULT}
             withWrapper={false}
             isDisabled={isActioning}
+            action="publishing.review-approve"
             onClick={() => onApprove(item.id)}
             className="w-full justify-start gap-2"
             icon={<Check className="size-3.5" />}

@@ -11,6 +11,8 @@ import {
   identifyAnalyticsUser,
   isAnalyticsEnabled,
 } from '@/lib/analytics';
+import { resolveAnalyticsApp } from '@/lib/analytics/analytics-app';
+import { setSentryAccountContext } from '@/lib/analytics/sentry-context';
 
 function EnabledAnalyticsOrganizationSync() {
   const { isLoaded: isAuthLoaded, user } = useAuthUser();
@@ -57,8 +59,22 @@ function EnabledAnalyticsOrganizationSync() {
       return;
     }
 
-    captureAnalyticsPageview(pageviewKey);
-  }, [isAuthLoaded, isBrandScopeResolved, pageviewKey, user?.id]);
+    captureAnalyticsPageview(pageviewKey, {
+      app: resolveAnalyticsApp(pathname),
+    });
+  }, [isAuthLoaded, isBrandScopeResolved, pageviewKey, pathname, user?.id]);
+
+  // Tag Sentry issues with the same person and organization PostHog sees.
+  useEffect(() => {
+    if (!(isAuthLoaded && isBrandScopeResolved)) {
+      return;
+    }
+
+    setSentryAccountContext({
+      organizationId: organizationId || undefined,
+      userId: user?.id,
+    });
+  }, [isAuthLoaded, isBrandScopeResolved, organizationId, user?.id]);
 
   return null;
 }

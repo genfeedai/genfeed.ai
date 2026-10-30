@@ -54,6 +54,7 @@
     "check:skills-catalog": "bun run scripts/sync-product-skills.ts --check",
     "check:skill-trusted-builtin-allowlist": "bun run scripts/architecture/check-skill-trusted-builtin-allowlist.ts",
     "check:skills-readme": "bun run scripts/check-skills-readme-drift.ts",
+    "posthog:app-usage": "bun run scripts/posthog/setup-app-usage-dashboard.ts",
     "posthog:funnel-alerts": "bun run scripts/posthog/setup-funnel-alerts.ts",
     "build": "bunx turbo run build --filter='./packages/*' --concurrency=1",
     "build:app": "NODE_OPTIONS=--max-old-space-size=6144 bunx turbo run build --filter=@genfeedai/app",
