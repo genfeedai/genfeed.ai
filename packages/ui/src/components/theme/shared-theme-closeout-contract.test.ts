@@ -12,9 +12,6 @@ const THEME_AWARE_CHROME = [
   'primitives/switch.tsx',
   'primitives/calendar.tsx',
   'components/quick-actions/menu/QuickActionsMenu.tsx',
-  'components/ingredients/detail/shared/IngredientWorkspacePanel.tsx',
-  'components/ingredients/tabs/info/IngredientTabsInfo.tsx',
-  'components/ingredients/tabs/sharing/IngredientTabsSharing.tsx',
   'components/assets/ScopeSelector.tsx',
   'components/analytics/charts/platform-time-series/platform-time-series-chart.tsx',
 ] as const;

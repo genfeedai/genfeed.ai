@@ -68,7 +68,7 @@ export default function XArticleAssetsBar({
 
           {hasHeaderImage ? (
             <div className="flex items-center gap-2">
-              <div className="relative h-10 w-16 overflow-hidden rounded border border-white/10">
+              <div className="relative h-10 w-16 overflow-hidden rounded border border-border">
                 <Image
                   src={metadata.headerImageUrl as string}
                   alt={`${article.label} header`}
