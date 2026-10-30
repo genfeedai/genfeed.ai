@@ -11,6 +11,7 @@ import {
   computeNextRunAtOrThrow,
   isSchedulableTimezone,
 } from '@api/collections/workflows/utils/cron-schedule.util';
+import { hasStoredWorkflowGenerationBrandSource } from '@api/collections/workflows/utils/workflow-generation-actor-admission.util';
 import { isCanonicalPlatformSeed } from '@api/collections/workflows/utils/workflow-platform-seed.util';
 import {
   resolveScheduleInitiatingActor,
@@ -557,7 +558,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
     const existing = await this.prisma.workflow.findFirst({
       select: {
         brandId: true,
-        currentVersion: { select: { contentHash: true } },
+        currentVersion: { select: { contentHash: true, graph: true } },
         id: true,
         platformSeedKey: true,
       },
@@ -591,6 +592,22 @@ export class WorkflowSchedulerService implements OnModuleInit {
     // actor-less, so the saver's identity never reaches the platform run. A marker that no
     // longer matches its template is dropped here and the saver is bound like any tenant.
     const isPlatformSeed = isCanonicalPlatformSeed(existing);
+
+    // Every run needs a brand at admission, so a schedule on a workflow with
+    // none would fail daily with "Workflow generation brand is unavailable".
+    if (
+      schedule &&
+      isEnabled &&
+      !isPlatformSeed &&
+      hasStoredWorkflowGenerationBrandSource(
+        existing.brandId,
+        existing.currentVersion?.graph,
+      ) === false
+    ) {
+      throw new BadRequestException(
+        'Choose a brand for this workflow before scheduling it. Scheduled runs need a brand and fail without one.',
+      );
+    }
     const initiatingActor = isPlatformSeed
       ? null
       : resolveScheduleInitiatingActor({
