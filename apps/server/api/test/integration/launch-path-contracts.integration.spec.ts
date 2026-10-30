@@ -192,9 +192,7 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
       root: 'packages/contexts',
     });
     expect(layout).toContain('isBrandScopeResolved');
-    expect(layout).toContain(
-      'hasAttemptedReturningBootstrapRef.current = false',
-    );
+    expect(layout).not.toContain('hasAttemptedReturningBootstrapRef');
     expect(brandState).toContain('isBrandScopeResolved');
     expect(brandState).toContain('isBrandsFetched');
   });
