@@ -704,19 +704,19 @@
       "files": [
         {
           "path": "README.md",
-          "sha256": "ec082ee36c089c926ee56f7c6f9379d0690735b83b62b6d97d7827616e6ef260"
+          "sha256": "86200bf15f6c9b1268a155221ad2b63da3806dcb0d7237b9b4c4b1636bae8464"
         },
         {
           "path": "SKILL.md",
-          "sha256": "1207f5d86d0073d89e8b0828dfc26e0ab625f4b31ba362a8724484caeec6e714"
+          "sha256": "ccd8222ac93a97ae0a95361e0374fda3079b839956d4b8d29e52e92e36529ecf"
         },
         {
           "path": "metadata.json",
           "sha256": "0d46917cc6ce5a8635f49dd24b28c051d034e850a420e90113a02c9036e516d6"
         }
       ],
-      "packageHash": "2409004e1232be1db2f4332572a1f3cdbbf8738cdd3f75892d0b4fb38126ed9d",
-      "instructionsHash": "f00ce02653883c993ab57359cc3933054f18e97ac1cb81bc6cac25d665e4612a",
+      "packageHash": "a219678b04625a379d92e8b03975d8d1293b7595e65ddb54880a8c08580cc0fc",
+      "instructionsHash": "e8d55f6af270791a7b0a1f3751d9eb8704d852cbb940d417a3e832e3c0698c69",
       "excludedReferences": []
     },
     {
