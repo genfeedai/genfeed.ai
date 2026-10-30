@@ -31,7 +31,7 @@ import {
   resolveInterviewFieldKeys,
 } from '../constants/brand-interview-question-catalog.constant';
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+// Helpers
 
 function makeLogger(): LoggerService {
   return {
@@ -93,7 +93,7 @@ function makeEmptyBrand(agentConfig: Record<string, unknown> = {}) {
   };
 }
 
-// ── Setup ──────────────────────────────────────────────────────────────────
+// Setup
 
 describe('BrandInterviewService', () => {
   let service: BrandInterviewService;
@@ -165,7 +165,7 @@ describe('BrandInterviewService', () => {
     );
   });
 
-  // ── start() ───────────────────────────────────────────────────────────────
+  // start()
 
   describe('start()', () => {
     it('charges credits once for a new session', async () => {
@@ -289,7 +289,7 @@ describe('BrandInterviewService', () => {
     });
   });
 
-  // ── writeFieldToBrand (tested via submitAnswer) ────────────────────────────
+  // writeFieldToBrand (tested via submitAnswer)
 
   describe('submitAnswer() — field writes', () => {
     it('writes identity field directly to brand row (description)', async () => {
@@ -511,7 +511,7 @@ describe('BrandInterviewService', () => {
     });
   });
 
-  // ── skipField() ────────────────────────────────────────────────────────────
+  // skipField()
 
   describe('skipField()', () => {
     it('advances to next in-scope gap without writing to brand', async () => {
@@ -557,7 +557,7 @@ describe('BrandInterviewService', () => {
     });
   });
 
-  // ── getCompleteness() ──────────────────────────────────────────────────────
+  // getCompleteness()
 
   describe('getCompleteness()', () => {
     it('excludes visual fields from interviewableGapCount', async () => {
@@ -625,7 +625,7 @@ describe('BrandInterviewService', () => {
     });
   });
 
-  // ── getActiveForBrand() ────────────────────────────────────────────────────
+  // getActiveForBrand()
 
   describe('getActiveForBrand()', () => {
     it('returns null when no active session exists', async () => {
@@ -880,7 +880,7 @@ describe('BrandInterviewService', () => {
     });
   });
 
-  // ── abandon() ─────────────────────────────────────────────────────────────
+  // abandon()
 
   describe('abandon()', () => {
     it('marks session as abandoned', async () => {

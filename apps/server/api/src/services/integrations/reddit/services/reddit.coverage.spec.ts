@@ -18,7 +18,7 @@
  *                 httpService failure)
  */
 
-// ── Module-level mocks (must precede all imports) ────────────────────────────
+// Module-level mocks (must precede all imports)
 
 vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: {
@@ -26,7 +26,7 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
   },
 }));
 
-// ── Imports ───────────────────────────────────────────────────────────────────
+// Imports
 
 import type { CredentialDocument } from '@api/collections/credentials/credential.types';
 import {
@@ -41,7 +41,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// Helpers
 
 const makeCredential = (overrides: Record<string, unknown> = {}) =>
   ({
@@ -54,7 +54,7 @@ const makeCredential = (overrides: Record<string, unknown> = {}) =>
     ...overrides,
   }) as unknown as CredentialDocument;
 
-// ── Suite ─────────────────────────────────────────────────────────────────────
+// Suite
 
 describe('RedditService (coverage)', () => {
   let service: RedditService;
@@ -115,7 +115,7 @@ describe('RedditService (coverage)', () => {
     service = module.get<RedditService>(RedditService);
   });
 
-  // ── generateAuthUrl ────────────────────────────────────────────────────────
+  // generateAuthUrl
 
   describe('generateAuthUrl', () => {
     it('includes all required OAuth params in the URL', () => {
@@ -140,7 +140,7 @@ describe('RedditService (coverage)', () => {
     });
   });
 
-  // ── refreshToken ──────────────────────────────────────────────────────────
+  // refreshToken
 
   describe('refreshToken', () => {
     it('throws when credential is not found', async () => {
@@ -235,7 +235,7 @@ describe('RedditService (coverage)', () => {
     });
   });
 
-  // ── getAccountDetails ─────────────────────────────────────────────────────
+  // getAccountDetails
 
   describe('getAccountDetails', () => {
     it('returns account data on success', async () => {
@@ -309,7 +309,7 @@ describe('RedditService (coverage)', () => {
     });
   });
 
-  // ── postComment ────────────────────────────────────────────────────────────
+  // postComment
 
   describe('postComment', () => {
     const setupSuccessfulRefresh = (accessToken = 'enc-at'): void => {
@@ -418,7 +418,7 @@ describe('RedditService (coverage)', () => {
     });
   });
 
-  // ── submitPost ─────────────────────────────────────────────────────────────
+  // submitPost
 
   describe('submitPost', () => {
     const setupSuccessfulRefresh = (accessToken = 'enc-at'): void => {

@@ -354,7 +354,7 @@ export class AdsGatewayController {
     return adapter.listAds(ctx, adSetId);
   }
 
-  // ─── Private Helpers ──────────────────────────────────────────────────────
+  // Private Helpers
 
   /**
    * Runs before credential resolution and adapter lookup so malformed,

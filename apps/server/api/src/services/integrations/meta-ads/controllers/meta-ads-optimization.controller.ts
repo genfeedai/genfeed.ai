@@ -199,7 +199,7 @@ export class MetaAdsOptimizationController {
     return { success: true };
   }
 
-  // ─── Config ───────────────────────────────────────────────────────────────
+  // Config
 
   @TenantReadPolicy('selected')
   @Get('config')
@@ -237,7 +237,7 @@ export class MetaAdsOptimizationController {
     return this.configsService.upsert(ctx.organizationId, body);
   }
 
-  // ─── Audit Logs ───────────────────────────────────────────────────────────
+  // Audit Logs
 
   @TenantReadPolicy('selected')
   @Get('audit-logs')
@@ -264,7 +264,7 @@ export class MetaAdsOptimizationController {
     });
   }
 
-  // ─── Private Helpers ──────────────────────────────────────────────────────
+  // Private Helpers
 
   private async getAccessTokenFromCredential(user: User): Promise<string> {
     const organizationId = user.organizationId as string;

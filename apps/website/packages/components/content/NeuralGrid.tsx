@@ -10,7 +10,7 @@ import {
   neuralGridVariants,
 } from './neural-grid.variants';
 
-/* ─── NeuralGrid ─── */
+/* NeuralGrid */
 
 export interface NeuralGridProps
   extends HTMLAttributes<HTMLDivElement>,
@@ -33,7 +33,7 @@ function NeuralGrid({
 }
 NeuralGrid.displayName = 'NeuralGrid';
 
-/* ─── NeuralGridItem ─── */
+/* NeuralGridItem */
 
 export interface NeuralGridItemProps
   extends Omit<HTMLAttributes<HTMLDivElement>, 'title'>,
@@ -78,7 +78,7 @@ function NeuralGridItem({
 }
 NeuralGridItem.displayName = 'NeuralGridItem';
 
-/* ─── WebSection ─── */
+/* WebSection */
 
 const bgClasses = {
   bordered: 'border-t border-foreground/5',
@@ -138,7 +138,7 @@ function WebSection({
 }
 WebSection.displayName = 'WebSection';
 
-/* ─── CtaSection ─── */
+/* CtaSection */
 
 function CtaSection({
   className,

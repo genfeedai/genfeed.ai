@@ -203,7 +203,7 @@ export class AiInfluencerService {
     };
   }
 
-  // ─── Private Methods ──────────────────────────────────────────────
+  // Private Methods
 
   /**
    * Load and validate a persona by slug.

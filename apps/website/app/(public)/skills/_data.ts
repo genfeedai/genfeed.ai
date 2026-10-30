@@ -28,7 +28,7 @@ import {
   Zap,
 } from 'lucide-react';
 
-/* ─── Skill category ─── */
+/* Skill category */
 
 export interface SkillEntry {
   slug: string;
@@ -515,7 +515,7 @@ export const FREE_SKILL_COUNT = SKILL_CATEGORIES.reduce(
   0,
 );
 
-/* ─── Premium registry types ─── */
+/* Premium registry types */
 
 export interface SkillRegistryEntry {
   category: string;
@@ -529,7 +529,7 @@ export interface SkillRegistry {
   skills: SkillRegistryEntry[];
 }
 
-/* ─── Stats ─── */
+/* Stats */
 
 export const STATS = [
   { label: 'Free Skills', value: String(FREE_SKILL_COUNT) },
@@ -538,7 +538,7 @@ export const STATS = [
   { label: 'Install Time', value: '<10s' },
 ];
 
-/* ─── Terminal demo commands ─── */
+/* Terminal demo commands */
 
 export const TERMINAL_COMMANDS = [
   { command: 'bunx skills add genfeedai/skills', prompt: '~' },
@@ -555,7 +555,7 @@ export const TERMINAL_COMMANDS = [
   { command: `# \u2713 All ${FREE_SKILL_COUNT} skills installed`, prompt: '' },
 ] as const;
 
-/* ─── How It Works steps ─── */
+/* How It Works steps */
 
 export interface HowItWorksStep {
   number: string;

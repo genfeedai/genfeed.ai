@@ -34,7 +34,7 @@ const logger = {
   warn: (message: string) => console.warn(`[control-guard] ${message}`),
 };
 
-// ─── Categories ────────────────────────────────────────────────────────────
+// Categories
 
 export type ControlGuardCategory =
   | 'raw-media'
@@ -57,7 +57,7 @@ export type ControlGuardViolation = {
   severity: ControlGuardSeverity;
 };
 
-// ─── The ONE allowlist ───────────────────────────────────────────────────────
+// The ONE allowlist
 // Every tolerated-path / tolerated-file / native-exception decision lives here,
 // grouped by the concern it serves. No other file carries UI-control allowlist
 // state.
@@ -140,7 +140,7 @@ export const ALLOWLIST = {
   ]),
 } as const;
 
-// ─── Shared scope helpers ─────────────────────────────────────────────────────
+// Shared scope helpers
 
 const SHARED_EXCLUDE_SEGMENTS = ['/node_modules/', '/dist/', '/__mocks__/'];
 
@@ -188,7 +188,7 @@ function lineOf(content: string, index: number): number {
   return content.slice(0, index).split('\n').length;
 }
 
-// ─── Rule definitions ─────────────────────────────────────────────────────────
+// Rule definitions
 
 const APP_PAGES_PREFIXES = ['apps/app/', 'packages/pages/'] as const;
 const PRODUCT_UI_PREFIXES = [
@@ -301,7 +301,7 @@ function isCommentedMatch(content: string, index: number): boolean {
   return false;
 }
 
-// ─── Form spacing ────────────────────────────────────────────────────────────
+// Form spacing
 // One owner per level: Field spaces label → control → error, Form spaces the
 // fields, and the modal and dialog bodies space their blocks and footers. A
 // stack class on Form, a vertical margin on a header, footer, or field-level
@@ -637,7 +637,7 @@ const RULES: readonly Rule[] = [
   },
 ] as const;
 
-// ─── Detection core (pure; unit-tested directly) ─────────────────────────────
+// Detection core (pure; unit-tested directly)
 
 /**
  * Run every rule over an explicit list of repo-relative files. This is the pure
@@ -692,7 +692,7 @@ export function detectViolations(
   );
 }
 
-// ─── Candidate discovery (repo-wide / CI mode) ───────────────────────────────
+// Candidate discovery (repo-wide / CI mode)
 
 // Union of the bounded rule scopes — globbed in full so button-like anchors
 // (which carry no element tag for git-grep to key on) are never missed.
@@ -770,7 +770,7 @@ function discoverCandidates(rootDir: string): string[] {
   return [...new Set([...bounded, ...repoWide])];
 }
 
-// ─── Public run entrypoint ───────────────────────────────────────────────────
+// Public run entrypoint
 
 export type RunOptions = {
   /** Explicit file list (lint-staged / tests). Omit for repo-wide discovery. */
@@ -786,7 +786,7 @@ export function runControlGuard(options: RunOptions = {}): {
   return { violations: detectViolations(files, rootDir) };
 }
 
-// ─── Reporting ───────────────────────────────────────────────────────────────
+// Reporting
 
 const CATEGORY_ORDER: readonly ControlGuardCategory[] = [
   'raw-media',

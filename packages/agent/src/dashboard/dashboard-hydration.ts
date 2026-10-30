@@ -202,7 +202,7 @@ export function sanitizeLayoutForPersistence(
   };
 }
 
-// ─── Render-time hydration ───────────────────────────────────────────────────
+// Render-time hydration
 
 function resolveMetricValue(
   sourceKey: string,

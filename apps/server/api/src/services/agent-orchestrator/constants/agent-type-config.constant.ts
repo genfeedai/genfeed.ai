@@ -338,7 +338,7 @@ Writing guidelines:
 - Match brand voice — formal or casual as specified in brand context`,
   },
 
-  // ── Extended agent types ──────────────────────────────────────
+  // Extended agent types
 
   [AgentType.LINKEDIN_CONTENT]: {
     defaultDailyCreditBudget: 200,

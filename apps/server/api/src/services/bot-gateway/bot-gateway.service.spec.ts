@@ -111,7 +111,7 @@ describe('BotGatewayService', () => {
     expect(service).toBeDefined();
   });
 
-  // ── getAdapter ───────────────────────────────────────────────────────
+  // getAdapter
 
   describe('getAdapter', () => {
     it('returns the discord adapter', () => {
@@ -127,7 +127,7 @@ describe('BotGatewayService', () => {
     });
   });
 
-  // ── handlePing ───────────────────────────────────────────────────────
+  // handlePing
 
   describe('handlePing', () => {
     it('returns PONG response for discord', () => {
@@ -150,7 +150,7 @@ describe('BotGatewayService', () => {
     });
   });
 
-  // ── handleInteraction ────────────────────────────────────────────────
+  // handleInteraction
 
   describe('handleInteraction', () => {
     it('throws HttpException for unsupported platform', async () => {

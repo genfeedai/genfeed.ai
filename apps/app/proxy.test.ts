@@ -321,7 +321,7 @@ describe('proxy', () => {
     },
   );
 
-  // ─── Signed-in redirect away from root / public entry points ──────────────
+  // Signed-in redirect away from root / public entry points
 
   it.each(['/login', '/login/password', '/login/magic-link'])(
     'redirects a signed-in user away from %s honoring callbackUrl',

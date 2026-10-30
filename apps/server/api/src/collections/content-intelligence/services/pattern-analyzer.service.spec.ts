@@ -736,7 +736,7 @@ describe('PatternAnalyzerService post sorting and capping', () => {
   });
 });
 
-// ─── Typed-decision labels (#4868) ────────────────────────────────────────
+// Typed-decision labels (#4868)
 
 describe('PatternAnalyzerService typed-decision labels', () => {
   let service: PatternAnalyzerService;

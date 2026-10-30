@@ -106,7 +106,7 @@ class TextOnlyCommentPublisher extends TestPublisher {
   readonly platform: CredentialPlatform = CredentialPlatform.INSTAGRAM;
 }
 
-// ─── Test fixtures ────────────────────────────────────────────────────────────
+// Test fixtures
 
 const mockPostId = testId('post');
 const mockIngredientId1 = testId('ingredient');
@@ -138,7 +138,7 @@ function makeContext(post: PublisherPostInput): PublishContext {
   };
 }
 
-// ─── Tests ────────────────────────────────────────────────────────────────────
+// Tests
 
 describe('BasePublisherService', () => {
   let publisher: TestPublisher;
@@ -167,7 +167,7 @@ describe('BasePublisherService', () => {
     expect(publisher).toBeDefined();
   });
 
-  // ─── extractMediaInfo() ────────────────────────────────────────────────────
+  // extractMediaInfo()
 
   describe('extractMediaInfo()', () => {
     it('should return hasIngredients=false for a post with no ingredients', () => {
@@ -282,7 +282,7 @@ describe('BasePublisherService', () => {
     ).toEqual(['https://cdn.example.com/images/ingredient-1']);
   });
 
-  // ─── validatePost() ────────────────────────────────────────────────────────
+  // validatePost()
 
   describe('validatePost()', () => {
     it('should pass validation for text-only post on text-supporting publisher', () => {
@@ -388,7 +388,7 @@ describe('BasePublisherService', () => {
     });
   });
 
-  // ─── caption length via the channel capability catalog ─────────────────────
+  // caption length via the channel capability catalog
 
   describe('validateCaptionLength() via validatePost()', () => {
     // TestPublisher is TWITTER; the catalog caption limit for X is 280.
@@ -450,7 +450,7 @@ describe('BasePublisherService', () => {
     });
   });
 
-  // ─── createFailedResult() ──────────────────────────────────────────────────
+  // createFailedResult()
 
   describe('createFailedResult()', () => {
     it('should return a failed PublishResult with FAILED lifecycle', () => {
@@ -488,7 +488,7 @@ describe('BasePublisherService', () => {
     });
   });
 
-  // ─── createSuccessResult() ─────────────────────────────────────────────────
+  // createSuccessResult()
 
   describe('createSuccessResult()', () => {
     it('should return a successful PublishResult with PUBLISHED lifecycle', () => {
@@ -523,7 +523,7 @@ describe('BasePublisherService', () => {
     });
   });
 
-  // ─── sanitizeDescription() ────────────────────────────────────────────────
+  // sanitizeDescription()
 
   describe('sanitizeDescription()', () => {
     it('should return plain text for plain string input', () => {

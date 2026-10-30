@@ -86,7 +86,7 @@ describe('ManagedInferenceRuntimeService', () => {
     expect(service).toBeDefined();
   });
 
-  // ── getInstanceUrl ───────────────────────────────────────────────────────
+  // getInstanceUrl
   describe('getInstanceUrl', () => {
     it('returns the configured URL for each role', () => {
       expect(service.getInstanceUrl('images')).toBe(
@@ -112,7 +112,7 @@ describe('ManagedInferenceRuntimeService', () => {
     });
   });
 
-  // ── isAvailable ──────────────────────────────────────────────────────────
+  // isAvailable
   describe('isAvailable', () => {
     it('returns true when health check succeeds', async () => {
       mockedAxiosGet.mockResolvedValue({ data: { status: 'ok' } });
@@ -143,7 +143,7 @@ describe('ManagedInferenceRuntimeService', () => {
     });
   });
 
-  // ── generateVideo ─────────────────────────────────────────────────────────
+  // generateVideo
   describe('generateVideo', () => {
     it('returns jobId on success', async () => {
       mockedAxiosPost.mockResolvedValue({ data: { job_id: 'vid_job_1' } });
@@ -266,7 +266,7 @@ describe('ManagedInferenceRuntimeService', () => {
     });
   });
 
-  // ── generateVoice ─────────────────────────────────────────────────────────
+  // generateVoice
   describe('generateVoice', () => {
     it('returns jobId on success', async () => {
       mockedAxiosPost.mockResolvedValue({ data: { job_id: 'voice_job_1' } });
@@ -292,7 +292,7 @@ describe('ManagedInferenceRuntimeService', () => {
     });
   });
 
-  // ── pollJob ───────────────────────────────────────────────────────────────
+  // pollJob
   describe('pollJob', () => {
     it('returns job data on success', async () => {
       const jobData = {
@@ -321,7 +321,7 @@ describe('ManagedInferenceRuntimeService', () => {
     });
   });
 
-  // ── pollManagedJobForOrg ─────────────────────────────────────────────────
+  // pollManagedJobForOrg
   describe('pollManagedJobForOrg', () => {
     it('polls the dedicated org instance only', async () => {
       const jobData = { output_url: 'https://cdn.example.com/out.mp4' };
@@ -358,7 +358,7 @@ describe('ManagedInferenceRuntimeService', () => {
     });
   });
 
-  // ── cloneVoice ────────────────────────────────────────────────────────────
+  // cloneVoice
   describe('cloneVoice', () => {
     it('returns jobId when clone succeeds', async () => {
       mockedAxiosPost.mockResolvedValue({ data: { job_id: 'clone_1' } });

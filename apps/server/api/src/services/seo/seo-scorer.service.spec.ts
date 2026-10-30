@@ -34,7 +34,7 @@ function check(checks: ReturnType<typeof buildSeoChecks>, id: string) {
   return found;
 }
 
-// ─── Pure text helpers ─────────────────────────────────────────────────────
+// Pure text helpers
 
 describe('parseSeoHtml href schemes', () => {
   it('marks javascript, data, and vbscript hrefs as malformed', () => {
@@ -84,7 +84,7 @@ describe('seo-scorer.util text helpers', () => {
   });
 });
 
-// ─── Deterministic dimension checks ─────────────────────────────────────────
+// Deterministic dimension checks
 
 describe('buildSeoChecks deterministic scoring', () => {
   it('scores title length by band', () => {
@@ -230,7 +230,7 @@ describe('buildSeoChecks deterministic scoring', () => {
   });
 });
 
-// ─── Assembly ──────────────────────────────────────────────────────────────
+// Assembly
 
 describe('assembleScorecard', () => {
   it('aggregates per-dimension breakdown and overall rating', () => {
@@ -263,7 +263,7 @@ describe('assembleScorecard', () => {
   });
 });
 
-// ─── Service ───────────────────────────────────────────────────────────────
+// Service
 
 describe('SeoScorerService', () => {
   let logger: LoggerService;

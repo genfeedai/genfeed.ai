@@ -128,7 +128,7 @@ export class ClipperApiService implements ClipperApiClient {
     return [];
   }
 
-  // ─── Public API Methods ───────────────────────────────────────
+  // Public API Methods
 
   async analyzeVideo(
     payload: AnalyzeVideoPayload,

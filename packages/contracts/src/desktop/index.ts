@@ -1,7 +1,7 @@
 import type { AgentExternalRuntimeKey } from '../constants/agent-external-runtime.constant';
 import type { IAgentThreadExternalRuntime } from '../interfaces/ai/agent-external-turn.interface';
 
-/* ─── Desktop IPC Channel Names ─── */
+/* Desktop IPC Channel Names */
 
 /**
  * Build-time switch for the local/offline runtime mode (PGlite workspace).
@@ -212,7 +212,7 @@ export const DESKTOP_IPC_CHANNELS = {
   workspaceSelect: 'desktop:workspace:select',
 } as const;
 
-/* ─── Environment ─── */
+/* Environment */
 
 export interface IDesktopEnvironment {
   apiEndpoint: string;
@@ -257,7 +257,7 @@ export interface IDesktopRuntimeContext {
   localProvider: IDesktopRuntimeLocalProvider | null;
 }
 
-/* ─── Server selection ─── */
+/* Server selection */
 
 export type DesktopServerKind = 'cloud' | 'self-hosted';
 
@@ -344,7 +344,7 @@ export interface IDesktopTrendHandoff {
   viralityScore?: number;
 }
 
-/* ─── Session ─── */
+/* Session */
 
 export interface IDesktopSession {
   issuedAt: string;
@@ -354,7 +354,7 @@ export interface IDesktopSession {
   userName?: string;
 }
 
-/* ─── Workspace ─── */
+/* Workspace */
 
 export interface IDesktopWorkspaceFile {
   extension: string;
@@ -383,7 +383,7 @@ export interface IDesktopWorkspace {
   updatedAt: string;
 }
 
-/* ─── Sync ─── */
+/* Sync */
 
 export type DesktopSyncPolicy =
   | 'full-asset-sync'
@@ -643,7 +643,7 @@ export interface IDesktopSyncConsentInput {
   status: 'declined' | 'granted';
 }
 
-/* ─── Local Generation ─── */
+/* Local Generation */
 
 export type DesktopGenerationProviderKind =
   | 'fal'
@@ -724,7 +724,7 @@ export interface IDesktopGenerationJob {
   workspaceId: string;
 }
 
-/* ─── Recents ─── */
+/* Recents */
 
 export interface IDesktopRecentItem {
   id: string;
@@ -734,7 +734,7 @@ export interface IDesktopRecentItem {
   value: string;
 }
 
-/* ─── Cloud ─── */
+/* Cloud */
 
 export interface IDesktopCloudProject {
   id: string;
@@ -793,13 +793,13 @@ export interface IDesktopDataService {
   }) => Promise<IDesktopDataResult<IDesktopWorkflowRunResult>>;
 }
 
-/* ─── Preferences ─── */
+/* Preferences */
 
 export interface IDesktopPreferences {
   nativeNotificationsEnabled: boolean;
 }
 
-/* ─── Bootstrap ─── */
+/* Bootstrap */
 
 export interface IDesktopBootstrap {
   activeWorkspaceId: string | null;
@@ -823,7 +823,7 @@ export interface IDesktopBootstrap {
   workspaces: IDesktopWorkspace[];
 }
 
-/* ─── Generated Content ─── */
+/* Generated Content */
 
 export interface IDesktopGeneratedContent {
   content: string;
@@ -880,7 +880,7 @@ export interface IDesktopContentRunDraft {
   workspaceId: string;
 }
 
-/* ─── Trends ─── */
+/* Trends */
 
 export interface IDesktopTrend {
   engagementScore: number;
@@ -891,7 +891,7 @@ export interface IDesktopTrend {
   viralityScore: number;
 }
 
-/* ─── Ingredients ─── */
+/* Ingredients */
 
 export interface IDesktopIngredient {
   content: string;
@@ -901,7 +901,7 @@ export interface IDesktopIngredient {
   totalVotes: number;
 }
 
-/* ─── Analytics ─── */
+/* Analytics */
 
 export interface IDesktopAnalytics {
   recentPosts: Array<{
@@ -916,7 +916,7 @@ export interface IDesktopAnalytics {
   totalViews: number;
 }
 
-/* ─── Threads & Messages ─── */
+/* Threads & Messages */
 
 export interface IDesktopMessage {
   content: string;
@@ -938,7 +938,7 @@ export interface IDesktopThread {
   workspaceId?: string;
 }
 
-/* ─── Terminal ─── */
+/* Terminal */
 
 export type DesktopTerminalKind = 'claude' | 'codex' | 'genfeed' | 'shell';
 
@@ -971,7 +971,7 @@ export interface IDesktopTerminalExitEvent {
   signal?: number;
 }
 
-/* ─── CLI agent runtime (user's own Claude Code / Codex subscription) ─── */
+/* CLI agent runtime (user's own Claude Code / Codex subscription) */
 
 export interface IDesktopCliAgentTurnRequest {
   brandId?: string | null;
@@ -1083,7 +1083,7 @@ export interface IDesktopCliAgentTurnEvent {
   turnId: string;
 }
 
-/* ─── Agents ─── */
+/* Agents */
 
 export type DesktopAgentRunStatus =
   | 'completed'
@@ -1122,7 +1122,7 @@ export interface IDesktopAgentRunResult {
   status: DesktopAgentRunStatus;
 }
 
-/* ─── Workflows ─── */
+/* Workflows */
 
 export interface IDesktopWorkflow {
   description?: string;
@@ -1146,7 +1146,7 @@ export interface IDesktopWorkflowRunResult {
   status: 'pending' | 'running';
 }
 
-/* ─── Bridge (renderer ↔ main) ─── */
+/* Bridge (renderer ↔ main) */
 
 /** An installed CLI that is too old to run Genfeed agent turns. */
 export interface IDesktopLocalToolUpgrade {
