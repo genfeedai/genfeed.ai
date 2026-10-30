@@ -117,8 +117,8 @@ describe('right sidebar single topbar guard', () => {
     });
   }
 
-  const sources = ['apps/app', 'packages/ui/src', 'packages/pages'].flatMap(
-    (root) => listSources(path.join(repoRoot, root)),
+  const sources = ['apps/app', 'packages/ui/src'].flatMap((root) =>
+    listSources(path.join(repoRoot, root)),
   );
 
   it('has the shell host selected context without a second topbar', () => {

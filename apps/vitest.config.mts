@@ -20,10 +20,7 @@ const packageName =
     : path.relative(repoRoot, appRoot);
 const localUiRoot = path.resolve(appRoot, './src/ui');
 const hasLocalUiRoot = fs.existsSync(localUiRoot);
-const isAppShell = appRoot === path.resolve(repoRoot, './apps/app');
-const pagesRoot = isAppShell
-  ? path.resolve(repoRoot, './packages/pages')
-  : path.resolve(appRoot, './src/page-modules');
+const pagesRoot = path.resolve(appRoot, './src/page-modules');
 process.env.TZ ??= 'UTC';
 installVitestWarningFilter();
 const customLogger = createVitestWarningLogger();
@@ -233,14 +230,6 @@ export default defineConfig({
         replacement: path.resolve(repoRoot, './packages/models/$1'),
       },
       {
-        find: /^@genfeedai\/pages$/,
-        replacement: path.resolve(repoRoot, './packages/pages/index.ts'),
-      },
-      {
-        find: /^@genfeedai\/pages\/(.*)$/,
-        replacement: path.resolve(repoRoot, './packages/pages/$1'),
-      },
-      {
         find: /^@genfeedai\/pricing$/,
         replacement: path.resolve(repoRoot, './packages/pricing/src/index.ts'),
       },
@@ -367,13 +356,6 @@ export default defineConfig({
       {
         find: /^@pages$/,
         replacement: pagesRoot,
-      },
-      {
-        find: /^@pages\/not-found\/not-found-page$/,
-        replacement: path.resolve(
-          repoRoot,
-          './packages/ui/src/components/error/not-found/not-found-page.tsx',
-        ),
       },
       {
         find: /^@pages\/(.*)$/,

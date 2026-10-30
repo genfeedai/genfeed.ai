@@ -301,10 +301,6 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, '../../../packages/helpers/src'),
       },
       {
-        find: /^@pages\/(.*)$/,
-        replacement: path.resolve(serviceDir, '../../../packages/pages/$1'),
-      },
-      {
         find: '@genfeedai/utils',
         replacement: path.resolve(serviceDir, '../../../packages/utils'),
       },

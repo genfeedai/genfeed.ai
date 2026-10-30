@@ -28,7 +28,6 @@ const TSCONFIG_PACKAGE_DEPENDENTS = [
   'packages/fonts',
   'packages/hooks',
   'packages/models',
-  'packages/pages',
   'packages/props',
   'packages/services',
   'packages/utils',

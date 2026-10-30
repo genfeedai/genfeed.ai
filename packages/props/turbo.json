@@ -11,7 +11,6 @@
         "$TURBO_ROOT$/packages/agent/**",
         "$TURBO_ROOT$/packages/contexts/**",
         "$TURBO_ROOT$/packages/hooks/**",
-        "$TURBO_ROOT$/packages/pages/**",
         "$TURBO_ROOT$/packages/ui/**",
         "$TURBO_ROOT$/packages/utils/**",
         "!$TURBO_ROOT$/packages/*/.turbo/**",

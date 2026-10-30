@@ -30,8 +30,6 @@
       "@genfeedai/contracts/interfaces/*": ["../contracts/src/interfaces/*"],
       "@genfeedai/models": ["../models/index.ts"],
       "@genfeedai/models/*": ["../models/*"],
-      "@genfeedai/pages": ["../pages/index.ts"],
-      "@genfeedai/pages/*": ["../pages/*"],
       "@genfeedai/props": ["../props/index.ts"],
       "@genfeedai/props/*": ["../props/*"],
       "@genfeedai/serializers": ["../serializers/src/index.ts"],

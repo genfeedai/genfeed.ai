@@ -58,7 +58,7 @@
       "@helpers/*": ["../../packages/helpers/src/*"],
       "@hooks/*": ["../../packages/hooks/*"],
       "@models/*": ["../../packages/models/*"],
-      "@pages/*": ["./src/page-modules/*", "../../packages/pages/*"],
+      "@pages/*": ["./src/page-modules/*"],
       "@props/*": ["./src/props/*", "../../packages/props/*"],
       "@protected/*": ["./app/(protected)/*"],
       "@providers/*": ["../../packages/contexts/providers/*"],

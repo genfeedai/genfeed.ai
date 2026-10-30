@@ -11,7 +11,6 @@ const logger = {
 
 const INCLUDE_GLOBS = [
   'apps/app/**/*.{tsx,jsx}',
-  'packages/pages/**/*.{tsx,jsx}',
   'packages/ui/src/**/*.{tsx,jsx}',
 ];
 

@@ -260,7 +260,6 @@ const DARK_ONLY_PALETTE_TEXT_ROOTS = [
   'apps/website',
   'apps/extensions',
   'packages/agent',
-  'packages/pages',
   'packages/ui/src',
 ];
 const DARK_ONLY_PALETTE_TEXT_PATTERN =

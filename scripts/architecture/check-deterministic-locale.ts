@@ -25,7 +25,6 @@ const DEFAULT_INCLUDE_GLOBS = [
   'packages/agent/src/components/**/*.{ts,tsx}',
   'packages/helpers/src/formatting/**/*.{ts,tsx}',
   'packages/models/analytics/**/*.{ts,tsx}',
-  'packages/pages/**/*.{ts,tsx}',
   'packages/pricing/src/**/*.{ts,tsx}',
   'packages/ui/src/**/*.{ts,tsx}',
   'packages/workflows/src/ui/**/*.{ts,tsx}',

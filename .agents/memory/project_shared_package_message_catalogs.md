@@ -7,7 +7,7 @@ last_verified: 2026-08-28
 
 # Shared packages consume the host app catalog
 
-Shared product packages (`packages/ui`, `packages/pages`, `packages/agent`,
+Shared product packages (`packages/ui`, `packages/agent`,
 `packages/contexts`) resolve user-visible copy through the **host app's**
 next-intl context. They do not ship a second i18n runtime, a private message
 JSON tree, or a `t`-prop plumbing layer.

@@ -20,7 +20,6 @@ test('caps heavy runner demand at three deterministic balanced pools', () => {
     'agent',
     'props',
     'hooks',
-    'pages',
     'ui',
     'utils',
   ];

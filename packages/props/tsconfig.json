@@ -31,7 +31,6 @@
       "@helpers/*": ["../helpers/src/*"],
       "@hooks/*": ["../hooks/*"],
       "@models/*": ["../models/*"],
-      "@pages/*": ["../pages/*"],
       "@providers/*": ["../contexts/providers/*"],
       "@schemas/*": ["../schemas/*"],
       "@serializers/*": ["../serializers/src/*"],

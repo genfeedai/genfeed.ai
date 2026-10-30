@@ -6,14 +6,12 @@ import { globSync } from 'glob';
  * Every list page searches through the shared `SearchField`: one persistent
  * field with the page's Filters menu attached inside it. The raw `Searchbar`
  * primitive stays for searches inside modals and pickers, so a page under
- * `apps/app/app` or `packages/pages` that imports it has drifted from the
- * shared subbar.
+ * `apps/app` that imports it has drifted from the shared subbar.
  */
 
 const INCLUDE_GLOBS = [
   'apps/app/app/**/*.tsx',
   'apps/app/src/features/**/*.tsx',
-  'packages/pages/**/*.tsx',
 ];
 
 const EXCLUDE_GLOBS = [

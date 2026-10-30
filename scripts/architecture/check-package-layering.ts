@@ -77,7 +77,6 @@ const PACKAGE_ALIASES: Readonly<Record<string, string>> = {
   '@integrations': 'integrations',
   '@libs': 'libs',
   '@models': 'models',
-  '@pages': 'pages',
   '@props': 'props',
   '@providers': 'contexts',
   '@serializers': 'serializers',

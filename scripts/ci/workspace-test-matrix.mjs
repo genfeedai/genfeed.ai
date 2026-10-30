@@ -5,7 +5,6 @@ import path from 'node:path';
 // Each pool runs one Turbo task at a time. Vitest can use the runner's CPUs
 // without competing with nine other packages' worker pools.
 const PACKAGE_SECONDS = {
-  '@genfeedai/pages': 840,
   '@genfeedai/agent': 650,
   '@genfeedai/workflows': 530,
   '@genfeedai/hooks': 525,

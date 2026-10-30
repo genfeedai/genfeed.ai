@@ -103,12 +103,10 @@ export type AccountConnectionStatusInput = Pick<
  * not reach this function at all: `buildSocialConnections` hides it before
  * status is ever derived. See `isVisibleCredentialRow` above.
  *
- * Lives alongside `isVisibleCredentialRow` (rather than in the
- * pages-layer `account-connection-status.util.ts` that re-exports it) so
+ * Lives alongside `isVisibleCredentialRow` (rather than in the app-layer
+ * `account-connection-status.util.ts` that re-exports it) so
  * `packages/hooks` can derive status via the same `packages/hooks` ->
- * `packages/ui` alias it already uses for `buildSocialConnections` —
- * that edge predates this change, rather than routing it through
- * `packages/pages`, which `packages/hooks` doesn't otherwise reach into.
+ * `packages/ui` alias it already uses for `buildSocialConnections`.
  */
 export function getAccountConnectionStatus(
   connection: AccountConnectionStatusInput,

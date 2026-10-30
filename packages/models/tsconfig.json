@@ -27,7 +27,6 @@
       "@helpers/*": ["../helpers/src/*"],
       "@hooks/*": ["../hooks/*"],
       "@models/*": ["./*"],
-      "@pages/*": ["../pages/*"],
       "@props/*": ["../props/*"],
       "@providers/*": ["../providers/*"],
       "@schemas/*": ["../schemas/*"],

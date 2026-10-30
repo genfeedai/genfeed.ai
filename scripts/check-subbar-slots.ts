@@ -19,7 +19,6 @@ import {
 const INCLUDE_GLOBS = [
   'apps/app/app/**/*.tsx',
   'apps/app/src/features/**/*.tsx',
-  'packages/pages/**/*.tsx',
 ];
 
 const EXCLUDE_GLOBS = [

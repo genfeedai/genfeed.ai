@@ -40,7 +40,6 @@
       "@helpers/*": ["../helpers/src/*"],
       "@hooks/*": ["./*"],
       "@models/*": ["../models/*"],
-      "@pages/*": ["../pages/*"],
       "@providers/*": ["../contexts/providers/*"],
       "@props/*": ["../props/*"],
       "@schemas/*": ["../schemas/*"],
