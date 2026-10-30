@@ -1,6 +1,6 @@
-import { mutationErrorMessage } from '@/features/posts/release/release-mutation-runner';
 import type { CalendarBulkGenerationOptions } from '@props/publishing/content-calendar-controller.props';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { mutationErrorMessage } from '@/features/posts/release/release-mutation-runner';
 
 export function useCalendarBulkGeneration({
   getPostingCadencesService,

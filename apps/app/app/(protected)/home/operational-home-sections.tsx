@@ -27,11 +27,6 @@ import { useActivities } from '@hooks/data/activities/use-activities/use-activit
 import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';
 import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import PublishingPostHoverPreview from '@/features/posts/library/publishing-post-hover-preview';
-import {
-  badgeVariantForTone,
-  releaseStatusBadge,
-} from '@/features/posts/shared/release-status.helpers';
 import type {
   NeedsYouItem,
   OperationalHomeSectionsProps,
@@ -70,6 +65,11 @@ import {
 } from '@/features/activities/activities-list.utils';
 import ActivityThumbnailCell from '@/features/activities/components/ActivityThumbnailCell';
 import AccountCell from '@/features/brands/components/integrations/AccountCell';
+import PublishingPostHoverPreview from '@/features/posts/library/publishing-post-hover-preview';
+import {
+  badgeVariantForTone,
+  releaseStatusBadge,
+} from '@/features/posts/shared/release-status.helpers';
 import { useActivityMessageFormatter } from '@/hooks/i18n/useActivityMessageFormatter';
 import {
   getActivityBadge,

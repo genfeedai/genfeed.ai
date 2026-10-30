@@ -3,11 +3,6 @@ import {
   formatPlatformLabel,
   parsePlatform,
 } from '@genfeedai/contracts';
-import {
-  isReleaseDraggable,
-  releaseStatusBadge,
-  releaseTargets,
-} from '@/features/posts/shared/release-status.helpers';
 import type {
   CalendarEventAction,
   CalendarEventBadge,
@@ -16,6 +11,11 @@ import type {
 import type { CalendarEventPresentationOptions } from '@props/publishing/content-calendar-controller.props';
 import type { ContentCalendarItem } from '@props/publishing/content-calendar-page.props';
 import { useCallback } from 'react';
+import {
+  isReleaseDraggable,
+  releaseStatusBadge,
+  releaseTargets,
+} from '@/features/posts/shared/release-status.helpers';
 import {
   CALENDAR_SLOT_EVENT_COLOR,
   getContentCalendarEventColor,
