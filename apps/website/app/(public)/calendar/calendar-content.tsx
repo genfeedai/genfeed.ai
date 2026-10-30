@@ -6,7 +6,7 @@ import AgentFirstActions from '@web-components/buttons/agent-first-actions/Agent
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
-import ProductInterfacePreview from '@web-components/product/ProductInterfacePreview';
+import AppProductScreenshot from '@web-components/products/AppProductScreenshot';
 import {
   Calendar,
   CircleCheck,
@@ -78,17 +78,10 @@ const STEPS = [
 ];
 
 const HERO_VISUAL = (
-  <ProductInterfacePreview
-    product={{
-      category: 'Planning',
-      features: FEATURES,
-      headline: 'Drafts, approvals, schedules, and channels in one calendar.',
-      name: 'Calendar',
-      useCases: STEPS.map((step) => ({
-        description: step.sublabel,
-        title: step.label,
-      })),
-    }}
+  <AppProductScreenshot
+    alt="The Genfeed publishing calendar with drafts, approvals and scheduled posts."
+    isPriority
+    src="/products/publishing.webp"
   />
 );
 
