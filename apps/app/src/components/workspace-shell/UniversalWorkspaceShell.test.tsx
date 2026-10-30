@@ -703,7 +703,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('renders the registered selection in the context sidebar until the page deselects', () => {
-    navigation.pathname = '/acme/moonrise/library/references';
+    navigation.pathname = '/acme/moonrise/library/assets';
 
     const { container } = render(
       <ContextSidebarProvider>

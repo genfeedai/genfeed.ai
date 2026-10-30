@@ -193,9 +193,9 @@ const AUDITED_READ_PRESENTATIONS = [
   {
     annotations: {
       destructiveHint: false,
-      idempotentHint: false,
+      idempotentHint: true,
       openWorldHint: true,
-      readOnlyHint: false,
+      readOnlyHint: true,
     },
     name: 'get_articles',
     title: 'Get Articles',
@@ -203,9 +203,9 @@ const AUDITED_READ_PRESENTATIONS = [
   {
     annotations: {
       destructiveHint: false,
-      idempotentHint: false,
+      idempotentHint: true,
       openWorldHint: false,
-      readOnlyHint: false,
+      readOnlyHint: true,
     },
     name: 'get_connection_status',
     title: 'Get Connection Status',
@@ -213,9 +213,9 @@ const AUDITED_READ_PRESENTATIONS = [
   {
     annotations: {
       destructiveHint: false,
-      idempotentHint: false,
+      idempotentHint: true,
       openWorldHint: true,
-      readOnlyHint: false,
+      readOnlyHint: true,
     },
     name: 'get_social_conversation',
     title: 'Get Social Conversation',
@@ -233,9 +233,9 @@ const AUDITED_READ_PRESENTATIONS = [
   {
     annotations: {
       destructiveHint: false,
-      idempotentHint: false,
+      idempotentHint: true,
       openWorldHint: true,
-      readOnlyHint: false,
+      readOnlyHint: true,
     },
     name: 'list_social_conversations',
     title: 'List Social Conversations',
@@ -243,29 +243,29 @@ const AUDITED_READ_PRESENTATIONS = [
   {
     annotations: {
       destructiveHint: false,
-      idempotentHint: false,
+      idempotentHint: true,
       openWorldHint: false,
-      readOnlyHint: false,
+      readOnlyHint: true,
     },
     name: 'list_workflows',
     title: 'List Workflows',
   },
   {
     annotations: {
-      readOnlyHint: false,
       destructiveHint: false,
       idempotentHint: true,
       openWorldHint: false,
+      readOnlyHint: true,
     },
     name: 'get_account',
     title: 'Get Account',
   },
   {
     annotations: {
-      readOnlyHint: false,
       destructiveHint: false,
-      idempotentHint: false,
+      idempotentHint: true,
       openWorldHint: false,
+      readOnlyHint: true,
     },
     name: 'get_analytics',
     title: 'Get Analytics',
@@ -292,20 +292,20 @@ const AUDITED_READ_PRESENTATIONS = [
   },
   {
     annotations: {
-      readOnlyHint: false,
       destructiveHint: false,
-      idempotentHint: false,
+      idempotentHint: true,
       openWorldHint: false,
+      readOnlyHint: true,
     },
     name: 'get_content_analytics',
     title: 'Get Content Analytics',
   },
   {
     annotations: {
-      readOnlyHint: false,
-      destructiveHint: true,
+      destructiveHint: false,
       idempotentHint: true,
       openWorldHint: false,
+      readOnlyHint: true,
     },
     name: 'get_generation_options',
     title: 'Get Generation Options',

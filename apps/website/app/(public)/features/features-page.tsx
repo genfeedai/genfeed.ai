@@ -74,7 +74,7 @@ export default function FeaturesPage(): React.ReactElement {
       >
         <section className="gsap-hero py-16 md:py-32">
           <div className="container mx-auto px-6">
-            <div className="gsap-grid grid grid-cols-1 gap-px bg-foreground/5 md:grid-cols-2 lg:grid-cols-4">
+            <div className="gsap-grid grid grid-cols-1 gap-px bg-foreground/10 md:grid-cols-2 lg:grid-cols-4">
               {FEATURES.map((feature) => {
                 const Icon = feature.icon;
                 return (

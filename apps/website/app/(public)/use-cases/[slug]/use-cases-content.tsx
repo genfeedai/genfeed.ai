@@ -41,7 +41,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
       heroVisual={<MarketingArtwork page={`/use-cases/${useCase.slug}`} />}
     >
       <section className="max-w-6xl mx-auto pb-20">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-foreground/5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-foreground/10">
           <div className="bg-background p-8">
             <Heading as="h3" className="text-sm font-bold mb-6">
               Problems
@@ -105,7 +105,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
           <Heading as="h2" className="text-3xl font-bold text-center mb-10">
             Results
           </Heading>
-          <div className="grid grid-cols-1 gap-px bg-foreground/5 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-px bg-foreground/10 md:grid-cols-2">
             {useCase.results.map((result) => (
               <div
                 key={result}

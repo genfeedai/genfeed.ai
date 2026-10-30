@@ -9,10 +9,10 @@ import { OAuthBrandRequiredError } from '@hooks/auth/use-platform-oauth-connect/
 import { rememberOAuthConnectContext } from '@hooks/auth/use-platform-oauth-connect/oauth-connect-context';
 import { OAUTH_RETURN_TO_STORAGE_KEY } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import { useOrgUrl } from '@hooks/navigation/use-org-url/use-org-url';
+import { useRouteParams } from '@hooks/navigation/use-route-params';
 import { logger } from '@services/core/logger.service';
 import { ServicesService } from '@services/external/services.service';
 import { resolveOAuthServicePath } from '@ui/constants/oauth-connect-platforms';
-import { useParams } from 'next/navigation';
 import { useCallback } from 'react';
 
 /**
@@ -26,7 +26,7 @@ import { useCallback } from 'react';
  * no handler, so the card was a no-op everywhere except `/agent`.
  */
 export function useAgentOAuthConnect(): (platform: string) => Promise<void> {
-  const params = useParams<{ id?: string; threadId?: string }>();
+  const params = useRouteParams<{ id?: string; threadId?: string }>();
   const { brandSlug, href, orgSlug } = useOrgUrl();
   const { getToken } = useAuthIdentity();
   const { brands, selectedBrand } = useBrand();

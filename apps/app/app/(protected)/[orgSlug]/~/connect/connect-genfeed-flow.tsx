@@ -15,6 +15,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { buildConnectGenfeedInstructions } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
 import { deriveClaudeMcpResourceIdentifier } from '@genfeedai/helpers/integrations/mcp-resource.helper';
+import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { hasApiAccess } from '@genfeedai/pricing';
 import type { VerifiedMcpConnection } from '@genfeedai/props/home/operational-home.props';
@@ -44,7 +45,6 @@ import {
   Plus,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -99,7 +99,7 @@ function getBrandSlug(
 
 export default function ConnectGenfeedFlow() {
   const translate = useTranslations('pages.connectGenfeed');
-  const params = useParams<{ orgSlug: string }>();
+  const params = useRouteParams<{ orgSlug: string }>();
   const { brands, isReady, organizationId, settings } = useBrand();
   const [client, setClient] = useState<ConnectGenfeedClient>('codex');
   const [authMethod, setAuthMethod] =

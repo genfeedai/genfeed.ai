@@ -15,7 +15,7 @@ export interface BenefitGridProps {
 export default function BenefitGrid({ benefits, className }: BenefitGridProps) {
   return (
     <div
-      className={`grid grid-cols-1 gap-px bg-foreground/5 md:grid-cols-3 ${className ?? ''}`}
+      className={`grid grid-cols-1 gap-px bg-foreground/10 md:grid-cols-3 ${className ?? ''}`}
     >
       {benefits.map((benefit) => {
         const Icon = benefit.icon;

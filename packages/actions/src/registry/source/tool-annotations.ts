@@ -28,6 +28,9 @@ const GENERATION_OPEN_WORLD_NAMES: ReadonlySet<string> = new Set([
   'onboard_brand',
   'get_x_posts',
   'list_x_account_activity',
+  'get_articles',
+  'get_social_conversation',
+  'list_social_conversations',
   'get_ads_ad_insights',
   'get_ads_adset_insights',
   'import_source_post',
@@ -99,56 +102,11 @@ const AUDITED_BEHAVIOR_HINT_OVERRIDES: ReadonlyMap<string, ToolAnnotations> =
       },
     ],
     [
-      'get_articles',
-      {
-        destructiveHint: false,
-        idempotentHint: false,
-        openWorldHint: true,
-        readOnlyHint: false,
-      },
-    ],
-    [
-      'get_connection_status',
-      {
-        destructiveHint: false,
-        idempotentHint: false,
-        openWorldHint: false,
-        readOnlyHint: false,
-      },
-    ],
-    [
-      'get_social_conversation',
-      {
-        destructiveHint: false,
-        idempotentHint: false,
-        openWorldHint: true,
-        readOnlyHint: false,
-      },
-    ],
-    [
       'list_ads_research',
       {
         destructiveHint: false,
         idempotentHint: false,
         openWorldHint: true,
-        readOnlyHint: false,
-      },
-    ],
-    [
-      'list_social_conversations',
-      {
-        destructiveHint: false,
-        idempotentHint: false,
-        openWorldHint: true,
-        readOnlyHint: false,
-      },
-    ],
-    [
-      'list_workflows',
-      {
-        destructiveHint: false,
-        idempotentHint: false,
-        openWorldHint: false,
         readOnlyHint: false,
       },
     ],
@@ -171,24 +129,6 @@ const AUDITED_BEHAVIOR_HINT_OVERRIDES: ReadonlyMap<string, ToolAnnotations> =
       },
     ],
     [
-      'get_account',
-      {
-        destructiveHint: false,
-        idempotentHint: true,
-        openWorldHint: false,
-        readOnlyHint: false,
-      },
-    ],
-    [
-      'get_analytics',
-      {
-        destructiveHint: false,
-        idempotentHint: false,
-        openWorldHint: false,
-        readOnlyHint: false,
-      },
-    ],
-    [
       'get_brand_context',
       {
         destructiveHint: false,
@@ -203,24 +143,6 @@ const AUDITED_BEHAVIOR_HINT_OVERRIDES: ReadonlyMap<string, ToolAnnotations> =
         destructiveHint: true,
         idempotentHint: true,
         openWorldHint: true,
-        readOnlyHint: false,
-      },
-    ],
-    [
-      'get_content_analytics',
-      {
-        destructiveHint: false,
-        idempotentHint: false,
-        openWorldHint: false,
-        readOnlyHint: false,
-      },
-    ],
-    [
-      'get_generation_options',
-      {
-        destructiveHint: true,
-        idempotentHint: true,
-        openWorldHint: false,
         readOnlyHint: false,
       },
     ],

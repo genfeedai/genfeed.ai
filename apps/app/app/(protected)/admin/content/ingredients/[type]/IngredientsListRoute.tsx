@@ -1,10 +1,11 @@
 'use client';
 
 import { PageScope } from '@genfeedai/contracts';
+import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
 import LibraryBrowser from '@pages/library/browser/library-browser';
 import { findLibraryTypePresetBySegment } from '@pages/library/browser/library-browser.config';
-import { notFound, useParams } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { readRouteParam } from '@/lib/route-params';
 
@@ -15,7 +16,7 @@ import { readRouteParam } from '@/lib/route-params';
  * query params.
  */
 export default function IngredientsListRoute() {
-  const params = useParams<{ type?: string | string[] }>();
+  const params = useRouteParams<{ type?: string | string[] }>();
   const type = readRouteParam(params?.type);
   const preset = type ? findLibraryTypePresetBySegment(type) : undefined;
 

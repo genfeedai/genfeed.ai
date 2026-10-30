@@ -20,7 +20,7 @@ describe('Admin organizations routes', () => {
 
     expect(page).toContain('<OrganizationDetailPage />');
     expect(page).not.toMatch(/await\s+(params|searchParams)/);
-    expect(detail).toContain('useParams');
+    expect(detail).toContain('useRouteParams');
     expect(detail).not.toContain("get('id')");
   });
 });

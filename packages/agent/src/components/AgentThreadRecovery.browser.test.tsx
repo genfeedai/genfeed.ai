@@ -20,9 +20,6 @@ vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
     subscribe: () => () => {},
   }),
 }));
-vi.mock('@ui/navigation/prefetch/useNavigationPrefetch', () => ({
-  useNavigationPrefetch: () => () => {},
-}));
 
 afterEach(() => vi.unstubAllGlobals());
 

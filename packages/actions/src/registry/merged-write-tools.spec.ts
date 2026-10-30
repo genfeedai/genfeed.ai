@@ -52,15 +52,15 @@ describe('generate_content as the single content generation tool', () => {
 describe('get_generation_options', () => {
   const tool = getToolByName('get_generation_options');
 
-  it('is one agent and MCP generation-options tool with an optional type and audited effects', () => {
+  it('is one agent and MCP generation-options tool with an optional type that only reads', () => {
     expect(tool?.surfaces).toMatchObject({ agent: true, mcp: true });
     expect(tool?.toolset).toBe('generation');
     expect(tool?.mutationPolicy).toBeUndefined();
     expect(tool?.annotations).toEqual({
-      destructiveHint: true,
+      destructiveHint: false,
       idempotentHint: true,
       openWorldHint: false,
-      readOnlyHint: false,
+      readOnlyHint: true,
     });
     expect(tool?.parameters.required ?? []).toEqual([]);
     expect(tool?.parameters.properties.type).toMatchObject({

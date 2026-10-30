@@ -10,6 +10,7 @@ import { ModalEnum } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { isModalOpen } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useBrandEnabledSkills } from '@hooks/data/skills/use-brand-enabled-skills';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -34,12 +35,7 @@ import Loading from '@ui/loading/default/Loading';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
-import {
-  useParams,
-  usePathname,
-  useRouter,
-  useSearchParams,
-} from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   useCallback,
@@ -280,7 +276,7 @@ function pageReducer(state: PageState, action: PageAction): PageState {
 
 export default function BrandSettingsSkillsPage() {
   const translate = useTranslations('common.settings.skills');
-  const params = useParams<{ brandSlug: string; orgSlug: string }>();
+  const params = useRouteParams<{ brandSlug: string; orgSlug: string }>();
   const { push, replace } = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();

@@ -127,7 +127,7 @@ export default function IntegrationsContent() {
       >
         {/* Platform Grid */}
         <section className="gsap-hero max-w-6xl mx-auto py-16 px-6">
-          <div className="gsap-grid grid grid-cols-1 gap-px bg-foreground/5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="gsap-grid grid grid-cols-1 gap-px bg-foreground/10 sm:grid-cols-2 lg:grid-cols-3">
             {integrations.map((integration) => {
               const Icon = ICON_MAP[integration.icon];
               return (
