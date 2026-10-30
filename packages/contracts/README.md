@@ -14,27 +14,28 @@ Depend on it with `"@genfeedai/contracts": "workspace:*"`; it is not published
 to npm. Prefer the package subpath that matches the folder you need (for
 example `@genfeedai/contracts/enums` or `@genfeedai/contracts/interfaces`).
 
-The package root export (`src/index.ts`) currently re-exports `analytics` and
-`enums` only. Other folders are available through the subpath exports listed in
-`package.json`.
+The package root export (`src/index.ts`) re-exports `enums` only. Every other
+folder, including `analytics`, is available through the subpath exports listed
+in `package.json`.
 
 ```ts
-import { ActivityKey } from '@genfeedai/contracts'; // root: enums and analytics only
+import { ActivityKey } from '@genfeedai/contracts'; // root: enums only
+import { sumEngagement } from '@genfeedai/contracts/analytics';
 import type { IActivityPopulated } from '@genfeedai/contracts/interfaces';
 import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/contracts/queue';
 ```
 
-Enums are imported by almost every file and the analytics helpers are small, so
-both stay on the root. The other folders are large and used by fewer files;
-keeping them off the root barrel stops every consumer from loading all of them.
-When you add a folder, add a subpath export for it, and add it to the root only
-when nearly every consumer needs it.
+Enums are imported by almost every file, so they stay on the root. The other
+folders are large and used by fewer files; keeping them off the root barrel
+stops every consumer from loading all of them. When you add a folder, add a
+subpath export for it, and add it to the root only when nearly every consumer
+needs it.
 
 ## `src/` directory map
 
 | Folder | Role |
 | --- | --- |
-| `analytics/` | Shared analytics evaluation and metric availability types (root export) |
+| `analytics/` | Shared analytics evaluation and metric availability types (`./analytics`) |
 | `enums/` | Shared enums and activity catalogs (root export) |
 | `constants/` | Shared constants (API keys, models, credits, feature flags, and more) |
 | `interfaces/` | Shared TypeScript interfaces for AI, admin, studio, billing, and apps |
