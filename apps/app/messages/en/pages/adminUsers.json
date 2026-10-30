@@ -55,6 +55,7 @@
   "impersonateFailed": "Failed to impersonate user",
   "notFound": "User not found",
   "openProfile": "Open full profile",
+  "searchUsers": "Search users",
   "sendEmail": "Email {email}",
   "title": "Users",
   "totalLabel": "users"
