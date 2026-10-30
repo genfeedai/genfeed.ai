@@ -28,6 +28,7 @@ const GENERATION_OPEN_WORLD_NAMES: ReadonlySet<string> = new Set([
   'get_x_posts',
   'get_x_account_activity',
   'get_articles',
+  'get_brand_context',
   'get_social_conversation',
   'get_social_conversations',
   'get_ads_ad_insights',
@@ -124,15 +125,6 @@ const AUDITED_BEHAVIOR_HINT_OVERRIDES: ReadonlyMap<string, ToolAnnotations> =
         destructiveHint: false,
         idempotentHint: false,
         openWorldHint: false,
-        readOnlyHint: false,
-      },
-    ],
-    [
-      'get_brand_context',
-      {
-        destructiveHint: false,
-        idempotentHint: false,
-        openWorldHint: true,
         readOnlyHint: false,
       },
     ],

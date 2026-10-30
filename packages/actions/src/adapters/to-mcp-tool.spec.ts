@@ -272,9 +272,9 @@ const AUDITED_READ_PRESENTATIONS = [
   },
   {
     annotations: {
-      readOnlyHint: false,
+      readOnlyHint: true,
       destructiveHint: false,
-      idempotentHint: false,
+      idempotentHint: true,
       openWorldHint: true,
     },
     name: 'get_brand_context',

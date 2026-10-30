@@ -175,9 +175,9 @@ const AUDITED_READ_PRESENTATIONS = [
   },
   {
     annotations: {
-      readOnlyHint: false,
+      readOnlyHint: true,
       destructiveHint: false,
-      idempotentHint: false,
+      idempotentHint: true,
       openWorldHint: true,
     },
     name: 'get_brand_context',
@@ -446,7 +446,7 @@ const FROZEN_MCP_PRESENTATIONS = [
     true,
     false,
   ],
-  ['get_brand_context', 'Get Brand Context', false, false, false, true],
+  ['get_brand_context', 'Get Brand Context', true, false, true, true],
   ['get_brand_scan_status', 'Get Brand Scan Status', true, false, true, false],
   ['get_brands', 'Get Brands', true, false, true, false],
   [
@@ -1090,6 +1090,7 @@ describe('MCP tool annotations', () => {
       'get_analytics',
       'get_articles',
       'get_assets',
+      'get_brand_context',
       'get_brands',
       'get_connection_status',
       'get_content_analytics',
