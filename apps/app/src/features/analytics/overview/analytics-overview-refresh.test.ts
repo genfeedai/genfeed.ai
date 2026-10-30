@@ -47,13 +47,16 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
     orgHref: (p: string) => `/acme/~${p}`,
   }),
 }));
-vi.mock('@hooks/data/analytics/use-health-checks/use-health-checks', () => ({
-  useHealthChecks: () => ({
-    healthAlertMessage: null,
-    healthCheckedAt: null,
-    runHealthChecks: () => {},
+vi.mock(
+  '@/features/analytics/hooks/use-health-checks/use-health-checks',
+  () => ({
+    useHealthChecks: () => ({
+      healthAlertMessage: null,
+      healthCheckedAt: null,
+      runHealthChecks: () => {},
+    }),
   }),
-}));
+);
 vi.mock('@hooks/data/analytics/use-leaderboards/use-leaderboards', () => ({
   useLeaderboards: () => ({
     brandsLeaderboard: [],
@@ -61,7 +64,7 @@ vi.mock('@hooks/data/analytics/use-leaderboards/use-leaderboards', () => ({
     fetchLeaderboards: state.leaderboards,
   }),
 }));
-vi.mock('@hooks/data/analytics/use-timeseries/use-timeseries', () => ({
+vi.mock('@/features/analytics/hooks/use-timeseries/use-timeseries', () => ({
   useTimeseries: () => ({
     timeseriesData: [],
     fetchTimeseries: state.timeseries,

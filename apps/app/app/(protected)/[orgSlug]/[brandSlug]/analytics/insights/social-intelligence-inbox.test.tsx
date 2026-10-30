@@ -1,7 +1,7 @@
-import { useSocialIntelligence } from '@hooks/data/analytics/use-social-intelligence/use-social-intelligence';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useSocialIntelligence } from '@/features/analytics/hooks/use-social-intelligence/use-social-intelligence';
 import SocialIntelligenceInbox from './social-intelligence-inbox';
 import '@testing-library/jest-dom/vitest';
 
@@ -18,7 +18,7 @@ vi.mock('next-intl', async () => {
 });
 
 vi.mock(
-  '@hooks/data/analytics/use-social-intelligence/use-social-intelligence',
+  '@/features/analytics/hooks/use-social-intelligence/use-social-intelligence',
   () => ({
     useSocialIntelligence: vi.fn(),
   }),

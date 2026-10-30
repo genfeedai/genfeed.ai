@@ -14,9 +14,7 @@ import type {
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAnalytics } from '@hooks/data/analytics/use-analytics/use-analytics';
-import { useHealthChecks } from '@hooks/data/analytics/use-health-checks/use-health-checks';
 import { useLeaderboards } from '@hooks/data/analytics/use-leaderboards/use-leaderboards';
-import { useTimeseries } from '@hooks/data/analytics/use-timeseries/use-timeseries';
 import {
   type TopPostData,
   useTopPosts,
@@ -32,6 +30,8 @@ import type {
 import { UsersService } from '@services/organization/users.service';
 import { format } from 'date-fns';
 import { useEffect, useMemo, useRef } from 'react';
+import { useHealthChecks } from '@/features/analytics/hooks/use-health-checks/use-health-checks';
+import { useTimeseries } from '@/features/analytics/hooks/use-timeseries/use-timeseries';
 
 type DashboardState = 'empty' | 'warming_up' | 'active';
 

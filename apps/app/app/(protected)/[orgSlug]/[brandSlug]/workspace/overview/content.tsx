@@ -5,10 +5,10 @@ import { DashboardOpenUIRenderer } from '@genfeedai/agent/components';
 import { hydrateLayout } from '@genfeedai/agent/dashboard';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { IDashboardLayout } from '@genfeedai/contracts/interfaces';
-import { useDashboardLayout } from '@hooks/data/content/use-dashboard-layout/use-dashboard-layout';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { Button } from '@ui/primitives/button';
 import { useMemo } from 'react';
+import { useDashboardLayout } from '@/features/workspace/hooks/use-dashboard-layout/use-dashboard-layout';
 import { useWorkspaceDashboardData } from './use-workspace-dashboard-data';
 
 function PersistedWorkspaceLayout({ layout }: { layout: IDashboardLayout }) {
