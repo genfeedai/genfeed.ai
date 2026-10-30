@@ -80,6 +80,7 @@ const SHARED_READ_TOOLS: CuratedActionName[] = [
   'rate_content',
   'score_seo',
   'rate_ingredient',
+  'star_asset',
   'get_top_ingredients',
   'replicate_top_ingredient',
   'suggest_next_steps',

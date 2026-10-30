@@ -160,6 +160,8 @@ function dispatchWorkspaceFamily(
       return handlers.publishHandler.schedulePost(params, ctx);
     case 'repurpose_post':
       return handlers.publishHandler.repurposePost(params, ctx);
+    case 'star_asset':
+      return handlers.workspaceHandler.starAsset(params, ctx);
     default:
       return null;
   }

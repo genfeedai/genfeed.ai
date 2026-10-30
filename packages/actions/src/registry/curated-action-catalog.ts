@@ -560,6 +560,7 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'brand',
   },
   { name: 'spawn_content_agent', surfaces: ['agent'], toolset: 'content' },
+  { name: 'star_asset', surfaces: ['agent'], toolset: 'ui' },
   {
     name: 'start_brand_interview',
     surfaces: ['agent', 'mcp'],

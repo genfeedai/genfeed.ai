@@ -61,6 +61,7 @@ export const TOOL_LABELS: Record<string, string> = {
   rate_content: 'Rate Content',
   score_seo: 'Score SEO',
   rate_ingredient: 'Rate Ingredient',
+  star_asset: 'Star Asset',
   rename_brand: 'Rename Brand',
   repurpose_post: 'Repurpose Post',
   resolve_handle: 'Resolve Handle',
