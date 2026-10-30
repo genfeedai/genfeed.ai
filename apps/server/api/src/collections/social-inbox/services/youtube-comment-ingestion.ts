@@ -111,6 +111,18 @@ type YoutubeApiErrorShape = {
   status?: unknown;
 };
 
+function readFailureReasons(failure: YoutubeApiErrorShape): unknown[] {
+  const nested = failure.response?.data?.error;
+  return [
+    ...(failure.errors ?? []),
+    ...(typeof nested === 'object' ? (nested.errors ?? []) : []),
+  ].map((entry) => entry.reason);
+}
+
+function readFailureStatus(failure: YoutubeApiErrorShape): number {
+  return Number(failure.response?.status ?? failure.status ?? 0);
+}
+
 /**
  * Quota and sign-in failures hit every remaining post of the credential the
  * same way, so retrying them only burns more quota. A per-video failure such as
@@ -121,22 +133,32 @@ function isCredentialLevelFailure(error: unknown): boolean {
     return false;
   }
   const failure = error as YoutubeApiErrorShape;
-  const status = Number(failure.response?.status ?? failure.status ?? 0);
+  const status = readFailureStatus(failure);
   if (status === 401 || status === 429) {
     return true;
   }
-  const nested = failure.response?.data?.error;
-  const reasons = [
-    ...(failure.errors ?? []),
-    ...(typeof nested === 'object' ? (nested.errors ?? []) : []),
-  ].map((entry) => entry.reason);
   return (
-    reasons.some(
+    readFailureReasons(failure).some(
       (reason) =>
         typeof reason === 'string' && CREDENTIAL_FAILURE_REASONS.has(reason),
     ) ||
     (typeof failure.message === 'string' &&
       failure.message.includes('invalid_grant'))
+  );
+}
+
+/**
+ * The owned post's video was deleted or made private on YouTube. There is no
+ * inbox left to read, so it is not a sync failure.
+ */
+function isMissingVideoFailure(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) {
+    return false;
+  }
+  const failure = error as YoutubeApiErrorShape;
+  return (
+    readFailureStatus(failure) === 404 ||
+    readFailureReasons(failure).includes('videoNotFound')
   );
 }
 
@@ -259,6 +281,16 @@ export async function ingestOwnedYoutubeComments(
           }
         }
       } catch (error: unknown) {
+        if (isMissingVideoFailure(error)) {
+          // A removed video is not "scanned": counting it would make a sweep
+          // whose only owned post was deleted fail the whole job every hour.
+          postsScanned--;
+          ports.warn('YouTube owned post video no longer exists; skipped', {
+            errorName: error instanceof Error ? error.name : 'Error',
+            postFailureCount: postFailures.length,
+          });
+          continue;
+        }
         const failure = diagnoseYoutubePostFailure(error, [
           scope.organizationId,
           typeof post.externalId === 'string' ? post.externalId : '',
