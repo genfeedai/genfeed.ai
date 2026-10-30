@@ -62,13 +62,16 @@ vi.mock('@hooks/data/workflow-executions/use-workflow-executions', () => ({
   }),
 }));
 
-vi.mock('@hooks/data/agent-strategies/use-agent-strategies', () => ({
-  useAgentStrategies: () => ({
-    isLoading: false,
-    refresh: vi.fn(),
-    strategies: [],
+vi.mock(
+  '@/features/agents/hooks/agent-strategies/use-agent-strategies',
+  () => ({
+    useAgentStrategies: () => ({
+      isLoading: false,
+      refresh: vi.fn(),
+      strategies: [],
+    }),
   }),
-}));
+);
 
 vi.mock('../autopilot/ContentPlansSection', () => ({
   default: () => <div>Recent plans</div>,

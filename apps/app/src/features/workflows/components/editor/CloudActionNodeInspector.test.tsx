@@ -61,9 +61,12 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
-vi.mock('@hooks/data/agent-strategies/use-agent-strategies', () => ({
-  useAgentStrategies: () => ({ strategies: [] }),
-}));
+vi.mock(
+  '@/features/agents/hooks/agent-strategies/use-agent-strategies',
+  () => ({
+    useAgentStrategies: () => ({ strategies: [] }),
+  }),
+);
 
 vi.mock('@genfeedai/workflows/ui/stores', () => ({
   useUIStore: (selector: (state: object) => unknown) =>

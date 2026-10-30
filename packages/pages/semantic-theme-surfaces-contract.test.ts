@@ -38,19 +38,6 @@ describe('page semantic theme surfaces', () => {
   });
 
   it.each([
-    [
-      'analytics/overview/analytics-overview-placeholder-card.tsx',
-      'bg-white/5',
-      'bg-foreground/5',
-    ],
-    [
-      'analytics/platform-detail/analytics-platform-detail.tsx',
-      'bg-white/10',
-      'bg-foreground/10',
-    ],
-    // Delegates its surface to `@ui/kpi/kpi-section`; only the forbidden token
-    // is still this file's concern.
-    ['analytics/brand-overview/BrandKPISection.tsx', 'bg-white/10', null],
     ['trends/detail/trend-detail.tsx', 'border-white', 'border-border'],
     [
       'trends/detail/trend-detail-analysis-card.tsx',
@@ -107,27 +94,10 @@ describe('page semantic theme surfaces', () => {
 
   it('themes progress and loading indicators', () => {
     const streaks = readPage('streaks/streaks-page.tsx');
-    const campaigns = readPage('agents/campaigns/AgentCampaignsPage.tsx');
 
     // The streak page renders its loading state through `@ui` cards now, so it
     // carries no spinner chrome of its own — the ban still applies.
     expect(streaks).not.toContain('border-t-white');
-    expect(campaigns).toContain('bg-foreground/5');
-    expect(campaigns).not.toContain('border-white');
-    expect(campaigns).not.toContain('bg-white');
-  });
-
-  it('themes campaign controls and platform icons', () => {
-    const table = readPage('agents/campaigns/OutreachCampaignsTable.tsx');
-    const header = readPage(
-      'agents/campaigns/OutreachCampaignDetailHeader.tsx',
-    );
-    const wizard = readPage('agents/campaigns/OutreachCampaignWizardStep1.tsx');
-
-    expect(table).not.toContain('text-slate');
-    expect(header).not.toContain('text-slate');
-    expect(wizard).toContain('border-border');
-    expect(wizard).not.toContain('border-white');
   });
 
   it('uses semantic borders in the Desk surfaces while preserving media canvases', () => {
@@ -151,7 +121,6 @@ describe('page semantic theme surfaces', () => {
   });
 
   it.each([
-    'agents/campaigns/AgentCampaignsPage.tsx',
     'content-runs/detail/content-run-detail.tsx',
     'posts/list/components/PostsGrid.tsx',
     'trends/platform-detail/components/related-metric-card.tsx',

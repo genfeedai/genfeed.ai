@@ -1,0 +1,151 @@
+'use client';
+
+import type {
+  IWinnerPost,
+  WinnerSignalEvidence,
+} from '@genfeedai/contracts/interfaces';
+import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
+import { useClientPagination } from '@hooks/data/pagination/use-client-pagination/use-client-pagination';
+import { useOptionalDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
+import type { TableAction, TableColumn } from '@props/ui/display/table.props';
+import Badge from '@ui/display/badge/Badge';
+import Table from '@ui/display/table/Table';
+import Pagination from '@ui/navigation/pagination/Pagination';
+import { Sparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useMemo } from 'react';
+import type { AnalyticsWinnersTableProps } from '@/features/analytics/props/analytics-winners-table.props';
+
+const WINNERS_PAGE_SIZE = 12;
+
+function formatSignalValue(evidence: WinnerSignalEvidence, value: number) {
+  return evidence.signal === 'engagementRate'
+    ? `${value.toFixed(2)}%`
+    : formatNumberWithCommas(Math.round(value));
+}
+
+function matchesSearch(winner: IWinnerPost, search: string): boolean {
+  const normalized = search.trim().toLowerCase();
+  if (!normalized) return true;
+  return (
+    winner.postId === normalized ||
+    [winner.label, winner.description, winner.brandName, winner.platform].some(
+      (field) => (field ?? '').toLowerCase().includes(normalized),
+    )
+  );
+}
+
+/**
+ * #5502 the Winners view of Analytics Posts: each row names the signals that
+ * beat the account baseline, with the value, baseline and sample behind it.
+ */
+export default function AnalyticsWinnersTable({
+  winners,
+  search,
+  isLoading,
+  hasError,
+  onRetry,
+  onSelectPost,
+}: AnalyticsWinnersTableProps) {
+  const translate = useTranslations('pages.analytics.winners');
+  const remix = useOptionalDiscoveryRemix();
+
+  const items = useMemo(
+    () => winners.filter((winner) => matchesSearch(winner, search)),
+    [search, winners],
+  );
+
+  const pagination = useClientPagination(items, {
+    pageSize: WINNERS_PAGE_SIZE,
+    resetKey: search,
+  });
+
+  const columns: TableColumn<IWinnerPost>[] = useMemo(
+    () => [
+      {
+        header: translate('columns.post'),
+        key: 'label',
+        render: (winner) => (
+          <div className="flex flex-col">
+            <span className="font-medium line-clamp-1">
+              {winner.label || winner.description || translate('untitled')}
+            </span>
+            <span className="text-xs text-foreground/60">
+              {winner.brandName
+                ? `${winner.brandName} · ${winner.platform}`
+                : winner.platform}
+            </span>
+          </div>
+        ),
+      },
+      {
+        header: translate('columns.evidence'),
+        key: 'evidence',
+        render: (winner) => (
+          <ul className="flex flex-col gap-1">
+            {winner.evidence.map((evidence) => (
+              <li
+                key={evidence.signal}
+                className="flex flex-wrap items-center gap-2 text-xs"
+              >
+                <Badge
+                  variant={evidence.tier === 'breakout' ? 'success' : 'info'}
+                >
+                  {translate(`tiers.${evidence.tier}`)}
+                </Badge>
+                <span>
+                  {translate('evidence', {
+                    baseline: formatSignalValue(evidence, evidence.baseline),
+                    ratio: evidence.ratio.toFixed(1),
+                    sampleSize: evidence.sampleSize,
+                    signal: translate(`signals.${evidence.signal}`),
+                    value: formatSignalValue(evidence, evidence.value),
+                  })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ),
+      },
+    ],
+    [translate],
+  );
+
+  const actions = useMemo<TableAction<IWinnerPost>[]>(
+    () => [
+      {
+        icon: <Sparkles aria-hidden="true" />,
+        isVisible: () => Boolean(remix),
+        onClick: (winner) =>
+          void remix?.openRemix({ kind: 'owned_post', postId: winner.postId }),
+        tooltip: translate('remix'),
+      },
+    ],
+    [remix, translate],
+  );
+
+  return (
+    <div className="flex flex-col gap-4">
+      <Table<IWinnerPost>
+        label={translate('tableLabel')}
+        items={pagination.pageItems}
+        isLoading={isLoading}
+        actions={actions}
+        error={
+          hasError ? { title: translate('loadError'), onRetry } : undefined
+        }
+        columns={columns}
+        emptyLabel={translate('empty')}
+        getRowKey={(winner) => `${winner.postId}:${winner.platform}`}
+        onRowClick={(winner) => onSelectPost(winner.postId)}
+      />
+      <Pagination
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        totalItems={isLoading ? undefined : pagination.totalItems}
+        totalLabel="winners"
+        onPageChange={pagination.goToPage}
+      />
+    </div>
+  );
+}

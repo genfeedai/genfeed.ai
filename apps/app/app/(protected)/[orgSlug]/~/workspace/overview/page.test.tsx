@@ -15,7 +15,7 @@ vi.mock(
 );
 
 vi.mock(
-  '@pages/analytics/organization-overview/analytics-organization-overview',
+  '@/features/analytics/organization-overview/analytics-organization-overview',
   () => ({
     default: () => <div data-testid="organization-overview" />,
   }),

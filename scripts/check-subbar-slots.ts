@@ -16,7 +16,11 @@ import {
  * drifted from the shared design.
  */
 
-const INCLUDE_GLOBS = ['apps/app/app/**/*.tsx', 'packages/pages/**/*.tsx'];
+const INCLUDE_GLOBS = [
+  'apps/app/app/**/*.tsx',
+  'apps/app/src/features/**/*.tsx',
+  'packages/pages/**/*.tsx',
+];
 
 const EXCLUDE_GLOBS = [
   '**/*.test.*',
@@ -24,6 +28,10 @@ const EXCLUDE_GLOBS = [
   '**/dist/**',
   '**/node_modules/**',
   '**/.next/**',
+  // Feature folders that predate the move out of packages/pages (#8684) and
+  // were never scanned; they join once their existing findings are fixed.
+  'apps/app/src/features/settings/**',
+  'apps/app/src/features/workflows/**',
 ];
 
 const BAR_COMPONENTS = new Set([

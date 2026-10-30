@@ -7,7 +7,6 @@ import {
 import { AlertCategory, Timeframe } from '@genfeedai/contracts';
 import { APP_ROUTES, isReleaseItemId } from '@genfeedai/contracts/constants';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
-import AnalyticsOrganizationOverview from '@pages/analytics/organization-overview/analytics-organization-overview';
 import OrganizationReleaseGrants from '@protected/organizations/components/organization-release-grants';
 import { OrganizationSettingsTable } from '@protected/organizations/components/organization-settings-table';
 import { useOrganizationSettings } from '@protected/organizations/hooks/use-organization-settings';
@@ -18,6 +17,7 @@ import { Building2 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback } from 'react';
+import AnalyticsOrganizationOverview from '@/features/analytics/organization-overview/analytics-organization-overview';
 import { readRouteParam } from '@/lib/route-params';
 
 function OrganizationDetailPageContent() {

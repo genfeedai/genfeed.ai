@@ -4433,6 +4433,78 @@
       "workspace": "app"
     },
     {
+      "code": 2740,
+      "count": 1,
+      "file": "apps/app/src/features/agents/library/LivestreamChatBotPage.test.tsx",
+      "fingerprint": "10441925ae79fc8e1294",
+      "message": "Type '{ context: {}; deliveryHistory: never[]; platformStates: never[]; status: \"active\"; }' is missing the following properties from type 'LivestreamSession': bot, transcriptChunks, id, isDeleted, and 2 more.",
+      "workspace": "app"
+    },
+    {
+      "code": 2352,
+      "count": 1,
+      "file": "apps/app/src/features/analytics/organization-overview/analytics-organization-overview.test.tsx",
+      "fingerprint": "277edab6b1e16a46a1d5",
+      "message": "Conversion of type '{ viewsGrowth: null; totalPosts: number; totalViews: number; totalLikes?: number; totalComments?: number; totalShares?: number; totalSaves?: number; totalCredentialsConnected: number; ... 17 more ...; recentActivities?: number; }' to type 'IAnalytics' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Types of property 'viewsGrowth' are incompatible.     Type 'null' is not comparable to type 'number'.",
+      "workspace": "app"
+    },
+    {
+      "code": 5097,
+      "count": 1,
+      "file": "apps/app/src/features/analytics/overview/analytics-agent-dashboard.test.tsx",
+      "fingerprint": "7b84a4e74d136301efa9",
+      "message": "An import path can only end with a '.tsx' extension when 'allowImportingTsExtensions' is enabled.",
+      "workspace": "app"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
+      "fingerprint": "32d106e6b775768f6f4d",
+      "message": "Type '{ date: string; instagram: number; }' is not assignable to type 'never'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2322,
+      "count": 2,
+      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
+      "fingerprint": "37a37b83cc1d7986bba4",
+      "message": "Type '{ description: string; platform: string; postId: string; totalComments: number; totalLikes: number; totalViews: number; }' is not assignable to type 'never'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2322,
+      "count": 2,
+      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
+      "fingerprint": "41ae292aba8557f84668",
+      "message": "Type 'string' is not assignable to type 'never'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
+      "fingerprint": "8e326bcdb4de0b31ffac",
+      "message": "Type '{ date: string; instagram: number; youtube: number; }' is not assignable to type 'never'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
+      "fingerprint": "a02ddff1b593c73750e1",
+      "message": "Type 'string' is not assignable to type 'never'.",
+      "workspace": "app"
+    },
+    {
+      "code": 2352,
+      "count": 1,
+      "file": "apps/app/src/features/analytics/overview/analytics-overview.test.tsx",
+      "fingerprint": "0a031ac93141cc2cf4dd",
+      "message": "Conversion of type 'typeof (Anonymous class)' to type '{ new (callback: IntersectionObserverCallback, options?: IntersectionObserverInit | undefined): IntersectionObserver; prototype: IntersectionObserver; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Types of property 'prototype' are incompatible.     Type '(Anonymous class)' is missing the following properties from type 'IntersectionObserver': root, rootMargin, scrollMargin, thresholds, takeRecords",
+      "workspace": "app"
+    },
+    {
       "code": 2322,
       "count": 3,
       "file": "apps/app/src/features/library-remix/LibraryPickerOverlay.test.tsx",
@@ -6263,94 +6335,6 @@
       "fingerprint": "d904021c4b257ebd1510",
       "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
       "workspace": "notifications"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "packages/pages/agents/campaigns/OutreachCampaignDetail.test.tsx",
-      "fingerprint": "39fdffdf8d0d28201fe7",
-      "message": "Argument of type 'RegExp' is not assignable to parameter of type 'string | number'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "packages/pages/agents/campaigns/OutreachCampaignDetail.test.tsx",
-      "fingerprint": "7ddbbd85ad81425375ea",
-      "message": "Argument of type 'RegExp' is not assignable to parameter of type 'string | number'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2740,
-      "count": 1,
-      "file": "packages/pages/agents/library/LivestreamChatBotPage.test.tsx",
-      "fingerprint": "5482b97db7feff6e93a6",
-      "message": "Type '{ context: {}; deliveryHistory: never[]; platformStates: never[]; status: \"active\"; }' is missing the following properties from type 'LivestreamSession': bot, transcriptChunks, id, isDeleted, and 2 more.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "packages/pages/analytics/organization-overview/analytics-organization-overview.test.tsx",
-      "fingerprint": "2ae843a7ce75a1c6fdb4",
-      "message": "Conversion of type '{ viewsGrowth: null; totalPosts: number; totalViews: number; totalLikes?: number; totalComments?: number; totalShares?: number; totalSaves?: number; totalCredentialsConnected: number; ... 17 more ...; recentActivities?: number; }' to type 'IAnalytics' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Types of property 'viewsGrowth' are incompatible.     Type 'null' is not comparable to type 'number'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 5097,
-      "count": 1,
-      "file": "packages/pages/analytics/overview/analytics-agent-dashboard.test.tsx",
-      "fingerprint": "b9b1479305710f4f0f3c",
-      "message": "An import path can only end with a '.tsx' extension when 'allowImportingTsExtensions' is enabled.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2322,
-      "count": 2,
-      "file": "packages/pages/analytics/overview/analytics-overview.test.tsx",
-      "fingerprint": "4f87b78ea9729864168e",
-      "message": "Type 'string' is not assignable to type 'never'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2322,
-      "count": 2,
-      "file": "packages/pages/analytics/overview/analytics-overview.test.tsx",
-      "fingerprint": "707709b852eae150c6f2",
-      "message": "Type '{ description: string; platform: string; postId: string; totalComments: number; totalLikes: number; totalViews: number; }' is not assignable to type 'never'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/pages/analytics/overview/analytics-overview.test.tsx",
-      "fingerprint": "82b2e68cd02ff4548f10",
-      "message": "Type '{ date: string; instagram: number; youtube: number; }' is not assignable to type 'never'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/pages/analytics/overview/analytics-overview.test.tsx",
-      "fingerprint": "aec61e60999fce93038c",
-      "message": "Type 'string' is not assignable to type 'never'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/pages/analytics/overview/analytics-overview.test.tsx",
-      "fingerprint": "c2cba5a2d16252112d40",
-      "message": "Type '{ date: string; instagram: number; }' is not assignable to type 'never'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "packages/pages/analytics/overview/analytics-overview.test.tsx",
-      "fingerprint": "04f636968d89dd0fce19",
-      "message": "Conversion of type 'typeof (Anonymous class)' to type '{ new (callback: IntersectionObserverCallback, options?: IntersectionObserverInit | undefined): IntersectionObserver; prototype: IntersectionObserver; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Types of property 'prototype' are incompatible.     Type '(Anonymous class)' is missing the following properties from type 'IntersectionObserver': root, rootMargin, scrollMargin, thresholds, takeRecords",
-      "workspace": "pages"
     },
     {
       "code": 2769,

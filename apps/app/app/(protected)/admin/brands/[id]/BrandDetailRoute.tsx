@@ -2,8 +2,8 @@
 
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
-import AnalyticsBrandOverview from '@pages/analytics/brand-overview/analytics-brand-overview';
 import type { AnalyticsDetailPageProps } from '@props/admin/analytics.props';
+import AnalyticsBrandOverview from '@/features/analytics/brand-overview/analytics-brand-overview';
 import { readRouteParam } from '@/lib/route-params';
 
 export default function BrandDetailRoute() {

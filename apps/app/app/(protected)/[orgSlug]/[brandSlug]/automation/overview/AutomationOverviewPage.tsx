@@ -3,7 +3,6 @@
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { APP_DISPLAY_LABELS } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
 import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import {
   isCollectionFetchReady,
@@ -17,6 +16,7 @@ import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Users, Workflow } from 'lucide-react';
 import { useMemo } from 'react';
+import { useAgentStrategies } from '@/features/agents/hooks/agent-strategies/use-agent-strategies';
 import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
 import ContentPlansSection from '../autopilot/ContentPlansSection';
 import ActiveRunsPanel from '../runs/ActiveRunsPanel';

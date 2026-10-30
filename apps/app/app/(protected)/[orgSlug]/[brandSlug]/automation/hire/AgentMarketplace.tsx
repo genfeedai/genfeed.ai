@@ -1,8 +1,6 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { ContentTeamRolePreset } from '@pages/agents/content-team/content-team-presets';
-import { CONTENT_TEAM_ROLE_PRESETS } from '@pages/agents/content-team/content-team-presets';
 import type { AgentMarketplaceProps } from '@props/automation/agent-marketplace.props';
 import Card from '@ui/card/Card';
 import CollectionCarouselSection from '@ui/collection/CollectionCarouselSection';
@@ -12,6 +10,8 @@ import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+import type { ContentTeamRolePreset } from '@/features/agents/content-team/content-team-presets';
+import { CONTENT_TEAM_ROLE_PRESETS } from '@/features/agents/content-team/content-team-presets';
 import AgentPresetAvatar from './AgentPresetAvatar';
 import { ALL_CATEGORY } from './agent-marketplace-filter';
 

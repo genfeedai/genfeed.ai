@@ -32,7 +32,7 @@ const { createPreset } = vi.hoisted(() => ({
 }));
 
 // Six presets: the first four by name are featured, the last two are listed.
-vi.mock('@pages/agents/content-team/content-team-presets', () => ({
+vi.mock('@/features/agents/content-team/content-team-presets', () => ({
   CONTENT_TEAM_ROLE_PRESETS: [
     createPreset(
       'video-producer',

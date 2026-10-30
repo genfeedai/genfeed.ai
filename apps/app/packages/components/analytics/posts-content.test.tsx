@@ -16,7 +16,7 @@ vi.mock('@app-components/research/remix/RemixBriefInspector', () => ({
   default: () => null,
 }));
 
-vi.mock('@pages/analytics/posts-list/analytics-posts-list', () => ({
+vi.mock('@/features/analytics/posts-list/analytics-posts-list', () => ({
   default: () => <div data-testid="posts-list" />,
 }));
 

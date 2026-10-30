@@ -13,7 +13,7 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-vi.mock('@pages/agents/content-team/content-team-presets', () => ({
+vi.mock('@/features/agents/content-team/content-team-presets', () => ({
   CONTENT_TEAM_ROLE_PRESETS: [
     { teamGroup: 'Production' },
     { teamGroup: 'Editorial' },
