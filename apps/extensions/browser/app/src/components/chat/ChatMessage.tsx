@@ -1,6 +1,10 @@
 import type { ReactElement } from 'react';
 
 import { ContentPreview } from '~components/chat/ContentPreview';
+import {
+  isAwaitingApproval,
+  PlanApprovalNotice,
+} from '~components/chat/PlanApprovalNotice';
 import type { ChatMessage as ChatMessageType } from '~models/chat.model';
 
 interface ChatMessageProps {
@@ -22,7 +26,9 @@ export function ChatMessage({ message }: ChatMessageProps): ReactElement {
             : 'bg-muted text-foreground'
         }`}
       >
-        {hasGeneratedContent ? (
+        {hasGeneratedContent && isAwaitingApproval(message) ? (
+          <PlanApprovalNotice message={message} />
+        ) : hasGeneratedContent ? (
           <ContentPreview message={message} />
         ) : (
           <p className="whitespace-pre-wrap break-words">{message.content}</p>

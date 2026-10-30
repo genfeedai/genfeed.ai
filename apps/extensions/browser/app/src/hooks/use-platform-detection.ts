@@ -58,16 +58,19 @@ export function usePlatformDetection(): void {
           currentWindow: true,
         });
         if (!tab?.id) return;
-        const response: {
-          pageContext?: PlatformDetectedPayload['pageContext'];
-        } = await chrome.tabs.sendMessage(tab.id, { type: 'GET_PAGE_CONTEXT' });
+        const response: PlatformDetectedPayload | undefined =
+          await chrome.tabs.sendMessage(tab.id, { type: 'GET_PAGE_CONTEXT' });
         if (!isDisposed && response?.pageContext) {
-          setPageContext(response.pageContext);
+          applyPage(response);
         }
       } catch {
         // A page without the content script (a new tab, the web store) has no
-        // post to show; the panel keeps working without one.
-        if (!isDisposed) setPageContext({});
+        // post and no platform; the panel keeps working without them.
+        if (!isDisposed) {
+          setPlatform(null);
+          setPageContext({});
+          setComposeBoxAvailable(false);
+        }
       }
     }
 
