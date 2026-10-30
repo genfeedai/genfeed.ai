@@ -6,7 +6,10 @@ import {
 } from '@contexts/posts/posts-layout-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
-import { createArtifactEditorRoute } from '@genfeedai/contracts/constants';
+import {
+  createArtifactEditorRoute,
+  PUBLISHING_CONTENT_REFRESH_EVENT,
+} from '@genfeedai/contracts/constants';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type {
@@ -26,7 +29,7 @@ import { Newspaper, Plus } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
-import { Suspense, useCallback, useMemo, useReducer } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useReducer } from 'react';
 
 const initialPublishingLayoutState: PublishingLayoutState = {
   refreshFn: null,
@@ -137,6 +140,21 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
       void result();
     }
   }, [refreshFn, refresh]);
+
+  // Posts, releases or articles changed outside this page (the agent drafted
+  // or scheduled one): the desk reloads through the refresh it registered.
+  useEffect(() => {
+    if (hasOwnPageLayout) {
+      return;
+    }
+
+    window.addEventListener(PUBLISHING_CONTENT_REFRESH_EVENT, handleRefresh);
+    return () =>
+      window.removeEventListener(
+        PUBLISHING_CONTENT_REFRESH_EVENT,
+        handleRefresh,
+      );
+  }, [handleRefresh, hasOwnPageLayout]);
 
   const handleNewPost = useCallback(() => {
     openModal(ModalEnum.POST_COMPOSE);

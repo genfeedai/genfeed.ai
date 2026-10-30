@@ -1,5 +1,6 @@
 'use client';
 
+import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { TargetExecutionState, TurboRunItemStatus } from '@genfeedai/contracts';
 import {
@@ -26,7 +27,7 @@ import KPISection from '@ui/kpi/kpi-section/KPISection';
 import { buildSocialConnections } from '@ui/modals/brands/brand/ModalBrand.types';
 import { OverviewContent } from '@ui/overview/OverviewLayout';
 import { Calendar, ClipboardCheck, List, Send } from 'lucide-react';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 
 import { isReadyToReview } from '../review/components/review-state';
 import { buildAccountHealthRows } from './account-health.util';
@@ -226,6 +227,40 @@ export default function PublishingOverviewPage() {
       return service.listBrandAccountHealth(brandId as string);
     },
   });
+
+  const { setRefresh } = usePostsLayout();
+  const refetchTurboRuns = turboRunsQuery.refetch;
+  const refetchNotPostedTotal = notPostedTotalQuery.refetch;
+  const refetchPublishedTotal = publishedTotalQuery.refetch;
+  const refetchUpcomingReleases = upcomingReleasesQuery.refetch;
+  const refetchFailedReleases = failedReleasesQuery.refetch;
+  const refetchPostedReleases = postedReleasesQuery.refetch;
+  const refetchAccountHealth = accountHealthQuery.refetch;
+  // The toolbar's refresh, and the reload after the agent changes posts,
+  // refetch every overview source.
+  useEffect(() => {
+    setRefresh(() => () => {
+      void Promise.all([
+        refetchTurboRuns(),
+        refetchNotPostedTotal(),
+        refetchPublishedTotal(),
+        refetchUpcomingReleases(),
+        refetchFailedReleases(),
+        refetchPostedReleases(),
+        refetchAccountHealth(),
+      ]);
+    });
+    return () => setRefresh(() => () => {});
+  }, [
+    refetchAccountHealth,
+    refetchFailedReleases,
+    refetchNotPostedTotal,
+    refetchPostedReleases,
+    refetchPublishedTotal,
+    refetchTurboRuns,
+    refetchUpcomingReleases,
+    setRefresh,
+  ]);
 
   const turboRuns = turboRunsQuery.data ?? [];
   const notPostedTotal = notPostedTotalQuery.data ?? 0;

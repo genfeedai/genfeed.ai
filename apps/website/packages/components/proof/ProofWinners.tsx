@@ -163,7 +163,7 @@ export default function ProofWinners(): React.ReactElement | null {
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/55">
                   {winner.metricLabel}
                 </p>
-                <p className="mt-5 text-5xl font-semibold tracking-[-0.05em] text-success sm:text-6xl">
+                <p className="mt-5 text-5xl font-semibold tracking-[-0.02em] text-success sm:text-6xl">
                   {winner.metricValue}
                 </p>
                 <p className="mt-6 text-xl font-medium leading-8 text-foreground">

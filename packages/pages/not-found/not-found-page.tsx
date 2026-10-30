@@ -7,7 +7,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 const DIGIT_CLASS =
-  'select-none text-[5.5rem] font-extrabold leading-[0.8] tracking-tighter tabular-nums sm:text-[8rem] md:text-[10rem]';
+  'select-none text-[5.5rem] font-extrabold leading-[0.8] tracking-tight tabular-nums sm:text-[8rem] md:text-[10rem]';
 
 export default function NotFoundPage({
   homeHref = '/',

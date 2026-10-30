@@ -1,16 +1,23 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { getPublicAppUrl } from '@mcp/mcp/setup-page';
 import type { ClientService } from '@mcp/services/client.service';
+import { formatToolData } from '@mcp/shared/utils/tool-result-text.util';
 
 /** Matches CreateEditorProjectDto's per-create source-video bound. */
 const MAX_SOURCE_VIDEOS = 50;
 const MAX_NAME_LENGTH = 120;
 
-export const EDITOR_TOOL_NAMES = new Set(['open_in_editor']);
+export const EDITOR_TOOL_NAMES = new Set([
+  'get_editor_project',
+  'list_editor_projects',
+  'open_in_editor',
+]);
+const MAX_LIST_LIMIT = 100;
 
 /**
- * Editor MCP handler (issue #5461). Creates the seeded project the Studio
- * "Open in Editor" action creates, then returns the project and its path.
+ * Editor MCP handler (issue #5461). `open_in_editor` creates the seeded project
+ * the Studio "Open in Editor" action creates and returns its path; the list and
+ * get reads return the organization's Editor projects.
  */
 export async function handleEditorTool(
   client: ClientService,
@@ -19,6 +26,43 @@ export async function handleEditorTool(
 ) {
   if (!EDITOR_TOOL_NAMES.has(name)) {
     throw new Error(`Unknown Editor tool: ${name}`);
+  }
+
+  if (name === 'list_editor_projects') {
+    const projects = await client.listEditorProjects({
+      limit: readCount(args.limit, 1, MAX_LIST_LIMIT),
+      page: readCount(args.page, 1, Number.MAX_SAFE_INTEGER),
+    });
+    return {
+      structuredContent: { data: projects },
+      content: [
+        {
+          text:
+            projects.length > 0
+              ? `Found ${projects.length} Editor projects:\n\n${formatToolData(projects)}`
+              : 'No Editor projects found.',
+          type: 'text' as const,
+        },
+      ],
+    };
+  }
+
+  if (name === 'get_editor_project') {
+    const projectId = args.projectId;
+    if (typeof projectId !== 'string' || projectId.trim().length === 0) {
+      throw new Error('projectId is required');
+    }
+    const project = await client.getEditorProject(projectId.trim());
+    const editorPath = `${APP_ROUTES.STUDIO.EDITOR}/${projectId.trim()}`;
+    return {
+      structuredContent: { data: { editorPath, project } },
+      content: [
+        {
+          text: `Editor project:\n\n${formatToolData(project)}\n\n[Open in Editor](${getPublicAppUrl()}${editorPath})`,
+          type: 'text' as const,
+        },
+      ],
+    };
   }
 
   const sourceVideoIds = readSourceVideoIds(args);
@@ -39,6 +83,15 @@ export async function handleEditorTool(
       },
     ],
   };
+}
+
+function readCount(
+  value: unknown,
+  minimum: number,
+  maximum: number,
+): number | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return undefined;
+  return Math.min(Math.max(Math.floor(value), minimum), maximum);
 }
 
 function readSourceVideoIds(args: Record<string, unknown>): string[] {

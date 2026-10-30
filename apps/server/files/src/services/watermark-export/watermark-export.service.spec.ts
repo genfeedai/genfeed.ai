@@ -215,6 +215,62 @@ describe('WatermarkExportService', () => {
     expect(data[(15 * info.width + 45) * info.channels]).toBeLessThan(140);
   });
 
+  it('places a logo at the brand size and insets, in ratios of the canvas width', async () => {
+    const { service, storage, getExported } = setup();
+    vi.mocked(storage.download).mockImplementation(async (key, target) => {
+      await writeFile(
+        target,
+        key === 'logos/brand.png'
+          ? await sharp({
+              create: {
+                width: 100,
+                height: 100,
+                channels: 4,
+                background: '#ffffff',
+              },
+            })
+              .png()
+              .toBuffer()
+          : await original(),
+      );
+    });
+    await service.render({
+      ...request,
+      layers: [
+        {
+          insetXRatio: 0.1,
+          insetYRatio: 0.2,
+          logoStorageKey: 'logos/brand.png',
+          opacity: 1,
+          position: 'top-right',
+          sizeRatio: 0.1,
+        },
+      ],
+    });
+    const { data, info } = await sharp(getExported())
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const red = (x: number, y: number) =>
+      data[(y * info.width + x) * info.channels];
+    // 400 px wide: the mark is 40 px wide, 40 px from the right edge and 80 px
+    // from the top, so it covers x 320..359 and y 80..119.
+    expect(red(340, 100)).toBe(255);
+    expect(red(318, 100)).toBe(0);
+    expect(red(361, 100)).toBe(0);
+    expect(red(340, 78)).toBe(0);
+    expect(red(340, 121)).toBe(0);
+  });
+
+  it('rejects a watermark size outside the allowed range', async () => {
+    const { service } = setup();
+    await expect(
+      service.render({
+        ...request,
+        layers: [{ ...request.layers[0], sizeRatio: 0.9 }],
+      }),
+    ).rejects.toThrow('Invalid watermark size');
+  });
+
   it('fails a broken video render without publishing a derivative', async () => {
     const { service, storage, ffmpeg } = setup();
     ffmpeg.getVideoMetadata.mockResolvedValue({

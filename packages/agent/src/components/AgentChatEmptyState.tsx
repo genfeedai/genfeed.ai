@@ -158,7 +158,7 @@ export function AgentChatEmptyState({
           )}
         >
           <div className="w-full text-center">
-            <h2 className="text-2xl font-semibold tracking-[-0.03em] text-foreground md:text-[1.75rem]">
+            <h2 className="text-2xl font-semibold tracking-[-0.02em] text-foreground md:text-[1.75rem]">
               {emptyStateTitle}
             </h2>
             <p className="mt-2 break-words text-sm leading-5 text-muted-foreground">

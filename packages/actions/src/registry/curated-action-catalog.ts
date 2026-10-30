@@ -159,6 +159,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['mcp'],
     toolset: 'inspiration',
   },
+  { name: 'create_task', surfaces: ['mcp'], toolset: 'workspace' },
   { name: 'create_workflow', surfaces: ['agent', 'mcp'], toolset: 'workflows' },
   { name: 'discover_engagements', surfaces: ['agent'], toolset: 'engagement' },
   { name: 'draft_brand_voice_profile', surfaces: ['agent'], toolset: 'brand' },
@@ -251,6 +252,7 @@ export const CURATED_ACTION_CATALOG = [
   },
   { name: 'get_current_brand', surfaces: ['agent'], toolset: 'brand' },
   { name: 'get_dashboard_layout', surfaces: ['agent'], toolset: 'ui' },
+  { name: 'get_editor_project', surfaces: ['mcp'], toolset: 'editor' },
   {
     name: 'get_generation_options',
     surfaces: ['agent', 'mcp'],
@@ -306,6 +308,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['mcp'],
     toolset: 'social-inbox',
   },
+  { name: 'get_task', surfaces: ['mcp'], toolset: 'workspace' },
   { name: 'get_tiktok_campaign_insights', surfaces: ['mcp'], toolset: 'ads' },
   {
     name: 'get_tiktok_top_performers',
@@ -365,6 +368,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent'],
     toolset: 'content',
   },
+  { name: 'list_activity', surfaces: ['mcp'], toolset: 'workspace' },
   { name: 'list_ads_research', surfaces: ['agent', 'mcp'], toolset: 'ads' },
   {
     name: 'list_agent_conversations',
@@ -378,9 +382,11 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'scheduler',
   },
   { name: 'list_clipper_projects', surfaces: ['mcp'], toolset: 'clipper' },
+  { name: 'list_editor_projects', surfaces: ['mcp'], toolset: 'editor' },
   { name: 'list_genfeed_tools', surfaces: ['agent'], toolset: 'core' },
   { name: 'list_google_ads_campaigns', surfaces: ['mcp'], toolset: 'ads' },
   { name: 'list_google_ads_customers', surfaces: ['mcp'], toolset: 'ads' },
+  { name: 'list_inbox', surfaces: ['mcp'], toolset: 'workspace' },
   {
     name: 'list_instagram_inspiration',
     surfaces: ['agent', 'mcp'],
@@ -416,6 +422,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent', 'mcp'],
     toolset: 'workflows',
   },
+  { name: 'list_tasks', surfaces: ['mcp'], toolset: 'workspace' },
   { name: 'list_tiktok_ad_accounts', surfaces: ['mcp'], toolset: 'ads' },
   { name: 'list_tiktok_adgroups', surfaces: ['mcp'], toolset: 'ads' },
   { name: 'list_tiktok_ads', surfaces: ['mcp'], toolset: 'ads' },
@@ -440,7 +447,7 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'social-inbox',
   },
   { name: 'onboard_brand', surfaces: ['mcp'], toolset: 'core' },
-  { name: 'open_in_editor', surfaces: ['mcp'], toolset: 'clipper' },
+  { name: 'open_in_editor', surfaces: ['mcp'], toolset: 'editor' },
   { name: 'open_studio_handoff', surfaces: ['agent'], toolset: 'ui' },
   { name: 'pause_outreach_sequence', surfaces: ['agent'], toolset: 'outreach' },
   {
