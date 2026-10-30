@@ -25,7 +25,7 @@ describe('ManagedStripeController', () => {
   let controller: ManagedStripeController;
   let managedStripeCheckoutService: {
     createCheckoutSession: ReturnType<typeof vi.fn>;
-    getCheckoutResult: ReturnType<typeof vi.fn>;
+    claimCheckoutResult: ReturnType<typeof vi.fn>;
   };
 
   const makeReq = (ip: string): Partial<Request> => ({ ip });
@@ -33,7 +33,7 @@ describe('ManagedStripeController', () => {
   beforeEach(async () => {
     managedStripeCheckoutService = {
       createCheckoutSession: vi.fn(),
-      getCheckoutResult: vi.fn(),
+      claimCheckoutResult: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -72,7 +72,7 @@ describe('ManagedStripeController', () => {
   });
 
   it('returns the managed provisioning result', async () => {
-    managedStripeCheckoutService.getCheckoutResult.mockResolvedValue({
+    managedStripeCheckoutService.claimCheckoutResult.mockResolvedValue({
       apiKey: 'gf_test_123',
       apiKeyAlreadyExists: false,
       brandId: 'brand_1',
@@ -87,7 +87,7 @@ describe('ManagedStripeController', () => {
   });
 
   it('throws 404 when provisioning result is missing', async () => {
-    managedStripeCheckoutService.getCheckoutResult.mockResolvedValue(null);
+    managedStripeCheckoutService.claimCheckoutResult.mockResolvedValue(null);
 
     await expect(controller.getCheckoutResult('missing')).rejects.toThrow(
       new HttpException(expect.anything(), HttpStatus.NOT_FOUND),

@@ -143,7 +143,10 @@ export class McpController {
   /**
    * REST mirror of `resources/read`. It delegates to the same registry the
    * JSON-RPC transport uses instead of re-implementing the readers, so the two
-   * surfaces cannot answer differently for the same URI.
+   * surfaces cannot answer differently for the same URI. The registry is built
+   * per request: the injected singleton holds one shared API client, so
+   * writing a caller's token onto it let concurrent readers use each other's
+   * identity.
    */
   @Get('resources/:resourceUri')
   async readResource(
@@ -152,11 +155,12 @@ export class McpController {
   ) {
     this.logger.log(`Reading resource: ${resourceUri}`);
 
-    if (request.authContext?.token) {
-      this.toolRegistry.setBearerToken(request.authContext.token);
-    }
-
-    const result = await this.toolRegistry.handleResourceRead({
+    const toolRegistry = this.streamableHttpService.createToolRegistry(
+      request.authContext,
+      request.toolsets,
+      request.routeAccessMode,
+    );
+    const result = await toolRegistry.handleResourceRead({
       uri: resourceUri,
     });
 

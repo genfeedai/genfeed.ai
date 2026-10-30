@@ -58,6 +58,7 @@ describe('MicroservicesService', () => {
     const mockConfigService = {
       get: vi.fn((key: string, defaultValue?: string) => {
         const config: Record<string, string> = {
+          GENFEEDAI_API_KEY: 'internal-key',
           GENFEEDAI_MICROSERVICES_FILES_URL: 'http://files.genfeed.ai',
           GENFEEDAI_MICROSERVICES_MCP_URL: 'http://mcp.genfeed.ai',
           GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL:
@@ -530,6 +531,7 @@ describe('MicroservicesService', () => {
           status: 'received',
         }),
         expect.objectContaining({
+          headers: { Authorization: 'Bearer internal-key' },
           timeout: 5000,
         }),
       );

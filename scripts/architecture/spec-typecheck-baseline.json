@@ -6305,14 +6305,6 @@
       "workspace": "models"
     },
     {
-      "code": 2540,
-      "count": 2,
-      "file": "apps/server/notifications/src/controllers/dev.controller.spec.ts",
-      "fingerprint": "ae2d996c13b453e5e9dc",
-      "message": "Cannot assign to 'isProduction' because it is a read-only property.",
-      "workspace": "notifications"
-    },
-    {
       "code": 2345,
       "count": 2,
       "file": "apps/server/notifications/src/services/discord/discord-bot.service.spec.ts",

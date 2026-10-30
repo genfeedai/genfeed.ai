@@ -1,8 +1,18 @@
-import { Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import { InternalApiKeyGuard } from '@notifications/guards/internal-api-key.guard';
 import type { WebhookNotification } from '@notifications/shared/interfaces/webhooks.interface';
 import { WebhooksService } from '@notifications/webhooks/webhooks.service';
 
 @Controller('webhooks')
+@UseGuards(InternalApiKeyGuard)
 export class WebhooksController {
   constructor(private readonly webhooksService: WebhooksService) {}
 
