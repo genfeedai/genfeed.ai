@@ -835,9 +835,11 @@ const UI_TEST_MESSAGES = {
       browseLibrary: 'Browse library',
     },
     generationHarness: {
-      saving: 'Saving…',
       appliedContext: 'Applied context',
       brand: 'This brand',
+      brandHintFollowsOff: 'Follows the organization, which is off.',
+      brandHintFollowsOn: 'Follows the organization, which is on.',
+      brandHintOverride: 'Overrides the organization setting for this brand.',
       brandLabel: 'Brand prompt enhancement',
       brandMode: {
         approved_brand: 'Approved brand',
@@ -856,11 +858,12 @@ const UI_TEST_MESSAGES = {
       enhancementFailedHint:
         'Brand enhancement failed, so this was generated from your prompt as typed. Any selected skills or Knowledge were not applied.',
       enhancementSkipped: 'Enhancement skipped',
-      inherit: 'Inherit',
+      inherit: 'Default',
       loading: 'Loading settings…',
       off: 'Off',
       on: 'On',
-      organizationDefault: 'Organization default',
+      organization: 'Organization',
+      organizationHint: 'Applies to every brand unless a brand overrides it.',
       organizationLabel: 'Organization prompt enhancement',
       promptEnhanced: 'Prompt enhanced',
       refresh: 'Refresh settings',

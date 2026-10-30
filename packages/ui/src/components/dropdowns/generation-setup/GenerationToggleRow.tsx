@@ -8,15 +8,21 @@ import type { GenerationToggleRowProps } from '@genfeedai/props/ui/generation-se
  */
 export default function GenerationToggleRow({
   children,
+  description,
   label,
   leading,
 }: GenerationToggleRowProps) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <span className="flex min-w-0 items-center gap-1.5 text-sm font-medium text-foreground">
-        {leading}
-        {label}
-      </span>
+      <div className="min-w-0">
+        <span className="flex min-w-0 items-center gap-1.5 text-sm font-medium text-foreground">
+          {leading}
+          {label}
+        </span>
+        {description ? (
+          <p className="text-xs text-muted-foreground">{description}</p>
+        ) : null}
+      </div>
       <div className="w-44 shrink-0">{children}</div>
     </div>
   );
