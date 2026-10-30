@@ -113,15 +113,12 @@ export default function AppProductContent({ product }: AppProductContentProps) {
         <section className="gsap-section mx-auto max-w-6xl px-6 pb-24">
           <SectionHeading eyebrow="How it works" title="From idea to result" />
           <ol className="gsap-grid grid grid-cols-1 border-t border-foreground/10 md:grid-cols-2 lg:grid-cols-4">
-            {product.steps.map((step, index) => (
+            {product.steps.map((step) => (
               <li
                 className="gsap-card border-b border-foreground/10 py-8 md:px-6 md:first:pl-0 lg:border-b-0 lg:border-r lg:last:border-r-0 lg:last:pr-0"
                 key={step.title}
               >
-                <Text className="text-xs font-bold tabular-nums text-foreground/40">
-                  {String(index + 1).padStart(2, '0')}
-                </Text>
-                <Heading as="h3" className="mt-3 font-semibold text-foreground">
+                <Heading as="h3" className="font-semibold text-foreground">
                   {step.title}
                 </Heading>
                 <Text className="mt-2 text-sm leading-6 text-foreground/65">

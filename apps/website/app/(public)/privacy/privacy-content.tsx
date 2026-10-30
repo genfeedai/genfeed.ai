@@ -110,15 +110,11 @@ export default function PrivacyContent() {
           <div className="container mx-auto px-6">
             <div className="max-w-4xl mx-auto">
               <div className="grid gap-px bg-foreground/5">
-                {privacyPolicySections.map((section, index) => (
+                {privacyPolicySections.map((section) => (
                   <div
                     key={section.title}
                     className="bg-background p-6 sm:p-12 group hover:bg-foreground/[0.02] transition-colors"
                   >
-                    <div className="text-foreground/50 text-xs font-black uppercase tracking-widest mb-6">
-                      {String(index + 1).padStart(2, '0')} /{' '}
-                      {section.shortLabel}
-                    </div>
                     <h2 className="text-2xl font-semibold mb-6">
                       {section.title}
                     </h2>
@@ -184,17 +180,13 @@ export default function PrivacyContent() {
 
             <div className="max-w-4xl mx-auto">
               <div className="grid grid-cols-1 gap-px bg-foreground/5 md:grid-cols-3">
-                {privacyRights.map((right, index) => {
+                {privacyRights.map((right) => {
                   const Icon = right.icon;
                   return (
                     <div
                       key={right.title}
                       className="bg-background p-6 sm:p-10 group hover:bg-foreground/[0.02] transition-colors"
                     >
-                      <div className="text-foreground/50 text-xs font-black uppercase tracking-widest mb-6">
-                        {String(index + 1).padStart(2, '0')} /{' '}
-                        {right.shortLabel}
-                      </div>
                       <Icon className="size-8 text-foreground/65 mb-4 group-hover:text-foreground transition-colors" />
                       <h3 className="text-lg font-semibold mb-3">
                         {right.title}

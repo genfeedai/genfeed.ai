@@ -42,7 +42,7 @@ export default function SkillsSuccessContent() {
                 <div className="size-3 rounded-full bg-foreground/20" />
                 <div className="size-3 rounded-full bg-foreground/20" />
               </div>
-              <div className="flex-1 text-center text-xs text-foreground/55 font-mono uppercase tracking-widest">
+              <div className="flex-1 text-center text-xs text-foreground/55 font-mono">
                 terminal
               </div>
             </div>

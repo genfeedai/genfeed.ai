@@ -2,7 +2,7 @@
   "title": "Templates",
   "loadError": "Failed to load templates",
   "retry": "Retry",
-  "empty": "No templates yet",
+  "empty": "No templates found",
   "active": "Active",
   "inactive": "Inactive",
   "uncategorized": "Uncategorized",

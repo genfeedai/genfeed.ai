@@ -100,7 +100,7 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
             No organization data available
           </div>
         ) : (
-          data.map((org, index) => (
+          data.map((org) => (
             <div
               key={org.organization.id}
               className={cn(
@@ -110,9 +110,6 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
               )}
             >
               <div className="flex items-center gap-4">
-                <span className="text-muted-foreground text-xs font-black w-6">
-                  {String(index + 1).padStart(2, '0')}
-                </span>
                 {/* Icon circle */}
                 <div className="size-10 rounded-full bg-muted flex items-center justify-center">
                   <Building2 className="size-5 text-muted-foreground" />

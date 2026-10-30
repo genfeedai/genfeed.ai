@@ -210,6 +210,61 @@ export const AGENT_UI_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
+      'Start a free analysis of a YouTube video for clips: it downloads the audio, transcribes it and picks the best segments. It returns a clip project id right away and the analysis runs in the background, so read the result with get_clip_highlights a minute or two later. Analysis spends no credits; generating avatar clips from the highlights does, and needs its own approval.',
+    name: 'start_clip_analysis',
+    parameters: {
+      properties: {
+        language: {
+          description: 'Language code of the video, for the transcript.',
+          type: 'string',
+        },
+        maxClips: {
+          description: 'How many highlights to pick, 1 to 30. Defaults to 10.',
+          maximum: 30,
+          minimum: 1,
+          type: 'number',
+        },
+        minViralityScore: {
+          description:
+            'Drop highlights scoring below this, 0 to 100. Defaults to 50.',
+          maximum: 100,
+          minimum: 0,
+          type: 'number',
+        },
+        name: {
+          description: 'Project name. Defaults to the video title.',
+          type: 'string',
+        },
+        youtubeUrl: {
+          description: 'The YouTube watch, share or shorts link to analyze.',
+          type: 'string',
+        },
+      },
+      required: ['youtubeUrl'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
+      'Read the highlights an analysis found for a clip project, with the status of the analysis. Each highlight has its source-video start and end in seconds, a virality score and `script`: what the speaker said in that window, cleaned of fillers, which is what an avatar clip would say. While the status is not completed the list can be empty; ask again shortly.',
+    name: 'get_clip_highlights',
+    parameters: {
+      properties: {
+        projectId: {
+          description: 'The clip project id from start_clip_analysis.',
+          type: 'string',
+        },
+      },
+      required: ['projectId'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
       'Suggest 2–3 alternative generation prompts for a different angle, style, or variation. Each alternative has a short label and a full prompt. Returns an ingredient_alternatives_card so the user can click one to generate inline.',
     name: 'suggest_ingredient_alternatives',
     parameters: {

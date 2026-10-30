@@ -294,19 +294,15 @@ export default function ServiceLandingPage({
             />
 
             <NeuralGrid columns={4}>
-              {config.process.map((step, index) => (
-                // Every step is one step. Tinting the first and last only marked
-                // the ends of a sequence the numbering already marks, and read as
-                // two cards being highlighted for a reason nobody could name.
+              {config.process.map((step) => (
+                // Every step is one step. Tinting the first and last read as two
+                // cards being highlighted for a reason nobody could name.
                 <NeuralGridItem
                   key={step.step}
-                  tierLabel={`0${index + 1} / ${step.step}`}
                   padding="lg"
-                >
-                  <p className="text-sm leading-relaxed text-foreground/60">
-                    {step.description}
-                  </p>
-                </NeuralGridItem>
+                  title={step.step}
+                  description={step.description}
+                />
               ))}
             </NeuralGrid>
           </WebSection>

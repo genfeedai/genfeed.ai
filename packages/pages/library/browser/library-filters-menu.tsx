@@ -55,6 +55,7 @@ function CharacterAvatar({
  * to say what is possible.
  */
 export default function LibraryFiltersMenu({
+  isAdminScope = false,
   isAttached,
   onClearAllFilters,
   onCharactersChange,
@@ -86,29 +87,36 @@ export default function LibraryFiltersMenu({
     characterOptions.length > 0 || characters.length > 0;
   const isTagFilterVisible = tagOptions.length > 0 || tags.length > 0;
 
-  const facets: FilterMenuFacet[] = [
-    {
-      defaultValue: 'all',
-      key: 'status',
-      label: translate('statusAria'),
-      onChange: model.onStatusValueChange,
-      options: model.statusChoices,
-      selection: 'single',
-      value: model.statusValue,
-    },
-    {
-      defaultValue: 'all',
-      key: 'show',
-      label: translate('showAria'),
-      onChange: model.onPlaceValueChange,
-      options: [
-        { label: translate('showAll'), value: 'all' },
-        { label: translate('showRecent'), value: LibraryPlace.RECENT },
-        { label: translate('showStarred'), value: LibraryPlace.STARRED },
-      ],
-      selection: 'single',
-      value: model.placeValue,
-    },
+  // Shelves and places are per-brand views of generated work; the admin
+  // Library lists every organization, so only type, origin and tags apply.
+  const facets: FilterMenuFacet[] = isAdminScope
+    ? []
+    : [
+        {
+          defaultValue: 'all',
+          key: 'status',
+          label: translate('statusAria'),
+          onChange: model.onStatusValueChange,
+          options: model.statusChoices,
+          selection: 'single',
+          value: model.statusValue,
+        },
+        {
+          defaultValue: 'all',
+          key: 'show',
+          label: translate('showAria'),
+          onChange: model.onPlaceValueChange,
+          options: [
+            { label: translate('showAll'), value: 'all' },
+            { label: translate('showRecent'), value: LibraryPlace.RECENT },
+            { label: translate('showStarred'), value: LibraryPlace.STARRED },
+          ],
+          selection: 'single',
+          value: model.placeValue,
+        },
+      ];
+
+  facets.push(
     {
       key: 'type',
       label: translate('type'),
@@ -125,7 +133,7 @@ export default function LibraryFiltersMenu({
       selection: 'multiple',
       values: filterProps.origins,
     },
-  ];
+  );
 
   if (isCharacterFilterVisible) {
     facets.push({

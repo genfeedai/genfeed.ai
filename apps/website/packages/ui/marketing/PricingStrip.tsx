@@ -40,11 +40,6 @@ export default function PricingStrip({ className }: PricingStripProps) {
             >
               <div className="mb-2 flex items-center justify-center gap-2 text-2xs font-black uppercase tracking-widest text-foreground/50">
                 {column.subtitle}
-                {isFeatured ? (
-                  <span className="text-2xs font-bold text-foreground/65">
-                    ★ Popular
-                  </span>
-                ) : null}
               </div>
 
               <div className="text-2xl font-semibold text-foreground">

@@ -59,18 +59,6 @@ export default function PricingStrip({
                 )}
               >
                 {column.subtitle}
-                {isFeatured ? (
-                  <span
-                    className={cn(
-                      'text-2xs font-bold',
-                      inverted
-                        ? 'text-primary-foreground/50'
-                        : 'text-foreground/50',
-                    )}
-                  >
-                    ★ Popular
-                  </span>
-                ) : null}
               </div>
 
               <div

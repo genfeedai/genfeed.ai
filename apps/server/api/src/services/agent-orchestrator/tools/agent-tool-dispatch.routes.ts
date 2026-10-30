@@ -398,6 +398,10 @@ function dispatchStudioFamily(
       return handlers.prepareHandler.prepareVoiceClone(ctx, params);
     case 'prepare_clipper_workflow_run':
       return handlers.prepareHandler.prepareClipperWorkflowRun(params, ctx);
+    case 'start_clip_analysis':
+      return handlers.clipperHandler.analyzeProject(params, ctx);
+    case 'get_clip_highlights':
+      return handlers.clipperHandler.getHighlights(params, ctx);
     case 'edit_clip':
       return handlers.clipperHandler.editClip(params, ctx);
     case 'get_clip_context':

@@ -72,14 +72,11 @@ export default function TermsPage() {
           <div className="container mx-auto px-6">
             <div className="max-w-4xl mx-auto">
               <div className="grid gap-px bg-foreground/5">
-                {termsOfService.map((term, index) => (
+                {termsOfService.map((term) => (
                   <div
                     key={term.title}
                     className="bg-background p-6 sm:p-12 group hover:bg-foreground/[0.02] transition-colors"
                   >
-                    <div className="text-foreground/50 text-xs font-black uppercase tracking-widest mb-6">
-                      {String(index + 1).padStart(2, '0')} / {term.shortLabel}
-                    </div>
                     <h2 className="text-2xl font-semibold mb-6">
                       {term.title}
                     </h2>
@@ -128,16 +125,13 @@ export default function TermsPage() {
 
             <div className="max-w-5xl mx-auto">
               <div className="grid grid-cols-1 gap-px bg-foreground/5 md:grid-cols-2 lg:grid-cols-4">
-                {legalInfo.map((info, index) => {
+                {legalInfo.map((info) => {
                   const Icon = info.icon;
                   return (
                     <div
                       key={info.title}
                       className="bg-background p-6 sm:p-10 group hover:bg-foreground/[0.02] transition-colors"
                     >
-                      <div className="text-foreground/50 text-xs font-black uppercase tracking-widest mb-6">
-                        {String(index + 1).padStart(2, '0')} / {info.shortLabel}
-                      </div>
                       <Icon className="size-8 text-foreground/65 mb-4 group-hover:text-foreground transition-colors" />
                       <h3 className="text-lg font-semibold mb-3">
                         {info.title}

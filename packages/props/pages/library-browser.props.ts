@@ -97,6 +97,8 @@ export interface LibraryFilterProps {
   onTagsChange: (tags: string[]) => void;
   /** Resets every filter in one URL update; sort and view are kept. */
   onClearAllFilters: () => void;
+  /** Admin spans every organization: no shelves, places or per-brand counts. */
+  isAdminScope?: boolean;
 }
 
 export interface LibraryBrowserToolbarProps {
