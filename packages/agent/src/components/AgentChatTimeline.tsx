@@ -162,6 +162,7 @@ export function AgentChatTimeline({
     const isCurrentPlan = plan.id === latestProposedPlan?.id;
     return (
       <AgentPlanCard
+        key={plan.id}
         actions={isCurrentPlan ? planActions : undefined}
         decision={isCurrentPlan && !isReadOnly ? planDecision : undefined}
         footerMessage={isCurrentPlan ? planFooterMessage : null}

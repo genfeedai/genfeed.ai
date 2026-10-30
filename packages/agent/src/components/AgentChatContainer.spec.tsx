@@ -2498,7 +2498,7 @@ describe('AgentChatContainer', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the latest proposed plan in the conversation with its decision inside the card', () => {
+  it('renders the latest proposed plan in the conversation with its decision inside the card', async () => {
     const apiService = createApiService();
 
     storeState.pendingInputRequest = null;
@@ -2523,11 +2523,22 @@ describe('AgentChatContainer', () => {
     expect(
       within(decision).getByRole('button', { name: 'requestChanges' }),
     ).toBeInTheDocument();
-    // The prompt bar stays an ordinary composer.
+    // The prompt bar stays an ordinary composer: a message typed there is
+    // sent as a turn, not as a plan revision.
     expect(screen.getByLabelText('Composer paste')).not.toHaveAttribute(
       'placeholder',
       'revisePlaceholder',
     );
+    fireEvent.paste(screen.getByLabelText('Composer paste'), {
+      clipboardData: { getData: () => 'Continue with this plan' },
+    });
+    await waitFor(() =>
+      expect(sendNonStreaming).toHaveBeenCalledWith(
+        'Continue with this plan',
+        expect.objectContaining({ agentMode: AgentThreadMode.MANUAL }),
+      ),
+    );
+    expect(apiService.respondToUiAction).not.toHaveBeenCalled();
   });
 
   it('locks the plan controls while an approval of that plan is still running', () => {

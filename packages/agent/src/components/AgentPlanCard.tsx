@@ -17,7 +17,10 @@ export interface AgentPlanDecision {
   /** A decision is being sent; both actions lock. */
   isBusy: boolean;
   onApprove: () => void | Promise<void>;
-  onRequestChanges: (revisionNote: string) => void | Promise<void>;
+  /** Resolves to false when the request was not accepted, so the note stays. */
+  onRequestChanges: (
+    revisionNote: string,
+  ) => boolean | void | Promise<boolean | void>;
 }
 
 interface AgentPlanCardProps {
@@ -152,7 +155,10 @@ export function AgentPlanCard({
                   onClick={() => {
                     void Promise.resolve(
                       decision.onRequestChanges(trimmedNote),
-                    ).then(() => {
+                    ).then((isAccepted) => {
+                      if (isAccepted === false) {
+                        return;
+                      }
                       setIsRevising(false);
                       setRevisionNote('');
                     });

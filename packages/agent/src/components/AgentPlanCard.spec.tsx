@@ -56,6 +56,25 @@ describe('AgentPlanCard decision', () => {
     );
   });
 
+  it('keeps the note when the request was not accepted', async () => {
+    const decision = buildDecision();
+    decision.onRequestChanges.mockResolvedValue(false);
+    render(<AgentPlanCard decision={decision} plan={plan} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'requestChanges' }));
+    fireEvent.change(screen.getByLabelText('revisePlaceholder'), {
+      target: { value: 'Make it shorter' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'sendChanges' }));
+
+    await waitFor(() =>
+      expect(decision.onRequestChanges).toHaveBeenCalledTimes(1),
+    );
+    expect(screen.getByLabelText('revisePlaceholder')).toHaveValue(
+      'Make it shorter',
+    );
+  });
+
   it('drops the note on cancel', () => {
     render(<AgentPlanCard decision={buildDecision()} plan={plan} />);
 
