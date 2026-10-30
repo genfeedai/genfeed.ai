@@ -697,14 +697,6 @@
       "workspace": "agent"
     },
     {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/ui/src/components/lazy/modal/LazyModal.tsx",
-      "fingerprint": "a2070866c3d8101756c2",
-      "message": "Cannot find module '@pages/members/invite/ModalMember' or its corresponding type declarations.",
-      "workspace": "agent"
-    },
-    {
       "code": 2554,
       "count": 1,
       "file": "apps/server/api/src/auth/better-auth/better-auth.factory.spec.ts",
