@@ -67,7 +67,7 @@ export default function DoneForYouScope(): React.ReactElement {
           description="Explore the channels and content workflows we can help you run."
           className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
         />
-        <div className="grid grid-cols-1 gap-px bg-foreground/5 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-px bg-foreground/10 sm:grid-cols-2">
           {DONE_FOR_YOU_FOCUS_LINKS.map((item) => (
             <Link
               key={item.href}

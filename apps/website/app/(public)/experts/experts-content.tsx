@@ -232,7 +232,7 @@ export default function ExpertsContent() {
             difference between a prompt with no source and a post pulled from an
             expert&apos;s own material.
           </Text>
-          <div className="grid grid-cols-1 gap-px bg-foreground/5 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-px bg-foreground/10 md:grid-cols-2">
             <div className="bg-background p-8">
               <div className="mb-4 flex items-center gap-2">
                 <X className="size-4 text-destructive" />

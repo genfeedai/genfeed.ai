@@ -272,7 +272,7 @@ export default function PricingContent() {
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl mb-4"
           />
 
-          <div className="grid gap-px bg-foreground/5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-px bg-foreground/10 sm:grid-cols-2 lg:grid-cols-3">
             {OUTPUT_COSTS.map((row) => (
               <div
                 key={row.label}
@@ -297,7 +297,7 @@ export default function PricingContent() {
           <p className="mt-8 mb-2 text-sm font-medium text-foreground/70">
             Top up from $10.
           </p>
-          <div className="grid gap-px bg-foreground/5 sm:grid-cols-3">
+          <div className="grid gap-px bg-foreground/10 sm:grid-cols-3">
             {WEBSITE_CREDIT_PACKS.map((pack) => (
               <div
                 key={pack.label}
