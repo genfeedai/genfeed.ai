@@ -1,5 +1,8 @@
 import { resolveAuthContinuation } from '@genfeedai/auth-client/callback';
-import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
+import {
+  getBetterAuthServerToken,
+  isBetterAuthEnabled,
+} from '@genfeedai/auth-client/server';
 import {
   hasSingleStepOnboarding,
   isDesktopClient,
@@ -997,21 +1000,11 @@ async function getBetterAuthBearerToken(
     return null;
   }
 
-  try {
-    const response = await fetch(`${getApiBaseUrl()}/auth/token`, {
-      cache: 'no-store',
-      headers: { cookie: cookieHeader },
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    const data = (await response.json()) as { token?: string };
-    return data.token ?? null;
-  } catch {
-    return null;
-  }
+  // Every navigation and RSC prefetch passes through here. The shared helper
+  // reuses one token per session, since `/token` is rate limited per client.
+  return getBetterAuthServerToken(cookieHeader, {
+    tokenUrl: `${getApiBaseUrl()}/auth/token`,
+  });
 }
 
 /**
