@@ -36,8 +36,7 @@ const AGENT_OUTPUT_ROUTE_PATTERNS: readonly RegExp[] = [
   new RegExp(`^${APP_ROUTES.STUDIO.CLIPPER}/(?!new/?$)[^/]+/?$`),
   // Publishing desks that share `publishing-layout-content.tsx`: the posts
   // queue, the calendar and the overview. A post's editor and Campaigns keep
-  // their own layouts, and Approvals stays on the dock: its item inspector is
-  // the work surface, not a side detail.
+  // their own layouts.
   new RegExp(
     `^(?:${[
       APP_ROUTES.PUBLISHING.POSTS,
@@ -45,6 +44,10 @@ const AGENT_OUTPUT_ROUTE_PATTERNS: readonly RegExp[] = [
       APP_ROUTES.PUBLISHING.OVERVIEW,
     ].join('|')})/?$`,
   ),
+  // Approvals: the queue, a run (`/approvals/<run>`) and one item
+  // (`/approvals/<run>/<item>`). The item inspector opens in the output
+  // pane's Context tab.
+  new RegExp(`^${APP_ROUTES.PUBLISHING.APPROVALS}(?:/[^/]+){0,2}/?$`),
   // An Editor project; `/editor/new` creates one.
   new RegExp(`^${APP_ROUTES.STUDIO.EDITOR}/(?!new/?$)[^/]+/?$`),
 ];
