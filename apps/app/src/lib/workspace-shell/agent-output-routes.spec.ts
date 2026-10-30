@@ -17,22 +17,6 @@ describe('isAgentOutputRoute', () => {
     expect(isAgentOutputRoute('/storyboard/new-run')).toBe(true);
   });
 
-  it('matches the Library asset browser destinations', () => {
-    expect(isAgentOutputRoute('/library/assets')).toBe(true);
-    expect(isAgentOutputRoute('/library/images')).toBe(true);
-    expect(isAgentOutputRoute('/library/trash/')).toBe(true);
-    expect(isAgentOutputRoute('/library/shelf/needs-review')).toBe(true);
-  });
-
-  it('keeps the other Library pages on the dock', () => {
-    expect(isAgentOutputRoute('/library')).toBe(false);
-    expect(isAgentOutputRoute('/library/overview')).toBe(false);
-    expect(isAgentOutputRoute('/library/references')).toBe(false);
-    expect(isAgentOutputRoute('/library/voices')).toBe(false);
-    expect(isAgentOutputRoute('/library/captions')).toBe(false);
-    expect(isAgentOutputRoute('/library/shelf')).toBe(false);
-  });
-
   it('matches the workflow editor, new or saved', () => {
     expect(isAgentOutputRoute('/automation/workflows/new')).toBe(true);
     expect(isAgentOutputRoute('/automation/workflows/wf-1')).toBe(true);
@@ -52,29 +36,16 @@ describe('isAgentOutputRoute', () => {
     expect(isAgentOutputRoute('/clipper/new')).toBe(false);
   });
 
-  it('matches the Publishing desks', () => {
-    expect(isAgentOutputRoute('/publishing/posts')).toBe(true);
-    expect(isAgentOutputRoute('/publishing/calendar/')).toBe(true);
-    expect(isAgentOutputRoute('/publishing/overview')).toBe(true);
-  });
-
-  it('matches Approvals, a run and an item', () => {
-    expect(isAgentOutputRoute('/publishing/approvals')).toBe(true);
-    expect(isAgentOutputRoute('/publishing/approvals/run-1')).toBe(true);
-    expect(isAgentOutputRoute('/publishing/approvals/run-1/item-1/')).toBe(
-      true,
-    );
-    expect(isAgentOutputRoute('/publishing/approvals/run-1/item-1/x')).toBe(
+  it('keeps Library, Publishing and Approvals on the dock', () => {
+    expect(isAgentOutputRoute('/library/assets')).toBe(false);
+    expect(isAgentOutputRoute('/library/shelf/needs-review')).toBe(false);
+    expect(isAgentOutputRoute('/publishing/posts')).toBe(false);
+    expect(isAgentOutputRoute('/publishing/calendar')).toBe(false);
+    expect(isAgentOutputRoute('/publishing/overview')).toBe(false);
+    expect(isAgentOutputRoute('/publishing/approvals')).toBe(false);
+    expect(isAgentOutputRoute('/publishing/approvals/run-1/item-1')).toBe(
       false,
     );
-  });
-
-  it('keeps the post editor, campaigns and the rest of Publishing off the split', () => {
-    expect(isAgentOutputRoute('/publishing')).toBe(false);
-    expect(isAgentOutputRoute('/publishing/posts/post-1')).toBe(false);
-    expect(isAgentOutputRoute('/publishing/campaigns')).toBe(false);
-    expect(isAgentOutputRoute('/publishing/review')).toBe(false);
-    expect(isAgentOutputRoute('/publishing/remix')).toBe(false);
   });
 
   it('matches an editor project and leaves the list and the create form', () => {

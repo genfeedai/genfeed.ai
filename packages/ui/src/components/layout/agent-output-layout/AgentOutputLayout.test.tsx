@@ -16,13 +16,7 @@ const labels = {
   views: 'Agent or output',
 };
 
-function Harness({
-  defaultMobileView,
-  mode,
-}: {
-  defaultMobileView?: 'agent' | 'output';
-  mode?: 'rail' | 'split';
-}) {
+function Harness({ mode }: { mode?: 'rail' | 'split' }) {
   const [activeTabId, setActiveTabId] = useState('board');
   return (
     <AgentOutputLayout
@@ -30,7 +24,6 @@ function Harness({
       agent={<p>Agent transcript</p>}
       agentHeader={<span>Run thread</span>}
       headerActions={<span>Page action</span>}
-      defaultMobileView={defaultMobileView}
       labels={labels}
       mode={mode}
       onTabChange={setActiveTabId}
@@ -74,18 +67,6 @@ describe('AgentOutputLayout', () => {
     expect(board).toBeInTheDocument();
     expect(board.parentElement).toHaveAttribute('data-state', 'inactive');
     expect(board.parentElement).toHaveAttribute('hidden');
-  });
-
-  it('opens a browse-first page on its output on narrow screens', () => {
-    render(<Harness defaultMobileView="output" />);
-
-    expect(screen.getByTestId('agent-output-layout')).toHaveAttribute(
-      'data-mobile-view',
-      'output',
-    );
-    expect(screen.getByTestId('agent-output-agent-pane')).toHaveClass(
-      'max-xl:hidden',
-    );
   });
 
   it('shows one pane at a time on narrow screens without unmounting the other', () => {

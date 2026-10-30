@@ -392,15 +392,6 @@ async function routeRemixRun(
   );
 }
 
-/** Approvals is on the agent + output layout: the item inspector is the Context tab. */
-async function openReviewInspector(page: Page): Promise<void> {
-  await expect(page).toHaveURL(/\/publishing\/approvals\//);
-  await page
-    .getByTestId('agent-output-output-pane')
-    .getByRole('tab', { name: 'Context' })
-    .click();
-}
-
 test.describe('Discovery prefilled remix handoff', () => {
   test('takes an eligible TikTok trend through Review approval to a Publishing draft', async ({
     authenticatedPage,
@@ -469,7 +460,6 @@ test.describe('Discovery prefilled remix handoff', () => {
       /\/publishing\/approvals\/review-batch-1$/,
     );
     await reviewLink.click();
-    await openReviewInspector(authenticatedPage);
     await expect(
       authenticatedPage.getByText('Brand Remix Review Handoff'),
     ).toBeVisible();
@@ -1082,7 +1072,6 @@ test.describe('Discovery prefilled remix handoff', () => {
     await expect(panel).toBeVisible();
     await panel.getByRole('button', { name: 'Send 1 to Review' }).click();
     await panel.getByRole('link', { name: 'Open Review' }).click();
-    await openReviewInspector(authenticatedPage);
     await expect(
       authenticatedPage.getByText('Brand Remix Review Handoff'),
     ).toBeVisible();
