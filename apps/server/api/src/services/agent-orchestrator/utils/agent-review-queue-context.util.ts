@@ -27,7 +27,7 @@ export function readReviewQueueSnapshot(
     };
   }
 
-  if (toolName !== 'list_review_queue') {
+  if (toolName !== 'get_review_queue') {
     return undefined;
   }
 
@@ -62,7 +62,7 @@ export function buildReviewSuggestedActions(
     .reverse()
     .find((toolCall) =>
       [
-        'list_review_queue',
+        'get_review_queue',
         'review_turbo_items',
         'get_approval_summary',
       ].includes(toolCall.toolName),

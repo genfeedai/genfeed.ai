@@ -21,7 +21,7 @@ const routes = [
     method: 'getSocialConversation',
   },
   {
-    name: 'list_social_conversations',
+    name: 'get_social_conversations',
     args: {},
     method: 'listSocialConversations',
   },

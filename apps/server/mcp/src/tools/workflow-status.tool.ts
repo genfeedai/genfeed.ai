@@ -2,7 +2,7 @@ import type { ClientService } from '@mcp/services/client.service';
 
 export const WORKFLOW_STATUS_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'get_workflow_status',
-  'list_workflow_templates',
+  'get_workflow_templates',
 ]);
 
 export async function handleWorkflowStatusTool(
@@ -29,7 +29,7 @@ export async function handleWorkflowStatusTool(
         ],
       };
     }
-    case 'list_workflow_templates': {
+    case 'get_workflow_templates': {
       const templates = await client.listWorkflowTemplates();
 
       return {

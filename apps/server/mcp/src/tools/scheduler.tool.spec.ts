@@ -60,9 +60,9 @@ describe('SCHEDULER_TOOL_NAMES', () => {
     expect([...SCHEDULER_TOOL_NAMES].sort()).toEqual([
       'control_scheduled_release',
       'create_scheduled_release',
+      'get_brand_publishing_readiness',
       'get_scheduled_release',
       'get_scheduler_capabilities',
-      'list_brand_publishing_readiness',
       'update_scheduled_release',
       'validate_scheduler_target',
     ]);
@@ -271,7 +271,7 @@ describe('handleSchedulerTool', () => {
   it("lists a brand's publishing channels with credential readiness", async () => {
     const client = buildClient();
 
-    const result = await call(client, 'list_brand_publishing_readiness', {
+    const result = await call(client, 'get_brand_publishing_readiness', {
       brandId: 'brand-1',
     });
 
@@ -334,7 +334,7 @@ describe('handleSchedulerTool', () => {
       };
       client.listBrandPublishingReadiness.mockResolvedValue([readiness]);
 
-      const result = await call(client, 'list_brand_publishing_readiness', {
+      const result = await call(client, 'get_brand_publishing_readiness', {
         brandId: 'brand-1',
       });
 
@@ -359,7 +359,7 @@ describe('handleSchedulerTool', () => {
     const client = buildClient();
 
     await expect(
-      call(client, 'list_brand_publishing_readiness', {}),
+      call(client, 'get_brand_publishing_readiness', {}),
     ).rejects.toThrow(/brandId is required/);
     expect(client.listBrandPublishingReadiness).not.toHaveBeenCalled();
   });

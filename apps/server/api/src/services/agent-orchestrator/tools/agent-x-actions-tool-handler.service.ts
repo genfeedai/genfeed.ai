@@ -81,7 +81,7 @@ export class AgentXActionsToolHandler {
   handles(toolName: CuratedActionName): boolean {
     return (
       toolName === 'get_x_posts' ||
-      toolName === 'list_x_account_activity' ||
+      toolName === 'get_x_account_activity' ||
       toolName === 'draft_x_quote' ||
       toolName === 'draft_x_repost'
     );
@@ -95,7 +95,7 @@ export class AgentXActionsToolHandler {
     switch (toolName) {
       case 'get_x_posts':
         return this.getXPosts(params, ctx);
-      case 'list_x_account_activity':
+      case 'get_x_account_activity':
         return this.listXAccountActivity(params, ctx);
       case 'draft_x_quote':
         return this.draftXEngagement(params, ctx, 'quote');

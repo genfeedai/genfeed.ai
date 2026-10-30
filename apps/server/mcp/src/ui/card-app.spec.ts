@@ -111,13 +111,13 @@ it('renders post content as text and ignores messages from other windows', () =>
 });
 
 it('renders image, video and audio controls using allowed origins', () => {
-  result('list_assets', [
+  result('get_assets', [
     { id: 'img', category: 'IMAGE', url: 'https://cdn.genfeed.ai/image.png' },
   ]);
   expect(document.querySelector('img')?.getAttribute('src')).toBe(
     'https://cdn.genfeed.ai/image.png',
   );
-  result('list_assets', [
+  result('get_assets', [
     {
       id: 'vid',
       category: 'VIDEO',
@@ -129,7 +129,7 @@ it('renders image, video and audio controls using allowed origins', () => {
     document.querySelector('button[aria-label="Play video"]'),
   ).not.toBeNull();
   expect(document.querySelector('video')?.autoplay).toBe(false);
-  result('list_assets', [
+  result('get_assets', [
     { id: 'audio', category: 'MUSIC', url: 'https://cdn.genfeed.ai/music.mp3' },
   ]);
   expect(document.querySelector('button[aria-label^="Play "]')).not.toBeNull();
@@ -280,7 +280,7 @@ it('does not promise automatic updates when a pending job has no ID', () => {
 });
 
 it('uses open-link for external media without loading unapproved origins', async () => {
-  result('list_assets', [
+  result('get_assets', [
     { category: 'IMAGE', url: 'https://external.example/image.png' },
   ]);
   expect(document.querySelector('img')).toBeNull();
@@ -317,7 +317,7 @@ it('shows long article text and truncated list counts', () => {
     'Read more',
   );
   result(
-    'list_assets',
+    'get_assets',
     Array.from({ length: 30 }, (_, id) => ({ id: String(id) })),
   );
   expect(document.querySelectorAll('article')).toHaveLength(24);
@@ -330,7 +330,7 @@ it('reports a failed handshake instead of loading indefinitely', async () => {
 });
 
 it('renders avatars that only supply a thumbnail', () => {
-  result('list_assets', [
+  result('get_assets', [
     {
       category: 'AVATAR',
       name: 'Avatar',
@@ -346,7 +346,7 @@ it('renders avatars that only supply a thumbnail', () => {
 });
 
 it('reports host open-link failures returned as results', async () => {
-  result('list_assets', [
+  result('get_assets', [
     { category: 'IMAGE', url: 'https://external.example/image.png' },
   ]);
   document.querySelector('a')?.click();
@@ -448,7 +448,7 @@ it('renders posts as a social preview with platform, status and media', () => {
 });
 
 it('opens images in a lightbox and closes it with Escape', async () => {
-  result('list_assets', [
+  result('get_assets', [
     {
       category: 'IMAGE',
       id: 'img',
@@ -645,7 +645,7 @@ it('shows post attachments and plays attached media that carries a URL', () => {
 });
 
 it('keeps keyboard focus inside the shared dialog and hides the background', async () => {
-  result('list_assets', [
+  result('get_assets', [
     { category: 'IMAGE', id: 'img', url: 'https://cdn.genfeed.ai/hero.png' },
   ]);
   document.querySelector<HTMLElement>('button.zoom')?.click();
@@ -785,7 +785,7 @@ it('uses dedicated social previews with account identity, every attachment and d
 });
 
 it('explains unsupported files while retaining the open action', () => {
-  result('list_assets', [
+  result('get_assets', [
     {
       id: 'file',
       category: 'DOCUMENT',
@@ -823,7 +823,7 @@ describe('organization switcher', () => {
   ];
 
   it('shows the active organization in a dropdown with its brands', () => {
-    result('list_orgs', {
+    result('get_orgs', {
       activeOrganizationId: 'org-a',
       brands: [
         { id: 'brand-1', label: 'Acme Main' },
@@ -841,7 +841,7 @@ describe('organization switcher', () => {
   });
 
   it('shows the organization as plain text when switching is off', () => {
-    result('list_orgs', {
+    result('get_orgs', {
       activeOrganizationId: 'org-a',
       brands: [],
       canSwitchOrganizations: false,
@@ -857,7 +857,7 @@ describe('organization switcher', () => {
   });
 
   it('switches organization through the host and shows the new brands', async () => {
-    result('list_orgs', {
+    result('get_orgs', {
       activeOrganizationId: 'org-a',
       brands: [{ id: 'brand-1', label: 'Acme Main' }],
       canSwitchOrganizations: true,

@@ -11,16 +11,16 @@ describe('MCP_SCHEDULER_TOOLS', () => {
       'check_channel',
       'control_scheduled_release',
       'create_scheduled_release',
+      'get_brand_publishing_readiness',
       'get_scheduled_release',
       'get_scheduler_capabilities',
-      'list_brand_publishing_readiness',
       'update_scheduled_release',
       'validate_scheduler_target',
     ]);
   });
 
   it('matches the REST brand publishing-readiness contract', () => {
-    const tool = toolsByName.get('list_brand_publishing_readiness');
+    const tool = toolsByName.get('get_brand_publishing_readiness');
     expect(tool?.creditCost).toBe(0);
     expect(tool?.parameters.required).toEqual(['brandId']);
     expect(tool?.parameters.properties).toEqual({

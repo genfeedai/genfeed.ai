@@ -26,16 +26,16 @@ describe('handleWorkspaceAppTool', () => {
   it('names exactly the five Workspace tools', () => {
     expect([...WORKSPACE_APP_TOOL_NAMES].sort()).toEqual([
       'create_task',
+      'get_activity',
+      'get_inbox',
       'get_task',
-      'list_activity',
-      'list_inbox',
-      'list_tasks',
+      'get_tasks',
     ]);
   });
 
   it('lists tasks with filters and a clamped page size', async () => {
     const client = buildClient();
-    const result = await call(client, 'list_tasks', {
+    const result = await call(client, 'get_tasks', {
       limit: 1000,
       priority: 'high',
       status: 'todo',
@@ -53,7 +53,7 @@ describe('handleWorkspaceAppTool', () => {
   it('rejects a status the API does not know', async () => {
     const client = buildClient();
     await expect(
-      call(client, 'list_tasks', { status: 'sleeping' }),
+      call(client, 'get_tasks', { status: 'sleeping' }),
     ).rejects.toThrow(/status must be one of: backlog, todo/);
     expect(client.listTasks).not.toHaveBeenCalled();
   });
@@ -90,18 +90,18 @@ describe('handleWorkspaceAppTool', () => {
 
   it('says the inbox is clear and links the app when items wait', async () => {
     const client = buildClient();
-    const empty = await call(client, 'list_inbox', {});
+    const empty = await call(client, 'get_inbox', {});
     expect(empty.content[0]?.text).toBe('Nothing is waiting for review.');
 
     client.listInbox.mockResolvedValueOnce([{ id: 'gate-1' }]);
-    const waiting = await call(client, 'list_inbox', {});
+    const waiting = await call(client, 'get_inbox', {});
     expect(waiting.content[0]?.text).toContain('1 waiting for review');
     expect(waiting.content[0]?.text).toContain('/workspace/inbox');
   });
 
   it('lists activity and only filters to active work when asked', async () => {
     const client = buildClient();
-    await call(client, 'list_activity', { activeOnly: true, limit: 5 });
+    await call(client, 'get_activity', { activeOnly: true, limit: 5 });
 
     expect(client.listActivity).toHaveBeenCalledWith({
       activeOnly: true,

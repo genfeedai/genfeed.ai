@@ -929,7 +929,7 @@ describe('AgentWorkspaceToolHandler.getBrands', () => {
   });
 });
 
-describe('list_assets Library shelves', () => {
+describe('get_assets Library shelves', () => {
   it('passes the Unsorted shelf within the authorized brand and organization', async () => {
     const ingredients = { listLibraryAssets: vi.fn().mockResolvedValue([]) };
     const result = await buildHandler({ ingredients }).listAssets(

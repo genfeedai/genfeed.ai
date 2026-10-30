@@ -67,7 +67,7 @@ describe('handleAccountManagementTool', () => {
   it('lists every organization and marks the one the connection is bound to', async () => {
     const client = buildClient();
 
-    const result = await call(client, 'list_orgs', {});
+    const result = await call(client, 'get_orgs', {});
 
     expect(client.listOrganizations).toHaveBeenCalledTimes(1);
     expect(result.structuredContent?.data).toMatchObject({
@@ -94,7 +94,7 @@ describe('handleAccountManagementTool', () => {
     const client = buildClient();
     client.canSwitchOrganizations.mockResolvedValue(true);
 
-    const result = await call(client, 'list_orgs', {});
+    const result = await call(client, 'get_orgs', {});
 
     const text = textOf(result.content[0]);
     expect(text).toContain('Use switch_org');
@@ -109,7 +109,7 @@ describe('handleAccountManagementTool', () => {
     client.canSwitchOrganizations.mockRejectedValue(new Error('boom'));
     client.listBrands.mockRejectedValue(new Error('boom'));
 
-    const result = await call(client, 'list_orgs', {});
+    const result = await call(client, 'get_orgs', {});
 
     expect(result.structuredContent?.data).toMatchObject({
       brands: [],
@@ -183,7 +183,7 @@ describe('handleAccountManagementTool', () => {
       organization('org-a', 'Acme', true),
     ]);
 
-    const result = await call(client, 'list_orgs', {});
+    const result = await call(client, 'get_orgs', {});
 
     expect(textOf(result.content[0])).not.toContain('reconnect');
   });
@@ -195,7 +195,7 @@ describe('handleAccountManagementTool', () => {
       organization('org-b', 'Beta', false),
     ]);
 
-    const result = await call(client, 'list_orgs', {});
+    const result = await call(client, 'get_orgs', {});
 
     expect(result.structuredContent?.data).not.toHaveProperty(
       'activeOrganizationId',

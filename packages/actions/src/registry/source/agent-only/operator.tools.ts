@@ -5,7 +5,7 @@ export const AGENT_OPERATOR_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'List the live Genfeed.ai tool catalog available to agent, MCP, and CLI surfaces. Use when the user asks what tools exist, what MCP can do, or which capabilities are available.',
-    name: 'list_genfeed_tools',
+    name: 'get_genfeed_tools',
     parameters: {
       properties: {
         category: {

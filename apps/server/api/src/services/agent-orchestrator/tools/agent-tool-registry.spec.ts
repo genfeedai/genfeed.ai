@@ -96,10 +96,10 @@ describe('agent-tool-registry', () => {
     expect(names).not.toContain('generate_image');
     expect(names).toContain('create_livestream_bot');
     expect(names).toContain('manage_livestream_bot');
-    expect(names).toContain('list_ads_research');
+    expect(names).toContain('get_ads_research');
     expect(names).toContain('get_ad_research_detail');
     expect(names).toContain('create_ad_remix_workflow');
-    expect(names).toContain('list_instagram_inspiration');
+    expect(names).toContain('get_instagram_inspiration');
     expect(names).toContain('get_instagram_inspiration_detail');
     expect(names).toContain('create_instagram_remix_workflow');
     expect(names).toContain('generate_ad_pack');
@@ -109,7 +109,7 @@ describe('agent-tool-registry', () => {
     expect(names).toContain('get_top_ingredients');
     expect(names).toContain('replicate_top_ingredient');
     expect(names).toContain('capture_memory');
-    expect(names).toContain('list_genfeed_tools');
+    expect(names).toContain('get_genfeed_tools');
   });
 
   it('should define each agent tool exactly once', () => {
@@ -150,7 +150,7 @@ describe('agent-tool-registry', () => {
         type: 'object',
       },
     });
-    expect(getToolDefinitionByName('list_ads_research')).toMatchObject({
+    expect(getToolDefinitionByName('get_ads_research')).toMatchObject({
       creditCost: 0,
       parameters: {
         properties: {
@@ -304,10 +304,10 @@ describe('agent-tool-registry', () => {
     expect(AGENT_CREDIT_COSTS.get_current_brand).toBe(0);
     expect(AGENT_CREDIT_COSTS.create_livestream_bot).toBe(0);
     expect(AGENT_CREDIT_COSTS.manage_livestream_bot).toBe(0);
-    expect(AGENT_CREDIT_COSTS.list_ads_research).toBe(0);
+    expect(AGENT_CREDIT_COSTS.get_ads_research).toBe(0);
     expect(AGENT_CREDIT_COSTS.get_ad_research_detail).toBe(0);
     expect(AGENT_CREDIT_COSTS.create_ad_remix_workflow).toBe(0);
-    expect(AGENT_CREDIT_COSTS.list_instagram_inspiration).toBe(0);
+    expect(AGENT_CREDIT_COSTS.get_instagram_inspiration).toBe(0);
     expect(AGENT_CREDIT_COSTS.get_instagram_inspiration_detail).toBe(0);
     expect(AGENT_CREDIT_COSTS.create_instagram_remix_workflow).toBe(0);
     expect(AGENT_CREDIT_COSTS.generate_ad_pack).toBe(0);
@@ -317,7 +317,7 @@ describe('agent-tool-registry', () => {
     expect(AGENT_CREDIT_COSTS.get_top_ingredients).toBe(0);
     expect(AGENT_CREDIT_COSTS.replicate_top_ingredient).toBe(0);
     expect(AGENT_CREDIT_COSTS.capture_memory).toBe(0);
-    expect(AGENT_CREDIT_COSTS.list_genfeed_tools).toBe(0);
+    expect(AGENT_CREDIT_COSTS.get_genfeed_tools).toBe(0);
   });
 });
 

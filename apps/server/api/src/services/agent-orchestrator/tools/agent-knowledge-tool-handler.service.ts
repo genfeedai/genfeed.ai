@@ -31,7 +31,7 @@ export type KnowledgeToolName =
   | 'assign_knowledge_purpose'
   | 'capture_knowledge'
   | 'get_context_coverage'
-  | 'list_knowledge_sources'
+  | 'get_knowledge_sources'
   | 'read_knowledge_source'
   | 'retry_knowledge_ingestion'
   | 'search_knowledge';
@@ -191,7 +191,7 @@ export class AgentKnowledgeToolHandler {
         return this.searchKnowledge(params, ctx);
       case 'get_context_coverage':
         return this.getContextCoverage(params, ctx);
-      case 'list_knowledge_sources':
+      case 'get_knowledge_sources':
         return this.listKnowledgeSources(params, ctx);
       case 'read_knowledge_source':
         return this.readKnowledgeSource(params, ctx);

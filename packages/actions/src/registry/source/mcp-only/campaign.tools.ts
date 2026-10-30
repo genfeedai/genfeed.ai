@@ -4,7 +4,7 @@ export const MCP_CAMPAIGN_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description: 'List Google Ads campaigns with optional status filter',
-    name: 'list_google_ads_campaigns',
+    name: 'get_google_ads_campaigns',
     parameters: {
       properties: {
         customerId: {
@@ -74,7 +74,7 @@ export const MCP_CAMPAIGN_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'List Meta ad campaigns with optional status filter and pagination',
-    name: 'list_meta_campaigns',
+    name: 'get_meta_campaigns',
     parameters: {
       properties: {
         adAccountId: {
@@ -169,7 +169,7 @@ export const MCP_CAMPAIGN_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description: 'List TikTok ad campaigns for an advertiser account',
-    name: 'list_tiktok_campaigns',
+    name: 'get_tiktok_campaigns',
     parameters: {
       properties: {
         adAccountId: {

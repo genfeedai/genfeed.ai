@@ -97,7 +97,7 @@ holds a post id for.
 
 **MCP-only**, because the agent does not do that job: the Meta, Google, and
 TikTok ads reporting tools are headless reporting surfaces. The agent's ads story
-is research and remix — `list_ads_research`, `get_ad_research_detail`, and
+is research and remix — `get_ads_research`, `get_ad_research_detail`, and
 `create_ad_remix_workflow` are already on both surfaces. Adding per-account
 reporting tools to the agent would enlarge its selection space for nothing.
 

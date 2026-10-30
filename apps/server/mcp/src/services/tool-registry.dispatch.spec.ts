@@ -54,7 +54,7 @@ describe('ToolRegistryService.classify', () => {
     // The system workflow catalog (#2223) is REST-backed on the workflows
     // collection, so both catalog tools stay on workflow-control even though
     // they are also CuratedActionName members.
-    ['list_system_workflow_catalog', 'workflow-control'],
+    ['get_system_workflow_catalog', 'workflow-control'],
     ['install_system_workflow', 'workflow-control'],
     ['generate', 'agent-executor'],
     ['create_brand_from_url', 'agent-executor'],
@@ -79,11 +79,11 @@ describe('ToolRegistryService.classify', () => {
     ['generate_linkedin_content', 'unknown'],
     ['set_generation_settings', 'agent-executor'],
     ['get_job_status', 'account-management'],
-    ['list_orgs', 'account-management'],
+    ['get_orgs', 'account-management'],
     ['switch_org', 'account-management'],
     // Removed in favour of get_job_status: no executor claims it any more.
     ['get_video_status', 'unknown'],
-    ['list_assets', 'agent-executor'],
+    ['get_assets', 'agent-executor'],
     ['get_clip_context', 'agent-executor'],
     ['edit_clip', 'agent-executor'],
     ['get_account', 'agent-executor'],
@@ -91,7 +91,7 @@ describe('ToolRegistryService.classify', () => {
     ['get_posts', 'agent-executor'],
     // MCP-only; maps each action onto an in-app onboarding agent tool.
     ['onboard_brand', 'onboarding'],
-    // Merged into get_account / get_brands / get_posts / list_assets.
+    // Merged into get_account / get_brands / get_posts / get_assets.
     ['get_usage_stats', 'unknown'],
     ['list_videos', 'unknown'],
     ['list_images', 'unknown'],
@@ -101,25 +101,28 @@ describe('ToolRegistryService.classify', () => {
     ['get_articles', 'content'],
     ['get_video_analytics', 'analytics'],
     ['get_workflow_status', 'workflow-status'],
-    ['list_workflow_templates', 'workflow-status'],
-    ['list_meta_campaigns', 'meta-ads'],
+    ['get_workflow_templates', 'workflow-status'],
+    ['get_meta_campaigns', 'meta-ads'],
     ['get_google_ads_campaign_metrics', 'google-ads'],
-    ['list_tiktok_campaigns', 'tiktok-ads'],
-    ['list_tiktok_adgroups', 'tiktok-ads'],
+    ['get_tiktok_campaigns', 'tiktok-ads'],
+    ['get_tiktok_adgroups', 'tiktok-ads'],
     ['get_tiktok_top_performers', 'tiktok-ads'],
     // The platform-generic gateway tools own the `get_ads_` prefix; the
     // per-platform prefixes are checked first so they cannot be captured here.
     ['get_ads_adset_insights', 'ads-gateway'],
     ['get_ads_ad_insights', 'ads-gateway'],
     ['get_account_info', 'unknown'],
+    // Hard rename: the retired list_ names have no alias.
     ['list_brands', 'unknown'],
+    ['list_assets', 'unknown'],
+    ['list_posts', 'unknown'],
     ['post_social_reply', 'social-messages'],
     // generate_turbo_content is an CuratedActionName, so it routes through the
     // agent-executor to /agent-tools/:name/execute (re-surfaced in PR 5/6).
     ['generate_turbo_content', 'agent-executor'],
-    ['list_instagram_inspiration', 'agent-executor'],
+    ['get_instagram_inspiration', 'agent-executor'],
     ['get_x_posts', 'agent-executor'],
-    ['list_x_account_activity', 'agent-executor'],
+    ['get_x_account_activity', 'agent-executor'],
     ['create_instagram_remix_workflow', 'agent-executor'],
     ['create_ad_remix_workflow', 'agent-executor'],
     ['analyze_clipper_project', 'clipper-projects'],
@@ -141,7 +144,7 @@ describe('ToolRegistryService.classify', () => {
     ['control_remix_generation', 'remix'],
     ['get_scheduled_release', 'scheduler'],
     ['get_scheduler_capabilities', 'scheduler'],
-    ['list_brand_publishing_readiness', 'scheduler'],
+    ['get_brand_publishing_readiness', 'scheduler'],
     ['update_scheduled_release', 'scheduler'],
     ['validate_scheduler_target', 'scheduler'],
     ['verify_skills_pro_entitlement', 'skills-pro'],
@@ -170,7 +173,7 @@ describe('ToolRegistryService.validateDispatchCoverage', () => {
       { name: 'create_brand_from_url' },
       { name: 'get_brand_scan_status' },
       { name: 'get_job_status' },
-      { name: 'list_meta_campaigns' },
+      { name: 'get_meta_campaigns' },
       { name: 'resolve_approval' },
       { name: 'create_post' },
       { name: 'find_tools' },

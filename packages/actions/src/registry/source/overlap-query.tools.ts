@@ -161,7 +161,7 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'List library assets of one type, newest first, for one brand: brandId, else the thread brand, else your current brand; with none of those it lists the whole organization. Failed, archived and rejected assets are left out. Types image, video, music and avatar return id, category, status, url, label or prompt, origin, tags (id and label) and createdAt. Type character lists the active named characters the brand can use, including characters another organization granted to yours for use only (handle, label, description, whether a reference image exists, and who granted it). A revoked grant disappears on the next call.',
-    name: 'list_assets',
+    name: 'get_assets',
     parameters: {
       properties: {
         brandId: {
@@ -249,7 +249,7 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'List all workflows in your organization with optional status filtering.',
-    name: 'list_workflows',
+    name: 'get_workflows',
     parameters: {
       properties: {
         limit: {

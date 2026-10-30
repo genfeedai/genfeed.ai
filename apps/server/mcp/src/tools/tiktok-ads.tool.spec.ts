@@ -34,7 +34,7 @@ describe('handleTikTokAdsTool', () => {
   it('lists advertiser accounts for a credential', async () => {
     const client = buildClient();
 
-    const result = await call(client, 'list_tiktok_ad_accounts', {
+    const result = await call(client, 'get_tiktok_ad_accounts', {
       credentialId: 'credential-1',
     });
 
@@ -48,7 +48,7 @@ describe('handleTikTokAdsTool', () => {
   it('lists campaigns scoped to a credential and advertiser account', async () => {
     const client = buildClient();
 
-    const result = await call(client, 'list_tiktok_campaigns', {
+    const result = await call(client, 'get_tiktok_campaigns', {
       adAccountId: 'advertiser-1',
       credentialId: 'credential-1',
     });
@@ -109,7 +109,7 @@ describe('handleTikTokAdsTool', () => {
   it('lists ad groups within a campaign', async () => {
     const client = buildClient();
 
-    const result = await call(client, 'list_tiktok_adgroups', {
+    const result = await call(client, 'get_tiktok_adgroups', {
       adAccountId: 'advertiser-1',
       campaignId: 'campaign-1',
       credentialId: 'credential-1',
@@ -129,7 +129,7 @@ describe('handleTikTokAdsTool', () => {
   it('lists ads without an ad group filter', async () => {
     const client = buildClient();
 
-    await call(client, 'list_tiktok_ads', {
+    await call(client, 'get_tiktok_ads', {
       adAccountId: 'advertiser-1',
       credentialId: 'credential-1',
     });
@@ -145,7 +145,7 @@ describe('handleTikTokAdsTool', () => {
     const client = buildClient();
     client.listTikTokCampaigns.mockResolvedValue([]);
 
-    const result = await call(client, 'list_tiktok_campaigns', {
+    const result = await call(client, 'get_tiktok_campaigns', {
       adAccountId: 'advertiser-1',
       credentialId: 'credential-1',
     });

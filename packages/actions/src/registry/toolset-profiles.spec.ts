@@ -32,7 +32,7 @@ describe('MCP toolset profiles', () => {
     const names = getToolsForToolsets('mcp', DEFAULT_MCP_PROFILE_TOOLSETS).map(
       (tool) => tool.name,
     );
-    expect(names).toContain('list_brand_publishing_readiness');
+    expect(names).toContain('get_brand_publishing_readiness');
     expect(names).toContain('create_scheduled_release');
   });
 
@@ -79,7 +79,7 @@ describe('MCP toolset profiles', () => {
     const names = getToolsForToolsets('mcp', STUDIO_MCP_PROFILE_TOOLSETS).map(
       (tool) => tool.name,
     );
-    expect(names).toEqual(expect.arrayContaining(['generate', 'list_assets']));
+    expect(names).toEqual(expect.arrayContaining(['generate', 'get_assets']));
     expect(names).toEqual(
       expect.arrayContaining(['get_analytics', 'get_x_posts']),
     );

@@ -405,7 +405,7 @@ describe('AgentCompletionCardBuilderService', () => {
         const result = service.buildAssistantUiActions({
           reviewRequired: false,
           toolCalls: [
-            { status: 'completed', toolName: 'list_review_queue', reviewQueue },
+            { status: 'completed', toolName: 'get_review_queue', reviewQueue },
           ],
           uiActions: [],
         });
@@ -416,7 +416,7 @@ describe('AgentCompletionCardBuilderService', () => {
     it('does not infer ready items from a tool name or a review card alone', () => {
       const result = service.buildAssistantUiActions({
         reviewRequired: false,
-        toolCalls: [{ status: 'completed', toolName: 'list_review_queue' }],
+        toolCalls: [{ status: 'completed', toolName: 'get_review_queue' }],
         uiActions: [
           { id: 'review-gate', title: 'Review', type: 'review_gate_card' },
         ],
@@ -430,12 +430,12 @@ describe('AgentCompletionCardBuilderService', () => {
         toolCalls: [
           {
             status: 'completed',
-            toolName: 'list_review_queue',
+            toolName: 'get_review_queue',
             reviewQueue: { ...emptyQueue, readyCount: 3 },
           },
           {
             status: 'completed',
-            toolName: 'list_review_queue',
+            toolName: 'get_review_queue',
             reviewQueue: emptyQueue,
           },
         ],
@@ -455,7 +455,7 @@ describe('AgentCompletionCardBuilderService', () => {
           toolCalls: [
             {
               status: 'completed',
-              toolName: 'list_review_queue',
+              toolName: 'get_review_queue',
               reviewQueue: { ...emptyQueue, readyCount: 3 },
             },
             { status, toolName: 'review_turbo_items' },

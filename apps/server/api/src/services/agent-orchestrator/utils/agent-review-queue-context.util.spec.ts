@@ -11,7 +11,7 @@ const counts = {
 describe('readReviewQueueSnapshot', () => {
   it('keeps the structured queue counts', () => {
     expect(
-      readReviewQueueSnapshot('list_review_queue', {
+      readReviewQueueSnapshot('get_review_queue', {
         success: true,
         data: counts,
       }),
@@ -46,7 +46,7 @@ describe('readReviewQueueSnapshot', () => {
     'does not treat invalid counts as evidence: %s',
     (readyCount) => {
       expect(
-        readReviewQueueSnapshot('list_review_queue', {
+        readReviewQueueSnapshot('get_review_queue', {
           success: true,
           data: { ...counts, readyCount },
         }),
@@ -56,7 +56,7 @@ describe('readReviewQueueSnapshot', () => {
 
   it('ignores failed results and unrelated tools', () => {
     expect(
-      readReviewQueueSnapshot('list_review_queue', {
+      readReviewQueueSnapshot('get_review_queue', {
         success: false,
         data: counts,
       }),
@@ -65,7 +65,7 @@ describe('readReviewQueueSnapshot', () => {
       readReviewQueueSnapshot('get_posts', { success: true, data: counts }),
     ).toBeUndefined();
     expect(
-      readReviewQueueSnapshot('list_review_queue', { success: true }),
+      readReviewQueueSnapshot('get_review_queue', { success: true }),
     ).toBeUndefined();
   });
 });

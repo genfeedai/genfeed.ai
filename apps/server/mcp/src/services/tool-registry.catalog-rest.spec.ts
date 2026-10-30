@@ -16,7 +16,7 @@ const CATALOG_REST_NAMES = [
   'publish_article',
   'get_articles',
   'get_workflow_status',
-  'list_workflow_templates',
+  'get_workflow_templates',
   'get_content_analytics',
   'get_linkedin_connection_status',
   'get_linkedin_analytics',
@@ -451,7 +451,7 @@ describe('catalog REST handlers — workflows', () => {
   it('lists workflow templates with their credit cost', async () => {
     const { registry } = build();
 
-    const result = await callTool(registry, 'list_workflow_templates', {});
+    const result = await callTool(registry, 'get_workflow_templates', {});
 
     expect(result.content[0].text).toContain('Available Workflow Templates');
     expect(result.content[0].text).toContain('Digest');
@@ -469,7 +469,7 @@ describe('catalog REST handlers — workflows', () => {
       },
     ]);
 
-    const result = await callTool(registry, 'list_workflow_templates', {});
+    const result = await callTool(registry, 'get_workflow_templates', {});
 
     expect(result.content[0].text).not.toContain('Credits:');
   });
@@ -478,7 +478,7 @@ describe('catalog REST handlers — workflows', () => {
     const { client, registry } = build();
     client.listWorkflowTemplates.mockResolvedValue([]);
 
-    const result = await callTool(registry, 'list_workflow_templates', {});
+    const result = await callTool(registry, 'get_workflow_templates', {});
 
     expect(result.content[0].text).toBe('No workflow templates available.');
   });

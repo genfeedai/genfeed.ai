@@ -87,7 +87,7 @@ export const AGENT_PROACTIVE_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'List posts that are stuck: drafts nobody reviewed, drafts sent back for changes, approved drafts never scheduled, scheduled posts that passed their slot, and posts whose publish failed. Each item gives its last meaningful event (creation, review decision, scheduled time or publish attempt) and how many days ago it was. Editing or renaming a post does not count as activity. Read only; it changes nothing.',
-    name: 'list_stalled_items',
+    name: 'get_stalled_items',
     parameters: {
       properties: {
         brandId: {

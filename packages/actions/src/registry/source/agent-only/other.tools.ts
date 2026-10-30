@@ -110,7 +110,7 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'List content waiting for review. turboRunId is optional — omit it for the whole brand/workspace. Only pass a real Turbo run id from the operator or a prior result; never invent one.',
-    name: 'list_review_queue',
+    name: 'get_review_queue',
     parameters: {
       properties: {
         turboRunId: {

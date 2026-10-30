@@ -94,7 +94,7 @@ function createApi(options: { accessibleBrands: BrandRow[] }) {
             },
             success: true,
           };
-        case 'list_knowledge_sources': {
+        case 'get_knowledge_sources': {
           const sources = knowledge.get(String(scopedBrandId)) ?? [];
           return {
             creditsUsed: 0,
@@ -201,7 +201,7 @@ describe('brand-context MCP resource', () => {
     expect(scoped.map((call) => call.name)).toEqual([
       'get_brand_context',
       'get_context_coverage',
-      'list_knowledge_sources',
+      'get_knowledge_sources',
     ]);
     for (const call of scoped) {
       expect(call.context).toEqual({ brandId: 'brand-2' });

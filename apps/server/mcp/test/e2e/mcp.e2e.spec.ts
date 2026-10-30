@@ -207,11 +207,11 @@ describe('MCP server e2e', () => {
     });
   });
 
-  describe('6. list_orgs', () => {
+  describe('6. get_orgs', () => {
     it('lists every organization of the user and flags the one the token is bound to', async () => {
       const { body } = await mcp.callTool(
         E2E_TOKENS.ownerWithAdminScope,
-        'list_orgs',
+        'get_orgs',
       );
 
       const payload = JSON.stringify(body.result);

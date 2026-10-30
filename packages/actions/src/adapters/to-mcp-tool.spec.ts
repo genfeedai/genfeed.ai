@@ -57,8 +57,8 @@ const AUDITED_PRESENTATIONS = [
     },
     creditCost: 1,
     mutationPolicy: 'direct',
-    name: 'list_x_account_activity',
-    title: 'List X Account Activity',
+    name: 'get_x_account_activity',
+    title: 'Get X Account Activity',
   },
   {
     annotations: {
@@ -227,8 +227,8 @@ const AUDITED_READ_PRESENTATIONS = [
       openWorldHint: true,
       readOnlyHint: false,
     },
-    name: 'list_ads_research',
-    title: 'List Ads Research',
+    name: 'get_ads_research',
+    title: 'Get Ads Research',
   },
   {
     annotations: {
@@ -237,8 +237,8 @@ const AUDITED_READ_PRESENTATIONS = [
       openWorldHint: true,
       readOnlyHint: true,
     },
-    name: 'list_social_conversations',
-    title: 'List Social Conversations',
+    name: 'get_social_conversations',
+    title: 'Get Social Conversations',
   },
   {
     annotations: {
@@ -247,8 +247,8 @@ const AUDITED_READ_PRESENTATIONS = [
       openWorldHint: false,
       readOnlyHint: true,
     },
-    name: 'list_workflows',
-    title: 'List Workflows',
+    name: 'get_workflows',
+    title: 'Get Workflows',
   },
   {
     annotations: {
@@ -272,9 +272,9 @@ const AUDITED_READ_PRESENTATIONS = [
   },
   {
     annotations: {
-      readOnlyHint: false,
+      readOnlyHint: true,
       destructiveHint: false,
-      idempotentHint: false,
+      idempotentHint: true,
       openWorldHint: true,
     },
     name: 'get_brand_context',
@@ -337,8 +337,8 @@ const AUDITED_READ_PRESENTATIONS = [
       idempotentHint: false,
       openWorldHint: true,
     },
-    name: 'list_instagram_inspiration',
-    title: 'List Instagram Inspiration',
+    name: 'get_instagram_inspiration',
+    title: 'Get Instagram Inspiration',
   },
   {
     annotations: {
