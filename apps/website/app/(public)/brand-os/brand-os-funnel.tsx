@@ -225,7 +225,6 @@ export function BrandOsFunnel(): React.ReactElement {
         announce
         draft={preview?.draft}
         scaleRole="monument"
-        showEvidence={Boolean(preview)}
         state={state}
       />
 

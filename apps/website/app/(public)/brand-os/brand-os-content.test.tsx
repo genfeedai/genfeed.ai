@@ -88,12 +88,11 @@ describe('BrandOSContent', () => {
     );
   });
 
-  it('shows the explicit preview and review state contracts', () => {
+  it('shows the idle preview state before a source is submitted', () => {
     render(<BrandOSContent />);
 
     expect(screen.getAllByText('Waiting for a source').length).toBeGreaterThan(
       0,
     );
-    expect(screen.getByText('No silent state changes.')).toBeInTheDocument();
   });
 });
