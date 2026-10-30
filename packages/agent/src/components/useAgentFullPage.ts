@@ -31,6 +31,7 @@ import {
 } from '@genfeedai/agent/utils/plan-thread-switch-fetches';
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
 import {
+  type AgentThreadMode,
   AgentThreadStatus,
   DEFAULT_AGENT_THREAD_MODE,
   type MemberRole,
@@ -404,6 +405,19 @@ export function useAgentFullPage({
       setDraftAgentMode(listedThread?.mode ?? DEFAULT_AGENT_THREAD_MODE);
     }
 
+    // The thread response describes the mode as of when the server read it.
+    // The composer is interactive before it lands (the plan decision and the
+    // transcript render from the snapshot and the cache), so a mode picked in
+    // that window is newer than the response: applying it would put the
+    // picker back on the old mode after the PATCH succeeded.
+    const hasPickedMode = () =>
+      useAgentChatStore.getState().hasExplicitDraftAgentMode;
+    const hydrateDraftAgentMode = (mode: AgentThreadMode | undefined) => {
+      if (!hasPickedMode()) {
+        setDraftAgentMode(mode ?? DEFAULT_AGENT_THREAD_MODE);
+      }
+    };
+
     const switchStartedAt = Date.now();
     const shouldDelay = shouldDelayThreadSwitchFetch({
       debounceMs: THREAD_SWITCH_DEBOUNCE_MS,
@@ -577,7 +591,9 @@ export function useAgentFullPage({
               contextVersion: thread.contextVersion,
               id: threadId,
               organizationId: thread.organizationId,
-              mode: thread.mode,
+              mode: hasPickedMode()
+                ? (listedThread?.mode ?? thread.mode)
+                : thread.mode,
               source: thread.source,
               status: thread.status,
               title:
@@ -595,7 +611,7 @@ export function useAgentFullPage({
                 now,
               }),
             });
-            setDraftAgentMode(thread.mode ?? DEFAULT_AGENT_THREAD_MODE);
+            hydrateDraftAgentMode(thread.mode);
           })
           .catch(reportHydrationFailure);
       } else if (threadRequest) {
@@ -609,7 +625,7 @@ export function useAgentFullPage({
               parseWorkspacePlanningTaskId(thread.source),
             );
             setThreadPrompt(threadId, thread.systemPrompt ?? undefined);
-            setDraftAgentMode(thread.mode ?? DEFAULT_AGENT_THREAD_MODE);
+            hydrateDraftAgentMode(thread.mode);
           })
           .catch(reportLoadFailure);
       }
