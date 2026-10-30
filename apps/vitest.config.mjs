@@ -328,7 +328,7 @@ export default defineConfig({
         find: /^@pages\/not-found\/not-found-page$/,
         replacement: path.resolve(
           repoRoot,
-          './packages/pages/not-found/not-found-page.tsx',
+          './packages/ui/src/components/error/not-found/not-found-page.tsx',
         ),
       },
       {

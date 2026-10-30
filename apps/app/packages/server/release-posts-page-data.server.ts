@@ -16,7 +16,7 @@ import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import type {
   ReleasePostsPublicationState,
   ReleasePostsSort,
-} from '@pages/posts/list/release-posts-list-query';
+} from '@/features/posts/list/release-posts-list-query';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { logger } from '@services/core/logger.service';
 import { cache } from 'react';

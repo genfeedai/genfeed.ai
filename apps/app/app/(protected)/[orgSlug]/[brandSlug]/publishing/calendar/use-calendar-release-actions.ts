@@ -8,19 +8,19 @@ import {
   RELEASE_RESCHEDULE_ACTION,
   targetRescheduleAction,
   targetRetryAction,
-} from '@pages/posts/release/release-detail-drawer';
+} from '@/features/posts/release/release-detail-drawer';
 import {
   createReleaseMutationRunner,
   mutationErrorMessage,
-} from '@pages/posts/release/release-mutation-runner';
+} from '@/features/posts/release/release-mutation-runner';
 import {
   CALENDAR_MOVE_ACTION,
   CALENDAR_REPUBLISH_ACTION,
-} from '@pages/posts/shared/calendar-republish-dialog';
+} from '@/features/posts/shared/calendar-republish-dialog';
 import {
   isReleaseDragConfirmRequired,
   releaseTargets,
-} from '@pages/posts/shared/release-status.helpers';
+} from '@/features/posts/shared/release-status.helpers';
 import type { CalendarEventDrop } from '@props/components/calendar.props';
 import type { PendingCalendarDrop } from '@props/publisher/release-calendar.props';
 import type { CalendarReleaseActionsOptions } from '@props/publishing/content-calendar-controller.props';

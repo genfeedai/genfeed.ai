@@ -4,7 +4,7 @@ import '@testing-library/jest-dom/vitest';
 import { PageScope, Platform, PostStatus } from '@genfeedai/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import type { UsePostDetailReturn } from '@hooks/pages/use-post-detail/use-post-detail';
-import PostDetail from '@pages/posts/detail/post-detail';
+import PostDetail from '@/features/posts/detail/post-detail';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -43,11 +43,11 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mocks.push }),
 }));
 
-vi.mock('@pages/posts/detail/components/PostDetailContent', () => ({
+vi.mock('@/features/posts/detail/components/PostDetailContent', () => ({
   default: () => <article>Post body</article>,
 }));
 
-vi.mock('@pages/posts/detail/components/PostDetailHeader', () => ({
+vi.mock('@/features/posts/detail/components/PostDetailHeader', () => ({
   default: () => <header>Post header</header>,
 }));
 

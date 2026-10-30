@@ -6,7 +6,7 @@ import {
   TurboRunStatus,
 } from '@genfeedai/contracts';
 import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
-import PostDetailPanel from '@pages/posts/detail/PostDetailPanel';
+import PostDetailPanel from '@/features/posts/detail/PostDetailPanel';
 import type { ReviewQueueViewProps } from '@props/publishing/review-queue-view.props';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import CardEmpty from '@ui/card/empty/CardEmpty';

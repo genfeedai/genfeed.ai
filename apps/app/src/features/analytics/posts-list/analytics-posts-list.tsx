@@ -18,11 +18,11 @@ import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper'
 import { useTopPosts } from '@hooks/data/analytics/use-top-posts/use-top-posts';
 import { useWinnerPosts } from '@hooks/data/analytics/use-winner-posts/use-winner-posts';
 import { useClientPagination } from '@hooks/data/pagination/use-client-pagination/use-client-pagination';
-import PostDetailPanel from '@pages/posts/detail/PostDetailPanel';
+import PostDetailPanel from '@/features/posts/detail/PostDetailPanel';
 import {
   POSTS_SOURCE_EXTENSION,
   parsePostsSource,
-} from '@pages/posts/list/posts-list-query';
+} from '@/features/posts/list/posts-list-query';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import SearchField from '@ui/content/search-field/SearchField';
 import Pagination from '@ui/navigation/pagination/Pagination';

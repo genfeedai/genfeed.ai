@@ -12,11 +12,11 @@ import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCalendarWeekRange } from '@hooks/utils/use-calendar-week-range/use-calendar-week-range';
-import ReleaseDetailDrawer from '@pages/posts/release/release-detail-drawer';
+import ReleaseDetailDrawer from '@/features/posts/release/release-detail-drawer';
 import CalendarRepublishDialog, {
   CALENDAR_MOVE_ACTION,
   CALENDAR_REPUBLISH_ACTION,
-} from '@pages/posts/shared/calendar-republish-dialog';
+} from '@/features/posts/shared/calendar-republish-dialog';
 import type { CalendarViewKey } from '@props/components/calendar.props';
 import type { ReleaseCalendarFilters as ReleaseFilters } from '@props/publisher/release-calendar.props';
 import type { ContentCalendarPageProps } from '@props/publishing/content-calendar-controller.props';

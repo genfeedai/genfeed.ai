@@ -115,7 +115,6 @@ export const ALLOWLIST = {
     'apps/app/src/features/brands/components/sidebar/BrandDetailExternalLinksCard.tsx',
     'apps/app/src/features/ingredients/detail/ingredient-detail.tsx',
     'packages/pages/mission-control/components/AgentRunCard.tsx',
-    'packages/pages/not-found/not-found-page.tsx',
     'packages/pages/settings/help/settings-help-page.tsx',
     'packages/pages/settings/voice/settings-voice-page.tsx',
     'apps/app/src/features/studio/page/StudioPageContent.tsx',

@@ -7,9 +7,9 @@ import type {
   IngredientDetailVideoProps,
 } from '@props/content/ingredient.props';
 import { EnvironmentService } from '@services/core/environment.service';
-import IngredientDetailImage from '@ui/ingredients/detail-image/IngredientDetailImage';
-import IngredientDetailVideo from '@ui/ingredients/detail-video/IngredientDetailVideo';
 import { LazyModalTrim } from '@ui/lazy/modal/LazyModal';
+import IngredientDetailImage from '@/features/ingredients/detail-image/IngredientDetailImage';
+import IngredientDetailVideo from '@/features/ingredients/detail-video/IngredientDetailVideo';
 
 type Props = {
   ingredient: IIngredient;

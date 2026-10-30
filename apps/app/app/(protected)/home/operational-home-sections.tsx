@@ -27,11 +27,11 @@ import { useActivities } from '@hooks/data/activities/use-activities/use-activit
 import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';
 import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import PublishingPostHoverPreview from '@pages/posts/library/publishing-post-hover-preview';
+import PublishingPostHoverPreview from '@/features/posts/library/publishing-post-hover-preview';
 import {
   badgeVariantForTone,
   releaseStatusBadge,
-} from '@pages/posts/shared/release-status.helpers';
+} from '@/features/posts/shared/release-status.helpers';
 import type {
   NeedsYouItem,
   OperationalHomeSectionsProps,

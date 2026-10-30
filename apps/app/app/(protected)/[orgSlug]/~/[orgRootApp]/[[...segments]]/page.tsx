@@ -17,7 +17,7 @@ import {
   createOrganizationAppRoute,
   resolveLegacyLibraryRoute,
 } from '@genfeedai/contracts/constants';
-import PublishingDeskViewToggle from '@pages/posts/library/publishing-desk-view-toggle';
+import PublishingDeskViewToggle from '@/features/posts/library/publishing-desk-view-toggle';
 import type { OrgRootAppPageProps } from '@props/layout/org-root-app-page.props';
 import type { PostsListSearchParams } from '@props/publishing/publishing-list-page.props';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';

@@ -7,7 +7,7 @@ import {
   isReleaseDraggable,
   releaseStatusBadge,
   releaseTargets,
-} from '@pages/posts/shared/release-status.helpers';
+} from '@/features/posts/shared/release-status.helpers';
 import type {
   CalendarEventAction,
   CalendarEventBadge,

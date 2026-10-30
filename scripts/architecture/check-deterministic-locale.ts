@@ -213,7 +213,7 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     1,
   ),
   legacyUiAllowance(
-    'packages/pages/posts/detail/components/PostDetailCardBody.tsx',
+    'apps/app/src/features/posts/detail/components/PostDetailCardBody.tsx',
     'to-locale-string',
     1,
   ),
@@ -238,7 +238,7 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     2,
   ),
   legacyUiAllowance(
-    'packages/ui/src/components/ingredients/tabs/posts/IngredientTabsPosts.tsx',
+    'apps/app/src/features/ingredients/tabs-posts/IngredientTabsPosts.tsx',
     'to-locale-string',
     1,
   ),

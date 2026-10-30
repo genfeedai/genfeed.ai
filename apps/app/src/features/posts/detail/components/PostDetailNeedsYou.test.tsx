@@ -1,0 +1,212 @@
+import {
+  PostStatus,
+  ReviewDecision,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
+import type { IPost } from '@genfeedai/contracts/interfaces';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { describe, expect, it, vi } from 'vitest';
+import PostDetailNeedsYou from '@/features/posts/detail/components/PostDetailNeedsYou';
+import '@testing-library/jest-dom/vitest';
+
+vi.mock('next/link', () => ({
+  default: ({ children, href }: { children: ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
+}));
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) =>
+    ({
+      failedAction: 'Retry publish',
+      failedDescription: 'This post failed to publish.',
+      overdueAction: 'Publish now',
+      overdueDescription: 'The scheduled time has passed.',
+      pendingReviewAction: 'Review',
+      pendingReviewDescription: 'Awaiting review before it can publish.',
+      title: 'Needs you',
+    })[key] ?? key,
+}));
+
+function buildPost(overrides: Partial<IPost> = {}): IPost {
+  return {
+    createdAt: '2026-01-01T00:00:00.000Z',
+    id: 'post-1',
+    isDeleted: false,
+    status: 'draft',
+    targetExecutionState: TargetExecutionState.DRAFT,
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    ...overrides,
+  } as unknown as IPost;
+}
+
+describe('PostDetailNeedsYou', () => {
+  it('renders nothing when the post needs nothing from the viewer', () => {
+    const { container } = render(
+      <PostDetailNeedsYou
+        isPublished
+        onReviewHref="/review"
+        post={buildPost({
+          reviewDecision: ReviewDecision.APPROVED,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
+        })}
+      />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('surfaces Publish now when the scheduled time passes without another render', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-30T10:00:00Z'));
+    const view = render(
+      <PostDetailNeedsYou
+        isPublished={false}
+        onPublishNow={vi.fn()}
+        onReviewHref="/review"
+        post={buildPost({
+          reviewDecision: ReviewDecision.APPROVED,
+          scheduledDate: '2026-09-30T10:00:05Z',
+          targetExecutionState: TargetExecutionState.SCHEDULED,
+        })}
+      />,
+    );
+    try {
+      expect(
+        screen.queryByRole('button', { name: 'Publish now' }),
+      ).not.toBeInTheDocument();
+      act(() => {
+        vi.advanceTimersByTime(5_001);
+      });
+      expect(
+        screen.getByRole('button', { name: 'Publish now' }),
+      ).toBeInTheDocument();
+    } finally {
+      view.unmount();
+      vi.useRealTimers();
+    }
+  });
+
+  it('surfaces a failed post with a retry action', () => {
+    const onRetryPublish = vi.fn();
+    render(
+      <PostDetailNeedsYou
+        isPublished={false}
+        onRetryPublish={onRetryPublish}
+        onReviewHref="/review"
+        post={buildPost({
+          reviewDecision: ReviewDecision.APPROVED,
+          status: PostStatus.FAILED,
+          targetExecutionState: TargetExecutionState.FAILED,
+        })}
+      />,
+    );
+
+    expect(
+      screen.getByRole('heading', { name: 'Needs you' }),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('post-needs-you-row-failed')).getByText(
+        'This post failed to publish.',
+      ),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry publish' }));
+    expect(onRetryPublish).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the reason X recorded for a failed post', () => {
+    render(
+      <PostDetailNeedsYou
+        isPublished={false}
+        onRetryPublish={vi.fn()}
+        onReviewHref="/review"
+        post={buildPost({
+          status: PostStatus.FAILED,
+          targetError: {
+            code: '403',
+            isRetryable: false,
+            message:
+              'Request failed with code 403 - You are not allowed to create a Tweet with duplicate content.',
+          },
+          targetExecutionState: TargetExecutionState.FAILED,
+        })}
+      />,
+    );
+
+    expect(
+      within(screen.getByTestId('post-needs-you-row-failed')).getByText(
+        'Request failed with code 403 - You are not allowed to create a Tweet with duplicate content.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('surfaces a post with review lineage and an unset decision, linking to the review queue', () => {
+    render(
+      <PostDetailNeedsYou
+        isPublished={false}
+        onReviewHref="/publishing/approvals"
+        post={buildPost({
+          reviewTurboRunId: 'batch-1',
+          reviewDecision: ReviewDecision.UNSET,
+          targetExecutionState: TargetExecutionState.DRAFT,
+        })}
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: 'Review' })).toHaveAttribute(
+      'href',
+      '/publishing/approvals',
+    );
+  });
+
+  it('does not treat an ordinary draft with no review lineage as awaiting review', () => {
+    const { container } = render(
+      <PostDetailNeedsYou
+        isPublished={false}
+        onReviewHref="/publishing/approvals"
+        post={buildPost({
+          reviewDecision: ReviewDecision.UNSET,
+          targetExecutionState: TargetExecutionState.DRAFT,
+        })}
+      />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('does not treat a rejected draft as awaiting review, even with review lineage', () => {
+    const { container } = render(
+      <PostDetailNeedsYou
+        isPublished={false}
+        onReviewHref="/publishing/approvals"
+        post={buildPost({
+          reviewTurboRunId: 'batch-1',
+          reviewDecision: ReviewDecision.REJECTED,
+          targetExecutionState: TargetExecutionState.DRAFT,
+        })}
+      />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('surfaces an overdue scheduled post', () => {
+    const onPublishNow = vi.fn();
+    render(
+      <PostDetailNeedsYou
+        isPublished={false}
+        onPublishNow={onPublishNow}
+        onReviewHref="/review"
+        post={buildPost({
+          reviewDecision: ReviewDecision.APPROVED,
+          scheduledDate: '2020-01-01T00:00:00.000Z',
+          targetExecutionState: TargetExecutionState.SCHEDULED,
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Publish now' }));
+    expect(onPublishNow).toHaveBeenCalledTimes(1);
+  });
+});

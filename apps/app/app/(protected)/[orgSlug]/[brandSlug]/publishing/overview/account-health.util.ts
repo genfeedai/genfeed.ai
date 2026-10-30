@@ -1,5 +1,5 @@
 import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
-import { accountLabel } from '@pages/posts/grid/account-grid.helpers';
+import { accountLabel } from '@/features/posts/grid/account-grid.helpers';
 import type { PublishingOverviewHealthRow } from '@props/publisher/publishing-overview.props';
 
 const RISK_RANK: Record<PublishingOverviewHealthRow['riskLevel'], number> = {

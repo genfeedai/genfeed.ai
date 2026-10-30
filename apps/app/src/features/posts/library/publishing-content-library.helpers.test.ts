@@ -1,0 +1,289 @@
+import {
+  ArticleCategory,
+  IngredientCategory,
+  Platform,
+  PostFormat,
+  PostStatus,
+} from '@genfeedai/contracts';
+import type { IPost, IReleaseGroup } from '@genfeedai/contracts/interfaces';
+import type { Article } from '@models/content/article.model';
+import type { Newsletter } from '@models/content/newsletter.model';
+import { describe, expect, it } from 'vitest';
+import {
+  createPublishingContentLibraryItems,
+  filterPublishingContentLibraryItems,
+  formatPublishingContentFormat,
+} from '@/features/posts/library/publishing-content-library.helpers';
+
+const collections = {
+  articles: [
+    {
+      category: ArticleCategory.TUTORIAL,
+      createdAt: '2026-08-07T10:00:00.000Z',
+      id: 'article-1',
+      label: 'Launch guide',
+      status: 'PUBLISHED',
+      summary: 'A long-form launch plan',
+    } as Article,
+    {
+      category: ArticleCategory.X_ARTICLE,
+      createdAt: '2026-08-04T10:00:00.000Z',
+      id: 'article-2',
+      label: 'X field notes',
+      status: 'DRAFT',
+      summary: 'A long post for X',
+    } as Article,
+  ],
+  newsletters: [
+    {
+      createdAt: '2026-08-06T10:00:00.000Z',
+      id: 'newsletter-1',
+      label: 'Founder weekly',
+      status: 'ready_for_review',
+      summary: 'This week in operations',
+      topic: 'Operations',
+    } as Newsletter,
+  ],
+  posts: [
+    {
+      createdAt: '2026-08-08T10:00:00.000Z',
+      description: '<p>Social launch copy</p>',
+      id: 'post-1',
+      platform: Platform.INSTAGRAM,
+      status: PostStatus.SCHEDULED,
+    } as IPost,
+  ],
+};
+
+describe('publishing content library federation', () => {
+  it('normalizes all three canonical content types and sorts them newest first', () => {
+    const items = createPublishingContentLibraryItems(collections);
+
+    expect(
+      items.map(({ channel, id, status, type }) => ({
+        channel,
+        id,
+        status,
+        type,
+      })),
+    ).toEqual([
+      {
+        channel: Platform.INSTAGRAM,
+        id: 'post-1',
+        status: PostStatus.SCHEDULED,
+        type: 'post',
+      },
+      {
+        channel: 'web',
+        id: 'article-1',
+        status: 'published',
+        type: 'article',
+      },
+      {
+        channel: 'email',
+        id: 'newsletter-1',
+        status: 'ready_for_review',
+        type: 'newsletter',
+      },
+      {
+        channel: Platform.TWITTER,
+        id: 'article-2',
+        status: 'draft',
+        type: 'article',
+      },
+    ]);
+  });
+
+  it('merges publishing jobs without duplicating their post targets and keeps empty drafts', () => {
+    const releases = [
+      {
+        id: 'group-1',
+        title: 'Scheduled launch',
+        createdAt: '2026-08-09T10:00:00Z',
+        status: 'scheduled',
+        targets: [{ id: 'post-1', platform: Platform.INSTAGRAM }],
+      },
+      {
+        id: 'group-2',
+        title: 'New draft',
+        createdAt: '2026-08-10T10:00:00Z',
+        status: 'draft',
+        targets: [],
+      },
+    ] as unknown as IReleaseGroup[];
+    const items = createPublishingContentLibraryItems({
+      ...collections,
+      releases,
+    });
+    expect(items.map((item) => item.id)).not.toContain('post-1');
+    expect(
+      items.filter((item) => item.type === 'post').map((item) => item.id),
+    ).toEqual(['group-2', 'group-1']);
+  });
+
+  it('strips stored HTML out of release titles', () => {
+    const items = createPublishingContentLibraryItems({
+      articles: [],
+      newsletters: [],
+      posts: [],
+      releases: [
+        {
+          baseContent: '<p>AI content is taking over!</p>',
+          createdAt: '2026-08-11T10:00:00Z',
+          id: 'group-html',
+          status: 'paused',
+          title: '<p>AI content is taking over! Manual content...</p>',
+        } as IReleaseGroup,
+      ],
+    });
+
+    expect(items[0]?.title).toBe(
+      'AI content is taking over! Manual content...',
+    );
+    expect(items[0]?.summary).toBe('AI content is taking over!');
+  });
+
+  it('normalizes public posts to the same published status used by articles', () => {
+    const items = createPublishingContentLibraryItems({
+      ...collections,
+      posts: [{ ...collections.posts[0], status: PostStatus.PUBLIC }],
+    });
+    expect(
+      filterPublishingContentLibraryItems(items, {
+        channel: 'all',
+        search: '',
+        type: 'all',
+        status: ['published'],
+      }),
+    ).toHaveLength(2);
+  });
+
+  it('applies type, channel, lifecycle, and search filters together', () => {
+    const items = createPublishingContentLibraryItems(collections);
+
+    expect(
+      filterPublishingContentLibraryItems(items, {
+        channel: 'web',
+        search: 'launch',
+        status: 'published',
+        type: 'article',
+      }).map((item) => item.id),
+    ).toEqual(['article-1']);
+
+    expect(
+      filterPublishingContentLibraryItems(items, {
+        channel: 'email',
+        search: 'instagram',
+        status: 'ready_for_review',
+        type: 'newsletter',
+      }),
+    ).toEqual([]);
+  });
+
+  it('filters by a connected account id', () => {
+    const items = createPublishingContentLibraryItems(collections).map(
+      (item, index) =>
+        index === 0
+          ? {
+              ...item,
+              accounts: [
+                {
+                  id: 'cred-1',
+                  label: '@genfeedai',
+                  platform: 'twitter',
+                },
+              ],
+            }
+          : item,
+    );
+
+    expect(
+      filterPublishingContentLibraryItems(items, {
+        channel: 'account:cred-1',
+        search: '',
+        status: [],
+        type: 'all',
+      }).map((item) => item.id),
+    ).toEqual([items[0]?.id]);
+  });
+
+  it('tags only non-plain formats and leaves plain posts untagged', () => {
+    const items = createPublishingContentLibraryItems({
+      articles: collections.articles,
+      newsletters: collections.newsletters,
+      posts: [
+        {
+          createdAt: '2026-08-08T10:00:00.000Z',
+          description: 'Plain',
+          format: PostFormat.STANDARD,
+          id: 'plain',
+          platform: Platform.TWITTER,
+        },
+        {
+          createdAt: '2026-08-08T09:00:00.000Z',
+          description: 'Thread',
+          format: PostFormat.THREAD,
+          id: 'thread',
+          platform: Platform.TWITTER,
+        },
+        {
+          createdAt: '2026-08-08T08:00:00.000Z',
+          description: 'Long',
+          format: PostFormat.LONG_FORM,
+          id: 'long',
+          platform: Platform.TWITTER,
+        },
+        {
+          createdAt: '2026-08-08T07:00:00.000Z',
+          description: 'Clip',
+          id: 'clip',
+          ingredients: [{ category: IngredientCategory.VIDEO }],
+          platform: Platform.INSTAGRAM,
+        },
+      ] as unknown as IPost[],
+    });
+    const formats = Object.fromEntries(
+      items.map((item) => [item.id, item.format]),
+    );
+
+    expect(formats).toMatchObject({
+      'article-1': 'article',
+      clip: 'video',
+      long: 'long-post',
+      'newsletter-1': 'newsletter',
+      thread: 'thread',
+    });
+    expect(formats.plain).toBeUndefined();
+    expect(formatPublishingContentFormat('long-post')).toBe('Long post');
+  });
+
+  it('carries the target account of a post for the avatar stack', () => {
+    const items = createPublishingContentLibraryItems({
+      articles: [],
+      newsletters: [],
+      posts: [
+        {
+          createdAt: '2026-08-08T10:00:00.000Z',
+          credential: {
+            externalAvatar: 'https://cdn.example/avatar.png',
+            externalHandle: 'acme',
+            id: 'cred-1',
+            platform: Platform.TWITTER,
+          },
+          description: 'Hello',
+          id: 'post-1',
+          platform: Platform.TWITTER,
+        },
+      ] as unknown as IPost[],
+    });
+
+    expect(items[0]?.accounts).toEqual([
+      {
+        avatarUrl: 'https://cdn.example/avatar.png',
+        id: 'cred-1',
+        label: 'acme',
+        platform: Platform.TWITTER,
+      },
+    ]);
+  });
+});

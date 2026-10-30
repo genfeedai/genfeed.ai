@@ -315,11 +315,11 @@ vi.mock('./release-calendar-filters', async (importOriginal) => {
 });
 
 vi.mock(
-  '@pages/posts/release/release-detail-drawer',
+  '@/features/posts/release/release-detail-drawer',
   async (importOriginal) => {
     const actual =
       await importOriginal<
-        typeof import('@pages/posts/release/release-detail-drawer')
+        typeof import('@/features/posts/release/release-detail-drawer')
       >();
 
     return {

@@ -11,7 +11,7 @@ import {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Post } from '@models/content/post.model';
-import PostDetailPanel from '@pages/posts/detail/PostDetailPanel';
+import PostDetailPanel from '@/features/posts/detail/PostDetailPanel';
 import { logger } from '@services/core/logger.service';
 import { BrandsService } from '@services/social/brands.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';

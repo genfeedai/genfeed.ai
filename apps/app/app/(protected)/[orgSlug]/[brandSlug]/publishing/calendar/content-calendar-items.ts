@@ -3,8 +3,8 @@ import {
   filterPublishingContentLibraryItems,
   parsePublishingContentType,
   publishingContentTitle,
-} from '@pages/posts/library/publishing-content-library.helpers';
-import { releaseScheduledInstant } from '@pages/posts/shared/release-status.helpers';
+} from '@/features/posts/library/publishing-content-library.helpers';
+import { releaseScheduledInstant } from '@/features/posts/shared/release-status.helpers';
 import type { ContentCalendarItemsOptions } from '@props/publishing/content-calendar-controller.props';
 import type {
   ArticleContentCalendarItem,
