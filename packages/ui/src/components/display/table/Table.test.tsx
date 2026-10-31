@@ -788,6 +788,15 @@ describe('Table', () => {
       );
     }
 
+    it('does not underline a multi-line name cell when its link is hovered', () => {
+      renderSidebarTable({ withLink: true });
+
+      const link = screen.getByRole('link', { name: 'Open First item' });
+
+      expect(link).toHaveClass('no-underline');
+      expect(link.className).not.toContain('hover:underline');
+    });
+
     it('opens the right sidebar when a row is clicked', () => {
       renderSidebarTable({ withLink: false });
       expect(screen.queryByText('Detail of First item')).toBeNull();

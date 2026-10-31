@@ -73,7 +73,7 @@ function TableCellContent<T>({
   const primary = nameLink ? (
     <Link
       aria-label={nameLink.label}
-      className="hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       href={nameLink.href}
     >
       {content}
