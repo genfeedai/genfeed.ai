@@ -6,7 +6,10 @@ import {
   nestedSettingsRecord,
   readObjectRecord,
 } from '@api/collections/users/controllers/users-relationships.helpers';
-import { buildUserSearchWhere } from '@api/collections/users/controllers/users-search.helpers';
+import {
+  buildUserOrderBy,
+  buildUserSearchWhere,
+} from '@api/collections/users/controllers/users-search.helpers';
 import { AdminUpdateUserProfileDto } from '@api/collections/users/dto/admin-update-user-profile.dto';
 import { CreateAvatarUploadDto } from '@api/collections/users/dto/create-avatar-upload.dto';
 import { RecordSignupAttributionDto } from '@api/collections/users/dto/record-signup-attribution.dto';
@@ -34,7 +37,6 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { SubscriptionStatus } from '@genfeedai/contracts';
@@ -152,7 +154,7 @@ export class UsersController {
     const data = await this.usersService.findAll(
       {
         include: { signupAttribution: true },
-        orderBy: handleQuerySort(query.sort),
+        orderBy: buildUserOrderBy(query.sort),
         where: { isDeleted, ...buildUserSearchWhere(query.search) },
       },
       options,

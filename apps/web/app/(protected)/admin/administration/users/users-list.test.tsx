@@ -253,7 +253,7 @@ describe('UsersList', () => {
     render(<UsersList />);
 
     const options = mocks.useQuery.mock.calls[0]?.[0];
-    expect(options.queryKey).toEqual(['admin-users', 2, '']);
+    expect(options.queryKey).toEqual(['admin-users', 2, '', undefined]);
     await options.queryFn();
     expect(mocks.findAll).toHaveBeenCalledWith({ limit: 15, page: 2 });
     expect(
@@ -267,13 +267,42 @@ describe('UsersList', () => {
     render(<UsersList />);
 
     const options = mocks.useQuery.mock.calls[0]?.[0];
-    expect(options.queryKey).toEqual(['admin-users', 2, 'jane']);
+    expect(options.queryKey).toEqual(['admin-users', 2, 'jane', undefined]);
     await options.queryFn();
     expect(mocks.findAll).toHaveBeenCalledWith({
       limit: 15,
       page: 2,
       search: 'jane',
     });
+  });
+
+  it.each([
+    ['lastActiveAt', 'lastActiveAt: 1'],
+    ['-email', 'email: -1'],
+    ['-name', 'name: -1'],
+    ['createdAt', 'createdAt: 1'],
+  ])('sorts the request by ?sort=%s', async (urlSort, apiSort) => {
+    mocks.query.value = `page=2&sort=${urlSort}`;
+    mocks.findAll.mockResolvedValue([regularUser]);
+    render(<UsersList />);
+
+    const options = mocks.useQuery.mock.calls[0]?.[0];
+    expect(options.queryKey).toEqual(['admin-users', 2, '', apiSort]);
+    await options.queryFn();
+    expect(mocks.findAll).toHaveBeenCalledWith({
+      limit: 15,
+      page: 2,
+      sort: apiSort,
+    });
+  });
+
+  it('ignores a sort column the API cannot order by', async () => {
+    mocks.query.value = 'page=2&sort=-platformRole';
+    mocks.findAll.mockResolvedValue([regularUser]);
+    render(<UsersList />);
+
+    await mocks.useQuery.mock.calls[0]?.[0].queryFn();
+    expect(mocks.findAll).toHaveBeenCalledWith({ limit: 15, page: 2 });
   });
 
   it('offers Impersonate only for non-superadmin users', () => {

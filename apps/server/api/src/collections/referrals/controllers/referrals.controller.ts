@@ -97,6 +97,7 @@ export class ReferralsController {
     @Query('page') rawPage?: string,
     @Query('status') rawStatus?: ReferralRewardStatus,
     @Query('search') rawSearch?: string,
+    @Query('sort') rawSort?: string,
   ) {
     const limit = parsePaginationValue(
       rawLimit,
@@ -116,6 +117,7 @@ export class ReferralsController {
       limit,
       page,
       ...(search ? { search } : {}),
+      ...(typeof rawSort === 'string' && rawSort ? { sort: rawSort } : {}),
       ...(status ? { status } : {}),
     });
     return serializeCollection(request, ReferralAdminRewardSerializer, {

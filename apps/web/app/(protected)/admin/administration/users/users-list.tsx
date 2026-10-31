@@ -19,11 +19,14 @@ import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 import { useImpersonateUser } from './use-impersonate-user';
 import UserAvatar from './user-avatar';
 import UserDetailPanel from './user-detail-panel';
 import { EMPTY_VALUE, getUserDisplayName } from './user-display.helpers';
 import UserEmail from './user-email';
+
+const USER_SORT_KEYS = ['name', 'email', 'createdAt', 'lastActiveAt'];
 
 function formatUserDate(value: string | Date | null | undefined): string {
   return formatDate(value, DATE_FORMATS.DISPLAY_DATETIME) || EMPTY_VALUE;
@@ -35,6 +38,9 @@ export default function UsersList() {
   const impersonateUser = useImpersonateUser();
   const currentPage = Number(useSearchParams().get('page')) || 1;
   const { search, setSearch } = useAdminSearchParam();
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: USER_SORT_KEYS,
+  });
   const getUsersService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
   );
@@ -46,13 +52,14 @@ export default function UsersList() {
     error: usersError,
     refetch,
   } = useQuery<IUser[]>({
-    queryKey: ['admin-users', currentPage, search],
+    queryKey: ['admin-users', currentPage, search, sort],
     queryFn: async () => {
       const service = await getUsersService();
       return service.findAll({
         limit: ITEMS_PER_PAGE,
         page: currentPage,
         ...(search ? { search } : {}),
+        ...(sort ? { sort } : {}),
       });
     },
   });
@@ -73,6 +80,7 @@ export default function UsersList() {
     {
       header: translate('columns.name'),
       key: 'name',
+      sortable: true,
       render: (u: IUser) => (
         <NextLink
           aria-label={getUserDisplayName(u) ?? u.email}
@@ -89,16 +97,19 @@ export default function UsersList() {
     {
       header: translate('columns.email'),
       key: 'email',
+      sortable: true,
       render: (u: IUser) => <UserEmail email={u.email} />,
     },
     {
       header: translate('columns.joined'),
       key: 'createdAt',
+      sortable: true,
       render: (u: IUser) => formatUserDate(u.createdAt),
     },
     {
       header: translate('columns.lastConnected'),
       key: 'lastActiveAt',
+      sortable: true,
       render: (u: IUser) => formatUserDate(u.lastActiveAt),
     },
   ];
@@ -137,6 +148,9 @@ export default function UsersList() {
         isLoading={isLoading}
         columns={columns}
         actions={actions}
+        onSortChange={onSortChange}
+        sortDirection={sortDirection}
+        sortKey={sortKey}
         getRowKey={(u) => u.id}
         rowSidebar={{
           getId: (u) => u.id,
@@ -148,7 +162,7 @@ export default function UsersList() {
               user={u}
               onUpdated={(updated) => {
                 queryClient.setQueryData<IUser[]>(
-                  ['admin-users', currentPage, search],
+                  ['admin-users', currentPage, search, sort],
                   (current) =>
                     current?.map((item) =>
                       item.id === updated.id ? updated : item,

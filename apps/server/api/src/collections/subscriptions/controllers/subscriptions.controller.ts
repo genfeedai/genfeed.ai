@@ -286,6 +286,7 @@ export class SubscriptionsController {
             limit,
             page,
             search: query.search,
+            sort: query.sort,
           }),
       );
 

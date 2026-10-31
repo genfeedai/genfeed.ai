@@ -28,9 +28,14 @@ import { useEffect, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
 import { LazyModalSubscription } from '@/features/admin/lazy/lazy-modal.admin';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 import CreditHoldsPanel from './credit-holds-panel';
 
 const EMPTY_CELL = '-';
+
+// Plan, status, balance and usage are assembled from other tables after the
+// page is read, so only the organization's own columns can order the list.
+const SUBSCRIPTION_SORT_KEYS = ['organizationName', 'ownerEmail'];
 
 function getOrganizationHref(row: IOrganizationBilling): string {
   return `${APP_ROUTES.ADMIN.ORGANIZATIONS}/${row.organizationId}`;
@@ -73,6 +78,9 @@ export default function SubscriptionsList() {
   const clipboardService = ClipboardService.getInstance();
   const currentPage = Number(useSearchParams().get('page')) || 1;
   const { search, setSearch } = useAdminSearchParam();
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: SUBSCRIPTION_SORT_KEYS,
+  });
 
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
   const [holdsOrganization, setHoldsOrganization] =
@@ -85,13 +93,14 @@ export default function SubscriptionsList() {
     error: billingError,
     refetch,
   } = useQuery({
-    queryKey: ['admin-subscriptions', currentPage, search],
+    queryKey: ['admin-subscriptions', currentPage, search, sort],
     queryFn: async () => {
       const service = await getSubscriptionsService();
       return service.getAdminBilling({
         limit: ITEMS_PER_PAGE,
         page: currentPage,
         ...(search ? { search } : {}),
+        ...(sort ? { sort } : {}),
       });
     },
   });
@@ -120,11 +129,13 @@ export default function SubscriptionsList() {
     {
       header: t('columnOrganization'),
       key: 'organizationName',
+      sortable: true,
       render: (row: IOrganizationBilling) => row.organizationName,
     },
     {
       header: t('columnOwner'),
       key: 'ownerEmail',
+      sortable: true,
       render: (row: IOrganizationBilling) => row.ownerEmail ?? EMPTY_CELL,
     },
     {
@@ -304,6 +315,9 @@ export default function SubscriptionsList() {
         isLoading={isLoading}
         columns={columns}
         actions={actions}
+        onSortChange={onSortChange}
+        sortDirection={sortDirection}
+        sortKey={sortKey}
         getRowKey={(row) => row.organizationId}
         getRowLink={(row) => ({
           href: getOrganizationHref(row),

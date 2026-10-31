@@ -72,6 +72,7 @@ export class SubscriptionsService extends BaseService<Subscription> {
     limit: number;
     page: number;
     search?: string;
+    sort?: string;
   }): Promise<OrganizationBillingResponse> {
     const res = await this.instance.get<OrganizationBillingResponse>(
       'admin/billing',

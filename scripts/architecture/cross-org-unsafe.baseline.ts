@@ -319,7 +319,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // organizations.
     {
       file: 'apps/server/api/src/collections/referrals/services/referrals.service.ts',
-      line: 274,
+      line: 275,
     },
     // #6120: short codes are globally unique; public redirects resolve without
     // an organization.
@@ -473,7 +473,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // and wallets.
     {
       file: 'apps/server/api/src/collections/subscriptions/controllers/subscriptions.controller.ts',
-      line: 311,
+      line: 312,
     },
     // #6120: a granted reference lives in the owning organization; used only
     // when grantedOwners.has(id).

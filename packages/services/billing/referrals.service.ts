@@ -38,7 +38,7 @@ export class ReferralsService extends BaseService<ReferralProgram> {
   }
 
   public async getAdminRewards(
-    query: { limit: number; page: number; search?: string } = {
+    query: { limit: number; page: number; search?: string; sort?: string } = {
       limit: 15,
       page: 1,
     },
