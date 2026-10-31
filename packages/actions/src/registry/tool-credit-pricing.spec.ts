@@ -108,6 +108,7 @@ describe('tool credit pricing', () => {
     'generate_turbo_content',
     'run_clipper',
     'start_remix_generation',
+    'replace_storyboard_character',
     'create_scheduled_release',
     'update_scheduled_release',
     'control_scheduled_release',

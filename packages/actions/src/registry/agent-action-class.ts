@@ -188,6 +188,7 @@ const MCP_APPROVAL_POSTING_TOOL_NAMES = new Set<string>(['publish_article']);
 const MCP_APPROVAL_GENERATION_TOOL_NAMES = new Set<string>([
   'control_remix_generation',
   'create_clipper_project_from_youtube',
+  'replace_storyboard_character',
   'start_remix_generation',
 ]);
 
