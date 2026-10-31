@@ -112,6 +112,7 @@ describe('AnalyticsAdminController', () => {
       2,
       20,
       'engagement',
+      undefined,
     );
     expect(serializeSingle).toHaveBeenCalledWith(
       request,

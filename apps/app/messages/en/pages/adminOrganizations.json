@@ -7,5 +7,11 @@
   "settingsLoadError": "Failed to load organization settings. Please try again.",
   "releaseAccessColumn": "Release access",
   "releaseAccessLink": "Open",
-  "releaseAccessLinkLabel": "Open release access for {name}"
+  "releaseAccessLinkLabel": "Open release access for {name}",
+  "ownerColumn": "Owner",
+  "searchLabel": "Search organizations",
+  "searchPlaceholder": "Search organizations...",
+  "emptySearch": "No organizations match your search",
+  "ownerLinkLabel": "Open user {name}",
+  "noOwner": "—"
 }

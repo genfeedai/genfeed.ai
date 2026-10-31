@@ -1,6 +1,9 @@
 'use client';
 
-import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
+import {
+  useAnalyticsContext,
+  useAnalyticsSearch,
+} from '@contexts/analytics/analytics-context';
 import {
   AnalyticsMetric,
   ButtonSize,
@@ -9,6 +12,7 @@ import {
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { formatPercentageSimple } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
 import type { TableColumn } from '@props/ui/display/table.props';
 import {
   AnalyticsService,
@@ -17,16 +21,19 @@ import {
 } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
+import SearchField from '@ui/content/search-field/SearchField';
 import AppTable from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
+import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import { format } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AnalyticsOrganizationsListProps } from '@/features/admin/props/analytics.props';
+
+const SEARCH_DEBOUNCE_MS = 300;
 
 export default function AnalyticsOrganizationsList({
   getReleaseAccessHref,
@@ -35,7 +42,8 @@ export default function AnalyticsOrganizationsList({
   const rowSidebarT = useTranslations('ui.rowSidebar');
   const fieldsT = useTranslations('ui.rowSidebar.fields');
   const analyticsT = useTranslations('ui.rowSidebar.analytics');
-  const { dateRange, refreshTrigger, setToolbarNode } = useAnalyticsContext();
+  const { dateRange, filters, refreshTrigger, setFilter } =
+    useAnalyticsContext();
 
   const getAnalyticsService = useAuthedService((token: string) =>
     AnalyticsService.getInstance(token),
@@ -48,36 +56,58 @@ export default function AnalyticsOrganizationsList({
   >(AnalyticsMetric.ENGAGEMENT);
 
   const isLoading = data === null;
+  const searchTerm = filters.query ?? '';
+  // The API searches, so a keystroke must not cost a request.
+  const debouncedSearchTerm = useDebounce(searchTerm, SEARCH_DEBOUNCE_MS);
 
-  const fetchData = useCallback(async () => {
+  // `refreshTrigger` is the refresh button's nonce: pressing it refetches.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see above
+  useEffect(() => {
     if (!dateRange.startDate || !dateRange.endDate) {
       return;
     }
 
-    try {
-      const service = await getAnalyticsService();
-      const response = await service.getOrganizationsWithStats({
-        endDate: format(dateRange.endDate, 'yyyy-MM-dd'),
-        limit: ITEMS_PER_PAGE,
-        page,
-        sort,
-        startDate: format(dateRange.startDate, 'yyyy-MM-dd'),
-      });
-      setData(response);
-    } catch (error) {
-      logger.error('Failed to fetch organizations', error);
-    }
-  }, [getAnalyticsService, dateRange, page, sort]);
+    const controller = new AbortController();
+    const fetchData = async () => {
+      try {
+        const service = await getAnalyticsService();
+        const response = await service.getOrganizationsWithStats(
+          {
+            endDate: format(dateRange.endDate as Date, 'yyyy-MM-dd'),
+            limit: ITEMS_PER_PAGE,
+            page,
+            ...(debouncedSearchTerm ? { search: debouncedSearchTerm } : {}),
+            sort,
+            startDate: format(dateRange.startDate as Date, 'yyyy-MM-dd'),
+          },
+          controller.signal,
+        );
+        if (!controller.signal.aborted) {
+          setData(response);
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          logger.error('Failed to fetch organizations', error);
+        }
+      }
+    };
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    void fetchData();
+    return () => controller.abort();
+  }, [
+    getAnalyticsService,
+    dateRange,
+    page,
+    sort,
+    debouncedSearchTerm,
+    refreshTrigger,
+  ]);
 
+  // A new search can leave the page past the last page of the new result set.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset on search only
   useEffect(() => {
-    if (refreshTrigger > 0) {
-      fetchData();
-    }
-  }, [refreshTrigger, fetchData]);
+    setPage(1);
+  }, [debouncedSearchTerm]);
 
   const handleSortChange = useCallback((value: string) => {
     setSort(
@@ -89,36 +119,41 @@ export default function AnalyticsOrganizationsList({
     setPage(1);
   }, []);
 
-  const toolbar = useMemo(
+  const search = useMemo(
     () => (
-      <FilterMenu
-        facets={[
-          {
-            defaultValue: AnalyticsMetric.ENGAGEMENT,
-            // Sort orders the list, it does not narrow it.
-            isCounted: false,
-            key: 'sort',
-            label: 'Sort by',
-            onChange: handleSortChange,
-            options: [
-              { label: 'Engagement', value: AnalyticsMetric.ENGAGEMENT },
-              { label: 'Views', value: AnalyticsMetric.VIEWS },
-              { label: 'Posts', value: AnalyticsMetric.POSTS },
-            ],
-            selection: 'single',
-            value: sort,
-          },
-        ]}
-        onClear={() => handleSortChange(AnalyticsMetric.ENGAGEMENT)}
-      />
+      <SearchField
+        ariaLabel={translate('searchLabel')}
+        onChange={(event) => setFilter('query', event.target.value)}
+        placeholder={translate('searchPlaceholder')}
+        value={searchTerm}
+      >
+        <FilterMenu
+          facets={[
+            {
+              defaultValue: AnalyticsMetric.ENGAGEMENT,
+              // Sort orders the list, it does not narrow it.
+              isCounted: false,
+              key: 'sort',
+              label: 'Sort by',
+              onChange: handleSortChange,
+              options: [
+                { label: 'Engagement', value: AnalyticsMetric.ENGAGEMENT },
+                { label: 'Views', value: AnalyticsMetric.VIEWS },
+                { label: 'Posts', value: AnalyticsMetric.POSTS },
+              ],
+              selection: 'single',
+              value: sort,
+            },
+          ]}
+          isAttached
+          onClear={() => handleSortChange(AnalyticsMetric.ENGAGEMENT)}
+        />
+      </SearchField>
     ),
-    [sort, handleSortChange],
+    [searchTerm, setFilter, sort, handleSortChange, translate],
   );
 
-  useEffect(() => {
-    setToolbarNode(toolbar);
-    return () => setToolbarNode(null);
-  }, [setToolbarNode, toolbar]);
+  useAnalyticsSearch(search);
 
   const orgs = data?.data || [];
   const pagination = data?.pagination;
@@ -133,22 +168,41 @@ export default function AnalyticsOrganizationsList({
             href={`${APP_ROUTES.ADMIN.ORGANIZATIONS}/${org.id}`}
             className="flex items-center gap-3 hover:text-primary"
           >
-            {org.logo ? (
-              <Image
-                src={org.logo}
-                alt={org.name || 'Organization'}
-                width={32}
-                height={32}
-                className="size-8 rounded-full object-cover outline-media"
-              />
-            ) : (
-              <div className="size-8 rounded-full bg-muted flex items-center justify-center text-sm font-medium">
+            <Avatar className="size-8">
+              {org.logo ? (
+                <AvatarImage alt={org.name || 'Organization'} src={org.logo} />
+              ) : null}
+              <AvatarFallback className="text-sm font-medium">
                 {(org.name || 'U').charAt(0).toUpperCase()}
-              </div>
-            )}
+              </AvatarFallback>
+            </Avatar>
             <span className="font-medium">{org.name || 'Unknown'}</span>
           </Link>
         ),
+      },
+      {
+        header: translate('ownerColumn'),
+        key: 'owner',
+        render: (org) =>
+          org.owner ? (
+            <Link
+              aria-label={translate('ownerLinkLabel', { name: org.owner.name })}
+              className="flex items-center gap-2 hover:text-primary"
+              href={`${APP_ROUTES.ADMIN.ADMINISTRATION.USERS}/${org.owner.id}`}
+            >
+              <Avatar className="size-6">
+                {org.owner.avatar ? (
+                  <AvatarImage alt={org.owner.name} src={org.owner.avatar} />
+                ) : null}
+                <AvatarFallback className="text-2xs font-semibold">
+                  {org.owner.name.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="truncate">{org.owner.name}</span>
+            </Link>
+          ) : (
+            <span className="text-foreground/40">{translate('noOwner')}</span>
+          ),
       },
       {
         className: 'text-right',
@@ -247,7 +301,9 @@ export default function AnalyticsOrganizationsList({
         isLoading={isLoading}
         columns={columns}
         getRowKey={(org) => org.id}
-        emptyLabel="No organizations found"
+        emptyLabel={
+          searchTerm ? translate('emptySearch') : 'No organizations found'
+        }
         rowSidebar={{
           getId: (org) => org.id,
           getSubtitle: (org) =>

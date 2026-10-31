@@ -6,6 +6,7 @@
  */
 
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { OrganizationLogoService } from '@api/collections/organizations/services/organization-logo.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { LeaderboardSort } from '@api/endpoints/analytics/dto/leaderboard-query.dto';
 import {
@@ -19,7 +20,10 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import type { IEntityAnalyticsStats } from '@genfeedai/contracts/interfaces';
+import type {
+  IEntityAnalyticsStats,
+  IOrganizationOwner,
+} from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -70,6 +74,7 @@ export class EntityLeaderboardService {
     private readonly prisma: PrismaService,
     private readonly organizationsService: OrganizationsService,
     private readonly brandsService: BrandsService,
+    private readonly organizationLogoService: OrganizationLogoService,
     _loggerService: LoggerService,
   ) {}
 
@@ -594,6 +599,55 @@ export class EntityLeaderboardService {
     );
   }
 
+  /**
+   * The owning user of each organization (`organizations.userId`), one read for
+   * the page. Display name falls back to email, then handle, so a row never
+   * renders an empty link.
+   */
+  private async resolveOwnersByUserId(
+    userIds: string[],
+  ): Promise<Map<string, IOrganizationOwner>> {
+    const ids = [...new Set(userIds.filter(Boolean))];
+    if (ids.length === 0) {
+      return new Map();
+    }
+
+    const users = await this.prisma.user.findMany({
+      select: {
+        avatar: true,
+        email: true,
+        firstName: true,
+        handle: true,
+        id: true,
+        lastName: true,
+        name: true,
+      },
+      where: { id: { in: ids } },
+    });
+
+    return new Map(
+      users.map((user) => {
+        const splitName = [user.firstName, user.lastName]
+          .filter(Boolean)
+          .join(' ');
+        return [
+          user.id,
+          {
+            avatar: user.avatar ?? undefined,
+            email: user.email ?? undefined,
+            id: user.id,
+            name:
+              user.name?.trim() ||
+              splitName ||
+              user.email ||
+              user.handle ||
+              'Unknown',
+          },
+        ];
+      }),
+    );
+  }
+
   /** Shape a database-paged result into the paginated payload */
   private buildPaginationSlice<TItem>(
     data: TItem[],
@@ -690,23 +744,33 @@ export class EntityLeaderboardService {
     page: number = 1,
     limit: number = 20,
     sort: LeaderboardSort = LeaderboardSort.ENGAGEMENT,
+    search?: string,
   ): Promise<PaginatedOrgsResponse> {
     const range = DateRangeUtil.parseDateRange(startDateStr, endDateStr);
+    // The name search runs in the same query that ranks and pages, and in the
+    // count, so every page and the total reflect the same filtered set.
+    const needle = search?.trim() || undefined;
     const [rows, total] = await Promise.all([
       this.loadRankedEntitiesWithStats<OrganizationDoc>(
         'organization',
         range,
         sort,
         { limit, offset: (page - 1) * limit },
+        { search: needle },
       ),
-      this.countEntities('organization', {}),
+      this.countEntities('organization', { search: needle }),
     ]);
 
     const organizationIds = rows.map(({ entity }) => entity.id);
-    const [brandCountMap, memberCountMap] = await Promise.all([
-      this.countBrandsByOrganization(organizationIds),
-      this.countMembersByOrganization(organizationIds),
-    ]);
+    const [brandCountMap, memberCountMap, logoUrlMap, ownerMap] =
+      await Promise.all([
+        this.countBrandsByOrganization(organizationIds),
+        this.countMembersByOrganization(organizationIds),
+        this.organizationLogoService.resolveLogoUrls(organizationIds),
+        this.resolveOwnersByUserId(
+          rows.flatMap(({ entity }) => (entity.userId ? [entity.userId] : [])),
+        ),
+      ]);
 
     const data = rows.map(
       ({ entity, prevEngagement, stats }) =>
@@ -714,8 +778,13 @@ export class EntityLeaderboardService {
           avgEngagementRate: stats.avgEngagementRate,
           growth: this.calculateGrowth(stats.totalEngagement, prevEngagement),
           id: entity.id,
-          logo: entity.authProviderLogoUrl ?? undefined,
+          // The organization's own logo asset, then the auth provider's.
+          logo:
+            logoUrlMap.get(entity.id) ??
+            entity.authProviderLogoUrl ??
+            undefined,
           name: entity.label || entity.name || 'Unknown',
+          owner: entity.userId ? ownerMap.get(entity.userId) : undefined,
           totalBrands: brandCountMap.get(entity.id) || 0,
           totalEngagement: stats.totalEngagement,
           totalMembers: memberCountMap.get(entity.id) || 0,
