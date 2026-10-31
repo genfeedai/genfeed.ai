@@ -29,7 +29,9 @@ describe('Admin organizations routes', () => {
     const detail = read('[id]/organization-detail-page.tsx');
     const landing = read('admin-organizations-landing.tsx');
 
-    expect(settings).toContain('<OrganizationDetailPage activeTab="settings" />');
+    expect(settings).toContain(
+      '<OrganizationDetailPage activeTab="settings" />',
+    );
     expect(settings).not.toMatch(/await\s+(params|searchParams)/);
     expect(detail).toContain('/settings`');
     expect(detail).not.toContain('tab=settings');
