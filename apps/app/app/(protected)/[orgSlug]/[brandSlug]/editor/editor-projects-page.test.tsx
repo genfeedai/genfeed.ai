@@ -128,14 +128,17 @@ vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
     label,
+    leading,
     right,
   }: {
     children?: ReactNode;
     label?: string;
+    leading?: ReactNode;
     right?: ReactNode;
   }) => (
     <main>
       <h1>{label}</h1>
+      {leading}
       {right}
       {children}
     </main>
@@ -220,6 +223,40 @@ describe('EditorProjectsPage', () => {
     expect(
       screen.getByRole('navigation', { name: 'pagination' }),
     ).toBeVisible();
+  });
+
+  it('searches projects on the server with the term in the URL', async () => {
+    mocks.searchParams = new URLSearchParams('q=launch');
+    mocks.findAll.mockResolvedValue([
+      {
+        id: 'project-1',
+        name: 'Launch cut',
+        status: 'draft',
+        tracks: [],
+        updatedAt: '2026-10-01T12:00:00Z',
+      },
+    ]);
+    render(<EditorProjectsPage />);
+
+    expect(await screen.findAllByText('Launch cut')).not.toHaveLength(0);
+    expect(mocks.findAll).toHaveBeenCalledWith(
+      { limit: ITEMS_PER_PAGE, page: 1, search: 'launch' },
+      expect.any(AbortSignal),
+    );
+    expect(
+      screen.getByRole('textbox', { name: 'Search projects' }),
+    ).toHaveValue('launch');
+  });
+
+  it('says nothing matched instead of offering a first project', async () => {
+    mocks.searchParams = new URLSearchParams('q=zzz');
+    mocks.findAll.mockResolvedValue([]);
+    render(<EditorProjectsPage />);
+
+    expect(
+      await screen.findByText('No projects match your search.'),
+    ).toBeVisible();
+    expect(screen.queryByText('Create Your First Project')).toBeNull();
   });
 
   it('loads video editor projects and deletes a project from the list', async () => {

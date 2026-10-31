@@ -6,6 +6,7 @@
   "deleteFailed": "Failed to delete project",
   "editor": "Editor",
   "emptyDescription": "Start a new video editing project to arrange clips on a timeline, add audio tracks, and apply effects. Your generated videos from the Studio can be imported directly.",
+  "emptySearch": "No projects match your search.",
   "emptyTitle": "Create Your First Project",
   "hoursAgo": "{count}h ago",
   "inspector": "Inspector",
@@ -24,6 +25,7 @@
   "renameFailed": "Failed to rename project",
   "renameTitle": "Rename project",
   "save": "Save",
+  "search": "Search projects",
   "startNewProject": "Start New Project",
   "toolbar": {
     "redo": "Redo",

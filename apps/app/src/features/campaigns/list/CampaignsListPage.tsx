@@ -15,7 +15,9 @@ import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-c
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TableColumn, TableRowLink } from '@props/ui/display/table.props';
 import type { Campaign } from '@services/content/campaigns.service';
+import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
+import SearchField from '@ui/content/search-field/SearchField';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
@@ -57,9 +59,11 @@ export default function CampaignsListPage({
   const status = parseCampaignStatusFilter(searchParams?.get('status'));
   const parsedPage = Number.parseInt(searchParams?.get('page') ?? '1', 10);
   const page = Number.isFinite(parsedPage) ? Math.max(1, parsedPage) : 1;
+  const { search, setSearch } = useAdminSearchParam();
   const { campaigns, isLoading, isError, refetch, total, totalPages } =
     useCampaigns({
       page,
+      search,
       status,
     });
   const brandLabels = useMemo(() => {
@@ -188,24 +192,32 @@ export default function CampaignsListPage({
     <Container
       icon={Flag}
       label={translate('title')}
+      leading={
+        <SearchField
+          ariaLabel={translate('search')}
+          onSearch={setSearch}
+          placeholder={translate('search')}
+          value={search}
+        >
+          <FilterMenu
+            facets={[
+              {
+                defaultValue: 'all',
+                key: 'status',
+                label: translate('statusFilter'),
+                onChange: replaceStatus,
+                options: CAMPAIGN_STATUS_FILTERS,
+                selection: 'single',
+                value: status ?? 'all',
+              },
+            ]}
+            isAttached
+            onClear={() => replaceStatus('all')}
+          />
+        </SearchField>
+      }
       right={
         <SubbarControls
-          filters={
-            <FilterMenu
-              facets={[
-                {
-                  defaultValue: 'all',
-                  key: 'status',
-                  label: translate('statusFilter'),
-                  onChange: replaceStatus,
-                  options: CAMPAIGN_STATUS_FILTERS,
-                  selection: 'single',
-                  value: status ?? 'all',
-                },
-              ]}
-              onClear={() => replaceStatus('all')}
-            />
-          }
           primaryAction={
             <Button
               onClick={() => setIsCreating(true)}
@@ -242,7 +254,9 @@ export default function CampaignsListPage({
         emptyLabel={
           status === ContentCampaignStatus.ARCHIVED
             ? translate('emptyArchived')
-            : translate('empty')
+            : search
+              ? translate('emptySearch')
+              : translate('empty')
         }
         getRowKey={(campaign) => campaign.id}
         getRowLink={getRowLink}

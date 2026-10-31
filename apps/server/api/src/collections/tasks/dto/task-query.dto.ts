@@ -93,6 +93,15 @@ export class TaskQueryDto extends BaseQueryDto {
   reviewState?: string;
 
   @IsOptional()
+  @IsString()
+  @ApiProperty({
+    description:
+      'Case-insensitive search over the task title, description and identifier',
+    required: false,
+  })
+  search?: string;
+
+  @IsOptional()
   @IsEnum(['all', 'inbox', 'in_progress'])
   @ApiProperty({
     description: 'Preset view filter',

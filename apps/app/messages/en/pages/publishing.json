@@ -45,6 +45,8 @@
     "editDescription": "Update the campaign name, brief, and dates.",
     "editTitle": "Edit campaign",
     "empty": "No campaigns yet. Create one to group posts across channels.",
+    "emptySearch": "No campaigns match your search.",
+    "search": "Search campaigns",
     "emptyActivations": "No paid activations yet.",
     "emptyArchived": "No archived campaigns.",
     "emptyBrief": "No brief yet.",

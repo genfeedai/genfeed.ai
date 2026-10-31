@@ -21,7 +21,7 @@ const mockCampaigns = [
   },
 ];
 
-const mockUseCampaigns = vi.fn(() => ({
+const mockUseCampaigns = vi.fn((_options?: { search?: string }) => ({
   campaigns: mockCampaigns,
   isLoading: false,
   totalPages: 1,
@@ -32,9 +32,10 @@ const mockPageScope = vi.hoisted(() => ({
 }));
 
 const mockReplace = vi.hoisted(() => vi.fn());
+const mockSearchParams = vi.hoisted(() => ({ current: '' }));
 
 vi.mock('@/features/campaigns/hooks/use-campaigns', () => ({
-  useCampaigns: () => mockUseCampaigns(),
+  useCampaigns: (options?: { search?: string }) => mockUseCampaigns(options),
 }));
 
 vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
@@ -59,7 +60,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 vi.mock('next/navigation', () => ({
   usePathname: () => '/acme/demo/publishing/campaigns',
   useRouter: () => ({ replace: mockReplace }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => new URLSearchParams(mockSearchParams.current),
 }));
 
 vi.mock('next-intl', () => ({
@@ -70,14 +71,17 @@ vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
     label,
+    leading,
     right,
   }: {
     children: ReactNode;
     label: string;
+    leading?: ReactNode;
     right?: ReactNode;
   }) => (
     <section>
       <h1>{label}</h1>
+      {leading}
       {right}
       {children}
     </section>
@@ -172,6 +176,7 @@ vi.mock('@ui/primitives/button', () => ({
 describe('CampaignsListPage', () => {
   beforeEach(() => {
     mockReplace.mockReset();
+    mockSearchParams.current = '';
     mockPageScope.current = 'brand';
     mockUseCampaigns.mockReturnValue({
       campaigns: mockCampaigns,
@@ -228,5 +233,29 @@ describe('CampaignsListPage', () => {
       '/acme/demo/publishing/campaigns?page=3',
       { scroll: false },
     );
+  });
+
+  it('searches campaigns by the term in the URL', () => {
+    mockSearchParams.current = 'q=autumn';
+    render(<CampaignsListPage />);
+
+    expect(mockUseCampaigns).toHaveBeenCalledWith(
+      expect.objectContaining({ search: 'autumn' }),
+    );
+    expect(screen.getByRole('textbox', { name: 'search' })).toHaveValue(
+      'autumn',
+    );
+  });
+
+  it('says nothing matched when a search finds no campaigns', () => {
+    mockSearchParams.current = 'q=zzz';
+    mockUseCampaigns.mockReturnValue({
+      campaigns: [],
+      isLoading: false,
+      totalPages: 1,
+    });
+    render(<CampaignsListPage />);
+
+    expect(screen.getByText('emptySearch')).toBeInTheDocument();
   });
 });

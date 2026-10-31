@@ -20,6 +20,7 @@ import { useQuery } from '@tanstack/react-query';
 export interface UseCampaignsOptions {
   includeArchived?: boolean;
   page?: number;
+  search?: string;
   status?: ContentCampaignStatus | string;
 }
 
@@ -48,6 +49,7 @@ export function useCampaigns(options: UseCampaignsOptions = {}) {
     ...(includeArchived === undefined ? {} : { includeArchived }),
     limit: ITEMS_PER_PAGE,
     page,
+    ...(options.search ? { search: options.search } : {}),
     ...(options.status ? { status: options.status } : {}),
   };
 
@@ -72,6 +74,7 @@ export function useCampaigns(options: UseCampaignsOptions = {}) {
       pageScope,
       options.status ?? null,
       includeArchived ?? null,
+      options.search ?? null,
       page,
     ],
   });

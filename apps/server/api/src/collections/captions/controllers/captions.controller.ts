@@ -17,6 +17,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
@@ -86,6 +87,13 @@ export class CaptionsController {
     if (query.format) {
       matchConditions.format = query.format;
     }
+
+    Object.assign(
+      matchConditions,
+      buildSearchWhere(query.search, {
+        columns: ['content', 'format', 'language'],
+      }),
+    );
 
     const aggregate = { where: matchConditions, orderBy: { createdAt: -1 } };
 
