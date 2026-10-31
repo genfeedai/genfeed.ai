@@ -1,5 +1,6 @@
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
+import { InternalCallers } from '@api/helpers/guards/admin-api-key/internal-callers.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { PlatformSettingSerializer } from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
@@ -16,6 +17,7 @@ import type { Request } from 'express';
 @Controller('internal/platform-runtime-settings')
 @Public()
 @UseGuards(AdminApiKeyGuard)
+@InternalCallers('files', 'notifications')
 export class NotificationRuntimeSettingsController {
   constructor(private readonly settings: PlatformSettingsService) {}
 

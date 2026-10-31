@@ -4,6 +4,6 @@ import { ConfigService } from '@notifications/config/config.service';
 @Injectable()
 export class NotificationRuntimeSettingsService extends PlatformRuntimeSettingsClient {
   constructor(config: ConfigService) {
-    super(config);
+    super(config, 'notifications');
   }
 }

@@ -28,7 +28,7 @@ describe('dynamic platform runtime settings client', () => {
     vi.mocked(safeFetch)
       .mockResolvedValueOnce(response('one@example.com'))
       .mockResolvedValueOnce(response('two@example.com'));
-    const client = new PlatformRuntimeSettingsClient(config);
+    const client = new PlatformRuntimeSettingsClient(config, 'notifications');
     expect(
       (await Promise.all([client.get(), client.get()])).map(
         (value) => value.emailFromAddress,
@@ -50,7 +50,7 @@ describe('dynamic platform runtime settings client', () => {
   });
   it('fails closed after expiry, sanitizes errors, and retries after recovery', async () => {
     vi.useFakeTimers();
-    const client = new PlatformRuntimeSettingsClient(config);
+    const client = new PlatformRuntimeSettingsClient(config, 'notifications');
     vi.mocked(safeFetch).mockResolvedValueOnce(response('one@example.com'));
     await client.get();
     vi.advanceTimersByTime(15001);
@@ -60,5 +60,27 @@ describe('dynamic platform runtime settings client', () => {
     );
     vi.mocked(safeFetch).mockResolvedValueOnce(response('two@example.com'));
     expect((await client.get()).emailFromAddress).toBe('two@example.com');
+  });
+  it("authenticates with the caller's own key when it has one", async () => {
+    vi.mocked(safeFetch).mockResolvedValueOnce(response('one@example.com'));
+    const client = new PlatformRuntimeSettingsClient(
+      {
+        get: (key: string) =>
+          ({
+            GENFEEDAI_API_KEY: 'deployment-secret',
+            GENFEEDAI_API_KEY_FILES: 'files-secret',
+            GENFEEDAI_API_URL: 'http://api.internal/v1',
+          })[key],
+      },
+      'files',
+    );
+    await client.get();
+    expect(safeFetch).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        headers: { Authorization: 'Bearer files-secret' },
+      }),
+      expect.anything(),
+    );
   });
 });

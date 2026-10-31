@@ -4,6 +4,6 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class FileRuntimeSettingsService extends PlatformRuntimeSettingsClient {
   constructor(config: ConfigService) {
-    super(config);
+    super(config, 'files');
   }
 }

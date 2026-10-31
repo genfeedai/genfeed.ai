@@ -1,4 +1,5 @@
 import { createServiceConfig, type IEnvConfig } from '@genfeedai/config';
+import { resolveInternalCallerKey } from '@libs/auth/internal-caller-keys';
 import { Injectable } from '@nestjs/common';
 import Joi from 'joi';
 
@@ -21,6 +22,7 @@ export class ConfigService extends createServiceConfig<IEnvConfig>({
     // and the getters below already supply working fallbacks. Tightening them
     // here would turn a soft misconfiguration into a boot failure.
     GENFEEDAI_API_KEY: Joi.string().optional().allow(''),
+    GENFEEDAI_API_KEY_SLACK: Joi.string().optional().allow(''),
     GENFEEDAI_API_URL: Joi.string().optional().allow(''),
     PORT: Joi.number().default(3018),
   },
@@ -30,6 +32,6 @@ export class ConfigService extends createServiceConfig<IEnvConfig>({
   }
 
   get API_KEY(): string {
-    return this.get('GENFEEDAI_API_KEY') || '';
+    return resolveInternalCallerKey((key) => this.get(key), 'slack');
   }
 }

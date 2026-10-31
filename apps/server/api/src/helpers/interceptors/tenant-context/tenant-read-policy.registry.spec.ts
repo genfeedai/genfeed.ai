@@ -487,6 +487,7 @@ describe('four internal machine route authorization boundaries', () => {
       const keyGuard = new AdminApiKeyGuard(
         { get: () => 'synthetic-internal-key' } as unknown as ConfigService,
         logger,
+        reflector,
       );
       expect(keyGuard.canActivate(context)).toBe(true);
       for (const authorization of [

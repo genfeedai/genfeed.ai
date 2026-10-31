@@ -1,5 +1,10 @@
 import { parsePlatformFeatureSettings } from '@genfeedai/contracts/constants';
 import type { IPlatformFeatureSettings } from '@genfeedai/contracts/interfaces';
+import {
+  type InternalCaller,
+  type InternalCallerKeyReader,
+  resolveInternalCallerKey,
+} from '@libs/auth/internal-caller-keys';
 import { safeFetch } from '@libs/security/destination-guard';
 import { ServiceUnavailableException } from '@nestjs/common';
 
@@ -12,8 +17,11 @@ export class PlatformRuntimeSettingsClient {
 
   constructor(
     private readonly config: {
-      get(key: 'GENFEEDAI_API_URL' | 'GENFEEDAI_API_KEY'): string | undefined;
+      get(
+        key: 'GENFEEDAI_API_URL' | Parameters<InternalCallerKeyReader>[0],
+      ): string | undefined;
     },
+    private readonly caller: InternalCaller,
   ) {}
 
   async get(): Promise<IPlatformFeatureSettings> {
@@ -28,7 +36,10 @@ export class PlatformRuntimeSettingsClient {
   private async load(): Promise<IPlatformFeatureSettings> {
     try {
       const endpoint = this.config.get('GENFEEDAI_API_URL')?.trim();
-      const key = this.config.get('GENFEEDAI_API_KEY')?.trim();
+      const key = resolveInternalCallerKey(
+        (name) => this.config.get(name),
+        this.caller,
+      );
       if (!endpoint || !key) throw new Error('Missing internal configuration');
       const base = new URL(endpoint.endsWith('/') ? endpoint : `${endpoint}/`);
       // GENFEEDAI_API_URL can include /v1; resolve against the service origin.
