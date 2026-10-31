@@ -3,12 +3,6 @@ import { render } from '@testing-library/react';
 import MasonryBrandLogo from '@ui/masonry/shared/MasonryBrandLogo';
 import { describe, expect, it } from 'vitest';
 
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({ children, ...props }: { children: React.ReactNode }) => (
-    <button {...props}>{children}</button>
-  ),
-}));
-
 const mockIngredient: IIngredient = {
   brand: 'brand-123',
   brandLogoUrl: 'https://example.com/logo.png',

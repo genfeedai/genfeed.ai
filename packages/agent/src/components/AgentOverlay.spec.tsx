@@ -1,5 +1,4 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 const mockUsePathname = vi.fn();
@@ -10,27 +9,6 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@genfeedai/agent/components/AgentPanel', () => ({
   AgentPanel: () => <div data-testid="agent-panel-mock" />,
-}));
-
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: function MockButton(props: {
-    ariaLabel?: string;
-    children?: ReactNode;
-    className?: string;
-    onClick?: () => void;
-    withWrapper?: boolean;
-  }) {
-    return (
-      <button
-        type="button"
-        aria-label={props.ariaLabel}
-        className={props.className}
-        onClick={props.onClick}
-      >
-        {props.children}
-      </button>
-    );
-  },
 }));
 
 import { AgentOverlay } from '@genfeedai/agent/components/AgentOverlay';

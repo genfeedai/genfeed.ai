@@ -12,8 +12,7 @@ packages/components/command-palette/
 │   ├── use-command-palette-dialog.ts # DOM helpers for dialog lifecycle
 │   └── *.test.tsx files
 ├── command-palette-item/             # Individual row component with tests
-├── command-palette-initializer/      # Default/admin command registration hooks
-└── brand-commands-provider/          # Registers per-brand shortcuts
+└── command-palette-initializer/      # Default/admin command registration hooks
 ```
 
 All exported surfaces have colocated specs, mirroring the button architecture for easier maintenance.
@@ -150,20 +149,6 @@ registerCommand({
   },
 });
 ```
-
-### Brand Switching Commands
-
-Use `BrandCommandsProvider` to automatically register a command per available brand:
-
-```tsx
-import { BrandCommandsProvider } from '@components/command-palette';
-
-function Layout({ brands, selectedBrandId }: Props) {
-  return <BrandCommandsProvider brands={brands} brandId={selectedBrandId} />;
-}
-```
-
-The provider uses `useBrandCommands` and the `useBrandSwitchHandler` hook internally, keeps the current brand highlighted, and removes the commands when the component unmounts.
 
 ## Command Properties
 

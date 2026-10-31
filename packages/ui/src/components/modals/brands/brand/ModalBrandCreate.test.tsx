@@ -1,6 +1,5 @@
 import { LinkCategory } from '@genfeedai/contracts';
 import type { ModalBrandCreateProps } from '@genfeedai/props/modals/modal.props';
-import type { BaseButtonProps } from '@genfeedai/props/ui/forms/button.props';
 import type { AlertProps } from '@genfeedai/props/ui/ui.props';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import ModalBrandCreate from '@ui/modals/brands/brand/ModalBrandCreate';
@@ -53,29 +52,6 @@ vi.mock('next/navigation', () => ({
   useParams: () => ({
     orgSlug: 'acme-org',
   }),
-}));
-
-vi.mock('@ui/buttons/base/Button', () => ({
-  __esModule: true,
-  default: ({
-    label,
-    children,
-    onClick,
-    isDisabled,
-    isLoading,
-    ariaLabel,
-    ...props
-  }: BaseButtonProps) => (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={isDisabled || isLoading}
-      aria-label={ariaLabel}
-      {...props}
-    >
-      {label || children}
-    </button>
-  ),
 }));
 
 vi.mock('@ui/primitives/field', () => ({

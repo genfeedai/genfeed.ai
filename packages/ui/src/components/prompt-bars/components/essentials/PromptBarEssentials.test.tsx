@@ -2,52 +2,7 @@ import '@testing-library/jest-dom/vitest';
 import { IngredientCategory, IngredientFormat } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import PromptBarEssentials from '@ui/prompt-bars/components/essentials/PromptBarEssentials';
-import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({
-    ariaLabel,
-    children,
-    icon,
-    isDisabled,
-    isLoading,
-    label,
-    onClick,
-    tooltip,
-    tooltipPosition,
-    variant,
-    withWrapper,
-    wrapperClassName,
-    textTransform,
-    ...props
-  }: {
-    ariaLabel?: string;
-    children?: ReactNode;
-    icon?: ReactNode;
-    isDisabled?: boolean;
-    isLoading?: boolean;
-    label?: string;
-    onClick?: () => void;
-    textTransform?: string;
-    tooltip?: string;
-    tooltipPosition?: string;
-    variant?: string;
-    withWrapper?: boolean;
-    wrapperClassName?: string;
-  }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={isDisabled || isLoading}
-      aria-label={ariaLabel}
-      {...props}
-    >
-      {icon}
-      {children ?? label}
-    </button>
-  ),
-}));
 
 const promptEditorProps: { extraExtensions?: unknown } = {};
 

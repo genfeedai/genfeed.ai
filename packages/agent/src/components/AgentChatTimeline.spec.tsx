@@ -8,19 +8,6 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: function MockButton(props: {
-    children?: ReactNode;
-    onClick?: () => void;
-  }) {
-    return (
-      <button type="button" onClick={props.onClick}>
-        {props.children}
-      </button>
-    );
-  },
-}));
-
 vi.mock('@ui/primitives/button', () => ({
   Button: function MockPrimitiveButton(props: {
     children?: ReactNode;

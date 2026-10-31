@@ -178,20 +178,6 @@ vi.mock('@ui/audio/preview-player/AudioPreviewPlayer', () => ({
   ),
 }));
 
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({
-    children,
-    onClick,
-  }: {
-    children: ReactNode;
-    onClick?: () => void;
-  }) => (
-    <button type="button" onClick={onClick}>
-      {children}
-    </button>
-  ),
-}));
-
 vi.mock('@ui/card/Card', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));

@@ -52,11 +52,3 @@ export interface BadgeProps {
    */
   status?: string;
 }
-
-export interface BadgeQuotaProps {
-  currentCount: number;
-  dailyLimit: number;
-  platform?: string;
-  size?: ComponentSize.SM | ComponentSize.MD | ComponentSize.LG;
-  showLabel?: boolean;
-}

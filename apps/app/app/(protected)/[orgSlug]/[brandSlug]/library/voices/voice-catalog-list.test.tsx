@@ -3,7 +3,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import type { Voice } from '@models/ingredients/voice.model';
-import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import VoiceCatalogList from './voice-catalog-list';
 
@@ -21,22 +20,6 @@ vi.mock('next-intl', async () => {
     },
   };
 });
-
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({
-    children,
-    isDisabled,
-    onClick,
-  }: {
-    children: ReactNode;
-    isDisabled?: boolean;
-    onClick?: () => void;
-  }) => (
-    <button disabled={isDisabled} onClick={onClick} type="button">
-      {children}
-    </button>
-  ),
-}));
 
 describe('VoiceCatalogList', () => {
   it('renders the filtered empty state and both actions', () => {

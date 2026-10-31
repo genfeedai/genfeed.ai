@@ -85,28 +85,6 @@ vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
   }),
 }));
 
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: function MockButton(props: {
-    ariaLabel?: string;
-    children?: ReactNode;
-    className?: string;
-    isDisabled?: boolean;
-    onClick?: () => void | Promise<void>;
-  }) {
-    return (
-      <button
-        type="button"
-        aria-label={props.ariaLabel}
-        className={props.className}
-        disabled={props.isDisabled}
-        onClick={props.onClick}
-      >
-        {props.children}
-      </button>
-    );
-  },
-}));
-
 vi.mock('@ui/feedback/alert/Alert', () => ({
   default: function MockAlert(props: { children?: ReactNode }) {
     return <div>{props.children}</div>;

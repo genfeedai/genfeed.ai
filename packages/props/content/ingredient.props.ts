@@ -168,18 +168,6 @@ export interface IngredientTabsCaptionsProps {
   onReload?: () => void;
 }
 
-export interface IngredientChildrenManagerProps {
-  ingredient: IIngredient;
-  onChildrenChange?: (children: string[]) => void;
-  isDisabled?: boolean;
-}
-
-export interface IngredientParentsManagerProps {
-  ingredient: IIngredient;
-  onParentsChange?: (parents: string[]) => void;
-  isDisabled?: boolean;
-}
-
 /**
  * Ingredient detail page props (Next.js page component)
  */

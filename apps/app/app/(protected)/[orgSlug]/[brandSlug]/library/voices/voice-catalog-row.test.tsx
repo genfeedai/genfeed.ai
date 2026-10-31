@@ -47,29 +47,6 @@ vi.mock('@ui/audio/preview-player/AudioPreviewPlayer', () => ({
   }) => <div>{`${label}:${audioUrl ?? 'no-preview'}`}</div>,
 }));
 
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({
-    ariaLabel,
-    children,
-    isDisabled,
-    onClick,
-  }: {
-    ariaLabel?: string;
-    children: ReactNode;
-    isDisabled?: boolean;
-    onClick?: () => void;
-  }) => (
-    <button
-      aria-label={ariaLabel}
-      disabled={isDisabled}
-      onClick={onClick}
-      type="button"
-    >
-      {children}
-    </button>
-  ),
-}));
-
 vi.mock('@ui/display/badge/Badge', () => ({
   default: ({
     children,

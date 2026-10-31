@@ -1,5 +1,5 @@
 import type { IAudio, IMusic, IVoice } from '@genfeedai/contracts/interfaces';
-import type { Dispatch, MouseEvent, ReactNode, SetStateAction } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 
 type SoundIngredient = IMusic | IVoice | IAudio;
 
@@ -22,13 +22,4 @@ export interface ListRowSoundProps {
   stats?: ReactNode;
   subtitle?: ReactNode;
   title?: ReactNode;
-}
-
-export interface ListProps {
-  label: string;
-  ingredients: IMusic[] | IVoice[] | IAudio[];
-  className?: string;
-  selectedId: string;
-  setIngredients: Dispatch<SetStateAction<IMusic[] | IVoice[] | IAudio[]>>;
-  onConfirm?: (id: string) => void;
 }

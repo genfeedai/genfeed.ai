@@ -22,20 +22,6 @@ vi.mock('@ui/navigation/pagination/Pagination', () => ({
   ),
 }));
 
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({
-    label,
-    onClick,
-    isDisabled,
-  }: import('react').ComponentProps<
-    typeof import('@ui/buttons/base/Button').default
-  >) => (
-    <button onClick={onClick} disabled={isDisabled}>
-      {label}
-    </button>
-  ),
-}));
-
 vi.mock('@genfeedai/services/content/pages.service', () => ({
   PagesService: {
     getCurrentPage: () => 1,

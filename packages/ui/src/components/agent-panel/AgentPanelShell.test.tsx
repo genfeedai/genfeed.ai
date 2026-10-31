@@ -6,22 +6,6 @@ import { describe, expect, it, vi } from 'vitest';
 import AgentPanelShell from './AgentPanelShell';
 
 // Mock Button — avoids deep @genfeedai/contracts + CVA dependency chain
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({
-    children,
-    onClick,
-    ariaLabel,
-  }: {
-    children: React.ReactNode;
-    onClick?: () => void;
-    ariaLabel?: string;
-  }) => (
-    <button type="button" onClick={onClick} aria-label={ariaLabel}>
-      {children}
-    </button>
-  ),
-}));
-
 vi.mock('lucide-react', () => ({
   Maximize2: () => <span data-testid="icon-expand" />,
   Sparkles: () => <span data-testid="icon-sparkles" />,

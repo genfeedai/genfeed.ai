@@ -12,15 +12,6 @@ vi.mock('react-hook-form', () => ({
   useWatch: () => 'test text',
 }));
 
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({
-    children,
-    onClick,
-  }: import('react').ComponentProps<
-    typeof import('@ui/buttons/base/Button').default
-  >) => <button onClick={onClick}>{children}</button>,
-}));
-
 const promptEditorProps: { extraExtensions?: unknown } = {};
 
 vi.mock('@ui/prompt-editor/PromptEditor', () => ({

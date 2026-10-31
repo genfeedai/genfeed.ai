@@ -6,19 +6,10 @@ import {
 } from '@genfeedai/contexts/ui/prompt-bar-internal-context';
 import { IngredientFormat } from '@genfeedai/contracts';
 import type { PromptBarFrameControlsProps } from '@genfeedai/props/studio/prompt-bar.props';
-import type { BaseButtonProps } from '@genfeedai/props/ui/forms/button.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import PromptBarFrameControls from '@ui/prompt-bars/components/frame-controls/PromptBarFrameControls';
 import type { UseFormReturn } from 'react-hook-form';
 import { describe, expect, it, vi } from 'vitest';
-
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({ icon, label, onClick, ...props }: BaseButtonProps) => (
-    <button type="button" onClick={onClick} {...props}>
-      {label ?? icon}
-    </button>
-  ),
-}));
 
 describe('PromptBarFrameControls', () => {
   const mockForm: UseFormReturn<PromptTextareaSchema> = {

@@ -321,22 +321,6 @@ vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
   ),
 }));
 
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({
-    ariaLabel,
-    children,
-    onClick,
-  }: {
-    ariaLabel?: string;
-    children?: ReactNode;
-    onClick?: () => void;
-  }) => (
-    <button aria-label={ariaLabel} onClick={onClick} type="button">
-      {children}
-    </button>
-  ),
-}));
-
 vi.mock('@ui/display/badge/Badge', () => ({
   default: ({ children }: { children?: ReactNode }) => <span>{children}</span>,
 }));

@@ -1,4 +1,3 @@
-import type { VideoTransition } from '@genfeedai/contracts';
 import type {
   BrandRemixDraftEdits,
   BrandRemixRunView,
@@ -47,17 +46,6 @@ export interface StoryboardWorkspaceReference {
 export interface StoryboardReferencesPanelProps {
   readonly references: readonly StoryboardWorkspaceReference[];
   readonly actions?: ReactNode;
-}
-
-export interface TransitionSelectorProps {
-  value?: VideoTransition;
-  onChange: (value: VideoTransition | undefined) => void;
-  label?: string;
-  placeholder?: string;
-  isDisabled?: boolean;
-  className?: string;
-  dropdownDirection?: 'up' | 'down' | 'left' | 'right';
-  isFullWidth?: boolean;
 }
 
 /** Scene-pipeline commands a storyboard run exposes to its shot editor. */

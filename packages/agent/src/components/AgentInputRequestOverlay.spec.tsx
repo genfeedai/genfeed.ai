@@ -7,7 +7,6 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-intl', async () => {
@@ -16,28 +15,6 @@ vi.mock('next-intl', async () => {
   );
   return { useTranslations: translateFromCatalog };
 });
-
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: function MockButton(props: {
-    ariaLabel?: string;
-    children?: ReactNode;
-    className?: string;
-    isDisabled?: boolean;
-    onClick?: () => void | Promise<void>;
-  }) {
-    return (
-      <button
-        type="button"
-        aria-label={props.ariaLabel}
-        className={props.className}
-        disabled={props.isDisabled}
-        onClick={props.onClick}
-      >
-        {props.children}
-      </button>
-    );
-  },
-}));
 
 function makeRequest(
   overrides: Partial<AgentInputRequest> = {},

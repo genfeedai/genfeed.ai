@@ -1,5 +1,3 @@
-import type { ReactNode } from 'react';
-
 export type PromptGeneratorMode = 'idea' | 'variation';
 export type PromptGeneratorMedia = 'image' | 'video';
 export type PromptGeneratorFormat = 'portrait' | 'landscape' | 'square';
@@ -31,16 +29,6 @@ export interface PromptGeneratorInputProps {
   onStyleHintChange?: (hint: string) => void;
 }
 
-export interface GeneratedPromptCardProps {
-  prompt: GeneratedPrompt;
-  targetMedia: PromptGeneratorMedia;
-  onQuickGenerate: (prompt: GeneratedPrompt, type: 'image' | 'video') => void;
-  onCustomize: (prompt: GeneratedPrompt, type: 'image' | 'video') => void;
-  onReject: (promptId: string) => void;
-  isGenerating?: boolean;
-  generatingType?: 'image' | 'video' | null;
-}
-
 export interface PromptGeneratorPageState {
   mode: PromptGeneratorMode;
   inputText: string;
@@ -63,9 +51,4 @@ export interface GeneratePromptsRequest {
 
 export interface GeneratePromptsResponse {
   prompts: GeneratedPrompt[];
-}
-
-export interface PromptMetadataTagProps {
-  icon: ReactNode;
-  label: string;
 }

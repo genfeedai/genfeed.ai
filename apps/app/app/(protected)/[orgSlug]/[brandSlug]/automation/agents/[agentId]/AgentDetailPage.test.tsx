@@ -170,12 +170,6 @@ vi.mock('@ui/kpi/kpi-section/KPISection', () => ({
   default: ({ title }: { title: string }) => <div>{title}</div>,
 }));
 
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({ label }: { label: ReactNode }) => (
-    <button type="button">{label}</button>
-  ),
-}));
-
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
     asChild,

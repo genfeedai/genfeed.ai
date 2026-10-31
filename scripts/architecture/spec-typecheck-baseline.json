@@ -5329,30 +5329,6 @@
       "workspace": "hooks"
     },
     {
-      "code": 2345,
-      "count": 1,
-      "file": "packages/hooks/automation/use-workflow-builder/use-workflow-builder.test.ts",
-      "fingerprint": "d8ca52c4cd08ecc6b758",
-      "message": "Argument of type '{ source: string; target: string; }' is not assignable to parameter of type 'Connection'.   Type '{ source: string; target: string; }' is missing the following properties from type 'Connection': sourceHandle, targetHandle",
-      "workspace": "hooks"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "packages/hooks/automation/use-workflow-builder/use-workflow-builder.test.ts",
-      "fingerprint": "b092c23047829e603436",
-      "message": "Conversion of type '{ data: { config: {}; inputVariableKeys: never[]; label: string; }; id: string; position: { x: number; y: number; }; type: string; }' to type 'WorkflowVisualNode' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Types of property 'data' are incompatible.     Property 'nodeType' is missing in type '{ config: {}; inputVariableKeys: never[]; label: string; }' but required in type 'WorkflowNodeData'.",
-      "workspace": "hooks"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "packages/hooks/commands/use-brand-commands/use-brand-commands.test.ts",
-      "fingerprint": "761f698e8922fc89f793",
-      "message": "Conversion of type '{ id: string; name: string; }[]' to type 'Brand[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Object literal may only specify known properties, and 'name' does not exist in type 'Brand'.",
-      "workspace": "hooks"
-    },
-    {
       "code": 2322,
       "count": 1,
       "file": "packages/hooks/commands/use-default-commands-registration/use-default-commands-registration.test.ts",
@@ -5475,22 +5451,6 @@
     {
       "code": 2339,
       "count": 1,
-      "file": "packages/hooks/data/tags/use-tags/use-tags.test.ts",
-      "fingerprint": "a9570d9fbab3266f346b",
-      "message": "Property 'COMPETITOR' does not exist on type 'typeof TagCategory'.",
-      "workspace": "hooks"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "packages/hooks/data/tags/use-tags/use-tags.test.ts",
-      "fingerprint": "c7cebc241b65cdac99fb",
-      "message": "Property 'COMPETITOR' does not exist on type 'typeof TagCategory'.",
-      "workspace": "hooks"
-    },
-    {
-      "code": 2339,
-      "count": 1,
       "file": "packages/hooks/feature-flags/provider/FeatureFlagProvider.test.tsx",
       "fingerprint": "6906da37452d38bdd3e3",
       "message": "Property 'toHaveTextContent' does not exist on type 'Assertion<void, HTMLElement>'.",
@@ -5517,14 +5477,6 @@
       "count": 1,
       "file": "packages/hooks/feature-flags/use-feature-flag/use-feature-flag.test.ts",
       "fingerprint": "566db3fb25ae980a4ca6",
-      "message": "No overload matches this call.   The last overload gave the following error.     Argument of type '{ defaults: Record<string, unknown> | undefined; }' is not assignable to parameter of type 'Attributes & FeatureFlagProviderProps'.       Property 'children' is missing in type '{ defaults: Record<string, unknown> | undefined; }' but required in type 'FeatureFlagProviderProps'.",
-      "workspace": "hooks"
-    },
-    {
-      "code": 2769,
-      "count": 1,
-      "file": "packages/hooks/feature-flags/use-feature-value/use-feature-value.test.ts",
-      "fingerprint": "1e51b0430c6871ee5673",
       "message": "No overload matches this call.   The last overload gave the following error.     Argument of type '{ defaults: Record<string, unknown> | undefined; }' is not assignable to parameter of type 'Attributes & FeatureFlagProviderProps'.       Property 'children' is missing in type '{ defaults: Record<string, unknown> | undefined; }' but required in type 'FeatureFlagProviderProps'.",
       "workspace": "hooks"
     },
@@ -5889,14 +5841,6 @@
       "workspace": "hooks"
     },
     {
-      "code": 2352,
-      "count": 1,
-      "file": "packages/hooks/ui/ingredient/use-ingredient-tags/use-ingredient-tags.test.ts",
-      "fingerprint": "5cedd8f5e9bae6a761ea",
-      "message": "Conversion of type '{ id: string; tags: never[]; }' to type 'IIngredient' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ id: string; tags: never[]; }' is missing the following properties from type 'IIngredient': category, status, user, organization, and 11 more.",
-      "workspace": "hooks"
-    },
-    {
       "code": 2322,
       "count": 1,
       "file": "packages/hooks/ui/use-command-palette/use-command-palette.test.ts",
@@ -6010,74 +5954,10 @@
     },
     {
       "code": 2339,
-      "count": 1,
-      "file": "packages/hooks/ui/use-modal-state/use-modal-state.test.ts",
-      "fingerprint": "0259ebcbe3a03d424613",
-      "message": "Property 'CREATE_BRAND' does not exist on type 'typeof ModalEnum'.",
-      "workspace": "hooks"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "packages/hooks/ui/use-modal-state/use-modal-state.test.ts",
-      "fingerprint": "1cf0fe81b8cf93cbbf30",
-      "message": "Property 'CREATE_BRAND' does not exist on type 'typeof ModalEnum'.",
-      "workspace": "hooks"
-    },
-    {
-      "code": 2339,
-      "count": 2,
-      "file": "packages/hooks/ui/use-modal-state/use-modal-state.test.ts",
-      "fingerprint": "4b7e975019092705fd9b",
-      "message": "Property 'CREATE_BRAND' does not exist on type 'typeof ModalEnum'.",
-      "workspace": "hooks"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "packages/hooks/ui/use-modal-state/use-modal-state.test.ts",
-      "fingerprint": "f6114abe604592f32220",
-      "message": "Property 'CREATE_BRAND' does not exist on type 'typeof ModalEnum'.",
-      "workspace": "hooks"
-    },
-    {
-      "code": 2339,
-      "count": 3,
-      "file": "packages/hooks/ui/use-modal-state/use-modal-state.test.ts",
-      "fingerprint": "f61faeb7db3ecb7503e3",
-      "message": "Property 'CREATE_BRAND' does not exist on type 'typeof ModalEnum'.",
-      "workspace": "hooks"
-    },
-    {
-      "code": 2339,
       "count": 4,
       "file": "packages/hooks/utils/service-operation/service-operation.util.test.ts",
       "fingerprint": "e10293d64a5536ac0278",
       "message": "Property 'mock' does not exist on type 'Dispatch<SetStateAction<Record<string, boolean>>>'.",
-      "workspace": "hooks"
-    },
-    {
-      "code": 2339,
-      "count": 2,
-      "file": "packages/hooks/utils/use-abort-effect/use-abort-effect.test.ts",
-      "fingerprint": "6f133cc12ddd52e46b0e",
-      "message": "Property 'aborted' does not exist on type 'never'.",
-      "workspace": "hooks"
-    },
-    {
-      "code": 2352,
-      "count": 4,
-      "file": "packages/hooks/utils/use-background-tasks/use-background-tasks.test.ts",
-      "fingerprint": "4ce391aaadbcbf0669b7",
-      "message": "Conversion of type 'undefined' to type '(event: Record<string, unknown>) => void' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.",
-      "workspace": "hooks"
-    },
-    {
-      "code": 2493,
-      "count": 4,
-      "file": "packages/hooks/utils/use-background-tasks/use-background-tasks.test.ts",
-      "fingerprint": "80573df1accb7d8b62d4",
-      "message": "Tuple type '[]' of length '0' has no element at index '1'.",
       "workspace": "hooks"
     },
     {
@@ -7577,14 +7457,6 @@
       "workspace": "ui"
     },
     {
-      "code": 2353,
-      "count": 1,
-      "file": "packages/ui/src/components/analytics/cards/preview/quick-analytics-preview.test.tsx",
-      "fingerprint": "c33cbad0bb448f5eaa69",
-      "message": "Object literal may only specify known properties, and 'createdAt' does not exist in type 'IAnalytics'.",
-      "workspace": "ui"
-    },
-    {
       "code": 2739,
       "count": 1,
       "file": "packages/ui/src/components/analytics/charts/brand-performance/brand-performance-chart.test.tsx",
@@ -7654,30 +7526,6 @@
       "file": "packages/ui/src/components/analytics/charts/platform-time-series/platform-time-series-chart.test.tsx",
       "fingerprint": "f3035e3a289665789a4d",
       "message": "Type '{}' is missing the following properties from type '{ dataKey: string; stroke: string; }': dataKey, stroke",
-      "workspace": "ui"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/ui/src/components/analytics/platform-breakdown/platform-analytics-breakdown.test.tsx",
-      "fingerprint": "1100c8a1067629510a12",
-      "message": "Type '{ platform: string; summary: { totalComments: number; totalLikes: number; totalShares: number; totalViews: number; }; }[]' is not assignable to type '{ id: string; label: string; platform: string; summary: { totalViews: number; totalLikes: number; totalComments: number; totalShares: number; avgEngagementRate: number; publicationCount: number; }; }[]'.   Type '{ platform: string; summary: { totalComments: number; totalLikes: number; totalShares: number; totalViews: number; }; }' is missing the following properties from type '{ id: string; label: string; platform: string; summary: { totalViews: number; totalLikes: number; totalComments: number; totalShares: number; avgEngagementRate: number; publicationCount: number; }; }': id, label",
-      "workspace": "ui"
-    },
-    {
-      "code": 2322,
-      "count": 3,
-      "file": "packages/ui/src/components/analytics/platform-breakdown/platform-analytics-breakdown.test.tsx",
-      "fingerprint": "201671a9c58449546a15",
-      "message": "Type '{ platform: string; summary: { totalComments: number; totalLikes: number; totalShares: number; totalViews: number; }; }[]' is not assignable to type '{ id: string; label: string; platform: string; summary: { totalViews: number; totalLikes: number; totalComments: number; totalShares: number; avgEngagementRate: number; publicationCount: number; }; }[]'.   Type '{ platform: string; summary: { totalComments: number; totalLikes: number; totalShares: number; totalViews: number; }; }' is missing the following properties from type '{ id: string; label: string; platform: string; summary: { totalViews: number; totalLikes: number; totalComments: number; totalShares: number; avgEngagementRate: number; publicationCount: number; }; }': id, label",
-      "workspace": "ui"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/ui/src/components/analytics/platform-breakdown/platform-analytics-breakdown.test.tsx",
-      "fingerprint": "6e9b29e4cf89a603b95b",
-      "message": "Type '{ platform: string; summary: { totalComments: number; totalLikes: number; totalShares: number; totalViews: number; }; }[]' is not assignable to type '{ id: string; label: string; platform: string; summary: { totalViews: number; totalLikes: number; totalComments: number; totalShares: number; avgEngagementRate: number; publicationCount: number; }; }[]'.   Type '{ platform: string; summary: { totalComments: number; totalLikes: number; totalShares: number; totalViews: number; }; }' is missing the following properties from type '{ id: string; label: string; platform: string; summary: { totalViews: number; totalLikes: number; totalComments: number; totalShares: number; avgEngagementRate: number; publicationCount: number; }; }': id, label",
       "workspace": "ui"
     },
     {
@@ -7846,14 +7694,6 @@
       "file": "packages/ui/src/components/content/textarea-label-actions/TextareaLabelActions.test.tsx",
       "fingerprint": "3032664fc89768afab99",
       "message": "Type '{}' is missing the following properties from type 'TextareaLabelActionsProps': label, onCopy, onEnhance",
-      "workspace": "ui"
-    },
-    {
-      "code": 2739,
-      "count": 3,
-      "file": "packages/ui/src/components/display/badge-quota/BadgeQuota.test.tsx",
-      "fingerprint": "7959262ee63abde7ad68",
-      "message": "Type '{}' is missing the following properties from type 'BadgeQuotaProps': currentCount, dailyLimit",
       "workspace": "ui"
     },
     {
@@ -8042,22 +7882,6 @@
     },
     {
       "code": 2741,
-      "count": 3,
-      "file": "packages/ui/src/components/layout/page-header/PageHeader.test.tsx",
-      "fingerprint": "f3dd8180aadb74ae662b",
-      "message": "Property 'title' is missing in type '{}' but required in type 'PageHeaderProps'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2741,
-      "count": 3,
-      "file": "packages/ui/src/components/lazy/load/LazyLoad.test.tsx",
-      "fingerprint": "df22b587a9eea3303644",
-      "message": "Property 'children' is missing in type '{}' but required in type 'LazyLoadProps'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2741,
       "count": 1,
       "file": "packages/ui/src/components/lazy/masonry/LazyMasonry.test.tsx",
       "fingerprint": "8bf7f7ba6d6b3c0eb284",
@@ -8070,46 +7894,6 @@
       "file": "packages/ui/src/components/lazy/masonry/LazyMasonry.test.tsx",
       "fingerprint": "fd390b2ebcf5d6d3434b",
       "message": "Property 'image' is missing in type '{}' but required in type 'MasonryImageProps'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2352,
-      "count": 2,
-      "file": "packages/ui/src/components/lists/list/List.test.tsx",
-      "fingerprint": "a8a6671a2b6ff3344976",
-      "message": "Conversion of type '{ category: IngredientCategory.MUSIC; id: string; ingredientUrl: string; isPlaying: false; name: string; }' to type 'IIngredient' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ category: IngredientCategory.MUSIC; id: string; ingredientUrl: string; isPlaying: false; name: string; }' is missing the following properties from type 'IIngredient': status, user, organization, scope, and 10 more.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "packages/ui/src/components/lists/list/List.test.tsx",
-      "fingerprint": "0369e087b7cff9218398",
-      "message": "Property 'selectedId' is missing in type '{ className: string; ingredients: IIngredient[]; label: string; onConfirm: Mock<Procedure>; setIngredients: Mock<Procedure>; }' but required in type 'ListProps'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2741,
-      "count": 2,
-      "file": "packages/ui/src/components/lists/list/List.test.tsx",
-      "fingerprint": "420bb0df5a065ebb3b85",
-      "message": "Property 'selectedId' is missing in type '{ ingredients: IIngredient[]; label: string; onConfirm: Mock<Procedure>; setIngredients: Mock<Procedure>; }' but required in type 'ListProps'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "packages/ui/src/components/lists/list/List.test.tsx",
-      "fingerprint": "b76c159f536619849b1f",
-      "message": "Property 'selectedId' is missing in type '{ ingredients: IIngredient[]; label: string; onConfirm: Mock<Procedure>; setIngredients: Mock<Procedure>; }' but required in type 'ListProps'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "packages/ui/src/components/lists/list/List.test.tsx",
-      "fingerprint": "db7c4d4e330047c0a41d",
-      "message": "Property 'selectedId' is missing in type '{ onConfirm: Mock<Procedure>; ingredients: IIngredient[]; label: string; setIngredients: Mock<Procedure>; }' but required in type 'ListProps'.",
       "workspace": "ui"
     },
     {
@@ -8142,14 +7926,6 @@
       "file": "packages/ui/src/components/masonry/image/MasonryImage.test.tsx",
       "fingerprint": "d070976ace844f009e38",
       "message": "Conversion of type '{ id: string; ingredientUrl: string; metadata: { height: number; width: number; }; promptText: string; status: \"active\"; }' to type 'IImage' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ id: string; ingredientUrl: string; metadata: { height: number; width: number; }; promptText: string; status: \"active\"; }' is missing the following properties from type 'IImage': category, user, organization, scope, and 10 more.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2741,
-      "count": 3,
-      "file": "packages/ui/src/components/menus/label/MenuLabel.test.tsx",
-      "fingerprint": "c6b897bd3164f32eda09",
-      "message": "Property 'label' is missing in type '{}' but required in type 'MenuLabelProps'.",
       "workspace": "ui"
     },
     {
@@ -8417,38 +8193,6 @@
       "workspace": "ui"
     },
     {
-      "code": 2739,
-      "count": 1,
-      "file": "packages/ui/src/components/posts/filter/posts-filter/PostsFilter.test.tsx",
-      "fingerprint": "66d23b3d5ce05ba834ae",
-      "message": "Type '{}' is missing the following properties from type 'PostsFilterProps': value, onChange",
-      "workspace": "ui"
-    },
-    {
-      "code": 2739,
-      "count": 1,
-      "file": "packages/ui/src/components/posts/quick-actions/post-quick-actions/PostQuickActions.test.tsx",
-      "fingerprint": "2553405ca4223af1552d",
-      "message": "Type '{}' is missing the following properties from type 'PostQuickActionsProps': postId, onEnhance, isEnhancing, enhancingAction",
-      "workspace": "ui"
-    },
-    {
-      "code": 2367,
-      "count": 1,
-      "file": "packages/ui/src/components/pricing/card/PricingCard.tsx",
-      "fingerprint": "eaae6e49e6163986aaff",
-      "message": "This comparison appears to be unintentional because the types 'SubscriptionStatus | undefined' and '\"active\"' have no overlap.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2739,
-      "count": 3,
-      "file": "packages/ui/src/components/pricing/toggle/PricingToggle.test.tsx",
-      "fingerprint": "4b416d2d15a7836cf345",
-      "message": "Type '{}' is missing the following properties from type 'PricingToggleProps': isYearly, setIsYearly",
-      "workspace": "ui"
-    },
-    {
       "code": 2322,
       "count": 1,
       "file": "packages/ui/src/components/prompt-bars/base/PromptBar.test.tsx",
@@ -8689,14 +8433,6 @@
       "workspace": "ui"
     },
     {
-      "code": 2614,
-      "count": 1,
-      "file": "packages/ui/src/components/providers/index.ts",
-      "fingerprint": "0167d68dd077f79395b4",
-      "message": "Module '\"@ui/providers/AppProviders\"' has no exported member 'AppProvidersProps'. Did you mean to use 'import AppProvidersProps from \"@ui/providers/AppProviders\"' instead?",
-      "workspace": "ui"
-    },
-    {
       "code": 2322,
       "count": 1,
       "file": "packages/ui/src/components/publisher/PostingSignaturePicker.test.tsx",
@@ -8777,14 +8513,6 @@
       "workspace": "ui"
     },
     {
-      "code": 2741,
-      "count": 3,
-      "file": "packages/ui/src/components/quick-actions/container/QuickActionsContainer.test.tsx",
-      "fingerprint": "fbf75d51aa3c9a0f6680",
-      "message": "Property 'children' is missing in type '{}' but required in type 'QuickActionsContainerProps'.",
-      "workspace": "ui"
-    },
-    {
       "code": 7016,
       "count": 1,
       "file": "packages/ui/src/components/shell/AppHtmlDocument.test.tsx",
@@ -8806,102 +8534,6 @@
       "file": "packages/ui/src/components/theme/ThemeBootstrapScript.test.tsx",
       "fingerprint": "0dbb271d899e3a634595",
       "message": "Could not find a declaration file for module 'jsdom'. '<root>/node_modules/.bun/jsdom@29.1.1/node_modules/jsdom/lib/api.js' implicitly has an 'any' type.   Try `npm i --save-dev @types/jsdom` if it exists or add a new declaration (.d.ts) file containing `declare module 'jsdom';`",
-      "workspace": "ui"
-    },
-    {
-      "code": 2554,
-      "count": 3,
-      "file": "packages/ui/src/components/workflow-builder/WorkflowBuilder.test.tsx",
-      "fingerprint": "c2f2639956afbbe2bd37",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/ui/src/components/workflow-builder/WorkflowBuilder.tsx",
-      "fingerprint": "1c894a294bed80c94ce3",
-      "message": "Type 'OnEdgesChange' is not assignable to type '(changes: unknown[]) => void'.   Types of parameters 'changes' and 'changes' are incompatible.     Type 'unknown[]' is not assignable to type 'EdgeChange<Edge>[]'.       Type 'unknown' is not assignable to type 'EdgeChange<Edge>'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/ui/src/components/workflow-builder/WorkflowBuilder.tsx",
-      "fingerprint": "1e752219eb5fc1137bbe",
-      "message": "Type 'Edge[]' is not assignable to type 'WorkflowEdge[]'.   Type 'Edge' is not assignable to type 'WorkflowEdge'.     Types of property 'sourceHandle' are incompatible.       Type 'string | null | undefined' is not assignable to type 'string | undefined'.         Type 'null' is not assignable to type 'string | undefined'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/ui/src/components/workflow-builder/WorkflowBuilder.tsx",
-      "fingerprint": "46837ab3b98303e37eb7",
-      "message": "Type 'OnNodesChange<Node<WorkflowNodeData>>' is not assignable to type '(changes: unknown[]) => void'.   Types of parameters 'changes' and 'changes' are incompatible.     Type 'unknown[]' is not assignable to type 'NodeChange<Node<WorkflowNodeData>>[]'.       Type 'unknown' is not assignable to type 'NodeChange<Node<WorkflowNodeData>>'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/ui/src/components/workflow-builder/WorkflowBuilder.tsx",
-      "fingerprint": "6e73b490544d5a7faa32",
-      "message": "Type '(connection: Connection) => void' is not assignable to type '(connection: WorkflowCanvasConnection) => void'.   Types of parameters 'connection' and 'connection' are incompatible.     Type 'WorkflowCanvasConnection' is not assignable to type 'Connection'.       Types of property 'source' are incompatible.         Type 'string | null | undefined' is not assignable to type 'string'.           Type 'undefined' is not assignable to type 'string'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/ui/src/components/workflow-builder/WorkflowCanvas.test.tsx",
-      "fingerprint": "2ce09063969ff6f84a14",
-      "message": "Type '{ onDrop: Mock<Procedure>; edges: Edge[]; isReadOnly: boolean; nodes: Node[]; onConnect: Mock<Procedure>; onEdgesChange: Mock<Procedure>; onNodeSelect: Mock<...>; onNodesChange: Mock<...>; }' is not assignable to type 'WorkflowCanvasProps'.   Types of property 'nodes' are incompatible.     Type 'Node[]' is not assignable to type 'WorkflowCanvasNode[]'.       Type 'Node' is not assignable to type 'WorkflowCanvasNode'.         Types of property 'data' are incompatible.           Type 'Record<string, unknown>' is missing the following properties from type 'WorkflowNodeData': label, config, nodeType",
-      "workspace": "ui"
-    },
-    {
-      "code": 2322,
-      "count": 2,
-      "file": "packages/ui/src/components/workflow-builder/WorkflowCanvas.test.tsx",
-      "fingerprint": "5c017c8c91f822e602a7",
-      "message": "Type '{ edges: Edge[]; isReadOnly: boolean; nodes: Node[]; onConnect: Mock<Procedure>; onDrop: Mock<Procedure>; onEdgesChange: Mock<Procedure>; onNodeSelect: Mock<...>; onNodesChange: Mock<...>; }' is not assignable to type 'WorkflowCanvasProps'.   Types of property 'nodes' are incompatible.     Type 'Node[]' is not assignable to type 'WorkflowCanvasNode[]'.       Type 'Node' is not assignable to type 'WorkflowCanvasNode'.         Types of property 'data' are incompatible.           Type 'Record<string, unknown>' is missing the following properties from type 'WorkflowNodeData': label, config, nodeType",
-      "workspace": "ui"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/ui/src/components/workflow-builder/WorkflowCanvas.test.tsx",
-      "fingerprint": "972c33a53e5c414ea79d",
-      "message": "Type '{ onNodeSelect: Mock<Procedure>; edges: Edge[]; isReadOnly: boolean; nodes: Node[]; onConnect: Mock<Procedure>; onDrop: Mock<Procedure>; onEdgesChange: Mock<...>; onNodesChange: Mock<...>; }' is not assignable to type 'WorkflowCanvasProps'.   Types of property 'nodes' are incompatible.     Type 'Node[]' is not assignable to type 'WorkflowCanvasNode[]'.       Type 'Node' is not assignable to type 'WorkflowCanvasNode'.         Types of property 'data' are incompatible.           Type 'Record<string, unknown>' is missing the following properties from type 'WorkflowNodeData': label, config, nodeType",
-      "workspace": "ui"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/ui/src/components/workflow-builder/WorkflowCanvas.test.tsx",
-      "fingerprint": "e938199cd648d68ad8b0",
-      "message": "Type '{ isReadOnly: true; edges: Edge[]; nodes: Node[]; onConnect: Mock<Procedure>; onDrop: Mock<Procedure>; onEdgesChange: Mock<Procedure>; onNodeSelect: Mock<...>; onNodesChange: Mock<...>; }' is not assignable to type 'WorkflowCanvasProps'.   Types of property 'nodes' are incompatible.     Type 'Node[]' is not assignable to type 'WorkflowCanvasNode[]'.       Type 'Node' is not assignable to type 'WorkflowCanvasNode'.         Types of property 'data' are incompatible.           Type 'Record<string, unknown>' is missing the following properties from type 'WorkflowNodeData': label, config, nodeType",
-      "workspace": "ui"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "packages/ui/src/components/workflow-builder/WorkflowToolbar.tsx",
-      "fingerprint": "b32122038ac4f5ab3abe",
-      "message": "Property '_workflowId' does not exist on type 'WorkflowToolbarProps'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/ui/src/components/workflow-builder/nodes/BaseNode.test.tsx",
-      "fingerprint": "9f9d5efb36ed75c7db16",
-      "message": "Type '{ config: { aspectRatio: string; }; definition: { category: string; configSchema: {}; description: string; icon: string; inputs: { media: { label: string; type: string; }; }; label: string; outputs: { result: { ...; }; }; }; label: string; nodeType: string; }' is not assignable to type 'WorkflowNodeData'.   The types of 'definition.category' are incompatible between these types.     Type 'string' is not assignable to type '\"processing\" | \"control\" | \"output\" | \"input\" | \"effects\" | \"ai\"'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/ui/src/components/workflow-builder/panels/NodeConfigPanel.test.tsx",
-      "fingerprint": "f72691932b174c77d696",
-      "message": "Type '{ configSchema: { prompt: { label: string; placeholder: string; type: \"text\"; }; }; label?: string | undefined; description?: string | undefined; category?: \"processing\" | \"control\" | \"output\" | \"input\" | \"effects\" | \"ai\" | undefined; ... 5 more ...; isEnabled?: boolean; }' is not assignable to type 'NodeDefinition'.   Types of property 'label' are incompatible.     Type 'string | undefined' is not assignable to type 'string'.       Type 'undefined' is not assignable to type 'string'.",
       "workspace": "ui"
     },
     {

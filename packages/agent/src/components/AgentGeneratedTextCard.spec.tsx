@@ -1,25 +1,6 @@
 import { AgentGeneratedTextCard } from '@genfeedai/agent/components/AgentGeneratedTextCard';
 import { render, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: function MockButton(props: {
-    ariaLabel?: string;
-    children?: ReactNode;
-    onClick?: () => void | Promise<void>;
-  }) {
-    return (
-      <button
-        type="button"
-        aria-label={props.ariaLabel}
-        onClick={props.onClick}
-      >
-        {props.children}
-      </button>
-    );
-  },
-}));
 
 describe('AgentGeneratedTextCard', () => {
   it('renders multiline content preserving line breaks', () => {

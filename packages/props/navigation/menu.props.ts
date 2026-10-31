@@ -108,16 +108,6 @@ export interface MenuItemProps {
   isCollapsed?: boolean;
 }
 
-export interface MenuLabelProps {
-  label: string;
-  icon?: ReactNode;
-  outline?: IconComponent;
-  solid?: IconComponent;
-  isActive?: boolean;
-  onClick?: () => void;
-  chevronIcon?: ReactNode;
-}
-
 export interface LatestIngredientItemProps {
   ingredient: IIngredient;
   isProcessing?: boolean;

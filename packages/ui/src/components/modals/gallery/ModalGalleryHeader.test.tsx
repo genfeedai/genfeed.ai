@@ -60,15 +60,6 @@ vi.mock('@ui/display/badge/Badge', () => ({
   >) => <span data-testid="badge">{children}</span>,
 }));
 
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({
-    label,
-    onClick,
-  }: import('react').ComponentProps<
-    typeof import('@ui/buttons/base/Button').default
-  >) => <button onClick={onClick}>{label}</button>,
-}));
-
 vi.mock('next/image', () => ({
   default: ({ src, alt }: import('react').ComponentProps<'input'>) => (
     <input type="image" src={src} alt={alt} />

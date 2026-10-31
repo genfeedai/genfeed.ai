@@ -115,19 +115,6 @@ vi.mock('@ui/dropdowns/model-selector/useModelFavorites', () => ({
   }),
 }));
 
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: function MockButton(props: {
-    children?: ReactNode;
-    onClick?: () => void;
-  }) {
-    return (
-      <button type="button" onClick={props.onClick}>
-        {props.children}
-      </button>
-    );
-  },
-}));
-
 const capturedModelSelectorPopoverProps: {
   autoLabel?: string;
   models?: IModel[];

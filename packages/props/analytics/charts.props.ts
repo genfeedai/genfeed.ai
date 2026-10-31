@@ -1,13 +1,5 @@
 import type { AnalyticsMetric, Platform } from '@genfeedai/contracts';
-import type { PostPerformanceDataPoint } from '@genfeedai/contracts/interfaces/analytics/analytics-ui.interface';
 import type { BrandPerformanceData } from '@genfeedai/services/analytics/analytics.service';
-
-export interface PostPerformanceChartProps {
-  data: PostPerformanceDataPoint[];
-  isLoading?: boolean;
-  height?: number;
-  className?: string;
-}
 
 /** Product {@link Platform} ids. Chart series keys stay lowercase enum values. */
 export type SocialPlatform = Platform;

@@ -123,13 +123,6 @@ export interface ModelSelectorModelSpecProps {
   lockReason?: string;
 }
 
-export interface ModelSelectorBrandMarkProps {
-  brandColor: string;
-  brandIcon?: IconType;
-  brandLabel: string;
-  testId?: string;
-}
-
 export interface ModelSelectorTriggerProps {
   selectedModels: IModel[];
   /** Auto is a pseudo-option with no IModel row — the trigger labels it itself. */

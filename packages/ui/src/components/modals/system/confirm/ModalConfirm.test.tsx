@@ -17,15 +17,6 @@ vi.mock('@ui/modals/actions/ModalActions', () => ({
   >) => <div data-testid="modal-actions">{children}</div>,
 }));
 
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({
-    label,
-    onClick,
-  }: import('react').ComponentProps<
-    typeof import('@ui/buttons/base/Button').default
-  >) => <button onClick={onClick}>{label}</button>,
-}));
-
 describe('ModalConfirm', () => {
   beforeEach(() => {
     act(() => openModal(ModalEnum.CONFIRM));
