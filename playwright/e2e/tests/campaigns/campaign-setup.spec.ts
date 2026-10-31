@@ -211,7 +211,9 @@ test('saves campaign creative context and explicit Library membership through th
     assetIds: ['asset-2'],
   });
   await expect(
-    page.getByText('Specific and candid', { exact: true }).last(),
+    page
+      .getByText('Specific and candid', { exact: true })
+      .filter({ visible: true }),
   ).toBeVisible();
   await expect(
     page.getByRole('link', { name: 'View asset 1', exact: true }),
