@@ -6,6 +6,7 @@ import {
   isStripeSignatureVerificationError,
   StripeBillingConfigurationError,
 } from '@api/services/integrations/stripe/services/stripe-error.util';
+import { applyCheckoutPromotion } from '@api/services/integrations/stripe/services/stripe-checkout-promotion.util';
 import { StripeUpcomingInvoiceError } from '@api/services/integrations/stripe/services/stripe-upcoming-invoice.error';
 import {
   assertUpcomingInvoiceRequest,
@@ -747,18 +748,17 @@ export class StripeService {
     };
   }
 
-  /**
-   * Always open Checkout promo entry. Stripe rejects sessions that set both
-   * `discounts` and `allow_promotion_codes`, so we never force-apply a code
-   * here — public defaults (EARLYGEN) and customer-restricted team codes
-   * (GENFEED100) are entered at Checkout.
-   */
   private applyPromotionCode(
     sessionConfig: NonNullable<StripeCheckoutSessionCreateParams>,
-    _stripePriceId: string,
-  ): void {
-    sessionConfig.allow_promotion_codes = true;
-    delete sessionConfig.discounts;
+    stripePriceId: string,
+  ): Promise<void> {
+    return applyCheckoutPromotion(
+      this.stripe,
+      this.loggerService,
+      sessionConfig,
+      stripePriceId ===
+        this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY'),
+    );
   }
 
   public async createPaymentSession(
@@ -833,7 +833,7 @@ export class StripeService {
           },
         };
 
-        this.applyPromotionCode(sessionConfig, stripePriceId);
+        await this.applyPromotionCode(sessionConfig, stripePriceId);
       } else if (isPayg) {
         // Pay as you go credits — flat top-up, min/max enforced server-side
         this.assertPaygQuantityWithinBounds(quantity);

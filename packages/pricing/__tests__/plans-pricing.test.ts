@@ -20,6 +20,7 @@ import {
   formatTierLabel,
   GENERATION_MARGIN_TAPER_MULTIPLIER,
   getEnterprisePlan,
+  getLaunchPrice,
   getPlanByLabel,
   getPlanByTier,
   getPlanLabel,
@@ -91,7 +92,7 @@ describe('plan price formatting', () => {
   });
 
   it('formats included credits per tier', () => {
-    expect(formatPlanIncludedCredits('pro')).toBe('5,900 credits');
+    expect(formatPlanIncludedCredits('pro')).toBe('4,900 credits');
     expect(formatPlanIncludedCredits('scale')).toBe('60,000 credits');
     expect(formatPlanIncludedCredits('payg')).toBe('');
     expect(formatPlanIncludedCredits('enterprise')).toBe('');
@@ -117,24 +118,37 @@ describe('plan price formatting', () => {
     expect(PLAN_COPY.enterprise.includedCreditsValue).toBe('');
   });
 
-  it('prices every paid tier to the same credit bonus over the PAYG rate', () => {
-    // The bonus and the margin are one dial: margin = 1 - 0.3 * (1 + bonus).
-    // Holding both paid tiers at the same bonus holds them at the same margin.
-    for (const tier of ['pro', 'scale'] as const) {
+  // The bonus and the margin are one dial: margin = 1 - 0.3 * (1 + bonus).
+  // Pro is priced at the PAYG rate (no bonus); only Scale carries a bonus.
+  it.each([
+    { bonus: 0, margin: 0.7, tier: 'pro' },
+    { bonus: 0.2, margin: 0.64, tier: 'scale' },
+  ] as const)(
+    'prices $tier at a $bonus credit bonus over the PAYG rate',
+    ({ bonus, margin, tier }) => {
       const { includedCredits, price } = getPlanByTier(tier);
-
-      expect(includedCredits).toBeTypeOf('number');
-      expect(price).toBeTypeOf('number');
-
-      const bonus =
+      const actualBonus =
         (Number(includedCredits) * CREDIT_VALUE_DOLLARS) / Number(price) - 1;
-      const margin = 1 - BASE_PROVIDER_COST_FRACTION * (1 + bonus);
 
-      expect(bonus).toBeGreaterThanOrEqual(0.18);
-      expect(bonus).toBeLessThanOrEqual(0.22);
-      expect(margin).toBeGreaterThanOrEqual(0.63);
-    }
-  });
+      expect(actualBonus).toBeCloseTo(bonus, 1);
+      expect(1 - BASE_PROVIDER_COST_FRACTION * (1 + actualBonus)).toBeCloseTo(
+        margin,
+        1,
+      );
+    },
+  );
+
+  it.each([
+    { expected: 39, tier: 'pro' },
+    { expected: null, tier: 'scale' },
+    { expected: null, tier: 'payg' },
+    { expected: null, tier: 'enterprise' },
+  ] as const)(
+    'prices $tier at $expected with the launch code',
+    ({ expected, tier }) => {
+      expect(getLaunchPrice(tier)).toBe(expected);
+    },
+  );
 
   it('formats standalone prices', () => {
     expect(formatPrice(null)).toBe('Contact Sales');
@@ -294,7 +308,7 @@ describe('pricing constants', () => {
   it('publishes Stripe contracts by tier rather than product display name', () => {
     expect(SUBSCRIPTION_PRICE_CONTRACTS.pro).toEqual({
       currency: 'usd',
-      includedMonthlyCredits: 5_900,
+      includedMonthlyCredits: 4_900,
       interval: 'month',
       unitAmount: 4_900,
     });

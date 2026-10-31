@@ -13,9 +13,10 @@ import { FREE_API_RATE_LIMIT, PRO_API_RATE_LIMIT } from './tier-entitlements';
  * Pricing Strategy:
  * - Credits are the user-facing unit of output: 1 credit = $0.01 PAYG.
  * - Pay As You Go is free to join: buy credit packs, spend on any output
- * - Subscriptions sell a better credit rate, not access: included monthly
- *   credits carry a ~20% bonus over the pay-as-you-go rate (Scale $499 →
- *   60,000 credits ≈ $600 of PAYG output).
+ * - Pro matches the pay-as-you-go rate (Pro $49 → 4,900 credits) and sells
+ *   access to every app. Scale sells a better credit rate: its included
+ *   monthly credits carry a ~20% bonus (Scale $499 → 60,000 credits ≈ $600
+ *   of PAYG output).
  * - Seats are never a usage meter: FREE is solo (1 seat); every paid tier
  *   (Scale, Enterprise) has unlimited seats. Multi-organization workflows
  *   start at Scale. Brands and connected channels are unlimited so credits stay
@@ -118,6 +119,30 @@ const PLAN_PRICES = {
 } as const satisfies Record<PlanTier, number | null>;
 
 /**
+ * Stripe promotion code that takes $10 off Pro for 12 months. Checkout applies
+ * it for the customer on the Pro price, and the pricing page shows the price
+ * with it taken off, so the page and the charge always agree.
+ */
+export const PRO_LAUNCH_PROMOTION_CODE = 'EARLYGENFEED';
+
+/** Dollars the launch promotion code takes off the Pro monthly price. */
+export const PRO_LAUNCH_DISCOUNT_DOLLARS = 10;
+
+/**
+ * Monthly price a new customer pays with the launch promotion applied, or null
+ * when the tier has no launch promotion.
+ */
+export function getLaunchPrice(tier: PlanTier): number | null {
+  const price = PLAN_PRICES[tier];
+
+  if (tier !== 'pro' || price == null) {
+    return null;
+  }
+
+  return price - PRO_LAUNCH_DISCOUNT_DOLLARS;
+}
+
+/**
  * Monthly included credits per paid subscription tier.
  *
  * Published fallback only. The authoritative grant for a live subscription is
@@ -125,10 +150,10 @@ const PLAN_PRICES = {
  * self-hosted deployments can price without a code change. These values are used
  * when a price carries no metadata but its tier is known.
  *
- * Each tier includes a credit bonus over the $0.01 PAYG rate.
+ * Pro includes credits at the $0.01 PAYG rate; Scale adds a bonus on top.
  */
 export const TIER_INCLUDED_MONTHLY_CREDITS: Record<string, number> = {
-  pro: 5_900,
+  pro: 4_900,
   scale: 60_000,
 };
 
@@ -167,7 +192,7 @@ export const SUBSCRIPTION_PRICE_CONTRACTS = {
  * This is the authoritative source: whoever owns the Stripe account decides how
  * many credits a price includes, and a self-hosted operator can reprice without
  * touching code or redeploying. Set it on every recurring price, e.g.
- * `stripe prices update price_xxx --metadata included_monthly_credits=5900`.
+ * `stripe prices update price_xxx --metadata included_monthly_credits=4900`.
  */
 export const INCLUDED_MONTHLY_CREDITS_METADATA_KEY = 'included_monthly_credits';
 
@@ -621,7 +646,7 @@ export function formatPlanMonthlyPrice(tier: PlanTier): string {
 }
 
 /**
- * Included monthly credits for prose, e.g. "5,900 credits". Empty string for
+ * Included monthly credits for prose, e.g. "4,900 credits". Empty string for
  * tiers that grant no monthly credits.
  */
 export function formatPlanIncludedCredits(tier: PlanTier): string {
@@ -673,7 +698,7 @@ export function formatPlanCreditRateAdvantage(tier: PlanTier): string {
 export interface PlanCopyProps {
   /** How much cheaper included credits are than PAYG, e.g. "~17%" ('' when none). */
   creditRateAdvantage: string;
-  /** Included monthly credits in prose, e.g. "5,900 credits" ('' when none). */
+  /** Included monthly credits in prose, e.g. "4,900 credits" ('' when none). */
   includedCredits: string;
   /** PAYG value of the included credits, e.g. "$59" ('' when none). */
   includedCreditsValue: string;

@@ -56,7 +56,7 @@ describe('PricingContent', () => {
     const cards = ['Pro', 'Scale', 'Enterprise'].map((name) =>
       screen.getByLabelText(name),
     );
-    expect(cards[0]).toHaveTextContent('$49');
+    expect(cards[0]).toHaveTextContent('$39');
     expect(cards[1]).toHaveTextContent('$499');
     expect(cards[2]).toHaveTextContent('$2,500');
     expect(
@@ -120,9 +120,9 @@ describe('PricingContent', () => {
     expect(
       pro.getByText('Automation, Messages, Discovery'),
     ).toBeInTheDocument();
-    expect(pro.getByText('5,900 credits included')).toBeInTheDocument();
+    expect(pro.getByText('4,900 credits included')).toBeInTheDocument();
     expect(pro.getAllByRole('listitem')[0]).toHaveTextContent(
-      '5,900 credits included',
+      '4,900 credits included',
     );
     expect(pro.getByText('Bring your own key')).toBeInTheDocument();
   });
@@ -142,6 +142,15 @@ describe('PricingContent', () => {
     );
   });
 
+  it('shows Pro at the launch price with the full price crossed out', () => {
+    render(<PricingContent />);
+    const pro = within(screen.getByLabelText('Pro'));
+
+    expect(pro.getByText('$49').tagName).toBe('DEL');
+    expect(pro.getByText('$39')).not.toHaveClass('line-through');
+    expect(pro.queryByText(/EARLYGENFEED/)).not.toBeInTheDocument();
+  });
+
   it('does not strike through the Scale price', () => {
     render(<PricingContent />);
 
@@ -156,7 +165,7 @@ describe('PricingContent', () => {
       expect(screen.getByText('$1,000')).toBeInTheDocument();
       expect(screen.getByText('100,000 credits')).toBeInTheDocument();
       expect(screen.getByText('60,000 credits included')).toBeInTheDocument();
-      expect(screen.getByText('5,900 credits included')).toBeInTheDocument();
+      expect(screen.getByText('4,900 credits included')).toBeInTheDocument();
     });
   });
 

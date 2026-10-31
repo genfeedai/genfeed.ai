@@ -394,6 +394,172 @@ describe('StripeService', () => {
       expect(callArg).not.toHaveProperty('discounts');
     });
 
+    describe('Pro launch code', () => {
+      async function createProService(): Promise<StripeService> {
+        const configGetMock = vi.fn((key: string) => {
+          const map: Record<string, string> = {
+            GENFEEDAI_APP_URL: 'http://localhost:3000',
+            STRIPE_API_VERSION: '2026-09-30.endive',
+            STRIPE_PRICE_PAYG: 'payg_id',
+            STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY: 'pro_id',
+            STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY: 'scale_id',
+            STRIPE_SECRET_KEY: 'sk_test',
+          };
+          return map[key];
+        });
+
+        const module: TestingModule = await Test.createTestingModule({
+          providers: [
+            StripeService,
+            { provide: ConfigService, useValue: { get: configGetMock } },
+            {
+              provide: LoggerService,
+              useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
+            },
+          ],
+        }).compile();
+
+        return module.get<StripeService>(StripeService);
+      }
+
+      function promotionCodeList(
+        ids: string[],
+        restrictedIds: string[] = [],
+      ): Stripe.Response<Stripe.ApiList<Stripe.PromotionCode>> {
+        return stripeResponse({
+          data: [
+            ...restrictedIds.map(
+              (id) => ({ customer: 'cus_other', id }) as Stripe.PromotionCode,
+            ),
+            ...ids.map(
+              (id) => ({ customer: null, id }) as Stripe.PromotionCode,
+            ),
+          ],
+          has_more: false,
+          object: 'list' as const,
+          url: '/v1/promotion_codes',
+        });
+      }
+
+      it('applies the launch code to the Pro price and drops the entry box', async () => {
+        const proService = await createProService();
+        vi.spyOn(proService.stripe.promotionCodes, 'list').mockResolvedValue(
+          promotionCodeList(['promo_early']) as never,
+        );
+        const createSpy = vi
+          .spyOn(proService.stripe.checkout.sessions, 'create')
+          .mockResolvedValue(checkoutSessionResponse('sess'));
+
+        await proService.createPaymentSession(
+          'cust',
+          'pro_id',
+          'http://origin',
+        );
+
+        const callArg = createSpy.mock.calls[0][0];
+        expect(callArg?.discounts).toEqual([{ promotion_code: 'promo_early' }]);
+        expect(callArg).not.toHaveProperty('allow_promotion_codes');
+      });
+
+      it('skips a launch code restricted to another customer', async () => {
+        const proService = await createProService();
+        vi.spyOn(proService.stripe.promotionCodes, 'list').mockResolvedValue(
+          promotionCodeList(['promo_open'], ['promo_private']) as never,
+        );
+        const createSpy = vi
+          .spyOn(proService.stripe.checkout.sessions, 'create')
+          .mockResolvedValue(checkoutSessionResponse('sess'));
+
+        await proService.createPaymentSession(
+          'cust',
+          'pro_id',
+          'http://origin',
+        );
+
+        const callArg = createSpy.mock.calls[0][0];
+        expect(callArg?.discounts).toEqual([{ promotion_code: 'promo_open' }]);
+      });
+
+      it('falls back to the entry box when only a restricted launch code exists', async () => {
+        const proService = await createProService();
+        vi.spyOn(proService.stripe.promotionCodes, 'list').mockResolvedValue(
+          promotionCodeList([], ['promo_private']) as never,
+        );
+        const createSpy = vi
+          .spyOn(proService.stripe.checkout.sessions, 'create')
+          .mockResolvedValue(checkoutSessionResponse('sess'));
+
+        await proService.createPaymentSession(
+          'cust',
+          'pro_id',
+          'http://origin',
+        );
+
+        const callArg = createSpy.mock.calls[0][0];
+        expect(callArg?.allow_promotion_codes).toBe(true);
+        expect(callArg).not.toHaveProperty('discounts');
+      });
+
+      it('falls back to the entry box when the launch code is not active', async () => {
+        const proService = await createProService();
+        vi.spyOn(proService.stripe.promotionCodes, 'list').mockResolvedValue(
+          promotionCodeList([]) as never,
+        );
+        const createSpy = vi
+          .spyOn(proService.stripe.checkout.sessions, 'create')
+          .mockResolvedValue(checkoutSessionResponse('sess'));
+
+        await proService.createPaymentSession(
+          'cust',
+          'pro_id',
+          'http://origin',
+        );
+
+        const callArg = createSpy.mock.calls[0][0];
+        expect(callArg?.allow_promotion_codes).toBe(true);
+        expect(callArg).not.toHaveProperty('discounts');
+      });
+
+      it('falls back to the entry box when the code lookup fails', async () => {
+        const proService = await createProService();
+        vi.spyOn(proService.stripe.promotionCodes, 'list').mockRejectedValue(
+          new Error('stripe unavailable'),
+        );
+        const createSpy = vi
+          .spyOn(proService.stripe.checkout.sessions, 'create')
+          .mockResolvedValue(checkoutSessionResponse('sess'));
+
+        await proService.createPaymentSession(
+          'cust',
+          'pro_id',
+          'http://origin',
+        );
+
+        const callArg = createSpy.mock.calls[0][0];
+        expect(callArg?.allow_promotion_codes).toBe(true);
+        expect(callArg).not.toHaveProperty('discounts');
+      });
+
+      it('keeps the entry box on the Scale price', async () => {
+        const proService = await createProService();
+        const listSpy = vi.spyOn(proService.stripe.promotionCodes, 'list');
+        const createSpy = vi
+          .spyOn(proService.stripe.checkout.sessions, 'create')
+          .mockResolvedValue(checkoutSessionResponse('sess'));
+
+        await proService.createPaymentSession(
+          'cust',
+          'scale_id',
+          'http://origin',
+        );
+
+        const callArg = createSpy.mock.calls[0][0];
+        expect(callArg?.allow_promotion_codes).toBe(true);
+        expect(callArg).not.toHaveProperty('discounts');
+        expect(listSpy).not.toHaveBeenCalled();
+      });
+    });
+
     it('opens the promo field for the enterprise subscription tier', async () => {
       const configGetMock = vi.fn((key: string) => {
         const map: Record<string, string> = {
