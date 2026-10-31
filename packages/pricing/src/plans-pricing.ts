@@ -20,7 +20,7 @@ import { FREE_API_RATE_LIMIT, PRO_API_RATE_LIMIT } from './tier-entitlements';
  *   (Scale, Enterprise) has unlimited seats. Multi-organization workflows
  *   start at Scale. Brands and connected channels are unlimited so credits stay
  *   the only output meter (account-sharing can't dodge a usage meter).
- * - BYOK (bring your own provider keys) is a Scale+ subscription feature: BYOK
+ * - BYOK (bring your own provider keys) is a Pro+ subscription feature: BYOK
  *   generations draw no credits and carry no per-usage fee.
  * - Models are never user-selected: the Genfeed router picks the best model
  *   for each format, brief, and budget
@@ -478,6 +478,7 @@ export const websitePlans: WebsitePlanProps[] = [
     features: [
       'Automation, Messages, Discovery',
       'Clean exports, any agent model',
+      'Bring your own provider keys, no usage fee',
       'Unlimited brands and channels',
       `API access (${PRO_API_RATE_LIMIT} requests/min)`,
     ],
@@ -504,7 +505,7 @@ export const websitePlans: WebsitePlanProps[] = [
       'Everything in Pro',
       'Ultra quality',
       'Brand model training',
-      'Higher API limits and BYOK',
+      'Higher API limits',
     ],
     includedCredits: TIER_INCLUDED_MONTHLY_CREDITS.scale,
     interval: 'month',

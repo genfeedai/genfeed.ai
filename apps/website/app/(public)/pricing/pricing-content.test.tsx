@@ -90,7 +90,7 @@ describe('PricingContent', () => {
     ).toBeInTheDocument();
     expect(
       [...row.querySelectorAll('td')].map((cell) => cell.textContent),
-    ).toEqual(['—', 'Yes', 'Yes', 'Yes']);
+    ).toEqual(['—', '✓', '✓', '✓']);
   });
 
   it('promises free credits after onboarding', () => {
@@ -130,7 +130,7 @@ describe('PricingContent', () => {
     render(<PricingContent />);
     const scale = within(screen.getByLabelText('Scale'));
     expect(scale.getByText('Brand model training')).toBeInTheDocument();
-    expect(scale.getByText('Higher API limits and BYOK')).toBeInTheDocument();
+    expect(scale.getByText('Higher API limits')).toBeInTheDocument();
   });
 
   it('uses the tokenized dark card surface for the featured plan', () => {

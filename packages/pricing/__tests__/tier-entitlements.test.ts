@@ -127,8 +127,8 @@ describe('Pro tier', () => {
     );
   });
 
-  it('keeps BYOK and brand model training for Scale and above', () => {
-    expect(hasByokAccess(SubscriptionTier.PRO)).toBe(false);
+  it('includes BYOK but keeps brand model training for Scale and above', () => {
+    expect(hasByokAccess(SubscriptionTier.PRO)).toBe(true);
     expect(hasTrainingAccess(SubscriptionTier.PRO)).toBe(false);
   });
 
@@ -162,7 +162,8 @@ describe('hasByokAccess', () => {
     expect(hasByokAccess(null)).toBe(false);
   });
 
-  it('is granted from Scale upward', () => {
+  it('is granted from Pro upward', () => {
+    expect(hasByokAccess(SubscriptionTier.PRO)).toBe(true);
     expect(hasByokAccess(SubscriptionTier.SCALE)).toBe(true);
     expect(hasByokAccess(SubscriptionTier.ENTERPRISE)).toBe(true);
   });

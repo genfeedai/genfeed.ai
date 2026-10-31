@@ -46,6 +46,7 @@ import { CircleCheck } from 'lucide-react';
 import Link from 'next/link';
 import {
   buildPricingCompareRows,
+  COMPARE_CHECKMARK,
   getCompareColumnLabels,
 } from './pricing-compare.data';
 
@@ -336,7 +337,13 @@ export default function PricingContent() {
                       key={`${row.label}-${getCompareColumnLabels()[index]}`}
                       className="text-foreground/70"
                     >
-                      {value}
+                      {value === COMPARE_CHECKMARK ? (
+                        <span role="img" aria-label="Included">
+                          {value}
+                        </span>
+                      ) : (
+                        value
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>

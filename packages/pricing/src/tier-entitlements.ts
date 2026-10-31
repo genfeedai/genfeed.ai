@@ -82,7 +82,7 @@ export const SCALE_API_RATE_LIMIT = 600;
 
 /**
  * Exhaustive tier → cloud entitlement map. The free and Pro tiers are solo
- * workspaces without BYOK (API at 60/min and 300/min); every tier has
+ * workspaces (API at 60/min and 300/min; BYOK from Pro up); every tier has
  * unlimited brands and channels so credits remain the output meter instead of account topology.
  * Multi-organization workflows start at Scale.
  */
@@ -104,7 +104,7 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
     apiAccess: true,
     apiRateLimit: PRO_API_RATE_LIMIT,
     brandLimit: PLAN_LIMIT_UNLIMITED,
-    byokAccess: false,
+    byokAccess: true,
     channelLimit: PLAN_LIMIT_UNLIMITED,
     organizationLimit: SINGLE_ORGANIZATION_LIMIT,
     seatLimit: FREE_SEAT_LIMIT,

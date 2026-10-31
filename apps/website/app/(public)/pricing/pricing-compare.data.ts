@@ -43,8 +43,11 @@ function formatLimit(limit: TierLimit): string {
     : formatNumberWithCommas(limit);
 }
 
+/** Cell value for an included feature; the table renders it as a labelled checkmark. */
+export const COMPARE_CHECKMARK = '✓';
+
 function formatFlag(isIncluded: boolean): string {
-  return isIncluded ? 'Yes' : '—';
+  return isIncluded ? COMPARE_CHECKMARK : '—';
 }
 
 function formatApiRate(tier: PlanTier): string {
