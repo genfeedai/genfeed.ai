@@ -150,21 +150,19 @@ describe('MCP server e2e', () => {
       expect(upstreamPaths()).not.toContain('POST /v1/mcp-approvals');
     });
 
-    it('queues brand creation for approval for an owner key with the admin scope', async () => {
+    it('creates the brand at once for an owner key with the admin scope', async () => {
       const { body } = await mcp.callTool(
         E2E_TOKENS.ownerWithAdminScope,
         'onboard_brand',
         createFromUrl,
       );
 
-      expect(JSON.stringify(body.result)).toContain('approval_pending');
-      const approval = api.requests.find(
-        (request) => request.path === '/v1/mcp-approvals',
+      expect(body.result?.isError).not.toBe(true);
+      expect(JSON.stringify(body.result)).not.toContain('approval_pending');
+      expect(upstreamPaths()).toContain(
+        'POST /v1/agent-tools/create_brand_from_url/execute',
       );
-      expect(approval?.body).toMatchObject({
-        arguments: { url: 'https://example.com' },
-        toolName: 'create_brand_from_url',
-      });
+      expect(upstreamPaths()).not.toContain('POST /v1/mcp-approvals');
     });
   });
 

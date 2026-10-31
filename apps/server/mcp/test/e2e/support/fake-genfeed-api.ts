@@ -197,6 +197,13 @@ export async function startFakeGenfeedApi(): Promise<FakeGenfeedApi> {
           success: true,
         });
         return;
+      case 'create_brand_from_url':
+        res.json({
+          creditsUsed: 0,
+          data: { brand: { id: 'brand_from_url', label: 'Example' } },
+          success: true,
+        });
+        return;
       default:
         res.json({
           creditsUsed: 0,
