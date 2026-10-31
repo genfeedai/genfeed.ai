@@ -66,7 +66,7 @@ describe('check-package-layering', () => {
 
   it('rejects any package importing an app, by alias or relative path', () => {
     write(
-      'packages/pages/posts/list.tsx',
+      'packages/agent/posts/list.tsx',
       "import { x } from '@app-components/x';\nimport { y } from '../../../apps/app/y';\n",
     );
     const { violations } = runCheckPackageLayering({
@@ -74,7 +74,7 @@ describe('check-package-layering', () => {
       rootDir: testDir,
     });
     expect(violations[0]?.count).toBe(2);
-    expect(violations[0]?.imports.join('\n')).toContain('pages -> apps');
+    expect(violations[0]?.imports.join('\n')).toContain('agent -> apps');
   });
 
   it('allows baselined upward imports but rejects growth', () => {
