@@ -1,7 +1,6 @@
 import { ButtonSize, ButtonVariant, DesktopOs } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { EnvironmentService } from '@services/core/environment.service';
-import SectionHeader from '@ui/marketing/SectionHeader';
 import { Button } from '@ui/primitives/button';
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import {
@@ -11,6 +10,7 @@ import {
   WebSection,
 } from '@web-components/content/NeuralGrid';
 import MarketingEntrance from '@web-components/MarketingEntrance';
+import SectionHeader from '@web-components/marketing/SectionHeader';
 import PageLayout from '@web-components/PageLayout';
 import {
   Apple,

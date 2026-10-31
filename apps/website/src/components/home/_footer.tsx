@@ -1,5 +1,5 @@
-import type { FooterSection } from '@ui/footers';
-import { SiteFooter } from '@ui/footers';
+import type { FooterSection } from '@web-components/footers';
+import { SiteFooter } from '@web-components/footers';
 
 /**
  * A navigation aid, not a sitemap: one destination per row, no duplicates, and

@@ -192,6 +192,7 @@ export default function TopbarPublicDesktopDropdown({
 
   if (hasGroups) {
     return (
+      // biome-ignore lint/a11y/noStaticElementInteractions: hover keeps the open menu up; the trigger buttons own keyboard access
       <div
         aria-hidden={!isExpanded}
         className={cn(
@@ -213,6 +214,7 @@ export default function TopbarPublicDesktopDropdown({
   // The portal has to carry the same closed state as the grouped branch, or an
   // ungrouped menu stays fully visible and clickable for those 300ms.
   return createPortal(
+    // biome-ignore lint/a11y/noStaticElementInteractions: hover keeps the open menu up; the trigger buttons own keyboard access
     <div
       aria-hidden={!isExpanded}
       className={cn(

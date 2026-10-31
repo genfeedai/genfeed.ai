@@ -1,6 +1,6 @@
 import { getAgentClient } from '@data/agent-clients.data';
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import ConnectAgentButton from '@ui/buttons/connect-agent/ConnectAgentButton';
+import ConnectAgentButton from '@web-components/buttons/connect-agent/ConnectAgentButton';
 import { describe, expect, it, vi } from 'vitest';
 import AgentConnectDialog from './AgentConnectDialog';
 

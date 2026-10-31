@@ -2,6 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useMounted } from '@ui/lib/hooks';
 import { Button } from '@ui/primitives/button';
 import TopbarLogo from '@ui/topbars/logo/TopbarLogo';
 import { ChevronDown, Menu, X } from 'lucide-react';
@@ -9,8 +10,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ComponentType, ReactNode, SVGProps } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-
-import { useMounted } from '../../../lib/hooks';
 import TopbarPublicDesktopDropdown, {
   type TopbarPublicMegaMenuFooter,
 } from './TopbarPublicDesktopDropdown';

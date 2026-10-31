@@ -3,7 +3,7 @@ import type { ReactElement, ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SkillRegistry } from './_data';
 
-vi.mock('@hooks/ui/use-marketing-entrance', () => ({
+vi.mock('@web-hooks/ui/use-marketing-entrance', () => ({
   useMarketingEntrance: () => ({ current: null }),
 }));
 

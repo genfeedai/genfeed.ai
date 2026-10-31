@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import type { ReactElement, ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@hooks/ui/use-marketing-entrance', () => ({
+vi.mock('@web-hooks/ui/use-marketing-entrance', () => ({
   useMarketingEntrance: () => ({ current: null }),
 }));
 
@@ -13,7 +13,7 @@ vi.mock('@services/core/environment.service', () => ({
   },
 }));
 
-vi.mock('@ui/buttons/tracked/ButtonTracked', () => ({
+vi.mock('@web-components/buttons/tracked/ButtonTracked', () => ({
   default: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 

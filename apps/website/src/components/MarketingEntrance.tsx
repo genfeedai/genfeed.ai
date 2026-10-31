@@ -1,7 +1,7 @@
 'use client';
 
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import type { MarketingEntranceProps } from '@props/website/marketing-entrance.props';
+import { useMarketingEntrance } from '@web-hooks/ui/use-marketing-entrance';
 
 /**
  * The client island for a server-rendered marketing page.
