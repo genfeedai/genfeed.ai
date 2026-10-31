@@ -18,6 +18,7 @@ export class CronLlmIdleService {
   private readonly constructorName = String(this.constructor.name);
   private readonly ec2Client: EC2Client;
   private hasWarnedMissingInstance = false;
+  private readonly region: string;
 
   constructor(
     private readonly configService: ConfigService,
@@ -25,6 +26,7 @@ export class CronLlmIdleService {
     private readonly loggerService: LoggerService,
   ) {
     const region = String(this.configService.get('AWS_REGION') || 'us-east-1');
+    this.region = region;
     this.ec2Client = new EC2Client({
       credentials: {
         accessKeyId: String(this.configService.get('AWS_ACCESS_KEY_ID') || ''),
@@ -92,12 +94,13 @@ export class CronLlmIdleService {
       );
     } catch (error: unknown) {
       if (this.isInstanceNotFound(error)) {
-        // A configured instance that no longer exists is a config problem, not
-        // a fault. Warn once instead of an error every cron tick.
+        // An instance missing from this client's region (deleted, or living in
+        // another region) is a config problem, not a fault. Warn once instead
+        // of an error every cron tick.
         if (!this.hasWarnedMissingInstance) {
           this.hasWarnedMissingInstance = true;
           this.loggerService.warn(
-            `${this.constructorName}: GPU_LLM_INSTANCE_ID ${instanceId} does not exist — idle shutdown skipped; update or unset GPU_LLM_INSTANCE_ID`,
+            `${this.constructorName}: GPU_LLM_INSTANCE_ID ${instanceId} was not found in ${this.region} — idle shutdown skipped; check the instance's region (AWS_REGION) or unset GPU_LLM_INSTANCE_ID`,
           );
         }
         return 'not-found';
