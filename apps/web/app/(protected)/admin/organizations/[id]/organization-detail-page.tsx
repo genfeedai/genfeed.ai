@@ -7,6 +7,7 @@ import {
 import { AlertCategory, Timeframe } from '@genfeedai/contracts';
 import { APP_ROUTES, isReleaseItemId } from '@genfeedai/contracts/constants';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
+import type { OrganizationDetailPageProps } from '@genfeedai/props/admin/organization-detail-page.props';
 import OrganizationProfileHeader from '@protected/organizations/components/organization-profile-header';
 import OrganizationReleaseGrants from '@protected/organizations/components/organization-release-grants';
 import { OrganizationSettingsTable } from '@protected/organizations/components/organization-settings-table';
@@ -20,10 +21,6 @@ import { useTranslations } from 'next-intl';
 import { Suspense } from 'react';
 import AnalyticsOrganizationOverview from '@/features/analytics/organization-overview/analytics-organization-overview';
 import { readRouteParam } from '@/lib/route-params';
-
-interface OrganizationDetailPageProps {
-  activeTab: 'analytics' | 'settings';
-}
 
 function OrganizationDetailPageContent({
   activeTab,
