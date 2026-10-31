@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PresetsController } from '@api/collections/presets/controllers/presets.controller';
 import { CreatePresetDto } from '@api/collections/presets/dto/create-preset.dto';
+import type { PresetsQueryDto } from '@api/collections/presets/dto/presets-query.dto';
 import { UpdatePresetDto } from '@api/collections/presets/dto/update-preset.dto';
 import { PresetsService } from '@api/collections/presets/services/presets.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -96,7 +97,9 @@ describe('PresetsController', () => {
       ['label: 1', { createdAt: -1 }],
       ['config: 1', { createdAt: -1 }],
     ])('orders by %j with the allowed columns only', (sort, expected) => {
-      const query = controller.buildFindAllQuery(mockUser, { sort });
+      const query = controller.buildFindAllQuery(mockUser, {
+        sort,
+      } as PresetsQueryDto);
 
       expect(query.orderBy).toEqual(expected);
     });
