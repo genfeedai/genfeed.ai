@@ -77,21 +77,49 @@ describe('UpgradePlan', () => {
   });
 
   it('sells only Scale — never Free or Enterprise', () => {
-    render(<UpgradePlan />);
+    render(<UpgradePlan tiers={['scale']} />);
 
     expect(screen.getByText('Scale')).toBeInTheDocument();
     expect(screen.queryByText('Pay As You Go')).not.toBeInTheDocument();
     expect(screen.queryByText('Enterprise')).not.toBeInTheDocument();
   });
 
+  it('offers Pro next to Scale when both are on offer', () => {
+    render(<UpgradePlan tiers={['pro', 'scale']} />);
+
+    expect(screen.getByText('$49/mo')).toBeInTheDocument();
+    expect(screen.getByText('5,900 credits / month')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Upgrade to Pro/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Upgrade to Scale/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('sends a Pro purchase through checkout with the Pro price', async () => {
+    createCheckoutSession.mockResolvedValue({
+      url: 'https://checkout.stripe.com/session',
+    });
+
+    render(<UpgradePlan tiers={['pro', 'scale']} />);
+    fireEvent.click(screen.getByRole('button', { name: /Upgrade to Pro/i }));
+
+    await waitFor(() => {
+      expect(createCheckoutSession).toHaveBeenCalledWith(
+        expect.objectContaining({ stripePriceId: 'price_pro' }),
+      );
+    });
+  });
+
   it('shows the Scale list price plainly', () => {
-    render(<UpgradePlan />);
+    render(<UpgradePlan tiers={['scale']} />);
 
     expect(screen.getByText('$499/mo')).toBeInTheDocument();
   });
 
   it('renders every upgrade call to action as the primary (white) button', () => {
-    render(<UpgradePlan />);
+    render(<UpgradePlan tiers={['scale']} />);
 
     const upgrade = screen.getByRole('button', {
       name: /Upgrade to Scale/i,
@@ -101,7 +129,7 @@ describe('UpgradePlan', () => {
   });
 
   it('lists the price, monthly credits and key benefits next to the button', () => {
-    render(<UpgradePlan />);
+    render(<UpgradePlan tiers={['scale']} />);
 
     expect(screen.getByText('60,000 credits / month')).toBeInTheDocument();
     expect(
@@ -114,7 +142,7 @@ describe('UpgradePlan', () => {
       url: 'https://checkout.stripe.com/session',
     });
 
-    render(<UpgradePlan />);
+    render(<UpgradePlan tiers={['scale']} />);
     fireEvent.click(screen.getByRole('button', { name: /Upgrade to Scale/i }));
 
     await waitFor(() => {
@@ -135,7 +163,7 @@ describe('UpgradePlan', () => {
       upcomingInvoice: { amount_due: 32_500, currency: 'usd', lines: [] },
     });
 
-    render(<UpgradePlan />);
+    render(<UpgradePlan tiers={['scale']} />);
     fireEvent.click(screen.getByRole('button', { name: /Upgrade to Scale/i }));
 
     await waitFor(() => {
@@ -165,7 +193,7 @@ describe('UpgradePlan', () => {
       prorationAmount: 15_000,
     } as never);
 
-    render(<UpgradePlan />);
+    render(<UpgradePlan tiers={['scale']} />);
     fireEvent.click(screen.getByRole('button', { name: /Upgrade to Scale/i }));
 
     expect(
@@ -185,7 +213,7 @@ describe('UpgradePlan', () => {
       upcomingInvoice: { amount_due: 4_900, currency: 'usd', lines: [] },
     });
 
-    render(<UpgradePlan />);
+    render(<UpgradePlan tiers={['scale']} />);
     fireEvent.click(screen.getByRole('button', { name: /Upgrade to Scale/i }));
 
     expect(
@@ -201,7 +229,7 @@ describe('UpgradePlan', () => {
 
     async function selectScale() {
       mockSubscription('sub_stripe_1');
-      render(<UpgradePlan />);
+      render(<UpgradePlan tiers={['scale']} />);
       fireEvent.click(await screen.findByRole('button', { name: /Scale/i }));
     }
 
@@ -316,7 +344,7 @@ describe('UpgradePlan', () => {
         upcomingInvoice: { amount_due: 32_500, currency: 'usd', lines: [] },
       });
 
-      render(<UpgradePlan />);
+      render(<UpgradePlan tiers={['scale']} />);
       fireEvent.click(
         screen.getByRole('button', { name: /Upgrade to Scale/i }),
       );

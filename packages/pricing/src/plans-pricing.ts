@@ -3,7 +3,7 @@ import {
   multiplyDecimalPricing,
   sumDecimalPricing,
 } from './decimal-pricing';
-import { FREE_API_RATE_LIMIT } from './tier-entitlements';
+import { FREE_API_RATE_LIMIT, PRO_API_RATE_LIMIT } from './tier-entitlements';
 /**
  * Genfeed.ai Pricing Configuration
  *
@@ -467,8 +467,8 @@ export const websitePlans: WebsitePlanProps[] = [
     features: [
       'Automation, Messages, Discovery',
       'Clean exports, any agent model',
-      `${formatPricingNumber(TIER_INCLUDED_MONTHLY_CREDITS.pro)} credits included`,
       'Unlimited brands and channels',
+      `API access (${PRO_API_RATE_LIMIT} requests/min)`,
     ],
     includedCredits: TIER_INCLUDED_MONTHLY_CREDITS.pro,
     interval: 'month',
