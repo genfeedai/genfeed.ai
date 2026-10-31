@@ -15,7 +15,6 @@ import {
   ITEMS_PER_PAGE,
 } from '@genfeedai/contracts/constants';
 import type { IPost, IReleaseGroup } from '@genfeedai/contracts/interfaces';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
   getPublishingPostHref,
   getPublishingReleaseHref,
@@ -47,7 +46,6 @@ import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Button } from '@ui/primitives/button';
-import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import {
   buildSourcePostVariationsHref,
   isSourcePostVariationPlatform,
@@ -505,13 +503,13 @@ export default function PublishingContentLibrary() {
   );
 
   // Table rows: icon-only actions revealed on row hover or keyboard focus.
-  // The per-target overflow menu varies by row, so this stays a column
-  // rather than the table's static `actions` prop.
+  // The per-target overflow menu varies by row, so it goes through the table's
+  // `renderRowActions` rather than the static `actions` prop.
   const renderRowActions = (item: PublishingContentLibraryItem) => {
     const primaryLabel = translate(isItemFailed(item) ? 'retry' : 'open');
     return (
       <CollectionItemActions
-        className={cn('justify-end', hoverRevealClassName({ at: 'lg' }))}
+        className="justify-end"
         overflow={getOverflowActions(item)}
         primary={
           <Button
@@ -591,11 +589,6 @@ export default function PublishingContentLibrary() {
       header: 'Created',
       key: 'createdAt',
       render: (item) => formatDate(item.createdAt),
-    },
-    {
-      header: <span className="sr-only">Actions</span>,
-      key: 'actions',
-      render: (item) => renderRowActions(item),
     },
   ];
 
@@ -746,9 +739,9 @@ export default function PublishingContentLibrary() {
         itemCount={attentionItems.length}
       >
         <AppTable<PublishingContentLibraryItem>
-          actions={[]}
           columns={columns}
           items={attentionItems}
+          renderRowActions={renderRowActions}
           getRowKey={(item) => `${item.type}:${item.id}`}
           onRowClick={openRowOverlay}
         />
@@ -790,7 +783,6 @@ export default function PublishingContentLibrary() {
           )
         ) : (
           <AppTable<PublishingContentLibraryItem>
-            actions={[]}
             columns={columns}
             emptyLabel="No posts found"
             emptyState={emptyState}
@@ -798,6 +790,7 @@ export default function PublishingContentLibrary() {
             isLoading={isLoading}
             items={pageItems}
             onRowClick={openRowOverlay}
+            renderRowActions={renderRowActions}
           />
         )}
       </CollectionSection>

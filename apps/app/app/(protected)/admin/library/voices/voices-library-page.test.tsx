@@ -129,7 +129,7 @@ describe('admin voice catalog table', () => {
       'columns.language',
       'columns.status',
       'columns.preview',
-      'columns.actions',
+      'Actions',
     ]);
     expect(within(table).getAllByRole('row')).toHaveLength(voices.length + 1);
     expect(within(table).getByText('external-0')).toBeInTheDocument();

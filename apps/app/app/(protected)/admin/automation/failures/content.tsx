@@ -205,32 +205,6 @@ export default function AgentFailuresPage() {
         </>
       ),
     },
-    {
-      header: translate('columns.actions'),
-      key: 'actions',
-      render: (run) => {
-        const isResolved = Boolean(run.failureResolvedAt);
-        return (
-          <div className="flex flex-wrap gap-2">
-            <Button
-              label={translate(
-                isResolved ? 'actions.reopen' : 'actions.markResolved',
-              )}
-              variant={ButtonVariant.SECONDARY}
-              size={ButtonSize.SM}
-              isLoading={pendingId === run.id}
-              onClick={() => void setResolved(run, !isResolved)}
-            />
-            <Button
-              label={translate('actions.createIssue')}
-              variant={ButtonVariant.SECONDARY}
-              size={ButtonSize.SM}
-              onClick={() => createIssue(run)}
-            />
-          </div>
-        );
-      },
-    },
   ];
 
   return (
@@ -296,6 +270,28 @@ export default function AgentFailuresPage() {
             framed={false}
             getRowKey={(run) => run.id}
             items={failures}
+            renderRowActions={(run) => {
+              const isResolved = Boolean(run.failureResolvedAt);
+              return (
+                <>
+                  <Button
+                    label={translate(
+                      isResolved ? 'actions.reopen' : 'actions.markResolved',
+                    )}
+                    variant={ButtonVariant.SECONDARY}
+                    size={ButtonSize.SM}
+                    isLoading={pendingId === run.id}
+                    onClick={() => void setResolved(run, !isResolved)}
+                  />
+                  <Button
+                    label={translate('actions.createIssue')}
+                    variant={ButtonVariant.SECONDARY}
+                    size={ButtonSize.SM}
+                    onClick={() => createIssue(run)}
+                  />
+                </>
+              );
+            }}
             renderExpandedRow={(run) =>
               expandedIds.has(run.id) ? (
                 <div>

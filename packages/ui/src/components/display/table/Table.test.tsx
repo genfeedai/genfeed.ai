@@ -60,7 +60,7 @@ describe('Table', () => {
     ).toHaveAttribute('colspan', '1');
   });
 
-  it('reveals touch-safe row actions on keyboard focus', () => {
+  it('overlays row actions on the row and reveals them on hover or focus', () => {
     render(
       <Table
         items={[{ id: 'item-1', name: 'First item' }]}
@@ -82,17 +82,65 @@ describe('Table', () => {
     );
 
     const action = screen.getByTestId('action-button');
-    expect(action).toHaveClass('size-11', 'lg:size-8', '[&_svg]:size-3.5');
+    expect(action).toHaveClass(
+      'size-8',
+      '[@media(hover:none)]:size-11',
+      '[&_svg]:size-3.5',
+    );
     expect(action).toHaveAccessibleName('Edit item');
-    const group = action.closest('td')?.firstElementChild;
+    const cell = action.closest('td');
+    // Zero-width sticky cell: no column to scroll to, pinned to the right edge.
+    expect(cell).toHaveClass('sticky', 'right-0', '[@media(hover:hover)]:w-0');
+    const group = cell?.firstElementChild;
     expect(group).toHaveClass(
+      '[@media(hover:hover)]:absolute',
       'opacity-100',
       'pointer-events-auto',
-      '[@media(hover:hover)]:lg:opacity-0',
-      '[@media(hover:hover)]:lg:group-focus-within:opacity-100',
+      '[@media(hover:hover)]:opacity-0',
+      '[@media(hover:hover)]:group-hover:opacity-100',
+      '[@media(hover:hover)]:group-focus-within:opacity-100',
     );
     // Motion policy: the group shows and hides instantly, never slides in.
     expect(group?.className).not.toMatch(/translate-x|transition/);
+  });
+
+  it('has no visible Actions column header', () => {
+    render(
+      <Table
+        items={[{ id: 'item-1', name: 'First item' }]}
+        columns={[{ header: 'Name', key: 'name' }]}
+        actions={[{ icon: 'Edit', onClick: () => {}, tooltip: 'Edit item' }]}
+        getRowKey={(item) => item.id}
+      />,
+    );
+
+    expect(screen.getAllByRole('columnheader')).toHaveLength(2);
+    expect(screen.getByText('Actions')).toHaveClass('sr-only');
+  });
+
+  it('renders row-specific controls from renderRowActions in the same overlay', () => {
+    render(
+      <Table
+        items={[
+          { id: 'item-1', name: 'First item' },
+          { id: 'item-2', name: 'Second item' },
+        ]}
+        columns={[{ header: 'Name', key: 'name' }]}
+        renderRowActions={(item) => (
+          <button type="button">{`Retry ${item.name}`}</button>
+        )}
+        getRowKey={(item) => item.id}
+      />,
+    );
+
+    const retry = screen.getByRole('button', { name: 'Retry First item' });
+    expect(retry.closest('td')).toHaveClass('sticky', 'right-0');
+    expect(retry.parentElement).toHaveClass(
+      '[@media(hover:hover)]:group-hover:opacity-100',
+    );
+    expect(
+      screen.getByRole('button', { name: 'Retry Second item' }),
+    ).toBeInTheDocument();
   });
 
   it('keeps a one-word tooltip and a longer accessible name per row', async () => {

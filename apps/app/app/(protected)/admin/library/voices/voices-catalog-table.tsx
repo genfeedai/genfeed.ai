@@ -90,11 +90,18 @@ export default function VoicesCatalogTable({
         />
       ),
     },
-    {
-      className: 'w-12 text-right',
-      header: <span className="sr-only">{t('columns.actions')}</span>,
-      key: 'actions',
-      render: (voice) => {
+  ];
+
+  return (
+    <AppTable<ExternalVoice>
+      ariaLabel={t('tableLabel')}
+      columns={columns}
+      emptyLabel={t('empty')}
+      error={error}
+      getRowKey={(voice) => voice.id}
+      isLoading={isLoading}
+      items={voices}
+      renderRowActions={(voice) => {
         const name = getVoiceName(voice);
 
         return (
@@ -132,19 +139,7 @@ export default function VoicesCatalogTable({
             ]}
           />
         );
-      },
-    },
-  ];
-
-  return (
-    <AppTable<ExternalVoice>
-      ariaLabel={t('tableLabel')}
-      columns={columns}
-      emptyLabel={t('empty')}
-      error={error}
-      getRowKey={(voice) => voice.id}
-      isLoading={isLoading}
-      items={voices}
+      }}
     />
   );
 }
