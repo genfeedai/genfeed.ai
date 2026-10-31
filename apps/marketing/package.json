@@ -26,9 +26,6 @@
     "@genfeedai/contracts": "workspace:*"
   },
   "description": "Genfeed Website - Marketing site with landing pages, documentation, and public-facing content",
-  "engines": {
-    "node": "26.x"
-  },
   "name": "@genfeedai/marketing",
   "private": true,
   "type": "module",

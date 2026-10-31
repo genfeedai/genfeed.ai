@@ -16,9 +16,6 @@
     "@typescript/native": "npm:typescript@7.0.2",
     "typescript": "6.0.3"
   },
-  "engines": {
-    "node": "26.x"
-  },
   "name": "@genfeedai/docs",
   "private": true,
   "type": "module",
