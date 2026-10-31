@@ -327,8 +327,26 @@ describe('AdminAnnouncementsService', () => {
 
       const history = await service.getHistory({ limit: 10, page: 2 });
 
-      expect(announcementsCollectionService.getAll).toHaveBeenCalledWith(2, 10);
+      expect(announcementsCollectionService.getAll).toHaveBeenCalledWith(
+        2,
+        10,
+        undefined,
+      );
       expect(history).toBe(result);
+    });
+
+    it('hands the search term to the collection read', async () => {
+      announcementsCollectionService.getAll.mockResolvedValue(
+        pageOf([]) as never,
+      );
+
+      await service.getHistory({ limit: 10, page: 1, search: 'launch' });
+
+      expect(announcementsCollectionService.getAll).toHaveBeenCalledWith(
+        1,
+        10,
+        'launch',
+      );
     });
 
     it('reads the platform-wide history outside the superadmin tenant (CLOUD guard)', async () => {
