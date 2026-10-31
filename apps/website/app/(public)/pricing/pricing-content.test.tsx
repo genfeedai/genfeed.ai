@@ -87,12 +87,7 @@ describe('PricingContent', () => {
     ).toBeInTheDocument();
     expect(
       [...row.querySelectorAll('td')].map((cell) => cell.textContent),
-    ).toEqual([
-      '—',
-      'Yes',
-      'Yes',
-      'Yes',
-    ]);
+    ).toEqual(['—', 'Yes', 'Yes', 'Yes']);
   });
 
   it('promises free credits after onboarding', () => {
@@ -122,7 +117,9 @@ describe('PricingContent', () => {
   it('lists every app on the Pro card', () => {
     render(<PricingContent />);
     const pro = within(screen.getByLabelText('Pro'));
-    expect(pro.getByText('Automation, Messages, Discovery')).toBeInTheDocument();
+    expect(
+      pro.getByText('Automation, Messages, Discovery'),
+    ).toBeInTheDocument();
     expect(pro.getByText('5,900 credits included')).toBeInTheDocument();
   });
 

@@ -5,8 +5,8 @@ import {
   PLAN_LIMIT_UNLIMITED,
   type PlanTier,
   TIER_PLAN_ENTITLEMENTS,
-  type TierPlanEntitlement,
   type TierLimit,
+  type TierPlanEntitlement,
 } from '@genfeedai/pricing';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 

@@ -266,9 +266,7 @@ export default function PricingContent() {
         <WebSection maxWidth="full" py="sm" className="pt-0 md:pt-0">
           <div className="flex flex-col gap-6 border border-foreground/10 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-6">
             <div className="min-w-0">
-              <h2 className="text-lg font-semibold">
-                {getPlanLabel('payg')}
-              </h2>
+              <h2 className="text-lg font-semibold">{getPlanLabel('payg')}</h2>
               <p className="mt-1 text-sm text-foreground/60">
                 {getPriceQualifier(getPlanByTier('payg'))} ·{' '}
                 {ONBOARDING_STARTER_CREDITS} free credits after onboarding
@@ -290,7 +288,11 @@ export default function PricingContent() {
               size={ButtonSize.PUBLIC}
               variant={ButtonVariant.SECONDARY}
             >
-              <a href={paygSignUpHref} target="_blank" rel="noopener noreferrer">
+              <a
+                href={paygSignUpHref}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 {getPlanByTier('payg').cta || 'Get Started'}
               </a>
             </Button>
