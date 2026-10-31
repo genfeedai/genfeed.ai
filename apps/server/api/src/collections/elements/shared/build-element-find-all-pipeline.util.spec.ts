@@ -2,6 +2,7 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import {
   buildElementFindAllQuery,
   DEFAULT_ELEMENT_SORT,
+  ELEMENT_SORT_FIELDS,
 } from './build-element-find-all-pipeline.util';
 
 const member = { organizationId: 'org-1' };
@@ -24,14 +25,44 @@ describe('buildElementFindAllQuery ordering', () => {
     expect(DEFAULT_ELEMENT_SORT.organizationId).toBe(-1);
   });
 
-  it('keeps an explicit client sort', () => {
+  it.each([
+    ['label: 1', { createdAt: -1, id: -1, label: 1 }],
+    ['key: -1', { createdAt: -1, id: -1, key: -1 }],
+    ['createdAt: 1', { createdAt: 1, id: -1 }],
+    ['label: 1, password: -1', { createdAt: -1, id: -1, label: 1 }],
+  ])(
+    'orders by the requested column with a stable tiebreaker (%s)',
+    (sort, expected) => {
+      const { orderBy } = buildElementFindAllQuery({
+        metadata: member,
+        query: { sort } as BaseQueryDto,
+      });
+
+      expect(orderBy).toEqual(expected);
+    },
+  );
+
+  it('orders by an extra column a model allows', () => {
     const { orderBy } = buildElementFindAllQuery({
+      allowedSortFields: [...ELEMENT_SORT_FIELDS, 'category'],
       metadata: member,
-      query: { sort: 'label: 1' } as BaseQueryDto,
+      query: { sort: 'category: 1' } as BaseQueryDto,
     });
 
-    expect(orderBy).toEqual({ label: 1 });
+    expect(orderBy).toEqual({ category: 1, createdAt: -1, id: -1 });
   });
+
+  it.each(['password: 1', 'organizationId: -1', 'category: 1', 'label'])(
+    'falls back to the default order for a sort it cannot honor (%s)',
+    (sort) => {
+      const { orderBy } = buildElementFindAllQuery({
+        metadata: member,
+        query: { sort } as BaseQueryDto,
+      });
+
+      expect(orderBy).toEqual(DEFAULT_ELEMENT_SORT);
+    },
+  );
 
   it('keeps defaults in the first page window when an organization has 20 rows', () => {
     // Mirrors PostgreSQL: DESC orders NULLs first, then sortOrder ASC, createdAt DESC.

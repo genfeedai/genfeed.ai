@@ -25,6 +25,9 @@ import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import { LazyModalLens } from '@/components/lazy/modal/LazyModal';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
+
+const LENS_SORT_KEYS = ['label', 'key'];
 
 function LensesListContent({
   filters,
@@ -38,6 +41,9 @@ function LensesListContent({
   const { openConfirm } = useConfirmModal();
 
   const searchParams = useSearchParams();
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: LENS_SORT_KEYS,
+  });
 
   const getLensesService = useAuthedService(
     useCallback((token: string) => LensesService.getInstance(token), []),
@@ -74,6 +80,7 @@ function LensesListContent({
       adminOrg,
       adminBrand,
       filters?.search,
+      sort,
     ],
     queryFn: async () => {
       const service = await getLensesService();
@@ -82,6 +89,7 @@ function LensesListContent({
         limit: ITEMS_PER_PAGE,
         page: currentPage,
         search: filters?.search || undefined,
+        ...(sort ? { sort } : {}),
       };
 
       if (scope === PageScope.SUPERADMIN) {
@@ -123,9 +131,15 @@ function LensesListContent({
     {
       header: 'Label',
       key: 'label',
+      sortable: true,
       subtext: (lens: ElementLens) => lens.description,
     },
-    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
+    {
+      className: 'font-mono text-sm',
+      header: 'Key',
+      key: 'key',
+      sortable: true,
+    },
     {
       header: scopeTranslate('scopeHeader'),
       key: 'isPlatformDefault',
@@ -199,6 +213,9 @@ function LensesListContent({
   return (
     <>
       <AppTable<ElementLens>
+        onSortChange={onSortChange}
+        sortDirection={sortDirection}
+        sortKey={sortKey}
         items={lenses}
         columns={columns}
         actions={actions}

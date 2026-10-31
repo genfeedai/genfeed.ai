@@ -20,6 +20,7 @@ vi.mock('next-intl', async () => {
 });
 
 const mocks = vi.hoisted(() => ({
+  urlSort: null as string | null,
   deleteCamera: vi.fn(),
   findAll: vi.fn(),
   loggerError: vi.fn(),
@@ -197,9 +198,13 @@ vi.mock('next/navigation', () => ({
       if (key === 'page') return '2';
       if (key === 'organization') return 'org-1';
       if (key === 'brand') return 'brand-1';
+      if (key === 'sort') return mocks.urlSort;
       return null;
     },
-    toString: () => 'organization=org-1&brand=brand-1&page=2',
+    toString: () =>
+      `organization=org-1&brand=brand-1&page=2${
+        mocks.urlSort ? `&sort=${mocks.urlSort}` : ''
+      }`,
   }),
 }));
 
@@ -233,6 +238,7 @@ function mockCameras(
 describe('CamerasList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.urlSort = null;
     mocks.deleteCamera.mockResolvedValue({ ok: true });
     mocks.findAll.mockResolvedValue([]);
     mocks.refetch.mockResolvedValue(undefined);
@@ -254,6 +260,36 @@ describe('CamerasList', () => {
         }),
       );
     });
+  });
+
+  it.each([
+    ['label', 'label: 1'],
+    ['-label', 'label: -1'],
+    ['-key', 'key: -1'],
+  ])(
+    'asks the API for the order named in the URL (sort=%s)',
+    async (urlSort, sort) => {
+      mocks.urlSort = urlSort;
+      render(<CamerasList scope={PageScope.SUPERADMIN} />);
+
+      await waitFor(() => {
+        expect(mocks.findAll).toHaveBeenCalledWith(
+          expect.objectContaining({ page: 2, sort }),
+        );
+      });
+    },
+  );
+
+  it('ignores a URL sort on a column it cannot order by', async () => {
+    mocks.urlSort = '-password';
+    render(<CamerasList scope={PageScope.SUPERADMIN} />);
+
+    await waitFor(() => {
+      expect(mocks.findAll).toHaveBeenCalled();
+    });
+    expect(mocks.findAll).not.toHaveBeenCalledWith(
+      expect.objectContaining({ sort: expect.anything() }),
+    );
   });
 
   it('opens the camera summary in the sidebar with Edit for superadmins', () => {

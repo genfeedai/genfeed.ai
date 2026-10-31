@@ -20,9 +20,15 @@ export function buildSoundsColumns({
     {
       header: 'Label',
       key: 'label',
+      sortable: true,
       subtext: (sound: Sound) => sound.description,
     },
-    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
+    {
+      className: 'font-mono text-sm',
+      header: 'Key',
+      key: 'key',
+      sortable: true,
+    },
     {
       header: scopeLabel,
       key: 'isPlatformDefault',
@@ -34,6 +40,7 @@ export function buildSoundsColumns({
       className: 'tabular-nums',
       header: sortOrderLabel,
       key: 'sortOrder',
+      sortable: true,
       render: (sound: Sound) => sound.sortOrder ?? 0,
     },
     {

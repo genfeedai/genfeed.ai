@@ -4,7 +4,10 @@ import { CreateElementBlacklistDto } from '@api/collections/elements/blacklists/
 import { UpdateElementBlacklistDto } from '@api/collections/elements/blacklists/dto/update-blacklist.dto';
 import type { ElementBlacklistDocument } from '@api/collections/elements/blacklists/schemas/blacklist.schema';
 import { ElementsBlacklistsService } from '@api/collections/elements/blacklists/services/blacklists.service';
-import { buildElementFindAllQuery } from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
+import {
+  buildElementFindAllQuery,
+  ELEMENT_SORT_FIELDS,
+} from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
 import { ElementsCRUDController } from '@api/collections/elements/shared/elements-crud.controller';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -66,6 +69,7 @@ export class ElementsBlacklistsController extends ElementsCRUDController<
     const adminFilter = CollectionFilterUtil.buildAdminFilter(user, query);
     const findAllQuery = buildElementFindAllQuery({
       adminFilter,
+      allowedSortFields: [...ELEMENT_SORT_FIELDS, 'category'],
       filters: query.category ? { category: query.category } : undefined,
       metadata: {
         isSuperAdmin: getIsSuperAdmin(user),

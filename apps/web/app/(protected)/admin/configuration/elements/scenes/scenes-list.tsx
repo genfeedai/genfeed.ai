@@ -35,6 +35,7 @@ import type {
   ScenesAction,
   ScenesState,
 } from '@/features/admin/props/scenes.props';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 function scenesReducer(state: ScenesState, action: ScenesAction): ScenesState {
   switch (action.type) {
@@ -54,6 +55,8 @@ function scenesReducer(state: ScenesState, action: ScenesAction): ScenesState {
   }
 }
 
+const SCENE_SORT_KEYS = ['label', 'key'];
+
 function ScenesListContent({
   filters,
   scope = PageScope.BRAND,
@@ -64,6 +67,9 @@ function ScenesListContent({
   const notificationsService = NotificationsService.getInstance();
   const { openConfirm } = useConfirmModal();
   const searchParams = useSearchParams();
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: SCENE_SORT_KEYS,
+  });
   const currentPage = Number(searchParams.get('page')) || 1;
 
   const [state, dispatch] = useReducer(scenesReducer, undefined, () => ({
@@ -96,9 +102,15 @@ function ScenesListContent({
     {
       header: 'Label',
       key: 'label',
+      sortable: true,
       subtext: (scene: ElementScene) => scene.description,
     },
-    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
+    {
+      className: 'font-mono text-sm',
+      header: 'Key',
+      key: 'key',
+      sortable: true,
+    },
     {
       header: scopeTranslate('scopeHeader'),
       key: 'isPlatformDefault',
@@ -111,8 +123,13 @@ function ScenesListContent({
     },
   ];
 
+  // Only the latest request may fill the list, so a slow response for an
+  // earlier sort or search cannot replace the current one.
+  const latestRequestRef = useRef(0);
+
   const findAllScenes = useCallback(
     async (isRefreshRequest = false) => {
+      const requestId = ++latestRequestRef.current;
       dispatch({ type: 'FETCH_START', isRefresh: isRefreshRequest });
       onRefreshingChangeRef.current?.(isRefreshRequest);
       onLoadingChangeRef.current?.(!isRefreshRequest);
@@ -123,6 +140,7 @@ function ScenesListContent({
           limit: ITEMS_PER_PAGE,
           page: currentPage,
           search: filters?.search || undefined,
+          ...(sort ? { sort } : {}),
         };
 
         if (scope === PageScope.SUPERADMIN) {
@@ -135,20 +153,29 @@ function ScenesListContent({
         }
 
         const data = await service.findAll(query);
+        if (requestId !== latestRequestRef.current) {
+          return;
+        }
         dispatch({ type: 'FETCH_SUCCESS', scenes: data });
         logger.info('GET /scenes success', data);
       } catch (error) {
+        if (requestId !== latestRequestRef.current) {
+          return;
+        }
         logger.error('GET /scenes failed', error);
         notificationsService.error('Failed to load scenes');
       } finally {
-        dispatch({ type: 'FETCH_DONE' });
-        onLoadingChangeRef.current?.(false);
-        onRefreshingChangeRef.current?.(false);
+        if (requestId === latestRequestRef.current) {
+          dispatch({ type: 'FETCH_DONE' });
+          onLoadingChangeRef.current?.(false);
+          onRefreshingChangeRef.current?.(false);
+        }
       }
     },
     [
       currentPage,
       filters?.search,
+      sort,
       getScenesService,
       notificationsService.error,
       scope,
@@ -228,6 +255,9 @@ function ScenesListContent({
   return (
     <>
       <AppTable<ElementScene>
+        onSortChange={onSortChange}
+        sortDirection={sortDirection}
+        sortKey={sortKey}
         items={scenes}
         columns={columns}
         actions={actions}
