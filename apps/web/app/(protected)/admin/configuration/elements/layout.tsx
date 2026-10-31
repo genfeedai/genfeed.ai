@@ -1,0 +1,209 @@
+'use client';
+
+import {
+  ButtonVariant,
+  IngredientCategory,
+  ModalEnum,
+} from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { IFiltersState } from '@genfeedai/contracts/interfaces/utils/filters.interface';
+import { openModal } from '@helpers/ui/modal/modal.helper';
+import type { LayoutProps } from '@props/layout/layout.props';
+import { useElementsContext } from '@providers/elements/elements.context';
+import ElementsProvider from '@providers/elements/elements.provider';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
+import { Button } from '@ui/primitives/button';
+import { ELEMENT_LABELS } from '@ui-constants/element.constant';
+import { Plus, Tag } from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useMemo } from 'react';
+import AdminOrgBrandUrlFilter from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
+import FiltersButton from '@/components/content/filters-button/FiltersButton';
+import FiltersSearch from '@/components/content/filters-button/FiltersSearch';
+
+function ElementsLayoutContent({ children }: LayoutProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { filters, isRefreshing, refetch, setFilters } = useElementsContext();
+
+  const elementType = useMemo(() => {
+    const segments = pathname.split('/').filter(Boolean);
+    return segments[segments.length - 1];
+  }, [pathname]);
+
+  const filterConfig = useMemo(() => {
+    switch (elementType) {
+      case 'blacklists':
+        return {
+          addButtonLabel: 'Blacklist',
+          filterOptions: {
+            type: [
+              { label: 'Video', value: IngredientCategory.VIDEO },
+              { label: 'Image', value: IngredientCategory.IMAGE },
+              { label: 'Text/Voice', value: IngredientCategory.VOICE },
+              { label: 'Music', value: IngredientCategory.MUSIC },
+            ],
+          },
+          modalId: ModalEnum.BLACKLIST,
+          visibleFilters: { search: true, type: true },
+        };
+      case 'cameras':
+        return {
+          addButtonLabel: 'Camera',
+          filterOptions: {},
+          modalId: ModalEnum.CAMERA,
+          visibleFilters: { search: true },
+        };
+      case 'lenses':
+        return {
+          addButtonLabel: 'Lens',
+          filterOptions: {},
+          modalId: ModalEnum.LENS,
+          visibleFilters: { search: true },
+        };
+      case 'lightings':
+        return {
+          addButtonLabel: 'Lighting',
+          filterOptions: {},
+          modalId: ModalEnum.LIGHTING,
+          visibleFilters: { search: true },
+        };
+      case 'camera-movements':
+        return {
+          addButtonLabel: 'Camera Movement',
+          filterOptions: {},
+          modalId: ModalEnum.CAMERA_MOVEMENT,
+          visibleFilters: { search: true },
+        };
+      case 'moods':
+        return {
+          addButtonLabel: 'Mood',
+          filterOptions: {},
+          modalId: ModalEnum.MOOD,
+          visibleFilters: { search: true },
+        };
+      case 'scenes':
+        return {
+          addButtonLabel: 'Scene',
+          filterOptions: {},
+          modalId: ModalEnum.SCENE,
+          visibleFilters: { search: true },
+        };
+      case 'styles':
+        return {
+          addButtonLabel: 'Style',
+          filterOptions: {},
+          modalId: ModalEnum.STYLE,
+          visibleFilters: { search: true },
+        };
+      case 'sounds':
+        return {
+          addButtonLabel: 'Sound',
+          filterOptions: {
+            type: [
+              { label: 'Video', value: IngredientCategory.VIDEO },
+              { label: 'Image', value: IngredientCategory.IMAGE },
+              { label: 'Voice', value: IngredientCategory.VOICE },
+              { label: 'Music', value: IngredientCategory.MUSIC },
+            ],
+          },
+          modalId: ModalEnum.SOUND,
+          visibleFilters: { search: true, type: true },
+        };
+      default:
+        return {
+          addButtonLabel: null,
+          filterOptions: {},
+          modalId: null,
+          visibleFilters: { search: true },
+        };
+    }
+  }, [elementType]);
+
+  const currentElement = ELEMENT_LABELS[elementType] || {
+    description: 'Manage platform elements',
+    label: 'Elements',
+  };
+
+  const handleFiltersChange = (nextFilters: IFiltersState) => {
+    setFilters(nextFilters);
+    if (searchParams.has('page')) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete('page');
+      const queryString = params.toString();
+      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+        scroll: false,
+      });
+    }
+  };
+
+  return (
+    <AdminPageShell
+      title={currentElement.label}
+      icon={Tag}
+      tabs={{
+        fullWidth: false,
+        tabs: Object.keys(ELEMENT_LABELS).reduce<
+          Array<{ href: string; label: string }>
+        >((tabs, type) => {
+          if (type !== 'font-families') {
+            tabs.push({
+              href: `${APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS}/${type}`,
+              label: ELEMENT_LABELS[type].label,
+            });
+          }
+          return tabs;
+        }, []),
+      }}
+      onRefresh={() => {
+        void refetch();
+      }}
+      isRefreshing={isRefreshing}
+      search={
+        filterConfig.visibleFilters.search ? (
+          <FiltersSearch
+            filterOptions={filterConfig.filterOptions}
+            filters={filters}
+            onFiltersChange={handleFiltersChange}
+            visibleFilters={filterConfig.visibleFilters}
+          />
+        ) : undefined
+      }
+      filters={
+        filterConfig.visibleFilters.search ? undefined : (
+          <FiltersButton
+            filters={filters}
+            visibleFilters={filterConfig.visibleFilters}
+            filterOptions={filterConfig.filterOptions}
+            onFiltersChange={handleFiltersChange}
+          />
+        )
+      }
+      dropdowns={<AdminOrgBrandUrlFilter />}
+      primaryAction={
+        filterConfig.addButtonLabel && filterConfig.modalId ? (
+          <Button
+            variant={ButtonVariant.DEFAULT}
+            onClick={() => {
+              openModal(filterConfig.modalId);
+            }}
+          >
+            <Plus />
+            {filterConfig.addButtonLabel}
+          </Button>
+        ) : undefined
+      }
+    >
+      {children}
+    </AdminPageShell>
+  );
+}
+
+export default function ElementsLayout({ children }: LayoutProps) {
+  return (
+    <ElementsProvider>
+      <ElementsLayoutContent>{children}</ElementsLayoutContent>
+    </ElementsProvider>
+  );
+}

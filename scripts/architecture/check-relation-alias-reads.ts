@@ -46,7 +46,7 @@ import { RELATION_ALIAS_READ_BASELINE } from './relation-alias-reads.baseline';
 const INCLUDE_GLOBS = [
   'apps/server/**/*.ts',
   // Screen code that moved out of packages/pages into feature folders (#8684).
-  'apps/app/src/features/**/*.ts',
+  'apps/web/src/features/**/*.ts',
   'packages/hooks/**/*.ts',
   'packages/contracts/src/interfaces/**/*.ts',
   'packages/models/**/*.ts',
@@ -726,7 +726,7 @@ function checkFile(
     if (
       ts.isPropertyAssignment(node) &&
       (file.startsWith('packages/') ||
-        file.startsWith('apps/app/src/features/'))
+        file.startsWith('apps/web/src/features/'))
     ) {
       const identityKey = identityKeyFromAssignment(node, aliases);
       if (identityKey && !isSuppressed(sourceFile, node.getStart())) {

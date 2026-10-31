@@ -74,7 +74,7 @@ export const CANONICAL_JSON_ALLOWANCES: CanonicalJsonAllowance[] = [
       'Different algorithm (normalizeForDigest + JSON.stringify), pinned by stored artifact content digests.',
   },
   {
-    file: 'apps/app/src/lib/studio-editor/editor-save-outbox.ts',
+    file: 'apps/web/src/lib/studio-editor/editor-save-outbox.ts',
     reason:
       'Different algorithm (sortKeysDeep returns a sorted object, not a string); browser-side comparison only, never hashed.',
   },

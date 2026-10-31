@@ -1,0 +1,152 @@
+import { loadProtectedBootstrap } from '@app-server/protected-bootstrap.server';
+import {
+  prefetchServerQuery,
+  ServerQueryHydrationBoundary,
+} from '@app-server/query-hydration.server';
+import { loadReleasePostsPageData } from '@app-server/release-posts-page-data.server';
+import {
+  PageScope,
+  PostStatus,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
+import { normalizePostsPlatform } from '@helpers/content/posts.helper';
+import {
+  parsePostsPublicationState,
+  parsePostsSource,
+  parsePostsStatus,
+} from '@/features/posts/list/posts-list-query';
+import ReleasePostsList from '@/features/posts/list/release-posts-list';
+import {
+  buildReleasePostsListQueryKey,
+  normalizeReleaseExecutionStates,
+  normalizeReleasePostContentTypes,
+  normalizeReleasePostsSort,
+} from '@/features/posts/list/release-posts-list-query';
+import type { PostsListSearchParams } from '@/props/publishing/publishing-list-page.props';
+
+export type { PostsListSearchParams } from '@/props/publishing/publishing-list-page.props';
+
+/**
+ * The single Posts list. Every lifecycle state is a query-param filter
+ * (`publicationState` / `status`, see `createPublishingPostsFilterRoute`);
+ * no caller forces a lifecycle.
+ */
+export async function renderPostsListPage({
+  campaignId,
+  searchParams,
+  scope = PageScope.PUBLISHING,
+}: {
+  campaignId?: string;
+  searchParams: PostsListSearchParams;
+  scope?: PageScope;
+}) {
+  const [
+    {
+      account,
+      contentType,
+      executionState,
+      page,
+      platform,
+      publicationState: publicationStateParam,
+      search,
+      sort,
+      source,
+      status,
+    },
+    bootstrap,
+  ] = await Promise.all([searchParams, loadProtectedBootstrap()]);
+  const credentialIds = account
+    ? Array.isArray(account)
+      ? account
+      : [account]
+    : undefined;
+  const normalizedStatus = parsePostsStatus(status);
+  const requestedPublicationState = parsePostsPublicationState(
+    publicationStateParam,
+  );
+  const parsedPage = Math.floor(Number.parseInt(page ?? '1', 10));
+  const currentPage = Number.isFinite(parsedPage) ? Math.max(1, parsedPage) : 1;
+  const normalizedPlatform = normalizePostsPlatform(platform);
+  const platformFilter =
+    normalizedPlatform !== 'all' ? normalizedPlatform : undefined;
+  const brandId = bootstrap?.brandId ?? null;
+  const organizationId = bootstrap?.organizationId ?? null;
+
+  const selectedExecutionStates =
+    normalizeReleaseExecutionStates(executionState);
+  const canonicalPublicationState = selectedExecutionStates
+    ? undefined
+    : (requestedPublicationState ??
+      (normalizedStatus === PostStatus.PUBLIC ? 'posted' : undefined));
+  const executionStates =
+    selectedExecutionStates ??
+    (normalizedStatus === PostStatus.FAILED
+      ? [TargetExecutionState.FAILED]
+      : normalizedStatus === PostStatus.SCHEDULED && !canonicalPublicationState
+        ? [TargetExecutionState.SCHEDULED]
+        : normalizedStatus === PostStatus.DRAFT && !canonicalPublicationState
+          ? [TargetExecutionState.DRAFT]
+          : normalizedStatus === PostStatus.PENDING ||
+              normalizedStatus === PostStatus.PROCESSING
+            ? [TargetExecutionState.PUBLISHING]
+            : undefined);
+  const canonicalSort = normalizeReleasePostsSort(sort);
+  const contentTypes = normalizeReleasePostContentTypes(contentType);
+  // The Extension source lists captured posts client-side; no release page
+  // is read for it, so none is prefetched.
+  const isCapturedSource = parsePostsSource(source) !== undefined;
+  // Start the query without awaiting it so the Publishing shell paints while
+  // TanStack Query streams the pending result into the client boundary.
+  if (!isCapturedSource) {
+    prefetchServerQuery({
+      queryFn: async () => {
+        const pageData = await loadReleasePostsPageData({
+          campaignId,
+          contentTypes,
+          credentialIds,
+          currentPage,
+          executionStates,
+          platform: platformFilter,
+          publicationState: canonicalPublicationState,
+          scope,
+          search,
+          sort: canonicalSort,
+        });
+        return {
+          pagination: pageData.pagination,
+          releases: pageData.releases,
+        };
+      },
+      queryKey: buildReleasePostsListQueryKey({
+        brandId,
+        campaignId,
+        contentTypes,
+        credentialIds,
+        currentPage,
+        executionStates,
+        organizationId,
+        platform: platformFilter,
+        publicationState: canonicalPublicationState,
+        scope,
+        search: search ?? '',
+        sort: canonicalSort,
+      }),
+    });
+  }
+
+  return (
+    <ServerQueryHydrationBoundary>
+      <ReleasePostsList
+        campaignId={campaignId}
+        contentTypes={contentTypes}
+        credentialIds={credentialIds}
+        executionStates={executionStates}
+        platform={normalizedPlatform}
+        publicationState={canonicalPublicationState}
+        scope={scope}
+        search={search ?? ''}
+        sort={canonicalSort}
+      />
+    </ServerQueryHydrationBoundary>
+  );
+}

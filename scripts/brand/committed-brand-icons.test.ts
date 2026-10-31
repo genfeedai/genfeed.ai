@@ -10,7 +10,6 @@ import {
   extractMarkPath,
   FORBIDDEN_MOBILE_FAVICON_ICO,
   FORBIDDEN_PUBLIC_LOADER_FILES,
-  IDE_ACTIVITY_BAR_SVG,
   MARK_SOURCE_FILES,
   PWA_ANY_ICON_FILES,
   PWA_MASKABLE_MARK_RATIO,
@@ -88,16 +87,6 @@ describe('committed brand icons', () => {
     expect(existsSync(path.join(REPO_ROOT, FORBIDDEN_MOBILE_FAVICON_ICO))).toBe(
       false,
     );
-  });
-
-  it('uses currentColor on the IDE activity-bar SVG so the workbench can tint it', () => {
-    const source = readFileSync(
-      path.join(REPO_ROOT, IDE_ACTIVITY_BAR_SVG),
-      'utf8',
-    );
-
-    expect(source).toContain('fill="currentColor"');
-    expect(source).not.toContain('#6366F1');
   });
 
   it('does not ship the unofficial mint G on mobile store chrome', async () => {

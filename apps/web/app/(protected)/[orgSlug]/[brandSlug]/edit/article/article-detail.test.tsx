@@ -1,0 +1,487 @@
+import { ArticleCategory } from '@genfeedai/contracts';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { useParams } from 'next/navigation';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import ArticleDetail, { applyDraftSuggestionToHtml } from './article-detail';
+import '@testing-library/jest-dom/vitest';
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
+const {
+  generateAccountContentMock,
+  pushMock,
+  useArticleDetailMock,
+  useXArticleComposeMock,
+} = vi.hoisted(() => ({
+  generateAccountContentMock: vi.fn(),
+  pushMock: vi.fn(),
+  useArticleDetailMock: vi.fn(),
+  useXArticleComposeMock: vi.fn(),
+}));
+
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: vi.fn(() => async () => ({
+    findDeliveries: vi.fn().mockResolvedValue([]),
+    generateAccountContent: generateAccountContentMock,
+  })),
+}));
+
+vi.mock('@/hooks/pages/use-article-detail/use-article-detail', () => ({
+  useArticleDetail: () => useArticleDetailMock(),
+}));
+
+vi.mock('@/hooks/pages/use-x-article-compose/use-x-article-compose', () => ({
+  useXArticleCompose: () =>
+    useXArticleComposeMock() ?? {
+      handleCopyFullArticle: vi.fn(),
+      handleCopySection: vi.fn(),
+      handleDownloadImage: vi.fn(),
+      handleGenerateHeaderImage: vi.fn(),
+      isGeneratingImage: false,
+    },
+}));
+
+vi.mock('next/navigation', () => ({
+  useParams: vi.fn(() => ({
+    brandSlug: 'brand-123',
+    orgSlug: 'org-123',
+  })),
+  usePathname: vi.fn(() => '/org-123/brand-123/edit/article/article-1'),
+  useRouter: vi.fn(() => ({
+    push: pushMock,
+  })),
+}));
+
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
+  () => ({
+    useConfirmModal: vi.fn(() => ({
+      openConfirm: vi.fn(),
+    })),
+  }),
+);
+
+vi.mock('@services/core/notifications.service', () => ({
+  NotificationsService: {
+    getInstance: vi.fn(() => ({
+      error: vi.fn(),
+      success: vi.fn(),
+    })),
+  },
+}));
+
+const defaultArticleDetailState = () => ({
+  article: null,
+  error: null,
+  form: {
+    category: 'blog',
+    content: '',
+    label: '',
+    status: 'draft',
+    summary: '',
+    tags: '',
+  },
+  handleArchive: vi.fn(),
+  handleDelete: vi.fn(),
+  handlePublish: vi.fn(),
+  handleSave: vi.fn(),
+  handleScoreSeo: vi.fn(),
+  isDirty: false,
+  isLoading: false,
+  isScoringSeo: false,
+  isSaving: false,
+  pathname: '/org-123/brand-123/edit/article/article-1',
+  setFormField: vi.fn(),
+});
+
+describe('ArticleDetail', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useArticleDetailMock.mockReturnValue(defaultArticleDetailState());
+    useXArticleComposeMock.mockReturnValue(undefined);
+    vi.mocked(useParams).mockReturnValue({
+      brandSlug: 'brand-123',
+      orgSlug: 'org-123',
+    });
+  });
+
+  const savedArticleState = (status: string) => ({
+    ...defaultArticleDetailState(),
+    article: {
+      category: 'blog',
+      id: 'article-1',
+      label: 'Launch notes',
+      slug: 'launch-notes',
+      status,
+      summary: 'What shipped',
+    },
+    form: {
+      category: 'blog',
+      content: '<p>Body</p>',
+      label: 'Launch notes',
+      status,
+      summary: 'What shipped',
+      tags: '',
+    },
+  });
+
+  it('uses the new article title as the page heading', () => {
+    render(<ArticleDetail />);
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'New Article' }),
+    ).toBeVisible();
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+  });
+
+  it('uses the loaded article title as the page heading', () => {
+    useArticleDetailMock.mockReturnValue(savedArticleState('draft'));
+
+    render(<ArticleDetail articleId="article-1" />);
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Launch notes' }),
+    ).toBeVisible();
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+  });
+
+  it('uses the untitled fallback as the existing article page heading', () => {
+    const state = savedArticleState('draft');
+    useArticleDetailMock.mockReturnValue({
+      ...state,
+      form: { ...state.form, label: '' },
+    });
+
+    render(<ArticleDetail articleId="article-1" />);
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Untitled Article' }),
+    ).toBeVisible();
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+  });
+
+  it('labels the category selector and forwards category changes', () => {
+    const state = savedArticleState('draft');
+    useArticleDetailMock.mockReturnValue({
+      ...state,
+      form: { ...state.form, category: ArticleCategory.TUTORIAL },
+    });
+
+    render(<ArticleDetail articleId="article-1" />);
+
+    const trigger = screen.getByRole('button', {
+      name: 'Tutorial',
+    });
+    expect(trigger).toHaveTextContent('Category:');
+    expect(trigger).not.toHaveTextContent('articleCategory:');
+
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole('button', { name: 'Guide' }));
+
+    expect(state.setFormField).toHaveBeenCalledWith(
+      'category',
+      ArticleCategory.GUIDE,
+    );
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('tells customer organizations their article is not hosted on genfeed.ai', () => {
+    useArticleDetailMock.mockReturnValue(savedArticleState('draft'));
+
+    render(<ArticleDetail articleId="article-1" />);
+
+    expect(
+      screen.getByRole('button', { name: 'Mark published' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Publish to genfeed.ai' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(/Not hosted on genfeed\.ai/)).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Open' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the live genfeed.ai link and share card for a published Genfeed article', () => {
+    vi.mocked(useParams).mockReturnValue({
+      brandSlug: 'genfeedai',
+      orgSlug: 'genfeedai',
+    });
+    useArticleDetailMock.mockReturnValue(savedArticleState('PUBLISHED'));
+
+    render(<ArticleDetail articleId="article-1" />);
+
+    expect(screen.getByText('Live on genfeed.ai')).toBeInTheDocument();
+    const openLink = screen.getByRole('link', { name: 'Open' });
+    expect(openLink.getAttribute('href')).toMatch(/\/articles\/launch-notes$/);
+    expect(openLink).toHaveAttribute('target', '_blank');
+    expect(
+      screen.getByRole('button', { name: 'Copy link' }),
+    ).toBeInTheDocument();
+    expect(screen.getByAltText('Launch notes')).toHaveAttribute(
+      'src',
+      expect.stringMatching(/\/articles\/launch-notes\/og$/),
+    );
+  });
+
+  it('offers a preview link before a Genfeed article is published', () => {
+    vi.mocked(useParams).mockReturnValue({
+      brandSlug: 'genfeedai',
+      orgSlug: 'genfeedai',
+    });
+    useArticleDetailMock.mockReturnValue(savedArticleState('draft'));
+
+    render(<ArticleDetail articleId="article-1" />);
+
+    expect(
+      screen.getByRole('button', { name: 'Publish to genfeed.ai' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Not live yet')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Preview link' }),
+    ).toBeInTheDocument();
+  });
+
+  it('should render without crashing', () => {
+    const { container } = render(<ArticleDetail />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('shows the existing article empty state when the id cannot be loaded', () => {
+    useArticleDetailMock.mockReturnValue({
+      ...defaultArticleDetailState(),
+      article: null,
+      error: 'Failed to load article',
+    });
+
+    render(<ArticleDetail articleId="wrong-id" />);
+
+    expect(screen.getByText('Failed to load article')).toBeVisible();
+  });
+
+  it('renders the page shell while the article is loading', () => {
+    useArticleDetailMock.mockReturnValue({
+      ...defaultArticleDetailState(),
+      isLoading: true,
+    });
+
+    render(<ArticleDetail articleId="article-1" />);
+
+    expect(screen.getByText('Loading article…')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('article-detail-body-skeleton'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Save' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Delete' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('inserts agent suggestions containing replacement patterns verbatim', () => {
+    const html = applyDraftSuggestionToHtml('<p>Original price</p>', {
+      selectedText: 'Original price',
+      text: 'Price is $&5',
+    });
+    const container = document.createElement('div');
+    container.innerHTML = html;
+
+    expect(container.textContent).toBe('Price is $&5');
+  });
+
+  it('does not offer the generated-only X Article category manually', () => {
+    render(<ArticleDetail />);
+
+    expect(
+      screen.queryByRole('option', { name: 'X Article' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('generates publishable X teaser drafts from an account-aware X Article', async () => {
+    useArticleDetailMock.mockReturnValue({
+      ...defaultArticleDetailState(),
+      article: {
+        id: 'article-1',
+        label: 'Autonomous Content Systems',
+        summary: 'A deeper article about account-aware content.',
+        xArticleMetadata: {
+          estimatedReadTime: 4,
+          sections: [
+            {
+              content: '<p>Section body</p>',
+              heading: 'Context wins',
+              id: 'section-1',
+              order: 1,
+            },
+          ],
+          wordCount: 900,
+        },
+      },
+      form: {
+        category: 'x-article',
+        content: '<p>Section body</p>',
+        label: 'Autonomous Content Systems',
+        status: 'draft',
+        summary: 'A deeper article about account-aware content.',
+        tags: '',
+      },
+    });
+    generateAccountContentMock.mockResolvedValue([{ id: 'post-1' }]);
+
+    render(<ArticleDetail articleId="article-1" credentialId="cred-1" />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create X Post' }));
+
+    await waitFor(() => {
+      expect(generateAccountContentMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          count: 1,
+          credentialId: 'cred-1',
+          format: 'post',
+          tone: 'professional',
+          topic: expect.stringContaining('Autonomous Content Systems'),
+        }),
+      );
+    });
+
+    expect(pushMock).toHaveBeenCalledWith(
+      '/org-123/brand-123/publishing/posts/post-1',
+    );
+  });
+
+  it('forwards article SEO scoring from the sidebar', () => {
+    const handleScoreSeo = vi.fn();
+    useArticleDetailMock.mockReturnValue({
+      ...defaultArticleDetailState(),
+      article: {
+        id: 'article-1',
+        category: 'blog',
+        content: '<p>Article body</p>',
+        label: 'SEO Article',
+        readingTime: 4,
+        seoBreakdown: {
+          breakdown: {
+            contentStructure: 16,
+            keywordPlacement: 18,
+            links: 5,
+            media: 7,
+            metaOptimization: 10,
+            readability: 12,
+            technicalSignals: 8,
+          },
+          checks: [],
+          meta: {
+            fleschReadingEase: 61,
+            keywordDensity: null,
+            llmApplied: false,
+            maxAvailable: 100,
+            scoredAt: '2026-06-28T12:00:00.000Z',
+            targetKeyword: null,
+            wordCount: 820,
+          },
+          rating: 'good',
+          suggestions: ['Add an internal link.'],
+        },
+        seoScore: 76,
+        status: 'draft',
+        summary: 'Article summary',
+        wordCount: 820,
+      },
+      form: {
+        category: 'blog',
+        content: '<p>Article body</p>',
+        label: 'SEO Article',
+        status: 'draft',
+        summary: 'Article summary',
+        tags: '',
+      },
+      handleScoreSeo,
+    });
+
+    render(<ArticleDetail articleId="article-1" />);
+
+    expect(screen.getByText('SEO score')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Re-score SEO' }));
+
+    expect(handleScoreSeo).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to the scorecard score in the SEO summary', () => {
+    useArticleDetailMock.mockReturnValue({
+      ...defaultArticleDetailState(),
+      article: {
+        id: 'article-1',
+        label: 'SEO Article',
+        seoBreakdown: { score: 64, suggestions: [] },
+        status: 'draft',
+      },
+      form: {
+        category: 'blog',
+        content: '',
+        label: 'SEO Article',
+        status: 'draft',
+        summary: '',
+        tags: '',
+      },
+    });
+
+    render(<ArticleDetail articleId="article-1" />);
+
+    expect(screen.getByTestId('article-seo')).toHaveTextContent('64/100');
+  });
+
+  it('shows the cover image above the editor when the article has one', () => {
+    useArticleDetailMock.mockReturnValue({
+      ...defaultArticleDetailState(),
+      article: {
+        coverImageUrl: 'https://cdn.example.com/cover.jpg',
+        id: 'article-1',
+        label: 'Cover Article',
+        status: 'draft',
+      },
+      form: {
+        category: 'blog',
+        content: '',
+        label: 'Cover Article',
+        status: 'draft',
+        summary: '',
+        tags: '',
+      },
+    });
+
+    render(<ArticleDetail articleId="article-1" />);
+
+    expect(screen.getByTestId('article-cover-preview')).toBeInTheDocument();
+  });
+
+  it('summarises article facts on one line instead of an info card', () => {
+    useArticleDetailMock.mockReturnValue({
+      ...defaultArticleDetailState(),
+      article: {
+        id: 'article-1',
+        readingTime: 4,
+        status: 'draft',
+        wordCount: 820,
+      },
+      form: {
+        category: 'blog',
+        content: '',
+        label: 'Facts Article',
+        status: 'draft',
+        summary: '',
+        tags: '',
+      },
+    });
+
+    render(<ArticleDetail articleId="article-1" />);
+
+    expect(screen.getByTestId('article-facts')).toHaveTextContent(
+      '820 words · 4 min read',
+    );
+    expect(screen.queryByText('Article Info')).not.toBeInTheDocument();
+  });
+});

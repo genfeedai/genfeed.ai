@@ -16,7 +16,7 @@ runs:
           'apps/docs/content/**/*.md'
           'apps/docs/content/**/*.mdx'
           'README.md'
-          'apps/website/README.md'
+          'apps/marketing/README.md'
         fail: true
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}

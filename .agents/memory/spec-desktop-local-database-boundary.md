@@ -90,7 +90,7 @@ prevent a cloud/web user from opening the desktop window.
 - WHEN the user explicitly selects local mode THE SYSTEM SHALL persist that mode
   outside PGlite and SHALL initialize the complete local runtime exactly once.
 - WHEN local initialization succeeds THE SYSTEM SHALL enter the canonical
-  `apps/app` shell without requiring a Cloud session or a separately running
+  `apps/web` shell without requiring a Cloud session or a separately running
   NestJS API.
 - WHEN the user switches to cloud mode THE SYSTEM SHALL preserve local data,
   avoid initializing PGlite on the next cloud launch, and present the Genfeed

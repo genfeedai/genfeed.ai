@@ -10,4 +10,4 @@ type: feedback
 
 **How to apply:** Remove the old route and every current sitemap, navigation, internal-link, breadcrumb, and `llms.txt` reference to it. Do not add a redirect. A currently discovered URL that returns 404/410 remains an error until the current reference is removed.
 
-**Note:** no prior-snapshot-comparing "SEO watchdog" (the `hard_cut_removed` classification) exists in this repo today — only build-time checks (`apps/website/scripts/seo/seo-rules.ts`, `apps/website/scripts/check-seo.ts`). If that watchdog is built, it should follow this policy; don't assume it already does.
+**Note:** no prior-snapshot-comparing "SEO watchdog" (the `hard_cut_removed` classification) exists in this repo today — only build-time checks (`apps/marketing/scripts/seo/seo-rules.ts`, `apps/marketing/scripts/check-seo.ts`). If that watchdog is built, it should follow this policy; don't assume it already does.

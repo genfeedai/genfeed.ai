@@ -12,7 +12,7 @@
  * `ModelsService.updateMany(filter, update)`, a method #2366 had already
  * deleted and which `BaseService` never had (its bulk-write path is
  * `patchAll`). A guaranteed runtime failure and an obvious type error that the
- * Typecheck job could not see. #5244 found the same gap in `apps/app` and the
+ * Typecheck job could not see. #5244 found the same gap in `apps/web` and the
  * `packages/*` workspaces: a mock or prop shape can drift from the type it
  * claims to satisfy and nothing but vitest's transpile-only runtime ever sees it.
  *
@@ -20,7 +20,7 @@
  * compiler options as the shipping typecheck, with the spec excludes dropped
  * and the `test` directory added — and diffs the diagnostics against an exact
  * baseline. Workspaces are discovered under three roots: `apps/server` (one
- * subdirectory per backend service), `apps` (currently only `apps/app` has
+ * subdirectory per backend service), `apps` (currently only `apps/web` has
  * opted in — other frontend/desktop apps are untouched), and `packages` (any
  * package with its own tests). A workspace enrolls itself purely by adding a
  * `tsconfig.typecheck.specs.json`; no root here needs editing to add one.
@@ -71,7 +71,7 @@ const DEFAULT_BASELINE_PATH =
 /**
  * Every workspace root the ratchet scans for a `tsconfig.typecheck.specs.json`.
  * `apps/server` and `packages` each hold many workspaces one directory deep;
- * `apps` holds several frontend/desktop apps but today only `apps/app` opts
+ * `apps` holds several frontend/desktop apps but today only `apps/web` opts
  * in — the others simply have no spec tsconfig and are silently skipped by
  * `discoverSpecWorkspaces`.
  */

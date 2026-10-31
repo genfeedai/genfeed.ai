@@ -400,7 +400,7 @@
 
 ### Typography (X issues)
 
-- [ ] `apps/website/components/Hero.tsx:23` - Custom font-size, use text-4xl
+- [ ] `apps/marketing/components/Hero.tsx:23` - Custom font-size, use text-4xl
 
 ### Spacing (X issues)
 

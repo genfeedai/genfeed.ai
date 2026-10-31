@@ -2,18 +2,7 @@
 
 import { pathToFileURL } from 'node:url';
 
-import { TEMPORARILY_DISABLED_TEST_GROUPS } from './pr-test-plan.mjs';
-
 const VALID_RESULTS = new Set(['success', 'failure', 'cancelled', 'skipped']);
-
-const DORMANT_CLASSIFICATION = 'dormant (paused surface)';
-
-// Paused surfaces never run, even under `full-suite`. They get their own rows
-// so the summary can tell a paused surface apart from an out-of-scope skip:
-// otherwise a full run reads as if it covered everything (#2486).
-const DORMANT_SURFACE_NAMES = {
-  'ide-extension': 'IDE extension tests',
-};
 
 function parseBoolean(value, name, allowEmpty = false) {
   if (value === 'true') return true;
@@ -92,12 +81,6 @@ export function createTestsGateJobs(env) {
       result: readResult(env, 'MCP_AUTH_RUNTIME_RESULT'),
       applicable: planned('PLAN_MCP_AUTH_RUNTIME'),
     },
-    ...[...TEMPORARILY_DISABLED_TEST_GROUPS].map((group) => ({
-      name: DORMANT_SURFACE_NAMES[group] ?? `${group} tests`,
-      result: 'skipped',
-      applicable: false,
-      dormant: true,
-    })),
   ];
 }
 
@@ -148,12 +131,7 @@ export function evaluateTestsGate(
       continue;
     }
 
-    // Dormancy relabels an accepted skip; it never softens a failure or an
-    // applicable-but-missing job, both of which are handled above.
-    let classification = 'passed';
-    if (result === 'skipped') {
-      classification = job.dormant ? DORMANT_CLASSIFICATION : 'not applicable';
-    }
+    const classification = result === 'skipped' ? 'not applicable' : 'passed';
 
     rows.push({ ...job, classification });
   }
@@ -169,8 +147,7 @@ export function evaluateTestsGate(
       (row) =>
         SUPERSESSION_CLASSIFICATIONS.has(row.classification) ||
         row.classification === 'passed' ||
-        row.classification === 'not applicable' ||
-        row.classification === DORMANT_CLASSIFICATION,
+        row.classification === 'not applicable',
     );
 
   if (isSupersededOnly) {
@@ -216,24 +193,6 @@ export function formatTestsGateSummary(evaluation) {
       'its jobs are not evaluated. The Tests Gate on the newer commit decides.';
   }
   lines.push('', verdict);
-
-  // Name the paused surfaces explicitly. A dormant workspace is skipped even on
-  // a `full-suite` run, so "all applicable jobs passed" must not be read as
-  // "every workspace was exercised" (#2486).
-  const dormant = evaluation.rows.filter(
-    (row) => row.classification === DORMANT_CLASSIFICATION,
-  );
-
-  if (dormant.length > 0) {
-    lines.push(
-      '',
-      `Not covered by this run — paused surfaces: ${dormant
-        .map((row) => row.name)
-        .join(', ')}. These stay skipped even with the \`full-suite\` label. ` +
-        'Re-enable one by removing its group from `TEMPORARILY_DISABLED_TEST_GROUPS` ' +
-        'in `scripts/ci/pr-test-plan.mjs`.',
-    );
-  }
 
   return `${lines.join('\n')}\n`;
 }

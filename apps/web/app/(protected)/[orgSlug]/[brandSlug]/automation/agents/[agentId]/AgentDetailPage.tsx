@@ -1,0 +1,562 @@
+'use client';
+
+import {
+  AgentAutonomyMode,
+  ButtonSize,
+  ButtonVariant,
+} from '@genfeedai/contracts';
+import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
+import { isPostAwaitingReview } from '@helpers/content/post-review.helper';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import {
+  isCollectionFetchReady,
+  toBrandListParams,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useVisiblePolling } from '@hooks/ui/use-visible-polling/use-visible-polling';
+import type {
+  AgentStrategyWorkflowBinding,
+  RunAgentStrategyWorkflowInput,
+} from '@services/automation/agent-strategies.service';
+import {
+  AgentStrategiesService,
+  type AgentStrategyOpportunity,
+} from '@services/automation/agent-strategies.service';
+import { logger } from '@services/core/logger.service';
+import { NotificationsService } from '@services/core/notifications.service';
+import { useQuery } from '@tanstack/react-query';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
+import CollectionItemActions from '@ui/collection/CollectionItemActions';
+import Badge from '@ui/display/badge/Badge';
+import KPISection from '@ui/kpi/kpi-section/KPISection';
+import Container from '@ui/layout/container/Container';
+import { Button } from '@ui/primitives/button';
+import { Skeleton } from '@ui/primitives/skeleton';
+import { ArrowLeft, CirclePlay, Cpu, Pencil, Workflow } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { Suspense, useCallback, useMemo, useState } from 'react';
+import RecordFactLine from '@/components/record-detail/RecordFactLine';
+import type { AgentDetailPageProps } from '@/features/automation/props/agent-strategy.props';
+import { useWorkflowExecutions } from '@/hooks/data/workflow-executions/use-workflow-executions';
+import AgentWorkflowRunDialog from '../AgentWorkflowRunDialog';
+import { getAgentTypeIcon, getAgentTypeLabel } from '../agent-type-display';
+import {
+  buildContentAgentUpdatePrompt,
+  useOpenContentAgentConversation,
+} from '../open-content-agent-conversation';
+import AgentActivitySection from './AgentActivitySection';
+import AgentDetailNeedsYou from './AgentDetailNeedsYou';
+import AgentLatestReport from './AgentLatestReport';
+import AgentOpportunityPanel from './AgentOpportunityPanel';
+import AgentStrategyPublishToggles from './AgentStrategyPublishToggles';
+import AgentWorkflowBindCard from './AgentWorkflowBindCard';
+import { buildAgentDetailFacts } from './agent-detail-facts.helper';
+import { useAgentDetailPosts } from './use-agent-detail-posts';
+
+const AGENT_EXECUTION_PAGE_SIZE = 20;
+
+function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
+  const translate = useTranslations('common.automation.agentHub');
+  const detail = useTranslations('common.automation.agentDetail');
+  const cadenceLabels = useTranslations('common.automation.cadence');
+  const notificationsService = NotificationsService.getInstance();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { href } = useOrgUrl();
+  const collectionScope = useCollectionScope();
+  const isReady = isCollectionFetchReady(collectionScope);
+  const brandParams = toBrandListParams(collectionScope);
+  const requestedOpportunityId = searchParams.get('opportunity');
+  const currentOpportunityPage = Number(searchParams.get('page')) || 1;
+  const {
+    executions,
+    isLoading: areExecutionsLoading,
+    isError: isExecutionsError,
+    refresh: refreshExecutions,
+  } = useWorkflowExecutions(
+    {
+      ...brandParams,
+      limit: AGENT_EXECUTION_PAGE_SIZE,
+      sort: '-createdAt',
+      strategyId: agentId,
+    },
+    { enabled: isReady, organizationId: collectionScope.organizationId },
+  );
+
+  // Same query key as `AgentWorkSection`'s Content filter, so react-query
+  // serves the pending-review count from the same cache entry instead of a
+  // second request (#5483).
+  const { posts: agentPosts } = useAgentDetailPosts(agentId);
+  const pendingReviewCount = useMemo(
+    () => agentPosts.filter(isPostAwaitingReview).length,
+    [agentPosts],
+  );
+
+  const getService = useAuthedService((token: string) =>
+    AgentStrategiesService.getInstance(token),
+  );
+  const {
+    data: strategy,
+    isLoading: isStrategyLoading,
+    isError: isStrategyError,
+    refetch,
+  } = useQuery({
+    queryKey: [
+      'agent-strategy',
+      collectionScope.organizationId,
+      collectionScope.brandId,
+      agentId,
+    ],
+    enabled: isReady && Boolean(agentId),
+    queryFn: async () => {
+      const agent = await (await getService()).getById(agentId);
+      return collectionScope.brandId &&
+        (agent.brandId ?? agent.brand?.id) !== collectionScope.brandId
+        ? null
+        : agent;
+    },
+  });
+  const cadenceEnabled = Boolean(
+    strategy &&
+      (strategy.publishingCeilingPerWeek !== undefined ||
+        strategy.readyDraftReserve !== undefined),
+  );
+  const {
+    data: performance,
+    isError: isCadenceError,
+    refetch: refetchCadence,
+  } = useQuery({
+    queryKey: [
+      'agent-cadence',
+      collectionScope.organizationId,
+      collectionScope.brandId,
+      agentId,
+    ],
+    enabled: isReady && cadenceEnabled,
+    queryFn: async () => (await getService()).getPerformanceSnapshot(agentId),
+  });
+  const refresh = useCallback(async () => {
+    await refetch();
+    if (cadenceEnabled) await refetchCadence();
+  }, [refetch, refetchCadence, cadenceEnabled]);
+  useVisiblePolling(
+    () => {
+      void refresh();
+      void refreshExecutions();
+    },
+    { intervalMs: 30_000, isEnabled: isReady },
+  );
+  const { data: opportunities = [], isLoading: isOpportunitiesLoading } =
+    useQuery<AgentStrategyOpportunity[]>({
+      queryKey: [
+        'agent-opportunities',
+        collectionScope.organizationId,
+        collectionScope.brandId,
+        agentId,
+        requestedOpportunityId,
+        currentOpportunityPage,
+      ],
+      queryFn: async ({ signal }) => {
+        const service = await getService();
+        return service.listOpportunities(
+          agentId,
+          { limit: ITEMS_PER_PAGE, page: currentOpportunityPage },
+          signal,
+        );
+      },
+      enabled: isReady && Boolean(strategy) && Boolean(requestedOpportunityId),
+    });
+
+  const handleToggle = useCallback(async () => {
+    if (!strategy) return;
+    try {
+      const service = await getService();
+      await service.setActive(agentId, !strategy.isActive);
+      await refresh();
+      notificationsService.success('Agent status updated');
+    } catch (error) {
+      logger.error('Failed to toggle agent', { error });
+      notificationsService.error('Failed to update agent status');
+    }
+  }, [agentId, getService, notificationsService, refresh, strategy]);
+
+  const handleRunNow = useCallback(async () => {
+    try {
+      const service = await getService();
+      await service.runNow(agentId);
+      notificationsService.success('Agent run triggered');
+      await Promise.all([refresh(), refreshExecutions()]);
+    } catch (error) {
+      logger.error('Failed to trigger run', { error });
+      notificationsService.error('Failed to trigger run');
+    }
+  }, [agentId, getService, notificationsService, refresh, refreshExecutions]);
+
+  const openContentAgentConversation = useOpenContentAgentConversation();
+
+  const handleOpenEdit = useCallback(() => {
+    if (!strategy) {
+      return;
+    }
+    openContentAgentConversation(
+      buildContentAgentUpdatePrompt({
+        brandId: strategy.brandId ?? collectionScope.brandId,
+        id: strategy.id,
+        label: strategy.label,
+      }),
+    );
+  }, [collectionScope.brandId, openContentAgentConversation, strategy]);
+
+  const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
+  const [workflowBinding, setWorkflowBinding] =
+    useState<AgentStrategyWorkflowBinding | null>(null);
+  const [isLoadingBinding, setIsLoadingBinding] = useState(false);
+  const [isSubmittingWorkflow, setIsSubmittingWorkflow] = useState(false);
+
+  const handleOpenWorkflow = useCallback(async () => {
+    setWorkflowDialogOpen(true);
+    setWorkflowBinding(null);
+    setIsLoadingBinding(true);
+    try {
+      const service = await getService();
+      const binding = await service.getWorkflowBinding(agentId);
+      setWorkflowBinding(binding);
+    } catch (error) {
+      logger.error('Failed to load workflow binding', { error });
+      notificationsService.error('Could not load workflow binding');
+    } finally {
+      setIsLoadingBinding(false);
+    }
+  }, [agentId, getService, notificationsService]);
+
+  const handleSubmitWorkflow = useCallback(
+    async (input: RunAgentStrategyWorkflowInput) => {
+      setIsSubmittingWorkflow(true);
+      try {
+        const service = await getService();
+        const result = await service.runWorkflow(agentId, input);
+        const executionPath = href(
+          `${APP_ROUTES.AUTOMATION.RUNS}/${result.executionId}`,
+        );
+        notificationsService.success(
+          `Workflow started (${result.status}). Opening execution…`,
+        );
+        setWorkflowDialogOpen(false);
+        await refresh();
+        router.push(executionPath);
+      } catch (error) {
+        logger.error('Failed to run agent workflow', { error });
+        notificationsService.error(
+          error instanceof Error ? error.message : 'Failed to run workflow',
+        );
+      } finally {
+        setIsSubmittingWorkflow(false);
+      }
+    },
+    [agentId, getService, href, notificationsService, refresh, router],
+  );
+
+  const selectedOpportunity = useMemo(
+    () =>
+      requestedOpportunityId
+        ? ((opportunities ?? []).find(
+            (opportunity) => opportunity.id === requestedOpportunityId,
+          ) ?? null)
+        : null,
+    [opportunities, requestedOpportunityId],
+  );
+
+  const Icon = getAgentTypeIcon(strategy?.agentType);
+  const typeLabel = getAgentTypeLabel(strategy?.agentType);
+  const autonomyLabel =
+    strategy?.autonomyMode === AgentAutonomyMode.AUTO_PUBLISH
+      ? 'Auto-Publish'
+      : 'Supervised';
+
+  // Run now is the one action every agent record supports regardless of
+  // state; everything else — status toggle, edit, manual workflow run —
+  // moves into the overflow menu.
+  const overflow = useMemo<CollectionOverflowAction[]>(() => {
+    if (!strategy) {
+      return [];
+    }
+    return [
+      {
+        icon: <Workflow className="size-4" />,
+        id: 'run-workflow',
+        label: detail('runWorkflow'),
+        onSelect: handleOpenWorkflow,
+      },
+      {
+        icon: <Pencil className="size-4" />,
+        id: 'edit',
+        label: translate('edit'),
+        onSelect: handleOpenEdit,
+      },
+      {
+        id: 'toggle-active',
+        label: strategy.isActive ? detail('deactivate') : detail('activate'),
+        onSelect: handleToggle,
+      },
+    ];
+  }, [
+    detail,
+    handleOpenEdit,
+    handleOpenWorkflow,
+    handleToggle,
+    strategy,
+    translate,
+  ]);
+
+  if (!isReady || isStrategyLoading) {
+    return (
+      <Container label={detail('title')} icon={Cpu}>
+        <Skeleton className="h-64" />
+      </Container>
+    );
+  }
+
+  if (isStrategyError) {
+    return (
+      <Container label={detail('title')} icon={Cpu}>
+        <p role="alert" className="text-destructive">
+          {detail('loadError')}
+        </p>
+      </Container>
+    );
+  }
+
+  if (!strategy) {
+    return (
+      <Container label={detail('title')} icon={Cpu}>
+        <CardEmptyContent
+          icon={Cpu}
+          label={detail('notFound')}
+          actions={
+            <Link
+              href={href(APP_ROUTES.AUTOMATION.AGENTS)}
+              className="mt-1 text-xs underline"
+            >
+              {detail('backToHub')}
+            </Link>
+          }
+        />
+      </Container>
+    );
+  }
+
+  return (
+    <Container
+      label={strategy.label}
+      icon={Cpu}
+      left={
+        <Link href={href(APP_ROUTES.AUTOMATION.AGENTS)}>
+          <Button
+            label={
+              <>
+                <ArrowLeft /> {detail('agents')}
+              </>
+            }
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+          />
+        </Link>
+      }
+      right={
+        <div className="flex items-center gap-2">
+          <Badge variant={strategy.isActive ? 'success' : 'secondary'}>
+            {strategy.isActive ? 'Active' : 'Inactive'}
+          </Badge>
+          <CollectionItemActions
+            overflow={overflow}
+            primary={
+              <Button
+                icon={<CirclePlay />}
+                label={translate('runNow')}
+                onClick={handleRunNow}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.DEFAULT}
+              />
+            }
+          />
+        </div>
+      }
+    >
+      <div className="space-y-6">
+        {/* Agent info header */}
+        <div className="flex items-center gap-3">
+          <span className="flex size-10 items-center justify-center rounded bg-foreground/5 text-foreground/70">
+            <Icon className="size-5" />
+          </span>
+          <div>
+            <p className="font-semibold">{strategy.label}</p>
+            <p className="text-sm text-foreground/50">
+              {typeLabel}
+              {strategy.brand ? ` · ${strategy.brand.label}` : ''}
+              {' · '}
+              {autonomyLabel}
+            </p>
+          </div>
+        </div>
+
+        <RecordFactLine
+          facts={buildAgentDetailFacts(strategy, typeLabel, autonomyLabel, {
+            autonomy: detail('factAutonomy'),
+            brand: detail('factBrand'),
+            creditsToday: detail('factCreditsToday'),
+            lastRun: detail('factLastRun'),
+            nextRun: detail('factNextRun'),
+            type: detail('factType'),
+          })}
+        />
+
+        <AgentDetailNeedsYou
+          failureCount={strategy.consecutiveFailures}
+          failuresDescription={detail('needsYouFailures', {
+            count: strategy.consecutiveFailures,
+          })}
+          pendingReviewCount={pendingReviewCount}
+          pendingReviewDescription={detail('needsYouPendingReview', {
+            count: pendingReviewCount,
+          })}
+          reviewHref={href(APP_ROUTES.PUBLISHING.APPROVALS)}
+          reviewLabel={detail('reviewContent')}
+          runsHref={href(APP_ROUTES.AUTOMATION.RUNS)}
+          title={detail('needsYouTitle')}
+          viewRunsLabel={detail('viewRuns')}
+        />
+
+        <AgentLatestReport
+          agentId={agentId}
+          key={`report-${collectionScope.organizationId}-${collectionScope.brandId}-${agentId}`}
+        />
+
+        <AgentStrategyPublishToggles
+          agentId={agentId}
+          strategy={strategy}
+          onSaved={refresh}
+        />
+
+        <AgentWorkflowBindCard
+          agentId={agentId}
+          strategy={strategy}
+          onBound={refresh}
+        />
+
+        {cadenceEnabled && performance?.cadence && (
+          <div className="space-y-2">
+            <KPISection
+              title={cadenceLabels('title')}
+              gridCols={{ desktop: 3, mobile: 1 }}
+              items={[
+                {
+                  label: cadenceLabels('scheduled'),
+                  value: performance.cadence.week,
+                  description: `${cadenceLabels('weeklyTarget')}: ${performance.cadence.weeklyTarget} · ${cadenceLabels('publishingCeiling')}: ${performance.cadence.publishingCeiling}`,
+                },
+                {
+                  label: cadenceLabels('ready'),
+                  value: performance.cadence.readyDrafts,
+                  description: `${cadenceLabels('draftReserve')}: ${performance.cadence.draftReserve}`,
+                },
+                {
+                  label: cadenceLabels('pending'),
+                  value: performance.cadence.pendingDrafts,
+                },
+              ]}
+            />
+            {performance.cadence.reasons.map((reason) => (
+              <p key={reason} className="text-sm text-muted-foreground">
+                {reason}
+              </p>
+            ))}
+          </div>
+        )}
+        {cadenceEnabled && isCadenceError && (
+          <p className="text-sm text-muted-foreground" role="status">
+            {cadenceLabels('unavailable')}
+          </p>
+        )}
+
+        <KPISection
+          title={detail('usage')}
+          gridCols={{ desktop: 4, mobile: 2 }}
+          items={[
+            {
+              description: detail('budget', {
+                amount: strategy.dailyCreditBudget,
+              }),
+              label: detail('creditsToday'),
+              value: strategy.creditsUsedToday,
+            },
+            {
+              description: detail('budget', {
+                amount: strategy.weeklyCreditBudget,
+              }),
+              label: detail('creditsThisWeek'),
+              value: strategy.creditsUsedThisWeek,
+            },
+            {
+              label: detail('recentExecutions'),
+              value: executions.length,
+            },
+            {
+              label: detail('failures'),
+              value: strategy.consecutiveFailures,
+              valueClassName:
+                strategy.consecutiveFailures > 0
+                  ? 'text-destructive'
+                  : 'text-success',
+            },
+          ]}
+        />
+
+        <AgentWorkflowRunDialog
+          strategy={strategy}
+          binding={workflowBinding}
+          isLoadingBinding={isLoadingBinding}
+          isOpen={workflowDialogOpen}
+          isSubmitting={isSubmittingWorkflow}
+          onOpenChange={setWorkflowDialogOpen}
+          onSubmit={handleSubmitWorkflow}
+        />
+
+        {requestedOpportunityId && (
+          <AgentOpportunityPanel
+            requestedOpportunityId={requestedOpportunityId}
+            opportunities={opportunities}
+            selectedOpportunity={selectedOpportunity}
+            isOpportunitiesLoading={isOpportunitiesLoading}
+          />
+        )}
+
+        <AgentActivitySection
+          agentId={agentId}
+          executions={executions}
+          isExecutionsError={isExecutionsError}
+          isExecutionsLoading={areExecutionsLoading}
+          key={`activity-${collectionScope.organizationId}-${collectionScope.brandId}-${agentId}`}
+          runHistory={strategy.runHistory ?? []}
+        />
+      </div>
+    </Container>
+  );
+}
+
+export default function AgentDetailPage(
+  props: Parameters<typeof AgentDetailPageContent>[0],
+) {
+  const scope = useCollectionScope();
+  return (
+    <Suspense fallback={null}>
+      <AgentDetailPageContent
+        key={`${scope.organizationId}-${scope.brandId}-${props.agentId}`}
+        {...props}
+      />
+    </Suspense>
+  );
+}

@@ -1,0 +1,291 @@
+'use client';
+
+import {
+  ButtonSize,
+  ButtonVariant,
+  formatPlatformLabel,
+} from '@genfeedai/contracts';
+import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-card.interface';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { logger } from '@services/core/logger.service';
+import { EmptyStateCard } from '@ui/card/EmptyState';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import Container from '@ui/layout/container/Container';
+import Loading from '@ui/loading/default/Loading';
+import { Badge } from '@ui/primitives/badge';
+import { Button } from '@ui/primitives/button';
+import {
+  Calendar,
+  ChartColumn,
+  List,
+  MessageCircleReply,
+  MessageSquare,
+  Plug,
+  Radio,
+  Sparkles,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
+import OverviewLayout from '@/components/overview/OverviewLayout';
+import type {
+  PlatformConnectionHealth,
+  PlatformHomeContentProps,
+} from '@/features/platforms/props/platform-home.props';
+import { usePlatformOAuthConnect } from '@/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
+import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
+import {
+  buildPlatformHomeDestinations,
+  filterConnectionsForPlatform,
+  getPlatformConnectionHealth,
+  pickPrimaryConnection,
+} from './platform-home.helpers';
+
+const HEALTH_BADGE_VARIANT: Record<
+  PlatformConnectionHealth,
+  'success' | 'warning' | 'info'
+> = {
+  attention: 'warning',
+  connected: 'info',
+  healthy: 'success',
+  needsReconnect: 'warning',
+};
+
+export default function PlatformHomePage({
+  platform,
+}: PlatformHomeContentProps) {
+  const translate = useTranslations('pages.platforms.home');
+  const { href } = useOrgUrl();
+  const { brand, brandId, hasBrandId, isLoading, socialConnections } =
+    useBrandDetail();
+  const connectPlatform = usePlatformOAuthConnect({ brandId });
+  const [isConnecting, setIsConnecting] = useState(false);
+  const platformLabel = formatPlatformLabel(platform) ?? platform;
+
+  const connections = useMemo(
+    () => filterConnectionsForPlatform(socialConnections, platform),
+    [platform, socialConnections],
+  );
+
+  const destinations = useMemo(
+    () => buildPlatformHomeDestinations(platform, brandId),
+    [brandId, platform],
+  );
+
+  async function handleConnect() {
+    setIsConnecting(true);
+    try {
+      await connectPlatform(platform);
+    } catch (error) {
+      logger.error('Platform home OAuth connect failed', error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : translate('empty.connect', { platform: platformLabel }),
+      );
+      setIsConnecting(false);
+    }
+  }
+
+  if (!hasBrandId || isLoading) {
+    return <Loading isFullSize={false} />;
+  }
+
+  if (!brand) {
+    return (
+      <Container>
+        <p className="text-sm text-muted-foreground">
+          {translate('brandMissing')}
+        </p>
+      </Container>
+    );
+  }
+
+  // A lapsed or identity-less credential further down the list must not
+  // shadow a genuinely connected one — see `pickPrimaryConnection`.
+  const primaryConnection = pickPrimaryConnection(connections);
+  if (!primaryConnection) {
+    return (
+      <Container label={translate('title', { platform: platformLabel })}>
+        <div className="mx-auto flex max-w-xl flex-col items-center gap-4">
+          <EmptyStateCard
+            title={translate('empty.title', { platform: platformLabel })}
+            icon={Plug}
+            action={{
+              label: translate('empty.connect', { platform: platformLabel }),
+              onClick: () => {
+                if (!isConnecting) {
+                  void handleConnect();
+                }
+              },
+            }}
+          />
+          <Button
+            asChild
+            variant={ButtonVariant.SECONDARY}
+            size={ButtonSize.SM}
+            withWrapper={false}
+          >
+            <Link href={href(destinations.settingsSocial)}>
+              {translate('empty.manage')}
+            </Link>
+          </Button>
+        </div>
+      </Container>
+    );
+  }
+
+  const primaryHealth = getPlatformConnectionHealth(primaryConnection);
+  const primaryAccount =
+    primaryConnection.handle ||
+    primaryConnection.name ||
+    primaryConnection.label ||
+    translate('connection.unnamedAccount');
+  const connectionDescription =
+    primaryHealth === 'needsReconnect'
+      ? translate('connection.descriptionNeedsReconnect', {
+          account: primaryAccount,
+        })
+      : primaryHealth === 'attention'
+        ? translate('connection.descriptionAttention', {
+            account: primaryAccount,
+          })
+        : primaryHealth === 'healthy'
+          ? translate('connection.descriptionHealthy', {
+              account: primaryAccount,
+            })
+          : translate('connection.descriptionConnected', {
+              account: primaryAccount,
+            });
+
+  // A lapsed-but-identified credential still routes to Settings > Social
+  // (where Reconnect actually lives, keyed by credentialId) rather than
+  // dead-ending — but the CTA itself should say so, not the generic
+  // "Manage connection" that a healthy card shows.
+  const connectionCta =
+    primaryHealth === 'needsReconnect'
+      ? translate('connection.ctaReconnect')
+      : translate('connection.cta');
+
+  const cards: OverviewCard[] = [
+    {
+      color: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+      cta: connectionCta,
+      description: connectionDescription,
+      href: href(destinations.settingsSocial),
+      icon: Plug,
+      id: 'connection',
+      label: translate('connection.label'),
+    },
+    {
+      color: 'bg-violet-500/10 text-violet-700 dark:text-violet-300',
+      cta: translate('create.cta', { platform: platformLabel }),
+      href: href(destinations.create),
+      icon: Sparkles,
+      id: 'create',
+      label: translate('create.label'),
+    },
+    {
+      color: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+      cta: translate('queue.cta'),
+      href: href(destinations.queue),
+      icon: List,
+      id: 'queue',
+      label: translate('queue.label'),
+    },
+    {
+      color: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
+      cta: translate('calendar.cta'),
+      href: href(destinations.calendar),
+      icon: Calendar,
+      id: 'calendar',
+      label: translate('calendar.label'),
+    },
+    {
+      color: 'bg-pink-500/10 text-pink-700 dark:text-pink-300',
+      cta: translate('engage.cta'),
+      href: href(destinations.messages),
+      icon: MessageSquare,
+      id: 'engage',
+      label: translate('engage.label'),
+    },
+  ];
+
+  if (destinations.replies) {
+    cards.push({
+      color: 'bg-orange-500/10 text-orange-700 dark:text-orange-300',
+      cta: translate('replies.cta'),
+      href: href(destinations.replies),
+      icon: MessageCircleReply,
+      id: 'replies',
+      label: translate('replies.label'),
+    });
+  }
+
+  if (destinations.live) {
+    cards.push({
+      color: 'bg-red-500/10 text-red-700 dark:text-red-300',
+      cta: translate('live.cta'),
+      href: href(destinations.live),
+      icon: Radio,
+      id: 'live',
+      label: translate('live.label'),
+    });
+  }
+
+  cards.push({
+    color: 'bg-blue-500/10 text-blue-700 dark:text-blue-300',
+    cta: translate('winners.cta'),
+    href: href(destinations.analytics),
+    icon: ChartColumn,
+    id: 'winners',
+    label: translate('winners.label'),
+  });
+
+  return (
+    <OverviewLayout
+      label={translate('title', { platform: platformLabel })}
+      actionsTitle={translate('actionsTitle')}
+      cards={cards}
+      header={
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <PlatformBadge platform={platform} />
+            <p className="text-sm text-muted-foreground">
+              {translate('accountsLabel')}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {connections.map((connection) => {
+              const health = getPlatformConnectionHealth(connection);
+              const account =
+                connection.handle ||
+                connection.name ||
+                connection.label ||
+                translate('connection.unnamedAccount');
+
+              return (
+                <div
+                  className="gen-glass flex items-center gap-2 rounded-lg px-3 py-2"
+                  key={connection.credentialId}
+                >
+                  <span className="text-sm text-foreground">{account}</span>
+                  <Badge variant={HEALTH_BADGE_VARIANT[health]}>
+                    {health === 'needsReconnect'
+                      ? translate('connection.healthNeedsReconnect')
+                      : health === 'attention'
+                        ? translate('connection.healthAttention')
+                        : health === 'healthy'
+                          ? translate('connection.healthHealthy')
+                          : translate('connection.healthConnected')}
+                  </Badge>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      }
+    />
+  );
+}

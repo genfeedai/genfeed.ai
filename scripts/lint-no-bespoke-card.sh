@@ -32,7 +32,7 @@ ALLOWLIST_FILE="$SCRIPT_DIR/lint-no-bespoke-card.allowlist"
 # Scope: the two trees where product cards live and where the signature was
 # validated. Kept narrow on purpose — mirrors the detector that produced the
 # baseline. Extend deliberately, re-baselining as you go.
-SCAN_DIRS=(apps/app)
+SCAN_DIRS=(apps/web)
 
 # ─── Detector token classes (all must co-occur on one className line) ──────────
 #   surface  : bg-card (incl. bg-card/NN), bg-tertiary

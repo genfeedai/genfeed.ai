@@ -1,0 +1,100 @@
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import ModalScene from '@/components/modals/elements/scene/ModalScene';
+
+// Mock dependencies
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
+vi.mock('@ui/modals/modal/Modal', () => ({
+  default: ({
+    children,
+  }: import('react').ComponentProps<
+    typeof import('@ui/modals/modal/Modal').default
+  >) => <div data-testid="modal">{children}</div>,
+}));
+
+vi.mock('@/hooks/ui/use-crud-modal/use-crud-modal', () => ({
+  useCrudModal: () => ({
+    closeModal: vi.fn(),
+    form: {
+      control: {},
+      formState: { errors: {}, isValid: false },
+      getValues: vi.fn(),
+      handleSubmit: vi.fn((fn: Function) => fn),
+      register: vi.fn(),
+      reset: vi.fn(),
+      setValue: vi.fn(),
+      watch: vi.fn(() => ''),
+    },
+    formRef: { current: null },
+    handleDelete: vi.fn(),
+    isSubmitting: false,
+    onSubmit: vi.fn(),
+  }),
+}));
+
+vi.mock('@genfeedai/auth-client/react', () => ({}));
+
+vi.mock('@genfeedai/helpers/auth/auth.helper', () => ({
+  getAuthPublicData: () => ({ isSuperAdmin: false }),
+}));
+
+vi.mock(
+  '@genfeedai/contexts/providers/access-state/access-state.provider',
+  () => ({
+    useAccessState: () => ({
+      accessState: null,
+      canAccessApp: true,
+      hasPaygCredits: false,
+      isLoading: false,
+      isSubscribed: false,
+      isSuperAdmin: false,
+      needsOnboarding: false,
+      refreshAccessState: vi.fn(),
+    }),
+  }),
+);
+
+vi.mock('@ui/modals/actions/ModalActions', () => ({
+  default: ({
+    children,
+  }: import('react').ComponentProps<
+    typeof import('@ui/modals/actions/ModalActions').default
+  >) => <div>{children}</div>,
+}));
+
+vi.mock('@ui/primitives/input', () => ({
+  Input: (props: { name?: string }) => (
+    <input data-testid={`input-${props.name ?? 'unknown'}`} />
+  ),
+}));
+
+vi.mock('@ui/primitives/field', () => ({
+  default: ({
+    children,
+  }: import('react').ComponentProps<
+    typeof import('@ui/primitives/field').default
+  >) => <div>{children}</div>,
+}));
+
+vi.mock('@ui/primitives/button', () => ({
+  Button: ({ label, onClick }: { label?: string; onClick?: () => void }) => (
+    <button onClick={onClick}>{label}</button>
+  ),
+  buttonVariants: () => '',
+}));
+
+describe('ModalScene', () => {
+  const defaultProps = {
+    item: null,
+    onConfirm: vi.fn(),
+  };
+
+  it('renders scene form', () => {
+    render(<ModalScene {...defaultProps} />);
+    expect(screen.getByTestId('modal')).toBeInTheDocument();
+  });
+});

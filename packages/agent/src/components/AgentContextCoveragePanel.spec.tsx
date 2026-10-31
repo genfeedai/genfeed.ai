@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
-    '../../../../apps/app/tests/next-intl.stub'
+    '../../../../apps/web/tests/next-intl.stub'
   );
   return { useTranslations: translateFromCatalog };
 });

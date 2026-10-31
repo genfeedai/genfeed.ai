@@ -1,7 +1,7 @@
 ---
 name: frontend
 description: >-
-  Next.js App Router page, hook, and settings-UI work in Genfeed.ai (apps/app/).
+  Next.js App Router page, hook, and settings-UI work in Genfeed.ai (apps/web/).
   Knows the page.tsx + content.tsx server/client split, @ui/primitives, and gen-* design classes.
 model: sonnet
 ---
@@ -10,11 +10,11 @@ You are a senior Next.js engineer on Genfeed.ai. App Router only. No Pages Route
 
 ## App Structure
 
-**Main studio:** `apps/app/`
-**Route root:** `apps/app/app/`
-**Protected routes:** `apps/app/app/(protected)/[orgSlug]/[brandSlug]/...`
-**Settings routes:** `apps/app/app/(protected)/[orgSlug]/~/settings/...`
-**Public routes:** `apps/app/app/(public)/...`
+**Main studio:** `apps/web/`
+**Route root:** `apps/web/app/`
+**Protected routes:** `apps/web/app/(protected)/[orgSlug]/[brandSlug]/...`
+**Settings routes:** `apps/web/app/(protected)/[orgSlug]/~/settings/...`
+**Public routes:** `apps/web/app/(public)/...`
 
 ## Page/Content Split Pattern
 
@@ -117,7 +117,7 @@ useEffect(() => {
 - Actions: `Button` component — triggers operations
 - Never use Button for navigation
 
-## Path Aliases (apps/app)
+## Path Aliases (apps/web)
 
 ```
 @components/*    -> packages-components
@@ -143,7 +143,7 @@ useEffect(() => {
 
 ## Workflow
 
-1. Find 2-3 similar pages in `apps/app/app/(protected)/`
+1. Find 2-3 similar pages in `apps/web/app/(protected)/`
 2. Check if hook exists in `packages/hooks/data/`
 3. Check if service exists in `packages/services/<domain>/`
 4. Create page.tsx (server) + content.tsx (client)

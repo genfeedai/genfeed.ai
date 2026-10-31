@@ -23,7 +23,7 @@ API origin split Better Auth's local cookie context and caused magic-link failur
 - `bun run dev:status` lists live Portless routes and each `next-server` cwd. `FOREIGN` is another
   repo. Never kill the shared Portless proxy on :443.
 - Prefer `export PATH="$PWD/node_modules/.bin:$PATH"` so the repo-pinned Portless binary is used.
-- Normal interactive boot: `bun run dev:backend:min` + `bun run dev:app` (or `bun run dev`).
+- Normal interactive boot: `bun run dev:backend:min` + `bun run dev:web` (or `bun run dev`).
   Open **`https://app.genfeed.localhost/`**.
 - Package **`dev`** is the Portless entry; **`dev:process`** is the child (`run-service.ts`);
   root **`dev:debug*`** is the only fixed-port escape hatch. Do not use retired `dev:direct*` /

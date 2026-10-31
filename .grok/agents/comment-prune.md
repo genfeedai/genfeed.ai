@@ -51,14 +51,14 @@ license headers, and article or marketing prose inside string literals.
 
 Slices:
 
-1. `apps/app` source (`app/`, `src/`, `packages/`). Skip `node_modules`.
+1. `apps/web` source (`app/`, `src/`, `packages/`). Skip `node_modules`.
 2. `apps/server/api/src` collections and modules.
 3. The rest of `apps/server/api/src` (services, auth, jobs, guards).
 4. Other `apps/server/*` source except `api/` and `dist/`.
-5. `packages/ui` and `apps/app/src/features` source.
+5. `packages/ui` and `apps/web/src/features` source.
 6. `packages/serializers`, `packages/contracts`, `packages/helpers`, and `packages/client` source.
 7. `packages/agent`, `packages/workflows`, `packages/hooks`, and `packages/workflow-ui` source.
-8. `apps/website`, `apps/extensions`, `apps/mobile`, `apps/desktop`, `apps/docs`, and `scripts`.
+8. `apps/marketing`, `apps/extension`, `apps/mobile`, `apps/desktop`, `apps/docs`, and `scripts`.
 
 Each worker returns only clusters, not a file dump.
 

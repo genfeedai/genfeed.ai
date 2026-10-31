@@ -28,11 +28,11 @@ Spawn a swarm. Shape is partition. Workers are read-only. Default N is one
 worker per slice below. Skip a slice the caller did not name.
 
 - `apps/server`
-- `apps/app` (admin screens live under `app/(protected)/admin`, not `apps/admin`)
+- `apps/web` (admin screens live under `app/(protected)/admin`, not `apps/admin`)
 - `packages/ui`, `packages/hooks`, `packages/contexts`
 - other `packages/` (skip `**/generated/**` and `**/dist/**`)
 - `scripts` and `playwright`
-- `apps/extensions`, `apps/docs`, `apps/website`, `apps/mobile`, `apps/desktop`
+- `apps/extension`, `apps/docs`, `apps/marketing`, `apps/mobile`, `apps/desktop`
 
 Each worker stands alone. Tell it the slice, the report-only limit, and to
 apply the installed `no-comments` rubric in

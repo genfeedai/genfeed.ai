@@ -107,16 +107,16 @@ const backendSharedKeys = [
 export const ENV_TARGETS: EnvTarget[] = [
   {
     id: 'app',
-    path: 'apps/app',
+    path: 'apps/web',
     generatedFileByMode: {
-      local: 'apps/app/.env.local',
-      staging: 'apps/app/.env.staging',
-      production: 'apps/app/.env.production',
+      local: 'apps/web/.env.local',
+      staging: 'apps/web/.env.staging',
+      production: 'apps/web/.env.production',
     },
     sharedKeys: [...frontendSharedKeys],
     // Checkout runs in the browser: `@genfeedai/pricing` reads these at module
     // load to fill `plan.stripePriceId`, and the app posts that ID to the API.
-    // Without them every paid plan renders as unavailable. Only `apps/app`
+    // Without them every paid plan renders as unavailable. Only `apps/web`
     // needs them — the website consumes `@genfeedai/pricing` for display only.
     directKeys: [
       'NEXT_PUBLIC_STRIPE_PRICE_PAYG',
@@ -150,11 +150,11 @@ export const ENV_TARGETS: EnvTarget[] = [
   },
   {
     id: 'website',
-    path: 'apps/website',
+    path: 'apps/marketing',
     generatedFileByMode: {
-      local: 'apps/website/.env.local',
-      staging: 'apps/website/.env.staging',
-      production: 'apps/website/.env.production',
+      local: 'apps/marketing/.env.local',
+      staging: 'apps/marketing/.env.staging',
+      production: 'apps/marketing/.env.production',
     },
     sharedKeys: [...frontendSharedKeys],
     directKeys: [
@@ -495,11 +495,11 @@ export const ENV_TARGETS: EnvTarget[] = [
   },
   {
     id: 'extension-browser',
-    path: 'apps/extensions/browser/app',
+    path: 'apps/extension',
     generatedFileByMode: {
-      local: 'apps/extensions/browser/app/.env.local',
-      staging: 'apps/extensions/browser/app/.env.staging',
-      production: 'apps/extensions/browser/app/.env.production',
+      local: 'apps/extension/.env.local',
+      staging: 'apps/extension/.env.staging',
+      production: 'apps/extension/.env.production',
     },
     sharedKeys: ['SENTRY_AUTH_TOKEN'],
     directKeys: [

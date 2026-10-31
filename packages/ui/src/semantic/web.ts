@@ -1,6 +1,6 @@
 /**
  * Tailwind v3 colour map for the extension surfaces
- * (apps/extensions/browser/app/tailwind.config.ts). Everything resolves through
+ * (apps/extension/tailwind.config.ts). Everything resolves through
  * the same CSS variables the v4 apps use, so a token change in
  * `packages/ui/src/core/*` reaches the extensions without a second edit.
  */

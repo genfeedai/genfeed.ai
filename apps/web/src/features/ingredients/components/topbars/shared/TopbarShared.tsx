@@ -1,0 +1,43 @@
+'use client';
+
+import { ButtonVariant } from '@genfeedai/contracts';
+import type { TopbarProps } from '@genfeedai/props/navigation/topbar.props';
+import { Button } from '@ui/primitives/button';
+import { Menu, X } from 'lucide-react';
+import TopbarBreadcrumbs from '@/components/topbars/breadcrumbs/TopbarBreadcrumbs';
+import TopbarEnd from '@/features/ingredients/components/topbars/end/TopbarEnd';
+
+export default function TopbarShared({
+  onMenuToggle,
+  isMenuOpen,
+}: TopbarProps = {}) {
+  const ToggleIcon = isMenuOpen ? X : Menu;
+
+  return (
+    <header className="size-full bg-transparent">
+      <div className="flex size-full items-center justify-between pl-4 pr-2 sm:pl-6 sm:pr-3 lg:pl-8 lg:pr-2">
+        <div className="flex items-center gap-1">
+          {onMenuToggle ? (
+            <Button
+              type="button"
+              variant={ButtonVariant.UNSTYLED}
+              className="size-10 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground md:hidden"
+              ariaLabel={
+                isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'
+              }
+              onClick={onMenuToggle}
+            >
+              <ToggleIcon className="size-5" />
+            </Button>
+          ) : null}
+
+          <TopbarBreadcrumbs />
+        </div>
+
+        <div className="flex items-center gap-4">
+          <TopbarEnd />
+        </div>
+      </div>
+    </header>
+  );
+}

@@ -139,33 +139,33 @@ export const APP_CHROME_COLOR_SURFACES: Array<{
   fileNamePattern?: RegExp;
 }> = [
   {
-    root: 'apps/app/app/(onboarding)',
+    root: 'apps/web/app/(onboarding)',
   },
   {
-    root: 'apps/app/app/(protected)/[orgSlug]/[brandSlug]/publishing/review',
+    root: 'apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review',
   },
   {
-    root: 'apps/app/app/(protected)/[orgSlug]/[brandSlug]/tasks',
+    root: 'apps/web/app/(protected)/[orgSlug]/[brandSlug]/tasks',
   },
   {
     fileNamePattern: /^settings-progress.*\.tsx$/u,
-    root: 'apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/personal',
+    root: 'apps/web/app/(protected)/[orgSlug]/~/settings/(pages)/personal',
   },
   {
-    root: 'apps/app/src/features/workflows/pages/turbo',
+    root: 'apps/web/src/features/workflows/pages/turbo',
   },
   {
-    root: 'apps/app/src/features/workflows/pages/library',
+    root: 'apps/web/src/features/workflows/pages/library',
   },
   {
     fileNamePattern: /^(activity-chart|overview-page)\.tsx$/u,
-    root: 'apps/app/app/(protected)/admin/overview',
+    root: 'apps/web/app/(protected)/admin/overview',
   },
   {
-    root: 'apps/app/src/components/workspace-shell',
+    root: 'apps/web/src/components/workspace-shell',
   },
   {
-    root: 'apps/app/src/components/shell',
+    root: 'apps/web/src/components/shell',
   },
 ];
 
@@ -256,9 +256,9 @@ function findAppChromeRawColorFindings(): DesignSystemFinding[] {
  * categorical hue pairs a light-theme shade with a `dark:` one.
  */
 const DARK_ONLY_PALETTE_TEXT_ROOTS = [
-  'apps/app',
-  'apps/website',
-  'apps/extensions',
+  'apps/web',
+  'apps/marketing',
+  'apps/extension',
   'packages/agent',
   'packages/ui/src',
 ];
@@ -620,7 +620,7 @@ export function findPackageUiGuardFindings(
   );
 }
 
-const TYPE_SCALE_GUARD_ROOTS = ['apps/app', 'apps/website', 'packages'];
+const TYPE_SCALE_GUARD_ROOTS = ['apps/web', 'apps/marketing', 'packages'];
 
 function findPackageUiGuardFindingsInRepo(): DesignSystemFinding[] {
   const files = TYPE_SCALE_GUARD_ROOTS.flatMap((root) =>
@@ -1001,7 +1001,7 @@ export function checkPlatformCoverage(failures: string[]): void {
 }
 
 function checkMobileHardcodedColors(failures: string[]): void {
-  const mobileRoot = path.join(rootDir, 'apps/mobile/app');
+  const mobileRoot = path.join(rootDir, 'apps/mobile');
   const files = collectFiles(mobileRoot, new Set(['.ts', '.tsx']));
   const colorLiteralPattern =
     /#[0-9a-fA-F]{3,8}\b|rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+/u;

@@ -79,7 +79,7 @@ jobs:
           security list-keychains -d user -s "$KEYCHAIN_PATH"
           security set-key-partition-list -S apple-tool:,apple: -s -k "${DEVELOPER_ID_P12_PASSWORD}" "$KEYCHAIN_PATH"
 
-      # electron-builder reads the version from apps/desktop/app/package.json,
+      # electron-builder reads the version from apps/desktop/package.json,
       # where it is a placeholder that nothing bumps. Stamping the tag onto it
       # before the build is what keeps the artifact filename, the updater feed
       # in latest-mac.yml, the release manifest, and the Homebrew cask URL
@@ -111,7 +111,7 @@ jobs:
 
       - name: Notarize and staple macOS disk images
         run: |
-          for dmg in apps/desktop/app/release/*.dmg; do
+          for dmg in apps/desktop/release/*.dmg; do
             xcrun notarytool submit "$dmg" \
               --key "$APPLE_API_KEY" \
               --key-id "$APPLE_API_KEY_ID" \
@@ -133,7 +133,7 @@ jobs:
 
       - name: Verify Developer ID signature, notarization, and app size
         run: |
-          DMG_PATH="$(find apps/desktop/app/release -maxdepth 1 -name '*.dmg' -type f | head -1)"
+          DMG_PATH="$(find apps/desktop/release -maxdepth 1 -name '*.dmg' -type f | head -1)"
           MOUNT_PATH="$(mktemp -d)"
 
           if [ -z "$DMG_PATH" ]; then
@@ -197,11 +197,11 @@ jobs:
         with:
           name: genfeed-desktop-macos
           path: |
-            apps/desktop/app/release/*.dmg
-            apps/desktop/app/release/*.zip
-            apps/desktop/app/release/*.blockmap
-            apps/desktop/app/release/*.yml
-            apps/desktop/app/release/genfeed-desktop-release.json
+            apps/desktop/release/*.dmg
+            apps/desktop/release/*.zip
+            apps/desktop/release/*.blockmap
+            apps/desktop/release/*.yml
+            apps/desktop/release/genfeed-desktop-release.json
           if-no-files-found: error
 
       - name: Upload visual QA screenshots
@@ -209,7 +209,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: genfeed-desktop-visual-qa
-          path: apps/desktop/app/visual-qa/*.png
+          path: apps/desktop/visual-qa/*.png
           if-no-files-found: error
 
   publish-desktop-release:

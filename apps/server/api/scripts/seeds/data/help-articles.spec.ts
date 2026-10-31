@@ -91,7 +91,7 @@ describe('Cloud help article catalog', () => {
 
   it('matches the website sitemap fallback list', () => {
     const source = readFileSync(
-      resolve(REPO_ROOT, 'apps/website/src/data/help-articles.data.ts'),
+      resolve(REPO_ROOT, 'apps/marketing/src/data/help-articles.data.ts'),
       'utf8',
     );
     const listed = [...source.matchAll(/^\s+'([a-z0-9-]+)',$/gm)].map(

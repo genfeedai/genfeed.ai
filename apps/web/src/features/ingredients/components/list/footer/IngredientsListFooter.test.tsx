@@ -1,0 +1,52 @@
+import { PageScope } from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import IngredientsListFooter from '@/features/ingredients/components/list/footer/IngredientsListFooter';
+
+vi.mock('@ui/layouts/lightbox/MediaLightbox', () => ({
+  __esModule: true,
+  default: () => <div data-testid="media-lightbox" />,
+}));
+
+vi.mock('@/components/lazy/modal/LazyModal', () => ({
+  __esModule: true,
+  LazyModalFolder: () => <div data-testid="lazy-modal-folder" />,
+}));
+
+describe('IngredientsListFooter', () => {
+  const mediaIngredients: IIngredient[] = [];
+
+  const baseProps = {
+    brandId: 'brand-1',
+    lightboxIndex: 0,
+    lightboxOpen: false,
+    mediaIngredients,
+    onCloseLightbox: vi.fn(),
+    onFolderModalConfirm: vi.fn(),
+    scope: PageScope.BRAND,
+    selectedFolderForModal: null,
+  };
+
+  it('should render without crashing', () => {
+    const { container } = render(<IngredientsListFooter {...baseProps} />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('should handle user interactions correctly', () => {
+    const { container } = render(<IngredientsListFooter {...baseProps} />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('should apply correct styles and classes', () => {
+    const { container } = render(<IngredientsListFooter {...baseProps} />);
+    const rootElement = container.firstChild as HTMLElement;
+    expect(rootElement).toBeInTheDocument();
+  });
+
+  it('does not duplicate the folder modal when the shell owns folders', () => {
+    render(<IngredientsListFooter {...baseProps} showFolderModal={false} />);
+
+    expect(screen.queryByTestId('lazy-modal-folder')).not.toBeInTheDocument();
+  });
+});

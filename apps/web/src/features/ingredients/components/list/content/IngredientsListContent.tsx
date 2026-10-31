@@ -1,0 +1,1021 @@
+'use client';
+
+import { useAssetSelection } from '@genfeedai/contexts/ui/asset-selection.context';
+import { useContextSidebar } from '@genfeedai/contexts/ui/context-sidebar-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
+import {
+  ButtonVariant,
+  ComponentSize,
+  categoryToString,
+  formatEnumLabel,
+  IngredientCategory,
+  type IngredientFormat,
+  IngredientStatus,
+  PageScope,
+} from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  createAdminIngredientRoute,
+  EMPTY_STATES,
+  resolveOrganizationModulePresentationAccess,
+} from '@genfeedai/contracts/constants';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import { useAuthorizedMediaPreview } from '@genfeedai/hooks/media/use-authorized-media-preview';
+import { useIntersectionObserver } from '@genfeedai/hooks/ui/use-intersection-observer/use-intersection-observer';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import {
+  getIngredientFailureReason,
+  getIngredientModelLabel,
+  getIngredientProviderLabel,
+  getIngredientSizeLabel,
+  isFailedIngredient,
+} from '@genfeedai/utils/media/ingredient-ledger.util';
+import {
+  getIngredientPreviewUrl,
+  isRasterPreviewUrl,
+} from '@genfeedai/utils/media/ingredient-preview.util';
+import {
+  getIngredientDisplayLabel,
+  isVideoIngredient,
+} from '@genfeedai/utils/media/ingredient-type.util';
+import { getLibraryAssetType } from '@genfeedai/utils/media/library-asset-type.util';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
+import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
+import Badge from '@ui/display/badge/Badge';
+import { SkeletonList } from '@ui/display/skeleton/skeleton';
+import AppTable from '@ui/display/table/Table';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
+import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
+import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import { Button } from '@ui/primitives/button';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
+import { format } from 'date-fns';
+import { Eye, Film, ImageIcon, Music, RefreshCw } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import IngredientReviewActions from '@/components/ingredients/IngredientReviewActions';
+import IngredientOriginBadge from '@/components/ingredients/ingredient-origin-badge';
+import IngredientTagChips from '@/components/ingredients/ingredient-tag-chips';
+import LibraryAssetTypeBadge from '@/components/ingredients/library-asset-type-badge';
+import IngredientsMediaGrid from '@/components/ingredients/list/media-grid/IngredientsMediaGrid';
+import IngredientTimeGroupHeading from '@/components/ingredients/list/media-grid/ingredient-time-group-heading';
+import { groupIngredientsByTime } from '@/components/ingredients/list/media-grid/ingredient-time-groups.util';
+import FailedIngredientsRecovery from '@/features/ingredients/components/ingredients/list/recovery/FailedIngredientsRecovery';
+import IngredientSound from '@/features/ingredients/components/ingredients/sound/IngredientSound';
+import type { IngredientsListContentProps } from '@/features/ingredients/props/ingredients-list.props';
+import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
+import type { IngredientTimeGroupHeadingProps } from '@/props/content/ingredient.props';
+
+// React Flow is heavier than the whole grid; only the canvas view pays for it.
+const LibraryCanvas = dynamic(
+  () =>
+    import(
+      '@/features/ingredients/components/ingredients/canvas/LibraryCanvas'
+    ),
+  {
+    loading: () => <LazyLoadingFallback variant="minimal" />,
+    ssr: false,
+  },
+);
+
+/**
+ * Audio rendering is a property of the asset itself, not of the page it
+ * happens to be listed on — a mixed "all assets" view carries music and voice
+ * rows alongside images and video, and each row still has to know how to
+ * play itself.
+ */
+function isAudioIngredient(ingredient: IIngredient): boolean {
+  const assetTypeId = getLibraryAssetType(ingredient.category)?.id;
+  return assetTypeId === 'audio' || assetTypeId === 'voice';
+}
+
+/**
+ * `ingredient.ingredientUrl` always resolves to *something* — for a
+ * PROCESSING or FAILED row it falls back to a placeholder image URL rather
+ * than an empty string. Handing that straight to the audio player would
+ * render an enabled control that "plays" a JPEG, so readiness is judged from
+ * the row's own status instead of the URL's presence.
+ */
+function isAudioReadyToPlay(ingredient: IIngredient): boolean {
+  return (
+    !isFailedIngredient(ingredient) &&
+    ingredient.status !== IngredientStatus.PROCESSING
+  );
+}
+
+function IngredientTableVideoPreview({
+  url,
+  label,
+}: {
+  url: string;
+  label: string;
+}) {
+  const { ref, isIntersecting } = useIntersectionObserver<HTMLDivElement>({
+    rootMargin: '100px',
+    triggerOnce: true,
+  });
+  const [isReady, setIsReady] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+  return (
+    <div
+      ref={ref}
+      role="img"
+      aria-label={label}
+      className="relative flex size-10 items-center justify-center overflow-hidden rounded-md bg-foreground/5 text-muted-foreground"
+    >
+      {!isReady || hasError ? (
+        <Film className="size-4" data-testid="ingredient-preview-fallback" />
+      ) : null}
+      {isIntersecting && !hasError ? (
+        <div
+          data-testid="ingredient-video-preview"
+          className={`pointer-events-none absolute inset-0 size-10 ${isReady ? 'opacity-100' : 'opacity-0'}`}
+        >
+          <VideoPlayer
+            src={url}
+            mediaClassName="object-cover"
+            config={{
+              autoPlay: false,
+              controls: false,
+              muted: true,
+              loop: false,
+              playsInline: true,
+              preload: 'metadata',
+            }}
+            mediaProps={{
+              'aria-hidden': true,
+              tabIndex: -1,
+              onLoadedMetadata: (event) => {
+                const video = event.currentTarget;
+                if (Number.isFinite(video.duration) && video.duration > 0) {
+                  video.currentTime = Math.min(0.05, video.duration / 2);
+                }
+              },
+              onLoadedData: () => setIsReady(true),
+              onSeeked: () => setIsReady(true),
+              onError: () => setHasError(true),
+            }}
+          />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function IngredientTablePreview({ ingredient }: { ingredient: IIngredient }) {
+  const grant = useAuthorizedMediaPreview(ingredient);
+  const label = getIngredientDisplayLabel(ingredient) || 'Asset preview';
+  const isVideo = isVideoIngredient(ingredient);
+  const assetType = getLibraryAssetType(ingredient.category);
+  const isAudio = isAudioIngredient(ingredient);
+  const videoAsset = isVideo || assetType?.id === 'video';
+  // Video grants can point at extensionless delivery endpoints. Only a known
+  // image suffix identifies an authorized poster; retained raw URLs never
+  // replace a pending or failed capability.
+  const imageSuffix = /\.(avif|gif|jpe?g|png|webp)(?:$|[?#])/i;
+  const grantIsPoster = Boolean(grant?.url && imageSuffix.test(grant.url));
+  const placeholderPrefix = `${EnvironmentService.assetsEndpoint}/placeholders/`;
+  const thumbnailUrl = ingredient.thumbnailUrl;
+  const legacyVideoUrl = ingredient.ingredientUrl;
+  const legacyPosterUrl = videoAsset
+    ? isRasterPreviewUrl(thumbnailUrl) &&
+      !thumbnailUrl.startsWith(placeholderPrefix)
+      ? thumbnailUrl
+      : legacyVideoUrl &&
+          imageSuffix.test(legacyVideoUrl) &&
+          !legacyVideoUrl.startsWith(placeholderPrefix)
+        ? legacyVideoUrl
+        : undefined
+    : getIngredientPreviewUrl(ingredient);
+  const previewUrl = grant
+    ? grant.state === 'READY' &&
+      (!videoAsset || grantIsPoster) &&
+      isRasterPreviewUrl(grant.url)
+      ? grant.url
+      : ''
+    : legacyPosterUrl;
+  const videoUrl =
+    videoAsset &&
+    !previewUrl &&
+    !isFailedIngredient(ingredient) &&
+    ingredient.status !== IngredientStatus.PROCESSING
+      ? grant
+        ? grant.state === 'READY'
+          ? grant.url
+          : null
+        : legacyVideoUrl &&
+            !legacyVideoUrl.startsWith(placeholderPrefix) &&
+            !imageSuffix.test(legacyVideoUrl)
+          ? legacyVideoUrl
+          : null
+      : null;
+
+  if (videoUrl) {
+    return (
+      <IngredientTableVideoPreview
+        key={videoUrl}
+        url={videoUrl}
+        label={label}
+      />
+    );
+  }
+
+  if (!previewUrl) {
+    return (
+      <div
+        aria-label={label}
+        className="flex size-10 items-center justify-center rounded-md bg-foreground/5 text-muted-foreground"
+        data-testid="ingredient-preview-fallback"
+        role="img"
+      >
+        {videoAsset ? (
+          <Film className="size-4" />
+        ) : isAudio ? (
+          <Music className="size-4" />
+        ) : (
+          <ImageIcon className="size-4" />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative size-10 overflow-hidden rounded-md bg-foreground/5">
+      <Image
+        alt={label}
+        className="size-10 object-cover outline-media"
+        height={40}
+        sizes="40px"
+        src={previewUrl}
+        width={40}
+      />
+      {videoAsset ? (
+        <span
+          className={
+            'pointer-events-none absolute inset-0 flex items-center justify-center bg-black/20' /* design-system-allow-content-color -- media overlay */
+          }
+        >
+          <Film
+            className={
+              'size-3.5 text-white' /* design-system-allow-content-color -- media overlay */
+            }
+          />
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * The list view is a ledger, so a row says what the asset is and — when the
+ * generation failed — why. A red status chip with no reason forces the operator
+ * back into the modal to find out what the provider actually said.
+ */
+function IngredientLedgerAssetCell({
+  detailHref,
+  ingredient,
+}: {
+  /** The asset's own page; the name links there while the row opens the sidebar. */
+  detailHref?: string;
+  ingredient: IIngredient;
+}) {
+  const grant = useAuthorizedMediaPreview(ingredient);
+  const label = getIngredientDisplayLabel(ingredient);
+  const failureReason = getIngredientFailureReason(ingredient);
+  const promptText = ingredient.promptText?.trim();
+  const isAudio = isAudioIngredient(ingredient);
+
+  return (
+    <div className="flex w-40 min-w-0 max-w-40 items-center gap-2">
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        {detailHref ? (
+          <Link
+            className="truncate text-sm font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            href={detailHref}
+            prefetch={false}
+            title={label || undefined}
+          >
+            {label || 'Untitled asset'}
+          </Link>
+        ) : (
+          <span
+            className="truncate text-sm font-medium"
+            title={label || undefined}
+          >
+            {label || 'Untitled asset'}
+          </span>
+        )}
+        {failureReason ? (
+          <span
+            className="truncate text-xs text-destructive"
+            data-testid={`ingredient-failure-reason-${ingredient.id}`}
+            title={failureReason}
+          >
+            {failureReason}
+          </span>
+        ) : promptText ? (
+          <span
+            className="truncate text-xs text-muted-foreground"
+            title={promptText}
+          >
+            {promptText}
+          </span>
+        ) : null}
+      </div>
+      {isAudio ? (
+        <AudioPreviewPlayer
+          audioUrl={
+            isAudioReadyToPlay(ingredient)
+              ? grant
+                ? (grant.url ?? undefined)
+                : ingredient.ingredientUrl
+              : undefined
+          }
+          label={label || 'Untitled asset'}
+          stopOnUnmount
+        />
+      ) : null}
+    </div>
+  );
+}
+
+export default function IngredientsListContent({
+  recovery,
+  type,
+  activeTypeLabel,
+  scope,
+  singularType,
+  viewMode,
+  formatFilter,
+  isLoading,
+  filteredIngredients,
+  hasFilteredEmptyState,
+  selectedIngredientIds,
+  isActionsEnabled,
+  isDragEnabled,
+  isPortraiting,
+  isGeneratingCaptions,
+  isMirroring,
+  isReversing,
+  onSelectionChange,
+  onDeleteIngredient,
+  onArchiveIngredient,
+  onConvertToPortrait,
+  onConvertToVideo,
+  onGenerateCaptions,
+  onReverse,
+  onMirror,
+  onUpdateParent,
+  onRefresh,
+  onPublishIngredient,
+  onOpenLightbox,
+  onClearFilters,
+  onSetIngredients,
+  onScopeChange,
+  onCopyPrompt,
+  onReprompt,
+}: IngredientsListContentProps) {
+  const translate = useTranslations('pages.library');
+  const translateActions = useTranslations('ui.quickActions');
+  const storyboardEntry = useStoryboardEntry();
+  const { href } = useOrgUrl();
+  const { settings, settingsLoading } = useBrand();
+  const { flags: platformFlags } = useFeatureFlagContext();
+  // Cloud organizations start without Playground; only point at it when the
+  // organization can open it.
+  const isPlaygroundAvailable = resolveOrganizationModulePresentationAccess(
+    settingsLoading ? null : settings,
+    'playground',
+    platformFlags,
+  ).isAllowed;
+  const translateRetry = useTranslations('common.libraryRetry');
+  // This full-card layout is reserved for a route whose *type* is dedicated
+  // to audio (the legacy per-category admin pages) — every Library route's
+  // singular type is the unified `IngredientCategory.INGREDIENT` token, so
+  // this stays false there regardless of what the filtered assets are. That
+  // is deliberate: a Library view (list or the grid's "other assets" table)
+  // keeps its selection checkboxes, status, and retry action for audio rows
+  // too, via the per-row audio control in `columns` below — it does not fall
+  // back to this selection-less card layout just because every visible row
+  // happens to be audio.
+  const isAudioCategory =
+    singularType === IngredientCategory.MUSIC ||
+    singularType === IngredientCategory.VOICE;
+
+  const isMediaCategory =
+    singularType === IngredientCategory.IMAGE ||
+    singularType === IngredientCategory.VIDEO ||
+    singularType === IngredientCategory.GIF;
+
+  const { nonVisualIngredients, visualIngredients } = useMemo(() => {
+    const visual: IIngredient[] = [];
+    const nonVisual: IIngredient[] = [];
+
+    for (const ingredient of filteredIngredients) {
+      const assetType = getLibraryAssetType(ingredient.category)?.id;
+
+      if (
+        assetType === 'image' ||
+        assetType === 'video' ||
+        assetType === 'gif' ||
+        assetType === 'avatar'
+      ) {
+        visual.push(ingredient);
+      } else {
+        nonVisual.push(ingredient);
+      }
+    }
+
+    return { nonVisualIngredients: nonVisual, visualIngredients: visual };
+  }, [filteredIngredients]);
+
+  const {
+    lightboxRequestCount,
+    requestedLightboxIngredient,
+    selectedIngredient: publishedIngredient,
+    setSelectedAsset,
+  } = useAssetSelection();
+  const handleReviewUpdated = useCallback(
+    (updated: IIngredient) => {
+      onSetIngredients((current) =>
+        current.flatMap((ingredient) => {
+          if (ingredient.id !== updated.id) return [ingredient];
+          return updated.status === IngredientStatus.REJECTED
+            ? []
+            : [
+                {
+                  ...ingredient,
+                  status: updated.status,
+                  reviewStatus: updated.reviewStatus ?? ingredient.reviewStatus,
+                },
+              ];
+        }),
+      );
+      if (publishedIngredient?.id === updated.id) {
+        setSelectedAsset({
+          ...publishedIngredient,
+          status: updated.status,
+          reviewStatus:
+            updated.reviewStatus ?? publishedIngredient.reviewStatus,
+        });
+      }
+    },
+    [onSetIngredients, publishedIngredient, setSelectedAsset],
+  );
+
+  // Every scope inspects an asset in the context sidebar. Only the admin lists
+  // also link the name to the asset's admin page; only a workspace scope can
+  // start a storyboard from an asset.
+  const isAdminScope = scope === PageScope.SUPERADMIN;
+  const isWorkspaceScope = !isAdminScope;
+
+  const columns = useMemo(
+    () => [
+      {
+        className: 'w-12',
+        header: '',
+        key: 'ingredientUrl',
+        render: (ingredient: IIngredient) => (
+          <IngredientTablePreview ingredient={ingredient} />
+        ),
+      },
+      {
+        className: 'w-44',
+        header: translate('browser.columns.asset'),
+        key: 'metadataLabel',
+        render: (ingredient: IIngredient) => (
+          <IngredientLedgerAssetCell
+            detailHref={
+              isAdminScope
+                ? createAdminIngredientRoute(ingredient.category, ingredient.id)
+                : undefined
+            }
+            ingredient={ingredient}
+          />
+        ),
+      },
+      {
+        className: 'w-20',
+        header: translate('browser.columns.type'),
+        key: 'category',
+        render: (ingredient: IIngredient) => {
+          const format =
+            ingredient.ingredientFormat || ingredient.format || undefined;
+          const formatLabel = formatEnumLabel(format);
+
+          return (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <LibraryAssetTypeBadge category={ingredient.category} />
+              {formatLabel ? (
+                <Badge size={ComponentSize.SM} variant="slate">
+                  {formatLabel}
+                </Badge>
+              ) : null}
+            </div>
+          );
+        },
+      },
+      {
+        className: 'w-20',
+        header: translate('browser.columns.origin'),
+        key: 'origin',
+        render: (ingredient: IIngredient) => (
+          <IngredientOriginBadge origin={ingredient.origin} />
+        ),
+      },
+      {
+        className: 'w-16',
+        header: translate('browser.columns.tags'),
+        key: 'tags',
+        render: (ingredient: IIngredient) =>
+          ingredient.tags && ingredient.tags.length > 0 ? (
+            <IngredientTagChips max={1} tags={ingredient.tags} />
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          ),
+      },
+      {
+        className: 'w-24',
+        header: translate('browser.columns.model'),
+        key: 'model',
+        render: (ingredient: IIngredient) => {
+          const modelLabel = getIngredientModelLabel(ingredient);
+
+          if (!modelLabel) {
+            return <span className="text-muted-foreground">—</span>;
+          }
+
+          const providerLabel = getIngredientProviderLabel(ingredient);
+
+          return (
+            <div className="flex w-20 min-w-0 max-w-20 flex-col">
+              <span className="truncate text-sm" title={modelLabel}>
+                {modelLabel}
+              </span>
+              {providerLabel ? (
+                <span className="truncate text-xs text-muted-foreground">
+                  {providerLabel}
+                </span>
+              ) : null}
+            </div>
+          );
+        },
+      },
+      {
+        className: 'w-20',
+        header: translate('browser.columns.size'),
+        key: 'metadataSize',
+        render: (ingredient: IIngredient) => {
+          const sizeLabel = getIngredientSizeLabel(ingredient);
+
+          if (!sizeLabel) {
+            return <span className="text-muted-foreground">—</span>;
+          }
+
+          return (
+            <span
+              className="block truncate text-xs tabular-nums text-foreground/70"
+              title={sizeLabel}
+            >
+              {sizeLabel}
+            </span>
+          );
+        },
+      },
+      {
+        className: 'w-20',
+        header: translate('browser.columns.created'),
+        key: 'createdAt',
+        render: (ingredient: IIngredient) => {
+          const createdAt = ingredient.createdAt
+            ? new Date(ingredient.createdAt)
+            : null;
+
+          if (!createdAt || Number.isNaN(createdAt.getTime())) {
+            return <span className="text-muted-foreground">—</span>;
+          }
+
+          return (
+            <time
+              className="whitespace-nowrap text-xs tabular-nums text-foreground/70"
+              title={format(createdAt, 'd MMM yyyy')}
+              dateTime={createdAt.toISOString()}
+            >
+              {format(createdAt, 'd MMM yy')}
+            </time>
+          );
+        },
+      },
+      {
+        className: 'w-32',
+        header: translate('browser.columns.status'),
+        key: 'status',
+        render: (ingredient: IIngredient) => (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <DropdownStatus
+              entity={ingredient}
+              onStatusChange={(_newStatus, updatedIngredient) => {
+                if (updatedIngredient) {
+                  handleReviewUpdated(updatedIngredient as IIngredient);
+                }
+              }}
+            />
+            {isActionsEnabled ? (
+              // Approve/reject are row actions: shown on row hover or focus.
+              <div className={hoverRevealClassName({ at: 'lg' })}>
+                <IngredientReviewActions
+                  ingredient={ingredient}
+                  onUpdated={handleReviewUpdated}
+                />
+              </div>
+            ) : null}
+          </div>
+        ),
+      },
+    ],
+    [translate, isActionsEnabled, handleReviewUpdated, isAdminScope],
+  );
+
+  const revealInspector = useContextSidebar()?.reveal;
+  const inspectIngredient = useCallback(
+    (ingredient: IIngredient) => {
+      setSelectedAsset(ingredient);
+      revealInspector?.();
+    },
+    [revealInspector, setSelectedAsset],
+  );
+
+  // The lightbox is the full-size view; when it cannot open (an asset with no
+  // media to show) the sidebar still has the record.
+  const openIngredientPreview = useCallback(
+    (ingredient: IIngredient) => {
+      if (!onOpenLightbox(ingredient)) {
+        inspectIngredient(ingredient);
+      }
+    },
+    [inspectIngredient, onOpenLightbox],
+  );
+
+  const handleToggleSelection = useCallback(
+    (ingredient: IIngredient) => {
+      onSelectionChange(
+        selectedIngredientIds.includes(ingredient.id)
+          ? selectedIngredientIds.filter((id) => id !== ingredient.id)
+          : [...selectedIngredientIds, ingredient.id],
+      );
+    },
+    [onSelectionChange, selectedIngredientIds],
+  );
+
+  const tableActions = useMemo(
+    () => [
+      {
+        icon: <Eye />,
+        onClick: inspectIngredient,
+        tooltip: 'View',
+      },
+      {
+        icon: <Film />,
+        onClick: storyboardEntry.createFromAsset,
+        tooltip: (ingredient: IIngredient) =>
+          isVideoIngredient(ingredient)
+            ? translateActions('remixThisVideo')
+            : 'Add to Storyboard',
+        isVisible: (ingredient: IIngredient) =>
+          isWorkspaceScope &&
+          isActionsEnabled &&
+          storyboardEntry.canCreateFromAsset(ingredient),
+        isDisabled: (ingredient: IIngredient) =>
+          storyboardEntry.pendingAssetId === ingredient.id,
+      },
+      {
+        icon: <RefreshCw />,
+        isVisible: (ingredient: IIngredient) =>
+          Boolean(onReprompt) && isFailedIngredient(ingredient),
+        onClick: (ingredient: IIngredient) => onReprompt?.(ingredient),
+        tooltip: translateRetry('retryAriaLabel'),
+      },
+    ],
+    [
+      inspectIngredient,
+      isActionsEnabled,
+      onReprompt,
+      translateRetry,
+      isWorkspaceScope,
+      storyboardEntry.canCreateFromAsset,
+      storyboardEntry.createFromAsset,
+      storyboardEntry.pendingAssetId,
+      translateActions,
+    ],
+  );
+
+  const content = useMemo(() => {
+    if (viewMode === 'canvas') {
+      // The canvas is a free-placement surface, so it needs a bounded box of
+      // its own — the Library page scrolls, and `h-full` inside a scrolling
+      // column collapses React Flow to zero height.
+      return (
+        <div className="h-[70vh] min-h-[32rem] overflow-hidden rounded-lg border border-border">
+          <LibraryCanvas
+            ingredients={filteredIngredients}
+            isLoading={isLoading}
+          />
+        </div>
+      );
+    }
+
+    if (viewMode === 'list') {
+      const timeGroups = groupIngredientsByTime(filteredIngredients);
+      const groupHeadingById = new Map<
+        string,
+        IngredientTimeGroupHeadingProps
+      >();
+
+      if (timeGroups) {
+        for (const group of timeGroups) {
+          const first = group.items[0];
+          if (first) {
+            groupHeadingById.set(first.id, {
+              count: group.items.length,
+              label: group.label,
+            });
+          }
+        }
+      }
+
+      return (
+        <AppTable
+          density="compact"
+          enableDragScroll
+          scrollAriaLabel={translate('scrollTable')}
+          items={filteredIngredients}
+          isLoading={isLoading}
+          columns={columns}
+          selectable
+          selectedIds={selectedIngredientIds}
+          onSelectionChange={onSelectionChange}
+          getItemId={(ingredient: IIngredient) => ingredient.id}
+          actions={tableActions}
+          onRowClick={inspectIngredient}
+          isHeaderPinned
+          getGroupHeading={
+            timeGroups
+              ? (ingredient) => {
+                  const heading = groupHeadingById.get(ingredient.id);
+                  if (!heading) {
+                    return null;
+                  }
+
+                  return {
+                    key: heading.label,
+                    content: (
+                      <IngredientTimeGroupHeading
+                        count={heading.count}
+                        label={heading.label}
+                        placement="under-column-header"
+                      />
+                    ),
+                  };
+                }
+              : undefined
+          }
+        />
+      );
+    }
+
+    if (isAudioCategory) {
+      if (isLoading) {
+        return <SkeletonList count={6} />;
+      }
+
+      // `IngredientSound` maps over its items and renders nothing at all for an
+      // empty list, so an empty music or voice library used to be a blank pane.
+      // Mirror the media grid and say so.
+      if (filteredIngredients.length === 0) {
+        const noun = categoryToString(singularType);
+        return <CardEmptyContent label={`No ${noun} yet`} className="w-full" />;
+      }
+
+      return (
+        <IngredientSound
+          ingredients={filteredIngredients}
+          setIngredients={onSetIngredients}
+        />
+      );
+    }
+
+    if (isMediaCategory || viewMode === 'grid') {
+      const mediaItems = isMediaCategory
+        ? filteredIngredients
+        : visualIngredients;
+      // `type` is 'ingredients' on every Library route — the type axis is a
+      // clearable chip, so the noun follows the chips, not the URL.
+      const mediaNoun = (
+        activeTypeLabel ?? (type === 'ingredients' ? 'assets' : type)
+      ).toLowerCase();
+
+      return (
+        <div className="flex flex-col gap-6">
+          {mediaItems.length > 0 || nonVisualIngredients.length === 0 ? (
+            <IngredientsMediaGrid
+              emptyLabel={`No ${mediaNoun} yet`}
+              emptyActions={
+                isPlaygroundAvailable ? (
+                  <Button asChild variant={ButtonVariant.SECONDARY}>
+                    <Link href={href(APP_ROUTES.STUDIO.PLAYGROUND)}>
+                      {translate('emptyOpenPlayground')}
+                    </Link>
+                  </Button>
+                ) : undefined
+              }
+              items={mediaItems}
+              onDeleteIngredient={onDeleteIngredient}
+              onMarkArchived={onArchiveIngredient}
+              onConvertToPortrait={onConvertToPortrait}
+              onGenerateCaptions={onGenerateCaptions}
+              onReverse={onReverse}
+              onMirror={onMirror}
+              onSeeDetails={inspectIngredient}
+              onUpdateParent={onUpdateParent}
+              onRefresh={onRefresh}
+              onReviewUpdated={handleReviewUpdated}
+              selectedIds={selectedIngredientIds}
+              isPortraiting={isPortraiting}
+              isGeneratingCaptions={isGeneratingCaptions}
+              isMirroring={isMirroring}
+              isReversing={isReversing}
+              isLoading={isLoading}
+              isActionsEnabled={isActionsEnabled}
+              isDragEnabled={isDragEnabled}
+              format={
+                formatFilter ? (formatFilter as IngredientFormat) : undefined
+              }
+              onPublishIngredient={onPublishIngredient}
+              onClickIngredient={inspectIngredient}
+              onToggleSelection={handleToggleSelection}
+              onScopeChange={onScopeChange}
+              onConvertToVideo={onConvertToVideo}
+              onCopyPrompt={onCopyPrompt}
+              onReprompt={onReprompt}
+            />
+          ) : null}
+
+          {viewMode === 'grid' && nonVisualIngredients.length > 0 ? (
+            <section className="flex flex-col gap-2">
+              <h3 className="text-2xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
+                {translate('otherAssets')}
+              </h3>
+              <AppTable
+                density="compact"
+                enableDragScroll
+                scrollAriaLabel={translate('scrollTable')}
+                items={nonVisualIngredients}
+                isLoading={false}
+                columns={columns}
+                selectable
+                selectedIds={selectedIngredientIds}
+                onSelectionChange={onSelectionChange}
+                getItemId={(ingredient: IIngredient) => ingredient.id}
+                actions={tableActions}
+                onRowClick={inspectIngredient}
+              />
+            </section>
+          ) : null}
+        </div>
+      );
+    }
+
+    return (
+      <AppTable
+        density="compact"
+        enableDragScroll
+        scrollAriaLabel={translate('scrollTable')}
+        items={filteredIngredients}
+        isLoading={isLoading}
+        columns={columns}
+        selectable
+        selectedIds={selectedIngredientIds}
+        onSelectionChange={onSelectionChange}
+        getItemId={(ingredient: IIngredient) => ingredient.id}
+        actions={tableActions}
+        onRowClick={inspectIngredient}
+      />
+    );
+  }, [
+    activeTypeLabel,
+    columns,
+    filteredIngredients,
+    formatFilter,
+    inspectIngredient,
+    handleToggleSelection,
+    handleReviewUpdated,
+    isActionsEnabled,
+    isDragEnabled,
+    isAudioCategory,
+    isGeneratingCaptions,
+    isLoading,
+    isMediaCategory,
+    isMirroring,
+    isPlaygroundAvailable,
+    isPortraiting,
+    isReversing,
+    onArchiveIngredient,
+    onConvertToPortrait,
+    onConvertToVideo,
+    onCopyPrompt,
+    onGenerateCaptions,
+    onMirror,
+    onRefresh,
+    onReprompt,
+    onReverse,
+    onScopeChange,
+    onSelectionChange,
+    onSetIngredients,
+    onUpdateParent,
+    onDeleteIngredient,
+    onPublishIngredient,
+    nonVisualIngredients,
+    selectedIngredientIds,
+    singularType,
+    tableActions,
+    translate,
+    type,
+    viewMode,
+    visualIngredients,
+    href,
+  ]);
+
+  // Refresh the inspected record after edits without coupling the rail to
+  // checkbox selection. Closing the rail leaves the bulk selection intact.
+  useEffect(() => {
+    if (!publishedIngredient) {
+      return;
+    }
+    const current = filteredIngredients.find(
+      (ingredient) => ingredient.id === publishedIngredient.id,
+    );
+    if (current && current !== publishedIngredient) {
+      setSelectedAsset(current);
+    }
+  }, [filteredIngredients, publishedIngredient, setSelectedAsset]);
+
+  // The sidebar preview asks for the lightbox by bumping a counter; a request
+  // that predates this grid's mount is not ours to honor.
+  const handledLightboxRequestRef = useRef(lightboxRequestCount);
+  useEffect(() => {
+    if (lightboxRequestCount === handledLightboxRequestRef.current) {
+      return;
+    }
+    handledLightboxRequestRef.current = lightboxRequestCount;
+    if (requestedLightboxIngredient) {
+      openIngredientPreview(requestedLightboxIngredient);
+    }
+  }, [
+    lightboxRequestCount,
+    openIngredientPreview,
+    requestedLightboxIngredient,
+  ]);
+
+  // Leaving the library drops the selection so the composer stops citing an
+  // asset the operator can no longer see.
+  useEffect(() => () => setSelectedAsset(null), [setSelectedAsset]);
+
+  return (
+    <div
+      className={`flex-1 min-w-0 ${
+        isAudioCategory
+          ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2'
+          : ''
+      }`}
+    >
+      {recovery && !isLoading ? (
+        <FailedIngredientsRecovery
+          {...recovery}
+          ingredients={filteredIngredients.filter(isFailedIngredient)}
+          selectedIds={selectedIngredientIds}
+          isActionsEnabled={isActionsEnabled}
+          onSelectionChange={onSelectionChange}
+          onInspect={inspectIngredient}
+        />
+      ) : hasFilteredEmptyState ? (
+        <CardEmptyContent
+          label={EMPTY_STATES.RESULTS_FOUND}
+          action={{
+            label: 'Clear Filters',
+            onClick: onClearFilters,
+            variant: ButtonVariant.SECONDARY,
+          }}
+          className="w-full max-w-lg"
+        />
+      ) : (
+        content
+      )}
+    </div>
+  );
+}

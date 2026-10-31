@@ -1,0 +1,443 @@
+'use client';
+
+import { useIngredientsContext } from '@contexts/content/ingredients-context/ingredients-context';
+import { useIngredientsHeaderContext } from '@contexts/content/ingredients-header-context/ingredients-header-context';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { usePostModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
+import {
+  AlertCategory,
+  ButtonVariant,
+  FleetReviewStatus,
+  IngredientCategory,
+  LibraryShelf,
+  ModalEnum,
+  PageScope,
+} from '@genfeedai/contracts';
+import {
+  LIBRARY_ASSET_TAGS_EVENT,
+  LIBRARY_TAG_UPDATED_EVENT,
+} from '@genfeedai/contracts/constants';
+import type {
+  IIngredient,
+  ILibraryAssetTagsChange,
+  ILibraryTagUpdate,
+} from '@genfeedai/contracts/interfaces';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { IngredientsService } from '@services/content/ingredients.service';
+import { logger } from '@services/core/logger.service';
+import { NotificationsService } from '@services/core/notifications.service';
+import { ErrorFallback } from '@ui/error/ErrorFallback';
+import Alert from '@ui/feedback/alert/Alert';
+import { Button } from '@ui/primitives/button';
+import { format } from 'date-fns';
+import { useCallback, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
+import { LazyModalImageToVideo } from '@/components/lazy/modal/LazyModal';
+import {
+  applyLibraryAssetTagsChange,
+  applyLibraryTagUpdate,
+} from '@/components/tags/library-tag-picker/library-asset-tags-event';
+import InfiniteScroll from '@/features/ingredients/components/feedback/infinite-scroll/InfiniteScroll';
+import SelectionTagAction from '@/features/ingredients/components/ingredients/list/selection-actions-bar/SelectionTagAction';
+import IngredientsListContent from '@/features/ingredients/components/list/content/IngredientsListContent';
+import IngredientsListFooter from '@/features/ingredients/components/list/footer/IngredientsListFooter';
+import IngredientsListHeader from '@/features/ingredients/components/list/header/IngredientsListHeader';
+import IngredientsListSidebar from '@/features/ingredients/components/list/sidebar/IngredientsListSidebar';
+import { useIngredientDeepLink } from '@/features/ingredients/hooks/use-ingredient-deep-link/use-ingredient-deep-link';
+import { useIngredientsList } from '@/features/ingredients/hooks/use-ingredients-list/use-ingredients-list';
+import type { IngredientsListProps } from '@/features/ingredients/props/ingredients-list.props';
+import { useIngredientSidebar } from '@/hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
+
+/**
+ * Categories the merge action actually supports. Kept local to this file
+ * rather than a shared constant because the merge endpoint
+ * (`use-ingredients-actions.ts`) is video/image-specific by design — this is
+ * not a general "which categories exist" list.
+ */
+const MERGEABLE_CATEGORIES: readonly IngredientCategory[] = [
+  IngredientCategory.VIDEO,
+  IngredientCategory.IMAGE,
+];
+
+export default function IngredientsList({
+  folderNavigation = 'content',
+  type: typeProp,
+  scope = PageScope.BRAND,
+}: IngredientsListProps) {
+  const { activeTypeLabel, ingredientType, viewMode, query } =
+    useIngredientsContext();
+  const {
+    hostsSelectionActions = false,
+    selectionSlot = null,
+    actionSlot = null,
+  } = useIngredientsHeaderContext();
+  const { selectedBrand } = useBrand();
+  const type = ingredientType || typeProp;
+
+  const {
+    singularType,
+    failedRecovery,
+    formatFilter,
+    isLoading,
+    isUsingCache,
+    cachedAt,
+    loadError,
+    isLoadingFolders,
+    isMerging,
+    hasMoreIngredients,
+    isLoadingMoreIngredients,
+    loadMoreIngredients,
+    filteredIngredients,
+    mediaIngredients,
+    hasFilteredEmptyState,
+    folders,
+    selectedFolderId,
+    selectedFolderForModal,
+    selectedIngredientIds,
+    setSelectedIngredientIds,
+    isActionsEnabled,
+    isDragEnabled,
+    isPortraiting,
+    isGeneratingCaptions,
+    isMirroring,
+    isReversing,
+    lightboxOpen,
+    lightboxIndex,
+    brandId,
+    handleRefresh,
+    clearFilters,
+    handleScopeChange,
+    handleDeleteIngredient,
+    handleArchiveIngredient,
+    handleConvertToPortrait,
+    handleGenerateCaptions,
+    handleReverse,
+    handleMirror,
+    handleUpdateParent,
+    handleCopyPrompt,
+    handleReprompt,
+    handleSelectFolder,
+    handleFolderDrop,
+    handleCreateFolder,
+    handleFolderModalConfirm,
+    handleMerge,
+    handleClearSelection,
+    handleBulkDelete,
+    openIngredientModal,
+    openLightboxForIngredient,
+    closeLightbox,
+    setIngredients,
+    handleConvertToVideo,
+    imageToVideoTarget,
+    imageToVideoCrunBinding,
+    imageToVideoPromptData,
+    isImageToVideoGenerating,
+    handleImageToVideoPromptChange,
+    handleImageToVideoSubmit,
+    handleCloseImageToVideoModal,
+    videoModels,
+    presets,
+    moods,
+    styles,
+    cameras,
+    sounds,
+    tags,
+    fontFamilies,
+    blacklists,
+  } = useIngredientsList({ folderNavigation, scope, type });
+  // The folders column only exists for brand/org scopes; the admin scope
+  // renders no sidebar, so reserving its column squeezes the list into 14rem.
+  const hasFoldersSidebar =
+    folderNavigation === 'content' && scope !== PageScope.SUPERADMIN;
+  const isRecoveryView =
+    query?.shelf === LibraryShelf.FAILED && scope === PageScope.BRAND;
+  const { openIngredientSidebar } = useIngredientSidebar();
+  const { openPostBatchModal } = usePostModal({
+    onRefresh: () => {
+      void handleRefresh(true);
+    },
+  });
+
+  const selectedIngredients = useMemo(
+    () =>
+      filteredIngredients.filter((ingredient) =>
+        selectedIngredientIds.includes(ingredient.id),
+      ),
+    [filteredIngredients, selectedIngredientIds],
+  );
+  // Mergeable only when every selected asset is the same mergeable category —
+  // the merge endpoint is video/image-specific, not a generic bulk action.
+  const firstSelectedCategory = selectedIngredients[0]?.category;
+  const canMerge =
+    selectedIngredients.length >= 2 &&
+    Boolean(
+      firstSelectedCategory &&
+        MERGEABLE_CATEGORIES.includes(firstSelectedCategory),
+    ) &&
+    selectedIngredients.every(
+      (ingredient) => ingredient.category === firstSelectedCategory,
+    );
+  const selectedCampaign = selectedIngredients[0]?.campaign;
+  const canPublishCampaign =
+    Boolean(selectedBrand?.isFleetEnabled) &&
+    selectedIngredients.length >= 2 &&
+    selectedIngredients.every(
+      (ingredient) =>
+        ingredient.category === IngredientCategory.IMAGE &&
+        ingredient.reviewStatus === FleetReviewStatus.APPROVED &&
+        ingredient.campaign &&
+        ingredient.campaign === selectedCampaign,
+    );
+
+  const getDownloadService = useAuthedService((token) =>
+    IngredientsService.getInstance(token),
+  );
+
+  const handleBulkDownload = useCallback(async () => {
+    const results = await Promise.allSettled(
+      selectedIngredients.map(async (ingredient) =>
+        (await getDownloadService()).downloadOriginal(ingredient),
+      ),
+    );
+    const failures = results.filter(
+      (result): result is PromiseRejectedResult => result.status === 'rejected',
+    );
+
+    for (const failure of failures) {
+      logger.error('Failed to download ingredient', failure.reason);
+    }
+
+    if (failures.length === 0) {
+      NotificationsService.getInstance().success('Download started');
+      return;
+    }
+
+    NotificationsService.getInstance().error(
+      failures.length === selectedIngredients.length
+        ? 'Download failed'
+        : `Download failed for ${failures.length} of ${selectedIngredients.length} assets`,
+    );
+  }, [getDownloadService, selectedIngredients]);
+
+  const cachedLabel = useMemo(() => {
+    if (!cachedAt) {
+      return '';
+    }
+    return format(new Date(cachedAt), 'PPpp');
+  }, [cachedAt]);
+
+  // The inspector, the bulk bar and tag management publish tag changes on
+  // `window`; applying them here updates cards, rows and the inspector without
+  // a refetch.
+  useEffect(() => {
+    const handleTagsChange = (event: Event) => {
+      const change = (event as CustomEvent<ILibraryAssetTagsChange>).detail;
+      if (change) {
+        setIngredients((current) =>
+          applyLibraryAssetTagsChange(current, change),
+        );
+      }
+    };
+
+    const handleTagUpdate = (event: Event) => {
+      const update = (event as CustomEvent<ILibraryTagUpdate>).detail;
+      if (update) {
+        setIngredients((current) => applyLibraryTagUpdate(current, update));
+      }
+    };
+
+    window.addEventListener(LIBRARY_ASSET_TAGS_EVENT, handleTagsChange);
+    window.addEventListener(LIBRARY_TAG_UPDATED_EVENT, handleTagUpdate);
+    return () => {
+      window.removeEventListener(LIBRARY_ASSET_TAGS_EVENT, handleTagsChange);
+      window.removeEventListener(LIBRARY_TAG_UPDATED_EVENT, handleTagUpdate);
+    };
+  }, [setIngredients]);
+
+  useIngredientDeepLink({
+    ingredients: filteredIngredients,
+    isLoading,
+    onOpen: openIngredientSidebar,
+  });
+
+  const selectionHeader = (
+    <IngredientsListHeader
+      selectedCount={selectedIngredientIds.length}
+      canMerge={canMerge}
+      canPublishCampaign={canPublishCampaign}
+      isMerging={isMerging}
+      onClearSelection={handleClearSelection}
+      onBulkDelete={handleBulkDelete}
+      onDownload={handleBulkDownload}
+      onMerge={handleMerge}
+      onPublishCampaign={() => {
+        if (canPublishCampaign) {
+          openPostBatchModal(selectedIngredients);
+        }
+      }}
+      placement={hostsSelectionActions ? 'subtopbar' : 'overlay'}
+      tagAction={
+        <SelectionTagAction selectedIngredients={selectedIngredients} />
+      }
+    />
+  );
+  const selectionChrome = hostsSelectionActions
+    ? selectionSlot && selectedIngredientIds.length > 0
+      ? createPortal(selectionHeader, selectionSlot)
+      : null
+    : selectionHeader;
+
+  return (
+    <>
+      {isRecoveryView ? null : selectionChrome}
+
+      {isUsingCache && (
+        <Alert type={AlertCategory.WARNING}>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="space-y-1">
+              <div className="font-medium">
+                Live ingredients are unavailable.
+              </div>
+              <div className="text-xs text-foreground/70">
+                Showing cached ingredients
+                {cachedLabel ? ` from ${cachedLabel}` : ''}.
+              </div>
+            </div>
+            <Button
+              label="Retry"
+              variant={ButtonVariant.SECONDARY}
+              onClick={() => {
+                handleRefresh(true);
+              }}
+            />
+          </div>
+        </Alert>
+      )}
+      {loadError && !isUsingCache ? (
+        <ErrorFallback
+          title={loadError}
+          description="Retry to load the latest Library assets."
+          resetErrorBoundary={() => handleRefresh(true)}
+        />
+      ) : null}
+      {!loadError || isUsingCache ? (
+        <div
+          className={
+            hasFoldersSidebar
+              ? 'grid gap-6 xl:grid-cols-[minmax(13rem,14rem)_minmax(0,1fr)]'
+              : 'min-w-0'
+          }
+        >
+          {hasFoldersSidebar ? (
+            <IngredientsListSidebar
+              scope={scope}
+              folders={folders}
+              selectedFolderId={selectedFolderId}
+              isLoading={isLoadingFolders}
+              onSelectFolder={handleSelectFolder}
+              onDropIngredient={handleFolderDrop}
+              onCreateFolder={handleCreateFolder}
+            />
+          ) : null}
+
+          <div className="min-w-0">
+            <IngredientsListContent
+              recovery={
+                isRecoveryView
+                  ? {
+                      actionSlot,
+                      isRecovering: failedRecovery.isRecovering,
+                      retriedIds: failedRecovery.retriedIds,
+                      onDelete: failedRecovery.handleDeleteFailedIngredients,
+                      onRetry: failedRecovery.handleRetryFailedIngredients,
+                      onReview: failedRecovery.handleReviewFailedIngredient,
+                    }
+                  : undefined
+              }
+              type={type}
+              activeTypeLabel={activeTypeLabel}
+              scope={scope}
+              singularType={singularType}
+              viewMode={viewMode}
+              formatFilter={formatFilter}
+              isLoading={isLoading}
+              filteredIngredients={filteredIngredients}
+              hasFilteredEmptyState={hasFilteredEmptyState}
+              selectedIngredientIds={selectedIngredientIds}
+              isActionsEnabled={isActionsEnabled}
+              isDragEnabled={isDragEnabled}
+              isPortraiting={isPortraiting}
+              isGeneratingCaptions={isGeneratingCaptions}
+              isMirroring={isMirroring}
+              isReversing={isReversing}
+              onSelectionChange={setSelectedIngredientIds}
+              onDeleteIngredient={handleDeleteIngredient}
+              onArchiveIngredient={handleArchiveIngredient}
+              onConvertToPortrait={handleConvertToPortrait}
+              onGenerateCaptions={handleGenerateCaptions}
+              onReverse={handleReverse}
+              onMirror={handleMirror}
+              onUpdateParent={handleUpdateParent}
+              onRefresh={() => {
+                handleRefresh(true);
+              }}
+              onPublishIngredient={(ingredient: IIngredient) =>
+                openIngredientModal(ModalEnum.POST_BATCH, ingredient)
+              }
+              onOpenLightbox={openLightboxForIngredient}
+              onClearFilters={clearFilters}
+              onSetIngredients={setIngredients}
+              onScopeChange={handleScopeChange}
+              onCopyPrompt={handleCopyPrompt}
+              onReprompt={handleReprompt}
+            />
+            {/* Older assets stream in a viewport and a half before the end. */}
+            <InfiniteScroll
+              enabled={!isLoading}
+              hasMore={hasMoreIngredients}
+              isLoading={isLoadingMoreIngredients}
+              onLoadMore={loadMoreIngredients}
+              rootMargin="0px 0px 1200px 0px"
+            />
+          </div>
+        </div>
+      ) : null}
+
+      <IngredientsListFooter
+        scope={scope}
+        brandId={brandId}
+        mediaIngredients={mediaIngredients}
+        lightboxOpen={lightboxOpen}
+        lightboxIndex={lightboxIndex}
+        onCloseLightbox={closeLightbox}
+        selectedFolderForModal={selectedFolderForModal}
+        onFolderModalConfirm={handleFolderModalConfirm}
+        showFolderModal={folderNavigation === 'content'}
+      />
+
+      {handleConvertToVideo &&
+        imageToVideoTarget !== undefined &&
+        handleImageToVideoPromptChange &&
+        handleImageToVideoSubmit && (
+          <LazyModalImageToVideo
+            image={imageToVideoTarget ?? null}
+            imageToVideoCrunBinding={imageToVideoCrunBinding}
+            models={videoModels || []}
+            presets={presets || []}
+            moods={moods}
+            styles={styles}
+            cameras={cameras}
+            sounds={sounds}
+            tags={tags}
+            fontFamilies={fontFamilies}
+            blacklists={blacklists}
+            promptData={imageToVideoPromptData || { isValid: false, text: '' }}
+            isGenerating={isImageToVideoGenerating || false}
+            onPromptChange={handleImageToVideoPromptChange}
+            onSubmit={handleImageToVideoSubmit}
+            onClose={handleCloseImageToVideoModal}
+          />
+        )}
+    </>
+  );
+}

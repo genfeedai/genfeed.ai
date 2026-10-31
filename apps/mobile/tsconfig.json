@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./*"],
+      "@genfeedai/contracts/api-types/*": [
+        "../../packages/contracts/src/api-types/*"
+      ],
+      "@genfeedai/contracts/types/*": [
+        "../../packages/contracts/src/types/*"
+      ],
+      "@genfeedai/agent": ["../../packages/agent/src/index.ts"],
+      "@genfeedai/agent/*": ["../../packages/agent/src/*"],
+      "@genfeedai/contracts/constants": [
+        "../../packages/contracts/src/constants/index.ts"
+      ],
+      "@genfeedai/contracts/constants/*": [
+        "../../packages/contracts/src/constants/*"
+      ],
+      "@genfeedai/contracts/interfaces": [
+        "../../packages/contracts/src/interfaces/index.ts"
+      ],
+      "@genfeedai/contracts/interfaces/*": [
+        "../../packages/contracts/src/interfaces/*"
+      ],
+      "@genfeedai/ui": ["../../packages/ui/src/index.ts"],
+      "@genfeedai/ui/*": ["../../packages/ui/src/*"],
+      "@ui/*": ["../../packages/ui/src/*"]
+    },
+    "strict": true
+  },
+  "extends": "expo/tsconfig.base.json",
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
+}

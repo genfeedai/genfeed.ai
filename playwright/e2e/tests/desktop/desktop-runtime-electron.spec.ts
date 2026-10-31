@@ -21,7 +21,7 @@ import {
   expectNoErrorOverlay,
 } from '../../utils/route-assertions';
 
-const desktopRoot = path.resolve(__dirname, '../../../../apps/desktop/app');
+const desktopRoot = path.resolve(__dirname, '../../../../apps/desktop');
 type Control = 'start' | 'defer' | 'confirm' | 'cancel' | 'fail-mode-rename';
 interface AcceptanceAudit {
   dialogCalls: number;

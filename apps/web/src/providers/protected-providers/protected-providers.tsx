@@ -1,0 +1,217 @@
+'use client';
+
+import { isBetterAuthEnabled } from '@genfeedai/auth-client';
+import { AssetSelectionProvider } from '@genfeedai/contexts/ui/asset-selection-context';
+import { BackgroundTaskProvider } from '@genfeedai/contexts/ui/background-task-context';
+import { BrandProvider } from '@genfeedai/contexts/user/brand-context/brand-context';
+import { UserProvider } from '@genfeedai/contexts/user/user-context/user-context';
+import {
+  getPlaywrightAuthState,
+  hasPlaywrightJwtToken,
+  resolveAuthToken,
+} from '@genfeedai/helpers/auth/auth.helper';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
+import type { ProtectedBootstrapData } from '@genfeedai/props/layout/protected-bootstrap.props';
+import type { GlobalModalRenderer } from '@genfeedai/props/modals/global-modals.props';
+import { AccessStateProvider } from '@providers/access-state/access-state.provider';
+import ApiStatusProvider from '@providers/api-status/api-status.provider';
+import ElementsProvider from '@providers/elements/elements.provider';
+import PromptBarProvider from '@providers/promptbar/promptbar.provider';
+import ThemePreferenceSync from '@providers/theme-sync/theme-preference-sync';
+import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
+import { useIsDesktopClient } from '@/hooks/ui/use-is-desktop-client/use-is-desktop-client';
+import { GlobalModalsProvider } from '@/providers/global-modals/global-modals.provider';
+
+export interface ProtectedProvidersProps extends LayoutProps {
+  includeBrandProvider?: boolean;
+  includeElementsProvider?: boolean;
+  includePromptBarProvider?: boolean;
+  includeAssetSelectionProvider?: boolean;
+  includeApiStatusCheck?: boolean;
+  initialBootstrap?: ProtectedBootstrapData | null;
+  renderModal?: GlobalModalRenderer;
+  additionalProviders?: (children: ReactNode) => ReactNode;
+}
+
+export function ProtectedAuthGate({ children }: LayoutProps): ReactNode {
+  const {
+    getToken,
+    isLoaded: isAuthLoaded,
+    isSignedIn,
+    orgId,
+    sessionId,
+    userId,
+  } = useAuthIdentity();
+  const playwrightAuth = getPlaywrightAuthState();
+  const effectiveIsAuthLoaded =
+    isAuthLoaded || playwrightAuth?.isLoaded === true;
+  const effectiveIsSignedIn = isSignedIn || playwrightAuth?.isSignedIn === true;
+  const effectiveUserId = userId ?? playwrightAuth?.userId ?? null;
+  const [hasJwtToken, setHasJwtToken] = useState(false);
+
+  const sessionKey = [
+    sessionId ?? 'no-session',
+    effectiveUserId ?? 'none',
+    orgId ?? playwrightAuth?.orgId ?? 'no-org',
+    effectiveIsSignedIn ? 'in' : 'out',
+  ].join(':');
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: sessionKey as a change trigger for auth token refresh
+  useEffect(() => {
+    if (!effectiveIsAuthLoaded || !effectiveIsSignedIn) {
+      setHasJwtToken(false);
+      return;
+    }
+
+    if (playwrightAuth?.isSignedIn === true && hasPlaywrightJwtToken()) {
+      setHasJwtToken(true);
+      return;
+    }
+
+    let isCancelled = false;
+    let retryTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    const ensureToken = async (): Promise<void> => {
+      try {
+        const token = await resolveAuthToken(getToken);
+
+        if (isCancelled) {
+          return;
+        }
+
+        if (token) {
+          setHasJwtToken(true);
+          return;
+        }
+      } catch {
+        if (isCancelled) {
+          return;
+        }
+      }
+
+      retryTimeout = setTimeout(() => {
+        void ensureToken();
+      }, 150);
+    };
+
+    setHasJwtToken(false);
+    void ensureToken();
+
+    return () => {
+      isCancelled = true;
+      if (retryTimeout) {
+        clearTimeout(retryTimeout);
+      }
+    };
+  }, [
+    effectiveIsAuthLoaded,
+    effectiveIsSignedIn,
+    getToken,
+    playwrightAuth?.isSignedIn,
+    sessionKey,
+  ]);
+
+  if (!effectiveIsAuthLoaded || !effectiveIsSignedIn || !hasJwtToken) {
+    return null;
+  }
+
+  return children;
+}
+
+export default function ProtectedProviders({
+  children,
+  includeBrandProvider = true,
+  includeElementsProvider = true,
+  includePromptBarProvider = true,
+  includeAssetSelectionProvider = true,
+  includeApiStatusCheck = true,
+  initialBootstrap,
+  additionalProviders,
+  renderModal,
+}: ProtectedProvidersProps): ReactNode {
+  const isDesktop = useIsDesktopClient();
+  let content: ReactNode = children;
+  const hasInitialBootstrap = initialBootstrap != null;
+
+  if (additionalProviders) {
+    content = additionalProviders(children);
+  }
+
+  // Innermost on purpose: this is the only layer that sits inside both
+  // UserProvider and (when enabled) BrandProvider, so the sync sees the personal
+  // and organization halves of the locale preference. Without BrandProvider,
+  // `useBrand()` falls back to its default context and the personal preference
+  // still applies.
+  content = (
+    <GlobalModalsProvider renderModal={renderModal}>
+      <ThemePreferenceSync />
+      {content}
+    </GlobalModalsProvider>
+  );
+
+  if (includeAssetSelectionProvider) {
+    content = <AssetSelectionProvider>{content}</AssetSelectionProvider>;
+  }
+
+  content = <BackgroundTaskProvider>{content}</BackgroundTaskProvider>;
+
+  content = (
+    <PromptBarProvider enabled={includePromptBarProvider}>
+      {content}
+    </PromptBarProvider>
+  );
+  content = (
+    <ElementsProvider enabled={includeElementsProvider}>
+      {content}
+    </ElementsProvider>
+  );
+
+  content = (
+    <AccessStateProvider
+      hasInitialBootstrap={hasInitialBootstrap}
+      initialAccessState={initialBootstrap?.accessState}
+    >
+      {content}
+    </AccessStateProvider>
+  );
+
+  if (includeBrandProvider) {
+    content = (
+      <BrandProvider initialBootstrap={initialBootstrap}>
+        {content}
+      </BrandProvider>
+    );
+  }
+
+  content = (
+    <UserProvider
+      hasInitialBootstrap={hasInitialBootstrap}
+      initialCurrentUser={initialBootstrap?.currentUser}
+      initialMemberRole={initialBootstrap?.accessState?.memberRole}
+      initialOrganizationId={initialBootstrap?.organizationId}
+    >
+      {content}
+    </UserProvider>
+  );
+
+  // API status check wraps everything - shows error screen if API is down
+  if (includeApiStatusCheck) {
+    content = <ApiStatusProvider>{content}</ApiStatusProvider>;
+  }
+
+  // LOCAL mode: bypass the auth gate only when Better Auth is explicitly
+  // disabled; backend identity then comes from LocalIdentityInterceptor.
+  if (!isBetterAuthEnabled()) {
+    return content;
+  }
+
+  // DESKTOP mode: bypass token gate — auth is handled by the desktop session bridge.
+  // In offline mode getToken() returns '' which never satisfies hasJwtToken, causing a black screen.
+  if (isDesktop) {
+    return content;
+  }
+
+  return <ProtectedAuthGate>{content}</ProtectedAuthGate>;
+}

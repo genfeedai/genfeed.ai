@@ -10,12 +10,12 @@ const logger = {
 };
 
 const BANNED_COMPONENT_GLOBS = [
-  'apps/app/packages/components/**/_menu.tsx',
-  'apps/app/packages/components/**/_topbar.tsx',
+  'apps/web/packages/components/**/_menu.tsx',
+  'apps/web/packages/components/**/_topbar.tsx',
 ];
 
 const GUARDED_IMPORT_GLOBS = [
-  'apps/app/**/*.{ts,tsx,js,jsx}',
+  'apps/web/**/*.{ts,tsx,js,jsx}',
   'packages/**/*.{ts,tsx,js,jsx}',
 ];
 
@@ -31,9 +31,8 @@ const EXCLUDE_GLOBS = [
 const BANNED_IMPORT_PATTERNS = [/@components\/_menu/g, /@components\/_topbar/g];
 
 const REQUIRED_DESIGN_TOKEN_IMPORTS = [
-  'apps/mobile/app/constants/theme.ts',
-  'apps/extensions/browser/app/tailwind.config.ts',
-  'apps/extensions/ide/app/src/styles/webview-theme.ts',
+  'apps/mobile/constants/theme.ts',
+  'apps/extension/tailwind.config.ts',
 ];
 
 type Violation =

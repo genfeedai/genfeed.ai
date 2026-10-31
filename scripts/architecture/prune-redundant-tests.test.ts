@@ -333,14 +333,14 @@ describe('pruning surface exclusions', () => {
 
   it('protects active lanes, excluded runners and sensitive business contracts', () => {
     for (const file of [
-      'apps/app/demo.test.tsx',
+      'apps/web/demo.test.tsx',
       'packages/ui/demo.test.tsx',
       'packages/agent/demo.spec.ts',
       'packages/workflows/demo.spec.ts',
       'apps/server/workers/demo.spec.ts',
       'scripts/architecture/demo.test.ts',
       'playwright/demo.spec.ts',
-      'apps/desktop/app/demo.test.ts',
+      'apps/desktop/demo.test.ts',
       'apps/server/api/src/credits/credits.service.spec.ts',
       'apps/server/api/src/auth/auth.service.spec.ts',
       'packages/libs/prisma/tenant-guard.spec.ts',

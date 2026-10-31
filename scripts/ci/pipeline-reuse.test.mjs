@@ -189,7 +189,7 @@ test('future delivery workflows default to validation and fail on missing artifa
   );
   assert.match(
     browser,
-    /run: bunx turbo run build --force --filter=@genfeedai\/extension-browser/,
+    /run: bunx turbo run build --force --filter=@genfeedai\/extension/,
   );
   assert.match(browser, /if-no-files-found: error/);
   const mobile = read('.github/workflows/mobile-build.yml');
@@ -201,7 +201,7 @@ test('future delivery workflows default to validation and fail on missing artifa
     mobile,
     /profile \$\{\{ github.event.inputs.profile \|\| 'production' \}\}/,
   );
-  const eas = JSON.parse(read('apps/mobile/app/eas.json'));
+  const eas = JSON.parse(read('apps/mobile/eas.json'));
   assert.equal(eas._status, undefined);
   assert.equal(
     eas.submit,
@@ -295,11 +295,11 @@ test('website link workload preserves ordered hard failures and advisory SEO inp
     uses: './.github/actions/setup-bun-env',
   });
   const [build, start, crawl, seo, stop] = action.runs.steps.slice(1);
-  assert.equal(build.run, 'bunx turbo run build --filter=@genfeedai/website');
+  assert.equal(build.run, 'bunx turbo run build --filter=@genfeedai/marketing');
   assert.deepEqual(build.env, { GITHUB_TOKEN: '${{ github.token }}' });
-  assert.equal(crawl.run, 'cd apps/website && bun run check:orphans');
+  assert.equal(crawl.run, 'cd apps/marketing && bun run check:orphans');
   assert.deepEqual(crawl.env, { BASE_URL: 'http://localhost:3000' });
-  assert.equal(seo.run, 'cd apps/website && bun run check:seo');
+  assert.equal(seo.run, 'cd apps/marketing && bun run check:seo');
   assert.deepEqual(seo.env, {
     BASE_URL: 'http://localhost:3000',
     SEO_SOFT: '1',
@@ -324,7 +324,7 @@ test('docs link workload preserves lychee inputs and explicit token boundary', (
     'lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8',
   );
   assert.deepEqual(step.with, {
-    args: "--config lychee.toml --remap 'https://github.com/genfeedai/genfeed.ai/blob/master file://${{ github.workspace }}' 'apps/docs/content/**/*.md' 'apps/docs/content/**/*.mdx' 'README.md' 'apps/website/README.md'",
+    args: "--config lychee.toml --remap 'https://github.com/genfeedai/genfeed.ai/blob/master file://${{ github.workspace }}' 'apps/docs/content/**/*.md' 'apps/docs/content/**/*.mdx' 'README.md' 'apps/marketing/README.md'",
     fail: true,
   });
   assert.deepEqual(step.env, { GITHUB_TOKEN: '${{ inputs.github-token }}' });
@@ -335,7 +335,7 @@ function websiteFixture(t, { readyAt = 1, fail = '' } = {}) {
     mkdtempSync(path.join(os.tmpdir(), 'website-links-')),
   );
   t.after(() => rmSync(temp, { recursive: true, force: true }));
-  mkdirSync(path.join(temp, 'apps/website'), { recursive: true });
+  mkdirSync(path.join(temp, 'apps/marketing'), { recursive: true });
   const bin = path.join(temp, 'bin');
   mkdirSync(bin);
   const shim = (name, body) =>
@@ -422,10 +422,10 @@ test('website scripts execute build, readiness, crawl, SEO and cleanup with orig
     assert.deepEqual(
       fixture.log.filter((line) => !/^(curl|sleep)\|/.test(line)),
       [
-        `build|turbo run build --filter=@genfeedai/website|${fixture.temp}|synthetic-read-only`,
-        `start|${fixture.temp}/apps/website|3000||`,
-        `check:orphans|${fixture.temp}/apps/website||http://localhost:3000|`,
-        `check:seo|${fixture.temp}/apps/website||http://localhost:3000|1`,
+        `build|turbo run build --filter=@genfeedai/marketing|${fixture.temp}|synthetic-read-only`,
+        `start|${fixture.temp}/apps/marketing|3000||`,
+        `check:orphans|${fixture.temp}/apps/marketing||http://localhost:3000|`,
+        `check:seo|${fixture.temp}/apps/marketing||http://localhost:3000|1`,
         `kill|${fixture.exported.trim().split('=')[1]}`,
       ],
     );

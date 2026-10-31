@@ -14,7 +14,7 @@
 import { readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PROTECTED_ROUTE_INVENTORY } from '../../apps/app/src/lib/workspace-shell/workspace-shell-registry';
+import { PROTECTED_ROUTE_INVENTORY } from '../../apps/web/src/lib/workspace-shell/workspace-shell-registry';
 
 export type PublicRouteApplication = 'app' | 'website';
 
@@ -67,9 +67,9 @@ type RunCheckProductRouteInventoryOptions = {
   readonly rootDir?: string;
 };
 
-const APP_DIRECTORY = 'apps/app/app';
+const APP_DIRECTORY = 'apps/web/app';
 const PROTECTED_APP_DIRECTORY = `${APP_DIRECTORY}/(protected)`;
-const WEBSITE_DIRECTORY = 'apps/website/app';
+const WEBSITE_DIRECTORY = 'apps/marketing/app';
 
 export const ORGANIZATION_CATCH_ALL_PAGE = '/:orgSlug/~/:orgRootApp/*segments?';
 

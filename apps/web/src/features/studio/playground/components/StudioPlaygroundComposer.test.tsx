@@ -1,0 +1,3116 @@
+import type {
+  CrunInputControls,
+  IModel,
+  IPreset,
+} from '@genfeedai/contracts/interfaces';
+import type {
+  GenerationSetup,
+  GenerationSetupFieldKey,
+  GenerationSetupValues,
+} from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
+import type { PromptCommandContext } from '@genfeedai/props/prompt-bars/prompt-command.props';
+import type { DesktopRuntimeSnapshot } from '@genfeedai/services/core/desktop-runtime.service';
+import { getDefaultStudioPlaygroundSettings } from '@/features/studio/playground/utils/studio-playground-settings';
+import type {
+  GenerationSetupFieldSetter,
+  GenerationSetupImageEditingMode,
+} from '@/features/studio/props/generation-setup.props';
+
+const runtimeMocks = vi.hoisted(() => ({
+  snapshot: { status: 'web', context: null } as DesktopRuntimeSnapshot,
+}));
+vi.mock(
+  '@/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context',
+  () => ({ useDesktopRuntimeContext: () => runtimeMocks.snapshot }),
+);
+vi.mock(
+  '@genfeedai/services/core/desktop-runtime.service',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@genfeedai/services/core/desktop-runtime.service')
+      >();
+    return {
+      ...actual,
+      desktopRuntimeService: {
+        getCurrentSnapshot: () => runtimeMocks.snapshot,
+      },
+      canSubmitStudioGeneration: (snapshot = runtimeMocks.snapshot) =>
+        actual.canSubmitStudioGeneration(snapshot),
+    };
+  },
+);
+
+import {
+  ModelCategory,
+  ModelLifecycle,
+  ModelProvider,
+  RouterPriority,
+  VoiceProvider,
+} from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import {
+  STUDIO_SYSTEM_PRESETS,
+  studioSystemPresetId,
+} from '@genfeedai/contracts/constants/studio-system-presets.constant';
+import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
+import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import StudioPlaygroundComposer from '@/features/studio/playground/components/StudioPlaygroundComposer';
+import { getDefaultGenerationSetupValues } from '@/features/studio/playground/utils/studio-generation-setup-bridge';
+import { isStudioPlaygroundType } from '@/features/studio/playground/utils/studio-playground-types';
+
+// cmdk measures the real preset list; jsdom does not implement ResizeObserver.
+class MockResizeObserver {
+  disconnect = vi.fn();
+  observe = vi.fn();
+  unobserve = vi.fn();
+}
+
+// Admission and composer tests inspect quote states independently of hover timing.
+// StudioGenerationSummary.test.tsx covers the real focus/hover tooltip behavior.
+vi.mock('@ui/primitives/tooltip', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@ui/primitives/tooltip')>();
+  return {
+    ...actual,
+    TooltipContent: ({ children }: { children: React.ReactNode }) => (
+      <div>{children}</div>
+    ),
+  };
+});
+
+const walletMocks = vi.hoisted(() => ({
+  balance: 120 as number | null,
+  isLoaded: true,
+  isLoading: false,
+  showCredits: true,
+}));
+vi.mock('@genfeedai/config/license', () => ({
+  shouldShowCreditsNav: () => walletMocks.showCredits,
+}));
+vi.mock('@/hooks/data/billing/use-topbar-balances/use-topbar-balances', () => ({
+  useTopbarBalances: () => ({
+    genfeedBalance: walletMocks.balance,
+    isLoaded: walletMocks.isLoaded,
+    isLoading: walletMocks.isLoading,
+  }),
+}));
+vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ orgHref: (path: string) => `/test-org${path}` }),
+}));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
+const advancedModeMocks = vi.hoisted(() => ({
+  isAdvancedMode: true,
+  setAdvancedMode: vi.fn(),
+}));
+
+vi.mock(
+  '@/features/studio/hooks/use-advanced-mode-preference/use-advanced-mode-preference',
+  () => ({
+    useAdvancedModePreference: () => ({
+      isAdvancedMode: advancedModeMocks.isAdvancedMode,
+      isLoaded: true,
+      setAdvancedMode: advancedModeMocks.setAdvancedMode,
+    }),
+  }),
+);
+
+vi.mock('@ui/dropdowns/model-selector/useModelFavorites', () => ({
+  useModelFavorites: () => ({
+    favoriteModelKeys: new Set<string>(),
+    onFavoriteToggle: vi.fn(),
+  }),
+}));
+
+const setupBarMocks = vi.hoisted(() => ({
+  props: {} as Record<string, unknown>,
+}));
+
+const presetCatalogMocks = vi.hoisted(() => ({
+  presets: [] as Partial<IPreset>[],
+}));
+vi.mock('@providers/promptbar/promptbar.context', () => ({
+  usePromptBarContext: () => ({ presets: presetCatalogMocks.presets }),
+}));
+
+const spendMocks = vi.hoisted(() => ({
+  estimateGenerationCredits: vi.fn(),
+  info: vi.fn(),
+}));
+vi.mock('@services/core/notifications.service', () => ({
+  NotificationsService: {
+    getInstance: () => ({
+      error: vi.fn(),
+      info: spendMocks.info,
+      success: vi.fn(),
+      warning: vi.fn(),
+    }),
+  },
+}));
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => async () => ({
+    estimateGenerationCredits: spendMocks.estimateGenerationCredits,
+  }),
+}));
+
+// The type bar and the Advanced chips hand their props to one object, so a test
+// reads the setup surface without caring which of the two owns a prop. Chips only mount in Advanced mode.
+vi.mock(
+  '@/features/studio/components/dropdowns/generation-setup/GenerationSetupTypeBar',
+  () => ({
+    default: (props: Record<string, unknown>) => {
+      Object.assign(setupBarMocks.props, props);
+      const setup = props.setup as { values: { type: string } };
+      const options = props.typeOptions as { label: string; value: string }[];
+      return (
+        <button type="button" aria-label="Setup">
+          {options.find((option) => option.value === setup.values.type)?.label}
+        </button>
+      );
+    },
+  }),
+);
+
+vi.mock(
+  '@/features/studio/components/dropdowns/generation-setup/GenerationSetupSectionChips',
+  () => ({
+    default: (props: Record<string, unknown>) => {
+      Object.assign(setupBarMocks.props, props);
+      return (
+        <div data-testid="generation-setup-section-chips">
+          {props.afterModel as React.ReactNode}
+          {props.outputControls as React.ReactNode}
+        </div>
+      );
+    },
+  }),
+);
+
+const identityFieldsMocks = vi.hoisted(() => ({
+  props: {} as Record<string, unknown>,
+}));
+
+vi.mock('@/features/studio/playground/components/StudioIdentityFields', () => ({
+  default: (props: Record<string, unknown>) => {
+    identityFieldsMocks.props = props;
+    return <button type="button">Identity</button>;
+  },
+}));
+
+const studioLooksMocks = vi.hoisted(() => ({
+  deleteLook: vi.fn(async () => true),
+  isLoading: false,
+  looks: [] as unknown[],
+  presetToGenerationSetupValues: vi.fn(() => ({ style: 'preset-style' })),
+  saveLook: vi.fn(async () => true),
+}));
+
+vi.mock('@/features/studio/playground/hooks/useStudioLooks', () => ({
+  presetToGenerationSetupValues: studioLooksMocks.presetToGenerationSetupValues,
+  useStudioLooks: () => ({
+    deleteLook: studioLooksMocks.deleteLook,
+    deletingId: null,
+    error: null,
+    isLoading: studioLooksMocks.isLoading,
+    isSaving: false,
+    looks: studioLooksMocks.looks,
+    saveLook: studioLooksMocks.saveLook,
+  }),
+}));
+
+const estimateMocks = vi.hoisted(() => ({
+  resolve: vi.fn(),
+}));
+
+// The estimate is the server admission quote; the composer only requests it.
+vi.mock(
+  '@/features/studio/playground/hooks/useStudioGenerationEstimate',
+  () => ({
+    useStudioGenerationEstimate: (request: unknown) =>
+      (request ? estimateMocks.resolve(request) : undefined) ?? {
+        credits: null,
+        status: 'loading',
+      },
+  }),
+);
+
+const avatarEstimateMocks = vi.hoisted(() => ({
+  resolve: vi.fn(),
+}));
+
+// The avatar estimate is the avatar admission quote for the submitted body.
+vi.mock('@/features/studio/playground/hooks/useStudioAvatarEstimate', () => ({
+  useStudioAvatarEstimate: (request: unknown) =>
+    avatarEstimateMocks.resolve(request) ??
+    (request
+      ? { credits: null, status: 'loading' }
+      : {
+          credits: null,
+          status: 'unavailable',
+          unavailableReason: 'INSUFFICIENT_INPUT',
+        }),
+}));
+
+vi.mock(
+  '@/features/studio/playground/hooks/useStudioGenerationSetupLookOptions',
+  () => ({ useStudioGenerationSetupLookOptions: () => ({}) }),
+);
+
+const storeMocks = vi.hoisted(() => ({
+  applyPreset: vi.fn(),
+  applyRecommendation: vi.fn(),
+  clearPreset: vi.fn(),
+  reasonsByScope: {} as Record<string, unknown>,
+  resetField: vi.fn(),
+  setField: vi.fn(),
+  setupByScope: {} as Record<string, unknown>,
+}));
+
+vi.mock('@ui/dropdowns/generation-setup/generation-setup.store', () => ({
+  applyGenerationSetupPreset: storeMocks.applyPreset,
+  applyGenerationSetupRecommendation: storeMocks.applyRecommendation,
+  buildStudioGenerationSetupScope: (type: string) => `studio:${type}`,
+  clearGenerationSetupPreset: storeMocks.clearPreset,
+  resetGenerationSetupField: storeMocks.resetField,
+  setGenerationSetupField: storeMocks.setField,
+  useGenerationSetupStore: (
+    selector: (state: Record<string, unknown>) => unknown,
+  ) =>
+    selector({
+      reasonsByScope: storeMocks.reasonsByScope,
+      setupByScope: storeMocks.setupByScope,
+    }),
+}));
+
+const recommendMocks = vi.hoisted(() => ({
+  recommend: vi.fn(() => ({ reasons: {}, values: {} })),
+}));
+
+vi.mock(
+  '@/features/studio/components/dropdowns/generation-setup/generation-setup.recommend',
+  () => ({
+    recommendGenerationSetup: recommendMocks.recommend,
+  }),
+);
+
+const promptEditorProps: { extraExtensions?: unknown; onSubmit?: () => void } =
+  {};
+
+vi.mock('@ui/prompt-editor/PromptEditor', () => ({
+  default: ({
+    extraExtensions,
+    onSubmit,
+    testId,
+    value,
+  }: {
+    extraExtensions?: unknown;
+    onSubmit?: () => void;
+    testId?: string;
+    value?: string;
+  }) => {
+    promptEditorProps.extraExtensions = extraExtensions;
+    promptEditorProps.onSubmit = onSubmit;
+    return (
+      <div aria-label="Prompt" data-testid={testId} role="textbox" tabIndex={0}>
+        {value}
+      </div>
+    );
+  },
+}));
+
+const settings = {
+  aspectRatio: '1:1',
+  blacklist: [],
+  brandingMode: 'brand' as const,
+  isAudioEnabled: false,
+  modelKey: 'auto',
+  outputs: 1,
+  prioritize: RouterPriority.BALANCED,
+  resolution: '1K',
+  tags: [],
+};
+
+const baseProps = {
+  attachedAssets: [],
+  isListening: false,
+  isLoadingModels: false,
+  isTranscribing: false,
+  isUploading: false,
+  models: [],
+  onAddFiles: vi.fn(),
+  onOpenLibrary: vi.fn(),
+  onPromptChange: vi.fn(),
+  onRemoveAttachedAsset: vi.fn(),
+  onResetSettings: vi.fn(),
+  onSettingsChange: vi.fn(),
+  onStartListening: vi.fn(),
+  onStopListening: vi.fn(),
+  onSubmit: vi.fn(),
+  onTypeChange: vi.fn(),
+  isVoiceInputAvailable: false,
+};
+
+/** Picks a preset from the `/` menu the composer registered, as the editor would. */
+function selectSlashPreset(
+  onContextChange: ReturnType<typeof vi.fn>,
+  label: string,
+  promptText: string,
+): void {
+  const context = onContextChange.mock.lastCall?.[0] as
+    | PromptCommandContext
+    | undefined;
+  const command = context?.commands.find((item) => item.label === label);
+  if (!context || !command) throw new Error(`No "/" preset named ${label}`);
+  act(() => context.onSelect(command, promptText));
+}
+
+describe('StudioPlaygroundComposer', () => {
+  beforeEach(() => {
+    globalThis.ResizeObserver =
+      MockResizeObserver as unknown as typeof ResizeObserver;
+    Element.prototype.scrollIntoView = vi.fn();
+    presetCatalogMocks.presets = STUDIO_SYSTEM_PRESETS.map((preset) => ({
+      id: studioSystemPresetId(preset.key),
+      isActive: true,
+      isDeleted: false,
+      organizationId: null,
+      brandId: null,
+      category: {
+        image: ModelCategory.IMAGE,
+        'image-edit': ModelCategory.IMAGE_EDIT,
+        video: ModelCategory.VIDEO,
+      }[preset.type],
+      label: preset.label,
+      description: preset.description,
+      prompt: preset.prompt,
+      ...preset.values,
+    }));
+    setupBarMocks.props = {};
+    runtimeMocks.snapshot = { status: 'web', context: null };
+    storeMocks.setupByScope = {};
+    storeMocks.reasonsByScope = {};
+    storeMocks.setField.mockReset();
+    Object.assign(walletMocks, {
+      balance: 120,
+      isLoaded: true,
+      isLoading: false,
+      showCredits: true,
+    });
+    vi.clearAllMocks();
+    avatarEstimateMocks.resolve.mockReset();
+    spendMocks.estimateGenerationCredits.mockReset();
+    spendMocks.info.mockReset();
+  });
+
+  it('shows the selected settings in the picker and keeps library access in the context menu', () => {
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        attachedAssets={[
+          {
+            id: 'reference',
+            name: 'Apple reference',
+            kind: 'image',
+            role: 'reference',
+            source: 'library',
+          },
+        ]}
+        models={[{ key: 'banana', label: 'Nano Banana 2 Lite' } as IModel]}
+        prompt="A green apple"
+        settings={{ ...settings, modelKey: 'banana' }}
+        type="image"
+      />,
+    );
+    expect(
+      screen.queryByRole('button', { name: /browse library/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Add context' }),
+    ).toBeInTheDocument();
+    expect(
+      screen
+        .getByRole('button', { name: 'Setup' })
+        .compareDocumentPosition(
+          screen.getByRole('button', { name: 'Add context' }),
+        ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Remove Apple reference' }),
+    );
+    expect(baseProps.onRemoveAttachedAsset).toHaveBeenCalledWith('reference');
+  });
+
+  describe('Advanced Mode', () => {
+    afterEach(() => {
+      advancedModeMocks.isAdvancedMode = true;
+    });
+
+    it('shows only the output type and no estimate in Auto', () => {
+      advancedModeMocks.isAdvancedMode = false;
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={[{ key: 'banana', label: 'Nano Banana 2 Lite' } as IModel]}
+          prompt="A green apple"
+          settings={settings}
+          type="image"
+        />,
+      );
+
+      expect(screen.getByRole('button', { name: 'Setup' }).textContent).toBe(
+        'Image',
+      );
+      expect(screen.getByTestId('studio-generation-summary').textContent).toBe(
+        '120',
+      );
+      // Auto has no model chips: the bar is only the type, Auto and Advanced.
+      expect(
+        screen.queryByTestId('generation-setup-section-chips'),
+      ).not.toBeInTheDocument();
+      expect(setupBarMocks.props.advancedMode).toMatchObject({
+        isEnabled: false,
+      });
+    });
+
+    it('has no Reset all button in the bar; Advanced hands Reset to defaults to the Presets panel', () => {
+      advancedModeMocks.isAdvancedMode = true;
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={[{ key: 'banana', label: 'Nano Banana 2 Lite' } as IModel]}
+          prompt="A green apple"
+          settings={settings}
+          type="image"
+        />,
+      );
+
+      expect(
+        screen.queryByRole('button', { name: 'Reset all' }),
+      ).not.toBeInTheDocument();
+      (setupBarMocks.props.onResetAll as () => void)();
+      expect(baseProps.onResetSettings).toHaveBeenCalledOnce();
+    });
+
+    it('keeps the Auto/Advanced picker and the same type tiles for Avatar', () => {
+      advancedModeMocks.isAdvancedMode = false;
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          prompt="Say hello"
+          settings={{ ...settings, voiceId: 'voice-1' }}
+          type="avatar"
+        />,
+      );
+
+      expect(setupBarMocks.props.advancedMode).toMatchObject({
+        isEnabled: false,
+      });
+      expect(setupBarMocks.props.imageEditing).toMatchObject({
+        isEnabled: false,
+      });
+    });
+
+    it('offers the avatar engines as a real Advanced model choice', () => {
+      advancedModeMocks.isAdvancedMode = true;
+      const engines = [
+        { key: 'heygen/avatar-iv', label: 'HeyGen Avatar IV' } as IModel,
+        { key: 'heygen/avatar-v', label: 'HeyGen Avatar V' } as IModel,
+      ];
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={engines}
+          prompt="Say hello"
+          settings={{ ...settings, voiceId: 'voice-1' }}
+          type="avatar"
+        />,
+      );
+
+      expect(setupBarMocks.props.capabilities).toMatchObject({
+        hasModelSelection: true,
+      });
+      expect(setupBarMocks.props.models).toEqual(engines);
+    });
+
+    it('offers the speech models for Voice in Advanced and none in Auto', () => {
+      const speechModels = [
+        { key: MODEL_KEYS.ELEVENLABS_V4, label: 'Eleven v4' } as IModel,
+        { key: MODEL_KEYS.HEYGEN_VOICE, label: 'HeyGen Voice' } as IModel,
+      ];
+      advancedModeMocks.isAdvancedMode = true;
+      const view = render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={speechModels}
+          prompt="Say hello"
+          settings={settings}
+          type="voice"
+        />,
+      );
+
+      expect(setupBarMocks.props.capabilities).toMatchObject({
+        hasModelSelection: true,
+      });
+      expect(setupBarMocks.props.models).toEqual(speechModels);
+
+      advancedModeMocks.isAdvancedMode = false;
+      view.rerender(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={speechModels}
+          prompt="Say hello"
+          settings={settings}
+          type="voice"
+        />,
+      );
+
+      expect(
+        screen.queryByTestId('generation-setup-section-chips'),
+      ).not.toBeInTheDocument();
+      expect(setupBarMocks.props.advancedMode).toMatchObject({
+        isEnabled: false,
+      });
+    });
+
+    it('turning Advanced off saves it and returns the model to Auto', () => {
+      const onSettingsChange = vi.fn();
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={[{ key: 'banana', label: 'Nano Banana 2 Lite' } as IModel]}
+          onSettingsChange={onSettingsChange}
+          prompt="A green apple"
+          settings={{ ...settings, modelKey: 'banana' }}
+          type="image"
+        />,
+      );
+
+      const advancedMode = setupBarMocks.props.advancedMode as {
+        onChange: (next: boolean) => void;
+      };
+      act(() => advancedMode.onChange(false));
+
+      expect(advancedModeMocks.setAdvancedMode).toHaveBeenCalledWith(false);
+      expect(onSettingsChange).toHaveBeenCalledWith({
+        modelKey: AUTO_MODEL_OPTION_VALUE,
+      });
+    });
+  });
+
+  it('keeps an empty composer expanded with setup and submission controls', () => {
+    const view = render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt=""
+        settings={settings}
+        type="image"
+      />,
+    );
+    const shell = screen.getByTestId('studio-playground-composer-shell');
+    expect(shell).toHaveAttribute('data-expanded', 'true');
+    expect(screen.getByRole('button', { name: 'Setup' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+    const summary = screen.getByTestId('studio-generation-summary');
+    expect(summary).toBeVisible();
+
+    expect(screen.getByLabelText('120 available')).not.toHaveAttribute(
+      'tabindex',
+    );
+
+    const editor = screen.getByRole('textbox', { name: 'Prompt' });
+    editor.focus();
+    view.rerender(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt="A product photo"
+        settings={settings}
+        type="image"
+      />,
+    );
+    expect(shell).toHaveAttribute('data-expanded', 'true');
+    expect(screen.getByTestId('studio-generation-summary')).toBeVisible();
+    expect(screen.getByTestId('studio-generation-summary')).toBe(summary);
+
+    expect(screen.getByLabelText('120 available')).not.toHaveAttribute(
+      'tabindex',
+    );
+    expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
+    expect(screen.getByRole('textbox', { name: 'Prompt' })).toBe(editor);
+    expect(editor).toHaveFocus();
+
+    view.rerender(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt=""
+        settings={settings}
+        type="image"
+      />,
+    );
+    expect(shell).toHaveAttribute('data-expanded', 'true');
+    expect(editor).toHaveFocus();
+  });
+
+  it.each(['loading', 'switching', 'unavailable'] as const)(
+    'guards button and keyboard while desktop runtime is %s',
+    (status) => {
+      runtimeMocks.snapshot = { status, context: null };
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          prompt="A photo"
+          settings={settings}
+          type="image"
+        />,
+      );
+      expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
+      promptEditorProps.onSubmit?.();
+      expect(baseProps.onSubmit).not.toHaveBeenCalled();
+    },
+  );
+  it('rejects a keyboard callback captured before the runtime starts switching', () => {
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt="A photo"
+        settings={settings}
+        type="image"
+      />,
+    );
+    const submit = promptEditorProps.onSubmit;
+    runtimeMocks.snapshot = { status: 'switching', context: null };
+    submit?.();
+    expect(baseProps.onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('applies studio extraExtensions to the prompt editor', () => {
+    const extraExtensions = [{ name: 'characterMention' }];
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        extraExtensions={extraExtensions as never}
+        prompt="A product photo"
+        settings={settings}
+        type="image"
+      />,
+    );
+
+    expect(promptEditorProps.extraExtensions).toBe(extraExtensions);
+  });
+
+  it('renders the type bar with the studio type registry', () => {
+    const onTypeChange = vi.fn();
+
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        onTypeChange={onTypeChange}
+        prompt="A product photo"
+        settings={settings}
+        type="image"
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Setup' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Generation settings' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Settings' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Identity' }),
+    ).not.toBeInTheDocument();
+
+    expect(setupBarMocks.props).toEqual(
+      expect.objectContaining({
+        typeOptions: [
+          { label: 'Image', value: 'image' },
+          { label: 'Video', value: 'video' },
+          { label: 'Music', value: 'music' },
+          { label: 'Avatar', value: 'avatar' },
+          { label: 'Voice', value: 'voice' },
+        ],
+      }),
+    );
+
+    // The shared popover emits GenerationSetupType. Studio forwards only its own
+    // registry, so an agent-only `text` pick never reaches the Studio handler.
+    const emitTypeChange = setupBarMocks.props.onTypeChange as (
+      type: string,
+    ) => void;
+    emitTypeChange('video');
+    emitTypeChange('text');
+    expect(onTypeChange).toHaveBeenCalledOnce();
+    expect(onTypeChange).toHaveBeenCalledWith('video');
+    expect(
+      (
+        setupBarMocks.props.capabilities as {
+          hasIdentity: boolean;
+        }
+      ).hasIdentity,
+    ).toBe(false);
+  });
+
+  it('keeps the pinned image preset when the type panel switches Studio mode', async () => {
+    const actual = await vi.importActual<
+      typeof import('@ui/dropdowns/generation-setup/generation-setup.store')
+    >('@ui/dropdowns/generation-setup/generation-setup.store');
+    const scope = actual.buildStudioGenerationSetupScope('image');
+    const defaults = getDefaultGenerationSetupValues('image');
+    window.localStorage.removeItem(actual.GENERATION_SETUP_STORAGE_KEY);
+    try {
+      await actual.useGenerationSetupStore.persist.rehydrate();
+      actual.useGenerationSetupStore.setState({
+        reasonsByScope: {},
+        setupByScope: {},
+      });
+      actual.applyGenerationSetupPreset(
+        scope,
+        'preset-image',
+        {
+          aspectRatio: '16:9',
+          modelKey: 'studio/preset-model',
+          outputs: 4,
+        },
+        defaults,
+      );
+      const seeded =
+        actual.useGenerationSetupStore.getState().setupByScope[scope];
+      if (!seeded?.presetId) {
+        throw new Error('Expected the image scope to keep its preset');
+      }
+      const expectedSetup: GenerationSetup = {
+        presetId: seeded.presetId,
+        sources: { ...seeded.sources },
+        values: { ...seeded.values },
+      };
+      expect(expectedSetup).toMatchObject({
+        presetId: 'preset-image',
+        values: {
+          aspectRatio: '16:9',
+          modelKey: 'studio/preset-model',
+          outputs: 4,
+          type: 'image',
+        },
+      });
+      storeMocks.setupByScope = { [scope]: expectedSetup };
+      storeMocks.setField.mockImplementation(
+        (
+          fieldScope: string,
+          key: GenerationSetupFieldKey,
+          value: GenerationSetupValues[GenerationSetupFieldKey],
+          fieldDefaults: GenerationSetupValues,
+        ) => {
+          if (key !== 'type' || !isStudioPlaygroundType(value)) {
+            return;
+          }
+          actual.setGenerationSetupField(
+            fieldScope,
+            'type',
+            value,
+            fieldDefaults,
+          );
+          storeMocks.setupByScope = {
+            ...actual.useGenerationSetupStore.getState().setupByScope,
+          };
+        },
+      );
+
+      const onTypeChange = vi.fn();
+      const view = render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          onTypeChange={onTypeChange}
+          prompt="A product photo"
+          settings={settings}
+          type="image"
+        />,
+      );
+      const props = setupBarMocks.props as {
+        onSetField: GenerationSetupFieldSetter;
+        onTypeChange: (type: GenerationSetupValues['type']) => void;
+        setup: GenerationSetup;
+      };
+      expect(props.setup.presetId).toBe('preset-image');
+      expect(props.setup.values.aspectRatio).toBe('16:9');
+      expect(props.setup.values.modelKey).toBe('studio/preset-model');
+      expect(props.setup.values.outputs).toBe(4);
+
+      props.onSetField('type', 'video');
+      props.onTypeChange('video');
+      view.rerender(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          onTypeChange={onTypeChange}
+          prompt="A product photo"
+          settings={settings}
+          type="image"
+        />,
+      );
+
+      const preserved =
+        actual.useGenerationSetupStore.getState().setupByScope[scope];
+      expect(preserved).toEqual(expectedSetup);
+      expect(preserved?.presetId).toBe('preset-image');
+      expect(preserved?.values).toEqual(expectedSetup.values);
+      expect(preserved?.values.type).toBe('image');
+      expect(preserved?.values.modelKey).toBe('studio/preset-model');
+      expect(preserved?.values.aspectRatio).toBe('16:9');
+      expect(preserved?.values.outputs).toBe(4);
+      const outgoing = setupBarMocks.props as {
+        setup: GenerationSetup;
+      };
+      expect(outgoing.setup.presetId).toBe('preset-image');
+      expect(outgoing.setup.values.modelKey).toBe('studio/preset-model');
+      expect(outgoing.setup.values.aspectRatio).toBe('16:9');
+      expect(outgoing.setup.values.outputs).toBe(4);
+      expect(outgoing.setup.values.type).toBe('image');
+      expect(onTypeChange).toHaveBeenCalledOnce();
+      expect(onTypeChange).toHaveBeenCalledWith('video');
+    } finally {
+      storeMocks.setField.mockReset();
+      actual.useGenerationSetupStore.setState({
+        reasonsByScope: {},
+        setupByScope: {},
+      });
+      window.localStorage.removeItem(actual.GENERATION_SETUP_STORAGE_KEY);
+    }
+  });
+
+  const avatarVoiceRef = {
+    externalVoiceId: 'voice-1',
+    provider: VoiceProvider.ELEVENLABS,
+    source: 'catalog',
+  } as const;
+
+  it.each([
+    ['no avatar or voice', {}],
+    ['only an avatar', { avatarPhotoUrl: 'https://assets.test/photo.jpg' }],
+    ['only a voice', { voiceId: 'voice-1', voiceRef: avatarVoiceRef }],
+    [
+      'a voice id without its provider',
+      { avatarPhotoUrl: 'https://assets.test/photo.jpg', voiceId: 'voice-1' },
+    ],
+  ])('blocks an avatar video with %s', (_label, identity) => {
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt="Say hello"
+        settings={{ ...settings, ...identity }}
+        type="avatar"
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+  });
+
+  it('allows an avatar video once both an avatar and a voice are chosen', () => {
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt="Say hello"
+        settings={{
+          ...settings,
+          avatarPhotoUrl: 'https://assets.test/photo.jpg',
+          voiceId: 'voice-1',
+          voiceRef: avatarVoiceRef,
+        }}
+        type="avatar"
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Generate' }),
+    ).not.toHaveAttribute('aria-disabled', 'true');
+  });
+
+  describe('avatar estimate', () => {
+    const avatarIdentity = {
+      avatarPhotoUrl: 'https://assets.test/photo.jpg',
+      voiceId: 'voice-1',
+      voiceRef: avatarVoiceRef,
+    };
+    const engines = [
+      { key: MODEL_KEYS.HEYGEN_AVATAR_IV, label: 'HeyGen Avatar IV' } as IModel,
+      { key: MODEL_KEYS.HEYGEN_AVATAR_V, label: 'HeyGen Avatar V' } as IModel,
+    ];
+
+    afterEach(() => {
+      advancedModeMocks.isAdvancedMode = true;
+    });
+
+    it('quotes the body Generate submits and shows its credits and clip length', () => {
+      avatarEstimateMocks.resolve.mockReturnValue({
+        billingMode: 'platform',
+        credits: 52,
+        estimatedSeconds: 4,
+        status: 'estimated',
+      });
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          prompt="Say hello"
+          settings={{ ...settings, ...avatarIdentity }}
+          type="avatar"
+        />,
+      );
+
+      expect(avatarEstimateMocks.resolve).toHaveBeenLastCalledWith({
+        autoSelectModel: true,
+        avatarRef: undefined,
+        photoUrl: avatarIdentity.avatarPhotoUrl,
+        prioritize: RouterPriority.BALANCED,
+        text: 'Say hello',
+        useIdentity: true,
+        voiceId: 'voice-1',
+        voiceProvider: VoiceProvider.ELEVENLABS,
+        voiceRef: avatarVoiceRef,
+      });
+      expect(screen.getByText('~52 · ~4 s')).toBeVisible();
+      expect(
+        screen.getByLabelText('Estimated 52 credits for a ~4 s clip'),
+      ).toBeVisible();
+      expect(
+        screen.queryByText('Estimate unavailable'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Generate' }),
+      ).not.toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('quotes the script field and the chosen Advanced engine', () => {
+      avatarEstimateMocks.resolve.mockReturnValue({
+        billingMode: 'platform',
+        credits: 160,
+        estimatedSeconds: 4,
+        status: 'estimated',
+      });
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={engines}
+          prompt="A founder update"
+          settings={{
+            ...settings,
+            ...avatarIdentity,
+            modelKey: MODEL_KEYS.HEYGEN_AVATAR_V,
+            speech: 'Welcome to the launch',
+          }}
+          type="avatar"
+        />,
+      );
+
+      expect(avatarEstimateMocks.resolve).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          autoSelectModel: false,
+          model: MODEL_KEYS.HEYGEN_AVATAR_V,
+          text: 'Welcome to the launch',
+        }),
+      );
+      expect(avatarEstimateMocks.resolve.mock.lastCall?.[0]).not.toHaveProperty(
+        'prioritize',
+      );
+      expect(screen.getByText('~160 · ~4 s')).toBeVisible();
+    });
+
+    it('keeps the avatar price visible in Auto, where the server picks the engine', () => {
+      advancedModeMocks.isAdvancedMode = false;
+      avatarEstimateMocks.resolve.mockReturnValue({
+        billingMode: 'platform',
+        credits: 52,
+        estimatedSeconds: 4,
+        status: 'estimated',
+      });
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={engines}
+          prompt="Say hello"
+          settings={{ ...settings, ...avatarIdentity }}
+          type="avatar"
+        />,
+      );
+
+      expect(screen.getByTestId('studio-generation-summary').textContent).toBe(
+        '~52 · ~4 s/120',
+      );
+    });
+
+    it('shows that a BYOK render costs no platform credits', () => {
+      avatarEstimateMocks.resolve.mockReturnValue({
+        billingMode: 'byok',
+        credits: 0,
+        status: 'estimated',
+      });
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          prompt="Say hello"
+          settings={{ ...settings, ...avatarIdentity }}
+          type="avatar"
+        />,
+      );
+
+      expect(screen.getByText('Your API key · 0 credits')).toBeVisible();
+    });
+
+    it.each([
+      ['no script', '', avatarIdentity],
+      [
+        'no avatar',
+        'Say hello',
+        { voiceId: 'voice-1', voiceRef: avatarVoiceRef },
+      ],
+      [
+        'no voice',
+        'Say hello',
+        { avatarPhotoUrl: avatarIdentity.avatarPhotoUrl },
+      ],
+      [
+        'a voice id without its provider',
+        'Say hello',
+        { ...avatarIdentity, voiceRef: undefined },
+      ],
+    ])(
+      'asks for the missing input instead of an error when there is %s',
+      (_label, prompt, identity) => {
+        render(
+          <StudioPlaygroundComposer
+            {...baseProps}
+            prompt={prompt}
+            settings={{ ...settings, ...identity }}
+            type="avatar"
+          />,
+        );
+
+        expect(avatarEstimateMocks.resolve).toHaveBeenLastCalledWith(null);
+        expect(
+          screen.getByText(
+            'Write a script and choose an avatar and a voice to see a price.',
+          ),
+        ).toBeVisible();
+        expect(
+          screen.queryByText('Estimate unavailable'),
+        ).not.toBeInTheDocument();
+      },
+    );
+
+    it('does not quote while the engine list is loading', () => {
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          isLoadingModels
+          prompt="Say hello"
+          settings={{ ...settings, ...avatarIdentity }}
+          type="avatar"
+        />,
+      );
+
+      expect(avatarEstimateMocks.resolve).toHaveBeenLastCalledWith(null);
+      expect(screen.getByLabelText('Loading estimate…')).toBeVisible();
+    });
+
+    it('never blocks Generate on a failed avatar price check', () => {
+      avatarEstimateMocks.resolve.mockReturnValue({
+        credits: null,
+        status: 'unavailable',
+        unavailableReason: 'ERROR',
+      });
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          prompt="Say hello"
+          settings={{ ...settings, ...avatarIdentity }}
+          type="avatar"
+        />,
+      );
+
+      expect(
+        screen.getByLabelText('The price check failed. Try again.'),
+      ).toBeVisible();
+      expect(
+        screen.getByRole('button', { name: 'Generate' }),
+      ).not.toHaveAttribute('aria-disabled', 'true');
+    });
+  });
+
+  it('shows the Identity chip only for identity-capable types', () => {
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt="Say hello"
+        settings={{ ...settings, voiceId: 'voice-1' }}
+        type="avatar"
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Identity' }),
+    ).toBeInTheDocument();
+    expect(identityFieldsMocks.props).toEqual(
+      expect.objectContaining({
+        onChange: baseProps.onSettingsChange,
+        type: 'avatar',
+      }),
+    );
+  });
+
+  it('runs the recommendation engine on mount and re-applies it through the store', () => {
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt="A product photo"
+        settings={settings}
+        type="image"
+      />,
+    );
+
+    expect(recommendMocks.recommend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        lockedType: 'image',
+        prompt: 'A product photo',
+        type: 'image',
+      }),
+    );
+    expect(storeMocks.applyRecommendation).toHaveBeenCalledWith(
+      'studio:image',
+      { reasons: {}, values: {} },
+      getDefaultGenerationSetupValues('image'),
+    );
+  });
+
+  it('wires field, preset, and reset callbacks from the setup bar to the shared store', () => {
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt="A product photo"
+        settings={settings}
+        type="image"
+      />,
+    );
+
+    const defaults = getDefaultGenerationSetupValues('image');
+    const props = setupBarMocks.props as {
+      onApplyPreset: (preset: { id: string }) => void;
+      onClearPreset: () => void;
+      onDeletePreset: (id: string) => void;
+      onResetAll: () => void;
+      onResetField: (key: string) => void;
+      onSavePreset: (label: string) => void;
+      onSetField: (key: string, value: unknown) => void;
+    };
+
+    props.onSetField('style', 'cinematic');
+    expect(storeMocks.setField).toHaveBeenCalledWith(
+      'studio:image',
+      'style',
+      'cinematic',
+      defaults,
+    );
+
+    props.onResetField('style');
+    expect(storeMocks.resetField).toHaveBeenCalledWith(
+      'studio:image',
+      'style',
+      defaults,
+    );
+
+    props.onClearPreset();
+    expect(storeMocks.clearPreset).toHaveBeenCalledWith('studio:image');
+
+    props.onResetAll();
+    expect(baseProps.onResetSettings).toHaveBeenCalledOnce();
+
+    props.onApplyPreset({ id: 'preset-1' });
+    expect(studioLooksMocks.presetToGenerationSetupValues).toHaveBeenCalledWith(
+      {
+        id: 'preset-1',
+      },
+    );
+    expect(storeMocks.applyPreset).toHaveBeenCalledWith(
+      'studio:image',
+      'preset-1',
+      { style: 'preset-style' },
+      defaults,
+    );
+
+    props.onSavePreset('My Look');
+    expect(studioLooksMocks.saveLook).toHaveBeenCalledWith('My Look', defaults);
+
+    props.onDeletePreset('preset-1');
+    expect(studioLooksMocks.deleteLook).toHaveBeenCalledWith('preset-1');
+  });
+
+  it('offers the system templates for the type in the setup chips and applies one', () => {
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt="My existing topic"
+        settings={settings}
+        type="image"
+      />,
+    );
+    const props = setupBarMocks.props as {
+      onApplySystemPreset: (id: string) => void;
+      systemPresets: { id: string; label: string }[];
+    };
+
+    expect(props.systemPresets.map((preset) => preset.label)).toEqual([
+      'Profile picture',
+      'Banner',
+      'YouTube thumbnail',
+    ]);
+
+    props.onApplySystemPreset(
+      studioSystemPresetId(STUDIO_SYSTEM_PRESETS[1].key),
+    );
+    expect(storeMocks.applyPreset).toHaveBeenCalledWith(
+      'studio:image',
+      studioSystemPresetId(STUDIO_SYSTEM_PRESETS[1].key),
+      { ...STUDIO_SYSTEM_PRESETS[1].values, type: 'image' },
+      getDefaultGenerationSetupValues('image'),
+    );
+  });
+
+  it('applies a system image template from / and preserves the existing prompt', () => {
+    const onContextChange = vi.fn();
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        onPromptCommandContextChange={onContextChange}
+        prompt="My existing topic"
+        settings={settings}
+        type="image"
+      />,
+    );
+    selectSlashPreset(onContextChange, 'Banner', 'My existing topic');
+    expect(storeMocks.applyPreset).toHaveBeenCalledWith(
+      'studio:image',
+      studioSystemPresetId(STUDIO_SYSTEM_PRESETS[1].key),
+      { ...STUDIO_SYSTEM_PRESETS[1].values, type: 'image' },
+      getDefaultGenerationSetupValues('image'),
+    );
+    expect(baseProps.onPromptChange).not.toHaveBeenCalled();
+  });
+
+  it('offers edit instructions in the slash menu in edit mode and keeps the generation size (#7494)', () => {
+    const onContextChange = vi.fn();
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        onPromptCommandContextChange={onContextChange}
+        prompt=""
+        settings={getDefaultStudioPlaygroundSettings('image-edit')}
+        type="image-edit"
+      />,
+    );
+    const context = onContextChange.mock.lastCall?.[0] as PromptCommandContext;
+    expect(context.commands.map((command) => command.label)).toEqual(
+      expect.arrayContaining(['Remove background', 'Enhance photo']),
+    );
+    expect(context.commands.some((command) => command.label === 'Banner')).toBe(
+      false,
+    );
+    const removeBackground = STUDIO_SYSTEM_PRESETS.find(
+      (preset) => preset.key === 'studio-edit-remove-background',
+    );
+    selectSlashPreset(onContextChange, 'Remove background', '');
+    expect(baseProps.onPromptChange).toHaveBeenCalledWith(
+      removeBackground?.prompt,
+    );
+    const applied = storeMocks.applyPreset.mock.lastCall?.[2];
+    expect(applied).toMatchObject({ type: 'image-edit' });
+    expect(applied).not.toHaveProperty('aspectRatio');
+  });
+
+  it('fills an empty video prompt from a template without choosing a model', () => {
+    const onContextChange = vi.fn();
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        onPromptCommandContextChange={onContextChange}
+        prompt=""
+        settings={settings}
+        type="video"
+      />,
+    );
+    selectSlashPreset(onContextChange, 'Dance', '');
+    expect(baseProps.onPromptChange).toHaveBeenCalledWith(
+      STUDIO_SYSTEM_PRESETS[5].prompt,
+    );
+    expect(storeMocks.applyPreset).toHaveBeenCalledWith(
+      'studio:video',
+      studioSystemPresetId(STUDIO_SYSTEM_PRESETS[5].key),
+      expect.not.objectContaining({ modelKey: expect.anything() }),
+      getDefaultGenerationSetupValues('video'),
+    );
+    expect(storeMocks.applyPreset.mock.lastCall?.[2]).toMatchObject({
+      duration: 5,
+      type: 'video',
+    });
+    const context = onContextChange.mock.lastCall?.[0] as PromptCommandContext;
+    expect(context.commands.some((command) => command.label === 'Banner')).toBe(
+      false,
+    );
+  });
+
+  it('repairs a stale music type in the video scope before normalizing a system template', async () => {
+    const actual = await vi.importActual<
+      typeof import('@ui/dropdowns/generation-setup/generation-setup.store')
+    >('@ui/dropdowns/generation-setup/generation-setup.store');
+    const scope = 'studio:video';
+    const stale: GenerationSetup = {
+      sources: {},
+      values: { ...getDefaultGenerationSetupValues('music'), modelKey: 'auto' },
+    };
+    actual.useGenerationSetupStore.setState({
+      setupByScope: { [scope]: stale },
+    });
+    storeMocks.setupByScope = { [scope]: stale };
+    storeMocks.applyPreset.mockImplementation(
+      actual.applyGenerationSetupPreset,
+    );
+    try {
+      const onContextChange = vi.fn();
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          onPromptCommandContextChange={onContextChange}
+          prompt="My dance"
+          settings={settings}
+          type="video"
+        />,
+      );
+      selectSlashPreset(onContextChange, 'Dance', 'My dance');
+      const applied =
+        actual.useGenerationSetupStore.getState().setupByScope[scope];
+      expect(applied).toMatchObject({
+        presetId: studioSystemPresetId(STUDIO_SYSTEM_PRESETS[5].key),
+        sources: { duration: 'preset' },
+        values: { type: 'video', duration: 5, aspectRatio: '9:16' },
+      });
+      expect(baseProps.onPromptChange).not.toHaveBeenCalled();
+    } finally {
+      storeMocks.applyPreset.mockReset();
+      actual.useGenerationSetupStore.setState({
+        setupByScope: {},
+        reasonsByScope: {},
+      });
+      window.localStorage.removeItem(actual.GENERATION_SETUP_STORAGE_KEY);
+    }
+  });
+
+  it.each([
+    { duration: 8, expected: 8 },
+    { duration: 42, expected: 4 },
+  ])(
+    'keeps system template duration inside the selected model bounds ($duration → $expected)',
+    async ({ duration, expected }) => {
+      const model = {
+        key: 'test/video-bounded',
+        label: 'Bounded video',
+        category: ModelCategory.VIDEO,
+        maxOutputs: 1,
+        durations: [4, 8],
+        defaultDuration: 4,
+        hasDurationEditing: true,
+      } as IModel;
+      const onContextChange = vi.fn();
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={[model]}
+          onPromptCommandContextChange={onContextChange}
+          prompt="My topic"
+          settings={{ ...settings, modelKey: model.key, duration }}
+          type="video"
+        />,
+      );
+      selectSlashPreset(onContextChange, 'Dance', 'My topic');
+      expect(storeMocks.applyPreset.mock.lastCall?.[2]).toMatchObject({
+        duration: expected,
+        type: 'video',
+      });
+      expect(storeMocks.applyPreset.mock.lastCall?.[2]).not.toHaveProperty(
+        'modelKey',
+      );
+      expect(baseProps.onSettingsChange).not.toHaveBeenCalled();
+      expect(baseProps.onPromptChange).not.toHaveBeenCalled();
+    },
+  );
+
+  it('snaps the duration to a length the selected resolution can run', async () => {
+    const model = {
+      key: 'test/video-capped',
+      label: 'Capped video',
+      category: ModelCategory.VIDEO,
+      maxOutputs: 1,
+      durations: [6, 10],
+      durationsByResolution: { '1080p': [6] },
+      defaultDuration: 6,
+      hasDurationEditing: true,
+    } as unknown as IModel;
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        models={[model]}
+        prompt="My topic"
+        settings={{
+          ...settings,
+          duration: 10,
+          modelKey: model.key,
+          resolution: '1080p',
+        }}
+        type="video"
+      />,
+    );
+    await waitFor(() =>
+      expect(baseProps.onSettingsChange).toHaveBeenCalledWith({ duration: 6 }),
+    );
+  });
+
+  it('hides missing, inactive and deleted system templates while keeping saved preset access', () => {
+    presetCatalogMocks.presets = [
+      {
+        id: studioSystemPresetId(STUDIO_SYSTEM_PRESETS[0].key),
+        isActive: false,
+        isDeleted: false,
+      },
+      {
+        id: studioSystemPresetId(STUDIO_SYSTEM_PRESETS[1].key),
+        isActive: true,
+        isDeleted: true,
+      },
+    ];
+    const onContextChange = vi.fn();
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        onPromptCommandContextChange={onContextChange}
+        prompt=""
+        settings={settings}
+        type="image"
+      />,
+    );
+    expect(setupBarMocks.props.showPresets).toBe(true);
+    const context = onContextChange.mock.lastCall?.[0] as PromptCommandContext;
+    expect(context.commands.map((command) => command.label)).not.toEqual(
+      expect.arrayContaining([
+        'Profile picture',
+        'Banner',
+        'YouTube thumbnail',
+      ]),
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Apply preset Banner' }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Apply preset Profile picture' }),
+    ).toBeNull();
+  });
+
+  it("offers this type's presets in the row whether or not the prompt is empty", () => {
+    const view = render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt=""
+        settings={settings}
+        type="image"
+      />,
+    );
+    const row = screen.getByRole('toolbar', {
+      name: 'Suggestions for this prompt',
+    });
+    expect(
+      within(row).getAllByRole('button', { name: /^Apply preset / }),
+    ).toHaveLength(3);
+    expect(
+      within(row).queryByRole('button', { name: 'Apply preset Dance' }),
+    ).toBeNull();
+
+    view.rerender(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt="A launch"
+        settings={settings}
+        type="image"
+      />,
+    );
+    expect(
+      screen.getByRole('toolbar', { name: 'Suggestions for this prompt' }),
+    ).toBeInTheDocument();
+  });
+
+  it('pins the applied preset in the row with a way to unpin it', () => {
+    storeMocks.setupByScope = {
+      'studio:image': {
+        presetId: studioSystemPresetId(STUDIO_SYSTEM_PRESETS[1].key),
+        sources: {},
+        values: getDefaultGenerationSetupValues('image'),
+      },
+    };
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt="A launch"
+        settings={settings}
+        type="image"
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Banner' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Unpin preset' }));
+    expect(storeMocks.clearPreset).toHaveBeenCalledWith('studio:image');
+  });
+
+  it('shows the selection and its actions instead of presets', () => {
+    const onAnimate = vi.fn();
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        contextGroups={{
+          recent: {
+            id: 'recent',
+            items: [{ id: 'r1', label: 'Old shot', onSelect: vi.fn() }],
+          },
+          selection: {
+            id: 'selection',
+            items: [{ id: 'animate', label: 'Animate', onSelect: onAnimate }],
+          },
+        }}
+        prompt=""
+        settings={settings}
+        type="image"
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: /^Apply preset / })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Old shot' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Animate' }));
+    expect(onAnimate).toHaveBeenCalledOnce();
+  });
+
+  it('applies persisted admin labels, prompt and settings from the context row', () => {
+    const row = presetCatalogMocks.presets[1];
+    Object.assign(row, {
+      label: 'Campaign banner',
+      prompt: 'A new campaign',
+      aspectRatio: '4:5',
+      lighting: 'neon',
+      style: '',
+    });
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt=""
+        settings={settings}
+        type="image"
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Apply preset Campaign banner' }),
+    );
+    expect(baseProps.onPromptChange).toHaveBeenCalledWith('A new campaign');
+    expect(storeMocks.applyPreset.mock.lastCall?.[2]).toMatchObject({
+      type: 'image',
+      aspectRatio: '4:5',
+      lighting: 'neon',
+      style: '',
+    });
+    expect(storeMocks.applyPreset.mock.lastCall?.[2]).not.toHaveProperty(
+      'modelKey',
+    );
+  });
+
+  it('quotes Auto and Lyria 3 Pro through the catalog music default, without a duration', () => {
+    advancedModeMocks.isAdvancedMode = false;
+    try {
+      const lyria = {
+        category: ModelCategory.MUSIC,
+        isActive: true,
+        isDefault: true,
+        key: MODEL_KEYS.FAL_LYRIA3_PRO,
+        label: 'Lyria 3 Pro',
+        provider: ModelProvider.FAL,
+      } as IModel;
+      estimateMocks.resolve.mockReturnValue({
+        credits: 8,
+        status: 'estimated',
+      });
+      const props = {
+        ...baseProps,
+        models: [lyria],
+        prompt: 'A warm soundtrack',
+        type: 'music' as const,
+      };
+      const { rerender } = render(
+        <StudioPlaygroundComposer
+          {...props}
+          settings={{ ...settings, modelKey: AUTO_MODEL_OPTION_VALUE }}
+        />,
+      );
+
+      expect(estimateMocks.resolve).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          category: 'music',
+          modelKey: MODEL_KEYS.FAL_LYRIA3_PRO,
+          outputs: 1,
+        }),
+      );
+      expect(estimateMocks.resolve.mock.lastCall?.[0]).not.toHaveProperty(
+        'duration',
+      );
+      expect(screen.getByText('~8')).toBeVisible();
+
+      rerender(
+        <StudioPlaygroundComposer
+          {...props}
+          settings={{ ...settings, modelKey: MODEL_KEYS.FAL_LYRIA3_PRO }}
+        />,
+      );
+      expect(estimateMocks.resolve).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          category: 'music',
+          modelKey: MODEL_KEYS.FAL_LYRIA3_PRO,
+        }),
+      );
+      expect(estimateMocks.resolve.mock.lastCall?.[0]).not.toHaveProperty(
+        'duration',
+      );
+      expect(screen.getByText('~8')).toBeVisible();
+    } finally {
+      advancedModeMocks.isAdvancedMode = true;
+    }
+  });
+
+  it('reconciles external music settings without mounting Output, idempotently', () => {
+    const onSettingsChange = vi.fn();
+    const musicSettings = {
+      ...settings,
+      modelKey: MODEL_KEYS.REPLICATE_META_MUSICGEN,
+      duration: 90,
+      instrumental: false,
+      lyrics: 'stale verse',
+    };
+    const { rerender } = render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        onSettingsChange={onSettingsChange}
+        prompt="music"
+        settings={musicSettings}
+        type="music"
+      />,
+    );
+    expect(onSettingsChange).toHaveBeenCalledWith({
+      duration: 30,
+      instrumental: true,
+      lyrics: undefined,
+    });
+    onSettingsChange.mockClear();
+    rerender(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        onSettingsChange={onSettingsChange}
+        prompt="music"
+        settings={{
+          ...musicSettings,
+          duration: 30,
+          instrumental: true,
+          lyrics: undefined,
+        }}
+        type="music"
+      />,
+    );
+    expect(onSettingsChange).not.toHaveBeenCalled();
+  });
+
+  it('resets the video resolution to the new model default when the model changes', () => {
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt="A product reveal"
+        settings={settings}
+        type="video"
+      />,
+    );
+
+    const defaults = getDefaultGenerationSetupValues('video');
+    const props = setupBarMocks.props as {
+      onSetField: (key: string, value: unknown) => void;
+    };
+
+    props.onSetField('modelKey', MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5);
+
+    expect(storeMocks.setField).toHaveBeenNthCalledWith(
+      1,
+      'studio:video',
+      'modelKey',
+      MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+      defaults,
+    );
+    expect(storeMocks.setField).toHaveBeenNthCalledWith(
+      2,
+      'studio:video',
+      'resolution',
+      getDefaultVideoResolution(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5) ??
+        '',
+      defaults,
+    );
+  });
+
+  it('puts the mic in the send slot when the prompt is empty', () => {
+    const onStartListening = vi.fn();
+
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        isVoiceInputAvailable
+        onStartListening={onStartListening}
+        prompt=""
+        settings={settings}
+        type="image"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start voice input' }));
+
+    expect(onStartListening).toHaveBeenCalledOnce();
+    expect(
+      screen.queryByRole('button', { name: 'Generate' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps the mic beside Generate once there is a prompt to submit', () => {
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        isVoiceInputAvailable
+        prompt="A green apple"
+        settings={settings}
+        type="image"
+      />,
+    );
+
+    const generationControls = within(
+      screen.getByRole('group', { name: 'Generation controls' }),
+    );
+    expect(
+      generationControls.getByRole('button', { name: 'Start voice input' }),
+    ).toBeInTheDocument();
+    expect(
+      generationControls.getByRole('button', { name: 'Generate' }),
+    ).toBeInTheDocument();
+  });
+
+  it('hides the mic when voice input is unavailable', () => {
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt=""
+        settings={settings}
+        type="image"
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: 'Start voice input' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Generate' }),
+    ).toBeInTheDocument();
+  });
+
+  it('offers start and end frames in Auto video', async () => {
+    advancedModeMocks.isAdvancedMode = false;
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt="Continue the motion"
+        settings={{ ...settings, modelKey: AUTO_MODEL_OPTION_VALUE }}
+        type="video"
+      />,
+    );
+    advancedModeMocks.isAdvancedMode = true;
+
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Add context' }));
+
+    expect(
+      await screen.findByRole('menuitem', { name: 'Start frame' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: 'End frame' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitem', { name: 'Video reference' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('offers audio-reference Library/upload actions only for reviewed models', async () => {
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt="Synthetic video"
+        settings={{ ...settings, modelKey: MODEL_KEYS.REPLICATE_MINIMAX_H3 }}
+        type="video"
+      />,
+    );
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Add context' }));
+    const audio = await screen.findByRole('menuitem', {
+      name: 'Audio reference',
+    });
+    expect(audio).toBeInTheDocument();
+  });
+  it.each(['video', 'image'] as const)(
+    'blocks retained audio on an unsupported %s composer',
+    (type) => {
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          prompt="Synthetic video"
+          settings={{
+            ...settings,
+            modelKey: MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO,
+          }}
+          type={type}
+          attachedAssets={[
+            {
+              id: 'voice',
+              kind: 'audio',
+              role: 'audioReference',
+              source: 'library',
+            },
+          ]}
+        />,
+      );
+      expect(
+        screen.getByText(/Choose an audio-reference model/),
+      ).toBeInTheDocument();
+      promptEditorProps.onSubmit?.();
+      expect(baseProps.onSubmit).not.toHaveBeenCalled();
+    },
+  );
+  it('offers frame and video-reference slots from one add menu', async () => {
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt="Continue the motion"
+        settings={{
+          ...settings,
+          modelKey: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+          resolution: '720p',
+        }}
+        type="video"
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: 'Start frame' }),
+    ).not.toBeInTheDocument();
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Add context' }));
+
+    expect(
+      await screen.findByRole('menuitem', { name: 'Start frame' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: 'End frame' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: 'Video reference' }),
+    ).toBeInTheDocument();
+  });
+
+  it('uses one leading setup picker and explicitly switches image editing', () => {
+    const onTypeChange = vi.fn();
+    const view = render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        onTypeChange={onTypeChange}
+        prompt=""
+        settings={settings}
+        type="image"
+      />,
+    );
+
+    const promptTools = within(
+      screen.getByRole('group', { name: 'Prompt tools' }),
+    );
+    expect(
+      promptTools.getByRole('button', { name: 'Setup' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /^Generation type:/ }),
+    ).toBeNull();
+    expect(
+      within(
+        screen.getByRole('group', { name: 'Generation controls' }),
+      ).queryByRole('button', { name: 'Setup' }),
+    ).toBeNull();
+    expect(setupBarMocks.props.showPresets).toBe(true);
+    expect(promptTools.queryByRole('button', { name: 'Presets' })).toBeNull();
+
+    const imageEditing = setupBarMocks.props
+      .imageEditing as GenerationSetupImageEditingMode;
+    expect(imageEditing.isEnabled).toBe(false);
+    imageEditing.onChange(true);
+    expect(onTypeChange).toHaveBeenLastCalledWith('image-edit');
+
+    view.rerender(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        onTypeChange={onTypeChange}
+        prompt=""
+        settings={getDefaultStudioPlaygroundSettings('image-edit')}
+        type="image-edit"
+      />,
+    );
+    const editing = setupBarMocks.props.imageEditing as typeof imageEditing;
+    expect(editing.isEnabled).toBe(true);
+    expect(setupBarMocks.props.typeOptions).toContainEqual({
+      label: 'Image',
+      value: 'image-edit',
+    });
+    editing.onChange(false);
+    expect(onTypeChange).toHaveBeenLastCalledWith('image');
+  });
+
+  it('blocks a required image-to-video model with an inline first-frame error', () => {
+    const props = {
+      ...baseProps,
+      models: [
+        {
+          category: ModelCategory.VIDEO,
+          cost: 20,
+          isActive: true,
+          key: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+          label: 'Hailuo Fast',
+          lifecycle: ModelLifecycle.AVAILABLE,
+          provider: ModelProvider.REPLICATE,
+        },
+      ] as never,
+      prompt: 'Move the subject toward camera',
+      settings: {
+        ...settings,
+        modelKey: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+      },
+      type: 'video' as const,
+    };
+    const { rerender } = render(<StudioPlaygroundComposer {...props} />);
+
+    expect(screen.getByText('Start Frame required')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+
+    rerender(
+      <StudioPlaygroundComposer
+        {...props}
+        attachedAssets={[
+          {
+            id: 'frame-1',
+            kind: 'image',
+            role: 'startFrame',
+            source: 'library',
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.queryByText('Start Frame required')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
+  });
+
+  it('blocks Seedance when frames and a video reference are combined', () => {
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        attachedAssets={[
+          {
+            id: 'frame-1',
+            kind: 'image',
+            role: 'startFrame',
+            source: 'library',
+          },
+          {
+            id: 'video-1',
+            kind: 'video',
+            role: 'videoReference',
+            source: 'library',
+          },
+        ]}
+        prompt="Follow the source motion"
+        settings={{
+          ...settings,
+          modelKey: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+        }}
+        type="video"
+      />,
+    );
+
+    expect(
+      screen.getByText('Seedance uses frames or a video reference, not both'),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+  });
+
+  it('blocks MiniMax H3 when a start frame is combined with an audio reference', () => {
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        attachedAssets={[
+          {
+            id: 'frame-1',
+            kind: 'image',
+            role: 'startFrame',
+            source: 'library',
+          },
+          {
+            id: 'audio-1',
+            kind: 'audio',
+            role: 'audioReference',
+            source: 'library',
+          },
+        ]}
+        prompt="Narrate the product reveal"
+        settings={{
+          ...settings,
+          modelKey: MODEL_KEYS.REPLICATE_MINIMAX_H3,
+        }}
+        type="video"
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        "MiniMax H3 can't combine a start or end frame with an audio reference. Attach the image as a reference instead.",
+      ),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+  });
+
+  it('updates the pre-send credit quote for the selected resolution', () => {
+    const model = {
+      category: ModelCategory.VIDEO,
+      isActive: true,
+      lifecycle: ModelLifecycle.AVAILABLE,
+      provider: ModelProvider.REPLICATE,
+      label: 'Kling',
+      cost: 50,
+      costPerUnit: 10,
+      key: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+      pricingType: 'per-second',
+    };
+    estimateMocks.resolve.mockImplementation(
+      (request: { resolution?: string }) => ({
+        credits: request.resolution === '4k' ? 125 : 50,
+        status: 'estimated',
+      }),
+    );
+    const props = {
+      ...baseProps,
+      models: [model] as never,
+      prompt: 'A cinematic reveal',
+      type: 'video' as const,
+    };
+    const { rerender } = render(
+      <StudioPlaygroundComposer
+        {...props}
+        settings={{
+          ...settings,
+          duration: 5,
+          modelKey: model.key,
+          resolution: 'standard',
+        }}
+      />,
+    );
+
+    expect(screen.getByText('~50')).toBeVisible();
+
+    rerender(
+      <StudioPlaygroundComposer
+        {...props}
+        settings={{
+          ...settings,
+          duration: 5,
+          modelKey: model.key,
+          resolution: '4k',
+        }}
+      />,
+    );
+
+    expect(screen.getByText('~125')).toBeVisible();
+    expect(estimateMocks.resolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        category: 'video',
+        modelKey: model.key,
+        resolution: '4k',
+      }),
+    );
+  });
+
+  it('distinguishes Auto, catalog loading, missing pricing and live wallet states', () => {
+    const props = {
+      ...baseProps,
+      prompt: 'A product photo',
+      settings,
+      type: 'image' as const,
+    };
+    const { rerender } = render(<StudioPlaygroundComposer {...props} />);
+    expect(
+      screen.getByLabelText('Estimate available after model selection'),
+    ).toBeVisible();
+    expect(screen.getByLabelText('120 available')).toBeVisible();
+    Object.assign(walletMocks, {
+      balance: null,
+      isLoaded: false,
+      isLoading: true,
+    });
+    rerender(<StudioPlaygroundComposer {...props} isLoadingModels />);
+    expect(screen.getByLabelText('Loading estimate…')).toBeVisible();
+    expect(screen.getByLabelText('Loading balance…')).toBeVisible();
+    Object.assign(walletMocks, {
+      balance: null,
+      isLoaded: true,
+      isLoading: false,
+    });
+    rerender(
+      <StudioPlaygroundComposer
+        {...props}
+        settings={{ ...settings, modelKey: 'missing' }}
+      />,
+    );
+    expect(
+      screen.getByLabelText('This model is not available for your workspace.'),
+    ).toBeVisible();
+    expect(screen.getByLabelText('Balance unavailable')).toBeVisible();
+    walletMocks.balance = 0;
+    rerender(<StudioPlaygroundComposer {...props} />);
+    expect(screen.getByLabelText('0 available')).toBeVisible();
+    walletMocks.balance = Number.NaN;
+    rerender(<StudioPlaygroundComposer {...props} />);
+    expect(screen.getByLabelText('Balance unavailable')).toBeVisible();
+    walletMocks.showCredits = false;
+    rerender(<StudioPlaygroundComposer {...props} />);
+    expect(
+      screen.queryByLabelText('Estimate available after model selection'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('Balance unavailable'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('updates image count, setup and total, and blocks Generate when admission would refuse the price', () => {
+    const model = {
+      category: ModelCategory.IMAGE,
+      cost: 8,
+      isActive: true,
+      key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+      label: 'Imagen 4',
+      lifecycle: ModelLifecycle.AVAILABLE,
+      provider: ModelProvider.REPLICATE,
+    };
+    const props = {
+      ...baseProps,
+      models: [model] as never,
+      prompt: 'A product photo',
+      type: 'image' as const,
+    };
+    estimateMocks.resolve.mockImplementation(
+      (request: { outputs?: number }) => ({
+        credits: 8 * (request.outputs ?? 1),
+        status: 'estimated',
+      }),
+    );
+    const { rerender } = render(
+      <StudioPlaygroundComposer
+        {...props}
+        settings={{ ...settings, modelKey: model.key }}
+      />,
+    );
+    expect(screen.getByText('~8')).toBeVisible();
+    rerender(
+      <StudioPlaygroundComposer
+        {...props}
+        settings={{
+          ...settings,
+          modelKey: model.key,
+          outputs: 3,
+          aspectRatio: '9:16',
+          resolution: '2K',
+        }}
+      />,
+    );
+    expect(screen.getByText('~24')).toBeVisible();
+    estimateMocks.resolve.mockReturnValue({
+      credits: null,
+      status: 'unavailable',
+      unavailableReason: 'PRICING_UNRESOLVED',
+    });
+    rerender(
+      <StudioPlaygroundComposer
+        {...props}
+        settings={{ ...settings, modelKey: model.key }}
+      />,
+    );
+    expect(
+      screen.getByLabelText('This model has no confirmed price yet.'),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+    expect(baseProps.onSubmit).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['MODEL_UNAVAILABLE', true],
+    ['MISSING_SETTING', true],
+    ['ERROR', false],
+    [undefined, false],
+  ])(
+    'submit gate for estimate reason %s is blocked=%s',
+    (reason, isBlocked) => {
+      const model = {
+        category: ModelCategory.IMAGE,
+        cost: 8,
+        isActive: true,
+        key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+        label: 'Imagen 4',
+        lifecycle: ModelLifecycle.AVAILABLE,
+        provider: ModelProvider.REPLICATE,
+      };
+      estimateMocks.resolve.mockReturnValue({
+        credits: null,
+        status: 'unavailable',
+        unavailableReason: reason,
+      });
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={[model] as never}
+          prompt="A product photo"
+          settings={{ ...settings, modelKey: model.key }}
+          type="image"
+        />,
+      );
+      const button = screen.getByRole('button', { name: 'Generate' });
+      if (isBlocked) {
+        expect(button).toHaveAttribute('aria-disabled', 'true');
+        fireEvent.click(button);
+        expect(baseProps.onSubmit).not.toHaveBeenCalled();
+      } else {
+        expect(button).not.toHaveAttribute('aria-disabled');
+        expect(button).toBeEnabled();
+      }
+    },
+  );
+
+  it('blocks Generate for a concrete model missing from the catalog, so no other model is substituted', () => {
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        models={[]}
+        prompt="A product photo"
+        settings={{
+          ...settings,
+          modelKey: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+        }}
+        type="image"
+      />,
+    );
+    expect(
+      screen.getByLabelText('This model is not available for your workspace.'),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+  });
+
+  it('never blocks Generate while the estimate is loading', () => {
+    const model = {
+      category: ModelCategory.IMAGE,
+      cost: 8,
+      isActive: true,
+      key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+      label: 'Imagen 4',
+      lifecycle: ModelLifecycle.AVAILABLE,
+      provider: ModelProvider.REPLICATE,
+    };
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        models={[model] as never}
+        prompt="A product photo"
+        settings={{ ...settings, modelKey: model.key }}
+        type="image"
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
+  });
+
+  it('blocks unmatched reference prompts before requesting a quote or generation', () => {
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        isPromptInvalid
+        prompt="Use @Image9"
+        settings={settings}
+        type="image"
+      />,
+    );
+    const generate = screen.getByRole('button', {
+      name: 'Generate',
+    });
+    expect(generate).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(generate);
+    act(() => promptEditorProps.onSubmit?.());
+    expect(spendMocks.estimateGenerationCredits).not.toHaveBeenCalled();
+    expect(baseProps.onSubmit).not.toHaveBeenCalled();
+  });
+
+  describe('spend confirmation', () => {
+    const imagen = {
+      category: ModelCategory.IMAGE,
+      cost: 8,
+      isActive: true,
+      key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+      label: 'Imagen 4',
+      lifecycle: ModelLifecycle.AVAILABLE,
+      provider: ModelProvider.REPLICATE,
+    };
+
+    it('asks the server for the price and submits once it is confirmed', async () => {
+      spendMocks.estimateGenerationCredits.mockResolvedValue({
+        credits: 64,
+        isAvailable: true,
+        modelKey: imagen.key,
+      });
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={[imagen] as never}
+          prompt="A product photo"
+          settings={{ ...settings, modelKey: imagen.key }}
+          type="image"
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+
+      await waitFor(() => expect(baseProps.onSubmit).toHaveBeenCalledTimes(1));
+      expect(spendMocks.estimateGenerationCredits).toHaveBeenCalledWith(
+        expect.objectContaining({
+          category: 'image',
+          modelKey: imagen.key,
+        }),
+        expect.any(AbortSignal),
+      );
+      expect(baseProps.onSubmit).toHaveBeenCalledWith(undefined);
+      expect(spendMocks.info).not.toHaveBeenCalled();
+    });
+
+    describe('video draft', () => {
+      const veo = {
+        category: ModelCategory.VIDEO,
+        cost: 100,
+        durations: [4, 6, 8],
+        isActive: true,
+        key: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
+        label: 'Veo 3.1',
+        lifecycle: ModelLifecycle.AVAILABLE,
+        provider: ModelProvider.REPLICATE,
+      };
+      const veoFast = {
+        ...veo,
+        key: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST,
+        label: 'Veo 3.1 Fast',
+      };
+      const videoSettings = {
+        ...settings,
+        duration: 8,
+        isAudioEnabled: true,
+        modelKey: veo.key,
+        resolution: '1080p',
+      };
+
+      const draftControl = () =>
+        setupBarMocks.props.videoDraft as {
+          credits?: number;
+          isEnabled: boolean;
+          onChange: (isEnabled: boolean) => void;
+        };
+
+      it('prices the cheap draft and submits it flagged once the price is confirmed', async () => {
+        estimateMocks.resolve.mockImplementation(
+          (request: { modelKey?: string }) => ({
+            credits: request.modelKey === veoFast.key ? 50 : 134,
+            status: 'estimated',
+          }),
+        );
+        spendMocks.estimateGenerationCredits.mockResolvedValue({
+          credits: 50,
+          isAvailable: true,
+          modelKey: veoFast.key,
+        });
+        render(
+          <StudioPlaygroundComposer
+            {...baseProps}
+            models={[veo, veoFast] as never}
+            prompt="A cinematic reveal"
+            settings={videoSettings}
+            type="video"
+          />,
+        );
+
+        expect(estimateMocks.resolve).toHaveBeenCalledWith(
+          expect.objectContaining({
+            duration: 4,
+            isAudioEnabled: false,
+            modelKey: veoFast.key,
+            outputs: 1,
+          }),
+        );
+        // Draft is a mode of the Video type, not a second Generate button.
+        expect(
+          screen.queryByRole('button', {
+            name: 'Generate a cheap video draft',
+          }),
+        ).toBeNull();
+        act(() => draftControl().onChange(true));
+        fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+
+        await waitFor(() =>
+          expect(baseProps.onSubmit).toHaveBeenCalledWith({ isDraft: true }),
+        );
+        expect(spendMocks.estimateGenerationCredits).toHaveBeenCalledWith(
+          expect.objectContaining({
+            duration: 4,
+            isAudioEnabled: false,
+            modelKey: veoFast.key,
+          }),
+          expect.any(AbortSignal),
+        );
+      });
+
+      it('offers no draft when the cheaper sibling is not on offer', () => {
+        estimateMocks.resolve.mockReturnValue({
+          credits: 134,
+          status: 'estimated',
+        });
+        render(
+          <StudioPlaygroundComposer
+            {...baseProps}
+            models={[veo] as never}
+            prompt="A cinematic reveal"
+            settings={videoSettings}
+            type="video"
+          />,
+        );
+
+        expect(setupBarMocks.props.videoDraft).toBeUndefined();
+      });
+    });
+
+    it('prices Auto at the model it routes to, names it in a toast and submits it pinned', async () => {
+      spendMocks.estimateGenerationCredits.mockResolvedValue({
+        credits: 8,
+        isAvailable: true,
+        modelKey: imagen.key,
+      });
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={[imagen] as never}
+          prompt="A product photo"
+          settings={{ ...settings, modelKey: AUTO_MODEL_OPTION_VALUE }}
+          type="image"
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+
+      await waitFor(() => expect(baseProps.onSubmit).toHaveBeenCalledTimes(1));
+      expect(spendMocks.estimateGenerationCredits).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          category: 'image',
+          prompt: 'A product photo',
+        }),
+        expect.any(AbortSignal),
+      );
+      expect(spendMocks.estimateGenerationCredits).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ modelKey: imagen.key }),
+        expect.any(AbortSignal),
+      );
+      expect(spendMocks.info).toHaveBeenCalledWith(
+        expect.stringContaining('Imagen 4'),
+      );
+      expect(baseProps.onSubmit).toHaveBeenCalledWith({
+        pinnedModelKey: imagen.key,
+      });
+    });
+
+    it('submits nothing when the server cannot price the generation', async () => {
+      spendMocks.estimateGenerationCredits.mockResolvedValue({
+        credits: null,
+        isAvailable: false,
+        modelKey: null,
+        unavailableReason: 'PRICING_UNRESOLVED',
+      });
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={[imagen] as never}
+          prompt="A product photo"
+          settings={{ ...settings, modelKey: imagen.key }}
+          type="image"
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+
+      await waitFor(() =>
+        expect(spendMocks.estimateGenerationCredits).toHaveBeenCalled(),
+      );
+      expect(baseProps.onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('submits nothing when the price request fails', async () => {
+      spendMocks.estimateGenerationCredits.mockRejectedValue(
+        new Error('network'),
+      );
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={[imagen] as never}
+          prompt="A product photo"
+          settings={{ ...settings, modelKey: imagen.key }}
+          type="image"
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+
+      await waitFor(() =>
+        expect(spendMocks.estimateGenerationCredits).toHaveBeenCalled(),
+      );
+      expect(baseProps.onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('submits a voice generation directly, since it has no tariff to confirm', () => {
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          prompt="Read this aloud"
+          settings={{
+            ...settings,
+            voiceId: 'voice-1',
+            voiceRef: {
+              provider: VoiceProvider.ELEVENLABS,
+              voiceId: 'voice-1',
+            } as never,
+          }}
+          type="voice"
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+
+      expect(spendMocks.estimateGenerationCredits).not.toHaveBeenCalled();
+      expect(baseProps.onSubmit).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('sends the audio toggle with a video estimate request', () => {
+    const model = {
+      category: ModelCategory.VIDEO,
+      cost: 50,
+      isActive: true,
+      key: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+      label: 'Kling',
+      lifecycle: ModelLifecycle.AVAILABLE,
+      provider: ModelProvider.REPLICATE,
+    };
+    estimateMocks.resolve.mockReturnValue({ credits: 9, status: 'estimated' });
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        models={[model] as never}
+        prompt="A reveal"
+        settings={{
+          ...settings,
+          duration: 5,
+          isAudioEnabled: true,
+          modelKey: model.key,
+        }}
+        type="video"
+      />,
+    );
+    expect(estimateMocks.resolve).toHaveBeenCalledWith(
+      expect.objectContaining({ duration: 5, isAudioEnabled: true }),
+    );
+  });
+
+  describe('image editing composer', () => {
+    const editModel = {
+      key: MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
+      category: ModelCategory.IMAGE_EDIT,
+      provider: ModelProvider.REPLICATE,
+      isDefault: true,
+      isActive: true,
+      cost: 20,
+      label: 'Ideogram 4.5',
+    } as IModel;
+    it('makes no estimate call in Auto even though an editing default exists', () => {
+      estimateMocks.resolve.mockImplementation(
+        (request: { outputs?: number }) => ({
+          credits: 20 * (request.outputs ?? 1),
+          status: 'estimated',
+        }),
+      );
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={[editModel]}
+          prompt="Change the sign"
+          settings={{
+            ...settings,
+            modelKey: AUTO_MODEL_OPTION_VALUE,
+            outputs: 3,
+          }}
+          type="image-edit"
+        />,
+      );
+      expect(
+        screen.getByLabelText('Estimate available after model selection'),
+      ).toBeVisible();
+      expect(estimateMocks.resolve).not.toHaveBeenCalled();
+    });
+    it('shows the source ratio and does not label Auto with an image-generation default', () => {
+      const imageDefault = {
+        ...editModel,
+        category: ModelCategory.IMAGE,
+        isDefault: true,
+        key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+        label: 'Nano Banana',
+      } as IModel;
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={[imageDefault, editModel]}
+          prompt="Change the sign"
+          settings={{
+            ...settings,
+            aspectRatio: '16:9',
+            modelKey: AUTO_MODEL_OPTION_VALUE,
+          }}
+          type="image-edit"
+        />,
+      );
+      expect(screen.queryByText(/Nano Banana/)).not.toBeInTheDocument();
+    });
+    it('does not inherit the default FLUX restrictions in Auto', () => {
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={[
+            {
+              ...editModel,
+              key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
+            },
+          ]}
+          prompt="Edit"
+          settings={{
+            ...settings,
+            modelKey: AUTO_MODEL_OPTION_VALUE,
+            outputs: 3,
+            editSeed: 0,
+          }}
+          attachedAssets={[
+            {
+              id: 'mask',
+              name: 'Mask',
+              kind: 'image',
+              source: 'library',
+              role: 'editMask',
+            },
+          ]}
+          type="image-edit"
+        />,
+      );
+      expect(baseProps.onRemoveAttachedAsset).not.toHaveBeenCalled();
+      expect(baseProps.onSettingsChange).not.toHaveBeenCalledWith(
+        expect.objectContaining({ outputs: 1 }),
+      );
+    });
+    it('blocks submission without a source', () => {
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={[editModel]}
+          prompt="Change the sign"
+          settings={{ ...settings, modelKey: editModel.key }}
+          type="image-edit"
+        />,
+      );
+      expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
+      expect(
+        screen.getByText('Choose a source image to edit.'),
+      ).toBeInTheDocument();
+    });
+    it('forces source dimensions for a mask, preserves seed zero and passes the extensions it is given', () => {
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={[editModel]}
+          prompt="Change the sign"
+          settings={{
+            ...settings,
+            modelKey: editModel.key,
+            editSeed: 0,
+            editSize: '1024x1024',
+          }}
+          type="image-edit"
+          extraExtensions={[]}
+          attachedAssets={[
+            {
+              id: 'source',
+              ingredientId: 'source',
+              kind: 'image',
+              source: 'library',
+              role: 'editSource',
+              name: 'Target',
+              previewUrl: 'https://example.com/source.png',
+            },
+            {
+              id: 'mask',
+              ingredientId: 'mask',
+              kind: 'image',
+              source: 'library',
+              role: 'editMask',
+              name: 'Mask',
+              previewUrl: 'https://example.com/mask.png',
+            },
+          ]}
+        />,
+      );
+      expect(
+        screen.getByRole('combobox', { name: 'Editing output size' }),
+      ).toBeDisabled();
+      expect(estimateMocks.resolve).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          category: 'image-edit',
+          editSize: 'source',
+          referenceUrls: ['https://example.com/source.png'],
+        }),
+      );
+      expect(screen.getByLabelText('Editing seed')).toHaveValue(0);
+      expect(promptEditorProps.extraExtensions).toEqual([]);
+      expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
+    });
+  });
+});
+
+describe('FLUX.3 composer controls', () => {
+  const fluxModel = {
+    key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
+    category: ModelCategory.IMAGE_EDIT,
+    provider: ModelProvider.REPLICATE,
+    isActive: true,
+    cost: 8,
+    label: 'FLUX.3 Edit',
+    reviewedProviderContractVersion: 'reviewed',
+  } as IModel;
+  it('shows native controls and ten sources without Ideogram mask, seed or size', () => {
+    estimateMocks.resolve.mockReturnValue({ credits: 12, status: 'estimated' });
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        type="image-edit"
+        models={[fluxModel]}
+        prompt="Change the sign"
+        settings={{
+          ...settings,
+          modelKey: fluxModel.key,
+          resolution: '1.5k',
+          aspectRatio: 'auto',
+        }}
+        attachedAssets={Array.from({ length: 10 }, (_, i) => ({
+          id: `source${i}`,
+          ingredientId: `source${i}`,
+          kind: 'image' as const,
+          source: 'library' as const,
+          role: 'editSource' as const,
+          name: `Source ${i}`,
+          previewUrl: 'https://example.com/image.png',
+        }))}
+      />,
+    );
+    expect(
+      screen.getByRole('combobox', { name: 'FLUX resolution' }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('combobox', { name: 'FLUX aspect ratio' }),
+    ).toBeVisible();
+    expect(screen.queryByLabelText('Editing seed')).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('Editing output size'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Mask (optional)')).not.toBeInTheDocument();
+    expect(screen.getByText('~12')).toBeVisible();
+    expect(
+      screen.getByRole('combobox', { name: 'Image editing target' }),
+    ).toBeVisible();
+    expect(
+      screen.getByText(
+        'First source is the target. 10/10 sources. One output. No mask or seed.',
+      ),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Add context' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
+    expect(setupBarMocks.props.capabilities).toMatchObject({
+      hasOutputs: false,
+      hasAspectRatio: false,
+    });
+  });
+  it('clears incompatible settings with a visible explanation', () => {
+    const onSettingsChange = vi.fn(),
+      onRemoveAttachedAsset = vi.fn();
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        type="image-edit"
+        models={[fluxModel]}
+        prompt="Change"
+        onSettingsChange={onSettingsChange}
+        onRemoveAttachedAsset={onRemoveAttachedAsset}
+        settings={{
+          ...settings,
+          modelKey: fluxModel.key,
+          editSeed: 0,
+          outputs: 4,
+        }}
+        attachedAssets={[
+          {
+            id: 'mask',
+            kind: 'image',
+            source: 'library',
+            role: 'editMask',
+            previewUrl: 'https://example.com/image.png',
+          },
+        ]}
+      />,
+    );
+    expect(onSettingsChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resolution: '1k',
+        outputs: 1,
+        editSeed: undefined,
+      }),
+    );
+    expect(onRemoveAttachedAsset).toHaveBeenCalledWith('mask');
+    expect(
+      screen.getByText('Mask and seed settings were removed for FLUX.3.'),
+    ).toBeVisible();
+  });
+});
+
+function controlsFor(endpoint = 'kling/v2-5-turbo-pro'): CrunInputControls {
+  const kling = endpoint === 'kling/v2-5-turbo-pro';
+  return {
+    endpoint,
+    version: 'reviewed-video-v1',
+    mediaKind: 'video',
+    maxOutputs: 4,
+    isBatchSupported: false,
+    isAutoAspectReferenceRequired: false,
+    referenceRoles: kling ? { img_urls: 'image' } : {},
+    videoRules: {
+      referenceMode: kling ? 'start-end' : 'none',
+      omitAspectRatioWithReferences: kling,
+      availableDurations: kling ? [5, 10] : [8],
+    },
+    fields: {
+      prompt: {
+        type: 'string',
+        isRequired: true,
+        minLength: 1,
+        maxLength: kling ? 2500 : 5000,
+      },
+      duration: {
+        type: 'integer',
+        isRequired: false,
+        enum: kling ? [5, 10] : [4, 6, 8],
+        default: kling ? 5 : 8,
+      },
+      aspect_ratio: {
+        type: 'string',
+        isRequired: false,
+        enum: kling ? ['1:1', '16:9', '9:16'] : ['16:9', '9:16'],
+        default: '16:9',
+      },
+      ...(kling
+        ? {
+            negative_prompt: {
+              type: 'string' as const,
+              isRequired: false,
+              maxLength: 2000,
+            },
+            cfg_scale: {
+              type: 'number' as const,
+              isRequired: false,
+              minimum: 0,
+              maximum: 1,
+              default: 0.5,
+            },
+            img_urls: {
+              type: 'array' as const,
+              isRequired: false,
+              format: 'uri' as const,
+              minItems: 1,
+              maxItems: 2,
+            },
+          }
+        : {
+            resolution: {
+              type: 'string' as const,
+              isRequired: false,
+              enum: ['720p', '1080p', '4k'],
+              default: '720p',
+            },
+            translate_prompt: {
+              type: 'boolean' as const,
+              isRequired: false,
+              default: true,
+            },
+          }),
+    },
+  };
+}
+
+describe('complete reviewed Studio video scalar composition', () => {
+  it.each(['kling/v2-5-turbo-pro', 'google/veo3-1-fast-t2v'])(
+    'mounts one scalar owner and no mandatory first frame for %s',
+    (endpoint) => {
+      const controls = controlsFor(endpoint);
+      const kling = endpoint.startsWith('kling/');
+      const key = `crun/${endpoint}`;
+      const model: IModel = {
+        id: 'video-model',
+        createdAt: '2026-10-01T00:00:00.000Z',
+        updatedAt: '2026-10-01T00:00:00.000Z',
+        key,
+        label: 'Reviewed video',
+        category: ModelCategory.VIDEO,
+        provider: ModelProvider.CRUN,
+        cost: 999,
+        isActive: true,
+        isDefault: false,
+        isDeleted: false,
+        lifecycle: ModelLifecycle.AVAILABLE,
+      };
+      model.inputControls = controls;
+      const quote = {
+        isAvailable: true as const,
+        modelKey: key,
+        contractVersion: controls.version,
+        quoteId: 'video-quote',
+        expiresAt: '2099-01-01T00:00:00.000Z',
+        credits: 11,
+        billingMode: 'credits' as const,
+        reasonCode: null,
+      };
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          type="video"
+          prompt="Motion"
+          models={[model]}
+          settings={{
+            ...getDefaultStudioPlaygroundSettings('video'),
+            modelKey: key,
+            outputs: 4,
+            aspectRatio: '16:9',
+            duration: kling ? 5 : 8,
+            resolution: kling ? '' : '720p',
+            crunControls: {
+              modelKey: key,
+              contractVersion: controls.version,
+              ...(kling ? { guidanceScale: 0 } : { translatePrompt: false }),
+            },
+          }}
+          crunQuote={{
+            status: 'available',
+            quote,
+            reasonCode: null,
+            getCurrentQuote: () => quote,
+          }}
+        />,
+      );
+      expect(
+        screen.getAllByRole('combobox', { name: 'Duration' }),
+      ).toHaveLength(1);
+      expect(
+        screen.getAllByRole('combobox', { name: 'Aspect ratio' }),
+      ).toHaveLength(1);
+      expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
+      expect(screen.getByText('~11', { exact: true })).toBeVisible();
+      if (kling) {
+        expect(
+          screen.getByRole('spinbutton', { name: 'Guidance' }),
+        ).toHaveValue(0);
+        expect(
+          screen.queryByRole('combobox', { name: 'Resolution' }),
+        ).not.toBeInTheDocument();
+      } else {
+        expect(
+          screen.getByRole('checkbox', {
+            name: 'Translate prompt',
+          }),
+        ).not.toBeChecked();
+        expect(
+          screen.queryByRole('button', { name: 'Start frame' }),
+        ).not.toBeInTheDocument();
+      }
+    },
+  );
+});

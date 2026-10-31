@@ -41,13 +41,13 @@ Active routes:
       nextServers: [
         {
           cpuPercent: 3.1,
-          cwd: '/repo/genfeed.ai/apps/app',
+          cwd: '/repo/genfeed.ai/apps/web',
           pid: 5757,
           version: '16.3.1',
         },
         {
           cpuPercent: 92.8,
-          cwd: '/repo/customers/vitaeai/apps/app',
+          cwd: '/repo/customers/vitaeai/apps/web',
           pid: 74229,
           version: '16.3.0',
         },

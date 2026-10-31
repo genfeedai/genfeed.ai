@@ -24,8 +24,8 @@ describe('normalizeNextPageRoute', () => {
   it('normalizes route groups and dynamic segments', () => {
     expect(
       normalizeNextPageRoute(
-        '/repo/apps/app/app',
-        '/repo/apps/app/app/(public)/oauth/[platform]/page.tsx',
+        '/repo/apps/web/app',
+        '/repo/apps/web/app/(public)/oauth/[platform]/page.tsx',
       ),
     ).toBe('/oauth/:platform');
   });
@@ -33,14 +33,14 @@ describe('normalizeNextPageRoute', () => {
   it('normalizes required and optional catch-all segments', () => {
     expect(
       normalizeNextPageRoute(
-        '/repo/apps/app/app',
-        '/repo/apps/app/app/files/[...path]/page.tsx',
+        '/repo/apps/web/app',
+        '/repo/apps/web/app/files/[...path]/page.tsx',
       ),
     ).toBe('/files/*path');
     expect(
       normalizeNextPageRoute(
-        '/repo/apps/app/app',
-        '/repo/apps/app/app/(protected)/[orgSlug]/~/[orgRootApp]/[[...segments]]/page.tsx',
+        '/repo/apps/web/app',
+        '/repo/apps/web/app/(protected)/[orgSlug]/~/[orgRootApp]/[[...segments]]/page.tsx',
       ),
     ).toBe('/:orgSlug/~/:orgRootApp/*segments?');
   });

@@ -33,7 +33,7 @@ export const REQUIRED_BROWSER_SUITES = [
   {
     label: 'Playwright Full',
     workflow: 'playwright-full-nightly.yml',
-    // Builds @genfeedai/app (packages only) against a mocked API.
+    // Builds @genfeedai/web (packages only) against a mocked API.
     neutralPaths: [
       ...SHARED_NEUTRAL_PATHS,
       otherWorkflows('playwright-full-nightly.yml'),
@@ -48,7 +48,7 @@ export const REQUIRED_BROWSER_SUITES = [
     neutralPaths: [
       ...SHARED_NEUTRAL_PATHS,
       otherWorkflows('learning-runtime.yml'),
-      /^apps\/(?:app|website|mobile|desktop|extensions|docs)\//u,
+      /^apps\/(?:web|marketing|mobile|desktop|extension|docs)\//u,
       /^playwright\//u,
     ],
   },

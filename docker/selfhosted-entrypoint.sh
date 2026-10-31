@@ -135,4 +135,4 @@ PORT=${MCP_PORT} node apps/server/dist/apps/mcp/main.js &
 # Start Next.js web app (foreground — keeps container alive)
 # Derive port from GENFEEDAI_APP_URL so it stays in sync with env config
 APP_PORT=$(echo "$GENFEEDAI_APP_URL" | sed 's|.*:||')
-cd apps/app && PORT=${APP_PORT:-3000} bun run start
+cd apps/web && PORT=${APP_PORT:-3000} bun run start

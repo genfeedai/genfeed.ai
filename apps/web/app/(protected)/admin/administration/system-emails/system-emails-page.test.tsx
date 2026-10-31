@@ -1,0 +1,195 @@
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import SystemEmailsPage from './system-emails-page';
+
+const mocks = vi.hoisted(() => ({
+  error: vi.fn(),
+  getSystemEmails: vi.fn(),
+  getPerformance: vi.fn(),
+  info: vi.fn(),
+  search: '',
+  setSearch: vi.fn(),
+}));
+
+const getSystemEmailsService = vi.hoisted(() =>
+  vi.fn(async () => ({
+    getSystemEmails: mocks.getSystemEmails,
+    getPerformance: mocks.getPerformance,
+  })),
+);
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
+vi.mock(
+  '@app/(protected)/admin/administration/system-emails/system-email-performance',
+  () => ({
+    default: () => <div data-testid="email-performance-report" />,
+  }),
+);
+
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => getSystemEmailsService,
+}));
+
+vi.mock('@/components/content/admin-filters/useAdminSearchParam', () => ({
+  useAdminSearchParam: () => ({
+    search: mocks.search,
+    setSearch: mocks.setSearch,
+  }),
+}));
+
+vi.mock('@services/core/environment.service', () => ({
+  EnvironmentService: {
+    apps: {
+      app: 'https://app.genfeed.ai',
+    },
+  },
+}));
+
+vi.mock('@services/core/logger.service', () => ({
+  logger: {
+    error: mocks.error,
+    info: mocks.info,
+  },
+}));
+
+vi.mock('@services/core/notifications.service', () => ({
+  NotificationsService: {
+    getInstance: () => ({
+      error: mocks.error,
+    }),
+  },
+}));
+
+vi.mock('@ui/card/Card', () => ({
+  default: ({ children }: { children: ReactNode }) => (
+    <div data-testid="card">{children}</div>
+  ),
+}));
+
+vi.mock('@ui/card/empty/CardEmpty', () => ({
+  CardEmptyContent: ({ label }: { label: string }) => <div>{label}</div>,
+  default: ({ label }: { label: string }) => <div>{label}</div>,
+}));
+
+vi.mock('@ui/display/badge/Badge', () => ({
+  default: ({ children }: { children: ReactNode }) => <span>{children}</span>,
+}));
+
+vi.mock('@ui/display/skeleton/skeleton', () => ({
+  SkeletonCard: () => <div data-testid="skeleton" />,
+}));
+
+vi.mock('@ui/layout/container/Container', () => ({
+  default: ({ children, label }: { children: ReactNode; label: string }) => (
+    <section aria-label={label}>{children}</section>
+  ),
+}));
+
+vi.mock('@/components/overview/WorkspaceSurface', () => ({
+  WorkspaceSurface: ({
+    children,
+    title,
+  }: {
+    children: ReactNode;
+    title: string;
+  }) => (
+    <div>
+      <h2>{title}</h2>
+      {children}
+    </div>
+  ),
+}));
+
+describe('SystemEmailsPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.search = '';
+    mocks.getPerformance.mockResolvedValue({
+      id: 'report',
+      from: '2026-08-01',
+      to: '2026-09-01',
+      asOf: '2026-09-01',
+      rows: [],
+    });
+    mocks.getSystemEmails.mockResolvedValue([
+      {
+        action: {
+          label: 'Start onboarding',
+          path: '/onboarding',
+          type: 'app-path',
+        },
+        audience: 'New cloud signups',
+        id: 'welcome-day-0',
+        name: 'Welcome day 0',
+        paragraphs: ['{{greeting}}, welcome to Genfeed.ai.'],
+        preheader: 'Start your Genfeed.ai onboarding path.',
+        schedule: 'Immediately after signup',
+        sequence: 'welcome',
+        skipRules: ['Recipient is missing, deleted, or unsubscribed.'],
+        step: 'welcome-day-0',
+        subject: 'Welcome to Genfeed.ai',
+        systemWorkflowId: 'system.lifecycle-email.welcome-day-0',
+        title: 'Your Genfeed workspace is ready',
+        trigger: 'User signs up',
+        visibility: 'admin-only',
+      },
+    ]);
+  });
+
+  it.each([
+    ['welcome', 'Welcome day 0'],
+    ['SIGNUPS', 'Welcome day 0'],
+  ])('keeps the email that matches the search %j', async (search, name) => {
+    mocks.search = search;
+    render(<SystemEmailsPage />);
+
+    expect(
+      await screen.findByRole('button', { name: new RegExp(name) }),
+    ).toBeInTheDocument();
+  });
+
+  it('says so when no email matches the search', async () => {
+    mocks.search = 'no such email';
+    render(<SystemEmailsPage />);
+
+    expect(
+      await screen.findByText('No system emails match your search'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Welcome day 0/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('loads and renders lifecycle system email copy and triggers', async () => {
+    render(<SystemEmailsPage />);
+
+    await waitFor(() => {
+      expect(mocks.getSystemEmails).toHaveBeenCalledWith(
+        expect.any(AbortSignal),
+      );
+    });
+
+    const trigger = await screen.findByRole('button', {
+      name: /Welcome day 0/,
+    });
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('User signs up')).not.toBeInTheDocument();
+
+    await userEvent.click(trigger);
+
+    expect(screen.getByText('User signs up')).toBeInTheDocument();
+    expect(screen.getByText('Welcome to Genfeed.ai')).toBeInTheDocument();
+    expect(
+      screen.getByText('Hi {first name}, welcome to Genfeed.ai.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('system.lifecycle-email.welcome-day-0'),
+    ).toBeInTheDocument();
+  });
+});

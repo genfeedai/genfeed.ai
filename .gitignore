@@ -16,16 +16,16 @@ packages/desktop-prisma/generated/
 **/src/**/*.d.ts.map
 **/src/**/*.d.ts
 # Next.js App Router source dirs — no compiled .js alongside .tsx
-apps/app/app/**/*.js
+apps/web/app/**/*.js
 # Keep the runtime-config.js route folder and its source files tracked.
-!apps/app/app/runtime-config.js/
-!apps/app/app/runtime-config.js/**
-apps/app/app/**/*.js.map
-apps/app/packages/**/*.js
-apps/app/packages/**/*.js.map
+!apps/web/app/runtime-config.js/
+!apps/web/app/runtime-config.js/**
+apps/web/app/**/*.js.map
+apps/web/packages/**/*.js
+apps/web/packages/**/*.js.map
 # Hand-authored ambient module declarations / generated API types — keep tracked
-!apps/app/src/types/*.d.ts
-!apps/desktop/app/src/shared/*.d.ts
+!apps/web/src/types/*.d.ts
+!apps/desktop/src/shared/*.d.ts
 !apps/server/api/src/helpers/test/*.d.ts
 !apps/server/api/src/types/*.d.ts
 !apps/server/mcp/src/ui/preview-bundle.d.ts
@@ -45,8 +45,8 @@ coverage-cron/
 out/
 *.log
 next-env.d.ts
-apps/desktop/app/build/
-apps/desktop/app/release/
+apps/desktop/build/
+apps/desktop/release/
 apps/server/files/remotion-bundle/
 *.dmg
 *.zip
@@ -83,7 +83,7 @@ test-results/
 # Claude Code skill runtime (should never be committed)
 .superpowers/
 # Agent scratch dirs at any depth (apps/<name>/.agents/, apps/<surface>/<name>/.agents/)
-# Covers apps/app/.agents, apps/mobile/app/.agents, apps/extensions/browser/app/.agents, etc.
+# Covers apps/web/.agents, apps/mobile/.agents, apps/extension/.agents, etc.
 **/apps/**/.agents/
 # Stray nested clone/worktree scratch dir — never a real git worktree, never committed.
 # Without this, `git add -A` grabs its placeholder files into unrelated commits.
@@ -108,5 +108,5 @@ apps/server/api/openapi/openapi.json
 public/tmp/
 
 # Homepage video artefacts (generated, published to the CDN)
-apps/website/.home-video/
-apps/website/.marketing-assets/
+apps/marketing/.home-video/
+apps/marketing/.marketing-assets/

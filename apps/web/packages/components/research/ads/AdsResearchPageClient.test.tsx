@@ -1,0 +1,1357 @@
+import type { AdsResearchDetail } from '@genfeedai/contracts/interfaces';
+import {
+  act,
+  fireEvent,
+  render,
+  renderHook,
+  screen,
+  within,
+} from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import '@testing-library/jest-dom/vitest';
+
+vi.mock(
+  '@genfeedai/hooks/ui/use-intersection-observer/use-intersection-observer',
+  () => ({
+    useIntersectionObserver: () => ({
+      isIntersecting: true,
+      ref: { current: null },
+    }),
+  }),
+);
+
+vi.mock(
+  '@hooks/ui/use-intersection-observer/use-intersection-observer',
+  () => ({
+    useIntersectionObserver: () => ({
+      isIntersecting: true,
+      ref: { current: null },
+    }),
+  }),
+);
+
+const useBrandMock = vi.fn();
+const createRemixWorkflowMock = vi.fn();
+const generateAdPackMock = vi.fn();
+const getAdsResearchServiceMock = vi.fn();
+const remixAvailability = vi.hoisted(() => ({ isAvailable: true }));
+const watchlistHook = vi.hoisted(() => ({
+  onPolled: undefined as (() => void) | undefined,
+}));
+const openRemixMock = vi.fn();
+const prepareCampaignForReviewMock = vi.fn();
+const saveSavedAdsMock = vi.fn();
+const unsaveSavedAdsMock = vi.fn();
+const updateSavedNotesMock = vi.fn();
+const savedAdsState: { savedAds: Array<Record<string, unknown>> } = {
+  savedAds: [],
+};
+let useQueryCallIndex = 0;
+
+const publicAd = {
+  accountName: 'Founders Club',
+  body: 'Meta ad body copy',
+  channel: 'all',
+  credentialId: 'cred-meta',
+  headline: 'Meta hook copy',
+  id: 'public-1',
+  imageUrls: ['https://cdn.example.com/meta-ad.jpg'],
+  industry: 'SaaS',
+  metrics: {
+    conversions: 11,
+    ctr: 1.3,
+    performanceScore: 96,
+    roas: 4.2,
+    spendEfficiency: 1.4,
+  },
+  longevity: { daysLive: 120, isStillRunning: true, score: 100 },
+  platform: 'meta',
+  source: 'public',
+  title: 'Meta hook story',
+} as const;
+
+const connectedAd = {
+  accountName: 'Growth Account',
+  adAccountId: 'acct-google-1',
+  body: 'Google search ad body',
+  channel: 'search',
+  credentialId: 'cred-google',
+  headline: 'Google lead gen headline',
+  id: 'connected-1',
+  industry: 'Marketing',
+  loginCustomerId: 'mcc-111',
+  metrics: {
+    conversions: 19,
+    ctr: 2.4,
+    performanceScore: 99,
+    roas: 5.5,
+    spendEfficiency: 2.1,
+  },
+  platform: 'google',
+  source: 'my_accounts',
+  sourceId: 'source-google-1',
+  title: 'Google lead gen winner',
+} as const;
+
+const detailResult = {
+  accountName: 'Growth Account',
+  campaignName: 'Search Prospecting',
+  channel: 'search',
+  creative: {
+    body: 'Search detail body',
+    headline: 'Search detail headline',
+  },
+  explanation: 'The ad aligns to search intent and converts well.',
+  landingPageUrl: 'https://example.com/landing',
+  metrics: {
+    ctr: 2.4,
+    roas: 5.5,
+  },
+  patternSummary: [
+    {
+      id: 'pattern-1',
+      label: 'Intent capture',
+      score: 93,
+      summary: 'Uses search intent and a clear promise.',
+    },
+  ],
+  platform: 'google',
+  status: 'active',
+  title: 'Google lead gen detail',
+} as const;
+
+const resultsState = {
+  connectedAds: [connectedAd],
+  filters: {},
+  publicAds: [publicAd],
+  summary: {
+    connectedCount: 1,
+    publicCount: 1,
+    reviewPolicy:
+      'Launch plans require review. Ads Research does not create external campaign objects.',
+    selectedPlatform: 'all',
+    selectedSource: 'all',
+  },
+};
+
+const adAccountsState = [
+  {
+    currency: 'USD',
+    id: 'acct-google-1',
+    name: 'Growth Account',
+    platform: 'google',
+    status: 'active',
+    timezone: 'UTC',
+  },
+];
+
+const useQueryStates = [
+  {
+    data: resultsState,
+    error: null,
+    isLoading: false,
+    refetch: vi.fn(),
+  },
+  {
+    data: adAccountsState,
+    error: null,
+    isLoading: false,
+    refetch: vi.fn(),
+  },
+  {
+    data: detailResult,
+    error: null,
+    isLoading: false,
+    refetch: vi.fn(),
+  },
+];
+
+vi.mock('next/link', () => ({
+  default: ({
+    children,
+    href,
+    ...props
+  }: {
+    children: ReactNode;
+    href: string;
+  }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}));
+
+// The shell owns the real sidebar chrome; this stand-in renders the panel in
+// place with the sidebar header's title and close control.
+vi.mock('@contexts/ui/context-sidebar-context', () => ({
+  ContextSidebarPanel: ({
+    children,
+    onClose,
+    selection,
+  }: {
+    children: ReactNode;
+    onClose?: () => void;
+    selection: { title: string } | null;
+  }) =>
+    selection ? (
+      <section aria-label="Selection details">
+        <h2>{selection.title}</h2>
+        <button type="button" aria-label="Close detail" onClick={onClose} />
+        {children}
+      </section>
+    ) : null,
+}));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog, useLocale: () => 'en' };
+});
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
+  useParams: () => ({
+    brandSlug: 'moonrise-studio',
+    orgSlug: 'moonrise-org',
+  }),
+}));
+
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => useBrandMock(),
+}));
+
+vi.mock('@/features/research/remix/DiscoveryRemixProvider', () => ({
+  useOptionalDiscoveryRemix: () =>
+    remixAvailability.isAvailable ? { openRemix: openRemixMock } : null,
+}));
+
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => getAdsResearchServiceMock,
+}));
+
+vi.mock('@/hooks/data/analytics/use-saved-ads/use-saved-ads', () => ({
+  useSavedAds: () => ({
+    brandId: 'brand-1',
+    error: null,
+    isLoading: false,
+    isMutating: false,
+    save: saveSavedAdsMock,
+    savedAds: savedAdsState.savedAds,
+    unsave: unsaveSavedAdsMock,
+    updateNotes: updateSavedNotesMock,
+  }),
+}));
+
+// The watchlist owns its own queries. Mocked whole rather than left to the
+// positional `useQuery` stub below, which binds call order to the three
+// research queries and would silently reassign them.
+vi.mock('./useAdsResearchWatchlist', () => ({
+  useAdsResearchWatchlist: (onPolled?: () => void) => {
+    watchlistHook.onPolled = onPolled;
+    return {
+      addAdvertiser: vi.fn(),
+      advertisers: [],
+      isAdding: false,
+      isLoading: false,
+      readiness: [],
+      pollAdvertiser: vi.fn(),
+      removeAdvertiser: vi.fn(),
+    };
+  },
+}));
+
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: () => useQueryStates[useQueryCallIndex++ % useQueryStates.length],
+  useQueryClient: () => ({
+    setQueryData: vi.fn(),
+  }),
+}));
+
+vi.mock('@ui/layout/container/Container', () => ({
+  default: ({
+    children,
+    headerTabs,
+    label,
+    leading,
+    refresh,
+    right,
+  }: {
+    children: ReactNode;
+    headerTabs?: {
+      activeTab?: string;
+      items?: Array<{ id: string; label: string }>;
+      onTabChange?: (tabId: string) => void;
+    };
+    label?: string;
+    leading?: ReactNode;
+    refresh?: ReactNode;
+    right?: ReactNode;
+  }) => (
+    <section>
+      <header>
+        <h1>{label}</h1>
+        {leading}
+        <div data-testid="container-refresh">{refresh}</div>
+        {headerTabs?.items ? (
+          <nav>
+            {headerTabs.items.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                aria-pressed={headerTabs.activeTab === tab.id}
+                onClick={() => headerTabs.onTabChange?.(tab.id)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        ) : null}
+        {right}
+      </header>
+      <div>{children}</div>
+    </section>
+  ),
+}));
+
+vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
+  default: ({ onClick }: { isRefreshing?: boolean; onClick?: () => void }) => (
+    <button type="button" onClick={onClick}>
+      Refresh
+    </button>
+  ),
+}));
+
+vi.mock('@ui/display/badge/Badge', () => ({
+  default: ({ children }: { children?: ReactNode }) => <span>{children}</span>,
+}));
+
+vi.mock('@ui/feedback/alert/Alert', () => ({
+  default: ({ children }: { children?: ReactNode }) => (
+    <div role="alert">{children}</div>
+  ),
+}));
+
+// Stub commits every keystroke synchronously; the real primitive debounces.
+vi.mock('@ui/primitives/searchbar', () => ({
+  default: ({
+    onSearch,
+    placeholder,
+    value,
+  }: {
+    onSearch: (value: string) => void;
+    placeholder?: string;
+    value: string;
+  }) => (
+    <div>
+      <input
+        aria-label={placeholder}
+        placeholder={placeholder}
+        value={value}
+        onChange={(event) => onSearch(event.target.value)}
+      />
+      <button onClick={() => onSearch('')} type="button">
+        Clear
+      </button>
+    </div>
+  ),
+}));
+
+vi.mock('@ui/navigation/view-menu/ViewMenu', () => ({
+  default: ({ onChange }: { onChange: (value: string) => void }) => (
+    <div data-testid="view-toggle">
+      <button type="button" onClick={() => onChange('table')}>
+        Table view
+      </button>
+      <button type="button" onClick={() => onChange('grid')}>
+        Grid view
+      </button>
+    </div>
+  ),
+}));
+
+vi.mock('@ui/primitives/input', () => ({
+  Input: ({
+    onChange,
+    placeholder,
+    value,
+  }: {
+    onChange: (event: { target: { value: string } }) => void;
+    placeholder?: string;
+    value: string;
+  }) => (
+    <input
+      placeholder={placeholder}
+      value={value}
+      onChange={(event) => onChange(event as never)}
+    />
+  ),
+}));
+
+// The real menu is covered by FilterMenu's own tests; here every option is a
+// plain button named "<facet>: <option>" so page wiring can be asserted.
+vi.mock('@/components/content/filter-menu/FilterMenu', () => ({
+  default: ({
+    facets,
+    onClear,
+  }: {
+    facets: Array<{
+      key: string;
+      label: string;
+      onChange: (value: string) => void;
+      options: Array<{ count?: number; label: string; value: string }>;
+    }>;
+    onClear: () => void;
+  }) => (
+    <div data-testid="filter-menu">
+      {facets.map((facet) => (
+        <fieldset aria-label={facet.label} key={facet.key}>
+          {facet.options.map((option) => (
+            <button
+              data-count={option.count}
+              key={option.value}
+              onClick={() => facet.onChange(option.value)}
+              type="button"
+            >
+              {`${facet.label}: ${option.label}`}
+            </button>
+          ))}
+        </fieldset>
+      ))}
+      <button onClick={onClear} type="button">
+        Clear filters
+      </button>
+    </div>
+  ),
+}));
+
+import { DetailSidebar } from './AdsResearchDetailSidebar';
+import AdsResearchPageClient from './AdsResearchPageClient';
+import {
+  buildSaveAdInput,
+  useAdsResearchPageClient,
+} from './useAdsResearchPageClient';
+
+function getSourceSelect() {
+  return screen.getByRole('group', { name: 'Source' });
+}
+
+describe('AdsResearchPageClient', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    savedAdsState.savedAds = [];
+    remixAvailability.isAvailable = true;
+    useQueryCallIndex = 0;
+    useQueryStates[0].data = resultsState;
+    useQueryStates[0].error = null;
+    useQueryStates[0].isLoading = false;
+    useQueryStates[1].data = adAccountsState;
+    useQueryStates[1].error = null;
+    useQueryStates[1].isLoading = false;
+    useQueryStates[2].data = detailResult;
+    useQueryStates[2].error = null;
+    useQueryStates[2].isLoading = false;
+    createRemixWorkflowMock.mockResolvedValue({
+      adPack: {
+        assetCreativeBrief: 'Workflow creative brief',
+        campaignRecipe: {
+          budgetStrategy: 'Start with a $50 daily validation budget.',
+          channel: 'search',
+          placements: ['Search'],
+          platform: 'google',
+        },
+        cta: 'Book demo',
+        headlines: ['Workflow headline'],
+        primaryText: 'Workflow primary text',
+        targetingNotes: 'Target founders.',
+      },
+      workflowDescription: 'Workflow description',
+      workflowId: 'workflow-1',
+      workflowName: 'Ads remix workflow',
+    });
+    generateAdPackMock.mockResolvedValue({
+      assetCreativeBrief: 'Ad pack creative brief',
+      campaignRecipe: {
+        budgetStrategy: 'Spend carefully.',
+        channel: 'search',
+        placements: ['Search'],
+        platform: 'google',
+      },
+      cta: 'Start now',
+      headlines: ['Ad pack headline'],
+      primaryText: 'Ad pack primary text',
+      targetingNotes: 'Target operators.',
+    });
+    prepareCampaignForReviewMock.mockResolvedValue({
+      ad: { name: 'Launch ad' },
+      adPack: {
+        assetCreativeBrief: 'Launch creative brief',
+        campaignRecipe: {
+          budgetStrategy: 'Launch with a constrained test budget.',
+          channel: 'search',
+          placements: ['Search'],
+          platform: 'google',
+        },
+        cta: 'Launch',
+        headlines: ['Launch headline'],
+        primaryText: 'Launch primary text',
+        targetingNotes: 'Target high-intent searches.',
+      },
+      adSet: { name: 'Launch ad set', optimizationGoal: 'Conversions' },
+      campaign: { name: 'Launch campaign', objective: 'Conversions' },
+      notes: ['Review creative before publishing.'],
+      publishMode: 'paused',
+      workflowId: 'workflow-launch',
+      workflowName: 'Launch workflow',
+    });
+    getAdsResearchServiceMock.mockResolvedValue({
+      createRemixWorkflow: createRemixWorkflowMock,
+      generateAdPack: generateAdPackMock,
+      prepareCampaignForReview: prepareCampaignForReviewMock,
+    });
+    useBrandMock.mockReturnValue({
+      brandId: 'brand-1',
+      credentials: [
+        {
+          externalHandle: 'Google Ads',
+          id: 'cred-google',
+          isConnected: true,
+          platform: 'google',
+        },
+        {
+          externalHandle: 'Meta Ads',
+          id: 'cred-meta',
+          isConnected: true,
+          platform: 'meta',
+        },
+      ],
+      isBrandScopeResolved: true,
+      isReady: true,
+      selectedBrand: { label: 'Moonrise Studio' },
+    });
+  });
+
+  it('refreshes the ads results after a watchlist poll', () => {
+    useQueryStates[0].refetch.mockClear();
+
+    render(<AdsResearchPageClient />);
+    watchlistHook.onPolled?.();
+
+    expect(useQueryStates[0].refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('filters ads, opens detail sidebar, and exposes remix and planning actions', () => {
+    useQueryStates[0].refetch.mockClear();
+    useQueryStates[1].refetch.mockClear();
+    useQueryStates[2].refetch.mockClear();
+
+    const { container } = render(<AdsResearchPageClient />);
+
+    expect(screen.getByRole('heading', { name: 'Ads' })).toBeInTheDocument();
+    // Launch policy is a footnote when credentials exist — not a second alert.
+    expect(
+      screen.getByText(/No external campaign objects are created/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Launch policy')).not.toBeInTheDocument();
+    expect(screen.queryByText('Review Policy')).not.toBeInTheDocument();
+    expect(screen.getByTestId('filter-menu')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search ads')).toBeInTheDocument();
+    expect(screen.getByText('Meta hook story')).toBeInTheDocument();
+    expect(screen.getByText('Google lead gen winner')).toBeInTheDocument();
+
+    expect(screen.getByRole('group', { name: 'Metric' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('group', { name: 'Timeframe' }),
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByPlaceholderText('Search ads'), {
+      target: { value: 'google' },
+    });
+
+    expect(screen.queryByText('Meta hook story')).not.toBeInTheDocument();
+    expect(screen.getByText('Google lead gen winner')).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /^Select Google lead gen winner for research context$/i,
+      }),
+    );
+
+    expect(
+      screen.getByRole('heading', { name: 'Ad detail' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Google lead gen detail')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /close detail/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /remix for my brand/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /create workflow/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /build launch plan/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /open landing page/i }),
+    ).toHaveAttribute('href', 'https://example.com/landing');
+    expect(screen.queryByText('Workflow Created')).not.toBeInTheDocument();
+    expect(container).toBeInTheDocument();
+  });
+
+  it('switches to table mode, refreshes, and runs remix workflow actions', async () => {
+    render(<AdsResearchPageClient />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Table view' }));
+    expect(screen.getByText('Platform')).toBeInTheDocument();
+    expect(screen.getByText('Title')).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sort: CTR (High → Low)' }),
+    );
+    expect(screen.getByText('2.40')).toBeInTheDocument();
+
+    const refreshButton = screen.getByRole('button', { name: 'Refresh' });
+    // Refresh is passed through the Container `refresh` slot; the filters sit
+    // inside the search field in the leading slot.
+    expect(screen.getByTestId('container-refresh')).toContainElement(
+      refreshButton,
+    );
+    const searchField = screen.getByPlaceholderText('Search ads').closest('div')
+      ?.parentElement as HTMLElement;
+    expect(searchField).toContainElement(screen.getByTestId('filter-menu'));
+    fireEvent.click(refreshButton);
+    expect(useQueryStates[0].refetch).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByText('Google lead gen winner'));
+    fireEvent.click(screen.getByRole('button', { name: /create workflow/i }));
+
+    expect(await screen.findByText('Workflow Created')).toBeInTheDocument();
+    expect(screen.getByText('Ads remix workflow')).toBeInTheDocument();
+    expect(createRemixWorkflowMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        adId: 'source-google-1',
+        brandName: 'Moonrise Studio',
+        source: 'my_accounts',
+      }),
+    );
+    expect(
+      screen.getByRole('link', { name: /open workflow editor/i }),
+    ).toHaveAttribute(
+      'href',
+      '/moonrise-org/moonrise-studio/automation/workflows/workflow-1',
+    );
+  });
+
+  it('keeps table save controls from bubbling keyboard selection to the row', () => {
+    render(<AdsResearchPageClient />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Table view' }));
+    fireEvent.keyDown(
+      screen.getByRole('button', { name: 'Save Google lead gen winner' }),
+      { key: 'Enter' },
+    );
+
+    expect(
+      screen.queryByRole('heading', { name: 'Ad detail' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('opens a typed prefilled brief and a non-publishing launch plan for selected connected ads', async () => {
+    render(<AdsResearchPageClient />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Platform: Google + YouTube' }),
+    );
+    expect(
+      screen.getByRole('group', { name: 'Google channel' }),
+    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('MCC / manager ID')).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /^Select Google lead gen winner for research context$/i,
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: /remix for my brand/i }),
+    );
+
+    expect(openRemixMock).toHaveBeenCalledWith({
+      adAccountId: 'acct-google-1',
+      adId: 'source-google-1',
+      channel: 'search',
+      credentialId: 'cred-google',
+      kind: 'connected_ad',
+      loginCustomerId: 'mcc-111',
+      platform: 'google',
+    });
+    expect(generateAdPackMock).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: /build launch plan/i }));
+
+    expect(await screen.findByText('Launch Plan Ready')).toBeInTheDocument();
+    expect(
+      screen.getByText('No external ad objects were created'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Launch campaign')).toBeInTheDocument();
+    expect(
+      screen.getByText('Review creative before publishing.'),
+    ).toBeInTheDocument();
+    expect(prepareCampaignForReviewMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        campaignName: 'Moonrise Studio Google Campaign',
+        createWorkflow: true,
+        dailyBudget: 50,
+      }),
+    );
+    expect(
+      screen.getByRole('link', { name: /open linked workflow/i }),
+    ).toHaveAttribute(
+      'href',
+      '/moonrise-org/moonrise-studio/automation/workflows/workflow-launch',
+    );
+  });
+
+  it('opens a public ad remix from its performance record id', () => {
+    render(<AdsResearchPageClient />);
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /^Select Meta hook story for research context$/i,
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: /remix for my brand/i }),
+    );
+
+    expect(openRemixMock).toHaveBeenCalledWith({
+      adPerformanceId: 'public-1',
+      kind: 'public_ad',
+    });
+  });
+
+  it('saves from a card and remixes a saved match by durable snapshot id', () => {
+    const { rerender } = render(<AdsResearchPageClient />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Save Meta hook story' }),
+    );
+    expect(saveSavedAdsMock).toHaveBeenCalledWith([
+      expect.objectContaining({
+        adId: 'public-1',
+        brandId: 'brand-1',
+        source: 'public',
+      }),
+    ]);
+
+    savedAdsState.savedAds = [
+      {
+        brandId: 'brand-1',
+        capturedAt: '2026-08-30T10:00:00.000Z',
+        channel: 'all',
+        createdAt: '2026-08-30T10:00:00.000Z',
+        explanation: 'Saved evidence',
+        id: 'saved-1',
+        imageUrls: ['https://files.example/copied.jpg'],
+        isDeleted: false,
+        metrics: {},
+        organizationId: 'org-1',
+        patternSummary: [],
+        platform: 'meta',
+        source: 'public',
+        sourceAdId: 'public-1',
+        sourceRecordId: 'public-1',
+        title: 'Meta hook story',
+        updatedAt: '2026-08-30T10:00:00.000Z',
+        usagePolicy: 'remix_allowed',
+        userId: 'opaque-user',
+        videoUrls: [],
+      },
+    ];
+    rerender(<AdsResearchPageClient />);
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /^Select Meta hook story for research context$/i,
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: /remix for my brand/i }),
+    );
+
+    expect(openRemixMock).toHaveBeenCalledWith({
+      kind: 'saved_ad',
+      savedAdId: 'saved-1',
+    });
+  });
+
+  it('keeps live detail open after unsaving a matched snapshot', async () => {
+    savedAdsState.savedAds = [
+      {
+        brandId: 'brand-1',
+        capturedAt: '2026-08-30T10:00:00.000Z',
+        channel: 'all',
+        createdAt: '2026-08-30T10:00:00.000Z',
+        explanation: 'Saved evidence',
+        id: 'saved-1',
+        imageUrls: [],
+        isDeleted: false,
+        metrics: {},
+        organizationId: 'org-1',
+        patternSummary: [],
+        platform: 'meta',
+        source: 'public',
+        sourceAdId: 'public-1',
+        title: 'Meta hook story',
+        updatedAt: '2026-08-30T10:00:00.000Z',
+        usagePolicy: 'remix_allowed',
+        userId: 'opaque-user',
+        videoUrls: [],
+      },
+    ];
+    render(<AdsResearchPageClient />);
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /^Select Meta hook story for research context$/i,
+      }),
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Unsave from swipe file' }),
+    );
+
+    expect(unsaveSavedAdsMock).toHaveBeenCalledWith([
+      expect.objectContaining({ id: 'saved-1' }),
+    ]);
+    expect(
+      screen.getByRole('heading', { name: 'Ad detail' }),
+    ).toBeInTheDocument();
+  });
+
+  it('catches a rejected save mutation inside the detail surface', async () => {
+    saveSavedAdsMock.mockRejectedValueOnce(new Error('save failed'));
+    render(<AdsResearchPageClient />);
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /^Select Meta hook story for research context$/i,
+      }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save to swipe file' }));
+
+    expect(await screen.findByText('save failed')).toBeInTheDocument();
+  });
+
+  it('does not submit an empty save for a stale saved identifier', () => {
+    useQueryStates[0].data = {
+      ...resultsState,
+      publicAds: [{ ...publicAd, savedAdId: 'stale-saved-id' }],
+    };
+    render(<AdsResearchPageClient />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Unsave Meta hook story' }),
+    );
+
+    expect(saveSavedAdsMock).not.toHaveBeenCalled();
+    expect(unsaveSavedAdsMock).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(
+        'This saved snapshot is no longer available. Refresh and try again.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('clears an unsaved note draft when the selected snapshot changes', () => {
+    const firstDetail: AdsResearchDetail = {
+      channel: 'all',
+      creative: {},
+      explanation: 'Saved evidence',
+      id: 'source-1',
+      metrics: {},
+      platform: 'meta',
+      savedAdId: 'saved-1',
+      source: 'public',
+      sourceId: 'source-1',
+      title: 'Saved A',
+      usagePolicy: 'remix_allowed',
+    };
+    const sharedProps = {
+      actionError: null,
+      adPackResult: null,
+      brandLabel: 'Moonrise',
+      busyAction: null,
+      detailLoading: false,
+      href: (path: string) => path,
+      launchPrepResult: null,
+      onOpenRemix: vi.fn(),
+      onRunAction: vi.fn(),
+      onToggleSaved: vi.fn(),
+      onUpdateSavedNote: updateSavedNotesMock,
+      savedMutating: false,
+      workflowResult: null,
+    };
+    const { rerender } = render(
+      <DetailSidebar
+        {...sharedProps}
+        detail={firstDetail}
+        selectedAd={{
+          id: 'source-1',
+          platform: 'meta',
+          savedAdId: 'saved-1',
+          source: 'public',
+        }}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText('Brand note'), {
+      target: { value: 'Draft for A' },
+    });
+    expect(screen.getByLabelText('Brand note')).toHaveValue('Draft for A');
+
+    rerender(
+      <DetailSidebar
+        {...sharedProps}
+        detail={{
+          ...firstDetail,
+          id: 'source-2',
+          savedAdId: 'saved-2',
+          sourceId: 'source-2',
+          title: 'Saved B',
+        }}
+        selectedAd={{
+          id: 'source-2',
+          platform: 'meta',
+          savedAdId: 'saved-2',
+          source: 'public',
+        }}
+      />,
+    );
+
+    expect(screen.getByLabelText('Brand note')).toHaveValue('');
+  });
+
+  it('inherits selected account scope when a connected result omits it', () => {
+    expect(
+      buildSaveAdInput(
+        {
+          ...connectedAd,
+          adAccountId: undefined,
+          credentialId: undefined,
+          loginCustomerId: undefined,
+        },
+        {
+          adAccountId: 'acct-filtered',
+          brandId: 'brand-1',
+          credentialId: 'cred-filtered',
+          loginCustomerId: 'mcc-filtered',
+        },
+      ),
+    ).toEqual({
+      adAccountId: 'acct-filtered',
+      adId: 'source-google-1',
+      brandId: 'brand-1',
+      channel: 'search',
+      credentialId: 'cred-filtered',
+      loginCustomerId: 'mcc-filtered',
+      platform: 'google',
+      source: 'my_accounts',
+    });
+  });
+
+  it('does not join a saved snapshot to a different research ad', () => {
+    savedAdsState.savedAds = [
+      {
+        brandId: 'brand-1',
+        capturedAt: '2026-08-30T10:00:00.000Z',
+        channel: 'all',
+        createdAt: '2026-08-30T10:00:00.000Z',
+        explanation: 'Different saved ad',
+        id: 'saved-other',
+        imageUrls: [],
+        isDeleted: false,
+        metrics: {},
+        organizationId: 'org-1',
+        patternSummary: [],
+        platform: 'meta',
+        source: 'public',
+        sourceAdId: 'public-other',
+        title: 'Different saved ad',
+        updatedAt: '2026-08-30T10:00:00.000Z',
+        usagePolicy: 'remix_allowed',
+        userId: 'opaque-user',
+        videoUrls: [],
+      },
+    ];
+
+    render(<AdsResearchPageClient />);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Save Meta hook story' }),
+    );
+
+    expect(saveSavedAdsMock).toHaveBeenCalledWith([
+      expect.objectContaining({ adId: 'public-1' }),
+    ]);
+    expect(unsaveSavedAdsMock).not.toHaveBeenCalled();
+  });
+
+  it('shows an unavailable error when the remix provider is missing', () => {
+    remixAvailability.isAvailable = false;
+    render(<AdsResearchPageClient />);
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /^Select Meta hook story for research context$/i,
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: /remix for my brand/i }),
+    );
+
+    expect(openRemixMock).not.toHaveBeenCalled();
+    expect(
+      screen.getByText('The on-brand remix workflow is unavailable here.'),
+    ).toBeVisible();
+  });
+
+  it('shows empty, loading, error, and action failure states', async () => {
+    // Credentials present, list empty → filter empty (not setup CTA).
+    useQueryStates[0].data = {
+      ...resultsState,
+      connectedAds: [],
+      publicAds: [],
+      summary: {
+        ...resultsState.summary,
+        connectedCount: 0,
+        publicCount: 0,
+      },
+    };
+    useQueryStates[0].error = new Error('research unavailable');
+    useQueryStates[1].error = new Error('accounts unavailable');
+    useQueryStates[2].error = new Error('detail unavailable');
+    useQueryStates[2].isLoading = true;
+
+    const { rerender } = render(<AdsResearchPageClient />);
+
+    expect(screen.getAllByRole('alert')[0]).toHaveTextContent(
+      'detail unavailable',
+    );
+    expect(
+      screen.getByText(
+        'No ads match the current filters. Adjust filters or widen the timeframe.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Connect Meta, Google/YouTube, TikTok, or X Ads'),
+    ).not.toBeInTheDocument();
+
+    useQueryCallIndex = 0;
+    useQueryStates[0].isLoading = true;
+    rerender(<AdsResearchPageClient />);
+    expect(
+      screen.queryByText(
+        'No ads match the current filters. Adjust filters or widen the timeframe.',
+      ),
+    ).not.toBeInTheDocument();
+
+    useQueryCallIndex = 0;
+    useQueryStates[0].data = resultsState;
+    useQueryStates[0].error = null;
+    useQueryStates[0].isLoading = false;
+    useQueryStates[1].error = null;
+    useQueryStates[2].data = null;
+    useQueryStates[2].error = null;
+    useQueryStates[2].isLoading = true;
+    createRemixWorkflowMock.mockRejectedValueOnce(new Error('workflow failed'));
+    rerender(<AdsResearchPageClient />);
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /^Select Google lead gen winner for research context$/i,
+      }),
+    );
+    expect(screen.getByText('Loading ad detail…')).toBeInTheDocument();
+
+    useQueryCallIndex = 0;
+    useQueryStates[2].data = detailResult;
+    useQueryStates[2].isLoading = false;
+    rerender(<AdsResearchPageClient />);
+    fireEvent.click(screen.getByRole('button', { name: /create workflow/i }));
+
+    expect(await screen.findByText('workflow failed')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /close detail/i }));
+    expect(screen.queryByRole('heading', { name: 'Ad detail' })).toBeNull();
+  });
+
+  it('shows an unavailable detail state after a selected ad disappears', () => {
+    useQueryStates[2].data = null;
+    useQueryStates[2].isLoading = false;
+    render(<AdsResearchPageClient />);
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /^Select Meta hook story for research context$/i,
+      }),
+    );
+
+    expect(
+      screen.getByText('This ad is no longer available.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Loading ad detail…')).not.toBeInTheDocument();
+  });
+
+  it('keeps competitor research available without credentials or ads', () => {
+    useBrandMock.mockReturnValue({
+      brandId: 'brand-1',
+      credentials: [],
+      isBrandScopeResolved: true,
+      isReady: true,
+      selectedBrand: { label: 'Moonrise Studio' },
+    });
+    useQueryStates[0].data = {
+      ...resultsState,
+      connectedAds: [],
+      publicAds: [],
+      summary: { ...resultsState.summary, connectedCount: 0, publicCount: 0 },
+    };
+
+    render(<AdsResearchPageClient />);
+
+    expect(screen.getByPlaceholderText('Search ads')).toBeInTheDocument();
+    expect(screen.getByTestId('container-refresh')).toContainElement(
+      screen.getByRole('button', { name: 'Refresh' }),
+    );
+    expect(
+      screen.getByRole('button', { name: 'Platform: Meta' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Competitors' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Watched competitors')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Watch competitor' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Manage ad connections' }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Competitors' }));
+    expect(screen.queryByText('Watched competitors')).not.toBeInTheDocument();
+    fireEvent.click(
+      within(getSourceSelect()).getByRole('button', { name: 'Source: Public' }),
+    );
+    expect(
+      screen.queryByRole('link', { name: 'Manage ad connections' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows zero owned ads for a connected account without requesting reconnection', () => {
+    useQueryStates[0].data = {
+      ...resultsState,
+      connectedAds: [],
+      publicAds: [],
+      summary: { ...resultsState.summary, connectedCount: 0, publicCount: 0 },
+    };
+
+    render(<AdsResearchPageClient />);
+    fireEvent.click(
+      within(getSourceSelect()).getByRole('button', {
+        name: 'Source: My Accounts',
+      }),
+    );
+
+    expect(
+      within(getSourceSelect()).getByRole('button', {
+        name: 'Source: My Accounts',
+      }),
+    ).toHaveAttribute('data-count', '0');
+    expect(
+      screen.getByText(
+        'No ads match the current filters. Adjust filters or widen the timeframe.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Manage ad connections' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Watched competitors')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Competitors' }),
+    ).toBeInTheDocument();
+  });
+
+  it('offers connection only for owned ads and excludes disconnected or deleted credentials', () => {
+    useBrandMock.mockReturnValue({
+      brandId: 'brand-1',
+      credentials: [
+        {
+          externalHandle: 'Disconnected Meta',
+          id: 'cred-disconnected',
+          isConnected: false,
+          platform: 'facebook',
+        },
+        {
+          externalHandle: 'Deleted Google',
+          id: 'cred-deleted',
+          isConnected: true,
+          isDeleted: true,
+          platform: 'google_ads',
+        },
+      ],
+      isBrandScopeResolved: true,
+      isReady: true,
+      selectedBrand: { label: 'Moonrise Studio' },
+    });
+    useQueryStates[0].data = {
+      ...resultsState,
+      connectedAds: [],
+      publicAds: [],
+      summary: { ...resultsState.summary, connectedCount: 0, publicCount: 0 },
+    };
+
+    render(<AdsResearchPageClient />);
+    expect(screen.queryByText('Disconnected Meta')).not.toBeInTheDocument();
+    expect(screen.queryByText('Deleted Google')).not.toBeInTheDocument();
+    fireEvent.click(
+      within(getSourceSelect()).getByRole('button', {
+        name: 'Source: My Accounts',
+      }),
+    );
+
+    expect(
+      screen.getByRole('link', { name: 'Manage ad connections' }),
+    ).toHaveAttribute(
+      'href',
+      '/moonrise-org/moonrise-studio/settings/connected-accounts',
+    );
+    expect(
+      screen.getByRole('button', { name: 'Competitors' }),
+    ).toBeInTheDocument();
+  });
+
+  it.each([
+    {
+      credentialsLoading: true,
+      credentialsError: null,
+      isReady: true,
+      isBrandScopeResolved: true,
+    },
+    {
+      credentialsLoading: false,
+      credentialsError: null,
+      isReady: false,
+      isBrandScopeResolved: false,
+    },
+    {
+      credentialsLoading: false,
+      credentialsError: new Error('Connections unavailable'),
+      isBrandScopeResolved: true,
+      isReady: true,
+    },
+  ])(
+    'does not mistake unresolved connections for a disconnected account: %o',
+    (state) => {
+      useBrandMock.mockReturnValue({
+        brandId: 'brand-1',
+        credentials: [],
+        ...state,
+        selectedBrand: { label: 'Moonrise Studio' },
+      });
+      render(<AdsResearchPageClient />);
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      fireEvent.click(
+        within(getSourceSelect()).getByRole('button', {
+          name: 'Source: My Accounts',
+        }),
+      );
+      expect(
+        screen.queryByRole('link', { name: 'Manage ad connections' }),
+      ).not.toBeInTheDocument();
+      if (state.credentialsError) {
+        expect(screen.getByRole('alert')).toHaveTextContent(
+          'Connections unavailable',
+        );
+      }
+    },
+  );
+
+  it('clears account filters when a selected credential is disconnected', () => {
+    const { result, rerender } = renderHook(() => useAdsResearchPageClient());
+    act(() => result.current.setCredentialId('cred-google'));
+    act(() => {
+      result.current.setAdAccountId('acct-google-1');
+      result.current.setLoginCustomerId('mcc-111');
+    });
+    expect(result.current.credentialId).toBe('cred-google');
+
+    useBrandMock.mockReturnValue({
+      brandId: 'brand-1',
+      credentials: [
+        { id: 'cred-google', isConnected: false, platform: 'google' },
+      ],
+      isBrandScopeResolved: true,
+      isReady: true,
+      selectedBrand: { label: 'Moonrise Studio' },
+    });
+    rerender();
+
+    expect(result.current.credentialId).toBe('');
+    expect(result.current.adAccountId).toBe('');
+    expect(result.current.loginCustomerId).toBe('');
+  });
+
+  it('keeps public ads visible without prompting for an owned account', () => {
+    useBrandMock.mockReturnValue({
+      brandId: 'brand-1',
+      credentials: [],
+      isBrandScopeResolved: true,
+      isReady: true,
+      selectedBrand: { label: 'Moonrise Studio' },
+    });
+    useQueryStates[0].data = {
+      ...resultsState,
+      connectedAds: [],
+      summary: { ...resultsState.summary, connectedCount: 0 },
+    };
+
+    render(<AdsResearchPageClient />);
+
+    expect(screen.getByText('Meta hook story')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search ads')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Manage ad connections' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('ranks archive creatives by how long they have been running', () => {
+    const { container } = render(<AdsResearchPageClient />);
+
+    const readTitles = () =>
+      Array.from(container.querySelectorAll('h3')).map(
+        (heading) => heading.textContent,
+      );
+
+    // Default sort is performance score, where the connected ad (99) beats
+    // the archive row (96) because archives publish no score at all.
+    expect(readTitles()).toEqual(['Google lead gen winner', 'Meta hook story']);
+    expect(screen.getByText('120d live')).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sort: Longest running' }),
+    );
+
+    expect(readTitles()).toEqual(['Meta hook story', 'Google lead gen winner']);
+  });
+
+  it('opens the competitor watchlist from the Ads toolbar (#3537)', () => {
+    render(<AdsResearchPageClient />);
+
+    expect(screen.queryByText('Watched competitors')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Competitors' }));
+
+    expect(screen.getByText('Watched competitors')).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText('Advertiser handle or page name'),
+    ).toBeInTheDocument();
+  });
+});

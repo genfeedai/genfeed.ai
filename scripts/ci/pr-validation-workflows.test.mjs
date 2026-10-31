@@ -665,7 +665,7 @@ test('reports curated action catalog changes on catalog pull requests', () => {
 test('runs desktop QA weekly and for release callers', () => {
   const workflow = readWorkflow('desktop-qa.yml');
 
-  // The desktop shell boots the apps/app bundle, so an honest PR path filter
+  // The desktop shell boots the apps/web bundle, so an honest PR path filter
   // matched effectively every frontend PR — each paying a ~30 min
   // macos-latest run while the desktop surface is dormant. Weekly QA bounds
   // drift while dormant; the release path keeps its mandatory run via

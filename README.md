@@ -236,12 +236,13 @@ MCP runtimes into one container and embeds Redis.
 
 ```text
 apps/
-  app/                    Next.js product UI
+  web/                    Next.js product UI (app.genfeed.ai)
+  marketing/              Next.js marketing site (genfeed.ai)
+  docs/                   Documentation site
   server/                 NestJS services and shared server library
-  desktop/app/            Electron client (macOS-first release path)
-  mobile/app/             Expo/React Native client source
-  extensions/browser/app/ Chrome extension source
-  extensions/ide/app/     VS Code extension source
+  desktop/                Electron client (macOS-first release path)
+  mobile/                 Expo/React Native client
+  extension/              Chrome extension
 packages/                 Shared @genfeedai/* packages
 docker/                   Community and hosted image definitions
 ```
@@ -287,7 +288,7 @@ bun run env:sync local
 docker compose -f docker/local/docker-compose.yml up -d postgres redis
 bun run dev:setup                  # once per machine
 bun run dev:backend:min            # then, in a second terminal:
-bun run dev:app                    # → https://app.genfeed.localhost/
+bun run dev:web                    # → https://app.genfeed.localhost/
 ```
 
 Portless HTTPS is the default contributor dev path. Fixed-port `dev:debug*`

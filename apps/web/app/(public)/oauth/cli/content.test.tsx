@@ -1,0 +1,622 @@
+// @vitest-environment jsdom
+
+import '@testing-library/jest-dom/vitest';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import { type ReactNode, StrictMode } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import CliAuthPage from './page';
+
+const useAuthMock = vi.fn();
+const useUserMock = vi.fn();
+const useSearchParamsMock = vi.fn();
+const resolveAuthTokenMock = vi.fn();
+const redirectToCallbackMock = vi.fn();
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => useAuthMock(),
+}));
+
+vi.mock('@hooks/auth/use-auth-user/use-auth-user', () => ({
+  useAuthUser: () => useUserMock(),
+}));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
+vi.mock('@helpers/auth/auth.helper', () => ({
+  resolveAuthToken: (...args: unknown[]) => resolveAuthTokenMock(...args),
+}));
+
+vi.mock('@services/core/environment.service', () => ({
+  EnvironmentService: {
+    apiEndpoint: 'https://api.genfeed.ai/v1',
+  },
+}));
+
+vi.mock('./callback-redirect', () => ({
+  redirectToCallback: (target: string) => redirectToCallbackMock(target),
+}));
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
+  useSearchParams: () => useSearchParamsMock(),
+}));
+
+vi.mock('@/components/layouts/auth/AuthFormLayout', () => ({
+  default: ({ children }: { children: ReactNode }) => (
+    <div data-testid="auth-form-layout">{children}</div>
+  ),
+}));
+
+vi.mock('@ui/primitives/spinner', () => ({
+  default: () => <div data-testid="spinner" />,
+}));
+
+vi.mock('@genfeedai/ui', () => ({
+  Code: ({
+    children,
+    className,
+  }: {
+    children: ReactNode;
+    className?: string;
+  }) => <code className={className}>{children}</code>,
+}));
+
+vi.mock('@ui/primitives/button', () => ({
+  Button: ({
+    children,
+    disabled,
+    onClick,
+  }: {
+    children: ReactNode;
+    disabled?: boolean;
+    onClick?: () => void;
+  }) => (
+    <button disabled={disabled} type="button" onClick={onClick}>
+      {children}
+    </button>
+  ),
+}));
+
+vi.mock('@/components/ui/card', () => ({
+  Card: ({ children }: { children: ReactNode }) => (
+    <div data-testid="card">{children}</div>
+  ),
+  CardContent: ({ children }: { children: ReactNode }) => (
+    <div data-testid="card-content">{children}</div>
+  ),
+}));
+
+describe('CliAuthPage', () => {
+  const originalFetch = globalThis.fetch;
+  const originalClipboard = navigator.clipboard;
+
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    redirectToCallbackMock.mockReset();
+    resolveAuthTokenMock.mockReset();
+    useSearchParamsMock.mockReset();
+    useAuthMock.mockReset();
+    useUserMock.mockReset();
+    globalThis.fetch = originalFetch;
+
+    useSearchParamsMock.mockReturnValue(
+      new URLSearchParams(
+        'desktop=1&return_to=genfeedai-desktop://auth&code_challenge=desktop-challenge&code_challenge_method=S256&state=desktop-state',
+      ),
+    );
+    useAuthMock.mockReturnValue({
+      getToken: vi.fn(),
+      isLoaded: true,
+      isSignedIn: true,
+    });
+    useUserMock.mockReturnValue({
+      user: {
+        firstName: 'Desktop',
+        id: 'user-123',
+        lastName: 'User',
+        primaryEmailAddress: {
+          emailAddress: 'desktop@example.com',
+        },
+      },
+    });
+    resolveAuthTokenMock.mockResolvedValue('better-auth-session-token');
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: vi.fn().mockResolvedValue(undefined),
+      },
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+    globalThis.fetch = originalFetch;
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: originalClipboard,
+    });
+  });
+
+  it('renders a Better Auth sign-in handoff with a port-preserving redirect', async () => {
+    useSearchParamsMock.mockReturnValue(new URLSearchParams('port=4321'));
+    useAuthMock.mockReturnValue({
+      getToken: vi.fn(),
+      isLoaded: true,
+      isSignedIn: false,
+    });
+
+    render(<CliAuthPage />);
+
+    const signInLink = await screen.findByRole('link', {
+      name: 'Sign in to continue',
+    });
+    expect(signInLink).toHaveAttribute(
+      'href',
+      '/login?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321',
+    );
+  });
+
+  it('renders an account-creation handoff for CLI signup intent', async () => {
+    useSearchParamsMock.mockReturnValue(
+      new URLSearchParams('port=4321&intent=signup'),
+    );
+    useAuthMock.mockReturnValue({
+      getToken: vi.fn(),
+      isLoaded: true,
+      isSignedIn: false,
+    });
+
+    render(<CliAuthPage />);
+
+    const signUpLink = await screen.findByRole('link', {
+      name: 'Create account to continue',
+    });
+    expect(signUpLink).toHaveAttribute(
+      'href',
+      '/sign-up?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321%26intent%3Dsignup',
+    );
+  });
+
+  it('validates the required localhost callback port', async () => {
+    useSearchParamsMock.mockReturnValue(new URLSearchParams('port=bad'));
+
+    render(<CliAuthPage />);
+
+    expect(
+      await screen.findByText('Authentication failed'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Invalid port "bad". Port must be a number between 1024 and 65535.',
+      ),
+    ).toBeInTheDocument();
+
+    useSearchParamsMock.mockReturnValue(new URLSearchParams());
+    render(<CliAuthPage />);
+
+    expect(
+      await screen.findByText(
+        'Missing port parameter. The CLI should open this page with a ?port= query parameter.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('rejects a CLI that does not send PKCE parameters', async () => {
+    useSearchParamsMock.mockReturnValue(new URLSearchParams('port=4321'));
+    globalThis.fetch = vi.fn() as unknown as typeof fetch;
+
+    render(<CliAuthPage />);
+
+    expect(
+      await screen.findByText(
+        'This CLI version is no longer supported. Update it (`bun add -g @genfeedai/cli`) and run `gf login` again.',
+      ),
+    ).toBeInTheDocument();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect(redirectToCallbackMock).not.toHaveBeenCalled();
+  });
+
+  it('completes CLI PKCE auth through the desktop authorize endpoint', async () => {
+    useSearchParamsMock.mockReturnValue(
+      new URLSearchParams(
+        'port=4321&code_challenge=cli-challenge&code_challenge_method=S256&state=cli-state',
+      ),
+    );
+    globalThis.fetch = vi.fn(async () => {
+      return new Response(JSON.stringify({ code: 'gf_cli_code' }), {
+        headers: { 'content-type': 'application/json' },
+        status: 200,
+      });
+    }) as typeof fetch;
+
+    render(<CliAuthPage />);
+
+    await waitFor(() => {
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        'https://api.genfeed.ai/v1/auth/desktop/authorize',
+        expect.objectContaining({
+          body: JSON.stringify({
+            codeChallenge: 'cli-challenge',
+            codeChallengeMethod: 'S256',
+            state: 'cli-state',
+          }),
+        }),
+      );
+      expect(redirectToCallbackMock).toHaveBeenCalledWith(
+        'http://127.0.0.1:4321/callback?code=gf_cli_code&state=cli-state',
+      );
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(2_100);
+    });
+
+    expect(
+      await screen.findByText('Authentication complete'),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
+
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('gf_cli_code');
+      expect(
+        screen.getByRole('button', { name: 'Copied' }),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('shows formatted server and token errors', async () => {
+    useSearchParamsMock.mockReturnValue(
+      new URLSearchParams(
+        'port=4321&code_challenge=cli-challenge&code_challenge_method=S256&state=cli-state',
+      ),
+    );
+    resolveAuthTokenMock.mockResolvedValueOnce(null);
+
+    render(<CliAuthPage />);
+
+    expect(
+      await screen.findByText(
+        'Failed to retrieve authentication token. Please try again.',
+      ),
+    ).toBeInTheDocument();
+
+    resolveAuthTokenMock.mockResolvedValue('better-auth-session-token');
+    globalThis.fetch = vi.fn(async () => {
+      return new Response(
+        JSON.stringify({ errors: [{ message: 'Rate limit' }] }),
+        {
+          status: 429,
+        },
+      );
+    }) as typeof fetch;
+
+    render(<CliAuthPage />);
+
+    expect(
+      await screen.findByText(
+        'Too many requests. Please wait a moment and try again.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('handles missing credentials and redirect exceptions', async () => {
+    useSearchParamsMock.mockReturnValue(
+      new URLSearchParams(
+        'port=4321&code_challenge=cli-challenge&code_challenge_method=S256&state=cli-state',
+      ),
+    );
+    globalThis.fetch = vi.fn(async () => {
+      return new Response(JSON.stringify({}), { status: 200 });
+    }) as typeof fetch;
+
+    render(<CliAuthPage />);
+
+    expect(
+      await screen.findByText(
+        'Server did not return an authorization code. Please try again.',
+      ),
+    ).toBeInTheDocument();
+
+    globalThis.fetch = vi.fn(async () => {
+      return new Response(JSON.stringify({ code: 'gf_cli_code' }), {
+        headers: { 'content-type': 'application/json' },
+        status: 200,
+      });
+    }) as typeof fetch;
+    redirectToCallbackMock.mockImplementationOnce(() => {
+      throw new Error('callback blocked');
+    });
+
+    render(<CliAuthPage />);
+
+    expect(await screen.findByText('callback blocked')).toBeInTheDocument();
+  });
+
+  it('shows an explicit error when the desktop callback target is invalid', async () => {
+    useSearchParamsMock.mockReturnValue(
+      new URLSearchParams('desktop=1&return_to=https://evil.example/callback'),
+    );
+
+    render(<CliAuthPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Authentication failed')).toBeInTheDocument();
+    });
+    expect(
+      screen.getByText(
+        'Invalid desktop callback target. Restart sign-in from the Genfeed Desktop app.',
+      ),
+    ).toBeInTheDocument();
+    expect(redirectToCallbackMock).not.toHaveBeenCalled();
+  });
+
+  it('shows the manual code path while the desktop exchange is still pending', async () => {
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith('/auth/desktop/status')) {
+        return new Response(JSON.stringify({ status: 'pending' }), {
+          headers: { 'content-type': 'application/json' },
+          status: 200,
+        });
+      }
+
+      return new Response(JSON.stringify({ code: 'gf_desktop_code' }), {
+        headers: {
+          'content-type': 'application/json',
+        },
+        status: 200,
+      });
+    }) as typeof fetch;
+
+    render(<CliAuthPage />);
+
+    await waitFor(() => {
+      expect(redirectToCallbackMock).toHaveBeenCalledWith(
+        'genfeedai-desktop://auth?code=gf_desktop_code&state=desktop-state&userId=user-123&email=desktop%40example.com&name=Desktop+User',
+      );
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(2_100);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Check the desktop app')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Authentication failed')).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Genfeed Desktop should be open and finishing sign-in. If it did not open, copy the code below and paste it in the app.',
+      ),
+    ).toBeInTheDocument();
+    const codeInput = screen.getByLabelText('Sign-in code');
+    expect(codeInput).toHaveAttribute('readonly');
+    expect(codeInput).toHaveValue('gf_deskt…');
+    expect(
+      screen.queryByDisplayValue('gf_desktop_code'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Copy this code and paste it in the desktop app:'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Try again' }),
+    ).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        'https://api.genfeed.ai/v1/auth/desktop/status',
+        expect.objectContaining({
+          body: JSON.stringify({ state: 'desktop-state' }),
+          method: 'POST',
+        }),
+      );
+    });
+  });
+
+  it('completes once the desktop app has exchanged the code', async () => {
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith('/auth/desktop/status')) {
+        return new Response(JSON.stringify({ status: 'exchanged' }), {
+          headers: { 'content-type': 'application/json' },
+          status: 200,
+        });
+      }
+
+      return new Response(JSON.stringify({ code: 'gf_desktop_code' }), {
+        headers: { 'content-type': 'application/json' },
+        status: 200,
+      });
+    }) as typeof fetch;
+
+    render(<CliAuthPage />);
+
+    await waitFor(() => {
+      expect(redirectToCallbackMock).toHaveBeenCalled();
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(2_600);
+    });
+
+    expect(await screen.findByText('Desktop connected')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'You can close this browser tab and return to the desktop app.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps polling through a same-account session refresh and removes the consumed code', async () => {
+    let exchanged = false;
+    const statusSignals: AbortSignal[] = [];
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, options?: RequestInit) => {
+        if (String(input).endsWith('/auth/desktop/status')) {
+          if (options?.signal) statusSignals.push(options.signal);
+          return new Response(
+            JSON.stringify({ status: exchanged ? 'exchanged' : 'pending' }),
+            { status: 200 },
+          );
+        }
+        return new Response(JSON.stringify({ code: 'gf_desktop_code' }), {
+          status: 200,
+        });
+      },
+    );
+    globalThis.fetch = fetchMock as typeof fetch;
+    const { rerender } = render(<CliAuthPage />);
+    await waitFor(() => expect(redirectToCallbackMock).toHaveBeenCalledOnce());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_100);
+    });
+    expect(statusSignals).toHaveLength(1);
+    useUserMock.mockReturnValue({
+      user: {
+        id: 'user-123',
+        firstName: 'Desktop',
+        lastName: 'User',
+        primaryEmailAddress: { emailAddress: 'desktop@example.com' },
+      },
+    });
+    useAuthMock.mockReturnValue({
+      getToken: vi.fn(),
+      isLoaded: true,
+      isSignedIn: true,
+    });
+    rerender(<CliAuthPage />);
+    expect(statusSignals[0].aborted).toBe(false);
+    exchanged = true;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_000);
+    });
+    expect(await screen.findByText('Desktop connected')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Sign-in code')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'Authorize the Genfeed desktop app to access your account',
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Installed desktop builds open automatically/),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Copy' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Try again' }),
+    ).not.toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.filter(([input]) =>
+        String(input).endsWith('/authorize'),
+      ),
+    ).toHaveLength(1);
+  });
+
+  it('completes the handoff after Strict Mode effect replay', async () => {
+    globalThis.fetch = vi.fn(
+      async (input: RequestInfo | URL) =>
+        new Response(
+          JSON.stringify(
+            String(input).endsWith('/status')
+              ? { status: 'exchanged' }
+              : { code: 'gf_desktop_code' },
+          ),
+          { status: 200 },
+        ),
+    ) as typeof fetch;
+    render(
+      <StrictMode>
+        <CliAuthPage />
+      </StrictMode>,
+    );
+    await waitFor(() => expect(redirectToCallbackMock).toHaveBeenCalledOnce());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_600);
+    });
+    expect(await screen.findByText('Desktop connected')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Sign-in code')).not.toBeInTheDocument();
+  });
+
+  it('cancels polling on sign-out instead of showing a late desktop success', async () => {
+    let statusSignal: AbortSignal | null = null;
+    globalThis.fetch = vi.fn(
+      async (input: RequestInfo | URL, options?: RequestInit) => {
+        if (String(input).endsWith('/status')) {
+          statusSignal = options?.signal ?? null;
+          return new Response(JSON.stringify({ status: 'pending' }), {
+            status: 200,
+          });
+        }
+        return new Response(JSON.stringify({ code: 'gf_desktop_code' }), {
+          status: 200,
+        });
+      },
+    ) as typeof fetch;
+    const { rerender } = render(<CliAuthPage />);
+    await waitFor(() => expect(redirectToCallbackMock).toHaveBeenCalledOnce());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_100);
+    });
+    useAuthMock.mockReturnValue({
+      getToken: vi.fn(),
+      isLoaded: true,
+      isSignedIn: false,
+    });
+    rerender(<CliAuthPage />);
+    expect(statusSignal).toEqual(expect.objectContaining({ aborted: true }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_000);
+    });
+    expect(
+      screen.getByRole('link', { name: 'Sign in to continue' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Desktop connected')).not.toBeInTheDocument();
+  });
+
+  it('fails only when the code expires before the desktop app uses it', async () => {
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith('/auth/desktop/status')) {
+        return new Response(JSON.stringify({ status: 'expired' }), {
+          headers: { 'content-type': 'application/json' },
+          status: 200,
+        });
+      }
+
+      return new Response(JSON.stringify({ code: 'gf_desktop_code' }), {
+        headers: { 'content-type': 'application/json' },
+        status: 200,
+      });
+    }) as typeof fetch;
+
+    render(<CliAuthPage />);
+
+    await waitFor(() => {
+      expect(redirectToCallbackMock).toHaveBeenCalled();
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(2_600);
+    });
+
+    expect(
+      await screen.findByText('Authentication failed'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'The sign-in code expired before the desktop app used it. Try again to get a new code.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Try again' }),
+    ).toBeInTheDocument();
+  });
+});

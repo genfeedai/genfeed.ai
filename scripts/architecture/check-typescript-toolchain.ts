@@ -6,10 +6,10 @@ const TYPESCRIPT_6_VERSION = '6.0.3';
 const TYPESCRIPT_7_ALIAS = 'npm:typescript@7.0.2';
 
 const LEGACY_API_CONSUMERS = new Set([
-  'apps/app/package.json',
-  'apps/desktop/app/package.json',
+  'apps/web/package.json',
+  'apps/desktop/package.json',
   'apps/docs/package.json',
-  'apps/website/package.json',
+  'apps/marketing/package.json',
   'package.json',
   'packages/errors/package.json',
   'packages/harness/package.json',

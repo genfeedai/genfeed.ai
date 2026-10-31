@@ -1,0 +1,208 @@
+'use client';
+
+import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
+import { ButtonVariant, ModalEnum, PageScope } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { ITraining } from '@genfeedai/contracts/interfaces';
+import { hasTrainingAccess } from '@genfeedai/pricing';
+import { openModal } from '@helpers/ui/modal/modal.helper';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import type { ContentProps } from '@props/layout/content.props';
+import { EmptyState } from '@ui/card/EmptyState';
+import CardEmpty from '@ui/card/empty/CardEmpty';
+import Badge from '@ui/display/badge/Badge';
+import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
+import AppTable from '@ui/display/table/Table';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Button } from '@ui/primitives/button';
+import { Cpu, Lock } from 'lucide-react';
+import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { useMemo } from 'react';
+import { LazyModalTraining } from '@/components/lazy/modal/LazyModal';
+import { buildTrainingsTableActions } from './components/TrainingsTableActions';
+import { buildTrainingsTableColumns } from './components/TrainingsTableColumns';
+import { useTrainingsList } from './useTrainingsList';
+
+const TRAINING_UPGRADE_TIER_LABEL = 'Scale';
+
+function getTrainingHref(training: ITraining): string {
+  return `${APP_ROUTES.ADMIN.AUTOMATION.TRAININGS}/${training.id}`;
+}
+
+/**
+ * Trainings list body — table, filters, empty state, edit modal.
+ * Page chrome (title, refresh, create CTA) lives on the route shell
+ * (Models settings layout, admin trainings page), same as ModelsList.
+ */
+export default function TrainingsList({
+  scope = PageScope.ORGANIZATION,
+  onRefreshRegister,
+}: ContentProps & {
+  onRefreshRegister?: (fn: (() => Promise<void>) | null) => void;
+}) {
+  const { orgHref } = useOrgUrl();
+  const rowSidebarT = useTranslations('ui.rowSidebar');
+  const fieldsT = useTranslations('ui.rowSidebar.fields');
+  const trainingT = useTranslations('ui.rowSidebar.training');
+  const { isReady, settings } = useBrand();
+  const selfHostedDeployment = isSelfHostedDeployment();
+  const canTrain =
+    scope === PageScope.SUPERADMIN ||
+    selfHostedDeployment ||
+    hasTrainingAccess(settings?.subscriptionTier);
+
+  const {
+    trainings,
+    isLoading,
+    error,
+    selectedTraining,
+    handleRefresh,
+    handleToggleActive,
+    openTrainingModal,
+    openDeleteConfirmation,
+  } = useTrainingsList({
+    // Skip list fetch on locked free cloud tiers.
+    scope,
+    onRefreshRegister: canTrain ? onRefreshRegister : undefined,
+  });
+
+  const columns = useMemo(
+    () =>
+      buildTrainingsTableColumns({
+        scope,
+        onToggleActive: handleToggleActive,
+      }),
+    [scope, handleToggleActive],
+  );
+
+  const actions = useMemo(
+    () =>
+      buildTrainingsTableActions({
+        onEdit: openTrainingModal,
+        onDelete: openDeleteConfirmation,
+      }),
+    [openTrainingModal, openDeleteConfirmation],
+  );
+
+  const rowSidebar = useMemo(
+    () =>
+      createSummaryRowSidebar<ITraining>({
+        getBadges: (training) =>
+          training.status ? <Badge status={training.status} /> : null,
+        getFacts: (training) => [
+          {
+            id: 'trigger',
+            label: trainingT('triggerWord'),
+            value: training.trigger,
+          },
+          {
+            id: 'model',
+            label: trainingT('baseModel'),
+            value: training.model,
+          },
+          {
+            id: 'provider',
+            label: fieldsT('provider'),
+            value: training.provider,
+          },
+          { id: 'steps', label: trainingT('steps'), value: training.steps },
+          {
+            id: 'sources',
+            label: trainingT('sources'),
+            value: training.totalSources,
+          },
+          {
+            id: 'generated',
+            label: trainingT('generatedImages'),
+            value: training.totalGeneratedImages,
+          },
+          {
+            id: 'active',
+            label: fieldsT('active'),
+            value:
+              training.isActive === false
+                ? rowSidebarT('no')
+                : rowSidebarT('yes'),
+          },
+        ],
+        getId: (training) => training.id,
+        getOpenHref:
+          scope === PageScope.SUPERADMIN ? getTrainingHref : undefined,
+        getSubtitle: (training) => training.externalId,
+        getTitle: (training) => training.label,
+        kind: 'model',
+        onEdit: openTrainingModal,
+      }),
+    [openTrainingModal, scope, rowSidebarT, fieldsT, trainingT],
+  );
+
+  if (isReady && scope !== PageScope.SUPERADMIN && !canTrain) {
+    return (
+      <CardEmpty
+        actions={
+          <Button asChild variant={ButtonVariant.DEFAULT} withWrapper={false}>
+            <Link href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}>
+              Upgrade to {TRAINING_UPGRADE_TIER_LABEL}
+            </Link>
+          </Button>
+        }
+        icon={Lock}
+        label={`Unlock trainings with ${TRAINING_UPGRADE_TIER_LABEL}`}
+      />
+    );
+  }
+
+  return (
+    <>
+      <AppTable<ITraining>
+        error={
+          error
+            ? {
+                title: 'Failed to load trainings',
+                description: error,
+                onRetry: () => handleRefresh(),
+              }
+            : undefined
+        }
+        items={trainings}
+        columns={columns}
+        actions={actions}
+        getRowKey={(training) => training.id}
+        getRowLink={
+          scope === PageScope.SUPERADMIN
+            ? (training) => ({
+                href: getTrainingHref(training),
+                label: rowSidebarT('openNamed', { name: training.label }),
+              })
+            : undefined
+        }
+        rowSidebar={rowSidebar}
+        isLoading={isLoading}
+        emptyLabel="No trainings found"
+        emptyState={
+          scope !== PageScope.SUPERADMIN ? (
+            <EmptyState
+              title="No trainings yet"
+              icon={Cpu}
+              action={{
+                label: 'Create Training',
+                onClick: () => openModal(ModalEnum.TRAINING_UPLOAD),
+              }}
+            />
+          ) : undefined
+        }
+      />
+
+      <div className="mt-4">
+        <AutoPagination showTotal totalLabel="trainings" />
+      </div>
+
+      <LazyModalTraining
+        training={selectedTraining}
+        onSuccess={() => handleRefresh()}
+      />
+    </>
+  );
+}

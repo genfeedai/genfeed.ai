@@ -23,7 +23,7 @@ Make worktree-aware Portless HTTPS routes the only default interactive local-dev
 ## Interfaces
 
 - `scripts/dev/setup-portless.ts`, `scripts/dev/run-portless.ts`, `scripts/dev/portless-env.ts`, and the direct-runtime environment adapter.
-- Root `dev*`, `dev:backend*`, `dev:app`, and explicit `dev:debug:*` commands.
+- Root `dev*`, `dev:backend*`, `dev:web`, and explicit `dev:debug:*` commands.
 - Root `.env.local` and generated app/service env files as canonical service-origin configuration.
 - Next.js `NEXT_PUBLIC_*` values.
 - Browser extension `PLASMO_PUBLIC_*` values.

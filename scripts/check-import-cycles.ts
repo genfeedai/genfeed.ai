@@ -14,7 +14,7 @@ const ROOT_TSCONFIG = path.join(ROOT_DIR, 'tsconfig.json');
 const BASELINE_FILE = path.join(ROOT_DIR, 'scripts/import-cycle-baseline.json');
 // Generated clients (Prisma, OpenAPI types) have intentional internal cycles.
 const EXCLUDE_REGEX = String.raw`(^|/)(node_modules|dist|coverage|public|docs|e2e|__tests__|__mocks__|\.next|generated)(/|$)|\.(spec|test)\.[jt]sx?$|\.d\.ts$`;
-const WORKSPACE_GLOBS = ['packages/*', 'apps/server/*', 'apps/app/*'];
+const WORKSPACE_GLOBS = ['packages/*', 'apps/server/*', 'apps/web/*'];
 // Type-only interface barrels produce noisy Madge cycles with no runtime edge.
 // The tree sits inside the scanned contracts workspace, so it is matched per
 // cycle rather than per workspace.
@@ -219,7 +219,7 @@ function expandWorkspacePattern(pattern: string): string[] {
 function discoverWorkspaceRoots(): string[] {
   const excludedPath = new RegExp(EXCLUDE_REGEX);
 
-  // Workspace globs also match build output such as apps/app/.next and
+  // Workspace globs also match build output such as apps/web/.next and
   // apps/server/dist once a build or typecheck has run.
   return WORKSPACE_GLOBS.flatMap((pattern) => expandWorkspacePattern(pattern))
     .filter(
@@ -384,7 +384,7 @@ function normalizeCycleFiles(rawFiles: string[], baseDir: string): string[] {
 }
 
 function resolveWorkspaceFromFile(file: string): string | null {
-  const match = /^(packages\/[^/]+|apps\/server\/[^/]+|apps\/app\/[^/]+)/.exec(
+  const match = /^(packages\/[^/]+|apps\/server\/[^/]+|apps\/web\/[^/]+)/.exec(
     file,
   );
   return match?.[1] ?? null;

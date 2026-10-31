@@ -1,0 +1,11 @@
+import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
+import OrganizationModulePreferenceGate from '@/components/guards/organization-module/OrganizationModulePreferenceGate';
+import TurboNewProjectPage from '@/features/workflows/pages/turbo/TurboNewProjectPage';
+export const generateMetadata = createPageMetadata('New Turbo');
+export default function StudioTurboNewPage() {
+  return (
+    <OrganizationModulePreferenceGate moduleId="turbo">
+      <TurboNewProjectPage />
+    </OrganizationModulePreferenceGate>
+  );
+}

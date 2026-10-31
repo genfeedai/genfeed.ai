@@ -1,0 +1,1525 @@
+'use client';
+
+import { AgentWorkspaceLayoutClient } from '@app/(protected)/[orgSlug]/~/agent/AgentWorkspaceLayoutClient';
+import { useAgentDock } from '@contexts/ui/agent-dock-context';
+import { AgentOutputHostContext } from '@contexts/ui/agent-output-host-context';
+import { useContextSidebar } from '@contexts/ui/context-sidebar-context';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
+import {
+  getBrandEntityId,
+  getBrandOrganizationId,
+} from '@contexts/user/brand-context/brand-context.helpers';
+import {
+  type AgentApiService,
+  type ConversationComposerActionInvocation,
+  type ConversationComposerDispatchResult,
+  ConversationComposerShellProvider,
+  getConversationComposerAction,
+  resolveConversationComposerDestinationHref,
+  useAgentChatStore,
+} from '@genfeedai/agent';
+import { useResetAgentOnOrganizationChange } from '@genfeedai/agent/hooks/use-reset-agent-on-organization-change';
+import {
+  attachContentToConversationDraft,
+  buildConversationComposerDraftScopeKey,
+} from '@genfeedai/agent/stores/conversation-composer-draft.store';
+import { ButtonVariant } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type {
+  AgentArtifactReference,
+  WorkspaceShellOverlayRequest,
+} from '@genfeedai/contracts/interfaces';
+import { cn } from '@helpers/formatting/cn/cn.util';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import type { AgentOutputHostValue } from '@props/ui/agent-output-shell.props';
+import type {
+  WorkspacePanelControls,
+  WorkspacePanelTab,
+} from '@props/ui/workspace-panel.props';
+import { Button } from '@ui/primitives/button';
+import { Drawer, DrawerContent } from '@ui/primitives/drawer';
+import dynamic from 'next/dynamic';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import {
+  type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import {
+  SIDEBAR_TRANSITION_DURATION_MS,
+  SIDEBAR_TRANSITION_EASING,
+} from '@/components/layouts/app/app-layout.utils';
+
+import {
+  AnalyticsWorkspaceSurfaceAdapterProvider,
+  useActiveAnalyticsWorkspaceSurfaceAdapter,
+} from '@/features/analytics/work-surface/analytics-workspace-surface-adapter-context';
+import { buildLibraryRemixIntentHref } from '@/features/library-remix/library-remix-reference';
+import {
+  type ResearchWorkspaceSurfaceAdapterRegistration,
+  ResearchWorkspaceSurfaceAdapterRegistrationContext,
+} from '@/features/research/work-surface/research-workspace-surface-adapter-context';
+import type { WorkflowSummary } from '@/features/workflows/services/workflow-api';
+import { WorkflowPickerOverlay } from '@/features/workflows/workspace/WorkflowPickerOverlay';
+import { resolveWorkflowSurfaceRoute } from '@/features/workflows/workspace/workflow-surface-routing';
+import {
+  appendSearchParamsToHref,
+  normalizeProtectedPathname,
+} from '@/lib/navigation/operator-shell';
+import { isAgentOutputRoute } from '@/lib/workspace-shell/agent-output-routes';
+import {
+  canLaunchComposerCanvas,
+  canvasLaunchDispatchedResult,
+  canvasLaunchUnavailableResult,
+  resolveNamedComposerOverlay,
+  resolveTrustedComposerAction,
+} from '@/lib/workspace-shell/workspace-composer-action.util';
+import { resolveWorkspaceOverlayLaunch } from '@/lib/workspace-shell/workspace-overlay-launcher';
+import {
+  removeWorkspaceShellOverlayParams,
+  restoreWorkspaceShellLocation,
+  type WorkspaceShellLocation,
+  type WorkspaceShellState,
+} from '@/lib/workspace-shell/workspace-shell-location';
+import {
+  getWorkspaceShellOverlayRegistration,
+  resolveWorkspaceShellRoute,
+} from '@/lib/workspace-shell/workspace-shell-registry';
+import {
+  captureWorkspaceShellError,
+  captureWorkspaceShellOverlayAbandonment,
+  captureWorkspaceShellRestorationFailure,
+  captureWorkspaceShellScopeCorrection,
+  captureWorkspaceShellTransition,
+} from '@/lib/workspace-shell/workspace-shell-telemetry';
+import {
+  resolveOverlayTelemetryUpdate,
+  resolveWorkspaceShellTransition,
+  shouldRestorePrimaryFocus,
+} from '@/lib/workspace-shell/workspace-shell-transition.util';
+import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
+import AgentDock from './AgentDock';
+import AgentDockHistory from './AgentDockHistory';
+import AgentThreadsPanel from './AgentThreadsPanel';
+import { useAgentDockThreads } from './use-agent-dock-threads';
+import { useIsCompactViewport } from './use-compact-viewport';
+import { useConversationScopeControls } from './use-conversation-scope-controls';
+import WorkspaceAgentContext from './WorkspaceAgentContext';
+import { WorkspaceContextSidebarDrawerBody } from './WorkspaceContextSidebar';
+import WorkspaceOverlayHost from './WorkspaceOverlayHost';
+import WorkspacePanelHeader from './WorkspacePanelHeader';
+import { WorkspaceShellActionsProvider } from './WorkspaceShellActionsContext';
+import {
+  useActiveWorkspaceSurfaceAdapter,
+  useActiveWorkspaceSurfacePresentationAdapter,
+  useWorkspaceSurfaceAdapter,
+  WorkspaceSurfaceAdapterProvider,
+} from './WorkspaceSurfaceAdapterContext';
+
+const loadConversationDockPanel = () =>
+  import('@genfeedai/agent/components/ConversationDockPanel').then(
+    (module) => module.ConversationDockPanel,
+  );
+
+// The dock conversation (timeline, markdown, Tiptap composer, model pickers)
+// renders only after the dock is first opened. Keeping it out of this chunk
+// keeps ~2.3 MB of JS off the path every workspace page waits on.
+const ConversationDockPanel = dynamic(loadConversationDockPanel, {
+  loading: () => null,
+});
+
+const DOCK_PANEL_PREFETCH_TIMEOUT_MS = 8000;
+
+const INSPECTOR_DEFAULT_WIDTH = 400;
+const INSPECTOR_MIN_WIDTH = 320;
+const INSPECTOR_MAX_WIDTH = 560;
+// Zero, not a rail stub: collapsed means gone, exactly like the left navigation
+// sidebar. The only toggle then lives in the topbar.
+const INSPECTOR_COLLAPSED_WIDTH = 0;
+
+type UniversalWorkspaceShellProps = {
+  readonly agentApiService: AgentApiService;
+  readonly children: ReactNode;
+  readonly composerScopeControls?: ReactNode;
+};
+
+type UniversalWorkspaceShellContentProps = Pick<
+  UniversalWorkspaceShellProps,
+  'agentApiService' | 'children' | 'composerScopeControls'
+>;
+
+function clampInspectorWidth(width: number): number {
+  return Math.min(INSPECTOR_MAX_WIDTH, Math.max(INSPECTOR_MIN_WIDTH, width));
+}
+
+function requireWorkspaceShellLocation(
+  location: WorkspaceShellLocation | null,
+): WorkspaceShellLocation {
+  if (!location) {
+    throw new Error(
+      'Universal workspace shell received an unregistered route.',
+    );
+  }
+
+  return location;
+}
+
+function UniversalWorkspaceShellContent({
+  agentApiService,
+  children,
+  composerScopeControls,
+}: UniversalWorkspaceShellContentProps) {
+  const rawPathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
+  const { back, push, replace } = useRouter();
+  const { brandId, brands, organizationId, selectedBrand } = useBrand();
+  useResetAgentOnOrganizationChange(organizationId);
+  const { activeHref, brandSlug, href, orgHref, orgSlug } = useOrgUrl();
+  const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
+  const activeSurfaceAdapter = useActiveAnalyticsWorkspaceSurfaceAdapter();
+  const threads = useAgentChatStore((state) => state.threads);
+  const updateThread = useAgentChatStore((state) => state.updateThread);
+  const seedComposer = useAgentChatStore((state) => state.seedComposer);
+  const activeWorkspaceSurfaceAdapter = useActiveWorkspaceSurfaceAdapter();
+  const activeSurfacePresentationAdapter =
+    useActiveWorkspaceSurfacePresentationAdapter();
+  const normalizedPathname = useMemo(
+    () => normalizeProtectedPathname(rawPathname),
+    [rawPathname],
+  );
+  // The right column is the side panel: the agent and the page's current
+  // selection (Details) are its tabs. Details stays closed while nothing is
+  // selected; the agent opens from the topbar toggle or ⌘J.
+  const contextSidebar = useContextSidebar();
+  const translateContextSidebar = useTranslations('common.contextSidebar');
+  const translateSidePanel = useTranslations('common.sidePanel');
+  const activeContextSidebar = contextSidebar?.selection
+    ? contextSidebar
+    : null;
+  const isInspectorOpen = activeContextSidebar?.isOpen ?? false;
+  const agentDock = useAgentDock();
+  const isCompactViewport = useIsCompactViewport();
+  // `null` keeps the inspector sized to its own content (clamped by the CSS
+  // min/max below); a number means the operator has resized it explicitly.
+  const [inspectorWidth, setInspectorWidth] = useState<number | null>(null);
+  const [isInspectorResizing, setIsInspectorResizing] = useState(false);
+  const inspectorDragCleanupRef = useRef<(() => void) | null>(null);
+  const [composerPortalTarget, setComposerPortalTarget] =
+    useState<HTMLElement | null>(null);
+  const [researchSurfaceAdapter, setResearchSurfaceAdapter] = useState<{
+    readonly registration: ResearchWorkspaceSurfaceAdapterRegistration;
+    readonly token: symbol;
+  } | null>(null);
+  const primaryRegionRef = useRef<HTMLElement>(null);
+  const contextReturnFocusRef = useRef<HTMLElement | null>(null);
+  const wasContextOpenRef = useRef(false);
+  const restoreContextFocus = useCallback(() => {
+    const target = contextReturnFocusRef.current;
+    (target?.isConnected ? target : primaryRegionRef.current)?.focus({
+      preventScroll: true,
+    });
+  }, []);
+  const isContextVisible =
+    isInspectorOpen || Boolean(activeContextSidebar?.isMobileOpen);
+  useEffect(() => {
+    const wasOpen = wasContextOpenRef.current;
+    wasContextOpenRef.current = isContextVisible;
+    if (wasOpen && !isContextVisible) {
+      const focused = document.activeElement;
+      if (
+        focused === document.body ||
+        focused?.closest(
+          '#workspace-context-inspector, #workspace-context-inspector-drawer',
+        )
+      )
+        restoreContextFocus();
+    }
+  }, [isContextVisible, restoreContextFocus]);
+  const inspectorRef = useRef<HTMLElement>(null);
+  const previousPathnameRef = useRef<string | null>(null);
+  const previousStateRef = useRef<WorkspaceShellState | null>(null);
+  const pendingTransitionRef = useRef<
+    | 'canvas_launch'
+    | 'conversation_return'
+    | 'overlay_dismiss'
+    | 'overlay_open'
+    | null
+  >(null);
+  const isOwnedOverlayEntryRef = useRef(false);
+  const activeOverlayTelemetryClassRef = useRef<
+    'library_picker' | 'notifications' | 'workflow_picker' | null
+  >(null);
+  const overlayCompletedRef = useRef(false);
+  const hasOverlayReturnFocusRef = useRef(false);
+  const overlayReturnFocusRef = useRef<HTMLElement | null>(null);
+
+  const shellLocation = useMemo(
+    () =>
+      requireWorkspaceShellLocation(
+        restoreWorkspaceShellLocation({
+          pathname: rawPathname,
+          searchParams: new URLSearchParams(searchParamsString),
+        }),
+      ),
+    [rawPathname, searchParamsString],
+  );
+
+  const {
+    canonicalSearchParams,
+    isCanonical,
+    overlay,
+    restorationFailure,
+    safeFallbackHref,
+    state,
+    surfaceKey,
+    threadId,
+  } = shellLocation;
+  const overlayRegistration = useMemo(
+    () => (overlay ? getWorkspaceShellOverlayRegistration(overlay.key) : null),
+    [overlay],
+  );
+  const routeRegistration = useMemo(
+    () => resolveWorkspaceShellRoute(normalizedPathname),
+    [normalizedPathname],
+  );
+  const resolvedWorkspaceSurfaceAdapter =
+    routeRegistration?.adapter.status === 'embedded' &&
+    activeWorkspaceSurfaceAdapter?.registration.key ===
+      routeRegistration.adapter.key &&
+    activeWorkspaceSurfaceAdapter.registration.scope === routeRegistration.scope
+      ? activeWorkspaceSurfaceAdapter
+      : null;
+  const resolvedSurfacePresentationAdapter =
+    activeSurfacePresentationAdapter?.surfaceKey === surfaceKey
+      ? activeSurfacePresentationAdapter
+      : null;
+  const effectiveSurfaceAdapter =
+    activeSurfaceAdapter?.surfaceKey === surfaceKey
+      ? activeSurfaceAdapter
+      : null;
+  const canonicalSearchParamsString = canonicalSearchParams.toString();
+  // The conversation is a surface, not a shell state. `/agent/*` renders it as
+  // its own canvas; every other surface reaches it through the inspector.
+  const isAgentRoute =
+    normalizedPathname === APP_ROUTES.AGENT.ROOT ||
+    normalizedPathname.startsWith(`${APP_ROUTES.AGENT.ROOT}/`);
+  // Pages that render `AgentOutputShell` are the conversation's other half:
+  // like `/agent`, the product dock stays off and the composer sits in flow.
+  const isAgentOutputSurface = isAgentOutputRoute(normalizedPathname);
+  const isUnthreadedConversation =
+    normalizedPathname === APP_ROUTES.AGENT.ROOT ||
+    normalizedPathname === APP_ROUTES.AGENT.NEW;
+  const routeScope = rawPathname.split('/').filter(Boolean)[0] ?? '';
+  const retainedThreadIdRef = useRef<string | null>(threadId);
+  const previousRouteScopeRef = useRef(routeScope);
+  const isSameRouteScope = previousRouteScopeRef.current === routeScope;
+  const effectiveThreadId =
+    threadId ??
+    (!isAgentRoute && isSameRouteScope
+      ? (retainedThreadIdRef.current ?? activeThreadId)
+      : null);
+  const currentHref = appendSearchParamsToHref(
+    rawPathname,
+    new URLSearchParams(searchParamsString),
+  );
+  const activeThread = useMemo(
+    () => threads.find((thread) => thread.id === effectiveThreadId) ?? null,
+    [effectiveThreadId, threads],
+  );
+  const registeredSurfaceAdapter = useWorkspaceSurfaceAdapter();
+  const productSurfaceAdapter =
+    registeredSurfaceAdapter?.surfaceKey === surfaceKey
+      ? registeredSurfaceAdapter
+      : null;
+  // Brand binding priority for inspector conversations on product routes:
+  // 1) product surface adapter (studio/review scoped brand)
+  // 2) workspace surface adapter
+  // 3) analytics surface adapter's route-derived brand (e.g. /analytics/
+  //    brands/:id and its /platforms/:platform child) — an explicit route
+  //    scope, so it rebinds the thread the same way (1) and (2) do
+  // 4) topbar-selected brand — so Publishing/Overview threads get a brand without
+  //    an adapter. Without this, chat runs brandless and the model asks "which
+  //    brand?" even though the brand switcher already has a selection.
+  const surfaceBrandId = productSurfaceAdapter?.scope.brandId;
+  const rawAnalyticsRouteBrandId = effectiveSurfaceAdapter?.brandId ?? null;
+  // Unlike (1) and (2), which come from already-authorized product state, the
+  // analytics adapter's brand is parsed straight from the URL — a stale link,
+  // a deleted brand, or another org's id must never bind or sync. Falling
+  // through (rather than blocking the chain) lets the topbar brand still
+  // apply when the route names one we can't authorize.
+  const analyticsRouteBrandId =
+    rawAnalyticsRouteBrandId &&
+    brands.some(
+      (brand) =>
+        getBrandEntityId(brand) === rawAnalyticsRouteBrandId &&
+        getBrandOrganizationId(brand) === organizationId,
+    )
+      ? rawAnalyticsRouteBrandId
+      : null;
+  const topbarBrandId = brandId || null;
+  const bindingBrandId =
+    surfaceBrandId ??
+    resolvedWorkspaceSurfaceAdapter?.brandId ??
+    analyticsRouteBrandId ??
+    topbarBrandId;
+  const isSurfaceScopeAligned = Boolean(
+    !activeThread ||
+      !bindingBrandId ||
+      !activeThread.brandId ||
+      activeThread.brandId === bindingBrandId,
+  );
+  // Sync when an explicit surface brand disagrees with the thread, or when the
+  // thread is unbound and the shell has a brand to attach (topbar / adapter).
+  const targetSyncBrandId =
+    surfaceBrandId ??
+    resolvedWorkspaceSurfaceAdapter?.brandId ??
+    analyticsRouteBrandId ??
+    (!activeThread?.brandId ? topbarBrandId : null);
+  const surfaceScopeKey =
+    activeThread &&
+    targetSyncBrandId &&
+    activeThread.brandId !== targetSyncBrandId
+      ? `${activeThread.id}:${activeThread.contextVersion}:${targetSyncBrandId}`
+      : null;
+  const surfaceReferences = isSurfaceScopeAligned
+    ? productSurfaceAdapter?.references
+    : undefined;
+  const activeThreadContextVersion = activeThread?.contextVersion;
+  const activeThreadIdForScope = activeThread?.id;
+  const workflowSurfaceRoute = useMemo(
+    () =>
+      resolveWorkflowSurfaceRoute(
+        rawPathname,
+        new URLSearchParams(searchParamsString),
+      ),
+    [rawPathname, searchParamsString],
+  );
+  // The full-page agent composer is an in-flow footer of the conversation
+  // column. An absolute dock on this shell is what clips the bar when the
+  // page height settles on reload. Product routes keep the composer with the
+  // conversation in the inspector. Overlays temporarily take the portal.
+
+  const draftScopeKey = buildConversationComposerDraftScopeKey(
+    orgSlug,
+    effectiveThreadId,
+    activeThread?.contextVersion,
+  );
+  // Human-readable breadcrumb leaf resolved from the route registry
+  // (param-interpolated), never the raw `route:/…` pattern from `routeKey`.
+  const inspectorBreadcrumbLabel =
+    routeRegistration?.breadcrumb.leafLabel ?? 'Workspace';
+  const shellContextLabel =
+    resolvedSurfacePresentationAdapter?.contextLabel ??
+    (state === 'overlay'
+      ? 'Overlay · conversation connected'
+      : isAgentRoute
+        ? 'Conversation'
+        : `Canvas · ${inspectorBreadcrumbLabel}`);
+  const activeResearchSurfaceAdapter =
+    researchSurfaceAdapter?.registration.surfaceKey === surfaceKey
+      ? researchSurfaceAdapter.registration
+      : null;
+
+  const registerSurfaceAdapter = useCallback(
+    (registration: ResearchWorkspaceSurfaceAdapterRegistration) => {
+      if (registration.surfaceKey !== surfaceKey) {
+        return () => undefined;
+      }
+
+      const token = Symbol(registration.surfaceKey);
+      setResearchSurfaceAdapter({ registration, token });
+
+      return () => {
+        setResearchSurfaceAdapter((current) =>
+          current?.token === token ? null : current,
+        );
+      };
+    },
+    [surfaceKey],
+  );
+  const conversationScope = useConversationScopeControls({
+    activeThread,
+    apiService: agentApiService,
+    currentDraftScopeKey: draftScopeKey,
+    pathname: rawPathname,
+    routeBrandId: analyticsRouteBrandId,
+    searchParams: new URLSearchParams(searchParamsString),
+  });
+  const effectiveShellContextLabel =
+    productSurfaceAdapter?.contextLabel ??
+    effectiveSurfaceAdapter?.contextLabel ??
+    shellContextLabel;
+  const composerContextLabel = productSurfaceAdapter
+    ? effectiveShellContextLabel
+    : `${conversationScope.contextLabel} · ${effectiveShellContextLabel}`;
+
+  useEffect(() => {
+    if (
+      !activeThreadIdForScope ||
+      activeThreadContextVersion === undefined ||
+      !targetSyncBrandId ||
+      !surfaceScopeKey
+    ) {
+      return;
+    }
+
+    const abortController = new AbortController();
+    agentApiService
+      .updateThreadContext(
+        activeThreadIdForScope,
+        {
+          brandId: targetSyncBrandId,
+          expectedContextVersion: activeThreadContextVersion,
+        },
+        abortController.signal,
+      )
+      .then((thread) => {
+        if (abortController.signal.aborted) {
+          return;
+        }
+        updateThread(activeThreadIdForScope, {
+          brandId: thread.brandId,
+          contextVersion: thread.contextVersion,
+        });
+        captureWorkspaceShellScopeCorrection('success');
+      })
+      .catch(() => {
+        if (!abortController.signal.aborted) {
+          captureWorkspaceShellScopeCorrection('failure');
+          captureWorkspaceShellError('scope', 'scope_sync_failed');
+        }
+      });
+
+    return () => abortController.abort();
+  }, [
+    activeThreadContextVersion,
+    activeThreadIdForScope,
+    agentApiService,
+    surfaceScopeKey,
+    targetSyncBrandId,
+    updateThread,
+  ]);
+
+  useLayoutEffect(() => {
+    if (!isUnthreadedConversation) {
+      return;
+    }
+
+    const { resetActiveConversationState, setActiveThread } =
+      useAgentChatStore.getState();
+    setActiveThread(null);
+    resetActiveConversationState();
+  }, [isUnthreadedConversation]);
+
+  useEffect(() => {
+    if (isCanonical) {
+      return;
+    }
+
+    const canonicalHref = appendSearchParamsToHref(
+      rawPathname,
+      new URLSearchParams(canonicalSearchParamsString),
+    );
+    if (restorationFailure) {
+      captureWorkspaceShellRestorationFailure(restorationFailure);
+      captureWorkspaceShellError('restoration', 'restoration_failed');
+    }
+    replace(
+      restorationFailure === 'invalid_thread'
+        ? safeFallbackHref
+        : canonicalHref,
+    );
+  }, [
+    canonicalSearchParamsString,
+    isCanonical,
+    rawPathname,
+    replace,
+    restorationFailure,
+    safeFallbackHref,
+  ]);
+
+  useEffect(() => {
+    const hasScopeChanged = previousRouteScopeRef.current !== routeScope;
+    if (hasScopeChanged) {
+      retainedThreadIdRef.current = null;
+      const { resetActiveConversationState, setActiveThread } =
+        useAgentChatStore.getState();
+      setActiveThread(null);
+      resetActiveConversationState();
+    }
+    previousRouteScopeRef.current = routeScope;
+
+    if (threadId) {
+      retainedThreadIdRef.current = threadId;
+      return;
+    }
+    if (isUnthreadedConversation) {
+      retainedThreadIdRef.current = null;
+    }
+  }, [isUnthreadedConversation, routeScope, threadId]);
+
+  // Thread identity is never written to the URL. `/agent/:id` owns it in the
+  // path; every other surface follows the agent store, so the conversation
+  // survives navigation without leaking `?thread=` onto SaaS routes.
+
+  useEffect(() => {
+    const previousState = previousStateRef.current;
+    const previousPathname = previousPathnameRef.current;
+    const transition = resolveWorkspaceShellTransition({
+      normalizedPathname,
+      pendingTransition: pendingTransitionRef.current,
+      previousPathname,
+      previousState,
+      state,
+    });
+
+    captureWorkspaceShellTransition({
+      fromState: previousState ?? state,
+      toState: state,
+      transition,
+    });
+    previousPathnameRef.current = normalizedPathname;
+    previousStateRef.current = state;
+    pendingTransitionRef.current = null;
+
+    const overlayTelemetry = resolveOverlayTelemetryUpdate({
+      currentTelemetryClass: activeOverlayTelemetryClassRef.current,
+      isOverlayCompleted: overlayCompletedRef.current,
+      overlayTelemetryClass: overlayRegistration?.telemetryClass ?? null,
+      previousState,
+      state,
+    });
+    if (overlayTelemetry.abandonedTelemetryClass) {
+      captureWorkspaceShellOverlayAbandonment(
+        overlayTelemetry.abandonedTelemetryClass,
+      );
+    }
+    activeOverlayTelemetryClassRef.current =
+      overlayTelemetry.nextTelemetryClass;
+    overlayCompletedRef.current = overlayTelemetry.nextCompleted;
+
+    if (state === 'overlay') {
+      return;
+    }
+
+    isOwnedOverlayEntryRef.current = false;
+    if (
+      shouldRestorePrimaryFocus({
+        hasOverlayReturnFocus: hasOverlayReturnFocusRef.current,
+        previousState,
+        state,
+      })
+    ) {
+      primaryRegionRef.current?.focus({ preventScroll: true });
+    }
+    hasOverlayReturnFocusRef.current = false;
+  }, [normalizedPathname, overlayRegistration, state]);
+
+  // Brand-scoped full agent surface — keeps the selected brand in the URL so
+  // the expanded conversation does not lose topbar/brand context.
+  const fullConversationHref = useMemo(() => {
+    const destinationThreadId = effectiveThreadId ?? activeThreadId;
+    return activeHref(
+      destinationThreadId
+        ? `${APP_ROUTES.AGENT.ROOT}/${destinationThreadId}`
+        : APP_ROUTES.AGENT.NEW,
+    );
+  }, [activeHref, activeThreadId, effectiveThreadId]);
+
+  const handleOpenFullConversation = useCallback(() => {
+    pendingTransitionRef.current = 'conversation_return';
+    // The full page is the conversation; the dock closes as it hands off
+    // (arriving on `/agent` by any other way closes it once the route mounts).
+    agentDock?.close();
+    push(fullConversationHref);
+  }, [agentDock, fullConversationHref, push]);
+
+  // The dock is the conversation on product routes. `/agent/*` is the
+  // conversation itself, so arriving there closes the dock; it stays closed
+  // on the way back until the operator reopens it.
+  const isAgentDockHost =
+    Boolean(agentDock) && !isAgentRoute && !isAgentOutputSurface;
+  // The split pages list threads and take attached records without the dock.
+  const isConversationHost =
+    isAgentDockHost || (Boolean(agentDock) && isAgentOutputSurface);
+  const dockThreads = useAgentDockThreads(
+    agentApiService,
+    isConversationHost,
+    !isAgentRoute,
+  );
+  const setIsAgentDockAvailable = agentDock?.setIsAvailable;
+  const closeAgentDock = agentDock?.close;
+  const openAgentDock = agentDock?.open;
+  const isAgentDockOpen = agentDock?.isOpen ?? false;
+  const registerAgentDockAttachHandler = agentDock?.registerAttachHandler;
+  const [hasOpenedAgentDock, setHasOpenedAgentDock] = useState(false);
+  // Below `xl` the agent is a bottom sheet, so only the rail counts here.
+  const isAgentPanelOpen =
+    isAgentDockHost && isAgentDockOpen && !isCompactViewport;
+  // A split page shows its selection inside the output pane, so the right
+  // rail stays shut.
+  const isPanelOpen =
+    !isAgentOutputSurface && (isInspectorOpen || isAgentPanelOpen);
+  const [panelTabPreference, setPanelTabPreference] =
+    useState<WorkspacePanelTab>('agent');
+  const requestedPanelTabRef = useRef<WorkspacePanelTab | null>(null);
+  const isMobileContextOpen = activeContextSidebar?.isMobileOpen ?? false;
+  const activePanelTab: WorkspacePanelTab =
+    isAgentDockHost && isAgentDockOpen ? panelTabPreference : 'details';
+  const selectionKey = activeContextSidebar?.selection
+    ? `${activeContextSidebar.selection.kind}:${activeContextSidebar.selection.id}`
+    : null;
+
+  // A new selection brings the Details tab forward; opening the agent brings
+  // the conversation forward.
+  useEffect(() => {
+    if (selectionKey && (isInspectorOpen || isMobileContextOpen)) {
+      setPanelTabPreference('details');
+    }
+  }, [isInspectorOpen, isMobileContextOpen, selectionKey]);
+
+  useEffect(() => {
+    if (isAgentDockOpen) {
+      setPanelTabPreference(
+        requestedPanelTabRef.current ??
+          (isCompactViewport && isMobileContextOpen ? 'details' : 'agent'),
+      );
+      requestedPanelTabRef.current = null;
+    }
+  }, [isAgentDockOpen, isCompactViewport, isMobileContextOpen]);
+
+  useEffect(() => {
+    if (isCompactViewport && isAgentDockHost && isMobileContextOpen) {
+      openAgentDock?.();
+    }
+  }, [isAgentDockHost, isCompactViewport, isMobileContextOpen, openAgentDock]);
+
+  const handleSelectPanelTab = useCallback(
+    (tab: WorkspacePanelTab) => {
+      if (isAgentDockHost) {
+        requestedPanelTabRef.current = isAgentDockOpen ? null : tab;
+        openAgentDock?.();
+      }
+      if (
+        tab === 'details' &&
+        (!isInspectorOpen || (isCompactViewport && !isMobileContextOpen))
+      )
+        activeContextSidebar?.reveal();
+      setPanelTabPreference(tab);
+    },
+    [
+      activeContextSidebar,
+      isAgentDockHost,
+      isAgentDockOpen,
+      isCompactViewport,
+      isInspectorOpen,
+      isMobileContextOpen,
+      openAgentDock,
+    ],
+  );
+
+  const selectDockThread = dockThreads.selectThread;
+  const handleSelectThread = useCallback(
+    (threadId: string) => {
+      openAgentDock?.();
+      setPanelTabPreference('agent');
+      void selectDockThread(threadId);
+    },
+    [openAgentDock, selectDockThread],
+  );
+  const handleClosePanel = useCallback(() => {
+    closeAgentDock?.();
+    if (isInspectorOpen || isMobileContextOpen) {
+      activeContextSidebar?.close();
+    }
+  }, [
+    activeContextSidebar,
+    closeAgentDock,
+    isInspectorOpen,
+    isMobileContextOpen,
+  ]);
+
+  // The topbar's Chat and Context toggles drive this panel through the dock.
+  const registerAgentDockPanel = agentDock?.registerPanel;
+  // Below `xl` the rail does not render, so a context left open at a wider
+  // size is not visible: only the sheet (dock or mobile context) is.
+  const isPanelVisible =
+    !isAgentOutputSurface &&
+    ((isAgentDockHost && isAgentDockOpen) ||
+      (isInspectorOpen && !isCompactViewport) ||
+      isMobileContextOpen);
+  const hasContextView =
+    !isAgentOutputSurface && (isAgentDockHost || Boolean(activeContextSidebar));
+  const panelControls = useMemo<WorkspacePanelControls>(
+    () => ({
+      activeView: isPanelVisible ? activePanelTab : null,
+      canShowContext: hasContextView,
+      close: handleClosePanel,
+      selectView: handleSelectPanelTab,
+    }),
+    [
+      activePanelTab,
+      handleClosePanel,
+      handleSelectPanelTab,
+      hasContextView,
+      isPanelVisible,
+    ],
+  );
+
+  useEffect(() => {
+    registerAgentDockPanel?.(panelControls);
+  }, [panelControls, registerAgentDockPanel]);
+
+  useEffect(
+    () => () => {
+      registerAgentDockPanel?.(null);
+    },
+    [registerAgentDockPanel],
+  );
+
+  useEffect(() => {
+    if (!setIsAgentDockAvailable) {
+      return;
+    }
+
+    setIsAgentDockAvailable(isAgentDockHost);
+    return () => setIsAgentDockAvailable(false);
+  }, [isAgentDockHost, setIsAgentDockAvailable]);
+
+  useEffect(() => {
+    if ((isAgentRoute || isAgentOutputSurface) && isAgentDockOpen) {
+      closeAgentDock?.();
+    }
+  }, [closeAgentDock, isAgentDockOpen, isAgentOutputSurface, isAgentRoute]);
+
+  // Warm the conversation chunk once the page is idle so the first open does
+  // not wait on the network.
+  useEffect(() => {
+    if (!isAgentDockHost || hasOpenedAgentDock) {
+      return;
+    }
+    const prefetch = () => {
+      void loadConversationDockPanel();
+    };
+    if (typeof window.requestIdleCallback === 'function') {
+      const handle = window.requestIdleCallback(prefetch, {
+        timeout: DOCK_PANEL_PREFETCH_TIMEOUT_MS,
+      });
+      return () => window.cancelIdleCallback(handle);
+    }
+    const timeout = window.setTimeout(prefetch, 2000);
+    return () => window.clearTimeout(timeout);
+  }, [hasOpenedAgentDock, isAgentDockHost]);
+
+  // Mount the conversation on first open, or when a registered overlay needs
+  // its composer before the dock was ever opened.
+  useEffect(() => {
+    if (isAgentDockHost && (isAgentDockOpen || state === 'overlay')) {
+      setHasOpenedAgentDock(true);
+    }
+  }, [isAgentDockHost, isAgentDockOpen, state]);
+
+  useEffect(() => {
+    if (!isConversationHost || !registerAgentDockAttachHandler) {
+      return;
+    }
+
+    // Pages stamp the record's own brand; the composer leaves out one that
+    // does not match the conversation instead of relabelling it.
+    return registerAgentDockAttachHandler((reference) => {
+      attachContentToConversationDraft(draftScopeKey, reference);
+    });
+  }, [draftScopeKey, isConversationHost, registerAgentDockAttachHandler]);
+
+  const launchWorkspaceOverlay = useCallback(
+    (overlayRequest: WorkspaceShellOverlayRequest): boolean => {
+      const launch = resolveWorkspaceOverlayLaunch({
+        currentHref,
+        invocation: 'user',
+        overlay: overlayRequest,
+      });
+      if (launch.history === 'none') {
+        return false;
+      }
+
+      pendingTransitionRef.current = 'overlay_open';
+      overlayReturnFocusRef.current =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+      hasOverlayReturnFocusRef.current = Boolean(overlayReturnFocusRef.current);
+      if (launch.history === 'replace') {
+        replace(launch.href);
+        return true;
+      }
+
+      isOwnedOverlayEntryRef.current = true;
+      push(launch.href);
+      return true;
+    },
+    [currentHref, push, replace],
+  );
+
+  const handleOpenWorkflowPicker = useCallback(
+    (): boolean =>
+      launchWorkspaceOverlay({
+        key: 'workflow-picker',
+        parameters: {},
+      }),
+    [launchWorkspaceOverlay],
+  );
+
+  const handleComposerAction = useCallback(
+    (
+      invocation: ConversationComposerActionInvocation,
+    ): ConversationComposerDispatchResult => {
+      const resolvedAction = resolveTrustedComposerAction({
+        invocation,
+        isConsequentiallyBlocked: conversationScope.isConsequentiallyBlocked,
+        trustedAction:
+          getConversationComposerAction(invocation.action.name) ?? undefined,
+      });
+      if (!resolvedAction.ok) {
+        return resolvedAction.result;
+      }
+
+      const trustedAction = resolvedAction.action;
+      if (
+        trustedAction.requiredScope === 'brand' &&
+        !brandSlug?.trim() &&
+        !selectedBrand?.slug?.trim()
+      ) {
+        return {
+          message:
+            'Choose a brand before opening this action. Your draft is unchanged.',
+          status: 'unauthorized',
+        };
+      }
+
+      const overlayResult = resolveNamedComposerOverlay({
+        actionName: trustedAction.name,
+        openLibraryPicker: () =>
+          launchWorkspaceOverlay({
+            key: 'library-picker',
+            parameters: {},
+          }),
+        openWorkflowPicker: handleOpenWorkflowPicker,
+      });
+      if (overlayResult) {
+        return overlayResult;
+      }
+
+      const destination = resolveConversationComposerDestinationHref({
+        activeHref,
+        orgHref,
+        route: trustedAction.route,
+        routeBrandSlug: brandSlug,
+        selectedBrandSlug: selectedBrand?.slug,
+      });
+      const launch = resolveWorkspaceSurfaceLaunch({
+        currentHref,
+        destinationHref: destination,
+        threadId: effectiveThreadId ?? activeThreadId,
+      });
+      if (!canLaunchComposerCanvas(launch)) {
+        return canvasLaunchUnavailableResult();
+      }
+
+      pendingTransitionRef.current = 'canvas_launch';
+      push(launch.href);
+      return canvasLaunchDispatchedResult(trustedAction);
+    },
+    [
+      activeHref,
+      activeThreadId,
+      brandSlug,
+      conversationScope.isConsequentiallyBlocked,
+      currentHref,
+      effectiveThreadId,
+      handleOpenWorkflowPicker,
+      launchWorkspaceOverlay,
+      orgHref,
+      push,
+      selectedBrand?.slug,
+    ],
+  );
+
+  const handleSelectLibraryReference = useCallback(
+    (reference: AgentArtifactReference) => {
+      if (
+        (reference.kind !== 'asset' && reference.kind !== 'ingredient') ||
+        reference.organizationId !== organizationId ||
+        reference.brandId !== brandId
+      ) {
+        return;
+      }
+
+      const destinationHref = buildLibraryRemixIntentHref(
+        href(APP_ROUTES.STUDIO.PLAYGROUND),
+        reference,
+      );
+      const launch = resolveWorkspaceSurfaceLaunch({
+        currentHref,
+        destinationHref,
+        threadId: effectiveThreadId ?? activeThreadId,
+      });
+      if (launch.history !== 'push' || launch.mode !== 'canvas') {
+        return;
+      }
+
+      pendingTransitionRef.current = 'canvas_launch';
+      overlayCompletedRef.current = true;
+      replace(launch.href);
+    },
+    [
+      activeThreadId,
+      brandId,
+      currentHref,
+      effectiveThreadId,
+      href,
+      organizationId,
+      replace,
+    ],
+  );
+
+  const handleDismissOverlay = useCallback(() => {
+    pendingTransitionRef.current = 'overlay_dismiss';
+    if (isOwnedOverlayEntryRef.current) {
+      back();
+      return;
+    }
+
+    replace(
+      removeWorkspaceShellOverlayParams(
+        rawPathname,
+        new URLSearchParams(searchParamsString),
+      ),
+    );
+  }, [back, rawPathname, replace, searchParamsString]);
+
+  const openWorkflowCanvas = useCallback(
+    (workflow?: WorkflowSummary) => {
+      const destinationHref = href(
+        workflow
+          ? `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${workflow.id}`
+          : APP_ROUTES.AUTOMATION.WORKFLOWS,
+      );
+      const launch = resolveWorkspaceSurfaceLaunch({
+        currentHref,
+        destinationHref,
+        threadId: effectiveThreadId ?? activeThreadId,
+      });
+      if (launch.history !== 'push' || launch.mode !== 'canvas') {
+        return;
+      }
+
+      pendingTransitionRef.current = 'canvas_launch';
+      overlayCompletedRef.current = true;
+      push(launch.href);
+    },
+    [activeThreadId, currentHref, effectiveThreadId, href, push],
+  );
+
+  const handleAttachWorkflow = useCallback(
+    (workflow: WorkflowSummary) => {
+      seedComposer(
+        `Use the deterministic workflow “${workflow.label}” (workflow ID: ${workflow.id}) for this request: `,
+        effectiveThreadId ?? activeThreadId,
+      );
+      overlayCompletedRef.current = true;
+      handleDismissOverlay();
+    },
+    [activeThreadId, effectiveThreadId, handleDismissOverlay, seedComposer],
+  );
+
+  const resolveInspectorWidth = useCallback(
+    (): number => inspectorWidth ?? INSPECTOR_DEFAULT_WIDTH,
+    [inspectorWidth],
+  );
+
+  // The rail's width is state-derived, never content-derived: the topbar and the
+  // main content reserve space for it down to the pixel, and `max-content` sizing
+  // resolves to a fractional width that can never be matched exactly by a
+  // reserved offset. A concrete number here is what keeps the topbar's right edge
+  // flush against the rail's left edge with no seam.
+  const expandedInspectorWidth = inspectorWidth ?? INSPECTOR_DEFAULT_WIDTH;
+  const inspectorRailWidth = isPanelOpen
+    ? expandedInspectorWidth
+    : INSPECTOR_COLLAPSED_WIDTH;
+
+  useEffect(() => () => inspectorDragCleanupRef.current?.(), []);
+
+  // The rail is fixed-positioned, so it no longer occupies a grid track. Publishing
+  // its width on the AppLayout root instead — the topbar and main content offset
+  // themselves by it, exactly as they do for the left sidebar. Consumers apply the
+  // offset only at `xl:`, which is also the only breakpoint where the rail renders.
+  // Layout effect, not effect: publishing before first paint keeps the reserved
+  // space correct on mount so the offset transition never plays on page load.
+  useLayoutEffect(() => {
+    const layoutRoot = inspectorRef.current?.closest<HTMLElement>(
+      '[data-workspace-shell="true"]',
+    );
+
+    if (!layoutRoot) {
+      return;
+    }
+
+    layoutRoot.style.setProperty(
+      '--workspace-inspector-width',
+      `${inspectorRailWidth}px`,
+    );
+    layoutRoot.style.setProperty(
+      '--workspace-inspector-transition-duration',
+      `${isInspectorResizing ? 0 : SIDEBAR_TRANSITION_DURATION_MS}ms`,
+    );
+    // Open, the panel is its own card beside the page block. This flag adds
+    // the gap between the two cards to the block's right margin.
+    layoutRoot.dataset.inspectorOpen = String(isPanelOpen);
+
+    return () => {
+      layoutRoot.style.removeProperty('--workspace-inspector-width');
+      layoutRoot.style.removeProperty(
+        '--workspace-inspector-transition-duration',
+      );
+      delete layoutRoot.dataset.inspectorOpen;
+    };
+  }, [inspectorRailWidth, isInspectorResizing, isPanelOpen]);
+
+  const handleInspectorResizeStart = useCallback(
+    (event: ReactMouseEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      inspectorDragCleanupRef.current?.();
+      setIsInspectorResizing(true);
+      const startX = event.clientX;
+      const startWidth = resolveInspectorWidth();
+
+      const handleMouseMove = (moveEvent: MouseEvent): void => {
+        setInspectorWidth(
+          clampInspectorWidth(startWidth + startX - moveEvent.clientX),
+        );
+      };
+      const handleMouseUp = (): void => {
+        setIsInspectorResizing(false);
+        inspectorDragCleanupRef.current?.();
+      };
+
+      inspectorDragCleanupRef.current = () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+        inspectorDragCleanupRef.current = null;
+      };
+
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    },
+    [resolveInspectorWidth],
+  );
+
+  const handleInspectorResizeKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLButtonElement>) => {
+      const step = event.shiftKey ? 32 : 16;
+
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        setInspectorWidth(clampInspectorWidth(resolveInspectorWidth() + step));
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        setInspectorWidth(clampInspectorWidth(resolveInspectorWidth() - step));
+      }
+    },
+    [resolveInspectorWidth],
+  );
+
+  const panelHeader = (
+    <WorkspacePanelHeader
+      activeView={activePanelTab}
+      hasAgent={isAgentDockHost}
+      onClose={handleClosePanel}
+      onNewThread={() => {
+        dockThreads.startThread();
+        handleSelectPanelTab('agent');
+      }}
+      onOpenFullPage={handleOpenFullConversation}
+      onSelectView={handleSelectPanelTab}
+    />
+  );
+  const alternatePanelContent = (
+    <>
+      <div
+        aria-label={translateSidePanel('context')}
+        className="flex min-h-0 flex-1 flex-col"
+        hidden={activePanelTab !== 'details'}
+        id="workspace-details-panel"
+        role="region"
+      >
+        <WorkspaceAgentContext
+          contextSidebar={contextSidebar}
+          pageLabel={effectiveShellContextLabel}
+          referenceCount={
+            (
+              surfaceReferences ??
+              resolvedWorkspaceSurfaceAdapter?.artifactReferences
+            )?.length ?? 0
+          }
+          scopeLabel={conversationScope.contextLabel}
+          target={isCompactViewport ? 'mobile' : 'desktop'}
+        />
+      </div>
+      {isAgentDockHost ? (
+        <div
+          aria-label={translateSidePanel('history')}
+          className="flex min-h-0 flex-1 flex-col"
+          hidden={activePanelTab !== 'history'}
+          id="workspace-history-panel"
+          role="region"
+        >
+          <AgentDockHistory
+            activeThreadId={dockThreads.activeThreadId}
+            isThreadListLoading={dockThreads.isThreadListLoading}
+            onSelectThread={handleSelectThread}
+            threads={dockThreads.threads}
+          />
+        </div>
+      ) : null}
+    </>
+  );
+
+  // What `AgentOutputShell` renders on a split page: the same conversation,
+  // thread list and context as the dock, hosted in the page's own columns.
+  const openFullThreadFromPage = useCallback(
+    (threadId: string) => {
+      push(orgHref(`${APP_ROUTES.AGENT.ROOT}/${threadId}`));
+    },
+    [orgHref, push],
+  );
+  const agentOutputReferenceCount =
+    (surfaceReferences ?? resolvedWorkspaceSurfaceAdapter?.artifactReferences)
+      ?.length ?? 0;
+  const agentOutputHost = useMemo<AgentOutputHostValue | null>(() => {
+    if (!isAgentOutputSurface) {
+      return null;
+    }
+
+    return {
+      agent: <ConversationDockPanel apiService={agentApiService} />,
+      agentTitle: activeThread?.title?.trim() || undefined,
+      contextPanel: (
+        <WorkspaceAgentContext
+          contextSidebar={contextSidebar}
+          pageLabel={effectiveShellContextLabel}
+          referenceCount={agentOutputReferenceCount}
+          scopeLabel={conversationScope.contextLabel}
+        />
+      ),
+      onNewThread: dockThreads.startThread,
+      onOpenFullPage: handleOpenFullConversation,
+      threadsPanel: (
+        <AgentThreadsPanel
+          apiService={agentApiService}
+          isLoading={dockThreads.isThreadListLoading}
+          onOpenFullThread={openFullThreadFromPage}
+          threads={threads}
+        />
+      ),
+    };
+  }, [
+    activeThread?.title,
+    agentApiService,
+    agentOutputReferenceCount,
+    contextSidebar,
+    conversationScope.contextLabel,
+    dockThreads.isThreadListLoading,
+    dockThreads.startThread,
+    effectiveShellContextLabel,
+    handleOpenFullConversation,
+    isAgentOutputSurface,
+    openFullThreadFromPage,
+    threads,
+  ]);
+
+  return (
+    <ConversationComposerShellProvider
+      artifactReferences={
+        surfaceReferences ?? resolvedWorkspaceSurfaceAdapter?.artifactReferences
+      }
+      brandId={
+        isSurfaceScopeAligned ? (bindingBrandId ?? undefined) : undefined
+      }
+      contextLabel={composerContextLabel}
+      dispatchAction={handleComposerAction}
+      draftScopeKey={draftScopeKey}
+      isConsequentiallyBlocked={conversationScope.isConsequentiallyBlocked}
+      isComposerVisible
+      // A message sent from an overlay opens the dock so the reply shows.
+      onSendMessage={isAgentDockHost ? openAgentDock : undefined}
+      // The full-page agent composer is an in-flow footer of the conversation
+      // column. Portaling it into an absolute dock clips the bar when the
+      // shell height settles on reload.
+      placement={
+        state === 'overlay'
+          ? 'overlay'
+          : isAgentRoute || isAgentOutputSurface
+            ? 'surface'
+            : 'dock'
+      }
+      portalTarget={composerPortalTarget}
+      references={activeResearchSurfaceAdapter?.references}
+      scopeControls={
+        <>
+          {conversationScope.scopeControls}
+          {composerScopeControls}
+          {effectiveSurfaceAdapter
+            ? effectiveSurfaceAdapter.composerContext
+            : null}
+        </>
+      }
+      shellState={state}
+    >
+      <div
+        className={cn(
+          'relative overflow-hidden bg-background',
+          // Desktop: fill the page column under the topbar. Mobile keeps
+          // viewport sizing under the fixed topbar.
+          'min-h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] md:flex md:min-h-0 md:flex-1 md:flex-col',
+        )}
+        data-shell-state={state}
+        data-workspace-surface={surfaceKey}
+        data-testid="universal-workspace-shell"
+      >
+        <div aria-live="polite" className="sr-only" role="status">
+          Workspace mode: {state}. Active surface: {surfaceKey}.
+          {state === 'overlay' && overlayRegistration
+            ? ` ${overlayRegistration.presentation.openAnnouncement}`
+            : null}
+        </div>
+
+        <div
+          className="h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] min-h-0 md:h-auto md:flex-1"
+          data-testid="workspace-shell-regions"
+        >
+          {/* The route owns the canvas. Only the conversation route overlays
+              its composer here; product routes keep their composer with the
+              conversation inside the inspector. */}
+          <div className="relative flex h-full min-h-0 min-w-0 flex-col">
+            {/* One region, always. The route owns what it renders here —
+                `/agent/*` hosts the conversation in its route layout
+                (AgentConversationRouteHost) so thread switches never remount
+                it, every other route renders its own SaaS surface. The shell
+                no longer swaps
+                between a hard-wired conversation and the route's children. */}
+            <section
+              aria-label="Primary workspace canvas"
+              className={cn(
+                'flex min-h-0 min-w-0 flex-1 flex-col bg-background focus:outline-none',
+                isAgentRoute ||
+                  isAgentOutputSurface ||
+                  workflowSurfaceRoute.isGraphCanvas
+                  ? 'overflow-hidden'
+                  : 'overflow-auto',
+              )}
+              data-testid="workspace-canvas-layout"
+              ref={primaryRegionRef}
+              onFocusCapture={(event) => {
+                const target = event.target;
+                if (
+                  target instanceof HTMLElement &&
+                  primaryRegionRef.current?.contains(target)
+                ) {
+                  contextReturnFocusRef.current = target;
+                }
+              }}
+              tabIndex={-1}
+            >
+              <ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider
+                value={registerSurfaceAdapter}
+              >
+                <WorkspaceShellActionsProvider
+                  openOverlay={launchWorkspaceOverlay}
+                >
+                  <AgentOutputHostContext value={agentOutputHost}>
+                    {children}
+                  </AgentOutputHostContext>
+                </WorkspaceShellActionsProvider>
+              </ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider>
+            </section>
+          </div>
+
+          {/* The side panel is a detached card: it starts under the topbar,
+              level with the page block, keeps its own border and rounding,
+              and clips its fixed-width contents as it closes. */}
+          <aside
+            // Nothing open: the empty, zero-width column is not a landmark.
+            aria-hidden={isPanelOpen ? undefined : true}
+            aria-label={translateSidePanel('label')}
+            className={cn(
+              'fixed z-30 hidden min-h-0 flex-col overflow-hidden rounded-lg bg-background xl:flex',
+              isPanelOpen && 'border border-border',
+            )}
+            id="workspace-context-inspector"
+            data-motion="layout"
+            inert={!isPanelOpen}
+            ref={inspectorRef}
+            style={{
+              bottom: 'var(--shell-inset, 0px)',
+              minWidth: inspectorRailWidth,
+              right: 'var(--shell-inset, 0px)',
+              top: 'calc(var(--desktop-titlebar-height) + var(--shell-topbar-height))',
+              transition: isInspectorResizing
+                ? 'none'
+                : `width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
+              width: inspectorRailWidth,
+            }}
+          >
+            {isPanelOpen ? (
+              <Button
+                aria-orientation="vertical"
+                aria-valuemax={INSPECTOR_MAX_WIDTH}
+                aria-valuemin={INSPECTOR_MIN_WIDTH}
+                aria-valuenow={expandedInspectorWidth}
+                ariaLabel={translateContextSidebar('resize')}
+                className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize"
+                onKeyDown={handleInspectorResizeKeyDown}
+                onMouseDown={handleInspectorResizeStart}
+                role="separator"
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
+              />
+            ) : null}
+            {/* Keep the contents at their expanded width while the outer panel
+                  clips them during open/close. Measuring the conversation at
+                  every intermediate width makes its empty state and composer
+                  visibly collapse before growing back. Both tabs also stay
+                  mounted, so drafts and active runs survive a tab switch. Only
+                  presentation portals are gated while hidden. */}
+            <div
+              className="absolute inset-y-0 right-0 flex min-h-0 flex-col"
+              data-testid="workspace-inspector-content"
+              data-motion="layout"
+              style={{
+                minWidth: expandedInspectorWidth,
+                opacity: isPanelOpen ? 1 : 0,
+                transition: isInspectorResizing
+                  ? 'none'
+                  : `opacity ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
+                width: expandedInspectorWidth,
+              }}
+            >
+              {isCompactViewport ? null : panelHeader}
+              {isAgentDockHost && agentDock ? (
+                <AgentDock
+                  composerSlotRef={
+                    state === 'overlay' ? undefined : setComposerPortalTarget
+                  }
+                  dock={agentDock}
+                  isCompact={isCompactViewport}
+                  isTabActive={activePanelTab === 'agent'}
+                  alternateContent={alternatePanelContent}
+                  header={panelHeader}
+                  onClose={handleClosePanel}
+                  // Organization and brand are switched from the shell chrome;
+                  // the panel only surfaces scope notices and page context.
+                  scopeControls={
+                    <>
+                      {conversationScope.scopeStatus}
+                      {composerScopeControls}
+                      {effectiveSurfaceAdapter?.composerContext}
+                    </>
+                  }
+                >
+                  {hasOpenedAgentDock ? (
+                    <ConversationDockPanel apiService={agentApiService} />
+                  ) : null}
+                </AgentDock>
+              ) : null}
+              {isCompactViewport || isAgentOutputSurface
+                ? null
+                : alternatePanelContent}
+            </div>
+          </aside>
+        </div>
+
+        <Drawer
+          open={
+            !isAgentDockHost &&
+            !isAgentOutputSurface &&
+            (activeContextSidebar?.isMobileOpen ?? false)
+          }
+          onOpenChange={(isOpen: boolean) => {
+            // Dismissing the drawer is the mobile close: it deselects, so
+            // tapping the item again reopens it.
+            if (isOpen) {
+              activeContextSidebar?.setIsMobileOpen(true);
+            } else {
+              activeContextSidebar?.close();
+            }
+          }}
+        >
+          <DrawerContent
+            className="max-h-[85vh] rounded-t-[var(--radius-workspace-overlay)]"
+            id="workspace-context-inspector-drawer"
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              restoreContextFocus();
+            }}
+          >
+            {activeContextSidebar ? (
+              <WorkspaceContextSidebarDrawerBody
+                contextSidebar={activeContextSidebar}
+              />
+            ) : null}
+          </DrawerContent>
+        </Drawer>
+
+        <WorkspaceOverlayHost
+          composerPortalRef={setComposerPortalTarget}
+          content={
+            overlay?.key === 'workflow-picker' ? (
+              <WorkflowPickerOverlay
+                activeBrandId={activeThread?.brandId}
+                onAttachWorkflow={handleAttachWorkflow}
+                onOpenLibrary={() => openWorkflowCanvas()}
+                onOpenWorkflow={openWorkflowCanvas}
+              />
+            ) : undefined
+          }
+          fallbackFocusRef={primaryRegionRef}
+          isOpen={state === 'overlay'}
+          onDismiss={handleDismissOverlay}
+          onSelectLibraryReference={handleSelectLibraryReference}
+          overlay={overlay}
+          registration={overlayRegistration}
+          returnFocusRef={overlayReturnFocusRef}
+        />
+      </div>
+    </ConversationComposerShellProvider>
+  );
+}
+
+export default function UniversalWorkspaceShell({
+  agentApiService,
+  children,
+  composerScopeControls,
+}: UniversalWorkspaceShellProps) {
+  return (
+    <AgentWorkspaceLayoutClient agentApiService={agentApiService}>
+      <WorkspaceSurfaceAdapterProvider>
+        <AnalyticsWorkspaceSurfaceAdapterProvider>
+          <UniversalWorkspaceShellContent
+            agentApiService={agentApiService}
+            composerScopeControls={composerScopeControls}
+          >
+            {children}
+          </UniversalWorkspaceShellContent>
+        </AnalyticsWorkspaceSurfaceAdapterProvider>
+      </WorkspaceSurfaceAdapterProvider>
+    </AgentWorkspaceLayoutClient>
+  );
+}

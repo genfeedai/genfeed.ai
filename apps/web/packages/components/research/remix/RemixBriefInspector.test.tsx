@@ -1,0 +1,837 @@
+import { ContentRunStatus } from '@genfeedai/contracts';
+import type { BrandRemixRunView } from '@genfeedai/contracts/api-types/contracts';
+import { fireEvent, render, screen } from '@testing-library/react';
+import type { PropsWithChildren } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const mocks = vi.hoisted(() => ({
+  accountsHook: vi.fn(),
+  avatarHook: vi.fn(),
+  close: vi.fn(),
+  confirm: vi.fn(),
+  generate: vi.fn(),
+  isOpen: { value: true },
+  onClose: { value: null as null | (() => void) },
+  run: { value: null as unknown },
+  selection: { value: null as unknown },
+  voiceHook: vi.fn(),
+}));
+
+const run: BrandRemixRunView = {
+  brand: { contextMode: 'brand', id: 'brand-1', name: 'Northstar' },
+  brandId: 'brand-1',
+  contract: 'brand-remix-run',
+  createdAt: '2026-08-20T10:00:00.000Z',
+  draft: {
+    fidelityMode: 'guided',
+    identity: {},
+    intent: {
+      callToAction: 'See the difference',
+      hook: 'Proof before promise',
+      objective: 'Turn the winning hook into a Northstar product reveal.',
+      visualDirection: 'Fast cuts, clean product close-up',
+    },
+    output: { aspectRatio: '9:16', count: 3, kind: 'video' },
+    references: [],
+    reviewRequired: true,
+    target: { kind: 'organic', platform: 'tiktok' },
+  },
+  id: 'run-1',
+  phase: 'prefilled',
+  readiness: {
+    issues: [
+      {
+        code: 'organization_defaults',
+        field: 'intent',
+        message: 'Using organization defaults until brand assets are added.',
+        severity: 'degraded',
+      },
+    ],
+    state: 'degraded',
+  },
+  recipeVersion: 1,
+  revision: 1,
+  sourceSnapshot: {
+    capturedAt: '2026-08-20T10:00:00.000Z',
+    evidence: ['The first three seconds establish proof.'],
+    metrics: { views: 123000 },
+    pattern: {
+      hook: 'Proof before promise',
+      pacing: 'Three fast proof beats, then product reveal',
+    },
+    platform: 'tiktok',
+    selector: {
+      kind: 'trend_reference',
+      sourceReferenceId: 'source-reference-1',
+      trendId: 'trend-1',
+    },
+    sourceId: 'source-reference-1',
+    title: 'Proof-led TikTok hook',
+  },
+  status: ContentRunStatus.PENDING,
+  updatedAt: '2026-08-20T10:00:00.000Z',
+  version: 1,
+};
+
+vi.mock('@/features/research/remix/DiscoveryRemixProvider', () => ({
+  useDiscoveryRemix: () => ({
+    close: mocks.close,
+    confirm: mocks.confirm,
+    generate: mocks.generate,
+    error: null,
+    isOpen: mocks.isOpen.value,
+    openRemix: vi.fn(),
+    retry: vi.fn(),
+    run: mocks.run.value,
+    status: 'ready',
+  }),
+}));
+
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({ brandId: 'brand-1', organizationId: 'org-1' }),
+}));
+
+vi.mock('@/features/campaigns/hooks/use-campaign-accounts', () => ({
+  useCampaignAccounts: (...args: unknown[]) => mocks.accountsHook(...args),
+}));
+
+vi.mock('@/hooks/data/ingredients/use-avatar-images/use-avatar-images', () => ({
+  useAvatarImages: (...args: unknown[]) => mocks.avatarHook(...args),
+}));
+
+vi.mock('@/features/library/voices/hooks/use-voice-catalog', () => ({
+  useVoiceCatalog: (...args: unknown[]) => mocks.voiceHook(...args),
+}));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
+vi.mock('@contexts/ui/context-sidebar-context', () => ({
+  ContextSidebarPanel: ({
+    children,
+    onClose,
+    selection,
+  }: PropsWithChildren<{
+    onClose?: () => void;
+    selection: {
+      id: string;
+      kind: string;
+      origin: string;
+      subtitle?: string;
+      title: string;
+    } | null;
+  }>) => {
+    mocks.selection.value = selection;
+    mocks.onClose.value = onClose ?? null;
+    return selection ? (
+      <div data-testid="sidebar-panel">
+        <h2>{selection.title}</h2>
+        {selection.subtitle ? <p>{selection.subtitle}</p> : null}
+        {children}
+      </div>
+    ) : null;
+  },
+}));
+
+vi.mock('@/features/library-remix/LibraryPickerOverlay', () => ({
+  default: ({
+    onSelect,
+  }: {
+    onSelect: (reference: {
+      brandId: string;
+      kind: 'ingredient';
+      organizationId: string;
+      recordId: string;
+      serializer: 'ingredients';
+    }) => void;
+  }) => (
+    <button
+      type="button"
+      onClick={() =>
+        onSelect({
+          brandId: 'brand-1',
+          kind: 'ingredient',
+          organizationId: 'org-1',
+          recordId: 'ingredient-1',
+          serializer: 'ingredients',
+        })
+      }
+    >
+      Choose library asset
+    </button>
+  ),
+}));
+
+import RemixBriefInspector, {
+  buildRemixDraftEdits,
+} from './RemixBriefInspector';
+
+describe('RemixBriefInspector', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.run.value = run;
+    mocks.isOpen.value = true;
+    mocks.selection.value = null;
+    mocks.onClose.value = null;
+    mocks.accountsHook.mockReturnValue({
+      accounts: [
+        {
+          id: 'credential-1',
+          brandId: 'brand-1',
+          platform: 'tiktok',
+          externalHandle: '@northstar',
+          isConnected: true,
+          isDeleted: false,
+        },
+      ],
+      isPending: false,
+      isError: false,
+    });
+    mocks.avatarHook.mockReturnValue({
+      avatars: [
+        {
+          brandId: 'brand-1',
+          id: 'avatar-row-1',
+          metadataLabel: 'Avatar One',
+          status: 'GENERATED',
+        },
+        {
+          brandId: 'brand-other',
+          id: 'avatar-row-other-brand',
+          metadataLabel: 'Other Brand Avatar',
+          status: 'GENERATED',
+        },
+        {
+          id: 'avatar-row-shared',
+          metadataLabel: 'Shared Avatar',
+          status: 'GENERATED',
+        },
+        {
+          brandId: 'brand-1',
+          id: 'avatar-row-processing',
+          metadataLabel: 'Processing Avatar',
+          status: 'PROCESSING',
+        },
+      ],
+      isLoading: false,
+    });
+    mocks.voiceHook.mockReturnValue({
+      isLoading: false,
+      voices: [
+        {
+          brandId: 'brand-1',
+          externalVoiceId: 'provider-voice-99',
+          id: 'voice-row-1',
+          metadataLabel: 'Voice One',
+          provider: 'elevenlabs',
+          status: 'GENERATED',
+        },
+        {
+          brandId: 'brand-other',
+          externalVoiceId: 'other-brand-provider-voice',
+          id: 'voice-row-other-brand',
+          metadataLabel: 'Other Brand Voice',
+          provider: 'elevenlabs',
+          status: 'GENERATED',
+        },
+        {
+          externalVoiceId: 'shared-provider-voice',
+          id: 'voice-row-shared',
+          metadataLabel: 'Shared Voice',
+          status: 'GENERATED',
+        },
+        {
+          brandId: 'brand-1',
+          externalVoiceId: 'failed-provider-voice',
+          id: 'voice-row-failed',
+          metadataLabel: 'Failed Voice',
+          status: 'FAILED',
+        },
+        {
+          brandId: 'brand-1',
+          id: 'voice-row-unusable',
+          metadataLabel: 'Unusable Voice',
+          status: 'VALIDATED',
+        },
+      ],
+    });
+  });
+
+  it('shows the server-derived pattern, brand, readiness, and recipe', () => {
+    render(<RemixBriefInspector />);
+
+    expect(
+      screen.getByRole('heading', { name: 'Proof-led TikTok hook' }),
+    ).toBeVisible();
+    expect(screen.getByText('Remix for Northstar')).toBeVisible();
+    expect(screen.getByText('Proof before promise')).toBeVisible();
+    expect(
+      screen.getByText('Three fast proof beats, then product reveal'),
+    ).toBeVisible();
+    expect(screen.getByText('Degraded')).toBeVisible();
+    expect(screen.getByText('Recipe v1 · revision 1')).toBeVisible();
+    expect(screen.getByRole('combobox', { name: 'Fidelity' })).toBeVisible();
+    expect(
+      screen.getByText(/Guided keeps the source pattern flexible/i),
+    ).toBeVisible();
+    expect(mocks.avatarHook).not.toHaveBeenCalled();
+    expect(mocks.voiceHook).not.toHaveBeenCalled();
+  });
+
+  it('registers the remixed item as a user selection in the context sidebar', () => {
+    render(<RemixBriefInspector />);
+
+    expect(mocks.selection.value).toEqual({
+      id: 'run-1',
+      kind: 'run',
+      origin: 'user',
+      subtitle: 'Remix for Northstar',
+      title: 'Proof-led TikTok hook',
+    });
+    mocks.onClose.value?.();
+    expect(mocks.close).toHaveBeenCalled();
+  });
+
+  it('clears the selection when the remix is closed', () => {
+    mocks.isOpen.value = false;
+    render(<RemixBriefInspector />);
+
+    expect(mocks.selection.value).toBeNull();
+    expect(screen.queryByTestId('sidebar-panel')).not.toBeInTheDocument();
+  });
+
+  it('persists the edited brief and semantic Library reference on confirmation', async () => {
+    render(<RemixBriefInspector />);
+
+    fireEvent.change(screen.getByLabelText('Script'), {
+      target: { value: 'Keep the proof and foreground the product benefit.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add Library asset' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Choose library asset' }),
+    );
+    fireEvent.click(screen.getByRole('combobox', { name: 'Fidelity' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Strict' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save idea' }));
+
+    expect(mocks.confirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fidelityMode: 'strict',
+        intent: expect.objectContaining({
+          objective: 'Keep the proof and foreground the product benefit.',
+        }),
+        references: [
+          {
+            assetId: 'ingredient-1',
+            role: 'style',
+          },
+        ],
+      }),
+    );
+    expect(mocks.generate).not.toHaveBeenCalled();
+  });
+
+  it('requires a complete concept before the explicit generate action', () => {
+    render(<RemixBriefInspector />);
+
+    expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Angle'), {
+      target: { value: 'Lead with proof.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add scene' }));
+    fireEvent.change(screen.getByLabelText('Visual intent'), {
+      target: { value: 'Product close-up.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save idea' }));
+    expect(mocks.generate).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+    expect(mocks.generate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        concept: expect.objectContaining({
+          angle: 'Lead with proof.',
+          hook: 'Proof before promise',
+          script: 'Turn the winning hook into a Northstar product reveal.',
+          storyboard: [
+            expect.objectContaining({
+              ordinal: 1,
+              visualIntent: 'Product close-up.',
+            }),
+          ],
+        }),
+      }),
+    );
+  });
+
+  it('edits the platform and grouped copy recommendation while preserving manual Review', () => {
+    render(<RemixBriefInspector />);
+
+    expect(screen.getByText(/Organic · manual Review required/i)).toBeVisible();
+    expect(
+      screen.getByText(/Every output enters manual Review/i),
+    ).toBeVisible();
+
+    fireEvent.click(screen.getByRole('combobox', { name: 'Target platform' }));
+    expect(screen.getByRole('option', { name: 'X' })).toBeVisible();
+    fireEvent.click(screen.getByRole('option', { name: 'Instagram' }));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Output type' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Copy' }));
+    fireEvent.click(
+      screen.getByRole('combobox', { name: 'Number of variations' }),
+    );
+    fireEvent.click(screen.getByRole('option', { name: '4 variations' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save idea' }));
+
+    expect(mocks.confirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        output: { count: 4, kind: 'copy' },
+        target: { kind: 'organic', platform: 'instagram' },
+      }),
+    );
+  });
+
+  it('keeps a server-blocked brief editable and revalidatable', () => {
+    mocks.run.value = {
+      ...run,
+      readiness: {
+        issues: [
+          {
+            code: 'unsupported_fidelity',
+            field: 'fidelityMode',
+            message: 'Strict fidelity is not available yet.',
+            severity: 'blocked',
+          },
+        ],
+        state: 'blocked',
+      },
+    };
+
+    render(<RemixBriefInspector />);
+
+    expect(
+      screen.getByText('Strict fidelity is not available yet.'),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Save idea' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Save idea' }));
+    expect(mocks.confirm).toHaveBeenCalled();
+  });
+
+  it('clears video duration when the user changes the output to image', () => {
+    expect(
+      buildRemixDraftEdits(
+        {
+          angle: '',
+          aspectRatio: '1:1',
+          avatarAssetId: '',
+          callToAction: '',
+          count: 2,
+          credentialId: '',
+          fidelityMode: 'guided',
+          hook: '',
+          objective: 'Turn the hook into a square product image.',
+          outputKind: 'image',
+          references: [],
+          speechVoiceId: '',
+          storyboard: [],
+          targetPlatform: 'tiktok',
+          visualDirection: '',
+        },
+        {
+          ...run,
+          draft: {
+            ...run.draft,
+            output: {
+              aspectRatio: '9:16',
+              count: 3,
+              durationSeconds: 8,
+              kind: 'video',
+            },
+          },
+        },
+      ).output,
+    ).toEqual({
+      aspectRatio: '1:1',
+      count: 2,
+      durationSeconds: null,
+      kind: 'image',
+    });
+  });
+
+  it('edits only explicit references and leaves brand defaults server-owned', () => {
+    expect(
+      buildRemixDraftEdits(
+        {
+          angle: '',
+          aspectRatio: '9:16',
+          avatarAssetId: '',
+          callToAction: '',
+          count: 2,
+          credentialId: '',
+          fidelityMode: 'strict',
+          hook: '',
+          objective: 'Keep the source hook.',
+          outputKind: 'video',
+          references: [
+            {
+              assetId: 'brand-default-1',
+              role: 'product',
+              source: 'brand_default',
+            },
+            {
+              assetId: 'explicit-1',
+              role: 'style',
+              source: 'explicit',
+            },
+          ],
+          speechVoiceId: '',
+          storyboard: [],
+          targetPlatform: 'tiktok',
+          visualDirection: '',
+        },
+        run,
+      ),
+    ).toMatchObject({
+      fidelityMode: 'strict',
+      references: [{ assetId: 'explicit-1', role: 'style' }],
+    });
+  });
+
+  it('requires a paired durable avatar and voice identity for avatar output', () => {
+    mocks.run.value = {
+      ...run,
+      draft: {
+        ...run.draft,
+        identity: {},
+        output: {
+          aspectRatio: '9:16',
+          count: 2,
+          durationSeconds: 8,
+          kind: 'avatar',
+        },
+      },
+    };
+
+    render(<RemixBriefInspector />);
+
+    expect(screen.getByLabelText('Script')).toBeVisible();
+    expect(screen.getByText(/spoken exactly as written/i)).toBeVisible();
+    expect(
+      screen.getByRole('combobox', { name: 'Avatar identity' }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('combobox', { name: 'Voice identity' }),
+    ).toBeVisible();
+    expect(
+      screen.getByText('Choose both an avatar and a voice to continue.'),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Save idea' })).toBeDisabled();
+    expect(mocks.avatarHook).toHaveBeenCalledWith('org-1');
+    expect(mocks.voiceHook).toHaveBeenCalledWith(
+      expect.objectContaining({ isActive: true }),
+    );
+  });
+
+  it('offers only generation-ready avatar and usable voice rows', () => {
+    mocks.run.value = {
+      ...run,
+      draft: {
+        ...run.draft,
+        identity: {},
+        output: {
+          aspectRatio: '9:16',
+          count: 2,
+          durationSeconds: 8,
+          kind: 'avatar',
+        },
+      },
+    };
+
+    render(<RemixBriefInspector />);
+
+    fireEvent.click(screen.getByRole('combobox', { name: 'Avatar identity' }));
+    expect(screen.getByRole('option', { name: 'Avatar One' })).toBeVisible();
+    expect(
+      screen.queryByRole('option', { name: 'Processing Avatar' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', { name: 'Other Brand Avatar' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', { name: 'Shared Avatar' }),
+    ).not.toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    fireEvent.click(screen.getByRole('combobox', { name: 'Voice identity' }));
+    expect(
+      screen.getByRole('option', { name: 'Voice One (elevenlabs)' }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole('option', { name: 'Failed Voice (elevenlabs)' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', { name: 'Shared Voice' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', { name: 'Unusable Voice' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {
+        name: 'Other Brand Voice (elevenlabs)',
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('emits durable ingredient row ids for a complete avatar identity', () => {
+    expect(
+      buildRemixDraftEdits(
+        {
+          angle: '',
+          aspectRatio: '9:16',
+          avatarAssetId: 'avatar-row-1',
+          callToAction: '',
+          count: 2,
+          credentialId: '',
+          fidelityMode: 'guided',
+          hook: '',
+          objective: 'Deliver the source hook through the brand avatar.',
+          outputKind: 'avatar',
+          references: [],
+          speechVoiceId: 'voice-row-1',
+          storyboard: [],
+          targetPlatform: 'tiktok',
+          visualDirection: '',
+        },
+        run,
+      ).identity,
+    ).toEqual({
+      avatarAssetId: 'avatar-row-1',
+      speechVoiceId: 'voice-row-1',
+    });
+  });
+  it('selects a real destination without overriding the unchanged default identity', () => {
+    mocks.run.value = {
+      ...run,
+      draft: {
+        ...run.draft,
+        identity: {
+          avatarAssetId: 'avatar-row-1',
+          speechVoiceId: 'voice-row-1',
+        },
+        output: { ...run.draft.output, kind: 'avatar' },
+      },
+    };
+    render(<RemixBriefInspector />);
+    fireEvent.click(
+      screen.getByRole('combobox', { name: 'Destination account' }),
+    );
+    fireEvent.click(screen.getByRole('option', { name: '@northstar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save idea' }));
+    expect(mocks.accountsHook).toHaveBeenCalledWith('brand-1');
+    const edits = mocks.confirm.mock.calls[0][0];
+    expect(edits.target).toEqual({
+      kind: 'organic',
+      platform: 'tiktok',
+      credentialId: 'credential-1',
+    });
+    expect(edits).not.toHaveProperty('identity');
+  });
+
+  it('keeps incomplete avatar identity blocked for an unchanged destination', () => {
+    mocks.run.value = {
+      ...run,
+      draft: {
+        ...run.draft,
+        identitySource: 'brand_default',
+        output: { ...run.draft.output, kind: 'avatar' },
+        target: { ...run.draft.target, credentialId: 'credential-1' },
+      },
+    };
+    render(<RemixBriefInspector />);
+    expect(screen.getByRole('button', { name: 'Save idea' })).toBeDisabled();
+    expect(mocks.confirm).not.toHaveBeenCalled();
+  });
+
+  it.each(['explicit', undefined] as const)(
+    'does not expect a destination persona to replace frozen %s identity',
+    (identitySource) => {
+      mocks.run.value = {
+        ...run,
+        draft: {
+          ...run.draft,
+          identitySource,
+          output: { ...run.draft.output, kind: 'avatar' },
+        },
+      };
+      render(<RemixBriefInspector />);
+      fireEvent.click(
+        screen.getByRole('combobox', { name: 'Destination account' }),
+      );
+      fireEvent.click(screen.getByRole('option', { name: '@northstar' }));
+      expect(screen.getByRole('button', { name: 'Save idea' })).toBeDisabled();
+      expect(mocks.confirm).not.toHaveBeenCalled();
+    },
+  );
+
+  it('allows a destination persona to resolve until the user makes a partial identity edit', () => {
+    mocks.run.value = {
+      ...run,
+      draft: {
+        ...run.draft,
+        identitySource: 'brand_default',
+        output: { ...run.draft.output, kind: 'avatar' },
+      },
+    };
+    render(<RemixBriefInspector />);
+    fireEvent.click(
+      screen.getByRole('combobox', { name: 'Destination account' }),
+    );
+    fireEvent.click(screen.getByRole('option', { name: '@northstar' }));
+    expect(screen.getByRole('button', { name: 'Save idea' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('combobox', { name: 'Avatar identity' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Avatar One' }));
+    expect(screen.getByRole('button', { name: 'Save idea' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('combobox', { name: 'Voice identity' }));
+    fireEvent.click(
+      screen.getByRole('option', { name: 'Voice One (elevenlabs)' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Save idea' }));
+    expect(mocks.confirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        identity: {
+          avatarAssetId: 'avatar-row-1',
+          speechVoiceId: 'voice-row-1',
+        },
+      }),
+    );
+  });
+
+  it.each(['platform', 'defaults'])(
+    'omits the old credential when changing %s',
+    (change) => {
+      mocks.run.value = {
+        ...run,
+        draft: {
+          ...run.draft,
+          target: { ...run.draft.target, credentialId: 'credential-1' },
+        },
+      };
+      render(<RemixBriefInspector />);
+      fireEvent.click(
+        screen.getByRole('combobox', {
+          name:
+            change === 'platform' ? 'Target platform' : 'Destination account',
+        }),
+      );
+      fireEvent.click(
+        screen.getByRole('option', {
+          name: change === 'platform' ? 'Instagram' : 'Brand defaults',
+        }),
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Save idea' }));
+      expect(mocks.confirm.mock.calls[0][0].target).toEqual({
+        kind: 'organic',
+        platform: change === 'platform' ? 'instagram' : 'tiktok',
+      });
+    },
+  );
+
+  it('explains an empty account list without inventing an account', () => {
+    mocks.accountsHook.mockReturnValue({ accounts: [], isPending: false });
+    render(<RemixBriefInspector />);
+    expect(
+      screen.getByText('No connected accounts for this platform'),
+    ).toBeVisible();
+    fireEvent.click(
+      screen.getByRole('combobox', { name: 'Destination account' }),
+    );
+    expect(screen.getAllByRole('option')).toHaveLength(1);
+    expect(
+      screen.getByRole('option', { name: 'Brand defaults' }),
+    ).toBeVisible();
+  });
+
+  it.each([
+    ['organic', 'x', 'twitter'],
+    ['paid', 'x', 'x_ads'],
+    ['paid', 'meta', 'facebook'],
+    ['paid', 'google', 'google_ads'],
+    ['organic', 'instagram', 'instagram'],
+    ['organic', 'youtube', 'youtube'],
+    ['paid', 'tiktok', 'tiktok'],
+  ])(
+    'offers only connected exact-brand %s %s accounts',
+    (kind, platform, credentialPlatform) => {
+      mocks.run.value = {
+        ...run,
+        draft: { ...run.draft, target: { kind, platform } },
+      };
+      const account = {
+        id: 'correct',
+        brandId: 'brand-1',
+        platform: credentialPlatform,
+        externalName: 'Destination',
+        isConnected: true,
+        isDeleted: false,
+      };
+      mocks.accountsHook.mockReturnValue({
+        accounts: [
+          account,
+          { ...account, id: 'other-brand', brandId: 'brand-2' },
+          { ...account, id: 'shared', brandId: null },
+          { ...account, id: 'disconnected', isConnected: false },
+          { ...account, id: 'deleted', isDeleted: true },
+          {
+            ...account,
+            id: 'wrong-platform',
+            platform: credentialPlatform === 'twitter' ? 'x_ads' : 'twitter',
+          },
+        ],
+        isPending: false,
+      });
+      render(<RemixBriefInspector />);
+      fireEvent.click(
+        screen.getByRole('combobox', { name: 'Destination account' }),
+      );
+      expect(screen.getAllByRole('option')).toHaveLength(2);
+      fireEvent.click(screen.getByRole('option', { name: 'Destination' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Save idea' }));
+      expect(mocks.confirm.mock.calls[0][0].target).toEqual({
+        kind,
+        platform,
+        credentialId: 'correct',
+      });
+    },
+  );
+  it('keeps an unavailable persisted destination for server validation', () => {
+    mocks.accountsHook.mockReturnValue({ accounts: [], isPending: false });
+    mocks.run.value = {
+      ...run,
+      draft: {
+        ...run.draft,
+        target: { ...run.draft.target, credentialId: 'disconnected-account' },
+      },
+    };
+    render(<RemixBriefInspector />);
+    fireEvent.click(screen.getByRole('button', { name: 'Save idea' }));
+    expect(mocks.confirm.mock.calls[0][0].target.credentialId).toBe(
+      'disconnected-account',
+    );
+  });
+
+  it.each([
+    [true, false, 'Loading connected accounts…'],
+    [false, true, 'Unable to load connected accounts.'],
+  ])(
+    'distinguishes loading and errors from no accounts',
+    (isPending, isError, message) => {
+      mocks.accountsHook.mockReturnValue({ accounts: [], isPending, isError });
+      render(<RemixBriefInspector />);
+      expect(screen.getByText(message)).toBeVisible();
+      expect(
+        screen.queryByText('No connected accounts for this platform'),
+      ).not.toBeInTheDocument();
+    },
+  );
+});

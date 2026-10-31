@@ -46,7 +46,7 @@ function captureRequestSerializerInput(input) {
     throw new Error('Unexpected browser compiler context');
   const appDirectory = realpathSync(this.rootContext);
   const root = path.resolve(appDirectory, '../..');
-  if (appDirectory !== path.join(root, 'apps/app'))
+  if (appDirectory !== path.join(root, 'apps/web'))
     throw new Error('Unexpected app-project compiler context');
   const expected = path.join(root, paths.javaScript);
   if (

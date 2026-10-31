@@ -34,11 +34,11 @@ const logger = {
     console.log(`[CheckComposerSurfaceStyling] ${message}`),
 };
 
-const INCLUDE_GLOBS = ['apps/app/**/*.{tsx,jsx}', 'packages/**/*.{tsx,jsx}'];
+const INCLUDE_GLOBS = ['apps/web/**/*.{tsx,jsx}', 'packages/**/*.{tsx,jsx}'];
 
 /** Includes .ts/.js so prop contracts and helpers are scanned for the removed fade API. */
 const SOURCE_GLOBS = [
-  'apps/app/**/*.{ts,tsx,js,jsx}',
+  'apps/web/**/*.{ts,tsx,js,jsx}',
   'packages/**/*.{ts,tsx,js,jsx}',
 ];
 
@@ -52,7 +52,7 @@ const EXCLUDE_GLOBS = [
   // The marketing site renders a stylised mock of the composer for a dark
   // landing page. It is a picture of the product, not a product surface, so it
   // does not participate in app composer consistency.
-  'apps/website/**',
+  'apps/marketing/**',
 ];
 
 /** Components whose className lands on the shared composer surface. */

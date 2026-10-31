@@ -37,10 +37,10 @@ function compilerInputFixture() {
     mkdtempSync(path.join(os.tmpdir(), 'serializer-input-finalize-')),
   );
   temporaryDirectories.push(root);
-  mkdirSync(path.join(root, 'apps/app'), { recursive: true });
+  mkdirSync(path.join(root, 'apps/web'), { recursive: true });
   mkdirSync(path.join(root, 'packages/serializers/dist'), { recursive: true });
   writeFileSync(
-    path.join(root, 'apps/app/next.config.ts'),
+    path.join(root, 'apps/web/next.config.ts'),
     'export default {};\n',
   );
   const input = Buffer.from('export const Serializer = {};\n');
@@ -77,7 +77,7 @@ function compilerInputFixture() {
   const capture = () =>
     loaded.call(
       {
-        rootContext: path.join(root, 'apps/app'),
+        rootContext: path.join(root, 'apps/web'),
         resourcePath: path.join(root, prepared.input.artifacts.javaScript.path),
         resourceQuery: '',
         target: 'web',
@@ -203,7 +203,7 @@ describe('serializer production build provenance', () => {
     'packages/serializers/dist/request-runtime.bundle.js',
     'packages/serializers/dist/request-runtime.bundle.js.map',
     'packages/serializers/dist/request-runtime.provenance.json',
-    'apps/app/next.config.ts',
+    'apps/web/next.config.ts',
   ])('rejects post-callback mutation of %s', (filename) => {
     const f = compilerInputFixture();
     f.capture();

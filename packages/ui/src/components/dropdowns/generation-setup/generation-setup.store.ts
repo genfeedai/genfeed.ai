@@ -13,7 +13,7 @@ import { normalizeMusicSettings } from '@genfeedai/contracts/constants';
  *
  * Pattern-matched against the retired agent-preferred-model.store (scope-keyed
  * map, standalone read/write wrappers, adopt-new-scope helper — superseded by
- * this store) and apps/app/src/store/brand-interview-draft.store.ts (zustand
+ * this store) and apps/web/src/store/brand-interview-draft.store.ts (zustand
  * `persist`, scope map, `partialize`).
  */
 import type {

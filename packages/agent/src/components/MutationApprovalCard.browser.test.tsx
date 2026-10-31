@@ -4,7 +4,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
-import messages from '../../../../apps/app/messages/en/agent.json';
+import messages from '../../../../apps/web/messages/en/agent.json';
 import '../../tests/fixtures/mutation-approval.browser.css';
 
 beforeEach(() => {

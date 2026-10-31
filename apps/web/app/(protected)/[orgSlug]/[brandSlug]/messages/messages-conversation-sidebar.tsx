@@ -1,0 +1,510 @@
+import { AgentOAuthConnectMenu } from '@genfeedai/agent/components/AgentOAuthConnectMenu';
+import {
+  ButtonSize,
+  ButtonVariant,
+  ComponentSize,
+  Platform,
+  SocialConversationType,
+} from '@genfeedai/contracts';
+import type { SocialConversationModel } from '@genfeedai/models/social/social-conversation.model';
+import {
+  ConversationSidebarSearch,
+  ConversationSidebarSection,
+  conversationSidebarRowClassName,
+} from '@genfeedai/ui';
+import { cn } from '@helpers/formatting/cn/cn.util';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import PaginationStepper from '@ui/navigation/pagination/PaginationStepper';
+import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
+import { Badge } from '@ui/primitives/badge';
+import { Button } from '@ui/primitives/button';
+import { MessageSquare, RefreshCw } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import type {
+  MessagesBrandFilterOption,
+  MessagesConversationSidebarProps,
+  MessagesInboxView,
+  MessagesSurface,
+  PaginationState,
+} from '@/props/messages/messages-conversation-sidebar.props';
+import MessagesFilterMenu from './messages-filter-menu';
+
+export type { MessagesInboxView, MessagesSurface };
+
+function formatRelativeTime(value?: string | null): string {
+  if (!value) {
+    return '';
+  }
+
+  const timestamp = new Date(value).getTime();
+  if (Number.isNaN(timestamp)) {
+    return '';
+  }
+
+  const diffMinutes = Math.max(
+    0,
+    Math.floor((Date.now() - timestamp) / 60_000),
+  );
+  if (diffMinutes < 1) {
+    return 'now';
+  }
+  if (diffMinutes < 60) {
+    return `${diffMinutes}m`;
+  }
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) {
+    return `${diffHours}h`;
+  }
+
+  return `${Math.floor(diffHours / 24)}d`;
+}
+
+export function getParticipantLabel(
+  conversation: SocialConversationModel,
+): string {
+  return (
+    conversation.participantName ||
+    conversation.participantHandle ||
+    conversation.participantExternalId ||
+    'Unknown sender'
+  );
+}
+
+export function groupMessageConversations(
+  conversations: SocialConversationModel[],
+): {
+  inbox: SocialConversationModel[];
+  needsYou: SocialConversationModel[];
+} {
+  const needsYou: SocialConversationModel[] = [];
+  const inbox: SocialConversationModel[] = [];
+
+  for (const conversation of conversations) {
+    if (
+      conversation.unreadCount > 0 ||
+      conversation.needsReview ||
+      conversation.status === 'needs_review'
+    ) {
+      needsYou.push(conversation);
+    } else {
+      inbox.push(conversation);
+    }
+  }
+
+  return { inbox, needsYou };
+}
+
+function ConversationRow({
+  brandLabel,
+  conversation,
+  isDisabled,
+  isSelected,
+  onSelect,
+}: {
+  brandLabel?: string;
+  conversation: SocialConversationModel;
+  isDisabled: boolean;
+  isSelected: boolean;
+  onSelect: (conversationId: string) => void;
+}) {
+  const translate = useTranslations('common.messages');
+  const relativeTime = formatRelativeTime(conversation.latestMessageAt);
+  const needsReview =
+    conversation.needsReview || conversation.status === 'needs_review';
+  const participantLabel = getParticipantLabel(conversation);
+  const participantInitials = participantLabel
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
+  const isReadOnly = conversation.platform === Platform.TIKTOK;
+
+  return (
+    <Button
+      aria-pressed={isSelected}
+      ariaLabel={`Open social conversation with ${getParticipantLabel(conversation)}`}
+      isDisabled={isDisabled}
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
+      className={cn(
+        conversationSidebarRowClassName({ isSelected }),
+        'flex min-h-[4.5rem] items-start gap-2.5 px-2.5 py-2 text-left',
+      )}
+      onClick={() => onSelect(conversation.id)}
+    >
+      <span className="relative mt-0.5 shrink-0">
+        <Avatar className="size-8 bg-card shadow-border">
+          {conversation.participantAvatarUrl ? (
+            <AvatarImage
+              alt={`${participantLabel} profile picture`}
+              className="object-cover"
+              src={conversation.participantAvatarUrl}
+            />
+          ) : null}
+          <AvatarFallback className="text-2xs font-semibold text-foreground/70">
+            {participantInitials || '?'}
+          </AvatarFallback>
+        </Avatar>
+        <PlatformBadge
+          className="absolute -bottom-1 -right-1 size-4 justify-center rounded-full border border-background p-0"
+          platform={conversation.platform}
+          showLabel={false}
+          size={ComponentSize.SM}
+        />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span
+            aria-hidden="true"
+            className={cn(
+              'size-1.5 shrink-0 rounded-full',
+              needsReview
+                ? 'bg-warning'
+                : conversation.unreadCount > 0
+                  ? 'bg-info'
+                  : 'bg-foreground/10',
+            )}
+          />
+          <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground/90">
+            {participantLabel}
+          </span>
+          {relativeTime ? (
+            <span className="shrink-0 text-2xs tabular-nums text-muted-foreground">
+              {relativeTime}
+            </span>
+          ) : null}
+        </span>
+        <span className="mt-0.5 flex min-w-0 items-center gap-2">
+          <span className="min-w-0 flex-1 truncate text-2xs text-muted-foreground">
+            {conversation.latestMessageText || 'No message preview available'}
+          </span>
+          {conversation.unreadCount > 0 ? (
+            <Badge className="shrink-0 tabular-nums" variant="info">
+              {conversation.unreadCount}
+            </Badge>
+          ) : null}
+        </span>
+        <span className="mt-1 flex min-w-0 items-center gap-1.5 text-2xs font-medium text-muted-foreground">
+          <span className="shrink-0 uppercase tracking-wider">
+            {conversation.conversationType === SocialConversationType.DM
+              ? 'DM'
+              : 'Comment'}
+          </span>
+          {brandLabel ? (
+            <>
+              <span aria-hidden="true">·</span>
+              <span className="min-w-0 truncate">{brandLabel}</span>
+            </>
+          ) : null}
+          {isReadOnly ? (
+            <>
+              <span aria-hidden="true">·</span>
+              <span className="shrink-0 text-warning">
+                {translate('conversation.readOnly')}
+              </span>
+            </>
+          ) : needsReview ? (
+            <>
+              <span aria-hidden="true">·</span>
+              <span className="shrink-0 text-warning">
+                {translate('conversation.needsReviewCompact')}
+              </span>
+            </>
+          ) : null}
+        </span>
+      </span>
+    </Button>
+  );
+}
+
+export type { MessagesBrandFilterOption, PaginationState };
+
+export function MessagesConversationSidebar({
+  accounts,
+  automationState,
+  brandFilter,
+  brandOptions,
+  busyAction,
+  conversations,
+  conversationType,
+  credentialId,
+  defaultBrandFilter,
+  hasConnectedAccounts,
+  hasSyncableAccounts,
+  isAccountsLoading,
+  isLoading,
+  onAutomationStateChange,
+  onBrandFilterChange,
+  onClearFilters,
+  onConversationTypeChange,
+  onCredentialIdChange,
+  onNextPage,
+  onOAuthConnect,
+  onPlatformChange,
+  onPreviousPage,
+  onSearchChange,
+  onSelect,
+  onSync,
+  onViewChange,
+  pagination,
+  platform,
+  search,
+  selectedId,
+  view,
+  writeBlockedReason,
+}: MessagesConversationSidebarProps) {
+  const translate = useTranslations('common.messages');
+  const groups = groupMessageConversations(conversations);
+  const brandLabels = new Map(
+    brandOptions.map((option) => [option.id, option.label]),
+  );
+  const isDmSurface = conversationType === SocialConversationType.DM;
+  const syncLabel =
+    conversationType === 'all'
+      ? 'Sync inbox'
+      : isDmSurface
+        ? 'Sync direct messages'
+        : 'Sync comments';
+  const syncAction =
+    hasSyncableAccounts && conversations.length > 0 ? (
+      <Button
+        ariaLabel={syncLabel}
+        className="size-8 shrink-0 rounded-md border border-border bg-foreground/5 text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+        icon={<RefreshCw className="size-4" />}
+        isDisabled={
+          Boolean(writeBlockedReason) ||
+          (Boolean(busyAction) && busyAction !== 'sync')
+        }
+        isLoading={busyAction === 'sync'}
+        size={ButtonSize.ICON}
+        tooltip={writeBlockedReason ?? syncLabel}
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
+        onClick={onSync}
+      />
+    ) : null;
+  const emptyStateTitle = !hasConnectedAccounts
+    ? 'Connect your social accounts'
+    : conversationType === 'all'
+      ? 'No conversations yet'
+      : isDmSurface
+        ? 'No direct messages yet'
+        : 'No comments yet';
+  // DMs are polled rather than pushed, so an empty DM surface is the expected
+  // state until the first sync — say so instead of implying something is wrong.
+  const emptyStateBody =
+    writeBlockedReason ??
+    (!hasConnectedAccounts
+      ? 'Bring comments and direct messages from every connected channel into one place.'
+      : !hasSyncableAccounts
+        ? 'Your connected accounts do not support syncing this conversation type. Conversations will appear here when available.'
+        : conversationType === 'all'
+          ? 'Your accounts are connected. Sync now to collect the latest comments and direct messages.'
+          : isDmSurface
+            ? 'Direct messages are pulled in by sync. Sync now to fill this conversation list.'
+            : brandFilter === 'all'
+              ? 'Sync your connected accounts to pull comments into this inbox.'
+              : 'No comments for this brand yet. Sync or switch brands.');
+  const singleSectionLabel =
+    view === 'resolved'
+      ? translate('sidebar.views.resolved')
+      : view === 'archived'
+        ? translate('sidebar.views.archived')
+        : view === 'review'
+          ? translate('conversation.needsReviewCompact')
+          : view === 'unread'
+            ? translate('sidebar.views.unread')
+            : null;
+  const filterAction = (
+    <div className="flex items-center gap-1">
+      <MessagesFilterMenu
+        accounts={accounts}
+        automationState={automationState}
+        brandFilter={brandFilter}
+        brandOptions={brandOptions}
+        conversationType={conversationType}
+        credentialId={credentialId}
+        defaultBrandFilter={defaultBrandFilter}
+        platform={platform}
+        view={view}
+        onAutomationStateChange={onAutomationStateChange}
+        onBrandFilterChange={onBrandFilterChange}
+        onClear={onClearFilters}
+        onConversationTypeChange={onConversationTypeChange}
+        onCredentialIdChange={onCredentialIdChange}
+        onPlatformChange={onPlatformChange}
+        onViewChange={onViewChange}
+      />
+      {syncAction}
+    </div>
+  );
+
+  return (
+    <nav
+      aria-label={translate('sidebar.navAria')}
+      className="flex h-full min-h-0 flex-col pt-1"
+    >
+      <div className="flex items-center justify-between px-3 py-1.5">
+        <span className="text-2xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
+          {translate('title')}
+        </span>
+        {pagination.total > 0 ? (
+          <span className="text-2xs tabular-nums text-muted-foreground">
+            {pagination.total}
+          </span>
+        ) : null}
+      </div>
+      <ConversationSidebarSearch
+        action={filterAction}
+        ariaLabel={translate('sidebar.searchAria')}
+        placeholder={translate('sidebar.searchPlaceholder')}
+        value={search}
+        onChange={onSearchChange}
+      />
+      <div className="min-h-0 flex-1 overflow-y-auto pb-3 scrollbar-thin">
+        {isLoading || (isAccountsLoading && conversations.length === 0) ? (
+          <div className="p-4">
+            <LazyLoadingFallback variant="minimal" />
+          </div>
+        ) : conversations.length === 0 ? (
+          <div
+            className="flex flex-col items-center justify-center gap-3 px-5 py-10 text-center"
+            data-testid="messages-sidebar-empty"
+          >
+            <MessageSquare
+              aria-hidden="true"
+              className="size-8 text-foreground/20"
+            />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground/60">
+                {emptyStateTitle}
+              </p>
+              <p className="text-xs leading-5 text-muted-foreground">
+                {emptyStateBody}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+              {hasSyncableAccounts ? (
+                <Button
+                  ariaLabel={syncLabel}
+                  isDisabled={
+                    Boolean(writeBlockedReason) ||
+                    (Boolean(busyAction) && busyAction !== 'sync')
+                  }
+                  isLoading={busyAction === 'sync'}
+                  onClick={onSync}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.DEFAULT}
+                  withWrapper={false}
+                >
+                  <RefreshCw aria-hidden="true" className="size-3.5" />
+                  {translate('sidebar.syncNow')}
+                </Button>
+              ) : !hasConnectedAccounts && onOAuthConnect ? (
+                <AgentOAuthConnectMenu
+                  hideIcon
+                  onOAuthConnect={onOAuthConnect}
+                  triggerLabel="Connect accounts"
+                  triggerSize={ButtonSize.SM}
+                  triggerVariant={ButtonVariant.DEFAULT}
+                />
+              ) : null}
+              {!hasConnectedAccounts && !onOAuthConnect ? (
+                <p className="text-2xs leading-4 text-warning">
+                  {translate('sidebar.chooseBrandToConnect')}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        ) : singleSectionLabel ? (
+          <ConversationSidebarSection
+            count={conversations.length}
+            label={singleSectionLabel}
+          >
+            {conversations.map((conversation) => (
+              <ConversationRow
+                brandLabel={
+                  conversation.brandId
+                    ? brandLabels.get(conversation.brandId)
+                    : undefined
+                }
+                conversation={conversation}
+                isDisabled={Boolean(busyAction)}
+                isSelected={conversation.id === selectedId}
+                key={conversation.id}
+                onSelect={onSelect}
+              />
+            ))}
+          </ConversationSidebarSection>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {groups.needsYou.length > 0 ? (
+              <ConversationSidebarSection
+                count={groups.needsYou.length}
+                label={translate('sidebar.needsYou')}
+              >
+                {groups.needsYou.map((conversation) => (
+                  <ConversationRow
+                    brandLabel={
+                      conversation.brandId
+                        ? brandLabels.get(conversation.brandId)
+                        : undefined
+                    }
+                    conversation={conversation}
+                    isDisabled={Boolean(busyAction)}
+                    isSelected={conversation.id === selectedId}
+                    key={conversation.id}
+                    onSelect={onSelect}
+                  />
+                ))}
+              </ConversationSidebarSection>
+            ) : null}
+            {groups.inbox.length > 0 ? (
+              <ConversationSidebarSection
+                count={groups.inbox.length}
+                label={
+                  view === 'all'
+                    ? translate('sidebar.other')
+                    : translate('sidebar.views.inbox')
+                }
+              >
+                {groups.inbox.map((conversation) => (
+                  <ConversationRow
+                    brandLabel={
+                      conversation.brandId
+                        ? brandLabels.get(conversation.brandId)
+                        : undefined
+                    }
+                    conversation={conversation}
+                    isDisabled={Boolean(busyAction)}
+                    isSelected={conversation.id === selectedId}
+                    key={conversation.id}
+                    onSelect={onSelect}
+                  />
+                ))}
+              </ConversationSidebarSection>
+            ) : null}
+          </div>
+        )}
+      </div>
+
+      {pagination.totalPages > 1 ? (
+        <PaginationStepper
+          className="shrink-0 border-t border-border px-3 py-2"
+          hasNext={pagination.hasNext}
+          hasPrevious={pagination.hasPrevious}
+          nextLabel={translate('sidebar.nextPage')}
+          onNext={onNextPage}
+          onPrevious={onPreviousPage}
+          previousLabel={translate('sidebar.previousPage')}
+          status={translate('pagination.conversationPage', {
+            page: pagination.page,
+            pages: pagination.totalPages,
+          })}
+        />
+      ) : null}
+    </nav>
+  );
+}

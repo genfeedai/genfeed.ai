@@ -1,0 +1,108 @@
+import type {
+  AccountHealthSummary,
+  IReleaseGroup,
+} from '@genfeedai/contracts/interfaces';
+import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
+import type { ReactNode } from 'react';
+import type { AsyncState } from '@/props/shared/async-state.types';
+
+/** One SCHEDULED channel target due within the next 24 hours. */
+export interface PublishingOverviewQueueItem {
+  accountLabel: string;
+  href: string;
+  platform: string;
+  releaseId: string;
+  scheduledAt: string;
+  targetId: string;
+  title: string;
+}
+
+export interface PublishingOverviewQueueGroup {
+  bucket: 'near' | 'later';
+  items: PublishingOverviewQueueItem[];
+}
+
+export interface PublishingOverviewQueueSectionProps {
+  onRetry: () => void;
+  state: AsyncState<PublishingOverviewQueueGroup[]>;
+}
+
+/** FAILED channel targets grouped by their structured error code. */
+export interface PublishingOverviewBlockedGroup {
+  accounts: string[];
+  code: string;
+  count: number;
+  href: string;
+  message: string;
+}
+
+export interface PublishingOverviewBlockedSectionProps {
+  onRetry: () => void;
+  state: AsyncState<PublishingOverviewBlockedGroup[]>;
+}
+
+/** Per-connected-account gap since the last publish, and whether one is queued. */
+export interface PublishingOverviewCadenceGap {
+  accountLabel: string;
+  credentialId: string;
+  gapDays: number | null;
+  hasUpcoming: boolean;
+  holdPublishing: boolean;
+  lastPublishedAt: string | null;
+  needsReconnect: boolean;
+  platform: AccountHealthSummary['platform'];
+}
+
+export interface PublishingOverviewCadenceSectionProps {
+  connections?: BrandDetailSocialConnection[];
+  onRetry: () => void;
+  state: AsyncState<PublishingOverviewCadenceGap[]>;
+}
+
+/** One connected account's warmup and reconnect state on the Overview desk. */
+export interface PublishingOverviewHealthRow {
+  accountLabel: string;
+  connectedDays: number;
+  credentialId: string;
+  holdPublishing: boolean;
+  holdReason?: string;
+  needsReconnect: boolean;
+  platform: AccountHealthSummary['platform'];
+  publishedPosts: number;
+  recentFailures: number;
+  riskLevel: 'high' | 'low' | 'medium' | 'unknown';
+  score: number;
+  state: 'healthy' | 'not_started' | 'risky' | 'warming';
+}
+
+export interface PublishingOverviewHealthSectionProps {
+  connections?: BrandDetailSocialConnection[];
+  onRetry: () => void;
+  state: AsyncState<PublishingOverviewHealthRow[]>;
+}
+
+export type BlockedTargetGroup = PublishingOverviewBlockedGroup;
+
+export type CadenceGap = PublishingOverviewCadenceGap;
+
+export interface CadenceGapsInput {
+  accountHealth: AccountHealthSummary[];
+  postedReleases: IReleaseGroup[];
+  upcomingReleases: IReleaseGroup[];
+}
+
+export type Next24hQueueBucket = 'near' | 'later';
+
+export type Next24hQueueItem = PublishingOverviewQueueItem;
+
+export type Next24hQueueGroup = PublishingOverviewQueueGroup;
+
+export interface PublishingAccountRowProps {
+  accountLabel: string;
+  children: ReactNode;
+  connections: BrandDetailSocialConnection[];
+  credentialId: string;
+  meta: ReactNode;
+  platform: AccountHealthSummary['platform'];
+  reconnectLabel?: string;
+}

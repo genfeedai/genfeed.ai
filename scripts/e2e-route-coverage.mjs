@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
-const appRoot = path.join(repoRoot, 'apps/app/app');
+const appRoot = path.join(repoRoot, 'apps/web/app');
 const appRoutesFile = path.join(
   repoRoot,
   'packages/contracts/src/constants/routes.constant.ts',

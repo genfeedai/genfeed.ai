@@ -1,0 +1,227 @@
+import '@testing-library/jest-dom/vitest';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import type {
+  IIngredient,
+  IMetadata,
+  IVideo,
+} from '@genfeedai/contracts/interfaces';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
+import IngredientDetailVideo from '@/features/ingredients/detail-video/IngredientDetailVideo';
+
+class MockIntersectionObserver {
+  disconnect() {}
+  observe() {}
+  unobserve() {}
+}
+
+vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
+
+vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/acme/brand-slug${path}` }),
+}));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
+vi.mock('@/components/evaluation/card/EvaluationCard', () => ({
+  default: () => <div data-testid="evaluation-card" />,
+}));
+
+vi.mock(
+  '@/features/ingredients/components/tabs/captions/IngredientTabsCaptions',
+  () => ({
+    default: () => <div data-testid="tabs-captions" />,
+  }),
+);
+
+vi.mock(
+  '@/features/ingredients/components/tabs/children/IngredientTabsChildren',
+  () => ({
+    default: () => <div data-testid="tabs-children" />,
+  }),
+);
+
+vi.mock(
+  '@/features/ingredients/components/tabs/info/IngredientTabsInfo',
+  () => ({
+    default: () => <div data-testid="tabs-info" />,
+  }),
+);
+
+vi.mock(
+  '@/features/ingredients/components/tabs/metadata/IngredientTabsMetadata',
+  () => ({
+    default: () => <div data-testid="tabs-metadata" />,
+  }),
+);
+
+vi.mock('@/features/ingredients/tabs-posts/IngredientTabsPosts', () => ({
+  default: () => <div data-testid="tabs-posts" />,
+}));
+
+vi.mock(
+  '@/features/ingredients/components/ingredients/tabs/prompts/IngredientTabsPrompts',
+  () => ({
+    default: () => <div data-testid="tabs-prompts" />,
+  }),
+);
+
+vi.mock(
+  '@/features/ingredients/components/tabs/sharing/IngredientTabsSharing',
+  () => ({
+    default: () => <div data-testid="tabs-sharing" />,
+  }),
+);
+
+vi.mock(
+  '@/features/ingredients/components/tabs/tags/IngredientTabsTags',
+  () => ({
+    default: () => <div data-testid="tabs-tags" />,
+  }),
+);
+
+vi.mock(
+  '@/features/ingredients/components/loading/overlay/LoadingOverlay',
+  () => ({
+    default: () => <div data-testid="loading-overlay" />,
+  }),
+);
+
+vi.mock('@ui/quick-actions/actions/IngredientQuickActions', () => ({
+  default: () => <div data-testid="ingredient-quick-actions" />,
+}));
+
+vi.mock('@ui/navigation/tabs/Tabs', () => ({
+  default: () => <div data-testid="tabs" />,
+}));
+
+vi.mock('@ui/display/video-player/VideoPlayer', () => ({
+  default: () => <div data-testid="video-player" />,
+}));
+
+vi.mock('@/hooks/ui/evaluation/use-evaluation/use-evaluation', () => ({
+  useEvaluation: () => ({
+    evaluate: vi.fn(),
+    evaluation: null,
+    isEvaluating: false,
+  }),
+}));
+
+vi.mock(
+  '@/features/ingredients/hooks/use-ingredient-metadata/use-ingredient-metadata',
+  () => ({
+    useIngredientMetadata: () => ({
+      isUpdating: false,
+      updateMetadata: vi.fn(),
+    }),
+  }),
+);
+
+vi.mock(
+  '@/features/ingredients/hooks/use-ingredient-sharing/use-ingredient-sharing',
+  () => ({
+    useIngredientSharing: () => ({
+      isUpdating: false,
+      updateSharing: vi.fn(),
+    }),
+  }),
+);
+
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => vi.fn(),
+}));
+
+vi.mock('@genfeedai/hooks/utils/use-socket-manager/use-socket-manager', () => ({
+  useSocketManager: () => ({
+    isReady: false,
+    subscribe: vi.fn(() => vi.fn()),
+  }),
+}));
+
+describe('IngredientDetailVideo', () => {
+  const video = {
+    category: IngredientCategory.VIDEO,
+    id: 'video-1',
+    ingredientUrl: 'https://example.com/video.mp4',
+    metadata: {
+      height: 1080,
+      width: 1920,
+    } as IMetadata,
+    status: IngredientStatus.GENERATED,
+    thumbnailUrl: 'https://example.com/thumbnail.jpg',
+  } as IVideo;
+
+  const childIngredients: IIngredient[] = [];
+
+  it('should render without crashing', () => {
+    render(
+      <IngredientDetailVideo
+        video={video}
+        childIngredients={childIngredients}
+      />,
+    );
+    expect(screen.getByTestId('tabs')).toBeInTheDocument();
+  });
+
+  it('should handle user interactions correctly', () => {
+    render(
+      <IngredientDetailVideo
+        video={video}
+        childIngredients={childIngredients}
+      />,
+    );
+    expect(screen.getByTestId('ingredient-quick-actions')).toBeInTheDocument();
+  });
+
+  it('offers an org-scoped Edit in Studio entry for the video', () => {
+    // #2309: the editor is Studio's Editor surface, reached artifact-first.
+    render(
+      <IngredientDetailVideo
+        video={video}
+        childIngredients={childIngredients}
+      />,
+    );
+
+    expect(
+      screen.getByRole('link', { name: /Edit in Studio/ }),
+    ).toHaveAttribute('href', '/acme/brand-slug/editor/new?video=video-1');
+  });
+
+  it('offers a keyboard-reachable, org-scoped Make clips entry for the video', async () => {
+    const user = userEvent.setup();
+    render(
+      <IngredientDetailVideo
+        video={video}
+        childIngredients={childIngredients}
+      />,
+    );
+
+    const makeClips = screen.getByRole('link', { name: /Make clips/ });
+    expect(makeClips).toHaveAttribute(
+      'href',
+      '/acme/brand-slug/clipper/new?video=video-1',
+    );
+
+    const editLink = screen.getByRole('link', { name: /Edit in Studio/ });
+    editLink.focus();
+    await user.tab();
+    expect(makeClips).toHaveFocus();
+  });
+
+  it('renders the detail workspace without the redundant section label', () => {
+    render(
+      <IngredientDetailVideo
+        video={video}
+        childIngredients={childIngredients}
+      />,
+    );
+    expect(
+      screen.getByRole('heading', { name: 'Review video details' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Asset Workspace')).not.toBeInTheDocument();
+  });
+});

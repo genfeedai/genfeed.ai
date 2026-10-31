@@ -55,7 +55,7 @@ describe('Remotion version contract', () => {
       'dependencies',
     );
     const appDependencies = readStringMap(
-      readJsonRecord(path.join(repositoryRoot, 'apps/app/package.json')),
+      readJsonRecord(path.join(repositoryRoot, 'apps/web/package.json')),
       'dependencies',
     );
 

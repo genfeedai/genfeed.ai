@@ -1,0 +1,1024 @@
+// @vitest-environment jsdom
+
+import '@testing-library/jest-dom/vitest';
+import {
+  ActivityKey,
+  CredentialPlatform,
+  PageScope,
+  ReleaseStatus,
+  WorkflowExecutionStatus,
+} from '@genfeedai/contracts';
+import type {
+  IActivity,
+  ICredential,
+  IReleaseGroup,
+  IWorkflowExecution,
+} from '@genfeedai/contracts/interfaces';
+import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+type ReviewInboxItem =
+  OverviewBootstrapPayload['reviewInbox']['recentItems'][number];
+
+const mocks = vi.hoisted(() => ({
+  activities: [] as IActivity[],
+  activityIsError: false,
+  activityOptions: undefined as { scope?: string } | undefined,
+  collectionBrandId: 'brand_1' as string | undefined,
+  accessState: { organizationId: 'org_1' } as {
+    organizationId?: string;
+  } | null,
+  activityRefresh: vi.fn(async () => undefined),
+  turboRunItemAction: vi.fn(async () => ({})),
+  cancelExecution: vi.fn(async () => undefined),
+  executions: [] as IWorkflowExecution[],
+  publications: [] as IReleaseGroup[],
+  publicationsIsError: false,
+  publicationsIsLoading: false,
+  publicationsRefresh: vi.fn(async () => undefined),
+  executionsRefresh: vi.fn(async () => undefined),
+  executionsIsError: false,
+  executionsIsLoading: false,
+  brandRefresh: vi.fn(async () => undefined),
+  loggerError: vi.fn(),
+  notificationsError: vi.fn(),
+  brandState: {
+    brands: [
+      {
+        organization: { slug: 'acme' },
+        organizationId: 'org_1',
+        slug: 'moonrise',
+      },
+    ],
+    credentials: [],
+    credentialsError: null,
+    credentialsLoading: false,
+    organizationId: 'org_1',
+    refreshBrands: vi.fn(async () => undefined),
+    selectedBrand: {
+      organization: { slug: 'acme' },
+      organizationId: 'org_1',
+      slug: 'moonrise',
+    },
+  } as {
+    brands: Array<{
+      organization?: { slug?: string };
+      organizationId?: string;
+      slug?: string;
+    }>;
+    credentials: ICredential[];
+    credentialsError: Error | null;
+    credentialsLoading: boolean;
+    organizationId: string;
+    refreshBrands: () => Promise<void>;
+    selectedBrand: {
+      organization?: { slug?: string };
+      organizationId?: string;
+      slug?: string;
+    } | null;
+  },
+  connectionOrganizationId: '',
+  connectionRefresh: vi.fn(async () => undefined),
+  connectionState: {
+    error: null,
+    key: null,
+    refresh: vi.fn(async () => undefined),
+    status: 'unconfigured',
+    verifiedAt: null,
+  } as {
+    error: Error | null;
+    key: { label?: string } | null;
+    refresh: () => Promise<void>;
+    status: 'configured' | 'error' | 'loading' | 'unconfigured';
+    verifiedAt: string | null;
+  },
+  overviewRefresh: vi.fn(async () => undefined),
+  overviewIsError: false,
+  overviewIsLoading: false,
+  reviewInboxRecentItems: [] as ReviewInboxItem[],
+  translate: vi.fn(),
+  // `null` keeps the upcoming-schedule fetch pending so synchronous tests see
+  // a stable loading panel with no post-test state updates.
+  upcomingReleases: null as unknown[] | null,
+}));
+
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => mocks.brandState,
+}));
+
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: (factory: (token: string) => unknown) => async () =>
+    factory('token-1'),
+}));
+
+vi.mock('@services/content/release-groups.service', () => ({
+  ReleaseGroupsService: {
+    getInstance: () => ({
+      findAllPages: () =>
+        mocks.upcomingReleases === null
+          ? new Promise(() => {})
+          : Promise.resolve(mocks.upcomingReleases),
+    }),
+  },
+}));
+
+vi.mock('@services/turbo/turbo-runs.service', () => ({
+  TurboRunsService: {
+    getInstance: () => ({ itemAction: mocks.turboRunItemAction }),
+  },
+}));
+
+vi.mock('@services/core/notifications.service', () => ({
+  NotificationsService: {
+    getInstance: () => ({ error: mocks.notificationsError }),
+  },
+}));
+
+vi.mock('@services/core/logger.service', () => ({
+  logger: { error: mocks.loggerError },
+}));
+
+vi.mock('@providers/access-state/access-state.provider', () => ({
+  useAccessState: () => ({ accessState: mocks.accessState }),
+}));
+
+vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
+  useCollectionScope: () => ({
+    brandId: mocks.collectionBrandId,
+    isReady: true,
+    organizationId: 'org_1',
+    pageScope: mocks.collectionBrandId ? 'brand' : 'org',
+  }),
+}));
+
+vi.mock('@/hooks/data/activities/use-activities/use-activities', () => ({
+  useActivities: (options: { scope?: string }) => {
+    mocks.activityOptions = options;
+    return {
+      activities: mocks.activities,
+      activityStats: { statusCounts: {}, todayCount: 0, total: 0 },
+      clearCompletedActivities: vi.fn(),
+      error: null,
+      filter: '',
+      filteredActivities: mocks.activities,
+      isError: mocks.activityIsError,
+      isLoading: false,
+      isRefreshing: false,
+      markActivitiesAsRead: vi.fn(),
+      refresh: mocks.activityRefresh,
+      setFilter: vi.fn(),
+      toggleActivityRead: vi.fn(),
+    };
+  },
+}));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  const { createTranslator } =
+    await vi.importActual<typeof import('next-intl')>('next-intl');
+  const { default: common } = await import('../../../messages/en/common.json');
+  const translateCommon = createTranslator({ locale: 'en', messages: common });
+  mocks.translate.mockImplementation(translateCommon);
+  return {
+    useTranslations: (namespace: string) =>
+      namespace === 'common'
+        ? mocks.translate
+        : translateFromCatalog(namespace),
+  };
+});
+
+vi.mock('@/hooks/data/overview/use-overview-bootstrap', () => ({
+  useOverviewBootstrap: () => ({
+    activeRuns: [],
+    analytics: { pendingPosts: 0 },
+    error: null,
+    isError: mocks.overviewIsError,
+    isLoading: mocks.overviewIsLoading,
+    refresh: mocks.overviewRefresh,
+    reviewInbox: {
+      approvedCount: 0,
+      changesRequestedCount: 0,
+      pendingCount: 0,
+      readyCount: 0,
+      recentItems: mocks.reviewInboxRecentItems,
+      rejectedCount: 0,
+    },
+    runs: [],
+    stats: null,
+    timeSeriesData: [],
+  }),
+}));
+
+vi.mock('@/hooks/data/workflow-executions/use-workflow-executions', () => ({
+  useWorkflowExecutions: () => ({
+    cancelExecution: mocks.cancelExecution,
+    executions: mocks.executions,
+    isError: mocks.executionsIsError,
+    isLoading: mocks.executionsIsLoading,
+    refresh: mocks.executionsRefresh,
+    stats: {
+      active: 0,
+      completed: 0,
+      failed: 0,
+      total: 0,
+      completedToday: 0,
+      failedToday: 0,
+      totalCredits: 0,
+    },
+  }),
+}));
+
+vi.mock('./use-home-publications', () => ({
+  useHomePublications: () => ({
+    isError: mocks.publicationsIsError,
+    isLoading: mocks.publicationsIsLoading,
+    publications: mocks.publications,
+    refresh: mocks.publicationsRefresh,
+  }),
+}));
+
+vi.mock('@/components/ui/client-formatted-date', () => ({
+  ClientFormattedDate: ({ value }: { value?: string | null }) => (
+    <span>{value ?? 'unknown'}</span>
+  ),
+}));
+
+vi.mock('./use-connect-genfeed-status', () => ({
+  useConnectGenfeedStatus: (organizationId: string) => {
+    mocks.connectionOrganizationId = organizationId;
+    return mocks.connectionState;
+  },
+}));
+
+const { default: OperationalHomeContent } = await import('./content');
+const { CONNECT_CARD_DISMISS_TTL_MS } = await import(
+  './use-connect-card-dismissal'
+);
+
+function buildReviewItem(id: string): ReviewInboxItem {
+  return {
+    turboRunId: 'turbo_run_1',
+    createdAt: '2026-08-08T12:00:00.000Z',
+    format: 'image',
+    id,
+    platform: 'instagram',
+    postId: `post_${id}`,
+    reviewDecision: 'unset',
+    status: 'ready',
+    summary: `Review ${id}`,
+  };
+}
+
+describe('OperationalHomeContent', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.localStorage.clear();
+    mocks.activities = [];
+    mocks.accessState = { organizationId: 'org_1' };
+    mocks.activityIsError = false;
+    mocks.activityOptions = undefined;
+    mocks.collectionBrandId = 'brand_1';
+    mocks.publications = [];
+    mocks.publicationsIsError = false;
+    mocks.publicationsIsLoading = false;
+    mocks.executions = [];
+    mocks.executionsIsError = false;
+    mocks.executionsIsLoading = false;
+    mocks.brandState.brands = [
+      {
+        organization: { slug: 'acme' },
+        organizationId: 'org_1',
+        slug: 'moonrise',
+      },
+    ];
+    mocks.brandState.organizationId = 'org_1';
+    mocks.brandState.credentials = [];
+    mocks.brandState.credentialsError = null;
+    mocks.brandState.credentialsLoading = false;
+    mocks.brandState.refreshBrands = mocks.brandRefresh;
+    mocks.brandState.selectedBrand = {
+      organization: { slug: 'acme' },
+      organizationId: 'org_1',
+      slug: 'moonrise',
+    };
+    mocks.connectionState = {
+      error: null,
+      key: null,
+      refresh: mocks.connectionRefresh,
+      status: 'unconfigured',
+      verifiedAt: null,
+    };
+    mocks.connectionOrganizationId = '';
+    mocks.overviewIsError = false;
+    mocks.overviewIsLoading = false;
+    mocks.reviewInboxRecentItems = [];
+    mocks.upcomingReleases = null;
+  });
+
+  it('renders the canonical Connect Genfeed state when unconfigured', async () => {
+    render(<OperationalHomeContent />);
+
+    expect(screen.queryByRole('main')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Operational home' }),
+    ).toHaveClass('sr-only');
+    const connectionState = await screen.findByTestId(
+      'operational-home-unconfigured',
+    );
+    expect(
+      within(connectionState).getByText(
+        'Connect Claude Code, Codex, or another AI client',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(connectionState).getByRole('link', { name: /Connect Genfeed/ }),
+    ).toHaveAttribute('href', '/acme/~/connect');
+    expect(
+      screen.queryByRole('link', { name: /Manage API keys/ }),
+    ).not.toBeInTheDocument();
+    const operationalSections = screen.getByTestId('operational-home-sections');
+
+    expect(
+      connectionState.compareDocumentPosition(operationalSections) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('hides the Connect Genfeed card once dismissed and keeps it hidden', async () => {
+    const { unmount } = render(<OperationalHomeContent />);
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Dismiss connect card' }),
+    );
+
+    expect(
+      screen.queryByTestId('operational-home-unconfigured'),
+    ).not.toBeInTheDocument();
+
+    unmount();
+    render(<OperationalHomeContent />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('operational-home-sections')).toBeVisible();
+    });
+    expect(
+      screen.queryByTestId('operational-home-unconfigured'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the Connect Genfeed card again after the dismissal expires', async () => {
+    window.localStorage.setItem(
+      'genfeed:connect-card-dismissed:v1:org_1',
+      String(Date.now() - CONNECT_CARD_DISMISS_TTL_MS - 1),
+    );
+
+    render(<OperationalHomeContent />);
+
+    expect(
+      await screen.findByTestId('operational-home-unconfigured'),
+    ).toBeInTheDocument();
+  });
+
+  it('renders missing-organization recovery inside the existing shell landmark', () => {
+    mocks.accessState = null;
+    mocks.brandState.brands = [];
+    mocks.brandState.organizationId = '';
+    mocks.brandState.selectedBrand = null;
+
+    render(<OperationalHomeContent />);
+
+    expect(screen.queryByRole('main')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {
+        name: 'Operational home needs an organization',
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders all operational control-plane sections when configured', async () => {
+    mocks.connectionState = {
+      error: null,
+      key: { label: 'Verified MCP' },
+      refresh: mocks.connectionRefresh,
+      status: 'configured',
+      verifiedAt: '2026-07-26T11:00:00.000Z',
+    };
+    mocks.upcomingReleases = [];
+
+    render(<OperationalHomeContent />);
+
+    expect(
+      screen.getByTestId('operational-home-connected'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('operational-home-needs-you'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('operational-home-publishing'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('operational-home-upcoming'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId('operational-home-credentials'),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('operational-home-activity')).toBeInTheDocument();
+    expect(screen.queryByText(/Studio/i)).not.toBeInTheDocument();
+
+    const emptyStates = screen.getAllByTestId('workspace-empty-state');
+    expect(emptyStates).toHaveLength(3);
+    for (const emptyState of emptyStates) {
+      expect(within(emptyState).queryByRole('link')).not.toBeInTheDocument();
+    }
+  });
+
+  it('resolves overview activity descriptions through the message catalog', () => {
+    mocks.activities = [
+      {
+        createdAt: '2026-08-08T12:00:00.000Z',
+        id: 'activity-1',
+        isDeleted: false,
+        isRead: false,
+        key: ActivityKey.IMAGE_PROCESSING,
+        source: 'image-generate',
+        updatedAt: '2026-08-08T12:00:00.000Z',
+        value: 'image-1',
+      } as IActivity,
+    ];
+
+    render(<OperationalHomeContent />);
+
+    expect(screen.getByText('Generating an image...')).toBeInTheDocument();
+    expect(mocks.translate).toHaveBeenCalledWith(
+      'activity.lifecycle.processing',
+      expect.objectContaining({
+        articleSubject: 'an image',
+        operation: 'generate',
+        subject: 'image',
+      }),
+    );
+  });
+
+  it('reads only the selected brand activity on a brand page', () => {
+    render(<OperationalHomeContent />);
+
+    expect(mocks.activityOptions?.scope).toBe(PageScope.BRAND);
+  });
+
+  it('reads the organization activity feed on the org-level home', () => {
+    mocks.collectionBrandId = undefined;
+
+    render(<OperationalHomeContent />);
+
+    expect(mocks.activityOptions?.scope).toBe(PageScope.ORGANIZATION);
+  });
+
+  it('uses the access-state organization fallback for connection status', () => {
+    mocks.brandState.organizationId = '';
+
+    render(<OperationalHomeContent />);
+
+    expect(mocks.connectionOrganizationId).toBe('org_1');
+    expect(
+      screen.getByRole('link', { name: /Connect Genfeed/ }),
+    ).toHaveAttribute('href', '/acme/~/connect');
+  });
+
+  it('keeps operational summaries available when status resolution fails', () => {
+    mocks.connectionState = {
+      error: new Error('network unavailable'),
+      key: null,
+      refresh: mocks.connectionRefresh,
+      status: 'error',
+      verifiedAt: null,
+    };
+
+    render(<OperationalHomeContent />);
+
+    expect(
+      screen.getByText(/Connection status unavailable/),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('operational-home-sections')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Open Connect Genfeed' }),
+    ).toHaveAttribute('href', '/acme/~/connect');
+  });
+
+  it('uses organization-level brand setup actions when no brand is available', () => {
+    mocks.executionsIsLoading = true;
+    mocks.brandState.brands = [
+      {
+        organization: { slug: 'acme' },
+        organizationId: 'org_1',
+      },
+    ];
+    mocks.brandState.selectedBrand = mocks.brandState.brands[0] ?? null;
+    mocks.connectionState = {
+      error: null,
+      key: { label: 'Verified MCP' },
+      refresh: mocks.connectionRefresh,
+      status: 'configured',
+      verifiedAt: '2026-07-26T11:00:00.000Z',
+    };
+
+    render(<OperationalHomeContent />);
+
+    expect(
+      within(screen.getByTestId('operational-home-needs-you')).queryByRole(
+        'status',
+      ),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Add a brand' })).toHaveAttribute(
+      'href',
+      '/acme/~/settings/brands',
+    );
+
+    for (const name of [
+      'Attention queue',
+      'Publishing',
+      'Accounts',
+      'Recent activity',
+    ]) {
+      expect(screen.getByRole('link', { name })).toHaveAttribute(
+        'href',
+        '/acme/~/settings/brands',
+      );
+    }
+  });
+
+  it('wires connection and surface retry actions to their refresh handlers', () => {
+    mocks.activityIsError = true;
+    mocks.overviewIsError = true;
+    mocks.brandState.credentialsError = new Error('credentials unavailable');
+    mocks.connectionState = {
+      error: new Error('network unavailable'),
+      key: null,
+      refresh: mocks.connectionRefresh,
+      status: 'error',
+      verifiedAt: null,
+    };
+
+    render(<OperationalHomeContent />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry status' }));
+    for (const button of screen.getAllByRole('button', {
+      name: 'Retry',
+    })) {
+      fireEvent.click(button);
+    }
+
+    expect(mocks.connectionRefresh).toHaveBeenCalledTimes(1);
+    expect(mocks.overviewRefresh).toHaveBeenCalledTimes(1);
+    expect(mocks.activityRefresh).toHaveBeenCalledTimes(1);
+    expect(mocks.brandRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('isolates overview failure from credential and activity summaries', () => {
+    mocks.connectionState = {
+      error: null,
+      key: { label: 'Verified MCP' },
+      refresh: mocks.connectionRefresh,
+      status: 'configured',
+      verifiedAt: '2026-07-26T11:00:00.000Z',
+    };
+    mocks.overviewIsError = true;
+
+    render(<OperationalHomeContent />);
+
+    expect(
+      screen.getByText(/Approval state is temporarily unavailable/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Publishing state could not be loaded/),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId('operational-home-credentials'),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('operational-home-activity')).toBeInTheDocument();
+  });
+
+  it('does not present internal email jobs as publications', () => {
+    mocks.executions = [
+      {
+        id: 'email-1',
+        status: WorkflowExecutionStatus.COMPLETED,
+        createdAt: '2026-09-24T12:00:00Z',
+        workflow: { label: 'Organization System Emails' },
+      },
+      {
+        id: 'email-2',
+        status: WorkflowExecutionStatus.FAILED,
+        createdAt: '2026-09-24T12:01:00Z',
+        workflow: { label: 'Lifecycle Email Delivery' },
+      },
+    ] as IWorkflowExecution[];
+    render(<OperationalHomeContent />);
+    const publishing = screen.getByTestId('operational-home-publishing');
+    expect(
+      within(publishing).queryByText('Organization System Emails'),
+    ).not.toBeInTheDocument();
+    expect(
+      within(publishing).queryByText('Lifecycle Email Delivery'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('offers a connection link in the empty Accounts panel', () => {
+    render(<OperationalHomeContent />);
+    const accounts = screen.getByTestId('operational-home-credentials');
+    expect(
+      within(accounts).getByRole('link', { name: 'Connect account' }),
+    ).toHaveAttribute('href', '/acme/moonrise/settings/connected-accounts');
+  });
+
+  it('opens publication details from a publishing row', () => {
+    mocks.publications = [
+      {
+        id: 'release_1',
+        title: 'Launch announcement',
+        status: ReleaseStatus.SCHEDULED,
+        updatedAt: '2026-09-24T12:00:00Z',
+      },
+    ] as IReleaseGroup[];
+    render(<OperationalHomeContent />);
+    const publishing = screen.getByTestId('operational-home-publishing');
+    expect(
+      within(publishing).getByRole('link', { name: /Launch announcement/ }),
+    ).toHaveAttribute(
+      'href',
+      '/acme/moonrise/publishing/posts?release=release_1',
+    );
+    expect(within(publishing).getByText('scheduled')).toBeInTheDocument();
+  });
+
+  it('retries a publishing failure through its own query', () => {
+    mocks.publicationsIsError = true;
+    render(<OperationalHomeContent />);
+    const publishing = screen.getByTestId('operational-home-publishing');
+    expect(
+      within(publishing).getByText(/Publishing state could not be loaded/),
+    ).toBeInTheDocument();
+    fireEvent.click(within(publishing).getByRole('button', { name: 'Retry' }));
+    expect(mocks.publicationsRefresh).toHaveBeenCalledTimes(1);
+    expect(mocks.overviewRefresh).not.toHaveBeenCalled();
+  });
+
+  it('keeps ready cards visible while publishing loads', () => {
+    mocks.publicationsIsLoading = true;
+    render(<OperationalHomeContent />);
+    expect(
+      within(screen.getByTestId('operational-home-publishing')).getAllByRole(
+        'status',
+      ),
+    ).toHaveLength(1);
+    expect(
+      within(screen.getByTestId('operational-home-credentials')).queryByRole(
+        'status',
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('operational-home-activity')).queryByRole(
+        'status',
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  it('isolates activity failure from the other operational summaries', () => {
+    mocks.connectionState = {
+      error: null,
+      key: { label: 'Verified MCP' },
+      refresh: mocks.connectionRefresh,
+      status: 'configured',
+      verifiedAt: '2026-07-26T11:00:00.000Z',
+    };
+    mocks.activityIsError = true;
+
+    render(<OperationalHomeContent />);
+
+    expect(
+      screen.getByText(/Recent activity is temporarily unavailable/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('operational-home-needs-you'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('operational-home-publishing'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('operational-home-credentials'),
+    ).toBeInTheDocument();
+  });
+
+  it('distinguishes credential loading from an empty credential list', () => {
+    mocks.brandState.credentialsLoading = true;
+
+    render(<OperationalHomeContent />);
+
+    const credentials = screen.getByTestId('operational-home-credentials');
+    expect(within(credentials).getByRole('status')).toHaveAccessibleName(
+      'Loading credential health...',
+    );
+    expect(
+      within(credentials).getByTestId('skeleton-card'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('No accounts are connected yet.'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('surfaces credential errors with a working retry', () => {
+    mocks.brandState.credentialsError = new Error('credentials unavailable');
+
+    render(<OperationalHomeContent />);
+
+    expect(
+      screen.getByText(/Credential health is temporarily unavailable/),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(mocks.brandRefresh).toHaveBeenCalledOnce();
+    expect(
+      screen.queryByText('No accounts are connected yet.'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('announces connection-state loading while keeping operations visible', () => {
+    mocks.connectionState = {
+      error: null,
+      key: null,
+      refresh: mocks.connectionRefresh,
+      status: 'loading',
+      verifiedAt: null,
+    };
+
+    render(<OperationalHomeContent />);
+
+    const statusAnnouncements = screen.getAllByRole('status');
+    expect(
+      statusAnnouncements.some((announcement) =>
+        announcement.textContent?.includes('Checking MCP connection state'),
+      ),
+    ).toBe(true);
+    expect(screen.getByTestId('operational-home-sections')).toBeInTheDocument();
+  });
+
+  it('shows the needs-you skeleton while overview data is loading', () => {
+    mocks.overviewIsLoading = true;
+
+    render(<OperationalHomeContent />);
+
+    expect(
+      within(screen.getByTestId('operational-home-needs-you')).getByTestId(
+        'skeleton-card',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('renders one skeleton inside each loading KPI card', () => {
+    mocks.overviewIsLoading = true;
+
+    render(<OperationalHomeContent />);
+
+    const metrics = screen.getByTestId('operational-home-metrics');
+    expect(metrics).toHaveTextContent('Ready to review');
+    expect(metrics).toHaveTextContent('Pending posts');
+    expect(
+      metrics.querySelectorAll('[data-testid="metric-card"]'),
+    ).toHaveLength(5);
+    expect(metrics.querySelectorAll('.animate-pulse')).toHaveLength(2);
+    expect(
+      within(screen.getByTestId('operational-home-publishing')).queryByRole(
+        'status',
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('operational-home-credentials')).queryByRole(
+        'status',
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps decided review items out of the attention queue', () => {
+    mocks.reviewInboxRecentItems = [
+      {
+        ...buildReviewItem('item_1'),
+        reviewDecision: 'approved',
+        status: 'approved',
+      },
+    ];
+
+    render(<OperationalHomeContent />);
+
+    const needsYou = screen.getByTestId('operational-home-needs-you');
+    expect(
+      within(needsYou).queryByRole('button', { name: 'Approve' }),
+    ).not.toBeInTheDocument();
+    expect(needsYou).toHaveTextContent('Nothing is waiting for review.');
+  });
+
+  it('caps the attention queue at five rows and links to the rest', () => {
+    mocks.reviewInboxRecentItems = Array.from({ length: 9 }, (_, index) =>
+      buildReviewItem(`item_${index + 1}`),
+    );
+
+    render(<OperationalHomeContent />);
+
+    const needsYou = screen.getByTestId('operational-home-needs-you');
+    expect(
+      within(needsYou).getAllByTestId('operational-home-needs-you-row'),
+    ).toHaveLength(5);
+    expect(
+      within(needsYou).getByRole('link', {
+        name: 'Attention queue',
+      }),
+    ).toHaveAttribute('href', '/acme/moonrise/publishing/approvals');
+    expect(needsYou).not.toHaveTextContent('{count} more waiting');
+    expect(
+      within(needsYou).queryByRole('link', {
+        name: 'Open queue',
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('opens a post from its title and uses a compact approve control', () => {
+    mocks.reviewInboxRecentItems = [buildReviewItem('item_1')];
+    render(<OperationalHomeContent />);
+    const queue = within(screen.getByTestId('operational-home-needs-you'));
+    expect(
+      queue.getByRole('link', { name: 'Open Review item_1' }),
+    ).toHaveAttribute(
+      'href',
+      '/acme/moonrise/publishing/approvals/turbo_run_1/item_1',
+    );
+    expect(queue.getByRole('button', { name: 'Approve' })).toHaveClass(
+      'size-8',
+    );
+    expect(queue.queryByText('Open')).not.toBeInTheDocument();
+  });
+
+  it('uses the shared account identity with a handle and one platform badge', () => {
+    mocks.brandState.credentials = [
+      {
+        id: 'cred_1',
+        platform: CredentialPlatform.TWITTER,
+        externalName: 'Vincent',
+        externalHandle: '@VincentShipsIt',
+        externalAvatar: 'https://cdn.example.com/profile.jpg',
+        externalId: 'profile_1',
+        isConnected: true,
+      } as ICredential,
+    ];
+    render(<OperationalHomeContent />);
+    const accounts = within(screen.getByTestId('operational-home-credentials'));
+    expect(accounts.getByText('Vincent')).toBeInTheDocument();
+    expect(accounts.getByText('@VincentShipsIt')).toBeInTheDocument();
+    expect(accounts.queryByText('twitter')).not.toBeInTheDocument();
+    expect(accounts.getByText('X')).toHaveClass('sr-only');
+  });
+
+  it('hides abandoned OAuth attempts and sends reconnects to integrations', () => {
+    mocks.brandState.credentials = [
+      {
+        id: 'cred_abandoned',
+        platform: CredentialPlatform.FACEBOOK,
+        isConnected: false,
+      } as ICredential,
+      {
+        id: 'cred_lapsed',
+        platform: CredentialPlatform.TWITTER,
+        externalName: 'Lapsed Account',
+        externalId: 'profile_2',
+        isConnected: false,
+      } as ICredential,
+    ];
+    render(<OperationalHomeContent />);
+
+    const accounts = within(screen.getByTestId('operational-home-credentials'));
+    expect(accounts.getByText('Lapsed Account')).toBeInTheDocument();
+    expect(accounts.queryByText('Facebook')).not.toBeInTheDocument();
+
+    const queue = within(screen.getByTestId('operational-home-needs-you'));
+    expect(queue.getAllByTestId('operational-home-needs-you-row')).toHaveLength(
+      1,
+    );
+    expect(queue.getByRole('link', { name: 'Reconnect' })).toHaveAttribute(
+      'href',
+      '/acme/moonrise/settings/connected-accounts',
+    );
+  });
+
+  it('opens a failed run with its error from the attention queue', () => {
+    mocks.executions = [
+      {
+        id: 'exec_1',
+        status: WorkflowExecutionStatus.FAILED,
+        createdAt: '2026-09-24T12:01:00Z',
+        error: 'Provider rejected the prompt',
+        workflow: { label: 'Daily trends digest' },
+      },
+    ] as IWorkflowExecution[];
+    render(<OperationalHomeContent />);
+
+    const queue = within(screen.getByTestId('operational-home-needs-you'));
+    expect(queue.getByText('Provider rejected the prompt')).toBeInTheDocument();
+    expect(queue.getByRole('link', { name: 'Open' })).toHaveAttribute(
+      'href',
+      '/acme/moonrise/automation/runs/exec_1',
+    );
+  });
+
+  it('renders review video media with a paused video thumbnail', () => {
+    mocks.reviewInboxRecentItems = [
+      {
+        ...buildReviewItem('item_video'),
+        format: 'video',
+        mediaUrl: 'https://cdn.example.com/review.mp4',
+      },
+    ];
+    render(<OperationalHomeContent />);
+    const row = screen.getByTestId('operational-home-needs-you-row');
+    const video = row.querySelector('video');
+    expect(video).toHaveAttribute(
+      'src',
+      'https://cdn.example.com/review.mp4#t=0.001',
+    );
+    expect(video).toHaveAttribute('preload', 'metadata');
+    expect(video).not.toHaveAttribute('autoplay');
+    expect(row.querySelector('img')).toBeNull();
+  });
+
+  it('approves a review item and refreshes the overview on success', async () => {
+    mocks.reviewInboxRecentItems = [
+      {
+        turboRunId: 'turbo_run_1',
+        createdAt: '2026-08-08T12:00:00.000Z',
+        format: 'image',
+        id: 'item_1',
+        platform: 'instagram',
+        postId: 'post_1',
+        reviewDecision: 'unset',
+        status: 'ready',
+        summary: 'Product hero shot',
+      },
+    ];
+
+    render(<OperationalHomeContent />);
+
+    fireEvent.click(
+      within(screen.getByTestId('operational-home-needs-you')).getByRole(
+        'button',
+        { name: 'Approve' },
+      ),
+    );
+
+    await waitFor(() =>
+      expect(mocks.turboRunItemAction).toHaveBeenCalledWith('turbo_run_1', {
+        action: 'approve',
+        itemIds: ['item_1'],
+      }),
+    );
+    expect(mocks.overviewRefresh).toHaveBeenCalled();
+    expect(mocks.notificationsError).not.toHaveBeenCalled();
+  });
+
+  it('surfaces a notification when approving a review item fails', async () => {
+    mocks.reviewInboxRecentItems = [
+      {
+        turboRunId: 'turbo_run_1',
+        createdAt: '2026-08-08T12:00:00.000Z',
+        format: 'image',
+        id: 'item_1',
+        platform: 'instagram',
+        postId: 'post_1',
+        reviewDecision: 'unset',
+        status: 'ready',
+        summary: 'Product hero shot',
+      },
+    ];
+    mocks.turboRunItemAction.mockRejectedValueOnce(new Error('approve failed'));
+
+    render(<OperationalHomeContent />);
+
+    fireEvent.click(
+      within(screen.getByTestId('operational-home-needs-you')).getByRole(
+        'button',
+        { name: 'Approve' },
+      ),
+    );
+
+    await waitFor(() =>
+      expect(mocks.notificationsError).toHaveBeenCalledWith(
+        'Failed to approve the item',
+      ),
+    );
+    expect(mocks.loggerError).toHaveBeenCalledWith(
+      'Approve review item failed',
+      expect.any(Error),
+    );
+  });
+});

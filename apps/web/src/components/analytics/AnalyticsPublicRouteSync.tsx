@@ -1,0 +1,62 @@
+'use client';
+
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { usePathname } from 'next/navigation';
+import { useEffect } from 'react';
+import { useAuthUser } from '@/hooks/auth/use-auth-user';
+import {
+  captureAnalyticsPageview,
+  clearAnalyticsOrganization,
+  ensureAnalyticsAnonymous,
+  identifyAnalyticsUser,
+  isAnalyticsEnabled,
+} from '@/lib/analytics';
+import { ANALYTICS_APP_PUBLIC } from '@/lib/analytics/analytics-app';
+import { setSentryAccountContext } from '@/lib/analytics/sentry-context';
+
+function EnabledAnalyticsPublicRouteSync() {
+  const { isLoaded: isAuthLoaded, user } = useAuthUser();
+  const pathname = usePathname();
+  const isLogoutRoute = pathname === APP_ROUTES.LOGOUT;
+  const pageviewKey = `${user?.id ?? 'anonymous'}:public:${pathname}`;
+  const isInternal =
+    user?.primaryEmailAddress?.emailAddress
+      ?.trim()
+      .toLowerCase()
+      .endsWith('@genfeed.ai') === true;
+
+  useEffect(() => {
+    if (!isAuthLoaded || isLogoutRoute) {
+      return;
+    }
+
+    if (user?.id) {
+      identifyAnalyticsUser({ id: user.id, isInternal });
+      clearAnalyticsOrganization();
+      return;
+    }
+
+    ensureAnalyticsAnonymous();
+  }, [isAuthLoaded, isInternal, isLogoutRoute, user?.id]);
+
+  useEffect(() => {
+    if (!isAuthLoaded || isLogoutRoute) {
+      return;
+    }
+
+    captureAnalyticsPageview(pageviewKey, { app: ANALYTICS_APP_PUBLIC });
+  }, [isAuthLoaded, isLogoutRoute, pageviewKey]);
+
+  useEffect(() => {
+    if (isAuthLoaded && !isLogoutRoute) {
+      setSentryAccountContext({ userId: user?.id });
+    }
+  }, [isAuthLoaded, isLogoutRoute, user?.id]);
+
+  return null;
+}
+
+/** Synchronize account scope before pageviews on public auth/callback routes. */
+export default function AnalyticsPublicRouteSync() {
+  return isAnalyticsEnabled() ? <EnabledAnalyticsPublicRouteSync /> : null;
+}

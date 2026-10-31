@@ -9,7 +9,7 @@
  * "Explicit" means the call site decides the locale, not that the locale is a
  * literal. Under epic #2497 the preferred fix is next-intl's formatter
  * (`useFormatter` / `getFormatter`), which resolves against the request locale
- * from `apps/app/i18n/request.ts` on both the server and the client — that is
+ * from `apps/web/i18n/request.ts` on both the server and the client — that is
  * hydration-stable and translated. A hardcoded `'en-US'` also satisfies this
  * guard, but it pins the surface to English; prefer the formatter when
  * migrating an allowance away.
@@ -20,8 +20,8 @@ import path from 'node:path';
 import { globSync } from 'glob';
 
 const DEFAULT_INCLUDE_GLOBS = [
-  'apps/app/**/*.{ts,tsx}',
-  'apps/website/**/*.{ts,tsx}',
+  'apps/web/**/*.{ts,tsx}',
+  'apps/marketing/**/*.{ts,tsx}',
   'packages/agent/src/components/**/*.{ts,tsx}',
   'packages/helpers/src/formatting/**/*.{ts,tsx}',
   'packages/models/analytics/**/*.{ts,tsx}',
@@ -115,47 +115,47 @@ function legacyUiAllowance(
 
 export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
   legacyUiAllowance(
-    'apps/app/app/(onboarding)/onboarding/(wizard)/summary/summary-content.tsx',
+    'apps/web/app/(onboarding)/onboarding/(wizard)/summary/summary-content.tsx',
     'to-locale-string',
     1,
   ),
   legacyUiAllowance(
-    'apps/app/app/(protected)/[orgSlug]/~/connect/connect-genfeed-flow.tsx',
+    'apps/web/app/(protected)/[orgSlug]/~/connect/connect-genfeed-flow.tsx',
     'to-locale-string',
     1,
   ),
   legacyUiAllowance(
-    'apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/api-keys/content.tsx',
+    'apps/web/app/(protected)/[orgSlug]/~/settings/(pages)/organization/api-keys/content.tsx',
     'to-locale-string',
     1,
   ),
   legacyUiAllowance(
-    'apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/credits/credit-top-up-panel.tsx',
+    'apps/web/app/(protected)/[orgSlug]/~/settings/(pages)/organization/credits/credit-top-up-panel.tsx',
     'to-locale-string',
     3,
   ),
   legacyUiAllowance(
-    'apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/webhooks/content.tsx',
+    'apps/web/app/(protected)/[orgSlug]/~/settings/(pages)/organization/webhooks/content.tsx',
     'to-locale-string',
     1,
   ),
   legacyUiAllowance(
-    'apps/app/app/(protected)/admin/overview/overview-page.tsx',
+    'apps/web/app/(protected)/admin/overview/overview-page.tsx',
     'to-locale-string',
     2,
   ),
   legacyUiAllowance(
-    'apps/app/packages/components/research/ads/ads-metric.helpers.ts',
+    'apps/web/packages/components/research/ads/ads-metric.helpers.ts',
     'to-locale-string',
     1,
   ),
   legacyUiAllowance(
-    'apps/app/src/features/workflows/workspace/WorkflowSurfaceInspector.tsx',
+    'apps/web/src/features/workflows/workspace/WorkflowSurfaceInspector.tsx',
     'to-locale-string',
     1,
   ),
   legacyUiAllowance(
-    'apps/website/src/ui/workflow-builder/nodes/RssInputNode.tsx',
+    'apps/marketing/src/ui/workflow-builder/nodes/RssInputNode.tsx',
     'to-locale-date-string',
     1,
   ),
@@ -192,57 +192,57 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     'Shared opt-in local-time helper intentionally formats for the executing client environment.',
   ),
   legacyUiAllowance(
-    'apps/app/src/features/agents/campaigns/AgentCampaignDetailHeader.tsx',
+    'apps/web/src/features/agents/campaigns/AgentCampaignDetailHeader.tsx',
     'to-locale-string',
     2,
   ),
   legacyUiAllowance(
-    'apps/app/src/features/agents/campaigns/AgentCampaignsPage.tsx',
+    'apps/web/src/features/agents/campaigns/AgentCampaignsPage.tsx',
     'to-locale-string',
     5,
   ),
   legacyUiAllowance(
-    'apps/app/src/features/agents/campaigns/OutreachCampaignTargetsTable.tsx',
+    'apps/web/src/features/agents/campaigns/OutreachCampaignTargetsTable.tsx',
     'to-locale-string',
     3,
   ),
   legacyUiAllowance(
-    'apps/app/src/features/agents/campaigns/OutreachCampaignsKPI.tsx',
+    'apps/web/src/features/agents/campaigns/OutreachCampaignsKPI.tsx',
     'to-locale-string',
     1,
   ),
   legacyUiAllowance(
-    'apps/app/src/features/posts/detail/components/PostDetailCardBody.tsx',
+    'apps/web/src/features/posts/detail/components/PostDetailCardBody.tsx',
     'to-locale-string',
     1,
   ),
   legacyUiAllowance(
-    'apps/app/src/features/trends/list/components/HookRemixModal.tsx',
+    'apps/web/src/features/trends/list/components/HookRemixModal.tsx',
     'to-locale-string',
     1,
   ),
   legacyUiAllowance(
-    'apps/app/src/features/studio/components/articles/x-article/XArticleAssetsBar.tsx',
+    'apps/web/src/features/studio/components/articles/x-article/XArticleAssetsBar.tsx',
     'to-locale-string',
     1,
   ),
   legacyUiAllowance(
-    'apps/app/src/features/ingredients/components/tabs/captions/IngredientTabsCaptions.tsx',
+    'apps/web/src/features/ingredients/components/tabs/captions/IngredientTabsCaptions.tsx',
     'to-locale-date-string',
     1,
   ),
   legacyUiAllowance(
-    'apps/app/src/features/ingredients/components/tabs/metadata/IngredientTabsMetadata.tsx',
+    'apps/web/src/features/ingredients/components/tabs/metadata/IngredientTabsMetadata.tsx',
     'to-locale-string',
     2,
   ),
   legacyUiAllowance(
-    'apps/app/src/features/ingredients/tabs-posts/IngredientTabsPosts.tsx',
+    'apps/web/src/features/ingredients/tabs-posts/IngredientTabsPosts.tsx',
     'to-locale-string',
     1,
   ),
   legacyUiAllowance(
-    'packages/ui/src/components/modals/automation/useModalBot.ts',
+    'apps/web/src/components/modals/automation/useModalBot.ts',
     'intl-date-time-format',
     1,
   ),

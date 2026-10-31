@@ -1,0 +1,612 @@
+import '@testing-library/jest-dom/vitest';
+import { ApiKey } from '@genfeedai/models/auth/api-key.model';
+import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { UseConnectGenfeedStatusResult } from '@/props/home/connect-genfeed-status.props';
+import type { VerifiedMcpConnection } from '@/props/home/operational-home.props';
+import ConnectGenfeedFlow from './connect-genfeed-flow';
+
+const MCP_SCOPES = [
+  'videos:read',
+  'videos:create',
+  'images:read',
+  'images:create',
+  'prompts:read',
+  'prompts:create',
+  'articles:read',
+  'articles:create',
+  'brands:read',
+  'credits:read',
+  'posts:draft',
+  'posts:schedule',
+  'posts:approve',
+  'analytics:read',
+];
+const CREATED_TEST_KEY = ['gf', 'test', 'created-secret-value-1234567890'].join(
+  '_',
+);
+const STORED_TEST_KEY = ['gf', 'test', 'stored-secret-value-1234567890'].join(
+  '_',
+);
+const TRUNCATED_TEST_KEY = ['gf', 'test', 'truncated-secret'].join('_');
+
+const mocks = vi.hoisted(() => ({
+  capture: vi.fn(),
+  connectionStatus: null as UseConnectGenfeedStatusResult | null,
+  createApiKey: vi.fn(),
+  findAll: vi.fn(),
+  mcpEndpoint: 'https://mcp.genfeed.ai/mcp',
+  statusOptions: vi.fn(),
+  verifyMcpConnection: vi.fn(),
+}));
+
+vi.mock('@app/(protected)/home/use-connect-genfeed-status', () => ({
+  useConnectGenfeedStatus: (
+    organizationId: string,
+    options: { pollIntervalMs?: number | false },
+  ) => {
+    mocks.statusOptions(organizationId, options);
+    return mocks.connectionStatus;
+  },
+}));
+
+function oauthConnection(
+  id: string,
+  clientName: string | null,
+  connectionId = id,
+): VerifiedMcpConnection {
+  return {
+    apiKey: new ApiKey({
+      id,
+      label: 'MCP OAuth',
+      lastUsedAt: '2026-07-18T12:00:00.000Z',
+      metadata: { clientName, kind: 'mcp-oauth-session' },
+      organization: 'org-1',
+    }),
+    clientName,
+    connectionId,
+    method: 'oauth',
+    verifiedAt: '2026-07-18T12:00:00.000Z',
+  };
+}
+
+function connectionStatus(
+  connections: VerifiedMcpConnection[],
+): UseConnectGenfeedStatusResult {
+  const [first] = connections;
+  return first
+    ? {
+        connections,
+        error: null,
+        key: first.apiKey,
+        refresh: vi.fn(),
+        status: 'configured',
+        verifiedAt: first.verifiedAt,
+      }
+    : {
+        connections,
+        error: null,
+        key: null,
+        refresh: vi.fn(),
+        status: 'unconfigured',
+        verifiedAt: null,
+      };
+}
+
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    brands: [{ slug: 'main' }],
+    isReady: true,
+    organizationId: 'org-1',
+    settings: { subscriptionTier: 'scale' },
+  }),
+}));
+
+vi.mock('@genfeedai/config/deployment', () => ({
+  getDeployment: () => 'cloud',
+  isSelfHostedDeployment: () => false,
+}));
+
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: (factory: (token: string) => unknown) => async () =>
+    factory('test-token'),
+}));
+
+vi.mock('@services/core/environment.service', () => ({
+  EnvironmentService: {
+    get mcpEndpoint() {
+      return mocks.mcpEndpoint;
+    },
+  },
+}));
+
+vi.mock('@services/core/logger.service', () => ({
+  logger: { error: vi.fn(), warn: vi.fn() },
+}));
+
+vi.mock('@services/core/notifications.service', () => ({
+  NotificationsService: {
+    getInstance: () => ({
+      error: vi.fn(),
+      success: vi.fn(),
+    }),
+  },
+}));
+
+vi.mock('@services/management/api-keys.service', () => ({
+  ApiKeysService: {
+    getInstance: () => ({
+      createApiKey: mocks.createApiKey,
+      findAll: mocks.findAll,
+      verifyMcpConnection: mocks.verifyMcpConnection,
+    }),
+  },
+}));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
+  useSearchParams: () => new URLSearchParams(),
+  useParams: () => ({ orgSlug: 'acme' }),
+}));
+
+vi.mock('@/lib/analytics', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/analytics')>()),
+  captureAnalyticsEvent: mocks.capture,
+}));
+
+vi.mock('@ui/card/Card', () => ({
+  default: ({
+    bodyClassName,
+    children,
+    description,
+    label,
+  }: {
+    bodyClassName?: string;
+    children: ReactNode;
+    description?: string;
+    label?: string;
+  }) => (
+    <section>
+      {label ? <h2>{label}</h2> : null}
+      {description ? <p>{description}</p> : null}
+      <div className={bodyClassName}>{children}</div>
+    </section>
+  ),
+}));
+
+vi.mock('@ui/primitives/button', () => ({
+  Button: ({
+    ariaLabel,
+    asChild,
+    children,
+    icon,
+    isDisabled,
+    isLoading,
+    onClick,
+    variant: _variant,
+    withWrapper: _withWrapper,
+    ...props
+  }: {
+    ariaLabel?: string;
+    asChild?: boolean;
+    children?: ReactNode;
+    icon?: ReactNode;
+    isDisabled?: boolean;
+    isLoading?: boolean;
+    onClick?: () => void;
+    variant?: string;
+    withWrapper?: boolean;
+  } & React.ButtonHTMLAttributes<HTMLButtonElement>) =>
+    asChild ? (
+      children
+    ) : (
+      <button
+        aria-label={ariaLabel}
+        disabled={isDisabled || isLoading}
+        onClick={onClick}
+        type="button"
+        {...props}
+      >
+        {icon}
+        {isLoading ? 'Loading' : children}
+      </button>
+    ),
+}));
+
+vi.mock('@ui/primitives/input', () => ({
+  Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => (
+    <input {...props} />
+  ),
+}));
+
+vi.mock('@ui/primitives/alert', () => ({
+  Alert: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  AlertDescription: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  AlertTitle: ({ children }: { children: ReactNode }) => <h3>{children}</h3>,
+}));
+
+vi.mock('@ui/primitives/badge', () => ({
+  Badge: ({ children }: { children: ReactNode }) => <span>{children}</span>,
+}));
+
+function activeKey() {
+  return {
+    id: 'key-1',
+    label: 'MCP key',
+    scopes: MCP_SCOPES,
+  };
+}
+
+describe('ConnectGenfeedFlow', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.mcpEndpoint = 'https://mcp.genfeed.ai/mcp';
+    mocks.connectionStatus = connectionStatus([]);
+    mocks.findAll.mockResolvedValue([activeKey()]);
+    mocks.createApiKey.mockResolvedValue({
+      ...activeKey(),
+      id: 'key-2',
+      key: CREATED_TEST_KEY,
+    });
+    mocks.verifyMcpConnection.mockResolvedValue({
+      keyId: 'key-1',
+      publishing: { connectedAccountCount: 1, isReady: true },
+      status: 'connected',
+      verifiedAt: '2026-07-18T12:00:00.000Z',
+    });
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: vi.fn().mockResolvedValue(undefined),
+      },
+    });
+  });
+
+  it('defaults to OAuth without loading keys and never verifies from copying', async () => {
+    render(<ConnectGenfeedFlow />);
+    expect(
+      screen.getByRole('tab', { name: 'Browser authorization' }),
+    ).toHaveAttribute('aria-selected', 'true');
+    expect(mocks.findAll).not.toHaveBeenCalled();
+    expect(
+      screen.queryByLabelText('Stored value for the selected key'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "codex mcp add genfeed --url 'https://mcp.genfeed.ai/mcp?profile=studio'",
+      ),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Copy setup command' }));
+    await screen.findByText(
+      'Client setup copied. Complete authorization in your client.',
+    );
+    expect(screen.queryByText('Connection verified')).not.toBeInTheDocument();
+    expect(mocks.verifyMcpConnection).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(/If access was denied or the login expired/),
+    ).toBeInTheDocument();
+  });
+
+  it('announces an agent once its new OAuth session reaches Genfeed', async () => {
+    const { rerender } = render(<ConnectGenfeedFlow />);
+    await userEvent.click(screen.getByRole('tab', { name: 'Claude Code' }));
+
+    expect(screen.getByTestId('connect-genfeed-waiting')).toHaveTextContent(
+      'Waiting for Claude Code to connect.',
+    );
+    expect(mocks.statusOptions).toHaveBeenLastCalledWith('org-1', {
+      pollIntervalMs: 4000,
+    });
+
+    mocks.connectionStatus = connectionStatus([
+      oauthConnection('oauth-key-1', 'Claude Code'),
+    ]);
+    rerender(<ConnectGenfeedFlow />);
+
+    expect(
+      await screen.findByText('Connected to Claude Code'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Claude Code authorized Genfeed and completed its first MCP request.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('connect-genfeed-waiting'),
+    ).not.toBeInTheDocument();
+    expect(mocks.statusOptions).toHaveBeenLastCalledWith('org-1', {
+      pollIntervalMs: false,
+    });
+    expect(mocks.capture).toHaveBeenCalledWith(
+      'connect_genfeed_step',
+      expect.objectContaining({ outcome: 'success', step: 'verification' }),
+    );
+  });
+
+  it('does not announce an agent that was already connected on load', async () => {
+    mocks.connectionStatus = connectionStatus([
+      oauthConnection('oauth-key-existing', 'Codex'),
+    ]);
+    const { rerender } = render(<ConnectGenfeedFlow />);
+    rerender(<ConnectGenfeedFlow />);
+
+    expect(screen.getByTestId('connect-genfeed-waiting')).toBeInTheDocument();
+    expect(screen.queryByText('Connected to Codex')).not.toBeInTheDocument();
+
+    mocks.connectionStatus = connectionStatus([
+      oauthConnection('oauth-key-new', null),
+      oauthConnection('oauth-key-existing', 'Codex'),
+    ]);
+    rerender(<ConnectGenfeedFlow />);
+
+    expect(await screen.findByText('Connected to Codex')).toBeInTheDocument();
+  });
+
+  it('does not announce an existing agent that rotated its session key', async () => {
+    mocks.connectionStatus = connectionStatus([
+      oauthConnection('oauth-key-old', 'Codex', 'grant-codex'),
+    ]);
+    const { rerender } = render(<ConnectGenfeedFlow />);
+    rerender(<ConnectGenfeedFlow />);
+
+    mocks.connectionStatus = connectionStatus([
+      oauthConnection('oauth-key-rotated', 'Codex', 'grant-codex'),
+    ]);
+    rerender(<ConnectGenfeedFlow />);
+
+    expect(screen.getByTestId('connect-genfeed-waiting')).toBeInTheDocument();
+    expect(screen.queryByText('Connected to Codex')).not.toBeInTheDocument();
+    expect(mocks.statusOptions).toHaveBeenLastCalledWith('org-1', {
+      pollIntervalMs: 4000,
+    });
+  });
+
+  it('resumes waiting for the next client after one connects', async () => {
+    const { rerender } = render(<ConnectGenfeedFlow />);
+    mocks.connectionStatus = connectionStatus([
+      oauthConnection('oauth-key-codex', 'Codex', 'grant-codex'),
+    ]);
+    rerender(<ConnectGenfeedFlow />);
+    expect(await screen.findByText('Connected to Codex')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Claude Code' }));
+
+    expect(screen.queryByText('Connected to Codex')).not.toBeInTheDocument();
+    expect(screen.getByTestId('connect-genfeed-waiting')).toHaveTextContent(
+      'Waiting for Claude Code to connect.',
+    );
+    expect(mocks.statusOptions).toHaveBeenLastCalledWith('org-1', {
+      pollIntervalMs: 4000,
+    });
+
+    mocks.connectionStatus = connectionStatus([
+      oauthConnection('oauth-key-claude', 'Claude Code', 'grant-claude'),
+      oauthConnection('oauth-key-codex', 'Codex', 'grant-codex'),
+    ]);
+    rerender(<ConnectGenfeedFlow />);
+    expect(
+      await screen.findByText('Connected to Claude Code'),
+    ).toBeInTheDocument();
+  });
+
+  it('switches Claude from manual keys to its dedicated OAuth resource', async () => {
+    render(<ConnectGenfeedFlow />);
+    await userEvent.click(
+      screen.getByRole('tab', { name: 'Advanced: manual API key' }),
+    );
+    await userEvent.click(screen.getByRole('tab', { name: 'Claude Code' }));
+    expect(
+      screen.queryByRole('tab', { name: 'Advanced: manual API key' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude',
+      ),
+    ).toBeInTheDocument();
+    expect(mocks.statusOptions).toHaveBeenLastCalledWith('org-1', {
+      pollIntervalMs: 4000,
+    });
+  });
+
+  it.each([
+    'https://custom.example/',
+    'https://custom.example/?toolsets=generation#setup',
+    'https://custom.example/mcp/claude/',
+  ])(
+    'connects Claude Code using the configured endpoint %s',
+    async (endpoint) => {
+      mocks.mcpEndpoint = endpoint;
+      render(<ConnectGenfeedFlow />);
+      await userEvent.click(screen.getByRole('tab', { name: 'Claude Code' }));
+      expect(
+        screen.getByText(
+          'claude mcp add --transport http genfeed --scope user https://custom.example/mcp/claude',
+        ),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it('switches OAuth clients and provides an unsupported-client fallback', async () => {
+    render(<ConnectGenfeedFlow />);
+    await userEvent.click(screen.getByRole('tab', { name: 'Claude Code' }));
+    expect(
+      screen.getByText(/Open \/mcp inside Claude Code/),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: 'Generic MCP' }));
+    expect(
+      screen.getByRole('button', { name: 'Copy server URL' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/If your client does not support OAuth/),
+    ).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Copy server URL' }),
+    );
+    expect(
+      await screen.findByText(
+        'Server URL copied. Complete authorization in your client.',
+      ),
+    ).toBeInTheDocument();
+    expect(mocks.findAll).not.toHaveBeenCalled();
+  });
+
+  it('renders each client and secret-safe Codex configuration', async () => {
+    render(<ConnectGenfeedFlow />);
+    await userEvent.click(
+      screen.getByRole('tab', { name: 'Advanced: manual API key' }),
+    );
+
+    expect(await screen.findByText('MCP key')).toBeInTheDocument();
+    expect(
+      screen.getByRole('tab', { name: 'Claude Code' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Codex' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('tab', { name: 'Generic MCP' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "codex mcp add genfeed --url 'https://mcp.genfeed.ai/mcp?profile=studio' --bearer-token-env-var GENFEED_API_KEY",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/gf_live_[A-Za-z0-9]/)).not.toBeInTheDocument();
+  });
+
+  it('verifies an existing key and opens the first draft handoff', async () => {
+    render(<ConnectGenfeedFlow />);
+    await userEvent.click(
+      screen.getByRole('tab', { name: 'Advanced: manual API key' }),
+    );
+
+    await screen.findByText('MCP key');
+    fireEvent.change(
+      screen.getByLabelText('Stored value for the selected key'),
+      {
+        target: { value: STORED_TEST_KEY },
+      },
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Verify MCP connection' }),
+    );
+
+    expect(await screen.findByText('Connection verified')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'List my Genfeed brands, then create a draft social post for review. Do not publish it.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen
+        .getByRole('link', { name: /draft a post with the agent/i })
+        .getAttribute('href'),
+    ).toContain('/acme/main/agent/new?prompt=');
+    expect(
+      screen.getByRole('button', { name: 'Verify MCP connection' }),
+    ).toBeEnabled();
+    expect(mocks.verifyMcpConnection).toHaveBeenCalledWith('key-1', {
+      key: STORED_TEST_KEY,
+    });
+  });
+
+  it('shows copy-once key output and missing publishing readiness guidance', async () => {
+    mocks.findAll.mockResolvedValueOnce([]).mockResolvedValueOnce([
+      {
+        ...activeKey(),
+        id: 'key-2',
+      },
+    ]);
+    mocks.verifyMcpConnection.mockResolvedValue({
+      keyId: 'key-2',
+      publishing: { connectedAccountCount: 0, isReady: false },
+      status: 'connected',
+      verifiedAt: '2026-07-18T12:00:00.000Z',
+    });
+
+    render(<ConnectGenfeedFlow />);
+    await userEvent.click(
+      screen.getByRole('tab', { name: 'Advanced: manual API key' }),
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /create scoped mcp key/i }),
+    );
+    expect(await screen.findByText(CREATED_TEST_KEY)).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Verify MCP connection' }),
+    );
+
+    expect(
+      await screen.findByText('Connect a publishing account'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {
+        name: /connect publishing integration/i,
+      }),
+    ).toHaveAttribute('href', '/acme/~/settings/brands');
+  });
+
+  it('distinguishes invalid scope failures', async () => {
+    mocks.verifyMcpConnection.mockResolvedValue({
+      message: 'The selected key is missing guided-flow scopes.',
+      missingScopes: ['posts:draft'],
+      reason: 'invalid_scope',
+      status: 'failed',
+    });
+
+    render(<ConnectGenfeedFlow />);
+    await userEvent.click(
+      screen.getByRole('tab', { name: 'Advanced: manual API key' }),
+    );
+
+    await screen.findByText('MCP key');
+    fireEvent.change(
+      screen.getByLabelText('Stored value for the selected key'),
+      {
+        target: { value: STORED_TEST_KEY },
+      },
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Verify MCP connection' }),
+    );
+
+    expect(
+      await screen.findByText('Key scopes need attention'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Missing: posts:draft')).toBeInTheDocument();
+  });
+
+  it('classifies rejected malformed keys without logging the secret', async () => {
+    mocks.verifyMcpConnection.mockRejectedValue({ status: 400 });
+
+    render(<ConnectGenfeedFlow />);
+    await userEvent.click(
+      screen.getByRole('tab', { name: 'Advanced: manual API key' }),
+    );
+
+    await screen.findByText('MCP key');
+    fireEvent.change(
+      screen.getByLabelText('Stored value for the selected key'),
+      {
+        target: { value: TRUNCATED_TEST_KEY },
+      },
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Verify MCP connection' }),
+    );
+
+    expect(
+      await screen.findByText('Key verification failed'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/enter the complete copy-once Genfeed key/i),
+    ).toBeInTheDocument();
+  });
+});

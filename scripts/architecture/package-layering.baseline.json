@@ -2,7 +2,6 @@
   "packages/contexts/onboarding/onboarding-context.tsx": 1,
   "packages/contexts/providers/api-status/api-status.provider.tsx": 2,
   "packages/hooks/data/personas/use-character-reference-delete-warning/use-character-reference-delete-warning.ts": 1,
-  "packages/hooks/pages/use-brand-detail/use-brand-detail.ts": 1,
   "packages/prisma/scripts/verify-release-upgrade.ts": 1,
   "packages/services/social/trends.service.ts": 1,
   "packages/utils/url/desktop-loop-url.util.ts": 1

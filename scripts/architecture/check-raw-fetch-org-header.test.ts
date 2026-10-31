@@ -50,7 +50,7 @@ describe('check-raw-fetch-org-header', () => {
 
   it('fails on a quoted lowercase key in a tsx component', () => {
     writeFixture(
-      'apps/app/app/(protected)/[orgSlug]/reports/content.tsx',
+      'apps/web/app/(protected)/[orgSlug]/reports/content.tsx',
       `
         export default function Content({ token }: { token: string }) {
           void fetch('/v1/reports', { headers: { 'authorization': token } });
@@ -216,8 +216,8 @@ describe('check-raw-fetch-org-header', () => {
       }
     `;
     writeFixture('packages/hooks/data/use-report.test.ts', bearerFetch);
-    writeFixture('apps/app/app/(public)/oauth/cli/content.tsx', bearerFetch);
-    writeFixture('apps/app/proxy.ts', bearerFetch);
+    writeFixture('apps/web/app/(public)/oauth/cli/content.tsx', bearerFetch);
+    writeFixture('apps/web/proxy.ts', bearerFetch);
     writeFixture('packages/services/core/socket.service.ts', bearerFetch);
     writeFixture('apps/server/api/src/client.ts', bearerFetch);
 

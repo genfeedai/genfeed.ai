@@ -9,7 +9,7 @@ const artifactsRoot = path.join(playwrightRoot, 'artifacts');
 const e2eRoot = path.join(playwrightRoot, 'e2e');
 const webAppPath = path.resolve(
   process.cwd(),
-  process.env.PLAYWRIGHT_WEB_APP_PATH || 'apps/app',
+  process.env.PLAYWRIGHT_WEB_APP_PATH || 'apps/web',
 );
 const ciWebServerCommand =
   process.env.PLAYWRIGHT_APP_COMMAND_CI ||

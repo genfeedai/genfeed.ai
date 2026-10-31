@@ -3,7 +3,7 @@ import { defineConfig } from '@playwright/test';
 
 // The CI step runs from the repo root; resolve the app against it so the web
 // server never depends on Playwright's config-relative default cwd.
-const webAppPath = path.resolve(process.cwd(), 'apps/app');
+const webAppPath = path.resolve(process.cwd(), 'apps/web');
 
 export default defineConfig({
   testDir: path.resolve(__dirname, '../e2e/tests/desktop'),

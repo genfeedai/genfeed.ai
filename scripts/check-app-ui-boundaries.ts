@@ -31,21 +31,21 @@ const WRAPPER_ONLY_REEXPORT_PATTERN =
   /^\s*export\s+(?:\{[\s\S]*?\}|(?:type\s+)?\*\s+from)\s+['"]@ui\/.+['"];?\s*$/m;
 
 const LEGACY_BUTTON_IMPORT_ALLOWLIST = new Set([
-  'apps/app/app/(protected)/admin/administration/announcements/announcements-page.tsx',
-  'apps/app/app/(protected)/admin/administration/roles/roles-list.tsx',
-  'apps/app/app/(protected)/admin/administration/subscriptions/subscriptions-list.tsx',
-  'apps/app/app/(protected)/admin/automation/bots/bots-page.tsx',
-  'apps/app/app/(protected)/admin/automation/workflows/workflows-page.tsx',
-  'apps/app/app/(protected)/admin/library/voices/voices-library-page.tsx',
-  'apps/app/app/(protected)/admin/overview/activity-chart.tsx',
-  'apps/app/app/(protected)/admin/overview/overview-page.tsx',
-  'apps/app/app/(protected)/admin/organizations/components/edit-setting-modal.tsx',
-  'apps/app/app/(onboarding)/onboarding/(wizard)/brand/brand-content.tsx',
-  'apps/app/app/(onboarding)/onboarding/(wizard)/providers/providers-content.tsx',
-  'apps/app/app/(onboarding)/onboarding/(wizard)/success/success-content.tsx',
-  'apps/app/app/(onboarding)/onboarding/post-signup/page.tsx',
-  'apps/app/app/(protected)/clipper/page.tsx',
-  'apps/app/packages/components/research/ads/AdsResearchPageClient.tsx',
+  'apps/web/app/(protected)/admin/administration/announcements/announcements-page.tsx',
+  'apps/web/app/(protected)/admin/administration/roles/roles-list.tsx',
+  'apps/web/app/(protected)/admin/administration/subscriptions/subscriptions-list.tsx',
+  'apps/web/app/(protected)/admin/automation/bots/bots-page.tsx',
+  'apps/web/app/(protected)/admin/automation/workflows/workflows-page.tsx',
+  'apps/web/app/(protected)/admin/library/voices/voices-library-page.tsx',
+  'apps/web/app/(protected)/admin/overview/activity-chart.tsx',
+  'apps/web/app/(protected)/admin/overview/overview-page.tsx',
+  'apps/web/app/(protected)/admin/organizations/components/edit-setting-modal.tsx',
+  'apps/web/app/(onboarding)/onboarding/(wizard)/brand/brand-content.tsx',
+  'apps/web/app/(onboarding)/onboarding/(wizard)/providers/providers-content.tsx',
+  'apps/web/app/(onboarding)/onboarding/(wizard)/success/success-content.tsx',
+  'apps/web/app/(onboarding)/onboarding/post-signup/page.tsx',
+  'apps/web/app/(protected)/clipper/page.tsx',
+  'apps/web/packages/components/research/ads/AdsResearchPageClient.tsx',
 ]);
 
 type Violation =
@@ -66,7 +66,7 @@ type Violation =
 
 export function runCheckAppUiBoundaries(): { violations: Violation[] } {
   const rootDir = process.cwd();
-  const files = collectSourceFiles(path.join(rootDir, 'apps', 'app'));
+  const files = collectSourceFiles(path.join(rootDir, 'apps', 'web'));
 
   const violations: Violation[] = [];
 

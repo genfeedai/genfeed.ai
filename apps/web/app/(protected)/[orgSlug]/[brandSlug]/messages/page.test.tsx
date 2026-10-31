@@ -1,0 +1,1320 @@
+import type { OrganizationModulePreferenceInput } from '@genfeedai/contracts/constants';
+import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
+import '@testing-library/jest-dom/vitest';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import type { ChangeEvent, ReactNode } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import SocialMessagesPage from './page';
+
+assertSourceHasExport(
+  'app/(protected)/[orgSlug]/[brandSlug]/messages/page.tsx',
+);
+
+/** Opens the shared Filters menu and picks `option` in the `facet` submenu. */
+async function chooseFilter(
+  user: ReturnType<typeof userEvent.setup>,
+  facet: RegExp,
+  option: RegExp,
+) {
+  await user.click(await screen.findByRole('button', { name: /^filters/i }));
+  (await screen.findByRole('menuitem', { name: facet })).focus();
+  await user.keyboard('{ArrowRight}');
+  await user.click(await screen.findByRole('menuitemradio', { name: option }));
+}
+
+const mocks = vi.hoisted(() => ({
+  agentDock: null as null | { isAvailable: boolean; open: () => void },
+  agentThread: {
+    activeThreadId: 'agent-thread-1' as string | null,
+    threads: [{ brandId: 'brand-1', id: 'agent-thread-1' }],
+  },
+  brandContext: {
+    brandId: 'brand-1',
+    brands: [
+      {
+        credentials: [
+          {
+            id: 'credential-1',
+            isConnected: true,
+            platform: 'YOUTUBE',
+          },
+        ],
+        id: 'brand-1',
+        label: 'Demo Brand',
+        slug: 'demo',
+      },
+    ],
+    credentialsLoading: false,
+    isBrandScopeResolved: true,
+    organizationId: 'org-1',
+    settings: {
+      hasOrganizationBilling: false,
+      moduleOverrides: {},
+    } as OrganizationModulePreferenceInput | null,
+    settingsLoading: false,
+    selectedBrand: { id: 'brand-1', label: 'Demo Brand', slug: 'demo' },
+  },
+  getConversation: vi.fn(),
+  getService: vi.fn(),
+  href: vi.fn((path: string) => `/acme/demo${path}`),
+  listMessagesPage: vi.fn(),
+  markRead: vi.fn(),
+  realtimeRefresh: null as (() => Promise<void>) | null,
+  refreshInboxIndicators: vi.fn(),
+  searchParams: new URLSearchParams(),
+  listPage: vi.fn(),
+  postReply: vi.fn(),
+  suggestedReply: vi.fn(),
+  replace: vi.fn(),
+  syncInstagram: vi.fn(),
+  syncInstagramDms: vi.fn(),
+  syncLinkedIn: vi.fn(),
+  syncLinkedInDms: vi.fn(),
+  syncX: vi.fn(),
+  syncXDms: vi.fn(),
+  syncYoutube: vi.fn(),
+  workspaceNavPanel: null as {
+    portalTargets: HTMLElement[];
+    registerPortalTarget: ReturnType<typeof vi.fn>;
+  } | null,
+}));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
+vi.mock('@contexts/ui/agent-dock-context', () => ({
+  useAgentDock: () => mocks.agentDock,
+}));
+
+vi.mock('@genfeedai/agent', () => ({
+  useAgentChatStore: (selector: (state: unknown) => unknown) =>
+    selector(mocks.agentThread),
+}));
+
+vi.mock('@genfeedai/agent/components/AgentOAuthConnectMenu', () => ({
+  AgentOAuthConnectMenu: ({
+    triggerLabel = 'Connect accounts',
+  }: {
+    triggerLabel?: string;
+  }) => (
+    <button type="button" aria-label="Connect a social channel">
+      {triggerLabel}
+    </button>
+  ),
+}));
+
+vi.mock(
+  '@/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect',
+  () => ({
+    usePlatformOAuthConnect: () => vi.fn(),
+  }),
+);
+
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => mocks.brandContext,
+}));
+
+vi.mock('@/components/shell/use-messages-unread-count', () => ({
+  useRefreshInboxIndicators: () => mocks.refreshInboxIndicators,
+}));
+
+vi.mock('@/components/workspace-shell/WorkspaceNavPanelContext', () => ({
+  useWorkspaceNavPanel: () => mocks.workspaceNavPanel,
+}));
+
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context.helpers', () => ({
+  getBrandEntityId: (brand: { id?: string } | null | undefined) =>
+    brand?.id ?? '',
+}));
+
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => mocks.getService,
+}));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    brandSlug: 'demo',
+    href: mocks.href,
+    orgHref: (path: string) => `/acme/~${path}`,
+    orgSlug: 'acme',
+  }),
+}));
+
+vi.mock('@ui/layout/container/Container', () => ({
+  default: ({ children }: { children: ReactNode }) => (
+    <section>{children}</section>
+  ),
+}));
+
+vi.mock('@ui/loading/fallback/LazyLoadingFallback', () => ({
+  default: () => <div>Loading messages</div>,
+}));
+
+// The TipTap editor needs a real DOM layout; a textarea keeps these tests on
+// the composer's own behaviour.
+vi.mock('@ui/prompt-editor/PromptEditor', () => ({
+  default: ({
+    ariaLabel,
+    isDisabled,
+    onSubmit,
+    onValueChange,
+    placeholder,
+    value,
+  }: {
+    ariaLabel?: string;
+    isDisabled?: boolean;
+    onSubmit?: () => void;
+    onValueChange?: (value: string) => void;
+    placeholder?: string;
+    value?: string;
+  }) => (
+    <textarea
+      aria-label={ariaLabel}
+      disabled={isDisabled}
+      placeholder={placeholder}
+      value={value}
+      onChange={(event) => onValueChange?.(event.target.value)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          onSubmit?.();
+        }
+      }}
+    />
+  ),
+}));
+
+vi.mock('@ui/primitives/button', () => ({
+  Button: ({
+    'aria-pressed': ariaPressed,
+    ariaLabel,
+    asChild,
+    children,
+    disabled,
+    icon,
+    isDisabled,
+    onClick,
+    title,
+    ...rest
+  }: {
+    'aria-pressed'?: boolean;
+    ariaLabel?: string;
+    asChild?: boolean;
+    children?: ReactNode;
+    disabled?: boolean;
+    icon?: ReactNode;
+    isDisabled?: boolean;
+    onClick?: () => void;
+    title?: string;
+  } & Record<string, unknown>) => {
+    // Keep what Radix triggers inject (handlers, aria/data attributes, ref).
+    const triggerProps = Object.fromEntries(
+      Object.entries(rest).filter(
+        ([key]) =>
+          key === 'ref' ||
+          key === 'id' ||
+          key === 'role' ||
+          /^(on[A-Z]|aria-|data-)/.test(key),
+      ),
+    );
+
+    return asChild ? (
+      (children ?? null)
+    ) : (
+      <button
+        aria-label={ariaLabel}
+        aria-pressed={ariaPressed}
+        disabled={disabled || isDisabled}
+        title={title}
+        type="button"
+        {...triggerProps}
+        onClick={onClick}
+      >
+        {icon}
+        {children}
+      </button>
+    );
+  },
+}));
+
+vi.mock('@ui/primitives/input', () => ({
+  Input: ({
+    'aria-label': ariaLabel,
+    onChange,
+    placeholder,
+    value,
+  }: {
+    'aria-label'?: string;
+    onChange: (event: ChangeEvent<HTMLInputElement>) => void;
+    placeholder?: string;
+    value: string;
+  }) => (
+    <input
+      aria-label={ariaLabel}
+      placeholder={placeholder}
+      value={value}
+      onChange={onChange}
+    />
+  ),
+}));
+
+vi.mock('@ui/primitives/popover', () => ({
+  Popover: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  PopoverContent: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  PopoverTrigger: ({ children }: { children: ReactNode }) => children,
+}));
+
+vi.mock('@ui/primitives/select', async () => {
+  const React = await import('react');
+  const SelectChangeContext = React.createContext<
+    ((value: string) => void) | undefined
+  >(undefined);
+
+  return {
+    Select: ({
+      children,
+      onValueChange,
+    }: {
+      children: ReactNode;
+      onValueChange?: (value: string) => void;
+    }) => (
+      <SelectChangeContext.Provider value={onValueChange}>
+        {children}
+      </SelectChangeContext.Provider>
+    ),
+    SelectContent: ({ children }: { children: ReactNode }) => (
+      <div>{children}</div>
+    ),
+    SelectItem: ({
+      children,
+      value,
+    }: {
+      children: ReactNode;
+      value: string;
+    }) => {
+      const onValueChange = React.useContext(SelectChangeContext);
+      return (
+        <button type="button" onClick={() => onValueChange?.(value)}>
+          {children}
+        </button>
+      );
+    },
+    SelectTrigger: ({ children }: { children: ReactNode }) => (
+      <button type="button">{children}</button>
+    ),
+    SelectValue: ({ placeholder }: { placeholder?: string }) => (
+      <span>{placeholder}</span>
+    ),
+  };
+});
+
+vi.mock('next/link', () => ({
+  default: ({ children, href }: { children: ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
+}));
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/acme/demo/messages',
+  useRouter: () => ({ replace: mocks.replace }),
+  useSearchParams: () => mocks.searchParams,
+}));
+
+vi.mock('./messages-surface-adapter', () => ({
+  useMessagesSurfaceAdapter: vi.fn(),
+}));
+
+vi.mock('./use-messages-realtime', () => ({
+  useMessagesRealtime: ({ onRefresh }: { onRefresh: () => Promise<void> }) => {
+    mocks.realtimeRefresh = onRefresh;
+    return 'connected';
+  },
+}));
+
+const conversation = {
+  automationState: 'manual',
+  availability: {
+    canPostReply: true,
+    canSendDm: false,
+    sendDmReason: 'YouTube Data API does not support channel DMs',
+  },
+  brandId: 'brand-1',
+  conversationType: 'comment',
+  createdAt: '2026-07-02T08:00:00.000Z',
+  credentialId: 'credential-1',
+  externalConversationId: 'thread-1',
+  id: 'conversation-1',
+  inboundSequence: 1,
+  latestMessageAt: '2026-07-02T08:00:00.000Z',
+  latestMessageText: 'Need pricing help',
+  needsReview: true,
+  organizationId: 'org-1',
+  participantHandle: '@taylor',
+  participantName: 'Taylor',
+  platform: 'youtube',
+  priority: 'normal',
+  sourceContentId: 'video-1',
+  sourceContentTitle: 'Launch video',
+  status: 'open',
+  tags: [],
+  unreadCount: 1,
+  updatedAt: '2026-07-02T08:00:00.000Z',
+};
+
+const messages = [
+  {
+    body: 'Need pricing help',
+    conversationId: 'conversation-1',
+    createdAt: '2026-07-02T08:00:00.000Z',
+    direction: 'inbound',
+    id: 'message-1',
+    messageType: 'comment',
+    platform: 'youtube',
+    senderName: 'Taylor',
+    status: 'received',
+    updatedAt: '2026-07-02T08:00:00.000Z',
+  },
+  {
+    actionProvenance: {
+      action: 'draft',
+      actedAt: '2026-07-02T08:05:30.000Z',
+      actorType: 'workflow',
+      platform: 'youtube',
+      status: 'draft',
+      userId: 'user-1',
+      workflowRunId: 'workflow-run-1',
+    },
+    body: 'Here is a drafted answer.',
+    conversationId: 'conversation-1',
+    createdAt: '2026-07-02T08:05:00.000Z',
+    direction: 'outbound',
+    id: 'message-2',
+    messageType: 'reply',
+    platform: 'youtube',
+    status: 'draft',
+    updatedAt: '2026-07-02T08:05:00.000Z',
+    userId: 'user-1',
+    workflowRunId: 'workflow-run-1',
+  },
+];
+
+describe('SocialMessagesPage', () => {
+  beforeEach(() => {
+    // Radix menus need pointer capture and scrollIntoView, which jsdom lacks.
+    Element.prototype.hasPointerCapture = vi.fn(() => false);
+    Element.prototype.releasePointerCapture = vi.fn();
+    Element.prototype.scrollIntoView = vi.fn();
+    vi.clearAllMocks();
+    mocks.brandContext.settings = {
+      hasOrganizationBilling: false,
+      moduleOverrides: {},
+    };
+    mocks.brandContext.settingsLoading = false;
+    mocks.brandContext.brands = [
+      {
+        credentials: [
+          {
+            id: 'credential-1',
+            isConnected: true,
+            platform: 'YOUTUBE',
+          },
+        ],
+        id: 'brand-1',
+        label: 'Demo Brand',
+        slug: 'demo',
+      },
+    ];
+    mocks.brandContext.credentialsLoading = false;
+    mocks.brandContext.isBrandScopeResolved = true;
+    mocks.workspaceNavPanel = null;
+    mocks.searchParams = new URLSearchParams();
+    mocks.markRead.mockImplementation(async (id: string) => {
+      const listed = await mocks.listPage.mock.results.at(-1)?.value;
+      const current =
+        listed?.items.find((item: { id: string }) => item.id === id) ??
+        (await mocks.getConversation.mock.results.at(-1)?.value);
+      return { ...current, unreadCount: 0 };
+    });
+    mocks.suggestedReply.mockResolvedValue({
+      id: 'conversation-1',
+      draft: 'Suggested response',
+    });
+    mocks.getService.mockResolvedValue({
+      approveDraft: vi.fn(),
+      createDraft: vi.fn(),
+      getConversation: mocks.getConversation,
+      listMessagesPage: mocks.listMessagesPage,
+      listPage: mocks.listPage,
+      markRead: mocks.markRead,
+      postReply: mocks.postReply,
+      suggestedReply: mocks.suggestedReply,
+      rejectDraft: vi.fn(),
+      sendDm: vi.fn(),
+      syncInstagram: mocks.syncInstagram,
+      syncInstagramDms: mocks.syncInstagramDms,
+      syncLinkedIn: mocks.syncLinkedIn,
+      syncLinkedInDms: mocks.syncLinkedInDms,
+      syncX: mocks.syncX,
+      syncXDms: mocks.syncXDms,
+      syncYoutube: mocks.syncYoutube,
+      updateStatus: vi.fn(),
+    });
+    mocks.listPage.mockResolvedValue({
+      hasNext: false,
+      hasPrevious: false,
+      items: [conversation],
+      page: 1,
+      pageSize: 50,
+      total: 1,
+      totalPages: 1,
+    });
+    mocks.listMessagesPage.mockResolvedValue({
+      hasNext: false,
+      hasPrevious: false,
+      items: messages,
+      page: 1,
+      pageSize: 50,
+      total: messages.length,
+      totalPages: 1,
+    });
+    mocks.postReply.mockResolvedValue({
+      ...messages[1],
+      body: 'Thanks for the detail.',
+      id: 'message-3',
+      status: 'sent',
+    });
+  });
+
+  it.each([
+    [
+      'unreleased',
+      {
+        hasOrganizationBilling: true,
+        moduleOverrides: { messages: true },
+        isReleasePreviewEnabled: false,
+      },
+      false,
+      'Messages is not released yet',
+    ],
+    [
+      'disabled',
+      { hasOrganizationBilling: false, moduleOverrides: { messages: false } },
+      false,
+      'Messages is hidden for your organization',
+    ],
+    ['unavailable', null, false, 'Module settings are unavailable'],
+    [
+      'loading',
+      { hasOrganizationBilling: false, moduleOverrides: {} },
+      true,
+      'Loading module settings',
+    ],
+    [
+      'subscription',
+      {
+        hasOrganizationBilling: true,
+        moduleOverrides: { messages: true },
+        isReleasePreviewEnabled: true,
+        hasPaidModuleSubscription: false,
+      },
+      false,
+      'Messages requires an active paid subscription',
+    ],
+  ] as const)(
+    'keeps saved conversations readable but blocks %s module work',
+    async (_state, settings, loading, _notice) => {
+      mocks.brandContext.settings = settings;
+      mocks.brandContext.settingsLoading = loading;
+      render(<SocialMessagesPage />);
+      expect(
+        await screen.findByText('Here is a drafted answer.'),
+      ).toBeInTheDocument();
+      const sync = await screen.findByRole('button', { name: 'Sync inbox' });
+      expect(sync).toBeDisabled();
+      fireEvent.click(sync);
+      expect(mocks.syncYoutube).not.toHaveBeenCalled();
+      expect(mocks.syncInstagram).not.toHaveBeenCalled();
+      expect(screen.getByTestId('messages-module-notice')).toHaveTextContent(
+        _notice,
+      );
+      expect(
+        screen.queryByRole('textbox', {
+          name: 'Social reply or direct message',
+        }),
+      ).toBeNull();
+      expect(screen.getByRole('button', { name: 'Approve' })).toBeDisabled();
+    },
+  );
+
+  it('restores write controls when current module settings enable Messages', async () => {
+    mocks.brandContext.settings = {
+      hasOrganizationBilling: false,
+      moduleOverrides: { messages: false },
+    };
+    const rendered = render(<SocialMessagesPage />);
+    expect(
+      await screen.findByText('Here is a drafted answer.'),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: 'Sync inbox' }),
+    ).toBeDisabled();
+    mocks.brandContext.settings = {
+      hasOrganizationBilling: false,
+      moduleOverrides: { messages: true },
+    };
+    rendered.rerender(<SocialMessagesPage />);
+    expect(
+      await screen.findByRole('button', { name: 'Sync inbox' }),
+    ).toBeEnabled();
+    expect(screen.queryByTestId('messages-module-notice')).toBeNull();
+    expect(
+      await screen.findByRole('textbox', {
+        name: 'Social reply or direct message',
+      }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Sync inbox' }));
+    await waitFor(() => expect(mocks.syncYoutube).toHaveBeenCalledTimes(1));
+  });
+  it('renders the inbox route, workflow automation link, and reply action', async () => {
+    render(<SocialMessagesPage />);
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Messages' }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: 'Sync inbox' }),
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(mocks.listPage).toHaveBeenCalledWith(
+        {
+          brandId: 'brand-1',
+          limit: 50,
+          page: 1,
+          status: 'open',
+        },
+        expect.any(AbortSignal),
+      ),
+    );
+
+    expect(screen.getAllByText('Taylor')).not.toHaveLength(0);
+    expect(screen.getAllByText('Need pricing help')).not.toHaveLength(0);
+    expect(
+      await screen.findByText('Here is a drafted answer.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('workflow-run-1')).toBeInTheDocument();
+    expect(screen.getByText('user-1')).toBeInTheDocument();
+    expect(screen.getByText('Draft')).toBeInTheDocument();
+    expect(screen.getAllByText('Comment').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('YouTube').length).toBeGreaterThan(0);
+    expect(screen.getByText('Reply composer')).toBeInTheDocument();
+    const conversationButton = screen.getByRole('button', {
+      name: 'Open social conversation with Taylor',
+    });
+    expect(conversationButton).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(conversationButton);
+    expect(mocks.replace).toHaveBeenCalledWith(
+      '/acme/demo/messages?socialConversation=conversation-1',
+      { scroll: false },
+    );
+
+    const automationLink = screen.getByRole('link', { name: /Automation/i });
+    expect(automationLink).toHaveAttribute(
+      'href',
+      expect.stringContaining('/automation/workflows/new?'),
+    );
+    expect(automationLink).toHaveAttribute(
+      'href',
+      expect.stringContaining('conversationId=conversation-1'),
+    );
+    expect(automationLink).toHaveAttribute(
+      'href',
+      expect.stringContaining('trigger=commentTrigger'),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Draft reply' }));
+    await waitFor(() =>
+      expect(mocks.suggestedReply).toHaveBeenCalledWith(
+        'conversation-1',
+        expect.any(AbortSignal),
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText('Write a reply or DM')).toHaveValue(
+        'Suggested response',
+      ),
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('Write a reply or DM'), {
+      target: { value: 'Thanks for the detail.' },
+    });
+    const replyButton = screen.getByRole('button', { name: /^Reply$/ });
+    const indicatorRefreshesBeforeReply =
+      mocks.refreshInboxIndicators.mock.calls.length;
+    fireEvent.click(replyButton);
+    fireEvent.click(replyButton);
+
+    await waitFor(() =>
+      expect(mocks.postReply).toHaveBeenCalledWith(
+        'conversation-1',
+        expect.objectContaining({
+          idempotencyKey: expect.stringMatching(
+            /^messages:conversation-1:reply:/,
+          ),
+          text: 'Thanks for the detail.',
+        }),
+      ),
+    );
+    expect(mocks.postReply).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText('Reply posted.')).toBeInTheDocument();
+    // A posted reply zeroes the thread server-side; the bell and badge refresh.
+    expect(mocks.refreshInboxIndicators.mock.calls.length).toBeGreaterThan(
+      indicatorRefreshesBeforeReply,
+    );
+  });
+
+  it('keeps the reply status inside the shared prompt bar and sends on Enter', async () => {
+    render(<SocialMessagesPage />);
+
+    const composer = await screen.findByTestId('messages-reply-composer');
+    expect(composer).toHaveAttribute('data-prompt-bar-composer');
+    const editor = within(composer).getByRole('textbox', {
+      name: 'Social reply or direct message',
+    });
+
+    fireEvent.change(editor, { target: { value: 'Thanks for asking!' } });
+    fireEvent.keyDown(editor, { key: 'Enter' });
+
+    await waitFor(() =>
+      expect(mocks.postReply).toHaveBeenCalledWith(
+        'conversation-1',
+        expect.objectContaining({ text: 'Thanks for asking!' }),
+      ),
+    );
+    const notice = await screen.findByText('Reply posted.');
+    expect(composer).toContainElement(notice);
+    expect(
+      within(screen.getByTestId('prompt-bar-shell-banner')).getByRole('status'),
+    ).toHaveTextContent('Reply posted.');
+  });
+
+  it('opens the conversation named in the URL and marks it read', async () => {
+    const linked = {
+      ...conversation,
+      id: 'conversation-linked',
+      inboundSequence: 5,
+      participantName: 'Jordan',
+      unreadCount: 2,
+    };
+    mocks.searchParams = new URLSearchParams(
+      'socialConversation=conversation-linked',
+    );
+    mocks.getConversation.mockResolvedValue(linked);
+
+    render(<SocialMessagesPage />);
+
+    await waitFor(() =>
+      expect(mocks.getConversation).toHaveBeenCalledWith(
+        'conversation-linked',
+        expect.any(AbortSignal),
+      ),
+    );
+    expect(
+      await screen.findByRole('button', {
+        name: 'Open social conversation with Jordan',
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    await waitFor(() =>
+      expect(mocks.listMessagesPage).toHaveBeenCalledWith(
+        'conversation-linked',
+        { limit: 50, page: 1 },
+        expect.any(AbortSignal),
+      ),
+    );
+    await waitFor(() =>
+      expect(mocks.markRead).toHaveBeenCalledWith(
+        'conversation-linked',
+        5,
+        expect.any(AbortSignal),
+      ),
+    );
+    await waitFor(() =>
+      expect(mocks.refreshInboxIndicators).toHaveBeenCalled(),
+    );
+  });
+
+  it('never acknowledges a reply that a receipt response reports before the transcript shows it', async () => {
+    const displayed = { ...conversation, inboundSequence: 10, unreadCount: 1 };
+    mocks.listPage.mockResolvedValue({
+      hasNext: false,
+      hasPrevious: false,
+      items: [displayed],
+      page: 1,
+      pageSize: 50,
+      total: 1,
+      totalPages: 1,
+    });
+    // Reply 11 lands while markRead(10) is in flight: it stays unread.
+    mocks.markRead.mockResolvedValue({
+      ...displayed,
+      inboundSequence: 11,
+      unreadCount: 1,
+    });
+
+    render(<SocialMessagesPage />);
+
+    await waitFor(() =>
+      expect(mocks.markRead).toHaveBeenCalledWith(
+        'conversation-1',
+        10,
+        expect.any(AbortSignal),
+      ),
+    );
+    await waitFor(() =>
+      expect(mocks.refreshInboxIndicators).toHaveBeenCalled(),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(mocks.markRead).not.toHaveBeenCalledWith(
+      'conversation-1',
+      11,
+      expect.anything(),
+    );
+    expect(mocks.markRead).toHaveBeenCalledTimes(1);
+  });
+
+  it('acknowledges a reply that a realtime refresh fetched into the open thread', async () => {
+    const read = { ...conversation, inboundSequence: 10, unreadCount: 0 };
+    mocks.listPage.mockResolvedValue({
+      hasNext: false,
+      hasPrevious: false,
+      items: [read],
+      page: 1,
+      pageSize: 50,
+      total: 1,
+      totalPages: 1,
+    });
+    const withReply = { ...read, inboundSequence: 11, unreadCount: 1 };
+    mocks.getConversation.mockResolvedValue(withReply);
+    mocks.markRead.mockResolvedValue({ ...withReply, unreadCount: 0 });
+
+    render(<SocialMessagesPage />);
+
+    expect(
+      await screen.findByText('Here is a drafted answer.'),
+    ).toBeInTheDocument();
+    expect(mocks.markRead).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await mocks.realtimeRefresh?.();
+    });
+
+    await waitFor(() =>
+      expect(mocks.markRead).toHaveBeenCalledWith(
+        'conversation-1',
+        11,
+        expect.any(AbortSignal),
+      ),
+    );
+  });
+
+  it('does not send a read receipt for an already read conversation', async () => {
+    mocks.listPage.mockResolvedValue({
+      hasNext: false,
+      hasPrevious: false,
+      items: [{ ...conversation, unreadCount: 0 }],
+      page: 1,
+      pageSize: 50,
+      total: 1,
+      totalPages: 1,
+    });
+
+    render(<SocialMessagesPage />);
+
+    expect(
+      await screen.findByText('Here is a drafted answer.'),
+    ).toBeInTheDocument();
+    expect(mocks.markRead).not.toHaveBeenCalled();
+  });
+
+  it('shows sync as the primary empty action when an account is connected', async () => {
+    mocks.listPage.mockResolvedValue({
+      hasNext: false,
+      hasPrevious: false,
+      items: [],
+      page: 1,
+      pageSize: 50,
+      total: 0,
+      totalPages: 1,
+    });
+
+    render(<SocialMessagesPage />);
+
+    const sidebarEmpty = await screen.findByTestId('messages-sidebar-empty');
+    expect(
+      within(sidebarEmpty).getByText('No conversations yet'),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('messages-empty-state')).getByText(
+        'Select a conversation',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Connect a social channel/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('navigation', { name: 'Social conversations' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('textbox', {
+        name: 'Search social conversations',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Sync inbox' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /^filters/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(screen.queryByText('0 conversations')).not.toBeInTheDocument();
+    expect(screen.queryByText('Connected')).not.toBeInTheDocument();
+
+    expect(screen.getByTestId('messages-surface-layout')).toHaveClass(
+      'min-h-0',
+      'flex-1',
+      'overflow-hidden',
+    );
+    expect(screen.getByTestId('messages-empty-state')).toHaveClass(
+      'min-h-0',
+      'flex-1',
+    );
+  });
+
+  it('syncs only the existing connected account and shows it in the account filter', async () => {
+    render(<SocialMessagesPage />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Sync inbox' }));
+    await waitFor(() =>
+      expect(mocks.syncYoutube).toHaveBeenCalledWith(25, 'credential-1'),
+    );
+    expect(mocks.syncInstagram).not.toHaveBeenCalled();
+    expect(mocks.syncX).not.toHaveBeenCalled();
+    expect(mocks.syncLinkedIn).not.toHaveBeenCalled();
+    expect(mocks.syncInstagramDms).not.toHaveBeenCalled();
+    expect(mocks.syncXDms).not.toHaveBeenCalled();
+    expect(mocks.syncLinkedInDms).not.toHaveBeenCalled();
+    expect(
+      screen.queryByLabelText('Credential or account ID'),
+    ).not.toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /^filters/i }));
+    (await screen.findByRole('menuitem', { name: /^account/i })).focus();
+    await user.keyboard('{ArrowRight}');
+    expect(
+      await screen.findByRole('menuitemradio', { name: 'YouTube' }),
+    ).toBeInTheDocument();
+  });
+
+  it('uses the account picker to filter conversations and sync only that account', async () => {
+    mocks.brandContext.brands[0].credentials = ['youtube', 'instagram'].map(
+      (platform) => ({
+        id: `credential-${platform}`,
+        externalName: `${platform} account`,
+        isConnected: true,
+        platform,
+      }),
+    );
+    render(<SocialMessagesPage />);
+    await screen.findByRole('button', { name: 'Sync inbox' });
+    await chooseFilter(
+      userEvent.setup(),
+      /^account/i,
+      /Instagram · instagram account/,
+    );
+    await waitFor(() =>
+      expect(mocks.listPage).toHaveBeenLastCalledWith(
+        expect.objectContaining({ credentialId: 'credential-instagram' }),
+        expect.any(AbortSignal),
+      ),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Sync inbox' }));
+    await waitFor(() =>
+      expect(mocks.syncInstagram).toHaveBeenCalledWith(
+        25,
+        'credential-instagram',
+      ),
+    );
+    expect(mocks.syncInstagramDms).toHaveBeenCalledWith(
+      25,
+      'credential-instagram',
+    );
+    expect(mocks.syncYoutube).not.toHaveBeenCalled();
+  });
+
+  it('makes account connection the first empty state when no social account is connected', async () => {
+    mocks.brandContext.brands = [
+      {
+        credentials: [],
+        id: 'brand-1',
+        label: 'Demo Brand',
+        slug: 'demo',
+      },
+    ];
+    mocks.listPage.mockResolvedValue({
+      hasNext: false,
+      hasPrevious: false,
+      items: [],
+      page: 1,
+      pageSize: 50,
+      total: 0,
+      totalPages: 1,
+    });
+
+    render(<SocialMessagesPage />);
+
+    const sidebarEmpty = await screen.findByTestId('messages-sidebar-empty');
+    expect(
+      within(sidebarEmpty).getByText('Connect your social accounts'),
+    ).toBeInTheDocument();
+    expect(
+      within(sidebarEmpty).getByRole('button', {
+        name: 'Connect a social channel',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(sidebarEmpty).queryByRole('button', { name: 'Sync inbox' }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('messages-empty-state')).getByText(
+        'Connect accounts to start your inbox',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('projects the conversation list into the Messages navigation column', async () => {
+    const portalTarget = document.createElement('div');
+    document.body.append(portalTarget);
+    mocks.workspaceNavPanel = {
+      portalTargets: [portalTarget],
+      registerPortalTarget: vi.fn(),
+    };
+
+    render(<SocialMessagesPage />);
+
+    expect(
+      await within(portalTarget).findByRole('navigation', {
+        name: 'Social conversations',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('navigation', { name: 'Social conversations' }),
+    ).toHaveLength(1);
+    expect(within(portalTarget).getAllByText('Messages')).toHaveLength(1);
+    expect(
+      within(portalTarget).queryByText('Conversations'),
+    ).not.toBeInTheDocument();
+    expect(
+      within(portalTarget).getByRole('textbox', {
+        name: 'Search social conversations',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(portalTarget).getByRole('button', { name: /^filters/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('messages-surface-layout')).not.toHaveClass(
+      'lg:grid-cols-[380px_minmax(0,1fr)]',
+    );
+
+    portalTarget.remove();
+  });
+
+  it('switches to the DM surface, queries DMs, and syncs direct messages', async () => {
+    mocks.brandContext.brands[0].credentials = [
+      'youtube',
+      'instagram',
+      'twitter',
+      'linkedin',
+    ].map((platform) => ({
+      id: `credential-${platform}`,
+      isConnected: true,
+      platform,
+    }));
+    mocks.listPage.mockImplementation(
+      (params: { conversationType?: string }) => {
+        const isDmQuery = params.conversationType === 'dm';
+
+        return Promise.resolve({
+          hasNext: false,
+          hasPrevious: false,
+          items: isDmQuery ? [] : [conversation],
+          page: 1,
+          pageSize: 50,
+          total: isDmQuery ? 0 : 1,
+          totalPages: 1,
+        });
+      },
+    );
+
+    render(<SocialMessagesPage />);
+
+    await screen.findByRole('button', { name: 'Sync inbox' });
+
+    await chooseFilter(userEvent.setup(), /^type/i, /^DMs/);
+
+    await waitFor(() =>
+      expect(mocks.listPage).toHaveBeenCalledWith(
+        {
+          brandId: 'brand-1',
+          conversationType: 'dm',
+          limit: 50,
+          page: 1,
+          status: 'open',
+        },
+        expect.any(AbortSignal),
+      ),
+    );
+
+    // DMs are polled, so an unsynced DM surface says so instead of reading as an error.
+    const sidebarEmpty = await screen.findByTestId('messages-sidebar-empty');
+    expect(
+      within(sidebarEmpty).getByText('No direct messages yet'),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sync direct messages' }),
+    );
+
+    await waitFor(() =>
+      expect(mocks.syncInstagramDms).toHaveBeenCalledTimes(1),
+    );
+    expect(mocks.syncXDms).toHaveBeenCalledTimes(1);
+    expect(mocks.syncLinkedInDms).toHaveBeenCalledTimes(1);
+    expect(mocks.syncYoutube).not.toHaveBeenCalled();
+    expect(mocks.syncInstagram).not.toHaveBeenCalled();
+    expect(mocks.syncX).not.toHaveBeenCalled();
+  });
+
+  it('sweeps every comment platform when syncing the comments surface', async () => {
+    mocks.brandContext.brands[0].credentials = [
+      'youtube',
+      'instagram',
+      'twitter',
+      'linkedin',
+    ].map((platform) => ({
+      id: `credential-${platform}`,
+      isConnected: true,
+      platform,
+    }));
+    render(<SocialMessagesPage />);
+
+    await screen.findByRole('button', { name: 'Sync inbox' });
+    await chooseFilter(userEvent.setup(), /^type/i, /^Comments/);
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Sync comments' }),
+    );
+
+    await waitFor(() => expect(mocks.syncYoutube).toHaveBeenCalledTimes(1));
+    expect(mocks.syncInstagram).toHaveBeenCalledTimes(1);
+    expect(mocks.syncX).toHaveBeenCalledTimes(1);
+    expect(mocks.syncLinkedIn).toHaveBeenCalledTimes(1);
+    expect(mocks.syncInstagramDms).not.toHaveBeenCalled();
+    expect(mocks.syncXDms).not.toHaveBeenCalled();
+  });
+
+  it('syncs the unified mailbox and keeps remaining platform enqueues after a partial failure', async () => {
+    mocks.brandContext.brands[0].credentials = [
+      'youtube',
+      'instagram',
+      'twitter',
+      'linkedin',
+    ].map((platform) => ({
+      id: `credential-${platform}`,
+      isConnected: true,
+      platform,
+    }));
+    mocks.syncX.mockRejectedValue(new Error('X is not connected'));
+
+    render(<SocialMessagesPage />);
+
+    const syncButton = await screen.findByRole('button', {
+      name: 'Sync inbox',
+    });
+    const callsAfterLoad = mocks.listPage.mock.calls.length;
+
+    fireEvent.click(syncButton);
+
+    await waitFor(() => expect(mocks.syncYoutube).toHaveBeenCalledTimes(1));
+    expect(mocks.syncInstagram).toHaveBeenCalledTimes(1);
+    expect(mocks.syncX).toHaveBeenCalledTimes(1);
+    expect(mocks.syncLinkedIn).toHaveBeenCalledTimes(1);
+    expect(mocks.syncInstagramDms).toHaveBeenCalledTimes(1);
+    expect(mocks.syncXDms).toHaveBeenCalledTimes(1);
+    expect(mocks.syncLinkedInDms).toHaveBeenCalledTimes(1);
+    await waitFor(() =>
+      expect(mocks.listPage.mock.calls.length).toBeGreaterThan(callsAfterLoad),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByText(/Partial failure: X failed to queue/),
+      ).toBeInTheDocument(),
+    );
+  });
+
+  it('renders a DM thread without a source content anchor', async () => {
+    mocks.listPage.mockResolvedValue({
+      hasNext: false,
+      hasPrevious: false,
+      items: [
+        {
+          ...conversation,
+          availability: {
+            canPostReply: false,
+            canSendDm: true,
+            postReplyReason:
+              'Direct message threads have no post or comment to reply on',
+          },
+          conversationType: 'dm',
+          platform: 'instagram',
+        },
+      ],
+      page: 1,
+      pageSize: 50,
+      total: 1,
+      totalPages: 1,
+    });
+
+    render(<SocialMessagesPage />);
+
+    expect(
+      await screen.findByRole('button', {
+        name: 'Open social conversation with Taylor',
+      }),
+    ).toBeInTheDocument();
+    // A DM hangs off no post, so the comment thread's source anchor stays away.
+    expect(screen.queryByText('Launch video')).not.toBeInTheDocument();
+  });
+
+  it('replaces the composer with one notice for read-only TikTok threads', async () => {
+    mocks.listPage.mockResolvedValue({
+      hasNext: false,
+      hasPrevious: false,
+      items: [
+        {
+          ...conversation,
+          availability: {
+            canPostReply: false,
+            canSendDm: false,
+            postReplyReason: 'TikTok conversations are read-only in Genfeed',
+            sendDmReason: 'TikTok conversations are read-only in Genfeed',
+          },
+          platform: 'tiktok',
+        },
+      ],
+      page: 1,
+      pageSize: 50,
+      total: 1,
+      totalPages: 1,
+    });
+
+    render(<SocialMessagesPage />);
+
+    expect(
+      await screen.findByRole('button', {
+        name: 'Open social conversation with Taylor',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText('Read only').length).toBeGreaterThan(0);
+    expect(
+      screen.getByText('TikTok conversations are read-only in Genfeed'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText('Write a reply or DM'),
+    ).not.toBeInTheDocument();
+    for (const name of ['Draft reply', 'Save Draft', 'Reply', 'DM']) {
+      expect(screen.queryByRole('button', { name })).not.toBeInTheDocument();
+    }
+  });
+
+  it('offers no agent hand-off where no dock hosts the conversation', async () => {
+    render(<SocialMessagesPage />);
+
+    expect(
+      await screen.findByText('Here is a drafted answer.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Ask Agent about this' }),
+    ).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Ask Agent' })).toBeNull();
+  });
+
+  it('attaches the conversation or a message to the agent dock and opens it', async () => {
+    const open = vi.fn();
+    mocks.agentDock = { isAvailable: true, open };
+
+    try {
+      render(<SocialMessagesPage />);
+
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Ask Agent about this' }),
+      );
+      expect(open).toHaveBeenCalledTimes(1);
+
+      const [askMessage] = await screen.findAllByRole('button', {
+        name: 'Attach message to the agent',
+      });
+      fireEvent.click(askMessage);
+      expect(open).toHaveBeenCalledTimes(2);
+      expect(
+        await screen.findAllByRole('button', {
+          name: 'Remove message from the agent',
+        }),
+      ).not.toHaveLength(0);
+    } finally {
+      mocks.agentDock = null;
+    }
+  });
+
+  it.each([
+    ['the selected brand', 'brand-1', true],
+    ['another brand', 'brand-2', false],
+  ])(
+    'lets a new dock conversation take references for %s only',
+    async (_label, selectedBrandId, isAllowed) => {
+      mocks.agentDock = { isAvailable: true, open: vi.fn() };
+      mocks.agentThread = { activeThreadId: null, threads: [] };
+      mocks.brandContext.brandId = selectedBrandId;
+
+      try {
+        render(<SocialMessagesPage />);
+
+        const askConversation = await screen.findByRole('button', {
+          name: 'Ask Agent about this',
+        });
+        if (isAllowed) {
+          expect(askConversation).toBeEnabled();
+        } else {
+          expect(askConversation).toBeDisabled();
+        }
+      } finally {
+        mocks.agentDock = null;
+        mocks.agentThread = {
+          activeThreadId: 'agent-thread-1',
+          threads: [{ brandId: 'brand-1', id: 'agent-thread-1' }],
+        };
+        mocks.brandContext.brandId = 'brand-1';
+      }
+    },
+  );
+});

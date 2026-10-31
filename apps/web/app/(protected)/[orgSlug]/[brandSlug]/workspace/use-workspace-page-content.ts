@@ -1,0 +1,521 @@
+import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
+import * as Sentry from '@sentry/nextjs';
+import { type Task, TasksService } from '@services/management/tasks.service';
+import { WebSocketPaths } from '@utils/network/websocket.util';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import type { UseWorkspacePageContentParams } from '@/features/workspace/props/workspace-page.props';
+import { useWorkspaceInboxRead } from '@/hooks/data/tasks/use-workspace-inbox-read';
+import { useWorkflowExecutions } from '@/hooks/data/workflow-executions/use-workflow-executions';
+import { OPERATOR_TASK_CONTEXT_QUERY_KEYS } from '@/lib/navigation/operator-shell';
+import {
+  consumeOpenTaskComposerRequest,
+  OPEN_TASK_COMPOSER_EVENT,
+} from '@/lib/workspace/task-composer-events';
+import { usePlanningConversation } from './use-planning-conversation';
+import {
+  applyRealtimeTaskUpdate,
+  DEFAULT_INBOX_VIEW,
+  DEFAULT_REVIEW_INBOX,
+  type InboxView,
+  isTaskInInboxQueue,
+  parseInboxView,
+  useWorkspaceSectionCopy,
+  type WorkspaceTaskRealtimePayload,
+} from './workspace-task.helpers';
+
+export type { UseWorkspacePageContentParams } from '@/features/workspace/props/workspace-page.props';
+
+const RECENT_INBOX_LIMIT = 5;
+const WORKSPACE_OVERVIEW_LOAD_TIMEOUT_MS = 15_000;
+const WORKSPACE_OVERVIEW_LOAD_WARNING =
+  'Workspace data is taking longer than expected. You can keep this page open or try again.';
+
+type WorkspaceOverviewLoadScope = 'tasks';
+type WorkspaceLoadWarningState = Partial<
+  Record<WorkspaceOverviewLoadScope, true>
+>;
+
+function addWorkspaceLoadTimeoutBreadcrumb(
+  scope: WorkspaceOverviewLoadScope,
+  pathname: string,
+) {
+  Sentry.addBreadcrumb({
+    category: 'workspace.overview',
+    data: {
+      pathname,
+      scope,
+      timeoutMs: WORKSPACE_OVERVIEW_LOAD_TIMEOUT_MS,
+    },
+    level: 'warning',
+    message: 'Workspace overview data load timed out',
+  });
+}
+
+export function useWorkspacePageContent({
+  initialAnalytics,
+  initialReviewInbox = DEFAULT_REVIEW_INBOX,
+  initialTimeSeriesData,
+  section = 'overview',
+}: UseWorkspacePageContentParams) {
+  void initialAnalytics;
+  void initialTimeSeriesData;
+
+  const { getToken } = useAuthIdentity();
+  const inboxRead = useWorkspaceInboxRead();
+  const { subscribe } = useSocketManager();
+  const { organizationId, brandId } = useBrand();
+  const pathname = usePathname();
+  const { replace } = useRouter();
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
+  const requestedTaskId = searchParams.get('taskId');
+  const inboxView = parseInboxView(searchParams.get('status'));
+
+  const [isTaskComposerOpen, setTaskComposerOpen] = useState(false);
+  const [workspaceActionError, setWorkspaceActionError] = useState<
+    string | null
+  >(null);
+  const [isWorkspaceRefreshing, setWorkspaceRefreshing] = useState(false);
+  const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(
+    requestedTaskId,
+  );
+  const previousRequestedTaskIdRef = useRef(requestedTaskId);
+  const {
+    executions,
+    isLoading: isWorkspaceExecutionsLoading,
+    stats: executionStats,
+  } = useWorkflowExecutions(
+    { brandId, limit: 20, sort: '-createdAt' },
+    { organizationId, enabled: Boolean(brandId) },
+  );
+  const activeExecutions = executions.filter(
+    (execution) =>
+      execution.status === 'PENDING' || execution.status === 'RUNNING',
+  );
+  const recentExecutions = executions.filter(
+    (execution) =>
+      execution.status !== 'PENDING' && execution.status !== 'RUNNING',
+  );
+  const [workspaceLoadWarnings, setWorkspaceLoadWarnings] =
+    useState<WorkspaceLoadWarningState>({});
+  const [isWorkspaceTasksLoading, setWorkspaceTasksLoading] = useState(true);
+  const [workspaceTasks, setWorkspaceTasks] = useState<Task[]>([]);
+
+  const markWorkspaceLoadWarning = useCallback(
+    (scope: WorkspaceOverviewLoadScope) => {
+      setWorkspaceLoadWarnings((current) =>
+        current[scope] ? current : { ...current, [scope]: true },
+      );
+    },
+    [],
+  );
+
+  const clearWorkspaceLoadWarning = useCallback(
+    (scope: WorkspaceOverviewLoadScope) => {
+      setWorkspaceLoadWarnings((current) => {
+        if (!current[scope]) {
+          return current;
+        }
+
+        const next = { ...current };
+        delete next[scope];
+        return next;
+      });
+    },
+    [],
+  );
+
+  const workspaceLoadWarning = useMemo(
+    () =>
+      workspaceLoadWarnings.tasks ? WORKSPACE_OVERVIEW_LOAD_WARNING : null,
+    [workspaceLoadWarnings],
+  );
+
+  const reviewInboxTasks = useMemo(
+    () =>
+      workspaceTasks.filter(
+        (task) =>
+          task.reviewState === 'pending_approval' ||
+          task.reviewState === 'changes_requested' ||
+          task.status === 'done' ||
+          task.status === 'failed',
+      ),
+    [workspaceTasks],
+  );
+
+  const queueTasks = useMemo(
+    () =>
+      workspaceTasks
+        .filter(isTaskInInboxQueue)
+        .slice()
+        .sort((left, right) => {
+          const leftTime = new Date(
+            left.updatedAt ?? left.createdAt ?? 0,
+          ).getTime();
+          const rightTime = new Date(
+            right.updatedAt ?? right.createdAt ?? 0,
+          ).getTime();
+          return rightTime - leftTime;
+        }),
+    [workspaceTasks],
+  );
+
+  const unreadInboxTasks = useMemo(
+    () => (inboxRead.state.data ? queueTasks.filter(inboxRead.isUnread) : []),
+    [queueTasks, inboxRead.state.data, inboxRead.isUnread],
+  );
+
+  const recentInboxTasks = useMemo(
+    () => queueTasks.slice(0, RECENT_INBOX_LIMIT),
+    [queueTasks],
+  );
+
+  const inProgressTasks = useMemo(
+    () =>
+      workspaceTasks.filter(
+        (task) => task.status === 'backlog' || task.status === 'in_progress',
+      ),
+    [workspaceTasks],
+  );
+
+  const activityItems = useMemo(
+    () =>
+      workspaceTasks.slice().sort((left, right) => {
+        const leftTime = new Date(
+          left.updatedAt ?? left.createdAt ?? 0,
+        ).getTime();
+        const rightTime = new Date(
+          right.updatedAt ?? right.createdAt ?? 0,
+        ).getTime();
+        return rightTime - leftTime;
+      }),
+    [workspaceTasks],
+  );
+
+  const historyPreviewItems = useMemo(
+    () => activityItems.slice(0, 5),
+    [activityItems],
+  );
+
+  const selectedTask = useMemo(
+    () => workspaceTasks.find((task) => task.id === selectedTaskId) ?? null,
+    [selectedTaskId, workspaceTasks],
+  );
+
+  const replaceTaskSearchParam = useCallback(
+    (taskId: string | null) => {
+      const nextSearchParams = new URLSearchParams(searchParamsString);
+
+      for (const key of OPERATOR_TASK_CONTEXT_QUERY_KEYS) {
+        if (key !== 'taskId') {
+          nextSearchParams.delete(key);
+        }
+      }
+
+      if (taskId) {
+        nextSearchParams.set('taskId', taskId);
+      } else {
+        nextSearchParams.delete('taskId');
+      }
+
+      const nextQuery = nextSearchParams.toString();
+      replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
+        scroll: false,
+      });
+    },
+    [pathname, replace, searchParamsString],
+  );
+
+  // The default view is the bare URL, so a shared link never carries it.
+  const setInboxView = useCallback(
+    (view: InboxView) => {
+      const nextSearchParams = new URLSearchParams(searchParamsString);
+
+      if (view === DEFAULT_INBOX_VIEW) {
+        nextSearchParams.delete('status');
+      } else {
+        nextSearchParams.set('status', view);
+      }
+
+      const nextQuery = nextSearchParams.toString();
+      replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
+        scroll: false,
+      });
+    },
+    [pathname, replace, searchParamsString],
+  );
+
+  const visibleInboxTasks = useMemo(() => {
+    switch (inboxView) {
+      case 'unread':
+        return unreadInboxTasks;
+      case 'all':
+        return queueTasks;
+      default:
+        return recentInboxTasks;
+    }
+  }, [inboxView, queueTasks, recentInboxTasks, unreadInboxTasks]);
+
+  const summaryItems = useMemo(
+    () => [
+      {
+        label: 'Unread',
+        value: String(unreadInboxTasks.length),
+      },
+      {
+        label: 'In Progress',
+        value: String(inProgressTasks.length + executionStats.active),
+      },
+      {
+        label: 'Completed Today',
+        value: String(executionStats.completedToday),
+      },
+      {
+        label: 'Failed Today',
+        value: String(executionStats.failedToday),
+      },
+    ],
+    [executionStats, inProgressTasks.length, unreadInboxTasks.length],
+  );
+
+  useEffect(() => {
+    if (requestedTaskId === previousRequestedTaskIdRef.current) {
+      return;
+    }
+
+    previousRequestedTaskIdRef.current = requestedTaskId;
+    setSelectedTaskId(requestedTaskId);
+  }, [requestedTaskId]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    setWorkspaceTasksLoading(true);
+    clearWorkspaceLoadWarning('tasks');
+
+    if (section === 'overview') {
+      timeoutId = setTimeout(() => {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        markWorkspaceLoadWarning('tasks');
+        addWorkspaceLoadTimeoutBreadcrumb('tasks', pathname);
+      }, WORKSPACE_OVERVIEW_LOAD_TIMEOUT_MS);
+    }
+
+    const loadWorkspaceTasks = async () => {
+      try {
+        const token = await resolveAuthToken(getToken);
+        if (!token || controller.signal.aborted) {
+          return;
+        }
+
+        const service = TasksService.getInstance(token);
+        const tasks = await service.list({});
+        if (!controller.signal.aborted) {
+          setWorkspaceTasks(tasks);
+        }
+      } catch {
+        if (!controller.signal.aborted) {
+          setWorkspaceTasks([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setWorkspaceTasksLoading(false);
+          clearWorkspaceLoadWarning('tasks');
+        }
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+      }
+    };
+
+    void loadWorkspaceTasks();
+
+    return () => {
+      controller.abort();
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [
+    clearWorkspaceLoadWarning,
+    getToken,
+    markWorkspaceLoadWarning,
+    pathname,
+    section,
+  ]);
+
+  useEffect(() => {
+    if (!organizationId) {
+      return;
+    }
+
+    const unsubscribeOverview = subscribe<WorkspaceTaskRealtimePayload>(
+      WebSocketPaths.workspaceTaskOverview(organizationId),
+      (payload) => {
+        startTransition(() => {
+          setWorkspaceTasks((current) =>
+            applyRealtimeTaskUpdate(current, payload),
+          );
+        });
+      },
+    );
+
+    return () => {
+      unsubscribeOverview();
+    };
+  }, [organizationId, subscribe]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const openComposerFromSidebar = () => {
+      if (consumeOpenTaskComposerRequest()) {
+        setTaskComposerOpen(true);
+      }
+    };
+
+    window.addEventListener(OPEN_TASK_COMPOSER_EVENT, openComposerFromSidebar);
+    // A request made before this page mounted (the sidebar renders first).
+    openComposerFromSidebar();
+
+    return () => {
+      window.removeEventListener(
+        OPEN_TASK_COMPOSER_EVENT,
+        openComposerFromSidebar,
+      );
+    };
+  }, []);
+
+  const refreshWorkspaceTasks = async () => {
+    setWorkspaceRefreshing(true);
+
+    try {
+      const token = await resolveAuthToken(getToken);
+      if (!token) {
+        return;
+      }
+
+      const service = TasksService.getInstance(token);
+      const tasks = await service.list({});
+      startTransition(() => {
+        setWorkspaceTasks(tasks);
+      });
+    } finally {
+      setWorkspaceRefreshing(false);
+    }
+  };
+
+  const mutateTask = async (
+    taskId: string,
+    operation: (service: TasksService) => Promise<Task>,
+  ) => {
+    setBusyTaskId(taskId);
+    setWorkspaceActionError(null);
+
+    try {
+      const token = await resolveAuthToken(getToken);
+      if (!token) {
+        return;
+      }
+
+      const service = TasksService.getInstance(token);
+      const updatedTask = await operation(service);
+      startTransition(() => {
+        setWorkspaceTasks((current) =>
+          current.map((task) =>
+            task.id === updatedTask.id ? updatedTask : task,
+          ),
+        );
+      });
+    } catch (error) {
+      setWorkspaceActionError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to update the workspace task.',
+      );
+    } finally {
+      setBusyTaskId(null);
+    }
+  };
+
+  const { openPlanningConversation } = usePlanningConversation({
+    onError: setWorkspaceActionError,
+    onTaskUpdated: (updatedTask) => {
+      startTransition(() => {
+        setWorkspaceTasks((current) =>
+          current.map((item) =>
+            item.id === updatedTask.id ? updatedTask : item,
+          ),
+        );
+      });
+    },
+    setBusyTaskId,
+  });
+
+  const isOverviewSection = section === 'overview';
+  const isInboxSection = section === 'inbox';
+  const sectionCopy = useWorkspaceSectionCopy()[section];
+  const shouldShowComposer = false;
+  const shouldShowInbox = section === 'overview' || section === 'inbox';
+  const shouldShowSectionSnapshot = section === 'inbox';
+
+  return {
+    activityItems,
+    inboxRead,
+    inboxView,
+    busyTaskId,
+    historyPreviewItems,
+    inProgressTasks,
+    activeExecutions,
+    initialReviewInbox,
+    executionStats,
+    isInboxSection,
+    isOverviewSection,
+    isTaskComposerOpen,
+    isWorkspaceRefreshing,
+    isWorkspaceExecutionsLoading,
+    isWorkspaceTasksLoading,
+    mutateTask,
+    openPlanningConversation,
+    queueTasks,
+    recentInboxTasks,
+    recentExecutions,
+    refreshWorkspaceTasks,
+    replaceTaskSearchParam,
+    reviewInboxTasks,
+    section,
+    sectionCopy,
+    selectedTask,
+    selectedTaskId,
+    setInboxView,
+    setSelectedTaskId,
+    setTaskComposerOpen,
+    setWorkspaceTasks,
+    shouldShowComposer,
+    shouldShowInbox,
+    shouldShowSectionSnapshot,
+    summaryItems,
+    unreadInboxTasks,
+    visibleInboxTasks,
+    workspaceActionError,
+    workspaceLoadWarning,
+    workspaceTasks,
+  };
+}

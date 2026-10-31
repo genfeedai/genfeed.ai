@@ -1,0 +1,112 @@
+'use client';
+
+import { isDesktopClient } from '@genfeedai/config/deployment';
+import { useEffect, useRef } from 'react';
+import { toast } from 'sonner';
+import {
+  FOREGROUND_MIN_AWAY_MS,
+  onForeground,
+} from '@/hooks/utils/on-foreground/on-foreground';
+
+type VersionResponse = {
+  buildId?: string;
+};
+
+// The build id this session was served with, inlined at build time via
+// next.config `env`. In local dev that value is the stable constant 'dev', so it
+// always matches what /api/version reports and the watcher never prompts. (When
+// it was a per-start timestamp, every dev-server restart looked like a new
+// deployment and fired a spurious toast.) Empty only if the id is unset, in
+// which case there is nothing to compare and the watcher stays idle.
+const CURRENT_BUILD_ID = process.env.NEXT_PUBLIC_BUILD_ID ?? '';
+const VERSION_ENDPOINT = '/api/version';
+const POLL_INTERVAL_MS = 60_000;
+
+async function fetchServerBuildId(
+  signal: AbortSignal,
+): Promise<string | undefined> {
+  try {
+    const response = await fetch(VERSION_ENDPOINT, {
+      cache: 'no-store',
+      signal,
+    });
+    if (!response.ok) {
+      return undefined;
+    }
+    const data = (await response.json()) as VersionResponse;
+    return typeof data.buildId === 'string' ? data.buildId : undefined;
+  } catch {
+    // Network blips / aborts are non-fatal — just try again next tick.
+    return undefined;
+  }
+}
+
+/**
+ * Prompts the user to refresh when a newer deployment is live. Polls the
+ * deployment's own build id (plus a check on tab refocus) and compares it to the
+ * id this session loaded. On a mismatch it shows a persistent, dismissible toast
+ * with a Refresh action — never a forced reload, so an in-progress edit in the
+ * studio is never discarded. Renders nothing.
+ */
+export default function DeploymentVersionWatcher() {
+  const hasPromptedRef = useRef(false);
+
+  useEffect(() => {
+    if (isDesktopClient() || !CURRENT_BUILD_ID) {
+      return;
+    }
+
+    let isActive = true;
+    const controller = new AbortController();
+
+    async function checkForUpdate() {
+      if (!isActive || hasPromptedRef.current || document.hidden) {
+        return;
+      }
+
+      const serverBuildId = await fetchServerBuildId(controller.signal);
+      if (
+        !isActive ||
+        !serverBuildId ||
+        serverBuildId === CURRENT_BUILD_ID ||
+        hasPromptedRef.current
+      ) {
+        return;
+      }
+
+      hasPromptedRef.current = true;
+      toast('A new version is available', {
+        action: {
+          label: 'Refresh',
+          onClick: () => window.location.reload(),
+        },
+        closeButton: true,
+        description: 'Refresh to load the latest updates.',
+        duration: Number.POSITIVE_INFINITY,
+      });
+    }
+
+    const intervalId = window.setInterval(() => {
+      void checkForUpdate();
+    }, POLL_INTERVAL_MS);
+    // One check per tab return: focus and visibilitychange fire together.
+    const disposeForeground = onForeground(
+      () => {
+        void checkForUpdate();
+      },
+      { minAwayMs: FOREGROUND_MIN_AWAY_MS },
+    );
+
+    // Check once shortly after mount instead of waiting a full interval.
+    void checkForUpdate();
+
+    return () => {
+      isActive = false;
+      controller.abort();
+      window.clearInterval(intervalId);
+      disposeForeground();
+    };
+  }, []);
+
+  return null;
+}

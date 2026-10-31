@@ -1,0 +1,20 @@
+import type { ICredential } from '@genfeedai/contracts/interfaces';
+import type { SocialConversationModel } from '@genfeedai/models/social/social-conversation.model';
+import type { SocialMessagesService } from '@genfeedai/services/social/messages.service';
+import type { MessagesSurface } from '@/props/messages/messages-conversation-sidebar.props';
+
+export interface UseMessagesActionsParams {
+  readonly canAttachReferences: boolean;
+  readonly canWrite: boolean;
+  readonly syncCredentials: readonly Pick<ICredential, 'id' | 'platform'>[];
+  /** Which inbox surface is open — decides what a sync actually sweeps. */
+  readonly conversationType: MessagesSurface;
+  readonly getMessagesService: () => Promise<SocialMessagesService>;
+  readonly loadConversations: (signal?: AbortSignal) => Promise<void>;
+  /** A reply or resolve zeroed a thread's unread state server-side. */
+  readonly onInboxReadStateChange?: () => void;
+  readonly onLoadError?: (message: string | null) => void;
+  readonly refreshSelectedThread: () => Promise<void>;
+  readonly selectedConversation: SocialConversationModel | null;
+  readonly selectedId: string | null;
+}

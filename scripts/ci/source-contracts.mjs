@@ -9,7 +9,7 @@ import { parseVitestList } from './pr-test-plan.mjs';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const SURFACES = [
-  { directory: 'apps/app', config: 'vitest.config.mts' },
+  { directory: 'apps/web', config: 'vitest.config.mts' },
   { directory: 'apps/server/api', config: 'vitest.config.ts' },
 ];
 const FS_MODULES = new Set([

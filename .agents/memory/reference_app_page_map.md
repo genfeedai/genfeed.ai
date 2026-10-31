@@ -6,7 +6,7 @@ type: reference
 
 # App Page Map
 
-The route tree is derivable from `apps/app/app/**/page.tsx` and drift-checked by `bun run check:route-inventory` (`scripts/architecture/check-product-route-inventory.ts`); do not hand-maintain a route list here.
+The route tree is derivable from `apps/web/app/**/page.tsx` and drift-checked by `bun run check:route-inventory` (`scripts/architecture/check-product-route-inventory.ts`); do not hand-maintain a route list here.
 
 The only current hard cuts (`PROTECTED_HARD_CUT_PAGES` / `PROTECTED_HARD_CUT_PREFIXES`, both in
 `check-product-route-inventory.ts`) are `/:orgSlug/:brandSlug/lab` and
@@ -15,16 +15,16 @@ The only current hard cuts (`PROTECTED_HARD_CUT_PAGES` / `PROTECTED_HARD_CUT_PRE
 
 Source of truth:
 
-- Next App Router pages under `apps/app/app/**/page.tsx`
+- Next App Router pages under `apps/web/app/**/page.tsx`
 - Route constants in `packages/contracts/src/constants/routes.constant.ts`
 - Executable protected-route classification in
-  `apps/app/src/lib/workspace-shell/workspace-shell-registry.ts`
+  `apps/web/src/lib/workspace-shell/workspace-shell-registry.ts`
 - Protected/public page drift guard and public classification registry in
   `scripts/architecture/check-product-route-inventory.ts`
-- Shell surface resolver in `apps/app/packages/components/useAppProtectedLayout.ts`
-- Sidebar resolver in `apps/app/packages/components/AppProtectedLayoutSidebar.tsx`
-- App rail in `packages/ui/src/components/shell/app-rail/AppRail.tsx`, hosted by
-  `apps/app/src/components/shell/AppProtectedRail.tsx` (#5304)
+- Shell surface resolver in `apps/web/packages/components/useAppProtectedLayout.ts`
+- Sidebar resolver in `apps/web/packages/components/AppProtectedLayoutSidebar.tsx`
+- App rail in `apps/web/src/components/shell/app-rail/AppRail.tsx`, hosted by
+  `apps/web/src/components/shell/AppProtectedRail.tsx` (#5304)
 
 ## App Rail Modules
 
@@ -55,15 +55,15 @@ navigation or contextual actions, not app-switcher modules.
 ## Route families (regenerate, don't hand-copy)
 
 Public/auth, onboarding, personal, organization-scope, brand-scope, and admin route lists all
-come straight out of `apps/app/app/**/page.tsx` plus `routes.constant.ts` — run
+come straight out of `apps/web/app/**/page.tsx` plus `routes.constant.ts` — run
 `bun run check:route-inventory` for the current tree rather than trusting a hand-maintained copy
 here. A few facts aren't visible from the route list alone and are worth keeping:
 
 - `/:orgSlug/~/automate` is a real static page (cross-brand Automate overview, the destination for
   members with no brand selected); deeper `/:orgSlug/~/automate/*` paths redirect back to it
   because every other automation surface is brand-scoped.
-- `/workflows*` is gone everywhere in `apps/app` — no page, no constant, no compatibility redirect.
-  Automation lives under `/:orgSlug/:brandSlug/automate/workflows*`. In `apps/app/src/lib/api/*`,
+- `/workflows*` is gone everywhere in `apps/web` — no page, no constant, no compatibility redirect.
+  Automation lives under `/:orgSlug/:brandSlug/automate/workflows*`. In `apps/web/src/lib/api/*`,
   `/workflows` still means the **backend API** endpoint; that is unrelated and unchanged.
 - `/:orgSlug/:brandSlug/library/assets` is the canonical Library landing — one unified asset
   browser. The other Library type routes (videos, images, gifs, avatars, voices, music, captions)

@@ -1,0 +1,297 @@
+import {
+  ContextSidebarOutlet,
+  ContextSidebarProvider,
+} from '@contexts/ui/context-sidebar-context';
+import { MemberRole } from '@genfeedai/contracts';
+import { fireEvent, render, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import BrandsList from './brands-list';
+import '@testing-library/jest-dom/vitest';
+
+import { Brand } from '@models/organization/brand.model';
+
+// Built through the real model so the row reads the same `logo` and
+// `credentials` relations the list API returns, not hand-set getters.
+const mockBrands = [
+  new Brand({
+    createdAt: '2024-01-01',
+    credentials: [
+      { id: 'c1', platform: 'instagram' },
+      { id: 'c2', platform: 'tiktok' },
+      { id: 'c3', platform: 'youtube' },
+    ],
+    id: '1',
+    label: 'Test Brand',
+    logo: { cdnUrl: 'https://cdn.example.com/logos/asset-1', id: 'asset-1' },
+    slug: 'testbrand',
+  } as never),
+  new Brand({
+    createdAt: '2024-01-02',
+    credentials: [],
+    id: '2',
+    label: 'Nologo',
+    slug: 'nologo',
+  } as never),
+];
+
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: vi.fn(() => ({
+    organizationId: 'org-123',
+    refreshBrands: vi.fn().mockResolvedValue(undefined),
+    settings: { subscriptionTier: 'scale' },
+  })),
+}));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../tests/next-intl.stub'
+  );
+  return {
+    useTranslations: (namespace: string) => translateFromCatalog(namespace),
+  };
+});
+
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: vi.fn(() => vi.fn()),
+}));
+
+const accessState = vi.hoisted(() => ({ isSuperAdmin: false }));
+const userRole = vi.hoisted(() => ({
+  value: 'member' as string | null,
+}));
+
+vi.mock(
+  '@genfeedai/contexts/providers/access-state/access-state.provider',
+  () => ({
+    useAccessState: vi.fn(() => accessState),
+  }),
+);
+
+vi.mock('@/hooks/auth/use-user-role/use-user-role', () => ({
+  useUserRole: vi.fn(() => userRole.value),
+}));
+
+vi.mock('./brand-move-dialog', () => ({
+  default: vi.fn(() => <div data-testid="brand-move-dialog" />),
+}));
+
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: vi.fn((options: { queryKey: string[] }) =>
+    options.queryKey[0] === 'member-organizations'
+      ? {
+          data: [
+            { id: 'org-123', label: 'Current' },
+            { id: 'org-456', label: 'Other' },
+          ],
+        }
+      : {
+          data: mockBrands,
+          isLoading: false,
+          refetch: vi.fn(),
+        },
+  ),
+  useQueryClient: vi.fn(() => ({
+    setQueryData: vi.fn(),
+  })),
+}));
+
+const brandCreate = vi.hoisted(() => ({ openBrandCreateModal: vi.fn() }));
+
+vi.mock('@app-i18n/AppGlobalModalIntlBoundary', () => ({
+  AppAssetCatalogBoundary: ({ children }: { children: ReactNode }) => children,
+}));
+
+vi.mock('@/features/brands/sidebar-panel/BrandSidebarPanel', () => ({
+  default: ({ brand }: { brand: { label: string } }) => (
+    <div data-testid="brand-sidebar-panel">{brand.label}</div>
+  ),
+}));
+
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
+  () => ({
+    useBrandCreateModal: vi.fn(() => brandCreate),
+    useConfirmModal: vi.fn(() => ({
+      openConfirm: vi.fn(),
+    })),
+  }),
+);
+
+const pushMock = vi.fn();
+
+vi.mock('next/navigation', () => ({
+  usePathname: vi.fn(() => '/brands'),
+  useRouter: vi.fn(() => ({
+    push: pushMock,
+  })),
+  useSearchParams: vi.fn(() => ({
+    get: vi.fn(() => null),
+    toString: vi.fn(() => ''),
+  })),
+}));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: vi.fn(() => ({
+    orgSlug: 'default',
+  })),
+}));
+
+vi.mock('@genfeedai/contracts/constants', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@genfeedai/contracts/constants')>();
+  return {
+    ...actual,
+    createBrandAppRoute: vi.fn(
+      (orgSlug: string, brandSlug: string, path = '') =>
+        `/${orgSlug}/${brandSlug}${path}`,
+    ),
+  };
+});
+
+describe('BrandsList', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    accessState.isSuperAdmin = false;
+    userRole.value = 'member';
+  });
+
+  it('should render without crashing', () => {
+    const { container } = render(<BrandsList />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('uses full-pane layout so the list chrome reaches the app borders', () => {
+    const { container } = render(<BrandsList />);
+    const rootElement = container.firstChild as HTMLElement;
+
+    expect(rootElement).toHaveClass('mx-0');
+    expect(rootElement).toHaveClass('max-w-none');
+    expect(rootElement).not.toHaveClass('px-5');
+    expect(rootElement).not.toHaveClass('max-w-[1280px]');
+  });
+
+  it('should display the page title', () => {
+    render(<BrandsList />);
+    expect(screen.getByText('Brands')).toBeInTheDocument();
+  });
+
+  it('should render add brand button', () => {
+    render(<BrandsList />);
+    expect(screen.getByText('Add Brand')).toBeInTheDocument();
+  });
+
+  it('should display brand data in table', () => {
+    render(<BrandsList />);
+    expect(screen.getByText('Test Brand')).toBeInTheDocument();
+    expect(screen.getByText('@testbrand')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: '3 connected: Instagram, TikTok, YouTube',
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the brand logo, or the brand initial when none is uploaded', () => {
+    render(<BrandsList />);
+
+    expect(screen.getByAltText('Test Brand')).toHaveAttribute(
+      'src',
+      expect.stringContaining('cdn.example.com'),
+    );
+    expect(screen.getByText('N')).toBeInTheDocument();
+    expect(screen.getByText('None')).toBeInTheDocument();
+  });
+
+  it('requests the organization by the query param the API accepts', async () => {
+    const { useQuery } = await import('@tanstack/react-query');
+    const { useAuthedService } = await import(
+      '@hooks/auth/use-authed-service/use-authed-service'
+    );
+    const findAll = vi.fn().mockResolvedValue([]);
+    vi.mocked(useAuthedService).mockReturnValue((async () => ({
+      findAll,
+    })) as never);
+    render(<BrandsList />);
+
+    const [options] = vi.mocked(useQuery).mock.calls[0] as unknown as [
+      { queryFn: () => Promise<unknown> },
+    ];
+    await options.queryFn();
+
+    // `organization` is not a declared query field and is stripped by the API.
+    expect(findAll).toHaveBeenCalledWith({
+      limit: 20,
+      organizationId: 'org-123',
+      page: 1,
+    });
+  });
+
+  it('links the brand name to its settings page', () => {
+    render(<BrandsList />);
+
+    // A real anchor on the name: cmd-click opens it in a new tab.
+    const link = screen.getByRole('link', { name: 'Open Test Brand settings' });
+    expect(link).toHaveAttribute('href', '/default/testbrand/settings');
+    expect(link).toHaveTextContent('Test Brand');
+  });
+
+  it('opens the add brand dialog from the header button', () => {
+    brandCreate.openBrandCreateModal.mockClear();
+    render(<BrandsList />);
+
+    fireEvent.click(screen.getByText('Add Brand'));
+
+    expect(brandCreate.openBrandCreateModal).toHaveBeenCalledWith(
+      expect.any(Function),
+    );
+  });
+
+  it('opens the brand overview in the context sidebar when the rest of the row is clicked', () => {
+    render(
+      <ContextSidebarProvider>
+        <ContextSidebarOutlet />
+        <BrandsList />
+      </ContextSidebarProvider>,
+    );
+
+    const row = screen
+      .getByRole('link', { name: 'Open Test Brand settings' })
+      .closest('tr');
+    expect(row).not.toBeNull();
+    fireEvent.click(row as HTMLTableRowElement);
+
+    expect(screen.getByTestId('brand-sidebar-panel')).toHaveTextContent(
+      'Test Brand',
+    );
+  });
+
+  it('offers no selection or move action to members who cannot move brands', async () => {
+    render(<BrandsList />);
+
+    // Let the lazily loaded checkbox appear if it was going to.
+    await screen.findAllByRole('button', { name: 'Open settings' });
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Move to organization' }),
+    ).not.toBeInTheDocument();
+  });
+
+  // The table loads its checkbox lazily, so wait for it.
+  it('lets an owner with another organization select brands to move', async () => {
+    userRole.value = MemberRole.OWNER;
+    render(<BrandsList />);
+
+    expect((await screen.findAllByRole('checkbox')).length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByRole('button', { name: 'Move to organization' }),
+    ).toHaveLength(mockBrands.length);
+  });
+
+  it('lets a superadmin move brands without an elevated role', async () => {
+    accessState.isSuperAdmin = true;
+    render(<BrandsList />);
+
+    expect((await screen.findAllByRole('checkbox')).length).toBeGreaterThan(0);
+  });
+});

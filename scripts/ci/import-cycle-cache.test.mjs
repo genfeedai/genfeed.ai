@@ -95,7 +95,7 @@ test('app builds invalidate on shared UI source while ignoring generated UI arti
     mkdirSync(path.dirname(path.join(fixture, file)), { recursive: true });
     writeFileSync(path.join(fixture, file), contents);
   };
-  const appConfig = readFileSync(path.join(root, 'apps/app/turbo.json'));
+  const appConfig = readFileSync(path.join(root, 'apps/web/turbo.json'));
   const dependencies = JSON.parse(appConfig)
     .tasks.build.dependsOn.filter((task) => task.startsWith('@genfeedai/'))
     .map((task) => task.split('#')[0]);
@@ -113,15 +113,15 @@ test('app builds invalidate on shared UI source while ignoring generated UI arti
   write('turbo.json', readFileSync(path.join(root, 'turbo.json')));
   write('.gitignore', '.turbo\nnode_modules\n**/dist\n**/*.tsbuildinfo\n');
   write(
-    'apps/app/package.json',
+    'apps/web/package.json',
     JSON.stringify({
-      name: '@genfeedai/app',
+      name: '@genfeedai/web',
       version: '1.0.0',
       dependencies: { '@genfeedai/ui': 'workspace:*' },
       scripts: { build: 'echo built' },
     }),
   );
-  write('apps/app/turbo.json', appConfig);
+  write('apps/web/turbo.json', appConfig);
   for (const name of [...dependencies, '@genfeedai/ui']) {
     write(
       `packages/${name.split('/')[1]}/package.json`,
@@ -141,7 +141,7 @@ test('app builds invalidate on shared UI source while ignoring generated UI arti
   const hash = () => {
     const output = execFileSync(
       turbo,
-      ['run', 'build', '--filter=@genfeedai/app', '--dry=json'],
+      ['run', 'build', '--filter=@genfeedai/web', '--dry=json'],
       {
         cwd: fixture,
         encoding: 'utf8',
@@ -149,7 +149,7 @@ test('app builds invalidate on shared UI source while ignoring generated UI arti
       },
     );
     return JSON.parse(output).tasks.find(
-      ({ taskId }) => taskId === '@genfeedai/app#build',
+      ({ taskId }) => taskId === '@genfeedai/web#build',
     ).hash;
   };
   const original = hash();

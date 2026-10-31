@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { Users } from 'lucide-react';
 import { NextIntlClientProvider } from 'next-intl';
 import { describe, expect, it, vi } from 'vitest';
-import pages from '../../../../../../apps/app/messages/en/pages';
+import pages from '../../../../../../apps/web/messages/en/pages';
 import MetricCard from './MetricCard';
 
 describe('MetricCard', () => {

@@ -10,15 +10,18 @@ function readUiSource(relativePath: string): string {
 }
 
 describe('value-swap iconography contract', () => {
-  it.each(['components/menus/switchers/MenuBrandSwitcher.tsx'])(
-    'uses ChevronsUpDown on %s',
-    (relativePath) => {
-      const source = readUiSource(relativePath);
+  it('uses ChevronsUpDown on the brand switcher', () => {
+    const source = readFileSync(
+      join(
+        REPO_ROOT,
+        'apps/web/src/components/menus/switchers/MenuBrandSwitcher.tsx',
+      ),
+      'utf8',
+    );
 
-      expect(source).toContain('ChevronsUpDown');
-      expect(source).not.toContain('ChevronDown');
-    },
-  );
+    expect(source).toContain('ChevronsUpDown');
+    expect(source).not.toContain('ChevronDown');
+  });
 
   it('uses the value-swap glyph on Select while keeping directional scroll glyphs', () => {
     const source = readUiSource('primitives/select.tsx');
@@ -43,7 +46,7 @@ describe('value-swap iconography contract', () => {
     const source = readFileSync(
       join(
         REPO_ROOT,
-        'apps/app/src/features/workflows/components/dropdowns/multiselect/DropdownMultiSelect.tsx',
+        'apps/web/src/features/workflows/components/dropdowns/multiselect/DropdownMultiSelect.tsx',
       ),
       'utf8',
     );

@@ -71,7 +71,7 @@ test('real Git changes distinguish image inputs from frontend and documentation'
     'webpack.base.config.js',
     'tsconfig.json',
     '.dockerignore',
-    'apps/app/example.tsx',
+    'apps/web/example.tsx',
     'docs/example.md',
   ]) {
     mkdirSync(path.dirname(path.join(cwd, file)), { recursive: true });
@@ -92,7 +92,7 @@ test('real Git changes distinguish image inputs from frontend and documentation'
     const previous = git('rev-parse', 'HEAD^');
     assert.equal(
       serverImageChanged({ base: previous, head, cwd }),
-      !file.startsWith('apps/app/') && !file.startsWith('docs/'),
+      !file.startsWith('apps/web/') && !file.startsWith('docs/'),
       file,
     );
   }

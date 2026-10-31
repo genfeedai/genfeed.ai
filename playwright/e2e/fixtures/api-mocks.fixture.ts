@@ -5706,7 +5706,7 @@ export async function mockRateLimiting(
  * The Desk's default `/trends/content` mock (api-interceptor's
  * `handleTrendsRoute`) already supplies one item whose Desk `source` is
  * `'trends'` ("Workflow demo clip"); this adds one item whose Desk `source`
- * is `'following'` (see `apps/app/src/features/trends/desk/desk-items.ts`'s
+ * is `'following'` (see `apps/web/src/features/trends/desk/desk-items.ts`'s
  * `toDeskItemFromSourcePost`), so discovery specs can prove the Desk's
  * source-tab filter actually changes which rows render instead of only
  * checking the URL.

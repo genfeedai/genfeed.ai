@@ -4,7 +4,7 @@ import path from 'node:path';
 /**
  * Cache cleanup for a Playwright-owned dev server
  *
- * Turbopack's persistent dev cache (`apps/app/.next/dev/cache`) is written on
+ * Turbopack's persistent dev cache (`apps/web/.next/dev/cache`) is written on
  * every dev-server route compile and is never pruned by Next itself. Across
  * repeated E2E runs it stockpiles unbounded — observed at ~15 GB on the runner,
  * which exhausted the disk mid-run and crashed the dev server with

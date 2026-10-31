@@ -34,7 +34,7 @@ Approach 1 is selected.
 
 Local mode reuses the already packaged Electron-main workspace, files, drafts,
 generation, terminal, sync, Prisma, and PGlite services through the typed preload
-bridge. The canonical `apps/app` frontend owns the local route. It does not ship
+bridge. The canonical `apps/web` frontend owns the local route. It does not ship
 a second renderer and it does not bundle or spawn a second NestJS/Redis stack.
 
 > **Update 2026-09-25:** the `node-pty` terminal service is no longer local-only;

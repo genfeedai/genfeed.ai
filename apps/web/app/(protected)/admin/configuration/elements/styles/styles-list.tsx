@@ -1,0 +1,293 @@
+import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
+import { ModalEnum, PageScope } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import type {
+  IElementStyle,
+  IQueryParams,
+} from '@genfeedai/contracts/interfaces';
+import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/elements-content.interface';
+import { openModal } from '@helpers/ui/modal/modal.helper';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type { ElementStyle } from '@models/elements/style.model';
+import type { TableColumn } from '@props/ui/display/table.props';
+import { logger } from '@services/core/logger.service';
+import { NotificationsService } from '@services/core/notifications.service';
+import { StylesService } from '@services/elements/styles.service';
+import Badge from '@ui/display/badge/Badge';
+import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
+import { useElementRowSidebar } from '@ui/display/element-scope-badge/element-row-sidebar';
+import AppTable from '@ui/display/table/Table';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Pencil, Trash2 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
+import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
+import { LazyModalStyle } from '@/components/lazy/modal/LazyModal';
+import type {
+  StylesListAction,
+  StylesListState,
+} from '@/features/admin/props/styles.props';
+
+function stylesListReducer(
+  state: StylesListState,
+  action: StylesListAction,
+): StylesListState {
+  switch (action.type) {
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload };
+    case 'SET_STYLES':
+      return { ...state, styles: action.payload, isLoading: false };
+    case 'SET_SELECTED_STYLE':
+      return { ...state, selectedStyle: action.payload };
+    default:
+      return state;
+  }
+}
+
+function StylesListContent({
+  filters,
+  scope = PageScope.BRAND,
+  onLoadingChange,
+  onRefreshingChange,
+  onRefresh,
+}: IElementContentProps) {
+  const notificationsService = NotificationsService.getInstance();
+  const fieldsT = useTranslations('ui.rowSidebar.fields');
+  const { openConfirm } = useConfirmModal();
+
+  const getStylesService = useAuthedService(
+    useCallback((token: string) => StylesService.getInstance(token), []),
+  );
+
+  const searchParams = useSearchParams();
+
+  const [state, dispatch] = useReducer(stylesListReducer, {
+    styles: [],
+    isLoading: true,
+    selectedStyle: null,
+  });
+
+  const { styles, isLoading, selectedStyle } = state;
+  const { brand: adminBrand, organization: adminOrg } =
+    useAdminOrgBrandParams();
+
+  // Use refs for callback props to prevent unnecessary re-renders
+  const onLoadingChangeRef = useRef(onLoadingChange);
+  const onRefreshingChangeRef = useRef(onRefreshingChange);
+
+  useEffect(() => {
+    onLoadingChangeRef.current = onLoadingChange;
+    onRefreshingChangeRef.current = onRefreshingChange;
+  });
+
+  const scopeTranslate = useTranslations('ui.elementPlatformFields');
+  const columns: TableColumn<ElementStyle>[] = [
+    {
+      header: 'Label',
+      key: 'label',
+      subtext: (style: ElementStyle) => style.description,
+    },
+    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
+    {
+      header: scopeTranslate('scopeHeader'),
+      key: 'isPlatformDefault',
+      render: (element: ElementStyle) => (
+        <ElementScopeBadge
+          isActive={element.isActive}
+          isPlatformDefault={element.isPlatformDefault}
+        />
+      ),
+    },
+    {
+      className: 'min-w-32 max-w-xs',
+      header: 'Model',
+      key: 'models',
+      render: (style: IElementStyle) => (
+        <div className="flex flex-wrap gap-2">
+          {style.models?.map((model) => (
+            <Badge
+              key={model}
+              className={`border border-border bg-transparent ${model ? 'text-primary' : 'text-warning'}`}
+            >
+              {model}
+            </Badge>
+          ))}
+        </div>
+      ),
+    },
+  ];
+
+  const actions =
+    scope === PageScope.SUPERADMIN
+      ? [
+          {
+            icon: <Pencil />,
+            onClick: (style: IElementStyle) =>
+              openStyleModal(ModalEnum.STYLE, style),
+            tooltip: 'Edit',
+          },
+          {
+            icon: <Trash2 />,
+            onClick: (style: IElementStyle) =>
+              openStyleModal(ModalEnum.CONFIRM, style),
+            tooltip: 'Delete',
+          },
+        ]
+      : [];
+
+  // Extract page from URL to use as dependency (triggers re-fetch when page changes)
+  const currentPage = Number(searchParams.get('page')) || 1;
+
+  const findAllStyles = useCallback(
+    async (isRefresh = false) => {
+      dispatch({ type: 'SET_LOADING', payload: !isRefresh });
+
+      // Notify parent of state changes
+      onRefreshingChangeRef.current?.(isRefresh);
+      onLoadingChangeRef.current?.(!isRefresh);
+
+      try {
+        const service = await getStylesService();
+
+        // Build API query
+        const query: IQueryParams = {
+          limit: ITEMS_PER_PAGE,
+          page: currentPage,
+          search: filters?.search || undefined,
+        };
+
+        if (scope === PageScope.SUPERADMIN) {
+          if (adminOrg) {
+            query.organization = adminOrg;
+          }
+          if (adminBrand) {
+            query.brand = adminBrand;
+          }
+        }
+
+        const data = await service.findAll(query);
+        dispatch({ type: 'SET_STYLES', payload: data });
+
+        logger.info('GET /styles success', data);
+      } catch (error) {
+        logger.error('GET /styles failed', error);
+        notificationsService.error('Failed to load styles');
+      } finally {
+        dispatch({ type: 'SET_LOADING', payload: false });
+        onLoadingChangeRef.current?.(false);
+        onRefreshingChangeRef.current?.(false);
+      }
+    },
+    [
+      currentPage,
+      filters?.search,
+      getStylesService,
+      notificationsService.error,
+      scope,
+      adminOrg,
+      adminBrand,
+    ],
+  );
+
+  // Fetch data on mount and when search params change
+  useEffect(() => {
+    findAllStyles();
+  }, [findAllStyles]);
+
+  // Register refresh callback
+  useEffect(() => {
+    if (onRefresh) {
+      return onRefresh(() => findAllStyles(true));
+    }
+  }, [onRefresh, findAllStyles]);
+
+  const openStyleModal = (modalId: ModalEnum, style?: IElementStyle) => {
+    dispatch({ type: 'SET_SELECTED_STYLE', payload: style ?? null });
+
+    if (modalId === ModalEnum.CONFIRM && style) {
+      return openConfirm({
+        confirmLabel: 'Delete',
+        isError: true,
+        label: 'Delete Style',
+        message: `Are you sure you want to delete "${style.label}"? This action cannot be undone.`,
+        onConfirm: () => handleDelete(style),
+      });
+    }
+
+    openModal(modalId);
+  };
+
+  const handleDelete = async (style: IElementStyle) => {
+    try {
+      const service = await getStylesService();
+      await service.delete(style.id);
+      notificationsService.success('Style deleted');
+      dispatch({ type: 'SET_SELECTED_STYLE', payload: null });
+      findAllStyles(true);
+    } catch (error) {
+      logger.error('Failed to delete style', error);
+      notificationsService.error('Failed to delete style');
+      dispatch({ type: 'SET_SELECTED_STYLE', payload: null });
+    }
+  };
+
+  const rowSidebar = useElementRowSidebar<ElementStyle>({
+    getExtraFacts: (style) => [
+      {
+        id: 'models',
+        label: fieldsT('models'),
+        value: style.models?.join(', '),
+      },
+    ],
+    onEdit:
+      scope === PageScope.SUPERADMIN
+        ? (element) => openStyleModal(ModalEnum.STYLE, element)
+        : undefined,
+  });
+
+  return (
+    <>
+      <AppTable<ElementStyle>
+        items={styles}
+        columns={columns}
+        actions={actions}
+        isLoading={isLoading}
+        getRowKey={(item) => item.id}
+        rowSidebar={rowSidebar}
+        emptyLabel="No styles found"
+      />
+
+      {scope === PageScope.SUPERADMIN && (
+        <>
+          <LazyModalStyle
+            item={selectedStyle}
+            onClose={() =>
+              dispatch({ type: 'SET_SELECTED_STYLE', payload: null })
+            }
+            onConfirm={() => {
+              dispatch({ type: 'SET_SELECTED_STYLE', payload: null });
+              findAllStyles(true);
+            }}
+          />
+
+          {/* LazyModalConfirm migrated to GlobalModalsProvider */}
+        </>
+      )}
+
+      <div className="mt-4">
+        <AutoPagination showTotal totalLabel="styles" />
+      </div>
+    </>
+  );
+}
+
+export default function StylesList(
+  props: Parameters<typeof StylesListContent>[0],
+) {
+  return (
+    <Suspense fallback={null}>
+      <StylesListContent {...props} />
+    </Suspense>
+  );
+}

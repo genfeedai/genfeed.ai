@@ -1,0 +1,4483 @@
+import { selectView } from '@app-tests/view-menu.helpers';
+import {
+  ContextSidebarOutlet,
+  ContextSidebarProvider,
+  useContextSidebar,
+} from '@contexts/ui/context-sidebar-context';
+import {
+  IngredientCategory,
+  IngredientStatus,
+  ModelCategory,
+  RouterPriority,
+  UploadStatus,
+} from '@genfeedai/contracts';
+import {
+  DEFAULT_IMAGE_EDIT_MODEL_KEY,
+  IMAGE_EDIT_CONTRACT_VERSION,
+  LIBRARY_ASSETS_REFRESH_EVENT,
+  MODEL_KEYS,
+} from '@genfeedai/contracts/constants';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
+import type { StudioSubmitOptions } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
+import { Ingredient } from '@genfeedai/models/content/ingredient.model';
+import { Metadata } from '@genfeedai/models/content/metadata.model';
+import type { ModalConfirmProps } from '@genfeedai/props/modals/modal.props';
+import type { UseStudioReferenceMentionsInput } from '@genfeedai/props/studio/studio-reference-mention.props';
+import type {
+  AttachmentItem,
+  UseAttachmentsOptions,
+} from '@genfeedai/props/ui/attachments.props';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import {
+  getGenerationSetup,
+  useGenerationSetupStore,
+} from '@ui/dropdowns/generation-setup/generation-setup.store';
+import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
+import {
+  type ReactNode,
+  StrictMode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { StudioPlaygroundJob } from '@/features/studio/playground/types';
+import { getDefaultGenerationSetupValues } from '@/features/studio/playground/utils/studio-generation-setup-bridge';
+import {
+  createStudioPlaygroundDraftOutbox,
+  type StudioPlaygroundDraftOutbox,
+} from '@/features/studio/playground/utils/studio-playground-draft-outbox';
+import {
+  readStudioPlaygroundSessionJobs,
+  writeStudioPlaygroundSessionJobs,
+} from '@/features/studio/playground/utils/studio-playground-session';
+import { getDefaultStudioPlaygroundSettings } from '@/features/studio/playground/utils/studio-playground-settings';
+import type {
+  PrepareCrunGenerationIntentProps,
+  StudioPlaygroundComposerProps,
+  StudioPlaygroundFocusedPreviewProps,
+} from '@/features/studio/props/studio-playground.props';
+import StudioPlaygroundWorkspace from './StudioPlaygroundWorkspace';
+
+function ContextSidebarCloseControl() {
+  const contextSidebar = useContextSidebar();
+
+  return (
+    <>
+      <button type="button" onClick={contextSidebar?.close}>
+        Close sidebar
+      </button>
+      <button
+        type="button"
+        aria-expanded={contextSidebar?.isOpen}
+        onClick={contextSidebar?.toggle}
+      >
+        Collapse sidebar
+      </button>
+    </>
+  );
+}
+
+/** The shell's side of the context sidebar: provider, outlet and close. */
+function ContextSidebarHost({ children }: { readonly children: ReactNode }) {
+  return (
+    <ContextSidebarProvider>
+      <ContextSidebarCloseControl />
+      <ContextSidebarOutlet testId="context-sidebar-outlet" />
+      {children}
+    </ContextSidebarProvider>
+  );
+}
+
+const mocks = vi.hoisted(() => ({
+  agentProposals: vi.fn(),
+  advancedMode: {
+    value: { isAdvancedMode: true, isLoaded: true, setAdvancedMode: vi.fn() },
+  },
+  failedRecoveryHook: vi.fn(),
+  retryFailed: vi.fn(),
+  reviewFailed: vi.fn().mockResolvedValue(undefined),
+  createFromUploadAssetId: vi.fn(),
+  assetActions: {
+    onClickIngredient: vi.fn(),
+    onConvertToVideo: vi.fn(),
+    onCopyPrompt: vi.fn(),
+    onCreateVariation: vi.fn(),
+    onDeleteIngredient: vi.fn(),
+    onMarkArchived: vi.fn(),
+    onMarkRejected: vi.fn(),
+    onMarkValidated: vi.fn(),
+    onPublishIngredient: vi.fn(),
+    onRefresh: vi.fn(),
+    onRemoveGeneration: vi.fn(),
+    onSeeDetails: vi.fn(),
+    onToggleFavorite: vi.fn(),
+    onUseAsVideoReference: vi.fn(),
+  },
+  assetActionsHook: vi.fn(),
+  transformHook: vi.fn(),
+  confirmBridge: vi.fn(),
+  transformActions: {
+    getAvailability: vi.fn(() => ({ isAvailable: true })),
+    isUpscaling: false,
+    isExtending: false,
+    onUpscale: vi.fn(),
+    onExtend: vi.fn(),
+  },
+  attachments: vi.fn(),
+  clearAttachments: vi.fn(),
+  getDraft: vi.fn(),
+  outbox: { current: null as StudioPlaygroundDraftOutbox | null },
+  restoreSettings: vi.fn(),
+  saveDraft: vi.fn(),
+  applyTypeSettings: vi.fn(),
+  brandId: { value: 'brand-1' },
+  selectedBrand: {
+    value: undefined as { references?: readonly unknown[] } | undefined,
+  },
+  organizationId: { value: 'org-1' },
+  authIdentity: { value: 'identity-1' },
+  getToken: vi.fn().mockResolvedValue('test-token'),
+  composer: vi.fn(),
+  openConfirm: vi.fn<(config: ModalConfirmProps) => void>(),
+  crunQuote: vi.fn(),
+  findByIds: vi
+    .fn<(ids: string[]) => Promise<unknown[]>>()
+    .mockResolvedValue([]),
+  findOne: vi.fn().mockResolvedValue(null),
+  findAllPage: vi.fn().mockResolvedValue({ items: [] }),
+  gallery: vi.fn(),
+  // #4716 review — the Agent -> Studio handoff pipeline (apply, model
+  // validation/fallback, param validation, reference attachment, brand
+  // guard) has no other workspace-level coverage; only pure utils and the
+  // mocked hook were tested, which is exactly why the wiring gaps survived.
+  handoff: {
+    value: { isLoading: false, payload: null } as {
+      isLoading: boolean;
+      payload: Record<string, unknown> | null;
+    },
+  },
+  models: {
+    value: {
+      isLoadingModels: false,
+      models: [] as {
+        inputControls?: unknown;
+        isDefault?: boolean;
+        key: string;
+        label?: string;
+        provider?: string;
+      }[],
+    } as {
+      isLoadingModels: boolean;
+      isModelCatalogReady?: boolean;
+      models: {
+        inputControls?: unknown;
+        isDefault?: boolean;
+        key: string;
+        label?: string;
+        provider?: string;
+      }[];
+    },
+  },
+  notify: vi.fn(),
+  results: vi.fn(),
+  rehydratePending: vi.fn(),
+  removeJob: vi.fn(),
+  searchParams: { value: '' },
+  settings: vi.fn(),
+  promptCommandExtensions: [{ name: 'promptCommands' }],
+  resolvePromptCommands: vi.fn<
+    PrepareCrunGenerationIntentProps['resolvePromptCommands']
+  >((text) => ({
+    content: text.replace('/cinema ', ''),
+    skillSlugs: [],
+  })),
+  submit: vi.fn(),
+  type: { value: 'image' },
+  preserveSettings: { value: false },
+  isHydrated: { value: true },
+  setType: vi.fn(),
+  updateSettings: vi.fn(),
+  modelsHook: vi.fn(),
+}));
+
+const characterMentionMocks = vi.hoisted(() => ({
+  extraExtensions: [{ name: 'characterMention' }],
+  resolveSubmit: vi.fn(
+    ({
+      existingReferenceIds,
+      text,
+    }: {
+      existingReferenceIds: string[];
+      text: string;
+    }) => ({
+      notices: [],
+      referenceIds: [...existingReferenceIds, 'img-anna'],
+      text: text.replace('@anna', 'Anna'),
+    }),
+  ),
+}));
+
+vi.mock(
+  '@/hooks/data/ingredients/use-ingredients-list/use-failed-ingredient-recovery',
+  () => ({
+    useFailedIngredientRecovery: (props: unknown) => {
+      mocks.failedRecoveryHook(props);
+      return {
+        handleRetryFailedIngredients: mocks.retryFailed,
+        handleReviewFailedIngredient: mocks.reviewFailed,
+        isRecovering: false,
+        retriedIds: [],
+      };
+    },
+  }),
+);
+
+vi.mock('@hooks/ui/use-storyboard-entry/use-storyboard-entry', () => ({
+  useStoryboardEntry: () => ({
+    createFromUploadAssetId: mocks.createFromUploadAssetId,
+  }),
+}));
+
+vi.mock('@genfeedai/agent', () => ({
+  useAgentApiService: () => null,
+}));
+
+vi.mock('@genfeedai/agent/hooks/use-studio-character-mentions', () => ({
+  useStudioCharacterMentions: () => ({
+    extraExtensions: characterMentionMocks.extraExtensions,
+    isLoading: false,
+    mentions: [],
+    resolveSubmit: characterMentionMocks.resolveSubmit,
+  }),
+}));
+
+vi.mock(
+  '@/features/studio/playground/hooks/useStudioReferenceMentions',
+  () => ({
+    useStudioReferenceMentions: ({
+      characterExtensions,
+    }: UseStudioReferenceMentionsInput) => [
+      ...characterExtensions,
+      { name: 'referenceMention' },
+    ],
+  }),
+);
+
+vi.mock('@genfeedai/agent/hooks/use-content-mentions', () => ({
+  useContentMentions: () => ({ isLoading: false, mentions: [] }),
+}));
+
+vi.mock('@genfeedai/agent/hooks/use-microphone-input', () => ({
+  useMicrophoneInput: () => ({
+    isListening: false,
+    isSupported: true,
+    isTranscribing: false,
+    startListening: vi.fn(),
+    stopListening: vi.fn(),
+  }),
+}));
+
+vi.mock('@hooks/ui/use-attachments/use-attachments', () => ({
+  useAttachments: mocks.attachments,
+}));
+
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    brandId: mocks.brandId.value,
+    organizationId: mocks.organizationId.value,
+    selectedBrand: mocks.selectedBrand.value,
+  }),
+}));
+
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
+  () => ({
+    useConfirmModal: () => ({ openConfirm: mocks.openConfirm }),
+  }),
+);
+
+vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
+  useSidebarNavigation: () => ({ hasCanonicalBreadcrumb: true }),
+}));
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/default/default/playground',
+  useSearchParams: () => new URLSearchParams(mocks.searchParams.value),
+}));
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string, values?: Record<string, string>) =>
+    key === 'referenceMentionNotice'
+      ? `Attached but not mentioned: ${values?.tokens}. They will still be included.`
+      : key === 'title'
+        ? 'Generate'
+        : key === 'description'
+          ? 'One prompt bar for every asset type, enriched with your brand.'
+          : key,
+}));
+
+vi.mock(
+  '@/features/studio/playground/components/StudioPlaygroundAgentProposals',
+  () => ({
+    default: (props: {
+      brandId?: string;
+      onSelect: (selection: {
+        agentPrompt: string;
+        aspectRatio: string;
+        content: { content: unknown[]; type: string };
+        seedId: string;
+        type: string;
+      }) => void;
+      type: string;
+    }) => {
+      mocks.agentProposals(props);
+      return (
+        <button
+          type="button"
+          onClick={() =>
+            props.onSelect({
+              agentPrompt: 'Serum on wet stone.',
+              aspectRatio: '9:16',
+              content: { content: [], type: 'doc' },
+              seedId: 'proposal:0:1',
+              type: props.type,
+            })
+          }
+        >
+          Agent draft
+        </button>
+      );
+    },
+  }),
+);
+
+vi.mock(
+  '@/features/studio/playground/components/StudioPlaygroundComposer',
+  () => ({
+    default: (props: {
+      notice?: ReactNode;
+      onResetSettings: () => void;
+      onSubmit: () => void;
+      prompt: string;
+    }) => {
+      mocks.composer(props);
+      return (
+        <div data-testid="studio-composer">
+          {props.notice}
+          <span>{props.prompt || 'Empty composer'}</span>
+          <button type="button" onClick={props.onSubmit}>
+            Generate
+          </button>
+          <button type="button" onClick={props.onResetSettings}>
+            Reset
+          </button>
+        </div>
+      );
+    },
+  }),
+);
+
+vi.mock(
+  '@/features/library/knowledge/components/KnowledgeReferenceSection',
+  () => ({
+    countKnowledgeSelection: (selection: {
+      sourceIds?: string[];
+      spaceIds?: string[];
+      purposes?: string[];
+    }) =>
+      (selection.sourceIds?.length ?? 0) +
+      (selection.spaceIds?.length ?? 0) +
+      (selection.purposes?.length ?? 0),
+    default: (props: {
+      brandId?: string;
+      onChange: (value: { sourceIds: string[] }) => void;
+    }) => (
+      <button
+        type="button"
+        onClick={() => props.onChange({ sourceIds: ['source-1'] })}
+      >
+        Pick Knowledge for {props.brandId}
+      </button>
+    ),
+  }),
+);
+
+vi.mock(
+  '@/features/studio/playground/components/StudioPlaygroundResults',
+  () => ({
+    default: (props: unknown) => {
+      mocks.results(props);
+      return <div data-testid="studio-results" />;
+    },
+  }),
+);
+
+vi.mock(
+  '@/features/studio/components/prompt-editor/use-prompt-command-extension',
+  () => ({
+    usePromptCommandExtension: () => ({
+      extraExtensions: mocks.promptCommandExtensions,
+      resolveSubmit: mocks.resolvePromptCommands,
+    }),
+  }),
+);
+
+vi.mock(
+  '@/features/studio/playground/hooks/useStudioPlaygroundTransformActions',
+  () => ({
+    useStudioPlaygroundTransformActions: (params: unknown) => {
+      mocks.transformHook(params);
+      return {
+        transformActions: mocks.transformActions,
+        confirmation: { upscaleConfirmData: null, extendConfirmData: null },
+      };
+    },
+  }),
+);
+vi.mock('@ui/masonry/shared/MasonryConfirmBridge', () => ({
+  default: (props: unknown) => {
+    mocks.confirmBridge(props);
+    return <div data-testid="workspace-transform-confirmation" />;
+  },
+}));
+
+vi.mock(
+  '@/features/studio/playground/hooks/useStudioPlaygroundAssetActions',
+  () => ({
+    useStudioPlaygroundAssetActions: (params: unknown) => {
+      mocks.assetActionsHook(params);
+      return mocks.assetActions;
+    },
+  }),
+);
+
+vi.mock(
+  '@/features/studio/playground/hooks/useStudioPlaygroundGallery',
+  () => ({
+    useStudioPlaygroundGallery: mocks.gallery,
+  }),
+);
+
+vi.mock('@/features/studio/playground/hooks/useCrunGenerationQuote', () => ({
+  useCrunGenerationQuote: (...args: unknown[]) => mocks.crunQuote(...args),
+}));
+
+vi.mock(
+  '@/features/studio/hooks/use-advanced-mode-preference/use-advanced-mode-preference',
+  () => ({
+    useAdvancedModePreference: () => mocks.advancedMode.value,
+  }),
+);
+
+vi.mock('@/features/studio/playground/hooks/useStudioPlaygroundModels', () => ({
+  useStudioPlaygroundModels: (...args: unknown[]) => {
+    mocks.modelsHook(...args);
+    return mocks.models.value;
+  },
+}));
+
+vi.mock(
+  '@/features/studio/playground/hooks/useStudioPlaygroundHandoff',
+  () => ({
+    useStudioPlaygroundHandoff: () => mocks.handoff.value,
+  }),
+);
+
+// Bypasses the real auth-identity chain so the handoff reference-resolution
+// effect's `getIngredientsService()` resolves deterministically in this
+// unit test environment (mirrors the same mock in useStudioPlaygroundHandoff.test.ts).
+// Bypasses the real auth-identity chain so the handoff reference-resolution
+// effect's `getIngredientsService()` resolves deterministically in this unit
+// test environment. Mirrors the real hook's stability contract (a
+// `useCallback`-stable resolver independent of the caller's inline factory
+// identity) — an unstable mock resolver re-fires the consuming effect on
+// every render and cancels itself before the async call ever resolves.
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: (factory: (token: string) => unknown) => {
+    const factoryRef = useRef(factory);
+    factoryRef.current = factory;
+    const identity = mocks.authIdentity.value;
+    return useCallback(
+      async () => factoryRef.current(await mocks.getToken(identity)),
+      [identity],
+    );
+  },
+}));
+
+vi.mock('@services/content/ingredients.service', () => ({
+  IngredientsService: {
+    getInstance: () => ({
+      findByIds: mocks.findByIds,
+      findOne: mocks.findOne,
+      findAllPage: mocks.findAllPage,
+    }),
+  },
+}));
+
+// The draft outbox is module state; every test gets its own.
+vi.mock(
+  '@/features/studio/playground/utils/studio-playground-draft-outbox',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@/features/studio/playground/utils/studio-playground-draft-outbox')
+      >();
+    return {
+      ...actual,
+      get studioPlaygroundDraftOutbox() {
+        return mocks.outbox.current;
+      },
+    };
+  },
+);
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({
+    userId: 'user-1',
+    sessionId: mocks.authIdentity.value,
+  }),
+}));
+
+vi.mock('@services/content/studio-generate-drafts.service', () => ({
+  StudioGenerateDraftsService: {
+    getInstance: () => ({
+      getCurrent: mocks.getDraft,
+      saveCurrent: mocks.saveDraft,
+    }),
+  },
+}));
+
+vi.mock('@services/core/notifications.service', () => ({
+  NotificationsService: {
+    getInstance: () => ({
+      error: vi.fn(),
+      info: mocks.notify,
+      success: vi.fn(),
+      warning: mocks.notify,
+    }),
+  },
+}));
+
+vi.mock(
+  '@/features/studio/playground/hooks/useStudioPlaygroundSettings',
+  () => ({
+    useStudioPlaygroundSettings: () => {
+      const legacy = mocks.settings();
+      return {
+        ...legacy,
+        applyTypeSettings: mocks.applyTypeSettings,
+        isHydrated: mocks.isHydrated.value,
+        restoreSettings: mocks.restoreSettings,
+        settings: {
+          ...legacy.settings,
+          aspectRatio: mocks.preserveSettings.value
+            ? legacy.settings.aspectRatio
+            : '9:16',
+          duration: mocks.preserveSettings.value
+            ? legacy.settings.duration
+            : 12,
+          outputs: 2,
+        },
+        settingsByType: legacy.settingsByType ?? { image: { outputs: 2 } },
+        setType: mocks.setType,
+        type: mocks.type.value,
+        updateSettings: mocks.updateSettings,
+      };
+    },
+  }),
+);
+
+vi.mock('@/features/studio/playground/hooks/useStudioGeneration', () => ({
+  useStudioGeneration: () => ({
+    jobs: [],
+    rehydratePending: mocks.rehydratePending,
+    removeJob: mocks.removeJob,
+    submit: mocks.submit,
+  }),
+}));
+
+vi.mock(
+  '@/features/studio/playground/components/StudioPlaygroundFocusedPreview',
+  () => ({
+    default: ({
+      children,
+      jobs,
+      onClose,
+      onSelect,
+    }: StudioPlaygroundFocusedPreviewProps) => (
+      <div data-testid="studio-focused-preview">
+        <button type="button" onClick={onClose}>
+          Back to gallery
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (jobs[1]) onSelect(jobs[1]);
+          }}
+        >
+          Next focused asset
+        </button>
+        {children}
+      </div>
+    ),
+  }),
+);
+
+vi.mock(
+  '@/features/studio/playground/components/StudioPlaygroundInspector',
+  () => ({
+    default: ({
+      job,
+      onRemix,
+      onVary,
+      onOpenPreview,
+      onPreviewRecovered,
+    }: {
+      job: { id: string; prompt: string };
+      onRemix: (job: { id: string }) => void;
+      onVary: (job: { id: string }) => void;
+      onOpenPreview?: () => void;
+      onPreviewRecovered?: (job: { id: string }, url?: string) => void;
+    }) => (
+      <div data-testid="studio-inspector">
+        <span>{job.prompt}</span>
+        {onPreviewRecovered ? (
+          <button
+            type="button"
+            onClick={() =>
+              onPreviewRecovered(job, 'https://cdn.example/fresh.png')
+            }
+          >
+            Report recovered preview
+          </button>
+        ) : null}
+        {onOpenPreview ? (
+          <button
+            type="button"
+            data-testid="studio-open-focused-preview"
+            onClick={onOpenPreview}
+          >
+            Open preview
+          </button>
+        ) : null}
+        <button type="button" onClick={() => onVary(job)}>
+          Vary
+        </button>
+        <button type="button" onClick={() => onRemix(job)}>
+          Remix
+        </button>
+      </div>
+    ),
+  }),
+);
+
+function controlsFor(endpoint = 'kling/v2-5-turbo-pro'): CrunInputControls {
+  const kling = endpoint === 'kling/v2-5-turbo-pro';
+  return {
+    endpoint,
+    version: 'reviewed-video-v1',
+    mediaKind: 'video',
+    maxOutputs: 4,
+    isBatchSupported: false,
+    isAutoAspectReferenceRequired: false,
+    referenceRoles: kling ? { img_urls: 'image' } : {},
+    videoRules: {
+      referenceMode: kling ? 'start-end' : 'none',
+      omitAspectRatioWithReferences: kling,
+      availableDurations: kling ? [5, 10] : [8],
+    },
+    fields: {
+      prompt: {
+        type: 'string',
+        isRequired: true,
+        minLength: 1,
+        maxLength: kling ? 2500 : 5000,
+      },
+      duration: {
+        type: 'integer',
+        isRequired: false,
+        enum: kling ? [5, 10] : [4, 6, 8],
+        default: kling ? 5 : 8,
+      },
+      aspect_ratio: {
+        type: 'string',
+        isRequired: false,
+        enum: kling ? ['1:1', '16:9', '9:16'] : ['16:9', '9:16'],
+        default: '16:9',
+      },
+      ...(kling
+        ? {
+            negative_prompt: {
+              type: 'string' as const,
+              isRequired: false,
+              maxLength: 2000,
+            },
+            cfg_scale: {
+              type: 'number' as const,
+              isRequired: false,
+              minimum: 0,
+              maximum: 1,
+              default: 0.5,
+            },
+            img_urls: {
+              type: 'array' as const,
+              isRequired: false,
+              format: 'uri' as const,
+              minItems: 1,
+              maxItems: 2,
+            },
+          }
+        : {
+            resolution: {
+              type: 'string' as const,
+              isRequired: false,
+              enum: ['720p', '1080p', '4k'],
+              default: '720p',
+            },
+            translate_prompt: {
+              type: 'boolean' as const,
+              isRequired: false,
+              default: true,
+            },
+          }),
+    },
+  };
+}
+
+/** The saved draft has been read, so a continuation is no longer deferred. */
+async function renderLoaded(options?: Parameters<typeof render>[1]) {
+  const view = render(<StudioPlaygroundWorkspace />, options);
+  await waitFor(() => expect(mocks.getDraft).toHaveBeenCalled());
+  await act(async () => {});
+  return view;
+}
+
+describe('StudioPlaygroundWorkspace', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.crunQuote.mockReturnValue({
+      quote: null,
+      status: 'idle',
+      reasonCode: null,
+      getCurrentQuote: () => null,
+    });
+    mocks.resolvePromptCommands
+      .mockReset()
+      .mockImplementation((text: string) => ({
+        content: text.replace('/cinema ', ''),
+        skillSlugs: [],
+      }));
+    mocks.isHydrated.value = true;
+    mocks.brandId.value = 'brand-1';
+    mocks.selectedBrand.value = undefined;
+    mocks.organizationId.value = 'org-1';
+    mocks.authIdentity.value = 'identity-1';
+    mocks.getToken.mockResolvedValue('test-token');
+    mocks.searchParams.value = '';
+    mocks.type.value = 'image';
+    mocks.preserveSettings.value = false;
+    mocks.handoff.value = { isLoading: false, payload: null };
+    mocks.models.value = { isLoadingModels: false, models: [] };
+    mocks.advancedMode.value = {
+      isAdvancedMode: true,
+      isLoaded: true,
+      setAdvancedMode: vi.fn(),
+    };
+    mocks.findByIds.mockResolvedValue([]);
+    mocks.findOne.mockReset().mockResolvedValue(null);
+    mocks.findAllPage.mockReset().mockResolvedValue({ items: [] });
+    window.localStorage.clear();
+    mocks.outbox.current = createStudioPlaygroundDraftOutbox();
+    mocks.getDraft.mockResolvedValue(null);
+    mocks.saveDraft.mockResolvedValue({});
+    mocks.submit.mockResolvedValue(false);
+    mocks.attachments.mockReturnValue({
+      addFiles: vi.fn(),
+      attachments: [],
+      clearAll: mocks.clearAttachments,
+      dragHandlers: {},
+      dragState: { isActive: false },
+      getCompletedAttachments: () => [
+        {
+          ingredientId: 'ingredient-1',
+          kind: 'image',
+          url: 'https://cdn.example/reference.png',
+        },
+      ],
+      isUploading: false,
+      removeAttachment: vi.fn(),
+    });
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [],
+    });
+    mocks.settings.mockReturnValue({
+      resetSettings: vi.fn(),
+      settings: {},
+      setType: mocks.setType,
+      type: 'image',
+      updateSettings: vi.fn(),
+    });
+  });
+
+  it('uses one actor-scoped transform owner and one existing confirmation bridge for the workspace', async () => {
+    await renderLoaded();
+    expect(mocks.transformHook).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        scopeKey: expect.stringContaining('identity-1'),
+      }),
+    );
+    expect(mocks.assetActionsHook).toHaveBeenLastCalledWith(
+      expect.objectContaining({ transformActions: mocks.transformActions }),
+    );
+    expect(
+      screen.getAllByTestId('workspace-transform-confirmation'),
+    ).toHaveLength(1);
+    expect(mocks.confirmBridge).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        upscaleConfirmData: null,
+        extendConfirmData: null,
+      }),
+    );
+  });
+
+  it('offers Remix on completed video uploads while preserving their attachment and the composer', () => {
+    mocks.attachments.mockReturnValue({
+      addFiles: vi.fn(),
+      attachments: [
+        {
+          id: 'upload-1',
+          ingredientId: 'owned-upload',
+          kind: 'video',
+          name: 'My video',
+          status: 'completed',
+        },
+      ],
+      clearAll: mocks.clearAttachments,
+      dragHandlers: {},
+      dragState: { isActive: false },
+      getCompletedAttachments: () => [],
+      isUploading: false,
+      removeAttachment: vi.fn(),
+    });
+    render(<StudioPlaygroundWorkspace />);
+    const action = screen.getByRole('button', {
+      name: 'remixThisVideo: My video',
+    });
+    fireEvent.click(action);
+    expect(mocks.createFromUploadAssetId).toHaveBeenCalledWith('owned-upload');
+    expect(mocks.clearAttachments).not.toHaveBeenCalled();
+  });
+
+  it('announces load failure, hides false empty results and keeps the composer enabled', () => {
+    const refresh = vi.fn();
+    mocks.gallery.mockReturnValue({
+      galleryError: 'load',
+      isLoadingGallery: false,
+      refresh,
+      storedJobs: [],
+    });
+    const { rerender } = render(<StudioPlaygroundWorkspace />);
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'history.loadFailedTitle',
+    );
+    expect(screen.queryByTestId('studio-results')).not.toBeInTheDocument();
+    const retry = screen.getByRole('button', { name: 'history.retry' });
+    expect(retry).toHaveAttribute('aria-busy', 'false');
+    expect(retry).toHaveTextContent('history.retry');
+    expect(screen.getByText('history.retry')).toBeVisible();
+    retry.focus();
+    fireEvent.click(retry);
+    expect(refresh).toHaveBeenCalledTimes(1);
+    mocks.gallery.mockReturnValue({
+      galleryError: 'load',
+      isLoadingGallery: true,
+      refresh,
+      storedJobs: [],
+    });
+    rerender(<StudioPlaygroundWorkspace />);
+    expect(
+      screen.getByRole('button', { name: 'history.retry' }),
+    ).toBeDisabled();
+    expect(retry).toHaveAttribute('aria-busy', 'true');
+    expect(retry).toHaveTextContent('history.retry');
+    expect(screen.getByText('history.retry')).toBeVisible();
+    fireEvent.click(retry);
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('status')).toHaveTextContent('history.retrying');
+    expect(screen.getByRole('status')).toBeVisible();
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    mocks.gallery.mockReturnValue({
+      galleryError: null,
+      isLoadingGallery: false,
+      refresh,
+      storedJobs: [],
+    });
+    rerender(<StudioPlaygroundWorkspace />);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId('studio-playground-starter-ideas'),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('studio-results')).not.toBeInTheDocument();
+  });
+
+  it('applies a starter idea as a document seed and user-owned setup', () => {
+    useGenerationSetupStore.setState({
+      reasonsByScope: {},
+      setupByScope: {},
+    });
+    render(<StudioPlaygroundWorkspace />);
+
+    expect(
+      screen.getByTestId('studio-playground-starter-ideas'),
+    ).toBeInTheDocument();
+    const [productPhoto] = screen.getAllByRole('button', { name: 'apply' });
+    expect(productPhoto).toBeDefined();
+    if (!productPhoto) {
+      return;
+    }
+    fireEvent.click(productPhoto);
+
+    expect(mocks.setType).toHaveBeenCalledWith('image');
+    const composerProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+      documentSeed?: { content: { type: string }; id: string } | null;
+      prompt: string;
+    };
+    expect(composerProps.prompt).toBe('');
+    expect(composerProps.documentSeed?.content.type).toBe('doc');
+    expect(composerProps.documentSeed?.id.startsWith('productPhoto:')).toBe(
+      true,
+    );
+    const setup = getGenerationSetup(
+      'studio:image',
+      getDefaultGenerationSetupValues('image'),
+    );
+    expect(setup.values.promptTemplate).toBe('product-photo');
+    expect(setup.values.aspectRatio).toBe('1:1');
+    expect(setup.sources.promptTemplate).toBe('user');
+    expect(setup.sources.aspectRatio).toBe('user');
+    useGenerationSetupStore.setState({
+      reasonsByScope: {},
+      setupByScope: {},
+    });
+  });
+
+  it('opens an empty Playground on the agent drafts for the brand', () => {
+    useGenerationSetupStore.setState({
+      reasonsByScope: {},
+      setupByScope: {},
+    });
+    render(<StudioPlaygroundWorkspace />);
+
+    expect(mocks.agentProposals).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        brandId: mocks.brandId.value || undefined,
+        type: 'image',
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Agent draft' }));
+
+    const composerProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+      documentSeed?: { id: string } | null;
+    };
+    expect(composerProps.documentSeed?.id).toBe('proposal:0:1');
+    const setup = getGenerationSetup(
+      'studio:image',
+      getDefaultGenerationSetupValues('image'),
+    );
+    expect(setup.values.aspectRatio).toBe('9:16');
+    useGenerationSetupStore.setState({
+      reasonsByScope: {},
+      setupByScope: {},
+    });
+  });
+
+  it('attaches the brand product still and opens the library when the kit has none', () => {
+    mocks.selectedBrand.value = {
+      references: [
+        {
+          cdnUrl: 'https://cdn.example/face.png',
+          displayName: 'Anna',
+          id: 'face-1',
+          referenceCategory: 'FACE',
+        },
+        {
+          cdnUrl: 'https://cdn.example/bottle.png',
+          displayName: 'Bottle',
+          id: 'bottle-1',
+          referenceCategory: 'PRODUCT',
+        },
+      ],
+    };
+    const { rerender } = render(<StudioPlaygroundWorkspace />);
+    const productButtons = screen.getAllByRole('button', { name: 'apply' });
+    const productPhoto = productButtons[0];
+    const productAd = productButtons[1];
+    expect(productPhoto).toBeDefined();
+    expect(productAd).toBeDefined();
+    if (!productPhoto || !productAd) {
+      return;
+    }
+
+    fireEvent.click(productPhoto);
+    expect(mocks.composer.mock.calls.at(-1)?.[0].attachedAssets).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'bottle-1',
+          name: 'Bottle',
+          previewUrl: 'https://cdn.example/bottle.png',
+          role: 'reference',
+          source: 'library',
+        }),
+      ]),
+    );
+    expect(
+      screen.queryByText('Reference library content'),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(productAd);
+    expect(mocks.setType).toHaveBeenCalledWith('video');
+    expect(mocks.composer.mock.calls.at(-1)?.[0].attachedAssets).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'bottle-1',
+          role: 'startFrame',
+          source: 'library',
+        }),
+      ]),
+    );
+
+    mocks.selectedBrand.value = undefined;
+    rerender(<StudioPlaygroundWorkspace />);
+    const [photoWithoutProduct] = screen.getAllByRole('button', {
+      name: 'apply',
+    });
+    expect(photoWithoutProduct).toBeDefined();
+    if (!photoWithoutProduct) {
+      return;
+    }
+    fireEvent.click(photoWithoutProduct);
+    expect(screen.getByText('Reference library content')).toBeInTheDocument();
+  });
+
+  it('retains live or saved rows under a refresh warning', () => {
+    mocks.gallery.mockReturnValue({
+      galleryError: 'refresh',
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [
+        {
+          id: 'saved',
+          type: 'image',
+          prompt: '',
+          createdAt: 1,
+          status: 'completed',
+        },
+      ],
+    });
+    render(<StudioPlaygroundWorkspace />);
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'history.refreshFailedDescription',
+    );
+    expect(screen.getByTestId('studio-results')).toBeInTheDocument();
+    expect(mocks.results.mock.calls.at(-1)?.[0].jobs).toHaveLength(1);
+  });
+
+  it('removes gallery tabs without hiding history from other asset types', async () => {
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [
+        {
+          createdAt: 1,
+          id: 'video-history',
+          prompt: 'Older video',
+          status: 'GENERATED',
+          type: 'video',
+        },
+      ],
+    });
+    render(<StudioPlaygroundWorkspace />);
+
+    const topbar = screen.getByTestId('section-topbar');
+    const leading = screen.getByTestId('section-topbar-leading');
+    const search = screen.getByPlaceholderText('searchPlaceholder');
+    expect(leading).toContainElement(search);
+    expect(topbar).toContainElement(search);
+    // Type and sort live in the Filters menu inside the search field, not as
+    // loose dropdowns on the bar.
+    expect(screen.queryByRole('combobox')).toBeNull();
+    const field = search.closest('div')?.parentElement as HTMLElement;
+    await userEvent.click(
+      within(field).getByRole('button', { name: /filters|menu/i }),
+    );
+    expect(
+      await screen.findByRole('menuitem', { name: /filters\.type/ }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('menuitem', { name: /filters\.sort/ }),
+    ).toBeVisible();
+    expect(screen.queryByTestId('section-topbar-tabs')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'All' })).toBeNull();
+    expect(mocks.gallery).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      filter: 'all',
+    });
+    expect(screen.getByTestId('studio-results')).not.toContainElement(
+      screen.getByPlaceholderText('searchPlaceholder'),
+    );
+    // Starter ideas belong to the empty state only; they never dock over
+    // the gallery once the brand has generations.
+    expect(screen.queryByTestId('studio-playground-starter-ideas')).toBeNull();
+  });
+
+  it('removes a deleted asset from the current-session job queue', () => {
+    render(<StudioPlaygroundWorkspace />);
+
+    expect(mocks.assetActionsHook).toHaveBeenCalledWith(
+      expect.objectContaining({ onDeleted: mocks.removeJob }),
+    );
+  });
+
+  it('floats the composer over the gallery like the Agent dock', () => {
+    render(<StudioPlaygroundWorkspace />);
+
+    const container = screen
+      .getByTestId('studio-composer')
+      .closest('[data-layout-mode]');
+
+    expect(container).toHaveAttribute('data-layout-mode', 'surface-fixed');
+    expect(container).toHaveAttribute('data-max-width', '4xl');
+    expect(container).not.toHaveClass('bg-background');
+    expect(container).toHaveStyle({ zIndex: '40' });
+    expect(container?.querySelector('[data-composer-top-fade]')).toBeNull();
+  });
+
+  it('represents handoff selections as removable tokens and invalidates the harness override on scope change', async () => {
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        brandId: 'brand-1',
+        type: 'image',
+        prompt: 'A coast',
+        modelKey: 'provider/model',
+        requestedSkillSlugs: ['cinema'],
+        harness: false,
+      },
+    };
+    const { rerender } = render(<StudioPlaygroundWorkspace />);
+    await waitFor(() =>
+      expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe(
+        '/cinema A coast',
+      ),
+    );
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('A coast'));
+    // The in-flight guard holds until the submission settles.
+    await act(async () => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+    expect(mocks.submit).toHaveBeenLastCalledWith(
+      'A coast',
+      expect.anything(),
+      { harness: false, originalText: 'A coast' },
+    );
+    mocks.brandId.value = 'brand-2';
+    rerender(<StudioPlaygroundWorkspace />);
+    act(() =>
+      mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('Other coast'),
+    );
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+    expect(mocks.submit).toHaveBeenLastCalledWith(
+      'Other coast',
+      expect.anything(),
+      { originalText: 'Other coast' },
+    );
+  });
+
+  it('sends the Library picker Knowledge pick and drops it on brand change', async () => {
+    const { rerender } = render(<StudioPlaygroundWorkspace />);
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onOpenLibrary('reference'));
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: `Pick Knowledge for ${mocks.brandId.value}`,
+      }),
+    );
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('A heron'));
+    await act(async () => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+    expect(mocks.submit).toHaveBeenLastCalledWith(
+      'A heron',
+      expect.anything(),
+      { knowledge: { sourceIds: ['source-1'] }, originalText: 'A heron' },
+    );
+
+    mocks.brandId.value = 'brand-2';
+    rerender(<StudioPlaygroundWorkspace />);
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('A crane'));
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+    expect(mocks.submit).toHaveBeenLastCalledWith(
+      'A crane',
+      expect.anything(),
+      { originalText: 'A crane' },
+    );
+  });
+
+  it('sends one generation when Generate is clicked twice before the first settles', async () => {
+    let settle: (accepted: boolean) => void = () => {};
+    mocks.submit.mockReturnValueOnce(
+      new Promise<boolean>((resolve) => {
+        settle = resolve;
+      }),
+    );
+    render(<StudioPlaygroundWorkspace />);
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('A coast'));
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+    expect(mocks.submit).toHaveBeenCalledTimes(1);
+
+    await act(async () => settle(false));
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+    expect(mocks.submit).toHaveBeenCalledTimes(2);
+  });
+
+  it.each<StudioSubmitOptions>([
+    { isDraft: true },
+    { pinnedModelKey: MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST },
+    {
+      isDraft: true,
+      pinnedModelKey: MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
+    },
+  ])(
+    'preserves the quoted video submission options %o',
+    async (submitOptions) => {
+      mocks.type.value = 'video';
+      await renderLoaded();
+      act(() =>
+        mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('A coast'),
+      );
+      const composer: StudioPlaygroundComposerProps =
+        mocks.composer.mock.calls.at(-1)?.[0];
+
+      await act(async () => composer.onSubmit(submitOptions));
+
+      expect(mocks.submit).toHaveBeenCalledExactlyOnceWith(
+        'A coast',
+        expect.objectContaining({
+          imageReferenceIds: ['ingredient-1', 'img-anna'],
+        }),
+        { ...submitOptions, originalText: 'A coast' },
+      );
+    },
+  );
+
+  it.each(['image', 'video'])(
+    'strips commands and submits selected skills for %s',
+    (type) => {
+      mocks.type.value = type;
+      mocks.resolvePromptCommands.mockReturnValueOnce({
+        content: 'A coast',
+        skillSlugs: ['cinema'],
+      });
+      render(<StudioPlaygroundWorkspace />);
+      act(() =>
+        mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('/cinema A coast'),
+      );
+      act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+      expect(mocks.submit).toHaveBeenCalledWith('A coast', expect.anything(), {
+        requestedSkillSlugs: ['cinema'],
+        originalText: '/cinema A coast',
+      });
+    },
+  );
+  it.each([
+    ['Serum on wet stone.', 'agent'],
+    ['Serum on wet stone at dusk.', 'agent_edited'],
+  ])('records a prompt from an agent draft (%s) as %s', (submitted, author) => {
+    render(<StudioPlaygroundWorkspace />);
+    fireEvent.click(screen.getByRole('button', { name: 'Agent draft' }));
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onPromptChange(submitted));
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+    expect(mocks.submit).toHaveBeenCalledWith(submitted, expect.anything(), {
+      originalText: submitted,
+      promptAuthor: author,
+    });
+  });
+  it.each(['music', 'avatar', 'voice'])(
+    'visibly blocks skill selections for %s',
+    (type) => {
+      mocks.type.value = type;
+      mocks.resolvePromptCommands.mockReturnValueOnce({
+        content: 'A coast',
+        skillSlugs: ['cinema'],
+      });
+      render(<StudioPlaygroundWorkspace />);
+      act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+      expect(mocks.notify).toHaveBeenCalledWith(
+        expect.stringContaining('Selected skills'),
+      );
+      expect(mocks.submit).not.toHaveBeenCalled();
+    },
+  );
+
+  it('submits completed Agent-style attachments as generation references', () => {
+    render(<StudioPlaygroundWorkspace />);
+
+    const initialProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+      extraExtensions?: unknown;
+      onPromptChange: (value: string) => void;
+    };
+    // The composer runs the character-mention extensions alongside the shared
+    // `/` command palette.
+    expect(initialProps.extraExtensions).toEqual([
+      ...characterMentionMocks.extraExtensions,
+      expect.objectContaining({ name: 'referenceMention' }),
+      expect.objectContaining({ name: 'promptCommands' }),
+    ]);
+    act(() => initialProps.onPromptChange('Use this composition'));
+
+    const currentProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+      onSubmit: () => void;
+    };
+    act(() => currentProps.onSubmit());
+
+    expect(characterMentionMocks.resolveSubmit).toHaveBeenCalled();
+    expect(mocks.submit).toHaveBeenCalledWith(
+      'Use this composition',
+      {
+        editMaskId: undefined,
+        editSourceIds: [],
+        endFrameId: undefined,
+        imageReferenceIds: ['ingredient-1', 'img-anna'],
+        audioReferenceIds: [],
+        videoReferenceIds: [],
+      },
+      { originalText: 'Use this composition' },
+    );
+  });
+
+  it.each(['@Image9', '@Video1', '@Audio1'])(
+    'blocks unmatched %s inline before submit',
+    (token) => {
+      render(<StudioPlaygroundWorkspace />);
+      const composer = () =>
+        mocks.composer.mock.calls.at(-1)?.[0] as StudioPlaygroundComposerProps;
+      act(() => composer().onPromptChange(`Use ${token}`));
+      expect(composer().isPromptInvalid).toBe(true);
+      expect(
+        screen.getByTestId('studio-reference-mention-error'),
+      ).toHaveTextContent(`${token} has no attached reference`);
+      act(() => composer().onSubmit());
+      expect(mocks.submit).not.toHaveBeenCalled();
+      act(() => composer().onPromptChange('Use the reference'));
+      expect(composer().isPromptInvalid).toBe(false);
+      expect(
+        screen.queryByTestId('studio-reference-mention-error'),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it('keeps unused attachments nonblocking and sends their ordered IDs with literal tokens', () => {
+    render(<StudioPlaygroundWorkspace />);
+    const composer = () =>
+      mocks.composer.mock.calls.at(-1)?.[0] as StudioPlaygroundComposerProps;
+    act(() => composer().onPromptChange('Use this composition'));
+    expect(
+      screen.getByTestId('studio-reference-mention-notice'),
+    ).toHaveTextContent('Attached but not mentioned: @Image1');
+    expect(composer().isPromptInvalid).toBe(false);
+    act(() => composer().onPromptChange('Use @Image1'));
+    expect(
+      screen.queryByTestId('studio-reference-mention-notice'),
+    ).not.toBeInTheDocument();
+    act(() => composer().onSubmit());
+    expect(mocks.submit).toHaveBeenCalledWith(
+      'Use @Image1',
+      expect.objectContaining({
+        imageReferenceIds: ['ingredient-1', 'img-anna'],
+      }),
+      expect.any(Object),
+    );
+  });
+
+  it('serializes character mention display names and merges reference ids on generate', () => {
+    render(<StudioPlaygroundWorkspace />);
+
+    const initialProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+      onPromptChange: (value: string) => void;
+    };
+    act(() => initialProps.onPromptChange('@anna walking'));
+
+    const currentProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+      onSubmit: () => void;
+    };
+    act(() => currentProps.onSubmit());
+
+    expect(mocks.submit).toHaveBeenCalledWith(
+      'Anna walking',
+      {
+        editMaskId: undefined,
+        editSourceIds: [],
+        endFrameId: undefined,
+        imageReferenceIds: ['ingredient-1', 'img-anna'],
+        audioReferenceIds: [],
+        videoReferenceIds: [],
+      },
+      { originalText: '@anna walking' },
+    );
+  });
+
+  it('turns a gallery remix into a composer reference', async () => {
+    await renderLoaded();
+
+    const hookParams = mocks.assetActionsHook.mock.calls.at(-1)?.[0] as {
+      onAttachReference: (
+        ingredient: IIngredient,
+        type: 'image' | 'video',
+      ) => void;
+    };
+    act(() =>
+      hookParams.onAttachReference(
+        {
+          brandId: 'brand-1',
+          category: IngredientCategory.IMAGE,
+          status: IngredientStatus.GENERATED,
+          id: 'generated-1',
+          promptText: 'A generated reference',
+          thumbnailUrl: 'https://cdn.example/generated.png',
+        } as IIngredient,
+        'video',
+      ),
+    );
+
+    expect(
+      mocks.settings.mock.results.at(-1)?.value.setType,
+    ).toHaveBeenCalledWith('video');
+    const composerProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+      attachedAssets: Array<{ id: string; previewUrl?: string }>;
+    };
+    expect(composerProps.attachedAssets).toContainEqual(
+      expect.objectContaining({
+        id: 'generated-1',
+        previewUrl: 'https://cdn.example/generated.png',
+      }),
+    );
+  });
+
+  it.each(['image', 'video'] as const)(
+    'prepares %s from the chosen source only after confirming draft replacement',
+    async (targetType) => {
+      await renderLoaded();
+      act(() =>
+        mocks.composer.mock.calls
+          .at(-1)?.[0]
+          .onPromptChange('Keep my unrelated draft'),
+      );
+      const source = {
+        id: 'source-continuation',
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        category: IngredientCategory.IMAGE,
+        status: IngredientStatus.GENERATED,
+        metadataLabel: 'Desk photo',
+        promptText: 'Effective recipe with brand instructions',
+        cdnUrl: 'https://cdn.example/source.png',
+      } as IIngredient;
+      act(() =>
+        mocks.assetActionsHook.mock.calls
+          .at(-1)?.[0]
+          .onAttachReference(source, targetType),
+      );
+      expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe(
+        'Keep my unrelated draft',
+      );
+      expect(mocks.clearAttachments).not.toHaveBeenCalled();
+      expect(mocks.submit).not.toHaveBeenCalled();
+      const confirmation = mocks.openConfirm.mock.calls.at(-1)?.[0];
+      expect(confirmation).toBeDefined();
+      act(() => confirmation?.onConfirm());
+      expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe('');
+      expect(mocks.clearAttachments).toHaveBeenCalledOnce();
+      expect(mocks.composer.mock.calls.at(-1)?.[0].attachedAssets).toEqual([
+        expect.objectContaining({
+          id: source.id,
+          role: targetType === 'video' ? 'startFrame' : 'reference',
+        }),
+      ]);
+      expect(
+        mocks.settings.mock.results.at(-1)?.value.setType,
+      ).toHaveBeenCalledWith(targetType);
+      expect(mocks.submit).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    { brandId: 'other-brand' },
+    { organizationId: 'other-org' },
+    { isDeleted: true },
+    { status: IngredientStatus.PROCESSING },
+    { category: IngredientCategory.VIDEO },
+  ])(
+    'rejects an unavailable continuation source %j without changing the draft',
+    (invalid) => {
+      render(<StudioPlaygroundWorkspace />);
+      act(() =>
+        mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('Keep this draft'),
+      );
+      const source = {
+        id: 'unavailable-source',
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        category: IngredientCategory.IMAGE,
+        status: IngredientStatus.GENERATED,
+        cdnUrl: 'https://cdn.example/source.png',
+        ...invalid,
+      } as IIngredient;
+      act(() =>
+        mocks.assetActionsHook.mock.calls
+          .at(-1)?.[0]
+          .onAttachReference(source, 'image'),
+      );
+      expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe(
+        'Keep this draft',
+      );
+      expect(mocks.openConfirm).not.toHaveBeenCalled();
+      expect(mocks.clearAttachments).not.toHaveBeenCalled();
+      expect(mocks.submit).not.toHaveBeenCalled();
+      expect(mocks.notify).toHaveBeenCalledWith(
+        'continuation.sourceUnavailable',
+      );
+    },
+  );
+
+  it.each(['draft', 'session'] as const)(
+    'does not apply a continuation after the %s changes during confirmation',
+    async (change) => {
+      const { rerender } = await renderLoaded();
+      act(() =>
+        mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('Original draft'),
+      );
+      const source = {
+        id: 'source-stale-confirm',
+        brandId: 'brand-1',
+        category: IngredientCategory.IMAGE,
+        status: IngredientStatus.GENERATED,
+        cdnUrl: 'https://cdn.example/source.png',
+      } as IIngredient;
+      act(() =>
+        mocks.assetActionsHook.mock.calls
+          .at(-1)?.[0]
+          .onAttachReference(source, 'video'),
+      );
+      const confirmation = mocks.openConfirm.mock.calls.at(-1)?.[0];
+      if (change === 'session') {
+        mocks.authIdentity.value = 'identity-2';
+        rerender(<StudioPlaygroundWorkspace />);
+      }
+      act(() =>
+        mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('Latest draft'),
+      );
+      expect(confirmation).toBeDefined();
+      act(() => confirmation?.onConfirm());
+      expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe('Latest draft');
+      expect(mocks.clearAttachments).not.toHaveBeenCalled();
+      expect(mocks.submit).not.toHaveBeenCalled();
+    },
+  );
+
+  it('resubscribes stored in-flight jobs when the playground remounts', () => {
+    const storedJobs = [
+      {
+        createdAt: 1,
+        id: 'processing-1',
+        prompt: 'Still rendering',
+        status: 'PROCESSING',
+        type: 'image',
+      },
+    ];
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs,
+    });
+
+    render(<StudioPlaygroundWorkspace />);
+
+    expect(mocks.rehydratePending).toHaveBeenCalledWith(storedJobs);
+  });
+
+  it('defaults to the masonry grid and toggles the results into a list', async () => {
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [
+        {
+          createdAt: 1,
+          id: 'grid-1',
+          prompt: 'A still',
+          status: 'GENERATED',
+          type: 'image',
+        },
+      ],
+    });
+    render(<StudioPlaygroundWorkspace />);
+
+    expect(screen.getByTestId('studio-results').parentElement).toHaveClass(
+      'w-full',
+      'max-w-7xl',
+    );
+    expect(mocks.results.mock.calls.at(-1)?.[0]).toEqual(
+      expect.objectContaining({ view: 'grid' }),
+    );
+
+    await selectView(userEvent.setup(), 'viewList');
+
+    expect(mocks.results.mock.calls.at(-1)?.[0]).toEqual(
+      expect.objectContaining({ view: 'list' }),
+    );
+  });
+
+  it('prefills the composer from a card recipe on vary', async () => {
+    const recipeJob = {
+      createdAt: 1,
+      id: 'job-1',
+      prompt: 'Raw box contents',
+      recipe: {
+        blacklist: [],
+        brandingMode: 'brand',
+        isAudioEnabled: false,
+        mood: 'confident',
+        outputs: 4,
+        promptTemplate: 'product-photo',
+        references: [],
+        style: 'editorial',
+        tags: [],
+        text: 'A founder at a desk',
+        originalText: 'A founder at a desk',
+        type: 'image',
+      },
+      status: 'GENERATED',
+      type: 'image',
+    };
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [recipeJob],
+    });
+
+    await renderLoaded({ wrapper: ContextSidebarHost });
+
+    const resultsProps = mocks.results.mock.calls.at(-1)?.[0] as {
+      onReprompt: (job: typeof recipeJob) => void;
+      onSelect: (job: typeof recipeJob) => void;
+    };
+    act(() => resultsProps.onReprompt(recipeJob));
+
+    expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
+      'image',
+      expect.objectContaining({
+        mood: 'confident',
+        outputs: 4,
+        promptTemplate: 'product-photo',
+        style: 'editorial',
+      }),
+    );
+    expect(screen.getByText('A founder at a desk')).toBeVisible();
+
+    act(() => resultsProps.onSelect(recipeJob));
+    fireEvent.click(screen.getByRole('button', { name: 'Vary' }));
+    expect(mocks.applyTypeSettings).toHaveBeenCalledTimes(1);
+    act(() => {
+      void mocks.openConfirm.mock.calls.at(-1)?.[0].onConfirm?.();
+    });
+    expect(mocks.applyTypeSettings).toHaveBeenCalledTimes(2);
+  });
+
+  it('opens and navigates one focused inspector without replacing the draft, then restores gallery focus and scroll', async () => {
+    const jobs: StudioPlaygroundJob[] = ['image-9', 'image-10'].map((id) => ({
+      createdAt: 1,
+      id,
+      ingredientId: id,
+      ingredient: {
+        id,
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        category: IngredientCategory.IMAGE,
+        status: IngredientStatus.GENERATED,
+      } as IIngredient,
+      prompt: `Prompt for ${id}`,
+      status: IngredientStatus.GENERATED,
+      type: 'image',
+    }));
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: jobs,
+    });
+    render(<StudioPlaygroundWorkspace />, { wrapper: ContextSidebarHost });
+    act(() =>
+      mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('Keep this draft'),
+    );
+    act(() => mocks.results.mock.calls.at(-1)?.[0].onSelect(jobs[0]));
+    const scrollContainer = screen
+      .getByTestId('studio-results')
+      .closest('[tabindex="-1"]') as HTMLDivElement;
+    scrollContainer.scrollTop = 180;
+    scrollContainer.scrollTo = vi.fn();
+    const openButton = screen.getByRole('button', { name: 'Open preview' });
+    openButton.focus();
+    fireEvent.click(openButton);
+    expect(screen.queryByTestId('studio-results')).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('studio-inspector')).toHaveLength(1);
+    expect(scrollContainer.scrollTo).toHaveBeenLastCalledWith({ top: 0 });
+    fireEvent.click(screen.getByRole('button', { name: 'Next focused asset' }));
+    expect(screen.getByText('Prompt for image-10')).toBeVisible();
+    expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe(
+      'Keep this draft',
+    );
+    expect(mocks.applyTypeSettings).not.toHaveBeenCalled();
+    expect(mocks.clearAttachments).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Back to gallery' }));
+    expect(screen.getByTestId('studio-results')).toBeVisible();
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Open preview' }),
+      ).toHaveFocus(),
+    );
+    expect(scrollContainer.scrollTo).toHaveBeenLastCalledWith({ top: 180 });
+  });
+
+  it.each(['brand', 'organization', 'session'])(
+    'does not revive a focused preview after switching %s away and back',
+    (scope) => {
+      const job: StudioPlaygroundJob = {
+        id: 'selected',
+        createdAt: 1,
+        prompt: 'Selected asset',
+        type: 'image',
+        status: IngredientStatus.GENERATED,
+      };
+      mocks.gallery.mockReturnValue({
+        isLoadingGallery: false,
+        refresh: vi.fn(),
+        storedJobs: [job],
+      });
+      const view = render(<StudioPlaygroundWorkspace />, {
+        wrapper: ContextSidebarHost,
+      });
+      act(() => mocks.results.mock.calls.at(-1)?.[0].onSelect(job));
+      const scrollContainer = screen
+        .getByTestId('studio-results')
+        .closest('[tabindex="-1"]') as HTMLDivElement;
+      scrollContainer.scrollTo = vi.fn();
+      fireEvent.click(screen.getByRole('button', { name: 'Open preview' }));
+      expect(screen.getByTestId('studio-focused-preview')).toBeVisible();
+      const scopedValue =
+        scope === 'brand'
+          ? mocks.brandId
+          : scope === 'organization'
+            ? mocks.organizationId
+            : mocks.authIdentity;
+      const original = scopedValue.value;
+      scopedValue.value = `${original}-changed`;
+      view.rerender(<StudioPlaygroundWorkspace />);
+      expect(
+        screen.queryByTestId('studio-focused-preview'),
+      ).not.toBeInTheDocument();
+      scopedValue.value = original;
+      view.rerender(<StudioPlaygroundWorkspace />);
+      expect(
+        screen.queryByTestId('studio-focused-preview'),
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId('studio-results')).toBeVisible();
+    },
+  );
+
+  it('remixes a selected image as an image reference', async () => {
+    const job = {
+      createdAt: 1,
+      id: 'image-9',
+      ingredient: {
+        brandId: 'brand-1',
+        category: IngredientCategory.IMAGE,
+        status: IngredientStatus.GENERATED,
+        cdnUrl: 'https://cdn.example/still.png',
+        id: 'image-9',
+        promptText: 'Sunlit desk',
+      },
+      prompt: 'Sunlit desk',
+      status: 'GENERATED',
+      type: 'image',
+    };
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [job],
+    });
+
+    await renderLoaded({ wrapper: ContextSidebarHost });
+    const resultsProps = mocks.results.mock.calls.at(-1)?.[0] as {
+      onSelect: (selected: typeof job) => void;
+    };
+    act(() => resultsProps.onSelect(job));
+    fireEvent.click(screen.getByRole('button', { name: 'Remix' }));
+
+    expect(
+      mocks.settings.mock.results.at(-1)?.value.setType,
+    ).toHaveBeenCalledWith('image');
+    const composerProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+      attachedAssets: Array<{ id: string; role?: string }>;
+    };
+    expect(composerProps.attachedAssets).toContainEqual(
+      expect.objectContaining({ id: 'image-9', role: 'reference' }),
+    );
+  });
+
+  it('defers a continuation until the saved draft has loaded', async () => {
+    const pendingDraft = Promise.withResolvers<null>();
+    mocks.getDraft.mockReturnValue(pendingDraft.promise);
+    render(<StudioPlaygroundWorkspace />);
+    await waitFor(() => expect(mocks.getDraft).toHaveBeenCalled());
+    const hookParams = mocks.assetActionsHook.mock.calls.at(-1)?.[0] as {
+      onAttachReference: (
+        ingredient: IIngredient,
+        type: 'image' | 'video',
+      ) => void;
+    };
+
+    act(() =>
+      hookParams.onAttachReference(
+        {
+          brandId: 'brand-1',
+          category: IngredientCategory.IMAGE,
+          status: IngredientStatus.GENERATED,
+          id: 'generated-1',
+          thumbnailUrl: 'https://cdn.example/generated.png',
+        } as IIngredient,
+        'video',
+      ),
+    );
+
+    expect(mocks.notify).toHaveBeenCalledWith('continuation.draftLoading');
+    expect(mocks.openConfirm).not.toHaveBeenCalled();
+    expect(
+      mocks.settings.mock.results.at(-1)?.value.setType,
+    ).not.toHaveBeenCalledWith('video');
+    await act(async () => pendingDraft.resolve(null));
+  });
+
+  it('keeps a draft untouched until Replace draft and ignores a confirmation from another brand', async () => {
+    const job: StudioPlaygroundJob = {
+      id: 'legacy',
+      createdAt: 1,
+      type: 'image',
+      status: IngredientStatus.GENERATED,
+      prompt: 'Effective brand instructions',
+    };
+    const { rerender } = await renderLoaded();
+    act(() =>
+      mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('Keep my draft'),
+    );
+    act(() => mocks.results.mock.calls.at(-1)?.[0].onReprompt(job));
+    const confirmation = mocks.openConfirm.mock.calls.at(-1)?.[0];
+    expect(confirmation).toBeDefined();
+    expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe('Keep my draft');
+    expect(mocks.applyTypeSettings).not.toHaveBeenCalled();
+    expect(mocks.clearAttachments).not.toHaveBeenCalled();
+    // Closing/Cancel never calls onConfirm; no composer mutation has occurred.
+    mocks.brandId.value = 'brand-2';
+    rerender(<StudioPlaygroundWorkspace />);
+    act(() =>
+      mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('New brand draft'),
+    );
+    act(() => {
+      confirmation?.onConfirm?.();
+    });
+    expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe(
+      'New brand draft',
+    );
+  });
+
+  it('leaves a legacy continuation prompt blank instead of replaying provider instructions', async () => {
+    const job: StudioPlaygroundJob = {
+      id: 'legacy',
+      createdAt: 1,
+      type: 'image',
+      status: IngredientStatus.GENERATED,
+      prompt: 'Effective brand instructions',
+    };
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [job],
+    });
+    await renderLoaded();
+    act(() => mocks.results.mock.calls.at(-1)?.[0].onReprompt(job));
+    expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe('');
+    expect(mocks.submit).not.toHaveBeenCalled();
+    expect(mocks.notify).toHaveBeenCalledWith(
+      'continuation.originalUnavailable',
+    );
+  });
+
+  it('hands a successful Inspector preview retry back to the gallery card', () => {
+    const job = {
+      createdAt: 1,
+      id: 'job-7',
+      ingredientId: 'ing-7',
+      prompt: 'Selected asset prompt',
+      status: 'GENERATED',
+      type: 'image',
+      url: 'https://cdn.example/expired.png',
+    };
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [job],
+    });
+    render(<StudioPlaygroundWorkspace />, { wrapper: ContextSidebarHost });
+    const resultsProps = mocks.results.mock.calls.at(-1)?.[0] as {
+      onSelect: (selected: typeof job) => void;
+    };
+    act(() => resultsProps.onSelect(job));
+    expect(mocks.results.mock.calls.at(-1)?.[0].previewRevisions).toEqual({});
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Report recovered preview' }),
+    );
+
+    const recovered = mocks.results.mock.calls.at(-1)?.[0];
+    expect(recovered.previewRevisions).toEqual({ 'job-7': 1 });
+    expect(recovered.jobs).toEqual([
+      expect.objectContaining({
+        id: 'job-7',
+        url: 'https://cdn.example/fresh.png',
+      }),
+    ]);
+    expect(mocks.submit).not.toHaveBeenCalled();
+  });
+
+  it('opens the selected asset in the context sidebar and deselects on close', () => {
+    const job = {
+      createdAt: 1,
+      id: 'job-7',
+      prompt: 'Selected asset prompt',
+      status: 'GENERATED',
+      type: 'image',
+    };
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [job],
+    });
+
+    render(<StudioPlaygroundWorkspace />, { wrapper: ContextSidebarHost });
+
+    const outlet = screen.getByTestId('context-sidebar-outlet');
+    expect(outlet).toBeEmptyDOMElement();
+
+    const resultsProps = mocks.results.mock.calls.at(-1)?.[0] as {
+      onSelect: (selected: typeof job) => void;
+    };
+    act(() => resultsProps.onSelect(job));
+
+    // The panel renders in the shell's outlet, not beside the results grid.
+    expect(outlet).toContainElement(screen.getByTestId('studio-inspector'));
+    expect(mocks.results.mock.calls.at(-1)?.[0]).toMatchObject({
+      selectedJobId: 'job-7',
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close sidebar' }));
+
+    expect(screen.queryByTestId('studio-inspector')).toBeNull();
+    expect(mocks.results.mock.calls.at(-1)?.[0]).toMatchObject({
+      selectedJobId: null,
+    });
+  });
+
+  it('routes See Details to the same job inspector as the gallery card', () => {
+    const ingredient = { id: 'saved-image' } as IIngredient;
+    const job = {
+      createdAt: 1,
+      id: 'local-job',
+      ingredientId: ingredient.id,
+      ingredient,
+      prompt: 'Details prompt',
+      status: 'GENERATED',
+      type: 'image',
+    };
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [job],
+    });
+    render(<StudioPlaygroundWorkspace />, { wrapper: ContextSidebarHost });
+    const hookParams = mocks.assetActionsHook.mock.calls.at(-1)?.[0] as {
+      onInspectIngredient: (asset: IIngredient) => void;
+    };
+    act(() => hookParams.onInspectIngredient(ingredient));
+    expect(screen.getByTestId('context-sidebar-outlet')).toContainElement(
+      screen.getByTestId('studio-inspector'),
+    );
+    expect(mocks.results.mock.calls.at(-1)?.[0]).toMatchObject({
+      selectedJobId: 'local-job',
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }));
+    expect(
+      screen.getByRole('button', { name: 'Collapse sidebar' }),
+    ).toHaveAttribute('aria-expanded', 'false');
+    const latestParams = mocks.assetActionsHook.mock.calls.at(-1)?.[0] as {
+      onInspectIngredient: (asset: IIngredient) => void;
+    };
+    act(() => latestParams.onInspectIngredient(ingredient));
+    expect(
+      screen.getByRole('button', { name: 'Collapse sidebar' }),
+    ).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByTestId('studio-inspector')).toBeInTheDocument();
+  });
+
+  it('applies an Agent handoff end-to-end: switches type, prefills the prompt, falls back an unavailable model and unsupported params with a notice, and attaches the resolved reference (#4716 review)', async () => {
+    // The type has already "switched" by the time the model-catalog effect
+    // reads it — `applyTypeSettings` is mocked, so this simulates the render
+    // that follows the real hook's own state update.
+    mocks.type.value = 'video';
+    mocks.models.value = {
+      isLoadingModels: false,
+      models: [{ key: 'provider/model-allowed' }],
+    };
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        aspectRatio: '2.39:1', // not in the type's aspect-ratio ladder
+        brandId: 'brand-1',
+        duration: 999, // not one of the type's duration options
+        modelKey: 'provider/model-unavailable', // not in the org's catalog
+        outputs: 99, // over the type/model's output cap
+        prompt: 'A neon skyline at dusk',
+        references: ['asset-1'],
+        type: 'video',
+      },
+    };
+    mocks.findByIds.mockResolvedValue([
+      {
+        category: 'video',
+        cdnUrl: 'https://cdn.example/neon.mp4',
+        id: 'asset-1',
+        metadataLabel: 'Neon skyline clip',
+      },
+    ]);
+
+    render(<StudioPlaygroundWorkspace />);
+
+    await waitFor(() => {
+      expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
+        'video',
+        expect.objectContaining({ modelKey: 'provider/model-unavailable' }),
+      );
+    });
+    expect(screen.getByText('A neon skyline at dusk')).toBeVisible();
+
+    await waitFor(() => {
+      expect(mocks.findByIds).toHaveBeenCalledWith(['asset-1']);
+    });
+    await waitFor(() => {
+      const composerProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+        attachedAssets: Array<{ id: string; name: string }>;
+      };
+      expect(composerProps.attachedAssets).toContainEqual(
+        expect.objectContaining({ id: 'asset-1', name: 'Neon skyline clip' }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(mocks.updateSettings).toHaveBeenCalledWith({
+        modelKey: AUTO_MODEL_OPTION_VALUE,
+      });
+    });
+    await waitFor(() => {
+      expect(mocks.updateSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          aspectRatio: expect.any(String),
+          duration: expect.any(Number),
+          outputs: expect.any(Number),
+        }),
+      );
+    });
+    await waitFor(() => {
+      expect(mocks.notify).toHaveBeenCalledWith(
+        expect.stringContaining('model pick'),
+      );
+    });
+    expect(mocks.notify).toHaveBeenCalledWith(
+      expect.stringContaining('aspect ratio, duration, output count'),
+    );
+  });
+
+  it('prefills avatar and voice from an identity handoff (#4717)', async () => {
+    mocks.type.value = 'avatar';
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        avatarPhotoUrl: 'https://cdn.test/portrait.png',
+        brandId: 'brand-1',
+        modelKey: 'heygen/avatar',
+        prompt: 'Say this as the brand',
+        type: 'avatar',
+        useIdentity: true,
+        voiceId: 'voice-1',
+      },
+    };
+
+    render(<StudioPlaygroundWorkspace />);
+
+    await waitFor(() => {
+      expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
+        'avatar',
+        expect.objectContaining({
+          avatarPhotoUrl: 'https://cdn.test/portrait.png',
+          voiceId: 'voice-1',
+        }),
+      );
+    });
+    expect(screen.getByText('Say this as the brand')).toBeVisible();
+    expect(mocks.notify).not.toHaveBeenCalled();
+  });
+
+  it('keeps the rest of the prefill and notices when identity could not be carried (#4717)', async () => {
+    mocks.type.value = 'avatar';
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        brandId: 'brand-1',
+        modelKey: 'heygen/avatar',
+        prompt: 'Say this as the brand',
+        type: 'avatar',
+        useIdentity: true,
+      },
+    };
+
+    render(<StudioPlaygroundWorkspace />);
+
+    await waitFor(() => {
+      expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
+        'avatar',
+        expect.objectContaining({ modelKey: 'heygen/avatar' }),
+      );
+    });
+    expect(screen.getByText('Say this as the brand')).toBeVisible();
+    await waitFor(() => {
+      expect(mocks.notify).toHaveBeenCalledWith(
+        expect.stringContaining('avatar and voice'),
+      );
+    });
+  });
+
+  it('attaches the resolved reference exactly once under React StrictMode double-invoke (#4716 re-review P3)', async () => {
+    // StrictMode's dev-only double-invoke (mount -> cleanup -> mount) is what
+    // exposed the bug: the old single effect latched its ref before starting
+    // the fetch, so the synthetic remount correctly skipped a second fetch,
+    // but its cleanup flagged the *first* (and only) run as cancelled,
+    // discarding the one real result. The fix's ref latches before the fetch
+    // starts and the effect never cancels, so exactly one fetch happens and
+    // its result is kept.
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        brandId: 'brand-1',
+        modelKey: 'provider/model-x',
+        prompt: 'A neon skyline at dusk',
+        references: ['asset-1'],
+        type: 'image',
+      },
+    };
+    mocks.findByIds.mockResolvedValue([
+      {
+        category: 'image',
+        cdnUrl: 'https://cdn.example/neon.png',
+        id: 'asset-1',
+        metadataLabel: 'Neon skyline clip',
+      },
+    ]);
+
+    render(
+      <StrictMode>
+        <StudioPlaygroundWorkspace />
+      </StrictMode>,
+    );
+
+    await waitFor(() => {
+      expect(mocks.findByIds).toHaveBeenCalledWith(['asset-1']);
+    });
+    await waitFor(() => {
+      const composerProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+        attachedAssets: Array<{ id: string; name: string }>;
+      };
+      expect(composerProps.attachedAssets).toContainEqual(
+        expect.objectContaining({ id: 'asset-1', name: 'Neon skyline clip' }),
+      );
+    });
+    expect(mocks.findByIds).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['handoff', 'brand', 'organization', 'identity', 'brand round trip'])(
+    'discards pending handoff references after a %s change',
+    async (change) => {
+      const asset = {
+        category: 'image',
+        cdnUrl: 'https://cdn.example/old.png',
+        id: 'old-reference',
+      };
+      const pending = Promise.withResolvers<(typeof asset)[]>();
+      mocks.findByIds.mockReturnValue(pending.promise);
+      mocks.handoff.value = {
+        isLoading: false,
+        payload: {
+          brandId: 'brand-1',
+          prompt: 'Original handoff',
+          references: ['old-reference'],
+          type: 'image',
+        },
+      };
+      const { rerender } = render(<StudioPlaygroundWorkspace />);
+      await waitFor(() => expect(mocks.findByIds).toHaveBeenCalledTimes(1));
+
+      if (change === 'handoff') {
+        mocks.handoff.value = {
+          isLoading: false,
+          payload: {
+            ...mocks.handoff.value.payload,
+            prompt: 'Replacement handoff',
+            references: ['new-reference'],
+          },
+        };
+      } else if (change === 'organization') {
+        mocks.organizationId.value = 'org-2';
+      } else if (change === 'identity') {
+        mocks.authIdentity.value = 'identity-2';
+      } else {
+        mocks.brandId.value = 'brand-2';
+      }
+      rerender(<StudioPlaygroundWorkspace />);
+      if (change === 'brand round trip') {
+        mocks.brandId.value = 'brand-1';
+        rerender(<StudioPlaygroundWorkspace />);
+      }
+      await act(async () => pending.resolve([asset]));
+
+      expect(mocks.composer.mock.calls.at(-1)?.[0].attachedAssets).not.toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: asset.id })]),
+      );
+      expect(mocks.findByIds).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('does not request handoff references when identity changes while acquiring the service', async () => {
+    const token = Promise.withResolvers<string>();
+    mocks.getToken.mockReturnValue(token.promise);
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        brandId: 'brand-1',
+        prompt: 'Original handoff',
+        references: ['old-reference'],
+        type: 'image',
+      },
+    };
+    const { rerender } = render(<StudioPlaygroundWorkspace />);
+    await waitFor(() => expect(mocks.getToken).toHaveBeenCalled());
+    mocks.authIdentity.value = 'identity-2';
+    rerender(<StudioPlaygroundWorkspace />);
+    await act(async () => token.resolve('replacement-token'));
+
+    expect(mocks.findByIds).not.toHaveBeenCalled();
+  });
+
+  it('does not use a later handoff after accepting one without references', async () => {
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        brandId: 'brand-1',
+        prompt: 'Original handoff',
+        type: 'image',
+      },
+    };
+    const { rerender } = render(<StudioPlaygroundWorkspace />);
+    mocks.updateSettings.mockClear();
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        brandId: 'brand-1',
+        prompt: 'Replacement handoff',
+        references: ['new-reference'],
+        type: 'image',
+      },
+    };
+    rerender(<StudioPlaygroundWorkspace />);
+    await act(async () => {});
+
+    expect(mocks.findByIds).not.toHaveBeenCalled();
+    expect(mocks.updateSettings).not.toHaveBeenCalled();
+    expect(screen.getByText('Original handoff')).toBeVisible();
+  });
+
+  it.each([
+    {
+      expected: true,
+      label: 'falls back to Auto when a saved model left the loaded catalog',
+      models: {
+        isLoadingModels: false,
+        isModelCatalogReady: true,
+        models: [{ key: 'provider/live' }],
+      },
+      modelKey: 'provider/retired',
+    },
+    {
+      expected: false,
+      label: 'keeps a saved model while the catalog has not loaded',
+      models: { isLoadingModels: true, isModelCatalogReady: false, models: [] },
+      modelKey: 'provider/retired',
+    },
+    {
+      expected: false,
+      label: 'keeps a saved model the catalog still offers',
+      models: {
+        isLoadingModels: false,
+        isModelCatalogReady: true,
+        models: [{ key: 'provider/live' }],
+      },
+      modelKey: 'provider/live',
+    },
+  ])('$label', async ({ expected, models, modelKey }) => {
+    mocks.models.value = models;
+    mocks.settings.mockReturnValue({
+      resetSettings: vi.fn(),
+      settings: { modelKey },
+      setType: mocks.setType,
+      type: 'image',
+      updateSettings: vi.fn(),
+    });
+
+    render(<StudioPlaygroundWorkspace />);
+    await act(async () => {});
+
+    if (expected) {
+      expect(mocks.updateSettings).toHaveBeenCalledWith({
+        modelKey: AUTO_MODEL_OPTION_VALUE,
+      });
+      expect(mocks.notify).toHaveBeenCalledWith(
+        'Your saved model is no longer available — Studio switched to Auto.',
+      );
+    } else {
+      expect(mocks.updateSettings).not.toHaveBeenCalledWith({
+        modelKey: AUTO_MODEL_OPTION_VALUE,
+      });
+    }
+  });
+
+  it('returns a hidden saved model to Auto in simple mode', async () => {
+    mocks.advancedMode.value = {
+      isAdvancedMode: false,
+      isLoaded: true,
+      setAdvancedMode: vi.fn(),
+    };
+    mocks.settings.mockReturnValue({
+      resetSettings: vi.fn(),
+      settings: { modelKey: 'provider/live' },
+      setType: mocks.setType,
+      type: 'image',
+      updateSettings: vi.fn(),
+    });
+
+    render(<StudioPlaygroundWorkspace />);
+    await act(async () => {});
+
+    expect(mocks.updateSettings).toHaveBeenCalledWith({
+      modelKey: AUTO_MODEL_OPTION_VALUE,
+      prioritize: RouterPriority.QUALITY,
+    });
+  });
+
+  it('routes Auto for top quality in simple mode', async () => {
+    mocks.advancedMode.value = {
+      isAdvancedMode: false,
+      isLoaded: true,
+      setAdvancedMode: vi.fn(),
+    };
+    mocks.settings.mockReturnValue({
+      resetSettings: vi.fn(),
+      settings: {
+        modelKey: AUTO_MODEL_OPTION_VALUE,
+        prioritize: RouterPriority.COST,
+      },
+      setType: mocks.setType,
+      type: 'image',
+      updateSettings: vi.fn(),
+    });
+
+    render(<StudioPlaygroundWorkspace />);
+    await act(async () => {});
+
+    expect(mocks.updateSettings).toHaveBeenCalledWith({
+      modelKey: AUTO_MODEL_OPTION_VALUE,
+      prioritize: RouterPriority.QUALITY,
+    });
+  });
+
+  it('keeps Ideogram 4.5 as the editing default in simple mode instead of forcing Auto', async () => {
+    mocks.type.value = 'image-edit';
+    mocks.advancedMode.value = {
+      isAdvancedMode: false,
+      isLoaded: true,
+      setAdvancedMode: vi.fn(),
+    };
+    mocks.settings.mockReturnValue({
+      resetSettings: vi.fn(),
+      settings: { modelKey: DEFAULT_IMAGE_EDIT_MODEL_KEY },
+      setType: mocks.setType,
+      type: 'image-edit',
+      updateSettings: vi.fn(),
+    });
+
+    render(<StudioPlaygroundWorkspace />);
+    await act(async () => {});
+
+    expect(mocks.updateSettings).not.toHaveBeenCalledWith(
+      expect.objectContaining({ modelKey: AUTO_MODEL_OPTION_VALUE }),
+    );
+  });
+
+  it('moves an editing model the catalog dropped to the catalog editing default', async () => {
+    mocks.type.value = 'image-edit';
+    mocks.models.value = {
+      isLoadingModels: false,
+      isModelCatalogReady: true,
+      models: [
+        { key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT },
+        {
+          isDefault: true,
+          key: 'provider/editor',
+          label: 'Provider editor',
+        },
+      ],
+    };
+    mocks.settings.mockReturnValue({
+      resetSettings: vi.fn(),
+      settings: { modelKey: DEFAULT_IMAGE_EDIT_MODEL_KEY },
+      setType: mocks.setType,
+      type: 'image-edit',
+      updateSettings: vi.fn(),
+    });
+
+    render(<StudioPlaygroundWorkspace />);
+    await act(async () => {});
+
+    expect(mocks.updateSettings).toHaveBeenCalledWith({
+      modelKey: 'provider/editor',
+    });
+    expect(mocks.notify).toHaveBeenCalledWith(
+      'Your saved model is no longer available — Studio switched to Provider editor.',
+    );
+  });
+
+  it('returns a saved avatar engine to Auto in simple mode, now that avatar has a model catalog', async () => {
+    mocks.type.value = 'avatar';
+    mocks.advancedMode.value = {
+      isAdvancedMode: false,
+      isLoaded: true,
+      setAdvancedMode: vi.fn(),
+    };
+    mocks.settings.mockReturnValue({
+      resetSettings: vi.fn(),
+      settings: { modelKey: 'heygen/avatar-v' },
+      setType: mocks.setType,
+      type: 'avatar',
+      updateSettings: vi.fn(),
+    });
+
+    render(<StudioPlaygroundWorkspace />);
+    await act(async () => {});
+
+    expect(mocks.updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ modelKey: AUTO_MODEL_OPTION_VALUE }),
+    );
+  });
+
+  it('returns a hidden saved speech model to Auto for voice in simple mode', async () => {
+    mocks.type.value = 'voice';
+    mocks.advancedMode.value = {
+      isAdvancedMode: false,
+      isLoaded: true,
+      setAdvancedMode: vi.fn(),
+    };
+    mocks.settings.mockReturnValue({
+      resetSettings: vi.fn(),
+      settings: { modelKey: MODEL_KEYS.HEYGEN_VOICE },
+      setType: mocks.setType,
+      type: 'voice',
+      updateSettings: vi.fn(),
+    });
+
+    render(<StudioPlaygroundWorkspace />);
+    await act(async () => {});
+
+    expect(mocks.updateSettings).toHaveBeenCalledWith({
+      modelKey: AUTO_MODEL_OPTION_VALUE,
+      prioritize: RouterPriority.QUALITY,
+    });
+  });
+
+  it('loads the speech model catalogue for voice', async () => {
+    mocks.type.value = 'voice';
+    render(<StudioPlaygroundWorkspace />);
+    await act(async () => {});
+
+    expect(mocks.modelsHook).toHaveBeenLastCalledWith(
+      ModelCategory.VOICE,
+      expect.anything(),
+    );
+  });
+
+  it('keeps an Agent handoff model in simple mode', async () => {
+    mocks.advancedMode.value = {
+      isAdvancedMode: false,
+      isLoaded: true,
+      setAdvancedMode: vi.fn(),
+    };
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        brandId: 'brand-1',
+        modelKey: 'provider/live',
+        prompt: 'From the Agent',
+        type: 'image',
+      },
+    };
+    mocks.models.value = {
+      isLoadingModels: false,
+      models: [{ key: 'provider/live' }],
+    };
+    mocks.settings.mockReturnValue({
+      resetSettings: vi.fn(),
+      settings: { modelKey: 'provider/live' },
+      setType: mocks.setType,
+      type: 'image',
+      updateSettings: vi.fn(),
+    });
+
+    render(<StudioPlaygroundWorkspace />);
+    await act(async () => {});
+
+    expect(mocks.updateSettings).not.toHaveBeenCalledWith(
+      expect.objectContaining({ modelKey: AUTO_MODEL_OPTION_VALUE }),
+    );
+  });
+
+  it('does not request references after unmount while acquiring the service', async () => {
+    const token = Promise.withResolvers<string>();
+    mocks.getToken.mockReturnValue(token.promise);
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        brandId: 'brand-1',
+        prompt: 'Original handoff',
+        references: ['old-reference'],
+        type: 'image',
+      },
+    };
+    const { unmount } = render(<StudioPlaygroundWorkspace />);
+    await waitFor(() => expect(mocks.getToken).toHaveBeenCalled());
+    unmount();
+    await act(async () => token.resolve('test-token'));
+    expect(mocks.findByIds).not.toHaveBeenCalled();
+  });
+
+  it('attaches references when the brand resolves after the first render', async () => {
+    // The common load path: the brand provider has not resolved on the first
+    // render, so the handoff is accepted on a later one. Acceptance must
+    // re-trigger the reference and model-validation effects rather than
+    // leaving them gated on a value they never observed change.
+    mocks.brandId.value = '';
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        brandId: 'brand-1',
+        modelKey: 'provider/model-x',
+        prompt: 'A neon skyline at dusk',
+        references: ['asset-1'],
+        type: 'image',
+      },
+    };
+    mocks.findByIds.mockResolvedValue([
+      {
+        category: 'image',
+        cdnUrl: 'https://cdn.example/neon.png',
+        id: 'asset-1',
+        metadataLabel: 'Neon skyline clip',
+      },
+    ]);
+
+    const { rerender } = render(<StudioPlaygroundWorkspace />);
+    expect(mocks.findByIds).not.toHaveBeenCalled();
+    expect(mocks.applyTypeSettings).not.toHaveBeenCalled();
+
+    mocks.brandId.value = 'brand-1';
+    rerender(<StudioPlaygroundWorkspace />);
+
+    await waitFor(() => {
+      expect(mocks.findByIds).toHaveBeenCalledWith(['asset-1']);
+    });
+    await waitFor(() => {
+      const composerProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+        attachedAssets: Array<{ id: string; name: string }>;
+      };
+      expect(composerProps.attachedAssets).toContainEqual(
+        expect.objectContaining({ id: 'asset-1', name: 'Neon skyline clip' }),
+      );
+    });
+    expect(mocks.findByIds).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips a handoff created under a different brand and never runs model/param fallback on it either (#4716 re-review P2)', async () => {
+    // `type` already matches the payload's type (both default to 'image'),
+    // and the model catalog carries a real allowlist that does not include
+    // the payload's model — exactly the condition the re-review found: a
+    // foreign-brand handoff whose type happens to match the current one
+    // must not let the *second* effect (model/param fallback) run against a
+    // patch that was never applied, even though its own gate only checked
+    // "was a decision already made", not "was the handoff actually accepted".
+    mocks.models.value = {
+      isLoadingModels: false,
+      models: [{ key: 'provider/model-allowed' }],
+    };
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        aspectRatio: '2.39:1',
+        brandId: 'brand-other',
+        duration: 999,
+        modelKey: 'provider/model-unavailable',
+        outputs: 99,
+        prompt: 'Should never appear',
+        type: 'image',
+      },
+    };
+
+    render(<StudioPlaygroundWorkspace />);
+
+    await waitFor(() => {
+      expect(mocks.notify).toHaveBeenCalledWith(
+        'That Studio handoff has expired or was already used. Continuing with your usual defaults.',
+      );
+    });
+    expect(mocks.applyTypeSettings).not.toHaveBeenCalled();
+    expect(screen.queryByText('Should never appear')).not.toBeInTheDocument();
+
+    // Give the (mis-gated, pre-fix) model/param effect every chance to fire.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mocks.updateSettings).not.toHaveBeenCalled();
+    expect(mocks.notify).toHaveBeenCalledTimes(1);
+  });
+  describe('audio references', () => {
+    function composer(): StudioPlaygroundComposerProps {
+      return mocks.composer.mock.calls.at(-1)?.[0];
+    }
+    function configureVideo() {
+      mocks.type.value = 'video';
+      mocks.settings.mockReturnValue({
+        settings: { modelKey: MODEL_KEYS.REPLICATE_MINIMAX_H3 },
+        resetSettings: vi.fn(),
+        setType: mocks.setType,
+        updateSettings: mocks.updateSettings,
+      });
+      mocks.models.value.models = [
+        { key: MODEL_KEYS.REPLICATE_MINIMAX_H3, provider: 'replicate' },
+      ];
+    }
+    function audioAsset(
+      id: string,
+      category: IngredientCategory,
+      label: string,
+    ) {
+      return new Ingredient({
+        id,
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        category,
+        status: IngredientStatus.GENERATED,
+        s3Key: `audio/${id}.mp3`,
+        cdnUrl: `https://cdn.example/${id}.mp3`,
+        metadata: new Metadata({
+          label,
+          duration: 6,
+          model:
+            category === IngredientCategory.VOICE
+              ? 'eleven_multilingual_v2'
+              : 'recorded-audio',
+          extension: 'mp3',
+        }),
+      });
+    }
+    it('selects a generated ElevenLabs voice from ingredient Library and forwards only its audio ID', async () => {
+      configureVideo();
+      mocks.findAllPage.mockImplementation(async (query) => ({
+        items:
+          query.categories[0] === IngredientCategory.VOICE
+            ? [
+                audioAsset(
+                  'voice-output',
+                  IngredientCategory.VOICE,
+                  'Generated narration',
+                ),
+              ]
+            : [],
+      }));
+      await renderLoaded();
+      act(() => composer().onOpenLibrary?.('audioReference'));
+      fireEvent.click(
+        await screen.findByRole('option', {
+          name: 'Reference Generated narration',
+        }),
+      );
+      expect(composer().attachedAssets).toContainEqual(
+        expect.objectContaining({
+          id: 'voice-output',
+          kind: 'audio',
+          role: 'audioReference',
+          previewUrl: undefined,
+        }),
+      );
+      act(() => composer().onPromptChange('Use this voice with the still'));
+      act(() => composer().onSubmit());
+      expect(mocks.submit).toHaveBeenLastCalledWith(
+        'Use this voice with the still',
+        expect.objectContaining({
+          audioReferenceIds: ['voice-output'],
+          imageReferenceIds: ['ingredient-1', 'img-anna'],
+          videoReferenceIds: [],
+        }),
+        expect.anything(),
+      );
+    });
+    it('limits recorded-audio uploads using the existing selected Library count and retains their role', async () => {
+      configureVideo();
+      const addFiles = vi.fn();
+      mocks.attachments.mockReturnValue({
+        addFiles,
+        attachments: [
+          {
+            id: 'selected-audio',
+            ingredientId: 'selected-audio',
+            kind: 'audio',
+            status: UploadStatus.COMPLETED,
+            previewUrl: 'recording.mp3',
+            name: 'Recording',
+          },
+        ],
+        clearAll: mocks.clearAttachments,
+        dragHandlers: {},
+        dragState: { isActive: false },
+        getCompletedAttachments: () => [
+          {
+            ingredientId: 'selected-audio',
+            kind: 'audio',
+            url: 'recording.mp3',
+          },
+        ],
+        isUploading: false,
+        removeAttachment: vi.fn(),
+      });
+      await renderLoaded();
+      const files = [
+        new File(['a'], 'recording.wav', { type: 'audio/wav' }),
+        new File(['b'], 'recording-two.mp3', { type: 'audio/mpeg' }),
+        new File(['c'], 'overflow.mp3', { type: 'audio/mpeg' }),
+        new File(['x'], 'wrong.png', { type: 'image/png' }),
+      ];
+      act(() => composer().onAddFiles(files, 'audioReference'));
+      expect(addFiles).toHaveBeenCalledWith(files.slice(0, 2));
+      expect(composer().attachedAssets).toContainEqual(
+        expect.objectContaining({ kind: 'audio', role: 'audioReference' }),
+      );
+      expect(mocks.attachments.mock.calls.at(-1)?.[0].acceptedTypes).toContain(
+        'audio/*',
+      );
+    });
+    it.each([false, true])(
+      'restores recorded uploads plus voice/music Library assets with audio kinds and stable audio ordering (saved order: %s)',
+      async (hasSavedOrder) => {
+        configureVideo();
+        mocks.attachments.mockImplementation(
+          (options: UseAttachmentsOptions) => {
+            const [items, setItems] = useState<AttachmentItem[]>([]);
+            useEffect(
+              () => setItems(options.initialAttachments ?? []),
+              [options.initialAttachments],
+            );
+            return {
+              addFiles: vi.fn(),
+              attachments: items,
+              clearAll: mocks.clearAttachments,
+              dragHandlers: {},
+              dragState: { isActive: false },
+              getCompletedAttachments: () =>
+                items.flatMap((item) =>
+                  item.ingredientId
+                    ? [
+                        {
+                          ingredientId: item.ingredientId,
+                          kind: item.kind,
+                          url: item.url ?? '',
+                        },
+                      ]
+                    : [],
+                ),
+              isUploading: false,
+              removeAttachment: vi.fn(),
+            };
+          },
+        );
+        mocks.getDraft.mockResolvedValueOnce({
+          id: 'draft-audio',
+          brandId: 'brand-1',
+          organizationId: 'org-1',
+          userId: 'user-1',
+          prompt: 'Audio restore',
+          type: 'video',
+          settingsByType: {
+            video: { modelKey: MODEL_KEYS.REPLICATE_MINIMAX_H3 },
+          },
+          knowledgeSelection: {},
+          attachments: [
+            {
+              id: 'recorded',
+              role: 'audioReference',
+              ...(hasSavedOrder ? { order: 1 } : {}),
+            },
+          ],
+          references: [
+            {
+              id: 'voice',
+              role: 'audioReference',
+              ...(hasSavedOrder ? { order: 0 } : {}),
+            },
+            {
+              id: 'music',
+              role: 'audioReference',
+              ...(hasSavedOrder ? { order: 2 } : {}),
+            },
+            {
+              id: 'still',
+              role: hasSavedOrder ? 'reference' : 'startFrame',
+              ...(hasSavedOrder ? { order: 3 } : {}),
+            },
+          ],
+          droppedReferenceIds: [],
+        });
+        mocks.findByIds.mockResolvedValueOnce([
+          audioAsset('recorded', IngredientCategory.AUDIO, 'Recorded audio'),
+          audioAsset('voice', IngredientCategory.VOICE, 'Narration'),
+          audioAsset('music', IngredientCategory.MUSIC, 'Track'),
+          new Ingredient({
+            id: 'still',
+            category: IngredientCategory.IMAGE,
+            cdnUrl: 'https://cdn.example/still.png',
+          }),
+        ]);
+        await renderLoaded();
+        await waitFor(() =>
+          expect(
+            composer().attachedAssets?.filter(
+              (asset) => asset.kind === 'audio',
+            ),
+          ).toHaveLength(3),
+        );
+        expect(
+          composer()
+            .attachedAssets?.filter((asset) => asset.kind === 'audio')
+            .every((asset) => asset.role === 'audioReference'),
+        ).toBe(true);
+        if (hasSavedOrder) {
+          act(() =>
+            composer().onPromptChange('Use @Audio1 @Audio2 @Audio3 @Image1'),
+          );
+          expect(composer().isPromptInvalid).toBe(false);
+          await waitFor(() =>
+            expect(mocks.saveDraft).toHaveBeenCalledWith(
+              'brand-1',
+              expect.objectContaining({
+                attachments: [
+                  { id: 'recorded', role: 'audioReference', order: 1 },
+                ],
+                references: [
+                  { id: 'voice', role: 'audioReference', order: 0 },
+                  { id: 'music', role: 'audioReference', order: 2 },
+                  { id: 'still', role: 'reference', order: 3 },
+                ],
+              }),
+              expect.objectContaining({ isKeepalive: false }),
+            ),
+          );
+        }
+        act(() => composer().onSubmit());
+        expect(mocks.submit).toHaveBeenLastCalledWith(
+          hasSavedOrder
+            ? 'Use @Audio1 @Audio2 @Audio3 @Image1'
+            : 'Audio restore',
+          expect.objectContaining({
+            audioReferenceIds: hasSavedOrder
+              ? ['voice', 'recorded', 'music']
+              : ['recorded', 'voice', 'music'],
+            imageReferenceIds: ['still', 'img-anna'],
+            videoReferenceIds: [],
+          }),
+          expect.anything(),
+        );
+      },
+    );
+    it('rejects audio uploads and avoids audio reads for unflagged models', async () => {
+      const addFiles = vi.fn();
+      mocks.attachments.mockReturnValue({
+        addFiles,
+        attachments: [],
+        clearAll: mocks.clearAttachments,
+        dragHandlers: {},
+        dragState: { isActive: false },
+        getCompletedAttachments: () => [],
+        isUploading: false,
+        removeAttachment: vi.fn(),
+      });
+      await renderLoaded();
+      act(() =>
+        composer().onAddFiles(
+          [new File(['x'], 'recording.wav', { type: 'audio/wav' })],
+          'audioReference',
+        ),
+      );
+      act(() => composer().onOpenLibrary?.('audioReference'));
+      expect(addFiles).not.toHaveBeenCalled();
+      expect(mocks.findAllPage).not.toHaveBeenCalled();
+      expect(mocks.notify).toHaveBeenCalledWith('audioReferenceUnsupported');
+    });
+  });
+
+  describe('composer draft', () => {
+    const savedDraft = {
+      attachments: [{ id: 'upload-1', role: 'startFrame' }],
+      brandId: 'brand-1',
+      droppedReferenceIds: ['deleted-1'],
+      id: 'draft-1',
+      knowledgeSelection: { sourceIds: ['source-1'] },
+      organizationId: 'org-1',
+      prompt: 'A slow dolly shot across a neon street',
+      references: [
+        { id: 'library-1', role: 'reference' },
+        { id: 'unresolvable-1', role: 'reference' },
+      ],
+      settingsByType: { video: { blacklist: ['blurry'] } },
+      type: 'video',
+      userId: 'user-1',
+    };
+
+    function lastComposerProps() {
+      return mocks.composer.mock.calls.at(-1)?.[0] as {
+        attachedAssets: { id: string; role: string; source: string }[];
+        onPromptChange: (value: string) => void;
+        onSubmit: () => void;
+        prompt: string;
+      };
+    }
+
+    it('restores the prompt, settings, references and uploads after a reload', async () => {
+      mocks.getDraft.mockResolvedValueOnce(savedDraft);
+      mocks.findByIds.mockResolvedValueOnce([
+        {
+          category: 'image',
+          cdnUrl: 'https://cdn.example/library.png',
+          id: 'library-1',
+          metadataLabel: 'Library still',
+        },
+        {
+          category: 'image',
+          cdnUrl: 'https://cdn.example/upload.png',
+          id: 'upload-1',
+          metadataLabel: 'Uploaded frame',
+        },
+      ]);
+
+      render(<StudioPlaygroundWorkspace />);
+
+      await waitFor(() =>
+        expect(lastComposerProps().prompt).toBe(savedDraft.prompt),
+      );
+      expect(mocks.restoreSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          settingsByType: expect.objectContaining({
+            video: expect.objectContaining({ blacklist: ['blurry'] }),
+          }),
+          type: 'video',
+        }),
+      );
+      expect(mocks.findByIds).toHaveBeenCalledWith([
+        'library-1',
+        'unresolvable-1',
+        'upload-1',
+      ]);
+      await waitFor(() =>
+        expect(
+          mocks.attachments.mock.calls.at(-1)?.[0].initialAttachments,
+        ).toEqual([
+          expect.objectContaining({
+            id: 'upload-1',
+            ingredientId: 'upload-1',
+            previewUrl: 'https://cdn.example/upload.png',
+          }),
+        ]),
+      );
+      expect(lastComposerProps().attachedAssets).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: 'library-1',
+            role: 'reference',
+            source: 'library',
+          }),
+        ]),
+      );
+      // One reference the server pruned and one the client could not load.
+      expect(mocks.notify).toHaveBeenCalledWith('draft.referencesDropped');
+    });
+
+    it('restores one Library image in both frame roles without merging their draft positions', async () => {
+      mocks.type.value = 'video';
+      mocks.settings.mockReturnValue({
+        resetSettings: vi.fn(),
+        settings: { modelKey: MODEL_KEYS.REPLICATE_MINIMAX_H3 },
+        setType: mocks.setType,
+        updateSettings: mocks.updateSettings,
+      });
+      mocks.attachments.mockReturnValue({
+        addFiles: vi.fn(),
+        attachments: [],
+        clearAll: mocks.clearAttachments,
+        dragHandlers: {},
+        dragState: { isActive: false },
+        getCompletedAttachments: () => [],
+        isUploading: false,
+        removeAttachment: vi.fn(),
+      });
+      mocks.getDraft.mockResolvedValueOnce({
+        ...savedDraft,
+        attachments: [],
+        droppedReferenceIds: [],
+        references: [
+          { id: 'same-frame', role: 'startFrame', order: 0 },
+          { id: 'same-frame', role: 'endFrame', order: 1 },
+        ],
+      });
+      mocks.findByIds.mockResolvedValueOnce([
+        {
+          id: 'same-frame',
+          category: 'image',
+          cdnUrl: 'https://cdn.example/frame.png',
+        },
+      ]);
+      render(<StudioPlaygroundWorkspace />);
+      await waitFor(() =>
+        expect(lastComposerProps().prompt).toBe(savedDraft.prompt),
+      );
+      act(() => lastComposerProps().onSubmit());
+      expect(mocks.submit).toHaveBeenCalledWith(
+        savedDraft.prompt,
+        expect.objectContaining({
+          imageReferenceIds: ['same-frame', 'img-anna'],
+          endFrameId: 'same-frame',
+        }),
+        expect.anything(),
+      );
+      await waitFor(() =>
+        expect(mocks.saveDraft).toHaveBeenCalledWith(
+          'brand-1',
+          expect.objectContaining({
+            references: [
+              { id: 'same-frame', role: 'startFrame', order: 0 },
+              { id: 'same-frame', role: 'endFrame', order: 1 },
+            ],
+          }),
+          expect.anything(),
+        ),
+      );
+    });
+
+    it('keeps a restored library end frame next to a restored uploaded start frame', async () => {
+      mocks.type.value = 'video';
+      mocks.settings.mockReturnValue({
+        resetSettings: vi.fn(),
+        settings: { modelKey: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1 },
+        setType: mocks.setType,
+        type: 'video',
+        updateSettings: vi.fn(),
+      });
+      // Real hook timing: restored uploads land one render after the
+      // Library references.
+      mocks.attachments.mockImplementation(
+        (options: { initialAttachments?: unknown[] }) => {
+          const [items, setItems] = useState<unknown[]>([]);
+          useEffect(() => {
+            setItems(options.initialAttachments ?? []);
+          }, [options.initialAttachments]);
+          return {
+            addFiles: vi.fn(),
+            attachments: items,
+            clearAll: mocks.clearAttachments,
+            dragHandlers: {},
+            dragState: { isActive: false },
+            getCompletedAttachments: () => [],
+            isUploading: false,
+            removeAttachment: vi.fn(),
+          };
+        },
+      );
+      mocks.getDraft.mockResolvedValueOnce({
+        ...savedDraft,
+        attachments: [{ id: 'upload-start', role: 'startFrame' }],
+        droppedReferenceIds: [],
+        references: [{ id: 'library-end', role: 'endFrame' }],
+        type: 'video',
+      });
+      mocks.findByIds.mockResolvedValueOnce([
+        {
+          category: 'image',
+          cdnUrl: 'https://cdn.example/end.png',
+          id: 'library-end',
+        },
+        {
+          category: 'image',
+          cdnUrl: 'https://cdn.example/start.png',
+          id: 'upload-start',
+        },
+      ]);
+
+      render(<StudioPlaygroundWorkspace />);
+
+      await waitFor(() =>
+        expect(lastComposerProps().attachedAssets).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ id: 'upload-start', role: 'startFrame' }),
+            expect.objectContaining({ id: 'library-end', role: 'endFrame' }),
+          ]),
+        ),
+      );
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(lastComposerProps().attachedAssets).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: 'library-end', role: 'endFrame' }),
+        ]),
+      );
+      expect(mocks.notify).not.toHaveBeenCalledWith(
+        'Unsupported frame or video references were cleared for the selected model.',
+      );
+    });
+
+    it('keeps a restored end frame in Auto, where the router picks a model that accepts it', async () => {
+      mocks.type.value = 'video';
+      mocks.settings.mockReturnValue({
+        resetSettings: vi.fn(),
+        settings: { modelKey: AUTO_MODEL_OPTION_VALUE },
+        setType: mocks.setType,
+        type: 'video',
+        updateSettings: vi.fn(),
+      });
+      // Real hook timing: restored uploads land one render after the
+      // Library references.
+      mocks.attachments.mockImplementation(
+        (options: { initialAttachments?: unknown[] }) => {
+          const [items, setItems] = useState<unknown[]>([]);
+          useEffect(() => {
+            setItems(options.initialAttachments ?? []);
+          }, [options.initialAttachments]);
+          return {
+            addFiles: vi.fn(),
+            attachments: items,
+            clearAll: mocks.clearAttachments,
+            dragHandlers: {},
+            dragState: { isActive: false },
+            getCompletedAttachments: () => [],
+            isUploading: false,
+            removeAttachment: vi.fn(),
+          };
+        },
+      );
+      mocks.getDraft.mockResolvedValueOnce({
+        ...savedDraft,
+        attachments: [{ id: 'upload-start', role: 'startFrame' }],
+        droppedReferenceIds: [],
+        references: [{ id: 'library-end', role: 'endFrame' }],
+        type: 'video',
+      });
+      mocks.findByIds.mockResolvedValueOnce([
+        {
+          category: 'image',
+          cdnUrl: 'https://cdn.example/end.png',
+          id: 'library-end',
+        },
+        {
+          category: 'image',
+          cdnUrl: 'https://cdn.example/start.png',
+          id: 'upload-start',
+        },
+      ]);
+
+      render(<StudioPlaygroundWorkspace />);
+
+      await waitFor(() =>
+        expect(lastComposerProps().attachedAssets).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ id: 'upload-start', role: 'startFrame' }),
+            expect.objectContaining({ id: 'library-end', role: 'endFrame' }),
+          ]),
+        ),
+      );
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(lastComposerProps().attachedAssets).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: 'library-end', role: 'endFrame' }),
+        ]),
+      );
+      expect(mocks.notify).not.toHaveBeenCalledWith(
+        'Unsupported frame or video references were cleared for the selected model.',
+      );
+    });
+
+    describe('attaching frames to a video prompt', () => {
+      function installStatefulAttachments() {
+        mocks.attachments.mockImplementation(() => {
+          const [items, setItems] = useState<
+            {
+              file: File;
+              id: string;
+              ingredientId: string;
+              kind: 'image';
+              name: string;
+              previewUrl: string;
+            }[]
+          >([]);
+          return {
+            addFiles: (files: File[]) =>
+              setItems((current) => [
+                ...current,
+                ...files.map((file) => ({
+                  file,
+                  id: `up-${file.name}`,
+                  ingredientId: `ing-${file.name}`,
+                  kind: 'image' as const,
+                  name: file.name,
+                  previewUrl: `blob:${file.name}`,
+                })),
+              ]),
+            attachments: items,
+            clearAll: mocks.clearAttachments,
+            dragHandlers: {},
+            dragState: { isActive: false },
+            getCompletedAttachments: () =>
+              items.map((item) => ({
+                ingredientId: item.ingredientId,
+                kind: item.kind,
+              })),
+            isUploading: false,
+            removeAttachment: (id: string) =>
+              setItems((current) => current.filter((item) => item.id !== id)),
+          };
+        });
+      }
+
+      function composerActions() {
+        return mocks.composer.mock.calls.at(-1)?.[0] as {
+          attachedAssets: { id: string; role: string }[];
+          onAddFiles: (files: File[], role: string) => void;
+          onSubmit: () => void;
+        };
+      }
+
+      function frameFile(name: string): File {
+        return new File(['x'], name, { type: 'image/png' });
+      }
+
+      it('keeps an end frame attached in Auto after cleanup and sends it', async () => {
+        mocks.type.value = 'video';
+        mocks.settings.mockReturnValue({
+          resetSettings: vi.fn(),
+          settings: { modelKey: AUTO_MODEL_OPTION_VALUE },
+          setType: mocks.setType,
+          type: 'video',
+          updateSettings: vi.fn(),
+        });
+        installStatefulAttachments();
+        render(<StudioPlaygroundWorkspace />);
+
+        act(() =>
+          composerActions().onAddFiles([frameFile('start.png')], 'startFrame'),
+        );
+        act(() =>
+          composerActions().onAddFiles([frameFile('end.png')], 'endFrame'),
+        );
+        await act(async () => {
+          await Promise.resolve();
+        });
+
+        expect(composerActions().attachedAssets).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ role: 'startFrame' }),
+            expect.objectContaining({ id: 'up-end.png', role: 'endFrame' }),
+          ]),
+        );
+        expect(mocks.notify).not.toHaveBeenCalledWith(
+          expect.stringContaining('cleared'),
+        );
+        act(() => composerActions().onSubmit());
+        expect(mocks.submit).toHaveBeenLastCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            endFrameId: 'ing-end.png',
+            imageReferenceIds: expect.arrayContaining(['ing-start.png']),
+          }),
+          expect.anything(),
+        );
+      });
+
+      it('still drops an end frame for a concrete model that rejects it', async () => {
+        mocks.type.value = 'video';
+        mocks.settings.mockReturnValue({
+          resetSettings: vi.fn(),
+          settings: { modelKey: MODEL_KEYS.REPLICATE_OPENAI_SORA_2 },
+          setType: mocks.setType,
+          type: 'video',
+          updateSettings: vi.fn(),
+        });
+        installStatefulAttachments();
+        render(<StudioPlaygroundWorkspace />);
+
+        act(() =>
+          composerActions().onAddFiles([frameFile('end.png')], 'endFrame'),
+        );
+        await waitFor(() =>
+          expect(composerActions().attachedAssets).not.toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({ role: 'endFrame' }),
+            ]),
+          ),
+        );
+        expect(mocks.notify).toHaveBeenCalledWith(
+          'Unsupported frame or video references were cleared for the selected model.',
+        );
+      });
+    });
+
+    it('reads the draft of the brand open in this tab', async () => {
+      render(<StudioPlaygroundWorkspace />);
+
+      await waitFor(() =>
+        expect(mocks.getDraft).toHaveBeenCalledWith(
+          'brand-1',
+          expect.any(AbortSignal),
+        ),
+      );
+    });
+
+    it('keeps edits made while draft reference assets are loading', async () => {
+      mocks.getDraft.mockResolvedValueOnce(savedDraft);
+      const pending = Promise.withResolvers<never[]>();
+      mocks.findByIds.mockReturnValueOnce(pending.promise);
+      render(<StudioPlaygroundWorkspace />);
+      await waitFor(() => expect(mocks.findByIds).toHaveBeenCalledTimes(1));
+
+      act(() => lastComposerProps().onPromptChange('My newer prompt'));
+      await act(async () => pending.resolve([]));
+
+      expect(lastComposerProps().prompt).toBe('My newer prompt');
+      expect(mocks.restoreSettings).not.toHaveBeenCalled();
+      await waitFor(() =>
+        expect(mocks.saveDraft).toHaveBeenCalledWith(
+          'brand-1',
+          expect.objectContaining({ prompt: 'My newer prompt' }),
+          expect.anything(),
+        ),
+      );
+    });
+
+    it('leaves the composer untouched when the reference lookup fails, then restores it whole', async () => {
+      mocks.getDraft.mockResolvedValue(savedDraft);
+      mocks.findByIds
+        .mockRejectedValueOnce(new Error('lookup failed'))
+        .mockResolvedValueOnce([
+          {
+            category: 'image',
+            cdnUrl: 'https://cdn.example/library.png',
+            id: 'library-1',
+          },
+        ]);
+
+      render(<StudioPlaygroundWorkspace />);
+
+      await waitFor(() => expect(mocks.findByIds).toHaveBeenCalledTimes(1));
+      expect(lastComposerProps().prompt).toBe('');
+      expect(mocks.restoreSettings).not.toHaveBeenCalled();
+
+      // The load retries; the prompt it did not apply is not an edit.
+      await waitFor(() => expect(mocks.findByIds).toHaveBeenCalledTimes(2), {
+        timeout: 4000,
+      });
+      await waitFor(() =>
+        expect(lastComposerProps().prompt).toBe(savedDraft.prompt),
+      );
+      expect(lastComposerProps().attachedAssets).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: 'library-1', source: 'library' }),
+        ]),
+      );
+      expect(mocks.saveDraft).not.toHaveBeenCalledWith(
+        'brand-1',
+        expect.objectContaining({
+          prompt: savedDraft.prompt,
+          references: [],
+        }),
+        expect.anything(),
+      );
+    });
+
+    it('never restores the saved draft over an Agent handoff', async () => {
+      mocks.getDraft.mockResolvedValue(savedDraft);
+      mocks.handoff.value = {
+        isLoading: false,
+        payload: {
+          brandId: 'brand-1',
+          prompt: 'A coast',
+          type: 'image',
+        },
+      };
+
+      render(<StudioPlaygroundWorkspace />);
+
+      await waitFor(() => expect(mocks.getDraft).toHaveBeenCalled());
+      await waitFor(() => expect(lastComposerProps().prompt).toBe('A coast'));
+      expect(mocks.restoreSettings).not.toHaveBeenCalled();
+    });
+
+    it('waits for a handoff in the URL to resolve before reading the draft', async () => {
+      mocks.handoff.value = { isLoading: true, payload: null };
+
+      render(<StudioPlaygroundWorkspace />);
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(mocks.getDraft).not.toHaveBeenCalled();
+    });
+
+    it('ignores a legacy remix ?run= link: the draft restores and autosaves', async () => {
+      mocks.searchParams.value = 'run=run-1';
+      mocks.getDraft.mockResolvedValue(savedDraft);
+
+      render(<StudioPlaygroundWorkspace />);
+
+      await waitFor(() => expect(mocks.restoreSettings).toHaveBeenCalled());
+      expect(
+        screen.queryByRole('region', { name: 'Remix run' }),
+      ).not.toBeInTheDocument();
+      act(() => lastComposerProps().onPromptChange('An edited idea'));
+
+      await waitFor(() =>
+        expect(mocks.saveDraft).toHaveBeenCalledWith(
+          'brand-1',
+          expect.objectContaining({ prompt: 'An edited idea' }),
+          expect.anything(),
+        ),
+      );
+    });
+
+    it('saves the composer shortly after a change without a saved label', async () => {
+      render(<StudioPlaygroundWorkspace />);
+      await waitFor(() => expect(mocks.getDraft).toHaveBeenCalled());
+
+      act(() => lastComposerProps().onPromptChange('A new idea'));
+
+      await waitFor(() =>
+        expect(mocks.saveDraft).toHaveBeenCalledWith(
+          'brand-1',
+          expect.objectContaining({
+            prompt: 'A new idea',
+            settingsByType: { image: { outputs: 2 } },
+            type: 'image',
+          }),
+          expect.anything(),
+        ),
+      );
+      expect(screen.queryByTestId('studio-draft-status')).toBeNull();
+    });
+
+    it('keeps the composer usable and retries when a save fails', async () => {
+      mocks.saveDraft.mockRejectedValueOnce(new Error('offline'));
+
+      render(<StudioPlaygroundWorkspace />);
+      await waitFor(() => expect(mocks.getDraft).toHaveBeenCalled());
+      act(() => lastComposerProps().onPromptChange('Keep this'));
+
+      await waitFor(() =>
+        expect(screen.getByTestId('studio-draft-status')).toHaveTextContent(
+          'draft.saveFailed',
+        ),
+      );
+      expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
+      await waitFor(() => expect(mocks.saveDraft).toHaveBeenCalledTimes(2), {
+        timeout: 4000,
+      });
+      await waitFor(() =>
+        expect(screen.queryByTestId('studio-draft-status')).toBeNull(),
+      );
+    });
+
+    it('clears the prompt and references after a successful submit and keeps settings', async () => {
+      mocks.submit.mockResolvedValueOnce(true);
+
+      render(<StudioPlaygroundWorkspace />);
+      await waitFor(() => expect(mocks.getDraft).toHaveBeenCalled());
+      act(() => lastComposerProps().onPromptChange('Ship it'));
+      await waitFor(() =>
+        expect(mocks.saveDraft).toHaveBeenCalledWith(
+          'brand-1',
+          expect.objectContaining({ prompt: 'Ship it' }),
+          expect.anything(),
+        ),
+      );
+      act(() => lastComposerProps().onSubmit());
+
+      await waitFor(() => expect(lastComposerProps().prompt).toBe(''));
+      expect(mocks.clearAttachments).toHaveBeenCalledTimes(1);
+      await waitFor(() =>
+        expect(mocks.saveDraft).toHaveBeenLastCalledWith(
+          'brand-1',
+          expect.objectContaining({
+            prompt: '',
+            references: [],
+            settingsByType: { image: { outputs: 2 } },
+          }),
+          expect.anything(),
+        ),
+      );
+    });
+
+    it('keeps the prompt when the generation was not accepted', async () => {
+      mocks.submit.mockResolvedValueOnce(false);
+
+      render(<StudioPlaygroundWorkspace />);
+      act(() => lastComposerProps().onPromptChange('Try again'));
+      act(() => lastComposerProps().onSubmit());
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(lastComposerProps().prompt).toBe('Try again');
+      expect(mocks.clearAttachments).not.toHaveBeenCalled();
+    });
+  });
+  it('previews and submits the same rich Crun intent with exact quote binding options', () => {
+    const key = 'crun/google/nano-banana-pro';
+    const controls = {
+      version: 'reviewed-1',
+      endpoint: 'google/nano-banana-pro',
+      mediaKind: 'image',
+      maxOutputs: 4,
+      isBatchSupported: false,
+      referenceRoles: { img_urls: 'image' },
+      isAutoAspectReferenceRequired: true,
+      fields: {
+        prompt: { type: 'string', isRequired: true, maxLength: 20000 },
+        aspect_ratio: {
+          type: 'string',
+          isRequired: false,
+          enum: ['1:1', '9:16'],
+          default: '1:1',
+        },
+        resolution: {
+          type: 'string',
+          isRequired: false,
+          enum: ['1K', '2K', '4K'],
+          default: '1K',
+        },
+        output_format: {
+          type: 'string',
+          isRequired: false,
+          enum: ['png', 'jpg'],
+          default: 'png',
+        },
+        img_urls: { type: 'array', isRequired: false, maxItems: 8 },
+      },
+    };
+    mocks.models.value = {
+      isLoadingModels: false,
+      models: [{ key, provider: 'crun', inputControls: controls }],
+    } as unknown as typeof mocks.models.value;
+    mocks.settings.mockReturnValue({
+      settings: {
+        ...getDefaultStudioPlaygroundSettings('image'),
+        modelKey: key,
+        resolution: '2K',
+        crunControls: {
+          modelKey: key,
+          contractVersion: controls.version,
+          outputFormat: 'jpg',
+        },
+      },
+      setType: mocks.setType,
+      updateSettings: mocks.updateSettings,
+    });
+    render(<StudioPlaygroundWorkspace />);
+    act(() =>
+      mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('Portrait of @anna'),
+    );
+    const preview = mocks.crunQuote.mock.calls.at(-1)?.[0].request;
+    expect(preview).toMatchObject({
+      model: key,
+      text: 'Portrait of Anna',
+      brandId: 'brand-1',
+      references: ['ingredient-1', 'img-anna'],
+      outputs: 2,
+      crunControls: {
+        contractVersion: controls.version,
+        aspectRatio: '9:16',
+        resolution: '2K',
+        outputFormat: 'jpg',
+      },
+    });
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+    expect(mocks.submit).toHaveBeenCalledExactlyOnceWith(
+      'Portrait of Anna',
+      expect.objectContaining({ imageReferenceIds: preview.references }),
+      {
+        crunRequest: preview,
+        getCurrentCrunQuote: expect.any(Function),
+        originalText: 'Portrait of @anna',
+      },
+    );
+  });
+
+  describe('Crun recipe frame restoration', () => {
+    const startId = '11111111-1111-4111-8111-111111111111';
+    const endId = '22222222-2222-4222-8222-222222222222';
+    const key = 'crun/kling/v2-5-turbo-pro';
+    function recipeJob(): StudioPlaygroundJob {
+      return {
+        id: 'video-recipe',
+        createdAt: 1,
+        prompt: 'Submitted motion',
+        type: 'video',
+        status: IngredientStatus.GENERATED,
+        recipe: {
+          type: 'video',
+          text: 'Submitted motion',
+          originalText: 'Submitted motion',
+          modelKey: key,
+          outputs: 4,
+          duration: 10,
+          references: [startId],
+          endFrameId: endId,
+          blacklist: [],
+          tags: [],
+          isAudioEnabled: false,
+          crunControls: {
+            modelKey: key,
+            contractVersion: 'reviewed-video-v1',
+            negativePrompt: '  exact negative bytes  ',
+            guidanceScale: 0,
+          },
+        },
+      };
+    }
+    function frame(id: string) {
+      return {
+        id,
+        category: IngredientCategory.IMAGE,
+        brandId: 'brand-1',
+        isDeleted: false,
+        cdnUrl: `https://cdn.example/${id}.png`,
+      };
+    }
+    function composer() {
+      return mocks.composer.mock.calls.at(-1)?.[0];
+    }
+    function vary(job = recipeJob()) {
+      mocks.openConfirm.mockClear();
+      act(() => mocks.results.mock.calls.at(-1)?.[0].onReprompt(job));
+      act(() => {
+        mocks.openConfirm.mock.calls.at(-1)?.[0].onConfirm?.();
+      });
+    }
+    beforeEach(() => {
+      mocks.type.value = 'video';
+      mocks.preserveSettings.value = true;
+      characterMentionMocks.resolveSubmit.mockImplementation(
+        ({ existingReferenceIds, text }) => ({
+          notices: [],
+          referenceIds: existingReferenceIds,
+          text,
+        }),
+      );
+      mocks.models.value = {
+        isLoadingModels: false,
+        models: [
+          { key, ...{ provider: 'crun', inputControls: controlsFor() } },
+        ],
+      };
+      mocks.settings.mockReturnValue({
+        settings: {
+          ...getDefaultStudioPlaygroundSettings('video'),
+          modelKey: key,
+          duration: 5,
+          resolution: '',
+          crunControls: {
+            modelKey: key,
+            contractVersion: 'reviewed-video-v1',
+            guidanceScale: 0.5,
+          },
+        },
+      });
+      mocks.attachments.mockReturnValue({
+        ...mocks.attachments(),
+        getCompletedAttachments: () => [],
+      });
+      mocks.gallery.mockReturnValue({
+        isLoadingGallery: false,
+        refresh: vi.fn(),
+        storedJobs: [recipeJob()],
+      });
+    });
+    it.each(['loading', 'missing-controls', 'wrong-media'] as const)(
+      'preserves saved Crun frames until the %s catalog resolves, then clears them for settled Veo',
+      async (state) => {
+        mocks.models.value = {
+          isLoadingModels: state === 'loading',
+          models:
+            state === 'loading'
+              ? []
+              : [
+                  {
+                    key,
+                    provider: 'crun',
+                    ...(state === 'wrong-media'
+                      ? {
+                          inputControls: {
+                            ...controlsFor(),
+                            mediaKind: 'image',
+                          },
+                        }
+                      : {}),
+                  },
+                ],
+        } as unknown as typeof mocks.models.value;
+        mocks.getDraft.mockResolvedValueOnce({
+          id: 'saved-crun-frames',
+          brandId: 'brand-1',
+          organizationId: 'org-1',
+          userId: 'user-1',
+          prompt: 'Saved motion',
+          type: 'video',
+          attachments: [],
+          references: [
+            { id: startId, role: 'startFrame' },
+            { id: endId, role: 'endFrame' },
+          ],
+          droppedReferenceIds: [],
+          knowledgeSelection: {},
+          settingsByType: { video: mocks.settings().settings },
+        });
+        mocks.findByIds.mockResolvedValueOnce([frame(endId), frame(startId)]);
+        const removeAttachment = mocks.attachments().removeAttachment;
+        const view = render(<StudioPlaygroundWorkspace />);
+        await waitFor(() =>
+          expect(composer().attachedAssets).toEqual([
+            expect.objectContaining({ id: startId, role: 'startFrame' }),
+            expect.objectContaining({ id: endId, role: 'endFrame' }),
+          ]),
+        );
+        expect(mocks.crunQuote.mock.calls.at(-1)?.[0].request).toBeNull();
+        expect(mocks.notify).not.toHaveBeenCalled();
+        expect(removeAttachment).not.toHaveBeenCalled();
+        expect(mocks.submit).not.toHaveBeenCalled();
+        mocks.models.value = {
+          isLoadingModels: false,
+          models: [{ key, provider: 'crun', inputControls: controlsFor() }],
+        } as unknown as typeof mocks.models.value;
+        view.rerender(<StudioPlaygroundWorkspace />);
+        await waitFor(() =>
+          expect(mocks.crunQuote.mock.calls.at(-1)?.[0].request).toMatchObject({
+            model: key,
+            text: 'Saved motion',
+            references: [startId],
+            endFrame: endId,
+          }),
+        );
+        expect(mocks.notify).not.toHaveBeenCalled();
+        const veoKey = 'crun/google/veo3-1-fast-t2v';
+        const veoControls = controlsFor('google/veo3-1-fast-t2v');
+        mocks.models.value = {
+          isLoadingModels: false,
+          models: [
+            { key: veoKey, provider: 'crun', inputControls: veoControls },
+          ],
+        } as unknown as typeof mocks.models.value;
+        mocks.settings.mockReturnValue({
+          settings: {
+            ...getDefaultStudioPlaygroundSettings('video'),
+            modelKey: veoKey,
+            duration: 8,
+            aspectRatio: '16:9',
+            resolution: '720p',
+            crunControls: {
+              modelKey: veoKey,
+              contractVersion: veoControls.version,
+              translatePrompt: true,
+            },
+          },
+        });
+        view.rerender(<StudioPlaygroundWorkspace />);
+        await waitFor(() => expect(composer().attachedAssets).toEqual([]));
+        await waitFor(() =>
+          expect(mocks.crunQuote.mock.calls.at(-1)?.[0].request).toMatchObject({
+            model: veoKey,
+            references: [],
+            crunControls: {
+              contractVersion: veoControls.version,
+              duration: 8,
+              aspectRatio: '16:9',
+              resolution: '720p',
+              translatePrompt: true,
+            },
+          }),
+        );
+        expect(
+          mocks.crunQuote.mock.calls.at(-1)?.[0].request,
+        ).not.toHaveProperty('endFrame');
+        expect(mocks.submit).not.toHaveBeenCalled();
+      },
+    );
+    it('reloads the submitted recipe and restores ordered owned frames without submitting', async () => {
+      window.sessionStorage.clear();
+      writeStudioPlaygroundSessionJobs('brand-1', [recipeJob()]);
+      const stored = readStudioPlaygroundSessionJobs('brand-1')[0];
+      if (!stored) throw new Error('Expected stored recipe');
+      mocks.findByIds.mockResolvedValue([frame(endId), frame(startId)]);
+      await renderLoaded();
+      vary(stored);
+      expect(composer().isCrunRestoreBlocked).toBe(true);
+      expect(mocks.crunQuote.mock.calls.at(-1)?.[0].request).toBeNull();
+      await waitFor(() => expect(composer().prompt).toBe('Submitted motion'));
+      expect(mocks.findByIds).toHaveBeenCalledWith([startId, endId]);
+      expect(composer()).toMatchObject({
+        crunStartFrameId: startId,
+        crunEndFrameId: endId,
+        isCrunRestoreBlocked: false,
+      });
+      expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
+        'video',
+        expect.objectContaining({
+          duration: 10,
+          resolution: '',
+          crunControls: expect.objectContaining({
+            negativePrompt: '  exact negative bytes  ',
+            guidanceScale: 0,
+          }),
+        }),
+      );
+      expect(mocks.clearAttachments).toHaveBeenCalledOnce();
+      expect(mocks.submit).not.toHaveBeenCalled();
+      act(() => composer().onPromptChange('Deliberate edit'));
+      expect(mocks.crunQuote.mock.calls.at(-1)?.[0].request).toMatchObject({
+        model: key,
+        text: 'Deliberate edit',
+        references: [startId],
+        endFrame: endId,
+      });
+    });
+    it.each(['missing', 'deleted', 'foreign', 'nonimage', 'unusable'])(
+      'leaves the composer unchanged and admission blocked for a %s frame',
+      async (reason) => {
+        const asset = frame(startId);
+        const bad =
+          reason === 'deleted'
+            ? { ...asset, isDeleted: true }
+            : reason === 'foreign'
+              ? { ...asset, brandId: 'brand-2' }
+              : reason === 'nonimage'
+                ? { ...asset, category: IngredientCategory.VIDEO }
+                : reason === 'unusable'
+                  ? { ...asset, cdnUrl: '' }
+                  : null;
+        mocks.findByIds.mockResolvedValue([
+          ...(bad ? [bad] : []),
+          frame(endId),
+        ]);
+        await renderLoaded();
+        act(() => composer().onPromptChange('Keep prior composer'));
+        vary();
+        await waitFor(() =>
+          expect(mocks.notify).toHaveBeenCalledWith(
+            'crun.referenceUnavailable',
+          ),
+        );
+        expect(composer().prompt).toBe('Keep prior composer');
+        expect(composer().isCrunRestoreBlocked).toBe(true);
+        expect(mocks.crunQuote.mock.calls.at(-1)?.[0].request).toBeNull();
+        expect(mocks.applyTypeSettings).not.toHaveBeenCalled();
+        act(() => composer().onSubmit());
+        expect(mocks.submit).not.toHaveBeenCalled();
+        act(() => composer().onPromptChange('New deliberate intent'));
+        expect(composer().isCrunRestoreBlocked).toBe(false);
+      },
+    );
+    it('rejects a stale contract version without looking up frames', async () => {
+      const job = recipeJob();
+      if (!job.recipe?.crunControls) throw new Error('Expected controls');
+      job.recipe.crunControls.contractVersion = 'old';
+      await renderLoaded();
+      vary(job);
+      expect(mocks.notify).toHaveBeenCalledWith('crun.videoQuoteStale');
+      expect(mocks.findByIds).not.toHaveBeenCalled();
+      expect(composer().isCrunRestoreBlocked).toBe(true);
+      expect(mocks.crunQuote.mock.calls.at(-1)?.[0].request).toBeNull();
+    });
+    it.each([
+      'prompt',
+      'brand',
+      'organization',
+      'session',
+      'brand round trip',
+      'unmount',
+      'new Vary',
+    ])(
+      'discards an in-flight frame restore after %s changes',
+      async (change) => {
+        const pending = Promise.withResolvers<ReturnType<typeof frame>[]>();
+        mocks.findByIds.mockReturnValueOnce(pending.promise);
+        const view = await renderLoaded();
+        vary();
+        await waitFor(() => expect(mocks.findByIds).toHaveBeenCalledOnce());
+        if (change === 'prompt')
+          act(() => composer().onPromptChange('Newer text'));
+        else if (change === 'unmount') view.unmount();
+        else if (change === 'new Vary') {
+          const next = recipeJob();
+          if (!next.recipe) throw new Error('Expected recipe');
+          next.recipe = {
+            ...next.recipe,
+            crunControls: undefined,
+            references: [],
+            endFrameId: undefined,
+            text: 'Legacy current selection',
+            originalText: undefined,
+          };
+          vary(next);
+        } else {
+          if (change === 'organization') mocks.organizationId.value = 'org-2';
+          else if (change === 'session')
+            mocks.authIdentity.value = 'identity-2';
+          else mocks.brandId.value = 'brand-2';
+          view.rerender(<StudioPlaygroundWorkspace />);
+          if (change === 'brand round trip') {
+            mocks.brandId.value = 'brand-1';
+            view.rerender(<StudioPlaygroundWorkspace />);
+          }
+        }
+        mocks.applyTypeSettings.mockClear();
+        await act(async () => pending.resolve([frame(startId), frame(endId)]));
+        expect(mocks.applyTypeSettings).not.toHaveBeenCalled();
+        expect(composer().prompt).not.toBe('Submitted motion');
+      },
+    );
+    it('keeps a newer Crun recipe when an earlier image-edit restore completes', async () => {
+      const editId = '33333333-3333-4333-8333-333333333333';
+      const pending = Promise.withResolvers<ReturnType<typeof frame>[]>();
+      mocks.findByIds.mockReturnValueOnce(pending.promise);
+      mocks.findByIds.mockResolvedValueOnce([frame(startId), frame(endId)]);
+      const editingJob = recipeJob();
+      if (!editingJob.recipe) throw new Error('Expected recipe');
+      editingJob.type = 'image-edit';
+      editingJob.recipe = {
+        ...editingJob.recipe,
+        type: 'image-edit',
+        text: 'Exact editing instructions',
+        originalText: 'Exact editing instructions',
+        modelKey: MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
+        references: [editId],
+        endFrameId: undefined,
+        crunControls: undefined,
+        imageEdit: {
+          contractVersion: IMAGE_EDIT_CONTRACT_VERSION,
+          operation: 'image-edit',
+          model: MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
+          sourceIds: [editId],
+          size: 'source',
+          quality: 'medium',
+          outputs: 1,
+        },
+      };
+      await renderLoaded();
+      vary(editingJob);
+      await waitFor(() => expect(mocks.findByIds).toHaveBeenCalledOnce());
+      vary();
+      await waitFor(() => expect(composer().prompt).toBe('Submitted motion'));
+      await act(async () => pending.resolve([frame(editId)]));
+      expect(composer()).toMatchObject({
+        prompt: 'Submitted motion',
+        crunStartFrameId: startId,
+        crunEndFrameId: endId,
+        isCrunRestoreBlocked: false,
+      });
+      expect(composer().attachedAssets).not.toContainEqual(
+        expect.objectContaining({ id: editId }),
+      );
+      expect(mocks.submit).not.toHaveBeenCalled();
+    });
+    it('keeps a newer Crun recipe when an earlier Library source lookup completes', async () => {
+      const editId = '33333333-3333-4333-8333-333333333333';
+      const pending = Promise.withResolvers<ReturnType<typeof frame>[]>();
+      mocks.searchParams.value = `editImage=${editId}`;
+      mocks.findByIds.mockReturnValueOnce(pending.promise);
+      mocks.findByIds.mockResolvedValueOnce([frame(startId), frame(endId)]);
+      await renderLoaded();
+      await waitFor(() =>
+        expect(mocks.findByIds).toHaveBeenCalledWith([editId]),
+      );
+      vary();
+      await waitFor(() => expect(composer().prompt).toBe('Submitted motion'));
+      mocks.applyTypeSettings.mockClear();
+      await act(async () => pending.resolve([frame(editId)]));
+      expect(mocks.applyTypeSettings).not.toHaveBeenCalled();
+      expect(composer()).toMatchObject({
+        prompt: 'Submitted motion',
+        crunStartFrameId: startId,
+        crunEndFrameId: endId,
+        isCrunRestoreBlocked: false,
+      });
+      expect(mocks.submit).not.toHaveBeenCalled();
+    });
+    it('keeps a newer Library editing source when an earlier Crun restore completes', async () => {
+      const editId = '33333333-3333-4333-8333-333333333333';
+      const pending = Promise.withResolvers<ReturnType<typeof frame>[]>();
+      mocks.findByIds.mockReturnValueOnce(pending.promise);
+      const view = await renderLoaded();
+      vary();
+      await waitFor(() => expect(mocks.findByIds).toHaveBeenCalledOnce());
+      mocks.findByIds.mockResolvedValueOnce([frame(editId)]);
+      mocks.searchParams.value = `editImage=${editId}`;
+      view.rerender(<StudioPlaygroundWorkspace />);
+      await waitFor(() =>
+        expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
+          'image-edit',
+          expect.objectContaining({ editPrimaryId: editId }),
+        ),
+      );
+      mocks.applyTypeSettings.mockClear();
+      await act(async () => pending.resolve([frame(startId), frame(endId)]));
+      expect(mocks.applyTypeSettings).not.toHaveBeenCalled();
+      expect(composer().prompt).toBe('');
+      expect(composer().isCrunRestoreBlocked).toBe(false);
+      expect(composer().attachedAssets).toContainEqual(
+        expect.objectContaining({ id: editId, role: 'editSource' }),
+      );
+      expect(mocks.submit).not.toHaveBeenCalled();
+    });
+    it('loads a legacy recipe with cleared residuals and obtains a fresh current quote', async () => {
+      const job = recipeJob();
+      if (!job.recipe) throw new Error('Expected recipe');
+      job.recipe = {
+        ...job.recipe,
+        crunControls: undefined,
+        references: [],
+        endFrameId: undefined,
+      };
+      await renderLoaded();
+      vary(job);
+      expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
+        'video',
+        expect.objectContaining({ crunControls: undefined }),
+      );
+      expect(mocks.clearAttachments).toHaveBeenCalledOnce();
+      expect(composer().isCrunRestoreBlocked).toBe(false);
+      expect(mocks.crunQuote.mock.calls.at(-1)?.[0].request).toMatchObject({
+        model: key,
+        text: 'Submitted motion',
+      });
+      expect(mocks.submit).not.toHaveBeenCalled();
+    });
+    it('excludes negative text from saved generic draft settings while retaining the current composer', async () => {
+      const settings = {
+        ...getDefaultStudioPlaygroundSettings('video'),
+        modelKey: key,
+        duration: 5,
+        resolution: '',
+        crunControls: {
+          modelKey: key,
+          contractVersion: 'reviewed-video-v1',
+          guidanceScale: 0,
+          negativePrompt: 'private current negative',
+        },
+      };
+      mocks.settings.mockReturnValue({
+        settings,
+        settingsByType: { video: settings },
+      });
+      render(<StudioPlaygroundWorkspace />);
+      act(() => composer().onPromptChange('Save current draft'));
+      await waitFor(() =>
+        expect(mocks.saveDraft).toHaveBeenCalledWith(
+          'brand-1',
+          expect.objectContaining({ prompt: 'Save current draft' }),
+          expect.anything(),
+        ),
+      );
+      const draft = mocks.saveDraft.mock.calls.at(-1)?.[1];
+      expect(draft.settingsByType.video.crunControls).toEqual({
+        modelKey: key,
+        contractVersion: 'reviewed-video-v1',
+        guidanceScale: 0,
+      });
+      expect(settings.crunControls.negativePrompt).toBe(
+        'private current negative',
+      );
+    });
+  });
+
+  describe('Library image editing entry', () => {
+    it('opens a source-only draft and reacts to changing the source query on the same route', async () => {
+      mocks.searchParams.value = 'editImage=source-1';
+      mocks.findByIds.mockImplementation(async (ids: string[]) =>
+        ids.map((id) => ({
+          id,
+          brandId: 'brand-1',
+          category: 'IMAGE',
+          status: 'GENERATED',
+          cdnUrl: 'https://example.com/source.png',
+          promptText: 'Old generation prompt',
+        })),
+      );
+      const { rerender } = render(<StudioPlaygroundWorkspace />);
+      await waitFor(() =>
+        expect(mocks.applyTypeSettings).toHaveBeenCalledWith('image-edit', {
+          editSize: 'source',
+          editSeed: undefined,
+          editPrimaryId: 'source-1',
+        }),
+      );
+      expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe('');
+      expect(
+        mocks.composer.mock.calls.at(-1)?.[0].attachedAssets,
+      ).toContainEqual(
+        expect.objectContaining({ id: 'source-1', role: 'editSource' }),
+      );
+      mocks.searchParams.value = 'editImage=source-2';
+      mocks.openConfirm.mockClear();
+      rerender(<StudioPlaygroundWorkspace />);
+      // The first source now owns the draft, so the second asks first.
+      await waitFor(() => expect(mocks.openConfirm).toHaveBeenCalledOnce());
+      act(() => {
+        mocks.openConfirm.mock.calls.at(-1)?.[0].onConfirm();
+      });
+      await waitFor(() =>
+        expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
+          'image-edit',
+          expect.objectContaining({ editPrimaryId: 'source-2' }),
+        ),
+      );
+      expect(
+        mocks.composer.mock.calls.at(-1)?.[0].attachedAssets,
+      ).not.toContainEqual(expect.objectContaining({ id: 'source-1' }));
+    });
+    it('restores the saved draft and keeps it until Replace draft is confirmed', async () => {
+      mocks.searchParams.value = 'editImage=source-1';
+      window.history.replaceState(null, '', '/?editImage=source-1');
+      mocks.getDraft.mockResolvedValueOnce({
+        attachments: [],
+        brandId: 'brand-1',
+        droppedReferenceIds: [],
+        id: 'draft-1',
+        knowledgeSelection: { sourceIds: [] },
+        organizationId: 'org-1',
+        prompt: 'Keep my saved draft',
+        references: [],
+        settingsByType: {},
+        type: 'image',
+        userId: 'user-1',
+      });
+      mocks.findByIds.mockImplementation(async (ids: string[]) =>
+        ids.map((id) => ({
+          id,
+          brandId: 'brand-1',
+          category: 'IMAGE',
+          status: 'GENERATED',
+          cdnUrl: 'https://example.com/source.png',
+        })),
+      );
+      render(<StudioPlaygroundWorkspace />);
+
+      await waitFor(() => expect(mocks.openConfirm).toHaveBeenCalledOnce());
+      expect(mocks.findByIds).toHaveBeenCalledWith(['source-1']);
+      expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe(
+        'Keep my saved draft',
+      );
+      expect(mocks.applyTypeSettings).not.toHaveBeenCalled();
+      expect(window.location.search).toBe('');
+
+      act(() => {
+        mocks.openConfirm.mock.calls.at(-1)?.[0].onConfirm();
+      });
+      await waitFor(() =>
+        expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
+          'image-edit',
+          expect.objectContaining({ editPrimaryId: 'source-1' }),
+        ),
+      );
+      expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe('');
+      expect(
+        mocks.composer.mock.calls.at(-1)?.[0].attachedAssets,
+      ).toContainEqual(
+        expect.objectContaining({ id: 'source-1', role: 'editSource' }),
+      );
+    });
+    it('carries 16:9 into the editor and does not keep a generation model', async () => {
+      mocks.searchParams.value = 'editImage=source-wide';
+      mocks.findByIds.mockImplementation(async (ids: string[]) =>
+        ids.map((id) => ({
+          id,
+          brandId: 'brand-1',
+          category: 'IMAGE',
+          status: 'GENERATED',
+          cdnUrl: 'https://example.com/wide.png',
+          promptText: 'Wide shot',
+          metadataModel: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3,
+          width: 1920,
+          height: 1080,
+        })),
+      );
+      render(<StudioPlaygroundWorkspace />);
+      await waitFor(() =>
+        expect(mocks.applyTypeSettings).toHaveBeenCalledWith('image-edit', {
+          editSize: 'source',
+          editSeed: undefined,
+          editPrimaryId: 'source-wide',
+          aspectRatio: '16:9',
+          modelKey: DEFAULT_IMAGE_EDIT_MODEL_KEY,
+        }),
+      );
+      expect(mocks.notify).toHaveBeenCalledWith('editImage.modelFallback');
+      expect(mocks.notify).not.toHaveBeenCalledWith(
+        'editImage.aspectRatioFallback',
+      );
+    });
+    it('keeps an editor model and matches the source when the ratio is unsupported', async () => {
+      mocks.searchParams.value = 'editImage=source-cinema';
+      mocks.findByIds.mockImplementation(async (ids: string[]) =>
+        ids.map((id) => ({
+          id,
+          brandId: 'brand-1',
+          category: 'IMAGE',
+          status: 'GENERATED',
+          cdnUrl: 'https://example.com/cinema.png',
+          promptText: 'Cinematic',
+          metadataModel:
+            MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
+          imageEdit: { aspectRatio: '2.39:1' },
+        })),
+      );
+      render(<StudioPlaygroundWorkspace />);
+      await waitFor(() =>
+        expect(mocks.applyTypeSettings).toHaveBeenCalledWith('image-edit', {
+          editSize: 'source',
+          editSeed: undefined,
+          editPrimaryId: 'source-cinema',
+          aspectRatio: 'auto',
+          modelKey: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
+        }),
+      );
+      expect(mocks.notify).toHaveBeenCalledWith(
+        'editImage.aspectRatioFallback',
+      );
+    });
+    it('matches the source pixels when they are not a selectable ratio', async () => {
+      mocks.searchParams.value = 'editImage=source-anamorphic';
+      mocks.findByIds.mockImplementation(async (ids: string[]) =>
+        ids.map((id) => ({
+          id,
+          brandId: 'brand-1',
+          category: 'IMAGE',
+          status: 'GENERATED',
+          cdnUrl: 'https://example.com/anamorphic.png',
+          promptText: 'Anamorphic',
+          width: 1920,
+          height: 800,
+        })),
+      );
+      render(<StudioPlaygroundWorkspace />);
+      await waitFor(() =>
+        expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
+          'image-edit',
+          expect.objectContaining({
+            editPrimaryId: 'source-anamorphic',
+            aspectRatio: 'auto',
+          }),
+        ),
+      );
+      expect(mocks.applyTypeSettings).not.toHaveBeenCalledWith(
+        'image-edit',
+        expect.objectContaining({ aspectRatio: '21:9' }),
+      );
+      expect(mocks.notify).toHaveBeenCalledWith(
+        'editImage.aspectRatioFallback',
+      );
+    });
+    it('keeps a recorded 16:9 and the ledger model without using portrait placeholders', async () => {
+      mocks.searchParams.value = 'editImage=source-recorded';
+      mocks.findByIds.mockImplementation(async (ids: string[]) =>
+        ids.map((id) => ({
+          id,
+          brandId: 'brand-1',
+          category: 'IMAGE',
+          status: 'GENERATED',
+          cdnUrl: 'https://example.com/recorded.png',
+          promptText: 'Wide shot',
+          aspectRatio: '16:9',
+          metadataWidth: 1080,
+          metadataHeight: 1920,
+          modelUsed: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3,
+        })),
+      );
+      render(<StudioPlaygroundWorkspace />);
+      await waitFor(() =>
+        expect(mocks.applyTypeSettings).toHaveBeenCalledWith('image-edit', {
+          editSize: 'source',
+          editSeed: undefined,
+          editPrimaryId: 'source-recorded',
+          aspectRatio: '16:9',
+          modelKey: DEFAULT_IMAGE_EDIT_MODEL_KEY,
+        }),
+      );
+      expect(mocks.applyTypeSettings).not.toHaveBeenCalledWith(
+        'image-edit',
+        expect.objectContaining({ aspectRatio: '9:16' }),
+      );
+      expect(mocks.applyTypeSettings).not.toHaveBeenCalledWith(
+        'image-edit',
+        expect.objectContaining({ aspectRatio: '1:1' }),
+      );
+      expect(mocks.notify).toHaveBeenCalledWith('editImage.modelFallback');
+    });
+    it('keeps an edit model stored only on the image-edit recipe', async () => {
+      mocks.searchParams.value = 'editImage=source-edited';
+      mocks.findByIds.mockImplementation(async (ids: string[]) =>
+        ids.map((id) => ({
+          id,
+          brandId: 'brand-1',
+          category: 'IMAGE',
+          status: 'GENERATED',
+          cdnUrl: 'https://example.com/edited.png',
+          promptText: 'Edited',
+          imageEdit: {
+            aspectRatio: '16:9',
+            model: MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
+          },
+        })),
+      );
+      render(<StudioPlaygroundWorkspace />);
+      await waitFor(() =>
+        expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
+          'image-edit',
+          expect.objectContaining({
+            editPrimaryId: 'source-edited',
+            aspectRatio: '16:9',
+            modelKey: MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
+          }),
+        ),
+      );
+    });
+    it('sends editing instructions without parsing skills or character mentions', async () => {
+      mocks.type.value = 'image-edit';
+      mocks.submit.mockResolvedValue(true);
+      render(<StudioPlaygroundWorkspace />);
+      const props = mocks.composer.mock.calls.at(-1)?.[0];
+      act(() => props.onPromptChange('/cinema keep @anna unchanged'));
+      act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+      await waitFor(() =>
+        expect(mocks.submit).toHaveBeenCalledWith(
+          '/cinema keep @anna unchanged',
+          expect.any(Object),
+        ),
+      );
+      expect(mocks.resolvePromptCommands).not.toHaveBeenCalled();
+      expect(characterMentionMocks.resolveSubmit).not.toHaveBeenCalled();
+    });
+  });
+});
+
+it('supplies unique canonical current-brand persisted rows to shared recovery without deletion capability', async () => {
+  const ingredient = {
+    id: 'saved',
+    brandId: mocks.brandId.value,
+    category: IngredientCategory.IMAGE,
+    status: IngredientStatus.FAILED,
+  } as IIngredient;
+  const row: StudioPlaygroundJob = {
+    id: 'saved',
+    ingredientId: 'saved',
+    ingredient,
+    status: IngredientStatus.FAILED,
+    createdAt: 1,
+    type: 'image',
+    prompt: 'Saved',
+  };
+  const refresh = vi.fn().mockResolvedValue(undefined);
+  mocks.gallery.mockReturnValue({
+    galleryError: null,
+    isLoadingGallery: false,
+    refresh,
+    storedJobs: [
+      row,
+      row,
+      {
+        ...row,
+        id: 'foreign',
+        ingredientId: 'foreign',
+        ingredient: { ...ingredient, id: 'foreign', brandId: 'other-brand' },
+      },
+    ],
+  });
+  await act(async () => {
+    render(<StudioPlaygroundWorkspace />);
+  });
+  const props = mocks.failedRecoveryHook.mock.calls.at(-1)?.[0];
+  expect(props.ingredients).toEqual([ingredient]);
+  expect(props.scopeKey).toBe(
+    `${mocks.organizationId.value}:${mocks.brandId.value}`,
+  );
+  expect(props.deleteOptions).toBeUndefined();
+  const refreshed = vi.fn();
+  window.addEventListener(LIBRARY_ASSETS_REFRESH_EVENT, refreshed);
+  await act(async () => props.onRefresh());
+  expect(refresh).toHaveBeenCalledTimes(1);
+  expect(refreshed).toHaveBeenCalledTimes(1);
+  window.removeEventListener(LIBRARY_ASSETS_REFRESH_EVENT, refreshed);
+  const capability =
+    mocks.assetActionsHook.mock.calls.at(-1)?.[0].failedRecovery;
+  capability.onRetryFailedIngredient(ingredient);
+  expect(mocks.retryFailed).toHaveBeenCalledWith([ingredient]);
+});

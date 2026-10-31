@@ -1,0 +1,149 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "@app-i18n/*": ["./i18n/*"],
+      "@genfeedai/contracts/api-types/*": [
+        "../../packages/contracts/src/api-types/*"
+      ],
+      "@app-components/*": ["./packages/components/*"],
+      "@app-config/*": ["./packages/config/*"],
+      "@app-server/*": ["./packages/server/*"],
+      "@components/buttons/refresh/button-refresh/ButtonRefresh": [
+        "../../packages/ui/src/components/buttons/refresh/button-refresh/ButtonRefresh.tsx"
+      ],
+      "@components/lazy/lazy-modal.admin": [
+        "./packages/components/admin/lazy/lazy-modal.admin.ts"
+      ],
+      "@components/loading/fallback/LazyLoadingFallback": [
+        "../../packages/ui/src/components/loading/fallback/LazyLoadingFallback.tsx"
+      ],
+      "@components/loading/skeleton/SkeletonFallbacks": [
+        "../../packages/ui/src/components/loading/skeleton/SkeletonFallbacks.tsx"
+      ],
+      "@components/modals/actions/ModalActions": [
+        "../../packages/ui/src/components/modals/actions/ModalActions.tsx"
+      ],
+      "@components/modals/modal/Modal": [
+        "../../packages/ui/src/components/modals/modal/Modal.tsx"
+      ],
+      "@components/modals/ModalRole": [
+        "./packages/components/admin/modals/ModalRole.tsx"
+      ],
+      "@components/modals/ModalSubscription": [
+        "./packages/components/admin/modals/ModalSubscription.tsx"
+      ],
+      "@/*": ["./src/*"],
+      "@app/*": ["./app/*"],
+      "@app-tests/*": ["./tests/*"],
+      "@cloud-types/*": ["../../packages/contracts/src/types/*"],
+      "@genfeedai/agent": ["../../packages/agent/src/index.ts"],
+      "@genfeedai/agent/*": ["../../packages/agent/src/*"],
+      "@genfeedai/auth-client": ["../../packages/auth-client/src/index.ts"],
+      "@genfeedai/auth-client/*": ["../../packages/auth-client/src/*"],
+      "@genfeedai/contexts": ["../../packages/contexts/index.ts"],
+      "@genfeedai/contexts/*": ["../../packages/contexts/*"],
+      "@genfeedai/config": ["../../packages/config/src/index.ts"],
+      "@genfeedai/config/*": ["../../packages/config/src/*"],
+      "@genfeedai/contracts/desktop": [
+        "../../packages/contracts/src/desktop/index.ts"
+      ],
+      "@genfeedai/contracts/desktop/*": [
+        "../../packages/contracts/src/desktop/*"
+      ],
+      "@genfeedai/contracts/interfaces": [
+        "../../packages/contracts/src/interfaces/index.ts"
+      ],
+      "@genfeedai/contracts/interfaces/*": [
+        "../../packages/contracts/src/interfaces/*"
+      ],
+      "@genfeedai/models": ["../../packages/models/index.ts"],
+      "@genfeedai/models/*": ["../../packages/models/*"],
+      "@genfeedai/props": ["../../packages/props/index.ts"],
+      "@genfeedai/props/*": ["../../packages/props/*"],
+      "@genfeedai/providers": ["../../packages/contexts/providers"],
+      "@genfeedai/providers/*": ["../../packages/contexts/providers/*"],
+      "@genfeedai/services": ["../../packages/services/index.ts"],
+      "@genfeedai/services/*": ["../../packages/services/*"],
+      "@genfeedai/serializers/request-runtime": [
+        "../../packages/serializers/dist/request-runtime.d.ts"
+      ],
+      "@genfeedai/serializers": ["../../packages/serializers/src/index.ts"],
+      "@genfeedai/serializers/*": ["../../packages/serializers/src/*"],
+      "@genfeedai/contracts/types": [
+        "../../packages/contracts/src/types/index.ts"
+      ],
+      "@genfeedai/contracts/types/*": ["../../packages/contracts/src/types/*"],
+      "@genfeedai/utils": ["../../packages/utils/index.ts"],
+      "@genfeedai/utils/*": ["../../packages/utils/*"],
+      "@genfeedai/workflows": ["../../packages/workflows/src/index.ts"],
+      "@genfeedai/workflows/*": ["../../packages/workflows/src/*"],
+      "fullcalendar": ["./node_modules/fullcalendar/index.d.ts"],
+      "fullcalendar/*": ["./node_modules/fullcalendar/*"],
+      "@ui/primitives/card": ["./src/components/ui/card.tsx"],
+      "@config/*": ["../../packages/config/src/*"],
+      "@configs/*": ["../../packages/next-config/*"],
+      "@contexts/*": ["../../packages/contexts/*"],
+      "@genfeedai/client": ["../../packages/client/src/index.ts"],
+      "@genfeedai/client/*": ["../../packages/client/src/*"],
+      "@genfeedai/client/schemas": ["../../packages/client/src/schemas"],
+      "@genfeedai/client/schemas/*": [
+        "../../packages/client/src/schemas/*/index",
+        "../../packages/client/src/schemas/*"
+      ],
+      "@genfeedai/contracts": ["../../packages/contracts/src/index.ts"],
+      "@genfeedai/contracts/*": ["../../packages/contracts/src/*"],
+      "@genfeedai/contracts/constants": [
+        "../../packages/contracts/src/constants/index.ts"
+      ],
+      "@genfeedai/contracts/constants/*": [
+        "../../packages/contracts/src/constants/*"
+      ],
+      "@genfeedai/fonts": ["../../packages/fonts/index.ts"],
+      "@genfeedai/harness": ["../../packages/harness/src/index.ts"],
+      "@genfeedai/harness/contracts": [
+        "../../packages/harness/src/contracts/index.ts"
+      ],
+      "@genfeedai/helpers": ["../../packages/helpers/src/index.ts"],
+      "@genfeedai/helpers/*": ["../../packages/helpers/src/*"],
+      "@genfeedai/pricing": ["../../packages/pricing/src/index.ts"],
+      "@genfeedai/pricing/*": ["../../packages/pricing/src/*"],
+      "@genfeedai/hooks/*": ["../../packages/hooks/*"],
+      "@genfeedai/next-config": [
+        "../../packages/next-config/next.config.base.ts"
+      ],
+      "@genfeedai/next-config/tailwind": [
+        "../../packages/next-config/tailwind.config.base.ts"
+      ],
+      "@genfeedai/ui": ["../../packages/ui/src/index.ts"],
+      "@helpers/*": ["../../packages/helpers/src/*"],
+      "@hooks/*": ["../../packages/hooks/*"],
+      "@models/*": ["../../packages/models/*"],
+      "@props/*": ["../../packages/props/*"],
+      "@protected/*": ["./app/(protected)/admin/*"],
+      "@providers/*": ["../../packages/contexts/providers/*"],
+      "@schemas/*": ["../../packages/schemas/*"],
+      "@serializers/*": ["../../packages/serializers/src/*"],
+      "@services/*": ["../../packages/services/*"],
+      "@shared/*": ["../../packages/*", "../../tests/*"],
+      "@styles/*": ["../../packages/styles/*"],
+      "@ui-constants/*": ["../../packages/ui/src/components/constants/*"],
+      "@ui/*": [
+        "../../packages/ui/src/*",
+        "../../packages/ui/src/components/*"
+      ],
+      "@ui/forms/base/form-control/FormControl": [
+        "../../packages/ui/src/primitives/field.tsx"
+      ],
+      "@utils/*": ["../../packages/utils/*"]
+    }
+  },
+  "exclude": ["**/*.spec.ts", "**/*.spec.tsx", "**/*.test.ts", "**/*.test.tsx"],
+  "extends": "../../packages/tsconfig/nextjs.json",
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/types/**/*.d.ts"
+  ]
+}

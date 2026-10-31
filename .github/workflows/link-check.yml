@@ -4,7 +4,7 @@
 # single tool covers both surfaces:
 #
 #   website-links — builds the marketing site, serves the production build, then
-#     crawls it with apps/website/scripts/check-orphans.ts. Catches (a) internal
+#     crawls it with apps/marketing/scripts/check-orphans.ts. Catches (a) internal
 #     links that 3xx-redirect instead of pointing at the canonical URL — the bug
 #     class fixed in PR #559 — and (b) orphan pages: URLs in sitemap.xml with no
 #     inbound internal link. lychee cannot do either: it does not crawl rendered

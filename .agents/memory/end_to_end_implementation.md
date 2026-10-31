@@ -9,7 +9,7 @@ topics: [workflow, implementation-quality, architecture]
 
 **Rule:** When implementing a feature or architecture change, carry it end to end. Do not ship a halfway implementation that proves one slice while leaving the intended user flow, frontend integration, backend boundary, docs, or runtime wiring unfinished.
 
-**Why:** Vincent explicitly corrected this after the desktop offline-generation work partially implemented local generation in the desktop prototype renderer instead of completing the intended architecture: one `apps/app` frontend inside Electron, shared backend action code, and Electron IPC/local services without duplicating the frontend or NestJS backend.
+**Why:** Vincent explicitly corrected this after the desktop offline-generation work partially implemented local generation in the desktop prototype renderer instead of completing the intended architecture: one `apps/web` frontend inside Electron, shared backend action code, and Electron IPC/local services without duplicating the frontend or NestJS backend.
 
 **How to apply:**
 - Before committing, verify the implementation matches the actual architecture requested, not just a convenient subset.

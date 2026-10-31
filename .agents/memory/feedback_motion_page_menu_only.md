@@ -16,7 +16,7 @@ then chose a product-wide sweep over a local fix.
 
 **How to apply:**
 - The rule is enforced in one place: `packages/styles/motion-policy.css`,
-  imported only by `apps/app/app/styles.css` (the marketing site keeps its
+  imported only by `apps/web/app/styles.css` (the marketing site keeps its
   motion). Do not re-add `transition-*`, `animate-*`, `active:scale-*` or
   framer-motion effects to elements expecting them to show; they collapse to
   0.01ms.
@@ -33,4 +33,4 @@ then chose a product-wide sweep over a local fix.
 - JS-driven motion (motion/react, animated icons) is not stopped by the CSS
   policy; keep it out of elements. `useHoverAnimatedIcon` stays only in page
   menu components.
-- The contract is pinned by `apps/app/tests/theme-css-contract.test.ts`.
+- The contract is pinned by `apps/web/tests/theme-css-contract.test.ts`.

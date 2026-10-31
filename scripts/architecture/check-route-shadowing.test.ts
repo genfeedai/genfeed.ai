@@ -210,7 +210,7 @@ describe('appRootFor', () => {
     expect(
       appRootFor('apps/server/mcp/src/mcp/controllers/mcp.controller.ts'),
     ).toBe('apps/server/mcp');
-    expect(appRootFor('apps/app/app/api/route.ts')).toBe('apps/app');
+    expect(appRootFor('apps/web/app/api/route.ts')).toBe('apps/web');
   });
 
   it('returns null for code shared across apps', () => {

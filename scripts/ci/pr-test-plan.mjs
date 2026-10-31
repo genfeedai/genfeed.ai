@@ -25,17 +25,6 @@ const FORCE_FULL_PATTERNS = [
   /^scripts\/ci\/workspace-test-matrix\.mjs$/,
 ];
 
-// Keep dormant surface definitions in the planner so they can be restored
-// without reconstructing their CI contract. Remove a group from this set when
-// that surface becomes an active delivery target again.
-//
-// This is the single source of truth for surface dormancy: `tests-gate.mjs`
-// imports it so the gate summary can label a paused surface as dormant instead
-// of reporting it as an ordinary out-of-scope skip (#2486). A dormant group is
-// forced inapplicable here even under `--run-heavy`, so the `full-suite` label
-// escalates every other group but cannot revive this one.
-export const TEMPORARILY_DISABLED_TEST_GROUPS = new Set(['ide-extension']);
-
 // A queue checkout includes all proposed changes above its frozen base.
 // Master/release validation still forces both surfaces on.
 const CHANGE_RUN_EVENTS = new Set(['pull_request', 'merge_group']);
@@ -45,12 +34,11 @@ export function isChangeRunEvent(eventName) {
 }
 
 const TURBO_TEST_GROUPS = {
-  'browser-extension': ['--filter=@genfeedai/extension-browser'],
-  'ide-extension': ['--filter=extension-ide'],
+  'browser-extension': ['--filter=@genfeedai/extension'],
   packages: ['--filter=./packages/*'],
   server: ['--filter=./apps/server/*', '--filter=!@genfeedai/api'],
   web: [
-    '--filter=@genfeedai/website',
+    '--filter=@genfeedai/marketing',
     '--filter=@genfeedai/docs',
     // Temporarily disabled while desktop is not an active delivery surface:
     '--filter=@genfeedai/mobile',
@@ -71,7 +59,7 @@ export function classifyChangedFiles(changedFiles) {
     return { api: true, app: true, forceFull: true };
   }
 
-  const app = matchesAny(changedFiles, [/^apps\/app(?:\/|$)/, /^packages\//]);
+  const app = matchesAny(changedFiles, [/^apps\/web(?:\/|$)/, /^packages\//]);
   const api = matchesAny(changedFiles, [
     /^apps\/server\/api(?:\/|$)/,
     /^packages\//,
@@ -90,7 +78,7 @@ export function appliesMcpAuthRuntime(
     runHeavy ||
     !Array.isArray(changedFiles) ||
     changedFiles.some((file) =>
-      /^(?:apps\/server\/|packages\/|apps\/app\/.*(?:oauth|consent)|scripts\/ci\/|\.github\/(?:workflows\/ci\.yml|actions\/setup-bun-env\/)|(?:package\.json|bun\.lock|turbo\.json|tsconfig[^/]*\.json|Dockerfile[^/]*|patches\/|apps\/server\/Dockerfile))/.test(
+      /^(?:apps\/server\/|packages\/|apps\/web\/.*(?:oauth|consent)|scripts\/ci\/|\.github\/(?:workflows\/ci\.yml|actions\/setup-bun-env\/)|(?:package\.json|bun\.lock|turbo\.json|tsconfig[^/]*\.json|Dockerfile[^/]*|patches\/|apps\/server\/Dockerfile))/.test(
         file,
       ),
     )
@@ -241,13 +229,12 @@ export function createPrTestPlan({
   const workspaceGroups = Object.fromEntries(
     Object.entries(normalizedTurboTasks).map(([group, tasks]) => [
       group,
-      !TEMPORARILY_DISABLED_TEST_GROUPS.has(group) &&
-        (runHeavy ||
+      (runHeavy ||
           classification.forceFull ||
           tasks.length > 0 ||
           (group === 'browser-extension' &&
             changedFiles.some((file) =>
-              file.startsWith('apps/extensions/browser/'),
+              file.startsWith('apps/extension/'),
             ))),
     ]),
   );
@@ -499,7 +486,7 @@ async function runCli() {
       ? listVitestFiles({
           base,
           config: './vitest.config.mts',
-          cwd: path.join(REPOSITORY_ROOT, 'apps', 'app'),
+          cwd: path.join(REPOSITORY_ROOT, 'apps', 'web'),
         })
       : Promise.resolve([]);
   const apiTestsPromise =
@@ -515,7 +502,7 @@ async function runCli() {
   const turboTaskEntriesPromise = Promise.all(
     Object.entries(TURBO_TEST_GROUPS).map(async ([group, filters]) => [
       group,
-      !forceFull && !TEMPORARILY_DISABLED_TEST_GROUPS.has(group)
+      !forceFull
         ? await listTurboTasks(base, filters)
         : [],
     ]),

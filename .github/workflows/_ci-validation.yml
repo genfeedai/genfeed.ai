@@ -703,7 +703,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
       - name: Build app workspace
-        run: bunx turbo run build --filter='@genfeedai/app^...'
+        run: bunx turbo run build --filter='@genfeedai/web^...'
       - name: Run app tests
         env:
           FORCE_FULL: ${{ needs.plan.outputs.force_full }}
@@ -715,7 +715,7 @@ jobs:
             echo "Running app tests changed since ${CI_BASE_SHA}"
             SELECTION=(--passWithNoTests --changed "${CI_BASE_SHA}")
           fi
-          cd apps/app && bunx vitest run --config ./vitest.config.mts \
+          cd apps/web && bunx vitest run --config ./vitest.config.mts \
             --maxWorkers=2 "${SELECTION[@]}" \
             --shard=${{ matrix.shard }}/${{ matrix.total }}
 

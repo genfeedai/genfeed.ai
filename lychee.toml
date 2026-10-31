@@ -4,7 +4,7 @@
 # cannot crawl a rendered Next.js app (no recursion, no remote-HTML link
 # extraction, and its `localhost` is the container — not the runner host). The
 # website's runtime internal-link / redirect / orphan guard therefore lives in
-# apps/website/scripts/check-orphans.ts, which crawls a real running build.
+# apps/marketing/scripts/check-orphans.ts, which crawls a real running build.
 
 no_progress = true
 
@@ -41,7 +41,7 @@ exclude_path = ["node_modules", ".next", "dist", "build", ".turbo"]
 # - The production origin: root-relative app links ("/pricing", "/docs/...")
 #   are rewritten to https://genfeed.ai/* by base_url above; they resolve to
 #   Next.js/Nextra routes, not files on disk, so lychee can't verify them —
-#   apps/website's check-orphans.ts owns that guard against a real running
+#   apps/marketing's check-orphans.ts owns that guard against a real running
 #   build. Excluding the origin drops them without a network call.
 # - Loopback (no server runs during this offline scan).
 # - Hosts that aggressively block bots, producing false "dead link" reports

@@ -1,0 +1,121 @@
+'use client';
+
+import { ButtonVariant } from '@genfeedai/contracts';
+import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { Button } from '@ui/primitives/button';
+import { ArrowLeft } from 'lucide-react';
+import { Fragment, useCallback } from 'react';
+import MenuItem from '@/components/menus/item/MenuItem';
+
+import { useMenuRouteResolution } from '../shared/useMenuRouteResolution';
+
+interface SidebarNestedProps {
+  /** Group label displayed in the back-button header */
+  groupLabel: string;
+  /** Label for the back button — defaults to groupLabel if not provided */
+  backLabel?: string;
+  /** Items to display in the flat list */
+  items: MenuItemConfig[];
+  /** Callback when user clicks the back button */
+  onBack: () => void;
+  /** Callback when user clicks any menu item (e.g. close mobile drawer) */
+  onItemClick?: () => void;
+}
+
+/**
+ * SidebarNested — Full-width (260px) single-column nested sidebar view.
+ * Shows a `← GroupName` back button header and a flat list of group items.
+ */
+export default function SidebarNested({
+  groupLabel,
+  backLabel,
+  items,
+  onBack,
+  onItemClick,
+}: SidebarNestedProps) {
+  const { isActive, pathname, prefixHref, routeScope } =
+    useMenuRouteResolution();
+  const isActiveItem = useCallback(
+    (item: MenuItemConfig) => {
+      if (!item.href) {
+        return false;
+      }
+
+      if (item.hrefScope && item.hrefScope !== routeScope) {
+        return false;
+      }
+
+      return [item.href, ...(item.matchPaths ?? [])].some(
+        (path) =>
+          (!item.isExactMatch || pathname === path.split('?')[0]) &&
+          isActive(path, item.matchSearchParams),
+      );
+    },
+    [isActive, pathname, routeScope],
+  );
+  return (
+    <div className="flex flex-col size-full bg-background">
+      {/* Back button — styled as a menu row */}
+      <div className="px-3 pt-2 pb-1 flex-shrink-0">
+        <Button
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
+          onClick={onBack}
+          className={cn(
+            'flex h-9 w-full items-center gap-3 rounded-lg px-3 py-2 transition-colors duration-200 group cursor-pointer',
+            'text-foreground/80 hover:bg-foreground/5 hover:text-foreground',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
+          )}
+          ariaLabel={`Back to ${backLabel ?? groupLabel}`}
+        >
+          <ArrowLeft className="size-4 text-foreground/60 group-hover:text-foreground transition-colors duration-200" />
+          <span className="font-medium text-foreground/90">
+            {backLabel ?? groupLabel}
+          </span>
+        </Button>
+      </div>
+
+      {/* Item list */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin px-3 py-2">
+        <ul className="flex flex-col gap-0.5">
+          {items.map((item, index) => {
+            const isFirstDynamic =
+              item.isDynamic && (index === 0 || !items[index - 1]?.isDynamic);
+
+            const itemHref = prefixHref(item);
+
+            return (
+              <Fragment key={itemHref ?? `${item.label}-${index}`}>
+                {item.hasDividerAbove && (
+                  <li className="my-2">
+                    <div className="border-t border-foreground/10" />
+                  </li>
+                )}
+                {isFirstDynamic && (
+                  <li className="my-2">
+                    <div className="border-t border-foreground/5" />
+                    <span className="px-3 pt-2 text-2xs uppercase tracking-wider text-muted-foreground block">
+                      Accounts
+                    </span>
+                  </li>
+                )}
+                <MenuItem
+                  href={itemHref}
+                  label={item.label}
+                  icon={item.icon}
+                  outline={item.outline}
+                  solid={item.solid}
+                  isActive={isActiveItem(item)}
+                  onClick={onItemClick}
+                  variant="icon"
+                  isCollapsed={false}
+                />
+              </Fragment>
+            );
+          })}
+        </ul>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,534 @@
+'use client';
+
+import { useBrandId } from '@contexts/user/brand-context/brand-context';
+import { AlertCategory, ButtonVariant, ViewType } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import type { ViewOption } from '@props/ui/navigation/view-option.props';
+import { NotificationsService } from '@services/core/notifications.service';
+import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import CollectionView from '@ui/collection/CollectionView';
+import Badge from '@ui/display/badge/Badge';
+import Alert from '@ui/feedback/alert/Alert';
+import Container from '@ui/layout/container/Container';
+import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
+import { Button } from '@ui/primitives/button';
+import { LayoutGrid, TableProperties, TrendingUp } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { useCallback, useEffect, useMemo, useReducer } from 'react';
+import SearchField from '@/components/content/search-field/SearchField';
+import { useOptionalDiscoveryRemix } from '@/features/research/remix/DiscoveryRemixProvider';
+import {
+  useOptionalResearchWorkSurface,
+  useResearchQueryState,
+  useResearchSearchParamState,
+  useRestoreResearchFinding,
+} from '@/features/research/work-surface/ResearchWorkSurfaceProvider';
+import {
+  type AuthorizedResearchFinding,
+  toSourcePostFinding,
+  toTrendContentFinding,
+  toTrendVideoFinding,
+} from '@/features/research/work-surface/research-work-surface.types';
+import {
+  DeskEmptyState,
+  DiscoveryReadinessCards,
+} from '@/features/trends/desk/desk-empty-states';
+import DeskFilterRail from '@/features/trends/desk/desk-filter-rail';
+import DeskLightTableView from '@/features/trends/desk/desk-light-table-view';
+import DeskSelectionBar from '@/features/trends/desk/desk-selection-bar';
+import DeskSourcesMenu from '@/features/trends/desk/desk-sources-menu';
+import {
+  createInitialDeskState,
+  type DiscoveryDeskContentTypeFilter,
+  discoveryDeskReducer,
+  selectVisibleItems,
+} from '@/features/trends/desk/desk-state';
+import DeskTableView from '@/features/trends/desk/desk-table-view';
+import { useDeskKeyboard } from '@/features/trends/desk/use-desk-keyboard';
+import { useDiscoveryDeskItems } from '@/features/trends/desk/use-discovery-desk-items';
+import FollowingDeck from '@/features/trends/following/following-deck';
+import type {
+  DiscoveryDeskItem,
+  DiscoveryDeskSort,
+  DiscoveryDeskSource,
+} from '@/features/trends/props/discovery-desk.props';
+
+function buildFinding(item: DiscoveryDeskItem): AuthorizedResearchFinding {
+  switch (item.raw.kind) {
+    case 'trend':
+      return toTrendContentFinding(item.raw.item);
+    case 'source_post':
+      return toSourcePostFinding(item.raw.post);
+    case 'viral_video':
+      return toTrendVideoFinding(item.raw.video);
+    default:
+      return item.raw satisfies never;
+  }
+}
+
+const SOURCE_VALUES: readonly DiscoveryDeskSource[] = [
+  'trends',
+  'following',
+  'owned',
+  'imported',
+];
+
+const DESK_SOURCE_TABS = [
+  'all',
+  'trends',
+  'owned',
+  'imported',
+  'following',
+] as const;
+
+function isDeskSourceTab(
+  value: string,
+): value is (typeof DESK_SOURCE_TABS)[number] {
+  return (DESK_SOURCE_TABS as readonly string[]).includes(value);
+}
+
+const SORT_VALUES: readonly DiscoveryDeskSort[] = [
+  'velocity',
+  'virality',
+  'recency',
+  'engagement',
+];
+/**
+ * Discovery "Signal Desk" — the composed replacement for the retired
+ * `trends-list.tsx` (public trends) and `following-page.tsx` (creators the
+ * brand follows). One item model (`DiscoveryDeskItem`), one filter rail, and
+ * two shareable-URL views: the operator Desk table and the media-first
+ * "Light table" grid.
+ */
+export default function DiscoveryDesk() {
+  const router = useRouter();
+  const translateDesk = useTranslations('common.trends.desk');
+  const brandId = useBrandId();
+  const { brandSlug, href, orgHref } = useOrgUrl();
+  const surface = useOptionalResearchWorkSurface();
+  const [search, setSearch] = useResearchQueryState();
+  const [view, setView] = useResearchSearchParamState<
+    ViewType.TABLE | ViewType.GRID
+  >({
+    allowedValues: [ViewType.TABLE, ViewType.GRID],
+    defaultValue: ViewType.GRID,
+    key: 'view',
+  });
+  const [sourceParam, setSourceParam] = useResearchSearchParamState<
+    DiscoveryDeskSource | 'all'
+  >({
+    allowedValues: [...SOURCE_VALUES, 'all'],
+    defaultValue: 'all',
+    key: 'source',
+  });
+  const [sortParam, setSortParam] =
+    useResearchSearchParamState<DiscoveryDeskSort>({
+      allowedValues: SORT_VALUES,
+      defaultValue: 'velocity',
+      key: 'sort',
+    });
+  const [platformParam, setPlatformParam] = useResearchSearchParamState<string>(
+    {
+      defaultValue: '',
+      key: 'platform',
+      maxLength: 400,
+    },
+  );
+
+  const [state, dispatch] = useReducer(
+    discoveryDeskReducer,
+    undefined,
+    createInitialDeskState,
+  );
+
+  // URL params are the source of truth for filters/sort/view; reconcile the
+  // reducer state on every param change (back/forward nav, shared links,
+  // sidebar `?source=following`).
+  useEffect(() => {
+    if (state.filters.source !== sourceParam) {
+      dispatch({ source: sourceParam, type: 'SET_SOURCE' });
+    }
+  }, [sourceParam, state.filters.source]);
+
+  useEffect(() => {
+    if (state.sort !== sortParam) {
+      dispatch({ sort: sortParam, type: 'SET_SORT' });
+    }
+  }, [sortParam, state.sort]);
+
+  useEffect(() => {
+    const nextPlatforms = new Set(
+      platformParam ? platformParam.split(',').filter(Boolean) : [],
+    );
+    const current = state.filters.platforms;
+    const isSame =
+      current.size === nextPlatforms.size &&
+      Array.from(current).every((platform) => nextPlatforms.has(platform));
+    if (!isSame) {
+      dispatch({ platforms: nextPlatforms, type: 'SET_PLATFORMS' });
+    }
+  }, [platformParam, state.filters.platforms]);
+
+  const { error, isLoading, isRefreshing, items, refresh, sources, summary } =
+    useDiscoveryDeskItems();
+
+  const visibleItems = useMemo(
+    () => selectVisibleItems(items, state),
+    [items, state],
+  );
+
+  const filteredBySearch = useMemo(() => {
+    if (!search.trim()) {
+      return visibleItems;
+    }
+
+    const query = search.toLowerCase();
+    return visibleItems.filter((item) =>
+      [
+        item.authorHandle,
+        item.platform,
+        item.text,
+        item.title,
+        item.trendTopic,
+        ...item.matchedTrends,
+      ]
+        .filter(Boolean)
+        .some((value) => value?.toLowerCase().includes(query)),
+    );
+  }, [search, visibleItems]);
+
+  const findings = useMemo(
+    () => filteredBySearch.map(buildFinding),
+    [filteredBySearch],
+  );
+  const currentError = error;
+  useRestoreResearchFinding(findings, isLoading || Boolean(currentError));
+
+  const visibleKeys = useMemo(
+    () => filteredBySearch.map((item) => item.key),
+    [filteredBySearch],
+  );
+
+  const handleTogglePlatform = useCallback(
+    (platform: string) => {
+      const next = new Set(state.filters.platforms);
+      if (next.has(platform)) {
+        next.delete(platform);
+      } else {
+        next.add(platform);
+      }
+      dispatch({ platforms: next, type: 'SET_PLATFORMS' });
+      setPlatformParam(Array.from(next).join(','));
+    },
+    [setPlatformParam, state.filters.platforms],
+  );
+
+  const handleClearPlatforms = useCallback(() => {
+    dispatch({ platforms: new Set(), type: 'SET_PLATFORMS' });
+    setPlatformParam('');
+  }, [setPlatformParam]);
+
+  const handleSourceChange = useCallback(
+    (value: DiscoveryDeskSource | 'all') => {
+      dispatch({ source: value, type: 'SET_SOURCE' });
+      setSourceParam(value);
+    },
+    [setSourceParam],
+  );
+
+  const handleSourceTabChange = useCallback(
+    (value: string) => {
+      if (value === 'following') {
+        router.push(href(APP_ROUTES.DISCOVERY.FOLLOWING));
+        return;
+      }
+      if (isDeskSourceTab(value)) {
+        handleSourceChange(value);
+      }
+    },
+    [handleSourceChange, href, router],
+  );
+
+  const handleContentTypeChange = useCallback(
+    (value: DiscoveryDeskContentTypeFilter) => {
+      dispatch({ contentType: value, type: 'SET_CONTENT_TYPE' });
+    },
+    [],
+  );
+
+  const handleSort = useCallback(
+    (value: DiscoveryDeskSort) => {
+      dispatch({ sort: value, type: 'SET_SORT' });
+      setSortParam(value);
+    },
+    [setSortParam],
+  );
+
+  const handleCursor = useCallback((key: string) => {
+    dispatch({ key, type: 'SET_CURSOR' });
+  }, []);
+
+  const handleToggleSelect = useCallback((key: string) => {
+    dispatch({ key, type: 'TOGGLE_SELECT' });
+  }, []);
+
+  const handleClearSelection = useCallback(() => {
+    dispatch({ type: 'CLEAR_SELECTION' });
+  }, []);
+
+  const handleSelectFinding = useCallback(
+    (item: DiscoveryDeskItem) => {
+      surface?.selectFinding(buildFinding(item));
+    },
+    [surface],
+  );
+
+  const remix = useOptionalDiscoveryRemix();
+
+  const handleRemixFocused = useCallback(
+    (item: DiscoveryDeskItem) => {
+      if (!item.remixSelector) {
+        NotificationsService.getInstance().error(
+          translateDesk('errors.remixUnavailable'),
+        );
+        return;
+      }
+
+      if (!remix) {
+        return;
+      }
+
+      remix.openRemix(item.remixSelector).catch(() => {
+        /* surfaced via provider status */
+      });
+    },
+    [remix, translateDesk],
+  );
+
+  useDeskKeyboard({
+    cursorKey: state.cursorKey,
+    onClearSelection: handleClearSelection,
+    onMoveCursor: (direction) => {
+      dispatch({ direction, type: 'MOVE_CURSOR', visibleKeys });
+    },
+    onRemix: handleRemixFocused,
+    onToggleSelect: handleToggleSelect,
+    selectedItem:
+      filteredBySearch.find((item) => item.key === state.cursorKey) ?? null,
+  });
+
+  const followingHref = href(APP_ROUTES.DISCOVERY.FOLLOWING);
+  const publishingHref = brandSlug
+    ? href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)
+    : orgHref(APP_ROUTES.SETTINGS.BRANDS);
+  const sourceHealthHref = href(APP_ROUTES.DISCOVERY.TRENDS);
+
+  const handleRefresh = useCallback(() => {
+    refresh().catch(() => {
+      /* surfaced via hook */
+    });
+  }, [refresh]);
+
+  const selectedItems = useMemo(
+    () => filteredBySearch.filter((item) => state.selection.has(item.key)),
+    [filteredBySearch, state.selection],
+  );
+
+  const viewOptions = useMemo<ViewOption<ViewType.TABLE | ViewType.GRID>[]>(
+    () => [
+      {
+        ariaLabel: translateDesk('viewToggle.desk'),
+        icon: <TableProperties className="size-4" />,
+        label: translateDesk('viewToggle.desk'),
+        type: ViewType.TABLE,
+      },
+      {
+        ariaLabel: translateDesk('viewToggle.lightTable'),
+        icon: <LayoutGrid className="size-4" />,
+        label: translateDesk('viewToggle.lightTable'),
+        type: ViewType.GRID,
+      },
+    ],
+    [translateDesk],
+  );
+
+  const isFollowingView = sourceParam === 'following';
+  // The URL source can change before the reducer catches up, so never hand
+  // the Following deck an item from another source in that window.
+  const followingItems = useMemo(
+    () => filteredBySearch.filter((item) => item.source === 'following'),
+    [filteredBySearch],
+  );
+  const hasDeskItems = !isLoading && !currentError && items.length > 0;
+
+  return (
+    <>
+      <Container
+        icon={TrendingUp}
+        label={translateDesk('title')}
+        leading={
+          <SearchField
+            onSearch={setSearch}
+            placeholder={translateDesk('searchPlaceholder')}
+            value={search}
+          >
+            <DeskFilterRail
+              activePlatforms={state.filters.platforms}
+              contentType={state.filters.contentType}
+              isAttached
+              items={items}
+              onContentTypeChange={handleContentTypeChange}
+              onSort={handleSort}
+              onSourceChange={handleSourceTabChange}
+              onTogglePlatform={handleTogglePlatform}
+              onClearPlatforms={handleClearPlatforms}
+              sort={state.sort}
+              source={sourceParam}
+              summary={summary}
+            />
+          </SearchField>
+        }
+        refresh={
+          <ButtonRefresh isRefreshing={isRefreshing} onClick={handleRefresh} />
+        }
+        right={
+          <>
+            <Badge variant="ghost">
+              {isLoading
+                ? translateDesk('signalsLoading')
+                : translateDesk('signalsCount', {
+                    count: filteredBySearch.length,
+                  })}
+            </Badge>
+            {!isFollowingView ? (
+              <ViewMenu
+                activeView={view}
+                onChange={setView}
+                options={viewOptions}
+              />
+            ) : null}
+            <DeskSourcesMenu
+              brandId={brandId}
+              onSourcesChanged={refresh}
+              sources={sources}
+            />
+          </>
+        }
+      >
+        {currentError && !isLoading ? (
+          <Alert type={AlertCategory.ERROR}>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="space-y-1">
+                <div className="font-medium">
+                  {translateDesk('errors.loadTitle')}
+                </div>
+                <div className="text-xs text-foreground/70">
+                  {translateDesk('errors.loadDescription')}
+                </div>
+              </div>
+              <Button
+                label={translateDesk('errors.retry')}
+                onClick={handleRefresh}
+                variant={ButtonVariant.SECONDARY}
+              />
+            </div>
+          </Alert>
+        ) : null}
+
+        {isLoading && !isFollowingView && view === ViewType.GRID ? (
+          // The light-table skeleton mirrors the grid it is waiting for.
+          <CollectionView
+            data-testid="desk-light-table-skeleton"
+            getItemKey={(item) => item.key}
+            isLoading
+            items={items}
+            maxColumns={4}
+            renderGridItem={() => null}
+            renderListItem={() => null}
+            view={ViewType.GRID}
+          />
+        ) : isLoading ? (
+          <div className="py-8 text-sm text-muted-foreground">
+            {translateDesk('loading')}
+          </div>
+        ) : null}
+
+        {isFollowingView && !isLoading && !currentError ? (
+          <FollowingDeck
+            brandId={brandId}
+            cursorKey={state.cursorKey}
+            items={followingItems}
+            onCursor={handleCursor}
+            onSelectFinding={
+              surface?.isEmbedded ? handleSelectFinding : undefined
+            }
+            onSourcesChanged={refresh}
+            onToggleSelect={handleToggleSelect}
+            selection={state.selection}
+            sources={sources}
+          />
+        ) : null}
+
+        {!isFollowingView &&
+        !isLoading &&
+        !currentError &&
+        items.length === 0 ? (
+          <>
+            <DiscoveryReadinessCards summary={summary} />
+            <DeskEmptyState
+              followingHref={followingHref}
+              hasSearch={false}
+              isRefreshing={isRefreshing}
+              onClearSearch={() => setSearch('')}
+              onRefresh={handleRefresh}
+              publishingHref={publishingHref}
+              sourceHealthHref={sourceHealthHref}
+            />
+          </>
+        ) : null}
+
+        {!isFollowingView && hasDeskItems ? (
+          filteredBySearch.length === 0 ? (
+            <DeskEmptyState
+              followingHref={followingHref}
+              hasSearch={Boolean(search.trim())}
+              isRefreshing={isRefreshing}
+              onClearSearch={() => setSearch('')}
+              onRefresh={handleRefresh}
+              publishingHref={publishingHref}
+              sourceHealthHref={sourceHealthHref}
+            />
+          ) : view === ViewType.GRID ? (
+            <DeskLightTableView
+              cursorKey={state.cursorKey}
+              href={href}
+              items={filteredBySearch}
+              onCursor={handleCursor}
+              onSelectFinding={
+                surface?.isEmbedded ? handleSelectFinding : undefined
+              }
+              onToggleSelect={handleToggleSelect}
+              selection={state.selection}
+            />
+          ) : (
+            <DeskTableView
+              cursorKey={state.cursorKey}
+              href={href}
+              items={filteredBySearch}
+              onCursor={handleCursor}
+              onSelectFinding={
+                surface?.isEmbedded ? handleSelectFinding : undefined
+              }
+              onToggleSelect={handleToggleSelect}
+              selection={state.selection}
+            />
+          )
+        ) : null}
+      </Container>
+
+      <DeskSelectionBar items={selectedItems} onClear={handleClearSelection} />
+    </>
+  );
+}

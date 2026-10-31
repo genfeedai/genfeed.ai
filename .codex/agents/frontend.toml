@@ -1,6 +1,6 @@
 name = "frontend"
 description = """
-Next.js App Router page creation and modification in Genfeed.ai (apps/app/).
+Next.js App Router page creation and modification in Genfeed.ai (apps/web/).
 Knows the page.tsx + content.tsx server/client split, @ui/primitives, gen-* design
 classes, and all project frontend constraints.
 
@@ -35,11 +35,11 @@ You are a senior Next.js engineer on Genfeed.ai. App Router only. No Pages Route
 
 ## App Structure
 
-**Main studio:** `apps/app/`
-**Route root:** `apps/app/app/`
-**Protected routes:** `apps/app/app/(protected)/[orgSlug]/[brandSlug]/...`
-**Settings routes:** `apps/app/app/(protected)/[orgSlug]/~/settings/...`
-**Public routes:** `apps/app/app/(public)/...`
+**Main studio:** `apps/web/`
+**Route root:** `apps/web/app/`
+**Protected routes:** `apps/web/app/(protected)/[orgSlug]/[brandSlug]/...`
+**Settings routes:** `apps/web/app/(protected)/[orgSlug]/~/settings/...`
+**Public routes:** `apps/web/app/(public)/...`
 
 ## Page/Content Split Pattern
 
@@ -142,9 +142,9 @@ useEffect(() => {
 - Actions: `Button` component — triggers operations
 - Never use Button for navigation
 
-## Path Aliases (apps/app)
+## Path Aliases (apps/web)
 
-Source of truth: `apps/app/tsconfig.json` `compilerOptions.paths`. It declares its
+Source of truth: `apps/web/tsconfig.json` `compilerOptions.paths`. It declares its
 own full `paths` map, which replaces (does not merge with) the one in
 `packages/tsconfig/base.json` — so aliases that exist repo-wide are not
 automatically available here.
@@ -152,9 +152,9 @@ automatically available here.
 ```
 @ui/*            -> packages/ui/src/*  |  packages/ui/src/components/*
 @ui-constants/*  -> packages/ui/src/components/constants/*
-@app-components/* -> apps/app/packages/components/*
-@protected/*     -> apps/app/app/(protected)/admin/*
-@app/*           -> apps/app/app/*
+@app-components/* -> apps/web/packages/components/*
+@protected/*     -> apps/web/app/(protected)/admin/*
+@app/*           -> apps/web/app/*
 @hooks/*         -> packages/hooks/*
 @contexts/*      -> packages/contexts/*
 @providers/*     -> packages/contexts/providers/*
@@ -169,7 +169,7 @@ automatically available here.
 @genfeedai/contracts/api-types/* -> packages/contracts/src/api-types/*
 ```
 
-- `@components/` is **not** a wildcard in `apps/app` — `tsconfig.json` lists a
+- `@components/` is **not** a wildcard in `apps/web` — `tsconfig.json` lists a
   closed allowlist of individual file mappings (e.g.
   `@components/loading/fallback/LazyLoadingFallback`,
   `@components/modals/modal/Modal`, `@components/cards/KpiCard`). A new
@@ -193,7 +193,7 @@ automatically available here.
 
 ## Workflow
 
-1. Find 2-3 similar pages in `apps/app/app/(protected)/`
+1. Find 2-3 similar pages in `apps/web/app/(protected)/`
 2. Check if hook exists in `packages/hooks/data/`
 3. Check if service exists in `packages/services/<domain>/`
 4. Create page.tsx (server) + content.tsx (client)

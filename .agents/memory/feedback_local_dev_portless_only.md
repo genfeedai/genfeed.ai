@@ -19,7 +19,7 @@ last_verified: 2026-08-08
 | `bun run dev:doctor` | Read-only Portless contract check |
 | `bun run dev:backend:min` | api + files + notifications |
 | `bun run dev:backend` | full backend (+ mcp + workers) |
-| `bun run dev:app` | Next app |
+| `bun run dev:web` | Next app |
 | `bun run dev` | full stack |
 | `bun run dev:debug*` | **Explicit** fixed-port escape hatch only |
 
@@ -38,7 +38,7 @@ Never start fixed ports (`:3000`, `:3010`, …), `http://localhost:*`, or `dev:d
 **How to apply:**
 
 1. Put the repo-pinned Portless binary first: `export PATH="$PWD/node_modules/.bin:$PATH"`.
-2. Boot: `bun run dev:backend:min` + `bun run dev:app` (or `bun run dev`).
+2. Boot: `bun run dev:backend:min` + `bun run dev:web` (or `bun run dev`).
 3. Open **`https://app.genfeed.localhost/`**.
 4. Portless down: fix proxy once (at most one elevated prompt). Do **not** silently fall back to `dev:debug*`.
 5. Work on the main checkout (or worktree after `bun run wt:sync`) so `.env*` exist.

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { checkAdminRouteConvention } from './check-admin-route-convention';
 
-const ADMIN = 'apps/app/app/(protected)/admin';
+const ADMIN = 'apps/web/app/(protected)/admin';
 const ROUTES = 'packages/contracts/src/constants/routes.constant.ts';
 const testDirs: string[] = [];
 

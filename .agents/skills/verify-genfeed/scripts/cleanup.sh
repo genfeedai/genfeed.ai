@@ -23,6 +23,6 @@ if [ -n "$PIDS" ]; then
   [ -z "$LEFT" ] || kill -9 $LEFT 2>/dev/null || true
 fi
 
-rm -rf "$ROOT/playwright/artifacts/results" "$ROOT/apps/app/.next/dev/cache"
+rm -rf "$ROOT/playwright/artifacts/results" "$ROOT/apps/web/.next/dev/cache"
 
 bun run dev:status

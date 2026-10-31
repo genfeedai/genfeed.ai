@@ -1,0 +1,154 @@
+import { IngredientStatus, PageScope } from '@genfeedai/contracts';
+import { render, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import IngredientsLayout from '@/features/ingredients/layout/ingredients-layout';
+
+const { translationNamespaceSpy } = vi.hoisted(() => ({
+  translationNamespaceSpy: vi.fn(),
+}));
+const replaceSpy = vi.fn();
+let mockSearchParams = new URLSearchParams();
+let mockPathname = '/library/videos';
+
+vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
+  default: ({ onClick }: { onClick?: () => void }) => (
+    <button type="button" onClick={onClick}>
+      Refresh
+    </button>
+  ),
+}));
+
+vi.mock('@contexts/content/ingredients-context/ingredients-context', () => ({
+  IngredientsProvider: ({ children }: { children: ReactNode }) => (
+    <>{children}</>
+  ),
+}));
+
+vi.mock(
+  '@contexts/content/ingredients-header-context/ingredients-header-context',
+  () => ({
+    IngredientsHeaderProvider: ({ children }: { children: ReactNode }) => (
+      <>{children}</>
+    ),
+  }),
+);
+
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: vi.fn(() => ({
+    brandId: 'brand-1',
+    brands: [{ id: 'brand-1', label: 'Brand 1' }],
+  })),
+}));
+
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
+  () => ({
+    useUploadModal: vi.fn(() => ({
+      openUpload: vi.fn(),
+    })),
+  }),
+);
+
+vi.mock('@services/core/environment.service', () => ({
+  EnvironmentService: {
+    apps: {
+      app: 'https://app.genfeed.ai',
+    },
+  },
+}));
+
+vi.mock('@/components/content/filters-button/FiltersButton', () => ({
+  default: () => <div>Filters</div>,
+}));
+
+vi.mock('@ui/layout/container/Container', () => ({
+  default: ({
+    children,
+    label,
+    right,
+  }: {
+    children?: ReactNode;
+    label?: ReactNode;
+    right?: ReactNode;
+  }) => (
+    <div>
+      <div>{label}</div>
+      <div>{right}</div>
+      <div>{children}</div>
+    </div>
+  ),
+}));
+
+vi.mock('next-intl', () => ({
+  useTranslations: (namespace: string) => {
+    translationNamespaceSpy(namespace);
+    return (key: string) => ({ upload: 'Upload' })[key] ?? key;
+  },
+}));
+
+vi.mock('next/navigation', () => ({
+  useParams: vi.fn(() => ({
+    brandSlug: 'brand-1',
+    orgSlug: 'org-1',
+  })),
+  usePathname: vi.fn(() => mockPathname),
+  useRouter: vi.fn(() => ({
+    replace: replaceSpy,
+  })),
+  useSearchParams: vi.fn(() => mockSearchParams),
+}));
+
+describe('IngredientsLayout', () => {
+  beforeEach(() => {
+    replaceSpy.mockReset();
+    translationNamespaceSpy.mockClear();
+    mockSearchParams = new URLSearchParams();
+    mockPathname = '/library/videos';
+    window.history.replaceState({}, '', '/library/videos');
+  });
+
+  it('uses the canonical catalog namespace for upload actions', () => {
+    render(<IngredientsLayout defaultType="videos" scope={PageScope.BRAND} />);
+    expect(translationNamespaceSpy).toHaveBeenCalledWith(
+      'pages.library.browser.toolbar',
+    );
+  });
+
+  it('keeps default video statuses out of the URL on mount', async () => {
+    render(<IngredientsLayout defaultType="videos" scope={PageScope.BRAND} />);
+
+    await waitFor(() => {
+      expect(replaceSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  it('does not rewrite an already repeated status query on mount', async () => {
+    mockSearchParams = new URLSearchParams([
+      ['status', IngredientStatus.GENERATED],
+      ['status', IngredientStatus.PROCESSING],
+      ['status', IngredientStatus.VALIDATED],
+    ]);
+    window.history.replaceState(
+      {},
+      '',
+      `/library/videos?status=${IngredientStatus.GENERATED}&status=${IngredientStatus.PROCESSING}&status=${IngredientStatus.VALIDATED}`,
+    );
+
+    render(<IngredientsLayout defaultType="videos" scope={PageScope.BRAND} />);
+
+    await waitFor(() => {
+      expect(replaceSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  it('keeps Videos as the fallback type', () => {
+    window.history.replaceState({}, '', '/library');
+
+    const { getAllByText } = render(
+      <IngredientsLayout scope={PageScope.BRAND} />,
+    );
+
+    expect(getAllByText('Videos').length).toBeGreaterThan(0);
+  });
+});

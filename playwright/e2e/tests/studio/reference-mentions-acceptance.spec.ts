@@ -39,9 +39,9 @@ const references = [
   },
 ];
 const sourceFiles = [
-  'apps/app/src/features/studio/playground/StudioPlaygroundWorkspace.tsx',
-  'apps/app/src/features/studio/playground/components/StudioPlaygroundComposer.tsx',
-  'apps/app/src/features/studio/props/studio-playground.props.ts',
+  'apps/web/src/features/studio/playground/StudioPlaygroundWorkspace.tsx',
+  'apps/web/src/features/studio/playground/components/StudioPlaygroundComposer.tsx',
+  'apps/web/src/features/studio/props/studio-playground.props.ts',
   'playwright/e2e/tests/studio/reference-mentions-acceptance.spec.ts',
 ];
 

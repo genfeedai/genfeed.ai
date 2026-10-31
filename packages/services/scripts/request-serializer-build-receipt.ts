@@ -19,7 +19,7 @@ type PinnedAppRuntime = {
   sourceSha: string;
 };
 
-export function readPinnedAppRuntime(appDirectory = path.resolve('apps/app')) {
+export function readPinnedAppRuntime(appDirectory = path.resolve('apps/web')) {
   const appManifest = z
     .object({ dependencies: z.object({ next: z.string() }) })
     .parse(
@@ -198,7 +198,7 @@ export function prepareRequestSerializerInput(
   const input = { buildId: randomUUID(), artifacts: readArtifacts(root) };
   const report = {
     ...createRequestSerializerBuildReceipt(
-      readBounded(root, 'apps/app/next.config.ts', 1024 * 1024),
+      readBounded(root, 'apps/web/next.config.ts', 1024 * 1024),
       runtime,
     ),
     input,
@@ -224,7 +224,7 @@ export function finalizeRequestSerializerInput(
     throw new Error('Stale input receipt runtime/head');
   if (
     preflight.nextConfigSha256 !==
-    hash(readBounded(root, 'apps/app/next.config.ts', 1024 * 1024))
+    hash(readBounded(root, 'apps/web/next.config.ts', 1024 * 1024))
   )
     throw new Error('Changed compiler configuration');
   const actual = readArtifacts(root);

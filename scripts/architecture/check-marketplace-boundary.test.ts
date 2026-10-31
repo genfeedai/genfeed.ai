@@ -47,7 +47,7 @@ describe('check-marketplace-boundary', () => {
 
   it('flags private marketplace package imports and dependencies', () => {
     const rootDir = fixture({
-      'apps/app/src/example.ts':
+      'apps/web/src/example.ts':
         "import { SellerService } from '@marketplace/admin';\nexport { SellerService };",
       'apps/server/api/package.json': JSON.stringify({
         dependencies: { '@genfeedai/marketplace': '1.0.0' },
@@ -57,7 +57,7 @@ describe('check-marketplace-boundary', () => {
     expect(runCheckMarketplaceBoundary({ rootDir }).violations).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          file: 'apps/app/src/example.ts',
+          file: 'apps/web/src/example.ts',
           specifier: '@marketplace/admin',
         }),
         expect.objectContaining({

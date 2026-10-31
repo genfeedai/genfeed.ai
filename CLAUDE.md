@@ -28,7 +28,7 @@ bun install                                          # Install dependencies
 bun run dev:setup                                    # once per machine (Portless HTTPS :443)
 bun run dev:backend:min                              # api + files + notifications (app minimum)
 bun run dev:backend                                  # full backend (+ mcp + workers)
-bun run dev:app                                      # Main app → https://app.genfeed.localhost/
+bun run dev:web                                      # Main app → https://app.genfeed.localhost/
 bun run dev                                          # full stack (Portless)
 # Fixed ports only when you mean it: bun run dev:debug / dev:debug:backend:min
 
@@ -44,7 +44,7 @@ bun run test --filter=@genfeedai/[name]              # Test one package
 ### Type safety
 - No `any` — define proper interfaces
 - No inline interfaces — use `packages/contracts/src/interfaces/` for shared shapes, `packages/props/`
-  for props shared across packages, or a `props/` file inside the owning `apps/app/src/features/<feature>/`
+  for props shared across packages, or a `props/` file inside the owning `apps/web/src/features/<feature>/`
 - No `console.log` — use the project LoggerService
 - Booleans take an `is`/`has` prefix: `isActive`, `hasPermission`
 

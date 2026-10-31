@@ -1,0 +1,341 @@
+'use client';
+
+import { hasOrganizationBillingHint } from '@genfeedai/config/license';
+import { ButtonSize, ButtonVariant, MemberRole } from '@genfeedai/contracts';
+import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import type { OrgMemoryEntry } from '@genfeedai/contracts/interfaces/settings/org-memory.interface';
+import { formatDate } from '@helpers/formatting/date/date.helper';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import type { TableColumn } from '@props/ui/display/table.props';
+import { AgentMemoriesService } from '@services/automation/agent-memories.service';
+import { logger } from '@services/core/logger.service';
+import { NotificationsService } from '@services/core/notifications.service';
+import CardEmpty from '@ui/card/empty/CardEmpty';
+import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
+import AppTable from '@ui/display/table/Table';
+import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Badge } from '@ui/primitives/badge';
+import { Button } from '@ui/primitives/button';
+import { Archive, Lock, Pencil, Sparkles, X } from 'lucide-react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { useCallback, useEffect, useState } from 'react';
+import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
+import EditMemoryDialog from './edit-memory-dialog';
+
+export default function SettingsOrganizationMemoryPage() {
+  const translate = useTranslations('common.settings.memory');
+  const notificationsService = NotificationsService.getInstance();
+  const userRole = useUserRole();
+  const searchParams = useSearchParams();
+  const currentPage = Number(searchParams.get('page')) || 1;
+  const { orgHref } = useOrgUrl();
+  const isBillingEnabled = hasOrganizationBillingHint();
+  const canGovern =
+    userRole === MemberRole.OWNER || userRole === MemberRole.ADMIN;
+  const getMemoriesService = useAuthedService(
+    useCallback((token: string) => AgentMemoriesService.getInstance(token), []),
+  );
+
+  const [entries, setEntries] = useState<OrgMemoryEntry[] | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [editingEntry, setEditingEntry] = useState<OrgMemoryEntry | null>(null);
+
+  const authorLabel = useCallback(
+    (entry: OrgMemoryEntry): string =>
+      entry.user?.name ||
+      entry.user?.handle ||
+      entry.user?.email ||
+      entry.user?.id ||
+      translate('unknownAuthor'),
+    [translate],
+  );
+
+  const scopeLabel = useCallback(
+    (scope?: string | null): string => {
+      if (scope === 'org') {
+        return translate('scope.org');
+      }
+      if (scope === 'brand') {
+        return translate('scope.brand');
+      }
+      return scope || translate('scope.unknown');
+    },
+    [translate],
+  );
+
+  const loadEntries = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!isBillingEnabled) {
+        setEntries([]);
+        return;
+      }
+
+      setEntries(null);
+      setLoadError(false);
+      try {
+        const service = await getMemoriesService();
+        if (signal?.aborted) {
+          return;
+        }
+        const data = await service.listOrganization(
+          { limit: ITEMS_PER_PAGE, page: currentPage },
+          signal,
+        );
+        if (signal?.aborted) {
+          return;
+        }
+        setEntries(data);
+      } catch (error) {
+        if (signal?.aborted) {
+          return;
+        }
+        logger.error('GET /agent/memories/organization failed', error);
+        notificationsService.error(translate('notifications.loadFailed'));
+        setLoadError(true);
+        setEntries([]);
+      }
+    },
+    [
+      currentPage,
+      getMemoriesService,
+      isBillingEnabled,
+      notificationsService,
+      translate,
+    ],
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadEntries(controller.signal);
+    return () => controller.abort();
+  }, [loadEntries]);
+
+  const runAction = useCallback(
+    async (entry: OrgMemoryEntry, action: 'archive' | 'promote' | 'reject') => {
+      setPendingId(entry.id);
+      try {
+        const service = await getMemoriesService();
+        if (action === 'archive') {
+          await service.archive(entry.id);
+          notificationsService.success(translate('notifications.archived'));
+        } else if (action === 'promote') {
+          await service.promote(entry.id);
+          notificationsService.success(translate('notifications.promoted'));
+        } else {
+          await service.reject(entry.id);
+          notificationsService.success(translate('notifications.rejected'));
+        }
+        await loadEntries();
+      } catch (error) {
+        logger.error(`Memory ${action} failed`, error);
+        notificationsService.error(translate('error.update'));
+      } finally {
+        setPendingId(null);
+      }
+    },
+    [getMemoriesService, loadEntries, notificationsService, translate],
+  );
+
+  const columns: TableColumn<OrgMemoryEntry>[] = [
+    {
+      header: translate('columns.memory'),
+      key: 'summary',
+      render: (entry) => entry.summary || entry.content || '-',
+    },
+    {
+      header: translate('columns.author'),
+      key: 'user',
+      render: authorLabel,
+    },
+    {
+      header: translate('columns.scope'),
+      key: 'scope',
+      render: (entry) => (
+        <Badge variant="secondary">{scopeLabel(entry.scope)}</Badge>
+      ),
+    },
+    {
+      header: translate('columns.status'),
+      key: 'promotedSkillId',
+      render: (entry) =>
+        entry.promotedSkillId ? (
+          <Badge variant="success">{translate('status.promoted')}</Badge>
+        ) : (
+          <Badge variant="secondary">{translate('status.active')}</Badge>
+        ),
+    },
+    {
+      header: translate('columns.created'),
+      key: 'createdAt',
+      render: (entry) => (entry.createdAt ? formatDate(entry.createdAt) : '-'),
+    },
+  ];
+
+  const rowSidebar = createSummaryRowSidebar<OrgMemoryEntry>({
+    getBadges: (entry) => (
+      <>
+        <Badge variant="secondary">{scopeLabel(entry.scope)}</Badge>
+        {entry.promotedSkillId ? (
+          <Badge variant="success">{translate('status.promoted')}</Badge>
+        ) : (
+          <Badge variant="secondary">{translate('status.active')}</Badge>
+        )}
+      </>
+    ),
+    getFacts: (entry) => [
+      {
+        id: 'author',
+        label: translate('columns.author'),
+        value: authorLabel(entry),
+      },
+      {
+        id: 'created',
+        label: translate('columns.created'),
+        value: entry.createdAt ? formatDate(entry.createdAt) : undefined,
+      },
+    ],
+    getId: (entry) => entry.id,
+    getTitle: (entry) => entry.summary || entry.content || '-',
+    kind: 'record',
+    renderExtra: (entry) => (
+      <>
+        {entry.content && entry.content !== entry.summary ? (
+          <p className="whitespace-pre-wrap text-sm text-foreground/80">
+            {entry.content}
+          </p>
+        ) : null}
+        {canGovern ? (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              icon={<Pencil className="size-3.5" />}
+              isDisabled={pendingId === entry.id}
+              label={translate('actions.edit')}
+              onClick={() => setEditingEntry(entry)}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+            />
+            {!entry.promotedSkillId ? (
+              <>
+                <Button
+                  icon={<Sparkles className="size-3.5" />}
+                  isDisabled={pendingId === entry.id}
+                  label={translate('actions.promote')}
+                  onClick={() => void runAction(entry, 'promote')}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.SECONDARY}
+                />
+                <Button
+                  icon={<X className="size-3.5" />}
+                  isDisabled={pendingId === entry.id}
+                  label={translate('actions.reject')}
+                  onClick={() => void runAction(entry, 'reject')}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.SECONDARY}
+                />
+              </>
+            ) : null}
+            <Button
+              icon={<Archive className="size-3.5" />}
+              isDisabled={pendingId === entry.id}
+              label={translate('actions.archive')}
+              onClick={() => void runAction(entry, 'archive')}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+            />
+          </div>
+        ) : null}
+      </>
+    ),
+  });
+
+  if (!isBillingEnabled) {
+    return (
+      <CardEmpty
+        actions={
+          <Button asChild variant={ButtonVariant.DEFAULT} withWrapper={false}>
+            <Link href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}>
+              {translate('actions.viewSubscription')}
+            </Link>
+          </Button>
+        }
+        icon={Lock}
+        label={translate('billedTitle')}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <h1 className="sr-only">{translate('heading')}</h1>
+      <AppTable<OrgMemoryEntry>
+        actions={
+          canGovern
+            ? [
+                {
+                  icon: <Pencil />,
+                  isDisabled: (entry) => pendingId === entry.id,
+                  onClick: (entry) => setEditingEntry(entry),
+                  tooltip: translate('actions.edit'),
+                },
+                {
+                  icon: <Sparkles />,
+                  isDisabled: (entry) =>
+                    Boolean(entry.promotedSkillId) || pendingId === entry.id,
+                  isVisible: (entry) => !entry.promotedSkillId,
+                  onClick: (entry) => void runAction(entry, 'promote'),
+                  tooltip: translate('actions.promote'),
+                },
+                {
+                  icon: <X />,
+                  isDisabled: (entry) =>
+                    Boolean(entry.promotedSkillId) || pendingId === entry.id,
+                  isVisible: (entry) => !entry.promotedSkillId,
+                  onClick: (entry) => void runAction(entry, 'reject'),
+                  tooltip: translate('actions.reject'),
+                },
+                {
+                  icon: <Archive />,
+                  isDisabled: (entry) => pendingId === entry.id,
+                  onClick: (entry) => void runAction(entry, 'archive'),
+                  tooltip: translate('actions.archive'),
+                },
+              ]
+            : []
+        }
+        columns={columns}
+        emptyLabel={translate('empty')}
+        error={
+          loadError
+            ? {
+                onRetry: () => {
+                  void loadEntries();
+                },
+                title: translate('error.load'),
+              }
+            : undefined
+        }
+        getRowKey={(entry) => entry.id}
+        isLoading={entries === null}
+        items={entries ?? []}
+        label={translate('table')}
+        rowSidebar={rowSidebar}
+      />
+      <EditMemoryDialog
+        entry={editingEntry}
+        onCorrected={() => loadEntries()}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setEditingEntry(null);
+          }
+        }}
+      />
+      {entries && entries.length > 0 ? (
+        <AutoPagination showTotal totalLabel="memories" />
+      ) : null}
+    </div>
+  );
+}

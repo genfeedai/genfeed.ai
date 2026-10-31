@@ -8,8 +8,8 @@
  * does not mean a surface is fully migrated; pseudo-locale QA and migration
  * review still have to find the strings this static guard cannot see.
  *
- * Correct fix for new copy in `apps/app` or shared product packages: add a key
- * to `apps/app/messages/en/<namespace>.json` and resolve it with
+ * Correct fix for new copy in `apps/web` or shared product packages: add a key
+ * to `apps/web/messages/en/<namespace>.json` and resolve it with
  * `useTranslations('<namespace>')` / `getTranslations` from next-intl. Shared
  * packages consume the host app catalog (namespaces `ui`, `pages`, `agent`,
  * `contexts`). Do not hoist strings into a module-level `COPY` const — that
@@ -32,7 +32,7 @@ import * as ts from 'typescript';
 import { parseSourceFile, scriptKindFor } from './parse-source-file';
 
 export const UNTRANSLATED_STRING_FIX_HELP =
-  'Fix: add the copy to apps/app/messages/en/<namespace>.json and resolve it with ' +
+  'Fix: add the copy to apps/web/messages/en/<namespace>.json and resolve it with ' +
   "useTranslations('<namespace>') or getTranslations from next-intl. Shared packages " +
   'consume the host app catalog (namespaces ui, pages, agent, contexts). Do not hoist ' +
   'strings into a module-level COPY const — that hides them from this ratchet without ' +
@@ -45,7 +45,7 @@ const BASELINE_PATH = path.join(
   'scripts/architecture/untranslated-strings.baseline.json',
 );
 
-const INCLUDE_GLOBS = ['apps/app/**/*.{jsx,tsx}', 'packages/**/*.{jsx,tsx}'];
+const INCLUDE_GLOBS = ['apps/web/**/*.{jsx,tsx}', 'packages/**/*.{jsx,tsx}'];
 
 export const UNTRANSLATED_STRING_IGNORE_GLOBS = [
   '**/node_modules/**',

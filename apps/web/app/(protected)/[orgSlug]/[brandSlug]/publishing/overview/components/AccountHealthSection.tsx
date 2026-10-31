@@ -1,0 +1,111 @@
+import Badge from '@ui/display/badge/Badge';
+import { useTranslations } from 'next-intl';
+import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
+import type { PublishingOverviewHealthSectionProps } from '@/features/posts/props/publishing-overview.props';
+import PublishingAccountRow from './PublishingAccountRow';
+import PublishingOverviewAsyncSection from './PublishingOverviewAsyncSection';
+
+const STATE_BADGE_VARIANT = {
+  healthy: 'success',
+  not_started: 'secondary',
+  risky: 'warning',
+  warming: 'info',
+} as const;
+
+const STATE_MESSAGE_KEYS = {
+  healthy: 'healthState.healthy',
+  not_started: 'healthState.not_started',
+  risky: 'healthState.risky',
+  warming: 'healthState.warming',
+} as const;
+
+const RISK_BADGE_VARIANT = {
+  high: 'destructive',
+  medium: 'warning',
+} as const;
+
+const RISK_MESSAGE_KEYS = {
+  high: 'healthRisk.high',
+  medium: 'healthRisk.medium',
+} as const;
+
+export default function AccountHealthSection({
+  connections = [],
+  onRetry,
+  state,
+}: PublishingOverviewHealthSectionProps) {
+  const translate = useTranslations('pages.publishing.overview');
+
+  return (
+    <WorkspaceSurface
+      data-testid="publishing-overview-health"
+      density="compact"
+      description={translate('healthDescription')}
+      flush
+      title={translate('healthTitle')}
+    >
+      <PublishingOverviewAsyncSection
+        errorMessage="Account health could not be loaded."
+        loadingLabel="Loading account health"
+        onRetry={onRetry}
+        state={state}
+      >
+        {(rows) =>
+          rows.length > 0 ? (
+            <ul aria-label={translate('healthTitle')}>
+              {rows.map((row) => (
+                <PublishingAccountRow
+                  key={row.credentialId}
+                  accountLabel={row.accountLabel}
+                  connections={connections}
+                  credentialId={row.credentialId}
+                  platform={row.platform}
+                  reconnectLabel={
+                    row.needsReconnect
+                      ? translate('healthReconnectAction')
+                      : undefined
+                  }
+                  meta={
+                    <span className="flex flex-wrap gap-x-3 gap-y-1">
+                      <span>
+                        {translate('healthScore', { score: row.score })}
+                      </span>
+                      <span>
+                        {translate('healthSignals', {
+                          days: row.connectedDays,
+                          failures: row.recentFailures,
+                          posts: row.publishedPosts,
+                        })}
+                      </span>
+                    </span>
+                  }
+                >
+                  <Badge variant={STATE_BADGE_VARIANT[row.state]}>
+                    {translate(STATE_MESSAGE_KEYS[row.state])}
+                  </Badge>
+                  {row.riskLevel === 'high' || row.riskLevel === 'medium' ? (
+                    <Badge variant={RISK_BADGE_VARIANT[row.riskLevel]}>
+                      {translate(RISK_MESSAGE_KEYS[row.riskLevel])}
+                    </Badge>
+                  ) : null}
+                  {row.needsReconnect ? (
+                    <Badge variant="warning">
+                      {translate('healthReconnect')}
+                    </Badge>
+                  ) : null}
+                  {row.holdPublishing ? (
+                    <Badge variant="warning">{translate('healthHold')}</Badge>
+                  ) : null}
+                </PublishingAccountRow>
+              ))}
+            </ul>
+          ) : (
+            <p className="px-4 py-3 text-sm text-muted-foreground sm:px-5">
+              {translate('healthEmpty')}
+            </p>
+          )
+        }
+      </PublishingOverviewAsyncSection>
+    </WorkspaceSurface>
+  );
+}

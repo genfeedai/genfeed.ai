@@ -4,7 +4,7 @@ import { PORTLESS_PROXY_ENVIRONMENT } from '../dev/portless-env';
 import { PORTLESS_SERVICE_INSTALL_ARGS } from '../dev/setup-portless';
 
 const ROUTED_SERVICES = [
-  { directory: 'apps/app', runnerPath: '../../', service: 'app' },
+  { directory: 'apps/web', runnerPath: '../../', service: 'app' },
   { directory: 'apps/docs', runnerPath: '../../', service: 'docs' },
   {
     directory: 'apps/server/api',
@@ -26,7 +26,7 @@ const ROUTED_SERVICES = [
     runnerPath: '../../../',
     service: 'notifications',
   },
-  { directory: 'apps/website', runnerPath: '../../', service: 'website' },
+  { directory: 'apps/marketing', runnerPath: '../../', service: 'website' },
 ] as const;
 
 /**
@@ -37,7 +37,7 @@ const DEFAULT_SCRIPT_EXPECTATIONS = {
   'dev:doctor': 'bun run scripts/dev/setup-portless.ts --check',
   'dev:setup': 'bun run scripts/dev/setup-portless.ts',
   'dev:status': 'bun run scripts/dev/dev-status.ts',
-  'dev:app': 'bun run --cwd apps/app dev',
+  'dev:web': 'bun run --cwd apps/web dev',
   'dev:api': 'bun run --cwd apps/server/api dev',
   'dev:backend':
     'bunx turbo run dev --filter=@genfeedai/api --filter=@genfeedai/files --filter=@genfeedai/mcp --filter=@genfeedai/notifications --filter=@genfeedai/workers --concurrency=6',
@@ -45,17 +45,17 @@ const DEFAULT_SCRIPT_EXPECTATIONS = {
     'bunx turbo run dev --filter=@genfeedai/api --filter=@genfeedai/files --filter=@genfeedai/notifications --concurrency=4',
   'dev:docs': 'bun run --cwd apps/docs dev',
   'dev:frontend':
-    'bunx turbo run dev --filter=@genfeedai/app --filter=@genfeedai/website --concurrency=3',
-  'dev:website': 'bun run --cwd apps/website dev',
+    'bunx turbo run dev --filter=@genfeedai/web --filter=@genfeedai/marketing --concurrency=3',
+  'dev:marketing': 'bun run --cwd apps/marketing dev',
   // Fixed-port escape hatch (explicit only)
-  'dev:debug:app': 'bunx turbo run dev:debug --filter=@genfeedai/app',
+  'dev:debug:web': 'bunx turbo run dev:debug --filter=@genfeedai/web',
   'dev:debug:backend:min':
     'bunx turbo run dev:debug --filter=@genfeedai/api --filter=@genfeedai/files --filter=@genfeedai/notifications --concurrency=4',
   // One-cycle aliases → canonical names
   'dev:all': 'bun run dev',
   'dev:essentials': 'bun run dev:backend:min',
-  'dev:app:be': 'bun run dev:backend:min',
-  'dev:app:fe': 'bun run dev:app',
+  'dev:web:be': 'bun run dev:backend:min',
+  'dev:web:fe': 'bun run dev:web',
 } as const;
 
 type PackageManifest = {

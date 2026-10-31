@@ -1,0 +1,99 @@
+'use client';
+
+import { ButtonVariant } from '@genfeedai/contracts';
+import SelectionToolbar from '@ui/lists/selection-toolbar/SelectionToolbar';
+import { Button } from '@ui/primitives/button';
+import { Download, Film, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import PromptBarDivider from '@/components/prompt-bars/components/divider/PromptBarDivider';
+import type { SelectionActionsBarProps } from '@/props/content/ingredient.props';
+
+export default function SelectionActionsBar({
+  count,
+  canMerge = false,
+  canPublishCampaign = false,
+  isMerging = false,
+  onClear,
+  onBulkDelete,
+  onDownload,
+  onMerge,
+  onPublishCampaign,
+  placement = 'overlay',
+  tagAction,
+}: SelectionActionsBarProps) {
+  const translate = useTranslations('common.selectionActions');
+
+  const hasConstructiveActions = Boolean(
+    (canPublishCampaign && onPublishCampaign) ||
+      canMerge ||
+      onDownload ||
+      tagAction,
+  );
+
+  return (
+    <SelectionToolbar
+      count={count}
+      label={translate('count', { count })}
+      onClear={onClear}
+      placement={placement}
+    >
+      {canPublishCampaign && onPublishCampaign && (
+        <Button
+          label="Publish Carousel"
+          variant={ButtonVariant.DEFAULT}
+          onClick={onPublishCampaign}
+          isDisabled={isMerging || count < 2}
+          tooltip={
+            count < 2
+              ? 'Select at least 2 campaign images to publish'
+              : 'Publish selected campaign as Instagram carousel'
+          }
+        />
+      )}
+
+      {canMerge && (
+        <Button
+          label={
+            <>
+              <Film /> {translate('merge')}
+            </>
+          }
+          variant={ButtonVariant.DEFAULT}
+          onClick={onMerge}
+          isLoading={isMerging}
+          isDisabled={isMerging || count < 2}
+          tooltip={
+            count < 2 ? 'Select at least 2 to merge' : `Merge ${count} items`
+          }
+        />
+      )}
+
+      {tagAction}
+
+      {onDownload && (
+        <Button
+          label={
+            <>
+              <Download /> {translate('download')}
+            </>
+          }
+          variant={ButtonVariant.SECONDARY}
+          onClick={onDownload}
+          isDisabled={isMerging}
+          tooltip={`Download ${count} selected`}
+        />
+      )}
+
+      {hasConstructiveActions && <PromptBarDivider />}
+
+      <Button
+        ariaLabel="Delete selection"
+        label={<Trash2 />}
+        variant={ButtonVariant.DESTRUCTIVE}
+        onClick={onBulkDelete}
+        isDisabled={isMerging || count === 0}
+        tooltip={`Delete ${count} selected`}
+      />
+    </SelectionToolbar>
+  );
+}

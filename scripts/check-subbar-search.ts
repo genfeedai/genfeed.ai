@@ -6,12 +6,12 @@ import { globSync } from 'glob';
  * Every list page searches through the shared `SearchField`: one persistent
  * field with the page's Filters menu attached inside it. The raw `Searchbar`
  * primitive stays for searches inside modals and pickers, so a page under
- * `apps/app` that imports it has drifted from the shared subbar.
+ * `apps/web` that imports it has drifted from the shared subbar.
  */
 
 const INCLUDE_GLOBS = [
-  'apps/app/app/**/*.tsx',
-  'apps/app/src/features/**/*.tsx',
+  'apps/web/app/**/*.tsx',
+  'apps/web/src/features/**/*.tsx',
 ];
 
 const EXCLUDE_GLOBS = [
@@ -21,14 +21,14 @@ const EXCLUDE_GLOBS = [
   '**/node_modules/**',
   // Feature folders that predate the move out of packages/pages (#8684) and
   // were never scanned; they join once their existing findings are fixed.
-  'apps/app/src/features/settings/**',
-  'apps/app/src/features/workflows/**',
+  'apps/web/src/features/settings/**',
+  'apps/web/src/features/workflows/**',
 ];
 
 /** Searches that live inside a modal or connect flow, not a list page's subbar. */
 export const SUBBAR_SEARCH_ALLOWLIST: readonly string[] = [
-  'apps/app/src/features/brands/components/integrations/connect-account/ConnectAccountShell.tsx',
-  'apps/app/src/features/trends/following/FollowSourceModal.tsx',
+  'apps/web/src/features/brands/components/integrations/connect-account/ConnectAccountShell.tsx',
+  'apps/web/src/features/trends/following/FollowSourceModal.tsx',
 ];
 
 /** The `@ui` alias or a relative path to the primitive; `\s` spans a line break after `from`. */

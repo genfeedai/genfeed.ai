@@ -1,0 +1,115 @@
+{
+  "author": "Genfeed.ai",
+  "build": {
+    "afterSign": "scripts/notarize.cjs",
+    "appId": "ai.genfeed.desktop",
+    "artifactName": "GenFeed-${version}-${arch}.${ext}",
+    "asar": true,
+    "asarUnpack": [
+      "dist/app-shell/**/*",
+      "node_modules/node-pty/**/*",
+      "node_modules/@electric-sql/pglite/dist/**"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "extraMetadata": {
+      "main": "dist/main.js"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "darkModeSupport": true,
+      "entitlements": "assets/entitlements.mac.plist",
+      "entitlementsInherit": "assets/entitlements.mac.plist",
+      "gatekeeperAssess": false,
+      "hardenedRuntime": true,
+      "icon": "build/icon.icns",
+      "minimumSystemVersion": "13.0",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "type": "distribution"
+    },
+    "protocols": [
+      {
+        "name": "Genfeed Desktop",
+        "schemes": [
+          "genfeedai-desktop"
+        ]
+      }
+    ],
+    "publish": [
+      {
+        "channel": "latest",
+        "provider": "generic",
+        "url": "https://github.com/genfeedai/genfeed.ai/releases/download/desktop-latest"
+      }
+    ]
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "0.5.10",
+    "node-pty": "1.1.0"
+  },
+  "description": "GenFeed \u2014 Electron native app for content creation",
+  "devDependencies": {
+    "@biomejs/biome": "2.6.3",
+    "@electron/notarize": "3.1.2",
+    "@genfeedai/desktop-core": "workspace:*",
+    "@genfeedai/desktop-prisma": "workspace:*",
+    "@genfeedai/helpers": "workspace:*",
+    "@genfeedai/next-config": "workspace:*",
+    "@types/node": "26.6.6",
+    "@typescript/native": "npm:typescript@7.0.2",
+    "electron": "45.0.0",
+    "electron-builder": "26.18.0",
+    "electron-updater": "6.8.11",
+    "esbuild": "0.28.2",
+    "typescript": "6.0.3",
+    "@genfeedai/contracts": "workspace:*"
+  },
+  "main": "dist/main.js",
+  "name": "@genfeedai/desktop",
+  "overrides": {
+    "typescript": "6.0.3"
+  },
+  "private": true,
+  "productName": "GenFeed",
+  "scripts": {
+    "build": "bun run build:native && bun run build:app-shell && bun run copy:app-shell",
+    "build:app-shell": "node ./scripts/build-app-shell.cjs",
+    "build:main": "bunx esbuild src/main.ts --bundle --format=esm --platform=node --target=node20 --outfile=dist/main.js --banner:js=\"import { createRequire as __genfeedCreateRequire } from 'node:module'; const require = __genfeedCreateRequire(import.meta.url);\" --external:electron --external:@electric-sql/pglite --external:@electric-sql/pglite/* --external:@electric-sql/pglite-socket --external:node-pty --tsconfig=tsconfig.json",
+    "build:native": "bun run clean && bun run build:main && bun run build:preload && bun run copy:assets",
+    "build:preload": "bunx esbuild src/preload.ts --bundle --format=cjs --platform=node --target=node20 --outfile=dist/preload.cjs --external:electron --tsconfig=tsconfig.json",
+    "build:release": "bun run build && bun run prepare:release",
+    "clean": "rm -rf dist",
+    "copy:app-shell": "node ./scripts/copy-app-shell.cjs",
+    "copy:assets": "mkdir -p dist/assets && cp -r assets/* dist/assets/ && mkdir -p dist/desktop-prisma && cp -r ../../packages/desktop-prisma/prisma/migrations dist/desktop-prisma/migrations",
+    "deps:update": "bunx npm-check-updates -u --reject typescript,@types/node && bun install",
+    "dev": "bun run electron:install-binary && bun run native:rebuild && node ./scripts/dev.cjs",
+    "electron:install-binary": "node ./scripts/install-electron.cjs",
+    "icon:mac": "bash ./scripts/generate-macos-icon.sh",
+    "lint": "biome check src scripts package.json",
+    "native:rebuild": "electron-builder install-app-deps",
+    "notarize": "node ./scripts/notarize.cjs",
+    "pack:mac": "bun run electron:install-binary && bun run native:rebuild && bun run build:release && electron-builder --mac --dir --publish never",
+    "prepare:release": "bun run icon:mac",
+    "qa:release": "bun run lint && bun run type-check && bun run test && bun run smoke && bun run verify:bundle-size",
+    "release:mac": "bun run electron:install-binary && bun run native:rebuild && bun run build:release && electron-builder --mac dmg zip --publish never",
+    "release:manifest": "node ./scripts/write-release-manifest.cjs",
+    "release:metadata": "node ./scripts/finalize-macos-release.cjs",
+    "smoke": "bun run electron:install-binary && bun run native:rebuild && bun run build && node ./scripts/run-smoke.cjs",
+    "start": "bun run electron:install-binary && bun run native:rebuild && ELECTRON_RUN_AS_NODE= electron dist/main.js",
+    "test": "bun test --tsconfig-override ./tsconfig.json ./src/**/*.test.ts",
+    "test:cov": "bun test --tsconfig-override ./tsconfig.json --coverage ./src/**/*.test.ts",
+    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && bunx tsc --noEmit",
+    "verify:bundle-size": "node ./scripts/check-bundle-size.cjs",
+    "visual:qa:release": "node ./scripts/capture-visual-qa.cjs"
+  },
+  "type": "module",
+  "version": "0.1.0"
+}
