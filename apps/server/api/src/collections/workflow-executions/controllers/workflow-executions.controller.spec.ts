@@ -492,6 +492,33 @@ describe('WorkflowExecutionsController', () => {
       expect(JSON.stringify(where.workflow)).not.toContain('voice.generate');
     });
 
+    it('narrows the failure feed to runs whose error, workflow or organization match the search', async () => {
+      mockService.findAll.mockResolvedValue({ docs: [] });
+      await controller.findAdminFailures(
+        mockRequest,
+        { isSuperAdmin: true } as never,
+        { limit: 20, offset: 0, resolution: 'open', search: ' timeout ' },
+      );
+
+      expect(mockService.findAll.mock.calls[0][0].where.AND).toEqual([
+        {
+          OR: [
+            { error: { contains: 'timeout', mode: 'insensitive' } },
+            {
+              organization: {
+                label: { contains: 'timeout', mode: 'insensitive' },
+              },
+            },
+            {
+              workflow: {
+                label: { contains: 'timeout', mode: 'insensitive' },
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
     it('lists open failures by default and resolved ones on request', async () => {
       mockService.findAll.mockResolvedValue({ docs: [] });
       const superAdmin = { isSuperAdmin: true } as never;

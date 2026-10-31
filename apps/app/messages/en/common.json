@@ -1748,7 +1748,9 @@
       "emptyTitle": "No content runs yet",
       "goToDiscovery": "Go to Discovery",
       "loadError": "Content runs could not be loaded.",
-      "selectBrand": "Select a brand to view content runs."
+      "selectBrand": "Select a brand to view content runs.",
+      "search": "Search content runs",
+      "emptySearchTitle": "No content runs match your search"
     },
     "replies": {
       "actions": {
@@ -1816,7 +1818,9 @@
         "removeLabel": "Stop monitoring @{username}",
         "removed": "Stopped monitoring @{username}",
         "removeFailed": "Could not stop monitoring that account"
-      }
+      },
+      "search": "Search replies",
+      "emptySearchTitle": "No replies match your search"
     },
     "workflowBinding": {
       "description": "Deterministic Run workflow uses this graph. Hire presets seed a template when empty; pick a workflow to pin one permanently.",

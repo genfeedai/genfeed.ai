@@ -173,7 +173,8 @@ export class AgentFailureQueryDto {
   @IsOptional()
   @IsString()
   @ApiProperty({
-    description: 'Search failures by error text, organization or run id',
+    description:
+      'Search failures by error text, organization, workflow or run id',
     required: false,
   })
   search?: string;

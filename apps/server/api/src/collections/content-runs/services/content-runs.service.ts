@@ -19,6 +19,7 @@ import type {
   CreateContentRunInput,
   UpdateContentRunInput,
 } from '@genfeedai/contracts/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -298,7 +299,23 @@ export class ContentRunsService {
     skillSlug: string | undefined,
     status: ContentRunStatus | undefined,
     window: PageWindow,
+    search?: string,
   ): Promise<AggregatePaginateResult<Record<string, unknown>>> {
+    const term = search?.trim();
+    // The list shows the brief's angle, hypothesis or source id as the title.
+    const searchFilters: Prisma.ContentRunWhereInput[] = term
+      ? [
+          {
+            OR: [['angle'], ['hypothesis'], ['sourceId']].map((key) => ({
+              config: {
+                mode: 'insensitive',
+                path: ['brief', ...key],
+                string_contains: term,
+              },
+            })),
+          },
+        ]
+      : [];
     const where = scopedWhere(organizationId, {
       brandId,
       ...(status ? { status } : {}),
@@ -307,6 +324,7 @@ export class ContentRunsService {
       ...(skillSlug
         ? { config: { equals: skillSlug, path: ['skillSlug'] } }
         : {}),
+      ...(searchFilters.length > 0 ? { AND: searchFilters } : {}),
     });
 
     const [runs, totalDocs] = await Promise.all([

@@ -9,6 +9,8 @@ import AgentFailuresPage from './content';
 import '@testing-library/jest-dom/vitest';
 
 const mocks = vi.hoisted(() => ({
+  replace: vi.fn(),
+  searchParams: new URLSearchParams(),
   getService: vi.fn(),
   list: vi.fn(),
   notifyError: vi.fn(),
@@ -20,6 +22,11 @@ vi.mock('next-intl', async () => {
   );
   return { useTranslations: translateFromCatalog };
 });
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/admin/automation/failures',
+  useRouter: () => ({ replace: mocks.replace }),
+  useSearchParams: () => mocks.searchParams,
+}));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));
@@ -28,7 +35,7 @@ vi.mock('@ui/content/admin-filters/useAdminSearchParam', async () => {
   return {
     // The real hook keeps the term in the URL; state is enough for the page.
     useAdminSearchParam: () => {
-      const [search, setSearch] = useState('');
+      const [search, setSearch] = useState(mocks.searchParams.get('q') ?? '');
       return { search, setSearch };
     },
   };
@@ -70,6 +77,7 @@ describe('AgentFailuresPage', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.searchParams = new URLSearchParams();
     Element.prototype.hasPointerCapture = vi.fn(() => false);
     Element.prototype.scrollIntoView = vi.fn();
     Element.prototype.setPointerCapture = vi.fn();
@@ -96,6 +104,27 @@ describe('AgentFailuresPage', () => {
     const signal = mocks.list.mock.calls[0][2];
     unmount();
     expect(signal.aborted).toBe(true);
+  });
+
+  it('sends the searched text to the server and explains an empty result', async () => {
+    mocks.searchParams = new URLSearchParams('q=timeout');
+    render(<AgentFailuresPage />);
+
+    expect(
+      await screen.findByText('No agent failures match your search'),
+    ).toBeInTheDocument();
+    expect(mocks.list).toHaveBeenCalledWith(
+      undefined,
+      0,
+      expect.any(AbortSignal),
+      'open',
+      'timeout',
+    );
+    expect(
+      screen.getByRole('textbox', {
+        name: 'Search failures, workflows, organizations or run ID',
+      }),
+    ).toHaveValue('timeout');
   });
 
   it('supports retry after a failed request', async () => {
@@ -189,7 +218,7 @@ describe('AgentFailuresPage', () => {
 
     await user.type(
       screen.getByRole('textbox', {
-        name: 'Search by error, organization or run ID',
+        name: 'Search failures, workflows, organizations or run ID',
       }),
       'timed out{Enter}',
     );

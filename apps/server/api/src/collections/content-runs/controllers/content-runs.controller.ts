@@ -25,8 +25,8 @@ import {
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
-  PaginationQueryDto,
   resolvePageWindow,
+  SearchPaginationQueryDto,
 } from '@api/helpers/dto/pagination-query.dto';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
@@ -161,7 +161,7 @@ export class ContentRunsController {
     @CurrentUser() user: User,
     @Query('skillSlug') skillSlug?: string,
     @Query('status') status?: ContentRunStatus,
-    @Query() pagination?: PaginationQueryDto,
+    @Query() pagination?: SearchPaginationQueryDto,
   ) {
     const organization = resolveTenantReadScope(user).organizationId;
 
@@ -171,6 +171,7 @@ export class ContentRunsController {
       skillSlug,
       status,
       resolvePageWindow(pagination),
+      pagination?.search,
     );
 
     return serializeCollection(req, ContentRunSerializer, result);

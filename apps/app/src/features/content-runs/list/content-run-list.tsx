@@ -15,7 +15,9 @@ import { ContentRunsService } from '@services/content/content-runs.service';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
+import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
+import SearchField from '@ui/content/search-field/SearchField';
 import Badge from '@ui/display/badge/Badge';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import LoadingState from '@ui/feedback/LoadingState';
@@ -72,6 +74,7 @@ export default function ContentRunListPage() {
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const currentPage = Number(searchParams.get('page')) || 1;
+  const { search, setSearch } = useAdminSearchParam();
 
   // A new filter changes the result set, so restart from the first page.
   const handleStatusChange = useCallback(
@@ -111,39 +114,48 @@ export default function ContentRunListPage() {
         {
           limit: ITEMS_PER_PAGE,
           page: currentPage,
+          ...(search ? { search } : {}),
           status:
             status === ALL_STATUSES ? undefined : (status as ContentRunStatus),
         },
         signal,
       );
     },
-    queryKey: ['content-runs', brandId, status, currentPage],
+    queryKey: ['content-runs', brandId, status, currentPage, search],
   });
 
   const isInitialFetch = isFetching && data.length === 0;
 
-  const statusFilter = (
-    <FilterMenu
-      facets={[
-        {
-          defaultValue: ALL_STATUSES,
-          key: 'status',
-          label: translate('statusFilter'),
-          onChange: handleStatusChange,
-          options: [
-            { label: translateMenu('all'), value: ALL_STATUSES },
-            ...STATUS_OPTIONS,
-          ],
-          selection: 'single',
-          value: status,
-        },
-      ]}
-      onClear={() => handleStatusChange(ALL_STATUSES)}
-    />
+  const searchField = (
+    <SearchField
+      ariaLabel={translate('search')}
+      onSearch={setSearch}
+      placeholder={translate('search')}
+      value={search}
+    >
+      <FilterMenu
+        facets={[
+          {
+            defaultValue: ALL_STATUSES,
+            key: 'status',
+            label: translate('statusFilter'),
+            onChange: handleStatusChange,
+            options: [
+              { label: translateMenu('all'), value: ALL_STATUSES },
+              ...STATUS_OPTIONS,
+            ],
+            selection: 'single',
+            value: status,
+          },
+        ]}
+        isAttached
+        onClear={() => handleStatusChange(ALL_STATUSES)}
+      />
+    </SearchField>
   );
 
   return (
-    <Container label="Content Runs" icon={CirclePlay} right={statusFilter}>
+    <Container label="Content Runs" icon={CirclePlay} leading={searchField}>
       {pageScope === 'org' && !isBrandReady ? (
         <p className="mt-6 text-sm text-muted-foreground">
           {translate('selectBrand')}
@@ -186,9 +198,11 @@ export default function ContentRunListPage() {
             <CardEmpty
               icon={Sparkles}
               label={
-                status === ALL_STATUSES
-                  ? translate('emptyTitle')
-                  : translate('emptyFilteredTitle')
+                search
+                  ? translate('emptySearchTitle')
+                  : status === ALL_STATUSES
+                    ? translate('emptyTitle')
+                    : translate('emptyFilteredTitle')
               }
               action={
                 status !== ALL_STATUSES
@@ -199,7 +213,7 @@ export default function ContentRunListPage() {
                   : undefined
               }
               actions={
-                status === ALL_STATUSES ? (
+                status === ALL_STATUSES && !search ? (
                   <Button
                     asChild
                     variant={ButtonVariant.SECONDARY}

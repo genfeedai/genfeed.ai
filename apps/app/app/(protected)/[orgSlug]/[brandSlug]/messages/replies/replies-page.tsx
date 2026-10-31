@@ -24,7 +24,9 @@ import type {
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Card from '@ui/card/Card';
 import { EmptyState } from '@ui/card/EmptyState';
+import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
+import SearchField from '@ui/content/search-field/SearchField';
 import Container from '@ui/layout/container/Container';
 import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import Loading from '@ui/loading/default/Loading';
@@ -33,8 +35,9 @@ import { Button } from '@ui/primitives/button';
 import { MessageCircleReply } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { filterInboxItems } from './filter-inbox-items';
 import RepliesReplyComposer from './replies-reply-composer';
 import RepliesWarmupQueue from './replies-warmup-queue';
 import RepliesWarmupTargets from './replies-warmup-targets';
@@ -58,6 +61,7 @@ function intentBadgeVariant(
 
 export default function RepliesPage() {
   const translate = useTranslations('common.automation.replies');
+  const { search, setSearch } = useAdminSearchParam();
   const router = useRouter();
   const { orgSlug } = useOrgUrl();
   const { brandId: scopedBrandId, pageScope } = useCollectionScope();
@@ -82,6 +86,10 @@ export default function RepliesPage() {
   const [intents, setIntents] = useState<IntentState>({});
   const [busyId, setBusyId] = useState<string | null>(null);
   const [inboxError, setInboxError] = useState<string | null>(null);
+  const visibleItems = useMemo(
+    () => filterInboxItems(items, search),
+    [items, search],
+  );
 
   const brandId = scopedBrandId;
 
@@ -306,47 +314,55 @@ export default function RepliesPage() {
           isRefreshing={isLoading}
         />
       }
+      leading={
+        <SearchField
+          ariaLabel={translate('search')}
+          onSearch={setSearch}
+          placeholder={translate('search')}
+          value={search}
+        >
+          <FilterMenu
+            facets={[
+              {
+                defaultValue: Platform.TWITTER,
+                key: 'platform',
+                label: translate('platform.label'),
+                onChange: (value) => {
+                  const platform = parsePlatform(value);
+                  if (
+                    platform === Platform.TWITTER ||
+                    platform === Platform.YOUTUBE
+                  ) {
+                    setInboxPlatform(platform);
+                    setItems([]);
+                    setInboxError(null);
+                  }
+                },
+                options: [
+                  {
+                    label: translate('platform.twitter'),
+                    value: Platform.TWITTER,
+                  },
+                  {
+                    label: translate('platform.youtube'),
+                    value: Platform.YOUTUBE,
+                  },
+                ],
+                selection: 'single',
+                value: inboxPlatform,
+              },
+            ]}
+            isAttached
+            onClear={() => {
+              setInboxPlatform(Platform.TWITTER);
+              setItems([]);
+              setInboxError(null);
+            }}
+          />
+        </SearchField>
+      }
       right={
         <SubbarControls
-          filters={
-            <FilterMenu
-              facets={[
-                {
-                  defaultValue: Platform.TWITTER,
-                  key: 'platform',
-                  label: translate('platform.label'),
-                  onChange: (value) => {
-                    const platform = parsePlatform(value);
-                    if (
-                      platform === Platform.TWITTER ||
-                      platform === Platform.YOUTUBE
-                    ) {
-                      setInboxPlatform(platform);
-                      setItems([]);
-                      setInboxError(null);
-                    }
-                  },
-                  options: [
-                    {
-                      label: translate('platform.twitter'),
-                      value: Platform.TWITTER,
-                    },
-                    {
-                      label: translate('platform.youtube'),
-                      value: Platform.YOUTUBE,
-                    },
-                  ],
-                  selection: 'single',
-                  value: inboxPlatform,
-                },
-              ]}
-              onClear={() => {
-                setInboxPlatform(Platform.TWITTER);
-                setItems([]);
-                setInboxError(null);
-              }}
-            />
-          }
           primaryAction={
             <Button
               isDisabled={isEnabling}
@@ -392,6 +408,11 @@ export default function RepliesPage() {
 
       {isLoading ? (
         <Loading />
+      ) : search && items.length > 0 && visibleItems.length === 0 ? (
+        <Card
+          label={translate('emptySearchTitle')}
+          bodyClassName="flex flex-col gap-3 p-4"
+        />
       ) : items.length === 0 ? (
         <Card
           label={inboxError ? 'Inbox unavailable' : 'Inbox clear'}
@@ -420,7 +441,7 @@ export default function RepliesPage() {
         />
       ) : (
         <div className="flex flex-col gap-4">
-          {items.map((item) => {
+          {visibleItems.map((item) => {
             const intent = intents[item.commentId] ?? item.intent;
             return (
               <Card

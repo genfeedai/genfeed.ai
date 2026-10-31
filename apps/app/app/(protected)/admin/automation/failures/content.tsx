@@ -279,7 +279,9 @@ export default function AgentFailuresPage() {
             <Button label={translate('retry')} onClick={refreshFailures} />
           </Alert>
         ) : failures.length === 0 ? (
-          <CardEmptyContent label={translate('empty')} />
+          <CardEmptyContent
+            label={translate(search ? 'emptySearch' : 'empty')}
+          />
         ) : (
           <Table<IWorkflowExecution>
             ariaLabel={translate('title')}

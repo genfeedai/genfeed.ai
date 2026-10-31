@@ -40,7 +40,6 @@
     "UNKNOWN": "Unknown"
   },
   "resolutionFilter": "Status",
-  "search": "Search by error, organization or run ID",
   "resolutions": {
     "open": "Open",
     "resolved": "Resolved",
@@ -61,5 +60,7 @@
   },
   "actionError": "Could not update this failure.",
   "fullError": "Full error",
-  "recovery": "Recovery"
+  "recovery": "Recovery",
+  "search": "Search failures, workflows, organizations or run ID",
+  "emptySearch": "No agent failures match your search"
 }
