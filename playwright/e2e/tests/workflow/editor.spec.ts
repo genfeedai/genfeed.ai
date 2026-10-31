@@ -132,8 +132,16 @@ test.describe('Workflow Editor', () => {
 
     // The catalog lives behind the toolbar's Add node menu, not a fixed palette.
     await expect(workflowPage.nodeCatalogSearch).toHaveCount(0);
-    await workflowPage.addNodeButton.click();
-    await expect(workflowPage.nodeCatalogSearch).toBeVisible();
+    // A click that lands before the editor hydrates is dropped, and a second
+    // click on an open menu would close it, so only click while it is closed.
+    await expect(async () => {
+      if (!(await workflowPage.nodeCatalogSearch.isVisible())) {
+        await workflowPage.addNodeButton.click();
+      }
+      await expect(workflowPage.nodeCatalogSearch).toBeVisible({
+        timeout: 2_000,
+      });
+    }).toPass({ timeout: 15_000 });
   });
 
   test('should load existing workflow by ID', async ({ authenticatedPage }) => {
