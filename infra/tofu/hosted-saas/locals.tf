@@ -37,8 +37,42 @@ locals {
     [for e in local.internal_env : e.name],
     ["PORT", "SERVICE_NAME", "REDIS_PASSWORD"],
   ))
-  ignored_ssm_secret_names  = var.ignored_ssm_secret_names
-  excluded_ssm_secret_names = setunion(local.reserved_env_names, local.ignored_ssm_secret_names)
+  ignored_ssm_secret_names = var.ignored_ssm_secret_names
+
+  # Per-caller keys for /v1/internal/*. They are kept out of the recursive SSM
+  # injection above so that each service receives only its own key (the api
+  # receives all of them, because it verifies every caller). A key that has no
+  # SSM parameter yet is simply not injected; the caller then falls back to the
+  # shared GENFEEDAI_API_KEY, so applying this before the parameters exist
+  # cannot point a task at a missing secret.
+  internal_caller_key_secret_names = {
+    discord       = "GENFEEDAI_API_KEY_DISCORD"
+    files         = "GENFEEDAI_API_KEY_FILES"
+    notifications = "GENFEEDAI_API_KEY_NOTIFICATIONS"
+    slack         = "GENFEEDAI_API_KEY_SLACK"
+    telegram      = "GENFEEDAI_API_KEY_TELEGRAM"
+  }
+  excluded_ssm_secret_names = setunion(
+    local.reserved_env_names,
+    local.ignored_ssm_secret_names,
+    toset(values(local.internal_caller_key_secret_names)),
+  )
+  internal_caller_task_secrets = {
+    for caller, secret_name in local.internal_caller_key_secret_names : caller => [
+      for i, name in data.aws_ssm_parameters_by_path.prod.names : {
+        name      = secret_name
+        valueFrom = data.aws_ssm_parameters_by_path.prod.arns[i]
+      } if element(reverse(split("/", name)), 0) == secret_name
+    ]
+  }
+  # service name => the caller keys injected into it: all of them for the api,
+  # only its own for a caller, none for every other service.
+  service_internal_caller_secrets = {
+    for service in keys(local.services) : service => flatten([
+      for caller, entries in local.internal_caller_task_secrets : entries
+      if service == "api" || caller == service
+    ])
+  }
   task_secrets = [
     for i, name in data.aws_ssm_parameters_by_path.prod.names : {
       name      = element(reverse(split("/", name)), 0)

@@ -371,6 +371,46 @@ test('scopes public ECS tasks to service-required secrets and IAM', () => {
   assert.doesNotMatch(publicTask, /s3:PutObject|s3:DeleteObject|CdnBucket/);
 });
 
+test('injects each internal caller key only into the service that owns it', () => {
+  const localsTf = readFileSync(
+    fileURLToPath(
+      new URL('../../infra/tofu/hosted-saas/locals.tf', import.meta.url),
+    ),
+    'utf8',
+  );
+  const servicesTf = readFileSync(
+    fileURLToPath(
+      new URL('../../infra/tofu/hosted-saas/services.tf', import.meta.url),
+    ),
+    'utf8',
+  );
+
+  for (const caller of [
+    'DISCORD',
+    'FILES',
+    'NOTIFICATIONS',
+    'SLACK',
+    'TELEGRAM',
+  ]) {
+    assert.match(localsTf, new RegExp(`"GENFEEDAI_API_KEY_${caller}"`));
+  }
+  assert.match(
+    localsTf,
+    /excluded_ssm_secret_names\s*=\s*setunion\([^)]*internal_caller_key_secret_names/,
+    'caller keys must not ride the recursive SSM injection',
+  );
+  assert.match(localsTf, /if service == "api" \|\| caller == service/);
+  assert.match(
+    servicesTf,
+    /local\.service_internal_caller_secrets\[each\.key\]/,
+  );
+  assert.doesNotMatch(
+    localsTf.slice(localsTf.indexOf('public_backend_secret_allowlist')),
+    /"GENFEEDAI_API_KEY_/,
+    'public backend allowlists must not name caller keys',
+  );
+});
+
 test('requires Redis TLS plus AUTH for shared ECS tasks', () => {
   const localsTf = readFileSync(
     fileURLToPath(
