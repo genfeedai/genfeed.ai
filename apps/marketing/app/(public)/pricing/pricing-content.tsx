@@ -7,6 +7,7 @@ import {
   creditPackPrice,
   creditPackTotalCredits,
   formatPrice,
+  getLaunchPrice,
   getPlanByTier,
   getPlanLabel,
   IMAGE_CREDIT_COSTS,
@@ -158,6 +159,7 @@ export default function PricingContent() {
             {getOrderedPlans().map((plan) => {
               const isFeatured = plan.tier === FEATURED_TIER;
               const ctaHref = plan.ctaHref || BOOKING_HREF;
+              const launchPrice = getLaunchPrice(plan.tier);
 
               return (
                 <NeuralGridItem
@@ -179,8 +181,13 @@ export default function PricingContent() {
                   ) : null}
 
                   <div className="mb-6 flex items-baseline gap-1.5 whitespace-nowrap">
+                    {launchPrice != null ? (
+                      <del className="text-xl font-medium text-foreground/40">
+                        {formatPrice(plan.price)}
+                      </del>
+                    ) : null}
                     <span className="text-4xl font-semibold tracking-[-0.02em] xl:text-5xl">
-                      {formatPrice(plan.price)}
+                      {formatPrice(launchPrice ?? plan.price)}
                     </span>
                     <span className="text-sm font-medium text-foreground/60">
                       /mo

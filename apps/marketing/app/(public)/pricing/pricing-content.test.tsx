@@ -56,7 +56,7 @@ describe('PricingContent', () => {
     const cards = ['Pro', 'Scale', 'Enterprise'].map((name) =>
       screen.getByLabelText(name),
     );
-    expect(cards[0]).toHaveTextContent('$49');
+    expect(cards[0]).toHaveTextContent('$39');
     expect(cards[1]).toHaveTextContent('$499');
     expect(cards[2]).toHaveTextContent('$2,500');
     expect(
@@ -140,6 +140,15 @@ describe('PricingContent', () => {
     expect(screen.getByText('Popular').closest('.gsap-card')).toHaveClass(
       'bg-card',
     );
+  });
+
+  it('shows Pro at the launch price with the full price crossed out', () => {
+    render(<PricingContent />);
+    const pro = within(screen.getByLabelText('Pro'));
+
+    expect(pro.getByText('$49').tagName).toBe('DEL');
+    expect(pro.getByText('$39')).not.toHaveClass('line-through');
+    expect(pro.queryByText(/EARLYGENFEED/)).not.toBeInTheDocument();
   });
 
   it('does not strike through the Scale price', () => {

@@ -119,6 +119,30 @@ const PLAN_PRICES = {
 } as const satisfies Record<PlanTier, number | null>;
 
 /**
+ * Stripe promotion code that takes $10 off Pro for 12 months. Checkout applies
+ * it for the customer on the Pro price, and the pricing page shows the price
+ * with it taken off, so the page and the charge always agree.
+ */
+export const PRO_LAUNCH_PROMOTION_CODE = 'EARLYGENFEED';
+
+/** Dollars the launch promotion code takes off the Pro monthly price. */
+export const PRO_LAUNCH_DISCOUNT_DOLLARS = 10;
+
+/**
+ * Monthly price a new customer pays with the launch promotion applied, or null
+ * when the tier has no launch promotion.
+ */
+export function getLaunchPrice(tier: PlanTier): number | null {
+  const price = PLAN_PRICES[tier];
+
+  if (tier !== 'pro' || price == null) {
+    return null;
+  }
+
+  return price - PRO_LAUNCH_DISCOUNT_DOLLARS;
+}
+
+/**
  * Monthly included credits per paid subscription tier.
  *
  * Published fallback only. The authoritative grant for a live subscription is

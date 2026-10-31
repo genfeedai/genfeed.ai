@@ -20,6 +20,7 @@ import {
   formatTierLabel,
   GENERATION_MARGIN_TAPER_MULTIPLIER,
   getEnterprisePlan,
+  getLaunchPrice,
   getPlanByLabel,
   getPlanByTier,
   getPlanLabel,
@@ -134,6 +135,18 @@ describe('plan price formatting', () => {
         margin,
         1,
       );
+    },
+  );
+
+  it.each([
+    { expected: 39, tier: 'pro' },
+    { expected: null, tier: 'scale' },
+    { expected: null, tier: 'payg' },
+    { expected: null, tier: 'enterprise' },
+  ] as const)(
+    'prices $tier at $expected with the launch code',
+    ({ expected, tier }) => {
+      expect(getLaunchPrice(tier)).toBe(expected);
     },
   );
 
