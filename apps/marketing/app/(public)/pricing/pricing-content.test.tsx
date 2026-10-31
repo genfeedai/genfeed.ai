@@ -62,10 +62,7 @@ describe('PricingContent', () => {
     expect(
       screen.getByRole('heading', { name: 'Pay As You Go' }),
     ).toBeInTheDocument();
-    expect(cards[0]).toHaveTextContent(
-      'off for 12 months with code EARLYGENFEED',
-    );
-    expect(cards[1]).not.toHaveTextContent('EARLYGENFEED');
+    expect(cards[0]).not.toHaveTextContent('EARLYGENFEED');
   });
 
   it('never prints the per-credit price', () => {
@@ -124,6 +121,10 @@ describe('PricingContent', () => {
       pro.getByText('Automation, Messages, Discovery'),
     ).toBeInTheDocument();
     expect(pro.getByText('5,900 credits included')).toBeInTheDocument();
+    expect(pro.getAllByRole('listitem')[0]).toHaveTextContent(
+      '5,900 credits included',
+    );
+    expect(pro.getByText('Bring your own key')).toBeInTheDocument();
   });
 
   it('lists the subscription features on the Scale card', () => {

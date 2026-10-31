@@ -12,7 +12,6 @@ import {
   IMAGE_CREDIT_COSTS,
   INTERNAL_CREDIT_COSTS,
   PLAN_COPY,
-  PRO_EARLY_ACCESS_DISCOUNT,
   VIDEO_CREDIT_COSTS,
   WEBSITE_CREDIT_PACKS,
   type websitePlans,
@@ -141,6 +140,13 @@ export function getPriceQualifier(plan: (typeof websitePlans)[number]): string {
   return 'Custom credit terms';
 }
 
+/** Card list: the included credits lead, then the plan's own features. */
+function getCardFeatures(plan: (typeof websitePlans)[number]): string[] {
+  return plan.includedCredits == null
+    ? plan.features
+    : [getPriceQualifier(plan), ...plan.features];
+}
+
 export default function PricingContent() {
   const paygSignUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
 
@@ -172,7 +178,7 @@ export default function PricingContent() {
                     </div>
                   ) : null}
 
-                  <div className="mb-2 flex items-baseline gap-1.5 whitespace-nowrap">
+                  <div className="mb-6 flex items-baseline gap-1.5 whitespace-nowrap">
                     <span className="text-4xl font-semibold tracking-[-0.02em] xl:text-5xl">
                       {formatPrice(plan.price)}
                     </span>
@@ -181,18 +187,8 @@ export default function PricingContent() {
                     </span>
                   </div>
 
-                  <div className="text-sm text-foreground/60">
-                    {getPriceQualifier(plan)}
-                  </div>
-
-                  <div className="mb-6 min-h-5 text-sm font-medium text-foreground">
-                    {plan.tier === 'pro'
-                      ? `${formatPrice(PRO_EARLY_ACCESS_DISCOUNT.amountOff)} off for ${PRO_EARLY_ACCESS_DISCOUNT.durationMonths} months with code ${PRO_EARLY_ACCESS_DISCOUNT.code}`
-                      : null}
-                  </div>
-
                   <ul className="mb-auto space-y-3">
-                    {plan.features.map((feature) => (
+                    {getCardFeatures(plan).map((feature) => (
                       <li key={feature} className="flex items-start gap-3">
                         <CircleCheck className="mt-0.5 size-4 shrink-0 text-foreground/60" />
                         <span className="text-sm text-foreground/60">
@@ -338,7 +334,11 @@ export default function PricingContent() {
                       className="text-foreground/70"
                     >
                       {value === COMPARE_CHECKMARK ? (
-                        <span role="img" aria-label="Included">
+                        <span
+                          role="img"
+                          aria-label="Included"
+                          className="text-foreground"
+                        >
                           {value}
                         </span>
                       ) : (
