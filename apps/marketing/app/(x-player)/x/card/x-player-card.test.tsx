@@ -38,7 +38,7 @@ describe('X player card page', () => {
     const { container } = render(<XPlayerCardContent />);
 
     expect(
-      screen.getByRole('heading', { level: 1, name: /ask once/i }),
+      screen.getByRole('heading', { level: 1, name: /from brief to feed/i }),
     ).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Open Genfeed' })).toHaveAttribute(
       'href',

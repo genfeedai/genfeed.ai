@@ -33,7 +33,7 @@ export default function XPlayerCardContent() {
             className="max-w-[12ch] text-balance text-[1.75rem] leading-[0.98] tracking-[-0.02em] text-foreground sm:text-[2.125rem]"
             size="3xl"
           >
-            Ask once. Show up everywhere.
+            From brief to feed.
           </Heading>
           <Text
             as="p"
