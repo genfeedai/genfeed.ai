@@ -17,4 +17,15 @@ describe('extension manifest', () => {
     );
     expect(JSON.stringify(extensionPackage)).not.toContain('PRIVATE KEY');
   });
+
+  it('uses the store name', () => {
+    expect(extensionPackage.displayName).toBe('genfeed.ai');
+  });
+
+  it('keeps the description short and free of platform-name lists', () => {
+    expect(extensionPackage.description.length).toBeLessThanOrEqual(132);
+    expect(extensionPackage.description).not.toMatch(
+      /LinkedIn|Reddit|Threads|Facebook|Instagram|TikTok|YouTube|Twitter/i,
+    );
+  });
 });

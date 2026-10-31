@@ -25,12 +25,14 @@ The dashboard rejects an uploaded package whose manifest has a `key` field ("key
 
 ## Listing
 
+The store reads the item name and summary from the package manifest (`displayName` and `description` in `package.json`), so a change to either needs a new upload. Keep the description free of lists of platform names: the store rejects those as keyword spam.
+
 | Field | Value |
 | --- | --- |
-| Name | GenFeed |
+| Name | genfeed.ai |
 | Category | Productivity |
 | Language | English |
-| Summary (max 132 characters) | Write, rewrite and reply to posts with your Genfeed brand voice on X, LinkedIn, Reddit, Threads and more. Save sources for later. |
+| Summary (max 132 characters) | Write, rewrite and reply with content that sounds like your brand. Save sources from any page to reuse later. |
 | Privacy policy URL | <https://genfeed.ai/privacy> (has a Browser Extension section) |
 | Homepage URL | <https://genfeed.ai> |
 | Support URL | <https://genfeed.ai/contact> |
@@ -38,26 +40,26 @@ The dashboard rejects an uploaded package whose manifest has a `key` field ("key
 ### Description
 
 ```
-Genfeed brings your content workflow into the page you are already on.
+Genfeed helps you write social content that sounds like your brand and reads well, right where you work.
 
-Next to the Reply button on X, LinkedIn, Reddit, Threads, Facebook, Instagram, TikTok and YouTube, Genfeed adds one small logo button. Open it to:
+Next to the reply box on the social sites you use, Genfeed adds one small logo button. Open it to:
 
-• Generate a reply from the post you are reading
+• Draft a reply from the post you are reading
 • Proofread what you have typed
-• Rewrite it in your own voice
+• Rewrite it in your brand voice
 • Reply with an image, a video or a GIF
 • Generate an image for the post
 • Save the post as a source for later
 
 Genfeed only fills the reply box. You read it, edit it and post it yourself. Nothing is published for you.
 
-Right-click anywhere on the web to remix a page, add it to your Genfeed Knowledge or save it as a source. The side panel keeps your saved sources, your library and analytics for the posts you published on X and LinkedIn.
+Right-click anywhere on the web to remix a page, add it to your Genfeed Knowledge or save it as a source. The side panel keeps your saved sources, your library and analytics for the posts you publish.
 
 You need a Genfeed account. The extension signs in with your existing Genfeed session and uses your brand voice and workspace.
 
-Optional: if you install the Genfeed local bridge on your own computer, Genfeed can fall back to your own Claude Code, Codex or Gemini CLI when the cloud service is unavailable. It is off unless you turn it on.
+Optional: if you install the Genfeed local bridge on your own computer, Genfeed can fall back to your own AI command-line tool when the cloud service is unavailable. It is off unless you turn it on.
 
-Genfeed is not affiliated with X, LinkedIn, Reddit, Meta, TikTok or Google.
+Genfeed is an independent product and is not affiliated with or endorsed by any social network.
 ```
 
 ## Privacy tab
@@ -78,7 +80,7 @@ Genfeed is not affiliated with X, LinkedIn, Reddit, Meta, TikTok or Google.
 | `tabs` | Reads the active tab's URL and title to save the right source, and watches tab navigation on X and LinkedIn to confirm a post the user published. Also opens Genfeed links. |
 | `downloads` | Saves a generated image or video from the user's library to disk, after the user clicks Download. |
 | `nativeMessaging` | Optional. Talks to the Genfeed local bridge the user installed themselves. Off by default. |
-| Host access: X, LinkedIn, Reddit, Threads, Facebook, Instagram, TikTok, YouTube | Adds the Genfeed button beside the reply box and reads the post the user is replying to. |
+| Host access: supported social sites | Adds the Genfeed button beside the reply box on the social sites listed in the manifest and reads the post the user is replying to. |
 | Host access: `genfeed.ai`, `app.genfeed.ai`, `api.genfeed.ai` | Signs the user in and sends requests to the Genfeed API. |
 
 **Remote code**: No. All code ships in the package.
@@ -99,7 +101,7 @@ Reviewers need a working account. **Owner**: create a dedicated reviewer account
 
 ```
 1. Open https://app.genfeed.ai and sign in with the reviewer account below. Keep the tab open.
-2. Click the GenFeed toolbar icon. The popup should show the signed-in workspace.
+2. Click the genfeed.ai toolbar icon. The popup should show the signed-in workspace.
 3. Open https://x.com, open any post and click Reply. A small outline GenFeed logo button appears beside the Reply button. Click it for the menu.
 4. Choose "Generate reply". The reply box is filled. Nothing is posted.
 5. Right-click any page and choose "Save source to Genfeed". The side panel opens with the saved source.

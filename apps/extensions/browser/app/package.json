@@ -17,7 +17,7 @@
     "@genfeedai/actions": "workspace:*",
     "@genfeedai/agent": "workspace:*"
   },
-  "description": "Genfeed.ai - Generate (good) AI content for your business",
+  "description": "Write, rewrite and reply with content that sounds like your brand. Save sources from any page to reuse later.",
   "devDependencies": {
     "@ianvs/prettier-plugin-sort-imports": "4.7.1",
     "@testing-library/jest-dom": "7.0.1",
@@ -35,7 +35,7 @@
     "@typescript/native": "npm:typescript@7.0.2",
     "vitest": "5.0.5"
   },
-  "displayName": "GenFeed",
+  "displayName": "genfeed.ai",
   "exports": {
     "./background": "./src/background.ts",
     "./content": "./src/content.ts",
