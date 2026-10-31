@@ -25,7 +25,8 @@ those suites.
 
 - A verdict on the exact release SHA decides. A newer green re-run clears an
   earlier red for the same SHA; a cancelled run is never a verdict.
-- Without one, the newest verdict on the nearest master commit before the
+- An exact-SHA run still in flight blocks; re-run Release once it finishes.
+- With neither, the newest verdict on the nearest master commit before the
   release SHA from the last 48 hours decides. A green run there counts only if
   every file changed since is neutral for that suite: files the suite never
   builds or runs, such as `apps/server/` for Playwright Full or `apps/app/` for
