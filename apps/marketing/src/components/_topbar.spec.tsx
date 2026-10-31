@@ -217,6 +217,29 @@ describe('WebsiteTopbar', () => {
       expect(getCtaGroup().className).toContain('invisible');
     });
 
+    it('reveals Log in together with the other bar actions, never alone', () => {
+      vi.stubGlobal(
+        'IntersectionObserver',
+        class {
+          constructor(callback: ObserverCallback) {
+            notify = callback;
+          }
+          observe = vi.fn();
+          disconnect = vi.fn();
+        },
+      );
+      document.body.innerHTML = '<div data-hero-cta></div>';
+      const hero = document.querySelector('[data-hero-cta]') as Element;
+
+      render(<WebsiteTopbar />);
+      const logIn = screen.getByRole('link', { name: /^log in$/i });
+      expect(getCtaGroup()).toContainElement(logIn);
+      expect(getCtaGroup().className).toContain('invisible');
+
+      act(() => notify([{ isIntersecting: false, target: hero }]));
+      expect(getCtaGroup().className).not.toContain('invisible');
+    });
+
     it('keeps the bar CTA on pages without a hero CTA', () => {
       render(<WebsiteTopbar />);
 
