@@ -27,6 +27,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
 import {
@@ -226,6 +227,13 @@ export class WorkflowExecutionsController {
                     }
                   : { failureReason: query.failureReason }
                 : {}),
+              ...buildSearchWhere(query.search, {
+                columns: ['error'],
+                relations: {
+                  organization: ['label'],
+                  workflow: ['label'],
+                },
+              }),
               workflow: {
                 is: {
                   isDeleted: false,

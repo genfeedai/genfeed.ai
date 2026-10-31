@@ -60,5 +60,7 @@
   },
   "actionError": "Could not update this failure.",
   "fullError": "Full error",
-  "recovery": "Recovery"
+  "recovery": "Recovery",
+  "search": "Search failures, workflows or organizations",
+  "emptySearch": "No agent failures match your search"
 }

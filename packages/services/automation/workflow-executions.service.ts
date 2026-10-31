@@ -81,6 +81,7 @@ class WorkflowExecutionsServiceClass {
     offset = 0,
     signal?: AbortSignal,
     resolution: AgentFailureResolution = 'open',
+    search?: string,
   ): Promise<IWorkflowExecution[]> {
     const query = new URLSearchParams({
       limit: '20',
@@ -88,6 +89,7 @@ class WorkflowExecutionsServiceClass {
       resolution,
     });
     if (failureReason) query.set('failureReason', failureReason);
+    if (search) query.set('search', search);
     const document = await this.request(
       `/workflow-executions/admin/failures?${query}`,
       { signal },

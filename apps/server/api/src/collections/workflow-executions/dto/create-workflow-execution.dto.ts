@@ -169,4 +169,13 @@ export class AgentFailureQueryDto {
   @Min(0)
   @ApiProperty({ default: 0, minimum: 0, required: false })
   offset: number = 0;
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({
+    description:
+      'Case-insensitive search over the error, workflow and organization',
+    required: false,
+  })
+  search?: string;
 }
