@@ -91,7 +91,7 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
     render(<>{searchNode}</>);
 
     fireEvent.change(
-      screen.getByRole('searchbox', { name: 'Search organizations' }),
+      screen.getByRole('textbox', { name: 'Search organizations' }),
       { target: { value: 'acme' } },
     );
 
