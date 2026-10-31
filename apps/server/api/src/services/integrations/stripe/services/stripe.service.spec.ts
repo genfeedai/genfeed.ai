@@ -424,9 +424,17 @@ describe('StripeService', () => {
 
       function promotionCodeList(
         ids: string[],
+        restrictedIds: string[] = [],
       ): Stripe.Response<Stripe.ApiList<Stripe.PromotionCode>> {
         return stripeResponse({
-          data: ids.map((id) => ({ id }) as Stripe.PromotionCode),
+          data: [
+            ...restrictedIds.map(
+              (id) => ({ customer: 'cus_other', id }) as Stripe.PromotionCode,
+            ),
+            ...ids.map(
+              (id) => ({ customer: null, id }) as Stripe.PromotionCode,
+            ),
+          ],
           has_more: false,
           object: 'list' as const,
           url: '/v1/promotion_codes',
@@ -451,6 +459,45 @@ describe('StripeService', () => {
         const callArg = createSpy.mock.calls[0][0];
         expect(callArg?.discounts).toEqual([{ promotion_code: 'promo_early' }]);
         expect(callArg).not.toHaveProperty('allow_promotion_codes');
+      });
+
+      it('skips a launch code restricted to another customer', async () => {
+        const proService = await createProService();
+        vi.spyOn(proService.stripe.promotionCodes, 'list').mockResolvedValue(
+          promotionCodeList(['promo_open'], ['promo_private']) as never,
+        );
+        const createSpy = vi
+          .spyOn(proService.stripe.checkout.sessions, 'create')
+          .mockResolvedValue(checkoutSessionResponse('sess'));
+
+        await proService.createPaymentSession(
+          'cust',
+          'pro_id',
+          'http://origin',
+        );
+
+        const callArg = createSpy.mock.calls[0][0];
+        expect(callArg?.discounts).toEqual([{ promotion_code: 'promo_open' }]);
+      });
+
+      it('falls back to the entry box when only a restricted launch code exists', async () => {
+        const proService = await createProService();
+        vi.spyOn(proService.stripe.promotionCodes, 'list').mockResolvedValue(
+          promotionCodeList([], ['promo_private']) as never,
+        );
+        const createSpy = vi
+          .spyOn(proService.stripe.checkout.sessions, 'create')
+          .mockResolvedValue(checkoutSessionResponse('sess'));
+
+        await proService.createPaymentSession(
+          'cust',
+          'pro_id',
+          'http://origin',
+        );
+
+        const callArg = createSpy.mock.calls[0][0];
+        expect(callArg?.allow_promotion_codes).toBe(true);
+        expect(callArg).not.toHaveProperty('discounts');
       });
 
       it('falls back to the entry box when the launch code is not active', async () => {

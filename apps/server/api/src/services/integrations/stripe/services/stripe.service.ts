@@ -790,10 +790,15 @@ export class StripeService {
       const promotionCodes = await this.stripe.promotionCodes.list({
         active: true,
         code,
-        limit: 1,
+        limit: 10,
       });
 
-      return promotionCodes.data[0]?.id ?? null;
+      // A code restricted to one customer cannot be applied for anyone else.
+      const redeemable = promotionCodes.data.find(
+        (promotionCode) => !promotionCode.customer,
+      );
+
+      return redeemable?.id ?? null;
     } catch (error: unknown) {
       this.loggerService.warn(`${url} promotion code lookup failed`, {
         code,
