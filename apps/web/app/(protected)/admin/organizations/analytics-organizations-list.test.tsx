@@ -232,16 +232,29 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
   });
 
   describe('server-side ordering and type filter', () => {
-    const emptyPage = {
-      data: [],
-      pagination: { limit: 10, page: 1, total: 0, totalPages: 0 },
+    // One row, so the table renders its column headers.
+    const onePage = {
+      data: [
+        {
+          avgEngagementRate: 0,
+          growth: 0,
+          id: 'org-1',
+          name: 'Acme Inc',
+          totalBrands: 1,
+          totalEngagement: 0,
+          totalMembers: 1,
+          totalPosts: 0,
+          totalViews: 0,
+        },
+      ],
+      pagination: { limit: 10, page: 1, total: 1, totalPages: 1 },
     };
     const lastRequest = () =>
       mocks.getOrganizationsWithStats.mock.calls.at(-1)?.[0];
 
     it('asks the API for the clicked metric, ascending then descending', async () => {
       const user = userEvent.setup();
-      mocks.getOrganizationsWithStats.mockResolvedValue(emptyPage);
+      mocks.getOrganizationsWithStats.mockResolvedValue(onePage);
 
       render(<AnalyticsOrganizationsList />);
       await waitFor(() => {
@@ -270,7 +283,7 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
     });
 
     it('does not offer sorting on columns the API cannot order by', async () => {
-      mocks.getOrganizationsWithStats.mockResolvedValue(emptyPage);
+      mocks.getOrganizationsWithStats.mockResolvedValue(onePage);
 
       render(<AnalyticsOrganizationsList />);
 
@@ -282,7 +295,7 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
 
     it('filters by organization type and drops the filter again on All types', async () => {
       const user = userEvent.setup();
-      mocks.getOrganizationsWithStats.mockResolvedValue(emptyPage);
+      mocks.getOrganizationsWithStats.mockResolvedValue(onePage);
 
       render(<AnalyticsOrganizationsList />);
       await waitFor(() => {
