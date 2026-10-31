@@ -73,9 +73,7 @@ describe('CaptionsList', () => {
     searchParamValues.q = 'welcome';
     render(<CaptionsList />);
 
-    expect(
-      await screen.findByText('No captions match your search'),
-    ).toBeInTheDocument();
+    await screen.findByText('No captions found');
     expect(findAllMock).toHaveBeenCalledWith(
       expect.objectContaining({ page: 1, search: 'welcome' }),
     );

@@ -15,12 +15,14 @@ import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useState } from 'react';
 
 function ScenesListContent() {
   const notificationsService = NotificationsService.getInstance();
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
+  const searchT = useTranslations('common.listSearch');
   const { search, setSearch } = useAdminSearchParam();
 
   const getScenesService = useAuthedService(
@@ -72,9 +74,9 @@ function ScenesListContent() {
       label="Scenes"
       leading={
         <SearchField
-          ariaLabel="Search scenes"
+          ariaLabel={searchT('scenes')}
           onSearch={setSearch}
-          placeholder="Search scenes"
+          placeholder={searchT('scenes')}
           value={search}
         />
       }
@@ -86,7 +88,7 @@ function ScenesListContent() {
         isLoading={isLoading}
         getRowKey={(item) => item.id}
         rowSidebar={rowSidebar}
-        emptyLabel={search ? 'No scenes match your search' : 'No scenes found'}
+        emptyLabel="No scenes found"
       />
 
       <div className="mt-4">

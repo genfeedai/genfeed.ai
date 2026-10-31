@@ -118,9 +118,7 @@ function CaptionsListContent() {
             isLoading={captions === null}
             getRowKey={(item) => item.id}
             rowSidebar={rowSidebar}
-            emptyLabel={
-              search ? 'No captions match your search' : 'No captions found'
-            }
+            emptyLabel="No captions found"
           />
 
           <div className="mt-4">
