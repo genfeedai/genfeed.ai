@@ -229,13 +229,11 @@ export function createPrTestPlan({
   const workspaceGroups = Object.fromEntries(
     Object.entries(normalizedTurboTasks).map(([group, tasks]) => [
       group,
-      (runHeavy ||
-          classification.forceFull ||
-          tasks.length > 0 ||
-          (group === 'browser-extension' &&
-            changedFiles.some((file) =>
-              file.startsWith('apps/extension/'),
-            ))),
+      runHeavy ||
+        classification.forceFull ||
+        tasks.length > 0 ||
+        (group === 'browser-extension' &&
+          changedFiles.some((file) => file.startsWith('apps/extension/'))),
     ]),
   );
 
@@ -502,9 +500,7 @@ async function runCli() {
   const turboTaskEntriesPromise = Promise.all(
     Object.entries(TURBO_TEST_GROUPS).map(async ([group, filters]) => [
       group,
-      !forceFull
-        ? await listTurboTasks(base, filters)
-        : [],
+      !forceFull ? await listTurboTasks(base, filters) : [],
     ]),
   );
   const [appTests, apiTests, turboTaskEntries] = await Promise.all([

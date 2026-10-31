@@ -39,10 +39,7 @@ export default defineConfig({
           extensionAppDir,
           '../../packages/agent/src',
         ),
-        '@helpers': path.resolve(
-          extensionAppDir,
-          '../../packages/helpers/src',
-        ),
+        '@helpers': path.resolve(extensionAppDir, '../../packages/helpers/src'),
         '@hooks': path.resolve(extensionAppDir, './src/hooks'),
         // The editor and prompt bars import each other through `@ui/prompt-*`
         // and the shell constants through `@ui/constants`, which tsconfig
