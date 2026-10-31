@@ -71,24 +71,27 @@ describe('plan lookups', () => {
   it('lists exactly one plan per tier', () => {
     const tiers = websitePlans.map((plan) => plan.tier);
 
-    expect(tiers).toEqual(['payg', 'scale', 'enterprise']);
+    expect(tiers).toEqual(['payg', 'pro', 'scale', 'enterprise']);
   });
 });
 
 describe('plan price formatting', () => {
   it('formats compact price labels per tier', () => {
     expect(formatPlanPriceLabel('payg')).toBe('Free');
+    expect(formatPlanPriceLabel('pro')).toBe('$49/mo');
     expect(formatPlanPriceLabel('scale')).toBe('$499/mo');
     expect(formatPlanPriceLabel('enterprise')).toBe('Custom');
   });
 
   it('formats prose monthly prices per tier', () => {
     expect(formatPlanMonthlyPrice('payg')).toBe('free');
+    expect(formatPlanMonthlyPrice('pro')).toBe('$49/month');
     expect(formatPlanMonthlyPrice('scale')).toBe('$499/month');
     expect(formatPlanMonthlyPrice('enterprise')).toBe('custom');
   });
 
   it('formats included credits per tier', () => {
+    expect(formatPlanIncludedCredits('pro')).toBe('5,900 credits');
     expect(formatPlanIncludedCredits('scale')).toBe('60,000 credits');
     expect(formatPlanIncludedCredits('payg')).toBe('');
     expect(formatPlanIncludedCredits('enterprise')).toBe('');
@@ -117,7 +120,7 @@ describe('plan price formatting', () => {
   it('prices every paid tier to the same credit bonus over the PAYG rate', () => {
     // The bonus and the margin are one dial: margin = 1 - 0.3 * (1 + bonus).
     // Holding both paid tiers at the same bonus holds them at the same margin.
-    for (const tier of ['scale'] as const) {
+    for (const tier of ['pro', 'scale'] as const) {
       const { includedCredits, price } = getPlanByTier(tier);
 
       expect(includedCredits).toBeTypeOf('number');
@@ -289,6 +292,12 @@ describe('creditsToOutputEstimate', () => {
 
 describe('pricing constants', () => {
   it('publishes Stripe contracts by tier rather than product display name', () => {
+    expect(SUBSCRIPTION_PRICE_CONTRACTS.pro).toEqual({
+      currency: 'usd',
+      includedMonthlyCredits: 5_900,
+      interval: 'month',
+      unitAmount: 4_900,
+    });
     expect(SUBSCRIPTION_PRICE_CONTRACTS.scale).toEqual({
       currency: 'usd',
       includedMonthlyCredits: 60_000,
@@ -358,18 +367,20 @@ describe('pricing constants', () => {
 });
 
 describe('website plan catalogue', () => {
-  it('publishes the three plans in presentation order', () => {
+  it('publishes the four plans in presentation order', () => {
     expect(websitePlans.map((plan) => plan.label)).toEqual([
       'Pay As You Go',
+      'Pro',
       'Scale',
       'Enterprise',
     ]);
     expect(websitePlans.map((plan) => plan.type)).toEqual([
       'payg',
       'subscription',
+      'subscription',
       'enterprise',
     ]);
-    expect(websitePlans.map((plan) => plan.price)).toEqual([0, 499, null]);
+    expect(websitePlans.map((plan) => plan.price)).toEqual([0, 49, 499, null]);
   });
 
   it('labels every plan from PLAN_LABELS', () => {
@@ -387,6 +398,14 @@ describe('website plan catalogue', () => {
     expect(payg.includedCredits).toBeUndefined();
   });
 
+  it('sells Pro with every app and its monthly credits on one seat', () => {
+    const pro = getPlanByTier('pro');
+
+    expect(pro.includedCredits).toBe(TIER_INCLUDED_MONTHLY_CREDITS.pro);
+    expect(pro.features).toContain('Automation, Messages, Discovery');
+    expect(pro.features).not.toContain('Brand model training');
+  });
+
   it('sells Scale with client workspaces and the subscription features', () => {
     const scale = getScalePlan();
 
@@ -396,6 +415,7 @@ describe('website plan catalogue', () => {
     expect(scale.features).toContain('Unlimited seats and client workspaces');
     expect(scale.features).toContain('Brand model training');
     expect(scale.features).toContain('Higher API limits and BYOK');
+    expect(scale.features).toContain('Everything in Pro');
     expect(scale.outputs).toBeNull();
   });
 

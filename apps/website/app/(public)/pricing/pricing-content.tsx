@@ -4,7 +4,6 @@ import { ONBOARDING_STARTER_CREDITS } from '@genfeedai/contracts/types';
 import type { PlanTier } from '@genfeedai/pricing';
 import {
   AVATAR_CREDIT_COSTS,
-  CREDIT_VALUE_DOLLARS,
   creditPackPrice,
   creditPackTotalCredits,
   formatPrice,
@@ -22,6 +21,14 @@ import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper
 import { EnvironmentService } from '@services/core/environment.service';
 import SectionHeader from '@ui/marketing/SectionHeader';
 import { Button } from '@ui/primitives/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@ui/primitives/table';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
 import FaqGrid from '@web-components/content/FaqGrid';
 import {
@@ -36,9 +43,17 @@ import PageLayout from '@web-components/PageLayout';
 import ProofTestimonials from '@web-components/proof/ProofTestimonials';
 import { CircleCheck } from 'lucide-react';
 import Link from 'next/link';
+import {
+  buildPricingCompareRows,
+  getCompareColumnLabels,
+} from './pricing-compare.data';
 
-/** Column order on the pricing table. Names resolve from @genfeedai/pricing. */
-const PLAN_ORDER: PlanTier[] = ['payg', 'scale'];
+/**
+ * Subscription cards, in order. Names resolve from @genfeedai/pricing. The
+ * third card is Enterprise, which includes our team making the content, and
+ * PAYG sits in its own block below.
+ */
+const PLAN_ORDER: PlanTier[] = ['pro', 'scale'];
 const FEATURED_TIER: PlanTier = 'scale';
 
 const FAQ_ITEMS = [
@@ -56,7 +71,7 @@ const FAQ_ITEMS = [
     question: 'Do I choose the AI model?',
   },
   {
-    answer: `Yes, on ${PLAN_COPY.scale.name}.`,
+    answer: `Yes, on every plan. ${PLAN_COPY.scale.name} has higher limits.`,
     question: 'Is there an API?',
   },
 ];
@@ -99,14 +114,6 @@ function formatCredits(credits: number, maxCredits?: number): string {
     : `${formatNumberWithCommas(credits)}–${formatNumberWithCommas(maxCredits)} credits`;
 }
 
-function formatCreditsDollars(credits: number, maxCredits?: number): string {
-  const dollars = (value: number) =>
-    `$${(value * CREDIT_VALUE_DOLLARS).toFixed(2)}`;
-  return maxCredits === undefined
-    ? dollars(credits)
-    : `${dollars(credits)}–${dollars(maxCredits)}`;
-}
-
 function getOrderedPlans() {
   return PLAN_ORDER.map((tier) => getPlanByTier(tier));
 }
@@ -142,10 +149,7 @@ export default function PricingContent() {
           <NeuralGrid columns={3} className="gsap-grid md:grid-cols-3">
             {getOrderedPlans().map((plan) => {
               const isFeatured = plan.tier === FEATURED_TIER;
-              const isPayg = plan.type === 'payg';
-              const ctaHref = isPayg
-                ? paygSignUpHref
-                : plan.ctaHref || BOOKING_HREF;
+              const ctaHref = plan.ctaHref || BOOKING_HREF;
 
               return (
                 <NeuralGridItem
@@ -155,7 +159,7 @@ export default function PricingContent() {
                     'relative gsap-card flex min-w-0 flex-col p-6 sm:p-6',
                     isFeatured && 'bg-card hover:bg-card',
                   )}
-                  title={isPayg ? 'PAYG' : getPlanLabel(plan.tier)}
+                  title={getPlanLabel(plan.tier)}
                   aria-label={getPlanLabel(plan.tier)}
                 >
                   {isFeatured ? (
@@ -168,20 +172,15 @@ export default function PricingContent() {
 
                   <div className="mb-2 flex items-baseline gap-1.5 whitespace-nowrap">
                     <span className="text-4xl font-semibold tracking-[-0.02em] xl:text-5xl">
-                      {isPayg
-                        ? `$${CREDIT_VALUE_DOLLARS.toFixed(2)}`
-                        : formatPrice(plan.price)}
+                      {formatPrice(plan.price)}
                     </span>
                     <span className="text-sm font-medium text-foreground/60">
-                      {isPayg ? '/credit' : '/mo'}
+                      /mo
                     </span>
                   </div>
 
                   <div className="mb-6 text-sm text-foreground/60">
                     {getPriceQualifier(plan)}
-                    {isPayg
-                      ? ` · ${ONBOARDING_STARTER_CREDITS} free credits after onboarding`
-                      : null}
                   </div>
 
                   <ul className="mb-auto space-y-3">
@@ -216,8 +215,8 @@ export default function PricingContent() {
             <NeuralGridItem
               padding="lg"
               className="relative gsap-card flex min-w-0 flex-col p-6 sm:p-6"
-              title={serviceOffering.name}
-              aria-label={serviceOffering.name}
+              title={getPlanLabel('enterprise')}
+              aria-label={getPlanLabel('enterprise')}
             >
               <div className="absolute right-6 top-6">
                 <span className="border border-foreground/20 px-2.5 py-1 text-2xs font-bold uppercase tracking-widest text-foreground/70">
@@ -264,6 +263,74 @@ export default function PricingContent() {
           </NeuralGrid>
         </WebSection>
 
+        <WebSection maxWidth="full" py="sm" className="pt-0 md:pt-0">
+          <div className="flex flex-col gap-6 border border-foreground/10 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+            <div className="min-w-0">
+              <h2 className="text-lg font-semibold">
+                {getPlanLabel('payg')}
+              </h2>
+              <p className="mt-1 text-sm text-foreground/60">
+                {getPriceQualifier(getPlanByTier('payg'))} ·{' '}
+                {ONBOARDING_STARTER_CREDITS} free credits after onboarding
+              </p>
+              <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
+                {getPlanByTier('payg').features.map((feature) => (
+                  <li key={feature} className="flex items-start gap-2">
+                    <CircleCheck className="mt-0.5 size-4 shrink-0 text-foreground/60" />
+                    <span className="text-sm text-foreground/60">
+                      {feature}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <Button
+              asChild
+              className="w-full justify-center sm:w-auto"
+              size={ButtonSize.PUBLIC}
+              variant={ButtonVariant.SECONDARY}
+            >
+              <a href={paygSignUpHref} target="_blank" rel="noopener noreferrer">
+                {getPlanByTier('payg').cta || 'Get Started'}
+              </a>
+            </Button>
+          </div>
+        </WebSection>
+
+        <WebSection maxWidth="lg" py="md">
+          <SectionHeader
+            title="Compare plans."
+            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl mb-4"
+          />
+          <Table aria-label="Compare plans">
+            <TableHeader>
+              <TableRow>
+                <TableHead>
+                  <span className="sr-only">Feature</span>
+                </TableHead>
+                {getCompareColumnLabels().map((label) => (
+                  <TableHead key={label}>{label}</TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {buildPricingCompareRows().map((row) => (
+                <TableRow key={row.label}>
+                  <TableCell className="font-medium">{row.label}</TableCell>
+                  {row.values.map((value, index) => (
+                    <TableCell
+                      key={`${row.label}-${getCompareColumnLabels()[index]}`}
+                      className="text-foreground/70"
+                    >
+                      {value}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </WebSection>
+
         <ProofTestimonials context="pricing" />
 
         <WebSection maxWidth="lg" py="md">
@@ -281,10 +348,11 @@ export default function PricingContent() {
                 <span className="text-sm text-foreground/70">{row.label}</span>
                 <span className="text-sm font-semibold text-foreground">
                   {formatCredits(row.credits, row.maxCredits)}
-                  <span className="ml-2 font-normal text-foreground/60">
-                    ≈ {formatCreditsDollars(row.credits, row.maxCredits)}
-                    {row.suffix ?? ''}
-                  </span>
+                  {row.suffix ? (
+                    <span className="ml-1 font-normal text-foreground/60">
+                      {row.suffix}
+                    </span>
+                  ) : null}
                 </span>
               </div>
             ))}

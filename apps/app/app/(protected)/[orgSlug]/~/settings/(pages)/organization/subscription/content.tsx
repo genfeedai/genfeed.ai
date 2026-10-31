@@ -32,6 +32,7 @@ const SUBSCRIPTION_TIER_LABELS: Record<string, string> = {
   enterprise: getPlanLabel('enterprise'),
   free: 'Free',
   payg: getPlanLabel('payg'),
+  pro: getPlanLabel('pro'),
   scale: getPlanLabel('scale'),
 };
 

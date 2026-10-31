@@ -4,6 +4,7 @@
  *
  *   Marketing plan (plans-pricing.ts)      → SubscriptionTier   → finite gates
  *   Pay As You Go (free)                   → FREE               → API at 60/min, solo, 1 org
+ *   Pro                                    → PRO                → API at 60/min, solo, 1 org, monthly credits
  *   Scale                               → SCALE              → API, unlimited seats/orgs
  *   Enterprise                             → ENTERPRISE         → custom API, unlimited seats/orgs
  *
@@ -73,6 +74,9 @@ export const SINGLE_ORGANIZATION_LIMIT = 1;
 /** API ceiling for the free (Pay As You Go) tier, in requests per minute. */
 export const FREE_API_RATE_LIMIT = 60;
 
+/** API ceiling for the Pro tier, in requests per minute. */
+export const PRO_API_RATE_LIMIT = 60;
+
 /** Fixed API ceiling for the Scale tier. */
 export const SCALE_API_RATE_LIMIT = 600;
 
@@ -89,6 +93,16 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
   [SubscriptionTier.FREE]: {
     apiAccess: true,
     apiRateLimit: FREE_API_RATE_LIMIT,
+    brandLimit: PLAN_LIMIT_UNLIMITED,
+    byokAccess: false,
+    channelLimit: PLAN_LIMIT_UNLIMITED,
+    organizationLimit: SINGLE_ORGANIZATION_LIMIT,
+    seatLimit: FREE_SEAT_LIMIT,
+    trainingAccess: false,
+  },
+  [SubscriptionTier.PRO]: {
+    apiAccess: true,
+    apiRateLimit: PRO_API_RATE_LIMIT,
     brandLimit: PLAN_LIMIT_UNLIMITED,
     byokAccess: false,
     channelLimit: PLAN_LIMIT_UNLIMITED,

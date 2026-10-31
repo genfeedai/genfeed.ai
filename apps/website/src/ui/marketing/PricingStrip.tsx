@@ -17,6 +17,7 @@ const PILLAR_COLUMNS: {
   tier: PlanTier;
 }[] = [
   { priceSuffix: ' + PAYG', subtitle: 'Default', tier: 'payg' },
+  { subtitle: 'Creators', tier: 'pro' },
   { subtitle: 'Agencies', tier: 'scale' },
   { subtitle: 'Studios', tier: 'enterprise' },
 ];
@@ -24,7 +25,7 @@ const PILLAR_COLUMNS: {
 export default function PricingStrip({ className }: PricingStripProps) {
   return (
     <div className={cn('mb-12 border border-foreground/5', className)}>
-      <div className="grid grid-cols-1 gap-px md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-px md:grid-cols-4">
         {PILLAR_COLUMNS.map((column) => {
           const isFeatured = column.tier === FEATURED_TIER;
           const label = getPlanLabel(column.tier);

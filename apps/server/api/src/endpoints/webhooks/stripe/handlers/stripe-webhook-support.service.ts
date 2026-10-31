@@ -714,6 +714,7 @@ export class StripeWebhookSupportService {
    */
   softwareItem(subscription: StripeSubscription) {
     return selectSoftwareSubscriptionItem(subscription, [
+      this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY'),
       this.configService.get('STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY'),
       this.configService.get('STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY'),
     ]);
@@ -730,8 +731,9 @@ export class StripeWebhookSupportService {
       return SubscriptionPlan.ENTERPRISE;
     }
 
-    // Monthly subscription tier prices (Scale)
+    // Monthly subscription tier prices (Pro, Scale)
     const monthlyPriceIds = [
+      this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY'),
       this.configService.get('STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY'),
     ].filter(Boolean);
 

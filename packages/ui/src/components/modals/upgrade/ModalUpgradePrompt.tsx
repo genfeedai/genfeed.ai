@@ -26,18 +26,21 @@ import { useCallback, useState } from 'react';
 
 const TIER_LABELS: Record<SubscriptionTier, string> = {
   [SubscriptionTier.FREE]: 'Free',
+  [SubscriptionTier.PRO]: 'Pro',
   [SubscriptionTier.SCALE]: 'Scale',
   [SubscriptionTier.ENTERPRISE]: 'Enterprise',
 };
 
 const TIER_PRICES: Record<SubscriptionTier, string> = {
   [SubscriptionTier.FREE]: '$0',
+  [SubscriptionTier.PRO]: '$49',
   [SubscriptionTier.SCALE]: '$499',
   [SubscriptionTier.ENTERPRISE]: 'Custom',
 };
 
 const TIER_ORDER = [
   SubscriptionTier.FREE,
+  SubscriptionTier.PRO,
   SubscriptionTier.SCALE,
   SubscriptionTier.ENTERPRISE,
 ];

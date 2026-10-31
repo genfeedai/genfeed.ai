@@ -32,7 +32,7 @@ const FAQ_ITEMS_GENERAL: FAQItem[] = [
     question: 'Who is Genfeed for?',
   },
   {
-    answer: `Sign up free and buy credits for the output you generate. Subscribe to ${PLAN_COPY.scale.name} (${PLAN_COPY.scale.priceLabel}, ${PLAN_COPY.scale.includedCredits} included) when you run content for multiple clients and need seats, shared approvals, and multi-organization workflows.`,
+    answer: `Sign up free and buy credits for the output you generate. Subscribe to ${PLAN_COPY.pro.name} (${PLAN_COPY.pro.priceLabel}, ${PLAN_COPY.pro.includedCredits} included) for every app on one brand, or ${PLAN_COPY.scale.name} (${PLAN_COPY.scale.priceLabel}, ${PLAN_COPY.scale.includedCredits} included) when you run content for multiple clients and need seats, shared approvals, and multi-organization workflows.`,
     question: 'How do I get started?',
   },
 ];
@@ -70,7 +70,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
         question: 'How does pricing work?',
       },
       {
-        answer: `${PLAN_COPY.payg.name} is free with credit packs. ${PLAN_COPY.scale.name} is ${PLAN_COPY.scale.monthlyPrice} with unlimited seats and a shared pool of ${PLAN_COPY.scale.includedCredits}. ${PLAN_COPY.enterprise.name} is custom.`,
+        answer: `${PLAN_COPY.payg.name} is free with credit packs. ${PLAN_COPY.pro.name} is ${PLAN_COPY.pro.monthlyPrice} with every app and ${PLAN_COPY.pro.includedCredits} a month. ${PLAN_COPY.scale.name} is ${PLAN_COPY.scale.monthlyPrice} with unlimited seats and a shared pool of ${PLAN_COPY.scale.includedCredits}. ${PLAN_COPY.enterprise.name} is custom.`,
         question: 'What are the pricing tiers?',
       },
       {

@@ -112,6 +112,32 @@ describe('product limits', () => {
   });
 });
 
+describe('Pro tier', () => {
+  it('stays solo with one organization and the free API ceiling', () => {
+    expect(getSeatLimitForTier(SubscriptionTier.PRO)).toBe(FREE_SEAT_LIMIT);
+    expect(getOrganizationLimitForTier(SubscriptionTier.PRO)).toBe(
+      SINGLE_ORGANIZATION_LIMIT,
+    );
+    expect(getApiRateLimitForTier(SubscriptionTier.PRO)).toBe(
+      FREE_API_RATE_LIMIT,
+    );
+  });
+
+  it('keeps BYOK and brand model training for Scale and above', () => {
+    expect(hasByokAccess(SubscriptionTier.PRO)).toBe(false);
+    expect(hasTrainingAccess(SubscriptionTier.PRO)).toBe(false);
+  });
+
+  it('points a capped Pro organization at Scale', () => {
+    expect(getUpgradeTierForLimit('seats', SubscriptionTier.PRO)).toBe(
+      SubscriptionTier.SCALE,
+    );
+    expect(getUpgradeTierForLimit('organizations', SubscriptionTier.PRO)).toBe(
+      SubscriptionTier.SCALE,
+    );
+  });
+});
+
 describe('hasTrainingAccess', () => {
   it('is denied on free tiers and unknown tiers', () => {
     expect(hasTrainingAccess(SubscriptionTier.FREE)).toBe(false);
