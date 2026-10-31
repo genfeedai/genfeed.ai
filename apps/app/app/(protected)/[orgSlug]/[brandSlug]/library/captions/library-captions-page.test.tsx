@@ -16,6 +16,18 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 }));
 
 describe('LibraryCaptionsPage', () => {
+  it('offers the shared search field', () => {
+    render(
+      <LibraryCaptionsPage>
+        <div>Captions content</div>
+      </LibraryCaptionsPage>,
+    );
+
+    expect(
+      screen.getByRole('textbox', { name: 'Search captions' }),
+    ).toBeInTheDocument();
+  });
+
   it('keeps the captions title accessible without duplicating the breadcrumb', () => {
     render(
       <LibraryCaptionsPage>

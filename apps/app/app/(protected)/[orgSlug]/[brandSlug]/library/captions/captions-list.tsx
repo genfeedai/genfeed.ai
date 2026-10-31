@@ -25,6 +25,7 @@ function CaptionsListContent() {
   const notificationsService = NotificationsService.getInstance();
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
+  const search = searchParams.get('q') ?? '';
 
   const getCaptionsService = useAuthedService(
     useCallback((token: string) => CaptionsService.getInstance(token), []),
@@ -74,6 +75,7 @@ function CaptionsListContent() {
       const query: IQueryParams = {
         limit: ITEMS_PER_PAGE,
         page: currentPage,
+        ...(search ? { search } : {}),
       };
 
       const data = await service.findAll(query);
@@ -86,7 +88,7 @@ function CaptionsListContent() {
       setCaptions([]);
       setLoadError('Captions could not be loaded.');
     }
-  }, [currentPage, getCaptionsService, notificationsService]);
+  }, [currentPage, getCaptionsService, notificationsService, search]);
 
   useEffect(() => {
     findAllCaptions();
@@ -116,7 +118,9 @@ function CaptionsListContent() {
             isLoading={captions === null}
             getRowKey={(item) => item.id}
             rowSidebar={rowSidebar}
-            emptyLabel="No captions found"
+            emptyLabel={
+              search ? 'No captions match your search' : 'No captions found'
+            }
           />
 
           <div className="mt-4">

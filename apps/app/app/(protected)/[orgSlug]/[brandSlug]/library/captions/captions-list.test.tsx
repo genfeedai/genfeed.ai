@@ -5,8 +5,9 @@ import CaptionsList from './captions-list';
 import '@testing-library/jest-dom/vitest';
 
 const findAllMock = vi.fn<() => Promise<Caption[]>>();
-const { loggerErrorMock } = vi.hoisted(() => ({
+const { loggerErrorMock, searchParamValues } = vi.hoisted(() => ({
   loggerErrorMock: vi.fn(),
+  searchParamValues: { page: '1' } as Record<string, string>,
 }));
 
 vi.mock('next-intl', async () => {
@@ -29,7 +30,7 @@ vi.mock('next/navigation', () => ({
     replace: vi.fn(),
   })),
   useSearchParams: vi.fn(() => ({
-    get: vi.fn(() => '1'),
+    get: vi.fn((key: string) => searchParamValues[key] ?? null),
     getAll: vi.fn(() => []),
     toString: vi.fn(() => ''),
   })),
@@ -64,7 +65,20 @@ vi.mock('@services/core/logger.service', () => ({
 describe('CaptionsList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    delete searchParamValues.q;
     findAllMock.mockResolvedValue([]);
+  });
+
+  it('searches captions on the server with the term in the URL', async () => {
+    searchParamValues.q = 'welcome';
+    render(<CaptionsList />);
+
+    expect(
+      await screen.findByText('No captions match your search'),
+    ).toBeInTheDocument();
+    expect(findAllMock).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 1, search: 'welcome' }),
+    );
   });
 
   it('should render without crashing', () => {
