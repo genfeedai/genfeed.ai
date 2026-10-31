@@ -156,7 +156,7 @@ export class EditorProjectsService extends HTTPBaseService {
    * `limit` the API returns its default page size.
    */
   async findAll(
-    query: { limit?: number; page?: number } = {},
+    query: { limit?: number; page?: number; search?: string } = {},
     signal?: AbortSignal,
   ): Promise<IEditorProject[]> {
     const response = await this.instance
@@ -164,6 +164,7 @@ export class EditorProjectsService extends HTTPBaseService {
         params: {
           ...(query.limit ? { limit: query.limit } : {}),
           ...(query.page ? { page: query.page } : {}),
+          ...(query.search ? { search: query.search } : {}),
           sort: '-updatedAt',
         },
         signal,
