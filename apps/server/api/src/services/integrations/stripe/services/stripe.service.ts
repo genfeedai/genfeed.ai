@@ -6,6 +6,7 @@ import {
   isStripeSignatureVerificationError,
   StripeBillingConfigurationError,
 } from '@api/services/integrations/stripe/services/stripe-error.util';
+import { applyCheckoutPromotion } from '@api/services/integrations/stripe/services/stripe-checkout-promotion.util';
 import { StripeUpcomingInvoiceError } from '@api/services/integrations/stripe/services/stripe-upcoming-invoice.error';
 import {
   assertUpcomingInvoiceRequest,
@@ -27,7 +28,6 @@ import {
   PAYG_MAX_PURCHASE_USD,
   PAYG_MIN_PURCHASE_USD,
   parseIncludedMonthlyCredits,
-  PRO_LAUNCH_PROMOTION_CODE,
   SUBSCRIPTION_PRICE_CONTRACTS,
   type SubscriptionPriceTier,
 } from '@genfeedai/pricing';
@@ -748,64 +748,17 @@ export class StripeService {
     };
   }
 
-  /**
-   * Opens Checkout promo entry, except on the Pro price, where the launch code
-   * is applied for the customer so Checkout opens at the price the pricing page
-   * shows. Stripe rejects sessions that set both `discounts` and
-   * `allow_promotion_codes`, so Pro gives up the entry box; every other price
-   * keeps it, and customer-restricted team codes (GENFEED100) are still entered
-   * there. If the launch code is missing or inactive in Stripe, Pro falls back
-   * to the entry box rather than failing the checkout.
-   */
-  private async applyPromotionCode(
+  private applyPromotionCode(
     sessionConfig: NonNullable<StripeCheckoutSessionCreateParams>,
     stripePriceId: string,
   ): Promise<void> {
-    const proPriceId = this.configService.get(
-      'STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY',
+    return applyCheckoutPromotion(
+      this.stripe,
+      this.loggerService,
+      sessionConfig,
+      stripePriceId ===
+        this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY'),
     );
-
-    if (proPriceId && stripePriceId === proPriceId) {
-      const launchPromotionId = await this.findActivePromotionCodeId(
-        PRO_LAUNCH_PROMOTION_CODE,
-      );
-
-      if (launchPromotionId) {
-        sessionConfig.discounts = [{ promotion_code: launchPromotionId }];
-        delete sessionConfig.allow_promotion_codes;
-        return;
-      }
-    }
-
-    sessionConfig.allow_promotion_codes = true;
-    delete sessionConfig.discounts;
-  }
-
-  private async findActivePromotionCodeId(
-    code: string,
-  ): Promise<string | null> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    try {
-      const promotionCodes = await this.stripe.promotionCodes.list({
-        active: true,
-        code,
-        limit: 10,
-      });
-
-      // A code restricted to one customer cannot be applied for anyone else.
-      const redeemable = promotionCodes.data.find(
-        (promotionCode) => !promotionCode.customer,
-      );
-
-      return redeemable?.id ?? null;
-    } catch (error: unknown) {
-      this.loggerService.warn(`${url} promotion code lookup failed`, {
-        code,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      return null;
-    }
   }
 
   public async createPaymentSession(
