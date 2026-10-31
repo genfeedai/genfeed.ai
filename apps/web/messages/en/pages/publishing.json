@@ -358,11 +358,12 @@
       "loadFailed": "Unable to load workflow and MCP approvals",
       "highlightMissing": "That request was already resolved, or it is not visible to you.",
       "columns": {
-        "source": "Source",
         "brand": "Brand",
-        "request": "What it wants to do",
+        "request": "What will happen",
         "preview": "Preview",
-        "status": "Status"
+        "cost": "Cost",
+        "requested": "Requested",
+        "decision": "Decision"
       },
       "sources": {
         "agent": "Agent",
@@ -372,8 +373,10 @@
       "emptyFilteredTitle": "Nothing from these sources",
       "emptyFilteredDescription": "No request from the selected sources needs a decision. Try All sources.",
       "organizationWide": "All brands",
-      "pending": "Pending",
       "credits": "{count, plural, one {# credit} other {# credits}}",
+      "costUnknown": "No charge quoted",
+      "requestedBy": "By {name}",
+      "notResolvable": "Only an admin can decide this",
       "approve": "Approve",
       "reject": "Reject",
       "approved": "Approved",

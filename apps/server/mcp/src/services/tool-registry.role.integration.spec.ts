@@ -23,7 +23,9 @@ vi.mock('@genfeedai/actions', async (importOriginal) => {
         ? { name, requiredRole: 'admin', surfaces: { mcp: true } }
         : actual.getToolByName(name),
     ),
-    getToolsForSurface: vi.fn(() => []),
+    getToolsForSurface: vi.fn((surface: string) =>
+      surface === 'agent' ? [{ name: 'create_brand_from_url' }] : [],
+    ),
     toMcpTools: vi.fn((tools) => tools),
   };
 });
@@ -70,17 +72,18 @@ describe('ToolRegistryService role enforcement (real guard)', () => {
     },
   );
 
-  it('allows admin URL brand creation through the default onboarding tool', async () => {
+  it('lets an admin create a brand from a URL through the default onboarding tool at once', async () => {
     const { client, registry } = build('admin');
     await registry.handleToolCall({
       name: 'onboard_brand',
       arguments: { action: 'create_from_url', url: 'https://example.com' },
     });
-    expect(client.createApproval).toHaveBeenCalledExactlyOnceWith(
+    expect(client.createApproval).not.toHaveBeenCalled();
+    expect(client.executeAgentTool).toHaveBeenCalledOnce();
+    expect(client.executeAgentTool.mock.calls[0]?.slice(0, 2)).toEqual([
       'create_brand_from_url',
       { url: 'https://example.com' },
-    );
-    expect(client.executeAgentTool).not.toHaveBeenCalled();
+    ]);
   });
 
   it('denies a user-tier caller an admin-gated tool before dispatch', async () => {

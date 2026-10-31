@@ -1232,29 +1232,20 @@ describe('ToolRegistryService', () => {
     expect(result).toMatchObject({ isError: true });
   });
 
-  it('handleToolCall create_article_draft queues a pending approval instead of executing', async () => {
-    // create_article_draft is an approval-gated mutation: it must persist a
-    // pending approval (human-in-the-loop) rather than run immediately.
-    // Execution-time arg validation only happens once approved.
+  it('handleToolCall create_article_draft saves the draft without an approval', async () => {
     const args = {
       content: '<p>Full content</p>',
       label: 'AI News',
       slug: 'ai-news',
       summary: 'Verified',
     };
-    const result = await service.handleToolCall({
+    await service.handleToolCall({
       arguments: args,
       name: 'create_article_draft',
     });
 
-    expect(clientService.createApproval).toHaveBeenCalledWith(
-      'create_article_draft',
-      args,
-    );
-    expect(clientService.createArticleDraft).not.toHaveBeenCalled();
-    expect(
-      (result as { content: { text: string }[] }).content[0].text,
-    ).toContain('requires approval');
+    expect(clientService.createApproval).not.toHaveBeenCalled();
+    expect(clientService.createArticleDraft).toHaveBeenCalledWith(args);
   });
 
   it('handleResourceRead returns video analytics for analytics URI', async () => {

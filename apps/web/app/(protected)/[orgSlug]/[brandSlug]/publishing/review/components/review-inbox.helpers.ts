@@ -55,7 +55,7 @@ export function paginateReviewInboxItems<T>(
   return items.slice(start, start + REVIEW_INBOX_PAGE_SIZE);
 }
 
-/** Keeps the requests whose source, brand, action or tool contain the term. */
+/** Keeps the requests whose source, brand, action, requester or tool contain the term. */
 export function searchReviewInboxItems(
   items: readonly IReviewInboxItem[],
   search: string,
@@ -66,8 +66,12 @@ export function searchReviewInboxItems(
   }
 
   return items.filter((item) =>
-    [item.sourceLabel, item.brandLabel, item.actionSummary, item.toolName].some(
-      (field) => field?.toLowerCase().includes(term),
-    ),
+    [
+      item.sourceLabel,
+      item.brandLabel,
+      item.actionSummary,
+      item.requestedByLabel,
+      item.toolName,
+    ].some((field) => field?.toLowerCase().includes(term)),
   );
 }

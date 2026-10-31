@@ -1,9 +1,10 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
+import { resolveBrandLogoCdnUrls } from '@api/collections/brands/utils/brand-logo-urls.util';
 import { approvalGenerationQuote } from '@api/collections/mcp-approvals/schemas/mcp-approval-pricing.schema';
 import {
+  describeMcpApprovalAction,
   MCP_APPROVAL_CAPTION_ARGUMENT_KEYS,
-  summarizeMcpApproval,
 } from '@api/collections/mcp-approvals/utils/mcp-approval-summary.util';
 import type {
   ReviewInboxListInput,
@@ -33,6 +34,7 @@ import {
   isRecord,
   readNonBlankStringOrNull as readString,
 } from '@genfeedai/utils/data/extract.util';
+import { ConfigService } from '@libs/config/config.service';
 import { HttpException, Injectable } from '@nestjs/common';
 
 /** Each source is capped so one noisy producer cannot flood the inbox. */
@@ -71,6 +73,7 @@ export class ReviewInboxService {
     private readonly prisma: PrismaService,
     private readonly brandAccess: BrandAccessService,
     private readonly rolesGuard: RolesGuard,
+    private readonly configService: ConfigService,
   ) {}
 
   /** The viewer's roles and brand reach, resolved the way the guards do. */
@@ -148,7 +151,7 @@ export class ReviewInboxService {
         : Promise.resolve([]),
     ]);
     const items = [...gates, ...approvals];
-    const brandLabels = await this.loadBrandLabels(
+    const brands = await this.loadBrands(
       input.organizationId,
       items.flatMap((item) => (item.brandId ? [item.brandId] : [])),
     );
@@ -156,7 +159,10 @@ export class ReviewInboxService {
       .map((item) => ({
         ...item,
         brandLabel: item.brandId
-          ? (brandLabels.get(item.brandId) ?? null)
+          ? (brands.get(item.brandId)?.label ?? null)
+          : null,
+        brandLogoUrl: item.brandId
+          ? (brands.get(item.brandId)?.logoUrl ?? null)
           : null,
       }))
       .sort((left, right) => left.requestedAt.localeCompare(right.requestedAt));
@@ -238,10 +244,13 @@ export class ReviewInboxService {
 
       return [
         {
+          actionDetails: null,
           actionSummary: `Continue ${workflowLabel} with the output waiting at its review gate`,
+          actionTitle: `Continue ${workflowLabel}`,
           approvalId: null,
           brandId: execution.workflow.brandId ?? null,
           brandLabel: null,
+          brandLogoUrl: null,
           estimatedCredits: null,
           executionId: execution.id,
           expiresAt: Number.isFinite(requestedAtMs)
@@ -258,6 +267,7 @@ export class ReviewInboxService {
           preview,
           reasons: [],
           requestedAt,
+          requestedByLabel: null,
           // Agent-strategy runs are an agent asking; everything else is the workflow.
           source: readString(metadata.strategyId) ? 'agent' : 'workflow',
           sourceLabel: workflowLabel,
@@ -281,6 +291,7 @@ export class ReviewInboxService {
         id: true,
         pricingQuote: true,
         toolName: true,
+        user: { select: { email: true, firstName: true, lastName: true } },
       },
       take: REVIEW_INBOX_SOURCE_LIMIT,
       where: scopedWhere(organizationId, {
@@ -312,12 +323,23 @@ export class ReviewInboxService {
             )
           : null);
 
+      const action = describeMcpApprovalAction(approval.toolName, args);
+      const requester = [approval.user?.firstName, approval.user?.lastName]
+        .map((part) => readString(part))
+        .filter((part): part is string => part !== null)
+        .join(' ');
+
       return [
         {
-          actionSummary: summarizeMcpApproval(approval.toolName, args),
+          actionDetails: action.details,
+          actionSummary: action.details
+            ? `${action.title} · ${action.details}`
+            : action.title,
+          actionTitle: action.title,
           approvalId: approval.id,
           brandId,
           brandLabel: null,
+          brandLogoUrl: null,
           estimatedCredits:
             typeof estimatedCredits === 'number' ? estimatedCredits : null,
           executionId: null,
@@ -335,6 +357,8 @@ export class ReviewInboxService {
           },
           reasons: [],
           requestedAt: approval.createdAt.toISOString(),
+          requestedByLabel:
+            requester || readString(approval.user?.email) || null,
           source: 'mcp_client',
           sourceLabel: approval.toolName,
           status: 'pending',
@@ -345,17 +369,29 @@ export class ReviewInboxService {
     });
   }
 
-  private async loadBrandLabels(
+  private async loadBrands(
     organizationId: string,
     brandIds: string[],
-  ): Promise<Map<string, string>> {
+  ): Promise<Map<string, { label: string; logoUrl: string | null }>> {
     const uniqueIds = [...new Set(brandIds)];
     if (uniqueIds.length === 0) return new Map();
-    const brands = await this.prisma.brand.findMany({
-      select: { id: true, label: true },
-      where: scopedWhere(organizationId, { id: { in: uniqueIds } }),
-    });
-    return new Map(brands.map((brand) => [brand.id, brand.label]));
+    const [brands, logoUrls] = await Promise.all([
+      this.prisma.brand.findMany({
+        select: { id: true, label: true },
+        where: scopedWhere(organizationId, { id: { in: uniqueIds } }),
+      }),
+      resolveBrandLogoCdnUrls(
+        this.prisma,
+        this.configService.cdnUrl,
+        new Map([[organizationId, uniqueIds]]),
+      ),
+    ]);
+    return new Map(
+      brands.map((brand) => [
+        brand.id,
+        { label: brand.label, logoUrl: logoUrls.get(brand.id) ?? null },
+      ]),
+    );
   }
 
   private async hasRoles(

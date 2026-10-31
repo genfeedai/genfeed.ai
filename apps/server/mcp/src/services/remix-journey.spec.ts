@@ -410,7 +410,7 @@ describe('external remix journey (#5132)', () => {
     const url = 'https://x.com/creator/status/1';
 
     const imported = json(
-      await approve('import_source_post', { brandId: 'brand-1', url }),
+      await call('import_source_post', { brandId: 'brand-1', url }),
     );
     expect(imported).toMatchObject({
       deduplicated: false,
@@ -418,7 +418,7 @@ describe('external remix journey (#5132)', () => {
       source: { id: 'source-1' },
     });
     const again = json(
-      await approve('import_source_post', { brandId: 'brand-1', url }),
+      await call('import_source_post', { brandId: 'brand-1', url }),
     );
     expect(again).toMatchObject({
       deduplicated: true,
@@ -595,8 +595,8 @@ describe('external remix journey (#5132)', () => {
   ])(
     'fails closed for an %s import without creating or generating',
     async (_label, url, message) => {
-      const { api, approve, paths } = build();
-      const result = await approve('import_source_post', {
+      const { api, call, paths } = build();
+      const result = await call('import_source_post', {
         brandId: 'brand-1',
         url,
       });

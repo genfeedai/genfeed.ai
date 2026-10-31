@@ -125,9 +125,9 @@ const TOOL_DOCUMENTATION = new Map([
     'enhance_prompt',
     {
       original:
-        'Preview a media prompt using the same Enhance implementation as Studio and Agent, with effective organization/brand settings and contributing pack metadata. Costs 1 credit and requires confirmation; does not generate media. To generate the reviewed prompt unchanged, pass the returned prompt with harness:false. Model compilation during normal generation may add format-specific instructions; the generation receipt records the final submitted prompt.',
+        'Preview a media prompt using the same Enhance implementation as Studio and Agent, with effective organization/brand settings and contributing pack metadata. Costs 1 credit; does not generate media. To generate the reviewed prompt unchanged, pass the returned prompt with harness:false. Model compilation during normal generation may add format-specific instructions; the generation receipt records the final submitted prompt.',
       concise:
-        'Preview Studio/Agent media enhancement with effective organization/brand settings and pack metadata. Costs 1 credit; confirmation required; no media generation. Reuse the returned prompt with harness:false to preserve it. Model compilation may add format instructions; show the final submitted prompt from the generation receipt.',
+        'Preview Studio/Agent media enhancement with effective organization/brand settings and pack metadata. Costs 1 credit; no media generation. Reuse the returned prompt with harness:false to preserve it. Model compilation may add format instructions; show the final submitted prompt from the generation receipt.',
     },
   ],
   [
@@ -296,7 +296,7 @@ const TOOL_DOCUMENTATION = new Map([
     'fetch_x_posts',
     {
       original:
-        "Read X posts. Costs 1 credit and requires confirmation. postIdOrUrl opens one post and returns its text and stats. query searches recent posts by topic through the brand's connected X account and returns author, text, stats, and link; it explains clearly if that account cannot search. Pass exactly one of postIdOrUrl or query.",
+        "Read X posts. Costs 1 credit. postIdOrUrl opens one post and returns its text and stats. query searches recent posts by topic through the brand's connected X account and returns author, text, stats, and link; it explains clearly if that account cannot search. Pass exactly one of postIdOrUrl or query.",
       concise:
         'Read X posts. Costs 1 credit; confirmation required. Exactly one: postIdOrUrl returns text/stats; query searches recent topics via brand-connected X account, returning author/text/stats/link or explaining unsupported search.',
     },
@@ -305,9 +305,9 @@ const TOOL_DOCUMENTATION = new Map([
     'import_source_post',
     {
       original:
-        'Import a supported public X, Instagram or TikTok post into Imported sources for an explicit brand. Returns source/post identities and deduplication. Requires approval for external import; never generates, publishes or adds Knowledge.',
+        'Import a supported public X, Instagram or TikTok post into Imported sources for an explicit brand. Returns source/post identities and deduplication. Never generates, publishes or adds Knowledge.',
       concise:
-        'Import a public X/Instagram/TikTok post for explicit brand into Imported sources; return source/post identities and deduplication. External import requires approval. Never generates, publishes or adds Knowledge.',
+        'Import a public X/Instagram/TikTok post for explicit brand into Imported sources; return source/post identities and deduplication. Never generates, publishes or adds Knowledge.',
     },
   ],
   [
@@ -350,9 +350,9 @@ const TOOL_DOCUMENTATION = new Map([
     'onboard_brand',
     {
       original:
-        'Set up a brand inside this conversation. Organization owners and admins can use create_from_url to create a new brand from a website for one credit on success; this queues the brand creation for approval. For an existing brand, scan_url prefills its guide, save_answers stores goals, audience, offer, competitors, platforms, cadence and tone, and complete finishes account onboarding.',
+        'Set up a brand inside this conversation. Organization owners and admins can use create_from_url to create a new brand from a website for one credit on success. For an existing brand, scan_url prefills its guide, save_answers stores goals, audience, offer, competitors, platforms, cadence and tone, and complete finishes account onboarding.',
       concise:
-        'Set up a brand conversationally. Owners/admins: create_from_url creates from website for one credit on success, queued for approval. Existing brand: scan_url prefills guide; save_answers stores goals/audience/offer/competitors/platforms/cadence/tone; complete finishes account onboarding.',
+        'Set up a brand conversationally. Owners/admins: create_from_url creates from website for one credit on success. Existing brand: scan_url prefills guide; save_answers stores goals/audience/offer/competitors/platforms/cadence/tone; complete finishes account onboarding.',
     },
   ],
   [

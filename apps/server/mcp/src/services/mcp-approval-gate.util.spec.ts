@@ -9,15 +9,28 @@ function clientWith(isApprovalRequired: boolean) {
 }
 
 describe('isMcpApprovalGated', () => {
-  it('gates credit spenders and declared approvals', () => {
-    expect(isMcpApprovalGated('generate')).toBe(true);
-    expect(isMcpApprovalGated('create_brand')).toBe(true);
+  it.each(['generate', 'transform_media', 'publish_article', 'send_social_dm'])(
+    'gates %s: media generation and posting',
+    (name) => {
+      expect(isMcpApprovalGated(name)).toBe(true);
+    },
+  );
+
+  it.each([
+    'create_post',
+    'create_article_draft',
+    'create_brand',
+    'create_brand_from_url',
+    'fetch_x_posts',
+    'enhance_prompt',
+    'generate_content',
+    'repurpose_post',
+    'import_source_post',
+  ])('lets %s through: neither media generation nor posting', (name) => {
+    expect(isMcpApprovalGated(name)).toBe(false);
   });
 
-  it('lets text drafts, deterministic repurposing and release drafts through', () => {
-    expect(
-      isMcpApprovalGated('repurpose_post', { mode: 'deterministic' }),
-    ).toBe(false);
+  it('lets release drafts through', () => {
     expect(
       isMcpApprovalGated('create_scheduled_release', {
         release: { targets: [{ platform: 'linkedin' }] },
@@ -47,7 +60,7 @@ describe('requiresMcpToolApproval', () => {
     expect(client.isApprovalRequired).toHaveBeenCalledOnce();
   });
 
-  it.each(['create_brand', 'control_scheduled_release', 'publish_article'])(
+  it.each(['control_scheduled_release', 'publish_article'])(
     'never waives %s and skips the policy lookup',
     async (name) => {
       const client = clientWith(false);
@@ -59,9 +72,7 @@ describe('requiresMcpToolApproval', () => {
   it('does not look up the policy for a call that is not gated', async () => {
     const client = clientWith(false);
     await expect(
-      requiresMcpToolApproval(client, 'repurpose_post', {
-        mode: 'deterministic',
-      }),
+      requiresMcpToolApproval(client, 'create_brand_from_url'),
     ).resolves.toBe(false);
     expect(client.isApprovalRequired).not.toHaveBeenCalled();
   });

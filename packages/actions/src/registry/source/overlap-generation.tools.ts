@@ -11,7 +11,7 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
   {
     name: 'enhance_prompt',
     description:
-      'Preview a media prompt using the same Enhance implementation as Studio and Agent, with effective organization/brand settings and contributing pack metadata. Costs 1 credit and requires confirmation; does not generate media. To generate the reviewed prompt unchanged, pass the returned prompt with harness:false. Model compilation during normal generation may add format-specific instructions; the generation receipt records the final submitted prompt.',
+      'Preview a media prompt using the same Enhance implementation as Studio and Agent, with effective organization/brand settings and contributing pack metadata. Costs 1 credit; does not generate media. To generate the reviewed prompt unchanged, pass the returned prompt with harness:false. Model compilation during normal generation may add format-specific instructions; the generation receipt records the final submitted prompt.',
     creditCost: ENHANCE_PROMPT_CREDIT_COST,
     requiredRole: 'user',
     parameters: {

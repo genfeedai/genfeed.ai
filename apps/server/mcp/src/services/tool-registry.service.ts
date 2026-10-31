@@ -40,7 +40,7 @@ import {
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
 import {
-  isMcpApprovalGated,
+  isMcpApprovalRedeemable,
   requiresMcpToolApproval,
 } from '@mcp/services/mcp-approval-gate.util';
 import {
@@ -675,8 +675,8 @@ export class ToolRegistryService implements OnModuleInit {
     // Defense-in-depth: only execute tools that are actually approval-gated, so
     // a stray approval row created for a non-write tool cannot be run via the
     // admin resolve path.
-    if (!isMcpApprovalGated(approval.toolName)) {
-      const message = `Approval ${approvalId} references non-approval-gated tool "${approval.toolName}"; not executed.`;
+    if (!isMcpApprovalRedeemable(approval.toolName)) {
+      const message = `Approval ${approvalId} references a read-only tool "${approval.toolName}"; not executed.`;
       await this.attachApprovalResultSafe(approvalId, { error: message });
       throw new Error(message);
     }
