@@ -361,6 +361,13 @@ workspace provides them and always run:
 git diff --check
 ```
 
+Git hooks live in `.husky/`. Point git at them once per clone with
+`git config core.hooksPath .husky`. `pre-commit` runs Biome and the secret scan
+on staged files. `pre-push` runs Biome on the files your branch changed since
+`origin/master` and type-checks only the workspaces those changes reach (the
+same selection CI uses), so a type error fails in seconds instead of after a CI
+round trip. Skip it with `git push --no-verify` when you must.
+
 Broad workspace builds and full test suites run in GitHub Actions. In the pull
 request, list exactly what you ran and any checks left to CI.
 

@@ -129,6 +129,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          # Blobless clone: full history (merge-base, --changed, --affected) without
+          # downloading every historical file blob. Not a shallow clone, so git
+          # history readers keep working. Static Checks stays full: gitleaks reads blobs.
+          filter: blob:none
           persist-credentials: false
       # A pull request checks out GitHub's merge commit, whose first parent is
       # the base it was actually built on. The event payload's
@@ -627,6 +631,7 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+          filter: blob:none
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
       - name: Run workspace tests
@@ -700,6 +705,7 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+          filter: blob:none
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
       - name: Build app workspace
@@ -779,6 +785,7 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+          filter: blob:none
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
       # `working-directory: packages/prisma` + `bun x` (not root `bunx`): the
@@ -984,6 +991,7 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+          filter: blob:none
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
       - name: Run build
