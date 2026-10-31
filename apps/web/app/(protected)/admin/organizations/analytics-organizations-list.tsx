@@ -8,6 +8,7 @@ import {
   AnalyticsMetric,
   ButtonSize,
   ButtonVariant,
+  OrganizationCategory,
 } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { formatPercentageSimple } from '@helpers/formatting/format/format.helper';
@@ -35,6 +36,24 @@ import type { AnalyticsOrganizationsListProps } from '@/features/admin/props/ana
 import { useDebounce } from '@/hooks/utils/use-debounce/use-debounce';
 
 const SEARCH_DEBOUNCE_MS = 300;
+const ALL_TYPES = 'all';
+
+type OrganizationSortMetric =
+  | AnalyticsMetric.ENGAGEMENT
+  | AnalyticsMetric.VIEWS
+  | AnalyticsMetric.POSTS;
+
+/** The columns the API can order by, and the metric each one stands for. */
+const SORT_METRIC_BY_COLUMN: Record<string, OrganizationSortMetric> = {
+  totalEngagement: AnalyticsMetric.ENGAGEMENT,
+  totalPosts: AnalyticsMetric.POSTS,
+  totalViews: AnalyticsMetric.VIEWS,
+};
+const SORT_COLUMN_BY_METRIC: Record<OrganizationSortMetric, string> = {
+  [AnalyticsMetric.ENGAGEMENT]: 'totalEngagement',
+  [AnalyticsMetric.POSTS]: 'totalPosts',
+  [AnalyticsMetric.VIEWS]: 'totalViews',
+};
 
 export default function AnalyticsOrganizationsList({
   getReleaseAccessHref,
@@ -52,9 +71,11 @@ export default function AnalyticsOrganizationsList({
 
   const [data, setData] = useState<IPaginatedOrgsResponse | null>(null);
   const [page, setPage] = useState(1);
-  const [sort, setSort] = useState<
-    AnalyticsMetric.ENGAGEMENT | AnalyticsMetric.VIEWS | AnalyticsMetric.POSTS
-  >(AnalyticsMetric.ENGAGEMENT);
+  const [sort, setSort] = useState<OrganizationSortMetric>(
+    AnalyticsMetric.ENGAGEMENT,
+  );
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [type, setType] = useState<string>(ALL_TYPES);
 
   const isLoading = data === null;
   const searchTerm = filters.query ?? '';
@@ -77,9 +98,13 @@ export default function AnalyticsOrganizationsList({
             endDate: format(dateRange.endDate as Date, 'yyyy-MM-dd'),
             limit: ITEMS_PER_PAGE,
             page,
+            order: sortDirection,
             ...(debouncedSearchTerm ? { search: debouncedSearchTerm } : {}),
             sort,
             startDate: format(dateRange.startDate as Date, 'yyyy-MM-dd'),
+            ...(type !== ALL_TYPES
+              ? { type: type as OrganizationCategory }
+              : {}),
           },
           controller.signal,
         );
@@ -100,6 +125,8 @@ export default function AnalyticsOrganizationsList({
     dateRange,
     page,
     sort,
+    sortDirection,
+    type,
     debouncedSearchTerm,
     refreshTrigger,
   ]);
@@ -110,13 +137,22 @@ export default function AnalyticsOrganizationsList({
     setPage(1);
   }, [debouncedSearchTerm]);
 
-  const handleSortChange = useCallback((value: string) => {
-    setSort(
-      value as
-        | AnalyticsMetric.ENGAGEMENT
-        | AnalyticsMetric.VIEWS
-        | AnalyticsMetric.POSTS,
-    );
+  // A header click: the API orders by the clicked metric.
+  const handleSortChange = useCallback(
+    (columnKey: string, direction: 'asc' | 'desc') => {
+      const metric = SORT_METRIC_BY_COLUMN[columnKey];
+      if (!metric) {
+        return;
+      }
+      setSort(metric);
+      setSortDirection(direction);
+      setPage(1);
+    },
+    [],
+  );
+
+  const handleTypeChange = useCallback((value: string) => {
+    setType(value);
     setPage(1);
   }, []);
 
@@ -131,27 +167,27 @@ export default function AnalyticsOrganizationsList({
         <FilterMenu
           facets={[
             {
-              defaultValue: AnalyticsMetric.ENGAGEMENT,
-              // Sort orders the list, it does not narrow it.
-              isCounted: false,
-              key: 'sort',
-              label: 'Sort by',
-              onChange: handleSortChange,
+              defaultValue: ALL_TYPES,
+              key: 'type',
+              label: translate('typeLabel'),
+              onChange: handleTypeChange,
               options: [
-                { label: 'Engagement', value: AnalyticsMetric.ENGAGEMENT },
-                { label: 'Views', value: AnalyticsMetric.VIEWS },
-                { label: 'Posts', value: AnalyticsMetric.POSTS },
+                { label: translate('allTypes'), value: ALL_TYPES },
+                ...Object.values(OrganizationCategory).map((value) => ({
+                  label: translate(`types.${value}`),
+                  value,
+                })),
               ],
               selection: 'single',
-              value: sort,
+              value: type,
             },
           ]}
           isAttached
-          onClear={() => handleSortChange(AnalyticsMetric.ENGAGEMENT)}
+          onClear={() => handleTypeChange(ALL_TYPES)}
         />
       </SearchField>
     ),
-    [searchTerm, setFilter, sort, handleSortChange, translate],
+    [searchTerm, setFilter, type, handleTypeChange, translate],
   );
 
   useAnalyticsSearch(search);
@@ -214,6 +250,7 @@ export default function AnalyticsOrganizationsList({
             {org.totalPosts.toLocaleString('en-US')}
           </span>
         ),
+        sortable: true,
       },
       {
         className: 'text-right',
@@ -224,6 +261,7 @@ export default function AnalyticsOrganizationsList({
             {org.totalEngagement.toLocaleString('en-US')}
           </span>
         ),
+        sortable: true,
       },
       {
         className: 'text-right',
@@ -234,6 +272,7 @@ export default function AnalyticsOrganizationsList({
             {org.totalViews.toLocaleString('en-US')}
           </span>
         ),
+        sortable: true,
       },
       {
         className: 'text-right',
@@ -302,6 +341,9 @@ export default function AnalyticsOrganizationsList({
         isLoading={isLoading}
         columns={columns}
         getRowKey={(org) => org.id}
+        onSortChange={handleSortChange}
+        sortDirection={sortDirection}
+        sortKey={SORT_COLUMN_BY_METRIC[sort]}
         emptyLabel={
           searchTerm ? translate('emptySearch') : 'No organizations found'
         }

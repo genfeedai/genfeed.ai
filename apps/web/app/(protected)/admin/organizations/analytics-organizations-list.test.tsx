@@ -6,6 +6,7 @@ import {
   within,
 } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
+import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalyticsOrganizationsList from './analytics-organizations-list';
@@ -228,5 +229,81 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
       screen.getByRole('link', { name: 'Open user Ada Lovelace' }),
     ).toHaveAttribute('href', '/admin/administration/users/user-9');
     expect(screen.getAllByRole('link', { name: /Open user/ })).toHaveLength(1);
+  });
+
+  describe('server-side ordering and type filter', () => {
+    const emptyPage = {
+      data: [],
+      pagination: { limit: 10, page: 1, total: 0, totalPages: 0 },
+    };
+    const lastRequest = () =>
+      mocks.getOrganizationsWithStats.mock.calls.at(-1)?.[0];
+
+    it('asks the API for the clicked metric, ascending then descending', async () => {
+      const user = userEvent.setup();
+      mocks.getOrganizationsWithStats.mockResolvedValue(emptyPage);
+
+      render(<AnalyticsOrganizationsList />);
+      await waitFor(() => {
+        expect(lastRequest()).toMatchObject({
+          order: 'desc',
+          sort: 'engagement',
+        });
+      });
+
+      const viewsHeader = await screen.findByRole('columnheader', {
+        name: /Views/,
+      });
+      await user.click(within(viewsHeader).getByRole('button'));
+      await waitFor(() => {
+        expect(lastRequest()).toMatchObject({ order: 'asc', sort: 'views' });
+      });
+
+      await user.click(
+        within(
+          screen.getByRole('columnheader', { name: /Views/ }),
+        ).getByRole('button'),
+      );
+      await waitFor(() => {
+        expect(lastRequest()).toMatchObject({ order: 'desc', sort: 'views' });
+      });
+    });
+
+    it('does not offer sorting on columns the API cannot order by', async () => {
+      mocks.getOrganizationsWithStats.mockResolvedValue(emptyPage);
+
+      render(<AnalyticsOrganizationsList />);
+
+      const brandsHeader = await screen.findByRole('columnheader', {
+        name: 'Brands',
+      });
+      expect(within(brandsHeader).queryByRole('button')).not.toBeInTheDocument();
+    });
+
+    it('filters by organization type and drops the filter again on All types', async () => {
+      const user = userEvent.setup();
+      mocks.getOrganizationsWithStats.mockResolvedValue(emptyPage);
+
+      render(<AnalyticsOrganizationsList />);
+      await waitFor(() => {
+        expect(mocks.getOrganizationsWithStats).toHaveBeenCalled();
+      });
+      expect(lastRequest()).not.toHaveProperty('type');
+
+      const searchNode = mocks.publishSearch.mock.calls.at(
+        -1,
+      )?.[0] as ReactNode;
+      render(<>{searchNode}</>);
+      await user.click(screen.getByRole('button', { name: /^Filters/ }));
+      screen.getByRole('menuitem', { name: /Type/ }).focus();
+      await user.keyboard('{ArrowRight}');
+      await user.click(
+        await screen.findByRole('menuitemradio', { name: 'Agency' }),
+      );
+
+      await waitFor(() => {
+        expect(lastRequest()).toMatchObject({ page: 1, type: 'AGENCY' });
+      });
+    });
   });
 });

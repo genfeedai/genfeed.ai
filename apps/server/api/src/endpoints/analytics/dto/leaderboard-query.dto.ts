@@ -1,5 +1,5 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { AnalyticsMetric } from '@genfeedai/contracts';
+import { AnalyticsMetric, OrganizationCategory } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
@@ -18,6 +18,11 @@ export enum LeaderboardSort {
   ENGAGEMENT = 'engagement',
   VIEWS = 'views',
   POSTS = 'posts',
+}
+
+export enum LeaderboardOrder {
+  ASC = 'asc',
+  DESC = 'desc',
 }
 
 export class AnalyticsDateRangeDto {
@@ -122,6 +127,28 @@ export class AdminOrgsQueryDto extends AnalyticsDateRangeDto {
   @IsOptional()
   @IsEnum(LeaderboardSort)
   sort?: LeaderboardSort = LeaderboardSort.ENGAGEMENT;
+
+  @ApiProperty({
+    default: 'desc',
+    description: 'Sort direction for the sort field',
+    enum: LeaderboardOrder,
+    enumName: 'LeaderboardOrder',
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(LeaderboardOrder)
+  order?: LeaderboardOrder = LeaderboardOrder.DESC;
+
+  @ApiProperty({
+    description:
+      'Only organizations of this type (the onboarding account type, else the category)',
+    enum: OrganizationCategory,
+    enumName: 'OrganizationCategory',
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(OrganizationCategory)
+  type?: OrganizationCategory;
 
   @ApiProperty({
     description:

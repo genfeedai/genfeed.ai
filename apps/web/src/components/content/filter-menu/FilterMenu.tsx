@@ -23,7 +23,7 @@ import {
 } from '@ui/primitives/dropdown-menu';
 import { Input } from '@ui/primitives/input';
 import { SHELL_ICON_CLASS } from '@ui-constants/shell-chrome.constant';
-import { SlidersHorizontal } from 'lucide-react';
+import { ListFilter } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -204,7 +204,7 @@ export default function FilterMenu({
             activeCount > 0 && 'text-foreground',
             className,
           )}
-          icon={<SlidersHorizontal className={SHELL_ICON_CLASS} />}
+          icon={<ListFilter className={SHELL_ICON_CLASS} />}
           size={ButtonSize.SM}
           variant={ButtonVariant.GHOST}
           withWrapper={false}

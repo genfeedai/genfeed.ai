@@ -125,6 +125,8 @@ export class AnalyticsAdminController {
         req.query?.sort || 'engagement',
         ...(req.query?.search ? [req.query.search] : []),
         req.query?.organizationId || 'all',
+        req.query?.type || 'any',
+        req.query?.order || 'desc',
       ]),
     tags: ['analytics', 'super-admin', 'organizations'],
     ttl: 300,
@@ -150,6 +152,8 @@ export class AnalyticsAdminController {
         query.sort,
         query.search,
         query.organizationId,
+        query.type,
+        query.order,
       ),
     );
     return serializeSingle(req, AnalyticsOrgStatsSerializer, data);
