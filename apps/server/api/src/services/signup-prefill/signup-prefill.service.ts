@@ -14,7 +14,6 @@ import { buildPrefilledAgentConfig } from '@api/services/signup-prefill/utils/ag
 import {
   buildBrandSystemPrompt,
   isPlaceholderBrandText,
-  PLACEHOLDER_BRAND_DESCRIPTION,
 } from '@api/services/signup-prefill/utils/brand-system-prompt.util';
 import { buildSignupHarnessProfile } from '@api/services/signup-prefill/utils/harness-seed.util';
 import { normalizeOnboardingUrl } from '@api/services/signup-prefill/utils/normalize-onboarding-url.util';
@@ -805,7 +804,10 @@ export class SignupPrefillService {
       );
     }
 
-    if (currentDescription?.trim() === PLACEHOLDER_BRAND_DESCRIPTION) {
+    if (
+      currentDescription?.trim() &&
+      isPlaceholderBrandText(currentDescription)
+    ) {
       // No site and no tagline leaves the description empty: `brand.text`
       // already names the brand, and filler copy here reads as real context.
       update.description =
