@@ -191,7 +191,12 @@ function renderMembers({
       if (key === 'page') return page;
       return key === 'q' ? (search ?? null) : null;
     },
-    toString: () => (page ? `page=${page}` : ''),
+    toString: () => {
+      const params = new URLSearchParams();
+      if (page) params.set('page', page);
+      if (search) params.set('q', search);
+      return params.toString();
+    },
   });
 
   const pageMembers = Array.from({ length: pageCount }, (_, index) => ({
