@@ -116,7 +116,7 @@ export function buildPricingCompareRows(): PricingCompareRow[] {
       values: cells(formatApiRate),
     },
     {
-      label: 'Bring your own provider keys',
+      label: 'Bring your own key',
       values: cells((tier) => formatFlag(entitlementOf(tier).byokAccess)),
     },
     {
