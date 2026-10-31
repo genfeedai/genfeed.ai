@@ -269,7 +269,7 @@
     "apps/app/src/features/posts/components/posts/preview/thread-preview-panel/ThreadPreviewPanel.tsx": 3,
     "apps/app/src/features/posts/detail/components/PostDetailCardBody.tsx": 4,
     "apps/app/src/features/posts/detail/components/PostDetailHeader.tsx": 1,
-    "apps/app/src/features/posts/library/publishing-content-library.tsx": 7,
+    "apps/app/src/features/posts/library/publishing-content-library.tsx": 6,
     "apps/app/src/features/posts/list/components/EvalCell.tsx": 1,
     "apps/app/src/features/posts/list/components/PostsCardActions.tsx": 9,
     "apps/app/src/features/posts/list/components/PostsGrid.tsx": 7,

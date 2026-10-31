@@ -74,6 +74,13 @@ interface TableBaseProps<T> {
   isLoading?: boolean;
   columns: TableColumn<T>[];
   actions?: TableAction<T>[];
+  /**
+   * Row-specific controls (an overflow menu, a stateful button) that an icon
+   * `actions` entry cannot express. Rendered in the same overlay as `actions`:
+   * hidden until the row is hovered or focused, floating over the row's right
+   * end. Never add an "Actions" column — it sits off-screen until you scroll.
+   */
+  renderRowActions?: (item: T) => ReactNode;
   /** Render the shared table frame. Disable when a parent surface owns it. */
   framed?: boolean;
   /** Compact padding for dense ledgers; regular tables retain their spacing. */

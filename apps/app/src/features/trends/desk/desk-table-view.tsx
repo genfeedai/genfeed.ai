@@ -9,7 +9,6 @@ import {
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { ISourcePost } from '@genfeedai/contracts/interfaces';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
@@ -39,7 +38,6 @@ import {
   HoverCardTrigger,
 } from '@ui/primitives/hover-card';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
-import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import {
   buildSourcePostVariationsHref,
   buildTrendSourceAgentHref,
@@ -304,15 +302,10 @@ function DeskRowActions({ href, item, onSelectFinding }: DeskRowActionsProps) {
   );
 
   return (
-    // Icon-only row actions, revealed on row hover or keyboard focus like the
-    // shared table's `actions` group. Kept as a component because each row
-    // owns request state and a per-row overflow menu.
-    <div
-      className={cn(
-        'flex items-center justify-end gap-1',
-        hoverRevealClassName({ at: 'lg' }),
-      )}
-    >
+    // Icon-only row actions. The shared table overlays them on the row and
+    // reveals them on hover or keyboard focus. Kept as a component because each
+    // row owns request state and a per-row overflow menu.
+    <div className="flex items-center justify-end gap-1">
       {item.remixSelector ? (
         <Button
           ariaLabel={translateCard('actions.remix')}
@@ -679,30 +672,12 @@ export default function DeskTableView({
         render: (item) =>
           item.publishedAt ? getRelativeTime(item.publishedAt) : '—',
       },
-      {
-        className: 'text-right',
-        header: (
-          <span className="sr-only">
-            {translateDesk('tableHeaders.actions')}
-          </span>
-        ),
-        key: 'actions',
-        render: (item) => (
-          <DeskRowActions
-            href={href}
-            item={item}
-            onSelectFinding={onSelectFinding}
-          />
-        ),
-      },
     ],
     [
       expandedKey,
       getDetailHref,
       previewKey,
       handlePreview,
-      href,
-      onSelectFinding,
       translateCard,
       translateDesk,
     ],
@@ -720,6 +695,13 @@ export default function DeskTableView({
       getRowKey={(item) => item.key}
       items={items}
       onRowClick={handleRowClick}
+      renderRowActions={(item) => (
+        <DeskRowActions
+          href={href}
+          item={item}
+          onSelectFinding={onSelectFinding}
+        />
+      )}
       onSelectionChange={handleSelectionChange}
       renderExpandedRow={(item) =>
         expandedKey === item.key ? (
