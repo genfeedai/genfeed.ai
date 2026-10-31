@@ -1,6 +1,6 @@
-import type { ClipperResult } from '@props/studio/clipper.props';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ClipperResult } from '@/props/studio/clipper.props';
 import ClipperResultCard from './ClipperResultCard';
 import '@testing-library/jest-dom/vitest';
 

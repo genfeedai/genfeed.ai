@@ -20,13 +20,13 @@ import { CredentialsService } from '@services/organization/credentials.service';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Loading from '@ui/loading/default/Loading';
-import TargetPreview from '@ui/previews/TargetPreview';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
+import TargetPreview from '@/components/previews/TargetPreview';
 import {
   accountLabel,
   buildAccountGridLanes,

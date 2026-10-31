@@ -25,7 +25,7 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(''),
 }));
 
-vi.mock('@hooks/ui/evaluation/use-evaluation/use-evaluation', () => ({
+vi.mock('@/hooks/ui/evaluation/use-evaluation/use-evaluation', () => ({
   useEvaluation: () => ({
     evaluate: evaluateMock,
     evaluation: null,

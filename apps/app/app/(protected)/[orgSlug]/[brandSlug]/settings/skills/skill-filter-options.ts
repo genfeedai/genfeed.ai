@@ -2,7 +2,7 @@ import type {
   ModalityFilterValue,
   SourceFilterValue,
   StageFilterValue,
-} from '@props/settings/skill-filters.props';
+} from '@/props/settings/skill-filters.props';
 
 export const SOURCE_FILTERS = [
   { labelKey: 'all', value: 'all' },
@@ -37,4 +37,4 @@ export type {
   ModalityFilterValue,
   SourceFilterValue,
   StageFilterValue,
-} from '@props/settings/skill-filters.props';
+} from '@/props/settings/skill-filters.props';

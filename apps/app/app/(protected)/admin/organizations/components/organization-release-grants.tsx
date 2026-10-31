@@ -5,10 +5,10 @@ import {
   RELEASE_ITEM_IDS,
   type ReleaseItemId,
 } from '@genfeedai/contracts/constants';
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Switch } from '@ui/primitives/switch';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
+import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import type { OrganizationReleaseGrantsProps } from '@/features/admin/props/organization-release-grants.props';
 
 /**

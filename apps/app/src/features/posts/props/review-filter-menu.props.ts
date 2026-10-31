@@ -2,7 +2,7 @@ import type { ReviewInboxItemSource } from '@genfeedai/contracts/interfaces';
 import type {
   ReviewFilterCounts,
   ReviewStatusFilter,
-} from '@props/publishing/review-filters.props';
+} from '@/props/publishing/review-filters.props';
 
 export interface ReviewFilterMenuBatchOption {
   label: string;

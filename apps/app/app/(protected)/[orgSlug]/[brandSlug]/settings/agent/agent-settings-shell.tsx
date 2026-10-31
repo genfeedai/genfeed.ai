@@ -3,13 +3,13 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
+import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
 
 export default function AgentSettingsShell({
   children,

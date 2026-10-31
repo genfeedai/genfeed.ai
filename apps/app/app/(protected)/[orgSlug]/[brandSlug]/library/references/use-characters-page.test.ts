@@ -47,7 +47,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
-vi.mock('@hooks/auth/use-user-role/use-user-role', () => ({
+vi.mock('@/hooks/auth/use-user-role/use-user-role', () => ({
   useUserRole: () => undefined,
 }));
 

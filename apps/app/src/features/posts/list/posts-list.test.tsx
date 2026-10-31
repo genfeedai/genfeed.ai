@@ -134,7 +134,7 @@ vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
 }));
 
 vi.mock(
-  '@hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar',
+  '@/hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar',
   () => ({
     useIngredientSidebar: () => ({
       closeIngredientSidebar: vi.fn(),
@@ -167,7 +167,7 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 
-vi.mock('@ui/banners/low-credits/LowCreditsBanner', () => ({
+vi.mock('@/components/banners/low-credits/LowCreditsBanner', () => ({
   default: () => {
     lowCreditsBannerSpy();
     return <div data-testid="low-credits-banner" />;

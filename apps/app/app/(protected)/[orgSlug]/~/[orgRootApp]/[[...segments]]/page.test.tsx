@@ -6,10 +6,10 @@ import {
   LibraryShelf,
   PageScope,
 } from '@genfeedai/contracts';
-import type { OrgRootAppPageProps } from '@props/layout/org-root-app-page.props';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { OrgRootAppPageProps } from '@/props/layout/org-root-app-page.props';
 
 const {
   loadProtectedBootstrapMock,

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import type AppSidebar from '@ui/shell/menus/AppSidebar';
 import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
+import type AppSidebar from '@/components/shell/menus/AppSidebar';
 import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
 
 vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
@@ -12,16 +12,13 @@ vi.mock('next/navigation', () => ({
 vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => path }),
 }));
-vi.mock(
-  '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client',
-  () => ({
-    useIsDesktopClient: () => false,
-  }),
-);
+vi.mock('@/hooks/ui/use-is-desktop-client/use-is-desktop-client', () => ({
+  useIsDesktopClient: () => false,
+}));
 vi.mock('./useOpenTaskComposer', () => ({
   useOpenTaskComposer: () => vi.fn(),
 }));
-vi.mock('@ui/shell/menus/AppSidebar', () => ({
+vi.mock('@/components/shell/menus/AppSidebar', () => ({
   default: ({ onClose, items }: ComponentProps<typeof AppSidebar>) => (
     <button type="button" onClick={onClose}>
       {items[0]?.label}

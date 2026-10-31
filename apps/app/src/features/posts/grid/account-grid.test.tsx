@@ -25,7 +25,7 @@ vi.mock('@services/organization/credentials.service', () => ({
   },
 }));
 
-vi.mock('@ui/previews/TargetPreview', () => ({
+vi.mock('@/components/previews/TargetPreview', () => ({
   default: ({ release }: { release: IReleaseGroup }) => (
     <div>{release.title} preview</div>
   ),

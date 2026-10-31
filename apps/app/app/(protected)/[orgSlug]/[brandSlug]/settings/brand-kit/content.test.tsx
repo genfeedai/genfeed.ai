@@ -50,7 +50,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/acme/acme${path}` }),
 }));
-vi.mock('@hooks/auth/use-user-role/use-user-role', () => ({
+vi.mock('@/hooks/auth/use-user-role/use-user-role', () => ({
   useUserRole: () => mocks.role,
 }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -66,7 +66,7 @@ vi.mock('next-intl', async () => {
 vi.mock('@/lib/analytics', () => ({
   captureBrandOsFunnelStage: mocks.capture,
 }));
-vi.mock('@hooks/pages/use-brand-detail/use-brand-detail', () => ({
+vi.mock('@/hooks/pages/use-brand-detail/use-brand-detail', () => ({
   useBrandDetail: () => ({
     brand: { id: 'brand-1', label: 'Acme', description: 'Acme', slug: 'acme' },
     brandId: 'brand-1',

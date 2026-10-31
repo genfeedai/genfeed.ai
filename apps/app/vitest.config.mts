@@ -47,13 +47,6 @@ export default mergeConfig(
           ),
         },
         {
-          find: /^@components\/lazy\/modal\/LazyModal$/,
-          replacement: path.resolve(
-            __dirname,
-            '../../packages/ui/src/components/lazy/modal/LazyModal.tsx',
-          ),
-        },
-        {
           find: /^@components\/loading\/fallback\/LazyLoadingFallback$/,
           replacement: path.resolve(
             __dirname,

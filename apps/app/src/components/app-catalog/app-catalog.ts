@@ -2,7 +2,7 @@ import type { OrganizationModuleId } from '@genfeedai/contracts/constants';
 import type {
   AppCatalogCategoryId,
   AppCatalogPresentation,
-} from '@genfeedai/props/apps/organization-apps-page.props';
+} from '@/props/apps/organization-apps-page.props';
 
 /** Categories in display order. */
 export const APP_CATALOG_CATEGORY_IDS = [

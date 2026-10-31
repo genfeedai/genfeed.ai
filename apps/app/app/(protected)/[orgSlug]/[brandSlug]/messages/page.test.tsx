@@ -115,7 +115,7 @@ vi.mock('@genfeedai/agent/components/AgentOAuthConnectMenu', () => ({
 }));
 
 vi.mock(
-  '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect',
+  '@/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect',
   () => ({
     usePlatformOAuthConnect: () => vi.fn(),
   }),

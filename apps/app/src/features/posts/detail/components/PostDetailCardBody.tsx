@@ -7,12 +7,12 @@ import { calculateTweetLength } from '@helpers/formatting/tweet-length/tweet-len
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import Card from '@ui/card/Card';
 import HtmlContent from '@ui/display/html-content/HtmlContent';
-import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { Eye, Heart, MessageSquare } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { MutableRefObject, ReactNode } from 'react';
+import LazyRichTextEditor from '@/components/editors/LazyRichTextEditor';
 
 export interface PostDetailCardBodyProps {
   post: IPost;

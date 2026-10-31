@@ -4,10 +4,6 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type {
-  ClipperProjectListProps,
-  ClipperProjectSummary,
-} from '@props/studio/clipper.props';
 import { NotificationsService } from '@services/core/notifications.service';
 import CollectionCarouselSection from '@ui/collection/CollectionCarouselSection';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
@@ -31,6 +27,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useMemo, useState } from 'react';
+import type {
+  ClipperProjectListProps,
+  ClipperProjectSummary,
+} from '@/props/studio/clipper.props';
 import { youtubeThumbnailUrl } from '../utils/youtube-thumbnail';
 
 import ClipperProjectCard from './ClipperProjectCard';

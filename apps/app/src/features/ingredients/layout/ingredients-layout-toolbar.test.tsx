@@ -16,7 +16,7 @@ vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
   default: () => <button type="button">Refresh</button>,
 }));
 
-vi.mock('@ui/content/filters-button/FiltersButton', () => ({
+vi.mock('@/components/content/filters-button/FiltersButton', () => ({
   default: () => <button type="button">Filters</button>,
 }));
 

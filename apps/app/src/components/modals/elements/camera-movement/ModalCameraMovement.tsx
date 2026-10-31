@@ -1,0 +1,136 @@
+import {
+  type ElementSimpleSchema,
+  elementSimpleSchema,
+} from '@genfeedai/client/schemas';
+import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
+import type { IElementCameraMovement } from '@genfeedai/contracts/interfaces';
+import type { ModalCrudProps } from '@genfeedai/props/modals/modal.props';
+import { CameraMovementsService } from '@genfeedai/services/elements/camera-movements.service';
+import ModalActions from '@ui/modals/actions/ModalActions';
+import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { Form } from '@ui/primitives/form';
+import { Input } from '@ui/primitives/input';
+import type { ChangeEvent } from 'react';
+import ElementPlatformFields from '@/components/modals/elements/shared/ElementPlatformFields';
+import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
+
+export default function ModalCameraMovement({
+  item,
+  onConfirm,
+  onClose,
+}: ModalCrudProps<IElementCameraMovement>) {
+  const { form, formRef, isSubmitting, onSubmit, closeModal } = useCrudModal<
+    IElementCameraMovement,
+    ElementSimpleSchema
+  >({
+    defaultValues: {
+      isActive: true,
+      sortOrder: 0,
+      description: '',
+      key: '',
+      label: '',
+    },
+    entity: item || null,
+    modalId: ModalEnum.CAMERA_MOVEMENT,
+    onClose,
+    onConfirm,
+    schema: elementSimpleSchema,
+    serviceFactory: (token) => CameraMovementsService.getInstance(token),
+  });
+
+  const updateModalCameraMovement = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    const { name, value } = e.target;
+
+    // Format key if key field changes
+    if (name === 'key') {
+      const formattedKey = value
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '');
+      form.setValue('key', formattedKey, { shouldValidate: true });
+    } else {
+      form.setValue(name as Parameters<typeof form.setValue>[0], value, {
+        shouldValidate: true,
+      });
+    }
+  };
+
+  return (
+    <Modal
+      id={ModalEnum.CAMERA_MOVEMENT}
+      title={item ? 'Edit Camera Movement' : 'Create Camera Movement'}
+    >
+      <Form ref={formRef} onSubmit={onSubmit}>
+        <FormControl label="Label">
+          <Input
+            type="text"
+            name="label"
+            control={form.control}
+            onChange={updateModalCameraMovement}
+            placeholder="Enter display label"
+            isRequired={true}
+            isDisabled={isSubmitting}
+          />
+        </FormControl>
+
+        <FormControl label="Key">
+          <Input
+            type="text"
+            name="key"
+            control={form.control}
+            onChange={updateModalCameraMovement}
+            placeholder="lowercase-with-hyphens"
+            isRequired={true}
+            isDisabled={isSubmitting}
+          />
+          <p className="text-xs text-foreground/70 mt-1">
+            Unique identifier (lowercase, alphanumeric with hyphens)
+          </p>
+        </FormControl>
+
+        <FormControl label="Description">
+          <Input
+            name="description"
+            control={form.control}
+            onChange={updateModalCameraMovement}
+            placeholder="Enter description (optional)"
+            isDisabled={isSubmitting}
+          />
+        </FormControl>
+
+        <ElementPlatformFields
+          isActive={form.watch('isActive') ?? true}
+          isDisabled={isSubmitting}
+          onIsActiveChange={(isActive) =>
+            form.setValue('isActive', isActive, { shouldValidate: true })
+          }
+          onSortOrderChange={(sortOrder) =>
+            form.setValue('sortOrder', sortOrder, { shouldValidate: true })
+          }
+          sortOrder={form.watch('sortOrder') ?? 0}
+        />
+
+        <ModalActions>
+          <Button
+            label="Cancel"
+            variant={ButtonVariant.SECONDARY}
+            onClick={() => closeModal()}
+            isLoading={isSubmitting}
+          />
+
+          <Button
+            type="submit"
+            label={item ? 'Update' : 'Create'}
+            variant={ButtonVariant.DEFAULT}
+            isLoading={isSubmitting}
+            isDisabled={isSubmitting || !form.formState.isValid}
+          />
+        </ModalActions>
+      </Form>
+    </Modal>
+  );
+}

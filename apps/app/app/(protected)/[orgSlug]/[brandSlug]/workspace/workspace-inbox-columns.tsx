@@ -1,9 +1,9 @@
 import { STATUS_PILL_CLASS } from '@app/(protected)/[orgSlug]/[brandSlug]/tasks/task-pills';
 import { ComponentSize } from '@genfeedai/contracts';
-import type { WorkspaceTranslate } from '@props/workspace/workspace-task.props';
 import type { Task, TaskStatus } from '@services/management/tasks.service';
 import Badge from '@ui/display/badge/Badge';
 import Link from 'next/link';
+import type { WorkspaceTranslate } from '@/props/workspace/workspace-task.props';
 
 import {
   formatTaskStatus,

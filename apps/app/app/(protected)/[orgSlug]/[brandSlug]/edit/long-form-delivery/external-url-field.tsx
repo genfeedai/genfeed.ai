@@ -1,10 +1,10 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { ExternalUrlFieldProps } from '@props/edit/long-form-delivery.props';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import type { ExternalUrlFieldProps } from '@/props/edit/long-form-delivery.props';
 
 function isWebUrl(value: string): boolean {
   try {

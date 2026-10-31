@@ -58,7 +58,7 @@ vi.mock('@services/core/environment.service', () => ({
   },
 }));
 
-vi.mock('@ui/content/filters-button/FiltersButton', () => ({
+vi.mock('@/components/content/filters-button/FiltersButton', () => ({
   default: () => <div>Filters</div>,
 }));
 

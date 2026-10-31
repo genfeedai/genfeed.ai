@@ -11,15 +11,15 @@ import { openModal } from '@helpers/ui/modal/modal.helper';
 import type { LayoutProps } from '@props/layout/layout.props';
 import { useElementsContext } from '@providers/elements/elements.context';
 import ElementsProvider from '@providers/elements/elements.provider';
-import AdminOrgBrandUrlFilter from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
-import FiltersButton from '@ui/content/filters-button/FiltersButton';
-import FiltersSearch from '@ui/content/filters-button/FiltersSearch';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Button } from '@ui/primitives/button';
 import { ELEMENT_LABELS } from '@ui-constants/element.constant';
 import { Plus, Tag } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useMemo } from 'react';
+import AdminOrgBrandUrlFilter from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
+import FiltersButton from '@/components/content/filters-button/FiltersButton';
+import FiltersSearch from '@/components/content/filters-button/FiltersSearch';
 
 function ElementsLayoutContent({ children }: LayoutProps) {
   const pathname = usePathname();

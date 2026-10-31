@@ -6,9 +6,7 @@ import type {
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
 import type { Newsletter } from '@models/content/newsletter.model';
-import type { CalendarViewKey } from '@props/components/calendar.props';
 import type { GlobalModalsContextValue } from '@props/modals/global-modals.props';
-import type { ReleaseCalendarFilters } from '@props/publisher/release-calendar.props';
 import type { ArticlesService } from '@services/content/articles.service';
 import type { NewslettersService } from '@services/content/newsletters.service';
 import type { PostingCadencesService } from '@services/content/posting-cadences.service';
@@ -16,6 +14,8 @@ import type { PostsService } from '@services/content/posts.service';
 import type { ReleaseGroupsService } from '@services/content/release-groups.service';
 import type { NotificationsService } from '@services/core/notifications.service';
 import type { Dispatch, SetStateAction } from 'react';
+import type { CalendarViewKey } from '@/props/components/calendar.props';
+import type { ReleaseCalendarFilters } from '@/props/publisher/release-calendar.props';
 
 export interface ContentCalendarPageProps {
   campaignId?: string;

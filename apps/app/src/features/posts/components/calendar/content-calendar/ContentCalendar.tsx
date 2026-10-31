@@ -1,12 +1,12 @@
 'use client';
 
-import type {
-  CalendarItem,
-  ContentCalendarProps,
-} from '@genfeedai/props/components/calendar.props';
 import { Skeleton } from '@ui/primitives/skeleton';
 import dynamic from 'next/dynamic';
 import type { ReactElement } from 'react';
+import type {
+  CalendarItem,
+  ContentCalendarProps,
+} from '@/props/components/calendar.props';
 
 /**
  * Lazy boundary for the calendar.

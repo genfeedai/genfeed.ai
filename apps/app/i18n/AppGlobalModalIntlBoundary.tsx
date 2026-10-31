@@ -6,10 +6,10 @@ import type {
   GlobalModalKind,
   GlobalModalRenderer,
 } from '@genfeedai/props/modals/global-modals.props';
-import type { IntlMessageTree } from '@genfeedai/props/providers/intl-provider.props';
 import { usePathname } from 'next/navigation';
 import { isValidElement, lazy, Suspense, useState } from 'react';
 import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
+import type { IntlMessageTree } from '@/props/providers/intl-provider.props';
 import AppPageIntlProvider from './AppPageIntlProvider';
 
 function createModalCatalog(load: () => Promise<{ default: IntlMessageTree }>) {

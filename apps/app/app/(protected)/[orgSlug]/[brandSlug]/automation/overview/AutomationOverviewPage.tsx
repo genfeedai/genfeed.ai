@@ -3,7 +3,6 @@
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { APP_DISPLAY_LABELS } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import {
   isCollectionFetchReady,
   toBrandListParams,
@@ -13,11 +12,12 @@ import { useQuery } from '@tanstack/react-query';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Users, Workflow } from 'lucide-react';
 import { useMemo } from 'react';
+import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import { useAgentStrategies } from '@/features/agents/hooks/agent-strategies/use-agent-strategies';
 import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
+import { useWorkflowExecutions } from '@/hooks/data/workflow-executions/use-workflow-executions';
 import ContentPlansSection from '../autopilot/ContentPlansSection';
 import ActiveRunsPanel from '../runs/ActiveRunsPanel';
 import RunHistoryList from '../runs/RunHistoryList';

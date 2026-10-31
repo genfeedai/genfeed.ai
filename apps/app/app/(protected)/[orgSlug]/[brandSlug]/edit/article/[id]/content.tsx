@@ -1,7 +1,7 @@
 'use client';
 
-import type { ArtifactEditorPageProps } from '@props/content/artifact-editor.props';
 import { useSearchParams } from 'next/navigation';
+import type { ArtifactEditorPageProps } from '@/props/content/artifact-editor.props';
 import ArticleDetail from '../article-detail';
 
 /**

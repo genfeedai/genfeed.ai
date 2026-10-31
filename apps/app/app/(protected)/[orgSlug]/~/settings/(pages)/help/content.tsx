@@ -18,7 +18,7 @@ import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 
 import { getHelpResources } from '@app-config/help-resources.config';
-import type { HelpResourceCardProps } from '@props/settings/help-content.props';
+import type { HelpResourceCardProps } from '@/props/settings/help-content.props';
 import Card from '@ui/card/Card';
 import {
   Accordion,

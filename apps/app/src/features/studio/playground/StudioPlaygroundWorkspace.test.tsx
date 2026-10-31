@@ -229,7 +229,7 @@ const characterMentionMocks = vi.hoisted(() => ({
 }));
 
 vi.mock(
-  '@hooks/data/ingredients/use-ingredients-list/use-failed-ingredient-recovery',
+  '@/hooks/data/ingredients/use-ingredients-list/use-failed-ingredient-recovery',
   () => ({
     useFailedIngredientRecovery: (props: unknown) => {
       mocks.failedRecoveryHook(props);

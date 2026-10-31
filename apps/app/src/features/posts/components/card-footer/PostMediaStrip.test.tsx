@@ -10,9 +10,12 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-vi.mock('@ui/ingredients/ingredient-thumbnail/IngredientThumbnail', () => ({
-  default: ({ alt }: { alt: string }) => <span role="img" aria-label={alt} />,
-}));
+vi.mock(
+  '@/components/ingredients/ingredient-thumbnail/IngredientThumbnail',
+  () => ({
+    default: ({ alt }: { alt: string }) => <span role="img" aria-label={alt} />,
+  }),
+);
 
 const media = [{ id: 'a' }, { id: 'b' }, { id: 'c' }] as IIngredient[];
 const ids = (list: IIngredient[]) => list.map((item) => item.id);

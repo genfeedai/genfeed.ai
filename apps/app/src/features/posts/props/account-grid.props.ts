@@ -3,7 +3,7 @@ import type {
   IChannelTarget,
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
-import type { TargetPreviewCredential } from '@props/ui/previews.props';
+import type { TargetPreviewCredential } from '@/props/ui/previews.props';
 
 export type AccountGridLaneKind = 'cards' | 'grid' | 'landscape' | 'portrait';
 

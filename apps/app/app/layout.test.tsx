@@ -54,7 +54,7 @@ vi.mock('../i18n/AppIntlProvider', () => ({
   },
 }));
 
-vi.mock('@ui/providers/AppProviders', () => ({
+vi.mock('@/components/providers/AppProviders', () => ({
   default: ({
     children,
     ...props

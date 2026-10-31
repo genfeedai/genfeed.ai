@@ -1,6 +1,6 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import type { DetailPageProps } from '@props/pages/page.props';
 import { Suspense } from 'react';
+import type { DetailPageProps } from '@/props/pages/page.props';
 
 import PublishingContentEditorPage from './PublishingContentEditorPage';
 

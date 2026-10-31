@@ -5,7 +5,6 @@ import {
   formatChartDate,
   formatCompactNumberIntl,
 } from '@genfeedai/helpers/formatting/format/format.helper';
-import type { PlatformTimeSeriesChartProps } from '@genfeedai/props/analytics/charts.props';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { Button } from '@ui/primitives/button';
@@ -16,6 +15,7 @@ import {
   chartPlatformColor,
   chartPlatformLabel,
 } from '@/features/analytics/components/analytics/charts/chart-theme';
+import type { PlatformTimeSeriesChartProps } from '@/props/analytics/charts.props';
 
 const AreaChart = dynamic(() => import('recharts').then((m) => m.AreaChart), {
   ssr: false,

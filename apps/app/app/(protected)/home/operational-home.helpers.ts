@@ -19,21 +19,21 @@ import type {
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import type {
   ConnectGenfeedMetadata,
   CredentialHealthSummary,
   OperationalHomeScope,
   UpcomingScheduleDay,
   VerifiedMcpConnection,
-} from '@genfeedai/props/home/operational-home.props';
-import { isRecord } from '@genfeedai/utils/data/extract.util';
+} from '@/props/home/operational-home.props';
 
 export type {
   CredentialHealthSummary,
   OperationalHomeScope,
   UpcomingScheduleDay,
   VerifiedMcpConnection,
-} from '@genfeedai/props/home/operational-home.props';
+} from '@/props/home/operational-home.props';
 
 export function resolveOperationalHomeScope({
   accessOrganizationId,

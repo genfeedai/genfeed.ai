@@ -3,10 +3,10 @@
 import { PageScope } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { createPathViewHref } from '@helpers/navigation/filter-href.helper';
-import AdminOrgBrandUrlFilter from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Tag } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
+import AdminOrgBrandUrlFilter from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import type { ITagsLayoutProps } from '@/features/admin/props/tags.props';
 
 export default function TagsLayout({

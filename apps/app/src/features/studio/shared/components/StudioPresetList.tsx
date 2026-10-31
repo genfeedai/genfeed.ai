@@ -1,10 +1,10 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { StudioPresetListProps } from '@props/studio/studio-presets.props';
 import {
   COLLECTION_GRID_COLUMN_CLASSES,
   COLLECTION_GRID_GAP_CLASSES,
 } from '@ui/collection/collection.constants';
 import type { ReactElement } from 'react';
+import type { StudioPresetListProps } from '@/props/studio/studio-presets.props';
 
 /** Lays preset cards out as a responsive grid or one scrolling row. */
 export default function StudioPresetList({

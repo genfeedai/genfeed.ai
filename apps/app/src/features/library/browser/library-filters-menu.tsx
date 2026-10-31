@@ -11,16 +11,16 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
-import { useIngredientsById } from '@hooks/media/use-ingredients-by-id';
-import FilterMenu from '@ui/content/filter-menu/FilterMenu';
-import IngredientThumbnail from '@ui/ingredients/ingredient-thumbnail/IngredientThumbnail';
 import { UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+import FilterMenu from '@/components/content/filter-menu/FilterMenu';
+import IngredientThumbnail from '@/components/ingredients/ingredient-thumbnail/IngredientThumbnail';
 import type {
   LibraryCharacterOption,
   LibraryFiltersMenuProps,
 } from '@/features/library/props/library-browser.props';
+import { useIngredientsById } from '@/hooks/media/use-ingredients-by-id';
 
 import { useLibraryFilters } from './use-library-filters';
 

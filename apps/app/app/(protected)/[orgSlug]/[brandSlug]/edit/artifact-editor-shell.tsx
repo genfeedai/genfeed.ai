@@ -1,5 +1,5 @@
-import type { ArtifactEditorShellProps } from '@props/content/artifact-editor.props';
 import Badge from '@ui/display/badge/Badge';
+import type { ArtifactEditorShellProps } from '@/props/content/artifact-editor.props';
 
 /**
  * Chrome shared by every dedicated artifact editor page. Workspace breadcrumbs

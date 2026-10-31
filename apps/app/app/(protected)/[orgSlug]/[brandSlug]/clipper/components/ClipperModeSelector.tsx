@@ -1,10 +1,10 @@
 import { ButtonVariant } from '@genfeedai/contracts';
+import { Button } from '@ui/primitives/button';
+import { CircleUser, Film } from 'lucide-react';
 import type {
   ClipperModeSelectorProps,
   ClipperResultMode,
-} from '@props/studio/clipper.props';
-import { Button } from '@ui/primitives/button';
-import { CircleUser, Film } from 'lucide-react';
+} from '@/props/studio/clipper.props';
 
 const MODE_OPTIONS: Array<{
   description: string;

@@ -5,10 +5,8 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IStreakMilestoneState } from '@genfeedai/contracts/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import { useStreak } from '@hooks/data/streaks/use-streak/use-streak';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { STREAK_CELEBRATION_EVENT } from '@services/engagement/streak-events';
-import CreationHeatmap from '@ui/analytics/creation-heatmap/CreationHeatmap';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import Badge from '@ui/display/badge/Badge';
@@ -17,7 +15,9 @@ import { Skeleton } from '@ui/primitives/skeleton';
 import { Flame, Gift, ShieldCheck, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import CreationHeatmap from '@/components/analytics/creation-heatmap/CreationHeatmap';
 import StreakCelebrationBurst from '@/features/streaks/components/feedback/streak-celebration/StreakCelebrationBurst';
+import { useStreak } from '@/hooks/data/streaks/use-streak/use-streak';
 
 function rewardLabel(milestone: IStreakMilestoneState): string {
   if (milestone.days === 7) {

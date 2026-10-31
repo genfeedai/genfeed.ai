@@ -1,10 +1,10 @@
 'use client';
 
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
-import { useIsSuperAdmin } from '@hooks/auth/use-is-super-admin/use-is-super-admin';
-import { useFeatureFlagContext } from '@hooks/feature-flags/provider';
-import { isAppRailPathEnabled } from '@ui/shell/app-rail/app-rail.registry';
 import { notFound, usePathname } from 'next/navigation';
+import { isAppRailPathEnabled } from '@/components/shell/app-rail/app-rail.registry';
+import { useIsSuperAdmin } from '@/hooks/auth/use-is-super-admin/use-is-super-admin';
+import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
 
 /**
  * 404 on a route whose module an operator switched off in

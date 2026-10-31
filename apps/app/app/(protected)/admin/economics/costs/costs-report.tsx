@@ -6,15 +6,15 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { TableColumn } from '@props/ui/display/table.props';
 import type { KPICardProps } from '@props/ui/kpi/kpi-card.props';
-import { SeriesChart } from '@ui/analytics/charts/series/series-chart';
 import AppTable from '@ui/display/table/Table';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Badge } from '@ui/primitives/badge';
 import { Layers } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+import { SeriesChart } from '@/components/analytics/charts/series/series-chart';
+import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import EconomicsPeriodFilter from '../economics-period-filter';
 import {
   formatCount,

@@ -9,7 +9,6 @@ import { HarnessProfilesService } from '@genfeedai/services/ai/harness-profiles.
 import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
@@ -19,6 +18,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
 import ContentRulesDeliveryTab from './content-rules-delivery-tab';
 import ContentRulesExamplesTab from './content-rules-examples-tab';
 import ContentRulesIdentityTab from './content-rules-identity-tab';

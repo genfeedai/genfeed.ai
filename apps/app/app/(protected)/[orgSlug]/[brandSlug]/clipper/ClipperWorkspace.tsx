@@ -8,11 +8,6 @@ import {
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
-import type {
-  ClipperWorkspaceProps,
-  ProviderOption,
-} from '@props/studio/clipper.props';
 import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
 import Container from '@ui/layout/container/Container';
@@ -25,6 +20,11 @@ import { Plus, Search, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
+import type {
+  ClipperWorkspaceProps,
+  ProviderOption,
+} from '@/props/studio/clipper.props';
 import ClipperInputForm from './components/ClipperInputForm';
 import ClipperModeSelector from './components/ClipperModeSelector';
 import ClipperOnboarding from './components/ClipperOnboarding';

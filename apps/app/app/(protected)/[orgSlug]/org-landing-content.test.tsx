@@ -4,10 +4,10 @@ import { selectView, viewMenuTrigger } from '@app-tests/view-menu.helpers';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom/vitest';
 import { MemberRole, ViewType } from '@genfeedai/contracts';
-import { getCollectionViewStorageKey } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { getCollectionViewStorageKey } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
 
 const mocks = vi.hoisted(() => ({
   accessState: { memberRole: 'admin' as MemberRole },

@@ -2,15 +2,15 @@
 
 import { IngredientCategory } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import { useIngredientMediaUrl } from '@hooks/media/use-ingredient-media-url';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
-import IngredientThumbnail from '@ui/ingredients/ingredient-thumbnail/IngredientThumbnail';
+import IngredientThumbnail from '@/components/ingredients/ingredient-thumbnail/IngredientThumbnail';
 import type {
   PostPreviewItemProps,
   ThreadPreviewPanelProps,
 } from '@/features/posts/props/thread-preview-panel.props';
+import { useIngredientMediaUrl } from '@/hooks/media/use-ingredient-media-url';
 
 const TWITTER_CHAR_LIMIT = 280;
 

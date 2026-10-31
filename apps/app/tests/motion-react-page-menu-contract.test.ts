@@ -23,9 +23,9 @@ const MOTION_IMPORT =
 const HOOK_MODULE = 'use-hover-animated-icon';
 
 const PAGE_MENU_HOOK_FILES = [
-  'packages/ui/src/components/menus/item/MenuItem.tsx',
-  'packages/ui/src/components/menus/sidebar-action-trigger/SidebarActionTrigger.tsx',
-  'packages/ui/src/components/shell/app-rail/AppRail.tsx',
+  'apps/app/src/components/menus/item/MenuItem.tsx',
+  'apps/app/src/components/menus/sidebar-action-trigger/SidebarActionTrigger.tsx',
+  'apps/app/src/components/shell/app-rail/AppRail.tsx',
   'packages/ui/src/primitives/animated-icons/use-hover-animated-icon.test.tsx',
 ];
 

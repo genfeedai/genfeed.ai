@@ -40,7 +40,7 @@ vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: { getInstance: () => notifications },
 }));
 
-vi.mock('@ui/tags/library-tag-picker/use-library-tags', () => ({
+vi.mock('@/components/tags/library-tag-picker/use-library-tags', () => ({
   useLibraryTags: () => ({
     createTag,
     isLoading: libraryTags.isLoading,

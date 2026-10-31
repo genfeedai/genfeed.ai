@@ -4,8 +4,6 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { resolveOAuthServicePath } from '@genfeedai/helpers/oauth/oauth-connect-platforms';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
-import { rememberOAuthConnectContext } from '@hooks/auth/use-platform-oauth-connect/oauth-connect-context';
-import { OAUTH_RETURN_TO_STORAGE_KEY } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import { useOrgUrl } from '@hooks/navigation/use-org-url/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -17,6 +15,8 @@ import { Button } from '@ui/primitives/button';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
+import { rememberOAuthConnectContext } from '@/hooks/auth/use-platform-oauth-connect/oauth-connect-context';
+import { OAUTH_RETURN_TO_STORAGE_KEY } from '@/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 
 export default function ConnectSocialFlow() {
   const translate = useTranslations('pages.connectSocial');

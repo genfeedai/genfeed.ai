@@ -58,7 +58,7 @@ vi.mock('./release-engagement-rules', () => ({
   default: () => <div>Automation</div>,
 }));
 
-vi.mock('@ui/previews/TargetPreview', () => ({
+vi.mock('@/components/previews/TargetPreview', () => ({
   default: ({ target }: { target: IChannelTarget }) => (
     <div data-testid="target-preview">{target.id}</div>
   ),

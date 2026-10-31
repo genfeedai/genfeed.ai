@@ -1,8 +1,8 @@
 import { InsightCategory, InsightImpact } from '@genfeedai/contracts';
 import type { Insight } from '@genfeedai/contracts/interfaces/analytics/insight-summary.interface';
-import { useInsights } from '@hooks/data/analytics/use-insights/use-insights';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useInsights } from '@/hooks/data/analytics/use-insights/use-insights';
 import InsightsOverview from './insights-overview';
 import '@testing-library/jest-dom/vitest';
 
@@ -14,7 +14,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   })),
 }));
 
-vi.mock('@hooks/data/analytics/use-insights/use-insights', () => ({
+vi.mock('@/hooks/data/analytics/use-insights/use-insights', () => ({
   useInsights: vi.fn(() => ({
     dismissInsight: vi.fn(),
     error: null,

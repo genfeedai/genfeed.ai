@@ -13,18 +13,18 @@ import { WorkflowExecutionsService } from '@services/automation/workflow-executi
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
-import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
-import FilterMenu from '@ui/content/filter-menu/FilterMenu';
-import SearchField from '@ui/content/search-field/SearchField';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Alert, AlertDescription } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
+import FilterMenu from '@/components/content/filter-menu/FilterMenu';
+import SearchField from '@/components/content/search-field/SearchField';
+import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import {
   buildFailureClipboardText,
   buildFailureIssueUrl,

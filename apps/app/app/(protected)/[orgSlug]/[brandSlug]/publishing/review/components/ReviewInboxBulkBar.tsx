@@ -1,9 +1,9 @@
 import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/contracts';
-import type { ReviewInboxBulkBarProps } from '@props/publishing/review-inbox-approvals.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Check, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { ReviewInboxBulkBarProps } from '@/props/publishing/review-inbox-approvals.props';
 
 /**
  * Acts on the requests ticked in the table. "Select all" reaches past the

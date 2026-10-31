@@ -1,7 +1,7 @@
 import type { IReviewInboxItem } from '@genfeedai/contracts/interfaces';
-import type { ReviewInboxApprovalsState } from '@props/publishing/review-inbox-approvals.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import type { ReviewInboxApprovalsState } from '@/props/publishing/review-inbox-approvals.props';
 import ReviewInboxApprovalsSection from './ReviewInboxApprovalsSection';
 
 const confirmMocks = vi.hoisted(() => ({ openConfirm: vi.fn() }));

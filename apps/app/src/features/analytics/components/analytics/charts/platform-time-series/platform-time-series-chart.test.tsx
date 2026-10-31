@@ -1,8 +1,8 @@
+import { PlatformTimeSeriesChart } from '@/features/analytics/components/analytics/charts/platform-time-series/platform-time-series-chart';
 import type {
   PlatformTimeSeriesChartProps,
   PlatformTimeSeriesDataPoint,
-} from '@genfeedai/props/analytics/charts.props';
-import { PlatformTimeSeriesChart } from '@/features/analytics/components/analytics/charts/platform-time-series/platform-time-series-chart';
+} from '@/props/analytics/charts.props';
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';

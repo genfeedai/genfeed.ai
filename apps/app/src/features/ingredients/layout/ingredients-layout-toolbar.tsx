@@ -7,10 +7,10 @@ import type {
   IFiltersState,
 } from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import FiltersButton from '@ui/content/filters-button/FiltersButton';
 import { Button as PrimitiveButton } from '@ui/primitives/button';
 import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
+import FiltersButton from '@/components/content/filters-button/FiltersButton';
 
 import type { IngredientsLayoutConfig } from './ingredients-layout.config';
 import LibraryAssetTypeFilter from './library-asset-type-filter';

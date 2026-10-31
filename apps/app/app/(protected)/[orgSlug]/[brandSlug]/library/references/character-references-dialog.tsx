@@ -2,9 +2,6 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { MAX_CHARACTER_REFERENCES } from '@genfeedai/contracts/constants';
-import { useIngredientsById } from '@hooks/media/use-ingredients-by-id';
-import type { CharacterReferencesDialogProps } from '@props/characters/characters-page.props';
-import IngredientThumbnail from '@ui/ingredients/ingredient-thumbnail/IngredientThumbnail';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
@@ -17,6 +14,9 @@ import {
 } from '@ui/primitives/dialog';
 import { ArrowDown, ArrowUp, ImagePlus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import IngredientThumbnail from '@/components/ingredients/ingredient-thumbnail/IngredientThumbnail';
+import { useIngredientsById } from '@/hooks/media/use-ingredients-by-id';
+import type { CharacterReferencesDialogProps } from '@/props/characters/characters-page.props';
 
 import { useCharacterReferences } from './use-character-references';
 

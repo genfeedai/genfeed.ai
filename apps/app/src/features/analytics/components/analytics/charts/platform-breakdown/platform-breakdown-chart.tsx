@@ -4,9 +4,9 @@ import { formatFullNumber } from '@genfeedai/helpers/formatting/format/format.he
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import dynamic from 'next/dynamic';
 import type { PieLabelRenderProps } from 'recharts';
+import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import {
   ChartLoadingOverlay,
   chartPlatformColor,

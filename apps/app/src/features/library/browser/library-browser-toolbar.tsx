@@ -5,8 +5,6 @@ import {
   LIBRARY_CANVAS_FEATURE_FLAG,
   type LibraryViewMode,
 } from '@genfeedai/contracts/constants';
-import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag/use-feature-flag';
-import SearchField from '@ui/content/search-field/SearchField';
 import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Button } from '@ui/primitives/button';
 import {
@@ -17,11 +15,13 @@ import { Frame, LayoutGrid, Rows3, Sparkles, Upload } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+import SearchField from '@/components/content/search-field/SearchField';
 import LibraryTagManagerDialog from '@/features/library/components/tags/library-tag-picker/LibraryTagManagerDialog';
 import type {
   LibraryBrowserSearchProps,
   LibraryBrowserToolbarProps,
 } from '@/features/library/props/library-browser.props';
+import { useFeatureFlag } from '@/hooks/feature-flags/use-feature-flag/use-feature-flag';
 
 import LibraryFiltersMenu from './library-filters-menu';
 

@@ -5,19 +5,18 @@ import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { useOptionalUser } from '@genfeedai/contexts/user/user-context/user-context';
 import { PlatformRole } from '@genfeedai/contracts';
-import { useWorkspaceInboxCount } from '@genfeedai/hooks/data/tasks/use-workspace-inbox-count';
-import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
-import type { AppProtectedRailProps } from '@genfeedai/props/ui/app-rail.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { AppRail } from '@ui/shell/app-rail/AppRail';
-import RailAccount from '@ui/shell/app-rail/RailAccount';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback } from 'react';
+import { AppRail } from '@/components/shell/app-rail/AppRail';
+import RailAccount from '@/components/shell/app-rail/RailAccount';
 import { useRailPreferencesContext } from '@/components/shell/rail-preferences.provider';
 import { resolveShellScope } from '@/components/shell/shell-scope';
 import { useAvailableRailApps } from '@/components/shell/use-available-rail-apps';
 import { useMessagesUnreadCount } from '@/components/shell/use-messages-unread-count';
+import { useWorkspaceInboxCount } from '@/hooks/data/tasks/use-workspace-inbox-count';
+import { useIsDesktopClient } from '@/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import {
   captureAppRailNavigation,
   captureAppRailReorder,
@@ -28,6 +27,7 @@ import {
   pickOperatorTaskContextSearchParams,
 } from '@/lib/navigation/operator-shell';
 import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
+import type { AppProtectedRailProps } from '@/props/ui/app-rail.props';
 
 function AppProtectedRailContent({
   brandSlug,

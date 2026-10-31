@@ -27,13 +27,13 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
-import { LazyModalArticle } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Newspaper, Plus } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { LazyModalArticle } from '@/components/lazy/modal/LazyModal';
 import ArticleTrafficPanel from '@/features/articles/analytics/article-traffic-panel';
 
 interface ArticlesListProps {

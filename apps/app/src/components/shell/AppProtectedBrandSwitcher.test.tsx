@@ -142,7 +142,7 @@ vi.mock('@ui/primitives/button', () => ({
   ),
 }));
 
-vi.mock('@ui/menus/switchers/MenuBrandSwitcher', () => ({
+vi.mock('@/components/menus/switchers/MenuBrandSwitcher', () => ({
   default: (props: {
     brandId?: string;
     clearSelectionAction?: {
@@ -173,7 +173,7 @@ vi.mock('@ui/menus/switchers/MenuBrandSwitcher', () => ({
   },
 }));
 
-vi.mock('@ui/topbars/credits-bar/CreditsLiveSync', () => ({
+vi.mock('@/components/topbars/credits-bar/CreditsLiveSync', () => ({
   default: () => <span data-testid="credits-live-sync" />,
 }));
 

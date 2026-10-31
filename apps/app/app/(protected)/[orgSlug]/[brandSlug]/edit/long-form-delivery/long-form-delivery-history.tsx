@@ -5,13 +5,13 @@ import {
   formatEnumLabel,
   formatPlatformLabel,
 } from '@genfeedai/contracts';
-import type { LongFormDeliveryHistoryProps } from '@props/edit/long-form-delivery.props';
 import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
 import { ExternalLink } from 'lucide-react';
 import NextLink from 'next/link';
 import { useTranslations } from 'next-intl';
+import type { LongFormDeliveryHistoryProps } from '@/props/edit/long-form-delivery.props';
 
 /** Where an Article or Newsletter was delivered, newest first. */
 export default function LongFormDeliveryHistory({

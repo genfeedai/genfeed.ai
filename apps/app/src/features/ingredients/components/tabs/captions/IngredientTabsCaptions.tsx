@@ -14,7 +14,6 @@ import type {
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
-import type { IngredientTabsCaptionsProps } from '@genfeedai/props/content/ingredient.props';
 import { CaptionsService } from '@genfeedai/services/content/captions.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
@@ -29,6 +28,7 @@ import { SelectField } from '@ui/primitives/select';
 import { Download, Plus, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { type ChangeEvent, useEffect, useMemo, useState } from 'react';
+import type { IngredientTabsCaptionsProps } from '@/props/content/ingredient.props';
 
 const languageOptions: IFieldOption[] = [
   { label: 'English', value: 'en' },

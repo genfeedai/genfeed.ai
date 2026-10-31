@@ -44,7 +44,7 @@ vi.mock('@helpers/ui/modal/modal.helper', () => ({
   openModal: (...args: unknown[]) => openModalMock(...args),
 }));
 
-vi.mock('@ui/lazy/modal/LazyModal', () => ({
+vi.mock('@/components/lazy/modal/LazyModal', () => ({
   LazyModalArticle: (props: ModalArticleProps) => {
     modalCallbacks.articleMount();
     modalCallbacks.article = props.onCreated;

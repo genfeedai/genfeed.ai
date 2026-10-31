@@ -1,5 +1,5 @@
 import type { IBrandRelocationPreview } from '@genfeedai/services/social/brand-relocation.types';
-import { buildMovingResourcesSummary } from '@ui/modals/brands/brand/brand-relocation-summary.util';
+import { buildMovingResourcesSummary } from '@/components/modals/brands/brand/brand-relocation-summary.util';
 import type {
   BrandMoveEntry,
   BrandMoveEntryStatus,

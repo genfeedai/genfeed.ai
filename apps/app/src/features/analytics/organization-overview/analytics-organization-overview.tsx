@@ -11,7 +11,6 @@ import {
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useAnalytics } from '@hooks/data/analytics/use-analytics/use-analytics';
 import {
   isCollectionFetchReady,
   useCollectionScope,
@@ -30,14 +29,15 @@ import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
 import { EmptyStateCard } from '@ui/feedback';
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Building2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import AnalyticsTopAccounts from '@/features/analytics/accounts/analytics-top-accounts';
 import AnalyticsBrandSummary from '@/features/analytics/brands-list/analytics-brand-summary';
+import { useAnalytics } from '@/hooks/data/analytics/use-analytics/use-analytics';
 
 const BrandPerformanceChart = dynamic(
   () =>

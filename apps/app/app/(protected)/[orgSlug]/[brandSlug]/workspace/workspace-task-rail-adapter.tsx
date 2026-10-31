@@ -1,5 +1,5 @@
 import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
-import type { WorkspaceTaskRailAdapterProps } from '@props/workspace/workspace-task-inspector.props';
+import type { WorkspaceTaskRailAdapterProps } from '@/props/workspace/workspace-task-inspector.props';
 import { WorkspaceTaskDetail } from './workspace-task-inspector';
 
 /**

@@ -3,18 +3,18 @@
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflow-execution.helper';
-import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import {
   isCollectionFetchReady,
   toBrandListParams,
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import SearchField from '@ui/content/search-field/SearchField';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Container from '@ui/layout/container/Container';
 import { useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
+import SearchField from '@/components/content/search-field/SearchField';
+import { useWorkflowExecutions } from '@/hooks/data/workflow-executions/use-workflow-executions';
 import ActiveRunsPanel from './ActiveRunsPanel';
 import RunHistoryList from './RunHistoryList';
 import RunStatsStrip from './RunStatsStrip';

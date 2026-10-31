@@ -1,11 +1,11 @@
 import { ButtonVariant } from '@genfeedai/contracts';
-import type { NewsletterEditorProps } from '@props/content/artifact-editor.props';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';
 import { Archive, CircleCheck, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { NewsletterEditorProps } from '@/props/content/artifact-editor.props';
 
 type NewsletterEditorActionsProps = Pick<
   NewsletterEditorProps,

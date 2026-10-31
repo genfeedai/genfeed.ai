@@ -6,12 +6,12 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { CHARACTERS_CHANGED_EVENT } from '@genfeedai/helpers/content/character-mention.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { CharacterGrantsState } from '@props/characters/characters-page.props';
 import { PersonasService } from '@services/content/personas.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { CharacterGrantsState } from '@/props/characters/characters-page.props';
 
 /**
  * Grants of one character to other organizations the member administers

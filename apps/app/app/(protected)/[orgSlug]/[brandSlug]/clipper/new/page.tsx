@@ -1,5 +1,5 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import OrganizationModulePreferenceGate from '@ui/guards/organization-module/OrganizationModulePreferenceGate';
+import OrganizationModulePreferenceGate from '@/components/guards/organization-module/OrganizationModulePreferenceGate';
 
 import NewClipperProjectPage from './new-clipper-project-page';
 

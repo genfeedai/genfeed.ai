@@ -1,5 +1,5 @@
 import { PageScope } from '@genfeedai/contracts';
-import { LazyModalSound } from '@ui/lazy/modal/LazyModal';
+import { LazyModalSound } from '@/components/lazy/modal/LazyModal';
 import type { SoundsListModalsProps } from '@/features/admin/props/sounds.props';
 
 export default function SoundsListModals({

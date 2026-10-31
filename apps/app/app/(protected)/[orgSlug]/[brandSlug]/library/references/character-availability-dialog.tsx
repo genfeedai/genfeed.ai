@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
-import type { CharacterAvailabilityDialogProps } from '@props/characters/characters-page.props';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -12,6 +11,7 @@ import {
   DialogTitle,
 } from '@ui/primitives/dialog';
 import { useTranslations } from 'next-intl';
+import type { CharacterAvailabilityDialogProps } from '@/props/characters/characters-page.props';
 
 import CharacterAvailabilityFields from './character-availability-fields';
 import CharacterGrantsFields from './character-grants-fields';

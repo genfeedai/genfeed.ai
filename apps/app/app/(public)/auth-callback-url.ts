@@ -9,7 +9,6 @@ import {
   readSignupAttributionParams,
   toSignupAttributionParams,
 } from '@genfeedai/helpers';
-import type { AuthCallbackURLOptions } from '@genfeedai/props/auth/auth-callback-url.props';
 import {
   extractBrandDomain,
   parseOnboardingAccountType,
@@ -17,6 +16,7 @@ import {
   parseReferralCode,
   resolveSelectedPlanParam,
 } from '@/lib/onboarding/onboarding-access.util';
+import type { AuthCallbackURLOptions } from '@/props/auth/auth-callback-url.props';
 
 const ROOT_CALLBACK_URL = '/';
 const LOGIN_PATH = '/login';

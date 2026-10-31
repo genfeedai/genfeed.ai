@@ -10,19 +10,13 @@ import {
   isClipperResultMode,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import type {
-  StudioClipperIdentityContext,
-  StudioClipperIdentityDefaults,
-  StudioClipperIdentityField,
-} from '@genfeedai/props/studio/clipper.props';
-import type {
-  QueuedClipperDraftSave,
-  SaveClipperDraftPayload,
-} from '@genfeedai/props/studio/clipper-api.props';
 import { readString } from '@genfeedai/utils/data/extract.util';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useDocumentVisibility } from '@hooks/ui/use-document-visibility/use-document-visibility';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import type {
   AvatarProvider,
   ClipperDraftSaveState,
@@ -30,10 +24,14 @@ import type {
   ClipperStep,
   IHighlight,
   ProjectState,
-} from '@props/studio/clipper.props';
-import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
+  StudioClipperIdentityContext,
+  StudioClipperIdentityDefaults,
+  StudioClipperIdentityField,
+} from '@/props/studio/clipper.props';
+import type {
+  QueuedClipperDraftSave,
+  SaveClipperDraftPayload,
+} from '@/props/studio/clipper-api.props';
 import { ClipperApiService } from './services/clipper-api.service';
 
 /** Debounce for new-project form autosave; a save lands well inside 2 s. */

@@ -1,5 +1,5 @@
 const badgeCounts = vi.hoisted(() => ({ workspace: 0 }));
-vi.mock('@genfeedai/hooks/data/tasks/use-workspace-inbox-count', () => ({
+vi.mock('@/hooks/data/tasks/use-workspace-inbox-count', () => ({
   useWorkspaceInboxCount: () => badgeCounts.workspace,
 }));
 vi.mock('@/lib/analytics/app-rail-analytics', () => ({
@@ -28,7 +28,7 @@ vi.mock('@/components/shell/rail-preferences.provider', () => ({
   }),
 }));
 // The rail only forwards module access; the app list is the home page's.
-vi.mock('@ui/shell/app-rail/app-rail.availability', () => ({
+vi.mock('@/components/shell/app-rail/app-rail.availability', () => ({
   resolveAvailableRailApps: () => [],
 }));
 const installedApps = vi.hoisted(() => ({
@@ -83,7 +83,7 @@ const mockOrgUrl = vi.hoisted(() => ({
 }));
 
 // Admin → Flags as the release migration leaves it.
-vi.mock('@genfeedai/hooks/feature-flags/provider', () => ({
+vi.mock('@/hooks/feature-flags/provider', () => ({
   useFeatureFlagContext: () => ({
     flags: {
       release_analytics: true,
@@ -197,10 +197,9 @@ vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
     currentUser: { platformRole: mockDesktop.platformRole },
   }),
 }));
-vi.mock(
-  '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client',
-  () => ({ useIsDesktopClient: () => mockDesktop.isDesktop }),
-);
+vi.mock('@/hooks/ui/use-is-desktop-client/use-is-desktop-client', () => ({
+  useIsDesktopClient: () => mockDesktop.isDesktop,
+}));
 vi.mock('@/lib/desktop/runtime', () => ({
   getDesktopBridge: () => ({
     app: { openExternalPath: mockDesktop.openExternalPath },
@@ -214,7 +213,7 @@ vi.mock(
   }),
 );
 
-vi.mock('@ui/shell/app-rail/AppRail', () => ({
+vi.mock('@/components/shell/app-rail/AppRail', () => ({
   AppRail: (
     props: Record<string, unknown> & {
       footer?: ReactNode;
@@ -231,18 +230,21 @@ vi.mock('@ui/shell/app-rail/AppRail', () => ({
   },
 }));
 
-vi.mock('@ui/shell/app-rail/RailAccount', () => ({
+vi.mock('@/components/shell/app-rail/RailAccount', () => ({
   default: () => <div data-testid="rail-account" />,
 }));
 
-vi.mock('@ui/menus/organization-switcher/OrganizationSwitcher', () => ({
-  default: ({ subscriptionTier }: { subscriptionTier?: string | null }) => (
-    <div
-      data-testid="organization-switcher"
-      data-subscription-tier={subscriptionTier ?? ''}
-    />
-  ),
-}));
+vi.mock(
+  '@/components/menus/organization-switcher/OrganizationSwitcher',
+  () => ({
+    default: ({ subscriptionTier }: { subscriptionTier?: string | null }) => (
+      <div
+        data-testid="organization-switcher"
+        data-subscription-tier={subscriptionTier ?? ''}
+      />
+    ),
+  }),
+);
 
 vi.mock('next/navigation', () => ({
   usePathname: () => mockPathname.value,

@@ -1,8 +1,8 @@
+import { EnvironmentService } from '@services/core/environment.service';
 import type {
   HelpDestinationConfig,
   HelpResource,
-} from '@props/settings/help-content.props';
-import { EnvironmentService } from '@services/core/environment.service';
+} from '@/props/settings/help-content.props';
 
 export function getHelpDestination(value: string | undefined): string | null {
   if (!value?.trim()) return null;

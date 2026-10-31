@@ -127,7 +127,7 @@ vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => ({ isLoaded: true, isSignedIn: true }),
 }));
 
-vi.mock('@hooks/data/analytics/use-analytics/use-analytics', () => ({
+vi.mock('@/hooks/data/analytics/use-analytics/use-analytics', () => ({
   useAnalytics: (options: { scopeId?: string }) => {
     useAnalyticsOptions.push(options);
     return analyticsResult;

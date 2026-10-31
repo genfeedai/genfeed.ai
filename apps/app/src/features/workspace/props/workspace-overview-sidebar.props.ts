@@ -1,6 +1,6 @@
 import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
-import type { ReviewInboxSummary } from '@props/workspace/workspace-task.props';
 import type { Task, TasksService } from '@services/management/tasks.service';
+import type { ReviewInboxSummary } from '@/props/workspace/workspace-task.props';
 
 export interface WorkspaceOverviewSidebarProps {
   busyTaskId: string | null;

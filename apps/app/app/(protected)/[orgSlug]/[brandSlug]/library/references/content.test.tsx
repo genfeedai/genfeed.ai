@@ -124,7 +124,7 @@ vi.mock('@genfeedai/hooks/media/use-authorized-media-preview', () => ({
   useAuthorizedMediaPreview: () => null,
 }));
 
-vi.mock('@hooks/auth/use-user-role/use-user-role', () => ({
+vi.mock('@/hooks/auth/use-user-role/use-user-role', () => ({
   useUserRole: () => mocks.role,
 }));
 

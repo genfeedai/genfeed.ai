@@ -16,11 +16,6 @@ import type {
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type {
-  EditorHistory,
-  EditorProjectContent,
-  EditorSaveWrite,
-} from '@props/studio/editor-save.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -37,6 +32,11 @@ import {
   editorSaveOutbox,
   serializeEditorProjectContent,
 } from '@/lib/studio-editor/editor-save-outbox';
+import type {
+  EditorHistory,
+  EditorProjectContent,
+  EditorSaveWrite,
+} from '@/props/studio/editor-save.props';
 import type { EditorPreviewRef } from './EditorPreview';
 
 const DEFAULT_FPS = 30;

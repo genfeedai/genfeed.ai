@@ -20,7 +20,7 @@ const runtimeMocks = vi.hoisted(() => ({
   snapshot: { status: 'web', context: null } as DesktopRuntimeSnapshot,
 }));
 vi.mock(
-  '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context',
+  '@/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context',
   () => ({ useDesktopRuntimeContext: () => runtimeMocks.snapshot }),
 );
 vi.mock(
@@ -97,16 +97,13 @@ const walletMocks = vi.hoisted(() => ({
 vi.mock('@genfeedai/config/license', () => ({
   shouldShowCreditsNav: () => walletMocks.showCredits,
 }));
-vi.mock(
-  '@genfeedai/hooks/data/billing/use-topbar-balances/use-topbar-balances',
-  () => ({
-    useTopbarBalances: () => ({
-      genfeedBalance: walletMocks.balance,
-      isLoaded: walletMocks.isLoaded,
-      isLoading: walletMocks.isLoading,
-    }),
+vi.mock('@/hooks/data/billing/use-topbar-balances/use-topbar-balances', () => ({
+  useTopbarBalances: () => ({
+    genfeedBalance: walletMocks.balance,
+    isLoaded: walletMocks.isLoaded,
+    isLoading: walletMocks.isLoading,
   }),
-);
+}));
 vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ orgHref: (path: string) => `/test-org${path}` }),
 }));

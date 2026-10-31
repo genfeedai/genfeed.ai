@@ -1,12 +1,12 @@
 'use client';
 
 import { ButtonVariant, PersonaAvailabilityMode } from '@genfeedai/contracts';
-import type { CharacterOwnershipFieldsProps } from '@props/characters/characters-page.props';
 import { Button } from '@ui/primitives/button';
 import { Label } from '@ui/primitives/label';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import type { CharacterOwnershipFieldsProps } from '@/props/characters/characters-page.props';
 
 /**
  * Moves a shared character's owning brand to another brand it is available

@@ -5,16 +5,14 @@ import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type { IImage, IMetadata, ITag } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import { useEvaluation } from '@genfeedai/hooks/ui/evaluation/use-evaluation/use-evaluation';
-import type { IngredientDetailImageProps } from '@genfeedai/props/content/ingredient.props';
 import type { TabItem } from '@genfeedai/props/ui/navigation/tabs.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { ImagesService } from '@genfeedai/services/ingredients/images.service';
-import EvaluationCard from '@ui/evaluation/card/EvaluationCard';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
 import Image from 'next/image';
 import { useCallback, useEffect, useState } from 'react';
+import EvaluationCard from '@/components/evaluation/card/EvaluationCard';
 import IngredientWorkspacePanel from '@/features/ingredients/components/detail/shared/IngredientWorkspacePanel';
 import IngredientTabsPrompts from '@/features/ingredients/components/ingredients/tabs/prompts/IngredientTabsPrompts';
 import LoadingOverlay from '@/features/ingredients/components/loading/overlay/LoadingOverlay';
@@ -26,6 +24,8 @@ import IngredientTabsTags from '@/features/ingredients/components/tabs/tags/Ingr
 import { useIngredientMetadata } from '@/features/ingredients/hooks/use-ingredient-metadata/use-ingredient-metadata';
 import { useIngredientSharing } from '@/features/ingredients/hooks/use-ingredient-sharing/use-ingredient-sharing';
 import IngredientTabsPosts from '@/features/ingredients/tabs-posts/IngredientTabsPosts';
+import { useEvaluation } from '@/hooks/ui/evaluation/use-evaluation/use-evaluation';
+import type { IngredientDetailImageProps } from '@/props/content/ingredient.props';
 
 type ImageDetailTab =
   | 'info'

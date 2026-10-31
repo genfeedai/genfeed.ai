@@ -1,9 +1,9 @@
 'use client';
 
 import { ReviewDecision } from '@genfeedai/contracts';
-import type { PostSidebarLineageProps } from '@genfeedai/props/components/post-detail-sidebar.props';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
 import { useTranslations } from 'next-intl';
+import type { PostSidebarLineageProps } from '@/props/components/post-detail-sidebar.props';
 
 type ReviewDecisionKey = 'approved' | 'rejected' | 'requestChanges' | 'unset';
 

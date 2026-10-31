@@ -20,7 +20,7 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
-vi.mock('@hooks/pages/use-brand-detail/use-brand-detail', () => ({
+vi.mock('@/hooks/pages/use-brand-detail/use-brand-detail', () => ({
   useBrandDetail: () => ({
     brand: mocks.brand,
     brandId: 'brand-1',

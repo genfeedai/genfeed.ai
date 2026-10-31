@@ -3,11 +3,11 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers';
-import IngredientThumbnail from '@ui/ingredients/ingredient-thumbnail/IngredientThumbnail';
 import { Button } from '@ui/primitives/button';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import IngredientThumbnail from '@/components/ingredients/ingredient-thumbnail/IngredientThumbnail';
 
 interface PostMediaStripProps {
   media: IIngredient[];

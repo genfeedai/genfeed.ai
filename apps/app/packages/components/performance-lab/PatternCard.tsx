@@ -6,12 +6,12 @@ import type {
   PatternType,
 } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Badge from '@ui/display/badge/Badge';
 import type {
   PatternCardProps,
   PatternTypeVariantMap,
   ScoreBarProps,
-} from '@props/analytics/performance-lab.props';
-import Badge from '@ui/display/badge/Badge';
+} from '@/props/analytics/performance-lab.props';
 
 const PATTERN_TYPE_VARIANT: PatternTypeVariantMap = {
   caption_formula: 'accent',

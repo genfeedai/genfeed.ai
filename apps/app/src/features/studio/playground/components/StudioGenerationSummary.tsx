@@ -3,8 +3,6 @@
 import { shouldShowCreditsNav } from '@genfeedai/config/license';
 import { formatCreditBalanceExact } from '@genfeedai/contracts/constants';
 import { AgentGenerationQuoteUnavailableReason } from '@genfeedai/contracts/interfaces';
-import { useTopbarBalances } from '@genfeedai/hooks/data/billing/use-topbar-balances/use-topbar-balances';
-import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import {
   canSubmitStudioGeneration,
   getDesktopCreditsVisibility,
@@ -17,6 +15,8 @@ import {
 } from '@ui/primitives/tooltip';
 import { useTranslations } from 'next-intl';
 import type { StudioGenerationSummaryProps } from '@/features/studio/props/studio-playground.props';
+import { useTopbarBalances } from '@/hooks/data/billing/use-topbar-balances/use-topbar-balances';
+import { useDesktopRuntimeContext } from '@/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 
 export default function StudioGenerationSummary({
   children,

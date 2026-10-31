@@ -1,10 +1,10 @@
 'use client';
 
-import AdminOrgBrandUrlFilter from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
-import SearchField from '@ui/content/search-field/SearchField';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Cpu } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import AdminOrgBrandUrlFilter from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
+import SearchField from '@/components/content/search-field/SearchField';
 import type { AdminModelsToolbarProps } from '@/features/models/props/models.props';
 import AdminModelsActions from './AdminModelsActions';
 import AdminModelsFilters from './AdminModelsFilters';

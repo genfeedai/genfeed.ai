@@ -9,7 +9,6 @@ import {
 import type { ICredential } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { NewsletterDeliveryCardProps } from '@props/edit/long-form-delivery.props';
 import { NewslettersService } from '@services/content/newsletters.service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -29,6 +28,7 @@ import { Clipboard, PlugZap, Send } from 'lucide-react';
 import NextLink from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
+import type { NewsletterDeliveryCardProps } from '@/props/edit/long-form-delivery.props';
 import ExternalUrlField from '../long-form-delivery/external-url-field';
 import LongFormDeliveryHistory from '../long-form-delivery/long-form-delivery-history';
 import { useSourceDeliveries } from '../long-form-delivery/use-source-deliveries';

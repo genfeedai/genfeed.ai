@@ -4,7 +4,6 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import type { IAgentMemoryRevision } from '@genfeedai/contracts/interfaces';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { EditMemoryDialogProps } from '@props/settings/org-memory.props';
 import { AgentMemoriesService } from '@services/automation/agent-memories.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -24,6 +23,7 @@ import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
+import type { EditMemoryDialogProps } from '@/props/settings/org-memory.props';
 
 const REVISION_PAGE_SIZE = 10;
 

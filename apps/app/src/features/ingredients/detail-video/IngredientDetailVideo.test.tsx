@@ -27,7 +27,7 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-vi.mock('@ui/evaluation/card/EvaluationCard', () => ({
+vi.mock('@/components/evaluation/card/EvaluationCard', () => ({
   default: () => <div data-testid="evaluation-card" />,
 }));
 
@@ -103,7 +103,7 @@ vi.mock('@ui/display/video-player/VideoPlayer', () => ({
   default: () => <div data-testid="video-player" />,
 }));
 
-vi.mock('@genfeedai/hooks/ui/evaluation/use-evaluation/use-evaluation', () => ({
+vi.mock('@/hooks/ui/evaluation/use-evaluation/use-evaluation', () => ({
   useEvaluation: () => ({
     evaluate: vi.fn(),
     evaluation: null,

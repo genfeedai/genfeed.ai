@@ -17,24 +17,22 @@ import { ContextSidebarProvider } from '@contexts/ui/context-sidebar-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import type { AppContext } from '@genfeedai/contracts/interfaces';
-import type { SidebarNavPanel } from '@genfeedai/props/navigation/menu.props';
-import { useAgentThreadCommands } from '@hooks/commands/use-agent-thread-commands/use-agent-thread-commands';
 import type { LayoutProps } from '@props/layout/layout.props';
 import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.props';
 import type { TopbarProps } from '@props/navigation/topbar.props';
 import { logger } from '@services/core/logger.service';
-import LowCreditsBanner from '@ui/banners/low-credits/LowCreditsBanner';
-import ProductionDataBanner from '@ui/banners/production-data/ProductionDataBanner';
-import { CommandPaletteInitializer } from '@ui/command-palette/command-palette-initializer/CommandPaletteInitializer';
 import { ErrorBoundary } from '@ui/display/error-boundary/ErrorBoundary';
-import OnboardingGuard from '@ui/guards/onboarding/OnboardingGuard';
-import IngredientSidebarPanel from '@ui/ingredients/inspector/IngredientSidebarPanel';
-import AppLayout from '@ui/layouts/app/AppLayout';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useEffect, useMemo, useRef } from 'react';
 import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizationSync';
+import LowCreditsBanner from '@/components/banners/low-credits/LowCreditsBanner';
+import ProductionDataBanner from '@/components/banners/production-data/ProductionDataBanner';
+import { CommandPaletteInitializer } from '@/components/command-palette/command-palette-initializer/CommandPaletteInitializer';
+import OnboardingGuard from '@/components/guards/onboarding/OnboardingGuard';
+import IngredientSidebarPanel from '@/components/ingredients/inspector/IngredientSidebarPanel';
+import AppLayout from '@/components/layouts/app/AppLayout';
 import AppProtectedRail from '@/components/shell/AppProtectedRail';
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
 import { InstalledAppsProvider } from '@/components/shell/installed-apps.provider';
@@ -43,11 +41,13 @@ import {
   WorkspaceNavPanelProvider,
   WorkspaceNavPanelTarget,
 } from '@/components/workspace-shell/WorkspaceNavPanelContext';
+import { useAgentThreadCommands } from '@/hooks/commands/use-agent-thread-commands/use-agent-thread-commands';
 import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
 import {
   captureWorkspaceShellError,
   captureWorkspaceShellPerformance,
 } from '@/lib/workspace-shell/workspace-shell-telemetry';
+import type { SidebarNavPanel } from '@/props/navigation/menu.props';
 import ProtectedProviders from '@/providers/protected-providers/protected-providers';
 import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
 import {
@@ -74,7 +74,7 @@ const LazyUniversalWorkspaceShell = dynamic(
 
 const LazyCommandPalette = dynamic(
   () =>
-    import('@ui/command-palette/command-palette/CommandPalette').then(
+    import('@/components/command-palette/command-palette/CommandPalette').then(
       (mod) => mod.CommandPalette,
     ),
   { ssr: false },

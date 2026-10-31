@@ -9,15 +9,15 @@ import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import { getDateRangeKeys } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useAnalytics } from '@hooks/data/analytics/use-analytics/use-analytics';
-import { useLeaderboards } from '@hooks/data/analytics/use-leaderboards/use-leaderboards';
-import {
-  type TopPostData,
-  useTopPosts,
-} from '@hooks/data/analytics/use-top-posts/use-top-posts';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
+import { useAnalytics } from '@/hooks/data/analytics/use-analytics/use-analytics';
+import { useLeaderboards } from '@/hooks/data/analytics/use-leaderboards/use-leaderboards';
+import {
+  type TopPostData,
+  useTopPosts,
+} from '@/hooks/data/analytics/use-top-posts/use-top-posts';
 
 function readFiniteNumber(
   source: Record<string, unknown>,

@@ -17,7 +17,6 @@ import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
@@ -26,6 +25,7 @@ import { Input } from '@ui/primitives/input';
 import { Cog } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useCallback, useRef, useState } from 'react';
+import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 
 type ReportState = 'idle' | 'loading' | 'ready' | 'error';
 

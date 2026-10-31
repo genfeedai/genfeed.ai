@@ -38,7 +38,7 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
   }),
 }));
 
-vi.mock('@hooks/data/workflow-executions/use-workflow-executions', () => ({
+vi.mock('@/hooks/data/workflow-executions/use-workflow-executions', () => ({
   useWorkflowExecutions: (params: unknown) => {
     state.params.push(params);
     return {

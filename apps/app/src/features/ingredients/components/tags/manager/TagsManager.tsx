@@ -10,10 +10,10 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { useQuery } from '@tanstack/react-query';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
-import { LIBRARY_TAGS_QUERY_KEY } from '@ui/tags/library-tag-picker/library-tags-query-key';
 import { THEME_COLORS } from '@ui-constants/theme.constant';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
+import { LIBRARY_TAGS_QUERY_KEY } from '@/components/tags/library-tag-picker/library-tags-query-key';
 import type { TagsManagerComponentProps } from '@/features/ingredients/props/tags-manager.props';
 
 import TagPickerDropdown from './TagPickerDropdown';

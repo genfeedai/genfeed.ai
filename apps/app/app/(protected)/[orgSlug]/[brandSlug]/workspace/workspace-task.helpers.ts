@@ -3,16 +3,6 @@
 import { useTaskStatusLabels } from '@app/(protected)/[orgSlug]/[brandSlug]/tasks/task-status.constants';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { VideoContinuityQaReport } from '@genfeedai/contracts/interfaces';
-import type {
-  InboxView,
-  ReviewInboxSummary,
-  WorkspaceAdvancedTool,
-  WorkspaceLibrarySnapshotLink,
-  WorkspaceSection,
-  WorkspaceSectionCopyEntry,
-  WorkspaceTaskRealtimePayload,
-  WorkspaceTranslate,
-} from '@props/workspace/workspace-task.props';
 import {
   isTaskInWorkspaceInboxQueue,
   isUnreadWorkspaceInboxTask,
@@ -22,6 +12,16 @@ import {
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { buildTaskLaunchHref } from '@/lib/navigation/operator-shell';
+import type {
+  InboxView,
+  ReviewInboxSummary,
+  WorkspaceAdvancedTool,
+  WorkspaceLibrarySnapshotLink,
+  WorkspaceSection,
+  WorkspaceSectionCopyEntry,
+  WorkspaceTaskRealtimePayload,
+  WorkspaceTranslate,
+} from '@/props/workspace/workspace-task.props';
 
 export type {
   InboxView,
@@ -29,7 +29,7 @@ export type {
   ReviewInboxSummary,
   WorkspaceSection,
   WorkspaceTaskRealtimePayload,
-} from '@props/workspace/workspace-task.props';
+} from '@/props/workspace/workspace-task.props';
 
 export const DEFAULT_REVIEW_INBOX: ReviewInboxSummary = {
   approvedCount: 0,

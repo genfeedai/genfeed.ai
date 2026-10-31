@@ -8,9 +8,6 @@ import {
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import PerformanceDatasetBadge, {
-  LOW_CONFIDENCE_STATES,
-} from '@ui/analytics/performance-dataset-badge/PerformanceDatasetBadge';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -33,6 +30,9 @@ import { Label } from '@ui/primitives/label';
 import { Switch } from '@ui/primitives/switch';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import PerformanceDatasetBadge, {
+  LOW_CONFIDENCE_STATES,
+} from '@/components/analytics/performance-dataset-badge/PerformanceDatasetBadge';
 import type { GeneratePlanDialogProps } from '@/features/automation/props/content-plans-section.props';
 import { useGeneratePlanDialog } from './useGeneratePlanDialog';
 

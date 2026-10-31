@@ -51,7 +51,7 @@ vi.mock(
   }),
 );
 vi.mock(
-  '@hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar',
+  '@/hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar',
   () => ({
     useIngredientSidebar: () => ({
       closeIngredientSidebar: vi.fn(),

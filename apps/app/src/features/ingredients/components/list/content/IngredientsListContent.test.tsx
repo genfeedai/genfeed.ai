@@ -31,7 +31,7 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ settings: library.settings, settingsLoading: false }),
 }));
 
-vi.mock('@genfeedai/hooks/feature-flags/provider', () => ({
+vi.mock('@/hooks/feature-flags/provider', () => ({
   useFeatureFlagContext: () => ({
     flags: {},
     isConfigured: true,
@@ -113,7 +113,7 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-vi.mock('@ui/ingredients/IngredientReviewActions', () => ({
+vi.mock('@/components/ingredients/IngredientReviewActions', () => ({
   default: () => null,
 }));
 
@@ -160,47 +160,53 @@ vi.mock('next/dynamic', async () => {
   };
 });
 
-vi.mock('@ui/ingredients/list/media-grid/IngredientsMediaGrid', () => ({
-  default: ({
-    emptyActions,
-    items,
-    onClickIngredient,
-    onSeeDetails,
-    onReviewUpdated,
-  }: {
-    emptyActions?: ReactNode;
-    items: IIngredient[];
-    onClickIngredient: (ingredient: IIngredient) => void;
-    onSeeDetails: (ingredient: IIngredient) => void;
-    onReviewUpdated: (ingredient: IIngredient) => void;
-  }) => (
-    <>
-      {items.length === 0 ? (
-        <div data-testid="media-grid-empty">{emptyActions}</div>
-      ) : null}
-      <button
-        data-testid="media-grid-item"
-        onClick={() => onClickIngredient(items[0])}
-        type="button"
-      >
-        {items[0]?.metadataLabel ?? 'Media item'}
-      </button>
-      <button onClick={() => onSeeDetails(items[0])} type="button">
-        See Details
-      </button>
-      {items[0] ? (
+vi.mock(
+  '@/components/ingredients/list/media-grid/IngredientsMediaGrid',
+  () => ({
+    default: ({
+      emptyActions,
+      items,
+      onClickIngredient,
+      onSeeDetails,
+      onReviewUpdated,
+    }: {
+      emptyActions?: ReactNode;
+      items: IIngredient[];
+      onClickIngredient: (ingredient: IIngredient) => void;
+      onSeeDetails: (ingredient: IIngredient) => void;
+      onReviewUpdated: (ingredient: IIngredient) => void;
+    }) => (
+      <>
+        {items.length === 0 ? (
+          <div data-testid="media-grid-empty">{emptyActions}</div>
+        ) : null}
         <button
-          onClick={() =>
-            onReviewUpdated({ ...items[0], status: IngredientStatus.REJECTED })
-          }
+          data-testid="media-grid-item"
+          onClick={() => onClickIngredient(items[0])}
           type="button"
         >
-          Reject from grid
+          {items[0]?.metadataLabel ?? 'Media item'}
         </button>
-      ) : null}
-    </>
-  ),
-}));
+        <button onClick={() => onSeeDetails(items[0])} type="button">
+          See Details
+        </button>
+        {items[0] ? (
+          <button
+            onClick={() =>
+              onReviewUpdated({
+                ...items[0],
+                status: IngredientStatus.REJECTED,
+              })
+            }
+            type="button"
+          >
+            Reject from grid
+          </button>
+        ) : null}
+      </>
+    ),
+  }),
+);
 
 const baseIngredient = {
   category: IngredientCategory.AVATAR,

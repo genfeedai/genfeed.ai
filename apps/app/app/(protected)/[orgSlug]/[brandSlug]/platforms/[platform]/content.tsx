@@ -6,15 +6,12 @@ import {
   formatPlatformLabel,
 } from '@genfeedai/contracts';
 import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-card.interface';
-import { usePlatformOAuthConnect } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import { logger } from '@services/core/logger.service';
 import { EmptyStateCard } from '@ui/card/EmptyState';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
-import OverviewLayout from '@ui/overview/OverviewLayout';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
@@ -31,10 +28,13 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import OverviewLayout from '@/components/overview/OverviewLayout';
 import type {
   PlatformConnectionHealth,
   PlatformHomeContentProps,
 } from '@/features/platforms/props/platform-home.props';
+import { usePlatformOAuthConnect } from '@/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
+import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
 import {
   buildPlatformHomeDestinations,
   filterConnectionsForPlatform,

@@ -1,7 +1,7 @@
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import type { IngredientSoundProps } from '@genfeedai/props/content/ingredient.props';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import Card from '@ui/card/Card';
+import type { IngredientSoundProps } from '@/props/content/ingredient.props';
 
 export default function IngredientSound({ ingredients }: IngredientSoundProps) {
   return (

@@ -1,6 +1,6 @@
 import type { ClipperResultMode } from '@genfeedai/contracts/interfaces';
-import type { StudioPresetLayout } from '@genfeedai/props/studio/studio-presets.props';
 import type { LucideIcon } from 'lucide-react';
+import type { StudioPresetLayout } from '@/props/studio/studio-presets.props';
 
 export type ClipperPresetId =
   | 'podcastHighlights'

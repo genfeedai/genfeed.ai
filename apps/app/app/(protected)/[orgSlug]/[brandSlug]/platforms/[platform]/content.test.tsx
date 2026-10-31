@@ -28,7 +28,7 @@ vi.mock('next-intl', async () => {
   };
 });
 
-vi.mock('@hooks/pages/use-brand-detail/use-brand-detail', () => ({
+vi.mock('@/hooks/pages/use-brand-detail/use-brand-detail', () => ({
   useBrandDetail: () => ({
     brand: mocks.brand,
     brandId: mocks.brandId,
@@ -45,7 +45,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 }));
 
 vi.mock(
-  '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect',
+  '@/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect',
   () => ({
     usePlatformOAuthConnect: () => mocks.connectPlatform,
   }),
@@ -84,7 +84,7 @@ vi.mock('@ui/card/EmptyState', () => ({
   ),
 }));
 
-vi.mock('@ui/overview/OverviewLayout', () => ({
+vi.mock('@/components/overview/OverviewLayout', () => ({
   default: ({
     cards,
     header,

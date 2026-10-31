@@ -10,7 +10,6 @@ import {
 import type { BrandRemixStoryboardScene } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import type { Video } from '@genfeedai/models/ingredients/video.model';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useAvatarImages } from '@hooks/data/ingredients/use-avatar-images/use-avatar-images';
 import { VideosService } from '@services/ingredients/videos.service';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
@@ -26,6 +25,7 @@ import StoryboardSelect from '@/features/studio/storyboard/components/Storyboard
 import { useStoryboardAssets } from '@/features/studio/storyboard/hooks/use-storyboard-assets';
 import { getStoryboardAssetLabel } from '@/features/studio/storyboard/utils/storyboard-asset-label';
 import { getStoryboardScenePreview } from '@/features/studio/storyboard/utils/storyboard-scene-preview';
+import { useAvatarImages } from '@/hooks/data/ingredients/use-avatar-images/use-avatar-images';
 
 export default function StoryboardRunScenes({
   run,

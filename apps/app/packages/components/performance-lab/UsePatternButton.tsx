@@ -3,11 +3,11 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { UsePatternButtonProps } from '@props/analytics/performance-lab.props';
 import { Button } from '@ui/primitives/button';
 import { Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
+import type { UsePatternButtonProps } from '@/props/analytics/performance-lab.props';
 
 export default function UsePatternButton({ pattern }: UsePatternButtonProps) {
   const { push } = useRouter();

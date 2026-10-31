@@ -2,10 +2,6 @@
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { NativeSecondaryAppId } from '@genfeedai/contracts/constants';
-import type {
-  InstalledAppsContextValue,
-  InstalledAppsProviderProps,
-} from '@genfeedai/props/ui/installed-apps.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { MembersService } from '@services/organization/members.service';
 import {
@@ -17,6 +13,10 @@ import {
   useRef,
   useState,
 } from 'react';
+import type {
+  InstalledAppsContextValue,
+  InstalledAppsProviderProps,
+} from '@/props/ui/installed-apps.props';
 
 const InstalledAppsContext = createContext<InstalledAppsContextValue>({
   install: async () => false,

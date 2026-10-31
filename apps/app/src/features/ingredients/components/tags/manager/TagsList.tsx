@@ -3,8 +3,8 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
-import { libraryTagStyle } from '@ui/tags/library-tag-picker/library-tag-colors.util';
 import { X } from 'lucide-react';
+import { libraryTagStyle } from '@/components/tags/library-tag-picker/library-tag-colors.util';
 
 type TagDisplayItem = {
   id: string;

@@ -1,7 +1,7 @@
 import OAuthPlatformForm from '@app/oauth/[platform]/oauth-platform-form';
 import { createDynamicPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import type { OAuthPageProps } from '@props/pages/page.props';
 import { Suspense } from 'react';
+import type { OAuthPageProps } from '@/props/pages/page.props';
 
 export const generateMetadata = createDynamicPageMetadata(
   'platform',

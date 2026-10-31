@@ -1,13 +1,13 @@
 import { ButtonVariant } from '@genfeedai/contracts';
-import type {
-  AuthBackLinkProps,
-  AuthCheckEmailProps,
-  AuthFormActionsProps,
-} from '@props/auth/auth-ui.props';
 import { Button } from '@ui/primitives/button';
 import { MailCheck } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import type {
+  AuthBackLinkProps,
+  AuthCheckEmailProps,
+  AuthFormActionsProps,
+} from '@/props/auth/auth-ui.props';
 
 /**
  * Shared building blocks for the public auth surface (login / sign-up /

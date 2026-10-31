@@ -1,4 +1,4 @@
-import type { ReplyIntent } from '@genfeedai/props/messages/replies-page.props';
+import type { ReplyIntent } from '@/props/messages/replies-page.props';
 
 export interface RepliesReplyComposerProps {
   /** Handle the reply is addressed to; names the editor for assistive tech. */

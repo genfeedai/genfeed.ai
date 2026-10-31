@@ -11,11 +11,11 @@ import {
   AuthenticationTokenUnavailableError,
   useAuthedService,
 } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
 import { BrandedGenerationReceiptsService } from '@services/ai/branded-generation-receipts.service';
 import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 import { isAxiosError } from 'axios';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
 
 type ReadState = Omit<BrandIdentityPreviewState, 'refresh' | 'close'>;
 const empty: ReadState = { result: null, isLoading: false, error: null };

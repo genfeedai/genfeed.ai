@@ -1,6 +1,6 @@
-import type { ArticlePublishDestination } from '@props/edit/article-public-page.props';
 import type { GlobalModalsContextValue } from '@props/modals/global-modals.props';
 import type { ClipboardService } from '@services/core/clipboard.service';
+import type { ArticlePublishDestination } from '@/props/edit/article-public-page.props';
 
 export type ArticleDetailHeaderState = {
   isNew: boolean;

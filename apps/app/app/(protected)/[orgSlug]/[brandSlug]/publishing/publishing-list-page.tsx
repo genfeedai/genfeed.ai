@@ -10,7 +10,6 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { normalizePostsPlatform } from '@helpers/content/posts.helper';
-import type { PostsListSearchParams } from '@props/publishing/publishing-list-page.props';
 import {
   parsePostsPublicationState,
   parsePostsSource,
@@ -23,8 +22,9 @@ import {
   normalizeReleasePostContentTypes,
   normalizeReleasePostsSort,
 } from '@/features/posts/list/release-posts-list-query';
+import type { PostsListSearchParams } from '@/props/publishing/publishing-list-page.props';
 
-export type { PostsListSearchParams } from '@props/publishing/publishing-list-page.props';
+export type { PostsListSearchParams } from '@/props/publishing/publishing-list-page.props';
 
 /**
  * The single Posts list. Every lifecycle state is a query-param filter

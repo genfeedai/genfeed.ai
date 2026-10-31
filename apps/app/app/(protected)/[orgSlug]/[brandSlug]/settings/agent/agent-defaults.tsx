@@ -1,12 +1,12 @@
 'use client';
 
-import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import Card from '@ui/card/Card';
 import { useTranslations } from 'next-intl';
 import BrandWritingVoiceEditor from '@/features/brands/components/brand-kit/writing-voice/BrandWritingVoiceEditor';
 import BrandDetailDefaultModelsCard from '@/features/brands/components/sidebar/BrandDetailDefaultModelsCard';
 import BrandDetailIdentityCard from '@/features/brands/components/sidebar/BrandDetailIdentityCard';
 import BrandDetailSystemPrompt from '@/features/brands/components/system-prompt/BrandDetailSystemPrompt';
+import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
 
 export default function AgentDefaults() {
   const t = useTranslations('pages.brandAgentSettings');

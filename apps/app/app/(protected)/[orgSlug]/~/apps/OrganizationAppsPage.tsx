@@ -12,20 +12,12 @@ import {
   resolveNativeAppAvailability,
   resolveOrganizationModulePresentationAccess,
 } from '@genfeedai/contracts/constants';
-import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
-import type { AppCatalogEntry } from '@genfeedai/props/apps/organization-apps-page.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import CollectionSection from '@ui/collection/CollectionSection';
 import CollectionView from '@ui/collection/CollectionView';
-import SearchField from '@ui/content/search-field/SearchField';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Button } from '@ui/primitives/button';
-import {
-  APP_RAIL_REGISTRY,
-  getAppRailHref,
-  isAppRailItemEnabled,
-} from '@ui/shell/app-rail/app-rail.registry';
 import { Puzzle } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -36,8 +28,16 @@ import AppCatalogCard from '@/components/app-catalog/AppCatalogCard';
 import AppCatalogDetailsPanel from '@/components/app-catalog/AppCatalogDetailsPanel';
 import { APP_CATALOG } from '@/components/app-catalog/app-catalog';
 import { isAppCatalogOpenable } from '@/components/app-catalog/app-catalog-state';
+import SearchField from '@/components/content/search-field/SearchField';
+import {
+  APP_RAIL_REGISTRY,
+  getAppRailHref,
+  isAppRailItemEnabled,
+} from '@/components/shell/app-rail/app-rail.registry';
 import { useInstalledApps } from '@/components/shell/installed-apps.provider';
 import { useRailPreferencesContext } from '@/components/shell/rail-preferences.provider';
+import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
+import type { AppCatalogEntry } from '@/props/apps/organization-apps-page.props';
 
 /**
  * Apps at `/:orgSlug/~/apps` (#5502): the native apps a member installs

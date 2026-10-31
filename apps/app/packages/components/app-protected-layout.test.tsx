@@ -4,11 +4,11 @@ import { MemberRole } from '@genfeedai/contracts';
 import type { IDesktopRuntimeContext } from '@genfeedai/contracts/desktop';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import type { DesktopRuntimeSnapshot } from '@genfeedai/services/core/desktop-runtime.service';
-import { useUserRole } from '@hooks/auth/use-user-role';
 import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.props';
 import { fireEvent, render, renderHook, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { useUserRole } from '@/hooks/auth/use-user-role';
 import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
 import AppProtectedLayout from './app-protected-layout';
 import { useAppProtectedLayout } from './useAppProtectedLayout';
@@ -114,7 +114,7 @@ vi.mock('@genfeedai/auth-client/react', () => ({
   }),
 }));
 
-vi.mock('@hooks/auth/use-auth-user', () => ({
+vi.mock('@/hooks/auth/use-auth-user', () => ({
   useAuthUser: () => ({
     isLoaded: true,
     user: {
@@ -124,12 +124,12 @@ vi.mock('@hooks/auth/use-auth-user', () => ({
   }),
 }));
 
-vi.mock('@ui/command-palette/command-palette/CommandPalette', () => ({
+vi.mock('@/components/command-palette/command-palette/CommandPalette', () => ({
   CommandPalette: () => <div data-testid="command-palette" />,
 }));
 
 vi.mock(
-  '@ui/command-palette/command-palette-initializer/CommandPaletteInitializer',
+  '@/components/command-palette/command-palette-initializer/CommandPaletteInitializer',
   () => ({
     CommandPaletteInitializer: () => null,
   }),
@@ -151,7 +151,7 @@ vi.mock(
   }),
 );
 
-vi.mock('@ui/layouts/app/AppLayout', () => ({
+vi.mock('@/components/layouts/app/AppLayout', () => ({
   default: ({
     bannerComponent,
     children,
@@ -175,7 +175,7 @@ vi.mock('@ui/layouts/app/AppLayout', () => ({
   },
 }));
 
-vi.mock('@ui/shell/menus/AppSidebar', () => ({
+vi.mock('@/components/shell/menus/AppSidebar', () => ({
   default: (props: {
     conversationActions?: ReactNode;
     collapsedSidebarWidth?: number;
@@ -226,41 +226,50 @@ vi.mock(
   }),
 );
 
-vi.mock('@ui/menus/sidebar-search-trigger/SidebarSearchTrigger', () => ({
-  default: () => (
-    <button
-      type="button"
-      data-testid="sidebar-search-trigger"
-      aria-label="Search"
-      onClick={commandPaletteOpenSpy}
-    >
-      Search
-    </button>
-  ),
-}));
+vi.mock(
+  '@/components/menus/sidebar-search-trigger/SidebarSearchTrigger',
+  () => ({
+    default: () => (
+      <button
+        type="button"
+        data-testid="sidebar-search-trigger"
+        aria-label="Search"
+        onClick={commandPaletteOpenSpy}
+      >
+        Search
+      </button>
+    ),
+  }),
+);
 
-vi.mock('@ui/menus/sidebar-action-trigger/SidebarActionTrigger', () => ({
-  default: ({ label, onClick }: { label: string; onClick?: () => void }) => (
-    <button type="button" onClick={onClick}>
-      {label}
-    </button>
-  ),
-}));
+vi.mock(
+  '@/components/menus/sidebar-action-trigger/SidebarActionTrigger',
+  () => ({
+    default: ({ label, onClick }: { label: string; onClick?: () => void }) => (
+      <button type="button" onClick={onClick}>
+        {label}
+      </button>
+    ),
+  }),
+);
 
-vi.mock('@ui/menus/switchers/MenuBrandSwitcher', () => ({
+vi.mock('@/components/menus/switchers/MenuBrandSwitcher', () => ({
   default: ({ variant }: { variant?: string }) => (
     <div data-testid="sidebar-brand-switcher">{variant}</div>
   ),
 }));
 
-vi.mock('@ui/menus/organization-switcher/OrganizationSwitcher', () => ({
-  default: ({ subscriptionTier }: { subscriptionTier?: string | null }) => (
-    <div
-      data-testid="organization-switcher"
-      data-subscription-tier={subscriptionTier ?? ''}
-    />
-  ),
-}));
+vi.mock(
+  '@/components/menus/organization-switcher/OrganizationSwitcher',
+  () => ({
+    default: ({ subscriptionTier }: { subscriptionTier?: string | null }) => (
+      <div
+        data-testid="organization-switcher"
+        data-subscription-tier={subscriptionTier ?? ''}
+      />
+    ),
+  }),
+);
 
 vi.mock('@app-config/menu-items.config', () => ({
   APP_MENU_ITEMS: [{ href: '/workspace', label: 'Workspace' }],
@@ -389,7 +398,7 @@ vi.mock('@/lib/workspace/task-composer-events', () => ({
   dispatchOpenTaskComposer: dispatchOpenTaskComposerSpy,
 }));
 
-vi.mock('@genfeedai/hooks/ui/use-command-palette/use-command-palette', () => ({
+vi.mock('@/hooks/ui/use-command-palette/use-command-palette', () => ({
   useCommandPalette: () => ({ open: commandPaletteOpenSpy }),
 }));
 
@@ -473,26 +482,26 @@ vi.mock('@/hooks/useOptionalAuth', () => ({
   }),
 }));
 
-vi.mock('@hooks/auth/use-is-super-admin/use-is-super-admin', () => ({
+vi.mock('@/hooks/auth/use-is-super-admin/use-is-super-admin', () => ({
   useIsSuperAdmin: () => false,
 }));
 
-vi.mock('@hooks/auth/use-user-role', () => ({
+vi.mock('@/hooks/auth/use-user-role', () => ({
   useUserRole: vi.fn(() => 'user'),
 }));
 
 vi.mock(
-  '@hooks/commands/use-agent-thread-commands/use-agent-thread-commands',
+  '@/hooks/commands/use-agent-thread-commands/use-agent-thread-commands',
   () => ({
     useAgentThreadCommands: vi.fn(),
   }),
 );
 
-vi.mock('@hooks/ui/use-menu-items', () => ({
+vi.mock('@/hooks/ui/use-menu-items', () => ({
   useMenuItems: () => [{ href: '/workspace', label: 'Workspace' }],
 }));
 
-vi.mock('@hooks/feature-flags/use-feature-flag', () => ({
+vi.mock('@/hooks/feature-flags/use-feature-flag', () => ({
   useFeatureFlag: () => mockFeatureFlags.isEnabled,
 }));
 
@@ -546,7 +555,7 @@ vi.mock('@services/core/environment.service', () => ({
   },
 }));
 
-vi.mock('@ui/banners/low-credits/LowCreditsBanner', () => ({
+vi.mock('@/components/banners/low-credits/LowCreditsBanner', () => ({
   default: (props: { isLowBalanceWarningEnabled?: boolean }) => {
     lowCreditsBannerSpy(props);
     return <div data-testid="low-credits-banner" />;
@@ -559,7 +568,7 @@ vi.mock('./impersonation-banner', () => ({
   default: () => <div data-testid="impersonation-banner" />,
 }));
 
-vi.mock('@ui/guards/onboarding/OnboardingGuard', () => ({
+vi.mock('@/components/guards/onboarding/OnboardingGuard', () => ({
   default: ({ children }: { children: ReactNode }) => {
     onboardingGuardSpy();
     return <>{children}</>;
@@ -1961,7 +1970,7 @@ const mockCreditsRuntime = vi.hoisted(() =>
   vi.fn<() => DesktopRuntimeSnapshot>(),
 );
 vi.mock(
-  '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context',
+  '@/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context',
   () => ({
     useDesktopRuntimeContext: mockCreditsRuntime,
   }),

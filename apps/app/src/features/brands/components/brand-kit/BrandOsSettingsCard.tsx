@@ -16,7 +16,6 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { BRAND_KIT_FIELD_OWNERSHIP } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
 import { BrandsService } from '@services/social/brands.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
@@ -36,6 +35,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import type { BrandOsSettingsCardProps } from '@/features/brands/props/brand-os-settings.props';
+import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
 import BrandOsGenerationRulesReview from './BrandOsGenerationRulesReview';
 import BrandOsIdentityPreview from './BrandOsIdentityPreview';
 import BrandOsPolicyEditor from './BrandOsPolicyEditor';

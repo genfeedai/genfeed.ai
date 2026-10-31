@@ -4,7 +4,6 @@ import {
   useConversationComposerShell,
 } from '@genfeedai/agent';
 import type { KnowledgeSelection } from '@genfeedai/contracts/interfaces';
-import { useAgentBrandCreate } from '@genfeedai/hooks/agent/use-agent-brand-create';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -14,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import type { AgentWorkspacePageShellProps } from '@/features/agents/props/agent-workspace-page-shell.props';
 import KnowledgeReferenceSection from '@/features/library/knowledge/components/KnowledgeReferenceSection';
+import { useAgentBrandCreate } from '@/hooks/agent/use-agent-brand-create';
 import { useAgentWorkspace } from './agent-workspace-context';
 
 const EMPTY_KNOWLEDGE_SELECTION: KnowledgeSelection = {};

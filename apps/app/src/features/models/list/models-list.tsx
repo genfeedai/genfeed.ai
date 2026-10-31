@@ -12,12 +12,12 @@ import type {
 } from '@props/ui/display/table.props';
 import { EmptyState } from '@ui/card/EmptyState';
 import AppTable from '@ui/display/table/Table';
-import { LazyModalModel } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { CircleCheck, CircleX, Cpu, Pencil, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
+import { LazyModalModel } from '@/components/lazy/modal/LazyModal';
 import ModelDetailPanel from '@/features/models/components/models/ModelDetailPanel';
 import type { ModelsListProps } from '@/features/models/props/models.props';
 import AdminModelsToolbar from './components/AdminModelsToolbar';

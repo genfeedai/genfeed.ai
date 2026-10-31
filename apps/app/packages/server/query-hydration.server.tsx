@@ -7,9 +7,9 @@ import {
   type QueryClient,
   type QueryKey,
 } from '@tanstack/react-query';
-import { makeQueryClient } from '@ui/providers/query-client';
 import type { ReactNode } from 'react';
 import { cache } from 'react';
+import { makeQueryClient } from '@/components/providers/query-client';
 
 type PrefetchQueryOptions = Parameters<QueryClient['prefetchQuery']>[0];
 

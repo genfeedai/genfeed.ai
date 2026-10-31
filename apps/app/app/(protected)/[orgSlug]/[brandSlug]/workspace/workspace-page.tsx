@@ -8,11 +8,9 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Task } from '@services/management/tasks.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
-import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import AppTable from '@ui/display/table/Table';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import { Check, Inbox, LayoutGrid } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -25,6 +23,8 @@ import {
   useMemo,
   useState,
 } from 'react';
+import FilterMenu from '@/components/content/filter-menu/FilterMenu';
+import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import { useWorkspaceSurfaceSelection } from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
 import { useTrends } from '@/features/trends/hooks/use-trends/use-trends';
 import type { WorkspacePageContentProps } from '@/features/workspace/props/workspace-page.props';

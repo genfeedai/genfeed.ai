@@ -13,24 +13,24 @@ import {
   getBrowserTimezone,
   resolveTimeZone,
 } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
-import { useEvaluation } from '@genfeedai/hooks/ui/evaluation/use-evaluation/use-evaluation';
-import type { PostDetailSidebarProps } from '@genfeedai/props/components/post-detail-sidebar.props';
 import {
   isImageIngredient,
   isVideoIngredient,
 } from '@genfeedai/utils/media/ingredient-type.util';
-import EvaluationCard from '@ui/evaluation/card/EvaluationCard';
-import SeoScorecard from '@ui/evaluation/seo-scorecard/SeoScorecard';
 import {
   LazyMasonryImage,
   LazyMasonryVideo,
 } from '@ui/lazy/masonry/LazyMasonry';
 import Tabs from '@ui/navigation/tabs/Tabs';
-import InspectorSection from '@ui/posts/post-detail-sidebar/InspectorSection';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
+import EvaluationCard from '@/components/evaluation/card/EvaluationCard';
+import SeoScorecard from '@/components/evaluation/seo-scorecard/SeoScorecard';
+import InspectorSection from '@/components/posts/post-detail-sidebar/InspectorSection';
 import TikTokPublishingSettings from '@/features/posts/components/posts/tiktok-publishing/TikTokPublishingSettings';
 import YouTubePublishingSettings from '@/features/posts/components/posts/youtube-publishing/YouTubePublishingSettings';
+import { useEvaluation } from '@/hooks/ui/evaluation/use-evaluation/use-evaluation';
+import type { PostDetailSidebarProps } from '@/props/components/post-detail-sidebar.props';
 import PostSidebarDestination from './PostSidebarDestination';
 import PostSidebarLineage, { getReviewDecisionKey } from './PostSidebarLineage';
 import PostSidebarWhenDock from './PostSidebarWhenDock';

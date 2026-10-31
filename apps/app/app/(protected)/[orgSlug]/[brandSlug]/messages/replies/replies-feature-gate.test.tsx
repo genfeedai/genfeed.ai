@@ -5,11 +5,11 @@ import RepliesFeatureGate from './replies-feature-gate';
 
 const state = vi.hoisted(() => ({ isReplyBotOn: true, isSuperAdmin: false }));
 
-vi.mock('@hooks/auth/use-is-super-admin/use-is-super-admin', () => ({
+vi.mock('@/hooks/auth/use-is-super-admin/use-is-super-admin', () => ({
   useIsSuperAdmin: () => state.isSuperAdmin,
 }));
 
-vi.mock('@ui/guards/feature/FeatureGate', () => ({
+vi.mock('@/components/guards/feature/FeatureGate', () => ({
   default: ({ children, flagKey }: { children: ReactNode; flagKey: string }) =>
     flagKey === 'reply_bot' && state.isReplyBotOn ? (
       <>{children}</>

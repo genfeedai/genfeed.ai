@@ -16,8 +16,8 @@ import {
   LazyModalPostRepurpose,
   LazyModalPrompt,
   LazyModalUpload,
-} from '@ui/lazy/modal/LazyModal';
-import { ModalUpgradePrompt } from '@ui/modals';
+} from '@/components/lazy/modal/LazyModal';
+import { ModalUpgradePrompt } from '@/components/modals';
 import type { useGlobalModalsState } from './useGlobalModalsState';
 
 type GlobalModalsRendererProps = ReturnType<typeof useGlobalModalsState> &

@@ -102,7 +102,7 @@ vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
   ),
 }));
 
-vi.mock('@ui/content/admin-filters/AdminOrgBrandFilter', () => ({
+vi.mock('@/components/content/admin-filters/AdminOrgBrandFilter', () => ({
   default: ({
     brand,
     onBrandChange,
@@ -127,7 +127,7 @@ vi.mock('@ui/content/admin-filters/AdminOrgBrandFilter', () => ({
   ),
 }));
 
-vi.mock('@ui/content/filters-button/FiltersSearch', () => ({
+vi.mock('@/components/content/filters-button/FiltersSearch', () => ({
   default: ({
     onFiltersChange,
   }: {
@@ -239,7 +239,7 @@ vi.mock('@ui/layout/container/Container', () => ({
   ),
 }));
 
-vi.mock('@ui/lazy/modal/LazyModal', () => ({
+vi.mock('@/components/lazy/modal/LazyModal', () => ({
   LazyModalFolder: ({
     item,
     onConfirm,

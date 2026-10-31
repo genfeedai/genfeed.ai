@@ -13,11 +13,6 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { PresetsService } from '@services/elements/presets.service';
 import { useQuery } from '@tanstack/react-query';
-import AdminOrgBrandUrlFilter, {
-  useAdminOrgBrandParams,
-} from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
-import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
-import SearchField from '@ui/content/search-field/SearchField';
 import Badge from '@ui/display/badge/Badge';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
@@ -29,6 +24,11 @@ import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useEffect, useState } from 'react';
+import AdminOrgBrandUrlFilter, {
+  useAdminOrgBrandParams,
+} from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
+import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
+import SearchField from '@/components/content/search-field/SearchField';
 import {
   PresetCategoryCell,
   PresetDefaultsCell,

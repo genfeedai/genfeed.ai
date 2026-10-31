@@ -9,7 +9,6 @@ import {
   toBrandListParams,
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import type { ReviewInboxApprovalsState } from '@props/publishing/review-inbox-approvals.props';
 import { ReviewInboxService } from '@services/content/review-inbox.service';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
@@ -18,6 +17,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
+import type { ReviewInboxApprovalsState } from '@/props/publishing/review-inbox-approvals.props';
 
 /** Turbo run drafts are agent work, so they show for the Agent source. */
 export function isAgentSourceVisible(

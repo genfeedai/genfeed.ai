@@ -15,8 +15,6 @@ import {
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useOAuthConnectPlatforms } from '@hooks/auth/use-oauth-connect-platforms/use-oauth-connect-platforms';
-import { rememberOAuthConnectContext } from '@hooks/auth/use-platform-oauth-connect/oauth-connect-context';
-import { OAUTH_RETURN_TO_STORAGE_KEY } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import type {
   BrandDetailConnectedAccountProps,
   BrandDetailSocialMediaCardProps,
@@ -52,6 +50,8 @@ import {
 } from '@/features/brands/components/integrations/account-connection-status.util';
 import ConnectAccountModal from '@/features/brands/components/integrations/ConnectAccountModal';
 import SocialWarmupProgram from '@/features/brands/components/sidebar/social-warmup/SocialWarmupProgram';
+import { rememberOAuthConnectContext } from '@/hooks/auth/use-platform-oauth-connect/oauth-connect-context';
+import { OAUTH_RETURN_TO_STORAGE_KEY } from '@/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 
 type SocialConnection = BrandDetailSocialMediaCardProps['connections'][number];
 

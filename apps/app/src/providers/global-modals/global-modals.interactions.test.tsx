@@ -81,7 +81,7 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
   },
 }));
 
-vi.mock('@ui/lazy/modal/LazyModal', () => ({
+vi.mock('@/components/lazy/modal/LazyModal', () => ({
   LazyModalBrandCreate: makeStub('ModalBrandCreate'),
   LazyModalConfirm: makeStub('ModalConfirm'),
   LazyModalExport: makeStub('ModalExport'),
@@ -95,7 +95,7 @@ vi.mock('@ui/lazy/modal/LazyModal', () => ({
   LazyModalUpload: makeStub('ModalUpload'),
 }));
 
-vi.mock('@ui/modals', () => ({
+vi.mock('@/components/modals', () => ({
   ModalUpgradePrompt: makeStub('ModalUpgradePrompt'),
 }));
 

@@ -3,10 +3,10 @@
 import { PostStatus } from '@genfeedai/contracts';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { getPostPlatformTabs } from '@helpers/content/posts.helper';
-import FilterMenu from '@ui/content/filter-menu/FilterMenu';
-import SearchField from '@ui/content/search-field/SearchField';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
+import FilterMenu from '@/components/content/filter-menu/FilterMenu';
+import SearchField from '@/components/content/search-field/SearchField';
 import {
   POSTS_SOURCE_EXTENSION,
   type PostsSourceFilter,

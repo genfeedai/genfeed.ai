@@ -14,17 +14,17 @@ import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
-import {
-  LazyModalArticle,
-  LazyModalNewsletter,
-  LazyModalPost,
-} from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
 import { Newspaper, Plus } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { Suspense, useCallback, useEffect, useMemo, useReducer } from 'react';
+import {
+  LazyModalArticle,
+  LazyModalNewsletter,
+  LazyModalPost,
+} from '@/components/lazy/modal/LazyModal';
 import type {
   PublishingLayoutAction,
   PublishingLayoutState,

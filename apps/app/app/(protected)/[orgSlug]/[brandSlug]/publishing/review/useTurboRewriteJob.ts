@@ -6,10 +6,6 @@ import type {
   IBackgroundTaskUpdateEvent,
   ITurboRewriteJob,
 } from '@genfeedai/contracts/interfaces';
-import type {
-  ReviewRewriteProgressProps,
-  UseTurboRewriteJobParams,
-} from '@genfeedai/props/publishing/review-rewrite-progress.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { logger } from '@services/core/logger.service';
@@ -17,6 +13,10 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { TurboRunsService } from '@services/turbo/turbo-runs.service';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type {
+  ReviewRewriteProgressProps,
+  UseTurboRewriteJobParams,
+} from '@/props/publishing/review-rewrite-progress.props';
 
 const REFRESH_DEBOUNCE_MS = 250;
 

@@ -34,17 +34,11 @@ describe('Tailwind theme selector contract', () => {
       'utf8',
     );
     const rail = readFileSync(
-      join(
-        process.cwd(),
-        '../../packages/ui/src/components/shell/app-rail/AppRail.tsx',
-      ),
+      join(process.cwd(), 'src/components/shell/app-rail/AppRail.tsx'),
       'utf8',
     );
     const sidebar = readFileSync(
-      join(
-        process.cwd(),
-        '../../packages/ui/src/components/layouts/app/DesktopSidebar.tsx',
-      ),
+      join(process.cwd(), 'src/components/layouts/app/DesktopSidebar.tsx'),
       'utf8',
     );
 

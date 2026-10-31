@@ -2,7 +2,6 @@
 
 import { ButtonVariant, CredentialPlatform } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { PostSidebarWhenDockProps } from '@genfeedai/props/components/post-detail-sidebar.props';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
 import FormDateTimePicker from '@ui/primitives/date-time-picker';
@@ -16,6 +15,7 @@ import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import type { PostSidebarWhenDockProps } from '@/props/components/post-detail-sidebar.props';
 
 import { getPlatformLabel } from './PostSidebarDestination';
 

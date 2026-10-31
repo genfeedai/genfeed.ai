@@ -19,7 +19,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));
-vi.mock('@ui/overview/WorkspaceSurface', () => ({
+vi.mock('@/components/overview/WorkspaceSurface', () => ({
   WorkspaceSurface: ({ children }: PropsWithChildren) => children,
 }));
 vi.mock('@ui/display/skeleton/skeleton', () => ({

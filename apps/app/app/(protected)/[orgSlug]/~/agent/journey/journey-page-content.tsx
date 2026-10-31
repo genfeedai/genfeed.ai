@@ -7,7 +7,6 @@ import {
   ONBOARDING_JOURNEY_MISSIONS,
   ONBOARDING_JOURNEY_TOTAL_CREDITS,
 } from '@genfeedai/contracts/types';
-import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import Card from '@ui/card/Card';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import { Badge } from '@ui/primitives/badge';
@@ -15,6 +14,7 @@ import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
+import { useOrganization } from '@/hooks/data/organization/use-organization/use-organization';
 
 function normalizeJourneyState(
   missions?: IOnboardingJourneyMissionState[],

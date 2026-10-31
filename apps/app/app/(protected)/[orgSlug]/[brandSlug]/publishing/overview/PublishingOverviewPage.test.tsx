@@ -138,7 +138,7 @@ vi.mock('@ui/kpi/kpi-section/KPISection', () => ({
   ),
 }));
 
-vi.mock('@ui/overview/OverviewLayout', () => ({
+vi.mock('@/components/overview/OverviewLayout', () => ({
   OverviewContent: ({
     cards,
     header,

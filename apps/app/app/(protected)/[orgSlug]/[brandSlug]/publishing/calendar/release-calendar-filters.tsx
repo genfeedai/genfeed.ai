@@ -6,13 +6,13 @@ import {
 } from '@genfeedai/contracts';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
+import { useTranslations } from 'next-intl';
+import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import type {
   ReleaseCalendarFilters as CalendarFilters,
   ReleaseCalendarFilterOption,
   ReleaseCalendarFiltersProps,
-} from '@props/publisher/release-calendar.props';
-import FilterMenu from '@ui/content/filter-menu/FilterMenu';
-import { useTranslations } from 'next-intl';
+} from '@/props/publisher/release-calendar.props';
 
 /**
  * Enum values are lowercase, hyphenated wire identifiers. The dropdown shows a

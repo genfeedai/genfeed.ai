@@ -29,7 +29,7 @@ import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
 import {
   SIDEBAR_TRANSITION_DURATION_MS,
   SIDEBAR_TRANSITION_EASING,
-} from '@ui/layouts/app/app-layout.utils';
+} from '@/components/layouts/app/app-layout.utils';
 import { useRegisterWorkspaceSurfaceAdapter } from './WorkspaceSurfaceAdapterContext';
 
 vi.mock('next-intl', async () => {

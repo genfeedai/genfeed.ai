@@ -1,6 +1,6 @@
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
-import { useMemberOrganizations } from '@hooks/data/organization/use-member-organizations/use-member-organizations';
 import type { BrandMoveDestination } from '@/features/settings/props/brand-move.props';
+import { useMemberOrganizations } from '@/hooks/data/organization/use-member-organizations/use-member-organizations';
 
 /**
  * Organizations a brand of `sourceOrganizationId` could move to: the

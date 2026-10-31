@@ -62,7 +62,7 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-vi.mock('@hooks/pages/use-brand-detail/use-brand-detail', () => ({
+vi.mock('@/hooks/pages/use-brand-detail/use-brand-detail', () => ({
   useBrandDetail: () => mocks.brandDetail,
 }));
 
@@ -86,7 +86,7 @@ vi.mock('@services/content/posting-sets.service', () => ({
   },
 }));
 
-vi.mock('@hooks/data/content/use-rss-sources', () => ({
+vi.mock('@/hooks/data/content/use-rss-sources', () => ({
   useRssSources: () => ({
     create: mocks.createRss,
     isLoading: false,

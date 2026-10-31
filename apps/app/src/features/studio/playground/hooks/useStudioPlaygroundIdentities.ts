@@ -18,8 +18,6 @@ import {
   heyGenDefaultVoice,
   heyGenVoiceValue,
 } from '@helpers/voice/heygen-identity.helper';
-import { useAvatarImages } from '@hooks/data/ingredients/use-avatar-images/use-avatar-images';
-import { useHeyGenCatalog } from '@hooks/data/integrations/use-heygen-catalog';
 import type { Voice } from '@models/ingredients/voice.model';
 import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
 import { useMemo } from 'react';
@@ -28,6 +26,8 @@ import { useHeyGenSpeechVoices } from '@/features/studio/hooks/use-heygen-speech
 import type { StudioPlaygroundType } from '@/features/studio/playground/types';
 import { normalizeIdentityGender } from '@/features/studio/playground/utils/studio-identity-selection';
 import { resolveStudioAssetUrl } from '@/features/studio/playground/utils/studio-playground-asset';
+import { useAvatarImages } from '@/hooks/data/ingredients/use-avatar-images/use-avatar-images';
+import { useHeyGenCatalog } from '@/hooks/data/integrations/use-heygen-catalog';
 
 export interface StudioIdentityOption {
   /** `name (source)`: the accessible name and the composer summary. */

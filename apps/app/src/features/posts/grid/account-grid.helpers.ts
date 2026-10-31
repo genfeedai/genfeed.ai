@@ -10,12 +10,12 @@ import type {
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
 import { createDateFromTimezone } from '@helpers/formatting/timezone/timezone.helper';
-import type { TargetPreviewCredential } from '@props/ui/previews.props';
 import type {
   AccountGridLane,
   AccountGridLaneItem,
   AccountGridLaneKind,
 } from '@/features/posts/props/account-grid.props';
+import type { TargetPreviewCredential } from '@/props/ui/previews.props';
 
 export const GAP_LOOKAHEAD_DAYS = 4;
 export const GAP_SLOT_MATCH_MS = 60 * 60 * 1000;

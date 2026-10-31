@@ -14,7 +14,6 @@ import type {
   ITag,
 } from '@genfeedai/contracts/interfaces';
 import { normalizeCrunVideoDraft } from '@genfeedai/helpers/crun-video-input.helper';
-import { serializeCrunQuoteIntent } from '@genfeedai/hooks/prompt-bar/use-crun-generation-quote/use-crun-generation-quote';
 import type { CrunVideoPromptBinding } from '@genfeedai/props/studio/prompt-bar.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import type { NotificationsService } from '@genfeedai/services/core/notifications.service';
@@ -24,6 +23,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { isIngredientFormat } from '@/features/ingredients/hooks/use-ingredients-list/use-ingredients-filters';
+import { serializeCrunQuoteIntent } from '@/hooks/prompt-bar/use-crun-generation-quote/use-crun-generation-quote';
 
 interface UseIngredientsGenerationProps {
   notificationsService: NotificationsService;

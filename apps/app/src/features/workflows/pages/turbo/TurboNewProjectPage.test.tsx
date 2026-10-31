@@ -53,7 +53,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));
 
-vi.mock('@hooks/feature-flags/use-feature-flag', () => ({
+vi.mock('@/hooks/feature-flags/use-feature-flag', () => ({
   useFeatureFlag: () => mocks.isIdeasEnabled,
 }));
 

@@ -242,7 +242,7 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     1,
   ),
   legacyUiAllowance(
-    'packages/ui/src/components/modals/automation/useModalBot.ts',
+    'apps/app/src/components/modals/automation/useModalBot.ts',
     'intl-date-time-format',
     1,
   ),

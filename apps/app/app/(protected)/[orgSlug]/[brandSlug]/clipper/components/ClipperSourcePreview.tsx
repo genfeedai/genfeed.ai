@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
-import type { ClipperSourcePreviewProps } from '@props/studio/clipper.props';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import Card from '@ui/card/Card';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
@@ -10,6 +9,7 @@ import { Film, Play } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import type { ClipperSourcePreviewProps } from '@/props/studio/clipper.props';
 import {
   extractYoutubeVideoId,
   youtubeThumbnailUrl,

@@ -1,10 +1,10 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { ReviewPanelItem } from '@props/publishing/review-panel-item.props';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { Check, Sparkles, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReviewDecisionPanelProps } from '@/features/posts/props/review-decision-panel.props';
+import type { ReviewPanelItem } from '@/props/publishing/review-panel-item.props';
 
 import {
   isApproved,

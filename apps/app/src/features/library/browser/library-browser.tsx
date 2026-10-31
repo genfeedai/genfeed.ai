@@ -12,11 +12,11 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import AdminOrgBrandUrlFilter from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import Container from '@ui/layout/container/Container';
-import { useLibraryTags } from '@ui/tags/library-tag-picker/use-library-tags';
 import { Library } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import AdminOrgBrandUrlFilter from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
+import { useLibraryTags } from '@/components/tags/library-tag-picker/use-library-tags';
 import { useLibrarySummary } from '@/features/library/hooks/use-library-summary';
 import type { LibraryBrowserProps } from '@/features/library/props/library-browser.props';
 import {

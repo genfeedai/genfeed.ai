@@ -5,14 +5,13 @@ import {
   formatCompactNumberIntl,
   formatFullNumber,
 } from '@genfeedai/helpers/formatting/format/format.helper';
-import type { BrandPerformanceChartProps } from '@genfeedai/props/analytics/charts.props';
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
+import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import {
   ChartLoadingOverlay,
   chartAxisStroke,
@@ -20,6 +19,7 @@ import {
   chartGridStroke,
   chartNeutralSeries,
 } from '@/features/analytics/components/analytics/charts/chart-theme';
+import type { BrandPerformanceChartProps } from '@/props/analytics/charts.props';
 
 const BarChart = dynamic(() => import('recharts').then((m) => m.BarChart), {
   ssr: false,

@@ -1,5 +1,5 @@
-import type { InboxItem } from '@props/messages/replies-page.props';
 import { describe, expect, it } from 'vitest';
+import type { InboxItem } from '@/props/messages/replies-page.props';
 import { filterInboxItems } from './filter-inbox-items';
 
 function item(overrides: Partial<InboxItem>): InboxItem {

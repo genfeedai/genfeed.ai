@@ -1,6 +1,5 @@
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useContentPlans } from '@hooks/data/content-plans/use-content-plans';
 import {
   isCollectionFetchReady,
   useCollectionScope,
@@ -12,6 +11,7 @@ import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 import type { GeneratePlanFormState } from '@/features/automation/props/content-plans-section.props';
+import { useContentPlans } from '@/hooks/data/content-plans/use-content-plans';
 
 export function useContentPlansSection() {
   const translate = useTranslations('common.automation.contentPlans');

@@ -1,10 +1,10 @@
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { ListRow } from '@ui/lists/list-row/ListRow';
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import type { PublishingOverviewBlockedSectionProps } from '@/features/posts/props/publishing-overview.props';
 import PublishingOverviewAsyncSection from './PublishingOverviewAsyncSection';
 

@@ -5,7 +5,6 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { closeModal, openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { ModalHookRemixProps } from '@props/trends/hook-remix.props';
 import { logger } from '@services/core/logger.service';
 import { HookRemixService } from '@services/hook-remix/hook-remix.service';
 import { VideosService } from '@services/ingredients/videos.service';
@@ -19,6 +18,7 @@ import { Slider } from '@ui/primitives/slider';
 import { Film, Sparkles } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { ModalHookRemixProps } from '@/props/trends/hook-remix.props';
 
 const HOOK_REMIX_MODAL_ID = 'modal-hook-remix';
 

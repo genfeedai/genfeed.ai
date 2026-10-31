@@ -15,9 +15,6 @@ import {
   TasksService,
 } from '@services/management/tasks.service';
 import CardEmpty, { CardEmptyContent } from '@ui/card/empty/CardEmpty';
-import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
-import FilterMenu from '@ui/content/filter-menu/FilterMenu';
-import SearchField from '@ui/content/search-field/SearchField';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
@@ -52,6 +49,9 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
+import FilterMenu from '@/components/content/filter-menu/FilterMenu';
+import SearchField from '@/components/content/search-field/SearchField';
 import type {
   IssuesListAction,
   IssuesListState,

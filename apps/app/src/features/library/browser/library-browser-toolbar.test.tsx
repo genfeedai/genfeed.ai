@@ -24,7 +24,7 @@ const { useFeatureFlag } = vi.hoisted(() => ({
   useFeatureFlag: vi.fn(() => true),
 }));
 
-vi.mock('@hooks/feature-flags/use-feature-flag/use-feature-flag', () => ({
+vi.mock('@/hooks/feature-flags/use-feature-flag/use-feature-flag', () => ({
   useFeatureFlag,
 }));
 

@@ -1,8 +1,8 @@
+import { describe, expect, it } from 'vitest';
 import {
   ADMIN_RAIL_CATEGORIES,
   getActiveAppId,
-} from '@ui/shell/app-rail/app-rail.registry';
-import { describe, expect, it } from 'vitest';
+} from '@/components/shell/app-rail/app-rail.registry';
 import {
   ADMIN_MENU_ITEMS,
   withCollapsibleAdminGroups,

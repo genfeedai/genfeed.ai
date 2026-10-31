@@ -36,7 +36,7 @@ const runtimeMocks = vi.hoisted(() => ({
   } as DesktopRuntimeSnapshot,
 }));
 vi.mock(
-  '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context',
+  '@/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context',
   () => ({ useDesktopRuntimeContext: () => runtimeMocks.snapshot }),
 );
 vi.mock('next-intl', async () => {

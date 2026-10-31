@@ -12,7 +12,6 @@ import {
 } from '@genfeedai/agent';
 import { AgentThreadMode } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { useAgentOAuthConnect } from '@genfeedai/hooks/agent/use-agent-oauth-connect';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import {
   getPlaywrightAuthState,
@@ -22,6 +21,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useMemo, useRef } from 'react';
 import type { AgentWorkspaceLayoutClientProps } from '@/features/agents/props/agent-workspace-layout-client.props';
+import { useAgentOAuthConnect } from '@/hooks/agent/use-agent-oauth-connect';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
 import {

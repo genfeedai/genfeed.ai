@@ -11,22 +11,11 @@ import {
 import { ReplyBotConfigsService } from '@genfeedai/services/automation/reply-bot-configs.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { usePlatformOAuthConnect } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
-import type {
-  DraftState,
-  InboxItem,
-  IntentState,
-  ReplyIntent,
-} from '@props/messages/replies-page.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Card from '@ui/card/Card';
 import { EmptyState } from '@ui/card/EmptyState';
-import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
-import FilterMenu from '@ui/content/filter-menu/FilterMenu';
-import SearchField from '@ui/content/search-field/SearchField';
 import Container from '@ui/layout/container/Container';
 import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import Loading from '@ui/loading/default/Loading';
@@ -37,6 +26,17 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
+import FilterMenu from '@/components/content/filter-menu/FilterMenu';
+import SearchField from '@/components/content/search-field/SearchField';
+import { usePlatformOAuthConnect } from '@/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
+import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
+import type {
+  DraftState,
+  InboxItem,
+  IntentState,
+  ReplyIntent,
+} from '@/props/messages/replies-page.props';
 import { filterInboxItems } from './filter-inbox-items';
 import RepliesReplyComposer from './replies-reply-composer';
 import RepliesWarmupQueue from './replies-warmup-queue';

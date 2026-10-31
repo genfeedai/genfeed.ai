@@ -1,0 +1,126 @@
+import { IngredientCategory } from '@genfeedai/contracts';
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import ModalGalleryHeader from '@/components/modals/gallery/ModalGalleryHeader';
+
+// Mock dependencies
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
+  () => ({
+    useUploadModal: () => ({
+      openUpload: vi.fn(),
+    }),
+  }),
+);
+
+vi.mock('@genfeedai/helpers/data/data/data.helper', () => ({
+  formatVideos: [
+    { id: 'portrait', label: 'Portrait (9:16)' },
+    { id: 'landscape', label: 'Landscape (16:9)' },
+    { id: 'square', label: 'Square (1:1)' },
+  ],
+}));
+
+vi.mock('@ui/navigation/tabs/Tabs', () => ({
+  default: ({
+    tabs,
+    activeTab,
+    onTabChange,
+  }: import('react').ComponentProps<
+    typeof import('@ui/navigation/tabs/Tabs').default
+  >) => (
+    <div data-testid="tabs">
+      {(tabs ?? []).map((tab) => (
+        <button
+          key={typeof tab === 'string' ? tab : (tab.id ?? tab.label)}
+          onClick={() =>
+            onTabChange?.(typeof tab === 'string' ? tab : (tab.id ?? tab.label))
+          }
+        >
+          {typeof tab === 'string' ? tab : tab.label}
+        </button>
+      ))}
+    </div>
+  ),
+}));
+
+vi.mock('@ui/feedback/alert/Alert', () => ({
+  default: ({
+    children,
+  }: import('react').ComponentProps<
+    typeof import('@ui/feedback/alert/Alert').default
+  >) => <div data-testid="alert">{children}</div>,
+}));
+
+vi.mock('@ui/display/badge/Badge', () => ({
+  default: ({
+    children,
+  }: import('react').ComponentProps<
+    typeof import('@ui/display/badge/Badge').default
+  >) => <span data-testid="badge">{children}</span>,
+}));
+
+vi.mock('next/image', () => ({
+  default: ({ src, alt }: import('react').ComponentProps<'input'>) => (
+    <input type="image" src={src} alt={alt} />
+  ),
+}));
+
+describe('ModalGalleryHeader', () => {
+  const defaultProps = {
+    accountReference: null,
+    activeTab: 'media' as const,
+    category: IngredientCategory.IMAGE,
+    filterReferenceId: '',
+    localFormat: 'portrait' as const,
+    onClearFilter: vi.fn(),
+    onReloadItems: vi.fn(),
+    onTabChange: vi.fn(),
+    onUseAccountReference: vi.fn(),
+    tabs: [
+      { id: 'media', label: 'Images' },
+      { id: 'references', label: 'Branding' },
+    ],
+  };
+
+  it('renders tabs for image category', () => {
+    render(<ModalGalleryHeader {...defaultProps} />);
+    expect(screen.getByText('Images')).toBeInTheDocument();
+    expect(screen.getByText('Branding')).toBeInTheDocument();
+  });
+
+  it('renders account reference section when provided', () => {
+    const accountRef = { id: 'ref-1', url: 'http://example.com/ref.jpg' };
+    render(
+      <ModalGalleryHeader {...defaultProps} accountReference={accountRef} />,
+    );
+    expect(screen.getByText('Use Account Reference')).toBeInTheDocument();
+  });
+
+  it('renders format badge for references tab', () => {
+    render(<ModalGalleryHeader {...defaultProps} activeTab="references" />);
+    // Component shows format as a badge, not a selector
+    expect(screen.getByText(/Format:/)).toBeInTheDocument();
+    expect(screen.getByText(/Portrait/)).toBeInTheDocument();
+  });
+
+  it('renders format badge for media tab', () => {
+    render(<ModalGalleryHeader {...defaultProps} activeTab="media" />);
+    expect(screen.getByText(/Format:/)).toBeInTheDocument();
+  });
+
+  it('renders upload button', () => {
+    render(<ModalGalleryHeader {...defaultProps} />);
+    expect(screen.getByText('Upload')).toBeInTheDocument();
+  });
+
+  it('renders format info alert', () => {
+    render(<ModalGalleryHeader {...defaultProps} activeTab="media" />);
+    expect(screen.getByTestId('alert')).toBeInTheDocument();
+  });
+
+  it('renders filter badge when filterReferenceId is provided', () => {
+    render(<ModalGalleryHeader {...defaultProps} filterReferenceId="ref-1" />);
+    expect(screen.getByText('Filtered by references')).toBeInTheDocument();
+  });
+});

@@ -33,8 +33,6 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
-import FilterMenu from '@ui/content/filter-menu/FilterMenu';
-import SearchField from '@ui/content/search-field/SearchField';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
@@ -44,6 +42,8 @@ import { Input } from '@ui/primitives/input';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import FilterMenu from '@/components/content/filter-menu/FilterMenu';
+import SearchField from '@/components/content/search-field/SearchField';
 import BrandAvatar from '@/features/analytics/components/display/brand-avatar/BrandAvatar';
 import AccountCell from '@/features/brands/components/integrations/AccountCell';
 

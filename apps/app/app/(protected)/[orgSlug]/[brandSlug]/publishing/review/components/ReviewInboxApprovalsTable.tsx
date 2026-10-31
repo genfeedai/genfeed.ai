@@ -4,7 +4,6 @@ import type {
   ReviewInboxItemSource,
 } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import type { ReviewInboxApprovalsTableProps } from '@props/publishing/review-inbox-approvals.props';
 import type { BadgeProps } from '@props/ui/display/badge.props';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import Badge from '@ui/display/badge/Badge';
@@ -12,6 +11,7 @@ import AppTable from '@ui/display/table/Table';
 import { Check, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+import type { ReviewInboxApprovalsTableProps } from '@/props/publishing/review-inbox-approvals.props';
 import ReviewInboxPreview from './ReviewInboxPreview';
 import { REVIEW_INBOX_SOURCE_MESSAGE_KEYS } from './review-inbox.helpers';
 

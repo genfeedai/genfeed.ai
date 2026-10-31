@@ -20,7 +20,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock(
-  '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect',
+  '@/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect',
   () => ({
     usePlatformOAuthConnect: () => vi.fn(),
   }),

@@ -1,20 +1,20 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
-import type {
-  ModalityFilterValue,
-  SourceFilterValue,
-  StageFilterValue,
-} from '@props/settings/skill-filters.props';
-import FilterMenu from '@ui/content/filter-menu/FilterMenu';
-import SearchField from '@ui/content/search-field/SearchField';
 import { Button } from '@ui/primitives/button';
 import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import FilterMenu from '@/components/content/filter-menu/FilterMenu';
+import SearchField from '@/components/content/search-field/SearchField';
 import type {
   SkillAgentActionProps,
   SkillSearchProps,
 } from '@/features/settings/props/skills.props';
+import type {
+  ModalityFilterValue,
+  SourceFilterValue,
+  StageFilterValue,
+} from '@/props/settings/skill-filters.props';
 
 import {
   MODALITY_FILTERS,

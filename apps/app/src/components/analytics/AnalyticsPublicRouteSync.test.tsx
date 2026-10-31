@@ -21,7 +21,7 @@ const mocks = vi.hoisted(() => ({
   setSentryAccountContext: vi.fn(),
 }));
 
-vi.mock('@hooks/auth/use-auth-user', () => ({
+vi.mock('@/hooks/auth/use-auth-user', () => ({
   useAuthUser: () => ({
     isLoaded: mocks.authIsLoaded,
     user: mocks.authUser,

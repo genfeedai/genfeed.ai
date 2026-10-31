@@ -7,7 +7,7 @@ import type {
   MessagesBrandFilterOption,
   MessagesInboxView,
   MessagesSurface,
-} from '@genfeedai/props/messages/messages-conversation-sidebar.props';
+} from '@/props/messages/messages-conversation-sidebar.props';
 
 export interface MessagesFilterMenuProps {
   accounts: readonly ICredential[];

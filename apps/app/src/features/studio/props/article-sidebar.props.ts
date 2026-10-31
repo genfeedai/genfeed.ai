@@ -1,7 +1,7 @@
 import type { Article } from '@genfeedai/models/content/article.model';
-import type { ArticleFormState } from '@props/content/article-editor.props';
-import type { ArticlePublishDestination } from '@props/edit/article-public-page.props';
-import type { ArticleDeliveryCardProps } from '@props/edit/long-form-delivery.props';
+import type { ArticleFormState } from '@/props/content/article-editor.props';
+import type { ArticlePublishDestination } from '@/props/edit/article-public-page.props';
+import type { ArticleDeliveryCardProps } from '@/props/edit/long-form-delivery.props';
 
 export type ArticleSidebarProps = {
   form: Pick<

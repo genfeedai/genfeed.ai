@@ -17,10 +17,10 @@ import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import Spinner from '@ui/primitives/spinner';
-import { libraryTagStyle } from '@ui/tags/library-tag-picker/library-tag-colors.util';
-import { LIBRARY_TAGS_QUERY_KEY } from '@ui/tags/library-tag-picker/library-tags-query-key';
 import { Plus, Tag, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { libraryTagStyle } from '@/components/tags/library-tag-picker/library-tag-colors.util';
+import { LIBRARY_TAGS_QUERY_KEY } from '@/components/tags/library-tag-picker/library-tags-query-key';
 import TagsManager from '@/features/ingredients/components/tags/manager/TagsManager';
 import type { ExtendedIngredientTabsTagsProps } from '@/features/ingredients/props/ingredient-tabs.props';
 

@@ -1,8 +1,6 @@
 import { selectView, viewMenuTrigger } from '@app-tests/view-menu.helpers';
 import '@testing-library/jest-dom/vitest';
 import { ViewType } from '@genfeedai/contracts';
-import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
-import type { ClipperProjectSummary } from '@props/studio/clipper.props';
 import {
   fireEvent,
   render,
@@ -14,6 +12,8 @@ import userEvent from '@testing-library/user-event';
 import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import type { ComponentProps } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
+import type { ClipperProjectSummary } from '@/props/studio/clipper.props';
 import ClipperProjectListBase from './ClipperProjectList';
 
 /** The workspace owns the view and its toggle; mirror that here. */

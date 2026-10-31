@@ -8,7 +8,6 @@ import {
 import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-card.interface';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
-import OverviewLayout from '@ui/overview/OverviewLayout';
 import { formatIngredientFileSize } from '@utils/media/ingredient-ledger.util';
 import {
   ClipboardCheck,
@@ -19,6 +18,7 @@ import {
   TriangleAlert,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import OverviewLayout from '@/components/overview/OverviewLayout';
 import { useLibrarySummary } from '@/features/library/hooks/use-library-summary';
 import type { LibraryOverviewProps } from '@/features/library/props/library-overview.props';
 

@@ -3,13 +3,13 @@
 import { AssetScope, ButtonVariant } from '@genfeedai/contracts';
 import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
-import type { IngredientTabsSharingProps } from '@genfeedai/props/content/ingredient.props';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
-import { ScopeSelector } from '@ui/assets/ScopeSelector';
 import { Button } from '@ui/primitives/button';
 import { Copy } from 'lucide-react';
+import { ScopeSelector } from '@/components/assets/ScopeSelector';
+import type { IngredientTabsSharingProps } from '@/props/content/ingredient.props';
 
 export default function IngredientTabsSharing({
   ingredient,

@@ -1,8 +1,8 @@
 'use client';
 
-import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import type { BrandDetailDefaultModelsCardProps } from '@props/pages/brand-detail.props';
 import Card from '@ui/card/Card';
+import { useOrganization } from '@/hooks/data/organization/use-organization/use-organization';
 
 export default function BrandDetailDefaultModelsCard({
   brand,

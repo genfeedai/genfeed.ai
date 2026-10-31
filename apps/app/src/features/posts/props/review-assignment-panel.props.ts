@@ -1,4 +1,4 @@
-import type { ReviewPanelItem } from '@props/publishing/review-panel-item.props';
+import type { ReviewPanelItem } from '@/props/publishing/review-panel-item.props';
 
 export interface ReviewAssignmentMemberOption {
   id: string;

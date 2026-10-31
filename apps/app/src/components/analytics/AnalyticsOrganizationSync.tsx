@@ -1,9 +1,9 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { useAuthUser } from '@hooks/auth/use-auth-user';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
+import { useAuthUser } from '@/hooks/auth/use-auth-user';
 import {
   captureAnalyticsPageview,
   clearAnalyticsOrganization,

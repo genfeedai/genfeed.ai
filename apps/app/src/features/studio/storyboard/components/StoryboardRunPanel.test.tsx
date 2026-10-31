@@ -17,7 +17,7 @@ vi.mock('@/features/studio/storyboard/hooks/use-storyboard-assets', () => ({
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ organizationId: 'org-1' }),
 }));
-vi.mock('@hooks/data/ingredients/use-avatar-images/use-avatar-images', () => ({
+vi.mock('@/hooks/data/ingredients/use-avatar-images/use-avatar-images', () => ({
   useAvatarImages: () => ({
     avatars: [
       { id: 'avatar-row-1', brandId: 'brand-1', metadataLabel: 'Presenter' },

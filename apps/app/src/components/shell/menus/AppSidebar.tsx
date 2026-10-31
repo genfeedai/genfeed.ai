@@ -1,0 +1,90 @@
+'use client';
+
+import type { ReactNode } from 'react';
+import { useMemo } from 'react';
+import MenuShared from '@/components/menus/shared/MenuShared';
+import type {
+  BaseMenuProps,
+  MenuPrimaryActionConfig,
+  MenuSharedProps,
+  MenuShellConfig,
+} from '@/props/navigation/menu.props';
+
+export interface AppSidebarProps extends BaseMenuProps {
+  renderTopSlot?: MenuSharedProps['renderTopSlot'];
+
+  renderBody?: () => ReactNode;
+  renderAfterNavigation?: MenuSharedProps['renderAfterNavigation'];
+  backHref?: string;
+  backLabel?: string;
+  collapsedSidebarWidth?: MenuSharedProps['collapsedSidebarWidth'];
+  currentApp?: MenuSharedProps['currentApp'];
+  mobileSidebarWidth?: MenuSharedProps['mobileSidebarWidth'];
+  primaryAction?: MenuPrimaryActionConfig;
+  secondaryItems?: MenuShellConfig['secondaryItems'];
+  sectionLabel?: string;
+  isCollapsed?: MenuSharedProps['isCollapsed'];
+  onToggleCollapse?: MenuSharedProps['onToggleCollapse'];
+  showPrimaryItems?: MenuSharedProps['showPrimaryItems'];
+  sidebarWidth?: MenuSharedProps['sidebarWidth'];
+  conversationActions?: MenuSharedProps['conversationActions'];
+  renderFooterSlot?: MenuSharedProps['renderFooterSlot'];
+  headerSlot?: MenuSharedProps['headerSlot'];
+  items: MenuShellConfig['items'];
+}
+
+export default function AppSidebar({
+  onClose,
+  renderTopSlot,
+  renderBody,
+  renderAfterNavigation,
+  backHref,
+  backLabel,
+  collapsedSidebarWidth,
+  currentApp,
+  mobileSidebarWidth,
+  primaryAction,
+  secondaryItems,
+  sectionLabel,
+  isCollapsed,
+  onToggleCollapse,
+  showPrimaryItems,
+  sidebarWidth,
+  conversationActions,
+  renderFooterSlot,
+  headerSlot,
+  items,
+}: AppSidebarProps) {
+  const config = useMemo<MenuShellConfig>(
+    () => ({
+      items,
+      logoHref: '/',
+      primaryAction,
+      secondaryItems,
+    }),
+    [items, primaryAction, secondaryItems],
+  );
+
+  return (
+    <MenuShared
+      collapsedSidebarWidth={collapsedSidebarWidth}
+      config={config}
+      currentApp={currentApp}
+      mobileSidebarWidth={mobileSidebarWidth}
+      onClose={onClose}
+      renderTopSlot={renderTopSlot}
+      renderBody={renderBody}
+      renderAfterNavigation={renderAfterNavigation}
+      backHref={backHref}
+      backLabel={backLabel}
+      sectionLabel={sectionLabel}
+      isCollapsed={isCollapsed}
+      onToggleCollapse={onToggleCollapse}
+      showPrimaryItems={showPrimaryItems}
+      sidebarWidth={sidebarWidth}
+      conversationActions={conversationActions}
+      renderFooterSlot={renderFooterSlot}
+      headerSlot={headerSlot}
+    />
+  );
+}

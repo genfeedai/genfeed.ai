@@ -11,7 +11,6 @@ import type { SurfaceSummaryItem } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import type { AgentCampaign } from '@services/automation/agent-campaigns.service';
 import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
@@ -46,6 +45,7 @@ import type {
   AgentCampaignProgressProps,
   AgentCampaignRelativeTimeTranslate,
 } from '@/features/agents/props/agent-campaigns-page.props';
+import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
 
 const CAMPAIGNS_COLLECTION_SURFACE = 'automation.campaigns';
 

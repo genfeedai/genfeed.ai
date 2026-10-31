@@ -30,7 +30,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));
-vi.mock('@ui/content/admin-filters/useAdminSearchParam', async () => {
+vi.mock('@/components/content/admin-filters/useAdminSearchParam', async () => {
   const { useState } = await import('react');
   return {
     // The real hook keeps the term in the URL; state is enough for the page.
@@ -53,7 +53,7 @@ vi.mock('@ui/layout/container/Container', () => ({
     </>
   ),
 }));
-vi.mock('@ui/overview/WorkspaceSurface', () => ({
+vi.mock('@/components/overview/WorkspaceSurface', () => ({
   WorkspaceSurface: ({ children }: PropsWithChildren) => children,
 }));
 vi.mock('@services/core/notifications.service', () => ({

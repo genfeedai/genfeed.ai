@@ -219,7 +219,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => vi.fn(),
 }));
 
-vi.mock('@hooks/data/analytics/use-analytics/use-analytics', () => ({
+vi.mock('@/hooks/data/analytics/use-analytics/use-analytics', () => ({
   useAnalytics: () => mockAnalyticsReturn,
 }));
 
@@ -230,7 +230,7 @@ vi.mock(
   }),
 );
 
-vi.mock('@hooks/data/analytics/use-leaderboards/use-leaderboards', () => ({
+vi.mock('@/hooks/data/analytics/use-leaderboards/use-leaderboards', () => ({
   useLeaderboards: (options: unknown) => {
     mockDataHookOptions.leaderboards(options);
     return mockLeaderboardsReturn;
@@ -244,7 +244,7 @@ vi.mock('@/features/analytics/hooks/use-timeseries/use-timeseries', () => ({
   },
 }));
 
-vi.mock('@hooks/data/analytics/use-top-posts/use-top-posts', () => ({
+vi.mock('@/hooks/data/analytics/use-top-posts/use-top-posts', () => ({
   useTopPosts: (options: unknown) => {
     mockDataHookOptions.topPosts(options);
     return mockTopPostsReturn;

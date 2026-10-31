@@ -28,7 +28,6 @@ import type {
 } from '@genfeedai/contracts/interfaces/content/generation-payload.interface';
 import type { AssetQueryService } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { requestTopbarBalancesRefresh } from '@hooks/data/billing/use-topbar-balances/request-topbar-balances-refresh';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { getPersistedVideoIngredientIds } from '@services/core/json-api-error-message';
@@ -91,6 +90,7 @@ import {
   resolveSpeakingVoiceProvider,
   resolveSpeechVoiceProvider,
 } from '@/features/studio/playground/utils/studio-voice-selection';
+import { requestTopbarBalancesRefresh } from '@/hooks/data/billing/use-topbar-balances/request-topbar-balances-refresh';
 
 export interface UseStudioGenerationParams {
   brandId: string;

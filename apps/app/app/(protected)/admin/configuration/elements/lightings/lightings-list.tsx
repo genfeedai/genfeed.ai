@@ -15,11 +15,9 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { LightingsService } from '@services/elements/lightings.service';
 import { useQuery } from '@tanstack/react-query';
-import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
 import { useElementRowSidebar } from '@ui/display/element-scope-badge/element-row-sidebar';
 import AppTable from '@ui/display/table/Table';
-import { LazyModalLighting } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Pencil, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
@@ -33,6 +31,8 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
+import { LazyModalLighting } from '@/components/lazy/modal/LazyModal';
 
 function LightingsListContent({
   filters,

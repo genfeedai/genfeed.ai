@@ -4,7 +4,7 @@ import type {
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
 import type { Newsletter } from '@models/content/newsletter.model';
-import type { CalendarItem } from '@props/components/calendar.props';
+import type { CalendarItem } from '@/props/components/calendar.props';
 
 export interface NewsletterContentCalendarItem extends CalendarItem {
   itemType: 'newsletter';

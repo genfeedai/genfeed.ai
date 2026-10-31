@@ -1,7 +1,7 @@
 import type { ICredential } from '@genfeedai/contracts/interfaces';
 import type { SocialConversationModel } from '@genfeedai/models/social/social-conversation.model';
-import type { MessagesSurface } from '@genfeedai/props/messages/messages-conversation-sidebar.props';
 import type { SocialMessagesService } from '@genfeedai/services/social/messages.service';
+import type { MessagesSurface } from '@/props/messages/messages-conversation-sidebar.props';
 
 export interface UseMessagesActionsParams {
   readonly canAttachReferences: boolean;

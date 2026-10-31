@@ -127,7 +127,7 @@ vi.mock('next/navigation', () => ({
   })),
 }));
 
-vi.mock('@ui/lazy/modal/LazyModal', async () => {
+vi.mock('@/components/lazy/modal/LazyModal', async () => {
   const React = await import('react');
   const { ModalEnum: ArticleModalEnum } = await import('@genfeedai/contracts');
   const { isModalOpen, subscribeModal } = await import(
@@ -291,7 +291,7 @@ describe('article create modal id contract', () => {
   it('fails when the list opener and ModalArticle listen on different ids', () => {
     const listSource = readNearbySource('articles-list.tsx');
     const modalSource = readNearbySource(
-      '../../../../../../packages/ui/src/components/modals/content/article/ModalArticle.tsx',
+      '../../../components/modals/content/article/ModalArticle.tsx',
     );
 
     const openedIds = [

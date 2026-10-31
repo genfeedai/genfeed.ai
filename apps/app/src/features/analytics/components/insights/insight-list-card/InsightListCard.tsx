@@ -2,7 +2,6 @@
 
 import { ButtonVariant, InsightImpact } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { InsightListCardProps } from '@genfeedai/props/analytics/insights.props';
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
@@ -13,6 +12,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Lightbulb, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { memo } from 'react';
+import type { InsightListCardProps } from '@/props/analytics/insights.props';
 
 const IMPACT_BADGE_VARIANT: Record<InsightImpact, BadgeProps['variant']> = {
   [InsightImpact.HIGH]: 'warning',

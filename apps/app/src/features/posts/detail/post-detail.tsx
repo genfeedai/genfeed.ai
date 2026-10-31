@@ -19,12 +19,9 @@ import {
 } from '@genfeedai/contracts/constants';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { PostReviewSummary } from '@props/components/post-detail-sidebar.props';
 import Card from '@ui/card/Card';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
-import TargetPreview from '@ui/previews/TargetPreview';
 import { Button } from '@ui/primitives/button';
-import RecordFactLine from '@ui/record-detail/RecordFactLine';
 import {
   buildSourcePostVariationsHref,
   isSourcePostVariationPlatform,
@@ -34,6 +31,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
+import TargetPreview from '@/components/previews/TargetPreview';
+import RecordFactLine from '@/components/record-detail/RecordFactLine';
 import EngagementPreview from '@/features/posts/components/posts/engagement-preview/EngagementPreview';
 import PostDetailSidebar from '@/features/posts/components/posts/post-detail-sidebar/PostDetailSidebar';
 import PostDetailContent from '@/features/posts/detail/components/PostDetailContent';
@@ -43,6 +42,7 @@ import PostDetailPublished from '@/features/posts/detail/components/PostDetailPu
 import { buildPostDetailFacts } from '@/features/posts/detail/post-detail-facts.helper';
 import { buildPostTargetPreview } from '@/features/posts/detail/post-detail-preview.helpers';
 import { usePostDetail } from '@/features/posts/hooks/use-post-detail/use-post-detail';
+import type { PostReviewSummary } from '@/props/components/post-detail-sidebar.props';
 
 export interface PostDetailProps {
   postId: string;

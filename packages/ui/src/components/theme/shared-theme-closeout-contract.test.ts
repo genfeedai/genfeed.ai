@@ -12,7 +12,6 @@ const THEME_AWARE_CHROME = [
   'primitives/switch.tsx',
   'primitives/calendar.tsx',
   'components/quick-actions/menu/QuickActionsMenu.tsx',
-  'components/assets/ScopeSelector.tsx',
 ] as const;
 
 describe('shared Light/Dark semantic chrome contract', () => {

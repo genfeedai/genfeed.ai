@@ -9,7 +9,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import IngredientDetailImage from '@/features/ingredients/detail-image/IngredientDetailImage';
 
-vi.mock('@ui/evaluation/card/EvaluationCard', () => ({
+vi.mock('@/components/evaluation/card/EvaluationCard', () => ({
   default: () => <div data-testid="evaluation-card" />,
 }));
 
@@ -74,7 +74,7 @@ vi.mock(
   }),
 );
 
-vi.mock('@genfeedai/hooks/ui/evaluation/use-evaluation/use-evaluation', () => ({
+vi.mock('@/hooks/ui/evaluation/use-evaluation/use-evaluation', () => ({
   useEvaluation: () => ({
     evaluate: vi.fn(),
     evaluation: null,

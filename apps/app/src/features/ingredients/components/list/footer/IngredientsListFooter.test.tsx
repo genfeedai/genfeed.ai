@@ -9,7 +9,7 @@ vi.mock('@ui/layouts/lightbox/MediaLightbox', () => ({
   default: () => <div data-testid="media-lightbox" />,
 }));
 
-vi.mock('@ui/lazy/modal/LazyModal', () => ({
+vi.mock('@/components/lazy/modal/LazyModal', () => ({
   __esModule: true,
   LazyModalFolder: () => <div data-testid="lazy-modal-folder" />,
 }));

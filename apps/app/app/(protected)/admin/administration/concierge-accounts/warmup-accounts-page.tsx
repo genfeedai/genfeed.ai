@@ -12,8 +12,6 @@ import { AdminWarmupAccountsService } from '@services/admin/warmup-accounts.serv
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import CardEmpty from '@ui/card/empty/CardEmpty';
-import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
-import SearchField from '@ui/content/search-field/SearchField';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
@@ -27,6 +25,8 @@ import { Ban, CircleCheck, Mail, Rocket, RotateCw, Search } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
+import SearchField from '@/components/content/search-field/SearchField';
 import type {
   WarmupActiveInvitationRequest as ActiveInvitationRequest,
   WarmupAccountsPageAction as PageAction,

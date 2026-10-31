@@ -2,12 +2,12 @@ import type {
   SkillVersionMetadataV1,
   SkillVersionReadV1,
 } from '@genfeedai/contracts/interfaces/ai/skill-version-read.interface';
+import type { Skill } from '@services/content/skills.service';
 import type {
   ModalityFilterValue,
   SourceFilterValue,
   StageFilterValue,
-} from '@props/settings/skill-filters.props';
-import type { Skill } from '@services/content/skills.service';
+} from '@/props/settings/skill-filters.props';
 
 export type SkillDraft = {
   defaultInstructions: string;

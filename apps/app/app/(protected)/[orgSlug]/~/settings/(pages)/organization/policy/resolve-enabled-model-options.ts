@@ -5,9 +5,9 @@ import {
   AGENT_THINKING_OVERRIDE_CATEGORIES,
 } from '@genfeedai/contracts/constants';
 import type { IModel } from '@genfeedai/contracts/interfaces';
-import type { EnabledModelOption } from '@props/settings/model-routing.props';
+import type { EnabledModelOption } from '@/props/settings/model-routing.props';
 
-export type { EnabledModelOption } from '@props/settings/model-routing.props';
+export type { EnabledModelOption } from '@/props/settings/model-routing.props';
 
 // Re-exported under this page's existing names; the categories themselves
 // are shared with the server-side override validation — see

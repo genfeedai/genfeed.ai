@@ -8,7 +8,7 @@ import studio from '@app-i18n/page-scopes/studio';
 import type {
   IntlMessageTree,
   OrganizationAppIntlLayoutProps,
-} from '@genfeedai/props/providers/intl-provider.props';
+} from '@/props/providers/intl-provider.props';
 
 const SCOPES: Readonly<Record<string, IntlMessageTree>> = {
   automation,

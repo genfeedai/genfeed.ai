@@ -2,13 +2,13 @@
 
 import { PLATFORM_FLAG_KEYS } from '@genfeedai/contracts/constants';
 import type { IPlatformFlags } from '@genfeedai/contracts/interfaces';
-import {
-  FOREGROUND_MIN_AWAY_MS,
-  onForeground,
-} from '@hooks/utils/on-foreground/on-foreground';
 import { logger } from '@services/core/logger.service';
 import { PublicService } from '@services/external/public.service';
 import { useEffect, useState } from 'react';
+import {
+  FOREGROUND_MIN_AWAY_MS,
+  onForeground,
+} from '@/hooks/utils/on-foreground/on-foreground';
 import {
   PLATFORM_FLAGS_REFRESH_INTERVAL_MS,
   subscribePlatformFlagsChanged,

@@ -57,7 +57,7 @@ vi.mock('../use-economics-report', () => ({
   })),
 }));
 
-vi.mock('@ui/analytics/charts/series/series-chart', () => ({
+vi.mock('@/components/analytics/charts/series/series-chart', () => ({
   SeriesChart: ({ ariaLabel }: { ariaLabel: string }) => (
     <div role="img" aria-label={ariaLabel} />
   ),

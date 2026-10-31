@@ -1,7 +1,7 @@
 'use client';
 
-import type { AppLayoutProps } from '@genfeedai/props/layout/app-layout.props';
-import BaseAppLayout from '@ui/layouts/app/AppLayout';
+import BaseAppLayout from '@/components/layouts/app/AppLayout';
+import type { AppLayoutProps } from '@/props/layout/app-layout.props';
 
 export function AppShell(props: AppLayoutProps) {
   return <BaseAppLayout {...props} />;

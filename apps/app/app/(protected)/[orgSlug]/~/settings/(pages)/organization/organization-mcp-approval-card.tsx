@@ -2,13 +2,13 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { MemberRole } from '@genfeedai/contracts';
-import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
-import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
 import { Switch } from '@ui/primitives/switch';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
+import { useOrganization } from '@/hooks/data/organization/use-organization/use-organization';
 
 /**
  * The organization half of "Require approval for MCP requests". The organization owns the

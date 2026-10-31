@@ -1,7 +1,7 @@
 import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
-import type { EditorLayoutProps } from '@props/studio/editor-layout.props';
 import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
 import { useTranslations } from 'next-intl';
+import type { EditorLayoutProps } from '@/props/studio/editor-layout.props';
 import EditorInspector from './EditorInspector';
 import EditorLockedBanner from './EditorLockedBanner';
 import EditorOutputPane from './EditorOutputPane';

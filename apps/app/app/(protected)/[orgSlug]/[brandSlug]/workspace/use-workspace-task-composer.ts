@@ -5,18 +5,12 @@ import {
   VoiceProvider,
 } from '@genfeedai/contracts';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import type {
-  FacecamOption,
-  UseWorkspaceTaskComposerParams,
-} from '@genfeedai/props/workspace/workspace-task-composer.props';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import {
   heyGenAvatarValue,
   heyGenDefaultVoice,
   heyGenVoiceValue,
 } from '@helpers/voice/heygen-identity.helper';
-import { useHeyGenCatalog } from '@hooks/data/integrations/use-heygen-catalog';
-import { useWebsocketPrompt } from '@hooks/utils/use-websocket-prompt/use-websocket-prompt';
 import { Prompt } from '@models/content/prompt.model';
 import { PromptsService } from '@services/content/prompts.service';
 import { logger } from '@services/core/logger.service';
@@ -31,6 +25,12 @@ import StarterKit from '@tiptap/starter-kit';
 import type { SuggestionOptions } from '@tiptap/suggestion';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import tippy, { type Instance } from 'tippy.js';
+import { useHeyGenCatalog } from '@/hooks/data/integrations/use-heygen-catalog';
+import { useWebsocketPrompt } from '@/hooks/utils/use-websocket-prompt/use-websocket-prompt';
+import type {
+  FacecamOption,
+  UseWorkspaceTaskComposerParams,
+} from '@/props/workspace/workspace-task-composer.props';
 import {
   type WorkspaceBrandMentionItem,
   WorkspaceBrandMentionList,

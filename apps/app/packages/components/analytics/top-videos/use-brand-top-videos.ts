@@ -11,17 +11,17 @@ import {
   isBrandResourceReady,
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import {
-  evaluationReadRevision,
-  evaluationVideoCache,
-  evaluationVideosQueryKey,
-  useEvaluationReadScopeKey,
-} from '@hooks/ui/evaluation/use-evaluation/evaluation-read-cache';
 import { OutlierBaselinesService } from '@services/analytics/outlier-baselines.service';
 import { logger } from '@services/core/logger.service';
 import { VideosService } from '@services/ingredients/videos.service';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
+import {
+  evaluationReadRevision,
+  evaluationVideoCache,
+  evaluationVideosQueryKey,
+  useEvaluationReadScopeKey,
+} from '@/hooks/ui/evaluation/use-evaluation/evaluation-read-cache';
 
 import { getPersuasionHighlight } from './persuasion-highlight.util';
 

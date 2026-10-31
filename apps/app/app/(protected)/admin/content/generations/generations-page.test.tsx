@@ -47,7 +47,7 @@ vi.mock('@ui/layout/admin-page-shell/AdminPageShell', () => ({
   ),
 }));
 
-vi.mock('@ui/content/admin-filters/AdminOrgBrandUrlFilter', () => ({
+vi.mock('@/components/content/admin-filters/AdminOrgBrandUrlFilter', () => ({
   default: () => <div data-testid="org-filter" />,
   useAdminOrgBrandParams: () => ({
     brand: mocks.brand,

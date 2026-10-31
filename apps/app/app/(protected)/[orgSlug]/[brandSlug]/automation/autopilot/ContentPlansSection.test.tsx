@@ -48,7 +48,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   }),
 }));
 
-vi.mock('@hooks/data/content-plans/use-content-plans', () => ({
+vi.mock('@/hooks/data/content-plans/use-content-plans', () => ({
   useContentPlans: (options: unknown) => mocks.useContentPlans(options),
 }));
 
@@ -161,7 +161,7 @@ vi.mock('@ui/display/table/Table', () => ({
 }));
 
 vi.mock(
-  '@ui/analytics/performance-dataset-badge/PerformanceDatasetBadge',
+  '@/components/analytics/performance-dataset-badge/PerformanceDatasetBadge',
   () => ({
     LOW_CONFIDENCE_STATES: ['none', 'low'],
     default: ({ confidence }: { confidence: string }) => (

@@ -75,7 +75,7 @@ vi.mock('@ui/card/Card', () => ({
   ),
 }));
 
-vi.mock('@ui/overview/OverviewTrendsPanel', () => ({
+vi.mock('@/components/overview/OverviewTrendsPanel', () => ({
   OverviewTrendsPanel: ({
     isLoading,
     trends,

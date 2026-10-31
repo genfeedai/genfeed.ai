@@ -1,0 +1,112 @@
+'use client';
+
+import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
+import { IngredientCategory, ModalEnum } from '@genfeedai/contracts';
+import type { ModalImageToVideoProps } from '@genfeedai/props/modals/modal.props';
+import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
+import Modal from '@ui/modals/modal/Modal';
+import { Label } from '@ui/primitives/label';
+import { useTranslations } from 'next-intl';
+import IngredientThumbnail from '@/components/ingredients/ingredient-thumbnail/IngredientThumbnail';
+import PromptBar from '@/components/prompt-bars/base/PromptBar';
+
+export default function ModalImageToVideo({
+  image,
+  imageToVideoCrunBinding,
+  models,
+  presets,
+  moods,
+  styles,
+  cameras,
+  sounds,
+  tags,
+  fontFamilies,
+  blacklists,
+  promptData,
+  isGenerating,
+  onPromptChange,
+  onSubmit,
+  onClose,
+}: ModalImageToVideoProps) {
+  const translate = useTranslations('pages.studioPlayground.crun');
+  const isVeoConversion =
+    promptData.models?.includes('crun/google/veo3-1-fast-t2v') ?? false;
+  const handleSubmit = () => {
+    if (!promptData?.isValid || !image) {
+      return;
+    }
+
+    onSubmit(promptData as PromptTextareaSchema & { isValid: boolean });
+  };
+
+  return (
+    <Modal
+      id={ModalEnum.IMAGE_TO_VIDEO}
+      title="Convert image to video"
+      onClose={onClose}
+      modalBoxClassName="max-w-5xl"
+    >
+      {image ? (
+        <div className="flex flex-col gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-6">
+            <div className="space-y-4">
+              <div className="relative aspect-[3/4] overflow-hidden bg-background">
+                <IngredientThumbnail
+                  alt={image.promptText || 'Selected image'}
+                  className="object-cover outline-media"
+                  ingredient={image}
+                  isPriority
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                />
+              </div>
+
+              <div className="bg-muted/70 shadow-border p-4 text-sm leading-relaxed text-foreground/70">
+                <p>
+                  The selected image will be locked as a reference for the video
+                  prompt. Adjust the prompt or style options, then generate to
+                  start an image-to-video conversion while staying on the image
+                  workspace.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <PromptBarContainer
+                className="w-full"
+                layoutMode="inflow"
+                maxWidth="full"
+              >
+                <div data-testid="image-to-video-composer">
+                  {isVeoConversion ? (
+                    <Label role="alert">{translate('textOnlyMode')}</Label>
+                  ) : null}
+                  <PromptBar
+                    crunVideoBinding={imageToVideoCrunBinding}
+                    categoryType={IngredientCategory.VIDEO}
+                    models={models}
+                    presets={presets}
+                    moods={moods}
+                    styles={styles}
+                    cameras={cameras}
+                    sounds={sounds}
+                    tags={tags}
+                    fontFamilies={fontFamilies}
+                    blacklists={blacklists}
+                    promptData={promptData}
+                    onDatasetChange={onPromptChange}
+                    onSubmit={handleSubmit}
+                    isGenerating={isGenerating}
+                    isGenerateDisabled={
+                      isVeoConversion || !promptData?.isValid || isGenerating
+                    }
+                    generateLabel="Generate Video"
+                  />
+                </div>
+              </PromptBarContainer>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </Modal>
+  );
+}

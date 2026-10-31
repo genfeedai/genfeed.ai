@@ -8,7 +8,7 @@ import type {
   SettingsSearchCatalogOptions,
   SettingsSearchHrefContext,
   SettingsSearchItem,
-} from '@genfeedai/props/ui/settings-search/settings-search.props';
+} from '@/props/ui/settings-search/settings-search.props';
 import { PERSONAL_SETTINGS_ANCHOR } from './personal-settings-anchor';
 import { buildSettingsMenuItems } from './settings-menu-items.config';
 

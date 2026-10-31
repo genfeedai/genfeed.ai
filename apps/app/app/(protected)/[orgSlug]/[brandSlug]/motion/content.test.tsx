@@ -140,7 +140,7 @@ vi.mock('@ui/primitives/select', () => ({
     <span>{children}</span>
   ),
 }));
-vi.mock('@hooks/data/content/use-visual-projects', () => ({
+vi.mock('@/hooks/data/content/use-visual-projects', () => ({
   useVisualProjects: () => ({
     library: { data: [] },
     catalog: {

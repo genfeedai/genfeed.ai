@@ -6,10 +6,10 @@ import { EditSettingModal } from '@protected/organizations/components/edit-setti
 import { useOrganizationSettings } from '@protected/organizations/hooks/use-organization-settings';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Table from '@ui/display/table/Table';
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Pencil } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import type {
   OrganizationSettingsTableProps,
   SelectedSetting,

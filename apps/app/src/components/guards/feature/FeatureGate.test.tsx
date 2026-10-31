@@ -1,0 +1,72 @@
+import { render, screen } from '@testing-library/react';
+import { FeatureFlagProvider } from '@/hooks/feature-flags/provider';
+import '@testing-library/jest-dom/vitest';
+import type { ReactNode } from 'react';
+import { describe, expect, it, vi } from 'vitest';
+import FeatureGate from './FeatureGate';
+
+vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/acme/brand-x${path}` }),
+}));
+
+vi.mock('next/link', () => ({
+  default: ({ children, href }: { children: ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
+}));
+
+describe('FeatureGate', () => {
+  it('renders the unavailable state for an explicit product fallback', () => {
+    render(
+      <FeatureFlagProvider defaults={{}} fallbacks={{ studio: false }}>
+        <FeatureGate flagKey="studio">
+          <span>Studio content</span>
+        </FeatureGate>
+      </FeatureFlagProvider>,
+    );
+
+    expect(screen.getByText('Feature Unavailable')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Back to Workspace' }),
+    ).toHaveAttribute('href', '/acme/brand-x/workspace');
+    expect(screen.queryByText('Studio content')).not.toBeInTheDocument();
+  });
+
+  it('keeps unconfigured OSS features available', () => {
+    render(
+      <FeatureFlagProvider defaults={{}}>
+        <FeatureGate flagKey="analytics">
+          <span>Analytics content</span>
+        </FeatureGate>
+      </FeatureFlagProvider>,
+    );
+
+    expect(screen.getByText('Analytics content')).toBeInTheDocument();
+  });
+
+  it('follows the Admin reply_bot flag (#5468)', () => {
+    const { rerender } = render(
+      <FeatureFlagProvider defaults={{ reply_bot: true }}>
+        <FeatureGate flagKey="reply_bot">
+          <span>Replies content</span>
+        </FeatureGate>
+      </FeatureFlagProvider>,
+    );
+
+    expect(screen.getByText('Replies content')).toBeInTheDocument();
+
+    rerender(
+      <FeatureFlagProvider defaults={{ reply_bot: false }}>
+        <FeatureGate flagKey="reply_bot">
+          <span>Replies content</span>
+        </FeatureGate>
+      </FeatureFlagProvider>,
+    );
+
+    expect(screen.getByText('Feature Unavailable')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Back to Workspace' }),
+    ).toHaveAttribute('href', '/acme/brand-x/workspace');
+    expect(screen.queryByText('Replies content')).not.toBeInTheDocument();
+  });
+});

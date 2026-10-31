@@ -5,7 +5,7 @@ import type { ITag } from '@genfeedai/contracts/interfaces';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { libraryTagStyle } from '@ui/tags/library-tag-picker/library-tag-colors.util';
+import { libraryTagStyle } from '@/components/tags/library-tag-picker/library-tag-colors.util';
 
 type TagPickerDropdownProps = {
   availableTags: ITag[];

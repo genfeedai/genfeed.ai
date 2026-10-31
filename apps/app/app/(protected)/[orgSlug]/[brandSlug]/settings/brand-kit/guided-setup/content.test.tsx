@@ -38,11 +38,11 @@ const mocks = vi.hoisted(() => ({
   draftClearBrand: vi.fn(),
 }));
 
-vi.mock('@hooks/pages/use-brand-detail/use-brand-detail', () => ({
+vi.mock('@/hooks/pages/use-brand-detail/use-brand-detail', () => ({
   useBrandDetail: () => mocks.brandDetail,
 }));
 
-vi.mock('@hooks/utils/use-brand-interview/use-brand-interview', () => ({
+vi.mock('@/hooks/utils/use-brand-interview/use-brand-interview', () => ({
   useBrandInterview: () => mocks.useBrandInterview,
 }));
 

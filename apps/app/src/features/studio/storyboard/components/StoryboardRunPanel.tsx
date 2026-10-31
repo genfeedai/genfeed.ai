@@ -7,7 +7,6 @@ import {
   createPublishingPostsFilterRoute,
 } from '@genfeedai/contracts/constants';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
-import { useAvatarImages } from '@hooks/data/ingredients/use-avatar-images/use-avatar-images';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
@@ -23,6 +22,7 @@ import StoryboardRunScenes from '@/features/studio/storyboard/components/Storybo
 import { useStoryboardAssets } from '@/features/studio/storyboard/hooks/use-storyboard-assets';
 import { getStoryboardAssetLabel } from '@/features/studio/storyboard/utils/storyboard-asset-label';
 import { resolvePairedRunIdentity } from '@/features/studio/storyboard/utils/storyboard-run';
+import { useAvatarImages } from '@/hooks/data/ingredients/use-avatar-images/use-avatar-images';
 
 function formatLabel(value: string): string {
   return value

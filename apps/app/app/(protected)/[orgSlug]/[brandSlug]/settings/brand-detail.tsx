@@ -12,19 +12,19 @@ import { isPublicAssetScope } from '@genfeedai/helpers';
 import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
-import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import { EnvironmentService } from '@services/core/environment.service';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
+import { useCallback, useMemo } from 'react';
 import {
   LazyModalBrandGenerate,
   LazyModalBrandLink,
-} from '@ui/lazy/modal/LazyModal';
-import { useCallback, useMemo } from 'react';
+} from '@/components/lazy/modal/LazyModal';
 import BrandDetailBanner from '@/features/brands/components/banner/BrandDetailBanner';
 import BrandDetailSidebar from '@/features/brands/components/detail-sidebar/BrandDetailSidebar';
 import BrandDetailOverview from '@/features/brands/components/overview/BrandDetailOverview';
+import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
 import BrandDetailLatestArticles from './BrandDetailLatestArticles';
 import BrandDetailLatestImages from './BrandDetailLatestImages';
 import BrandDetailLatestVideos from './BrandDetailLatestVideos';

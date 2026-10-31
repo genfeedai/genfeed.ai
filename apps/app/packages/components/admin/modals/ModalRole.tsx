@@ -7,7 +7,6 @@ import {
   hasFormErrors,
   parseFormErrors,
 } from '@helpers/ui/form-error/form-error.helper';
-import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
 import type { ModalRoleProps } from '@props/modals/modal.props';
 import { RolesService } from '@services/organization/roles.service';
 import Alert from '@ui/feedback/alert/Alert';
@@ -18,6 +17,7 @@ import { Input } from '@ui/primitives/input';
 import Spinner from '@ui/primitives/spinner';
 import { Trash2 } from 'lucide-react';
 import type { ChangeEvent } from 'react';
+import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
 
 export default function ModalRole({ role, onConfirm }: ModalRoleProps) {
   const { form, formRef, isSubmitting, onSubmit, closeModal, handleDelete } =

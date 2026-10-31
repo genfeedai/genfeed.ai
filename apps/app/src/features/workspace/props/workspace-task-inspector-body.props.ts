@@ -1,10 +1,10 @@
+import type { Task } from '@services/management/tasks.service';
 import type {
   WorkspaceTaskLinkedExecutionSummary,
   WorkspaceTaskLinkedIssueSummary,
   WorkspaceTaskLinkedOutputSummary,
   WorkspaceTaskOutputGroup,
-} from '@props/workspace/workspace-task-inspector.props';
-import type { Task } from '@services/management/tasks.service';
+} from '@/props/workspace/workspace-task-inspector.props';
 
 export interface WorkspaceTaskInspectorBodyProps {
   isBusy: boolean;

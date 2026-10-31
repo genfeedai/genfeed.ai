@@ -16,15 +16,15 @@ import { SettingsSurface } from '@genfeedai/contracts';
 import { APP_ROUTES, parseScopedAppPath } from '@genfeedai/contracts/constants';
 import type { AppContext } from '@genfeedai/contracts/interfaces';
 import type { ICommand } from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
-import { useOnboardingRouteAccess } from '@genfeedai/hooks/navigation/use-onboarding-route-access/use-onboarding-route-access';
-import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
-import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
-import type { SettingsSearchItem } from '@genfeedai/props/ui/settings-search/settings-search.props';
 import { CommandPaletteService } from '@genfeedai/services/core/command-palette.service';
 import { getDesktopCreditsVisibility } from '@genfeedai/services/core/desktop-runtime.service';
 import { Settings } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
+import { useOnboardingRouteAccess } from '@/hooks/navigation/use-onboarding-route-access/use-onboarding-route-access';
+import { useDesktopRuntimeContext } from '@/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
+import { useIsDesktopClient } from '@/hooks/ui/use-is-desktop-client/use-is-desktop-client';
+import type { SettingsSearchItem } from '@/props/ui/settings-search/settings-search.props';
 import { useSettingsNavigation } from './use-settings-navigation';
 
 interface BuildScopeCommandsOptions {

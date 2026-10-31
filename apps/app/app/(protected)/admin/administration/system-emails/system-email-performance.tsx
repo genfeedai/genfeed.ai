@@ -14,7 +14,6 @@ import { logger } from '@services/core/logger.service';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Alert, AlertDescription } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
@@ -25,6 +24,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 
 const TEMPLATE_NAMES = new Map(
   LIFECYCLE_SYSTEM_EMAILS.map((email) => [email.id as string, email.name]),

@@ -2,7 +2,7 @@
 
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
-import UserDropdown from '@ui/menus/user-dropdown/UserDropdown';
+import UserDropdown from '@/components/menus/user-dropdown/UserDropdown';
 
 export default function TopbarEnd() {
   const { isSignedIn } = useAuthIdentity();

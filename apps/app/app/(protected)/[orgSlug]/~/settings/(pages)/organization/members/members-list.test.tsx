@@ -47,7 +47,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getMembersService,
 }));
 
-vi.mock('@hooks/auth/use-user-role/use-user-role', () => ({
+vi.mock('@/hooks/auth/use-user-role/use-user-role', () => ({
   useUserRole: () => mocks.useUserRole(),
 }));
 
@@ -149,7 +149,7 @@ vi.mock('@ui/display/table/Table', () => ({
   },
 }));
 
-vi.mock('@ui/lazy/modal/LazyModal', () => ({
+vi.mock('@/components/lazy/modal/LazyModal', () => ({
   LazyModalMember: () => null,
 }));
 

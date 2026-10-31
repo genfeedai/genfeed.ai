@@ -1,12 +1,12 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
+import Image from 'next/image';
 import type {
   AppCatalogThumbnailProps,
   PluginThumbnailArt,
   PluginThumbnailSize,
   PluginThumbnailTone,
-} from '@genfeedai/props/apps/organization-apps-page.props';
-import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
-import Image from 'next/image';
+} from '@/props/apps/organization-apps-page.props';
 import { APP_CATALOG } from './app-catalog';
 
 const TONE_SURFACE_CLASSES: Record<PluginThumbnailTone, string> = {

@@ -22,7 +22,7 @@ vi.mock('@/components/shell/use-available-rail-apps', () => ({
     isReady: state.isReady,
   }),
 }));
-vi.mock('@ui/shell/app-rail/app-rail.registry', () => ({
+vi.mock('@/components/shell/app-rail/app-rail.registry', () => ({
   getRailAppRoute: (appId: string, orgSlug: string, brandSlug?: string) =>
     ['workspace', 'agent', 'library', 'turbo'].includes(appId)
       ? `/${orgSlug}/${brandSlug ?? '~'}/${appId}`

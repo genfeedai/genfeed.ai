@@ -3,17 +3,17 @@
 import type { IPost, IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers';
 import type { PlatformPreviewTarget } from '@genfeedai/props/components/platform-preview.props';
-import type { TargetPreviewCredential } from '@genfeedai/props/ui/previews.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { PostsService } from '@services/content/posts.service';
 import PlatformPreview from '@ui/posts/platform-preview/PlatformPreview';
-import { buildTargetPreview } from '@ui/previews/preview.helpers';
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
 } from '@ui/primitives/hover-card';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { buildTargetPreview } from '@/components/previews/preview.helpers';
+import type { TargetPreviewCredential } from '@/props/ui/previews.props';
 
 function LoadedPostPreview({
   postId,

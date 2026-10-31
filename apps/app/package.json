@@ -5,9 +5,10 @@
     "@genfeedai/auth-client": "*",
     "@genfeedai/client": "*",
     "@genfeedai/config": "*",
+    "@genfeedai/contracts": "workspace:*",
     "@genfeedai/harness": "*",
-    "@genfeedai/integrations": "workspace:*",
     "@genfeedai/helpers": "*",
+    "@genfeedai/integrations": "workspace:*",
     "@genfeedai/next-config": "*",
     "@genfeedai/pricing": "*",
     "@genfeedai/styles": "*",
@@ -16,9 +17,21 @@
     "@remotion/player": "4.0.538",
     "@serwist/turbopack": "9.5.13",
     "@tanstack/react-query": "5.104.5",
+    "@tanstack/react-query-devtools": "5.104.5",
     "@tiptap/core": "3.32.0",
+    "@tiptap/extension-blockquote": "3.32.0",
+    "@tiptap/extension-bold": "3.32.0",
+    "@tiptap/extension-code": "3.32.0",
+    "@tiptap/extension-code-block": "3.32.0",
+    "@tiptap/extension-heading": "3.32.0",
+    "@tiptap/extension-image": "3.32.0",
+    "@tiptap/extension-italic": "3.32.0",
+    "@tiptap/extension-link": "3.32.0",
+    "@tiptap/extension-list": "3.32.0",
     "@tiptap/extension-mention": "3.32.0",
+    "@tiptap/extension-paragraph": "3.32.0",
     "@tiptap/extension-placeholder": "3.32.0",
+    "@tiptap/extension-strike": "3.32.0",
     "@tiptap/extensions": "3.32.0",
     "@tiptap/pm": "3.32.0",
     "@tiptap/react": "3.32.0",
@@ -34,8 +47,7 @@
     "react-dom": "19.3.1",
     "remotion": "4.0.538",
     "serwist": "9.5.13",
-    "zustand": "5.0.16",
-    "@genfeedai/contracts": "workspace:*"
+    "zustand": "5.0.16"
   },
   "description": "Genfeed Content Hub - Unified content management, publishing, and analytics",
   "devDependencies": {
@@ -75,5 +87,17 @@
     "dev:debug": "bun run dev:process",
     "dev:clean": "bun run ../../scripts/dev/prune-next-cache.ts"
   },
+  "sideEffects": [
+    "**/*.css",
+    "./*.ts",
+    "./app/**",
+    "./i18n/**",
+    "./packages/**",
+    "./src/features/**",
+    "./src/lib/**",
+    "./src/providers/**",
+    "./src/store/**",
+    "./src/types/**"
+  ],
   "version": "1.0.0"
 }

@@ -14,11 +14,11 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import { ListRow } from '@ui/lists/list-row/ListRow';
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import type { AnalyticsTopAccountsProps } from '@/features/analytics/props/analytics.props';
 
 export default function AnalyticsTopAccounts({

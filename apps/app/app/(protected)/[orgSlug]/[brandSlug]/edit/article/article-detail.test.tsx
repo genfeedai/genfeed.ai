@@ -29,11 +29,11 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   })),
 }));
 
-vi.mock('@hooks/pages/use-article-detail/use-article-detail', () => ({
+vi.mock('@/hooks/pages/use-article-detail/use-article-detail', () => ({
   useArticleDetail: () => useArticleDetailMock(),
 }));
 
-vi.mock('@hooks/pages/use-x-article-compose/use-x-article-compose', () => ({
+vi.mock('@/hooks/pages/use-x-article-compose/use-x-article-compose', () => ({
   useXArticleCompose: () =>
     useXArticleComposeMock() ?? {
       handleCopyFullArticle: vi.fn(),

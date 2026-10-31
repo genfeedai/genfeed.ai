@@ -51,7 +51,7 @@ vi.mock('@hooks/data/elements/use-elements/use-elements', () => ({
   }),
 }));
 
-vi.mock('@hooks/data/organization/use-organization/use-organization', () => ({
+vi.mock('@/hooks/data/organization/use-organization/use-organization', () => ({
   useOrganization: () => ({
     refresh: mocks.refresh,
     settings: mocks.settings,

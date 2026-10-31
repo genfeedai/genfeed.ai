@@ -13,8 +13,6 @@ import {
 import { closeModal } from '@helpers/ui/modal/modal.helper';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useFocusFirstInput } from '@hooks/ui/use-focus-first-input/use-focus-first-input';
-import { useFormSubmitWithState } from '@hooks/utils/use-form-submit/use-form-submit';
 import type { ModalOrganizationProps } from '@props/modals/modal.props';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
@@ -26,6 +24,8 @@ import { Input } from '@ui/primitives/input';
 import Spinner from '@ui/primitives/spinner';
 import { type ChangeEvent, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
+import { useFocusFirstInput } from '@/hooks/ui/use-focus-first-input/use-focus-first-input';
+import { useFormSubmitWithState } from '@/hooks/utils/use-form-submit/use-form-submit';
 
 export default function ModalSubscription({
   organizationId,

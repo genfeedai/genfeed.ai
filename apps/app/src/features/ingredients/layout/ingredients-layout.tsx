@@ -8,7 +8,6 @@ import type {
   IFiltersState,
 } from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import FiltersSearch from '@ui/content/filters-button/FiltersSearch';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import {
@@ -17,6 +16,7 @@ import {
 } from '@ui-constants/shell-chrome.constant';
 import { Image, Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import FiltersSearch from '@/components/content/filters-button/FiltersSearch';
 import type { IngredientsLayoutProps } from '@/features/ingredients/props/ingredients-layout.props';
 
 import IngredientsLayoutToolbar from './ingredients-layout-toolbar';

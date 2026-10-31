@@ -9,9 +9,7 @@ import {
 } from '@genfeedai/contracts';
 import type { IVideo } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import { useEvaluation } from '@genfeedai/hooks/ui/evaluation/use-evaluation/use-evaluation';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
-import type { IngredientDetailVideoProps } from '@genfeedai/props/content/ingredient.props';
 import type { TabItem } from '@genfeedai/props/ui/navigation/tabs.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
@@ -20,6 +18,8 @@ import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';
 import { useCallback, useEffect, useState } from 'react';
 import { useIngredientMetadata } from '@/features/ingredients/hooks/use-ingredient-metadata/use-ingredient-metadata';
 import { useIngredientSharing } from '@/features/ingredients/hooks/use-ingredient-sharing/use-ingredient-sharing';
+import { useEvaluation } from '@/hooks/ui/evaluation/use-evaluation/use-evaluation';
+import type { IngredientDetailVideoProps } from '@/props/content/ingredient.props';
 import VideoDetailFirstColumn from './VideoDetailFirstColumn';
 import VideoDetailWorkspacePanel from './VideoDetailWorkspacePanel';
 

@@ -1,7 +1,7 @@
 'use client';
 
-import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
-import MenuShared from '@ui/menus/shared/MenuShared';
+import MenuShared from '@/components/menus/shared/MenuShared';
+import type { MenuSharedProps } from '@/props/navigation/menu.props';
 
 export default function Sidebar(props: MenuSharedProps) {
   return <MenuShared {...props} />;

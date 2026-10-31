@@ -1,9 +1,9 @@
 'use client';
 
-import type { WorkspaceOverlayHostProps } from '@genfeedai/props/ui/workspace-overlay-host.props';
 import ContextInspector from '@ui/overlays/context-inspector/ContextInspector';
 import { useTranslations } from 'next-intl';
 import LibraryPickerOverlay from '@/features/library-remix/LibraryPickerOverlay';
+import type { WorkspaceOverlayHostProps } from '@/props/ui/workspace-overlay-host.props';
 
 /**
  * The only context-inspector host owned by the universal workspace shell.

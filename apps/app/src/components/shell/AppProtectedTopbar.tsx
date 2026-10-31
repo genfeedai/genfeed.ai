@@ -6,21 +6,20 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_DISPLAY_LABELS } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers';
 import type { TopbarProps } from '@props/navigation/topbar.props';
-import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSwitcher';
 import { Button } from '@ui/primitives/button';
-import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
-import CreditsLiveSync from '@ui/topbars/credits-bar/CreditsLiveSync';
 import { Menu, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense } from 'react';
-
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
+import OrganizationSwitcher from '@/components/menus/organization-switcher/OrganizationSwitcher';
 import AppProtectedBrandSwitcher from '@/components/shell/AppProtectedBrandSwitcher';
 import GenerationToasts from '@/components/shell/GenerationToasts';
 import NotificationInboxMenu from '@/components/shell/NotificationInboxMenu';
 import TopbarAppsLink from '@/components/shell/TopbarAppsLink';
 import TopbarPanelToggles from '@/components/shell/TopbarPanelToggles';
+import TopbarBreadcrumbs from '@/components/topbars/breadcrumbs/TopbarBreadcrumbs';
+import CreditsLiveSync from '@/components/topbars/credits-bar/CreditsLiveSync';
 
 const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   NonNullable<TopbarProps['currentApp']>,

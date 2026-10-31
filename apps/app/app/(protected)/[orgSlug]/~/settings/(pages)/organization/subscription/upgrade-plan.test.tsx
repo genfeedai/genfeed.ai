@@ -14,7 +14,7 @@ vi.mock('next-intl', async () => {
 });
 
 const useSubscriptionMock = vi.fn();
-vi.mock('@hooks/data/subscription/use-subscription/use-subscription', () => ({
+vi.mock('@/hooks/data/subscription/use-subscription/use-subscription', () => ({
   useSubscription: () => useSubscriptionMock(),
 }));
 

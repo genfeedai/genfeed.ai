@@ -1,0 +1,168 @@
+import {
+  IngredientCategory,
+  IngredientFormat,
+  ModelCategory,
+} from '@genfeedai/contracts';
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import PromptBarCollapsedView from '@/components/prompt-bars/components/collapsed-view/PromptBarCollapsedView';
+
+// Mock dependencies
+vi.mock('react-hook-form', () => ({
+  useWatch: () => 'test text',
+}));
+
+const promptEditorProps: { extraExtensions?: unknown } = {};
+
+vi.mock('@ui/prompt-editor/PromptEditor', () => ({
+  default: ({
+    extraExtensions,
+    placeholder,
+    testId,
+    value,
+  }: {
+    extraExtensions?: unknown;
+    placeholder?: string;
+    testId?: string;
+    value?: string;
+  }) => {
+    promptEditorProps.extraExtensions = extraExtensions;
+    return (
+      <div
+        aria-label="Prompt"
+        data-testid={testId}
+        placeholder={placeholder}
+        role="textbox"
+        tabIndex={0}
+      >
+        {value}
+      </div>
+    );
+  },
+}));
+
+vi.mock('@/components/prompt-bars/components/divider/PromptBarDivider', () => ({
+  default: () => <div data-testid="divider" />,
+}));
+
+vi.mock('next/image', () => ({
+  default: ({ src, alt }: import('react').ComponentProps<'input'>) => (
+    <input type="image" src={src} alt={alt} />
+  ),
+}));
+
+vi.mock('@genfeedai/services/core/environment.service', () => ({
+  EnvironmentService: {
+    ingredientsEndpoint: 'https://test.com',
+  },
+}));
+
+describe('PromptBarCollapsedView', () => {
+  const mockForm = {
+    control: {},
+    getValues: vi.fn().mockReturnValue(''),
+    setValue: vi.fn(),
+  };
+
+  const defaultProps = {
+    activeGenerationsCount: 0,
+    categoryType: IngredientCategory.IMAGE,
+    collapsedInputRef: { current: null },
+    currentModelCategory: ModelCategory.IMAGE,
+    form: mockForm as unknown as import('react').ComponentProps<
+      typeof PromptBarCollapsedView
+    >['form'],
+    formatIcon: <span>icon</span>,
+    generateLabel: 'Generate',
+    isDisabled: false,
+    isFormValid: true,
+    isGenerateDisabled: false,
+    isGenerateBlocked: false,
+    isGenerating: false,
+    isInternalUpdateRef: { current: false },
+    isProcessing: false,
+    isRecording: false,
+    isSupported: true,
+    onClearReferences: vi.fn(),
+    onExpand: vi.fn(),
+    onFormatChange: vi.fn(),
+    onOutputsChange: vi.fn(),
+    onSubmit: vi.fn(),
+    onTextChange: vi.fn(),
+    outputs: 1,
+    placeholder: 'Enter text…',
+    referenceSource: '' as const,
+    references: [],
+    generationMeter: null,
+    selectedModelCost: 1,
+    toggleVoice: vi.fn(),
+    watchedFormat: IngredientFormat.PORTRAIT,
+  };
+
+  it('should render without crashing', () => {
+    const { container } = render(<PromptBarCollapsedView {...defaultProps} />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('forwards extraExtensions to PromptEditor', () => {
+    const extraExtensions = [{ name: 'characterMention' }];
+    render(
+      <PromptBarCollapsedView
+        {...defaultProps}
+        extraExtensions={extraExtensions as never}
+      />,
+    );
+    expect(promptEditorProps.extraExtensions).toBe(extraExtensions);
+  });
+
+  it('should render input field', () => {
+    render(<PromptBarCollapsedView {...defaultProps} />);
+    expect(screen.getByRole('textbox', { name: 'Prompt' })).toBeInTheDocument();
+  });
+
+  it('should render with disabled state', () => {
+    const { container } = render(
+      <PromptBarCollapsedView {...defaultProps} isDisabled={true} />,
+    );
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('keeps Generate next to Stop while generating', () => {
+    render(
+      <PromptBarCollapsedView
+        {...defaultProps}
+        isGenerating
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('generate-button')).toBeInTheDocument();
+    expect(screen.getByTestId('stop-generation-button')).toBeInTheDocument();
+  });
+
+  it('should render while generating', () => {
+    const { container } = render(
+      <PromptBarCollapsedView {...defaultProps} isGenerating={true} />,
+    );
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('shows the generation meter when a priced run is ready', () => {
+    const { getByTestId } = render(
+      <PromptBarCollapsedView
+        {...defaultProps}
+        generationMeter={{
+          ariaLabel: '10 credits. 2 generations queued',
+          credits: 10,
+          isEstimate: false,
+          label: '10 cr · 2 queued',
+          queuedCount: 2,
+        }}
+      />,
+    );
+
+    expect(getByTestId('studio-generation-meter')).toHaveTextContent(
+      '10 cr · 2 queued',
+    );
+  });
+});

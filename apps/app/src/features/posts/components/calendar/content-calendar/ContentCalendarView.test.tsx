@@ -1,4 +1,4 @@
-import type { CalendarItem } from '@genfeedai/props/components/calendar.props';
+import type { CalendarItem } from '@/props/components/calendar.props';
 import '@testing-library/jest-dom/vitest';
 import {
   act,

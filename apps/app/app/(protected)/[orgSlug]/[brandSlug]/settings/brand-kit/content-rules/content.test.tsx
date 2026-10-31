@@ -18,7 +18,7 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-vi.mock('@hooks/pages/use-brand-detail/use-brand-detail', () => ({
+vi.mock('@/hooks/pages/use-brand-detail/use-brand-detail', () => ({
   useBrandDetail: () => ({
     brand: { id: 'brand-1', label: 'Acme' },
     brandId: 'brand-1',
@@ -41,7 +41,7 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
     pageScope: 'brand',
   }),
 }));
-vi.mock('@hooks/auth/use-user-role/use-user-role', () => ({
+vi.mock('@/hooks/auth/use-user-role/use-user-role', () => ({
   useUserRole: () => 'owner',
 }));
 vi.mock('@genfeedai/services/analytics/content-learning.service', () => ({
@@ -92,7 +92,7 @@ vi.mock('sonner', () => ({
   toast: { error: vi.fn(), success: vi.fn() },
 }));
 
-vi.mock('@ui/editors/LazyRichTextEditor', () => ({
+vi.mock('@/components/editors/LazyRichTextEditor', () => ({
   default: ({
     onChange,
     value,

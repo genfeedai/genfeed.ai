@@ -4,12 +4,12 @@ import type {
   IUpdateTurboProjectInput,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { onForeground } from '@hooks/utils/on-foreground/on-foreground';
 import {
   isServiceOperationError,
   normalizeOperationError,
 } from '@services/core/operation-error';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { onForeground } from '@/hooks/utils/on-foreground/on-foreground';
 import {
   createTurboProjectsApi,
   type TurboProjectsApi,

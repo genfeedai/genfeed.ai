@@ -5,7 +5,6 @@ import {
 } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import { ModelsService } from '@services/ai/models.service';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
@@ -20,6 +19,7 @@ import type {
   PolicyFormAction,
   PolicyFormState,
 } from '@/features/settings/props/policy.props';
+import { useOrganization } from '@/hooks/data/organization/use-organization/use-organization';
 
 import AdvancedRoutingCard from './advanced-routing-card';
 import AgentPolicyCard from './agent-policy-card';

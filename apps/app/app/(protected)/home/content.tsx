@@ -7,13 +7,13 @@ import {
   createOrganizationAppRoute,
 } from '@genfeedai/contracts/constants';
 import { useAccessState } from '@providers/access-state/access-state.provider';
-import NoticeBanner from '@ui/banners/notice-banner/NoticeBanner';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { ArrowRight, Plug, RefreshCw, ShieldCheck, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import NoticeBanner from '@/components/banners/notice-banner/NoticeBanner';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { resolveOperationalHomeScope } from './operational-home.helpers';

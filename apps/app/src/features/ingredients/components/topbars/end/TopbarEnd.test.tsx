@@ -40,7 +40,7 @@ vi.mock('@genfeedai/hooks/auth/use-auth-user/use-auth-user', () => ({
   }),
 }));
 
-vi.mock('@ui/menus/user-dropdown/UserDropdown', () => ({
+vi.mock('@/components/menus/user-dropdown/UserDropdown', () => ({
   default: (props: Record<string, unknown>) => {
     userDropdownSpy(props);
     return (

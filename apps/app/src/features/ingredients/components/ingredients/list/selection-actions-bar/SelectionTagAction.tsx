@@ -11,14 +11,14 @@ import type {
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { Button } from '@ui/primitives/button';
-import LibraryTagPicker, {
-  type LibraryTagPickerState,
-} from '@ui/tags/library-tag-picker/LibraryTagPicker';
-import { useLibraryTagWrites } from '@ui/tags/library-tag-picker/use-library-tag-writes';
-import { useLibraryTags } from '@ui/tags/library-tag-picker/use-library-tags';
 import { Tag } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+import LibraryTagPicker, {
+  type LibraryTagPickerState,
+} from '@/components/tags/library-tag-picker/LibraryTagPicker';
+import { useLibraryTagWrites } from '@/components/tags/library-tag-picker/use-library-tag-writes';
+import { useLibraryTags } from '@/components/tags/library-tag-picker/use-library-tags';
 
 /**
  * Tag every selected asset in one action. A tag every selected asset already

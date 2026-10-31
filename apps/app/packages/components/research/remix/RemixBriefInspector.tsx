@@ -25,7 +25,6 @@ import type {
   AgentArtifactReference,
   IAvatar,
 } from '@genfeedai/contracts/interfaces';
-import { useAvatarImages } from '@hooks/data/ingredients/use-avatar-images/use-avatar-images';
 import type { Voice } from '@models/ingredients/voice.model';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
@@ -47,6 +46,7 @@ import { useCampaignAccounts } from '@/features/campaigns/hooks/use-campaign-acc
 import { useVoiceCatalog } from '@/features/library/voices/hooks/use-voice-catalog';
 import LibraryPickerOverlay from '@/features/library-remix/LibraryPickerOverlay';
 import { useDiscoveryRemix } from '@/features/research/remix/DiscoveryRemixProvider';
+import { useAvatarImages } from '@/hooks/data/ingredients/use-avatar-images/use-avatar-images';
 import RemixConceptFields, {
   type RemixStoryboardDraft,
 } from './RemixConceptFields';

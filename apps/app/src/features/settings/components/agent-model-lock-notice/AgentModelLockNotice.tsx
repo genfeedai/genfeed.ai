@@ -3,10 +3,10 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
-import type { AgentModelLockNoticeProps } from '@genfeedai/props/settings/model-routing.props';
 import { Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import type { AgentModelLockNoticeProps } from '@/props/settings/model-routing.props';
 
 /**
  * Shown in place of an agent model picker while the free-tier lock pins every

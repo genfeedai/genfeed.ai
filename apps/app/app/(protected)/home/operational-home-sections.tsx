@@ -23,9 +23,6 @@ import type {
 import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflow-execution.helper';
 import { getPublishingReleaseHref } from '@helpers/content/posts.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
-import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';
-import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
@@ -41,7 +38,6 @@ import {
   credentialToSocialConnection,
   isVisibleCredentialRow,
 } from '@ui/modals/brands/brand/ModalBrand.types';
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { ArrowRight, Check, RefreshCw, TriangleAlert } from 'lucide-react';
@@ -50,6 +46,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import {
   getActivityDescription,
@@ -70,6 +67,9 @@ import {
   badgeVariantForTone,
   releaseStatusBadge,
 } from '@/features/posts/shared/release-status.helpers';
+import { useActivities } from '@/hooks/data/activities/use-activities/use-activities';
+import { useOverviewBootstrap } from '@/hooks/data/overview/use-overview-bootstrap';
+import { useWorkflowExecutions } from '@/hooks/data/workflow-executions/use-workflow-executions';
 import { useActivityMessageFormatter } from '@/hooks/i18n/useActivityMessageFormatter';
 import {
   getActivityBadge,

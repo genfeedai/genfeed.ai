@@ -1,0 +1,660 @@
+'use client';
+
+import {
+  ButtonSize,
+  ButtonVariant,
+  EvaluationSeverity,
+  IngredientCategory,
+  Status,
+} from '@genfeedai/contracts';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import Card from '@ui/card/Card';
+import ClientDateTime from '@ui/components/time/ClientDateTime';
+import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
+import { ArrowUp, ChevronDown } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useState } from 'react';
+import type { EvaluationCardProps } from '@/props/components/evaluation-card.props';
+
+const SCORE_THRESHOLDS = [
+  {
+    bar: 'bg-success',
+    bg: 'bg-success/20 text-success',
+    min: 90,
+    text: 'text-success',
+  },
+  { bar: 'bg-info', bg: 'bg-info/20 text-info', min: 70, text: 'text-info' },
+  {
+    bar: 'bg-warning',
+    bg: 'bg-warning/20 text-warning',
+    min: 50,
+    text: 'text-warning',
+  },
+  {
+    bar: 'bg-destructive',
+    bg: 'bg-destructive/20 text-destructive',
+    min: 0,
+    text: 'text-destructive',
+  },
+] as const;
+
+function getScoreColors(score: number): {
+  text: string;
+  bg: string;
+  bar: string;
+} {
+  const threshold =
+    SCORE_THRESHOLDS.find((t) => score >= t.min) ?? SCORE_THRESHOLDS[3];
+  return { bar: threshold.bar, bg: threshold.bg, text: threshold.text };
+}
+
+const FACTOR_LABELS: Record<string, string> = {
+  audioQuality: 'Audio Quality',
+  audioSync: 'Audio Sync',
+  ctaEffectiveness: 'CTA Effectiveness',
+  ctaNaturalness: 'CTA Naturalness',
+  demandFit: 'Demand Fit',
+  emotionalAppeal: 'Emotional Appeal',
+  formatting: 'Formatting',
+  frameRate: 'Frame Rate',
+  hookQuality: 'Hook Quality',
+  hookStrength: 'Hook Strength',
+  lengthAppropriateness: 'Length',
+  messageAlignment: 'Message Alignment',
+  openLoopIntegrity: 'Open-Loop Integrity',
+  platformFit: 'Platform Fit',
+  readability: 'Readability',
+  resolution: 'Resolution',
+  seoScore: 'SEO Score',
+  shareability: 'Shareability',
+  styleAlignment: 'Style Alignment',
+  toneAlignment: 'Tone Alignment',
+  viralityPotential: 'Virality Potential',
+  visualConsistency: 'Visual Consistency',
+  voiceConsistency: 'Voice Consistency',
+};
+
+function formatFactorLabel(key: string): string {
+  return FACTOR_LABELS[key] ?? key.replace(/([A-Z])/g, ' $1').trim();
+}
+
+/**
+ * Renders a score category section with header and score bars.
+ */
+function ScoreSection({
+  title,
+  scores,
+  overallScore,
+}: {
+  title: string;
+  scores: Record<string, unknown> | undefined;
+  overallScore?: number;
+}): React.ReactElement | null {
+  if (!scores) {
+    return null;
+  }
+
+  const entries = Object.entries(scores).filter(([key]) => key !== 'overall');
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between">
+        <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wide">
+          {title}
+        </h4>
+        {overallScore !== undefined && (
+          <span
+            className={cn(
+              'text-xs font-medium',
+              getScoreColors(overallScore).text,
+            )}
+          >
+            {overallScore}
+          </span>
+        )}
+      </div>
+      {entries.map(([key, value]) =>
+        value !== undefined && value !== null ? (
+          <div key={key} className="flex items-center gap-2">
+            <span className="text-xs w-28 text-foreground/60">
+              {formatFactorLabel(key)}
+            </span>
+            <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+              <div
+                className={cn('h-full', getScoreColors(value as number).bar)}
+                style={{ width: `${value}%` }}
+              />
+            </div>
+            <span className="text-xs w-8 text-right font-medium">
+              {String(value)}
+            </span>
+          </div>
+        ) : null,
+      )}
+    </div>
+  );
+}
+
+const CONTENT_TYPE_LABELS: Record<string, string> = {
+  [IngredientCategory.IMAGE]: 'Image',
+  [IngredientCategory.VIDEO]: 'Video',
+  article: 'Article',
+  post: 'Post',
+};
+
+export default function EvaluationCard({
+  contentType,
+  evaluation,
+  onEvaluate,
+  isEvaluating = false,
+  isPublished = false,
+  variant = 'card',
+}: EvaluationCardProps) {
+  const translate = useTranslations('ui.evaluationCard');
+  const evaluationData = evaluation?.data;
+  const [isCardCollapsed, setIsCardCollapsed] = useState(
+    () => isPublished && evaluationData?.status === Status.COMPLETED,
+  );
+  const [isScoresCollapsed, setIsScoresCollapsed] = useState(false);
+  const [isAnalysisCollapsed, setIsAnalysisCollapsed] = useState(false);
+  const [isSuggestionsCollapsed, setIsSuggestionsCollapsed] = useState(true);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
+  const contentTypeLabel = CONTENT_TYPE_LABELS[contentType] ?? 'Content';
+
+  const getLowestScores = () => {
+    if (!evaluationData?.scores) {
+      return [];
+    }
+
+    const allScores: [string, number][] = [
+      ...Object.entries(evaluationData.scores.technical ?? {}),
+      ...Object.entries(evaluationData.scores.brand ?? {}),
+      ...Object.entries(evaluationData.scores.engagement ?? {}),
+      ...Object.entries(evaluationData.scores.persuasion ?? {}),
+    ].filter(([key, val]) => key !== 'overall' && typeof val === 'number') as [
+      string,
+      number,
+    ][];
+
+    return allScores.sort((a, b) => a[1] - b[1]).slice(0, 3);
+  };
+
+  const lowestScores = getLowestScores();
+
+  const getHeaderAction = () => {
+    if (!evaluation || evaluationData?.status === Status.FAILED) {
+      return undefined;
+    }
+    if (evaluationData?.status === Status.PROCESSING || isEvaluating) {
+      return undefined;
+    }
+
+    const { overallScore } = evaluationData ?? {};
+
+    if (isPublished && evaluationData?.status === Status.COMPLETED) {
+      return (
+        <Button
+          type="button"
+          onClick={() => setIsCardCollapsed(!isCardCollapsed)}
+          variant={ButtonVariant.UNSTYLED}
+          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+        >
+          <div
+            className={cn(
+              'px-2 py-0.5 font-bold text-sm',
+              getScoreColors(overallScore ?? 0).bg,
+            )}
+          >
+            {overallScore ?? 0}/100
+          </div>
+          <ChevronDown
+            className={cn(
+              'size-4 text-foreground/50 transition-transform',
+              isCardCollapsed && '-rotate-90',
+            )}
+          />
+        </Button>
+      );
+    }
+
+    return (
+      <div className="flex items-center gap-2">
+        <div
+          className={cn(
+            'px-2 py-0.5 font-bold text-sm',
+            getScoreColors(overallScore ?? 0).bg,
+          )}
+        >
+          {overallScore ?? 0}/100
+        </div>
+
+        <Button
+          variant={ButtonVariant.DEFAULT}
+          icon={<ArrowUp />}
+          label="Run"
+          onClick={onEvaluate}
+          size={ButtonSize.SM}
+          isLoading={isEvaluating}
+          isDisabled={isEvaluating}
+        />
+      </div>
+    );
+  };
+
+  if (variant === 'embedded') {
+    const isRunning =
+      isEvaluating || evaluationData?.status === Status.PROCESSING;
+    const isCompleted = evaluationData?.status === Status.COMPLETED;
+    const isFailed = evaluationData?.status === Status.FAILED;
+    const hasRun = Boolean(evaluation) && !isFailed;
+    const overallScore = evaluationData?.overallScore ?? 0;
+
+    return (
+      <div className="flex flex-col gap-2" data-testid="evaluation-row">
+        <div className="flex items-center gap-3">
+          <span className="min-w-0 flex-1 truncate text-sm font-medium">
+            {translate('qualityEvaluation')}
+          </span>
+          {isCompleted && !isRunning ? (
+            <span
+              className={cn(
+                'px-2 py-0.5 text-xs font-bold tabular-nums',
+                getScoreColors(overallScore).bg,
+              )}
+            >
+              {overallScore}/100
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground">
+              {isRunning
+                ? translate('running')
+                : isFailed
+                  ? translate('failed')
+                  : translate('notRun')}
+            </span>
+          )}
+          {isPublished ? null : (
+            <Button
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.SM}
+              icon={<ArrowUp />}
+              label={hasRun ? translate('rerun') : translate('run')}
+              ariaLabel={
+                hasRun
+                  ? translate('rerunEvaluation')
+                  : translate('runEvaluation')
+              }
+              onClick={onEvaluate}
+              isLoading={isRunning}
+              isDisabled={isRunning}
+            />
+          )}
+        </div>
+        {isCompleted && !isRunning ? (
+          <>
+            <Button
+              type="button"
+              onClick={() => setIsDetailsOpen(!isDetailsOpen)}
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+              ariaLabel={translate('toggleDetails')}
+              className="flex w-fit items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <ChevronDown
+                className={cn(
+                  'size-3.5 transition-transform',
+                  !isDetailsOpen && '-rotate-90',
+                )}
+              />
+              {translate('details')}
+            </Button>
+            {isDetailsOpen ? (
+              <EvaluationCardContent
+                evaluation={evaluation}
+                contentTypeLabel={contentTypeLabel}
+                isEvaluating={isEvaluating}
+                isPublished={isPublished}
+                isCardCollapsed={false}
+                lowestScores={lowestScores}
+                isScoresCollapsed={isScoresCollapsed}
+                setIsScoresCollapsed={setIsScoresCollapsed}
+                isAnalysisCollapsed={isAnalysisCollapsed}
+                setIsAnalysisCollapsed={setIsAnalysisCollapsed}
+                isSuggestionsCollapsed={isSuggestionsCollapsed}
+                setIsSuggestionsCollapsed={setIsSuggestionsCollapsed}
+                onEvaluate={onEvaluate}
+              />
+            ) : null}
+          </>
+        ) : null}
+        {isFailed && !isRunning ? (
+          <p className="text-xs text-destructive">
+            {translate('evaluationFailed')}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <Card
+      label="Quality Evaluation"
+      headerAction={getHeaderAction()}
+      bodyClassName={
+        !evaluation || evaluationData?.status !== Status.COMPLETED
+          ? undefined
+          : 'space-y-4'
+      }
+    >
+      <EvaluationCardContent
+        evaluation={evaluation}
+        contentTypeLabel={contentTypeLabel}
+        isEvaluating={isEvaluating}
+        isPublished={isPublished}
+        isCardCollapsed={isCardCollapsed}
+        lowestScores={lowestScores}
+        isScoresCollapsed={isScoresCollapsed}
+        setIsScoresCollapsed={setIsScoresCollapsed}
+        isAnalysisCollapsed={isAnalysisCollapsed}
+        setIsAnalysisCollapsed={setIsAnalysisCollapsed}
+        isSuggestionsCollapsed={isSuggestionsCollapsed}
+        setIsSuggestionsCollapsed={setIsSuggestionsCollapsed}
+        onEvaluate={onEvaluate}
+      />
+    </Card>
+  );
+}
+
+interface EvaluationCardContentProps {
+  evaluation: EvaluationCardProps['evaluation'];
+  contentTypeLabel: string;
+  isEvaluating: boolean;
+  isPublished: boolean;
+  isCardCollapsed: boolean;
+  lowestScores: [string, number][];
+  isScoresCollapsed: boolean;
+  setIsScoresCollapsed: (v: boolean) => void;
+  isAnalysisCollapsed: boolean;
+  setIsAnalysisCollapsed: (v: boolean) => void;
+  isSuggestionsCollapsed: boolean;
+  setIsSuggestionsCollapsed: (v: boolean) => void;
+  onEvaluate: EvaluationCardProps['onEvaluate'];
+}
+
+function EvaluationCardContent({
+  evaluation,
+  contentTypeLabel,
+  isEvaluating,
+  isPublished,
+  isCardCollapsed,
+  lowestScores,
+  isScoresCollapsed,
+  setIsScoresCollapsed,
+  isAnalysisCollapsed,
+  setIsAnalysisCollapsed,
+  isSuggestionsCollapsed,
+  setIsSuggestionsCollapsed,
+  onEvaluate,
+}: EvaluationCardContentProps): React.ReactNode {
+  const translate = useTranslations('ui.evaluationCard');
+  const evaluationData = evaluation?.data;
+
+  if (!evaluation) {
+    return (
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-sm text-foreground/70">
+          Get AI-powered quality analysis for this{' '}
+          {contentTypeLabel.toLowerCase()}
+        </p>
+
+        {!isPublished && (
+          <Button
+            variant={ButtonVariant.DEFAULT}
+            icon={<ArrowUp />}
+            label={isEvaluating ? 'Running…' : 'Run'}
+            onClick={onEvaluate}
+            isLoading={isEvaluating}
+            isDisabled={isEvaluating}
+          />
+        )}
+      </div>
+    );
+  }
+
+  if (evaluationData?.status === Status.PROCESSING || isEvaluating) {
+    return (
+      <div className="flex items-center gap-3">
+        <Spinner className="size-5 text-primary" />
+        <div>
+          <p className="text-sm font-medium">
+            {evaluationData?.scores
+              ? 'Re-evaluating content…'
+              : 'Analyzing content…'}
+          </p>
+
+          <p className="text-xs text-foreground/60">
+            This usually takes a few seconds
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (evaluationData?.status === Status.FAILED) {
+    return (
+      <>
+        <div className="flex items-center gap-3 text-destructive mb-4">
+          <span className="text-sm">Evaluation failed. Please try again.</span>
+        </div>
+        {!isPublished && (
+          <Button
+            variant={ButtonVariant.DEFAULT}
+            icon={<ArrowUp />}
+            label={isEvaluating ? 'Running…' : 'Run'}
+            onClick={onEvaluate}
+            isLoading={isEvaluating}
+            isDisabled={isEvaluating}
+          />
+        )}
+      </>
+    );
+  }
+
+  const { scores, analysis, flags } = evaluationData ?? {};
+
+  if (isPublished && isCardCollapsed) {
+    return (
+      <div className="space-y-2">
+        {lowestScores.length > 0 && lowestScores[0][1] < 50 && (
+          <div className="text-xs text-foreground/60">
+            Focus:{' '}
+            {lowestScores
+              .slice(0, 2)
+              .map(([key, val]) => `${formatFactorLabel(key)} (${val})`)
+              .join(', ')}
+          </div>
+        )}
+        {flags?.isFlagged && (
+          <div className="text-xs text-warning">
+            {flags.severity === EvaluationSeverity.CRITICAL ? '⚠️' : '⚠'}{' '}
+            {flags.reasons[0]}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {lowestScores.length > 0 && lowestScores[0][1] < 50 && (
+        <div className="p-2 bg-warning/10 border border-warning/20 text-sm">
+          <span className="font-medium text-warning">Focus:</span>{' '}
+          <span className="text-foreground/70">
+            {lowestScores
+              .map(([key, val]) => `${formatFactorLabel(key)} (${val})`)
+              .join(', ')}
+          </span>
+        </div>
+      )}
+
+      {flags?.isFlagged && (
+        <div
+          className={cn(
+            'p-2 text-sm',
+            flags.severity === EvaluationSeverity.CRITICAL
+              ? 'bg-destructive/10 border border-destructive/20 text-destructive'
+              : flags.severity === EvaluationSeverity.WARNING
+                ? 'bg-warning/10 border border-warning/20 text-warning'
+                : 'bg-info/10 border border-info/20 text-info',
+          )}
+        >
+          <span className="font-medium capitalize">{flags.severity}:</span>{' '}
+          {flags.reasons.join(', ')}
+        </div>
+      )}
+
+      <div className="space-y-3">
+        <Button
+          type="button"
+          onClick={() => setIsScoresCollapsed(!isScoresCollapsed)}
+          variant={ButtonVariant.UNSTYLED}
+          className="flex items-center justify-between w-full text-left"
+        >
+          <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wide">
+            Category Scores
+          </h4>
+          <ChevronDown
+            className={cn(
+              'size-4 text-foreground/50 transition-transform',
+              isScoresCollapsed && '-rotate-90',
+            )}
+          />
+        </Button>
+
+        {!isScoresCollapsed && (
+          <div className="space-y-3">
+            <ScoreSection
+              title="Technical"
+              scores={scores?.technical as Record<string, unknown> | undefined}
+              overallScore={scores?.technical?.overall}
+            />
+            <ScoreSection
+              title="Brand Alignment"
+              scores={scores?.brand as Record<string, unknown> | undefined}
+              overallScore={scores?.brand?.overall}
+            />
+            <ScoreSection
+              title="Engagement Potential"
+              scores={scores?.engagement as Record<string, unknown> | undefined}
+              overallScore={scores?.engagement?.overall}
+            />
+            <ScoreSection
+              title={translate('persuasion')}
+              scores={scores?.persuasion as Record<string, unknown> | undefined}
+              overallScore={scores?.persuasion?.overall}
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-3">
+        <Button
+          type="button"
+          onClick={() => setIsAnalysisCollapsed(!isAnalysisCollapsed)}
+          variant={ButtonVariant.UNSTYLED}
+          className="flex items-center justify-between w-full text-left"
+        >
+          <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wide">
+            Strengths & Weaknesses
+          </h4>
+          <ChevronDown
+            className={cn(
+              'size-4 text-foreground/50 transition-transform',
+              isAnalysisCollapsed && '-rotate-90',
+            )}
+          />
+        </Button>
+
+        {!isAnalysisCollapsed && (
+          <div className="space-y-3">
+            {(analysis?.strengths?.length ?? 0) > 0 && (
+              <div>
+                <h4 className="text-xs font-medium text-success mb-2">
+                  Strengths
+                </h4>
+                <ul className="space-y-1.5">
+                  {analysis?.strengths?.slice(0, 3).map((s) => (
+                    <li
+                      key={s}
+                      className="text-xs text-foreground/70 pl-3 border-l-2 border-success/20"
+                    >
+                      {s}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {(analysis?.weaknesses?.length ?? 0) > 0 && (
+              <div>
+                <h4 className="text-xs font-medium text-destructive mb-2">
+                  Weaknesses
+                </h4>
+                <ul className="space-y-1.5">
+                  {analysis?.weaknesses?.slice(0, 3).map((w) => (
+                    <li
+                      key={w}
+                      className="text-xs text-foreground/70 pl-3 border-l-2 border-destructive/20"
+                    >
+                      {w}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {(analysis?.suggestions?.length ?? 0) > 0 && (
+        <div>
+          <Button
+            type="button"
+            onClick={() => setIsSuggestionsCollapsed(!isSuggestionsCollapsed)}
+            variant={ButtonVariant.UNSTYLED}
+            className="flex items-center justify-between w-full text-left"
+          >
+            <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wide">
+              AI Suggestions
+            </h4>
+            <ChevronDown
+              className={cn(
+                'size-4 text-foreground/50 transition-transform',
+                isSuggestionsCollapsed && '-rotate-90',
+              )}
+            />
+          </Button>
+          {!isSuggestionsCollapsed && (
+            <div className="space-y-2">
+              {analysis?.suggestions?.map((suggestion) => (
+                <div
+                  key={suggestion}
+                  className="text-xs p-2 bg-primary/5 border border-primary/20"
+                >
+                  {suggestion}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {evaluation.updatedAt && (
+        <div className="text-xs text-foreground/50 text-right">
+          <ClientDateTime value={evaluation.updatedAt} prefix="Evaluated " />
+        </div>
+      )}
+    </div>
+  );
+}

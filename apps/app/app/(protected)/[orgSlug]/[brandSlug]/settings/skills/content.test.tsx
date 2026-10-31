@@ -130,7 +130,7 @@ vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
   }),
 }));
 
-vi.mock('@hooks/data/skills/use-brand-enabled-skills', () => ({
+vi.mock('@/hooks/data/skills/use-brand-enabled-skills', () => ({
   useBrandEnabledSkills: () => ({
     enabledSlugs: [],
     isLoading: false,

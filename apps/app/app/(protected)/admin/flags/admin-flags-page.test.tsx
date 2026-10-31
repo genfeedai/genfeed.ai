@@ -33,7 +33,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getPlatformSettingsService,
 }));
 
-vi.mock('@ui/content/admin-filters/useAdminSearchParam', () => ({
+vi.mock('@/components/content/admin-filters/useAdminSearchParam', () => ({
   useAdminSearchParam: () => ({
     search: mocks.search,
     setSearch: mocks.setSearch,

@@ -10,11 +10,6 @@ import { PromptsService } from '@services/content/prompts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
-import AdminOrgBrandUrlFilter, {
-  useAdminOrgBrandParams,
-} from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
-import FilterMenu from '@ui/content/filter-menu/FilterMenu';
-import SearchField from '@ui/content/search-field/SearchField';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminDownloadButton from '@ui/layout/admin-page-shell/AdminDownloadButton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
@@ -23,6 +18,11 @@ import { Image as ImageIcon } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import AdminOrgBrandUrlFilter, {
+  useAdminOrgBrandParams,
+} from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
+import FilterMenu from '@/components/content/filter-menu/FilterMenu';
+import SearchField from '@/components/content/search-field/SearchField';
 import type {
   GenerationStatusOption,
   GenerationView,

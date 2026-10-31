@@ -1,11 +1,11 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { StudioPresetCardProps } from '@props/studio/studio-presets.props';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import type { ReactElement } from 'react';
+import type { StudioPresetCardProps } from '@/props/studio/studio-presets.props';
 
 /** One preset: icon, title, description, illustration, chips and one action. */
 export default function StudioPresetCard({

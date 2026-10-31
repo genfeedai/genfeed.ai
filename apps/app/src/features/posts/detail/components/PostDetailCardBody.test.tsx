@@ -13,7 +13,7 @@ vi.mock('next-intl', () => ({
     ({ tweetFieldLabel: 'Post' })[key] ?? key,
 }));
 
-vi.mock('@ui/editors/LazyRichTextEditor', () => ({
+vi.mock('@/components/editors/LazyRichTextEditor', () => ({
   default: ({
     value,
     onChange,

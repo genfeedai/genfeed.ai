@@ -1,8 +1,8 @@
 import { AnalyticsProvider } from '@contexts/analytics/analytics-context';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
-import FeatureGate from '@ui/guards/feature/FeatureGate';
 import Container from '@ui/layout/container/Container';
+import FeatureGate from '@/components/guards/feature/FeatureGate';
 import AnalyticsOrganizationOverview from '@/features/analytics/organization-overview/analytics-organization-overview';
 import { OrganizationWorkspaceOverviewSurfaceAdapter } from '@/features/workspace-overview/workspace-overview-surface-adapters';
 

@@ -23,21 +23,20 @@ import type {
   ILibraryTagUpdate,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useIngredientSidebar } from '@hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Alert from '@ui/feedback/alert/Alert';
-import { LazyModalImageToVideo } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
-import {
-  applyLibraryAssetTagsChange,
-  applyLibraryTagUpdate,
-} from '@ui/tags/library-tag-picker/library-asset-tags-event';
 import { format } from 'date-fns';
 import { useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { LazyModalImageToVideo } from '@/components/lazy/modal/LazyModal';
+import {
+  applyLibraryAssetTagsChange,
+  applyLibraryTagUpdate,
+} from '@/components/tags/library-tag-picker/library-asset-tags-event';
 import InfiniteScroll from '@/features/ingredients/components/feedback/infinite-scroll/InfiniteScroll';
 import SelectionTagAction from '@/features/ingredients/components/ingredients/list/selection-actions-bar/SelectionTagAction';
 import IngredientsListContent from '@/features/ingredients/components/list/content/IngredientsListContent';
@@ -47,6 +46,7 @@ import IngredientsListSidebar from '@/features/ingredients/components/list/sideb
 import { useIngredientDeepLink } from '@/features/ingredients/hooks/use-ingredient-deep-link/use-ingredient-deep-link';
 import { useIngredientsList } from '@/features/ingredients/hooks/use-ingredients-list/use-ingredients-list';
 import type { IngredientsListProps } from '@/features/ingredients/props/ingredients-list.props';
+import { useIngredientSidebar } from '@/hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
 
 /**
  * Categories the merge action actually supports. Kept local to this file

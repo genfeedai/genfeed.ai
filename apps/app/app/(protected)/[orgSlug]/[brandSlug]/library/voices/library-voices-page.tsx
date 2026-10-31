@@ -16,7 +16,6 @@ import {
   matchesDefaultVoice,
 } from '@helpers/voice/default-voice-ref.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Voice } from '@models/ingredients/voice.model';
@@ -35,6 +34,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import IngredientsLayout from '@/features/ingredients/layout/ingredients-layout';
 import type { SelectedBrandState } from '@/features/library/props/library-voices-page.props';
 import { useVoiceCatalog } from '@/features/library/voices/hooks/use-voice-catalog';
+import { useOrganization } from '@/hooks/data/organization/use-organization/use-organization';
 import ElevenLabsAccountVoicesDialog from './elevenlabs-account-voices-dialog';
 import VoiceCatalogList from './voice-catalog-list';
 import VoiceLibraryRowItem from './voice-library-row-item';
