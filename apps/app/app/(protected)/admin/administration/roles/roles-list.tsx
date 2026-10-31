@@ -182,9 +182,11 @@ export default function RolesList() {
         rowSidebar={rowSidebar}
         emptyLabel="No roles found"
       />
-      <div className="mt-4">
-        <AutoPagination showTotal totalLabel="roles" />
-      </div>
+      {search ? null : (
+        <div className="mt-4">
+          <AutoPagination showTotal totalLabel="roles" />
+        </div>
+      )}
 
       <LazyModalRole role={selectedRole} onConfirm={() => loadRoles(true)} />
     </AdminPageShell>

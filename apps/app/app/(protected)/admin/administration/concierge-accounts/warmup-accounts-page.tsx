@@ -96,8 +96,13 @@ function pageReducer(state: PageState, action: PageAction): PageState {
         ...state,
         accounts: action.accounts,
         loadError: undefined,
-        selectedAccountId:
-          state.selectedAccountId ?? action.accounts[0]?.id ?? undefined,
+        // Keep the selection only while it is in the new results, so a search
+        // or page change never leaves an account selected that is not listed.
+        selectedAccountId: action.accounts.some(
+          (account) => account.id === state.selectedAccountId,
+        )
+          ? state.selectedAccountId
+          : (action.accounts[0]?.id ?? undefined),
       };
     case 'SET_FIELD':
       return {

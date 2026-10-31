@@ -109,7 +109,9 @@ export class ReferralsController {
     )
       ? rawStatus
       : undefined;
-    const search = rawSearch?.trim() || undefined;
+    // A repeated `?search=` key can arrive as an array; only a string is a term.
+    const search =
+      typeof rawSearch === 'string' ? rawSearch.trim() || undefined : undefined;
     const result = await this.referralsService.listAdmin({
       limit,
       page,
