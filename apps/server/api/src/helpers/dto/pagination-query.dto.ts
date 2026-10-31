@@ -1,7 +1,7 @@
 import type { IPaginationParams } from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsInt, IsOptional, Max, Min } from 'class-validator';
 
 export const DEFAULT_PAGE_SIZE = 20;
 export const MAX_PAGE_SIZE = 100;
@@ -37,17 +37,6 @@ export class PaginationQueryDto {
   @Min(1)
   @Max(MAX_PAGE_SIZE)
   limit?: number;
-}
-
-/** {@link PaginationQueryDto} plus the admin list search term. */
-export class SearchPaginationQueryDto extends PaginationQueryDto {
-  @ApiProperty({
-    description: 'Case-insensitive search term; narrows the list server-side',
-    required: false,
-  })
-  @IsOptional()
-  @IsString()
-  search?: string;
 }
 
 export interface PageWindow {
