@@ -4,6 +4,7 @@ import { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
 import { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
 import { type ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import { buildModelListOrderBy } from '@api/collections/models/utils/model-list-order.util';
 import {
   findUnpriceableModelIds,
   unpriceableModelsScope,
@@ -21,14 +22,12 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { handleStableAllowedQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { ModelLifecycle } from '@genfeedai/contracts';
 import type {
   IModelProviderContracts,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
-  SortObject,
 } from '@genfeedai/contracts/interfaces';
 import { ModelSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -45,19 +44,6 @@ import { ModuleRef } from '@nestjs/core';
 import type { Request } from 'express';
 
 type MatchConditions = Record<string, unknown>;
-
-/**
- * Columns the models table can be ordered by. A ranking is followed by newest
- * first and id so rows that tie keep one order across pages.
- */
-export const MODEL_SORT_FIELDS: readonly string[] = [
-  'cost',
-  'isDefault',
-  'label',
-  'lifecycle',
-  'qualityTier',
-  'reviewStatus',
-];
 
 @AutoSwagger()
 @Controller('models')
@@ -190,11 +176,7 @@ export class ModelsController extends BaseCRUDController<
     // because it requires async database lookup
 
     return {
-      orderBy: handleStableAllowedQuerySort(query.sort, MODEL_SORT_FIELDS, {
-        createdAt: -1,
-        key: 1,
-        label: 1,
-      } as SortObject),
+      orderBy: buildModelListOrderBy(query.sort),
       where: matchConditions,
     };
   }
