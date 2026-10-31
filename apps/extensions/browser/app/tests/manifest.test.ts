@@ -4,7 +4,11 @@ import { describe, expect, it } from 'vitest';
 
 const extensionPackage = JSON.parse(
   readFileSync(path.resolve(__dirname, '../package.json'), 'utf8'),
-) as { manifest: { key?: string; permissions: string[] } };
+) as {
+  description: string;
+  displayName: string;
+  manifest: { key?: string; permissions: string[] };
+};
 
 describe('extension manifest', () => {
   it('requests native messaging for the optional local bridge', () => {
