@@ -35,7 +35,6 @@ const RESOLUTIONS: AgentFailureResolution[] = ['open', 'resolved', 'all'];
 
 export default function AgentFailuresPage() {
   const translate = useTranslations('pages.agentFailures');
-  const { search, setSearch } = useAdminSearchParam();
   const getService = useAuthedService((token: string) =>
     WorkflowExecutionsService.getInstance(token),
   );
@@ -48,6 +47,7 @@ export default function AgentFailuresPage() {
   const [pendingId, setPendingId] = useState<string>();
   const [copiedId, setCopiedId] = useState<string>();
   const [offset, setOffset] = useState(0);
+  const { search, setSearch } = useAdminSearchParam();
   const requestController = useRef<AbortController | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
 
@@ -65,7 +65,7 @@ export default function AgentFailuresPage() {
           offset,
           controller.signal,
           resolution,
-          search || undefined,
+          search,
         );
         if (!controller.signal.aborted) {
           setFailures(result);
@@ -214,32 +214,6 @@ export default function AgentFailuresPage() {
         </>
       ),
     },
-    {
-      header: translate('columns.actions'),
-      key: 'actions',
-      render: (run) => {
-        const isResolved = Boolean(run.failureResolvedAt);
-        return (
-          <div className="flex flex-wrap gap-2">
-            <Button
-              label={translate(
-                isResolved ? 'actions.reopen' : 'actions.markResolved',
-              )}
-              variant={ButtonVariant.SECONDARY}
-              size={ButtonSize.SM}
-              isLoading={pendingId === run.id}
-              onClick={() => void setResolved(run, !isResolved)}
-            />
-            <Button
-              label={translate('actions.createIssue')}
-              variant={ButtonVariant.SECONDARY}
-              size={ButtonSize.SM}
-              onClick={() => createIssue(run)}
-            />
-          </div>
-        );
-      },
-    },
   ];
 
   return (
@@ -255,6 +229,7 @@ export default function AgentFailuresPage() {
           value={search}
         >
           <FilterMenu
+            isAttached
             facets={[
               {
                 defaultValue: 'open',
@@ -284,7 +259,6 @@ export default function AgentFailuresPage() {
                 value: reason ?? 'all',
               },
             ]}
-            isAttached
             onClear={() => {
               changeResolution('open');
               changeReason('all');
@@ -315,6 +289,28 @@ export default function AgentFailuresPage() {
             framed={false}
             getRowKey={(run) => run.id}
             items={failures}
+            renderRowActions={(run) => {
+              const isResolved = Boolean(run.failureResolvedAt);
+              return (
+                <>
+                  <Button
+                    label={translate(
+                      isResolved ? 'actions.reopen' : 'actions.markResolved',
+                    )}
+                    variant={ButtonVariant.SECONDARY}
+                    size={ButtonSize.SM}
+                    isLoading={pendingId === run.id}
+                    onClick={() => void setResolved(run, !isResolved)}
+                  />
+                  <Button
+                    label={translate('actions.createIssue')}
+                    variant={ButtonVariant.SECONDARY}
+                    size={ButtonSize.SM}
+                    onClick={() => createIssue(run)}
+                  />
+                </>
+              );
+            }}
             renderExpandedRow={(run) =>
               expandedIds.has(run.id) ? (
                 <div>

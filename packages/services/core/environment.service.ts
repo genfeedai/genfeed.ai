@@ -326,6 +326,7 @@ export const EnvironmentService = {
       process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY, // Enterprise custom
     // PAYG one-time credits
     payg: process.env.NEXT_PUBLIC_STRIPE_PRICE_PAYG,
+    pro: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY, // Pro $49/mo
     scale: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY, // Scale $499/mo
   },
 

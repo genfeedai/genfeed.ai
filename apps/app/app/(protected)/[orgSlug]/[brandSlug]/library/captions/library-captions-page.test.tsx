@@ -3,6 +3,11 @@ import LibraryCaptionsPage from './library-captions-page';
 import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('next/navigation', () => ({
   usePathname: () => '/acme/moonrise/library/captions',
   useRouter: () => ({ replace: vi.fn() }),
@@ -16,6 +21,18 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 }));
 
 describe('LibraryCaptionsPage', () => {
+  it('offers the shared search field', () => {
+    render(
+      <LibraryCaptionsPage>
+        <div>Captions content</div>
+      </LibraryCaptionsPage>,
+    );
+
+    expect(
+      screen.getByRole('textbox', { name: 'Search captions' }),
+    ).toBeInTheDocument();
+  });
+
   it('keeps the captions title accessible without duplicating the breadcrumb', () => {
     render(
       <LibraryCaptionsPage>

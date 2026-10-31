@@ -4,7 +4,7 @@ import type {
   IAgentMemoryRevision,
   ICorrectAgentMemoryInput,
 } from '@genfeedai/contracts/interfaces';
-import type { OrgMemoryEntry } from '@props/settings/org-memory.props';
+import type { OrgMemoryEntry } from '@genfeedai/contracts/interfaces/settings/org-memory.interface';
 import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';

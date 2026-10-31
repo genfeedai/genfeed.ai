@@ -61,6 +61,6 @@
   "actionError": "Could not update this failure.",
   "fullError": "Full error",
   "recovery": "Recovery",
-  "search": "Search failures, workflows or organizations",
+  "search": "Search failures, workflows, organizations or run ID",
   "emptySearch": "No agent failures match your search"
 }

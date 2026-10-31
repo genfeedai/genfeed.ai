@@ -9,6 +9,7 @@ import {
 import { assertCampaignAssets } from '@api/collections/campaigns/services/campaign-assets.util';
 import { isPrismaUniqueConstraintError } from '@api/collections/shared/slug-allocation.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
 import { type AggregatePaginateResult, scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -49,6 +50,9 @@ export class CampaignsService {
           ? {}
           : { status: { not: ContentCampaignStatus.ARCHIVED } }),
       ...(query.userId ? { userId: query.userId } : {}),
+      ...buildSearchWhere(query.search, {
+        columns: ['name', 'objective', 'brief'],
+      }),
     });
 
     const [rows, totalDocs] = await Promise.all([

@@ -22,6 +22,7 @@ export const ONBOARDING_ACCESS_SOURCE = 'oss-onboarding';
 
 const SUBSCRIPTION_TIER_LABELS: Record<string, string> = {
   [SubscriptionTier.FREE]: 'Free',
+  [SubscriptionTier.PRO]: 'Pro',
   [SubscriptionTier.SCALE]: 'Scale',
   [SubscriptionTier.ENTERPRISE]: 'Enterprise',
 };
@@ -153,7 +154,7 @@ const STRIPE_PRICE_ID_PATTERN = /^price_[a-zA-Z0-9]+$/;
 
 /**
  * Marketing CTAs hand off a subscription plan as a human-readable slug
- * (e.g. `/sign-up?plan=scale` for the website Scale card). The checkout
+ * (e.g. `/sign-up?plan=pro` for the website Pro card). The checkout
  * endpoint only accepts Stripe price ids — `CreateCheckoutSessionDto` enforces
  * `^price_...$` — so a raw slug would be rejected (400) before checkout is ever
  * created. Resolve known subscription slugs to their configured
@@ -161,16 +162,18 @@ const STRIPE_PRICE_ID_PATTERN = /^price_[a-zA-Z0-9]+$/;
  * slug, unknown values) passes through unchanged.
  */
 export function buildPlanSlugPriceIdMap(): Record<string, string | undefined> {
-  const { scale } = EnvironmentService.plans;
+  const { pro, scale } = EnvironmentService.plans;
 
   return {
+    pro,
     scale,
   };
 }
 
 /**
  * Resolve a `?plan=` handoff value into a Stripe price id when possible.
- * Returns `null` for empty input. Already-formed price ids and unknown slugs
+ * Returns `null` for empty input and for a known subscription slug whose
+ * price id is not configured. Already-formed price ids and unknown slugs
  * are returned untouched so existing behavior (e.g. the free `payg` handoff)
  * is preserved.
  */
@@ -190,8 +193,14 @@ export function resolveSelectedPlanParam(
     return trimmed;
   }
 
-  const resolved = planSlugPriceIds[trimmed.toLowerCase()];
-  return resolved ?? trimmed;
+  const slug = trimmed.toLowerCase();
+  if (Object.hasOwn(planSlugPriceIds, slug)) {
+    // A known subscription slug whose Stripe price is not configured has no
+    // valid checkout target; forwarding the slug would fail the checkout DTO.
+    return planSlugPriceIds[slug] || null;
+  }
+
+  return trimmed;
 }
 
 /**

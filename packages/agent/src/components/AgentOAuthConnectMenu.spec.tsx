@@ -1,8 +1,8 @@
 import { AgentOAuthConnectMenu } from '@genfeedai/agent/components/AgentOAuthConnectMenu';
+import { resolveOAuthConnectPlatformCatalog } from '@genfeedai/helpers/oauth/oauth-connect-platforms';
 import { OAuthBrandRequiredError } from '@hooks/auth/use-platform-oauth-connect/oauth-brand-required.error';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { resolveOAuthConnectPlatformCatalog } from '@ui/constants/oauth-connect-platforms';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const useOAuthConnectPlatforms = vi.hoisted(() => vi.fn());

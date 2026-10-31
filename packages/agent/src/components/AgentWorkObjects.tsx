@@ -1,6 +1,7 @@
 'use client';
 
 import { AgentWorkObjectEditor } from '@genfeedai/agent/components/AgentWorkObjectEditor';
+import type { AgentWorkObjectsProps } from '@genfeedai/agent/components/agent-work-objects.types';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { useAgentWorkObjectGateStore } from '@genfeedai/agent/stores/agent-work-object-gate.store';
 import type {
@@ -8,7 +9,6 @@ import type {
   AgentWorkObjectActionPayload,
   AgentWorkObjectCollection,
 } from '@genfeedai/contracts/interfaces';
-import type { AgentWorkObjectsProps } from '@genfeedai/props/ui/agent/agent-work-objects.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';

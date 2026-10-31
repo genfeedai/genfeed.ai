@@ -9,12 +9,15 @@ import {
   renderLifecycleSystemEmailParagraphs,
 } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useFilteredData } from '@hooks/utils/use-filtered-data/use-filtered-data';
 import { AdminSystemEmailsService } from '@services/admin/system-emails.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
+import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
+import SearchField from '@ui/content/search-field/SearchField';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
@@ -26,6 +29,7 @@ import {
   AccordionTrigger,
 } from '@ui/primitives/accordion';
 import { Mail } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 
 const SYSTEM_EMAIL_SKELETON_KEYS = [
@@ -53,10 +57,23 @@ function resolvePreviewAction(email: LifecycleSystemEmailDefinition): string {
 }
 
 export default function SystemEmailsPage() {
+  const searchT = useTranslations('common.adminSearch');
+  const { search, setSearch } = useAdminSearchParam();
   const [emails, setEmails] = useState<LifecycleSystemEmailDefinition[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const range = useSystemEmailRange();
+  const visibleEmails = useFilteredData({
+    data: emails,
+    filter: search,
+    filterFields: (email) => [
+      email.name,
+      email.subject,
+      email.sequence,
+      email.audience,
+      email.trigger,
+    ],
+  });
 
   const notificationsService = NotificationsService.getInstance();
   const getSystemEmailsService = useAuthedService((token: string) =>
@@ -105,6 +122,14 @@ export default function SystemEmailsPage() {
     <AdminPageShell
       title="System emails"
       icon={Mail}
+      search={
+        <SearchField
+          ariaLabel={searchT('systemEmails')}
+          onSearch={setSearch}
+          placeholder={searchT('systemEmails')}
+          value={search}
+        />
+      }
       onRefresh={handleRefresh}
       isRefreshing={isRefreshing}
       dropdowns={<SystemEmailRangeFilter range={range} />}
@@ -122,12 +147,18 @@ export default function SystemEmailsPage() {
           tone="muted"
           data-testid="system-emails-surface"
         >
-          {emails.length === 0 ? (
-            <CardEmptyContent label="No system emails registered" />
+          {visibleEmails.length === 0 ? (
+            <CardEmptyContent
+              label={
+                search
+                  ? 'No system emails match your search'
+                  : 'No system emails registered'
+              }
+            />
           ) : (
             <Card>
               <Accordion type="multiple" className="px-6">
-                {emails.map((email) => (
+                {visibleEmails.map((email) => (
                   <AccordionItem
                     key={email.id}
                     value={email.id}

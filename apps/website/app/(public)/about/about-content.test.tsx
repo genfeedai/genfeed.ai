@@ -11,7 +11,7 @@ vi.mock('next/link', () => ({
   ),
 }));
 
-vi.mock('@hooks/ui/use-marketing-entrance', () => ({
+vi.mock('@web-hooks/ui/use-marketing-entrance', () => ({
   useMarketingEntrance: () => ({ current: null }),
 }));
 

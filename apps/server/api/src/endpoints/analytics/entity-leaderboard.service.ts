@@ -20,6 +20,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import type { OrganizationCategory } from '@genfeedai/contracts';
 import type {
   IEntityAnalyticsStats,
   IOrganizationOwner,
@@ -292,6 +293,12 @@ export class EntityLeaderboardService {
       !isOrganization && filters.organizationId
         ? Prisma.sql`AND e."organizationId" = ${filters.organizationId}`
         : Prisma.empty;
+    // Organizations are the top of the tree: `organizationId` there names the
+    // one organization to rank (brands use it to narrow to a parent).
+    const organizationIdFilter =
+      isOrganization && filters.organizationId
+        ? Prisma.sql`AND e."id" = ${filters.organizationId}`
+        : Prisma.empty;
     const searchFilter = filters.search
       ? Prisma.sql`AND e."label" ILIKE ${this.toContainsPattern(filters.search)}`
       : Prisma.empty;
@@ -313,6 +320,7 @@ export class EntityLeaderboardService {
       WHERE e."isDeleted" = false
         ${entityOrganizationFilter}
         ${brandFilter}
+        ${organizationIdFilter}
         ${searchFilter}
       ORDER BY COALESCE(m.metric, 0) DESC, e."createdAt" DESC, e."id" DESC
       LIMIT ${window.limit} OFFSET ${window.offset}
@@ -332,7 +340,7 @@ export class EntityLeaderboardService {
 
     if (entityType === 'organization') {
       return this.prisma.organization.count({
-        where: { isDeleted: false, label },
+        where: { id: filters.organizationId, isDeleted: false, label },
       });
     }
 
@@ -745,6 +753,7 @@ export class EntityLeaderboardService {
     limit: number = 20,
     sort: LeaderboardSort = LeaderboardSort.ENGAGEMENT,
     search?: string,
+    organizationId?: string,
   ): Promise<PaginatedOrgsResponse> {
     const range = DateRangeUtil.parseDateRange(startDateStr, endDateStr);
     // The name search runs in the same query that ranks and pages, and in the
@@ -756,9 +765,9 @@ export class EntityLeaderboardService {
         range,
         sort,
         { limit, offset: (page - 1) * limit },
-        { search: needle },
+        { organizationId, search: needle },
       ),
-      this.countEntities('organization', { search: needle }),
+      this.countEntities('organization', { organizationId, search: needle }),
     ]);
 
     const organizationIds = rows.map(({ entity }) => entity.id);
@@ -785,6 +794,12 @@ export class EntityLeaderboardService {
             undefined,
           name: entity.label || entity.name || 'Unknown',
           owner: entity.userId ? ownerMap.get(entity.userId) : undefined,
+          slug: entity.slug,
+          // Onboarding writes `accountType`; `category` always has a value.
+          type: (entity.accountType ?? entity.category ?? undefined) as
+            | OrganizationCategory
+            | undefined,
+          createdAt: entity.createdAt?.toISOString(),
           totalBrands: brandCountMap.get(entity.id) || 0,
           totalEngagement: stats.totalEngagement,
           totalMembers: memberCountMap.get(entity.id) || 0,

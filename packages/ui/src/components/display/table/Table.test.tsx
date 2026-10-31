@@ -60,7 +60,7 @@ describe('Table', () => {
     ).toHaveAttribute('colspan', '1');
   });
 
-  it('reveals touch-safe row actions on keyboard focus', () => {
+  it('overlays row actions on the row and reveals them on hover or focus', () => {
     render(
       <Table
         items={[{ id: 'item-1', name: 'First item' }]}
@@ -82,17 +82,67 @@ describe('Table', () => {
     );
 
     const action = screen.getByTestId('action-button');
-    expect(action).toHaveClass('size-11', 'lg:size-8', '[&_svg]:size-3.5');
+    expect(action).toHaveClass(
+      'size-8',
+      '[@media(hover:none)]:size-11',
+      '[&_svg]:size-3.5',
+    );
     expect(action).toHaveAccessibleName('Edit item');
-    const group = action.closest('td')?.firstElementChild;
+    const cell = action.closest('td');
+    // Zero-width sticky cell: no column to scroll to, pinned to the right edge.
+    expect(cell).toHaveClass('sticky', 'right-0', '[@media(hover:hover)]:w-0');
+    const group = cell?.firstElementChild;
     expect(group).toHaveClass(
+      '[@media(hover:hover)]:absolute',
       'opacity-100',
       'pointer-events-auto',
-      '[@media(hover:hover)]:lg:opacity-0',
-      '[@media(hover:hover)]:lg:group-focus-within:opacity-100',
+      '[@media(hover:hover)]:opacity-0',
+      '[@media(hover:hover)]:group-hover:opacity-100',
+      '[@media(hover:hover)]:group-focus-within:opacity-100',
     );
     // Motion policy: the group shows and hides instantly, never slides in.
     expect(group?.className).not.toMatch(/translate-x|transition/);
+  });
+
+  it('has no visible Actions column header', () => {
+    render(
+      <Table
+        items={[{ id: 'item-1', name: 'First item' }]}
+        columns={[{ header: 'Name', key: 'name' }]}
+        actions={[{ icon: 'Edit', onClick: () => {}, tooltip: 'Edit item' }]}
+        getRowKey={(item) => item.id}
+      />,
+    );
+
+    expect(screen.getAllByRole('columnheader')).toHaveLength(2);
+    expect(screen.getByRole('columnheader', { name: 'Actions' })).toHaveClass(
+      'w-0',
+    );
+  });
+
+  it('renders row-specific controls from renderRowActions in the same overlay', () => {
+    render(
+      <Table
+        items={[
+          { id: 'item-1', name: 'First item' },
+          { id: 'item-2', name: 'Second item' },
+        ]}
+        columns={[{ header: 'Name', key: 'name' }]}
+        renderRowActions={(item) => (
+          <button type="button">{`Retry ${item.name}`}</button>
+        )}
+        getRowKey={(item) => item.id}
+      />,
+    );
+
+    const retry = screen.getByRole('button', { name: 'Retry First item' });
+    expect(retry.closest('td')).toHaveClass('sticky', 'right-0');
+    expect(retry.parentElement).toHaveClass(
+      '[@media(hover:hover)]:group-hover:opacity-100',
+    );
+    expect(
+      screen.getByRole('button', { name: 'Retry Second item' }),
+    ).toBeInTheDocument();
   });
 
   it('keeps a one-word tooltip and a longer accessible name per row', async () => {
@@ -283,7 +333,7 @@ describe('Table', () => {
 
     const header = screen.getByRole('columnheader', { name: /name/i });
     expect(header).toHaveAttribute('aria-sort', 'ascending');
-    fireEvent.click(screen.getByRole('button', { name: 'Sort by Name' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Name' }));
     expect(onSortChange).toHaveBeenCalledWith('name', 'desc');
 
     rerender(
@@ -300,6 +350,143 @@ describe('Table', () => {
       'aria-sort',
       'descending',
     );
+  });
+
+  describe('default sorting', () => {
+    const rows = [
+      { id: 'b', name: 'Bravo', posts: 10 },
+      { id: 'a', name: 'alpha', posts: 2 },
+      { id: 'c', name: 'Charlie', posts: null },
+    ];
+    const getNames = () =>
+      screen
+        .getAllByRole('row')
+        .slice(1)
+        .map((row) => row.querySelector('td')?.textContent);
+
+    it('sorts rows by a clicked header: ascending, descending, then original order', async () => {
+      const user = userEvent.setup();
+      render(
+        <Table
+          items={rows}
+          columns={[
+            { header: 'Name', key: 'name' },
+            { header: 'Posts', key: 'posts' },
+          ]}
+          getRowKey={(item) => item.id}
+        />,
+      );
+
+      expect(getNames()).toEqual(['Bravo', 'alpha', 'Charlie']);
+
+      await user.click(screen.getByRole('button', { name: 'Name' }));
+      expect(getNames()).toEqual(['alpha', 'Bravo', 'Charlie']);
+      expect(
+        screen.getByRole('columnheader', { name: /name/i }),
+      ).toHaveAttribute('aria-sort', 'ascending');
+
+      await user.click(screen.getByRole('button', { name: 'Name' }));
+      expect(getNames()).toEqual(['Charlie', 'Bravo', 'alpha']);
+      expect(
+        screen.getByRole('columnheader', { name: /name/i }),
+      ).toHaveAttribute('aria-sort', 'descending');
+
+      await user.click(screen.getByRole('button', { name: 'Name' }));
+      expect(getNames()).toEqual(['Bravo', 'alpha', 'Charlie']);
+      expect(
+        screen.getByRole('columnheader', { name: /name/i }),
+      ).not.toHaveAttribute('aria-sort');
+    });
+
+    it('sorts numbers by value and keeps empty values last in both directions', async () => {
+      const user = userEvent.setup();
+      render(
+        <Table
+          items={rows}
+          columns={[
+            { header: 'Name', key: 'name' },
+            { header: 'Posts', key: 'posts' },
+          ]}
+          getRowKey={(item) => item.id}
+        />,
+      );
+
+      await user.click(screen.getByRole('button', { name: 'Posts' }));
+      expect(getNames()).toEqual(['alpha', 'Bravo', 'Charlie']);
+
+      await user.click(screen.getByRole('button', { name: 'Posts' }));
+      expect(getNames()).toEqual(['Bravo', 'alpha', 'Charlie']);
+    });
+
+    it('sorts by sortValue when the cell is rendered from computed data', async () => {
+      const user = userEvent.setup();
+      render(
+        <Table
+          items={rows}
+          columns={[
+            { header: 'Name', key: 'name' },
+            {
+              header: 'Share',
+              key: 'share',
+              render: (item) => `${item.posts ?? 0}%`,
+              sortValue: (item) => item.posts,
+            },
+          ]}
+          getRowKey={(item) => item.id}
+        />,
+      );
+
+      await user.click(screen.getByRole('button', { name: 'Share' }));
+      expect(getNames()).toEqual(['alpha', 'Bravo', 'Charlie']);
+    });
+
+    it('leaves out columns that opt out, have no sortable values or no text header', () => {
+      render(
+        <Table
+          items={rows}
+          columns={[
+            { header: 'Name', key: 'name', sortable: false },
+            { header: 'Owner', key: 'owner', render: () => 'x' },
+            { header: <span>Icon</span>, key: 'posts' },
+            { header: 'Posts', key: 'posts' },
+          ]}
+          getRowKey={(item) => item.id}
+        />,
+      );
+
+      expect(screen.getAllByRole('button')).toHaveLength(1);
+      expect(screen.getByRole('button', { name: 'Posts' })).toBeInTheDocument();
+    });
+
+    it('does not reorder grouped tables', () => {
+      render(
+        <Table
+          items={rows}
+          columns={[{ header: 'Name', key: 'name' }]}
+          getGroupHeading={() => null}
+          getRowKey={(item) => item.id}
+        />,
+      );
+
+      expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    });
+
+    it('only offers sorting on columns marked sortable when the parent sorts', () => {
+      render(
+        <Table
+          items={rows}
+          columns={[
+            { header: 'Name', key: 'name', sortable: true },
+            { header: 'Posts', key: 'posts' },
+          ]}
+          getRowKey={(item) => item.id}
+          onSortChange={vi.fn()}
+        />,
+      );
+
+      expect(screen.getAllByRole('button')).toHaveLength(1);
+      expect(getNames()).toEqual(['Bravo', 'alpha', 'Charlie']);
+    });
   });
 
   it('renders supporting text below a primary cell value', () => {
@@ -737,6 +924,15 @@ describe('Table', () => {
         </ContextSidebarProvider>,
       );
     }
+
+    it('does not underline a multi-line name cell when its link is hovered', () => {
+      renderSidebarTable({ withLink: true });
+
+      const link = screen.getByRole('link', { name: 'Open First item' });
+
+      expect(link).toHaveClass('no-underline');
+      expect(link.className).not.toContain('hover:underline');
+    });
 
     it('opens the right sidebar when a row is clicked', () => {
       renderSidebarTable({ withLink: false });

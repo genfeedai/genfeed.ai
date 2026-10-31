@@ -19,6 +19,8 @@ import { AdminPlatformSettingsService } from '@services/admin/platform-settings.
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
+import SearchField from '@ui/content/search-field/SearchField';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
@@ -79,6 +81,7 @@ function nestedFlagKeysOf(key: PlatformFlagKey): PlatformFlagKey[] {
 export default function AdminFlagsPage() {
   const translate = useTranslations('pages.adminFlags');
   const notificationsService = NotificationsService.getInstance();
+  const { search, setSearch } = useAdminSearchParam();
   const getPlatformSettingsService = useAuthedService((token: string) =>
     AdminPlatformSettingsService.getInstance(token),
   );
@@ -155,6 +158,25 @@ export default function AdminFlagsPage() {
 
   const effectiveFlags = resolvePlatformFlags(flags);
 
+  // Flags are a fixed catalog, so the search narrows the cards in memory: a
+  // card stays when its own flag or any flag nested in it matches.
+  const searchTerm = search.trim().toLowerCase();
+  function isFlagMatching(key: PlatformFlagKey): boolean {
+    return [
+      key,
+      translate(`flags.${key}.label`),
+      translate(`flags.${key}.description`),
+    ].some((text) => text.toLowerCase().includes(searchTerm));
+  }
+  const visibleSections = FLAG_SECTIONS.map((section) => ({
+    ...section,
+    keys: searchTerm
+      ? section.keys.filter((key) =>
+          [key, ...nestedFlagKeysOf(key)].some(isFlagMatching),
+        )
+      : section.keys,
+  })).filter((section) => section.keys.length > 0);
+
   function renderContent(): ReactElement {
     if (isLoading) {
       return <SkeletonCard showImage={false} />;
@@ -169,9 +191,17 @@ export default function AdminFlagsPage() {
       );
     }
 
+    if (visibleSections.length === 0) {
+      return (
+        <Text as="p" color="muted" size="sm">
+          {translate('searchEmpty')}
+        </Text>
+      );
+    }
+
     return (
       <div className="flex flex-col gap-10">
-        {FLAG_SECTIONS.map((section) => (
+        {visibleSections.map((section) => (
           <section key={section.id} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
               <Heading size="md">
@@ -219,6 +249,14 @@ export default function AdminFlagsPage() {
     <AdminPageShell
       title={translate('title')}
       icon={ToggleRight}
+      search={
+        <SearchField
+          ariaLabel={translate('search')}
+          onSearch={setSearch}
+          placeholder={translate('search')}
+          value={search}
+        />
+      }
       onRefresh={handleRefresh}
       isRefreshing={isRefreshing}
     >

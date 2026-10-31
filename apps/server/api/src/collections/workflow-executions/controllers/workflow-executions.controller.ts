@@ -36,6 +36,7 @@ import {
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
 import { HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE } from '@genfeedai/contracts/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { WorkflowExecutionSerializer } from '@genfeedai/serializers';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
@@ -227,13 +228,13 @@ export class WorkflowExecutionsController {
                     }
                   : { failureReason: query.failureReason }
                 : {}),
-              ...buildSearchWhere(query.search, {
-                columns: ['error'],
-                relations: {
-                  organization: ['label'],
-                  workflow: ['label'],
+              ...buildSearchWhere<Prisma.WorkflowExecutionWhereInput>(
+                query.search,
+                {
+                  columns: ['id', 'error'],
+                  relations: { organization: ['label'] },
                 },
-              }),
+              ),
               workflow: {
                 is: {
                   isDeleted: false,

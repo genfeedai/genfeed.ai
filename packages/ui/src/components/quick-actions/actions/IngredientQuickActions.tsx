@@ -14,11 +14,11 @@ import {
   cn,
 } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
-import { useQuickActions } from '@genfeedai/hooks/ui/use-quick-actions/use-quick-actions';
 import type { StudioQuickActionsProps } from '@genfeedai/props/studio/studio.props';
 import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
 import SaveAsCharacter from '@ui/characters/SaveAsCharacter';
 import QuickActionButton from '@ui/quick-actions/button/QuickActionButton';
+import { useQuickActions } from '@ui/quick-actions/hooks/use-quick-actions/use-quick-actions';
 import QuickActionsMenu from '@ui/quick-actions/menu/QuickActionsMenu';
 import {
   QUICK_ACTION_TRIGGER_CLASS,

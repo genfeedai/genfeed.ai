@@ -174,7 +174,7 @@ export class AgentFailureQueryDto {
   @IsString()
   @ApiProperty({
     description:
-      'Case-insensitive search over the error, workflow and organization',
+      'Search failures by error text, organization, workflow or run id',
     required: false,
   })
   search?: string;

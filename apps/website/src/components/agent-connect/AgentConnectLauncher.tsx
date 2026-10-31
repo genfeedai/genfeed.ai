@@ -1,6 +1,6 @@
 'use client';
 
-import { AGENT_CONNECT_EVENT } from '@ui/buttons/connect-agent/connect-agent.event';
+import { AGENT_CONNECT_EVENT } from '@web-components/buttons/connect-agent/connect-agent.event';
 import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
 import { isConnectDeepLink } from './connect-deep-link';

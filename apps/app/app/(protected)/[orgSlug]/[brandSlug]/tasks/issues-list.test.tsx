@@ -317,6 +317,53 @@ describe('IssuesList URL view state', () => {
   });
 });
 
+describe('IssuesList search', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    Element.prototype.hasPointerCapture = vi.fn(() => false);
+    Element.prototype.releasePointerCapture = vi.fn();
+    Element.prototype.scrollIntoView = vi.fn();
+    mocks.searchParams = new URLSearchParams();
+    mocks.getService.mockResolvedValue({ list: mocks.list });
+  });
+
+  it('searches tasks on the server with the term in the URL', async () => {
+    mocks.searchParams = new URLSearchParams('q=empty-state');
+    mocks.list.mockResolvedValue([
+      {
+        id: 'task-1',
+        identifier: 'TASK-1',
+        priority: 'medium',
+        status: 'todo',
+        title: 'Ship empty-state CTA',
+        updatedAt: new Date().toISOString(),
+      },
+    ]);
+
+    render(<IssuesList />);
+
+    expect(await screen.findByText('Ship empty-state CTA')).toBeVisible();
+    expect(mocks.list).toHaveBeenCalledWith(
+      expect.objectContaining({ search: 'empty-state' }),
+    );
+    expect(screen.getByRole('textbox', { name: 'Search tasks' })).toHaveValue(
+      'empty-state',
+    );
+  });
+
+  it('keeps the search field when a search matches nothing', async () => {
+    mocks.searchParams = new URLSearchParams('q=zzz');
+    mocks.list.mockResolvedValue([]);
+
+    render(<IssuesList />);
+
+    expect(await screen.findByText('No matching tasks')).toBeVisible();
+    expect(screen.getByRole('textbox', { name: 'Search tasks' })).toHaveValue(
+      'zzz',
+    );
+  });
+});
+
 describe('IssuesList pagination', () => {
   beforeEach(() => {
     vi.clearAllMocks();

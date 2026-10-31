@@ -22,6 +22,18 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable } from '@nestjs/common';
 
+/**
+ * Tier named by a signed `genfeed_software_tier` price metadata value. Only
+ * the self-serve tiers can be negotiated this way; anything else is ignored.
+ */
+function resolveNegotiatedTier(
+  negotiatedTier: string | undefined,
+): SubscriptionTier | null {
+  if (negotiatedTier === 'scale') return SubscriptionTier.SCALE;
+  if (negotiatedTier === 'pro') return SubscriptionTier.PRO;
+  return null;
+}
+
 /** Handles customer.subscription.* Stripe webhook events. */
 @Injectable()
 export class StripeSubscriptionWebhookHandler {
@@ -66,10 +78,10 @@ export class StripeSubscriptionWebhookHandler {
 
       const tier =
         this.supportService.resolveTierFromPriceId(stripePriceId) ??
-        (this.supportService.softwareItem(subscription)?.price.metadata
-          ?.genfeed_software_tier === 'scale'
-          ? SubscriptionTier.SCALE
-          : null);
+        resolveNegotiatedTier(
+          this.supportService.softwareItem(subscription)?.price.metadata
+            ?.genfeed_software_tier,
+        );
       if (tier) {
         if (organizationId) {
           await this.supportService.updateOrganizationTierAndModels(
@@ -194,7 +206,7 @@ export class StripeSubscriptionWebhookHandler {
 
     const tier =
       this.supportService.resolveTierFromPriceId(stripePriceId) ??
-      (negotiatedTier === 'scale' ? SubscriptionTier.SCALE : null);
+      resolveNegotiatedTier(negotiatedTier);
     if (tier) {
       await this.supportService.updateOrganizationTierAndModels(
         organizationId,

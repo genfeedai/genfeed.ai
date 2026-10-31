@@ -39,6 +39,7 @@ vi.mock('@contexts/ui/context-sidebar-context', () => ({
 const pushMock = vi.fn();
 const getBrandsWithStatsMock = vi.fn();
 const getPlatformComparisonMock = vi.fn();
+const useAnalyticsOptions: Array<{ scopeId?: string }> = [];
 let contextBrandId: string | null = null;
 
 let analyticsResult: {
@@ -127,12 +128,15 @@ vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
 }));
 
 vi.mock('@hooks/data/analytics/use-analytics/use-analytics', () => ({
-  useAnalytics: () => analyticsResult,
+  useAnalytics: (options: { scopeId?: string }) => {
+    useAnalyticsOptions.push(options);
+    return analyticsResult;
+  },
 }));
 
 const getAnalyticsServiceMock = async () => ({
   getBrandsWithStats: getBrandsWithStatsMock,
-  getPlatformComparison: getPlatformComparisonMock,
+  findOrganizationAnalyticsPlatforms: getPlatformComparisonMock,
   getTopAccounts: async () => [],
 });
 
@@ -146,7 +150,20 @@ describe('AnalyticsOrganizationOverview', () => {
     analyticsResult = { analytics: analyticsFixture, isLoading: false };
     getBrandsWithStatsMock.mockResolvedValue({ data: [brandFixture] });
     getPlatformComparisonMock.mockResolvedValue([]);
+    useAnalyticsOptions.length = 0;
     contextBrandId = null;
+  });
+
+  it('reads the organization from the URL, not the signed-in account', async () => {
+    render(<AnalyticsOrganizationOverview organizationId="org-9" />);
+
+    await waitFor(() => {
+      expect(getPlatformComparisonMock).toHaveBeenCalledWith(
+        'org-9',
+        expect.anything(),
+      );
+    });
+    expect(useAnalyticsOptions.at(-1)?.scopeId).toBe('org-9');
   });
 
   it('omits an empty brand ID for organization-wide platform comparison', async () => {
@@ -154,6 +171,7 @@ describe('AnalyticsOrganizationOverview', () => {
     render(<AnalyticsOrganizationOverview />);
     await waitFor(() => {
       expect(getPlatformComparisonMock).toHaveBeenCalledWith(
+        'org-1',
         expect.objectContaining({ brandId: undefined }),
       );
     });

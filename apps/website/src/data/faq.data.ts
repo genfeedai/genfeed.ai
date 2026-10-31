@@ -32,7 +32,7 @@ const FAQ_ITEMS_GENERAL: FAQItem[] = [
     question: 'Who is Genfeed for?',
   },
   {
-    answer: `Sign up free and buy credits for the output you generate. Subscribe to ${PLAN_COPY.scale.name} (${PLAN_COPY.scale.priceLabel}, ${PLAN_COPY.scale.includedCredits} included) when you run content for multiple clients and need seats, shared approvals, and multi-organization workflows.`,
+    answer: `Sign up free and buy credits for the output you generate. Subscribe to ${PLAN_COPY.pro.name} (${PLAN_COPY.pro.priceLabel}, ${PLAN_COPY.pro.includedCredits} included) for every app in one workspace, or ${PLAN_COPY.scale.name} (${PLAN_COPY.scale.priceLabel}, ${PLAN_COPY.scale.includedCredits} included) when you run content for multiple clients and need seats, shared approvals, and multi-organization workflows.`,
     question: 'How do I get started?',
   },
 ];
@@ -70,11 +70,11 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
         question: 'How does pricing work?',
       },
       {
-        answer: `${PLAN_COPY.payg.name} is free with credit packs. ${PLAN_COPY.scale.name} is ${PLAN_COPY.scale.monthlyPrice} with unlimited seats and a shared pool of ${PLAN_COPY.scale.includedCredits}. ${PLAN_COPY.enterprise.name} is custom.`,
+        answer: `${PLAN_COPY.payg.name} is free with credit packs. ${PLAN_COPY.pro.name} is ${PLAN_COPY.pro.monthlyPrice} with every app and ${PLAN_COPY.pro.includedCredits} a month. ${PLAN_COPY.scale.name} is ${PLAN_COPY.scale.monthlyPrice} with unlimited seats and a shared pool of ${PLAN_COPY.scale.includedCredits}. ${PLAN_COPY.enterprise.name} is custom.`,
         question: 'What are the pricing tiers?',
       },
       {
-        answer: `Yes. API access is included on every plan at the same credit price. Generate in the studio or via code, drawing from the same credit balance. ${PLAN_COPY.payg.name} allows ${FREE_API_RATE_LIMIT} requests per minute, ${PLAN_COPY.scale.name} gets higher rate limits, and ${PLAN_COPY.enterprise.name} custom limits with an SLA.`,
+        answer: `Yes. API access is included on every plan at the same credit price. Generate in the studio or via code, drawing from the same credit balance. ${PLAN_COPY.payg.name} allows ${FREE_API_RATE_LIMIT} requests per minute, ${PLAN_COPY.pro.name} and ${PLAN_COPY.scale.name} get higher rate limits, and ${PLAN_COPY.enterprise.name} custom limits with an SLA.`,
         question: 'Is there an API?',
       },
       {
@@ -136,7 +136,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
         question: `What is included in ${PLAN_COPY.enterprise.name}?`,
       },
       {
-        answer: `API access is included on every plan: ${PLAN_COPY.payg.name} allows ${FREE_API_RATE_LIMIT} requests per minute. ${PLAN_COPY.scale.name} and ${PLAN_COPY.enterprise.name} get higher limits. Contact sales for production API terms.`,
+        answer: `API access is included on every plan: ${PLAN_COPY.payg.name} allows ${FREE_API_RATE_LIMIT} requests per minute. ${PLAN_COPY.pro.name}, ${PLAN_COPY.scale.name} and ${PLAN_COPY.enterprise.name} get higher limits. Contact sales for production API terms.`,
         question: 'Do you have an API?',
       },
     ],

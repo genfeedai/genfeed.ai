@@ -17,6 +17,7 @@ import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
@@ -153,6 +154,7 @@ export class BotsController extends BaseCRUDController<
         ...platformFilter,
         ...categoryFilter,
         ...statusFilter,
+        ...buildSearchWhere(query.search, { columns: ['label'] }),
       },
     };
   }

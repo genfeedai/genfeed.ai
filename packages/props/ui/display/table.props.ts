@@ -14,11 +14,27 @@ export interface TableColumn<T> {
   subtext?: (item: T) => ReactNode;
   className?: string;
   actions?: TableAction<T>[];
+  /**
+   * Without `onSortChange` every column sorts the loaded rows by header click;
+   * set `false` to opt a column out. With `onSortChange` (server-side sorting)
+   * only columns marked `true` sort, because the server decides which it can.
+   */
   sortable?: boolean;
+  /** Accessible name for the sort control when `header` is not plain text. */
   sortLabel?: string;
+  /** What rows are ordered by when it is not `item[key]` (computed or rendered cells). */
+  sortValue?: (item: T) => TableSortValue;
 }
 
 export type TableSortDirection = 'asc' | 'desc';
+
+export type TableSortValue =
+  | string
+  | number
+  | boolean
+  | Date
+  | null
+  | undefined;
 
 /**
  * Destination for a row that navigates.
@@ -58,6 +74,13 @@ interface TableBaseProps<T> {
   isLoading?: boolean;
   columns: TableColumn<T>[];
   actions?: TableAction<T>[];
+  /**
+   * Row-specific controls (an overflow menu, a stateful button) that an icon
+   * `actions` entry cannot express. Rendered in the same overlay as `actions`:
+   * hidden until the row is hovered or focused, floating over the row's right
+   * end. Never add an "Actions" column — it sits off-screen until you scroll.
+   */
+  renderRowActions?: (item: T) => ReactNode;
   /** Render the shared table frame. Disable when a parent surface owns it. */
   framed?: boolean;
   /** Compact padding for dense ledgers; regular tables retain their spacing. */
@@ -125,7 +148,13 @@ interface TableBaseProps<T> {
    */
   getGroupHeading?: (item: T) => TableGroupHeading | null;
 
-  // Controlled sorting support
+  /**
+   * Sorting. By default the table sorts the rows it was given when a header is
+   * clicked (a third click restores the original order). Lists that page on the
+   * server must sort on the server instead: pass `onSortChange` with the active
+   * `sortKey` and `sortDirection`, and mark the columns the server can order
+   * with `sortable: true`.
+   */
   sortKey?: string;
   sortDirection?: TableSortDirection;
   onSortChange?: (key: string, direction: TableSortDirection) => void;

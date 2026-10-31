@@ -23,13 +23,13 @@ import {
   XTwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
-import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import EditorialPoster from '@ui/marketing/EditorialPoster';
-import HeroProofRail from '@ui/marketing/HeroProofRail';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
+import EditorialPoster from '@web-components/marketing/EditorialPoster';
+import HeroProofRail from '@web-components/marketing/HeroProofRail';
 import PageLayout from '@web-components/PageLayout';
 import { ArrowRight, Newspaper, Sparkles, Star } from 'lucide-react';
 import Link from 'next/link';

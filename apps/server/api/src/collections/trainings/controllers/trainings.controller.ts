@@ -24,6 +24,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -119,6 +120,9 @@ export class TrainingsController extends BaseCRUDController<
     const where: Record<string, unknown> = {
       ...(adminFilter ?? { OR: ownershipOr }),
       isDeleted: query.isDeleted ?? false,
+      ...buildSearchWhere(query.search, {
+        columns: ['label', 'description', 'externalId'],
+      }),
     };
 
     // Map app-vocab status values to the TrainingStage enum; drop unknowns.

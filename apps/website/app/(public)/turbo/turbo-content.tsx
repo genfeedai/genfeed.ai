@@ -1,13 +1,13 @@
 import { ButtonSize } from '@genfeedai/contracts';
 import { EnvironmentService } from '@services/core/environment.service';
-import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import EditorialPoster from '@ui/marketing/EditorialPoster';
 import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
 import FaqGrid from '@web-components/content/FaqGrid';
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
+import EditorialPoster from '@web-components/marketing/EditorialPoster';
 import PageLayout from '@web-components/PageLayout';
 
 const signupUrl = new URL('/sign-up', EnvironmentService.apps.app);

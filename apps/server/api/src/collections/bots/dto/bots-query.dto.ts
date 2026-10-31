@@ -80,4 +80,9 @@ export class BotsQueryDto extends BaseQueryDto {
   @IsArray()
   @IsEnum(BotStatus, { each: true })
   status?: BotStatus[];
+
+  @ApiProperty({ description: 'Search bots by label', required: false })
+  @IsString()
+  @IsOptional()
+  search?: string;
 }

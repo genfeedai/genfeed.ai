@@ -1,7 +1,7 @@
 import type { PageLayoutProps } from '@props/layout/page-layout.props';
-import PosterHeroPage from '@ui/marketing/PosterHeroPage';
-import ProofHeroPage from '@ui/marketing/ProofHeroPage';
 import HomeFooter from '@web-components/home/_footer';
+import PosterHeroPage from '@web-components/marketing/PosterHeroPage';
+import ProofHeroPage from '@web-components/marketing/ProofHeroPage';
 
 export default function PageLayout({
   children,

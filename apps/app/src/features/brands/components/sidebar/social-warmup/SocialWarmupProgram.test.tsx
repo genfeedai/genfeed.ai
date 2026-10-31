@@ -13,8 +13,8 @@ import type {
   AccountHealthSummary,
   ISocialWarmupEnrollment,
 } from '@genfeedai/contracts/interfaces';
+import { resolveOAuthServicePath } from '@genfeedai/helpers/oauth/oauth-connect-platforms';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { resolveOAuthServicePath } from '@ui/constants/oauth-connect-platforms';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SocialWarmupProgram from './SocialWarmupProgram';
 

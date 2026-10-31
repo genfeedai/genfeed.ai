@@ -31,6 +31,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { MemberRole } from '@genfeedai/contracts';
@@ -38,6 +39,7 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/contracts/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { WorkflowSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -179,7 +181,7 @@ export class WorkflowCrudController {
     // `referencable=true` widens the list to every tenant workflow in the org
     // (workflow-reference pickers). `includeSystem=true` is the admin list of
     // persisted system-workflow clones. Customer Automation never sees those.
-    const where = buildWorkflowListWhere({
+    const listWhere = buildWorkflowListWhere({
       brandId: tenant.brandId,
       includeSystem: query.includeSystem === true,
       isDeleted,
@@ -188,6 +190,16 @@ export class WorkflowCrudController {
         tenant.isOrganizationOverride || query.referencable === true,
       userId: user.userId ?? user.id,
     });
+
+    // The list filter may already own `AND`, so the search joins it as a
+    // sibling instead of replacing it.
+    const searchWhere = buildSearchWhere<Prisma.WorkflowWhereInput>(
+      query.search,
+      { columns: ['label', 'description'] },
+    );
+    const where: Prisma.WorkflowWhereInput = searchWhere.AND
+      ? { AND: [listWhere, ...searchWhere.AND] }
+      : listWhere;
 
     const aggregate = {
       where,

@@ -52,6 +52,7 @@
     "titleLabel": "Title",
     "descriptionLabel": "Description",
     "taskTitlePlaceholder": "Task title",
-    "descriptionPlaceholder": "Optional description"
+    "descriptionPlaceholder": "Optional description",
+    "search": "Search tasks"
   }
 }

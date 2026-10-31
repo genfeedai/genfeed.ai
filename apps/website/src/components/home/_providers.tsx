@@ -1,9 +1,9 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { getProviderBrands } from '@genfeedai/helpers';
 import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
-import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
 import Link from 'next/link';
 
 const FEATURED_PROVIDER_COUNT = 5;

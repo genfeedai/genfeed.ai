@@ -1,4 +1,5 @@
 /** Shared analytics response contracts. */
+import type { OrganizationCategory } from '../..';
 
 export interface IEntityAnalyticsStats {
   avgEngagementRate: number;
@@ -22,6 +23,10 @@ export interface IOrganizationWithStats {
   name: string;
   logo?: string;
   owner?: IOrganizationOwner;
+  slug?: string;
+  /** What the organization said it is: `accountType` (onboarding), else `category`. */
+  type?: OrganizationCategory;
+  createdAt?: string;
   totalPosts: number;
   totalViews: number;
   totalEngagement: number;

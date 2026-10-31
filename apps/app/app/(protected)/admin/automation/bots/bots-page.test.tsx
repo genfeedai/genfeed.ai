@@ -18,6 +18,11 @@ const getBotsServiceStable = vi.hoisted(() => async () => ({
   findAll: mocks.findAll,
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getBotsServiceStable,
 }));
@@ -71,6 +76,26 @@ describe('BotsPage shell-first loading', () => {
     expect(
       screen.getByRole('navigation', { name: 'pagination' }),
     ).toBeVisible();
+  });
+
+  it('searches bots server-side with the term in the URL', async () => {
+    mocks.searchParams = new URLSearchParams('q=livestream');
+    mocks.findAll.mockResolvedValueOnce([]);
+
+    render(<BotsPage />);
+
+    await waitFor(() => {
+      expect(mocks.findAll).toHaveBeenCalledWith(
+        {
+          limit: ITEMS_PER_PAGE,
+          page: 1,
+          search: 'livestream',
+          sort: 'createdAt: -1',
+        },
+        expect.any(AbortSignal),
+      );
+    });
+    expect(await screen.findByText('No bots match your search')).toBeVisible();
   });
 
   it('renders the container chrome and refresh action while bots are loading', async () => {

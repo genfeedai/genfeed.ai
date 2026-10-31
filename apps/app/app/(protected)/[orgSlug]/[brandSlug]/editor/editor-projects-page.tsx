@@ -24,6 +24,8 @@ import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionSection from '@ui/collection/CollectionSection';
 import CollectionView from '@ui/collection/CollectionView';
 import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
+import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
+import SearchField from '@ui/content/search-field/SearchField';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Container from '@ui/layout/container/Container';
 import { ListRow } from '@ui/lists/list-row/ListRow';
@@ -97,6 +99,7 @@ export default function EditorProjectsPage() {
   const notificationsService = NotificationsService.getInstance();
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
+  const { search, setSearch } = useAdminSearchParam();
   const [projects, setProjects] = useState<IEditorProject[] | null>(null);
   const [totalProjects, setTotalProjects] = useState(0);
   const [hasError, setHasError] = useState(false);
@@ -115,12 +118,12 @@ export default function EditorProjectsPage() {
   // on the first server page.
   const recentProjects = useMemo(
     () =>
-      currentPage === 1
+      currentPage === 1 && !search
         ? [...(projects ?? [])]
             .sort((a, b) => getUpdatedTime(b) - getUpdatedTime(a))
             .slice(0, RECENT_PROJECT_LIMIT)
         : [],
-    [currentPage, projects],
+    [currentPage, projects, search],
   );
 
   const getEditorService = useAuthedService((token: string) =>
@@ -134,7 +137,11 @@ export default function EditorProjectsPage() {
         setHasError(false);
         const service = await getEditorService();
         const pageProjects = await service.findAll(
-          { limit: ITEMS_PER_PAGE, page: currentPage },
+          {
+            limit: ITEMS_PER_PAGE,
+            page: currentPage,
+            ...(search ? { search } : {}),
+          },
           signal,
         );
         if (signal?.aborted) {
@@ -155,7 +162,7 @@ export default function EditorProjectsPage() {
         setHasError(true);
       }
     },
-    [currentPage, getEditorService],
+    [currentPage, getEditorService, search],
   );
 
   useEffect(() => {
@@ -374,6 +381,14 @@ export default function EditorProjectsPage() {
 
   return (
     <Container
+      leading={
+        <SearchField
+          ariaLabel={translate('search')}
+          onSearch={setSearch}
+          placeholder={translate('search')}
+          value={search}
+        />
+      }
       label={
         hasProjects
           ? translate('yourProjectsCount', { count: totalProjects })
@@ -444,6 +459,8 @@ export default function EditorProjectsPage() {
           </CollectionSection>
           <AutoPagination showTotal totalLabel="projects" />
         </div>
+      ) : search ? (
+        <CardEmpty icon={Film} label={translate('emptySearch')} />
       ) : (
         <CardEmpty
           icon={Film}

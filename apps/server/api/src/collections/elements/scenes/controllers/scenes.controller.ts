@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateElementSceneDto } from '@api/collections/elements/scenes/dto/create-scene.dto';
+import { ScenesQueryDto } from '@api/collections/elements/scenes/dto/scenes-query.dto';
 import { UpdateElementSceneDto } from '@api/collections/elements/scenes/dto/update-scene.dto';
 import type { ElementSceneDocument } from '@api/collections/elements/scenes/schemas/scene.schema';
 import { ElementsScenesService } from '@api/collections/elements/scenes/services/scenes.service';
@@ -8,7 +9,6 @@ import { ElementsCRUDController } from '@api/collections/elements/shared/element
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
@@ -23,6 +23,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   SetMetadata,
   UseGuards,
@@ -39,13 +40,24 @@ export class ElementsScenesController extends ElementsCRUDController<
   ElementSceneDocument,
   CreateElementSceneDto,
   UpdateElementSceneDto,
-  BaseQueryDto
+  ScenesQueryDto
 > {
   constructor(
     public readonly scenesService: ElementsScenesService,
     public readonly loggerService: LoggerService,
   ) {
     super(loggerService, scenesService, SceneSerializer, 'ElementScene');
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'List scenes, optionally searched' })
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  override findAll(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Query() query: ScenesQueryDto,
+  ) {
+    return super.findAll(request, user, query);
   }
 
   @Get(':id')
@@ -96,7 +108,7 @@ export class ElementsScenesController extends ElementsCRUDController<
     return super.remove(request, user, id);
   }
 
-  public buildFindAllQuery(user: User, query: BaseQueryDto) {
+  public buildFindAllQuery(user: User, query: ScenesQueryDto) {
     return buildElementFindAllQuery({
       adminFilter: CollectionFilterUtil.buildAdminFilter(user, query),
       filters:
@@ -108,6 +120,7 @@ export class ElementsScenesController extends ElementsCRUDController<
         organizationId: user.organizationId,
       },
       query,
+      searchableFields: ['label', 'key', 'description'],
     });
   }
 }

@@ -25,6 +25,7 @@ import SearchField from '@ui/content/search-field/SearchField';
 import AppTable from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { format } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -312,7 +313,34 @@ export default function AnalyticsOrganizationsList({
           kind: 'organization',
           render: (org) => (
             <TableRowSummary
+              badges={
+                org.type ? (
+                  <Badge variant="outline">
+                    {translate(`types.${org.type}`)}
+                  </Badge>
+                ) : undefined
+              }
               facts={[
+                {
+                  id: 'owner',
+                  label: translate('ownerLabel'),
+                  value: org.owner ? (
+                    <Link
+                      className="hover:text-primary"
+                      href={`${APP_ROUTES.ADMIN.ADMINISTRATION.USERS}/${org.owner.id}`}
+                    >
+                      {org.owner.name}
+                    </Link>
+                  ) : undefined,
+                },
+                { id: 'slug', label: translate('slugLabel'), value: org.slug },
+                {
+                  id: 'created',
+                  label: translate('createdLabel'),
+                  value: org.createdAt
+                    ? format(new Date(org.createdAt), 'MMM d, yyyy')
+                    : undefined,
+                },
                 {
                   id: 'brands',
                   label: fieldsT('brands'),

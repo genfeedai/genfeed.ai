@@ -51,6 +51,9 @@ export interface OrganizationDoc {
   authProviderLogoUrl?: string | null;
   /** The owning user (`organizations.userId`). */
   userId?: string | null;
+  slug?: string;
+  category?: string | null;
+  accountType?: string | null;
   isDeleted?: boolean;
   createdAt?: Date;
 }

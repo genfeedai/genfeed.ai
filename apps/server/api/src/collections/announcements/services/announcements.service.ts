@@ -1,4 +1,5 @@
 import type { AnnouncementDocument } from '@api/collections/announcements/schemas/announcement.schema';
+import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
@@ -35,9 +36,14 @@ export class AnnouncementsService extends BaseService<
   getAll(
     page: number,
     limit: number,
+    search?: string,
   ): Promise<AggregatePaginateResult<AnnouncementDocument>> {
     return this.findAll(
-      { where: {} },
+      {
+        where: buildSearchWhere(search, {
+          columns: ['title', 'content'],
+        }),
+      },
       { limit, page, sort: { createdAt: -1 } },
     );
   }

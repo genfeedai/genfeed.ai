@@ -680,12 +680,10 @@ export default function ReleasePostsList({
                   : '—';
               },
             },
-            {
-              key: 'actions',
-              header: <span className="sr-only">{translate('actions')}</span>,
-              render: (release) => <ReleaseRailActions release={release} />,
-            },
           ]}
+          renderRowActions={(release) => (
+            <ReleaseRailActions release={release} />
+          )}
         />
       )}
 

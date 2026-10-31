@@ -8,12 +8,12 @@ import type {
 } from '@genfeedai/contracts/interfaces/billing/crun-generation-quote.interface';
 import type { IImageEditParams } from '@genfeedai/contracts/interfaces/components/image-edit.interface';
 import type { ImageGenerationPayload } from '@genfeedai/contracts/interfaces/content/generation-payload.interface';
-import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
-import type { Image } from '@genfeedai/models/ingredients/image.model';
 import type {
   SplitFrameResult,
   SplitResponse,
-} from '@genfeedai/props/studio/contact-sheet.props';
+} from '@genfeedai/contracts/interfaces/studio/contact-sheet.interface';
+import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
+import type { Image } from '@genfeedai/models/ingredients/image.model';
 import { IngredientsService } from '@services/content/ingredients.service';
 import type { JsonApiResponseDocument } from '@services/core/base.service';
 import {

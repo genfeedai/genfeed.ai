@@ -1,13 +1,13 @@
 'use client';
 
+import {
+  type ResolvedOAuthConnectPlatform,
+  resolveOAuthConnectPlatformCatalog,
+} from '@genfeedai/helpers/oauth/oauth-connect-platforms';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { ServicesService } from '@services/external/services.service';
 import { useQuery } from '@tanstack/react-query';
-import {
-  type ResolvedOAuthConnectPlatform,
-  resolveOAuthConnectPlatformCatalog,
-} from '@ui/constants/oauth-connect-platforms';
 import { useMemo } from 'react';
 
 export const OAUTH_CONNECT_READINESS_QUERY_KEY = 'oauth-connect-readiness';

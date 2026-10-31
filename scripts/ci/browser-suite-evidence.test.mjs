@@ -4,12 +4,28 @@ import test from 'node:test';
 import {
   classifySuiteEvidence,
   evaluateBrowserSuites,
+  isNeutralPath,
   REQUIRED_BROWSER_SUITES,
   runCli,
 } from './browser-suite-evidence.mjs';
 
 const SHA = '9aa1d2ef5a829b8688e3aebcb830609f40f00d12';
+const PARENT = 'a'.repeat(40);
+const GRANDPARENT = 'b'.repeat(40);
+const UNRELATED = 'c'.repeat(40);
 const SUITE = REQUIRED_BROWSER_SUITES[0];
+const LEARNING = REQUIRED_BROWSER_SUITES[1];
+const NOW = Date.parse('2026-10-20T12:00:00Z');
+
+// PARENT is one commit before SHA and GRANDPARENT two; UNRELATED is on
+// another line of history.
+function history(changedFiles) {
+  return {
+    isAncestor: (sha) => sha === PARENT || sha === GRANDPARENT,
+    commitsBetween: (sha) => (sha === PARENT ? 1 : 2),
+    changedFiles: (sha) => changedFiles[sha] ?? [],
+  };
+}
 
 function run(overrides = {}) {
   return {
@@ -48,7 +64,7 @@ test('rejects a missing run and says which workflow to dispatch', () => {
 
 test('ignores runs for other SHAs, branches, or events', () => {
   const runs = [
-    run({ head_sha: 'a'.repeat(40) }),
+    run({ head_sha: UNRELATED }),
     run({ head_branch: 'feature' }),
     run({ event: 'pull_request' }),
   ];
@@ -88,6 +104,143 @@ test('a cancelled run is not a verdict', () => {
   assert.match(result.reason, /no completed run/);
 });
 
+test('carries a green earlier run when only neutral files changed', () => {
+  const result = classifySuiteEvidence(
+    SUITE,
+    [run({ head_sha: PARENT })],
+    SHA,
+    {
+      git: history({
+        [PARENT]: ['apps/server/api/src/main.ts', 'docs/e2e-tiers.md'],
+      }),
+      now: NOW,
+    },
+  );
+  assert.equal(result.ok, true);
+  assert.equal(result.carriedFrom, PARENT);
+});
+
+test('refuses to carry a green run past a file the suite covers', () => {
+  const result = classifySuiteEvidence(
+    SUITE,
+    [run({ head_sha: PARENT })],
+    SHA,
+    {
+      git: history({
+        [PARENT]: ['apps/server/api/src/main.ts', 'apps/app/src/page.tsx'],
+      }),
+      now: NOW,
+    },
+  );
+  assert.equal(result.ok, false);
+  assert.match(
+    result.reason,
+    /1 file\(s\) it covers changed since: apps\/app\/src\/page\.tsx\./,
+  );
+  assert.match(result.reason, /Dispatch playwright-full-nightly\.yml/);
+});
+
+test('the nearest earlier verdict decides, so a red parent blocks an older green', () => {
+  const result = classifySuiteEvidence(
+    SUITE,
+    [
+      run({ id: 1, head_sha: GRANDPARENT }),
+      run({ id: 2, head_sha: PARENT, conclusion: 'failure' }),
+    ],
+    SHA,
+    { git: history({}), now: NOW },
+  );
+  assert.equal(result.ok, false);
+  assert.match(
+    result.reason,
+    /concluded failure on a{40}.*nothing it covers changed since\. Fix it on master/,
+  );
+});
+
+test('a red earlier run with covered changes since asks for a fresh run', () => {
+  const result = classifySuiteEvidence(
+    SUITE,
+    [run({ head_sha: PARENT, conclusion: 'failure' })],
+    SHA,
+    {
+      git: history({ [PARENT]: ['playwright/e2e/tests/editor.spec.ts'] }),
+      now: NOW,
+    },
+  );
+  assert.equal(result.ok, false);
+  assert.match(
+    result.reason,
+    /concluded failure on a{40}.*1 file\(s\) it covers changed since: playwright\/e2e\/tests\/editor\.spec\.ts\. Dispatch playwright-full-nightly\.yml/,
+  );
+});
+
+test('an exact-SHA red is never overridden by a green earlier run', () => {
+  const result = classifySuiteEvidence(
+    SUITE,
+    [run({ id: 1, head_sha: PARENT }), run({ id: 2, conclusion: 'failure' })],
+    SHA,
+    { git: history({}), now: NOW },
+  );
+  assert.equal(result.ok, false);
+  assert.match(result.reason, /concluded failure on 9aa1d2ef/);
+});
+
+test('does not carry a run that is not an ancestor or is too old', () => {
+  const options = { git: history({}), now: NOW };
+  assert.equal(
+    classifySuiteEvidence(SUITE, [run({ head_sha: UNRELATED })], SHA, options)
+      .ok,
+    false,
+  );
+  assert.equal(
+    classifySuiteEvidence(
+      SUITE,
+      [run({ head_sha: PARENT, created_at: '2026-10-18T11:00:00Z' })],
+      SHA,
+      options,
+    ).ok,
+    false,
+  );
+});
+
+test('each suite has its own neutral paths', () => {
+  assert.equal(isNeutralPath(SUITE, 'apps/server/api/src/main.ts'), true);
+  assert.equal(isNeutralPath(LEARNING, 'apps/server/api/src/main.ts'), false);
+  assert.equal(isNeutralPath(SUITE, 'apps/app/src/page.tsx'), false);
+  assert.equal(isNeutralPath(LEARNING, 'apps/app/src/page.tsx'), true);
+  assert.equal(isNeutralPath(SUITE, 'scripts/ci/runtime-acceptance.mjs'), true);
+  assert.equal(
+    isNeutralPath(LEARNING, 'scripts/ci/runtime-acceptance.mjs'),
+    false,
+  );
+});
+
+test('shared neutral paths: docs, agent notes and other workflows', () => {
+  assert.equal(isNeutralPath(SUITE, 'README.md'), true);
+  assert.equal(isNeutralPath(SUITE, 'docs/e2e-tiers.md'), true);
+  assert.equal(isNeutralPath(SUITE, '.agents/memory/MEMORY.md'), true);
+  assert.equal(isNeutralPath(SUITE, '.github/workflows/release.yml'), true);
+  assert.equal(
+    isNeutralPath(SUITE, '.github/workflows/playwright-full-nightly.yml'),
+    false,
+  );
+  assert.equal(
+    isNeutralPath(LEARNING, '.github/workflows/learning-runtime.yml'),
+    false,
+  );
+  assert.equal(
+    isNeutralPath(SUITE, '.github/actions/setup-playwright-app/action.yml'),
+    false,
+  );
+  assert.equal(isNeutralPath(SUITE, 'packages/ui/README.md'), false);
+  assert.equal(
+    isNeutralPath(LEARNING, 'scripts/ci/runtime-acceptance.test.mjs'),
+    true,
+  );
+  assert.equal(isNeutralPath(SUITE, 'bun.lock'), false);
+  assert.equal(isNeutralPath(SUITE, 'skills/content/SKILL.md'), false);
+});
+
 test('an in-flight run blocks without starting a duplicate', () => {
   const result = classifySuiteEvidence(
     SUITE,
@@ -118,7 +271,8 @@ test('evaluates every required suite', () => {
 
 test('CLI exits non-zero unless every suite is green', () => {
   const calls = [];
-  const spawnSync = (_cmd, args) => {
+  const spawnSync = (cmd, args) => {
+    if (cmd === 'git') return { status: 1, stdout: '', stderr: '' };
     calls.push(args[1]);
     const green = args[1].includes('playwright-full-nightly.yml');
     return {
@@ -142,8 +296,12 @@ test('CLI exits non-zero unless every suite is green', () => {
   assert.equal(process.exitCode, 1);
   process.exitCode = previous;
   assert.equal(results.filter((result) => result.ok).length, 1);
-  assert.equal(calls.length, 2);
-  assert.ok(calls.every((call) => call.includes(`head_sha=${SHA}`)));
+  assert.deepEqual(calls, [
+    `repos/genfeedai/genfeed.ai/actions/workflows/playwright-full-nightly.yml/runs?branch=master&per_page=50&head_sha=${SHA}`,
+    'repos/genfeedai/genfeed.ai/actions/workflows/playwright-full-nightly.yml/runs?branch=master&per_page=50',
+    `repos/genfeedai/genfeed.ai/actions/workflows/learning-runtime.yml/runs?branch=master&per_page=50&head_sha=${SHA}`,
+    'repos/genfeedai/genfeed.ai/actions/workflows/learning-runtime.yml/runs?branch=master&per_page=50',
+  ]);
   assert.ok(errors.some((line) => line.includes('learning-runtime.yml')));
 });
 

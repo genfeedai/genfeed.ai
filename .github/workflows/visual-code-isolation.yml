@@ -6,6 +6,7 @@ on:
       - 'scripts/ci/install-visual-runtime-deps.mjs'
       - 'scripts/ci/install-visual-runtime-deps.test.mjs'
       - 'docker/Dockerfile.visual-code'
+      - '.node-version'
       - '.github/workflows/visual-code-isolation.yml'
       - '.dockerignore'
   workflow_call:
@@ -104,10 +105,10 @@ jobs:
           set -euo pipefail
           remaining=$(((300000 + RUNTIME_ACCEPTANCE_JOB_STARTED_MS - $(date +%s%3N)) / 1000))
           test "$remaining" -gt 0
-          timeout "${remaining}s" docker build -f docker/Dockerfile.visual-code -t genfeed-visual-code:4.0.530 .
+          timeout "${remaining}s" docker build --build-arg NODE_VERSION="$(cat .node-version)" -f docker/Dockerfile.visual-code -t genfeed-visual-code:4.0.530 .
       - name: Build fixed renderer image
         if: inputs.run_connected != true
-        run: docker build -f docker/Dockerfile.visual-code -t genfeed-visual-code:4.0.530 .
+        run: docker build --build-arg NODE_VERSION="$(cat .node-version)" -f docker/Dockerfile.visual-code -t genfeed-visual-code:4.0.530 .
       - name: Protocol and actual isolation acceptance
         if: inputs.run_connected != true
         run: |
@@ -201,7 +202,7 @@ jobs:
           set -euo pipefail
           remaining=$(((720000 + RUNTIME_ACCEPTANCE_JOB_STARTED_MS - $(date +%s%3N)) / 1000))
           test "$remaining" -gt 0
-          timeout "${remaining}s" docker build -f docker/Dockerfile.visual-code -t genfeed-visual-code:4.0.530 .
+          timeout "${remaining}s" docker build --build-arg NODE_VERSION="$(cat .node-version)" -f docker/Dockerfile.visual-code -t genfeed-visual-code:4.0.530 .
       - name: Require remaining shared setup budget
         id: connected-setup-budget
         shell: bash

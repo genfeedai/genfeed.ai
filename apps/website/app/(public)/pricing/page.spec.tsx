@@ -7,14 +7,14 @@ import { describe, expect, it } from 'vitest';
 runPageModuleTests('apps/website/app/(public)/pricing/page', PageModule);
 
 describe('pricing metadata', () => {
-  it('names Scale and the Done for you price', async () => {
+  it('names Pro, Scale and the Enterprise price', async () => {
     const parent = Promise.resolve({}) as ResolvingMetadata;
 
     const result = await PageModule.generateMetadata({}, parent);
 
-    expect(result.description).toContain('Scale with unlimited seats');
-    expect(result.description).toContain('Done for you from $2,500/month');
-    expect(result.description).not.toContain('Pro');
+    expect(result.description).toContain('Pro ($49/month)');
+    expect(result.description).toContain('Scale ($499/month)');
+    expect(result.description).toContain('Enterprise from $2,500/month');
   });
 
   it('keeps the meta description inside the search-snippet budget', async () => {
@@ -31,23 +31,23 @@ describe('pricing metadata', () => {
     const jsonLd = PageModule.buildPricingJsonLd();
 
     expect(jsonLd.description).toContain(
-      'Scale ($499/month) adds unlimited seats, client workspaces',
+      'Pro ($49/month) adds every app and monthly credits',
     );
-    expect(jsonLd.description).toContain('Done for you is from $2,500/month');
+    expect(jsonLd.description).toContain(
+      'Scale ($499/month) adds unlimited seats and client workspaces',
+    );
+    expect(jsonLd.description).toContain('Enterprise is from $2,500/month');
   });
-  it('describes PAYG per credit and the managed retainer as a separate service', () => {
+  it('lists PAYG as free and Pro as a monthly offer, with the managed retainer as a separate service', () => {
     const jsonLd = PageModule.buildPricingJsonLd();
     const payg = jsonLd.mainEntity.offers.find(
       (offer) => offer.name === 'Pay As You Go',
     );
-    expect(payg?.price).toBe('0.01');
-    expect(payg?.priceSpecification).toMatchObject({
-      unitText: 'credit',
-      price: 0.01,
-    });
-    expect(
-      jsonLd.mainEntity.offers.find((offer) => offer.name === 'Pro'),
-    ).toBeUndefined();
+    expect(payg?.price).toBe('0');
+    expect(payg?.priceSpecification).toBeUndefined();
+    const pro = jsonLd.mainEntity.offers.find((offer) => offer.name === 'Pro');
+    expect(pro?.price).toBe('49');
+    expect(pro?.priceSpecification).toMatchObject({ billingDuration: 'P1M' });
     expect(jsonLd.about).toMatchObject({
       '@type': 'Service',
       name: 'Done for you',

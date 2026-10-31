@@ -54,7 +54,6 @@ export const PACKAGE_LAYERS: Readonly<Record<string, number>> = {
   ui: 4,
   // 5: features and screens
   agent: 5,
-  pages: 5,
   workflows: 5,
   // 6: leaf tooling
   cli: 6,
@@ -89,7 +88,7 @@ const PACKAGE_ALIASES: Readonly<Record<string, string>> = {
 
 /** Workspace path aliases that resolve into an app. Packages never import apps. */
 const APP_ALIAS_PATTERN =
-  /^@(?:app|app-[a-z]+|api|api-[a-z]+|website|web-components|mcp|files|workers|notifications|discord|slack|telegram|protected)(?:\/|$)/u;
+  /^@(?:app|app-[a-z]+|api|api-[a-z]+|website|web-components|web-hooks|mcp|files|workers|notifications|discord|slack|telegram|protected)(?:\/|$)/u;
 
 const APP_TARGET = 'apps';
 

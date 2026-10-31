@@ -1,5 +1,5 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
-import { AGENT_CONNECT_EVENT } from '@ui/buttons/connect-agent/connect-agent.event';
+import { AGENT_CONNECT_EVENT } from '@web-components/buttons/connect-agent/connect-agent.event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import AgentConnectLauncher from './AgentConnectLauncher';
 

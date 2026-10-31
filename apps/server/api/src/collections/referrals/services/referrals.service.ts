@@ -1,5 +1,6 @@
 import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
 import {
   billingAccountScopedWhere,
   resolveBillingAccountAccess,
@@ -28,6 +29,7 @@ import type {
   IReferralProgram,
   IReferralReward,
 } from '@genfeedai/contracts/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
@@ -423,6 +425,7 @@ export class ReferralsService {
   async listAdmin(input: {
     limit?: number;
     page?: number;
+    search?: string;
     status?: ReferralRewardStatus;
   }): Promise<{ docs: IReferralAdminReward[]; total: number }> {
     const requestedLimit =
@@ -435,10 +438,28 @@ export class ReferralsService {
         : 1;
     const limit = Math.min(Math.max(requestedLimit, 1), 100);
     const page = Math.min(Math.max(requestedPage, 1), REFERRAL_ADMIN_MAX_PAGE);
-    const where = {
+    // Rewards are identified by ids, so the search matches them: the reward,
+    // its Stripe checkout and payment, and the referrer and referred accounts.
+    const where: Prisma.ReferralRewardWhereInput = {
       isDeleted: false,
       ...(input.status ? { status: input.status } : {}),
-    } as const;
+      ...buildSearchWhere<Prisma.ReferralRewardWhereInput>(input.search, {
+        columns: [
+          'id',
+          'stripeCheckoutSessionId',
+          'stripePaymentIntentId',
+          'failureReason',
+        ],
+        relations: {
+          referral: [
+            'referrerBillingAccountId',
+            'referredBillingAccountId',
+            'referrerOrganizationId',
+            'referredOrganizationId',
+          ],
+        },
+      }),
+    };
     const [rows, total] = await Promise.all([
       this.prisma.referralReward.findMany({
         include: { referral: true },

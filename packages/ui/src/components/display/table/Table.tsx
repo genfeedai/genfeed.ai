@@ -1,25 +1,26 @@
 'use client';
 
 import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import type {
   TableColumn,
   TableProps,
   TableRowLink,
+  TableSortDirection,
 } from '@genfeedai/props/ui/display/table.props';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
+import { TableRowActionsCell } from '@ui/display/table/TableRowActionsCell';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import { Button } from '@ui/primitives/button';
-import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { Fragment, useCallback, useRef, useState } from 'react';
+import { Fragment, useCallback, useMemo, useRef, useState } from 'react';
+import { hasSortableValues, sortItemsByColumn } from './table-sort';
 
 const EMPTY_ARRAY: never[] = [];
 
@@ -74,7 +75,7 @@ function TableCellContent<T>({
   const primary = nameLink ? (
     <Link
       aria-label={nameLink.label}
-      className="hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       href={nameLink.href}
     >
       {content}
@@ -110,6 +111,7 @@ export default function AppTable<T>({
   error,
   columns,
   actions = EMPTY_ARRAY,
+  renderRowActions,
   framed = true,
   density = 'comfortable',
   enableDragScroll = false,
@@ -138,6 +140,7 @@ export default function AppTable<T>({
   onSortChange,
 }: TableProps<T>) {
   const isCompact = density === 'compact';
+  const hasRowActions = actions.length > 0 || renderRowActions !== undefined;
   const scrollRegionLabel =
     scrollAriaLabel?.trim() || ariaLabel?.trim() || label?.trim();
   const hasPinnedHeader = isHeaderPinned && !enableDragScroll;
@@ -290,15 +293,67 @@ export default function AppTable<T>({
     [],
   );
 
+  // Without `onSortChange` the table owns the sort and orders the rows it was
+  // given. With it the parent sorts (server-side paging) and the table only
+  // reports clicks.
+  const isSortControlled = onSortChange !== undefined;
+  const [localSort, setLocalSort] = useState<{
+    key: string;
+    direction: TableSortDirection;
+  } | null>(null);
+  // Grouped tables are ordered by their group; hidden headers have no control.
+  const canSort = !hideHeader && (isSortControlled || !getGroupHeading);
+  const activeSortKey = isSortControlled ? sortKey : localSort?.key;
+  const activeSortDirection = isSortControlled
+    ? sortDirection
+    : (localSort?.direction ?? 'asc');
+
+  const getSortLabel = useCallback(
+    (column: TableColumn<T>): string | undefined =>
+      column.sortLabel ??
+      (typeof column.header === 'string' ? column.header : undefined),
+    [],
+  );
+
+  const isColumnSortable = useCallback(
+    (column: TableColumn<T>): boolean => {
+      if (!canSort || getSortLabel(column) === undefined) {
+        return false;
+      }
+      if (isSortControlled) {
+        return column.sortable === true;
+      }
+      return column.sortable !== false && hasSortableValues(column, items);
+    },
+    [canSort, getSortLabel, isSortControlled, items],
+  );
+
+  const sortedItems = useMemo(() => {
+    const column = isSortControlled
+      ? undefined
+      : columns.find((candidate) => String(candidate.key) === localSort?.key);
+    return column && localSort
+      ? sortItemsByColumn(items, column, localSort.direction)
+      : items;
+  }, [columns, isSortControlled, items, localSort]);
+
   const handleSort = useCallback(
     (key: string) => {
-      if (!onSortChange) {
+      if (onSortChange) {
+        onSortChange(
+          key,
+          sortKey === key && sortDirection === 'asc' ? 'desc' : 'asc',
+        );
         return;
       }
 
-      onSortChange(
-        key,
-        sortKey === key && sortDirection === 'asc' ? 'desc' : 'asc',
+      // asc, then desc, then back to the order the rows arrived in.
+      setLocalSort((current) =>
+        current?.key !== key
+          ? { direction: 'asc', key }
+          : current.direction === 'asc'
+            ? { direction: 'desc', key }
+            : null,
       );
     },
     [onSortChange, sortDirection, sortKey],
@@ -475,9 +530,10 @@ export default function AppTable<T>({
                 )}
                 {columns.map((column) => {
                   const columnKey = String(column.key);
-                  const isActiveSort = sortKey === columnKey;
+                  const isColumnSortableNow = isColumnSortable(column);
+                  const isActiveSort = activeSortKey === columnKey;
                   const SortIcon = isActiveSort
-                    ? sortDirection === 'asc'
+                    ? activeSortDirection === 'asc'
                       ? ArrowUp
                       : ArrowDown
                     : ChevronsUpDown;
@@ -486,8 +542,8 @@ export default function AppTable<T>({
                     <th
                       key={columnKey}
                       aria-sort={
-                        column.sortable && isActiveSort
-                          ? sortDirection === 'asc'
+                        isColumnSortableNow && isActiveSort
+                          ? activeSortDirection === 'asc'
                             ? 'ascending'
                             : 'descending'
                           : undefined
@@ -498,9 +554,9 @@ export default function AppTable<T>({
                         column.className,
                       )}
                     >
-                      {column.sortable && onSortChange ? (
+                      {isColumnSortableNow ? (
                         <Button
-                          ariaLabel={`Sort by ${column.sortLabel ?? String(column.header)}`}
+                          ariaLabel={column.sortLabel}
                           className="group -ml-1 inline-flex items-center gap-1 rounded px-1 py-1 text-left text-2xs font-semibold uppercase tracking-[0.12em] text-muted-foreground hover:text-foreground"
                           onClick={() => handleSort(columnKey)}
                           textTransform="none"
@@ -525,20 +581,14 @@ export default function AppTable<T>({
                   );
                 })}
 
-                {actions.length > 0 && (
-                  <th
-                    aria-label="Actions"
-                    className={cn(
-                      'h-10 text-right align-middle font-medium text-muted-foreground',
-                      isCompact ? 'w-24 px-2' : 'px-4',
-                    )}
-                  ></th>
+                {hasRowActions && (
+                  <th aria-label="Actions" className="w-0 p-0" />
                 )}
               </tr>
             </thead>
 
             <tbody className="divide-y divide-border">
-              {items.map((item: T, index: number) => {
+              {sortedItems.map((item: T, index: number) => {
                 const itemId = getItemId ? getItemId(item) : '';
                 const isSelected = selectedIds.includes(itemId);
                 const rowLink = getRowLink?.(item);
@@ -554,7 +604,7 @@ export default function AppTable<T>({
                 const groupHeading = getGroupHeading?.(item) ?? null;
                 const previousGroupHeading =
                   index > 0
-                    ? (getGroupHeading?.(items[index - 1]) ?? null)
+                    ? (getGroupHeading?.(sortedItems[index - 1]) ?? null)
                     : null;
                 const showsGroupHeading =
                   groupHeading !== null &&
@@ -562,7 +612,7 @@ export default function AppTable<T>({
                 const columnCount =
                   columns.length +
                   (selectable ? 1 : 0) +
-                  (actions.length > 0 ? 1 : 0);
+                  (hasRowActions ? 1 : 0);
 
                 return (
                   <Fragment key={rowKey}>
@@ -651,135 +701,13 @@ export default function AppTable<T>({
                         </td>
                       ))}
 
-                      {actions.length > 0 && (
-                        <td
-                          className={cn(
-                            'py-2 relative z-10 align-middle',
-                            isCompact ? 'px-2' : 'px-4',
-                          )}
-                        >
-                          {/* Icon-only actions, shown instantly on row hover or
-                          keyboard focus inside the row (no slide or fade: the
-                          motion policy forbids animating controls). */}
-                          <div
-                            className={cn(
-                              'flex justify-end',
-                              hoverRevealClassName({ at: 'lg' }),
-                            )}
-                          >
-                            <div className="flex items-center gap-1">
-                              {keyListItems(actions, (action) =>
-                                typeof action.tooltip === 'function'
-                                  ? action.tooltip(item)
-                                  : action.tooltip,
-                              ).reduce<ReactNode[]>(
-                                (acc, { item: action, key }) => {
-                                  const isVisible = action.isVisible
-                                    ? action.isVisible(item)
-                                    : true;
-                                  if (!isVisible) {
-                                    return acc;
-                                  }
-                                  const actionHref =
-                                    typeof action.href === 'function'
-                                      ? action.href(item)
-                                      : action.href;
-                                  // A link action with nowhere to go for this
-                                  // row is omitted rather than rendered dead.
-                                  if (
-                                    action.href !== undefined &&
-                                    actionHref === undefined
-                                  ) {
-                                    return acc;
-                                  }
-                                  const iconContent =
-                                    typeof action.icon === 'function'
-                                      ? action.icon(item)
-                                      : action.icon;
-                                  const tooltipText =
-                                    typeof action.tooltip === 'function'
-                                      ? action.tooltip(item)
-                                      : action.tooltip;
-                                  const actionAriaLabel =
-                                    typeof action.ariaLabel === 'function'
-                                      ? action.ariaLabel(item)
-                                      : (action.ariaLabel ?? tooltipText);
-                                  const isActionDisabled =
-                                    action.isDisabled?.(item) ?? false;
-                                  const actionClassName = cn(
-                                    // 44px touch target on small screens; compact
-                                    // icon control on desktop. Cap glyph size so
-                                    // bare lucide icons don't render at 24px.
-                                    'inline-flex size-11 items-center justify-center p-0 lg:size-8 [&_svg]:size-3.5',
-                                    action.className,
-                                    action.getClassName?.(item),
-                                  );
-
-                                  acc.push(
-                                    actionHref !== undefined &&
-                                      !isActionDisabled ? (
-                                      <Button
-                                        key={key}
-                                        asChild
-                                        ariaLabel={actionAriaLabel}
-                                        tooltip={tooltipText}
-                                        tooltipPosition={
-                                          action.tooltipPosition || 'top'
-                                        }
-                                        data-testid="action-button"
-                                        variant={ButtonVariant.GHOST}
-                                        size={ButtonSize.ICON}
-                                        className={actionClassName}
-                                      >
-                                        {action.isExternal ? (
-                                          <a
-                                            href={actionHref}
-                                            rel="noopener noreferrer"
-                                            target="_blank"
-                                            onClick={() =>
-                                              handleActionClick(action, item)
-                                            }
-                                          >
-                                            {iconContent}
-                                          </a>
-                                        ) : (
-                                          <Link
-                                            href={actionHref}
-                                            onClick={() =>
-                                              handleActionClick(action, item)
-                                            }
-                                          >
-                                            {iconContent}
-                                          </Link>
-                                        )}
-                                      </Button>
-                                    ) : (
-                                      <Button
-                                        key={key}
-                                        icon={iconContent}
-                                        ariaLabel={actionAriaLabel}
-                                        onClick={() =>
-                                          handleActionClick(action, item)
-                                        }
-                                        isDisabled={isActionDisabled}
-                                        tooltip={tooltipText}
-                                        tooltipPosition={
-                                          action.tooltipPosition || 'top'
-                                        }
-                                        data-testid="action-button"
-                                        variant={ButtonVariant.GHOST}
-                                        size={ButtonSize.ICON}
-                                        className={actionClassName}
-                                      />
-                                    ),
-                                  );
-                                  return acc;
-                                },
-                                [],
-                              )}
-                            </div>
-                          </div>
-                        </td>
+                      {hasRowActions && (
+                        <TableRowActionsCell
+                          actions={actions}
+                          item={item}
+                          renderRowActions={renderRowActions}
+                          onActionClick={handleActionClick}
+                        />
                       )}
                     </tr>
                     {expandedContent === undefined ? null : (
@@ -789,7 +717,7 @@ export default function AppTable<T>({
                           colSpan={
                             columns.length +
                             (selectable ? 1 : 0) +
-                            (actions.length > 0 ? 1 : 0)
+                            (hasRowActions ? 1 : 0)
                           }
                         >
                           {expandedContent}

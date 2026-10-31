@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { AdminBillingQueryDto } from '@api/collections/subscriptions/dto/admin-billing-query.dto';
 import { ChangePlanDto } from '@api/collections/subscriptions/dto/change-plan.dto';
 import { CreateSubscriptionPreviewDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
 import { SubscriptionBillingExceptionFilter } from '@api/collections/subscriptions/errors/subscription-billing-exception.filter';
@@ -274,14 +275,18 @@ export class SubscriptionsController {
   @RolesDecorator('superadmin')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getAdminBilling(
-    @Query() query: BaseQueryDto,
+    @Query() query: AdminBillingQueryDto,
   ): Promise<OrganizationBillingResponse> {
     try {
       const { limit, page } = QueryDefaultsUtil.getPaginationDefaults(query);
 
       const paginated = await this.readAsPlatformAdmin(
         async () =>
-          await this.subscriptionsService.findAdminBilling({ limit, page }),
+          await this.subscriptionsService.findAdminBilling({
+            limit,
+            page,
+            search: query.search,
+          }),
       );
 
       return {

@@ -717,6 +717,7 @@ test('server image keeps exact build inputs and fail-closed scope with bounded p
       'docker/Dockerfile.server',
       '.dockerignore',
       '.bun-version',
+      '.node-version',
       'configs/**',
       'patches/**',
       'webpack.base.config.js',
@@ -726,6 +727,7 @@ test('server image keeps exact build inputs and fail-closed scope with bounded p
       'package.json',
       '.github/workflows/ci.yml',
       '.github/actions/build-pr-server-image/**',
+      '.github/actions/node-version/**',
     ],
   });
   assert.equal(
@@ -746,6 +748,11 @@ test('server image keeps exact build inputs and fail-closed scope with bounded p
       with: { 'persist-credentials': false },
     },
     {
+      name: 'Read Node version',
+      id: 'node',
+      uses: './.github/actions/node-version',
+    },
+    {
       name: 'Set up Docker Buildx',
       uses: 'docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069',
     },
@@ -755,6 +762,7 @@ test('server image keeps exact build inputs and fail-closed scope with bounded p
       with: {
         context: '.',
         file: 'docker/Dockerfile.server',
+        'build-args': 'NODE_VERSION=${{ steps.node.outputs.version }}',
         push: false,
         'cache-from': 'type=gha,scope=server-image-pr',
         'cache-to':

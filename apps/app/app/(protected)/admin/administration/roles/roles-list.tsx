@@ -7,9 +7,12 @@ import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IRole } from '@genfeedai/contracts/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useFilteredData } from '@hooks/utils/use-filtered-data/use-filtered-data';
 import type { TableAction } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
 import { RolesService } from '@services/organization/roles.service';
+import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
+import SearchField from '@ui/content/search-field/SearchField';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
@@ -24,11 +27,19 @@ export default function RolesList() {
   const fieldsT = useTranslations('ui.rowSidebar.fields');
   const { openConfirm } = useConfirmModal();
   const currentPage = Number(useSearchParams().get('page')) || 1;
+  const searchT = useTranslations('common.adminSearch');
+  const { search, setSearch } = useAdminSearchParam();
   const getRolesService = useAuthedService((token: string) =>
     RolesService.getInstance(token),
   );
 
   const [roles, setRoles] = useState<IRole[]>([]);
+  // The API returns every role, so the search narrows them in memory.
+  const visibleRoles = useFilteredData({
+    data: roles,
+    filter: search,
+    filterFields: (role) => [role.label, role.key],
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedRole, setSelectedRole] = useState<IRole | null>(null);
@@ -140,6 +151,14 @@ export default function RolesList() {
     <AdminPageShell
       title="Roles"
       icon={ShieldCheck}
+      search={
+        <SearchField
+          ariaLabel={searchT('roles')}
+          onSearch={setSearch}
+          placeholder={searchT('roles')}
+          value={search}
+        />
+      }
       onRefresh={() => loadRoles(true)}
       isRefreshing={isRefreshing}
       primaryAction={
@@ -155,7 +174,7 @@ export default function RolesList() {
       }
     >
       <AppTable<IRole>
-        items={roles}
+        items={visibleRoles}
         columns={columns}
         actions={actions}
         isLoading={isLoading}
@@ -163,9 +182,11 @@ export default function RolesList() {
         rowSidebar={rowSidebar}
         emptyLabel="No roles found"
       />
-      <div className="mt-4">
-        <AutoPagination showTotal totalLabel="roles" />
-      </div>
+      {search ? null : (
+        <div className="mt-4">
+          <AutoPagination showTotal totalLabel="roles" />
+        </div>
+      )}
 
       <LazyModalRole role={selectedRole} onConfirm={() => loadRoles(true)} />
     </AdminPageShell>

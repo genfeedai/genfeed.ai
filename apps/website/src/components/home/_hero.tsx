@@ -1,16 +1,16 @@
 import { ButtonSize } from '@genfeedai/contracts';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import { EnvironmentService } from '@services/core/environment.service';
-import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import MarqueeRail from '@ui/layout/marquee-rail/MarqueeRail';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
 import {
   HOME_HERO_VIDEO,
   HOME_OUTPUT_CAROUSEL_ASSETS,
 } from '@web-components/home/_assets';
 import HomeHeroVideo from '@web-components/home/_hero-video';
 import HomeOutputCard from '@web-components/home/_output-card';
+import MarqueeRail from '@web-components/layout/marquee-rail/MarqueeRail';
 
 export default function HomeHero(): React.ReactElement {
   return (

@@ -1,0 +1,569 @@
+import {
+  IngredientCategory,
+  IngredientFormat,
+  IngredientStatus,
+} from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import { renderHook } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+
+function createAction(id: string, label: string, showInMenu = true) {
+  return {
+    id,
+    label,
+    onClick: vi.fn(),
+    showInMenu,
+  };
+}
+
+vi.mock('@ui/quick-actions/config/quick-actions.config', () => ({
+  createCaptionsAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('captions', 'Add Captions') : null,
+  ),
+  createCloneAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('clone', 'Clone') : null,
+  ),
+  createConvertToPresetAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('convert-to-preset', 'Convert to Preset') : null,
+  ),
+  createDeleteAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('delete', 'Delete') : null,
+  ),
+  createDownloadAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('download', 'Download') : null,
+  ),
+  createEditAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('edit', 'Edit') : null,
+  ),
+  createExtendAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('extend', 'Extend') : null,
+  ),
+  createFavoriteAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('favorite', 'Favorite') : null,
+  ),
+  createGifAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('gif', 'Transform to GIF') : null,
+  ),
+  createLandscapeAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('landscape', 'Landscape') : null,
+  ),
+  createMirrorAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('mirror', 'Mirror') : null,
+  ),
+  createCopyPromptAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('copy-prompt', 'Copy Prompt') : null,
+  ),
+  createMarkArchivedAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('mark-archived', 'Archive') : null,
+  ),
+  createMarkRejectedAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('mark-rejected', 'Reject') : null,
+  ),
+  createMarkValidatedAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('mark-validated', 'Validate') : null,
+  ),
+  createMoreOptionsAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('more-options', 'More', false) : null,
+  ),
+  createOpenInEditorAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('open-in-editor', 'Open in Editor') : null,
+  ),
+  createPortraitAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('portrait', 'Portrait') : null,
+  ),
+  createPromptAction: vi.fn((ingredient, handler) =>
+    handler && ingredient.promptText ? createAction('prompt', 'Prompt') : null,
+  ),
+  createPublishAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('publish', 'Publish') : null,
+  ),
+  createRemixVideoAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('remix-video', 'Remix this video') : null,
+  ),
+  createResizeAction: vi.fn((_ingredient, format, _label, handler) =>
+    handler ? createAction(`resize-${format}`, `Resize to ${format}`) : null,
+  ),
+  createReverseAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('reverse', 'Reverse') : null,
+  ),
+  createSeeDetailsAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('see-details', 'Open') : null,
+  ),
+  createSetAsBannerAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('set-as-banner', 'Set as Banner') : null,
+  ),
+  createSetAsLogoAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('set-as-logo', 'Set as Logo') : null,
+  ),
+  createShareAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('share', 'Share') : null,
+  ),
+  createSquareAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('square', 'Square') : null,
+  ),
+  createTagsAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('manage-tags', 'Tags') : null,
+  ),
+  createTextOverlayAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('text-overlay', 'Add Text Overlay') : null,
+  ),
+  createTrimAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('trim', 'Trim') : null,
+  ),
+  createUpscaleAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('upscale', 'Upscale') : null,
+  ),
+  createUseAsVideoReferenceAction: vi.fn((_ingredient, handler) =>
+    handler
+      ? createAction('use-as-video-reference', 'Add to Storyboard')
+      : null,
+  ),
+  createUsePromptAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('use-prompt', 'Use Prompt') : null,
+  ),
+  createVariationAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('remix', 'Remix') : null,
+  ),
+  createVideoAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('convert-to-video', 'Convert to Video') : null,
+  ),
+  createVoteAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('vote', 'Vote') : null,
+  ),
+}));
+
+import { useQuickActions } from '@ui/quick-actions/hooks/use-quick-actions/use-quick-actions';
+
+const mockHandlers = {
+  onAddTextOverlay: vi.fn(),
+  onClone: vi.fn(),
+  onConvertToGif: vi.fn(),
+  onConvertToPreset: vi.fn(),
+  onConvertToVideo: vi.fn(),
+  onCopy: vi.fn(),
+  onCreateVariation: vi.fn(),
+  onDelete: vi.fn(),
+  onDownload: vi.fn(),
+  onEdit: vi.fn(),
+  onGenerateCaptions: vi.fn(),
+  onLandscape: vi.fn(),
+  onManageTags: vi.fn(),
+  onMarkArchived: vi.fn(),
+  onMarkRejected: vi.fn(),
+  onMarkValidated: vi.fn(),
+  onMirror: vi.fn(),
+  onMoreOptions: vi.fn(),
+  onPortrait: vi.fn(),
+  onPublish: vi.fn(),
+  onReverse: vi.fn(),
+  onSeeDetails: vi.fn(),
+  onSetAsBanner: vi.fn(),
+  onSetAsLogo: vi.fn(),
+  onShare: vi.fn(),
+  onShowPrompt: vi.fn(),
+  onSquare: vi.fn(),
+  onToggleFavorite: vi.fn(),
+  onTrim: vi.fn(),
+  onUpscale: vi.fn(),
+  onUseAsVideoReference: vi.fn(),
+  onUsePrompt: vi.fn(),
+  onVote: vi.fn(),
+};
+
+const mockLoadingStates = {
+  isAddingTextOverlay: false,
+  isCloning: false,
+  isConverting: false,
+  isConvertingToVideo: false,
+  isDeleting: false,
+  isDownloading: false,
+  isGeneratingCaptions: false,
+  isLandscaping: false,
+  isMarkingArchived: false,
+  isMarkingRejected: false,
+  isMarkingValidated: false,
+  isMirroring: false,
+  isPortraiting: false,
+  isPublishing: false,
+  isReversing: false,
+  isSettingAsBanner: false,
+  isSettingAsLogo: false,
+  isSquaring: false,
+  isTogglingFavorite: false,
+  isTrimming: false,
+  isUpscaling: false,
+  isUsingPrompt: false,
+  isVoting: false,
+};
+
+const quickActionCopy = {
+  openInEditor: { label: 'Open in Editor', tooltip: 'Open in the editor' },
+  resize: {
+    [IngredientFormat.LANDSCAPE]: 'Resize to Landscape',
+    [IngredientFormat.PORTRAIT]: 'Resize to Portrait',
+    [IngredientFormat.SQUARE]: 'Resize to Square',
+  },
+};
+
+function createMockIngredient(
+  overrides: Partial<IIngredient> = {},
+): IIngredient {
+  return {
+    category: IngredientCategory.IMAGE,
+    id: 'ingredient-1',
+    ingredientFormat: IngredientFormat.PORTRAIT,
+    promptText: 'test prompt',
+    status: IngredientStatus.GENERATED,
+    ...overrides,
+  } as IIngredient;
+}
+
+describe('useQuickActions', () => {
+  it('returns empty groups when no ingredient is selected', () => {
+    const { result } = renderHook(() =>
+      useQuickActions({
+        handlers: mockHandlers,
+        isVideo: false,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: null,
+      }),
+    );
+
+    expect(result.current.actions).toEqual([]);
+    expect(result.current.contextActions).toEqual([]);
+    expect(result.current.primaryActions).toEqual([]);
+    expect(result.current.menuActions).toEqual([]);
+  });
+
+  it('chooses image-first primary actions when available', () => {
+    const { result } = renderHook(() =>
+      useQuickActions({
+        handlers: mockHandlers,
+        isVideo: false,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient(),
+      }),
+    );
+
+    expect(result.current.primaryActions.map((action) => action.id)).toEqual([
+      'see-details',
+      'remix',
+      'use-as-video-reference',
+    ]);
+  });
+
+  it('keeps convert-to-video as the image fallback when storyboard is unavailable', () => {
+    const { onUseAsVideoReference: _unused, ...handlers } = mockHandlers;
+
+    const { result } = renderHook(() =>
+      useQuickActions({
+        handlers,
+        isVideo: false,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient(),
+      }),
+    );
+
+    expect(result.current.primaryActions.map((action) => action.id)).toEqual([
+      'see-details',
+      'remix',
+      'convert-to-video',
+    ]);
+  });
+
+  it('chooses video-first primary actions when available', () => {
+    const { result } = renderHook(() =>
+      useQuickActions({
+        handlers: mockHandlers,
+        isVideo: true,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient({
+          category: IngredientCategory.VIDEO,
+        }),
+      }),
+    );
+
+    expect(result.current.primaryActions.map((action) => action.id)).toEqual([
+      'see-details',
+      'trim',
+      'captions',
+    ]);
+  });
+
+  it('offers Open in Editor and resize to every other format on videos when opted in', () => {
+    const { result } = renderHook(() =>
+      useQuickActions({
+        copy: quickActionCopy,
+        handlers: {
+          ...mockHandlers,
+          onOpenInEditor: vi.fn(),
+          onResize: vi.fn(),
+        },
+        isVideo: true,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient({
+          category: IngredientCategory.VIDEO,
+          ingredientFormat: IngredientFormat.PORTRAIT,
+        }),
+      }),
+    );
+
+    const ids = result.current.menuActions.map((action) => action.id);
+    expect(ids).toContain('open-in-editor');
+    expect(ids).toEqual(
+      expect.arrayContaining(['resize-square', 'resize-landscape']),
+    );
+    expect(ids).not.toContain('resize-portrait');
+  });
+
+  it('leaves Open in Editor and resize off surfaces that do not opt in', () => {
+    const { result } = renderHook(() =>
+      useQuickActions({
+        handlers: mockHandlers,
+        isVideo: true,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient({
+          category: IngredientCategory.VIDEO,
+        }),
+      }),
+    );
+
+    const ids = result.current.actions.map((action) => action.id);
+    expect(ids).not.toContain('open-in-editor');
+    expect(ids.some((id) => id.startsWith('resize-'))).toBe(false);
+  });
+
+  it('never offers video resize on images', () => {
+    const { result } = renderHook(() =>
+      useQuickActions({
+        handlers: {
+          ...mockHandlers,
+          onOpenInEditor: vi.fn(),
+          onResize: vi.fn(),
+        },
+        isVideo: false,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient(),
+      }),
+    );
+
+    const ids = result.current.actions.map((action) => action.id);
+    expect(ids).not.toContain('open-in-editor');
+    expect(ids.some((id) => id.startsWith('resize-'))).toBe(false);
+  });
+
+  it('uses processing-safe primary actions', () => {
+    const { result } = renderHook(() =>
+      useQuickActions({
+        handlers: mockHandlers,
+        isVideo: false,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient({
+          status: IngredientStatus.PROCESSING,
+        }),
+      }),
+    );
+
+    expect(result.current.primaryActions.map((action) => action.id)).toEqual([
+      'see-details',
+      'download',
+      'publish',
+    ]);
+    expect(result.current.primaryActions[1]?.isDisabled).toBe(true);
+    expect(result.current.primaryActions[2]?.isDisabled).toBe(true);
+  });
+
+  it('does not duplicate primary actions inside the menu', () => {
+    const { result } = renderHook(() =>
+      useQuickActions({
+        handlers: mockHandlers,
+        isVideo: false,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient(),
+      }),
+    );
+
+    const primaryIds = new Set(
+      result.current.primaryActions.map((action) => action.id),
+    );
+
+    result.current.menuActions.forEach((action) => {
+      expect(primaryIds.has(action.id)).toBe(false);
+    });
+  });
+
+  it('keeps displaced download and publish actions in the menu', () => {
+    const { result } = renderHook(() =>
+      useQuickActions({
+        handlers: mockHandlers,
+        isVideo: false,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient(),
+      }),
+    );
+
+    expect(result.current.menuActions.map((action) => action.id)).toEqual(
+      expect.arrayContaining(['download', 'publish']),
+    );
+  });
+
+  it('keeps compact prompt and review actions in the shared menu', () => {
+    const { result } = renderHook(() =>
+      useQuickActions({
+        handlers: mockHandlers,
+        isVideo: false,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient(),
+      }),
+    );
+
+    expect(result.current.menuActions.map((action) => action.id)).toEqual(
+      expect.arrayContaining([
+        'copy-prompt',
+        'mark-validated',
+        'mark-rejected',
+        'mark-archived',
+      ]),
+    );
+  });
+
+  it('does not offer the video-only mirror action for images', () => {
+    const image = renderHook(() =>
+      useQuickActions({
+        handlers: mockHandlers,
+        isVideo: false,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient(),
+      }),
+    );
+    const video = renderHook(() =>
+      useQuickActions({
+        handlers: mockHandlers,
+        isVideo: true,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient({
+          category: IngredientCategory.VIDEO,
+        }),
+      }),
+    );
+
+    expect(
+      image.result.current.actions.some((action) => action.id === 'mirror'),
+    ).toBe(false);
+    expect(
+      video.result.current.actions.some((action) => action.id === 'mirror'),
+    ).toBe(true);
+  });
+
+  it('does not duplicate review actions beside the full status control', () => {
+    const { result } = renderHook(() =>
+      useQuickActions({
+        handlers: mockHandlers,
+        hasStatusControl: true,
+        isVideo: false,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient(),
+      }),
+    );
+
+    expect(
+      result.current.menuActions.some((action) =>
+        action.id.startsWith('mark-'),
+      ),
+    ).toBe(false);
+  });
+
+  it('groups menu actions into ordered sections', () => {
+    const { result } = renderHook(() =>
+      useQuickActions({
+        handlers: mockHandlers,
+        isVideo: false,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient(),
+      }),
+    );
+
+    expect(result.current.menuActions[0]?.sectionLabel).toBe('Transform');
+    expect(
+      result.current.menuActions.some(
+        (action) =>
+          action.sectionLabel === 'Branding' && action.id === 'set-as-logo',
+      ),
+    ).toBe(true);
+    expect(
+      result.current.menuActions.some(
+        (action) => action.sectionLabel === 'Library',
+      ),
+    ).toBe(true);
+    expect(
+      result.current.menuActions.some(
+        (action) => action.sectionLabel === 'Danger' && action.id === 'delete',
+      ),
+    ).toBe(true);
+  });
+
+  it('exposes context controls separately from quick actions', () => {
+    const { result } = renderHook(() =>
+      useQuickActions({
+        handlers: mockHandlers,
+        hasPromptControl: true,
+        hasScopeControl: true,
+        hasStatusControl: true,
+        isVideo: false,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient(),
+      }),
+    );
+
+    expect(result.current.contextActions.map((action) => action.id)).toEqual([
+      'prompt',
+      'status',
+      'scope',
+    ]);
+  });
+
+  it('removes prompt from the menu when the prompt context control is visible', () => {
+    const { result } = renderHook(() =>
+      useQuickActions({
+        handlers: mockHandlers,
+        hasPromptControl: true,
+        isVideo: false,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient(),
+      }),
+    );
+
+    expect(
+      result.current.menuActions.some((action) => action.id === 'prompt'),
+    ).toBe(false);
+  });
+
+  it('keeps prompt available in the menu when compact mode hides context controls', () => {
+    const { result } = renderHook(() =>
+      useQuickActions({
+        handlers: mockHandlers,
+        hasPromptControl: false,
+        isVideo: false,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient(),
+      }),
+    );
+
+    expect(
+      result.current.menuActions.some((action) => action.id === 'prompt'),
+    ).toBe(true);
+  });
+
+  it('preserves mainActions as a compatibility alias of primaryActions', () => {
+    const { result } = renderHook(() =>
+      useQuickActions({
+        handlers: mockHandlers,
+        isVideo: false,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient(),
+      }),
+    );
+
+    expect(result.current.mainActions).toEqual(result.current.primaryActions);
+  });
+});

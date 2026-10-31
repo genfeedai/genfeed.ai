@@ -9,7 +9,6 @@
   "exclude": [
     "node_modules",
     "dist",
-    "src/voice-commands.helper.ts",
     "src/voice/**",
     "src/media/download/download.helper.ts"
   ],

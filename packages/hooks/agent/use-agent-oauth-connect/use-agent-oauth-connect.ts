@@ -3,6 +3,7 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { getBrandOrganizationSlug } from '@contexts/user/brand-context/brand-context.helpers';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { resolveOAuthServicePath } from '@genfeedai/helpers/oauth/oauth-connect-platforms';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { OAuthBrandRequiredError } from '@hooks/auth/use-platform-oauth-connect/oauth-brand-required.error';
@@ -12,7 +13,6 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url/use-org-url';
 import { useRouteParams } from '@hooks/navigation/use-route-params';
 import { logger } from '@services/core/logger.service';
 import { ServicesService } from '@services/external/services.service';
-import { resolveOAuthServicePath } from '@ui/constants/oauth-connect-platforms';
 import { useCallback } from 'react';
 
 /**

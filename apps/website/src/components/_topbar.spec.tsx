@@ -2,10 +2,10 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import WebsiteTopbar from '@ui/shell/topbars/WebsiteTopbar';
+import WebsiteTopbar from '@web-components/shell/topbars/WebsiteTopbar';
 
 vi.mock(
-  '@genfeedai/hooks/auth/use-deferred-is-signed-in/use-deferred-is-signed-in',
+  '@web-hooks/auth/use-deferred-is-signed-in/use-deferred-is-signed-in',
   () => ({ useDeferredIsSignedIn: () => false }),
 );
 

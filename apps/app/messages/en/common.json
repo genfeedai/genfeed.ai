@@ -121,8 +121,23 @@
     },
     "view": "View"
   },
+  "listSearch": {
+    "captions": "Search captions",
+    "scenes": "Search scenes"
+  },
   "adminDashboard": {
     "loadFailed": "Could not load the platform stats. Try again."
+  },
+  "adminSearch": {
+    "announcements": "Search announcements",
+    "bots": "Search bots",
+    "fontFamilies": "Search font families",
+    "presets": "Search presets",
+    "referralRewards": "Search rewards",
+    "referralRewardsPlaceholder": "Search by account, checkout or reward ID",
+    "roles": "Search roles",
+    "systemEmails": "Search system emails",
+    "trainings": "Search trainings"
   },
   "agentAuth": {
     "claim": {

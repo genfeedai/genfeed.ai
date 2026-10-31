@@ -3,11 +3,11 @@
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { ButtonSize, ButtonVariant, MemberRole } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import type { OrgMemoryEntry } from '@genfeedai/contracts/interfaces/settings/org-memory.interface';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { OrgMemoryEntry } from '@props/settings/org-memory.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AgentMemoriesService } from '@services/automation/agent-memories.service';
 import { logger } from '@services/core/logger.service';

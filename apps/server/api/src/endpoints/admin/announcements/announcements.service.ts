@@ -144,21 +144,24 @@ export class AdminAnnouncementsService implements OnModuleInit {
   }
 
   /**
-   * One page of announcements ordered by newest first, with the total.
+   * One page of announcements ordered by newest first, with the total. A search
+   * term narrows it to announcements whose title or content contains it.
    */
   getHistory({
     limit,
     page,
-  }: Pick<PageWindow, 'limit' | 'page'>): Promise<
-    AggregatePaginateResult<AnnouncementDocument>
-  > {
+    search,
+  }: Pick<PageWindow, 'limit' | 'page'> & {
+    search?: string;
+  }): Promise<AggregatePaginateResult<AnnouncementDocument>> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(caller);
 
     // Superadmin broadcast history spans every organization by design
     // (SuperAdminGuard on the controller).
     return crossOrgUnsafe(
-      async () => await this.announcementsCollectionService.getAll(page, limit),
+      async () =>
+        await this.announcementsCollectionService.getAll(page, limit, search),
     );
   }
 

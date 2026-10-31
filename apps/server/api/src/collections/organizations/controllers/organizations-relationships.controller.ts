@@ -84,6 +84,8 @@ export class OrganizationsRelationshipsController {
     private readonly organizationsService: OrganizationsService,
   ) {}
 
+  // Path organizations can differ from the active tenant. Callers prove access
+  // inside this scope with queries pinned to the path organization and user.
   private inOrganizationScope<T>(
     organizationId: string,
     work: () => Promise<T>,
@@ -200,9 +202,6 @@ export class OrganizationsRelationshipsController {
     const startDate = query.startDate;
     const endDate = query.endDate;
     const brandId = query.brandId;
-    // The organization in the path is not necessarily the request tenant
-    // (superadmin, or a member of a non-active org). Access is proven first
-    // inside the scope by queries pinned to that org + user.
     return this.inOrganizationScope(organizationId, async () => {
       await this.assertAnalyticsOrganizationAccess(
         request,
@@ -220,10 +219,17 @@ export class OrganizationsRelationshipsController {
 
       const totalCredentialsConnected =
         await this.credentialsService.countConnected(organizationId, brandId);
+      // Same definition as the admin organizations list: active, live members.
+      const totalUsers = await this.membersService.count({
+        isActive: true,
+        isDeleted: false,
+        organizationId,
+      });
 
       return serializeSingle(request, AnalyticSerializer, {
         ...metrics,
         totalCredentialsConnected,
+        totalUsers,
       });
     });
   }
@@ -247,9 +253,6 @@ export class OrganizationsRelationshipsController {
     const endDate = query.endDate;
     const groupBy = query.groupBy || 'day';
     const brandId = query.brandId;
-    // The organization in the path is not necessarily the request tenant
-    // (superadmin, or a member of a non-active org). Access is proven first
-    // inside the scope by queries pinned to that org + user.
     return this.inOrganizationScope(organizationId, async () => {
       await this.assertAnalyticsOrganizationAccess(
         request,
@@ -293,9 +296,6 @@ export class OrganizationsRelationshipsController {
     const startDate = query.startDate;
     const endDate = query.endDate;
     const brandId = query.brandId;
-    // The organization in the path is not necessarily the request tenant
-    // (superadmin, or a member of a non-active org). Access is proven first
-    // inside the scope by queries pinned to that org + user.
     return this.inOrganizationScope(organizationId, async () => {
       await this.assertAnalyticsOrganizationAccess(
         request,
@@ -339,9 +339,6 @@ export class OrganizationsRelationshipsController {
     const startDate = query.startDate;
     const endDate = query.endDate;
     const brandId = query.brandId;
-    // The organization in the path is not necessarily the request tenant
-    // (superadmin, or a member of a non-active org). Access is proven first
-    // inside the scope by queries pinned to that org + user.
     return this.inOrganizationScope(organizationId, async () => {
       await this.assertAnalyticsOrganizationAccess(
         request,
@@ -386,9 +383,6 @@ export class OrganizationsRelationshipsController {
     const startDate = query.startDate;
     const endDate = query.endDate;
     const brandId = query.brandId;
-    // The organization in the path is not necessarily the request tenant
-    // (superadmin, or a member of a non-active org). Access is proven first
-    // inside the scope by queries pinned to that org + user.
     return this.inOrganizationScope(organizationId, async () => {
       await this.assertIdentifiableAnalyticsAccess(
         organizationId,
@@ -429,9 +423,6 @@ export class OrganizationsRelationshipsController {
     @CurrentUser() user: User,
     @Query() query: IngredientsQueryDto,
   ): Promise<JsonApiCollectionResponse> {
-    // The organization in the path is not necessarily the request tenant
-    // (superadmin, or a member of a non-active org). Access is proven first
-    // inside the scope by queries pinned to that org + user.
     return this.inOrganizationScope(organizationId, async () => {
       await this.verifyOrganizationAccess(request, organizationId, user);
 

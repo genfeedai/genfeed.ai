@@ -124,6 +124,7 @@ export interface ListTasksParams {
   parentId?: string;
   priority?: TaskPriority;
   reviewState?: TaskReviewState;
+  search?: string;
   sort?: string;
   status?: TaskStatus;
   view?: 'all' | 'inbox' | 'in_progress';

@@ -52,14 +52,19 @@ vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ orgHref: (path: string) => `/acme/~${path}` }),
 }));
 
+const mockPlans = vi.hoisted(() => ({
+  pro: 'price_pro' as string | undefined,
+}));
+
 vi.mock('@genfeedai/services/core/environment.service', () => ({
-  EnvironmentService: { apps: { app: 'https://app.test' } },
+  EnvironmentService: { apps: { app: 'https://app.test' }, plans: mockPlans },
 }));
 
 describe('ModalUpgradePrompt', () => {
   const originalLocation = window.location;
 
   beforeEach(() => {
+    mockPlans.pro = 'price_pro';
     Object.defineProperty(window, 'location', {
       configurable: true,
       value: { href: '' },
@@ -104,8 +109,8 @@ describe('ModalUpgradePrompt', () => {
     expect(screen.queryByTestId(ModalEnum.CREDITS_REQUIRED)).toBeNull();
   });
 
-  it('treats a legacy persisted tier as the free plan instead of crashing', () => {
-    render(<ModalUpgradePrompt currentTier="pro" />);
+  it('treats an unknown persisted tier as the free plan instead of crashing', () => {
+    render(<ModalUpgradePrompt currentTier="starter" />);
 
     const prompt = screen.getByTestId(ModalEnum.UPGRADE_PROMPT);
     expect(prompt).toHaveTextContent('Your plan');
@@ -121,9 +126,24 @@ describe('ModalUpgradePrompt', () => {
     );
 
     const prompt = screen.getByTestId(ModalEnum.UPGRADE_PROMPT);
-    expect(prompt).toHaveTextContent('Premium quality is on Scale');
+    expect(prompt).toHaveTextContent('Premium quality is on Pro');
     expect(prompt).toHaveTextContent('Your plan');
     expect(prompt).toHaveTextContent('Recommended');
+    expect(prompt).toHaveTextContent('$49/mo');
+  });
+
+  it('points to Scale for a quality Pro would unlock while Pro checkout is not configured', () => {
+    mockPlans.pro = undefined;
+
+    render(
+      <ModalUpgradePrompt
+        currentTier={SubscriptionTier.FREE}
+        lockedQualityTier={QualityTier.HIGH}
+      />,
+    );
+
+    const prompt = screen.getByTestId(ModalEnum.UPGRADE_PROMPT);
+    expect(prompt).toHaveTextContent('Premium quality is on Scale');
     expect(prompt).toHaveTextContent('$499/mo');
   });
 

@@ -22,6 +22,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { scopedWhere } from '@api/index';
 import { WorkspaceTaskWorkflowQueueService } from '@api/services/task-orchestration/workspace-task-workflow-queue.service';
@@ -182,37 +183,28 @@ export class TasksController extends BaseCRUDController<
       match.brandId = query.brandId;
     }
 
-    if (query.status) {
-      match.status = query.status;
+    const equalityFilters = {
+      assigneeAgentId: query.assigneeAgentId,
+      assigneeUserId: query.assigneeUserId,
+      goalId: query.goalId,
+      parentId: query.parentId,
+      priority: query.priority,
+      projectId: query.projectId,
+      reviewState: query.reviewState,
+      status: query.status,
+    };
+    for (const [key, value] of Object.entries(equalityFilters)) {
+      if (value) {
+        match[key] = value;
+      }
     }
 
-    if (query.priority) {
-      match.priority = query.priority;
-    }
-
-    if (query.assigneeUserId) {
-      match.assigneeUserId = query.assigneeUserId;
-    }
-
-    if (query.assigneeAgentId) {
-      match.assigneeAgentId = query.assigneeAgentId;
-    }
-
-    if (query.parentId) {
-      match.parentId = query.parentId;
-    }
-
-    if (query.projectId) {
-      match.projectId = query.projectId;
-    }
-
-    if (query.goalId) {
-      match.goalId = query.goalId;
-    }
-
-    if (query.reviewState) {
-      match.reviewState = query.reviewState;
-    }
+    Object.assign(
+      match,
+      buildSearchWhere(query.search, {
+        columns: ['title', 'description', 'identifier'],
+      }),
+    );
 
     if (query.view === 'in_progress') {
       match.status = { in: ['backlog', 'in_progress'] };

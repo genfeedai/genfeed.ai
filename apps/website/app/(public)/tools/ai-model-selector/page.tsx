@@ -9,7 +9,7 @@ import { stringifyJsonLd } from '@data/json-ld';
 import { getBenchmarkData } from '@public/benchmark/benchmark-loader';
 import { getPublicModels } from '@public/models/models-loader';
 import AiModelSelectorContent from '@public/tools/ai-model-selector/ai-model-selector-content';
-import { SiteFooter } from '@ui/footers';
+import { SiteFooter } from '@web-components/footers';
 import { WEBSITE_SECTIONS } from '@web-components/home/_footer';
 import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 import Link from 'next/link';

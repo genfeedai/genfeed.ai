@@ -1,8 +1,8 @@
 import type { Integration } from '@data/integrations.data';
 import Card from '@ui/card/Card';
-import HeroProofRail from '@ui/marketing/HeroProofRail';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
+import HeroProofRail from '@web-components/marketing/HeroProofRail';
 import PageLayout from '@web-components/PageLayout';
 import { Check } from 'lucide-react';
 import Link from 'next/link';

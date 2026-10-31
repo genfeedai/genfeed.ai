@@ -12,7 +12,6 @@ import {
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AiModelSelectorProps } from '@props/tools/ai-model-selector.props';
 import { EnvironmentService } from '@services/core/environment.service';
-import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import { Button } from '@ui/primitives/button';
 import {
   Collapsible,
@@ -21,6 +20,7 @@ import {
 } from '@ui/primitives/collapsible';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
+import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
 import {
   ArrowRight,
   Copy,

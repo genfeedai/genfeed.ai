@@ -19,6 +19,7 @@ interface MockRowSidebar {
 
 const mocks = vi.hoisted(() => ({
   getAdminBilling: vi.fn(),
+  queryString: 'page=2',
   tableProps: {
     current: undefined as
       | {
@@ -68,7 +69,9 @@ vi.mock('@tanstack/react-query', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams('page=2'),
+  usePathname: () => '/admin',
+  useRouter: () => ({ replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(mocks.queryString),
 }));
 
 vi.mock('next-intl', () => ({
@@ -179,6 +182,7 @@ describe('SubscriptionsList', () => {
   beforeEach(() => {
     mocks.getAdminBilling.mockReset();
     mocks.useQuery.mockReset();
+    mocks.queryString = 'page=2';
   });
 
   it('lists an organization without a subscription as free, with dashes instead of N/A', () => {
@@ -267,7 +271,28 @@ describe('SubscriptionsList', () => {
     };
     await options.queryFn();
 
-    expect(options.queryKey).toEqual(['admin-subscriptions', 2]);
+    expect(options.queryKey).toEqual(['admin-subscriptions', 2, '']);
     expect(mocks.getAdminBilling).toHaveBeenCalledWith({ limit: 15, page: 2 });
+  });
+
+  it('searches organizations server-side with the term in the URL', async () => {
+    mocks.queryString = 'q=acme';
+    mockRows([]);
+    mocks.getAdminBilling.mockResolvedValue({ data: [] });
+
+    render(<SubscriptionsList />);
+
+    const options = mocks.useQuery.mock.calls[0]?.[0] as {
+      queryFn: () => Promise<unknown>;
+      queryKey: unknown[];
+    };
+    await options.queryFn();
+
+    expect(options.queryKey).toEqual(['admin-subscriptions', 1, 'acme']);
+    expect(mocks.getAdminBilling).toHaveBeenCalledWith({
+      limit: 15,
+      page: 1,
+      search: 'acme',
+    });
   });
 });

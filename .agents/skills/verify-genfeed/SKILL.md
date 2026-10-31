@@ -119,7 +119,8 @@ confirm the files survived.
   spec, product). Never loosen an assertion or quarantine a spec to get green.
 - Quarantines live in `scripts/playwright-e2e-tiers.manifest.mjs`, carry an owner and
   an expiring `reviewBy`; check it before trusting or extending one.
-- The nightly `full` tier is reporting-only; release evidence is an exact-SHA green run
+- The nightly `full` tier is reporting-only; release evidence is a green run on the
+  release SHA, or on a recent ancestor when only neutral files changed since
   (`scripts/ci/browser-suite-evidence.mjs`).
 - Use Playwright, not `curl`, to probe the stack; the Portless CA is only trusted by
   Node and the browser.

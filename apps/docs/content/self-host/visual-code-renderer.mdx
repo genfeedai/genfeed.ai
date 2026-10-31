@@ -16,7 +16,7 @@ Review the current [Remotion licensing terms](https://www.remotion.dev/docs/lice
 Build the pinned image from the repository root:
 
 ```sh
-docker build -f docker/Dockerfile.visual-code -t genfeed-visual-code:4.0.530 .
+docker build --build-arg NODE_VERSION="$(cat .node-version)" -f docker/Dockerfile.visual-code -t genfeed-visual-code:4.0.530 .
 ```
 
 Run `scripts/visual-code/coordinator.mjs` under a dedicated service account permitted to start only this renderer workload. Supply `VISUAL_CODE_STATE_DIR` as an absolute persistent disk path with mode `0700` and `VISUAL_CODE_RENDERER_TOKEN` as a private token of at least 32 characters. Set these through your service manager or secret store. The coordinator binds loopback port 8789; use an authenticated HTTPS internal proxy if your API runs on a different host.

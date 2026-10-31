@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import FAQContent from './faq-content';
 
-vi.mock('@hooks/ui/use-marketing-entrance', () => ({
+vi.mock('@web-hooks/ui/use-marketing-entrance', () => ({
   useMarketingEntrance: () => ({ current: null }),
 }));
 

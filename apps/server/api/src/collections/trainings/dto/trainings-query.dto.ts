@@ -37,4 +37,12 @@ export class TrainingsQueryDto extends BaseQueryDto {
   @IsArray()
   @IsString({ each: true })
   status?: string[];
+
+  @ApiProperty({
+    description: 'Search trainings by label, description or external id',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  search?: string;
 }

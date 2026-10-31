@@ -7,8 +7,10 @@ import {
 import { AlertCategory, Timeframe } from '@genfeedai/contracts';
 import { APP_ROUTES, isReleaseItemId } from '@genfeedai/contracts/constants';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
+import OrganizationProfileHeader from '@protected/organizations/components/organization-profile-header';
 import OrganizationReleaseGrants from '@protected/organizations/components/organization-release-grants';
 import { OrganizationSettingsTable } from '@protected/organizations/components/organization-settings-table';
+import { useOrganizationProfile } from '@protected/organizations/hooks/use-organization-profile';
 import { useOrganizationSettings } from '@protected/organizations/hooks/use-organization-settings';
 import Alert from '@ui/feedback/alert/Alert';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
@@ -32,6 +34,8 @@ function OrganizationDetailPageContent() {
 
   const { settings, isLoading, isRefreshing, error, refresh, updateSettings } =
     useOrganizationSettings(organizationId);
+  const { data: profile, isLoading: isProfileLoading } =
+    useOrganizationProfile(organizationId);
   const {
     isRefreshing: isAnalyticsRefreshing,
     setDateRange,
@@ -88,47 +92,53 @@ function OrganizationDetailPageContent() {
         )
       }
     >
-      {isSettingsTab ? (
-        error ? (
-          <Alert type={AlertCategory.ERROR}>
-            {translate('settingsLoadError')}
-          </Alert>
-        ) : (
-          <>
-            {settings ? (
-              <OrganizationReleaseGrants
-                hasOrganizationBilling={
-                  settings.hasOrganizationBilling !== false
-                }
-                isReleasePreviewEnabled={
-                  settings.isReleasePreviewEnabled === true
-                }
-                moduleOverrides={settings.moduleOverrides ?? {}}
-                releasedItemIds={(settings.releasedItemIds ?? []).filter(
-                  isReleaseItemId,
-                )}
-                onModuleOverridesChange={(moduleOverrides) =>
-                  updateSettings({ moduleOverrides })
-                }
-                onReleasedItemIdsChange={(releasedItemIds) =>
-                  updateSettings({ releasedItemIds })
-                }
-              />
-            ) : null}
-            <OrganizationSettingsTable
-              settings={settings}
-              isLoading={isLoading}
-              organizationId={organizationId}
-              onUpdate={refresh}
-            />
-          </>
-        )
-      ) : (
-        <AnalyticsOrganizationOverview
-          organizationId={organizationId}
-          basePath={APP_ROUTES.ADMIN.ROOT}
+      <div className="flex flex-col gap-6">
+        <OrganizationProfileHeader
+          isLoading={isProfileLoading}
+          profile={profile}
         />
-      )}
+        {isSettingsTab ? (
+          error ? (
+            <Alert type={AlertCategory.ERROR}>
+              {translate('settingsLoadError')}
+            </Alert>
+          ) : (
+            <>
+              {settings ? (
+                <OrganizationReleaseGrants
+                  hasOrganizationBilling={
+                    settings.hasOrganizationBilling !== false
+                  }
+                  isReleasePreviewEnabled={
+                    settings.isReleasePreviewEnabled === true
+                  }
+                  moduleOverrides={settings.moduleOverrides ?? {}}
+                  releasedItemIds={(settings.releasedItemIds ?? []).filter(
+                    isReleaseItemId,
+                  )}
+                  onModuleOverridesChange={(moduleOverrides) =>
+                    updateSettings({ moduleOverrides })
+                  }
+                  onReleasedItemIdsChange={(releasedItemIds) =>
+                    updateSettings({ releasedItemIds })
+                  }
+                />
+              ) : null}
+              <OrganizationSettingsTable
+                settings={settings}
+                isLoading={isLoading}
+                organizationId={organizationId}
+                onUpdate={refresh}
+              />
+            </>
+          )
+        ) : (
+          <AnalyticsOrganizationOverview
+            organizationId={organizationId}
+            basePath={APP_ROUTES.ADMIN.ROOT}
+          />
+        )}
+      </div>
     </AdminPageShell>
   );
 }

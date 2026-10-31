@@ -41,6 +41,7 @@ const PAID_PLANS = new Set<string>([
 
 const PAID_TIERS = new Set<string>([
   SubscriptionTier.ENTERPRISE,
+  SubscriptionTier.PRO,
   SubscriptionTier.SCALE,
 ]);
 

@@ -32,8 +32,9 @@ describe('ViralVideoLeaderboard metric definitions', () => {
     'keeps external views unannotated while preserving the rate definition: %j',
     (trend) => {
       render(<ViralVideoLeaderboard videos={[trend]} />);
-      const viewsHeader = screen.getByRole('columnheader', { name: 'Views' });
-      expect(viewsHeader.querySelector('button')).toBeNull();
+      expect(
+        screen.getByRole('columnheader', { name: 'Views' }),
+      ).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'About Views' })).toBeNull();
       expect(screen.getByText(trend.views ? '90.0k' : '0')).toBeInTheDocument();
       expect(

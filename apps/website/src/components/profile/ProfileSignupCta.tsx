@@ -1,7 +1,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { normalizeSignupReferralCode } from '@genfeedai/helpers';
 import { EnvironmentService } from '@services/core/environment.service';
-import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
+import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
 import { ArrowRight } from 'lucide-react';
 
 interface ProfileSignupCtaProps {
