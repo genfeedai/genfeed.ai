@@ -862,25 +862,28 @@ describe('EntityLeaderboardService', () => {
     it.each([
       [LeaderboardOrder.ASC, 'ASC'],
       [LeaderboardOrder.DESC, 'DESC'],
-    ])('ranks %s by the metric in the requested direction', async (order, keyword) => {
-      const capturedQueries = captureQueryRawCalls([[]]);
+    ])(
+      'ranks %s by the metric in the requested direction',
+      async (order, keyword) => {
+        const capturedQueries = captureQueryRawCalls([[]]);
 
-      await service.getOrganizationsWithStats(
-        undefined,
-        undefined,
-        1,
-        10,
-        LeaderboardSort.VIEWS,
-        undefined,
-        undefined,
-        undefined,
-        order,
-      );
+        await service.getOrganizationsWithStats(
+          undefined,
+          undefined,
+          1,
+          10,
+          LeaderboardSort.VIEWS,
+          undefined,
+          undefined,
+          undefined,
+          order,
+        );
 
-      expect(capturedQueries[0].sql).toContain(
-        `ORDER BY COALESCE(m.metric, 0) ${keyword}, e."createdAt" DESC`,
-      );
-    });
+        expect(capturedQueries[0].sql).toContain(
+          `ORDER BY COALESCE(m.metric, 0) ${keyword}, e."createdAt" DESC`,
+        );
+      },
+    );
 
     it('reports the organization type, preferring onboarding accountType over category', async () => {
       mockPrismaService.$queryRaw.mockResolvedValueOnce(

@@ -273,9 +273,9 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
       });
 
       await user.click(
-        within(
-          screen.getByRole('columnheader', { name: /Views/ }),
-        ).getByRole('button'),
+        within(screen.getByRole('columnheader', { name: /Views/ })).getByRole(
+          'button',
+        ),
       );
       await waitFor(() => {
         expect(lastRequest()).toMatchObject({ order: 'desc', sort: 'views' });
@@ -290,7 +290,9 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
       const brandsHeader = await screen.findByRole('columnheader', {
         name: 'Brands',
       });
-      expect(within(brandsHeader).queryByRole('button')).not.toBeInTheDocument();
+      expect(
+        within(brandsHeader).queryByRole('button'),
+      ).not.toBeInTheDocument();
     });
 
     it('filters by organization type and drops the filter again on All types', async () => {
