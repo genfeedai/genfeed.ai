@@ -41,11 +41,10 @@ export const DEPRECATED_ENV_KEYS = [
   // constant that is unrelated to what the customer paid.
   'STRIPE_MONTHLY_CREDITS',
   'STRIPE_YEARLY_CREDITS',
-  // Retired tiers: Creator was renamed to Pro, and Pro was then removed.
+  // Retired: Creator was renamed to Pro. Pro is monthly only, so the yearly
+  // Pro keys stay retired.
   'STRIPE_PRICE_SUBSCRIPTION_CREATOR_MONTHLY',
-  'STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY',
   'STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY',
-  'NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY',
   'NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY',
   // Never read by any service.
   'STRIPE_COUPON_CREDITS_PACKS_V2_PRO',
