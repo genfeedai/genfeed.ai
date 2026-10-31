@@ -22,6 +22,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { scopedWhere } from '@api/index';
 import { WorkspaceTaskWorkflowQueueService } from '@api/services/task-orchestration/workspace-task-workflow-queue.service';
@@ -213,6 +214,13 @@ export class TasksController extends BaseCRUDController<
     if (query.reviewState) {
       match.reviewState = query.reviewState;
     }
+
+    Object.assign(
+      match,
+      buildSearchWhere(query.search, {
+        columns: ['title', 'description', 'identifier'],
+      }),
+    );
 
     if (query.view === 'in_progress') {
       match.status = { in: ['backlog', 'in_progress'] };
