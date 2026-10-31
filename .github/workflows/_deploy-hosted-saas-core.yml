@@ -419,6 +419,7 @@ jobs:
           RDS_INSTANCE_ID: ${{ vars.RDS_INSTANCE_ID }}
           # Read via env, never interpolate ${{ }} into the script body directly.
           IMAGE_SHA: ${{ steps.image.outputs.sha }}
+          PRE_MIGRATE_SNAPSHOTS_KEEP: "15"
         run: |
           set -euo pipefail
           # Fail closed: never run migrations without a fresh pre-migration snapshot.
@@ -431,6 +432,31 @@ jobs:
           # the deploy. Sanitize for the id; keep the raw tag in git_sha below.
           SAFE_SHA="$(printf '%s' "${IMAGE_SHA}" | tr '._' '-' | tr -s '-' | sed 's/-$//')"
           SNAP_ID="pre-migrate-${SAFE_SHA}-$(date -u +%Y%m%d%H%M%S)"
+
+          # Cap the manual pre-migration snapshots at PRE_MIGRATE_SNAPSHOTS_KEEP
+          # (this one included). AWS allows 100 manual snapshots per region and
+          # every deploy adds one, so without pruning the snapshot below fails
+          # with SnapshotQuotaExceeded and the deploy stops (2026-10-31).
+          # Only this instance's snapshots named pre-migrate-<sha>-<14-digit
+          # UTC timestamp> are candidates: pre-migrate-console-*, pre-purge-*,
+          # hand-made snapshots and other instances never match. Pruning runs
+          # BEFORE the create so a full quota is freed first; a failed delete
+          # only warns, and the create below stays the fail-closed gate.
+          KEEP_BEFORE_NEW=$((PRE_MIGRATE_SNAPSHOTS_KEEP - 1))
+          STALE_SNAPSHOTS="$(aws rds describe-db-snapshots \
+            --snapshot-type manual \
+            --db-instance-identifier "$RDS_INSTANCE_ID" \
+            --query 'DBSnapshots[?Status==`available`].[DBSnapshotIdentifier,SnapshotCreateTime]' \
+            --output json |
+            jq -r --argjson keep "$KEEP_BEFORE_NEW" \
+              '[.[] | select(.[0] | test("^pre-migrate-.+-[0-9]{14}$"))]
+               | sort_by(.[1]) | reverse | .[$keep:] | .[][0]')"
+          for STALE_ID in $STALE_SNAPSHOTS; do
+            echo "Pruning old pre-migration snapshot ${STALE_ID}"
+            aws rds delete-db-snapshot --db-snapshot-identifier "$STALE_ID" >/dev/null \
+              || echo "::warning::Could not delete ${STALE_ID}; continuing"
+          done
+
           echo "Creating pre-migration snapshot ${SNAP_ID} of ${RDS_INSTANCE_ID}..."
           aws rds create-db-snapshot \
             --db-instance-identifier "$RDS_INSTANCE_ID" \
