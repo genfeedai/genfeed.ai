@@ -15,6 +15,7 @@
   "ownerLinkLabel": "Open user {name}",
   "noOwner": "—",
   "typeLabel": "Type",
+  "allTypes": "All types",
   "slugLabel": "Slug",
   "createdLabel": "Created",
   "ownerLabel": "Owner",

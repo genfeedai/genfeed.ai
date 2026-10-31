@@ -8,7 +8,10 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { OrganizationLogoService } from '@api/collections/organizations/services/organization-logo.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { LeaderboardSort } from '@api/endpoints/analytics/dto/leaderboard-query.dto';
+import {
+  LeaderboardOrder,
+  LeaderboardSort,
+} from '@api/endpoints/analytics/dto/leaderboard-query.dto';
 import {
   BrandWithStatsEntity,
   OrgLeaderboardItemEntity,
@@ -276,7 +279,13 @@ export class EntityLeaderboardService {
     range: DateRange,
     sort: LeaderboardSort,
     window: { limit: number; offset: number },
-    filters: { brandId?: string; organizationId?: string; search?: string },
+    filters: {
+      brandId?: string;
+      order?: LeaderboardOrder;
+      organizationId?: string;
+      search?: string;
+      type?: OrganizationCategory;
+    },
   ): Promise<string[]> {
     const isOrganization = entityType === 'organization';
     const entityTable = Prisma.raw(
@@ -299,6 +308,14 @@ export class EntityLeaderboardService {
       isOrganization && filters.organizationId
         ? Prisma.sql`AND e."id" = ${filters.organizationId}`
         : Prisma.empty;
+    // The type an admin sees is the onboarding account type, else the category.
+    const typeFilter =
+      isOrganization && filters.type
+        ? Prisma.sql`AND COALESCE(e."accountType", e."category") = ${filters.type}::"OrganizationCategory"`
+        : Prisma.empty;
+    const direction = Prisma.raw(
+      filters.order === LeaderboardOrder.ASC ? 'ASC' : 'DESC',
+    );
     const searchFilter = filters.search
       ? Prisma.sql`AND e."label" ILIKE ${this.toContainsPattern(filters.search)}`
       : Prisma.empty;
@@ -321,8 +338,9 @@ export class EntityLeaderboardService {
         ${entityOrganizationFilter}
         ${brandFilter}
         ${organizationIdFilter}
+        ${typeFilter}
         ${searchFilter}
-      ORDER BY COALESCE(m.metric, 0) DESC, e."createdAt" DESC, e."id" DESC
+      ORDER BY COALESCE(m.metric, 0) ${direction}, e."createdAt" DESC, e."id" DESC
       LIMIT ${window.limit} OFFSET ${window.offset}
     `;
 
@@ -332,7 +350,12 @@ export class EntityLeaderboardService {
   /** Count live entities matching the same filters as `rankEntityIds`. */
   private async countEntities(
     entityType: EntityType,
-    filters: { brandId?: string; organizationId?: string; search?: string },
+    filters: {
+      brandId?: string;
+      organizationId?: string;
+      search?: string;
+      type?: OrganizationCategory;
+    },
   ): Promise<number> {
     const label = filters.search
       ? { contains: filters.search, mode: 'insensitive' as const }
@@ -340,7 +363,20 @@ export class EntityLeaderboardService {
 
     if (entityType === 'organization') {
       return this.prisma.organization.count({
-        where: { id: filters.organizationId, isDeleted: false, label },
+        where: {
+          id: filters.organizationId,
+          isDeleted: false,
+          label,
+          // Same rule as the ranking: account type, else category.
+          ...(filters.type
+            ? {
+                OR: [
+                  { accountType: filters.type },
+                  { accountType: null, category: filters.type },
+                ],
+              }
+            : {}),
+        },
       });
     }
 
@@ -370,7 +406,9 @@ export class EntityLeaderboardService {
       brandId?: string;
       organizationId?: string;
       includePlatforms?: boolean;
+      order?: LeaderboardOrder;
       search?: string;
+      type?: OrganizationCategory;
     } = {},
   ): Promise<EntityStatsRow<TEntity>[]> {
     const includePlatforms = options.includePlatforms ?? false;
@@ -379,8 +417,10 @@ export class EntityLeaderboardService {
 
     const ids = await this.rankEntityIds(entityType, range, sort, window, {
       brandId: options.brandId,
+      order: options.order,
       organizationId: options.organizationId,
       search: options.search,
+      type: options.type,
     });
     if (ids.length === 0) {
       return [];
@@ -754,6 +794,8 @@ export class EntityLeaderboardService {
     sort: LeaderboardSort = LeaderboardSort.ENGAGEMENT,
     search?: string,
     organizationId?: string,
+    type?: OrganizationCategory,
+    order: LeaderboardOrder = LeaderboardOrder.DESC,
   ): Promise<PaginatedOrgsResponse> {
     const range = DateRangeUtil.parseDateRange(startDateStr, endDateStr);
     // The name search runs in the same query that ranks and pages, and in the
@@ -765,9 +807,13 @@ export class EntityLeaderboardService {
         range,
         sort,
         { limit, offset: (page - 1) * limit },
-        { organizationId, search: needle },
+        { order, organizationId, search: needle, type },
       ),
-      this.countEntities('organization', { organizationId, search: needle }),
+      this.countEntities('organization', {
+        organizationId,
+        search: needle,
+        type,
+      }),
     ]);
 
     const organizationIds = rows.map(({ entity }) => entity.id);

@@ -1,4 +1,7 @@
-import type { AnalyticsMetric } from '@genfeedai/contracts';
+import type {
+  AnalyticsMetric,
+  OrganizationCategory,
+} from '@genfeedai/contracts';
 import type {
   IAccountAnalyticsList,
   IAnalytics,
@@ -65,12 +68,16 @@ export interface IAdminOrgsQueryParams extends IAnalyticsDateRange {
   organizationId?: string;
   page?: number;
   limit?: number;
+  /** Direction of `sort`; the API defaults to descending. */
+  order?: 'asc' | 'desc';
   /** Case-insensitive name search, applied by the API before paging. */
   search?: string;
   sort?:
     | AnalyticsMetric.ENGAGEMENT
     | AnalyticsMetric.VIEWS
     | AnalyticsMetric.POSTS;
+  /** Organizations only: keep one type (account type, else category). */
+  type?: OrganizationCategory;
 }
 
 // Chart Data Types
