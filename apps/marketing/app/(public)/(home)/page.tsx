@@ -6,7 +6,7 @@ import HomeContent from '@public/(home)/home-content';
 import { HOME_SOCIAL_VIDEO } from '@web-components/home/_assets';
 import type { Metadata, ResolvingMetadata } from 'next';
 
-const HOME_PAGE_TITLE = 'Genfeed.ai | Ask once. Show up everywhere.';
+const HOME_PAGE_TITLE = 'Genfeed.ai | From brief to feed.';
 
 export async function generateMetadata(
   _params: unknown,

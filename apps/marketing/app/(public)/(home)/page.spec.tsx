@@ -15,7 +15,7 @@ describe('homepage metadata', () => {
 
     const result = await PageModule.generateMetadata({}, parent);
 
-    expect(result.title).toBe('Genfeed.ai | Ask once. Show up everywhere.');
+    expect(result.title).toBe('Genfeed.ai | From brief to feed.');
     expect(result.description).toBe(
       'Genfeed is an open-source content agent. Create on-brand videos, images and posts, then review and publish to your connected channels.',
     );

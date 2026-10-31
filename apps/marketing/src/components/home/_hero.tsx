@@ -34,11 +34,7 @@ export default function HomeHero(): React.ReactElement {
           as="h1"
           className="animate-gen-stagger-rise mx-auto max-w-5xl text-[clamp(2.25rem,10.5vw,3rem)] font-semibold leading-[0.95] tracking-[-0.02em] text-foreground [--gen-stagger-delay:90ms] sm:text-6xl md:text-7xl lg:text-[5.5rem]"
         >
-          {/* The line break is a layout lock, not a sentence boundary. Keep the
-              explicit space so the accessible name stays two spoken sentences
-              instead of "once.Show". */}
-          Ask once. <br />
-          Show up everywhere.
+          From brief to feed.
         </Heading>
         <Text
           as="p"

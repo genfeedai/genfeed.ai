@@ -78,10 +78,9 @@ describe('HomeHero', () => {
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     const heading = screen.getByRole('heading', {
       level: 1,
-      name: /ask once\. show up everywhere\./i,
+      name: /from brief to feed\./i,
     });
     expect(heading).toBeInTheDocument();
-    expect(heading.querySelector('br')).toBeInTheDocument();
     expect(
       screen.getByText(
         /genfeed is an open-source content agent\. create on-brand videos, images and posts, then review and publish to your connected channels/i,
