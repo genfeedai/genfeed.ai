@@ -142,6 +142,7 @@ export interface ListContentRunsFilters {
   limit?: number;
   /** 1-based server page. Totals are published for `<AutoPagination />`. */
   page?: number;
+  search?: string;
   skillSlug?: string;
   status?: ContentRunStatus;
 }
@@ -498,6 +499,7 @@ export class ContentRunsService extends HTTPBaseService {
         params: {
           ...(filters.limit ? { limit: filters.limit } : {}),
           ...(filters.page ? { page: filters.page } : {}),
+          ...(filters.search ? { search: filters.search } : {}),
           ...(filters.skillSlug ? { skillSlug: filters.skillSlug } : {}),
           ...(filters.status ? { status: filters.status } : {}),
         },

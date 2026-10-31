@@ -1733,7 +1733,9 @@
       "emptyTitle": "No content runs yet",
       "goToDiscovery": "Go to Discovery",
       "loadError": "Content runs could not be loaded.",
-      "selectBrand": "Select a brand to view content runs."
+      "selectBrand": "Select a brand to view content runs.",
+      "search": "Search content runs",
+      "emptySearchTitle": "No content runs match your search"
     },
     "replies": {
       "actions": {

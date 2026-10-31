@@ -146,6 +146,28 @@ describe('ContentRunListPage', () => {
     );
   });
 
+  it('sends the searched text to the server and explains an empty result', async () => {
+    navigation.searchParams = new URLSearchParams('q=launch');
+    list.mockResolvedValue([]);
+
+    renderContentRunList();
+
+    expect(
+      await screen.findByText('No content runs match your search'),
+    ).toBeInTheDocument();
+    expect(list).toHaveBeenCalledWith(
+      'brand-1',
+      { limit: ITEMS_PER_PAGE, page: 1, search: 'launch', status: undefined },
+      expect.any(AbortSignal),
+    );
+    expect(
+      screen.getByRole('textbox', { name: 'Search content runs' }),
+    ).toHaveValue('launch');
+    expect(
+      screen.queryByRole('link', { name: 'Go to Discovery' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('points the empty state back at Discovery, where content runs originate', async () => {
     list.mockResolvedValue([]);
 

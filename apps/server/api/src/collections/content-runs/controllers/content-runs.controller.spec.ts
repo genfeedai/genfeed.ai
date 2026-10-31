@@ -122,6 +122,7 @@ describe('ContentRunsController', () => {
         undefined,
         undefined,
         defaultWindow,
+        undefined,
       );
     });
 
@@ -143,6 +144,7 @@ describe('ContentRunsController', () => {
         'content-writing',
         undefined,
         defaultWindow,
+        undefined,
       );
     });
 
@@ -164,6 +166,7 @@ describe('ContentRunsController', () => {
         undefined,
         ContentRunStatus.COMPLETED,
         defaultWindow,
+        undefined,
       );
     });
 
@@ -185,6 +188,29 @@ describe('ContentRunsController', () => {
         'image-gen',
         ContentRunStatus.FAILED,
         defaultWindow,
+        undefined,
+      );
+    });
+
+    it('passes the search term to the service', async () => {
+      mockService.listByBrand.mockResolvedValue(emptyPage);
+
+      await controller.listBrandRuns(
+        mockReq,
+        'brand-1',
+        mockUser,
+        undefined,
+        undefined,
+        { search: 'launch' },
+      );
+
+      expect(mockService.listByBrand).toHaveBeenCalledWith(
+        'org-1',
+        'brand-1',
+        undefined,
+        undefined,
+        defaultWindow,
+        'launch',
       );
     });
 
@@ -206,6 +232,7 @@ describe('ContentRunsController', () => {
         undefined,
         undefined,
         { limit: 15, page: 3, skip: 30 },
+        undefined,
       );
     });
 

@@ -298,7 +298,9 @@ export class ContentRunsService {
     skillSlug: string | undefined,
     status: ContentRunStatus | undefined,
     window: PageWindow,
+    search?: string,
   ): Promise<AggregatePaginateResult<Record<string, unknown>>> {
+    const term = search?.trim();
     const where = scopedWhere(organizationId, {
       brandId,
       ...(status ? { status } : {}),
@@ -306,6 +308,22 @@ export class ContentRunsService {
       // database (not after hydration) to keep skip/take and the count honest.
       ...(skillSlug
         ? { config: { equals: skillSlug, path: ['skillSlug'] } }
+        : {}),
+      // The list shows the brief's angle, hypothesis or source id as the title.
+      ...(term
+        ? {
+            AND: [
+              {
+                OR: [['angle'], ['hypothesis'], ['sourceId']].map((key) => ({
+                  config: {
+                    mode: 'insensitive',
+                    path: ['brief', ...key],
+                    string_contains: term,
+                  },
+                })),
+              },
+            ],
+          }
         : {}),
     });
 
