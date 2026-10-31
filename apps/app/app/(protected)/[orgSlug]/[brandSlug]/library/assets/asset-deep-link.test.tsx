@@ -26,7 +26,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => mocks.brand,
 }));
 vi.mock(
-  '@hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar',
+  '@/hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar',
   () => ({
     useIngredientSidebar: () => ({
       closeIngredientSidebar: vi.fn(),

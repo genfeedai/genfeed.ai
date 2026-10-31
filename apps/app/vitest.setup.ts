@@ -45,6 +45,21 @@ global.IntersectionObserver = class IntersectionObserver {
 } as unknown as typeof globalThis.IntersectionObserver;
 window.IntersectionObserver = global.IntersectionObserver;
 
+// jsdom ships no ResizeObserver either, and Radix (`useSize`), cmdk and the
+// panel layouts measure on mount. Same class-not-vi.fn() constraint as above.
+global.ResizeObserver = class ResizeObserver {
+  disconnect() {
+    /* noop mock */
+  }
+  observe() {
+    /* noop mock */
+  }
+  unobserve() {
+    /* noop mock */
+  }
+} as unknown as typeof globalThis.ResizeObserver;
+window.ResizeObserver = global.ResizeObserver;
+
 // Node 22+ ships an experimental global `localStorage`/`sessionStorage`
 // accessor that shadows jsdom's own Storage implementation, because
 // vitest-environment-jsdom aliases `window` to the Node global object rather

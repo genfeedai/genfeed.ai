@@ -1,6 +1,6 @@
 import { PageScope } from '@genfeedai/contracts';
 import type { IFolder, IIngredient } from '@genfeedai/contracts/interfaces';
-import FoldersSidebar from '@ui/folders/sidebar/FoldersSidebar';
+import FoldersSidebar from '@/components/folders/sidebar/FoldersSidebar';
 
 export interface FoldersSidebarPanelProps {
   scope: PageScope;

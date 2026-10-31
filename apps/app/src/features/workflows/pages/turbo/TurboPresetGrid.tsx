@@ -4,7 +4,6 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { TurboProjectKind } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import { useRouter } from 'next/navigation';
@@ -16,6 +15,7 @@ import type {
   TurboPreset,
   TurboPresetGridProps,
 } from '@/features/workflows/props/turbo-presets.props';
+import { useFeatureFlag } from '@/hooks/feature-flags/use-feature-flag';
 import TurboIdeaStrip from './TurboIdeaStrip';
 import { createTurboProjectsApi } from './turbo-projects-api';
 

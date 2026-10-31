@@ -43,7 +43,7 @@ const episode = {
   textColor: '#ffffff',
 } as ITag;
 
-vi.mock('@ui/tags/library-tag-picker/use-library-tags', () => ({
+vi.mock('@/components/tags/library-tag-picker/use-library-tags', () => ({
   useLibraryTags: () => ({
     createTag,
     isLoading: false,
@@ -52,11 +52,11 @@ vi.mock('@ui/tags/library-tag-picker/use-library-tags', () => ({
   }),
 }));
 
-vi.mock('@ui/tags/library-tag-picker/use-library-tag-writes', () => ({
+vi.mock('@/components/tags/library-tag-picker/use-library-tag-writes', () => ({
   useLibraryTagWrites: () => ({ applyTag, isWriting: false }),
 }));
 
-vi.mock('@ui/tags/library-tag-picker/LibraryTagPicker', () => ({
+vi.mock('@/components/tags/library-tag-picker/LibraryTagPicker', () => ({
   default: ({
     onCreate,
     onToggle,

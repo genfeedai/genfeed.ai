@@ -9,7 +9,6 @@ import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
 import { isPostAwaitingReview } from '@helpers/content/post-review.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import {
   isCollectionFetchReady,
   toBrandListParams,
@@ -35,13 +34,14 @@ import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
-import RecordFactLine from '@ui/record-detail/RecordFactLine';
 import { ArrowLeft, CirclePlay, Cpu, Pencil, Workflow } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useMemo, useState } from 'react';
+import RecordFactLine from '@/components/record-detail/RecordFactLine';
 import type { AgentDetailPageProps } from '@/features/automation/props/agent-strategy.props';
+import { useWorkflowExecutions } from '@/hooks/data/workflow-executions/use-workflow-executions';
 import AgentWorkflowRunDialog from '../AgentWorkflowRunDialog';
 import { getAgentTypeIcon, getAgentTypeLabel } from '../agent-type-display';
 import {

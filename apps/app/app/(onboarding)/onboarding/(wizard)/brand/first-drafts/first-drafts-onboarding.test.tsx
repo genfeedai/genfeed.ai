@@ -105,7 +105,7 @@ vi.mock('@services/content/release-groups.service', () => ({
   },
 }));
 vi.mock(
-  '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect',
+  '@/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect',
   () => ({ usePlatformOAuthConnect: () => mocks.connectPlatform }),
 );
 vi.mock('next/navigation', () => ({

@@ -57,7 +57,7 @@ vi.mock(
     }),
   }),
 );
-vi.mock('@hooks/data/analytics/use-leaderboards/use-leaderboards', () => ({
+vi.mock('@/hooks/data/analytics/use-leaderboards/use-leaderboards', () => ({
   useLeaderboards: () => ({
     brandsLeaderboard: [],
     orgsLeaderboard: [],
@@ -70,7 +70,7 @@ vi.mock('@/features/analytics/hooks/use-timeseries/use-timeseries', () => ({
     fetchTimeseries: state.timeseries,
   }),
 }));
-vi.mock('@hooks/data/analytics/use-top-posts/use-top-posts', () => ({
+vi.mock('@/hooks/data/analytics/use-top-posts/use-top-posts', () => ({
   useTopPosts: () => ({ topPosts: [] }),
 }));
 

@@ -6,14 +6,11 @@ import {
   ReviewDecision,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { useFeatureFlagContext } from '@hooks/feature-flags/provider';
-import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import AppTable from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
-import { isAppRailPathEnabled } from '@ui/shell/app-rail/app-rail.registry';
 import {
   AlertTriangle,
   CircleCheck,
@@ -22,8 +19,11 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { isAppRailPathEnabled } from '@/components/shell/app-rail/app-rail.registry';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type { WorkspaceOverviewSidebarProps } from '@/features/workspace/props/workspace-overview-sidebar.props';
+import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
+import { useFeatureFlag } from '@/hooks/feature-flags/use-feature-flag';
 import {
   useAdvancedTools,
   useLibrarySnapshotLinks,

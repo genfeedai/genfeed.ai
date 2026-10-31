@@ -1,8 +1,4 @@
 import { formatCreditCostEstimate } from '@genfeedai/contracts/constants';
-import type {
-  AdvancedRoutingCardProps,
-  ModelOverridePickerProps,
-} from '@props/settings/model-routing.props';
 import Card from '@ui/card/Card';
 import {
   Select,
@@ -15,6 +11,10 @@ import { Skeleton } from '@ui/primitives/skeleton';
 import { Switch } from '@ui/primitives/switch';
 import { useTranslations } from 'next-intl';
 import AgentModelLockNotice from '@/features/settings/components/agent-model-lock-notice/AgentModelLockNotice';
+import type {
+  AdvancedRoutingCardProps,
+  ModelOverridePickerProps,
+} from '@/props/settings/model-routing.props';
 
 const AUTO_MODEL_SELECT_VALUE = '__auto__';
 const UNRESOLVED_MODEL_SELECT_VALUE = '__unresolved__';

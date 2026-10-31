@@ -18,8 +18,6 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
-import FiltersSearch from '@ui/content/filters-button/FiltersSearch';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
@@ -28,6 +26,8 @@ import { FolderOpen, Pencil, Plus, Trash2 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useReducer } from 'react';
+import AdminOrgBrandFilter from '@/components/content/admin-filters/AdminOrgBrandFilter';
+import FiltersSearch from '@/components/content/filters-button/FiltersSearch';
 import type {
   FoldersListAction,
   FoldersListState,

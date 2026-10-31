@@ -15,10 +15,10 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Post } from '@models/content/post.model';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Table from '@ui/display/table/Table';
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { ArrowRight, Video } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 
 type PostWithAnalytics = Post & {
   totalViews?: number;

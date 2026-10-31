@@ -10,7 +10,6 @@ import {
 } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
-import type { IngredientTabsPostsProps } from '@genfeedai/props/content/ingredient.props';
 import type { TableAction } from '@genfeedai/props/ui/display/table.props';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { logger } from '@genfeedai/services/core/logger.service';
@@ -21,6 +20,7 @@ import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import PostDetailPanel from '@/features/posts/detail/PostDetailPanel';
+import type { IngredientTabsPostsProps } from '@/props/content/ingredient.props';
 
 export default function IngredientTabsPosts({
   ingredient,

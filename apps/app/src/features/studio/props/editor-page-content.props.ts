@@ -2,7 +2,7 @@ import type { IEditorProject } from '@genfeedai/contracts/interfaces';
 import type {
   EditorHistory,
   EditorSaveStatus,
-} from '@props/studio/editor-save.props';
+} from '@/props/studio/editor-save.props';
 
 export interface EditorPageContentProps {
   projectId: string;

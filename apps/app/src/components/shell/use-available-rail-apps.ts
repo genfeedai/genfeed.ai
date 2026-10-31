@@ -8,10 +8,10 @@ import {
   resolveOrganizationModulePreferences,
   resolveOrganizationModulePresentationAccess,
 } from '@genfeedai/contracts/constants';
-import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
-import { resolveAvailableRailApps } from '@ui/shell/app-rail/app-rail.availability';
 import { useMemo } from 'react';
+import { resolveAvailableRailApps } from '@/components/shell/app-rail/app-rail.availability';
 import { useInstalledApps } from '@/components/shell/installed-apps.provider';
+import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
 
 const NO_INSTALLED_APP_IDS: readonly string[] = [];
 

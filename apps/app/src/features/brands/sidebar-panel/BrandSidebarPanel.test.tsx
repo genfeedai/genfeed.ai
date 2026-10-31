@@ -76,7 +76,7 @@ vi.mock(
   }),
 );
 
-vi.mock('@ui/lazy/modal/LazyModal', () => ({
+vi.mock('@/components/lazy/modal/LazyModal', () => ({
   __esModule: true,
   LazyModalBrandGenerate: () => <div data-testid="brand-generate-modal" />,
   LazyModalBrandLink: ({

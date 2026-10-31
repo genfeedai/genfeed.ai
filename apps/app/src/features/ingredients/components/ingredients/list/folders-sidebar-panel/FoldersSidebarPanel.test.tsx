@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { FoldersSidebarPanelProps } from '@/features/ingredients/components/ingredients/list/folders-sidebar-panel/FoldersSidebarPanel';
 import FoldersSidebarPanel from '@/features/ingredients/components/ingredients/list/folders-sidebar-panel/FoldersSidebarPanel';
 
-vi.mock('@ui/folders/sidebar/FoldersSidebar', () => ({
+vi.mock('@/components/folders/sidebar/FoldersSidebar', () => ({
   default: () => <div data-testid="folders-sidebar" />,
 }));
 

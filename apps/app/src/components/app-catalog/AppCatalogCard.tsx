@@ -2,10 +2,10 @@
 
 import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { AppCatalogItemProps } from '@genfeedai/props/apps/organization-apps-page.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
+import type { AppCatalogItemProps } from '@/props/apps/organization-apps-page.props';
 import AppCatalogStateBadge from './AppCatalogStateBadge';
 import AppCatalogThumbnail from './AppCatalogThumbnail';
 

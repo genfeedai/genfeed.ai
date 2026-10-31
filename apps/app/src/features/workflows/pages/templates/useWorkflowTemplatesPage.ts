@@ -5,7 +5,6 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import { logger } from '@services/core/logger.service';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
@@ -18,6 +17,7 @@ import {
   type SystemWorkflowCatalogEntry,
   type WorkflowApiService,
 } from '@/features/workflows/services/workflow-api';
+import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import {
   reserveTemplateAttempt,
   templateAttemptKey,

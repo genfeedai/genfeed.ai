@@ -4,8 +4,8 @@ import {
   DEFAULT_HOME_APP_ID,
   resolveHomeAppId,
 } from '@genfeedai/contracts/constants';
-import { getRailAppRoute } from '@ui/shell/app-rail/app-rail.registry';
 import { useCallback, useEffect, useState } from 'react';
+import { getRailAppRoute } from '@/components/shell/app-rail/app-rail.registry';
 import { useRailPreferencesContext } from '@/components/shell/rail-preferences.provider';
 import { useAvailableRailApps } from '@/components/shell/use-available-rail-apps';
 

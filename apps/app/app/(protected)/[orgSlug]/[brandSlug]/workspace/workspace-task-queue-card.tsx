@@ -1,4 +1,4 @@
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
+import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import type { WorkspaceTaskQueueCardProps } from '@/features/workspace/props/workspace-task-queue-card.props';
 import { WorkspaceTaskCard } from './workspace-task-card';
 import { WorkspaceTaskRowsSkeleton } from './workspace-task-loading';

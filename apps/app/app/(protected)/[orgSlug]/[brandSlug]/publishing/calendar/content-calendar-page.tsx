@@ -15,21 +15,18 @@ import type { ICalendarSlot } from '@genfeedai/contracts/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useCalendarWeekRange } from '@hooks/utils/use-calendar-week-range/use-calendar-week-range';
-import type { CalendarViewKey } from '@props/components/calendar.props';
-import type { ReleaseCalendarFilters as ReleaseFilters } from '@props/publisher/release-calendar.props';
 import { ArticlesService } from '@services/content/articles.service';
 import { NewslettersService } from '@services/content/newsletters.service';
 import { PostingCadencesService } from '@services/content/posting-cadences.service';
 import { PostsService } from '@services/content/posts.service';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import { LazyModalArticle } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
 import { FileText, Repeat } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { LazyModalArticle } from '@/components/lazy/modal/LazyModal';
 import ContentCalendar from '@/features/posts/components/calendar/content-calendar/ContentCalendar';
 import type { ContentCalendarPageProps } from '@/features/posts/props/content-calendar-controller.props';
 import type { ContentCalendarItem } from '@/features/posts/props/content-calendar-page.props';
@@ -38,6 +35,9 @@ import CalendarRepublishDialog, {
   CALENDAR_MOVE_ACTION,
   CALENDAR_REPUBLISH_ACTION,
 } from '@/features/posts/shared/calendar-republish-dialog';
+import { useCalendarWeekRange } from '@/hooks/utils/use-calendar-week-range/use-calendar-week-range';
+import type { CalendarViewKey } from '@/props/components/calendar.props';
+import type { ReleaseCalendarFilters as ReleaseFilters } from '@/props/publisher/release-calendar.props';
 import CadenceFormSheet from './cadence-form-sheet';
 import { isMissingCalendarSlot } from './calendar-day-aggregate';
 import CalendarSlotPanel from './calendar-slot-panel';

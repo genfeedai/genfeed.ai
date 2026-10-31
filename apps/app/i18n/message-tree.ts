@@ -1,4 +1,4 @@
-import type { IntlMessageTree } from '@genfeedai/props/providers/intl-provider.props';
+import type { IntlMessageTree } from '@/props/providers/intl-provider.props';
 
 export function mergeMessageTrees(
   inherited: IntlMessageTree,

@@ -23,13 +23,13 @@ import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import Container from '@ui/layout/container/Container';
-import { LazyModalTraining } from '@ui/lazy/modal/LazyModal';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
 import { getErrorMessage } from '@utils/error/error-handler.util';
 import { Database, Image, Pencil } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { LazyModalTraining } from '@/components/lazy/modal/LazyModal';
 
 export default function TrainingDetail({
   children,

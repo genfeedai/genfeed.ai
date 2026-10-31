@@ -1,5 +1,5 @@
-import { useCrunGenerationQuote as shared } from '@hooks/prompt-bar/use-crun-generation-quote/use-crun-generation-quote';
 import { describe, expect, it } from 'vitest';
+import { useCrunGenerationQuote as shared } from '@/hooks/prompt-bar/use-crun-generation-quote/use-crun-generation-quote';
 import { useCrunGenerationQuote } from './useCrunGenerationQuote';
 
 describe('Studio Crun quote boundary', () => {

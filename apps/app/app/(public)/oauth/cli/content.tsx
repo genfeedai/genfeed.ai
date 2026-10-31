@@ -8,7 +8,6 @@ import {
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { EnvironmentService } from '@services/core/environment.service';
-import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import Spinner from '@ui/primitives/spinner';
@@ -24,6 +23,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import AuthFormLayout from '@/components/layouts/auth/AuthFormLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import type {
   DesktopAuthCodeStatus,

@@ -2,13 +2,13 @@
 
 import { useContextSidebar } from '@contexts/ui/context-sidebar-context';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import {
-  SIDEBAR_TRANSITION_DURATION_MS,
-  SIDEBAR_TRANSITION_EASING,
-} from '@ui/layouts/app/app-layout.utils';
 import { Drawer, DrawerContent } from '@ui/primitives/drawer';
 import { useTranslations } from 'next-intl';
 import { useLayoutEffect, useRef } from 'react';
+import {
+  SIDEBAR_TRANSITION_DURATION_MS,
+  SIDEBAR_TRANSITION_EASING,
+} from '@/components/layouts/app/app-layout.utils';
 import {
   WorkspaceContextSidebarDrawerBody,
   WorkspaceContextSidebarRail,

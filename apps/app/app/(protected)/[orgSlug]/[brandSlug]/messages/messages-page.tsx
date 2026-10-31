@@ -23,15 +23,9 @@ import type {
   SocialConversationStatus,
   SocialInboxSyncRealtimeEvent,
 } from '@genfeedai/contracts/interfaces';
-import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
-import type {
-  MessagesInboxView,
-  MessagesSurface,
-} from '@genfeedai/props/messages/messages-conversation-sidebar.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { usePlatformOAuthConnect } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { SocialMessagesService } from '@services/social/messages.service';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
@@ -52,9 +46,14 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-
 import { useRefreshInboxIndicators } from '@/components/shell/use-messages-unread-count';
 import { useWorkspaceNavPanel } from '@/components/workspace-shell/WorkspaceNavPanelContext';
+import { usePlatformOAuthConnect } from '@/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
+import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
+import type {
+  MessagesInboxView,
+  MessagesSurface,
+} from '@/props/messages/messages-conversation-sidebar.props';
 import {
   getParticipantLabel,
   MessagesConversationSidebar,

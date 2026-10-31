@@ -49,17 +49,17 @@ vi.mock(
   '@genfeedai/contexts/providers/access-state/access-state.provider',
   () => ({ useAccessState: () => ({ isSuperAdmin: mocks.isSuperAdmin }) }),
 );
-vi.mock('@genfeedai/hooks/feature-flags/provider', () => ({
+vi.mock('@/hooks/feature-flags/provider', () => ({
   useFeatureFlagContext: () => ({
     flags: mocks.flags,
     isConfigured: true,
     isReady: true,
   }),
 }));
-vi.mock('@hooks/auth/use-user-role/use-user-role', () => ({
+vi.mock('@/hooks/auth/use-user-role/use-user-role', () => ({
   useUserRole: () => mocks.role,
 }));
-vi.mock('@hooks/data/organization/use-organization/use-organization', () => ({
+vi.mock('@/hooks/data/organization/use-organization/use-organization', () => ({
   useOrganization: () => ({
     isLoading: mocks.isLoading,
     refresh: mocks.refresh,

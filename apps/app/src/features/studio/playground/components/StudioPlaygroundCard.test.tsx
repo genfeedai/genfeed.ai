@@ -69,7 +69,7 @@ vi.mock('@ui/audio/preview-player/AudioPreviewPlayer', () => ({
   },
 }));
 
-vi.mock('@ui/ingredients/ingredient-tile-overlays', () => ({
+vi.mock('@/components/ingredients/ingredient-tile-overlays', () => ({
   default: ({ ingredient }: { ingredient: { id: string } }) => (
     <div data-testid={`tile-overlays-${ingredient.id}`} />
   ),

@@ -51,7 +51,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
     factory('test-token'),
 }));
 
-vi.mock('@hooks/data/organization/use-organization/use-organization', () => ({
+vi.mock('@/hooks/data/organization/use-organization/use-organization', () => ({
   useOrganization: () => ({
     isLoading: mocks.isSettingsLoading,
     refresh: mocks.refresh,

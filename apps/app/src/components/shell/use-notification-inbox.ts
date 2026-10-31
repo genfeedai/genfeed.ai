@@ -2,10 +2,6 @@ import { UsersService } from '@genfeedai/services/organization/users.service';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import {
-  FOREGROUND_MIN_AWAY_MS,
-  onForeground,
-} from '@hooks/utils/on-foreground/on-foreground';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import {
   useInfiniteQuery,
@@ -14,6 +10,10 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useEffect } from 'react';
+import {
+  FOREGROUND_MIN_AWAY_MS,
+  onForeground,
+} from '@/hooks/utils/on-foreground/on-foreground';
 
 /** Root query key of the bell; invalidating it refreshes count and history. */
 export const NOTIFICATION_INBOX_QUERY_KEY = 'notification-inbox';

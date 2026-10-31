@@ -1,9 +1,4 @@
 import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
-import type {
-  HighlightReviewCardProps,
-  RewriteAction,
-  RewriteState,
-} from '@props/studio/clipper.props';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -19,6 +14,11 @@ import {
 import Spinner from '@ui/primitives/spinner';
 import { Textarea } from '@ui/primitives/textarea';
 import { useCallback, useReducer, useRef } from 'react';
+import type {
+  HighlightReviewCardProps,
+  RewriteAction,
+  RewriteState,
+} from '@/props/studio/clipper.props';
 
 const CLIP_TYPE_BADGE_CLASSES =
   'bg-muted text-muted-foreground border-transparent';

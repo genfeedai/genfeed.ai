@@ -9,7 +9,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { TabItem } from '@genfeedai/props/ui/navigation/tabs.props';
 import { logger } from '@genfeedai/services/core/logger.service';
-import EvaluationCard from '@ui/evaluation/card/EvaluationCard';
+import EvaluationCard from '@/components/evaluation/card/EvaluationCard';
 import IngredientWorkspacePanel from '@/features/ingredients/components/detail/shared/IngredientWorkspacePanel';
 import IngredientTabsPrompts from '@/features/ingredients/components/ingredients/tabs/prompts/IngredientTabsPrompts';
 import IngredientTabsCaptions from '@/features/ingredients/components/tabs/captions/IngredientTabsCaptions';

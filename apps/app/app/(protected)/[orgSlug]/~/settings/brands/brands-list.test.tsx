@@ -68,7 +68,7 @@ vi.mock(
   }),
 );
 
-vi.mock('@hooks/auth/use-user-role/use-user-role', () => ({
+vi.mock('@/hooks/auth/use-user-role/use-user-role', () => ({
   useUserRole: vi.fn(() => userRole.value),
 }));
 

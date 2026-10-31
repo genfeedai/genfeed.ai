@@ -1,13 +1,13 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
-import { useEvaluation } from '@hooks/ui/evaluation/use-evaluation/use-evaluation';
 import { Button } from '@ui/primitives/button';
 import { DropdownMenuItem } from '@ui/primitives/dropdown-menu';
 import { ArrowUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import EvaluationBadge from '@/features/posts/components/evaluation/badge/EvaluationBadge';
 import type { PostEvaluationProps } from '@/features/posts/props/post-evaluation.props';
+import { useEvaluation } from '@/hooks/ui/evaluation/use-evaluation/use-evaluation';
 
 export default function EvalCell({
   post,

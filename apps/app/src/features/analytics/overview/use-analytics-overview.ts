@@ -13,16 +13,9 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useAnalytics } from '@hooks/data/analytics/use-analytics/use-analytics';
-import { useLeaderboards } from '@hooks/data/analytics/use-leaderboards/use-leaderboards';
-import {
-  type TopPostData,
-  useTopPosts,
-} from '@hooks/data/analytics/use-top-posts/use-top-posts';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { User } from '@models/auth/user.model';
-import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import type {
   IBrandWithStats,
   IOrgLeaderboardItem,
@@ -32,6 +25,13 @@ import { format } from 'date-fns';
 import { useEffect, useMemo, useRef } from 'react';
 import { useHealthChecks } from '@/features/analytics/hooks/use-health-checks/use-health-checks';
 import { useTimeseries } from '@/features/analytics/hooks/use-timeseries/use-timeseries';
+import { useAnalytics } from '@/hooks/data/analytics/use-analytics/use-analytics';
+import { useLeaderboards } from '@/hooks/data/analytics/use-leaderboards/use-leaderboards';
+import {
+  type TopPostData,
+  useTopPosts,
+} from '@/hooks/data/analytics/use-top-posts/use-top-posts';
+import type { PlatformTimeSeriesDataPoint } from '@/props/analytics/charts.props';
 
 type DashboardState = 'empty' | 'warming_up' | 'active';
 

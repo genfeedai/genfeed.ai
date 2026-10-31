@@ -1,6 +1,6 @@
 import { ArticleStatus, formatEnumLabel } from '@genfeedai/contracts';
-import SeoScorecard from '@ui/evaluation/seo-scorecard/SeoScorecard';
-import InspectorSection from '@ui/posts/post-detail-sidebar/InspectorSection';
+import SeoScorecard from '@/components/evaluation/seo-scorecard/SeoScorecard';
+import InspectorSection from '@/components/posts/post-detail-sidebar/InspectorSection';
 import type { ArticleSidebarProps } from '@/features/studio/props/article-sidebar.props';
 import ArticleDeliveryCard from './article-delivery-card';
 import ArticlePublicPageCard from './article-public-page-card';

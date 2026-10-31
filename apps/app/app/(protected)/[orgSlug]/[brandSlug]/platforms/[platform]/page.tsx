@@ -1,8 +1,8 @@
 import { formatPlatformLabel, parsePlatform } from '@genfeedai/contracts';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import type { BrandPlatformHomePageProps } from '@props/pages/page.props';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
+import type { BrandPlatformHomePageProps } from '@/props/pages/page.props';
 import PlatformHomePage from './content';
 
 export async function generateMetadata({ params }: BrandPlatformHomePageProps) {

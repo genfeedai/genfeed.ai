@@ -7,18 +7,15 @@ import StudioGenerationSummary from '@/features/studio/playground/components/Stu
 vi.mock('@genfeedai/config/license', () => ({
   shouldShowCreditsNav: () => true,
 }));
-vi.mock(
-  '@genfeedai/hooks/data/billing/use-topbar-balances/use-topbar-balances',
-  () => ({
-    useTopbarBalances: () => ({
-      genfeedBalance: 5397,
-      isLoaded: true,
-      isLoading: false,
-    }),
+vi.mock('@/hooks/data/billing/use-topbar-balances/use-topbar-balances', () => ({
+  useTopbarBalances: () => ({
+    genfeedBalance: 5397,
+    isLoaded: true,
+    isLoading: false,
   }),
-);
+}));
 vi.mock(
-  '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context',
+  '@/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context',
   () => ({
     useDesktopRuntimeContext: () => ({ status: 'web', context: null }),
   }),

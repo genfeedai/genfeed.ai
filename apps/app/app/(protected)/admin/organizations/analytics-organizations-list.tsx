@@ -12,7 +12,6 @@ import {
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { formatPercentageSimple } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
 import type { TableColumn } from '@props/ui/display/table.props';
 import {
   AnalyticsService,
@@ -20,8 +19,6 @@ import {
   type IPaginatedOrgsResponse,
 } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
-import FilterMenu from '@ui/content/filter-menu/FilterMenu';
-import SearchField from '@ui/content/search-field/SearchField';
 import AppTable from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
@@ -32,7 +29,10 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import FilterMenu from '@/components/content/filter-menu/FilterMenu';
+import SearchField from '@/components/content/search-field/SearchField';
 import type { AnalyticsOrganizationsListProps } from '@/features/admin/props/analytics.props';
+import { useDebounce } from '@/hooks/utils/use-debounce/use-debounce';
 
 const SEARCH_DEBOUNCE_MS = 300;
 

@@ -39,7 +39,7 @@ vi.mock('@/features/trainings/list/trainings-list', async () => {
   };
 });
 
-vi.mock('@ui/content/admin-filters/useAdminSearchParam', () => ({
+vi.mock('@/components/content/admin-filters/useAdminSearchParam', () => ({
   useAdminSearchParam: () => ({ search: '', setSearch: vi.fn() }),
 }));
 

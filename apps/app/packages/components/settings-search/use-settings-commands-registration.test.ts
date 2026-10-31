@@ -16,13 +16,12 @@ vi.mock('@genfeedai/auth-client', () => ({
 const mockDesktop = vi.hoisted(() => ({ value: false }));
 const mockBilling = vi.hoisted(() => ({ value: false }));
 vi.mock(
-  '@genfeedai/hooks/navigation/use-onboarding-route-access/use-onboarding-route-access',
+  '@/hooks/navigation/use-onboarding-route-access/use-onboarding-route-access',
   () => ({ useOnboardingRouteAccess: () => mockAccess }),
 );
-vi.mock(
-  '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client',
-  () => ({ useIsDesktopClient: () => mockDesktop.value }),
-);
+vi.mock('@/hooks/ui/use-is-desktop-client/use-is-desktop-client', () => ({
+  useIsDesktopClient: () => mockDesktop.value,
+}));
 const mockPush = vi.hoisted(() => vi.fn());
 
 vi.mock('next/navigation', () => ({
@@ -523,7 +522,7 @@ const mockCreditsRuntime = vi.hoisted(() =>
   vi.fn<() => DesktopRuntimeSnapshot>(),
 );
 vi.mock(
-  '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context',
+  '@/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context',
   () => ({
     useDesktopRuntimeContext: mockCreditsRuntime,
   }),

@@ -76,7 +76,7 @@ function createBrandDetailState(overrides: Record<string, unknown> = {}) {
   };
 }
 
-vi.mock('@hooks/pages/use-brand-detail/use-brand-detail', () => ({
+vi.mock('@/hooks/pages/use-brand-detail/use-brand-detail', () => ({
   useBrandDetail: () => mocks.brandDetail,
 }));
 
@@ -242,7 +242,7 @@ vi.mock(
   }),
 );
 
-vi.mock('@ui/lazy/modal/LazyModal', () => ({
+vi.mock('@/components/lazy/modal/LazyModal', () => ({
   LazyModalBrandLink: () => null,
   LazyModalBrandGenerate: ({
     brandId,

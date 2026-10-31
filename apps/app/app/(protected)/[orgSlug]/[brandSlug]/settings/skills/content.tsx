@@ -12,9 +12,7 @@ import { isModalOpen } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
-import { useBrandEnabledSkills } from '@hooks/data/skills/use-brand-enabled-skills';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
 import {
   classifySkillImportFailure,
   type Skill,
@@ -45,6 +43,8 @@ import type {
   SkillDraft,
   SkillVersionsState,
 } from '@/features/settings/props/skills.props';
+import { useBrandEnabledSkills } from '@/hooks/data/skills/use-brand-enabled-skills';
+import { useDebounce } from '@/hooks/utils/use-debounce/use-debounce';
 import SkillDetailPanel from './skill-detail-panel';
 import { prepareSkillDraftPatch } from './skill-draft-patch';
 import SkillAgentAction, { SkillSearch } from './skill-filters';

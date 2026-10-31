@@ -1,5 +1,4 @@
 import '@testing-library/jest-dom/vitest';
-import type { WorkspaceTaskDetailProps } from '@props/workspace/workspace-task-inspector.props';
 import {
   act,
   fireEvent,
@@ -10,11 +9,12 @@ import {
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { WorkspaceTaskDetailProps } from '@/props/workspace/workspace-task-inspector.props';
 import WorkspacePageContent from './workspace-page';
 
 const inboxReadMock = vi.hoisted(() => ({ mutate: vi.fn() }));
 
-vi.mock('@hooks/data/tasks/use-workspace-inbox-read', async () => {
+vi.mock('@/hooks/data/tasks/use-workspace-inbox-read', async () => {
   const { isUnreadWorkspaceInboxTask } = await import(
     '@services/management/tasks.service'
   );
@@ -118,7 +118,7 @@ vi.mock('@helpers/auth/auth.helper', () => ({
   resolveAuthToken: mocks.resolveAuthToken,
 }));
 
-vi.mock('@hooks/feature-flags/use-feature-flag', () => ({
+vi.mock('@/hooks/feature-flags/use-feature-flag', () => ({
   useFeatureFlag: () => mocks.studioEnabled,
 }));
 
@@ -154,7 +154,7 @@ vi.mock('@services/automation/workflow-executions.service', () => ({
   },
 }));
 
-vi.mock('@hooks/data/workflow-executions/use-workflow-executions', () => ({
+vi.mock('@/hooks/data/workflow-executions/use-workflow-executions', () => ({
   useWorkflowExecutions: () => {
     const executions = mocks.workflowExecutions;
     return {

@@ -13,7 +13,6 @@ import type {
 import type { WorkflowExecutionStats } from '@genfeedai/contracts/types';
 import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflow-execution.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { WorkspaceTranslate } from '@props/workspace/workspace-task.props';
 import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
@@ -23,16 +22,17 @@ import CollectionSection from '@ui/collection/CollectionSection';
 import { SurfaceSummaryStrip } from '@ui/dashboard/SurfaceSummaryStrip';
 import Badge from '@ui/display/badge/Badge';
 import { ListRow } from '@ui/lists/list-row/ListRow';
-import { OverviewTrendsPanel } from '@ui/overview/OverviewTrendsPanel';
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+import { OverviewTrendsPanel } from '@/components/overview/OverviewTrendsPanel';
+import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import type {
   DashboardProps,
   ReviewInboxSummary,
 } from '@/features/workspace/props/workspace-dashboard.props';
+import type { WorkspaceTranslate } from '@/props/workspace/workspace-task.props';
 import { WorkspaceTaskRowsSkeleton } from './workspace-task-loading';
 
 const DASHBOARD_ROW_LIMIT = 5;

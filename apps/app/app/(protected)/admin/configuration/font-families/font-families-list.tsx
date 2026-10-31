@@ -15,21 +15,21 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { FontFamiliesService } from '@services/elements/font-families.service';
-import AdminOrgBrandUrlFilter, {
-  useAdminOrgBrandParams,
-} from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
-import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
-import SearchField from '@ui/content/search-field/SearchField';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
-import { LazyModalFontFamily } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
+import AdminOrgBrandUrlFilter, {
+  useAdminOrgBrandParams,
+} from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
+import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
+import SearchField from '@/components/content/search-field/SearchField';
+import { LazyModalFontFamily } from '@/components/lazy/modal/LazyModal';
 import type {
   FontFamiliesAction as Action,
   FontFamiliesState as State,

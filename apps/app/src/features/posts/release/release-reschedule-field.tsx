@@ -4,7 +4,6 @@ import {
   fromDateTimeLocalInput,
   toDateTimeLocalInput,
 } from '@helpers/formatting/timezone/timezone.helper';
-import type { ReleaseRescheduleFieldProps } from '@props/publisher/release-calendar.props';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
@@ -12,6 +11,7 @@ import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { isPastScheduleInstant } from '@/features/posts/shared/release-status.helpers';
+import type { ReleaseRescheduleFieldProps } from '@/props/publisher/release-calendar.props';
 
 /**
  * One send-time field with its own Reschedule button. The value is read and

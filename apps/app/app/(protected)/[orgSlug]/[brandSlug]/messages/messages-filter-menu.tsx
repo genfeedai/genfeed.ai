@@ -1,13 +1,13 @@
 import { SocialConversationType } from '@genfeedai/contracts';
 import { PLATFORM_CONFIG } from '@genfeedai/contracts/constants';
 import type { SocialPlatform } from '@genfeedai/contracts/interfaces';
+import { useTranslations } from 'next-intl';
+import FilterMenu from '@/components/content/filter-menu/FilterMenu';
+import type { MessagesFilterMenuProps } from '@/features/messages/props/messages-filter-menu.props';
 import type {
   MessagesInboxView,
   MessagesSurface,
-} from '@genfeedai/props/messages/messages-conversation-sidebar.props';
-import FilterMenu from '@ui/content/filter-menu/FilterMenu';
-import { useTranslations } from 'next-intl';
-import type { MessagesFilterMenuProps } from '@/features/messages/props/messages-filter-menu.props';
+} from '@/props/messages/messages-conversation-sidebar.props';
 import { ALL_BRANDS_FILTER, AUTOMATION_OPTIONS } from './messages-page.helpers';
 
 export const DEFAULT_MESSAGES_VIEW: MessagesInboxView = 'inbox';

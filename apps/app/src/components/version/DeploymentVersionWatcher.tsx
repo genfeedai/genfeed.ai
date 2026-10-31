@@ -1,13 +1,12 @@
 'use client';
 
 import { isDesktopClient } from '@genfeedai/config/deployment';
+import { useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import {
   FOREGROUND_MIN_AWAY_MS,
   onForeground,
-} from '@hooks/utils/on-foreground/on-foreground';
-
-import { useEffect, useRef } from 'react';
-import { toast } from 'sonner';
+} from '@/hooks/utils/on-foreground/on-foreground';
 
 type VersionResponse = {
   buildId?: string;

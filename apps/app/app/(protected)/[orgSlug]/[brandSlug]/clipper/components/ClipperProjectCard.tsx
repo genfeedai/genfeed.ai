@@ -1,10 +1,10 @@
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
-import type { ClipperProjectCardProps } from '@props/studio/clipper.props';
 import Card from '@ui/card/Card';
 import { Film } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import type { ClipperProjectCardProps } from '@/props/studio/clipper.props';
 
 import { youtubeThumbnailUrl } from '../utils/youtube-thumbnail';
 

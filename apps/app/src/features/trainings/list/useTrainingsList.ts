@@ -13,11 +13,11 @@ import { TrainingsService } from '@services/ai/trainings.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
-import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
 import { getErrorMessage } from '@utils/error/error-handler.util';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
+import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 
 type TrainingStatusUpdate = {
   status: Training['status'];

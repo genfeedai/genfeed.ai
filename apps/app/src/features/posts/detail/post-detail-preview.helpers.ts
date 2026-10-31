@@ -13,8 +13,8 @@ import type {
   IPost,
   IReleaseMediaReference,
 } from '@genfeedai/contracts/interfaces';
-import type { TargetPreviewProps } from '@genfeedai/props/ui/previews.props';
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
+import type { TargetPreviewProps } from '@/props/ui/previews.props';
 
 function resolveIngredientMediaKind(
   category: IngredientCategory | undefined,

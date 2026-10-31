@@ -3,8 +3,8 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { TopbarProps } from '@genfeedai/props/navigation/topbar.props';
 import { Button } from '@ui/primitives/button';
-import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import { Menu, X } from 'lucide-react';
+import TopbarBreadcrumbs from '@/components/topbars/breadcrumbs/TopbarBreadcrumbs';
 import TopbarEnd from '@/features/ingredients/components/topbars/end/TopbarEnd';
 
 export default function TopbarShared({

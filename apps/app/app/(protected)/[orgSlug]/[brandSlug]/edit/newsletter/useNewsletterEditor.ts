@@ -1,19 +1,18 @@
-import type { UseNewsletterEditorReturn } from '@genfeedai/props/content/artifact-editor.props';
-
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Newsletter } from '@models/content/newsletter.model';
-import type {
-  NewsletterContextPreview,
-  NewsletterEditorLoadingAction,
-  NewsletterEditorState,
-} from '@props/content/artifact-editor.props';
 import { NewslettersService } from '@services/content/newsletters.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
+import type {
+  NewsletterContextPreview,
+  NewsletterEditorLoadingAction,
+  NewsletterEditorState,
+  UseNewsletterEditorReturn,
+} from '@/props/content/artifact-editor.props';
 
-export type { UseNewsletterEditorReturn } from '@genfeedai/props/content/artifact-editor.props';
+export type { UseNewsletterEditorReturn } from '@/props/content/artifact-editor.props';
 
 /** Newsletters publish to the email/newsletter channel rather than a social platform. */
 const NEWSLETTER_PUBLISH_PLATFORM = 'newsletter';

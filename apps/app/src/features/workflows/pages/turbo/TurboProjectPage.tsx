@@ -10,7 +10,6 @@ import {
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { IngredientsService } from '@services/content/ingredients.service';
 import CollectionGrid from '@ui/collection/CollectionGrid';
@@ -24,6 +23,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { useFeatureFlag } from '@/hooks/feature-flags/use-feature-flag';
 import TurboIdeasEditor from './TurboIdeasEditor';
 import TurboProjectItemCard from './TurboProjectItemCard';
 import TurboSchedule from './TurboSchedule';

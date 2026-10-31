@@ -2,13 +2,13 @@
 
 import { requestPasswordReset } from '@genfeedai/auth-client';
 import { ButtonVariant } from '@genfeedai/contracts';
-import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { useSearchParams } from 'next/navigation';
 import { type ChangeEvent, type FormEvent, useState } from 'react';
+import AuthFormLayout from '@/components/layouts/auth/AuthFormLayout';
 import {
   getAuthCallbackURL,
   getAuthFlowHref,

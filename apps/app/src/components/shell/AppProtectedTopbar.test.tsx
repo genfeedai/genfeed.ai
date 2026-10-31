@@ -228,15 +228,18 @@ vi.mock('next-intl', () => ({
     )[namespace]?.[key] ?? key,
 }));
 
-vi.mock('@ui/menus/organization-switcher/OrganizationSwitcher', () => ({
-  default: () => (
-    <button type="button" data-testid="organization-switcher">
-      Organization
-    </button>
-  ),
-}));
+vi.mock(
+  '@/components/menus/organization-switcher/OrganizationSwitcher',
+  () => ({
+    default: () => (
+      <button type="button" data-testid="organization-switcher">
+        Organization
+      </button>
+    ),
+  }),
+);
 
-vi.mock('@ui/menus/switchers/MenuBrandSwitcher', () => ({
+vi.mock('@/components/menus/switchers/MenuBrandSwitcher', () => ({
   default: (props: {
     brandId?: string;
     clearSelectionAction?: {
@@ -267,7 +270,7 @@ vi.mock('@ui/menus/switchers/MenuBrandSwitcher', () => ({
   },
 }));
 
-vi.mock('@ui/topbars/credits-bar/CreditsLiveSync', () => ({
+vi.mock('@/components/topbars/credits-bar/CreditsLiveSync', () => ({
   default: () => <span data-testid="credits-live-sync" />,
 }));
 

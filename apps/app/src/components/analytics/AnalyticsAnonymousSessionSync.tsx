@@ -1,7 +1,7 @@
 'use client';
 
-import { useAuthUser } from '@hooks/auth/use-auth-user';
 import { useEffect } from 'react';
+import { useAuthUser } from '@/hooks/auth/use-auth-user';
 import { ensureAnalyticsAnonymous, isAnalyticsEnabled } from '@/lib/analytics';
 
 function EnabledAnalyticsAnonymousSessionSync() {

@@ -34,7 +34,7 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ push: mock.push }) }));
 vi.mock('@tanstack/react-query', () => ({
   useQueryClient: () => ({ invalidateQueries: mock.invalidate }),
 }));
-vi.mock('@hooks/data/activities/use-activities/use-activities', () => ({
+vi.mock('@/hooks/data/activities/use-activities/use-activities', () => ({
   useActivities: ({ activeOnly }: { activeOnly?: boolean }) => ({
     activities: activeOnly ? mock.active : mock.recent,
     filteredActivities: activeOnly ? mock.active : mock.recent,

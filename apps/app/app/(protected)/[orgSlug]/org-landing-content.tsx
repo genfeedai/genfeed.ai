@@ -24,13 +24,6 @@ import type { IUser } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
-import type {
-  OrgLandingBrandFact,
-  OrgLandingBrandFactsProps,
-  OrgLandingBrandItemProps,
-  OrgLandingBrandLogoProps,
-} from '@props/pages/org-landing.props';
 import { useAccessState } from '@providers/access-state/access-state.provider';
 import Card from '@ui/card/Card';
 import CollectionView from '@ui/collection/CollectionView';
@@ -47,6 +40,13 @@ import { useTranslations } from 'next-intl';
 import { Fragment, useCallback, useEffect } from 'react';
 import { useHomeApp } from '@/components/shell/use-home-app';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
+import type {
+  OrgLandingBrandFact,
+  OrgLandingBrandFactsProps,
+  OrgLandingBrandItemProps,
+  OrgLandingBrandLogoProps,
+} from '@/props/pages/org-landing.props';
 
 /** Up to this many brands the picker leads with logo cards; above it, a list. */
 const ORG_LANDING_GRID_BRAND_LIMIT = 6;

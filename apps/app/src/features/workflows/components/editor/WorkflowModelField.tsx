@@ -2,7 +2,6 @@
 
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
-import type { WorkflowModelFieldProps } from '@genfeedai/props/workflows/workflow-model-picker.props';
 import { Button } from '@ui/primitives/button';
 import { Label } from '@ui/primitives/label';
 import { ChevronsUpDown } from 'lucide-react';
@@ -10,6 +9,7 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useId, useState } from 'react';
 import { ModelBrowserModal } from '@/components/models/ModelBrowserModal';
 import { useWorkflowModelCatalog } from '@/features/workflows/hooks/useWorkflowModelCatalog';
+import type { WorkflowModelFieldProps } from '@/props/workflows/workflow-model-picker.props';
 
 export function WorkflowModelField({
   categories,

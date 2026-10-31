@@ -15,15 +15,15 @@ import {
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { ContentPerformanceService } from '@services/analytics/content-performance.service';
 import { logger } from '@services/core/logger.service';
-import PerformanceDatasetBadge, {
-  LOW_CONFIDENCE_STATES,
-} from '@ui/analytics/performance-dataset-badge/PerformanceDatasetBadge';
 import Badge from '@ui/display/badge/Badge';
 import { ListRow } from '@ui/lists/list-row/ListRow';
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import PerformanceDatasetBadge, {
+  LOW_CONFIDENCE_STATES,
+} from '@/components/analytics/performance-dataset-badge/PerformanceDatasetBadge';
+import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 
 export default function AnalyticsOverviewPerformanceDataset() {
   const translate = useTranslations('pages.analytics.performanceDataset');

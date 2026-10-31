@@ -5,12 +5,12 @@ import type {
   IReleaseTargetAnalyticsMetrics,
   SchedulerAnalyticsComparisonMetric,
 } from '@genfeedai/contracts/interfaces';
-import type { ReleaseAnalyticsTableProps } from '@props/publisher/release-calendar.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Table from '@ui/display/table/Table';
 import { Badge } from '@ui/primitives/badge';
 import { useTranslations } from 'next-intl';
+import type { ReleaseAnalyticsTableProps } from '@/props/publisher/release-calendar.props';
 
 /**
  * Collection state of the comparison as a whole. Kept visible next to the table

@@ -31,7 +31,7 @@ vi.mock('@/lib/platform-flags/use-platform-flags', () => ({
 vi.mock('@/lib/platform-flags/platform-flags-sync', () => ({
   notifyPlatformFlagsChanged: notifyChanged,
 }));
-vi.mock('@hooks/auth/use-auth-user', () => ({
+vi.mock('@/hooks/auth/use-auth-user', () => ({
   useAuthUser: () => ({ user: null }),
 }));
 vi.mock('@/lib/analytics', () => ({ identifyAnalyticsUser: vi.fn() }));
@@ -50,7 +50,7 @@ vi.mock('./api-auth-bridge', () => ({
     return null;
   },
 }));
-vi.mock('@hooks/feature-flags/provider', () => ({
+vi.mock('@/hooks/feature-flags/provider', () => ({
   FeatureFlagProvider: ({
     children,
     defaults,

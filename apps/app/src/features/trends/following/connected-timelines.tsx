@@ -18,7 +18,6 @@ import {
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { SocialTimelinesService } from '@services/social/social-timelines.service';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import SocialMediaPlayer from '@ui/analytics/trends/social-media-player';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
@@ -30,6 +29,7 @@ import { AtSign, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import SocialMediaPlayer from '@/components/analytics/trends/social-media-player';
 import type { ConnectedTimelinePostProps } from '@/features/trends/props/connected-timeline.props';
 
 const PLATFORM_FEEDS: Record<string, string> = {

@@ -1,6 +1,5 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { ArticlePublicPageCardProps } from '@props/edit/article-public-page.props';
 import { ArticlesService } from '@services/content/articles.service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
@@ -12,6 +11,7 @@ import Image from 'next/image';
 import NextLink from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
+import type { ArticlePublicPageCardProps } from '@/props/edit/article-public-page.props';
 
 function toDisplayUrl(url: string): string {
   return url.replace(/^https?:\/\//, '');

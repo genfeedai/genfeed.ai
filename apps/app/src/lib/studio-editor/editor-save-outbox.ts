@@ -1,12 +1,12 @@
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { createScopedOutbox } from '@genfeedai/utils/outbox/scoped-outbox.util';
+import { logger } from '@services/core/logger.service';
 import type {
   EditorProjectContent,
   EditorSaveOutbox,
   EditorSaveOutboxOptions,
   EditorUnsentEdit,
-} from '@props/studio/editor-save.props';
-import { logger } from '@services/core/logger.service';
+} from '@/props/studio/editor-save.props';
 
 /**
  * Thrown by a write the server will never accept as sent (a 4xx other than

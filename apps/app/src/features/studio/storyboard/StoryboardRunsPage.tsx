@@ -3,7 +3,6 @@
 import { ButtonVariant, ViewType } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import Card from '@ui/card/Card';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionList from '@ui/collection/CollectionList';
@@ -21,6 +20,7 @@ import StoryboardPresetShelf from '@/features/studio/storyboard/components/Story
 import StoryboardRunsOnboarding from '@/features/studio/storyboard/components/StoryboardRunsOnboarding';
 import { useStoryboardRuns } from '@/features/studio/storyboard/hooks/use-storyboard-runs';
 import { isStoryboardRunNeedingAttention } from '@/features/studio/storyboard/utils/storyboard-run-summary';
+import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
 
 /** Studio → Storyboard landing: every saved storyboard run of the brand. */
 export default function StoryboardRunsPage(): ReactElement {

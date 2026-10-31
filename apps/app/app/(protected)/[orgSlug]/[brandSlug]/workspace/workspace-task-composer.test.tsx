@@ -123,7 +123,7 @@ vi.mock('@helpers/auth/auth.helper', () => ({
   resolveAuthToken: mocks.resolveAuthToken,
 }));
 
-vi.mock('@hooks/utils/use-websocket-prompt/use-websocket-prompt', () => ({
+vi.mock('@/hooks/utils/use-websocket-prompt/use-websocket-prompt', () => ({
   useWebsocketPrompt: (options: {
     onError: () => void;
     onSuccess: (result: string) => void;

@@ -15,8 +15,6 @@ import { SubscriptionsService } from '@services/billing/subscriptions.service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
 import { useQuery } from '@tanstack/react-query';
-import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
-import SearchField from '@ui/content/search-field/SearchField';
 import Badge from '@ui/display/badge/Badge';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
@@ -28,6 +26,8 @@ import { Copy, CreditCard, Pencil, ShieldAlert } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
+import SearchField from '@/components/content/search-field/SearchField';
 import CreditHoldsPanel from './credit-holds-panel';
 
 const EMPTY_CELL = '-';

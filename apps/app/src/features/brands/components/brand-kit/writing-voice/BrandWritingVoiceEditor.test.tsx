@@ -42,7 +42,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   }),
 }));
 
-vi.mock('@hooks/data/organization/use-organization/use-organization', () => ({
+vi.mock('@/hooks/data/organization/use-organization/use-organization', () => ({
   useOrganization: () => ({
     settings: {
       enabledModelIds: ['openai/gpt-5.6-luna'],

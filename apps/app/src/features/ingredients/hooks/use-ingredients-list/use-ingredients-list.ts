@@ -1,7 +1,6 @@
 'use client';
 
 import { PageScope } from '@genfeedai/contracts';
-import { useFailedIngredientRecovery } from '@hooks/data/ingredients/use-ingredients-list/use-failed-ingredient-recovery';
 import { useCallback, useMemo } from 'react';
 import { useIngredientsActions } from '@/features/ingredients/hooks/use-ingredients-list/use-ingredients-actions';
 import { useIngredientsFilters } from '@/features/ingredients/hooks/use-ingredients-list/use-ingredients-filters';
@@ -11,6 +10,7 @@ import type {
   IngredientsListProps,
   UseIngredientsListReturn,
 } from '@/features/ingredients/props/ingredients-list.props';
+import { useFailedIngredientRecovery } from '@/hooks/data/ingredients/use-ingredients-list/use-failed-ingredient-recovery';
 
 export type { ImageToVideoGenerationPayload } from '@genfeedai/contracts/interfaces';
 

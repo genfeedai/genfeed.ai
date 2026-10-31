@@ -9,10 +9,10 @@ import {
 } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { createOrganizationAppRoute } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import MenuBrandSwitcher from '@ui/menus/switchers/MenuBrandSwitcher';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useRef } from 'react';
+import MenuBrandSwitcher from '@/components/menus/switchers/MenuBrandSwitcher';
 
 import { resolveShellScope } from '@/components/shell/shell-scope';
 import {

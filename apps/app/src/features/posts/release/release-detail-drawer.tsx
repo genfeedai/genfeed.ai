@@ -17,7 +17,6 @@ import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { ReleaseDetailDrawerProps } from '@props/publisher/release-calendar.props';
 import { logger } from '@services/core/logger.service';
 import { CredentialsService } from '@services/organization/credentials.service';
 import Tabs from '@ui/navigation/tabs/Tabs';
@@ -43,6 +42,7 @@ import {
   targetStateBadge,
   validationBadge,
 } from '@/features/posts/shared/release-status.helpers';
+import type { ReleaseDetailDrawerProps } from '@/props/publisher/release-calendar.props';
 
 /** Action identifier for the release-level reschedule control. */
 export const RELEASE_RESCHEDULE_ACTION = 'release:reschedule';

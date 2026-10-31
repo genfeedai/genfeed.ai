@@ -8,9 +8,7 @@ import {
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import { getDesktopCreditsVisibility } from '@genfeedai/services/core/desktop-runtime.service';
-import { useSubscription } from '@hooks/data/subscription/use-subscription/use-subscription';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { EnvironmentService } from '@services/core/environment.service';
 import Card from '@ui/card/Card';
@@ -24,6 +22,8 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import { useSubscription } from '@/hooks/data/subscription/use-subscription/use-subscription';
+import { useDesktopRuntimeContext } from '@/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import AddCreditsCard from '../billing/add-credits-card';
 import ManagedCreditsCheckoutCard from './managed-credits-checkout-card';
 import TrialCardClaimCard from './trial-card-claim-card';

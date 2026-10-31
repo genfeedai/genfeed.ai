@@ -97,8 +97,8 @@ describe('right sidebar single topbar guard', () => {
     /\b(PanelRightClose|PanelRightOpen|PanelLeftClose|PanelLeftOpen)\b/;
   const ALLOWED_SIDEBAR_ICON_FILES = new Set([
     'apps/app/src/components/workspace-shell/WorkspaceContextSidebar.tsx',
-    'packages/ui/src/components/menus/sidebar-logo-toggle/SidebarLogoToggleButton.tsx',
-    'packages/ui/src/components/prompt-bars/components/essentials/PromptBarEssentials.tsx',
+    'apps/app/src/components/menus/sidebar-logo-toggle/SidebarLogoToggleButton.tsx',
+    'apps/app/src/components/prompt-bars/components/essentials/PromptBarEssentials.tsx',
   ]);
 
   function listSources(directory: string): string[] {

@@ -18,21 +18,21 @@ import {
   isCollectionFetchReady,
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
 import {
   AnalyticsService,
   type IBrandWithStats,
 } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
-import FilterMenu from '@ui/content/filter-menu/FilterMenu';
-import SearchField from '@ui/content/search-field/SearchField';
 import Table from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import FilterMenu from '@/components/content/filter-menu/FilterMenu';
+import SearchField from '@/components/content/search-field/SearchField';
 import AnalyticsBrandSummary from '@/features/analytics/brands-list/analytics-brand-summary';
 import BrandAvatar from '@/features/analytics/components/display/brand-avatar/BrandAvatar';
+import { useDebounce } from '@/hooks/utils/use-debounce/use-debounce';
 
 export interface AnalyticsBrandsListProps {
   basePath?: string;

@@ -4,12 +4,12 @@ import {
   CardVariant,
   TurboRewriteJobStatus,
 } from '@genfeedai/contracts';
-import type { ReviewRewriteProgressProps } from '@props/publishing/review-rewrite-progress.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
 import { Sparkles, Square } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { ReviewRewriteProgressProps } from '@/props/publishing/review-rewrite-progress.props';
 
 /**
  * In-page progress for a background batch rewrite. The rest of the Review page

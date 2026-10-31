@@ -1,0 +1,208 @@
+import {
+  type ElementBlacklistSchema,
+  elementBlacklistSchema,
+} from '@genfeedai/client/schemas';
+import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
+import {
+  AlertCategory,
+  ButtonVariant,
+  ModalEnum,
+  ModelCategory,
+} from '@genfeedai/contracts';
+import {
+  hasFormErrors,
+  parseFormErrors,
+} from '@genfeedai/helpers/ui/form-error/form-error.helper';
+import type { ElementBlacklist } from '@genfeedai/models/elements/blacklist.model';
+import type { ModalBlacklistProps } from '@genfeedai/props/modals/modal.props';
+import { BlacklistsService } from '@genfeedai/services/elements/blacklists.service';
+import Alert from '@ui/feedback/alert/Alert';
+import ModalActions from '@ui/modals/actions/ModalActions';
+import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
+import FormControl from '@ui/primitives/field';
+import { Form } from '@ui/primitives/form';
+import { Input } from '@ui/primitives/input';
+import { SelectField } from '@ui/primitives/select';
+import type { ChangeEvent } from 'react';
+import ElementPlatformFields from '@/components/modals/elements/shared/ElementPlatformFields';
+import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
+
+export default function ModalBlacklist({
+  item,
+  onConfirm,
+  onClose,
+}: ModalBlacklistProps) {
+  const { isSuperAdmin } = useAccessState();
+
+  const { form, formRef, isSubmitting, onSubmit, closeModal } = useCrudModal<
+    ElementBlacklist,
+    ElementBlacklistSchema
+  >({
+    defaultValues: {
+      category: ModelCategory.VIDEO,
+      description: '',
+      isActive: true,
+      isDefault: false,
+      key: '',
+      label: '',
+      sortOrder: 0,
+    },
+    entity: item || null,
+    modalId: ModalEnum.BLACKLIST,
+    onClose,
+    onConfirm,
+    schema: elementBlacklistSchema,
+    serviceFactory: (token) => BlacklistsService.getInstance(token),
+  });
+
+  const updateModalBlacklist = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+  ) => {
+    const { name, value } = e.target;
+
+    // Format key if key field changes
+    if (name === 'key') {
+      const formattedKey = value
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '');
+      form.setValue('key', formattedKey, { shouldValidate: true });
+    } else {
+      form.setValue(name as Parameters<typeof form.setValue>[0], value, {
+        shouldValidate: true,
+      });
+    }
+  };
+
+  return (
+    <Modal
+      id={ModalEnum.BLACKLIST}
+      title={item ? 'Edit Blacklist' : 'Create Blacklist'}
+    >
+      <Form ref={formRef} onSubmit={onSubmit}>
+        {hasFormErrors(form.formState.errors) && (
+          <Alert type={AlertCategory.ERROR}>
+            <div className="space-y-1">
+              {parseFormErrors(form.formState.errors).map((error) => (
+                <div key={error}>{error}</div>
+              ))}
+            </div>
+          </Alert>
+        )}
+
+        <FormControl label="Label">
+          <Input
+            type="text"
+            name="label"
+            control={form.control}
+            onChange={updateModalBlacklist}
+            placeholder="Enter display label"
+            isRequired={true}
+            isDisabled={isSubmitting}
+          />
+        </FormControl>
+
+        <FormControl label="Key">
+          <Input
+            type="text"
+            name="key"
+            control={form.control}
+            onChange={updateModalBlacklist}
+            placeholder="lowercase-with-hyphens"
+            isRequired={true}
+            isDisabled={isSubmitting || (!!item && !isSuperAdmin)}
+          />
+
+          <p className="text-xs text-foreground/70 mt-1">
+            Unique identifier (lowercase, alphanumeric with hyphens)
+            {item && !isSuperAdmin && (
+              <span className="text-warning">
+                {' '}
+                (Key editing requires superadmin privileges)
+              </span>
+            )}
+          </p>
+        </FormControl>
+
+        <FormControl label="Type">
+          <SelectField
+            name="category"
+            control={form.control}
+            onChange={updateModalBlacklist}
+            isDisabled={isSubmitting}
+            isRequired={true}
+            placeholder="Select a type"
+          >
+            <option value={ModelCategory.VIDEO}>Video</option>
+            <option value={ModelCategory.IMAGE}>Image</option>
+            <option value={ModelCategory.TEXT}>Text/Voice</option>
+            <option value={ModelCategory.MUSIC}>Music</option>
+          </SelectField>
+
+          <p className="text-xs text-foreground/70 mt-1">
+            Model category this blacklist applies to
+          </p>
+        </FormControl>
+
+        <FormControl label="Description">
+          <Input
+            name="description"
+            control={form.control}
+            onChange={updateModalBlacklist}
+            placeholder="Enter description (optional)"
+            isDisabled={isSubmitting}
+          />
+        </FormControl>
+
+        <div className="flex flex-col gap-1.5">
+          <Checkbox
+            name="isDefault"
+            label="Automatically select this blacklist item"
+            isChecked={form.watch('isDefault')}
+            onChange={(e) => {
+              form.setValue('isDefault', e.target.checked, {
+                shouldValidate: true,
+              });
+            }}
+            isDisabled={isSubmitting}
+          />
+          <p className="text-xs text-foreground/70">
+            When enabled, this blacklist item will be pre-selected in the prompt
+            bar
+          </p>
+        </div>
+
+        <ElementPlatformFields
+          isActive={form.watch('isActive') ?? true}
+          isDisabled={isSubmitting}
+          onIsActiveChange={(isActive) =>
+            form.setValue('isActive', isActive, { shouldValidate: true })
+          }
+          onSortOrderChange={(sortOrder) =>
+            form.setValue('sortOrder', sortOrder, { shouldValidate: true })
+          }
+          sortOrder={form.watch('sortOrder') ?? 0}
+        />
+
+        <ModalActions>
+          <Button
+            label="Cancel"
+            variant={ButtonVariant.SECONDARY}
+            onClick={() => closeModal()}
+            isLoading={isSubmitting}
+          />
+
+          <Button
+            type="submit"
+            label={item ? 'Update' : 'Create'}
+            variant={ButtonVariant.DEFAULT}
+            isLoading={isSubmitting}
+            isDisabled={isSubmitting || !form.formState.isValid}
+          />
+        </ModalActions>
+      </Form>
+    </Modal>
+  );
+}

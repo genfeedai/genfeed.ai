@@ -1,10 +1,10 @@
 'use client';
 
+import { useCallback, useEffect, useRef } from 'react';
 import type {
   CaptchaFetchOptions,
   TurnstileApi,
-} from '@props/auth/turnstile.props';
-import { useCallback, useEffect, useRef } from 'react';
+} from '@/props/auth/turnstile.props';
 
 const TURNSTILE_SCRIPT_SRC =
   'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';

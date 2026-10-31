@@ -1,7 +1,7 @@
-import FilterMenu from '@ui/content/filter-menu/FilterMenu';
-import SearchField from '@ui/content/search-field/SearchField';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+import FilterMenu from '@/components/content/filter-menu/FilterMenu';
+import SearchField from '@/components/content/search-field/SearchField';
 import { CONTENT_TEAM_ROLE_PRESETS } from '@/features/agents/content-team/content-team-presets';
 import type { AgentMarketplaceSearchProps } from '@/features/automation/props/agent-marketplace.props';
 import { ALL_CATEGORY } from './agent-marketplace-filter';

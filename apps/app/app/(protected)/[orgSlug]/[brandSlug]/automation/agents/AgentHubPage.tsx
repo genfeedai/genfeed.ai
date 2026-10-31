@@ -16,7 +16,6 @@ import {
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useVisiblePolling } from '@hooks/ui/use-visible-polling/use-visible-polling';
-import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import type { CollectionOverflowAction } from '@props/ui/collection/collection.props';
 import {
   AgentStrategiesService,
@@ -60,6 +59,7 @@ import type {
   AgentHubRowProps,
   AgentHubStatusBadgeProps,
 } from '@/features/automation/props/agent-hub.props';
+import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import AddAgentDialog from './AddAgentDialog';
 import AgentWorkflowRunDialog from './AgentWorkflowRunDialog';
 import { getAgentTypeIcon, getAgentTypeLabel } from './agent-type-display';

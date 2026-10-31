@@ -6,12 +6,6 @@ import {
   buildEditorRenderStyle,
   editorStillScale,
 } from '@genfeedai/utils/media/editor-render-style.util';
-import type {
-  EditorCompositionProps,
-  EditorPreviewPlayerProps,
-  EditorPreviewProps,
-  EditorPreviewRef,
-} from '@props/studio/editor-preview.props';
 import { Player, type PlayerRef } from '@remotion/player';
 import {
   type ComponentType,
@@ -31,8 +25,14 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
+import type {
+  EditorCompositionProps,
+  EditorPreviewPlayerProps,
+  EditorPreviewProps,
+  EditorPreviewRef,
+} from '@/props/studio/editor-preview.props';
 
-export type { EditorPreviewRef } from '@props/studio/editor-preview.props';
+export type { EditorPreviewRef } from '@/props/studio/editor-preview.props';
 
 const EditorPreviewPlayer = Player as unknown as ComponentType<
   EditorPreviewPlayerProps & { ref?: Ref<PlayerRef> }

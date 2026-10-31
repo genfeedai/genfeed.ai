@@ -1,12 +1,12 @@
-import { useStreak } from '@hooks/data/streaks/use-streak/use-streak';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StreaksPage from '@/features/streaks/streaks-page';
+import { useStreak } from '@/hooks/data/streaks/use-streak/use-streak';
 import '@testing-library/jest-dom/vitest';
 
 const mockSetToolbarNode = vi.hoisted(() => vi.fn());
 
-vi.mock('@hooks/data/streaks/use-streak/use-streak', () => ({
+vi.mock('@/hooks/data/streaks/use-streak/use-streak', () => ({
   useStreak: vi.fn(),
 }));
 

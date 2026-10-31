@@ -2,7 +2,7 @@
 
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import MediaLightbox from '@ui/layouts/lightbox/MediaLightbox';
-import { LazyModalFolder } from '@ui/lazy/modal/LazyModal';
+import { LazyModalFolder } from '@/components/lazy/modal/LazyModal';
 import type { IngredientsListFooterProps } from '@/features/ingredients/props/ingredients-list.props';
 
 export default function IngredientsListFooter({

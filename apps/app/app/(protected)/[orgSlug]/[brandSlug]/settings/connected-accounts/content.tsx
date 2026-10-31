@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
-import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
@@ -11,6 +10,7 @@ import { Plug, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import BrandDetailSocialMediaCard from '@/features/brands/components/sidebar/BrandDetailSocialMediaCard';
+import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
 
 /**
  * Brand Integrations settings — connected accounts. Each account's posting

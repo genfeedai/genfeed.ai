@@ -14,10 +14,8 @@ import {
 import type { IQueryParams } from '@genfeedai/contracts/interfaces';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Brand } from '@models/organization/brand.model';
-import type { BlockedCharacter } from '@props/characters/characters-page.props';
 import type {
   TableRowLink,
   TableRowSidebar,
@@ -47,6 +45,8 @@ import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import BrandSidebarPanel from '@/features/brands/sidebar-panel/BrandSidebarPanel';
+import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
+import type { BlockedCharacter } from '@/props/characters/characters-page.props';
 import { readBlockedCharacters } from './blocked-characters.util';
 import BrandDeleteBlockedDialog from './brand-delete-blocked-dialog';
 import { describeBrandDeleteFailure } from './brand-delete-failure.util';

@@ -15,9 +15,6 @@ import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-c
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TableColumn, TableRowLink } from '@props/ui/display/table.props';
 import type { Campaign } from '@services/content/campaigns.service';
-import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
-import FilterMenu from '@ui/content/filter-menu/FilterMenu';
-import SearchField from '@ui/content/search-field/SearchField';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
@@ -29,6 +26,9 @@ import { Flag, Plus } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
+import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
+import FilterMenu from '@/components/content/filter-menu/FilterMenu';
+import SearchField from '@/components/content/search-field/SearchField';
 import {
   CAMPAIGN_STATUS_FILTERS,
   CAMPAIGN_STATUS_LABELS,

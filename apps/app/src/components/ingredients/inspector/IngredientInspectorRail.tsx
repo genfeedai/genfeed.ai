@@ -1,0 +1,384 @@
+'use client';
+
+import { usePostModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
+import {
+  ButtonVariant,
+  ComponentSize,
+  IngredientCategory,
+  IngredientLineageDirection,
+  IngredientOrigin,
+  IngredientStatus,
+  LIBRARY_SHELF_LABELS,
+  LibraryShelf,
+} from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useAuthorizedMediaPreview } from '@genfeedai/hooks/media/use-authorized-media-preview';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+import { useIngredientActions } from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
+import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
+import {
+  formatIngredientFileSize,
+  getIngredientDimensionsLabel,
+  getIngredientDurationLabel,
+  getIngredientFailureReason,
+  getIngredientFormatLabel,
+  getIngredientModelLabel,
+  getIngredientPromptText,
+  getIngredientProviderLabel,
+  getIngredientStyleLabel,
+} from '@genfeedai/utils/media/ingredient-ledger.util';
+import {
+  getIngredientPreviewUrl,
+  isRasterPreviewUrl,
+} from '@genfeedai/utils/media/ingredient-preview.util';
+import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
+import { buildContextualRemixHref } from '@genfeedai/utils/url/contextual-remix-url.util';
+import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
+import Badge from '@ui/display/badge/Badge';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
+import { Button } from '@ui/primitives/button';
+import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
+import { format } from 'date-fns';
+import { Maximize2 } from 'lucide-react';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { useCallback } from 'react';
+import IngredientOriginBadge from '@/components/ingredients/ingredient-origin-badge';
+import LibraryAssetTypeBadge from '@/components/ingredients/library-asset-type-badge';
+import type { IngredientInspectorRailProps } from '@/props/content/ingredient.props';
+import IngredientLineageStrip from './IngredientLineageStrip';
+import IngredientPromptBlock from './IngredientPromptBlock';
+import IngredientTagsControl from './IngredientTagsControl';
+import { getIngredientShelf } from './ingredient-shelf.util';
+import { useIngredientGenerationCost } from './use-ingredient-generation-cost';
+
+const SHELF_VARIANTS: Record<
+  LibraryShelf,
+  'info' | 'warning' | 'success' | 'error' | 'slate'
+> = {
+  [LibraryShelf.REFERENCES]: 'slate',
+  [LibraryShelf.GENERATING]: 'info',
+  [LibraryShelf.UNSORTED]: 'slate',
+  [LibraryShelf.NEEDS_REVIEW]: 'warning',
+  [LibraryShelf.APPROVED]: 'success',
+  [LibraryShelf.REJECTED]: 'error',
+  [LibraryShelf.FAILED]: 'error',
+  [LibraryShelf.ARCHIVED]: 'slate',
+};
+
+const CREDITS_FORMAT = new Intl.NumberFormat('en-US', {
+  maximumFractionDigits: 2,
+});
+
+function InspectorField({
+  label,
+  value,
+}: {
+  label: string;
+  value?: string | null;
+}) {
+  if (!value) {
+    return null;
+  }
+
+  return (
+    <div className="flex items-baseline justify-between gap-3 py-1.5">
+      <dt className="shrink-0 text-2xs uppercase tracking-[0.12em] text-muted-foreground">
+        {label}
+      </dt>
+      <dd className="min-w-0 truncate text-right text-xs text-foreground/80">
+        {value}
+      </dd>
+    </div>
+  );
+}
+
+/**
+ * The prompt and a failure reason are long enough to wrap, so each gets its
+ * own block instead of a `<dl>` row. Its label travels as a prop like every
+ * other label in this rail.
+ */
+function InspectorNote({
+  label,
+  text,
+  tone = 'default',
+}: {
+  label: string;
+  text?: string | null;
+  tone?: 'default' | 'error';
+}) {
+  if (!text) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="text-2xs uppercase tracking-[0.12em] text-muted-foreground">
+        {label}
+      </div>
+      <p
+        className={cn(
+          'min-w-0 select-text whitespace-pre-wrap break-words text-xs leading-relaxed',
+          tone === 'error' ? 'text-destructive' : 'text-foreground/70',
+        )}
+      >
+        {text}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * The inspector rail — what one asset is, read across all three Library axes at
+ * once: its shelf (generation state), its folder (where a person filed it), and
+ * its type. It appears only for a single selection; a multi-selection is a bulk
+ * action, not something to inspect.
+ */
+export default function IngredientInspectorRail({
+  className,
+  detailHref,
+  ingredient,
+  onOpenPreview,
+}: IngredientInspectorRailProps) {
+  const translate = useTranslations('pages.library.inspector');
+  const shelf = getIngredientShelf(ingredient);
+  const grant = useAuthorizedMediaPreview(ingredient);
+  const { push } = useRouter();
+  const { href } = useOrgUrl();
+  // The rail is a full detail surface, so Publish, Download and Share run the
+  // same handlers the asset cards do. Without them the quick actions render as
+  // locked placeholders.
+  const { openPostBatchModal } = usePostModal();
+  const { handlers, loadingStates } = useIngredientActions({
+    onPublishIngredient: openPostBatchModal,
+  });
+  const handleSeeDetails = useCallback(() => {
+    if (detailHref) {
+      push(detailHref);
+    }
+  }, [detailHref, push]);
+  const handleCreateVariation = useCallback(
+    (image: IIngredient) => {
+      if (image.status === IngredientStatus.PROCESSING) {
+        return;
+      }
+
+      push(
+        href(
+          buildContextualRemixHref(APP_ROUTES.STUDIO.PLAYGROUND, {
+            kind: 'ingredient',
+            recordId: image.id,
+            recordVersion: image.version?.toString(),
+          }),
+        ),
+      );
+    },
+    [href, push],
+  );
+  const handleUsePrompt = useCallback(
+    (source: IIngredient) => {
+      if (source.promptText) {
+        // One-off generation is Agent-first, so reusing a prompt opens a new
+        // Agent thread.
+        push(href(buildAgentPromptHref(source.promptText)));
+      }
+    },
+    [href, push],
+  );
+  const previewUrl = grant
+    ? isRasterPreviewUrl(grant.url)
+      ? grant.url
+      : ''
+    : getIngredientPreviewUrl(ingredient);
+  const videoUrl = isVideoIngredient(ingredient)
+    ? grant
+      ? (grant.url ?? undefined)
+      : ingredient.ingredientUrl
+    : undefined;
+  const fileSize = formatIngredientFileSize(
+    ingredient.fileSize || ingredient.metadataSize,
+  );
+  const generationCost = useIngredientGenerationCost(
+    ingredient.id,
+    ingredient.origin === IngredientOrigin.GENERATED,
+  );
+  const credits =
+    generationCost?.credits == null
+      ? null
+      : CREDITS_FORMAT.format(generationCost.credits);
+
+  return (
+    <aside
+      aria-label="Asset details"
+      className={cn(
+        'flex min-w-0 flex-col gap-4 overflow-y-auto px-4 py-4 scrollbar-thin',
+        className,
+      )}
+    >
+      {previewUrl || videoUrl ? (
+        <div className="relative h-[clamp(12rem,35dvh,24rem)] w-full shrink-0 overflow-hidden rounded-lg bg-foreground/5">
+          {videoUrl ? (
+            <VideoPlayer
+              key={ingredient.id}
+              src={videoUrl}
+              thumbnail={ingredient.thumbnailUrl}
+            />
+          ) : previewUrl ? (
+            <Image
+              alt={ingredient.metadataLabel || translate('untitled')}
+              className="object-contain outline-media"
+              fill
+              sizes="(min-width: 1024px) 480px, 90vw"
+              src={previewUrl}
+              unoptimized={
+                ingredient.category === IngredientCategory.GIF ||
+                !canOptimizeImageSource(previewUrl)
+              }
+            />
+          ) : null}
+          {onOpenPreview ? (
+            <Button
+              ariaLabel={translate('openPreview')}
+              className={cn(
+                'absolute z-10 flex items-center justify-center',
+                // A video keeps its own controls, so only its corner opens
+                // the lightbox; an image is one big hit target.
+                videoUrl
+                  ? 'right-2 top-2 size-7 rounded-full bg-background/80 text-foreground backdrop-blur hover:bg-background'
+                  : 'inset-0 cursor-zoom-in',
+              )}
+              onClick={onOpenPreview}
+              type="button"
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+            >
+              {videoUrl ? <Maximize2 className="size-3.5" /> : null}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="flex flex-col gap-2">
+        <h3 className="truncate text-sm font-semibold text-foreground">
+          {ingredient.metadataLabel || translate('untitled')}
+        </h3>
+        {shelf ? (
+          <Badge
+            className="w-fit"
+            size={ComponentSize.SM}
+            variant={SHELF_VARIANTS[shelf]}
+          >
+            {LIBRARY_SHELF_LABELS[shelf]}
+          </Badge>
+        ) : null}
+      </div>
+
+      <dl className="flex flex-col divide-y divide-foreground/5">
+        <div className="flex items-baseline justify-between gap-3 py-1.5">
+          <dt className="shrink-0 text-2xs uppercase tracking-[0.12em] text-muted-foreground">
+            {translate('type')}
+          </dt>
+          <dd className="min-w-0">
+            <LibraryAssetTypeBadge category={ingredient.category} />
+          </dd>
+        </div>
+        {ingredient.origin &&
+        ingredient.origin !== IngredientOrigin.GENERATED ? (
+          <div className="flex items-baseline justify-between gap-3 py-1.5">
+            <dt className="shrink-0 text-2xs uppercase tracking-[0.12em] text-muted-foreground">
+              {translate('origin')}
+            </dt>
+            <dd className="min-w-0">
+              <IngredientOriginBadge origin={ingredient.origin} />
+            </dd>
+          </div>
+        ) : null}
+        <InspectorField
+          label={translate('model')}
+          value={getIngredientModelLabel(ingredient)}
+        />
+        <InspectorField
+          label={translate('provider')}
+          value={getIngredientProviderLabel(ingredient)}
+        />
+        <InspectorField
+          label={translate('style')}
+          value={getIngredientStyleLabel(ingredient)}
+        />
+        <InspectorField
+          label={translate('dimensions')}
+          value={getIngredientDimensionsLabel(ingredient)}
+        />
+        <InspectorField
+          label={translate('duration')}
+          value={getIngredientDurationLabel(ingredient)}
+        />
+        <InspectorField
+          label={translate('format')}
+          value={getIngredientFormatLabel(ingredient)}
+        />
+        <InspectorField label={translate('file')} value={fileSize} />
+        <InspectorField
+          label={translate('credits')}
+          value={
+            credits && generationCost?.status === 'reserved'
+              ? translate('creditsReserved', { count: credits })
+              : credits
+          }
+        />
+        <InspectorField
+          label={translate('created')}
+          value={
+            ingredient.createdAt
+              ? format(new Date(ingredient.createdAt), 'd MMM yyyy, HH:mm')
+              : null
+          }
+        />
+      </dl>
+
+      <InspectorNote
+        label={translate('failureReason')}
+        text={getIngredientFailureReason(ingredient)}
+        tone="error"
+      />
+      <IngredientPromptBlock
+        key={ingredient.id}
+        prompt={getIngredientPromptText(ingredient)}
+      />
+
+      <IngredientTagsControl ingredient={ingredient} />
+
+      <IngredientLineageStrip
+        direction={IngredientLineageDirection.MADE_FROM}
+        ingredientId={ingredient.id}
+      />
+      <IngredientLineageStrip
+        direction={IngredientLineageDirection.USED_IN}
+        ingredientId={ingredient.id}
+      />
+
+      <IngredientQuickActions
+        align="start"
+        isDownloading={loadingStates.isDownloading}
+        isPublishing={loadingStates.isPublishing}
+        onDownload={async (asset) => {
+          await handlers.handleDownload(asset);
+          return undefined;
+        }}
+        onCreateVariation={
+          ingredient.category === IngredientCategory.IMAGE
+            ? handleCreateVariation
+            : undefined
+        }
+        onPublish={handlers.handlePublish}
+        onSeeDetails={detailHref ? handleSeeDetails : undefined}
+        onShare={handlers.handleShare}
+        onUsePrompt={ingredient.promptText ? handleUsePrompt : undefined}
+        selectedIngredient={ingredient}
+      />
+    </aside>
+  );
+}

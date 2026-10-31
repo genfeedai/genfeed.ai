@@ -1,5 +1,5 @@
-import { LazyModalFolder } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { LazyModalFolder } from '@/components/lazy/modal/LazyModal';
 import type { FoldersListModalsProps } from '@/features/admin/props/folders.props';
 
 export default function FoldersListModals({

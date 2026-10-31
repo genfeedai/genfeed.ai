@@ -14,8 +14,8 @@ import type {
   IReleaseMediaReference,
   ITurboRunItem,
 } from '@genfeedai/contracts/interfaces';
-import type { TargetPreviewProps } from '@genfeedai/props/ui/previews.props';
 import type { useTranslations } from 'next-intl';
+import type { TargetPreviewProps } from '@/props/ui/previews.props';
 
 import {
   isApproved,

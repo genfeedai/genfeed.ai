@@ -36,7 +36,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => mocks.brand,
 }));
-vi.mock('@genfeedai/hooks/feature-flags/provider', () => ({
+vi.mock('@/hooks/feature-flags/provider', () => ({
   useFeatureFlagContext: () => ({ flags: mocks.flags, isConfigured: false }),
 }));
 vi.mock('@hooks/navigation/use-org-url', () => ({

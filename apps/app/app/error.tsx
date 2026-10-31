@@ -1,10 +1,10 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
-import type { ErrorProps } from '@props/ui/feedback/error.props';
 import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';
 import { useEffect } from 'react';
+import type { ErrorProps } from '@/props/ui/feedback/error.props';
 
 export default function AppError({ error, reset }: ErrorProps) {
   useEffect(() => {

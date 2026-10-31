@@ -1,12 +1,12 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import type { IReviewInboxItem } from '@genfeedai/contracts/interfaces';
-import type { ReviewInboxApprovalsSectionProps } from '@props/publishing/review-inbox-approvals.props';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import CollectionSection from '@ui/collection/CollectionSection';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { ReviewInboxApprovalsSectionProps } from '@/props/publishing/review-inbox-approvals.props';
 import ReviewInboxApprovalsTable from './ReviewInboxApprovalsTable';
 import ReviewInboxBulkBar from './ReviewInboxBulkBar';
 import {

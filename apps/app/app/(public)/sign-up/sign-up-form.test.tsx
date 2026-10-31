@@ -44,7 +44,7 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 
-vi.mock('@ui/layouts/auth/AuthFormLayout', () => ({
+vi.mock('@/components/layouts/auth/AuthFormLayout', () => ({
   default: ({
     children,
     description,

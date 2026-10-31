@@ -1,9 +1,9 @@
 'use client';
 
 import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
-import type { AppCatalogDetailsPanelProps } from '@genfeedai/props/apps/organization-apps-page.props';
 import { Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { AppCatalogDetailsPanelProps } from '@/props/apps/organization-apps-page.props';
 import AppCatalogStateBadge from './AppCatalogStateBadge';
 import AppCatalogThumbnail from './AppCatalogThumbnail';
 

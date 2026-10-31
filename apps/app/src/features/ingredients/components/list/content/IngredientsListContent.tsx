@@ -20,10 +20,8 @@ import {
   resolveOrganizationModulePresentationAccess,
 } from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
 import { useAuthorizedMediaPreview } from '@genfeedai/hooks/media/use-authorized-media-preview';
 import { useIntersectionObserver } from '@genfeedai/hooks/ui/use-intersection-observer/use-intersection-observer';
-import type { IngredientTimeGroupHeadingProps } from '@genfeedai/props/content/ingredient.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import {
   getIngredientFailureReason,
@@ -50,13 +48,6 @@ import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
-import IngredientReviewActions from '@ui/ingredients/IngredientReviewActions';
-import IngredientOriginBadge from '@ui/ingredients/ingredient-origin-badge';
-import IngredientTagChips from '@ui/ingredients/ingredient-tag-chips';
-import LibraryAssetTypeBadge from '@ui/ingredients/library-asset-type-badge';
-import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
-import IngredientTimeGroupHeading from '@ui/ingredients/list/media-grid/ingredient-time-group-heading';
-import { groupIngredientsByTime } from '@ui/ingredients/list/media-grid/ingredient-time-groups.util';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Button } from '@ui/primitives/button';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
@@ -67,9 +58,18 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import IngredientReviewActions from '@/components/ingredients/IngredientReviewActions';
+import IngredientOriginBadge from '@/components/ingredients/ingredient-origin-badge';
+import IngredientTagChips from '@/components/ingredients/ingredient-tag-chips';
+import LibraryAssetTypeBadge from '@/components/ingredients/library-asset-type-badge';
+import IngredientsMediaGrid from '@/components/ingredients/list/media-grid/IngredientsMediaGrid';
+import IngredientTimeGroupHeading from '@/components/ingredients/list/media-grid/ingredient-time-group-heading';
+import { groupIngredientsByTime } from '@/components/ingredients/list/media-grid/ingredient-time-groups.util';
 import FailedIngredientsRecovery from '@/features/ingredients/components/ingredients/list/recovery/FailedIngredientsRecovery';
 import IngredientSound from '@/features/ingredients/components/ingredients/sound/IngredientSound';
 import type { IngredientsListContentProps } from '@/features/ingredients/props/ingredients-list.props';
+import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
+import type { IngredientTimeGroupHeadingProps } from '@/props/content/ingredient.props';
 
 // React Flow is heavier than the whole grid; only the canvas view pays for it.
 const LibraryCanvas = dynamic(

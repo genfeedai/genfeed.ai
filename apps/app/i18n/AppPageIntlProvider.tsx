@@ -1,7 +1,6 @@
 'use client';
 
 import { PSEUDO_LOCALE } from '@genfeedai/contracts/constants';
-import type { PageIntlProviderProps } from '@genfeedai/props/providers/intl-provider.props';
 import {
   NextIntlClientProvider,
   useLocale,
@@ -9,6 +8,7 @@ import {
   useTimeZone,
 } from 'next-intl';
 import { useMemo } from 'react';
+import type { PageIntlProviderProps } from '@/props/providers/intl-provider.props';
 import { mergeMessageTrees } from './message-tree';
 import { pseudoLocalizeMessages } from './pseudo';
 

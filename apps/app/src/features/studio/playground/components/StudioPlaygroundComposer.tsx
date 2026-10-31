@@ -40,7 +40,6 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { resolveModelDurationOptions } from '@genfeedai/helpers/generation-controls.helper';
 import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import { getModelCapabilityByKey } from '@genfeedai/helpers/model-capability.helper';
-import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import {
   buildStudioAutoGenerationQuoteRequest,
   buildStudioGenerationQuoteRequest,
@@ -48,7 +47,6 @@ import {
 } from '@genfeedai/pricing';
 import type { PromptBarReferenceSource } from '@genfeedai/props/prompt-bars/prompt-bar-reference-source.props';
 import { canSubmitStudioGeneration } from '@genfeedai/services/core/desktop-runtime.service';
-import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
 import { usePromptBarContext } from '@providers/promptbar/promptbar.context';
 import { SHELL_ICON_CLASS } from '@ui/constants/shell-chrome.constant';
 import {
@@ -73,8 +71,6 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import PromptBarAttachedAssetsTray from '@ui/prompt-bars/components/attached-assets-tray/PromptBarAttachedAssetsTray';
-import PromptBarCrunControls from '@ui/prompt-bars/components/crun-controls/PromptBarCrunControls';
-import PromptBarCrunVideoControls from '@ui/prompt-bars/components/crun-controls/PromptBarCrunVideoControls';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/PromptBarReferenceControls';
 import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
@@ -85,6 +81,8 @@ import { Bookmark, ImageIcon, Video } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import PromptBarCrunControls from '@/components/prompt-bars/components/crun-controls/PromptBarCrunControls';
+import PromptBarCrunVideoControls from '@/components/prompt-bars/components/crun-controls/PromptBarCrunVideoControls';
 import GenerationSetupSectionChips from '@/features/studio/components/dropdowns/generation-setup/GenerationSetupSectionChips';
 import GenerationSetupTypeBar from '@/features/studio/components/dropdowns/generation-setup/GenerationSetupTypeBar';
 import { recommendGenerationSetup } from '@/features/studio/components/dropdowns/generation-setup/generation-setup.recommend';
@@ -134,6 +132,8 @@ import type {
   StudioPlaygroundComposerProps,
   StudioSpendSource,
 } from '@/features/studio/props/studio-playground.props';
+import { useDesktopRuntimeContext } from '@/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
+import { useDebounce } from '@/hooks/utils/use-debounce/use-debounce';
 
 /** Types whose prompt is spoken aloud rather than described to a renderer. */
 const SCRIPT_PLACEHOLDER = 'Write the script you want spoken…';

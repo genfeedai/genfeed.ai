@@ -1,18 +1,18 @@
 import type { Ingredient } from '@models/content/ingredient.model';
+import type { TaskEvent } from '@services/management/tasks.service';
 import type {
   WorkspaceTaskLinkedExecutionSummary,
   WorkspaceTaskLinkedIssueSummary,
   WorkspaceTaskLinkedOutputSummary,
   WorkspaceTaskOutputGroup,
-} from '@props/workspace/workspace-task-inspector.props';
-import type { TaskEvent } from '@services/management/tasks.service';
+} from '@/props/workspace/workspace-task-inspector.props';
 
 export type {
   WorkspaceTaskLinkedExecutionSummary,
   WorkspaceTaskLinkedIssueSummary,
   WorkspaceTaskLinkedOutputSummary,
   WorkspaceTaskOutputGroup,
-} from '@props/workspace/workspace-task-inspector.props';
+} from '@/props/workspace/workspace-task-inspector.props';
 
 export function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0;

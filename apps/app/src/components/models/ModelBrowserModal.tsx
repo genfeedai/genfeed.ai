@@ -6,7 +6,6 @@ import {
   QualityTier,
 } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
-import type { ModelBrowserModalProps } from '@genfeedai/props/workflows/workflow-model-picker.props';
 import { useSettingsStore } from '@genfeedai/workflows/ui/stores';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -23,6 +22,7 @@ import Spinner from '@ui/primitives/spinner';
 import { Clock, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { memo, useCallback, useMemo, useState } from 'react';
+import type { ModelBrowserModalProps } from '@/props/workflows/workflow-model-picker.props';
 
 const RECENT_LIMIT = 4;
 

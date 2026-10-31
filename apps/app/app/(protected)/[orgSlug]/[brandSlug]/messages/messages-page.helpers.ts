@@ -7,14 +7,14 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
 import type {
-  MessagesInboxView,
-  MessagesSurface,
-} from '@genfeedai/props/messages/messages-conversation-sidebar.props';
-import type {
   MessagesSyncFeedback,
   MessagesSyncJob,
   MessagesSyncOutcome,
 } from '@/features/messages/props/messages-page-state.props';
+import type {
+  MessagesInboxView,
+  MessagesSurface,
+} from '@/props/messages/messages-conversation-sidebar.props';
 
 export type {
   MessagesSyncFeedback,

@@ -1,9 +1,9 @@
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import type { FailedIngredientsRecoveryProps } from '@genfeedai/props/content/ingredient-recovery.props';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import FailedIngredientsRecovery from '@/features/ingredients/components/ingredients/list/recovery/FailedIngredientsRecovery';
+import type { FailedIngredientsRecoveryProps } from '@/props/content/ingredient-recovery.props';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');

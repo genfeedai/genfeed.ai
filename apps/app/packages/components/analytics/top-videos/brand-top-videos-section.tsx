@@ -4,7 +4,6 @@ import { AlertCategory, ButtonVariant } from '@genfeedai/contracts';
 import type { ITrendVideo } from '@genfeedai/contracts/interfaces';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
-import { useClientPagination } from '@hooks/data/pagination/use-client-pagination/use-client-pagination';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
@@ -21,6 +20,7 @@ import { Text } from '@ui/typography/text';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import HookRemixModal from '@/features/trends/list/components/HookRemixModal';
+import { useClientPagination } from '@/hooks/data/pagination/use-client-pagination/use-client-pagination';
 
 import { useBrandTopVideos } from './use-brand-top-videos';
 

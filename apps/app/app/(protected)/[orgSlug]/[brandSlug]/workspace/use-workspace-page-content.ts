@@ -1,8 +1,6 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
-import { useWorkspaceInboxRead } from '@hooks/data/tasks/use-workspace-inbox-read';
-import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import * as Sentry from '@sentry/nextjs';
 import { type Task, TasksService } from '@services/management/tasks.service';
@@ -17,6 +15,8 @@ import {
   useState,
 } from 'react';
 import type { UseWorkspacePageContentParams } from '@/features/workspace/props/workspace-page.props';
+import { useWorkspaceInboxRead } from '@/hooks/data/tasks/use-workspace-inbox-read';
+import { useWorkflowExecutions } from '@/hooks/data/workflow-executions/use-workflow-executions';
 import { OPERATOR_TASK_CONTEXT_QUERY_KEYS } from '@/lib/navigation/operator-shell';
 import {
   consumeOpenTaskComposerRequest,

@@ -1,4 +1,4 @@
-import type { AppCatalogEntry } from '@genfeedai/props/apps/organization-apps-page.props';
+import type { AppCatalogEntry } from '@/props/apps/organization-apps-page.props';
 
 /** Installed (or pinned) and allowed, so Open works. */
 export function isAppCatalogOpenable(app: AppCatalogEntry): boolean {

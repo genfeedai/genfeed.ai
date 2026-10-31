@@ -36,10 +36,6 @@ import type {
   WorkspacePanelControls,
   WorkspacePanelTab,
 } from '@props/ui/workspace-panel.props';
-import {
-  SIDEBAR_TRANSITION_DURATION_MS,
-  SIDEBAR_TRANSITION_EASING,
-} from '@ui/layouts/app/app-layout.utils';
 import { Button } from '@ui/primitives/button';
 import { Drawer, DrawerContent } from '@ui/primitives/drawer';
 import dynamic from 'next/dynamic';
@@ -56,6 +52,10 @@ import {
   useRef,
   useState,
 } from 'react';
+import {
+  SIDEBAR_TRANSITION_DURATION_MS,
+  SIDEBAR_TRANSITION_EASING,
+} from '@/components/layouts/app/app-layout.utils';
 
 import {
   AnalyticsWorkspaceSurfaceAdapterProvider,

@@ -8,7 +8,6 @@ import type { ViewOption } from '@props/ui/navigation/view-option.props';
 import { NotificationsService } from '@services/core/notifications.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import CollectionView from '@ui/collection/CollectionView';
-import SearchField from '@ui/content/search-field/SearchField';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
@@ -18,6 +17,7 @@ import { LayoutGrid, TableProperties, TrendingUp } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useReducer } from 'react';
+import SearchField from '@/components/content/search-field/SearchField';
 import { useOptionalDiscoveryRemix } from '@/features/research/remix/DiscoveryRemixProvider';
 import {
   useOptionalResearchWorkSurface,

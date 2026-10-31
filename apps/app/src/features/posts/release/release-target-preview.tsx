@@ -13,9 +13,9 @@ import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { PostsService } from '@services/content/posts.service';
 import { logger } from '@services/core/logger.service';
-import TargetPreview from '@ui/previews/TargetPreview';
 import { Badge } from '@ui/primitives/badge';
 import { useEffect, useMemo, useState } from 'react';
+import TargetPreview from '@/components/previews/TargetPreview';
 import ThreadPreviewPanel from '@/features/posts/components/posts/preview/thread-preview-panel/ThreadPreviewPanel';
 import {
   badgeVariantForTone,

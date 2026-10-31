@@ -14,8 +14,8 @@ import type {
   CalendarEventBadge,
   CalendarEventBadgeTone,
   CalendarEventIndicator,
-} from '@props/components/calendar.props';
-import type { ReleaseTargetHistoryEntry } from '@props/publisher/release-calendar.props';
+} from '@/props/components/calendar.props';
+import type { ReleaseTargetHistoryEntry } from '@/props/publisher/release-calendar.props';
 
 /**
  * Badge label per release status. `partially-published` is deliberately shown

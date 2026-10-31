@@ -7,7 +7,6 @@ import type {
   IDesktopGeneratedContent,
   IDesktopWorkspace,
 } from '@genfeedai/contracts/desktop';
-import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import { getDesktopLocalCostState } from '@genfeedai/services/core/desktop-runtime.service';
 import Card from '@ui/card/Card';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
@@ -18,6 +17,7 @@ import { FolderOpen, HardDrive, RefreshCw, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 import DesktopLocalProviderSettings from '@/components/desktop/DesktopLocalProviderSettings';
+import { useDesktopRuntimeContext } from '@/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import { getDesktopBridge } from '@/lib/desktop/runtime';
 import { useDesktopLocalWorkspaceFlag } from '@/lib/desktop/use-desktop-local-workspace-flag';
 

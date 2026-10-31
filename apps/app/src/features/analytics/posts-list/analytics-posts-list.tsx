@@ -15,16 +15,14 @@ import type { ExtensionPublicationCaptureResult } from '@genfeedai/contracts/int
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
-import { useTopPosts } from '@hooks/data/analytics/use-top-posts/use-top-posts';
-import { useClientPagination } from '@hooks/data/pagination/use-client-pagination/use-client-pagination';
-import FilterMenu from '@ui/content/filter-menu/FilterMenu';
-import SearchField from '@ui/content/search-field/SearchField';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Button } from '@ui/primitives/button';
 import { LayoutGrid } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import FilterMenu from '@/components/content/filter-menu/FilterMenu';
+import SearchField from '@/components/content/search-field/SearchField';
 import { useWinnerPosts } from '@/features/analytics/hooks/use-winner-posts/use-winner-posts';
 import AnalyticsPostsGrid from '@/features/analytics/posts-list/analytics-posts-grid';
 import AnalyticsWinnersTable from '@/features/analytics/posts-list/analytics-winners-table';
@@ -35,6 +33,8 @@ import {
   POSTS_SOURCE_EXTENSION,
   parsePostsSource,
 } from '@/features/posts/list/posts-list-query';
+import { useTopPosts } from '@/hooks/data/analytics/use-top-posts/use-top-posts';
+import { useClientPagination } from '@/hooks/data/pagination/use-client-pagination/use-client-pagination';
 
 const METRIC_OPTIONS: Array<{
   label: string;

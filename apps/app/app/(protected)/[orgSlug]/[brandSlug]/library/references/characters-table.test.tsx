@@ -31,7 +31,7 @@ const mocks = vi.hoisted(() => ({
   ingredients: new Map<string, unknown>(),
 }));
 
-vi.mock('@hooks/media/use-ingredients-by-id', () => ({
+vi.mock('@/hooks/media/use-ingredients-by-id', () => ({
   useIngredientsById: () => mocks.ingredients,
 }));
 

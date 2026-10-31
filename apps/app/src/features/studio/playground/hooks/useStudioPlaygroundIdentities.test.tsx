@@ -28,13 +28,13 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ organizationId: 'org-a' }),
 }));
-vi.mock('@hooks/data/ingredients/use-avatar-images/use-avatar-images', () => ({
+vi.mock('@/hooks/data/ingredients/use-avatar-images/use-avatar-images', () => ({
   useAvatarImages: () => ({ avatars: [], isLoading: false }),
 }));
 vi.mock('@/features/library/voices/hooks/use-voice-catalog', () => ({
   useVoiceCatalog: () => ({ voices: mocks.catalogVoices, isLoading: false }),
 }));
-vi.mock('@hooks/data/integrations/use-heygen-catalog', () => ({
+vi.mock('@/hooks/data/integrations/use-heygen-catalog', () => ({
   useHeyGenCatalog: (options?: { isEnabled?: boolean }) => {
     mocks.catalogOptions(options);
     return { ...mocks, error: null, isLoading: false };

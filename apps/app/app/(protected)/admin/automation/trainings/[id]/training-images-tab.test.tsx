@@ -27,9 +27,12 @@ vi.mock('@tanstack/react-query', () => ({
   useQuery: mocks.useQuery,
 }));
 
-vi.mock('@ui/ingredients/list/media-grid/IngredientsMediaGrid', () => ({
-  default: vi.fn(() => <div data-testid="masonry-grid" />),
-}));
+vi.mock(
+  '@/components/ingredients/list/media-grid/IngredientsMediaGrid',
+  () => ({
+    default: vi.fn(() => <div data-testid="masonry-grid" />),
+  }),
+);
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/admin/automation/trainings/training-123',

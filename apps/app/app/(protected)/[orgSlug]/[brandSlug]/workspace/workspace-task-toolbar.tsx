@@ -1,5 +1,4 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { WorkspaceTaskMode } from '@props/workspace/workspace-task-composer.props';
 import { Button } from '@ui/primitives/button';
 import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
 import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
@@ -9,6 +8,7 @@ import type {
   TaskPreset,
   WorkspaceTaskToolbarProps,
 } from '@/features/workspace/props/workspace-task-toolbar.props';
+import type { WorkspaceTaskMode } from '@/props/workspace/workspace-task-composer.props';
 
 export function WorkspaceTaskToolbar({
   isEnhancementBusy,

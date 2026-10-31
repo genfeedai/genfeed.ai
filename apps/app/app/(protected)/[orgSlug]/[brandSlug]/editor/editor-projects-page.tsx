@@ -12,7 +12,6 @@ import type { IEditorProject } from '@genfeedai/contracts/interfaces';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import { PagesService } from '@services/content/pages.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -24,8 +23,6 @@ import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionSection from '@ui/collection/CollectionSection';
 import CollectionView from '@ui/collection/CollectionView';
 import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
-import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
-import SearchField from '@ui/content/search-field/SearchField';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Container from '@ui/layout/container/Container';
 import { ListRow } from '@ui/lists/list-row/ListRow';
@@ -54,6 +51,9 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
+import SearchField from '@/components/content/search-field/SearchField';
+import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
 
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 

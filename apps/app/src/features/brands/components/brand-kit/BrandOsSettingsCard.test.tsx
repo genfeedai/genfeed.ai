@@ -65,7 +65,7 @@ vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => {
   };
   return { useAuthIdentity: () => identity };
 });
-vi.mock('@hooks/auth/use-user-role/use-user-role', () => ({
+vi.mock('@/hooks/auth/use-user-role/use-user-role', () => ({
   useUserRole: () => mocks.role,
 }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({

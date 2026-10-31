@@ -4,7 +4,6 @@
 import { VoiceProvider } from '@genfeedai/contracts';
 import type { HeyGenAvatarRef } from '@genfeedai/contracts/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
-import type { WorkspaceTaskDetailProps } from '@props/workspace/workspace-task-inspector.props';
 import { WorkflowExecutionsService } from '@services/automation/workflow-executions.service';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { TasksService } from '@services/management/tasks.service';
@@ -19,6 +18,7 @@ import {
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
+import type { WorkspaceTaskDetailProps } from '@/props/workspace/workspace-task-inspector.props';
 import WorkspacePageContent from './workspace-page';
 
 const facecamAvatarRef: HeyGenAvatarRef = {
@@ -50,7 +50,7 @@ const facecamVoiceRef = {
   ownership: 'public' as const,
   connection: facecamAvatarRef.connection,
 };
-vi.mock('@hooks/data/integrations/use-heygen-catalog', () => ({
+vi.mock('@/hooks/data/integrations/use-heygen-catalog', () => ({
   useHeyGenCatalog: () => ({
     avatars: [
       {
@@ -76,7 +76,7 @@ vi.mock('@hooks/data/integrations/use-heygen-catalog', () => ({
   }),
 }));
 
-vi.mock('@hooks/data/tasks/use-workspace-inbox-read', async () => {
+vi.mock('@/hooks/data/tasks/use-workspace-inbox-read', async () => {
   const { isUnreadWorkspaceInboxTask } = await import(
     '@services/management/tasks.service'
   );
@@ -190,11 +190,11 @@ vi.mock('@/features/trends/hooks/use-trends/use-trends', () => ({
   }),
 }));
 
-vi.mock('@hooks/utils/use-websocket-prompt/use-websocket-prompt', () => ({
+vi.mock('@/hooks/utils/use-websocket-prompt/use-websocket-prompt', () => ({
   useWebsocketPrompt: () => vi.fn(),
 }));
 
-vi.mock('@hooks/data/workflow-executions/use-workflow-executions', () => ({
+vi.mock('@/hooks/data/workflow-executions/use-workflow-executions', () => ({
   useWorkflowExecutions: () => ({
     cancelExecution: vi.fn(),
     executions: [],

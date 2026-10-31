@@ -2,9 +2,9 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
-import type { ClipperProjectSummary } from '@props/studio/clipper.props';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { ClipperProjectSummary } from '@/props/studio/clipper.props';
 
 import { ClipperApiService } from './services/clipper-api.service';
 

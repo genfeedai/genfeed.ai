@@ -20,7 +20,6 @@ import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
-import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import Pagination from '@ui/navigation/pagination/Pagination';
@@ -30,6 +29,7 @@ import { Download } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import {
   buildUsageRowsCsv,
   usageDailySeries,

@@ -38,11 +38,11 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => mockUseBrand(),
 }));
 
-vi.mock('@hooks/data/organization/use-organization/use-organization', () => ({
+vi.mock('@/hooks/data/organization/use-organization/use-organization', () => ({
   useOrganization: () => mockUseOrganization(),
 }));
 
-vi.mock('@hooks/data/ingredients/use-avatar-images/use-avatar-images', () => ({
+vi.mock('@/hooks/data/ingredients/use-avatar-images/use-avatar-images', () => ({
   useAvatarImages: () => mockUseAvatarImages(),
 }));
 
@@ -50,7 +50,7 @@ vi.mock('@/features/library/voices/hooks/use-voice-catalog', () => ({
   useVoiceCatalog: () => mockUseVoiceCatalog(),
 }));
 
-vi.mock('@hooks/data/integrations/use-heygen-catalog', () => ({
+vi.mock('@/hooks/data/integrations/use-heygen-catalog', () => ({
   useHeyGenCatalog: () => mockUseHeyGenCatalog(),
 }));
 

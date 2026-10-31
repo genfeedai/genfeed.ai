@@ -9,17 +9,17 @@ import { hasTrainingAccess } from '@genfeedai/pricing';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import FilterMenu from '@ui/content/filter-menu/FilterMenu';
-import SearchField from '@ui/content/search-field/SearchField';
 import Container from '@ui/layout/container/Container';
 import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
-import { LazyModalTrainingNew } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
 import { Cpu, Plus } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { useCallback } from 'react';
+import FilterMenu from '@/components/content/filter-menu/FilterMenu';
+import SearchField from '@/components/content/search-field/SearchField';
+import { LazyModalTrainingNew } from '@/components/lazy/modal/LazyModal';
 
 // The Filters menu switches between the catalog, the organization's trainings
 // and its managed custom models, and carries the catalog's category filter.

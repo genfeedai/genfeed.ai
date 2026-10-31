@@ -1,5 +1,5 @@
 import { PageScope, TagCategory } from '@genfeedai/contracts';
-import { LazyModalTag } from '@ui/lazy/modal/LazyModal';
+import { LazyModalTag } from '@/components/lazy/modal/LazyModal';
 import type { TagsListModalsProps } from '@/features/admin/props/tags.props';
 
 export default function TagsListModals({

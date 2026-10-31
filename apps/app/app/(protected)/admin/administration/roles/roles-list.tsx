@@ -11,8 +11,6 @@ import { useFilteredData } from '@hooks/utils/use-filtered-data/use-filtered-dat
 import type { TableAction } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
 import { RolesService } from '@services/organization/roles.service';
-import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
-import SearchField from '@ui/content/search-field/SearchField';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
@@ -22,6 +20,8 @@ import { Pencil, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
+import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
+import SearchField from '@/components/content/search-field/SearchField';
 
 export default function RolesList() {
   const fieldsT = useTranslations('ui.rowSidebar.fields');

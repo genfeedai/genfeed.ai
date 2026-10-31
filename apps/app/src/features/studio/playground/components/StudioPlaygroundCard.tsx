@@ -24,7 +24,6 @@ import TileBadge from '@ui/display/badge/Badge';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
 import BrandModeBadge from '@ui/ingredients/brand-mode-badge';
-import IngredientTileOverlays from '@ui/ingredients/ingredient-tile-overlays';
 import {
   LazyMasonryImage,
   LazyMasonryVideo,
@@ -53,6 +52,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import IngredientTileOverlays from '@/components/ingredients/ingredient-tile-overlays';
 import AssetHoverDetails from '@/features/studio/components/ingredients/asset-hover-details';
 import StudioPlaygroundFailureDetailsDialog from '@/features/studio/playground/components/StudioPlaygroundFailureDetailsDialog';
 import StudioPlaygroundFailureNotice from '@/features/studio/playground/components/StudioPlaygroundFailureNotice';

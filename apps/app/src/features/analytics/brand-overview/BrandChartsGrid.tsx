@@ -2,14 +2,14 @@
 
 import { ButtonVariant, parsePlatform } from '@genfeedai/contracts';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
-import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { ArrowRight } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import type { PlatformComparisonData } from '@/features/analytics/props/analytics.props';
+import type { PlatformTimeSeriesDataPoint } from '@/props/analytics/charts.props';
 
 const PlatformComparisonChart = dynamic(
   () =>

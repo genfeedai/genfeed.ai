@@ -11,13 +11,13 @@ import {
   XTwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
-import type { PostSidebarDestinationProps } from '@genfeedai/props/components/post-detail-sidebar.props';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
 import Badge from '@ui/display/badge/Badge';
 import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Fragment, type ReactNode } from 'react';
+import type { PostSidebarDestinationProps } from '@/props/components/post-detail-sidebar.props';
 
 const platformIconMap: Partial<Record<CredentialPlatform, IconType>> = {
   [CredentialPlatform.TIKTOK]: TiktokIcon,

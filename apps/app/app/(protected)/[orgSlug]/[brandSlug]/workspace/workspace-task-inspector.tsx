@@ -1,7 +1,7 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { WorkspaceTaskDetailProps } from '@props/workspace/workspace-task-inspector.props';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+import type { WorkspaceTaskDetailProps } from '@/props/workspace/workspace-task-inspector.props';
 import { useWorkspaceTaskHref } from './use-workspace-task-href';
 import { getAdvancedToolHref } from './workspace-task.helpers';
 import { WorkspaceTaskInspectorBody } from './workspace-task-inspector-body';

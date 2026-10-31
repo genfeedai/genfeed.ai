@@ -5,13 +5,13 @@ import {
   ReviewDecision,
 } from '@genfeedai/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
-import type { PostDetailSidebarProps } from '@genfeedai/props/components/post-detail-sidebar.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import PostDetailSidebar from '@/features/posts/components/posts/post-detail-sidebar/PostDetailSidebar';
+import type { PostDetailSidebarProps } from '@/props/components/post-detail-sidebar.props';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
@@ -25,7 +25,7 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => ({ toString: () => '' }),
 }));
 
-vi.mock('@genfeedai/hooks/ui/evaluation/use-evaluation/use-evaluation', () => ({
+vi.mock('@/hooks/ui/evaluation/use-evaluation/use-evaluation', () => ({
   useEvaluation: () => ({
     evaluate: vi.fn(),
     evaluation: null,
@@ -47,7 +47,7 @@ vi.mock('next/link', () => ({
   ),
 }));
 
-vi.mock('@ui/evaluation/card/EvaluationCard', () => ({
+vi.mock('@/components/evaluation/card/EvaluationCard', () => ({
   default: () => <div data-testid="evaluation-row">Evaluation row</div>,
 }));
 

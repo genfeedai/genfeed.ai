@@ -9,9 +9,9 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import type { UnifiedAdAccountOption } from '@services/ads/ads-research.service';
-import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
+import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import type {
   AdSortKey,
   AdsResearchViewSource,

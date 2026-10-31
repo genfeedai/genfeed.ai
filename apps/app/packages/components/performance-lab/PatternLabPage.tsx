@@ -8,19 +8,19 @@ import {
 import { AlertCategory } from '@genfeedai/contracts';
 import type { PatternType } from '@genfeedai/contracts/interfaces';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
-import { usePatternContext } from '@hooks/data/analytics/use-pattern-context/use-pattern-context';
-import type {
-  PatternLabFilters,
-  PatternLabPageProps,
-} from '@props/analytics/performance-lab.props';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
-import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import Alert from '@ui/feedback/alert/Alert';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { FlaskConical } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
+import FilterMenu from '@/components/content/filter-menu/FilterMenu';
+import { usePatternContext } from '@/hooks/data/analytics/use-pattern-context/use-pattern-context';
+import type {
+  PatternLabFilters,
+  PatternLabPageProps,
+} from '@/props/analytics/performance-lab.props';
 
 const PLATFORM_OPTIONS = [
   { label: 'TikTok', value: 'tiktok' },

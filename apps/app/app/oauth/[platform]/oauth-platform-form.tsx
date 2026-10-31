@@ -4,12 +4,6 @@ import { clearClientProtectedBootstrapCache } from '@contexts/providers/protecte
 import { ButtonVariant } from '@genfeedai/contracts';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import {
-  clearOAuthConnectContext,
-  readOAuthConnectContext,
-  rememberOAuthConnectContext,
-} from '@hooks/auth/use-platform-oauth-connect/oauth-connect-context';
-import { OAUTH_RETURN_TO_STORAGE_KEY } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import { logger } from '@services/core/logger.service';
 import { ServicesService } from '@services/external/services.service';
 import ConnectionSuccess from '@ui/feedback/connection-success/ConnectionSuccess';
@@ -27,6 +21,12 @@ import type {
   OAuthPlatformFormProps,
   VerifyResult,
 } from '@/features/auth/props/oauth-platform-form.props';
+import {
+  clearOAuthConnectContext,
+  readOAuthConnectContext,
+  rememberOAuthConnectContext,
+} from '@/hooks/auth/use-platform-oauth-connect/oauth-connect-context';
+import { OAUTH_RETURN_TO_STORAGE_KEY } from '@/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import { resolveSameOriginReturnTo } from '@/lib/navigation/resolve-same-origin-return-to';
 import {
   isHttpsAuthorizationUrl,

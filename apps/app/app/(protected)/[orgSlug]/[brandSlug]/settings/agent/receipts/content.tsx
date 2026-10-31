@@ -10,18 +10,18 @@ import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import type { BrandedGenerationReceiptInspectorInput } from '@genfeedai/props/content/branded-generation-receipt.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
-import { useGenerationReceiptMedia } from '@hooks/ui/generation-receipts/use-generation-receipt-media';
 import { BrandedGenerationReceiptsService } from '@services/ai/branded-generation-receipts.service';
-import BrandedGenerationReceiptInspector from '@ui/generation-receipts/BrandedGenerationReceiptInspector';
-import GenerationReceiptListItem from '@ui/generation-receipts/GenerationReceiptListItem';
-import { getGenerationReceiptMediaId } from '@ui/generation-receipts/generation-receipt-summary.util';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import BrandedGenerationReceiptInspector from '@/components/generation-receipts/BrandedGenerationReceiptInspector';
+import GenerationReceiptListItem from '@/components/generation-receipts/GenerationReceiptListItem';
+import { getGenerationReceiptMediaId } from '@/components/generation-receipts/generation-receipt-summary.util';
+import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
+import { useGenerationReceiptMedia } from '@/hooks/ui/generation-receipts/use-generation-receipt-media';
 import { receiptReadUnavailable } from './receipt-read-error.util';
 
 function selection(query: ReturnType<typeof useSearchParams>) {

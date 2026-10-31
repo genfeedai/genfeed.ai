@@ -7,7 +7,7 @@ import type {
 import type {
   MessagesInboxView,
   MessagesSurface,
-} from '@genfeedai/props/messages/messages-conversation-sidebar.props';
+} from '@/props/messages/messages-conversation-sidebar.props';
 
 export type MessagesInboxFiltersState = {
   automationState: SocialAutomationState | 'all';

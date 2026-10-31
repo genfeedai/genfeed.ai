@@ -42,7 +42,7 @@ vi.mock('next/link', () => ({
   ),
 }));
 
-vi.mock('@ui/layouts/auth/AuthFormLayout', () => ({
+vi.mock('@/components/layouts/auth/AuthFormLayout', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 

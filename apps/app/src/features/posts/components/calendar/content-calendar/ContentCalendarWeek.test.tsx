@@ -1,11 +1,11 @@
 import '@testing-library/jest-dom/vitest';
-import type {
-  CalendarItem,
-  ContentCalendarProps,
-} from '@genfeedai/props/components/calendar.props';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ContentCalendarView from '@/features/posts/components/calendar/content-calendar/ContentCalendarView';
+import type {
+  CalendarItem,
+  ContentCalendarProps,
+} from '@/props/components/calendar.props';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');

@@ -2,7 +2,6 @@ import { ComponentSize } from '@genfeedai/contracts';
 import { getSafeExternalUrl } from '@genfeedai/helpers/media/social-media-source.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import type { TrendItem } from '@props/trends/trends-page.props';
-import SocialMediaPlayer from '@ui/analytics/trends/social-media-player';
 import Card from '@ui/card/Card';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import Badge from '@ui/display/badge/Badge';
@@ -11,6 +10,7 @@ import Table from '@ui/display/table/Table';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { Flame } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import SocialMediaPlayer from '@/components/analytics/trends/social-media-player';
 import TrendRowSummary from '@/features/trends/detail/trend-row-summary';
 import type { Props } from '@/features/trends/props/trending-topics-section.props';
 

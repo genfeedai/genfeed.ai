@@ -11,13 +11,9 @@ import {
 import type { IActivity, IIngredient } from '@genfeedai/contracts/interfaces';
 import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
-import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useIngredientSidebar } from '@hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
 import type { TableAction } from '@props/ui/display/table.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
-import SearchField from '@ui/content/search-field/SearchField';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import Container from '@ui/layout/container/Container';
@@ -35,7 +31,11 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
+import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
+import SearchField from '@/components/content/search-field/SearchField';
 import type { ActivitiesListProps } from '@/features/activities/props/activities.props';
+import { useActivities } from '@/hooks/data/activities/use-activities/use-activities';
+import { useIngredientSidebar } from '@/hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
 
 import {
   getActivityCreditsChange,

@@ -31,7 +31,7 @@ vi.mock('next-intl', async () => {
 vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
   useCollectionScope: () => mocks.scope,
 }));
-vi.mock('@hooks/auth/use-user-role/use-user-role', () => ({
+vi.mock('@/hooks/auth/use-user-role/use-user-role', () => ({
   useUserRole: () => mocks.role,
 }));
 const service = { accounts: mocks.accounts, control: mocks.control };

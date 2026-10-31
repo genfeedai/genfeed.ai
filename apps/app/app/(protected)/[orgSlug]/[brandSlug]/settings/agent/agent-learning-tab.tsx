@@ -12,7 +12,6 @@ import type {
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { ContentLearningService } from '@genfeedai/services/analytics/content-learning.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 import Card from '@ui/card/Card';
@@ -24,6 +23,7 @@ import type {
   AgentLearningStatusProps,
   AgentLearningTabProps,
 } from '@/features/settings/props/learning.props';
+import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
 
 type SafetyAction = 'pause' | 'shadow' | 'disable';
 const ACTIONS: SafetyAction[] = ['pause', 'shadow', 'disable'];

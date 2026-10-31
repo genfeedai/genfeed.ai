@@ -1,5 +1,5 @@
-import type { WorkspaceBrandMentionMatch } from '@genfeedai/props/workspace/workspace-task-composer.props';
 import type { JSONContent } from '@tiptap/core';
+import type { WorkspaceBrandMentionMatch } from '@/props/workspace/workspace-task-composer.props';
 
 export function getBrandDisplayLabel(brand?: {
   label?: string;

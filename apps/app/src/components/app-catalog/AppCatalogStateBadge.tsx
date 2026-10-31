@@ -1,7 +1,7 @@
-import type { AppCatalogStateProps } from '@genfeedai/props/apps/organization-apps-page.props';
 import { Badge } from '@ui/primitives/badge';
 import { Check, LockKeyhole } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { AppCatalogStateProps } from '@/props/apps/organization-apps-page.props';
 
 /** Where one app stands for the member, as a badge. */
 export default function AppCatalogStateBadge({ app }: AppCatalogStateProps) {

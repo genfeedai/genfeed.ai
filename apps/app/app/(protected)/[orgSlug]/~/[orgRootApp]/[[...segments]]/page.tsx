@@ -17,8 +17,6 @@ import {
   createOrganizationAppRoute,
   resolveLegacyLibraryRoute,
 } from '@genfeedai/contracts/constants';
-import type { OrgRootAppPageProps } from '@props/layout/org-root-app-page.props';
-import type { PostsListSearchParams } from '@props/publishing/publishing-list-page.props';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import { notFound, permanentRedirect, redirect } from 'next/navigation';
 import { Suspense } from 'react';
@@ -35,6 +33,8 @@ import LibraryBrowser from '@/features/library/browser/library-browser';
 import { LIBRARY_TYPE_PRESETS } from '@/features/library/browser/library-browser.config';
 import LibraryOverview from '@/features/library/overview/library-overview';
 import PublishingDeskViewToggle from '@/features/posts/library/publishing-desk-view-toggle';
+import type { OrgRootAppPageProps } from '@/props/layout/org-root-app-page.props';
+import type { PostsListSearchParams } from '@/props/publishing/publishing-list-page.props';
 import EditorProjectsPage from '../../../[brandSlug]/editor/editor-projects-page';
 import EditorNewPage from '../../../[brandSlug]/editor/new/page';
 import AssetDeepLink from '../../../[brandSlug]/library/assets/asset-deep-link';

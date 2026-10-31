@@ -1,10 +1,10 @@
 'use client';
 
 import { formatNewsletterStatusLabel } from '@helpers/content/newsletters.helper';
-import type { ArtifactEditorPageProps } from '@props/content/artifact-editor.props';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
+import type { ArtifactEditorPageProps } from '@/props/content/artifact-editor.props';
 import ArtifactEditorShell from '../../artifact-editor-shell';
 import NewsletterContextReview from '../newsletter-context-review';
 import NewsletterDeliveryCard from '../newsletter-delivery-card';

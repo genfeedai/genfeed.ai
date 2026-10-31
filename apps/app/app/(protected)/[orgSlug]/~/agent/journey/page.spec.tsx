@@ -25,7 +25,7 @@ vi.mock('next/link', () => ({
   ),
 }));
 
-vi.mock('@hooks/data/organization/use-organization/use-organization', () => ({
+vi.mock('@/hooks/data/organization/use-organization/use-organization', () => ({
   useOrganization: () => useOrganizationMock(),
 }));
 

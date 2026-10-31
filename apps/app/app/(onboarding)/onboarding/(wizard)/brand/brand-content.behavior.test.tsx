@@ -70,10 +70,9 @@ vi.mock('@genfeedai/config/deployment', () => ({
   isDesktopClient: () => mocks.desktop,
   hasSingleStepOnboarding: () => false,
 }));
-vi.mock(
-  '@genfeedai/hooks/feature-flags/use-feature-flag/use-feature-flag',
-  () => ({ useFeatureFlag: () => true }),
-);
+vi.mock('@/hooks/feature-flags/use-feature-flag/use-feature-flag', () => ({
+  useFeatureFlag: () => true,
+}));
 vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => ({ getToken: mocks.getToken }),
 }));
@@ -84,7 +83,7 @@ vi.mock('@helpers/auth/auth.helper', () => ({
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));
-vi.mock('@hooks/auth/use-user-role/use-user-role', () => ({
+vi.mock('@/hooks/auth/use-user-role/use-user-role', () => ({
   useUserRole: () => 'owner',
 }));
 vi.mock('@services/social/brands.service', () => ({

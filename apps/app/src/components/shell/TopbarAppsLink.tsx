@@ -6,13 +6,13 @@ import {
   createOrganizationAppRoute,
 } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers';
-import type { TopbarAppsLinkProps } from '@genfeedai/props/ui/app-rail.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
 import { Puzzle } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import type { TopbarAppsLinkProps } from '@/props/ui/app-rail.props';
 
 /**
  * Apps: goes straight to the full-page home for every app. It sits in the

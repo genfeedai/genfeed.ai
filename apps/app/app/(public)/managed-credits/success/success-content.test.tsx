@@ -43,7 +43,7 @@ vi.mock('@services/billing/managed-credits.service', () => ({
   },
 }));
 
-vi.mock('@ui/layouts/auth/AuthFormLayout', () => ({
+vi.mock('@/components/layouts/auth/AuthFormLayout', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 

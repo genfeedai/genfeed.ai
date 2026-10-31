@@ -101,7 +101,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ organizationId: mocks.org }),
 }));
-vi.mock('@hooks/pages/use-brand-detail/use-brand-detail', () => ({
+vi.mock('@/hooks/pages/use-brand-detail/use-brand-detail', () => ({
   useBrandDetail: () => ({
     brand: mocks.brand,
     brandId: mocks.brand.id,
@@ -115,7 +115,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));
-vi.mock('@hooks/ui/generation-receipts/use-generation-receipt-media', () => ({
+vi.mock('@/hooks/ui/generation-receipts/use-generation-receipt-media', () => ({
   useGenerationReceiptMedia: mocks.media,
 }));
 

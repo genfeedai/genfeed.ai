@@ -6,20 +6,20 @@ import {
   createLibraryBrowserRoute,
 } from '@genfeedai/contracts/constants';
 import type { BrandCharacterListItem } from '@genfeedai/contracts/interfaces';
-import { useIngredientsById } from '@hooks/media/use-ingredients-by-id';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { CharactersTableProps } from '@props/characters/characters-page.props';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
-import IngredientThumbnail from '@ui/ingredients/ingredient-thumbnail/IngredientThumbnail';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { FolderOpen, Images, Plus, Share2, UserRound } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+import IngredientThumbnail from '@/components/ingredients/ingredient-thumbnail/IngredientThumbnail';
+import { useIngredientsById } from '@/hooks/media/use-ingredients-by-id';
+import type { CharactersTableProps } from '@/props/characters/characters-page.props';
 
 const VISIBLE_REFERENCE_THUMBNAILS = 4;
 

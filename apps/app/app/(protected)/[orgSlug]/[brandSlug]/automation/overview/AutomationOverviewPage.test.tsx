@@ -50,7 +50,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   }),
 }));
 
-vi.mock('@hooks/data/workflow-executions/use-workflow-executions', () => ({
+vi.mock('@/hooks/data/workflow-executions/use-workflow-executions', () => ({
   useWorkflowExecutions: () => ({
     cancelExecution: vi.fn(),
     executions: executionState.executions,

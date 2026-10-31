@@ -1,6 +1,6 @@
-import type { ClipperResult } from '@props/studio/clipper.props';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import type { ClipperResult } from '@/props/studio/clipper.props';
 import type { ClipperApiService } from '../services/clipper-api.service';
 import ClipperProgressView from './ClipperProgressView';
 

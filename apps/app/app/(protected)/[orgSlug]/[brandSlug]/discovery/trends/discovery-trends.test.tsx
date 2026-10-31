@@ -76,7 +76,7 @@ vi.mock('@services/social/trends.service', () => ({
   },
 }));
 
-vi.mock('@ui/analytics/trends', () => ({
+vi.mock('@/components/analytics/trends', () => ({
   TrendingHashtags: ({
     hashtags,
     onHashtagClick,
@@ -108,7 +108,7 @@ vi.mock('@ui/analytics/trends', () => ({
   ),
 }));
 
-vi.mock('@ui/analytics/trends/social-media-player', () => ({
+vi.mock('@/components/analytics/trends/social-media-player', () => ({
   default: ({ title, sourceUrl }: { title: string; sourceUrl?: string }) => (
     <figure aria-label={title}>
       {sourceUrl ? <a href={sourceUrl}>Open source</a> : null}

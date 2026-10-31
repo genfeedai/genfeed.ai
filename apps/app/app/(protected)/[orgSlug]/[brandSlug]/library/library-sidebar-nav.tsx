@@ -30,11 +30,11 @@ import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
-import FoldersSidebar from '@ui/folders/sidebar/FoldersSidebar';
-import { LazyModalFolder } from '@ui/lazy/modal/LazyModal';
-import MenuItem from '@ui/menus/item/MenuItem';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useMemo } from 'react';
+import FoldersSidebar from '@/components/folders/sidebar/FoldersSidebar';
+import { LazyModalFolder } from '@/components/lazy/modal/LazyModal';
+import MenuItem from '@/components/menus/item/MenuItem';
 
 import {
   normalizeProtectedPathname,

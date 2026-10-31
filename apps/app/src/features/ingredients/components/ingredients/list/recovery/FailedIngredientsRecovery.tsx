@@ -3,11 +3,6 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { IngredientRecoveryGroup } from '@genfeedai/contracts/interfaces/ingredients/ingredient-recovery.interface';
 import { useAuthorizedMediaPreview } from '@genfeedai/hooks/media/use-authorized-media-preview';
-import type {
-  FailedIngredientPreviewProps,
-  FailedIngredientRowProps,
-  FailedIngredientsRecoveryProps,
-} from '@genfeedai/props/content/ingredient-recovery.props';
 import {
   getIngredientModelLabel,
   getIngredientPromptText,
@@ -36,6 +31,11 @@ import Image from 'next/image';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import type {
+  FailedIngredientPreviewProps,
+  FailedIngredientRowProps,
+  FailedIngredientsRecoveryProps,
+} from '@/props/content/ingredient-recovery.props';
 
 const GROUPS: readonly IngredientRecoveryGroup[] = [
   'attention',

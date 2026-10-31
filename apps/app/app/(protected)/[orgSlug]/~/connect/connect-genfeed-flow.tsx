@@ -18,7 +18,6 @@ import { deriveClaudeMcpResourceIdentifier } from '@genfeedai/helpers/integratio
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { hasApiAccess } from '@genfeedai/pricing';
-import type { VerifiedMcpConnection } from '@genfeedai/props/home/operational-home.props';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -52,6 +51,7 @@ import {
   type ConnectGenfeedStep,
   captureAnalyticsEvent,
 } from '@/lib/analytics';
+import type { VerifiedMcpConnection } from '@/props/home/operational-home.props';
 
 const CLIENTS = [
   {

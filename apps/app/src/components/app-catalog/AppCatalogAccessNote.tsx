@@ -1,6 +1,6 @@
-import type { AppCatalogAccessNoteProps } from '@genfeedai/props/apps/organization-apps-page.props';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import type { AppCatalogAccessNoteProps } from '@/props/apps/organization-apps-page.props';
 
 const LINK_CLASS_NAME = 'ml-1 underline underline-offset-2';
 

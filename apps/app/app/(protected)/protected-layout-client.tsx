@@ -3,14 +3,14 @@
 import AppProtectedLayout from '@app-components/app-protected-layout';
 import { SessionKeepAlive } from '@genfeedai/auth-client';
 import { RoutedOrganizationProvider } from '@genfeedai/contexts/user/organization-context/organization-context';
-import { useAuthUser } from '@hooks/auth/use-auth-user';
-import { FeatureFlagProvider } from '@hooks/feature-flags/provider';
 import type { ProtectedBootstrapProps } from '@props/layout/protected-bootstrap.props';
 import { ErrorBoundary } from '@ui/display/error-boundary/ErrorBoundary';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
+import { useAuthUser } from '@/hooks/auth/use-auth-user';
+import { FeatureFlagProvider } from '@/hooks/feature-flags/provider';
 import { identifyAnalyticsUser } from '@/lib/analytics';
 import { notifyPlatformFlagsChanged } from '@/lib/platform-flags/platform-flags-sync';
 import { usePlatformFlags } from '@/lib/platform-flags/use-platform-flags';

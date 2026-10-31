@@ -31,13 +31,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import LibraryTagChip from '@ui/tags/library-tag-picker/LibraryTagChip';
-import { dispatchLibraryTagUpdate } from '@ui/tags/library-tag-picker/library-asset-tags-event';
-import TagColorPicker from '@ui/tags/library-tag-picker/TagColorPicker';
-import { useLibraryTags } from '@ui/tags/library-tag-picker/use-library-tags';
 import { Settings2, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import LibraryTagChip from '@/components/tags/library-tag-picker/LibraryTagChip';
+import { dispatchLibraryTagUpdate } from '@/components/tags/library-tag-picker/library-asset-tags-event';
+import TagColorPicker from '@/components/tags/library-tag-picker/TagColorPicker';
+import { useLibraryTags } from '@/components/tags/library-tag-picker/use-library-tags';
 
 type CreatableScope = TagScope.BRAND | TagScope.ORGANIZATION;
 

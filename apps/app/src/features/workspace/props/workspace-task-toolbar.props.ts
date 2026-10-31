@@ -1,4 +1,4 @@
-import type { WorkspaceTaskMode } from '@props/workspace/workspace-task-composer.props';
+import type { WorkspaceTaskMode } from '@/props/workspace/workspace-task-composer.props';
 
 export interface TaskPreset {
   label: string;

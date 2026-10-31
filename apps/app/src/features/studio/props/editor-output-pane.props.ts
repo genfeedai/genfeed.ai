@@ -1,7 +1,7 @@
 import type { IEditorProject } from '@genfeedai/contracts/interfaces';
-import type { EditorLayoutProps } from '@props/studio/editor-layout.props';
-import type { EditorPreviewRef } from '@props/studio/editor-preview.props';
 import type { RefObject } from 'react';
+import type { EditorLayoutProps } from '@/props/studio/editor-layout.props';
+import type { EditorPreviewRef } from '@/props/studio/editor-preview.props';
 
 /** The editor's output: the preview over the timeline. */
 export interface EditorOutputPaneProps

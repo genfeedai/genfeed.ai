@@ -1,11 +1,11 @@
 import '@testing-library/jest-dom/vitest';
 import { ApiKey } from '@genfeedai/models/auth/api-key.model';
-import type { UseConnectGenfeedStatusResult } from '@genfeedai/props/home/connect-genfeed-status.props';
-import type { VerifiedMcpConnection } from '@genfeedai/props/home/operational-home.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { UseConnectGenfeedStatusResult } from '@/props/home/connect-genfeed-status.props';
+import type { VerifiedMcpConnection } from '@/props/home/operational-home.props';
 import ConnectGenfeedFlow from './connect-genfeed-flow';
 
 const MCP_SCOPES = [

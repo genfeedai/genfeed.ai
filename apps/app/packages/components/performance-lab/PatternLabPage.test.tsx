@@ -19,7 +19,7 @@ vi.mock('@genfeedai/contexts/analytics/analytics-context', () => ({
 }));
 
 vi.mock(
-  '@hooks/data/analytics/use-pattern-context/use-pattern-context',
+  '@/hooks/data/analytics/use-pattern-context/use-pattern-context',
   () => ({
     usePatternContext: (...args: unknown[]) => usePatternContextMock(...args),
   }),

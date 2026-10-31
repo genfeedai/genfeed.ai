@@ -16,12 +16,9 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
-import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
-import SearchField from '@ui/content/search-field/SearchField';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import {
   Accordion,
   AccordionContent,
@@ -31,6 +28,9 @@ import {
 import { Mail } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
+import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
+import SearchField from '@/components/content/search-field/SearchField';
+import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 
 const SYSTEM_EMAIL_SKELETON_KEYS = [
   'system-email-skeleton-1',

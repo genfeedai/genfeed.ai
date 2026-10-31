@@ -1,8 +1,8 @@
 'use client';
 
-import type { AuthShowcaseSlide } from '@props/layout/auth-showcase.props';
-import AuthShowcase from '@ui/layouts/auth/AuthShowcase';
 import { useTranslations } from 'next-intl';
+import AuthShowcase from '@/components/layouts/auth/AuthShowcase';
+import type { AuthShowcaseSlide } from '@/props/layout/auth-showcase.props';
 import { AUTH_SHOWCASE_SLIDE_DEFINITIONS } from './auth-showcase-slides';
 
 /** Generated examples shown beside the login and sign-up forms. */

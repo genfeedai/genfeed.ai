@@ -61,7 +61,6 @@ import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.
 import type { AttachmentItem } from '@genfeedai/props/ui/attachments.props';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useFailedIngredientRecovery } from '@hooks/data/ingredients/use-ingredients-list/use-failed-ingredient-recovery';
 import { usePromptBarResting } from '@hooks/prompt-bar/use-prompt-bar-resting/use-prompt-bar-resting';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
@@ -70,8 +69,6 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import type { JSONContent } from '@tiptap/core';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import FilterMenu from '@ui/content/filter-menu/FilterMenu';
-import SearchField from '@ui/content/search-field/SearchField';
 import {
   buildStudioGenerationSetupScope,
   setGenerationSetupField,
@@ -106,6 +103,8 @@ import {
   useRef,
   useState,
 } from 'react';
+import FilterMenu from '@/components/content/filter-menu/FilterMenu';
+import SearchField from '@/components/content/search-field/SearchField';
 import KnowledgeReferenceSection, {
   countKnowledgeSelection,
 } from '@/features/library/knowledge/components/KnowledgeReferenceSection';
@@ -200,6 +199,7 @@ import type {
   StudioPlaygroundFilter,
   StudioPlaygroundStarterSelection,
 } from '@/features/studio/props/studio-playground.props';
+import { useFailedIngredientRecovery } from '@/hooks/data/ingredients/use-ingredients-list/use-failed-ingredient-recovery';
 
 const STUDIO_REFERENCE_TYPES = ['image/*', 'video/*'];
 

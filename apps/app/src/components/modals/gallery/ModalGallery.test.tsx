@@ -1,0 +1,107 @@
+import { IngredientCategory, IngredientFormat } from '@genfeedai/contracts';
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import ModalGallery from '@/components/modals/gallery/ModalGallery';
+
+// Mock dependencies
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    brandId: 'test-brand-id',
+    selectedBrand: {
+      id: 'test-brand-id',
+      references: [],
+    },
+  }),
+}));
+
+vi.mock('./hooks/useModalGallery', () => ({
+  useModalGallery: () => ({
+    activeTab: 'media' as const,
+    filterReferenceId: '',
+    findAllItems: vi.fn(),
+    handleItemSelect: vi.fn(),
+    isLoading: false,
+    items: [],
+    localFormat: IngredientFormat.PORTRAIT,
+    notifySelectionLimit: vi.fn(),
+    selectedItem: '',
+    selectedItems: [],
+    selectedItemsData: [],
+    selectionLimit: Infinity,
+    setActiveTab: vi.fn(),
+    setFilterReferenceId: vi.fn(),
+    setLocalFormat: vi.fn(),
+    setSelectedItem: vi.fn(),
+    setSelectedItems: vi.fn(),
+    setSelectedItemsData: vi.fn(),
+    tabs: [],
+  }),
+}));
+
+vi.mock('./ModalGalleryHeader', () => ({
+  default: () => <div data-testid="modal-gallery-header">Header</div>,
+}));
+
+vi.mock('./ModalGalleryContent', () => ({
+  default: () => <div data-testid="modal-gallery-content">Content</div>,
+}));
+
+vi.mock('./ModalGalleryFooter', () => ({
+  default: () => <div data-testid="modal-gallery-footer">Footer</div>,
+}));
+
+vi.mock('@ui/modals/modal/Modal', () => ({
+  default: ({
+    children,
+    title,
+  }: import('react').ComponentProps<
+    typeof import('@ui/modals/modal/Modal').default
+  >) => (
+    <div data-testid="modal">
+      <div>{title}</div>
+      {children}
+    </div>
+  ),
+}));
+
+describe('ModalGallery', () => {
+  const defaultProps = {
+    category: IngredientCategory.IMAGE,
+    format: IngredientFormat.PORTRAIT,
+    isNoneAllowed: false,
+    isOpen: true,
+    onClose: vi.fn(),
+    onSelect: vi.fn(),
+    title: 'Select Image',
+  };
+
+  it('renders modal when open', () => {
+    render(<ModalGallery {...defaultProps} />);
+    expect(screen.getByText('Select Image')).toBeInTheDocument();
+    expect(screen.getByTestId('modal-gallery-header')).toBeInTheDocument();
+    expect(screen.getByTestId('modal-gallery-content')).toBeInTheDocument();
+    expect(screen.getByTestId('modal-gallery-footer')).toBeInTheDocument();
+  });
+
+  it('renders with correct title for video category', () => {
+    render(
+      <ModalGallery
+        {...defaultProps}
+        category={IngredientCategory.VIDEO}
+        title={undefined}
+      />,
+    );
+    expect(screen.getByText('Select Video')).toBeInTheDocument();
+  });
+
+  it('renders with correct title for music category', () => {
+    render(
+      <ModalGallery
+        {...defaultProps}
+        category={IngredientCategory.MUSIC}
+        title={undefined}
+      />,
+    );
+    expect(screen.getByText('Select Music')).toBeInTheDocument();
+  });
+});

@@ -7,7 +7,6 @@ import {
   getSelectableLocales,
   LOCALE_LABELS,
 } from '@genfeedai/contracts/constants';
-import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import Card from '@ui/card/Card';
 import {
   Select,
@@ -18,6 +17,7 @@ import {
 } from '@ui/primitives/select';
 import Spinner from '@ui/primitives/spinner';
 import { useCallback, useState } from 'react';
+import { useOrganization } from '@/hooks/data/organization/use-organization/use-organization';
 import OrganizationIdentityCard from './organization-identity-card';
 
 // The pseudo-locale is a QA instrument, not a language — offering it to an

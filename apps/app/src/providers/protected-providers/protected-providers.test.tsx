@@ -54,7 +54,7 @@ vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
 // stack rather than the sync itself. With no stored preference,
 // resolvePreferredLocale() returns undefined and the sync is a no-op — its own
 // behaviour is covered by providers/locale-sync/locale-cookie-sync.test.tsx.
-vi.mock('@hooks/data/organization/use-organization/use-organization', () => ({
+vi.mock('@/hooks/data/organization/use-organization/use-organization', () => ({
   useOrganization: () => ({ settings: null }),
 }));
 

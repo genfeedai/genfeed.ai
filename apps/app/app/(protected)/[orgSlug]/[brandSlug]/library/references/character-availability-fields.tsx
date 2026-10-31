@@ -1,11 +1,11 @@
 'use client';
 
 import { PersonaAvailabilityMode } from '@genfeedai/contracts';
-import type { CharacterAvailabilityFieldsProps } from '@props/characters/characters-page.props';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Label } from '@ui/primitives/label';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { useTranslations } from 'next-intl';
+import type { CharacterAvailabilityFieldsProps } from '@/props/characters/characters-page.props';
 
 const MODES = [
   PersonaAvailabilityMode.OWNING_BRAND,

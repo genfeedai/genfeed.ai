@@ -3,9 +3,18 @@ import type {
   ClipperReferenceFrameSet,
   HookClipApprovalStatus,
 } from '@genfeedai/contracts/interfaces';
+import { EnvironmentService } from '@services/core/environment.service';
+import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
+import type { JsonApiResponseDocument } from '@services/core/json-api';
+import { recordPageTotals } from '@services/core/page-totals';
+import type {
+  ClipperProjectSummary,
+  ClipperResult,
+} from '@/props/studio/clipper.props';
 import type {
   AnalyzeVideoPayload,
   AnalyzeVideoResponse,
+  ClipperApiClient,
   ClipperResultRawItem,
   CreateFromIngredientPayload,
   CreateFromYoutubePayload,
@@ -22,16 +31,7 @@ import type {
   RewriteHighlightResponse,
   SaveClipperDraftPayload,
   SubmitHookApprovalPayload,
-} from '@genfeedai/props/studio/clipper-api.props';
-import type {
-  ClipperProjectSummary,
-  ClipperResult,
-} from '@props/studio/clipper.props';
-import type { ClipperApiClient } from '@props/studio/clipper-api.props';
-import { EnvironmentService } from '@services/core/environment.service';
-import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
-import type { JsonApiResponseDocument } from '@services/core/json-api';
-import { recordPageTotals } from '@services/core/page-totals';
+} from '@/props/studio/clipper-api.props';
 
 import { mapClipperProjectSummary } from '../utils/map-clipper-project-summary';
 
@@ -42,7 +42,7 @@ export type {
   RewriteHighlightPayload,
   RewriteHighlightResponse,
   SubmitHookApprovalPayload,
-} from '@genfeedai/props/studio/clipper-api.props';
+} from '@/props/studio/clipper-api.props';
 
 export class ClipperApiService implements ClipperApiClient {
   private readonly apiEndpoint: string;

@@ -4,7 +4,7 @@ import type {
   ReviewFilter,
   ReviewFilterCounts,
   ReviewStatusFilter,
-} from '@props/publishing/review-filters.props';
+} from '@/props/publishing/review-filters.props';
 import {
   isApproved,
   isChangesRequested,
@@ -17,7 +17,7 @@ export type {
   ReviewFilter,
   ReviewFilterCounts,
   ReviewStatusFilter,
-} from '@props/publishing/review-filters.props';
+} from '@/props/publishing/review-filters.props';
 
 export const REVIEW_STATUS_FILTER_VALUES: ReviewStatusFilter[] = [
   'ready',

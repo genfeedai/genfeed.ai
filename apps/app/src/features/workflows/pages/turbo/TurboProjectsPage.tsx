@@ -5,7 +5,6 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { ITurboProject } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import {
   getJsonApiErrorMember,
   getJsonApiErrorMessage,
@@ -23,6 +22,7 @@ import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { Fragment, useEffect, useState } from 'react';
 import SubscriptionRequiredState from '@/features/workflows/components/guards/subscription/SubscriptionRequiredState';
+import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import TurboPresetShelf from './TurboPresetShelf';
 import TurboProjectsOnboarding from './TurboProjectsOnboarding';
 import { createTurboProjectsApi } from './turbo-projects-api';

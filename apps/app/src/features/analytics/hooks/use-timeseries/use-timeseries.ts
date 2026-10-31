@@ -5,7 +5,6 @@ import type {
   DateRange,
   ITimeSeriesApiDataPoint,
 } from '@genfeedai/contracts/interfaces';
-import type { PlatformTimeSeriesDataPoint } from '@genfeedai/props/analytics/charts.props';
 import { AnalyticsService } from '@genfeedai/services/analytics/analytics.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import {
@@ -19,6 +18,7 @@ import {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { PlatformTimeSeriesDataPoint } from '@/props/analytics/charts.props';
 
 const TIMESERIES_CACHE_TTL_MS = 15 * 60 * 1000;
 

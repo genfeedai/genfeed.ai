@@ -5,7 +5,6 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { ONBOARDING_DRAFT_PLATFORMS } from '@genfeedai/contracts/constants';
 import { useThemeLogo } from '@hooks/ui/use-theme-logo/use-theme-logo';
 import OrderedMasonry from '@ui/display/masonry/OrderedMasonry';
-import DesktopSidebar from '@ui/layouts/app/DesktopSidebar';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -22,6 +21,7 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
+import DesktopSidebar from '@/components/layouts/app/DesktopSidebar';
 import ContextForm from './context-form';
 import DraftCard from './draft-card';
 import ScheduleStep from './schedule-step';

@@ -1,5 +1,4 @@
 import { ButtonVariant } from '@genfeedai/contracts';
-import type { WorkspaceTaskComposerProps } from '@props/workspace/workspace-task-composer.props';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import {
@@ -15,6 +14,7 @@ import {
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import { useTranslations } from 'next-intl';
+import type { WorkspaceTaskComposerProps } from '@/props/workspace/workspace-task-composer.props';
 import { useWorkspaceTaskComposer } from './use-workspace-task-composer';
 import { WorkspaceTaskBrandField } from './workspace-task-brand-field';
 import {

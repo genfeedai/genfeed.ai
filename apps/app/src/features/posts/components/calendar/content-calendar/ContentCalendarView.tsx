@@ -7,12 +7,6 @@ import {
   instantForClockTime,
 } from '@genfeedai/contracts/api-types/contracts/credential-posting-times.contract';
 import { getPlatformIcon } from '@genfeedai/helpers/ui/platform-icon/platform-icon.helper';
-import type {
-  CalendarEventAction,
-  CalendarItem,
-  CalendarViewKey,
-  ContentCalendarProps,
-} from '@genfeedai/props/components/calendar.props';
 import Card from '@ui/card/Card';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
@@ -30,6 +24,12 @@ import type {
 } from 'fullcalendar';
 import { Calendar as FullCalendar } from 'fullcalendar/all';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import type {
+  CalendarEventAction,
+  CalendarItem,
+  CalendarViewKey,
+  ContentCalendarProps,
+} from '@/props/components/calendar.props';
 import 'fullcalendar/skeleton.css';
 import classicThemePlugin from 'fullcalendar/themes/classic';
 import 'fullcalendar/themes/classic/palette.css';

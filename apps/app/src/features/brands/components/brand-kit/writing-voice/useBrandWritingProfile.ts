@@ -8,8 +8,6 @@ import type {
   IGeneratedBrandProfile,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
-import { useSaveQueue } from '@hooks/utils/use-save-queue/use-save-queue';
 import type {
   AgentProfileFormState,
   AgentProfilePlatformOverrideFormState,
@@ -24,6 +22,8 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { BrandsService } from '@services/social/brands.service';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useOrganization } from '@/hooks/data/organization/use-organization/use-organization';
+import { useSaveQueue } from '@/hooks/utils/use-save-queue/use-save-queue';
 
 import { getBrandVoiceFailureView } from './brand-voice-failure.util';
 

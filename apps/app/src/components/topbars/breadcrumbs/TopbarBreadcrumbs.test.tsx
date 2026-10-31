@@ -1,0 +1,182 @@
+import { fireEvent, render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import TopbarBreadcrumbs from '@/components/topbars/breadcrumbs/TopbarBreadcrumbs';
+
+const mockExitNestedGroup = vi.fn();
+
+let mockNavigationState: {
+  activeGroupId: string;
+  activePageLabel: string;
+  breadcrumbPageLabel?: string;
+  breadcrumbParentLabel?: string;
+  breadcrumbRootLabel?: string;
+  exitNestedGroup: typeof mockExitNestedGroup;
+  nestedGroupId?: string | null;
+} = {
+  activeGroupId: '',
+  activePageLabel: '',
+  exitNestedGroup: mockExitNestedGroup,
+};
+
+vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
+  useSidebarNavigation: () => ({
+    activeGroupId: mockNavigationState.activeGroupId,
+    activePageLabel: mockNavigationState.activePageLabel,
+    breadcrumbPageLabel:
+      mockNavigationState.breadcrumbPageLabel ??
+      mockNavigationState.activePageLabel,
+    breadcrumbParentHref: '',
+    breadcrumbParentLabel: mockNavigationState.breadcrumbParentLabel ?? '',
+    breadcrumbRootHref: '',
+    breadcrumbRootLabel:
+      mockNavigationState.breadcrumbRootLabel ??
+      mockNavigationState.activeGroupId,
+    enterNestedGroup: vi.fn(),
+    exitNestedGroup: mockNavigationState.exitNestedGroup,
+    groups: [],
+    nestedGroupId: mockNavigationState.nestedGroupId ?? null,
+  }),
+}));
+
+vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => path,
+  }),
+}));
+
+describe('TopbarBreadcrumbs', () => {
+  beforeEach(() => {
+    mockExitNestedGroup.mockClear();
+    mockNavigationState = {
+      activeGroupId: '',
+      activePageLabel: '',
+      exitNestedGroup: mockExitNestedGroup,
+    };
+  });
+
+  it('returns null when there is no breadcrumb state', () => {
+    const { container } = render(<TopbarBreadcrumbs />);
+
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('renders group and page without a leading slash', () => {
+    mockNavigationState = {
+      activeGroupId: 'Library',
+      activePageLabel: 'Images',
+      exitNestedGroup: mockExitNestedGroup,
+      nestedGroupId: 'Library',
+    };
+
+    render(<TopbarBreadcrumbs />);
+
+    expect(screen.getByText('Library')).toBeInTheDocument();
+    expect(screen.getByText('Images')).toBeInTheDocument();
+    expect(screen.getAllByText('/')).toHaveLength(1);
+  });
+
+  it('uses the root label override for the first segment', () => {
+    mockNavigationState = {
+      activeGroupId: 'Library',
+      activePageLabel: 'Images',
+      exitNestedGroup: mockExitNestedGroup,
+    };
+
+    render(<TopbarBreadcrumbs rootLabel="Admin" />);
+
+    expect(screen.getByText('Admin')).toBeInTheDocument();
+    expect(screen.queryByText('Library')).not.toBeInTheDocument();
+  });
+
+  it('uses canonical route labels without changing nested navigation state', () => {
+    mockNavigationState = {
+      activeGroupId: 'Assets',
+      activePageLabel: '',
+      breadcrumbPageLabel: 'Moodboard',
+      breadcrumbRootLabel: 'Library',
+      exitNestedGroup: mockExitNestedGroup,
+    };
+
+    render(<TopbarBreadcrumbs />);
+
+    expect(screen.getByText('Library')).toBeInTheDocument();
+    expect(screen.getByText('Moodboard')).toBeInTheDocument();
+    expect(screen.queryByText('Assets')).not.toBeInTheDocument();
+  });
+
+  it('renders a canonical parent segment for nested product routes', () => {
+    mockNavigationState = {
+      activeGroupId: 'Discovery',
+      activePageLabel: 'Google',
+      breadcrumbPageLabel: 'Google',
+      breadcrumbParentLabel: 'Ads',
+      breadcrumbRootLabel: 'Discovery',
+      exitNestedGroup: mockExitNestedGroup,
+    };
+
+    render(<TopbarBreadcrumbs />);
+
+    expect(screen.getByText('Discovery')).toBeInTheDocument();
+    expect(screen.getByText('Ads')).toBeInTheDocument();
+    expect(screen.getByText('Google')).toBeInTheDocument();
+    expect(screen.getAllByText('/')).toHaveLength(2);
+  });
+
+  it('uses a fallback root label when the active page has no group', () => {
+    mockNavigationState = {
+      activeGroupId: '',
+      activePageLabel: 'Dashboard',
+      exitNestedGroup: mockExitNestedGroup,
+    };
+
+    render(<TopbarBreadcrumbs fallbackRootLabel="Workspace" />);
+
+    expect(screen.getByText('Workspace')).toBeInTheDocument();
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Workspace' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not render the current page as a heading', () => {
+    mockNavigationState = {
+      activeGroupId: '',
+      activePageLabel: 'Dashboard',
+      exitNestedGroup: mockExitNestedGroup,
+    };
+
+    render(<TopbarBreadcrumbs fallbackRootLabel="Workspace" />);
+
+    expect(
+      screen.queryByRole('heading', { name: 'Dashboard' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('exits nested mode when the group breadcrumb is clicked', () => {
+    mockNavigationState = {
+      activeGroupId: 'Library',
+      activePageLabel: 'Images',
+      exitNestedGroup: mockExitNestedGroup,
+      nestedGroupId: 'Library',
+    };
+
+    render(<TopbarBreadcrumbs />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Library' }));
+
+    expect(mockExitNestedGroup).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders a single group as plain text when there is no page label', () => {
+    mockNavigationState = {
+      activeGroupId: 'Library',
+      activePageLabel: '',
+      exitNestedGroup: mockExitNestedGroup,
+    };
+
+    render(<TopbarBreadcrumbs />);
+
+    expect(screen.getByText('Library').tagName).toBe('SPAN');
+    expect(screen.queryByRole('button', { name: 'Library' })).toBeNull();
+  });
+});

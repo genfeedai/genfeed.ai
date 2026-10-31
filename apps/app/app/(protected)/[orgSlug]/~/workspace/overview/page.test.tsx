@@ -21,7 +21,7 @@ vi.mock(
   }),
 );
 
-vi.mock('@ui/guards/feature/FeatureGate', () => ({
+vi.mock('@/components/guards/feature/FeatureGate', () => ({
   default: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 

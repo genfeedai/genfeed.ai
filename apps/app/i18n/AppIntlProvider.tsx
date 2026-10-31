@@ -1,9 +1,9 @@
 'use client';
 
 import type { AppLocale } from '@genfeedai/contracts/constants';
-import { useViewerTimeZone } from '@hooks/ui/use-viewer-time-zone/use-viewer-time-zone';
 import { NextIntlClientProvider } from 'next-intl';
 import { type ReactNode, useMemo } from 'react';
+import { useViewerTimeZone } from '@/hooks/ui/use-viewer-time-zone/use-viewer-time-zone';
 import { loadClientMessages } from './client-messages';
 
 interface AppIntlProviderProps {

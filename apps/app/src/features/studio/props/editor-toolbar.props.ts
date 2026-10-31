@@ -1,5 +1,5 @@
 import type { IngredientFormat } from '@genfeedai/contracts';
-import type { EditorSaveStatus } from '@props/studio/editor-save.props';
+import type { EditorSaveStatus } from '@/props/studio/editor-save.props';
 
 export interface EditorToolbarProps {
   projectName: string;

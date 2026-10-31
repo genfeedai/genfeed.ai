@@ -1,9 +1,5 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers';
-import type {
-  ClipperInputFormProps,
-  ClipperResultMode,
-} from '@props/studio/clipper.props';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -20,6 +16,10 @@ import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolba
 import { CirclePlay, Search, SlidersHorizontal, Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { KeyboardEvent, ReactNode } from 'react';
+import type {
+  ClipperInputFormProps,
+  ClipperResultMode,
+} from '@/props/studio/clipper.props';
 
 function isClipperResultMode(value: string): value is ClipperResultMode {
   return value === 'raw-cut' || value === 'avatar';

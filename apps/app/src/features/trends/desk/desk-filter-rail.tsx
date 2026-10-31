@@ -3,8 +3,8 @@
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import type { TrendsSummary } from '@props/trends/trends-page.props';
-import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import { useTranslations } from 'next-intl';
+import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import type { DiscoveryDeskContentTypeFilter } from '@/features/trends/desk/desk-state';
 import type {
   DiscoveryDeskItem,

@@ -1,11 +1,11 @@
 'use client';
 
-import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
-import SearchField from '@ui/content/search-field/SearchField';
 import Container from '@ui/layout/container/Container';
 import { MessageSquareText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
+import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
+import SearchField from '@/components/content/search-field/SearchField';
 import LibraryAssetTypeFilter from '@/features/ingredients/layout/library-asset-type-filter';
 
 export default function LibraryCaptionsPage({

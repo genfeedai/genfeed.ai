@@ -4,13 +4,8 @@ import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { PageScope } from '@genfeedai/contracts';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
-import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import {
-  FOREGROUND_MIN_AWAY_MS,
-  onForeground,
-} from '@hooks/utils/on-foreground/on-foreground';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
@@ -26,7 +21,12 @@ import {
   getActivityDescription,
   isBackgroundTask,
 } from '@/features/activities/activities-list.utils';
+import { useActivities } from '@/hooks/data/activities/use-activities/use-activities';
 import { useActivityMessageFormatter } from '@/hooks/i18n/useActivityMessageFormatter';
+import {
+  FOREGROUND_MIN_AWAY_MS,
+  onForeground,
+} from '@/hooks/utils/on-foreground/on-foreground';
 
 export const LIVE_ACTIVITY_LIMIT = 50;
 export const ACTIVITY_RECONCILE_MS = 15_000;

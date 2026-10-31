@@ -1,11 +1,11 @@
 import { ArticleCategory } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
-import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
 import FormDropdown from '@ui/primitives/dropdown-field';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
 import type { ChangeEvent } from 'react';
+import LazyRichTextEditor from '@/components/editors/LazyRichTextEditor';
 import type { ArticleEditFormProps } from '@/features/studio/props/article-edit-form.props';
 
 const ARTICLE_CATEGORY_OPTIONS = Object.values(ArticleCategory)

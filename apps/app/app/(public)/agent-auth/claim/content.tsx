@@ -3,7 +3,6 @@
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { EnvironmentService } from '@services/core/environment.service';
-import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
@@ -12,6 +11,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
+import AuthFormLayout from '@/components/layouts/auth/AuthFormLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import type {
   ClaimDetails,

@@ -3,7 +3,6 @@ import type {
   HookClipApprovalAction,
   HookClipApprovalStatus,
 } from '@genfeedai/contracts/interfaces';
-import type { ClipperProgressViewProps } from '@props/studio/clipper.props';
 import Card from '@ui/card/Card';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import { Button } from '@ui/primitives/button';
@@ -13,6 +12,7 @@ import { Textarea } from '@ui/primitives/textarea';
 import { Check, Film, Sparkles, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import type { ClipperProgressViewProps } from '@/props/studio/clipper.props';
 import ClipperResultCard from './ClipperResultCard';
 
 export default function ClipperProgressView({

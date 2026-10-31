@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 
-import type { DetailPageProps } from '@props/pages/page.props';
 import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import type { DetailPageProps } from '@/props/pages/page.props';
 import * as PageModule from './page';
 
 assertSourceHasExport(

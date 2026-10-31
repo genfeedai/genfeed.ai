@@ -5,12 +5,12 @@ import {
   type RefreshFunction,
 } from '@contexts/posts/posts-layout-context';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import AdminOrgBrandUrlFilter from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Newspaper } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Suspense, useCallback, useMemo, useReducer } from 'react';
+import AdminOrgBrandUrlFilter from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import type {
   PostsLayoutAction,
   PostsLayoutState,

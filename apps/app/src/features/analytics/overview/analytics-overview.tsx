@@ -9,9 +9,7 @@ import {
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IAnalytics } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import type { TopPostData } from '@hooks/data/analytics/use-top-posts/use-top-posts';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import type {
   IBrandWithStats,
   IOrgLeaderboardItem,
@@ -25,6 +23,8 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import AnalyticsTopAccounts from '@/features/analytics/accounts/analytics-top-accounts';
+import type { TopPostData } from '@/hooks/data/analytics/use-top-posts/use-top-posts';
+import type { PlatformTimeSeriesDataPoint } from '@/props/analytics/charts.props';
 import AnalyticsOverviewAlerts from './analytics-overview-alerts';
 import AnalyticsOverviewHero from './analytics-overview-hero';
 import AnalyticsOverviewLeaderboards from './analytics-overview-leaderboards';

@@ -11,11 +11,11 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
-import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Image as LucideImage } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
+import IngredientsMediaGrid from '@/components/ingredients/list/media-grid/IngredientsMediaGrid';
 
 export default function TrainingImagesTab({
   scope = PageScope.ORGANIZATION,

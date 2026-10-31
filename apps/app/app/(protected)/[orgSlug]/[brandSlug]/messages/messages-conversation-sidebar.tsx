@@ -13,13 +13,6 @@ import {
   conversationSidebarRowClassName,
 } from '@genfeedai/ui';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import type {
-  MessagesBrandFilterOption,
-  MessagesConversationSidebarProps,
-  MessagesInboxView,
-  MessagesSurface,
-  PaginationState,
-} from '@props/messages/messages-conversation-sidebar.props';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import PaginationStepper from '@ui/navigation/pagination/PaginationStepper';
@@ -28,6 +21,13 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { MessageSquare, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type {
+  MessagesBrandFilterOption,
+  MessagesConversationSidebarProps,
+  MessagesInboxView,
+  MessagesSurface,
+  PaginationState,
+} from '@/props/messages/messages-conversation-sidebar.props';
 import MessagesFilterMenu from './messages-filter-menu';
 
 export type { MessagesInboxView, MessagesSurface };

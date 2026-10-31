@@ -2,8 +2,6 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { MemberRole } from '@genfeedai/contracts';
-import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
-import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
 import { Switch } from '@ui/primitives/switch';
@@ -13,6 +11,8 @@ import type {
   AutomationSettingField,
   AutomationSettingKey,
 } from '@/features/settings/props/organization-automation-card.props';
+import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
+import { useOrganization } from '@/hooks/data/organization/use-organization/use-organization';
 
 const AUTOMATION_SETTING_FIELDS: AutomationSettingField[] = [
   { key: 'isBreakoutResponsesEnabled', messageKey: 'breakoutResponses' },

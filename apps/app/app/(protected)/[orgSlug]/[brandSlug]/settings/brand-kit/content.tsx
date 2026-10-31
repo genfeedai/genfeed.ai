@@ -7,9 +7,7 @@ import type {
   IBrandKitDraft,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import { BrandsService } from '@services/social/brands.service';
 import BrandCompletenessCard from '@ui/cards/brand-completeness-card/BrandCompletenessCard';
 import Container from '@ui/layout/container/Container';
@@ -43,6 +41,8 @@ import BrandDetailReferencesCard from '@/features/brands/components/sidebar/Bran
 import BrandEndCardSettings from '@/features/brands/components/sidebar/BrandEndCardSettings';
 import BrandLutSettings from '@/features/brands/components/sidebar/BrandLutSettings';
 import BrandWatermarkSettings from '@/features/brands/components/sidebar/BrandWatermarkSettings';
+import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
+import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
 import { captureBrandOsFunnelStage } from '@/lib/analytics';
 import { BRAND_KIT_TAB_PATHS, isBrandKitPathTab } from './brand-kit-tabs';
 

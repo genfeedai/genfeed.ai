@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import TopbarShared from '@/features/ingredients/components/topbars/shared/TopbarShared';
 
-vi.mock('@ui/topbars/breadcrumbs/TopbarBreadcrumbs', () => ({
+vi.mock('@/components/topbars/breadcrumbs/TopbarBreadcrumbs', () => ({
   default: () => <div data-testid="breadcrumbs" />,
 }));
 

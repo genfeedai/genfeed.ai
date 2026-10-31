@@ -2,7 +2,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants/routes.constant';
 import {
   type AppRailPathRoots,
   getActiveAppId,
-} from '@ui/shell/app-rail/app-rail.active-app';
+} from '@/components/shell/app-rail/app-rail.active-app';
 
 /**
  * Path roots per app, mirroring the app rail registry. The registry carries

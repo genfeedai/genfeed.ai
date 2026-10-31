@@ -1,9 +1,6 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { useIngredientsById } from '@hooks/media/use-ingredients-by-id';
-import type { CharacterCreateDialogProps } from '@props/characters/characters-page.props';
-import IngredientThumbnail from '@ui/ingredients/ingredient-thumbnail/IngredientThumbnail';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import {
@@ -17,6 +14,9 @@ import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+import IngredientThumbnail from '@/components/ingredients/ingredient-thumbnail/IngredientThumbnail';
+import { useIngredientsById } from '@/hooks/media/use-ingredients-by-id';
+import type { CharacterCreateDialogProps } from '@/props/characters/characters-page.props';
 
 import CharacterAvailabilityFields from './character-availability-fields';
 

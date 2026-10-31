@@ -63,7 +63,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => serviceMocks.useBrand(),
 }));
 
-vi.mock('@hooks/data/organization/use-organization/use-organization', () => ({
+vi.mock('@/hooks/data/organization/use-organization/use-organization', () => ({
   useOrganization: () => serviceMocks.useOrganization(),
 }));
 

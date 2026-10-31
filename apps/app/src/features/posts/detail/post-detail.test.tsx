@@ -5,10 +5,10 @@ import {
 } from '@contexts/ui/context-sidebar-context';
 import { PageScope, Platform, PostStatus } from '@genfeedai/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
-import type { TargetPreviewProps } from '@genfeedai/props/ui/previews.props';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PostDetail from '@/features/posts/detail/post-detail';
+import type { TargetPreviewProps } from '@/props/ui/previews.props';
 import '@testing-library/jest-dom/vitest';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -67,7 +67,7 @@ vi.mock(
   }),
 );
 
-vi.mock('@ui/previews/TargetPreview', () => ({
+vi.mock('@/components/previews/TargetPreview', () => ({
   default: ({ release }: TargetPreviewProps) => (
     <div data-testid="target-preview" data-content={release.baseContent} />
   ),

@@ -6,7 +6,6 @@ import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { PendingCalendarDrop } from '@props/publisher/release-calendar.props';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -33,6 +32,7 @@ import {
   isReleaseDraggable,
   releaseScheduledInstant,
 } from '@/features/posts/shared/release-status.helpers';
+import type { PendingCalendarDrop } from '@/props/publisher/release-calendar.props';
 
 /** Wire status → Kanban column. `review` is derived from `PAUSED` only. */
 const COLUMN_STATUSES: Record<ReleaseBoardColumnId, ReleaseStatus[]> = {

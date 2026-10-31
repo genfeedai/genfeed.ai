@@ -36,7 +36,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', async () => {
 });
 
 // Search is exercised by the service request; skip the debounce delay.
-vi.mock('@hooks/utils/use-debounce/use-debounce', () => ({
+vi.mock('@/hooks/utils/use-debounce/use-debounce', () => ({
   useDebounce: <T,>(value: T) => value,
 }));
 

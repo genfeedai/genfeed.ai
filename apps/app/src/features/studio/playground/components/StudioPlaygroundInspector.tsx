@@ -23,7 +23,6 @@ import { ImagesService } from '@services/ingredients/images.service';
 import { VideosService } from '@services/ingredients/videos.service';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
-import { useIngredientGenerationCost } from '@ui/ingredients/inspector/use-ingredient-generation-cost';
 import GenerationHarnessReceipt from '@ui/ingredients/tabs/prompts/GenerationHarnessReceipt';
 import { useIngredientDownloadHandler } from '@ui/masonry/shared/useMasonryHover';
 import { PanelTabs } from '@ui/navigation/tabs/Tabs';
@@ -55,6 +54,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useIngredientGenerationCost } from '@/components/ingredients/inspector/use-ingredient-generation-cost';
 import {
   resolveStudioAssetFacts,
   resolveStudioAssetUrl,

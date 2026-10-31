@@ -3,7 +3,6 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { usePageScope } from '@hooks/navigation/use-page-scope/use-page-scope';
-import { useIngredientSidebar } from '@hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
 import { Alert, AlertDescription } from '@ui/primitives/alert';
@@ -11,6 +10,7 @@ import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { readRelationshipId } from '@/features/library-remix/library-remix-reference';
+import { useIngredientSidebar } from '@/hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
 
 // A link opened straight from another page races auth, brand and organization
 // settling: the first lookup can fail for a reason that clears a moment later.

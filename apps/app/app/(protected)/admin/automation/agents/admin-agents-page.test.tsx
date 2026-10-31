@@ -24,12 +24,12 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   }),
 }));
 
-vi.mock('@ui/content/admin-filters/AdminOrgBrandUrlFilter', () => ({
+vi.mock('@/components/content/admin-filters/AdminOrgBrandUrlFilter', () => ({
   default: () => <div>Organization filter</div>,
   useAdminOrgBrandParams: () => ({ brand: '', organization: 'org-2' }),
 }));
 
-vi.mock('@ui/content/admin-filters/useAdminSearchParam', () => ({
+vi.mock('@/components/content/admin-filters/useAdminSearchParam', () => ({
   useAdminSearchParam: () => ({
     search: mocks.search.value,
     setSearch: vi.fn(),

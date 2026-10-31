@@ -45,7 +45,6 @@ import {
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useIngredientSidebar } from '@hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import type { ContentProps } from '@props/layout/content.props';
 import { PostsService } from '@services/content/posts.service';
@@ -77,6 +76,7 @@ import {
   type PostsPublicationState,
   type PublishingPostsView,
 } from '@/features/posts/list/posts-list-query';
+import { useIngredientSidebar } from '@/hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
 
 // Shared empty fallbacks — see `hydratedPostPresets` below. These must be
 // module-level constants so an omitted prop keeps a stable identity.

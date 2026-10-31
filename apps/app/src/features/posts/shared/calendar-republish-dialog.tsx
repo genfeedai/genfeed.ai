@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
-import type { CalendarRepublishDialogProps } from '@props/publisher/release-calendar.props';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import {
@@ -13,6 +12,7 @@ import {
   DialogTitle,
 } from '@ui/primitives/dialog';
 import { useTranslations } from 'next-intl';
+import type { CalendarRepublishDialogProps } from '@/props/publisher/release-calendar.props';
 
 export const CALENDAR_MOVE_ACTION = 'calendar-move';
 export const CALENDAR_REPUBLISH_ACTION = 'republish';

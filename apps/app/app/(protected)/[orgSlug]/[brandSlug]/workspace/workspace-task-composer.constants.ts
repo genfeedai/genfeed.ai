@@ -1,6 +1,6 @@
-import type { WorkspaceTaskMode } from '@props/workspace/workspace-task-composer.props';
+import type { WorkspaceTaskMode } from '@/props/workspace/workspace-task-composer.props';
 
-export type { WorkspaceTaskMode } from '@props/workspace/workspace-task-composer.props';
+export type { WorkspaceTaskMode } from '@/props/workspace/workspace-task-composer.props';
 
 export const TASK_PRESETS = [
   {

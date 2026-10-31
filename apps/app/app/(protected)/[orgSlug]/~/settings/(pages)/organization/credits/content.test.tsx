@@ -38,7 +38,7 @@ vi.mock('@genfeedai/config/license', async (importOriginal) => ({
   hasOrganizationBillingHint: () => hasOrganizationBillingMock(),
 }));
 
-vi.mock('@hooks/data/subscription/use-subscription/use-subscription', () => ({
+vi.mock('@/hooks/data/subscription/use-subscription/use-subscription', () => ({
   useSubscription: () => useSubscriptionMock(),
 }));
 
@@ -237,7 +237,7 @@ const mockCreditsRuntime = vi.hoisted(() =>
   vi.fn<() => DesktopRuntimeSnapshot>(),
 );
 vi.mock(
-  '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context',
+  '@/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context',
   () => ({
     useDesktopRuntimeContext: mockCreditsRuntime,
   }),

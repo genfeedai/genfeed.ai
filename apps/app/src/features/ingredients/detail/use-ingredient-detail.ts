@@ -10,8 +10,6 @@ import {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useIngredientServices } from '@hooks/data/ingredients/use-ingredient-services/use-ingredient-services';
 import useIngredientActions from '@hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
-import { useIngredientSidebar } from '@hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
-import type { IngredientDetailProps } from '@props/content/ingredient.props';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
@@ -20,6 +18,8 @@ import { buildAgentPromptHref } from '@utils/url/desktop-loop-url.util';
 import { format } from 'date-fns';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useIngredientSidebar } from '@/hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
+import type { IngredientDetailProps } from '@/props/content/ingredient.props';
 
 const INGREDIENT_CACHE_TTL_MS = 15 * 60 * 1000;
 

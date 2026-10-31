@@ -20,7 +20,6 @@ import {
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Member } from '@models/organization/member.model';
 import { Member as MemberModel } from '@models/organization/member.model';
@@ -32,7 +31,6 @@ import { RolesService } from '@services/organization/roles.service';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
-import { LazyModalMember } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
@@ -42,7 +40,9 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { LazyModalMember } from '@/components/lazy/modal/LazyModal';
 import type { MemberBrandAccessProps } from '@/features/settings/props/members-list.props';
+import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
 import MemberDetails from './member-details';
 
 function formatInvitationStatus(status: IMemberInvitation['status']): string {

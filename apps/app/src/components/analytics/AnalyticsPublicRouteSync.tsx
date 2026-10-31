@@ -1,9 +1,9 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { useAuthUser } from '@hooks/auth/use-auth-user';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
+import { useAuthUser } from '@/hooks/auth/use-auth-user';
 import {
   captureAnalyticsPageview,
   clearAnalyticsOrganization,

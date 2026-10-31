@@ -17,12 +17,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { CHARACTERS_CHANGED_EVENT } from '@genfeedai/helpers/content/character-mention.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import type {
-  CharacterAvailabilityDraft,
-  CharactersPageState,
-} from '@props/characters/characters-page.props';
 import { PersonasService } from '@services/content/personas.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
@@ -33,6 +28,11 @@ import { resolvePendingIds } from '@utils/network/generation.util';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
+import type {
+  CharacterAvailabilityDraft,
+  CharactersPageState,
+} from '@/props/characters/characters-page.props';
 
 function resolveCharacterImageUrl(id: string): string {
   return `${EnvironmentService.ingredientsEndpoint}/images/${id}`;

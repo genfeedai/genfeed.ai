@@ -1,13 +1,13 @@
 'use client';
 
 import type { KPICardProps } from '@props/ui/kpi/kpi-card.props';
-import { SeriesChart } from '@ui/analytics/charts/series/series-chart';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Gauge } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+import { SeriesChart } from '@/components/analytics/charts/series/series-chart';
+import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import EconomicsPeriodFilter from '../economics-period-filter';
 import {
   EMPTY_ECONOMICS_TOTALS,

@@ -1,8 +1,8 @@
+import { describe, expect, it } from 'vitest';
 import {
   ADMIN_RAIL_CATEGORIES,
   APP_RAIL_REGISTRY,
-} from '@ui/shell/app-rail/app-rail.registry';
-import { describe, expect, it } from 'vitest';
+} from '@/components/shell/app-rail/app-rail.registry';
 import { ANALYTICS_APP_PATH_ROOTS, resolveAnalyticsApp } from './analytics-app';
 
 describe('ANALYTICS_APP_PATH_ROOTS', () => {

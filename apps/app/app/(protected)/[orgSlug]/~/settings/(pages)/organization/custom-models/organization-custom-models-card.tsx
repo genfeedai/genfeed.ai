@@ -2,8 +2,6 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant, MemberRole } from '@genfeedai/contracts';
-import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
-import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
@@ -14,6 +12,8 @@ import { Check } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
+import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
+import { useOrganization } from '@/hooks/data/organization/use-organization/use-organization';
 
 const CTA_POINT_KEYS = ['consistent', 'trained', 'managed'] as const;
 

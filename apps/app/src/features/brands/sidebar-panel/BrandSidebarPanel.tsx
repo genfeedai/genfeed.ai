@@ -8,12 +8,12 @@ import {
 import { isPublicAssetScope } from '@genfeedai/helpers';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
+import { Badge } from '@ui/primitives/badge';
+import { useTranslations } from 'next-intl';
 import {
   LazyModalBrandGenerate,
   LazyModalBrandLink,
-} from '@ui/lazy/modal/LazyModal';
-import { Badge } from '@ui/primitives/badge';
-import { useTranslations } from 'next-intl';
+} from '@/components/lazy/modal/LazyModal';
 import type { BrandSidebarPanelProps } from '@/features/brands/props/brand-sidebar.props';
 import BrandOverviewPanel from '@/features/brands/sidebar-panel/BrandOverviewPanel';
 import { useBrandSidebarPanel } from '@/features/brands/sidebar-panel/useBrandSidebarPanel';

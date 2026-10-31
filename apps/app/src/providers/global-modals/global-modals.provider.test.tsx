@@ -34,7 +34,7 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => vi.fn(),
 }));
 
-vi.mock('@ui/lazy/modal/LazyModal', () => ({
+vi.mock('@/components/lazy/modal/LazyModal', () => ({
   LazyModalBrandCreate: () => null,
   LazyModalConfirm: () => null,
   LazyModalExport: () => null,
@@ -48,7 +48,7 @@ vi.mock('@ui/lazy/modal/LazyModal', () => ({
   LazyModalUpload: () => null,
 }));
 
-vi.mock('@ui/modals', () => ({
+vi.mock('@/components/modals', () => ({
   ModalUpgradePrompt: () => null,
 }));
 

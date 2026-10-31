@@ -13,18 +13,18 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { BlacklistsService } from '@services/elements/blacklists.service';
-import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import Badge from '@ui/display/badge/Badge';
 import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
-import { LazyModalBlacklist } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Pencil, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
+import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
+import { LazyModalBlacklist } from '@/components/lazy/modal/LazyModal';
 import type {
   BlacklistsAction,
   BlacklistsState,

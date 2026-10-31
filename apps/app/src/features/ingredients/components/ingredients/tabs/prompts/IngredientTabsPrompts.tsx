@@ -1,8 +1,8 @@
 'use client';
 
 import type { IPrompt } from '@genfeedai/contracts/interfaces';
-import type { IngredientTabsPromptsProps } from '@genfeedai/props/content/ingredient.props';
 import GenerationHarnessReceipt from '@ui/ingredients/tabs/prompts/GenerationHarnessReceipt';
+import type { IngredientTabsPromptsProps } from '@/props/content/ingredient.props';
 
 export default function IngredientTabsPrompts({
   ingredient,

@@ -2,7 +2,6 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant, Platform } from '@genfeedai/contracts';
-import { usePlatformOAuthConnect } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
@@ -13,6 +12,7 @@ import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
+import { usePlatformOAuthConnect } from '@/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import LivestreamBotConfigCard from './LivestreamBotConfigCard';
 import LivestreamPlatformTargets from './LivestreamPlatformTargets';
 import LivestreamSessionPanels from './LivestreamSessionPanels';

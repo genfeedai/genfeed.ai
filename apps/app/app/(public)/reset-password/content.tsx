@@ -2,7 +2,6 @@
 
 import { resetPassword } from '@genfeedai/auth-client';
 import { ButtonVariant } from '@genfeedai/contracts';
-import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
@@ -11,6 +10,7 @@ import { CircleCheck, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { type ChangeEvent, type FormEvent, useState } from 'react';
+import AuthFormLayout from '@/components/layouts/auth/AuthFormLayout';
 import { getAuthCallbackURL, getAuthFlowHref } from '../auth-callback-url';
 import {
   AUTH_LINK_CLASS_NAME,

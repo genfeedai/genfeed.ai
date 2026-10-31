@@ -1,10 +1,10 @@
 import { IngredientFormat } from '@genfeedai/contracts';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
   EditorProjectContent,
   EditorSaveStatus,
   EditorSaveStorage,
-} from '@props/studio/editor-save.props';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+} from '@/props/studio/editor-save.props';
 import {
   createEditorSaveOutbox,
   EditorSaveConflictError,

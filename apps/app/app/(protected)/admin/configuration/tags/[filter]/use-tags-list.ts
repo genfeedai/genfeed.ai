@@ -13,9 +13,9 @@ import { TagsService } from '@services/content/tags.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import type { TagsListProps } from '@/features/admin/props/tags-list.props';
 
 const SUPERADMIN: ContentScope = 'superadmin';

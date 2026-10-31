@@ -33,7 +33,7 @@ function renderPostsList(restoredFilters?: AnalyticsQueryFilters) {
   );
 }
 
-vi.mock('@hooks/data/analytics/use-top-posts/use-top-posts', () => ({
+vi.mock('@/hooks/data/analytics/use-top-posts/use-top-posts', () => ({
   useTopPosts: (...args: unknown[]) => useTopPostsMock(...args),
 }));
 
@@ -50,7 +50,7 @@ vi.mock('next/navigation', () => ({
   useSearchParams: vi.fn(() => new URLSearchParams()),
 }));
 
-vi.mock('@ui/content/filter-menu/FilterMenu', () => ({
+vi.mock('@/components/content/filter-menu/FilterMenu', () => ({
   default: ({
     facets,
   }: {

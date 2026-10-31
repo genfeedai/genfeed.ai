@@ -170,7 +170,7 @@ vi.mock('@ui/display/table/Table', () => ({
   },
 }));
 
-vi.mock('@ui/lazy/modal/LazyModal', () => ({
+vi.mock('@/components/lazy/modal/LazyModal', () => ({
   LazyModalTag: ({
     entityId,
     item,

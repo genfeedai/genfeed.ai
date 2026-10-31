@@ -1,7 +1,7 @@
 'use client';
 
-import { useDesktopWindowChrome } from '@hooks/ui/use-desktop-window-chrome/use-desktop-window-chrome';
 import { usePathname } from 'next/navigation';
+import { useDesktopWindowChrome } from '@/hooks/ui/use-desktop-window-chrome/use-desktop-window-chrome';
 
 const AUTH_FULL_BLEED_PREFIXES = [
   '/login',

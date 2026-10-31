@@ -5,14 +5,14 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { AdminAnnouncementsService } from '@services/admin/announcements.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
-import SearchField from '@ui/content/search-field/SearchField';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Megaphone } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useReducer } from 'react';
+import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
+import SearchField from '@/components/content/search-field/SearchField';
 import type {
   AnnouncementComposeFormState,
   AnnouncementsPageProps,

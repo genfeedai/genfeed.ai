@@ -1,5 +1,5 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { PageHelpRoute } from '@props/layout/page-help-route.props';
+import type { PageHelpRoute } from '@/props/layout/page-help-route.props';
 
 /**
  * Route prefix → `pages.help.<key>` catalog entry. Longest prefix wins, so

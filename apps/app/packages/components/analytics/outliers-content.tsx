@@ -11,9 +11,9 @@ import {
   useAnalyticsToolbar,
 } from '@genfeedai/contexts/analytics/analytics-context';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
-import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import AnalyticsOutliers from '@/features/analytics/outliers/analytics-outliers';
 import { DiscoveryRemixProvider } from '@/features/research/remix/DiscoveryRemixProvider';
 

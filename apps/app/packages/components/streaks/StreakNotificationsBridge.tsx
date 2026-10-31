@@ -2,13 +2,13 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import type { IStreakSummary } from '@genfeedai/contracts/types';
-import { useStreak } from '@hooks/data/streaks/use-streak/use-streak';
 import { NotificationsService } from '@services/core/notifications.service';
 import {
   STREAK_CELEBRATION_EVENT,
   type StreakCelebrationDetail,
 } from '@services/engagement/streak-events';
 import { useEffect } from 'react';
+import { useStreak } from '@/hooks/data/streaks/use-streak/use-streak';
 
 const STORAGE_KEY = 'genfeed:streak-announcements:v1';
 

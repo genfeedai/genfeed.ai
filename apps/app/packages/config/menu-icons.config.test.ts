@@ -1,11 +1,11 @@
 import { SettingsSurface } from '@genfeedai/contracts';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import { findAnimatedIcon } from '@ui/primitives/animated-icons/animated-icon.registry';
+import { describe, expect, it } from 'vitest';
 import {
   ADMIN_RAIL_APP,
   APP_RAIL_REGISTRY,
-} from '@ui/shell/app-rail/app-rail.registry';
-import { describe, expect, it } from 'vitest';
+} from '@/components/shell/app-rail/app-rail.registry';
 
 import { ADMIN_MENU_ITEMS } from './admin-menu-items.config';
 import { ANALYTICS_MENU_ITEMS } from './analytics-menu-items.config';

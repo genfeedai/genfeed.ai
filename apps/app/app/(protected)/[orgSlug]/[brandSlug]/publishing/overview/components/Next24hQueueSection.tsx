@@ -1,8 +1,8 @@
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { ListRow } from '@ui/lists/list-row/ListRow';
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { useTranslations } from 'next-intl';
+import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type { PublishingOverviewQueueSectionProps } from '@/features/posts/props/publishing-overview.props';
 

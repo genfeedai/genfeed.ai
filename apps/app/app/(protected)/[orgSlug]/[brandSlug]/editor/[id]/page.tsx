@@ -1,6 +1,6 @@
 import EditorDetailSurface from '@app/(protected)/[orgSlug]/[brandSlug]/editor/[id]/editor-detail-surface';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import type { DetailPageProps } from '@props/pages/page.props';
+import type { DetailPageProps } from '@/props/pages/page.props';
 
 export const generateMetadata = createPageMetadata('Editor');
 

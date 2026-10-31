@@ -18,7 +18,6 @@ import {
   type SaveAdInput,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useSavedAds } from '@hooks/data/analytics/use-saved-ads/use-saved-ads';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   AdsResearchService,
@@ -38,6 +37,7 @@ import {
   getResearchFindingReferenceKey,
   toAdsResearchFinding,
 } from '@/features/research/work-surface/research-work-surface.types';
+import { useSavedAds } from '@/hooks/data/analytics/use-saved-ads/use-saved-ads';
 
 const EMPTY_RESPONSE: AdsResearchResponse = {
   connectedAds: [],

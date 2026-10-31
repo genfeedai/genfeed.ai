@@ -11,7 +11,6 @@ import {
   resolveAuthToken,
 } from '@genfeedai/helpers/auth/auth.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import type { ProtectedBootstrapData } from '@genfeedai/props/layout/protected-bootstrap.props';
 import type { GlobalModalRenderer } from '@genfeedai/props/modals/global-modals.props';
@@ -22,6 +21,7 @@ import PromptBarProvider from '@providers/promptbar/promptbar.provider';
 import ThemePreferenceSync from '@providers/theme-sync/theme-preference-sync';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
+import { useIsDesktopClient } from '@/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import { GlobalModalsProvider } from '@/providers/global-modals/global-modals.provider';
 
 export interface ProtectedProvidersProps extends LayoutProps {

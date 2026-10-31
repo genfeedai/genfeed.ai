@@ -13,7 +13,6 @@ import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity
 import { EnvironmentService } from '@services/core/environment.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import Card from '@ui/card/Card';
-import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { SelectField } from '@ui/primitives/select';
@@ -21,6 +20,7 @@ import { ArrowUpRight, Check, Lock } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import AuthFormLayout from '@/components/layouts/auth/AuthFormLayout';
 import type {
   ConsentState,
   OAuthDecisionResponse,

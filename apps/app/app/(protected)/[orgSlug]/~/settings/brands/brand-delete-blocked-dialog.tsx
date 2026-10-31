@@ -5,7 +5,6 @@ import {
   APP_ROUTES,
   createBrandAppRoute,
 } from '@genfeedai/contracts/constants';
-import type { BrandDeleteBlockedDialogProps } from '@props/characters/characters-page.props';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -17,6 +16,7 @@ import {
 } from '@ui/primitives/dialog';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import type { BrandDeleteBlockedDialogProps } from '@/props/characters/characters-page.props';
 
 export default function BrandDeleteBlockedDialog({
   brandLabel,

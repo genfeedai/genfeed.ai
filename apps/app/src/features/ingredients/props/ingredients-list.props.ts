@@ -20,12 +20,12 @@ import type {
   ITag,
 } from '@genfeedai/contracts/interfaces';
 import type { CrunVideoPromptBinding } from '@genfeedai/props/studio/prompt-bar.props';
-import type { IngredientsTypeProps } from '@props/content/ingredient.props';
+import type { Dispatch, ReactNode, SetStateAction } from 'react';
+import type { IngredientsTypeProps } from '@/props/content/ingredient.props';
 import type {
   FailedIngredientsRecoveryProps,
   UseFailedIngredientRecoveryReturn,
-} from '@props/content/ingredient-recovery.props';
-import type { Dispatch, ReactNode, SetStateAction } from 'react';
+} from '@/props/content/ingredient-recovery.props';
 
 export type ImageToVideoPromptDraft = Partial<PromptTextareaSchema> & {
   isValid: boolean;

@@ -18,9 +18,6 @@ import {
   heyGenVoiceValue,
 } from '@helpers/voice/heygen-identity.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useAvatarImages } from '@hooks/data/ingredients/use-avatar-images/use-avatar-images';
-import { useHeyGenCatalog } from '@hooks/data/integrations/use-heygen-catalog';
-import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Voice } from '@models/ingredients/voice.model';
 import type { BrandDetailIdentityCardProps } from '@props/pages/brand-detail.props';
@@ -35,6 +32,9 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useVoiceCatalog } from '@/features/library/voices/hooks/use-voice-catalog';
+import { useAvatarImages } from '@/hooks/data/ingredients/use-avatar-images/use-avatar-images';
+import { useHeyGenCatalog } from '@/hooks/data/integrations/use-heygen-catalog';
+import { useOrganization } from '@/hooks/data/organization/use-organization/use-organization';
 import BrandIdentityActions from './BrandIdentityActions';
 import BrandIdentityAvatarField from './BrandIdentityAvatarField';
 import BrandIdentityVoiceField from './BrandIdentityVoiceField';

@@ -36,7 +36,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getSystemEmailsService,
 }));
 
-vi.mock('@ui/content/admin-filters/useAdminSearchParam', () => ({
+vi.mock('@/components/content/admin-filters/useAdminSearchParam', () => ({
   useAdminSearchParam: () => ({
     search: mocks.search,
     setSearch: mocks.setSearch,
@@ -91,7 +91,7 @@ vi.mock('@ui/layout/container/Container', () => ({
   ),
 }));
 
-vi.mock('@ui/overview/WorkspaceSurface', () => ({
+vi.mock('@/components/overview/WorkspaceSurface', () => ({
   WorkspaceSurface: ({
     children,
     title,

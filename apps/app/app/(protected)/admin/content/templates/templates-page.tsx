@@ -4,7 +4,6 @@ import { AlertCategory, ButtonVariant, ViewType } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IContentTemplate } from '@genfeedai/contracts/interfaces/content/template-ui.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import { TemplateService } from '@services/content/template.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -12,7 +11,6 @@ import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionView from '@ui/collection/CollectionView';
 import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
-import SearchField from '@ui/content/search-field/SearchField';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
@@ -24,7 +22,9 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import SearchField from '@/components/content/search-field/SearchField';
 import type { TemplateView } from '@/features/admin/props/templates.props';
+import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import { toTemplateView } from './template-view';
 
 function TemplatesPageContent() {

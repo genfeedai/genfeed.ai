@@ -1,7 +1,6 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
-import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
@@ -12,6 +11,7 @@ import type {
   ExtendedOrganizationSettings,
   GenerationDefaultsState,
 } from '@/features/settings/props/organization-generation-defaults-card.props';
+import { useOrganization } from '@/hooks/data/organization/use-organization/use-organization';
 import OrganizationGenerationDefaultsMediaSection from './organization-generation-defaults-media-section';
 import OrganizationGenerationDefaultsTextSection from './organization-generation-defaults-text-section';
 

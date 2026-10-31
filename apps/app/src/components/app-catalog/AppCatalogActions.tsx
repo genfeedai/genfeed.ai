@@ -1,9 +1,9 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { AppCatalogActionsProps } from '@genfeedai/props/apps/organization-apps-page.props';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import type { AppCatalogActionsProps } from '@/props/apps/organization-apps-page.props';
 import { isAppCatalogOpenable } from './app-catalog-state';
 
 /** Open or Add, with Pin and Remove in the overflow menu once installed. */

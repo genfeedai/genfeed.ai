@@ -26,14 +26,14 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
-vi.mock('@hooks/feature-flags/use-feature-flag', () => ({
+vi.mock('@/hooks/feature-flags/use-feature-flag', () => ({
   useFeatureFlag: () => true,
 }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));
 vi.mock(
-  '@hooks/utils/use-collection-view-preference/use-collection-view-preference',
+  '@/hooks/utils/use-collection-view-preference/use-collection-view-preference',
   () => ({
     useCollectionViewPreference: () => ({
       view: ViewType.LIST,

@@ -1,10 +1,10 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
-import type { StudioPresetShelfProps } from '@props/studio/studio-presets.props';
 import CollectionSection from '@ui/collection/CollectionSection';
 import { Button } from '@ui/primitives/button';
 import { type ReactElement, useState } from 'react';
+import type { StudioPresetShelfProps } from '@/props/studio/studio-presets.props';
 
 const DEFAULT_COLLAPSED_COUNT = 4;
 

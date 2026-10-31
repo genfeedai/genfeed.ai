@@ -17,13 +17,6 @@ import type {
   IChannelTarget,
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
-import type {
-  CalendarEventAction,
-  CalendarEventBadge,
-  CalendarEventChannel,
-  CalendarEventDrop,
-  CalendarViewKey,
-} from '@props/components/calendar.props';
 import {
   act,
   fireEvent,
@@ -33,6 +26,13 @@ import {
 } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type {
+  CalendarEventAction,
+  CalendarEventBadge,
+  CalendarEventChannel,
+  CalendarEventDrop,
+  CalendarViewKey,
+} from '@/props/components/calendar.props';
 import {
   CALENDAR_DEFAULT_EVENT_COLOR,
   CALENDAR_SLOT_EVENT_COLOR,
@@ -66,7 +66,7 @@ const articleModal = vi.hoisted(() => ({
 vi.mock('@helpers/ui/modal/modal.helper', () => ({
   openModal: (...args: unknown[]) => articleModal.open(...args),
 }));
-vi.mock('@ui/lazy/modal/LazyModal', () => ({
+vi.mock('@/components/lazy/modal/LazyModal', () => ({
   LazyModalArticle: ({
     onCreated,
   }: {
@@ -194,9 +194,12 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (...args: unknown[]) => useAuthedServiceMock(...args),
 }));
 
-vi.mock('@hooks/utils/use-calendar-week-range/use-calendar-week-range', () => ({
-  useCalendarWeekRange: vi.fn(() => [calendarDateRange, setDateRangeMock]),
-}));
+vi.mock(
+  '@/hooks/utils/use-calendar-week-range/use-calendar-week-range',
+  () => ({
+    useCalendarWeekRange: vi.fn(() => [calendarDateRange, setDateRangeMock]),
+  }),
+);
 
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {

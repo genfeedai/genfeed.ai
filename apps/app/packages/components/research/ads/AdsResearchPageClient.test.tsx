@@ -229,7 +229,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getAdsResearchServiceMock,
 }));
 
-vi.mock('@hooks/data/analytics/use-saved-ads/use-saved-ads', () => ({
+vi.mock('@/hooks/data/analytics/use-saved-ads/use-saved-ads', () => ({
   useSavedAds: () => ({
     brandId: 'brand-1',
     error: null,
@@ -389,7 +389,7 @@ vi.mock('@ui/primitives/input', () => ({
 
 // The real menu is covered by FilterMenu's own tests; here every option is a
 // plain button named "<facet>: <option>" so page wiring can be asserted.
-vi.mock('@ui/content/filter-menu/FilterMenu', () => ({
+vi.mock('@/components/content/filter-menu/FilterMenu', () => ({
   default: ({
     facets,
     onClear,

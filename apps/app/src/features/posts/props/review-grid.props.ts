@@ -1,5 +1,5 @@
 import type { ITurboRunItem } from '@genfeedai/contracts/interfaces';
-import type { ReviewRewriteProgressProps } from '@props/publishing/review-rewrite-progress.props';
+import type { ReviewRewriteProgressProps } from '@/props/publishing/review-rewrite-progress.props';
 
 export interface ReviewGridProps {
   activeItem: ITurboRunItem | null;

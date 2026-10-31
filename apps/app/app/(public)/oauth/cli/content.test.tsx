@@ -50,7 +50,7 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => useSearchParamsMock(),
 }));
 
-vi.mock('@ui/layouts/auth/AuthFormLayout', () => ({
+vi.mock('@/components/layouts/auth/AuthFormLayout', () => ({
   default: ({ children }: { children: ReactNode }) => (
     <div data-testid="auth-form-layout">{children}</div>
   ),

@@ -3,9 +3,9 @@ import type {
   ClipperReferenceFrameCandidate,
   ClipperReferenceFrameDiagnostic,
 } from '@genfeedai/contracts/interfaces';
-import type { ClipperReferenceFrameSelectorProps } from '@props/studio/clipper.props';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
+import type { ClipperReferenceFrameSelectorProps } from '@/props/studio/clipper.props';
 
 const MAX_VISIBLE_DIAGNOSTICS = 3;
 

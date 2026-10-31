@@ -10,7 +10,7 @@ vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ organizationId: 'org' }),
 }));
-vi.mock('@hooks/data/ingredients/use-avatar-images/use-avatar-images', () => ({
+vi.mock('@/hooks/data/ingredients/use-avatar-images/use-avatar-images', () => ({
   useAvatarImages: () => ({ avatars: [], isLoading: false }),
 }));
 vi.mock('@/features/library/voices/hooks/use-voice-catalog', () => ({

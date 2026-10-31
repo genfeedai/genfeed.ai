@@ -23,7 +23,7 @@ Source of truth:
   `scripts/architecture/check-product-route-inventory.ts`
 - Shell surface resolver in `apps/app/packages/components/useAppProtectedLayout.ts`
 - Sidebar resolver in `apps/app/packages/components/AppProtectedLayoutSidebar.tsx`
-- App rail in `packages/ui/src/components/shell/app-rail/AppRail.tsx`, hosted by
+- App rail in `apps/app/src/components/shell/app-rail/AppRail.tsx`, hosted by
   `apps/app/src/components/shell/AppProtectedRail.tsx` (#5304)
 
 ## App Rail Modules

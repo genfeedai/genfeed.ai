@@ -139,7 +139,7 @@ vi.mock(
 );
 
 let capturedConversionModal: ModalImageToVideoProps | undefined;
-vi.mock('@ui/lazy/modal/LazyModal', () => ({
+vi.mock('@/components/lazy/modal/LazyModal', () => ({
   LazyModalImageToVideo: (props: ModalImageToVideoProps) => {
     capturedConversionModal = props;
     return null;

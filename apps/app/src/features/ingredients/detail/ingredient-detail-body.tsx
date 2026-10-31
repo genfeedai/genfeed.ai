@@ -2,14 +2,14 @@
 
 import { IngredientCategory } from '@genfeedai/contracts';
 import type { ICredential, IIngredient } from '@genfeedai/contracts/interfaces';
+import { EnvironmentService } from '@services/core/environment.service';
+import { LazyModalTrim } from '@/components/lazy/modal/LazyModal';
+import IngredientDetailImage from '@/features/ingredients/detail-image/IngredientDetailImage';
+import IngredientDetailVideo from '@/features/ingredients/detail-video/IngredientDetailVideo';
 import type {
   IngredientDetailImageProps,
   IngredientDetailVideoProps,
-} from '@props/content/ingredient.props';
-import { EnvironmentService } from '@services/core/environment.service';
-import { LazyModalTrim } from '@ui/lazy/modal/LazyModal';
-import IngredientDetailImage from '@/features/ingredients/detail-image/IngredientDetailImage';
-import IngredientDetailVideo from '@/features/ingredients/detail-video/IngredientDetailVideo';
+} from '@/props/content/ingredient.props';
 
 type Props = {
   ingredient: IIngredient;

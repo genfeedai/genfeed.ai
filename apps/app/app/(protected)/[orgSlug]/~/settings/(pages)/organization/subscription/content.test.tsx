@@ -32,7 +32,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 const useSubscriptionMock = vi.fn();
-vi.mock('@hooks/data/subscription/use-subscription/use-subscription', () => ({
+vi.mock('@/hooks/data/subscription/use-subscription/use-subscription', () => ({
   useSubscription: () => useSubscriptionMock(),
 }));
 
@@ -82,7 +82,7 @@ vi.mock('@tanstack/react-query', () => ({
 
 const runtime = vi.hoisted(() => vi.fn<() => DesktopRuntimeSnapshot>());
 vi.mock(
-  '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context',
+  '@/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context',
   () => ({ useDesktopRuntimeContext: runtime }),
 );
 vi.mock('@helpers/media/metadata/page-metadata.helper', () => ({

@@ -15,12 +15,12 @@ import CollectionGrid from '@ui/collection/CollectionGrid';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionSection from '@ui/collection/CollectionSection';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
-import OverviewLayout from '@ui/overview/OverviewLayout';
 import { Button } from '@ui/primitives/button';
 import { ChartLine, Cpu, MessageSquare, Workflow } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+import OverviewLayout from '@/components/overview/OverviewLayout';
 import type {
   OrganizationAutomationBrand,
   OrganizationAutomationBrandCardProps,

@@ -11,10 +11,7 @@ import {
   type OrganizationModuleId,
   organizationModuleOverridesSchema,
 } from '@genfeedai/contracts/constants';
-import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
-import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
@@ -24,7 +21,6 @@ import CollectionSection from '@ui/collection/CollectionSection';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
-import { APP_RAIL_REGISTRY } from '@ui/shell/app-rail/app-rail.registry';
 import { Text } from '@ui/typography/text';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -34,7 +30,11 @@ import {
   APP_CATALOG,
   APP_CATALOG_CATEGORY_IDS,
 } from '@/components/app-catalog/app-catalog';
+import { APP_RAIL_REGISTRY } from '@/components/shell/app-rail/app-rail.registry';
 import type { OrganizationModuleTileProps } from '@/features/settings/props/organization-modules-card.props';
+import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
+import { useOrganization } from '@/hooks/data/organization/use-organization/use-organization';
+import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
 
 /**
  * Settings → Modules: which apps the organization shows its members, laid

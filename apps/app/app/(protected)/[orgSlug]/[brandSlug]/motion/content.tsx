@@ -13,14 +13,10 @@ import type {
   VisualCodeJson,
   VisualCodeQuoteRequest,
 } from '@genfeedai/contracts/interfaces';
-import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
-import { useVisualProjects } from '@hooks/data/content/use-visual-projects';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { VisualCodeQuoteReview } from '@props/studio/visual-code.props';
 import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
-import OrganizationModulePreferenceGate from '@ui/guards/organization-module/OrganizationModulePreferenceGate';
 import Container from '@ui/layout/container/Container';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import { Button } from '@ui/primitives/button';
@@ -42,11 +38,15 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
+import OrganizationModulePreferenceGate from '@/components/guards/organization-module/OrganizationModulePreferenceGate';
 import type { MotionSettingKey } from '@/features/motion/props/motion-composer.props';
 import type {
   MotionPreset,
   MotionPresetId,
 } from '@/features/motion/props/motion-presets.props';
+import { useVisualProjects } from '@/hooks/data/content/use-visual-projects';
+import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
+import type { VisualCodeQuoteReview } from '@/props/studio/visual-code.props';
 import MotionAdvancedSettings from './components/MotionAdvancedSettings';
 import MotionPresetPanel from './components/MotionPresetPanel';
 import MotionQuoteReview from './components/MotionQuoteReview';

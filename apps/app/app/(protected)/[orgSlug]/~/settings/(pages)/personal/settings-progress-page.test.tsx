@@ -46,7 +46,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   }),
 }));
 
-vi.mock('@hooks/utils/use-setup-card/use-setup-card', () => ({
+vi.mock('@/hooks/utils/use-setup-card/use-setup-card', () => ({
   useSetupCard: () => ({
     completedCount: 1,
     isVisible: true,
@@ -70,7 +70,7 @@ vi.mock('@hooks/utils/use-setup-card/use-setup-card', () => ({
   }),
 }));
 
-vi.mock('@hooks/data/streaks/use-streak/use-streak', () => ({
+vi.mock('@/hooks/data/streaks/use-streak/use-streak', () => ({
   useStreak: () => ({
     calendar: {
       '2026-03-10': { count: 2, types: ['image'] },

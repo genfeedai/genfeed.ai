@@ -15,11 +15,11 @@ vi.mock('next/navigation', () => ({
   usePathname: () => state.pathname,
 }));
 
-vi.mock('@hooks/feature-flags/provider', () => ({
+vi.mock('@/hooks/feature-flags/provider', () => ({
   useFeatureFlagContext: () => ({ flags: state.flags, isConfigured: true }),
 }));
 
-vi.mock('@hooks/auth/use-is-super-admin/use-is-super-admin', () => ({
+vi.mock('@/hooks/auth/use-is-super-admin/use-is-super-admin', () => ({
   useIsSuperAdmin: () => state.isSuperAdmin,
 }));
 

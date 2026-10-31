@@ -1,4 +1,4 @@
-import type { InboxItem } from '@props/messages/replies-page.props';
+import type { InboxItem } from '@/props/messages/replies-page.props';
 
 /** Keeps the comments whose author, text or parent post contain the term. */
 export function filterInboxItems(

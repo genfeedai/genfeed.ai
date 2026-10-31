@@ -6,8 +6,6 @@ import {
   RssImportPolicy,
 } from '@genfeedai/contracts';
 import type { ICredential, IRssSource } from '@genfeedai/contracts/interfaces';
-import { useRssSources } from '@hooks/data/content/use-rss-sources';
-import type { PublishingRssSourcesSectionProps } from '@props/scheduler/rss-sources-section.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
@@ -25,6 +23,8 @@ import {
 } from '@ui/primitives/select';
 import { Switch } from '@ui/primitives/switch';
 import { type ChangeEvent, useCallback, useState } from 'react';
+import { useRssSources } from '@/hooks/data/content/use-rss-sources';
+import type { PublishingRssSourcesSectionProps } from '@/props/scheduler/rss-sources-section.props';
 
 function getCredentialLabel(credential: ICredential): string {
   const handle = credential.externalHandle?.replace(/^@/, '');

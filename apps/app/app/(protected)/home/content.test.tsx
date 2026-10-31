@@ -158,7 +158,7 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
   }),
 }));
 
-vi.mock('@hooks/data/activities/use-activities/use-activities', () => ({
+vi.mock('@/hooks/data/activities/use-activities/use-activities', () => ({
   useActivities: (options: { scope?: string }) => {
     mocks.activityOptions = options;
     return {
@@ -194,7 +194,7 @@ vi.mock('next-intl', async () => {
   };
 });
 
-vi.mock('@hooks/data/overview/use-overview-bootstrap', () => ({
+vi.mock('@/hooks/data/overview/use-overview-bootstrap', () => ({
   useOverviewBootstrap: () => ({
     activeRuns: [],
     analytics: { pendingPosts: 0 },
@@ -216,7 +216,7 @@ vi.mock('@hooks/data/overview/use-overview-bootstrap', () => ({
   }),
 }));
 
-vi.mock('@hooks/data/workflow-executions/use-workflow-executions', () => ({
+vi.mock('@/hooks/data/workflow-executions/use-workflow-executions', () => ({
   useWorkflowExecutions: () => ({
     cancelExecution: mocks.cancelExecution,
     executions: mocks.executions,

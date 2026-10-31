@@ -16,7 +16,6 @@ import {
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { AsyncState } from '@props/shared';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { CredentialsService } from '@services/organization/credentials.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
@@ -25,9 +24,10 @@ import { TurboRunsService } from '@services/turbo/turbo-runs.service';
 import { useQuery } from '@tanstack/react-query';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import { buildSocialConnections } from '@ui/modals/brands/brand/ModalBrand.types';
-import { OverviewContent } from '@ui/overview/OverviewLayout';
 import { Calendar, ClipboardCheck, List, Send } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
+import { OverviewContent } from '@/components/overview/OverviewLayout';
+import type { AsyncState } from '@/props/shared';
 
 import { isReadyToReview } from '../review/components/review-state';
 import { buildAccountHealthRows } from './account-health.util';

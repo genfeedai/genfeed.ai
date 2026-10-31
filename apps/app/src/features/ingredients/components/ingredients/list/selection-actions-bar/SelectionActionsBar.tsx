@@ -1,12 +1,12 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
-import type { SelectionActionsBarProps } from '@genfeedai/props/content/ingredient.props';
 import SelectionToolbar from '@ui/lists/selection-toolbar/SelectionToolbar';
 import { Button } from '@ui/primitives/button';
-import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
 import { Download, Film, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import PromptBarDivider from '@/components/prompt-bars/components/divider/PromptBarDivider';
+import type { SelectionActionsBarProps } from '@/props/content/ingredient.props';
 
 export default function SelectionActionsBar({
   count,

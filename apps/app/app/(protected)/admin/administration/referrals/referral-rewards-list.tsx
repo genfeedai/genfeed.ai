@@ -9,8 +9,6 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import { ReferralsService } from '@services/billing/referrals.service';
 import { logger } from '@services/core/logger.service';
 import { useQuery } from '@tanstack/react-query';
-import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
-import SearchField from '@ui/content/search-field/SearchField';
 import Badge from '@ui/display/badge/Badge';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
@@ -22,6 +20,8 @@ import { Gift, TriangleAlert } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
+import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
+import SearchField from '@/components/content/search-field/SearchField';
 
 const REFERRAL_REWARD_STATUS_LABELS: Record<ReferralRewardStatus, string> = {
   [ReferralRewardStatus.CANCELLED]: 'Cancelled',

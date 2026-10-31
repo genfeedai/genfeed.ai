@@ -1,5 +1,5 @@
 import { isRecord } from '@genfeedai/utils/data/extract.util';
-import type { BlockedCharacter } from '@props/characters/characters-page.props';
+import type { BlockedCharacter } from '@/props/characters/characters-page.props';
 
 export const BRAND_OWNS_SHARED_CHARACTERS = 'brand_owns_shared_characters';
 

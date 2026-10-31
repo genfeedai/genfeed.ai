@@ -2,15 +2,15 @@ import '@testing-library/jest-dom/vitest';
 import BrandTopVideosSection from '@app-components/analytics/top-videos/brand-top-videos-section';
 import { normalizeBrandVideo } from '@app-components/analytics/top-videos/use-brand-top-videos';
 import { Platform } from '@genfeedai/contracts';
-import {
-  evaluationVideoCache,
-  evaluationVideosQueryKey,
-  invalidateEvaluationVideoRead,
-} from '@hooks/ui/evaluation/use-evaluation/evaluation-read-cache';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { type ReactNode, StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  evaluationVideoCache,
+  evaluationVideosQueryKey,
+  invalidateEvaluationVideoRead,
+} from '@/hooks/ui/evaluation/use-evaluation/evaluation-read-cache';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
@@ -42,10 +42,10 @@ vi.mock('@genfeedai/contexts/analytics/analytics-context', () => ({
 }));
 
 vi.mock(
-  '@hooks/ui/evaluation/use-evaluation/evaluation-read-cache',
+  '@/hooks/ui/evaluation/use-evaluation/evaluation-read-cache',
   async (importOriginal) => ({
     ...(await importOriginal<
-      typeof import('@hooks/ui/evaluation/use-evaluation/evaluation-read-cache')
+      typeof import('@/hooks/ui/evaluation/use-evaluation/evaluation-read-cache')
     >()),
     useEvaluationReadScopeKey: () => mocks.scopeKey,
   }),

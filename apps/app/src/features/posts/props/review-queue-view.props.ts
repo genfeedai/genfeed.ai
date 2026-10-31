@@ -5,9 +5,9 @@ import type {
 import type {
   ReviewFilterCounts,
   ReviewStatusFilter,
-} from '@props/publishing/review-filters.props';
-import type { ReviewInboxApprovalsState } from '@props/publishing/review-inbox-approvals.props';
-import type { ReviewRewriteProgressProps } from '@props/publishing/review-rewrite-progress.props';
+} from '@/props/publishing/review-filters.props';
+import type { ReviewInboxApprovalsState } from '@/props/publishing/review-inbox-approvals.props';
+import type { ReviewRewriteProgressProps } from '@/props/publishing/review-rewrite-progress.props';
 
 export interface ReviewQueueViewProps {
   activeFilters: readonly ReviewStatusFilter[];

@@ -2,10 +2,10 @@
 
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
 import { CreditsService } from '@services/billing/credits.service';
 import { logger } from '@services/core/logger.service';
 import { useEffect, useState } from 'react';
+import { useDebounce } from '@/hooks/utils/use-debounce/use-debounce';
 
 export const STUDIO_RETRY_CREDIT_BACK_DEBOUNCE_MS = 800;
 

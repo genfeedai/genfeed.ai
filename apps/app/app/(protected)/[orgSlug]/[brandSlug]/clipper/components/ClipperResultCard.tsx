@@ -4,13 +4,6 @@ import { formatMinutesSeconds } from '@genfeedai/helpers/formatting/duration/dur
 import { buildClipperDraftAgentHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { downloadUrl } from '@helpers/media/download/download.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type {
-  ClipperLibraryLinkStatus,
-  ClipperReadyAction,
-  ClipperResultCardProps,
-  ClipStatus,
-  ViralityBadgeProps,
-} from '@props/studio/clipper.props';
 import Card from '@ui/card/Card';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Badge } from '@ui/primitives/badge';
@@ -20,6 +13,13 @@ import { Download, Library, Rocket, SquarePen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
+import type {
+  ClipperLibraryLinkStatus,
+  ClipperReadyAction,
+  ClipperResultCardProps,
+  ClipStatus,
+  ViralityBadgeProps,
+} from '@/props/studio/clipper.props';
 
 const STATUS_CONFIG: Record<ClipStatus, { label?: string; color: string }> = {
   captioning: {

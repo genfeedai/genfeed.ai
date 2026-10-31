@@ -12,14 +12,11 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   })),
 }));
 
-vi.mock(
-  '@genfeedai/hooks/data/organization/use-organization/use-organization',
-  () => ({
-    useOrganization: vi.fn(() => ({
-      refresh: vi.fn(),
-    })),
-  }),
-);
+vi.mock('@/hooks/data/organization/use-organization/use-organization', () => ({
+  useOrganization: vi.fn(() => ({
+    refresh: vi.fn(),
+  })),
+}));
 
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => vi.fn()),

@@ -1,8 +1,8 @@
+import type { Task } from '@services/management/tasks.service';
 import type {
   WorkspaceTaskLinkedOutputSummary,
   WorkspaceTaskOutputGroup,
-} from '@props/workspace/workspace-task-inspector.props';
-import type { Task } from '@services/management/tasks.service';
+} from '@/props/workspace/workspace-task-inspector.props';
 
 export interface WorkspaceTaskOutputsCardProps {
   approvedOutputIds: string[];

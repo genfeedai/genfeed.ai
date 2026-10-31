@@ -13,11 +13,9 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ScenesService } from '@services/elements/scenes.service';
-import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
 import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
 import { useElementRowSidebar } from '@ui/display/element-scope-badge/element-row-sidebar';
 import AppTable from '@ui/display/table/Table';
-import { LazyModalScene } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Pencil, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
@@ -30,6 +28,8 @@ import {
   useReducer,
   useRef,
 } from 'react';
+import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
+import { LazyModalScene } from '@/components/lazy/modal/LazyModal';
 import type {
   SceneFetchStatus as FetchStatus,
   ScenesAction,

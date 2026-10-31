@@ -1,0 +1,267 @@
+'use client';
+
+import { useBrandCreateModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
+import { getBrandOrganizationSlug } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
+import { ButtonVariant } from '@genfeedai/contracts';
+import { createBrandAppRoute } from '@genfeedai/contracts/constants';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { UsersService } from '@genfeedai/services/organization/users.service';
+import SwitcherAvatar from '@ui/menus/switcher-dropdown/SwitcherAvatar';
+import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
+import {
+  SWITCHER_AVATAR_CLASSNAME,
+  SWITCHER_CHEVRON_CLASSNAME,
+  SWITCHER_COMPOSITE_CLEAR_CLASSNAME,
+  SWITCHER_COMPOSITE_CLEAR_VISIBLE_CLASSNAME,
+  SWITCHER_COMPOSITE_SHELL_CLASSNAME,
+  SWITCHER_COMPOSITE_TRIGGER_CLASSNAME,
+  SWITCHER_LABEL_CLASSNAME,
+  SWITCHER_TRIGGER_CLASSNAME,
+  SWITCHER_TRIGGER_OPEN_CLASSNAME,
+} from '@ui/menus/switchers/switcher-trigger.classes';
+import { Button } from '@ui/primitives/button';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
+import { ChevronsUpDown, Settings, UserRound, X } from 'lucide-react';
+import { type MouseEvent, useCallback, useState } from 'react';
+import type { BrandSwitcherProps } from '@/props/social/brand-switcher.props';
+
+export default function MenuBrandSwitcher({
+  brands,
+  brandId,
+  clearSelectionAction,
+  compactOnMobile = false,
+  isUpdatingBrand: externalIsUpdating,
+  onBrandChange,
+  onLogoError,
+  variant = 'avatar',
+}: BrandSwitcherProps) {
+  const getUsersService = useAuthedService((token: string) =>
+    UsersService.getInstance(token),
+  );
+
+  const { openBrandCreateModal } = useBrandCreateModal();
+  const [isUpdatingBrand, setIsUpdatingBrand] = useState(false);
+
+  const isUpdating = externalIsUpdating ?? isUpdatingBrand;
+  const selectedBrand = brands.find((b) => b.id === brandId);
+  const selectedBrandLabel = selectedBrand?.label || 'Select Brand';
+  const shouldShowClearSelection =
+    variant === 'labeled' && Boolean(clearSelectionAction) && Boolean(brandId);
+
+  const handleSelect = useCallback(
+    async (id: string) => {
+      const url = `PATCH /brands/${id}`;
+      try {
+        setIsUpdatingBrand(true);
+        const service = await getUsersService();
+        await service.patchMeBrand(id);
+        logger.info(`${url} success`);
+        onBrandChange?.(id);
+      } catch (error) {
+        logger.error(`${url} failed`, error);
+      } finally {
+        setIsUpdatingBrand(false);
+      }
+    },
+    [getUsersService, onBrandChange],
+  );
+
+  const handleClearSelection = useCallback(() => {
+    if (!clearSelectionAction || isUpdating) {
+      return;
+    }
+
+    clearSelectionAction.onSelect();
+  }, [clearSelectionAction, isUpdating]);
+
+  const handleClearButtonClick = useCallback(
+    (event: MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+      handleClearSelection();
+    },
+    [handleClearSelection],
+  );
+
+  if (brands.length === 0) {
+    return null;
+  }
+
+  const items = [
+    ...brands.map((b) => {
+      const label = `${b.label ?? 'Untitled'}${b.isFleetEnabled ? ' · Fleet' : ''}`;
+      const orgSlug = getBrandOrganizationSlug(b);
+
+      return {
+        id: b.id,
+        imageUrl: b.logoUrl || undefined,
+        isActive: b.id === brandId,
+        label,
+        trailingAction:
+          orgSlug && b.slug
+            ? {
+                ariaLabel: `Open ${b.label ?? 'brand'} settings`,
+                href: createBrandAppRoute(orgSlug, b.slug, '/settings'),
+                icon: Settings,
+                onAction: () => undefined,
+              }
+            : undefined,
+        extraTrailingActions: b.slug
+          ? [
+              {
+                ariaLabel: `Open ${b.label ?? 'brand'} public profile`,
+                href: `${EnvironmentService.apps.website}/u/${b.slug}`,
+                icon: UserRound,
+                onAction: () => undefined,
+                target: '_blank' as const,
+              },
+            ]
+          : undefined,
+      };
+    }),
+  ];
+
+  const brandAvatar = (
+    <SwitcherAvatar
+      alt={selectedBrand?.label ?? 'Brand'}
+      fallbackClassName={SWITCHER_AVATAR_CLASSNAME}
+      imageUrl={selectedBrand?.logoUrl || undefined}
+      imageWrapperClassName={SWITCHER_AVATAR_CLASSNAME}
+      letter={selectedBrandLabel.charAt(0).toUpperCase()}
+      onImageError={onLogoError}
+    />
+  );
+
+  const labeledTrigger = (isOpen: boolean) => (
+    <Button
+      type="button"
+      data-testid="brand-switcher-trigger"
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
+      className={cn(
+        shouldShowClearSelection
+          ? SWITCHER_COMPOSITE_TRIGGER_CLASSNAME
+          : SWITCHER_TRIGGER_CLASSNAME,
+        compactOnMobile && 'gap-0 px-1 md:gap-2 md:px-2.5',
+        isUpdating && 'cursor-not-allowed opacity-50',
+        !shouldShowClearSelection && isOpen && SWITCHER_TRIGGER_OPEN_CLASSNAME,
+      )}
+      ariaLabel="Switch brand"
+      title={selectedBrandLabel}
+    >
+      {brandAvatar}
+      <span
+        className={cn(
+          SWITCHER_LABEL_CLASSNAME,
+          compactOnMobile && 'hidden md:inline',
+        )}
+      >
+        {isUpdating ? 'Switching…' : selectedBrandLabel}
+      </span>
+      <ChevronsUpDown
+        className={cn(
+          SWITCHER_CHEVRON_CLASSNAME,
+          compactOnMobile && 'hidden md:block',
+        )}
+      />
+    </Button>
+  );
+
+  if (variant !== 'labeled') {
+    return (
+      <div className="flex w-full min-w-0 items-center justify-end">
+        <SwitcherDropdown
+          className="flex w-full justify-end"
+          items={items}
+          renderTrigger={({ isOpen }) => (
+            <Button
+              type="button"
+              data-testid="brand-switcher-trigger"
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+              className={cn(
+                'flex items-center justify-center rounded-md p-1 transition-colors duration-150 hover:bg-foreground/5',
+                isUpdating && 'cursor-not-allowed opacity-50',
+                isOpen && SWITCHER_TRIGGER_OPEN_CLASSNAME,
+              )}
+              ariaLabel="Switch brand"
+              title={selectedBrandLabel}
+            >
+              {brandAvatar}
+            </Button>
+          )}
+          onSelect={(id) => void handleSelect(id)}
+          onImageError={onLogoError}
+          isDisabled={isUpdating}
+          hasSearch={items.length >= 5}
+          minWidth={220}
+          searchPlaceholder="Search brands…"
+          footerActions={[
+            {
+              label: 'New Brand',
+              onAction: () => openBrandCreateModal(),
+            },
+          ]}
+        />
+      </div>
+    );
+  }
+
+  // Labeled: one chip — trigger (+ optional clear) share one shell so the X
+  // is not a second bordered box.
+  return (
+    <SwitcherDropdown
+      className="w-full"
+      items={items}
+      renderTrigger={({ isOpen }) =>
+        shouldShowClearSelection ? (
+          <div
+            className={cn(
+              SWITCHER_COMPOSITE_SHELL_CLASSNAME,
+              isOpen && SWITCHER_TRIGGER_OPEN_CLASSNAME,
+              isUpdating && 'opacity-50',
+            )}
+          >
+            {labeledTrigger(isOpen)}
+            <Button
+              type="button"
+              data-testid="clear-brand-selection"
+              ariaLabel={
+                clearSelectionAction?.ariaLabel ?? 'Clear brand selection'
+              }
+              title={clearSelectionAction?.ariaLabel ?? 'Clear brand selection'}
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+              isDisabled={isUpdating}
+              onClick={handleClearButtonClick}
+              className={cn(
+                SWITCHER_COMPOSITE_CLEAR_CLASSNAME,
+                hoverRevealClassName({ isOpen }),
+                isOpen && SWITCHER_COMPOSITE_CLEAR_VISIBLE_CLASSNAME,
+              )}
+            >
+              <X className="size-3.5" />
+            </Button>
+          </div>
+        ) : (
+          labeledTrigger(isOpen)
+        )
+      }
+      onSelect={(id) => void handleSelect(id)}
+      onImageError={onLogoError}
+      isDisabled={isUpdating}
+      hasSearch={items.length >= 5}
+      minWidth={224}
+      searchPlaceholder="Search brands…"
+      footerActions={[
+        {
+          label: 'New Brand',
+          onAction: () => openBrandCreateModal(),
+        },
+      ]}
+    />
+  );
+}

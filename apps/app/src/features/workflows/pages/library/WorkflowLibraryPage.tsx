@@ -3,13 +3,10 @@
 import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
-import { useIsDesktopClient } from '@hooks/ui/use-is-desktop-client/use-is-desktop-client';
-import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
 import CollectionView from '@ui/collection/CollectionView';
 import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
-import SearchField from '@ui/content/search-field/SearchField';
 import Container from '@ui/layout/container/Container';
 import SelectionToolbar from '@ui/lists/selection-toolbar/SelectionToolbar';
 import PaginationStepper from '@ui/navigation/pagination/PaginationStepper';
@@ -27,11 +24,14 @@ import {
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import SearchField from '@/components/content/search-field/SearchField';
 import { WorkflowScheduleDialog } from '@/features/workflows/components/schedule/WorkflowScheduleDialog';
 import {
   isCanonicalSystemWorkflow,
   type WorkflowSummary,
 } from '@/features/workflows/services/workflow-api';
+import { useIsDesktopClient } from '@/hooks/ui/use-is-desktop-client/use-is-desktop-client';
+import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import { workflowCollectionHeaderTabs } from '../workflow-library-tabs';
 import EmptyWorkflowState from './EmptyWorkflowState';
 import { useWorkflowLibraryHighlights } from './useWorkflowLibraryHighlights';

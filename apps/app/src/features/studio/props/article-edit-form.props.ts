@@ -1,4 +1,4 @@
-import type { ArticleFormState } from '@props/content/article-editor.props';
+import type { ArticleFormState } from '@/props/content/article-editor.props';
 
 export type ArticleEditFormProps = {
   form: ArticleFormState;

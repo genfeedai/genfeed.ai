@@ -7,8 +7,6 @@ import {
   type PlanTier,
 } from '@genfeedai/pricing';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useSubscription } from '@hooks/data/subscription/use-subscription/use-subscription';
-import type { UpgradePlanProps } from '@props/settings/upgrade-plan.props';
 import { StripeService } from '@services/billing/stripe.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -17,6 +15,8 @@ import { Text } from '@ui/typography/text';
 import { Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
+import { useSubscription } from '@/hooks/data/subscription/use-subscription/use-subscription';
+import type { UpgradePlanProps } from '@/props/settings/upgrade-plan.props';
 
 import { getSubscriptionFailureView } from './subscription-failure.util';
 

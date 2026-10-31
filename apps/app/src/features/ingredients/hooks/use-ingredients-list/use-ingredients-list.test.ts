@@ -134,7 +134,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock(
-  '@hooks/data/ingredients/use-ingredients-list/use-failed-ingredient-recovery',
+  '@/hooks/data/ingredients/use-ingredients-list/use-failed-ingredient-recovery',
   () => ({
     useFailedIngredientRecovery: () => ({
       handleDeleteFailedIngredients: vi.fn(),

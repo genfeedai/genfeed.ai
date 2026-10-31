@@ -3,7 +3,7 @@ import {
   isRecord,
   readNonBlankString,
 } from '@genfeedai/utils/data/extract.util';
-import type { ClipperProjectSummary } from '@props/studio/clipper.props';
+import type { ClipperProjectSummary } from '@/props/studio/clipper.props';
 import { clipperProjectTitle } from './youtube-thumbnail';
 
 function readNumber(value: unknown, fallback = 0): number {

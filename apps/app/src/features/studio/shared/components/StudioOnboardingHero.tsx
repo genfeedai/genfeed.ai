@@ -1,6 +1,6 @@
-import type { StudioOnboardingHeroProps } from '@props/studio/studio-presets.props';
 import Card from '@ui/card/Card';
 import type { ReactElement } from 'react';
+import type { StudioOnboardingHeroProps } from '@/props/studio/studio-presets.props';
 
 /** Headline, one-line value proposition and a decorative preview. */
 export default function StudioOnboardingHero({

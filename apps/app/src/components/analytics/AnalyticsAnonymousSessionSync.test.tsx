@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({
   userId: null as string | null,
 }));
 
-vi.mock('@hooks/auth/use-auth-user', () => ({
+vi.mock('@/hooks/auth/use-auth-user', () => ({
   useAuthUser: mocks.useAuthUser,
 }));
 

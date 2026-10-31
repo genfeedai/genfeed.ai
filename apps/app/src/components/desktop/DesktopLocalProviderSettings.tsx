@@ -3,13 +3,13 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { DesktopGenerationProviderKind } from '@genfeedai/contracts/desktop';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import { getDesktopLocalCostState } from '@genfeedai/services/core/desktop-runtime.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useReducer, useState } from 'react';
+import { useDesktopRuntimeContext } from '@/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import { getDesktopBridge } from '@/lib/desktop/runtime';
 import { useDesktopLocalModeEnabled } from '@/lib/desktop/use-desktop-local-mode-enabled';
 

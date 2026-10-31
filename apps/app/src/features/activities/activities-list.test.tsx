@@ -32,7 +32,7 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-vi.mock('@hooks/data/activities/use-activities/use-activities', () => ({
+vi.mock('@/hooks/data/activities/use-activities/use-activities', () => ({
   useActivities: () => ({
     activities: mockActivities,
     activityStats: { statusCounts: {}, todayCount: 0, total: 0 },
@@ -51,7 +51,7 @@ vi.mock('@hooks/data/activities/use-activities/use-activities', () => ({
 }));
 
 vi.mock(
-  '@hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar',
+  '@/hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar',
   () => ({
     useIngredientSidebar: () => ({
       closeIngredientSidebar: vi.fn(),

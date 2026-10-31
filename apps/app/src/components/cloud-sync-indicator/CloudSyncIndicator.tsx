@@ -5,7 +5,6 @@ import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { useIsDesktopClient } from '@hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import { Button } from '@ui/primitives/button';
 import {
   Popover,
@@ -15,6 +14,7 @@ import {
 import { CloudOff, CloudSync } from 'lucide-react';
 import { useState } from 'react';
 import DesktopLocalProviderSettings from '@/components/desktop/DesktopLocalProviderSettings';
+import { useIsDesktopClient } from '@/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import { useCloudSession } from '@/hooks/useCloudSession';
 import { getDesktopBridge } from '@/lib/desktop/runtime';
 

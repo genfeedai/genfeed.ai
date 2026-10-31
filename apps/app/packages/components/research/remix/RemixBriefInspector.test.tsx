@@ -95,7 +95,7 @@ vi.mock('@/features/campaigns/hooks/use-campaign-accounts', () => ({
   useCampaignAccounts: (...args: unknown[]) => mocks.accountsHook(...args),
 }));
 
-vi.mock('@hooks/data/ingredients/use-avatar-images/use-avatar-images', () => ({
+vi.mock('@/hooks/data/ingredients/use-avatar-images/use-avatar-images', () => ({
   useAvatarImages: (...args: unknown[]) => mocks.avatarHook(...args),
 }));
 

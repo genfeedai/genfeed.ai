@@ -23,7 +23,7 @@ vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
 vi.mock('@services/content/posts.service', () => ({
   PostsService: { getInstance: () => ({ findOne }) },
 }));
-vi.mock('@ui/previews/TargetPreview', () => ({
+vi.mock('@/components/previews/TargetPreview', () => ({
   default: () => <div data-testid="target-preview" />,
 }));
 vi.mock(
