@@ -22,6 +22,7 @@ import {
   turboProjectRetryKey,
   turboProjectStartKey,
 } from '@api/collections/turbo-projects/services/turbo-project-reconcile.service';
+import { turboProjectSearchWhere } from '@api/collections/turbo-projects/services/turbo-project-search.util';
 import {
   DEFAULT_IDEA_SETTINGS,
   mergeTurboProjectSettings,
@@ -31,7 +32,6 @@ import { BatchWorkflowExecutionService } from '@api/collections/workflows/servic
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { SearchBaseQueryDto } from '@api/helpers/dto/search-base-query.dto';
-import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
 import { scopedWhere } from '@api/index';
 import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -49,7 +49,7 @@ import type {
   ITurboProjectQuote,
   ITurboProjectScope,
 } from '@genfeedai/contracts/interfaces';
-import type { Prisma, TurboProject, TurboProjectItem } from '@genfeedai/prisma';
+import type { TurboProject, TurboProjectItem } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -105,9 +105,7 @@ export class TurboProjectsService {
     const limit = Math.min(100, Math.max(1, query.limit ?? 20));
     const where = scopedWhere(scope.organizationId, {
       ...(query.brandId ? { brandId: query.brandId } : {}),
-      ...buildSearchWhere<Prisma.TurboProjectWhereInput>(query.search, {
-        columns: ['name'],
-      }),
+      ...turboProjectSearchWhere(query.search),
     });
     const readPage = () =>
       Promise.all([
