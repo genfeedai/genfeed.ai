@@ -130,12 +130,11 @@ export default function ReviewInboxApprovalsTable({
                 {translate('requestedBy', { name: item.requestedByLabel })}
               </span>
             ) : null}
-            <span
+            <ClientFormattedDate
               className="text-xs text-muted-foreground"
-              title={new Date(item.requestedAt).toLocaleString()}
-            >
-              <ClientFormattedDate format="relative" value={item.requestedAt} />
-            </span>
+              format="relative"
+              value={item.requestedAt}
+            />
           </span>
         ),
       },
