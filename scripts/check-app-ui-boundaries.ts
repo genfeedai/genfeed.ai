@@ -45,7 +45,7 @@ const LEGACY_BUTTON_IMPORT_ALLOWLIST = new Set([
   'apps/web/app/(onboarding)/onboarding/(wizard)/success/success-content.tsx',
   'apps/web/app/(onboarding)/onboarding/post-signup/page.tsx',
   'apps/web/app/(protected)/clipper/page.tsx',
-  'apps/web/packages/components/research/ads/AdsResearchPageClient.tsx',
+  'apps/web/src/features/research/ads/AdsResearchPageClient.tsx',
 ]);
 
 type Violation =

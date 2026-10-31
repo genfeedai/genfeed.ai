@@ -1,11 +1,5 @@
 'use client';
 
-import BrandTopVideosSection from '@app-components/analytics/top-videos/brand-top-videos-section';
-import {
-  DEFAULT_TOP_VIDEOS_TIMEFRAME,
-  TOP_VIDEOS_TIMEFRAMES,
-} from '@app-components/analytics/top-videos/use-brand-top-videos';
-import RemixBriefInspector from '@app-components/research/remix/RemixBriefInspector';
 import {
   useAnalyticsContext,
   useAnalyticsToolbar,
@@ -15,7 +9,13 @@ import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import AnalyticsOutliers from '@/features/analytics/outliers/analytics-outliers';
+import BrandTopVideosSection from '@/features/analytics/top-videos/brand-top-videos-section';
+import {
+  DEFAULT_TOP_VIDEOS_TIMEFRAME,
+  TOP_VIDEOS_TIMEFRAMES,
+} from '@/features/analytics/top-videos/use-brand-top-videos';
 import { DiscoveryRemixProvider } from '@/features/research/remix/DiscoveryRemixProvider';
+import RemixBriefInspector from '@/features/research/remix/RemixBriefInspector';
 
 const PLATFORM_VALUES = [
   'instagram',

@@ -9,7 +9,7 @@ function readAppSource(path: string) {
 describe('post-login loading source contracts', () => {
   it('keeps the protected app Suspense boundary non-blocking while it resolves', () => {
     const source = readAppSource(
-      'packages/components/app-protected-layout.tsx',
+      'src/components/layouts/protected/app-protected-layout.tsx',
     );
 
     expect(source).toContain('<Suspense fallback={null}>');

@@ -8,7 +8,7 @@ const getInstanceMock = vi.fn(() => ({
   getOverviewBootstrap: getOverviewBootstrapMock,
 }));
 
-vi.mock('@app-server/protected-bootstrap.server', () => ({
+vi.mock('@/server/protected-bootstrap.server', () => ({
   getServerAuthToken: getServerAuthTokenMock,
   hasUsableServerAuthToken: vi.fn().mockReturnValue(true),
   shouldSkipCloudBootstrap: shouldSkipCloudBootstrapMock,
@@ -53,7 +53,7 @@ describe('loadOverviewPageData', () => {
     shouldSkipCloudBootstrapMock.mockReturnValue(true);
 
     const { loadOverviewPageData } = await import(
-      '@app-server/overview-page-data.server'
+      '@/server/overview-page-data.server'
     );
 
     await expect(loadOverviewPageData()).resolves.toEqual({
@@ -73,7 +73,7 @@ describe('loadOverviewPageData', () => {
 
   it('loads overview with a single overview bootstrap request', async () => {
     const { loadOverviewPageData } = await import(
-      '@app-server/overview-page-data.server'
+      '@/server/overview-page-data.server'
     );
 
     const result = await loadOverviewPageData();

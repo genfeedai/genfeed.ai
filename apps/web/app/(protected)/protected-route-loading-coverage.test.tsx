@@ -98,7 +98,7 @@ describe('route loading shell coverage', () => {
     const appRoutes = join(repoRoot, 'apps/web/app');
     const protectedShell = join(
       repoRoot,
-      'apps/web/packages/components/app-protected-layout.tsx',
+      'apps/web/src/components/layouts/protected/app-protected-layout.tsx',
     );
     const violations = [...collectTsxFiles(appRoutes), protectedShell]
       .filter((file) =>

@@ -124,7 +124,7 @@ vi.mock('@ui/display/table/Table', () => ({
   },
 }));
 
-vi.mock('@components/lazy/lazy-modal.admin', () => ({
+vi.mock('@/features/admin/lazy/lazy-modal.admin', () => ({
   LazyModalSubscription: () => null,
 }));
 

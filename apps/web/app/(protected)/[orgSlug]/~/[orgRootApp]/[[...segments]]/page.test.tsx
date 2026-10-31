@@ -37,7 +37,7 @@ const {
   },
 }));
 
-vi.mock('@app-server/protected-bootstrap.server', () => ({
+vi.mock('@/server/protected-bootstrap.server', () => ({
   loadProtectedBootstrap: loadProtectedBootstrapMock,
 }));
 

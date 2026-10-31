@@ -1,6 +1,5 @@
 'use client';
 
-import { BUILD_METADATA } from '@app-config/build-metadata.config';
 import { getClientSurface, getDeployment } from '@genfeedai/config/deployment';
 import type { ReleaseUpdateState } from '@genfeedai/contracts/interfaces/system/app-build.interface';
 import Card from '@ui/card/Card';
@@ -8,6 +7,7 @@ import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { BUILD_METADATA } from '@/config/build-metadata.config';
 import { apiClient } from '@/lib/api/client';
 import { getDesktopBridge } from '@/lib/desktop/runtime';
 import { isNewerRelease, parseLatestRelease } from './release-update';

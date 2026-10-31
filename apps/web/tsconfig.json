@@ -5,14 +5,11 @@
       "@genfeedai/contracts/api-types/*": [
         "../../packages/contracts/src/api-types/*"
       ],
-      "@app-components/*": ["./packages/components/*"],
-      "@app-config/*": ["./packages/config/*"],
-      "@app-server/*": ["./packages/server/*"],
       "@components/buttons/refresh/button-refresh/ButtonRefresh": [
         "../../packages/ui/src/components/buttons/refresh/button-refresh/ButtonRefresh.tsx"
       ],
       "@components/lazy/lazy-modal.admin": [
-        "./packages/components/admin/lazy/lazy-modal.admin.ts"
+        "./src/features/admin/lazy/lazy-modal.admin.ts"
       ],
       "@components/loading/fallback/LazyLoadingFallback": [
         "../../packages/ui/src/components/loading/fallback/LazyLoadingFallback.tsx"
@@ -27,10 +24,10 @@
         "../../packages/ui/src/components/modals/modal/Modal.tsx"
       ],
       "@components/modals/ModalRole": [
-        "./packages/components/admin/modals/ModalRole.tsx"
+        "./src/features/admin/modals/ModalRole.tsx"
       ],
       "@components/modals/ModalSubscription": [
-        "./packages/components/admin/modals/ModalSubscription.tsx"
+        "./src/features/admin/modals/ModalSubscription.tsx"
       ],
       "@/*": ["./src/*"],
       "@app/*": ["./app/*"],

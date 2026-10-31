@@ -1,9 +1,5 @@
 'use client';
 
-import {
-  buildSettingsSearchCatalog,
-  resolveSettingsSearchHref,
-} from '@app-config/settings-search-catalog';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client';
 import {
   hasOrganizationBillingHint,
@@ -21,6 +17,10 @@ import { getDesktopCreditsVisibility } from '@genfeedai/services/core/desktop-ru
 import { Settings } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
+import {
+  buildSettingsSearchCatalog,
+  resolveSettingsSearchHref,
+} from '@/config/settings-search-catalog';
 import { useOnboardingRouteAccess } from '@/hooks/navigation/use-onboarding-route-access/use-onboarding-route-access';
 import { useDesktopRuntimeContext } from '@/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import { useIsDesktopClient } from '@/hooks/ui/use-is-desktop-client/use-is-desktop-client';

@@ -1,15 +1,15 @@
 import 'server-only';
 
+import { AuthService } from '@services/auth/auth.service';
+import { logger } from '@services/core/logger.service';
+import { cache } from 'react';
+import type { PlatformTimeSeriesDataPoint } from '@/props/analytics/charts.props';
 import {
   getServerAuthToken,
   hasUsableServerAuthToken,
   isDesktopServerRequest,
   shouldSkipCloudBootstrap,
-} from '@app-server/protected-bootstrap.server';
-import { AuthService } from '@services/auth/auth.service';
-import { logger } from '@services/core/logger.service';
-import { cache } from 'react';
-import type { PlatformTimeSeriesDataPoint } from '@/props/analytics/charts.props';
+} from '@/server/protected-bootstrap.server';
 
 export interface OverviewPageData {
   analytics: Awaited<

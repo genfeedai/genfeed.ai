@@ -1,7 +1,6 @@
 'use client';
 
 import LibrarySidebarNav from '@app/(protected)/[orgSlug]/[brandSlug]/library/library-sidebar-nav';
-import StreakNotificationsBridge from '@app-components/streaks/StreakNotificationsBridge';
 import {
   AppAssetCatalogBoundary,
   renderAppGlobalModal,
@@ -41,6 +40,8 @@ import {
   WorkspaceNavPanelProvider,
   WorkspaceNavPanelTarget,
 } from '@/components/workspace-shell/WorkspaceNavPanelContext';
+import { useSettingsCommandsRegistration } from '@/features/settings/search/use-settings-commands-registration';
+import StreakNotificationsBridge from '@/features/streaks/components/StreakNotificationsBridge';
 import { useAgentThreadCommands } from '@/hooks/commands/use-agent-thread-commands/use-agent-thread-commands';
 import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
 import {
@@ -58,7 +59,6 @@ import {
 import AssetGateGuard from './asset-gate-guard';
 import GlobalTaskComposer from './GlobalTaskComposer';
 import ImpersonationBanner from './impersonation-banner';
-import { useSettingsCommandsRegistration } from './settings-search/use-settings-commands-registration';
 import {
   isProtectedEditorCanvasRoute,
   isProtectedWorkspaceRoute,

@@ -35,7 +35,7 @@ Two consumers of the result:
   validated active org.
 - **`/v1/auth/bootstrap`** (`auth/services/auth-bootstrap.service.ts`) returns
   `access { userId, organizationId, brandId, isSuperAdmin }` to the frontend;
-  `apps/web/packages/server/protected-bootstrap.server.ts` maps it into
+  `apps/web/src/server/protected-bootstrap.server.ts` maps it into
   `accessState` for layouts (e.g. the `/admin` gate).
 
 Both paths resolve from the same tables. If they ever disagree, suspect a

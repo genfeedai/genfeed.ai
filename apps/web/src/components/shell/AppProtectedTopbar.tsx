@@ -1,6 +1,5 @@
 'use client';
 
-import { isPersonalSettingsPage } from '@app-components/app-protected-layout.settings-scope';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_DISPLAY_LABELS } from '@genfeedai/contracts/constants';
@@ -12,6 +11,7 @@ import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense } from 'react';
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
+import { isPersonalSettingsPage } from '@/components/layouts/protected/app-protected-layout.settings-scope';
 import OrganizationSwitcher from '@/components/menus/organization-switcher/OrganizationSwitcher';
 import AppProtectedBrandSwitcher from '@/components/shell/AppProtectedBrandSwitcher';
 import GenerationToasts from '@/components/shell/GenerationToasts';

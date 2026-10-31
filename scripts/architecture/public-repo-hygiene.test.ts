@@ -62,7 +62,7 @@ const RETIRED_FLEET_CONTROL_PATHS = [
 ] as const;
 
 const FLEET_CONTROL_REFERENCE_FILES = [
-  'apps/web/packages/config/admin-menu-items.config.ts',
+  'apps/web/src/config/admin-menu-items.config.ts',
   'apps/web/src/lib/workspace-shell/workspace-shell-registry.ts',
   'packages/contracts/src/constants/api.constant.ts',
   'packages/contracts/src/constants/routes.constant.ts',

@@ -1,6 +1,6 @@
-import PostsContent from '@app-components/analytics/posts-content';
 import { render, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import PostsContent from '@/features/analytics/posts-list/posts-content';
 
 const openRemix = vi.fn();
 const replace = vi.fn();
@@ -12,7 +12,7 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(search),
 }));
 
-vi.mock('@app-components/research/remix/RemixBriefInspector', () => ({
+vi.mock('@/features/research/remix/RemixBriefInspector', () => ({
   default: () => null,
 }));
 

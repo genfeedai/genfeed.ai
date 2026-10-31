@@ -1,6 +1,5 @@
 'use client';
 
-import type { SettingsScope } from '@app-config/settings-menu-items.config';
 import { SettingsSurface } from '@genfeedai/contracts';
 import { APP_DISPLAY_LABELS, APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
@@ -12,6 +11,7 @@ import { SIDEBAR_DEFAULT_WIDTH } from '@/components/layouts/app/app-layout.utils
 import SidebarActionTrigger from '@/components/menus/sidebar-action-trigger/SidebarActionTrigger';
 import SidebarSearchTrigger from '@/components/menus/sidebar-search-trigger/SidebarSearchTrigger';
 import AppSidebar from '@/components/shell/menus/AppSidebar';
+import type { SettingsScope } from '@/config/settings-menu-items.config';
 import { useIsDesktopClient } from '@/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type {
   MenuSharedProps,

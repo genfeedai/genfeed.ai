@@ -1,6 +1,5 @@
 'use client';
 
-import { LazyModalSubscription } from '@components/lazy/lazy-modal.admin';
 import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
@@ -28,6 +27,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
+import { LazyModalSubscription } from '@/features/admin/lazy/lazy-modal.admin';
 import CreditHoldsPanel from './credit-holds-panel';
 
 const EMPTY_CELL = '-';

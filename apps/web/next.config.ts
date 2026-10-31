@@ -348,17 +348,16 @@ config.turbopack = {
     '@components/buttons/refresh/button-refresh/ButtonRefresh':
       '../../packages/ui/src/components/buttons/refresh/button-refresh/ButtonRefresh.tsx',
     '@components/lazy/lazy-modal.admin':
-      './packages/components/admin/lazy/lazy-modal.admin.ts',
+      './src/features/admin/lazy/lazy-modal.admin.ts',
     '@components/loading/fallback/LazyLoadingFallback':
       '../../packages/ui/src/components/loading/fallback/LazyLoadingFallback.tsx',
     '@components/modals/actions/ModalActions':
       '../../packages/ui/src/components/modals/actions/ModalActions.tsx',
     '@components/modals/modal/Modal':
       '../../packages/ui/src/components/modals/modal/Modal.tsx',
-    '@components/modals/ModalRole':
-      './packages/components/admin/modals/ModalRole.tsx',
+    '@components/modals/ModalRole': './src/features/admin/modals/ModalRole.tsx',
     '@components/modals/ModalSubscription':
-      './packages/components/admin/modals/ModalSubscription.tsx',
+      './src/features/admin/modals/ModalSubscription.tsx',
     '@genfeedai/actions': '../../packages/actions/src/index.ts',
     '@genfeedai/agent': '../../packages/agent/src/index.ts',
     '@genfeedai/client': '../../packages/client/src/index.ts',

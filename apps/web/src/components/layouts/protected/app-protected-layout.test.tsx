@@ -140,9 +140,12 @@ vi.mock(
 // ProtectedLayoutClient), and the settings-commands hook is exercised on its
 // own in use-settings-commands-registration.test.ts.
 const settingsRegistrationSpy = vi.hoisted(() => vi.fn());
-vi.mock('./settings-search/use-settings-commands-registration', () => ({
-  useSettingsCommandsRegistration: settingsRegistrationSpy,
-}));
+vi.mock(
+  '@/features/settings/search/use-settings-commands-registration',
+  () => ({
+    useSettingsCommandsRegistration: settingsRegistrationSpy,
+  }),
+);
 
 vi.mock(
   '@app/(protected)/[orgSlug]/[brandSlug]/library/library-sidebar-nav',
@@ -215,7 +218,7 @@ vi.mock('@/components/shell/menus/AppSidebar', () => ({
   },
 }));
 
-vi.mock('@app-components/streaks/StreakNotificationsBridge', () => ({
+vi.mock('@/features/streaks/components/StreakNotificationsBridge', () => ({
   default: () => <div data-testid="streak-notifications-bridge" />,
 }));
 
@@ -271,7 +274,7 @@ vi.mock(
   }),
 );
 
-vi.mock('@app-config/menu-items.config', () => ({
+vi.mock('@/config/menu-items.config', () => ({
   APP_MENU_ITEMS: [{ href: '/workspace', label: 'Workspace' }],
   APP_SECONDARY_MENU_ITEMS: [
     { href: '/workspace/activity', label: 'Activity' },
@@ -286,11 +289,9 @@ vi.mock('@app-config/menu-items.config', () => ({
   PUBLISHING_INSERT_AFTER_LABEL: 'Posts',
 }));
 
-vi.mock('@app-config/studio-menu-items.config', async (importOriginal) => {
+vi.mock('@/config/studio-menu-items.config', async (importOriginal) => {
   const actual =
-    await importOriginal<
-      typeof import('@app-config/studio-menu-items.config')
-    >();
+    await importOriginal<typeof import('@/config/studio-menu-items.config')>();
   const menuItems = {} as Record<
     string,
     typeof actual.STUDIO_APP_MENU_ITEMS.storyboard
@@ -317,7 +318,7 @@ vi.mock('@app-config/studio-menu-items.config', async (importOriginal) => {
   return { ...actual, STUDIO_APP_MENU_ITEMS: menuItems };
 });
 
-vi.mock('@app-config/discovery-menu-items.config', () => ({
+vi.mock('@/config/discovery-menu-items.config', () => ({
   DISCOVERY_MENU_ITEMS: [
     { href: '/discovery/overview', label: 'Overview' },
     { href: '/discovery/overview?source=following', label: 'Following' },

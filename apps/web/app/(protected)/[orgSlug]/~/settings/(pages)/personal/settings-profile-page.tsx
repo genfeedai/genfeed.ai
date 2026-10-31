@@ -16,7 +16,7 @@ import {
   type ThemePreference,
 } from '@genfeedai/contracts/constants';
 import type { ISetting } from '@genfeedai/contracts/interfaces';
-import { PERSONAL_SETTINGS_ANCHOR } from '@app-config/personal-settings-anchor';
+import { PERSONAL_SETTINGS_ANCHOR } from '@/config/personal-settings-anchor';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

@@ -9,7 +9,7 @@ const redirectMock = vi.fn((_path: string) => {
   throw new Error('NEXT_REDIRECT');
 });
 
-vi.mock('@app-server/protected-bootstrap.server', () => ({
+vi.mock('@/server/protected-bootstrap.server', () => ({
   isPlaywrightAdminDenied: isPlaywrightAdminDeniedMock,
   isProtectedBootstrapBypassed: isProtectedBootstrapBypassedMock,
   loadServerSuperAdmin: loadServerSuperAdminMock,

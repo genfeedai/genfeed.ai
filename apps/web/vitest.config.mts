@@ -43,7 +43,7 @@ export default mergeConfig(
           find: /^@components\/lazy\/lazy-modal.admin$/,
           replacement: path.resolve(
             __dirname,
-            './packages/components/admin/lazy/lazy-modal.admin.ts',
+            './src/features/admin/lazy/lazy-modal.admin.ts',
           ),
         },
         {
@@ -71,14 +71,14 @@ export default mergeConfig(
           find: /^@components\/modals\/ModalRole$/,
           replacement: path.resolve(
             __dirname,
-            './packages/components/admin/modals/ModalRole.tsx',
+            './src/features/admin/modals/ModalRole.tsx',
           ),
         },
         {
           find: /^@components\/modals\/ModalSubscription$/,
           replacement: path.resolve(
             __dirname,
-            './packages/components/admin/modals/ModalSubscription.tsx',
+            './src/features/admin/modals/ModalSubscription.tsx',
           ),
         },
         {
