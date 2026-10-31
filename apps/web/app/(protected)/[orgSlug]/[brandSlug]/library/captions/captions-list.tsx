@@ -5,7 +5,6 @@ import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IQueryParams } from '@genfeedai/contracts/interfaces';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useTableSort } from '@hooks/ui/use-table-sort/use-table-sort';
 import type { Caption } from '@models/content/caption.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { CaptionsService } from '@services/content/captions.service';
@@ -19,6 +18,7 @@ import { Button } from '@ui/primitives/button';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 /** Columns the captions endpoint can order by. */
 const CAPTION_SORT_KEYS = ['format', 'createdAt'];

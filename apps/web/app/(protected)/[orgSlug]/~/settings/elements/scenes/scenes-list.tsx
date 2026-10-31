@@ -3,7 +3,6 @@
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IQueryParams } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useTableSort } from '@hooks/ui/use-table-sort/use-table-sort';
 import type { ElementScene } from '@models/elements/scene.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
@@ -18,6 +17,7 @@ import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 /** Columns the scenes endpoint can order by. */
 const SCENE_SORT_KEYS = ['label', 'key'];

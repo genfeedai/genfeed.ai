@@ -13,7 +13,6 @@ import {
 import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useTableSort } from '@hooks/ui/use-table-sort/use-table-sort';
 import type { TableColumn, TableRowLink } from '@props/ui/display/table.props';
 import type { Campaign } from '@services/content/campaigns.service';
 import Badge from '@ui/display/badge/Badge';
@@ -38,6 +37,7 @@ import {
 import CampaignCreateDialog from '@/features/campaigns/form/CampaignCreateDialog';
 import { useCampaigns } from '@/features/campaigns/hooks/use-campaigns';
 import type { CampaignsListPageProps } from '@/features/campaigns/props/campaign-setup.props';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 /** Columns the campaigns endpoint can order by. */
 const CAMPAIGN_SORT_KEYS = ['name', 'objective', 'startDate', 'status'];

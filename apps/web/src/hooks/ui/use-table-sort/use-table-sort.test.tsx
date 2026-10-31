@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { useTableSort } from '@hooks/ui/use-table-sort/use-table-sort';
+
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 const mocks = vi.hoisted(() => ({
   replace: vi.fn(),
