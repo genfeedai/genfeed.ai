@@ -23,6 +23,7 @@
   "reviewHolds": "Review holds",
   "subscriptionsTitle": "Subscriptions",
   "subscriptionsEmpty": "No organizations found",
+  "searchSubscriptions": "Search organizations",
   "subscriptionsTotalLabel": "organizations",
   "columnOrganization": "Organization",
   "columnOwner": "Owner",

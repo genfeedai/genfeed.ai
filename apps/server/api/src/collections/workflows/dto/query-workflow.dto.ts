@@ -10,6 +10,7 @@ import {
   IsBoolean,
   IsIn,
   IsOptional,
+  IsString,
 } from 'class-validator';
 
 /**
@@ -103,4 +104,12 @@ export class WorkflowQueryDto extends BaseQueryDto {
     required: false,
   })
   readonly view?: 'statistics';
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({
+    description: 'Search workflows by label or description',
+    required: false,
+  })
+  readonly search?: string;
 }

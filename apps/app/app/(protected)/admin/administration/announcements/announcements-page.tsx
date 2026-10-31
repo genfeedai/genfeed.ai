@@ -5,10 +5,13 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { AdminAnnouncementsService } from '@services/admin/announcements.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
+import SearchField from '@ui/content/search-field/SearchField';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Megaphone } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useReducer } from 'react';
 import type {
   AnnouncementComposeFormState,
@@ -16,7 +19,6 @@ import type {
   AnnouncementsPageAction as PageAction,
   AnnouncementsPageState as PageState,
 } from '@/features/admin/props/announcements.props';
-
 import AnnouncementComposeForm from './announcement-compose-form';
 import AnnouncementHistoryList from './announcement-history-list';
 
@@ -81,6 +83,8 @@ export default function AnnouncementsPage({
   const { activeTab, form, isSubmitting, announcements, isLoadingHistory } =
     state;
   const currentPage = Number(useSearchParams().get('page')) || 1;
+  const searchT = useTranslations('common.adminSearch');
+  const { search, setSearch } = useAdminSearchParam();
 
   const notificationsService = NotificationsService.getInstance();
 
@@ -93,7 +97,11 @@ export default function AnnouncementsPage({
       try {
         const service = await getAnnouncementsService();
         const data = await service.getAnnouncements(
-          { limit: ITEMS_PER_PAGE, page: currentPage },
+          {
+            limit: ITEMS_PER_PAGE,
+            page: currentPage,
+            ...(search ? { search } : {}),
+          },
           signal,
         );
 
@@ -113,7 +121,7 @@ export default function AnnouncementsPage({
         }
       }
     },
-    [currentPage, getAnnouncementsService, notificationsService],
+    [currentPage, getAnnouncementsService, notificationsService, search],
   );
 
   useEffect(() => {
@@ -196,6 +204,16 @@ export default function AnnouncementsPage({
     <AdminPageShell
       title="Announcements"
       icon={Megaphone}
+      search={
+        activeTab === 'history' ? (
+          <SearchField
+            ariaLabel={searchT('announcements')}
+            onSearch={setSearch}
+            placeholder={searchT('announcements')}
+            value={search}
+          />
+        ) : undefined
+      }
       tabs={{
         activeTab,
         fullWidth: false,

@@ -13,7 +13,9 @@ import { WorkflowExecutionsService } from '@services/automation/workflow-executi
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
+import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
+import SearchField from '@ui/content/search-field/SearchField';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
@@ -45,6 +47,7 @@ export default function AgentFailuresPage() {
   const [pendingId, setPendingId] = useState<string>();
   const [copiedId, setCopiedId] = useState<string>();
   const [offset, setOffset] = useState(0);
+  const { search, setSearch } = useAdminSearchParam();
   const requestController = useRef<AbortController | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
 
@@ -62,6 +65,7 @@ export default function AgentFailuresPage() {
           offset,
           controller.signal,
           resolution,
+          search,
         );
         if (!controller.signal.aborted) {
           setFailures(result);
@@ -74,12 +78,17 @@ export default function AgentFailuresPage() {
       }
     }
     void loadFailures();
-  }, [getService, reason, resolution, offset]);
+  }, [getService, reason, resolution, offset, search]);
 
   useEffect(() => {
     refreshFailures();
     return () => requestController.current?.abort();
   }, [refreshFailures]);
+
+  function changeSearch(value: string) {
+    setSearch(value);
+    setOffset(0);
+  }
 
   function changeReason(value: string) {
     setReason(Object.values(AgentFailureReason).find((item) => item === value));
@@ -212,42 +221,50 @@ export default function AgentFailuresPage() {
       title={translate('title')}
       onRefresh={refreshFailures}
       isRefreshing={state === 'loading'}
-      filters={
-        <FilterMenu
-          facets={[
-            {
-              defaultValue: 'open',
-              key: 'resolution',
-              label: translate('resolutionFilter'),
-              onChange: changeResolution,
-              options: RESOLUTIONS.map((value) => ({
-                label: translate(`resolutions.${value}`),
-                value,
-              })),
-              selection: 'single',
-              value: resolution,
-            },
-            {
-              defaultValue: 'all',
-              key: 'reason',
-              label: translate('reasonFilter'),
-              onChange: changeReason,
-              options: [
-                { label: translate('allReasons'), value: 'all' },
-                ...Object.values(AgentFailureReason).map((value) => ({
-                  label: translate(`reasons.${value}`),
+      search={
+        <SearchField
+          ariaLabel={translate('search')}
+          onSearch={changeSearch}
+          placeholder={translate('search')}
+          value={search}
+        >
+          <FilterMenu
+            isAttached
+            facets={[
+              {
+                defaultValue: 'open',
+                key: 'resolution',
+                label: translate('resolutionFilter'),
+                onChange: changeResolution,
+                options: RESOLUTIONS.map((value) => ({
+                  label: translate(`resolutions.${value}`),
                   value,
                 })),
-              ],
-              selection: 'single',
-              value: reason ?? 'all',
-            },
-          ]}
-          onClear={() => {
-            changeResolution('open');
-            changeReason('all');
-          }}
-        />
+                selection: 'single',
+                value: resolution,
+              },
+              {
+                defaultValue: 'all',
+                key: 'reason',
+                label: translate('reasonFilter'),
+                onChange: changeReason,
+                options: [
+                  { label: translate('allReasons'), value: 'all' },
+                  ...Object.values(AgentFailureReason).map((value) => ({
+                    label: translate(`reasons.${value}`),
+                    value,
+                  })),
+                ],
+                selection: 'single',
+                value: reason ?? 'all',
+              },
+            ]}
+            onClear={() => {
+              changeResolution('open');
+              changeReason('all');
+            }}
+          />
+        </SearchField>
       }
     >
       <WorkspaceSurface

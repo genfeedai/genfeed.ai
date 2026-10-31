@@ -17,6 +17,8 @@ const { getAdminRewardsMock, identityState } = vi.hoisted(() => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/admin',
+  useRouter: () => ({ replace: vi.fn() }),
   useSearchParams: () => new URLSearchParams('page=2'),
 }));
 
@@ -118,6 +120,7 @@ describe('ReferralRewardsList', () => {
           'session_1',
           'org_1',
           2,
+          '',
         ],
       }),
     ).toBeDefined();

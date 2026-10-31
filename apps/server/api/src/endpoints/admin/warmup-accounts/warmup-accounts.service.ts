@@ -14,6 +14,7 @@ import {
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { PageWindow } from '@api/helpers/dto/pagination-query.dto';
 import { buildPaginatedResult } from '@api/helpers/utils/paginated-result/paginated-result.util';
+import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
@@ -302,9 +303,23 @@ export class AdminWarmupAccountsService {
   async list({
     limit,
     page,
+    search,
     skip,
-  }: PageWindow): Promise<AggregatePaginateResult<WarmupAccountView>> {
-    const where: Prisma.WarmupAccountWhereInput = { isDeleted: false };
+  }: PageWindow & { search?: string }): Promise<
+    AggregatePaginateResult<WarmupAccountView>
+  > {
+    const where: Prisma.WarmupAccountWhereInput = {
+      isDeleted: false,
+      ...buildSearchWhere<Prisma.WarmupAccountWhereInput>(search, {
+        columns: [
+          'leadEmail',
+          'leadFirstName',
+          'leadLastName',
+          'organizationName',
+          'brandName',
+        ],
+      }),
+    };
     const [accounts, totalDocs] = await Promise.all([
       // tenant-scope-ignore: superadmin inventory is platform-wide; the controller runs this as platform admin
       this.prisma.warmupAccount.findMany({

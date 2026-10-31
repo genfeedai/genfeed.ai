@@ -20,6 +20,7 @@
   },
   "createTab": "Create",
   "accountsTab": "Accounts",
+  "searchAccounts": "Search by email, name or company",
   "status": {
     "archived": "Archived",
     "claimed": "Claimed",

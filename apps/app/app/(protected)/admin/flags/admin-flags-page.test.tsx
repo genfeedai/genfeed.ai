@@ -11,6 +11,8 @@ const mocks = vi.hoisted(() => ({
   error: vi.fn(),
   getSettings: vi.fn(),
   success: vi.fn(),
+  search: '',
+  setSearch: vi.fn(),
   updateSettings: vi.fn(),
 }));
 
@@ -29,6 +31,13 @@ const getPlatformSettingsService = vi.hoisted(() =>
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getPlatformSettingsService,
+}));
+
+vi.mock('@ui/content/admin-filters/useAdminSearchParam', () => ({
+  useAdminSearchParam: () => ({
+    search: mocks.search,
+    setSearch: mocks.setSearch,
+  }),
 }));
 
 vi.mock('next-intl', async () => {
@@ -117,10 +126,33 @@ const CARD = '[data-testid^="flag-card-"]';
 describe('AdminFlagsPage (#5468)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.search = '';
     mocks.getSettings.mockResolvedValue({ flags: { analytics: false } });
     mocks.updateSettings.mockResolvedValue({
       flags: { analytics: false, studio: false },
     });
+  });
+
+  it('narrows the cards to the flags that match the search', async () => {
+    mocks.search = 'analytics';
+    render(<AdminFlagsPage />);
+
+    expect(
+      await screen.findByRole('switch', { name: 'Analytics' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('switch', { name: 'Studio' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('says so when no flag matches the search', async () => {
+    mocks.search = 'no such flag';
+    render(<AdminFlagsPage />);
+
+    expect(
+      await screen.findByText('No flags match your search'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument();
   });
 
   it('lists every flag on one page with its stored state', async () => {

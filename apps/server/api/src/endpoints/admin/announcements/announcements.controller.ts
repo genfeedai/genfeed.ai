@@ -5,8 +5,8 @@ import { BroadcastAnnouncementDto } from '@api/endpoints/admin/announcements/dto
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
-  PaginationQueryDto,
   resolvePageWindow,
+  SearchPaginationQueryDto,
 } from '@api/helpers/dto/pagination-query.dto';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
@@ -64,13 +64,14 @@ export class AnnouncementsController {
   @Get()
   @ApiOperation({ summary: 'Get announcement broadcast history' })
   async getHistory(
-    @Query() query: PaginationQueryDto,
+    @Query() query: SearchPaginationQueryDto,
     @Req() request: Request,
   ) {
     try {
-      const announcements = await this.adminAnnouncementsService.getHistory(
-        resolvePageWindow(query),
-      );
+      const announcements = await this.adminAnnouncementsService.getHistory({
+        ...resolvePageWindow(query),
+        search: query.search,
+      });
       return serializeCollection(
         request,
         AnnouncementSerializer,

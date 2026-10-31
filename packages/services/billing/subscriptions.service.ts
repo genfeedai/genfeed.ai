@@ -71,6 +71,7 @@ export class SubscriptionsService extends BaseService<Subscription> {
   public async getAdminBilling(query: {
     limit: number;
     page: number;
+    search?: string;
   }): Promise<OrganizationBillingResponse> {
     const res = await this.instance.get<OrganizationBillingResponse>(
       'admin/billing',

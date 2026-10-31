@@ -20,6 +20,7 @@ import { buildOrganizationBillingRow } from '@api/collections/subscriptions/util
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
 import { scopedWhere } from '@api/index';
 import {
   StripeService,
@@ -193,8 +194,15 @@ export class SubscriptionsService
   async findAdminBilling(options: {
     limit: number;
     page: number;
+    search?: string;
   }): Promise<AdminBillingPage> {
-    const where = { isDeleted: false };
+    const where: Prisma.OrganizationWhereInput = {
+      isDeleted: false,
+      ...buildSearchWhere<Prisma.OrganizationWhereInput>(options.search, {
+        columns: ['label', 'slug'],
+        relations: { user: ['email'] },
+      }),
+    };
     const [organizations, totalDocs] = await Promise.all([
       this.prisma.organization.findMany({
         orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],

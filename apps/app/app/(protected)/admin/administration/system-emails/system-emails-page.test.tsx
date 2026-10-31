@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   getSystemEmails: vi.fn(),
   getPerformance: vi.fn(),
   info: vi.fn(),
+  search: '',
+  setSearch: vi.fn(),
 }));
 
 const getSystemEmailsService = vi.hoisted(() =>
@@ -17,6 +19,11 @@ const getSystemEmailsService = vi.hoisted(() =>
     getPerformance: mocks.getPerformance,
   })),
 );
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 
 vi.mock(
   '@app/(protected)/admin/administration/system-emails/system-email-performance',
@@ -27,6 +34,13 @@ vi.mock(
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getSystemEmailsService,
+}));
+
+vi.mock('@ui/content/admin-filters/useAdminSearchParam', () => ({
+  useAdminSearchParam: () => ({
+    search: mocks.search,
+    setSearch: mocks.setSearch,
+  }),
 }));
 
 vi.mock('@services/core/environment.service', () => ({
@@ -95,6 +109,7 @@ vi.mock('@ui/overview/WorkspaceSurface', () => ({
 describe('SystemEmailsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.search = '';
     mocks.getPerformance.mockResolvedValue({
       id: 'report',
       from: '2026-08-01',
@@ -125,6 +140,30 @@ describe('SystemEmailsPage', () => {
         visibility: 'admin-only',
       },
     ]);
+  });
+
+  it.each([
+    ['welcome', 'Welcome day 0'],
+    ['SIGNUPS', 'Welcome day 0'],
+  ])('keeps the email that matches the search %j', async (search, name) => {
+    mocks.search = search;
+    render(<SystemEmailsPage />);
+
+    expect(
+      await screen.findByRole('button', { name: new RegExp(name) }),
+    ).toBeInTheDocument();
+  });
+
+  it('says so when no email matches the search', async () => {
+    mocks.search = 'no such email';
+    render(<SystemEmailsPage />);
+
+    expect(
+      await screen.findByText('No system emails match your search'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Welcome day 0/ }),
+    ).not.toBeInTheDocument();
   });
 
   it('loads and renders lifecycle system email copy and triggers', async () => {

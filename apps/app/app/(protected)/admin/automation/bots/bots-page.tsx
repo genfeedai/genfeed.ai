@@ -13,6 +13,8 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
+import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
+import SearchField from '@ui/content/search-field/SearchField';
 import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
@@ -21,6 +23,7 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Bot as BotIcon } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 
 const BOT_SKELETON_KEYS = [
@@ -58,6 +61,8 @@ export default function BotsPage() {
 
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
+  const searchT = useTranslations('common.adminSearch');
+  const { search, setSearch } = useAdminSearchParam();
 
   const [bots, setBots] = useState<Bot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -76,6 +81,7 @@ export default function BotsPage() {
           {
             limit: ITEMS_PER_PAGE,
             page: currentPage,
+            ...(search ? { search } : {}),
             sort: 'createdAt: -1',
           },
           signal,
@@ -95,7 +101,7 @@ export default function BotsPage() {
         }
       }
     },
-    [currentPage, getBotsService, notificationsService],
+    [currentPage, getBotsService, notificationsService, search],
   );
 
   useEffect(() => {
@@ -108,6 +114,14 @@ export default function BotsPage() {
     <AdminPageShell
       title="Bots"
       icon={BotIcon}
+      search={
+        <SearchField
+          ariaLabel={searchT('bots')}
+          onSearch={setSearch}
+          placeholder={searchT('bots')}
+          value={search}
+        />
+      }
       onRefresh={() => loadBots(true)}
       isRefreshing={isRefreshing}
     >
@@ -122,7 +136,9 @@ export default function BotsPage() {
               <SkeletonCard key={key} showImage={false} />
             ))
           ) : bots.length === 0 ? (
-            <CardEmptyContent label="No bots yet" />
+            <CardEmptyContent
+              label={search ? 'No bots match your search' : 'No bots yet'}
+            />
           ) : (
             bots.map((bot: Bot) => (
               <Card key={bot.id}>

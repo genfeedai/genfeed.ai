@@ -18,6 +18,8 @@ import { FontFamiliesService } from '@services/elements/font-families.service';
 import AdminOrgBrandUrlFilter, {
   useAdminOrgBrandParams,
 } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
+import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
+import SearchField from '@ui/content/search-field/SearchField';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
@@ -62,6 +64,8 @@ function FontFamiliesListContent({
   const { openConfirm } = useConfirmModal();
 
   const searchParams = useSearchParams();
+  const searchT = useTranslations('common.adminSearch');
+  const { search, setSearch } = useAdminSearchParam();
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
 
@@ -84,6 +88,9 @@ function FontFamiliesListContent({
   // Use refs for callback props to prevent unnecessary re-renders
   const onLoadingChangeRef = useRef(onLoadingChange);
   const onRefreshingChangeRef = useRef(onRefreshingChange);
+  // Only the newest request may write results or end loading: a slower
+  // earlier search must not replace the current one.
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     onLoadingChangeRef.current = onLoadingChange;
@@ -132,6 +139,7 @@ function FontFamiliesListContent({
     async (isRefreshingArg = false) => {
       const url = 'GET /font-families';
 
+      const requestId = ++requestIdRef.current;
       dispatch({ type: 'FETCH_START', isRefreshing: isRefreshingArg });
 
       // Notify parent of state changes
@@ -145,6 +153,7 @@ function FontFamiliesListContent({
         const query: IQueryParams = {
           limit: ITEMS_PER_PAGE,
           page: currentPage,
+          ...(search ? { search } : {}),
         };
 
         if (scope === PageScope.SUPERADMIN) {
@@ -157,6 +166,9 @@ function FontFamiliesListContent({
         }
 
         const data = await service.findAll(query);
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
         dispatch({ type: 'FETCH_SUCCESS', fontFamilies: data });
 
         logger.info(`${url} success`, data);
@@ -164,9 +176,11 @@ function FontFamiliesListContent({
         logger.error(`${url} failed`, error);
         notificationsService.error('Failed to load font families');
       } finally {
-        dispatch({ type: 'FETCH_DONE' });
-        onLoadingChangeRef.current?.(false);
-        onRefreshingChangeRef.current?.(false);
+        if (requestId === requestIdRef.current) {
+          dispatch({ type: 'FETCH_DONE' });
+          onLoadingChangeRef.current?.(false);
+          onRefreshingChangeRef.current?.(false);
+        }
       }
     },
     [
@@ -176,6 +190,7 @@ function FontFamiliesListContent({
       scope,
       adminOrg,
       adminBrand,
+      search,
     ],
   );
 
@@ -235,6 +250,14 @@ function FontFamiliesListContent({
   return (
     <AdminPageShell
       title="Font Families"
+      search={
+        <SearchField
+          ariaLabel={searchT('fontFamilies')}
+          onSearch={setSearch}
+          placeholder={searchT('fontFamilies')}
+          value={search}
+        />
+      }
       onRefresh={() => findAllFontFamilies(true)}
       isRefreshing={isRefreshing}
       dropdowns={

@@ -7,8 +7,8 @@ import { AdminWarmupAccountsService } from '@api/endpoints/admin/warmup-accounts
 import { WarmupPreparationService } from '@api/endpoints/admin/warmup-accounts/warmup-preparation.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
-  PaginationQueryDto,
   resolvePageWindow,
+  SearchPaginationQueryDto,
 } from '@api/helpers/dto/pagination-query.dto';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
@@ -64,10 +64,16 @@ export class WarmupAccountsController {
 
   @Get()
   @ApiOperation({ summary: 'List warm-up accounts' })
-  async list(@Query() query: PaginationQueryDto, @Req() request: Request) {
+  async list(
+    @Query() query: SearchPaginationQueryDto,
+    @Req() request: Request,
+  ) {
     try {
       const accounts = await this.runAsPlatformAdmin(() =>
-        this.warmupAccountsService.list(resolvePageWindow(query)),
+        this.warmupAccountsService.list({
+          ...resolvePageWindow(query),
+          search: query.search,
+        }),
       );
       return serializeCollection(request, WarmupAccountSerializer, accounts);
     } catch (error) {

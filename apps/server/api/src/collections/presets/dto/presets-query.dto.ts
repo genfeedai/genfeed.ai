@@ -2,7 +2,13 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { ModelCategory } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsBoolean, IsEnum, IsOptional, ValidateIf } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsOptional,
+  IsString,
+  ValidateIf,
+} from 'class-validator';
 
 export class PresetsQueryDto extends BaseQueryDto {
   @IsEnum(ModelCategory)
@@ -62,4 +68,12 @@ export class PresetsQueryDto extends BaseQueryDto {
   })
   @IsBoolean()
   isFavorite?: boolean;
+
+  @ApiProperty({
+    description: 'Search presets by label, key or description',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  search?: string;
 }

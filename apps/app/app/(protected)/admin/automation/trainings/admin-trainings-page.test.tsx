@@ -9,6 +9,11 @@ const mocks = vi.hoisted(() => ({
   refreshTrainings: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@/features/trainings/list/trainings-list', async () => {
   const { useEffect } = await import('react');
 
@@ -33,6 +38,10 @@ vi.mock('@/features/trainings/list/trainings-list', async () => {
     },
   };
 });
+
+vi.mock('@ui/content/admin-filters/useAdminSearchParam', () => ({
+  useAdminSearchParam: () => ({ search: '', setSearch: vi.fn() }),
+}));
 
 vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
   default: ({ onClick }: { onClick: () => void }) => (

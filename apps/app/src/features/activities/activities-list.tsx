@@ -16,6 +16,8 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useIngredientSidebar } from '@hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
 import type { TableAction } from '@props/ui/display/table.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
+import SearchField from '@ui/content/search-field/SearchField';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import Container from '@ui/layout/container/Container';
@@ -71,6 +73,7 @@ export default function ActivitiesList({
   const translate = useTranslations('pages.activities');
   const searchParams = useSearchParams();
   const page = parseInt(searchParams.get('page') || '1', 10);
+  const { search, setSearch } = useAdminSearchParam();
 
   const {
     isLoading,
@@ -80,7 +83,7 @@ export default function ActivitiesList({
     filteredActivities,
     markActivitiesAsRead,
     toggleActivityRead,
-  } = useActivities({ limit: 20, page, scope });
+  } = useActivities({ limit: 20, page, scope, search });
 
   const { href } = useOrgUrl();
   const { openIngredientSidebar } = useIngredientSidebar();
@@ -383,11 +386,21 @@ export default function ActivitiesList({
     </>
   );
 
+  const searchField = (
+    <SearchField
+      ariaLabel={translate('search')}
+      onSearch={setSearch}
+      placeholder={translate('search')}
+      value={search}
+    />
+  );
+
   if (isAdminScope) {
     return (
       <AdminPageShell
         title={translate('title')}
         icon={ClipboardList}
+        search={searchField}
         onRefresh={() => void refresh()}
         isRefreshing={isRefreshing}
         primaryAction={headerActions}
@@ -402,6 +415,7 @@ export default function ActivitiesList({
       label={translate('title')}
       icon={ClipboardList}
       titleVisibility="sr-only"
+      leading={searchField}
       refresh={<ButtonRefresh onClick={refresh} isRefreshing={isRefreshing} />}
       right={headerActions}
     >

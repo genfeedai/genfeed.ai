@@ -128,6 +128,8 @@ export interface LazyLoadProps {
 export interface ActivitiesOptions {
   activeOnly?: boolean;
   sort?: string;
+  /** Server-side search term, matched against the activity's action and entity. */
+  search?: string;
   initialFilter?: string;
   autoLoad?: boolean;
   scope?: ContentScope;

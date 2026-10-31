@@ -15,6 +15,8 @@ import { SubscriptionsService } from '@services/billing/subscriptions.service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
 import { useQuery } from '@tanstack/react-query';
+import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
+import SearchField from '@ui/content/search-field/SearchField';
 import Badge from '@ui/display/badge/Badge';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
@@ -70,6 +72,7 @@ export default function SubscriptionsList() {
 
   const clipboardService = ClipboardService.getInstance();
   const currentPage = Number(useSearchParams().get('page')) || 1;
+  const { search, setSearch } = useAdminSearchParam();
 
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
   const [holdsOrganization, setHoldsOrganization] =
@@ -82,12 +85,13 @@ export default function SubscriptionsList() {
     error: billingError,
     refetch,
   } = useQuery({
-    queryKey: ['admin-subscriptions', currentPage],
+    queryKey: ['admin-subscriptions', currentPage, search],
     queryFn: async () => {
       const service = await getSubscriptionsService();
       return service.getAdminBilling({
         limit: ITEMS_PER_PAGE,
         page: currentPage,
+        ...(search ? { search } : {}),
       });
     },
   });
@@ -284,6 +288,14 @@ export default function SubscriptionsList() {
     <AdminPageShell
       title={t('subscriptionsTitle')}
       icon={CreditCard}
+      search={
+        <SearchField
+          ariaLabel={t('searchSubscriptions')}
+          onSearch={setSearch}
+          placeholder={t('searchSubscriptions')}
+          value={search}
+        />
+      }
       onRefresh={() => refresh()}
       isRefreshing={isRefreshing}
     >

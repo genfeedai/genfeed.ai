@@ -96,6 +96,7 @@ export class ReferralsController {
     @Query('limit') rawLimit?: string,
     @Query('page') rawPage?: string,
     @Query('status') rawStatus?: ReferralRewardStatus,
+    @Query('search') rawSearch?: string,
   ) {
     const limit = parsePaginationValue(
       rawLimit,
@@ -108,9 +109,13 @@ export class ReferralsController {
     )
       ? rawStatus
       : undefined;
+    // A repeated `?search=` key can arrive as an array; only a string is a term.
+    const search =
+      typeof rawSearch === 'string' ? rawSearch.trim() || undefined : undefined;
     const result = await this.referralsService.listAdmin({
       limit,
       page,
+      ...(search ? { search } : {}),
       ...(status ? { status } : {}),
     });
     return serializeCollection(request, ReferralAdminRewardSerializer, {
