@@ -16,22 +16,15 @@ jobs:
           persist-credentials: false
       - name: Build app for Playwright
         uses: ./.github/actions/setup-playwright-app
-      - name: Probe prefetch requests (prod build, 2 workers)
-        run: bunx playwright test --config playwright/configs/playwright.config.ts --project=app-core playwright/e2e/tests/navigation/tmp-probe.spec.ts --repeat-each=4 --workers=2 --reporter=list
+      - name: Full-tier shard 4/8 (same selection and env as Playwright Full)
+        run: node scripts/playwright-e2e-tiers.mjs -- --trace retain-on-failure
         env:
           CI: true
           APP_BASE_URL: http://localhost:3000
           NEXT_PUBLIC_API_ENDPOINT: https://api.genfeed.ai/v1
+          E2E_EXPECT_TIMEOUT_MS: "15000"
           E2E_RETRIES: "0"
-          BETTER_AUTH_SECRET: test-better-auth-secret
-          NEXT_PUBLIC_BETTER_AUTH_ENABLED: "true"
-      - name: Real spec x10 (prod build, 2 workers)
-        if: always()
-        run: bunx playwright test --config playwright/configs/playwright.config.ts --project=app-core playwright/e2e/tests/navigation/instant-navigation.spec.ts -g "rail navigation" --repeat-each=10 --workers=2 --reporter=list
-        env:
-          CI: true
-          APP_BASE_URL: http://localhost:3000
-          NEXT_PUBLIC_API_ENDPOINT: https://api.genfeed.ai/v1
-          E2E_RETRIES: "0"
+          E2E_SHARD_INDEX: "4"
+          E2E_TOTAL_SHARDS: "8"
           BETTER_AUTH_SECRET: test-better-auth-secret
           NEXT_PUBLIC_BETTER_AUTH_ENABLED: "true"
