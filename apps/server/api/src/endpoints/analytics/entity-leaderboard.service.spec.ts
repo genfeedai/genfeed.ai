@@ -789,6 +789,64 @@ describe('EntityLeaderboardService', () => {
       ]);
     });
 
+    it('ranks and counts only the requested organization', async () => {
+      const capturedQueries = captureQueryRawCalls([rankRows('org-9')]);
+      mockOrganizationsService.findAll.mockResolvedValue({
+        docs: [{ id: 'org-9', label: 'Nine' }],
+      });
+      mockPrismaService.organization.count.mockResolvedValue(1);
+
+      const result = await service.getOrganizationsWithStats(
+        undefined,
+        undefined,
+        1,
+        1,
+        LeaderboardSort.ENGAGEMENT,
+        undefined,
+        'org-9',
+      );
+
+      expect(capturedQueries[0].sql).toContain('e."id" = ?');
+      expect(capturedQueries[0].values).toContain('org-9');
+      expect(mockPrismaService.organization.count).toHaveBeenCalledWith({
+        where: { id: 'org-9', isDeleted: false },
+      });
+      expect(result.data.map(({ id }) => id)).toEqual(['org-9']);
+    });
+
+    it('reports the organization type, preferring onboarding accountType over category', async () => {
+      mockPrismaService.$queryRaw.mockResolvedValueOnce(
+        rankRows('org-a', 'org-b'),
+      );
+      mockOrganizationsService.findAll.mockResolvedValue({
+        docs: [
+          {
+            accountType: 'AGENCY',
+            category: 'BUSINESS',
+            createdAt: new Date('2026-10-01T10:00:00.000Z'),
+            id: 'org-a',
+            label: 'A',
+            slug: 'a-slug',
+          },
+          { accountType: null, category: 'BUSINESS', id: 'org-b', label: 'B' },
+        ],
+      });
+
+      const result = await service.getOrganizationsWithStats();
+
+      expect(
+        result.data.map(({ id, slug, type, createdAt }) => [
+          id,
+          slug,
+          type,
+          createdAt,
+        ]),
+      ).toEqual([
+        ['org-a', 'a-slug', 'AGENCY', '2026-10-01T10:00:00.000Z'],
+        ['org-b', undefined, 'BUSINESS', undefined],
+      ]);
+    });
+
     it('should not count brands when the page is empty', async () => {
       await service.getOrganizationsWithStats();
 

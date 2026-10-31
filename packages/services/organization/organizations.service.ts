@@ -404,7 +404,12 @@ export class OrganizationsService extends BaseService<Organization> {
 
   public async findOrganizationAnalyticsPlatforms(
     id: string,
-    query?: { timeframe?: '7d' | '30d' | '90d'; brandId?: string },
+    query?: {
+      timeframe?: '7d' | '30d' | '90d';
+      brandId?: string;
+      startDate?: string;
+      endDate?: string;
+    },
   ): Promise<IPlatformComparison[]> {
     return await this.instance
       .get<JsonApiResponseDocument>(`/${id}/analytics/platforms`, {

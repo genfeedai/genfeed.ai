@@ -220,10 +220,17 @@ export class OrganizationsRelationshipsController {
 
       const totalCredentialsConnected =
         await this.credentialsService.countConnected(organizationId, brandId);
+      // Same definition as the admin organizations list: active, live members.
+      const totalUsers = await this.membersService.count({
+        isActive: true,
+        isDeleted: false,
+        organizationId,
+      });
 
       return serializeSingle(request, AnalyticSerializer, {
         ...metrics,
         totalCredentialsConnected,
+        totalUsers,
       });
     });
   }

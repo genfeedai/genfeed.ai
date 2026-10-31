@@ -1,3 +1,4 @@
+import type { OrganizationCategory } from '@genfeedai/contracts';
 import type {
   IBrandWithStats,
   IOrganizationOwner,
@@ -28,6 +29,9 @@ export class OrgWithStatsEntity implements IOrganizationWithStats {
   declare readonly name: string;
   declare readonly logo?: string;
   declare readonly owner?: IOrganizationOwner;
+  declare readonly slug?: string;
+  declare readonly type?: OrganizationCategory;
+  declare readonly createdAt?: string;
   declare readonly totalPosts: number;
   declare readonly totalEngagement: number;
   declare readonly totalViews: number;
