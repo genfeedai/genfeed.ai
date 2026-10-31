@@ -455,6 +455,43 @@ describe('SignupPrefillService explicit URL scan', () => {
     });
   });
 
+  it.each([
+    'Default description. Use it as a pre-prompt',
+    'Content brand for Adinexio.',
+  ])('replaces the provisioning filler description %j', async (description) => {
+    const h = createHarness();
+    h.brands.findOne.mockResolvedValue({
+      agentConfig: {},
+      label: 'Acme',
+      description,
+      text: 'Owner prompt',
+    });
+    await h.service.applyPrefillPrompt({
+      ...h.state,
+      scrapedData: {
+        companyName: 'Acme',
+        scrapedAt: '2026-10-01T10:00:00.000Z',
+        sourceUrl: 'https://acme.example/',
+        tagline: 'Built on craft',
+      },
+    });
+    expect(h.brands.patch).toHaveBeenCalledWith('brand-1', {
+      description: 'Built on craft',
+    });
+  });
+
+  it('keeps a description the user wrote', async () => {
+    const h = createHarness();
+    h.brands.findOne.mockResolvedValue({
+      agentConfig: {},
+      label: 'Acme',
+      description: 'We sell hand-made rugs.',
+      text: 'Owner prompt',
+    });
+    await h.service.applyPrefillPrompt(h.state);
+    expect(h.brands.patch).not.toHaveBeenCalled();
+  });
+
   it('renames a work-email domain label to the scanned company name', async () => {
     const h = createHarness();
     h.brands.findOne.mockResolvedValue({
