@@ -86,13 +86,15 @@ export class PresetsController extends ScopedCRUDController<
       query.isDeleted ?? false,
     );
 
+    const where: Record<string, unknown> = {
+      ...matchStage,
+      ...buildSearchWhere(query.search, {
+        json: { config: ['label', 'key', 'description'] },
+      }),
+    };
+
     return {
-      where: {
-        ...matchStage,
-        ...buildSearchWhere(query.search, {
-          json: { config: ['label', 'key', 'description'] },
-        }),
-      },
+      where,
       orderBy: query.sort
         ? handleQuerySort(query.sort)
         : ({ createdAt: -1 } as SortObject),
