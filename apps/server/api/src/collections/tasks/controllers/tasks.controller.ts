@@ -183,36 +183,20 @@ export class TasksController extends BaseCRUDController<
       match.brandId = query.brandId;
     }
 
-    if (query.status) {
-      match.status = query.status;
-    }
-
-    if (query.priority) {
-      match.priority = query.priority;
-    }
-
-    if (query.assigneeUserId) {
-      match.assigneeUserId = query.assigneeUserId;
-    }
-
-    if (query.assigneeAgentId) {
-      match.assigneeAgentId = query.assigneeAgentId;
-    }
-
-    if (query.parentId) {
-      match.parentId = query.parentId;
-    }
-
-    if (query.projectId) {
-      match.projectId = query.projectId;
-    }
-
-    if (query.goalId) {
-      match.goalId = query.goalId;
-    }
-
-    if (query.reviewState) {
-      match.reviewState = query.reviewState;
+    const equalityFilters = {
+      assigneeAgentId: query.assigneeAgentId,
+      assigneeUserId: query.assigneeUserId,
+      goalId: query.goalId,
+      parentId: query.parentId,
+      priority: query.priority,
+      projectId: query.projectId,
+      reviewState: query.reviewState,
+      status: query.status,
+    };
+    for (const [key, value] of Object.entries(equalityFilters)) {
+      if (value) {
+        match[key] = value;
+      }
     }
 
     Object.assign(
