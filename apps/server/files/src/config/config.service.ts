@@ -26,6 +26,7 @@ export class ConfigService extends createServiceConfig<FilesEnvConfig>({
   ],
   extend: {
     GENFEEDAI_API_KEY: Joi.string().optional(),
+    GENFEEDAI_API_KEY_FILES: Joi.string().optional().allow(''),
     GENFEEDAI_MEDIA_ISSUER_ENABLED: Joi.string()
       .valid('true', 'false')
       .default('false'),

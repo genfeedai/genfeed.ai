@@ -44,6 +44,7 @@ export class ConfigService extends createServiceConfig<NotificationsEnvConfig>({
       .optional()
       .allow(''),
     GENFEEDAI_API_KEY: Joi.string().optional().allow(''),
+    GENFEEDAI_API_KEY_NOTIFICATIONS: Joi.string().optional().allow(''),
     GF_DEV_ENABLE_DISCORD: Joi.string()
       .valid('true', 'false')
       .optional()

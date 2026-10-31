@@ -1,4 +1,5 @@
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
+import { InternalCallers } from '@api/helpers/guards/admin-api-key/internal-callers.decorator';
 import { AgentReportReviewService } from '@api/services/agent-reports/agent-report-review.service';
 import { Public } from '@libs/decorators/public.decorator';
 import {
@@ -21,6 +22,7 @@ export class ResolveAgentReportReviewDto {
 @Controller('internal/agent-reports')
 @Public()
 @UseGuards(AdminApiKeyGuard)
+@InternalCallers('discord', 'slack', 'telegram')
 export class AgentReportReviewController {
   constructor(private readonly reviews: AgentReportReviewService) {}
   @Post(':platform/review')

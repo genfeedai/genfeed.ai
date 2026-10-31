@@ -1,6 +1,7 @@
 import { UploadIntegrationMediaDto } from '@api/endpoints/integrations/dto/upload-integration-media.dto';
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
+import { InternalCallers } from '@api/helpers/guards/admin-api-key/internal-callers.decorator';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileInputType, IntegrationPlatform } from '@genfeedai/contracts';
 import { Public } from '@libs/decorators/public.decorator';
@@ -12,6 +13,7 @@ import { nanoid } from 'nanoid';
 @Controller('internal/integrations')
 @Public()
 @UseGuards(AdminApiKeyGuard)
+@InternalCallers('discord', 'slack', 'telegram')
 export class InternalIntegrationsController {
   constructor(
     private readonly integrationsService: IntegrationsService,

@@ -99,6 +99,36 @@ export const internalAuthSchema = {
   GENFEEDAI_API_KEY: Joi.string()
     .optional()
     .description('API key for internal service-to-service authentication'),
+  GENFEEDAI_API_KEY_DISCORD: Joi.string()
+    .optional()
+    .allow('')
+    .description(
+      'Discord service key for /v1/internal/* (falls back to GENFEEDAI_API_KEY)',
+    ),
+  GENFEEDAI_API_KEY_FILES: Joi.string()
+    .optional()
+    .allow('')
+    .description(
+      'Files service key for /v1/internal/* (falls back to GENFEEDAI_API_KEY)',
+    ),
+  GENFEEDAI_API_KEY_NOTIFICATIONS: Joi.string()
+    .optional()
+    .allow('')
+    .description(
+      'Notifications service key for /v1/internal/* (falls back to GENFEEDAI_API_KEY)',
+    ),
+  GENFEEDAI_API_KEY_SLACK: Joi.string()
+    .optional()
+    .allow('')
+    .description(
+      'Slack service key for /v1/internal/* (falls back to GENFEEDAI_API_KEY)',
+    ),
+  GENFEEDAI_API_KEY_TELEGRAM: Joi.string()
+    .optional()
+    .allow('')
+    .description(
+      'Telegram service key for /v1/internal/* (falls back to GENFEEDAI_API_KEY)',
+    ),
   GITHUB_TOKEN: Joi.string()
     .optional()
     .allow('')

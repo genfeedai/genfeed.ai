@@ -7,6 +7,7 @@ import { WorkflowExecutorService } from '@api/collections/workflows/services/wor
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
+import { InternalCallers } from '@api/helpers/guards/admin-api-key/internal-callers.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { WorkflowExecutionSerializer } from '@genfeedai/serializers';
@@ -28,6 +29,7 @@ import type { Request } from 'express';
 @Controller('internal/orgs/:orgId/workflow-executions')
 @Public()
 @UseGuards(AdminApiKeyGuard)
+@InternalCallers('discord', 'slack', 'telegram')
 export class InternalWorkflowExecutionsController {
   constructor(
     private readonly moduleRef: ModuleRef,
