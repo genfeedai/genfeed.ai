@@ -20,13 +20,6 @@ export default mergeConfig(
           find: /^@app-i18n\/(.*)$/,
           replacement: path.resolve(__dirname, './i18n/$1'),
         },
-        {
-          find: /^genfeed-serwist-asset-reader$/,
-          replacement: path.resolve(
-            __dirname,
-            './app/serwist/serwist-asset.reader.ts',
-          ),
-        },
         // jsdom tests only ever run the browser SDK. The package root resolves to
         // the server entry, which since 10.73 loads a webpack plugin at import
         // time and throws outside a file:// URL.
