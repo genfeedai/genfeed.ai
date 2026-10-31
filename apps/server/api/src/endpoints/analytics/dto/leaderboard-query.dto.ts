@@ -122,6 +122,17 @@ export class AdminOrgsQueryDto extends AnalyticsDateRangeDto {
   @IsOptional()
   @IsEnum(LeaderboardSort)
   sort?: LeaderboardSort = LeaderboardSort.ENGAGEMENT;
+
+  @ApiProperty({
+    description:
+      'Case-insensitive organization name search, applied before paging',
+    maxLength: 200,
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  search?: string;
 }
 
 export class AdminBrandsQueryDto extends AnalyticsDateRangeDto {
