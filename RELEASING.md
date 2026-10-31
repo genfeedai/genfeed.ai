@@ -52,11 +52,7 @@ Use this when shipping the hosted product and self-hosted image.
 4. Dispatch the workflow once. Do not create or publish the GitHub release
    separately with `gh release create` or the Releases UI.
 
-The canonical workflow pins the selected `master` SHA and runs Full Suite once,
-unless a green Full Suite with the final connected acceptance batch already
-exists for that SHA. The nightly release rehearsal (`full-suite.yml` on its
-schedule) is such a run, so releasing the SHA it tested skips the hour-long
-suite, and a red rehearsal shows release-only blockers the night before.
+The canonical workflow pins the selected `master` SHA and runs Full Suite once.
 After that shared gate it ships both distribution lanes from the same commit:
 
 - community: self-hosted image, public install assets, and anonymous install

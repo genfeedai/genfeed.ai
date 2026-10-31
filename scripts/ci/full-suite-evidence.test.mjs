@@ -58,47 +58,19 @@ function harness(overrides = {}) {
   return options;
 }
 
-test('selects only exact-SHA master push, manual or nightly Full Suite evidence', () => {
+test('selects only exact-SHA master push or manual Full Suite evidence', () => {
   const selected = selectFullSuiteRun(
     [
       run({ id: 1, head_sha: 'a'.repeat(40) }),
       run({ id: 2, head_branch: 'feature' }),
-      run({
-        id: 3,
-        event: 'workflow_call',
-        created_at: '2026-09-03T00:00:00Z',
-      }),
-      run({ id: 6, event: 'pull_request', created_at: '2026-09-03T00:00:00Z' }),
-      run({ id: 4, event: 'workflow_dispatch' }),
+      run({ id: 3, event: 'workflow_call' }),
       run({ id: 5, event: 'schedule', created_at: '2026-09-02T00:00:00Z' }),
+      run({ id: 4, event: 'workflow_dispatch' }),
     ],
     RELEASE_SHA,
   );
 
-  assert.equal(selected?.id, 5);
-});
-
-test('reuses a nightly release rehearsal with its final connected gate', async () => {
-  const result = await resolveFullSuiteEvidence(
-    harness({
-      listRuns: async () => [run({ id: 7, event: 'schedule' })],
-    }),
-  );
-  assert.equal(result.kind, 'verified');
-  assert.equal(result.run.id, 7);
-});
-
-test('a red nightly release rehearsal blocks release of its SHA', async () => {
-  await assert.rejects(
-    resolveFullSuiteEvidence(
-      harness({
-        listRuns: async () => [
-          run({ id: 7, event: 'schedule', conclusion: 'failure' }),
-        ],
-      }),
-    ),
-    /concluded failure/,
-  );
+  assert.equal(selected?.id, 4);
 });
 
 test('a cancelled run never hides an earlier failure for the same SHA', () => {

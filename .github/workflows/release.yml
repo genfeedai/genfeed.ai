@@ -578,10 +578,9 @@ jobs:
             echo "release_tag=${release_tag}"
           } >>"${GITHUB_OUTPUT}"
 
-      # Reuse exact-SHA qualified standalone Full Suite (manual or the nightly
-      # release rehearsal) or prior successful normal Release evidence. Both
-      # require the latest final connected gate; routine push runs leave it
-      # disabled. Exclude this Release run, and wait
+      # Reuse exact-SHA qualified standalone Full Suite or prior successful
+      # normal Release evidence. Both require the latest final connected gate;
+      # routine push runs leave it disabled. Exclude this Release run, and wait
       # for standalone in-flight evidence only within the bounded window;
       # missing or unqualified evidence requests the connected fallback below.
       # Hard-red evidence blocks release. Historical recovery uses its own proof.
