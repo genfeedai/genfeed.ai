@@ -519,6 +519,9 @@ describe('Crun video quote through durable owned output and accounting', () => {
       );
       const pricingEvidence = {
         ...CRUN_VIDEO_PRICING_SNAPSHOT,
+        // The quote service rejects evidence older than 30 days, so a fixed
+        // fixture date would expire the suite; evidence is always fresh here.
+        verifiedAt: new Date().toISOString(),
         rates: CRUN_VIDEO_PRICING_SNAPSHOT.rates.map((rate) => ({
           ...rate,
           providerCredits: funding === 'free' ? '0' : rate.providerCredits,
