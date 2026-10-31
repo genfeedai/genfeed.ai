@@ -56,9 +56,18 @@ async function showOutputPane(page: Page) {
     exact: true,
     name: 'Agent or output',
   });
+  const output = page.getByRole('tablist', { exact: true, name: 'Output' });
+  // After a reload neither tablist exists yet, so isVisible() alone would skip
+  // the Output click on a narrow viewport.
+  await expect(views.or(output).first()).toBeVisible();
   if (await views.isVisible())
-    await views.getByRole('tab', { exact: true, name: 'Output' }).click();
-  return page.getByRole('tablist', { exact: true, name: 'Output' });
+    // A click that lands before hydration after a reload is dropped, so retry
+    // until the output pane is actually showing.
+    await expect(async () => {
+      await views.getByRole('tab', { exact: true, name: 'Output' }).click();
+      await expect(output).toBeVisible({ timeout: 2_000 });
+    }).toPass({ timeout: 15_000 });
+  return output;
 }
 async function openStoryboardTab(
   page: Page,
@@ -381,12 +390,14 @@ test('edits and approves a persisted draft through the actual route with loaded 
     }),
   );
   await page.reload();
+  await showStoryboardBoard(page);
   await expect(
     page
       .getByRole('region', { name: 'Shot 2', exact: true })
       .getByText('Still preview unavailable', { exact: true }),
   ).toBeVisible();
   await captureMatrix('unavailable');
+  await page.setViewportSize({ width: 1440, height: 900 });
   expect(
     writes.every(
       (path) => path.endsWith('/plan') || path.endsWith('/plan/approve'),
@@ -505,6 +516,7 @@ test('edits and approves a persisted draft through the actual route with loaded 
     });
   });
   await page.reload();
+  await showStoryboardBoard(page);
   const editorLink = page.getByRole('link', {
     name: 'Open in Editor',
     exact: true,
