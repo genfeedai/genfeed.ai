@@ -1,5 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { buildElementFindAllQuery } from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
+import {
+  buildElementFindAllQuery,
+  ELEMENT_SORT_FIELDS,
+} from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
 import { ElementsCRUDController } from '@api/collections/elements/shared/elements-crud.controller';
 import { CreateElementSoundDto } from '@api/collections/elements/sounds/dto/create-sound.dto';
 import { UpdateElementSoundDto } from '@api/collections/elements/sounds/dto/update-sound.dto';
@@ -99,6 +102,7 @@ export class ElementsSoundsController extends ElementsCRUDController<
   public buildFindAllQuery(user: User, query: BaseQueryDto) {
     return buildElementFindAllQuery({
       adminFilter: CollectionFilterUtil.buildAdminFilter(user, query),
+      allowedSortFields: [...ELEMENT_SORT_FIELDS, 'sortOrder'],
       filters:
         typeof query.isFavorite === 'boolean'
           ? { isFavorite: query.isFavorite }

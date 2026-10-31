@@ -29,6 +29,7 @@ import type {
   BlacklistsAction,
   BlacklistsState,
 } from '@/features/admin/props/blacklists.props';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 function blacklistsReducer(
   state: BlacklistsState,
@@ -58,6 +59,8 @@ function blacklistsReducer(
   }
 }
 
+const BLACKLIST_SORT_KEYS = ['label', 'key', 'category'];
+
 function BlacklistsListContent({
   filters,
   scope = PageScope.BRAND,
@@ -75,6 +78,9 @@ function BlacklistsListContent({
   );
 
   const searchParams = useSearchParams();
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: BLACKLIST_SORT_KEYS,
+  });
 
   const [state, dispatch] = useReducer(blacklistsReducer, undefined, () => ({
     blacklists: [] as ElementBlacklist[],
@@ -103,12 +109,19 @@ function BlacklistsListContent({
     {
       header: 'Label',
       key: 'label',
+      sortable: true,
       subtext: (blacklist: ElementBlacklist) => blacklist.description,
     },
-    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
+    {
+      className: 'font-mono text-sm',
+      header: 'Key',
+      key: 'key',
+      sortable: true,
+    },
     {
       header: 'Category',
       key: 'category',
+      sortable: true,
       render: (blacklist: IElementBlacklist) => (
         <Badge variant="outline" size={ComponentSize.SM}>
           {blacklist.category ?? 'Undefined'}
@@ -172,8 +185,13 @@ function BlacklistsListContent({
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
   const currentPage = Number(searchParams.get('page')) || 1;
 
+  // Only the latest request may fill the list, so a slow response for an
+  // earlier sort or search cannot replace the current one.
+  const latestRequestRef = useRef(0);
+
   const findAllBlacklists = useCallback(
     async (isRefresh = false) => {
+      const requestId = ++latestRequestRef.current;
       dispatch({ type: 'FETCH_START', isRefresh });
 
       // Notify parent of state changes
@@ -188,6 +206,7 @@ function BlacklistsListContent({
           limit: ITEMS_PER_PAGE,
           page: currentPage,
           search: filters?.search || undefined,
+          ...(sort ? { sort } : {}),
           type: filters?.type || undefined,
         };
 
@@ -201,21 +220,30 @@ function BlacklistsListContent({
         }
 
         const data = await service.findAll(query);
+        if (requestId !== latestRequestRef.current) {
+          return;
+        }
         dispatch({ type: 'FETCH_SUCCESS', blacklists: data });
 
         logger.info('GET /blacklists success', data);
       } catch (error) {
+        if (requestId !== latestRequestRef.current) {
+          return;
+        }
         logger.error('GET /blacklists failed', error);
         notificationsService.error('Failed to load blacklists');
       } finally {
-        dispatch({ type: 'FETCH_DONE' });
-        onLoadingChangeRef.current?.(false);
-        onRefreshingChangeRef.current?.(false);
+        if (requestId === latestRequestRef.current) {
+          dispatch({ type: 'FETCH_DONE' });
+          onLoadingChangeRef.current?.(false);
+          onRefreshingChangeRef.current?.(false);
+        }
       }
     },
     [
       currentPage,
       filters?.search,
+      sort,
       filters?.type,
       getBlacklistsService,
       notificationsService.error,
@@ -314,6 +342,9 @@ function BlacklistsListContent({
   return (
     <>
       <AppTable<ElementBlacklist>
+        onSortChange={onSortChange}
+        sortDirection={sortDirection}
+        sortKey={sortKey}
         items={blacklists}
         columns={columns}
         actions={actions}

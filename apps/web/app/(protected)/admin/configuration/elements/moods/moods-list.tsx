@@ -34,6 +34,7 @@ import type {
   MoodsListAction,
   MoodsListState,
 } from '@/features/admin/props/moods.props';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 function moodsListReducer(
   state: MoodsListState,
@@ -49,6 +50,8 @@ function moodsListReducer(
   }
 }
 
+const MOOD_SORT_KEYS = ['label', 'key'];
+
 function MoodsListContent({
   filters,
   scope = PageScope.BRAND,
@@ -59,6 +62,9 @@ function MoodsListContent({
   const notificationsService = NotificationsService.getInstance();
   const { openConfirm } = useConfirmModal();
   const searchParams = useSearchParams();
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: MOOD_SORT_KEYS,
+  });
   const currentPage = Number(searchParams.get('page')) || 1;
 
   const [state, dispatch] = useReducer(moodsListReducer, undefined, () => ({
@@ -88,9 +94,15 @@ function MoodsListContent({
     {
       header: 'Label',
       key: 'label',
+      sortable: true,
       subtext: (mood: ElementMood) => mood.description,
     },
-    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
+    {
+      className: 'font-mono text-sm',
+      header: 'Key',
+      key: 'key',
+      sortable: true,
+    },
     {
       header: scopeTranslate('scopeHeader'),
       key: 'isPlatformDefault',
@@ -103,8 +115,13 @@ function MoodsListContent({
     },
   ];
 
+  // Only the latest request may fill the list, so a slow response for an
+  // earlier sort or search cannot replace the current one.
+  const latestRequestRef = useRef(0);
+
   const findAllMoods = useCallback(
     async (isRefreshRequest = false) => {
+      const requestId = ++latestRequestRef.current;
       dispatch({ type: 'SET_IS_LOADING', payload: !isRefreshRequest });
       onRefreshingChangeRef.current?.(isRefreshRequest);
       onLoadingChangeRef.current?.(!isRefreshRequest);
@@ -115,6 +132,7 @@ function MoodsListContent({
           limit: ITEMS_PER_PAGE,
           page: currentPage,
           search: filters?.search || undefined,
+          ...(sort ? { sort } : {}),
         };
 
         if (scope === PageScope.SUPERADMIN) {
@@ -127,20 +145,29 @@ function MoodsListContent({
         }
 
         const data = await service.findAll(query);
+        if (requestId !== latestRequestRef.current) {
+          return;
+        }
         dispatch({ type: 'SET_MOODS', payload: data });
         logger.info('GET /moods success', data);
       } catch (error) {
+        if (requestId !== latestRequestRef.current) {
+          return;
+        }
         logger.error('GET /moods failed', error);
         notificationsService.error('Failed to load moods');
       } finally {
-        dispatch({ type: 'SET_IS_LOADING', payload: false });
-        onLoadingChangeRef.current?.(false);
-        onRefreshingChangeRef.current?.(false);
+        if (requestId === latestRequestRef.current) {
+          dispatch({ type: 'SET_IS_LOADING', payload: false });
+          onLoadingChangeRef.current?.(false);
+          onRefreshingChangeRef.current?.(false);
+        }
       }
     },
     [
       currentPage,
       filters?.search,
+      sort,
       getMoodsService,
       notificationsService.error,
       scope,
@@ -219,6 +246,9 @@ function MoodsListContent({
   return (
     <>
       <AppTable<ElementMood>
+        onSortChange={onSortChange}
+        sortDirection={sortDirection}
+        sortKey={sortKey}
         items={moods}
         columns={columns}
         actions={actions}

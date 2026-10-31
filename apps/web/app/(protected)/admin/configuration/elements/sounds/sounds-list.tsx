@@ -23,6 +23,7 @@ import type {
   SoundsListAction,
   SoundsListState,
 } from '@/features/admin/props/sounds.props';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 import { buildSoundsColumns } from './sounds-list-columns.helpers';
 import SoundsListModals from './sounds-list-modals';
@@ -58,6 +59,8 @@ function soundsListReducer(
   }
 }
 
+const SOUND_SORT_KEYS = ['label', 'key', 'sortOrder'];
+
 function SoundsListContent({
   filters,
   scope = PageScope.BRAND,
@@ -75,6 +78,9 @@ function SoundsListContent({
   );
 
   const searchParams = useSearchParams();
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: SOUND_SORT_KEYS,
+  });
 
   const [state, dispatch] = useReducer(soundsListReducer, undefined, () => ({
     sounds: [],
@@ -103,8 +109,13 @@ function SoundsListContent({
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
   const currentPage = Number(searchParams.get('page')) || 1;
 
+  // Only the latest request may fill the list, so a slow response for an
+  // earlier sort or search cannot replace the current one.
+  const latestRequestRef = useRef(0);
+
   const findAllSounds = useCallback(
     async (isRefresh = false) => {
+      const requestId = ++latestRequestRef.current;
       dispatch({ type: 'FETCH_START', isRefresh });
 
       // Notify parent of state changes
@@ -119,6 +130,7 @@ function SoundsListContent({
           limit: ITEMS_PER_PAGE,
           page: currentPage,
           search: filters?.search || undefined,
+          ...(sort ? { sort } : {}),
           type: filters?.type || undefined,
         };
 
@@ -132,21 +144,30 @@ function SoundsListContent({
         }
 
         const data = await service.findAll(query);
+        if (requestId !== latestRequestRef.current) {
+          return;
+        }
         dispatch({ type: 'FETCH_SUCCESS', sounds: data, isRefresh });
 
         logger.info('GET /sounds success', data);
       } catch (error) {
+        if (requestId !== latestRequestRef.current) {
+          return;
+        }
         logger.error('GET /sounds failed', error);
         notificationsService.error('Failed to load sounds');
       } finally {
-        dispatch({ type: 'FETCH_FINALLY' });
-        onLoadingChangeRef.current?.(false);
-        onRefreshingChangeRef.current?.(false);
+        if (requestId === latestRequestRef.current) {
+          dispatch({ type: 'FETCH_FINALLY' });
+          onLoadingChangeRef.current?.(false);
+          onRefreshingChangeRef.current?.(false);
+        }
       }
     },
     [
       currentPage,
       filters?.search,
+      sort,
       filters?.type,
       getSoundsService,
       notificationsService.error,
@@ -290,6 +311,9 @@ function SoundsListContent({
   return (
     <>
       <AppTable<Sound>
+        onSortChange={onSortChange}
+        sortDirection={sortDirection}
+        sortKey={sortKey}
         items={sounds}
         columns={columns}
         actions={actions}
