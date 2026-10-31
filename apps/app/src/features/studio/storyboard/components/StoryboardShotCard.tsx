@@ -2,7 +2,6 @@
 
 import { AgentMediaArtifactPreview } from '@genfeedai/agent/components/AgentMediaArtifactPreview';
 import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/contracts';
-import type { StoryboardShotCardProps } from '@genfeedai/props/studio/storyboard.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
@@ -32,6 +31,7 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import type { StoryboardShotCardProps } from '@/features/studio/props/storyboard.props';
 import StoryboardCharacterReplace from '@/features/studio/storyboard/components/StoryboardCharacterReplace';
 import StoryboardSelect from '@/features/studio/storyboard/components/StoryboardSelect';
 import {

@@ -1,9 +1,9 @@
 'use client';
 
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import type { IngredientsListFooterProps } from '@genfeedai/props/pages/ingredients-list.props';
 import MediaLightbox from '@ui/layouts/lightbox/MediaLightbox';
 import { LazyModalFolder } from '@ui/lazy/modal/LazyModal';
+import type { IngredientsListFooterProps } from '@/features/ingredients/props/ingredients-list.props';
 
 export default function IngredientsListFooter({
   scope,

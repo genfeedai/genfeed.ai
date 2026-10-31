@@ -1,13 +1,13 @@
 import type { StoryboardARollChunk } from '@genfeedai/contracts/api-types/contracts/storyboard-a-roll.contract';
 import type { StoryboardSegment } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
-import type {
-  StoryboardLongFormActions,
-  StoryboardLongFormBoardProps,
-} from '@genfeedai/props/studio/storyboard.props';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type {
+  StoryboardLongFormActions,
+  StoryboardLongFormBoardProps,
+} from '@/features/studio/props/storyboard.props';
 import StoryboardLongFormBoard from './StoryboardLongFormBoard';
 
 vi.mock('next-intl', async () => {

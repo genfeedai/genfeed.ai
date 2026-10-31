@@ -7,7 +7,6 @@ import { ActionSchemaFields, PanelContainer } from '@genfeedai/workflows/ui';
 import { useUIStore, useWorkflowStore } from '@genfeedai/workflows/ui/stores';
 import { TIMEZONES } from '@helpers/formatting/timezone/timezone.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
-import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
 import { Button } from '@ui/primitives/button';
 import { Label } from '@ui/primitives/label';
 import {
@@ -21,6 +20,7 @@ import { Textarea } from '@ui/primitives/textarea';
 import { X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo } from 'react';
+import DropdownMultiSelect from '@/features/workflows/components/dropdowns/multiselect/DropdownMultiSelect';
 import { WorkflowModelField } from '@/features/workflows/components/editor/WorkflowModelField';
 import { WorkflowPromptPicker } from '@/features/workflows/components/editor/WorkflowPromptPicker';
 import {

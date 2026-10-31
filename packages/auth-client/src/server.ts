@@ -35,6 +35,8 @@ const TOKEN_CACHE_MAX_ENTRIES = 500;
 
 interface ServerTokenCacheEntry {
   expiresAt: number;
+  /** The shared request ended on a network error or 5xx, not a refused session. */
+  hasTransientFailure?: boolean;
   promise?: Promise<string | null>;
   token?: string;
 }
@@ -157,10 +159,22 @@ async function requestToken(
  * of throwing during render; `onFailure` reports each failed attempt. A token is
  * reused for the same cookie header for up to 30 seconds (never past its own
  * expiry), and concurrent callers share one request. Failures are not cached.
+ *
+ * A caller that joined a shared request which then failed transiently asks once
+ * for itself. The request may have started inside a prerender or prefetch that
+ * ended first, which kills its fetch for everyone waiting on it.
  */
 export async function getBetterAuthServerToken(
   cookieHeader: string,
   options: BetterAuthServerTokenOptions = {},
+): Promise<string | null> {
+  return requestSharedToken(cookieHeader, options, true);
+}
+
+async function requestSharedToken(
+  cookieHeader: string,
+  options: BetterAuthServerTokenOptions,
+  canJoinInFlight: boolean,
 ): Promise<string | null> {
   if (!cookieHeader) {
     return null;
@@ -168,6 +182,12 @@ export async function getBetterAuthServerToken(
 
   const cacheKey = await getTokenCacheKey(cookieHeader);
   const cached = serverTokenCache.get(cacheKey);
+  if (cached?.promise && canJoinInFlight) {
+    const sharedToken = await cached.promise;
+    return sharedToken === null && cached.hasTransientFailure
+      ? requestSharedToken(cookieHeader, options, false)
+      : sharedToken;
+  }
   if (cached?.promise) {
     return cached.promise;
   }
@@ -177,16 +197,18 @@ export async function getBetterAuthServerToken(
 
   pruneServerTokenCache();
   const entry: ServerTokenCacheEntry = { expiresAt: 0 };
-  entry.promise = fetchServerToken(cookieHeader, options).then((token) => {
-    delete entry.promise;
-    if (token && serverTokenCache.get(cacheKey) === entry) {
-      entry.token = token;
-      entry.expiresAt = getTokenExpiry(token);
-    } else {
-      serverTokenCache.delete(cacheKey);
-    }
-    return token;
-  });
+  entry.promise = fetchServerToken(cookieHeader, options, entry).then(
+    (token) => {
+      delete entry.promise;
+      if (token && serverTokenCache.get(cacheKey) === entry) {
+        entry.token = token;
+        entry.expiresAt = getTokenExpiry(token);
+      } else {
+        serverTokenCache.delete(cacheKey);
+      }
+      return token;
+    },
+  );
   serverTokenCache.set(cacheKey, entry);
 
   return entry.promise;
@@ -195,6 +217,7 @@ export async function getBetterAuthServerToken(
 async function fetchServerToken(
   cookieHeader: string,
   options: BetterAuthServerTokenOptions,
+  entry: ServerTokenCacheEntry,
 ): Promise<string | null> {
   for (let attempt = 1; attempt <= TOKEN_ATTEMPTS; attempt += 1) {
     const result = await requestToken(cookieHeader, attempt, options.tokenUrl);
@@ -208,5 +231,6 @@ async function fetchServerToken(
     }
   }
 
+  entry.hasTransientFailure = true;
   return null;
 }

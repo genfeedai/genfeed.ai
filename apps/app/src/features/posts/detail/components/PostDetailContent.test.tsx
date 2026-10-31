@@ -33,20 +33,23 @@ vi.mock(
   }),
 );
 
-vi.mock('@ui/posts/preview/thread-preview-panel/ThreadPreviewPanel', () => ({
-  default: ({
-    parent,
-    replies,
-  }: {
-    parent: { content: string; id: string };
-    replies: { content: string; id: string }[];
-  }) => (
-    <div data-testid="thread-preview">
-      <span data-testid="preview-parent">{parent.content}</span>
-      <span data-testid="preview-reply-count">{replies.length}</span>
-    </div>
-  ),
-}));
+vi.mock(
+  '@/features/posts/components/posts/preview/thread-preview-panel/ThreadPreviewPanel',
+  () => ({
+    default: ({
+      parent,
+      replies,
+    }: {
+      parent: { content: string; id: string };
+      replies: { content: string; id: string }[];
+    }) => (
+      <div data-testid="thread-preview">
+        <span data-testid="preview-parent">{parent.content}</span>
+        <span data-testid="preview-reply-count">{replies.length}</span>
+      </div>
+    ),
+  }),
+);
 
 function applyRewrite(text: string): void {
   const apply = barProps.current?.onApplyRewrite as

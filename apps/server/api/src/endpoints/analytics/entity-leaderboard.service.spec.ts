@@ -27,6 +27,7 @@ function isSqlFragment(value: unknown): value is SqlFragmentMock {
 }
 
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { OrganizationLogoService } from '@api/collections/organizations/services/organization-logo.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { LeaderboardSort } from '@api/endpoints/analytics/dto/leaderboard-query.dto';
 import { EntityLeaderboardService } from '@api/endpoints/analytics/entity-leaderboard.service';
@@ -104,6 +105,13 @@ describe('EntityLeaderboardService', () => {
       count: vi.fn(),
       findMany: vi.fn(),
     },
+    user: {
+      findMany: vi.fn(),
+    },
+  };
+
+  const mockOrganizationLogoService = {
+    resolveLogoUrls: vi.fn(),
   };
 
   const captureQueryRawCalls = (
@@ -130,6 +138,8 @@ describe('EntityLeaderboardService', () => {
     mockPrismaService.member.groupBy.mockResolvedValue([]);
     mockPrismaService.organization.count.mockResolvedValue(0);
     mockPrismaService.organization.findMany.mockResolvedValue([]);
+    mockPrismaService.user.findMany.mockResolvedValue([]);
+    mockOrganizationLogoService.resolveLogoUrls.mockResolvedValue(new Map());
     mockBrandsService.resolveBrandLogoUrls.mockResolvedValue(new Map());
 
     const module: TestingModule = await Test.createTestingModule({
@@ -138,6 +148,10 @@ describe('EntityLeaderboardService', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: OrganizationsService, useValue: mockOrganizationsService },
         { provide: BrandsService, useValue: mockBrandsService },
+        {
+          provide: OrganizationLogoService,
+          useValue: mockOrganizationLogoService,
+        },
         { provide: LoggerService, useValue: mockLoggerService },
       ],
     }).compile();
@@ -649,6 +663,130 @@ describe('EntityLeaderboardService', () => {
           where: { isDeleted: false, organizationId: { in: [orgId] } },
         }),
       );
+    });
+
+    it('applies the name search to the ranking query and the total, not in memory', async () => {
+      const capturedQueries = captureQueryRawCalls([rankRows('acme-1')]);
+      mockOrganizationsService.findAll.mockResolvedValue({
+        docs: [{ id: 'acme-1', label: 'Acme 1' }],
+      });
+      mockPrismaService.organization.count.mockResolvedValue(12);
+
+      const result = await service.getOrganizationsWithStats(
+        undefined,
+        undefined,
+        2,
+        10,
+        LeaderboardSort.ENGAGEMENT,
+        ' ACME ',
+      );
+
+      expect(capturedQueries[0].sql).toContain('e."label" ILIKE ?');
+      expect(capturedQueries[0].values).toContain('%ACME%');
+      expect(mockPrismaService.organization.count).toHaveBeenCalledWith({
+        where: {
+          isDeleted: false,
+          label: { contains: 'ACME', mode: 'insensitive' },
+        },
+      });
+      expect(result.pagination.total).toBe(12);
+      expect(result.pagination.totalPages).toBe(2);
+    });
+
+    it('ignores a blank search', async () => {
+      const capturedQueries = captureQueryRawCalls([[]]);
+
+      await service.getOrganizationsWithStats(
+        undefined,
+        undefined,
+        1,
+        10,
+        LeaderboardSort.ENGAGEMENT,
+        '   ',
+      );
+
+      expect(capturedQueries[0].sql).not.toContain('ILIKE');
+    });
+
+    it('returns each organization owner, falling back from name to email', async () => {
+      mockPrismaService.$queryRaw.mockResolvedValueOnce(
+        rankRows('org-a', 'org-b', 'org-c'),
+      );
+      mockOrganizationsService.findAll.mockResolvedValue({
+        docs: [
+          { id: 'org-a', label: 'A', userId: 'user-a' },
+          { id: 'org-b', label: 'B', userId: 'user-b' },
+          { id: 'org-c', label: 'C', userId: null },
+        ],
+      });
+      mockPrismaService.user.findMany.mockResolvedValue([
+        {
+          avatar: 'https://cdn.test/a.png',
+          email: 'ada@example.com',
+          firstName: 'Ada',
+          handle: 'ada',
+          id: 'user-a',
+          lastName: 'Lovelace',
+          name: null,
+        },
+        {
+          avatar: null,
+          email: 'bob@example.com',
+          firstName: null,
+          handle: 'bob',
+          id: 'user-b',
+          lastName: null,
+          name: null,
+        },
+      ]);
+
+      const result = await service.getOrganizationsWithStats();
+
+      expect(result.data.map(({ id, owner }) => [id, owner])).toEqual([
+        [
+          'org-a',
+          {
+            avatar: 'https://cdn.test/a.png',
+            email: 'ada@example.com',
+            id: 'user-a',
+            name: 'Ada Lovelace',
+          },
+        ],
+        [
+          'org-b',
+          {
+            avatar: undefined,
+            email: 'bob@example.com',
+            id: 'user-b',
+            name: 'bob@example.com',
+          },
+        ],
+        ['org-c', undefined],
+      ]);
+    });
+
+    it("prefers the organization's own logo asset over the auth provider logo", async () => {
+      mockPrismaService.$queryRaw.mockResolvedValueOnce(
+        rankRows('org-a', 'org-b', 'org-c'),
+      );
+      mockOrganizationsService.findAll.mockResolvedValue({
+        docs: [
+          { id: 'org-a', label: 'A', authProviderLogoUrl: 'https://auth/a' },
+          { id: 'org-b', label: 'B', authProviderLogoUrl: 'https://auth/b' },
+          { id: 'org-c', label: 'C' },
+        ],
+      });
+      mockOrganizationLogoService.resolveLogoUrls.mockResolvedValue(
+        new Map([['org-a', 'https://cdn/a-logo.png']]),
+      );
+
+      const result = await service.getOrganizationsWithStats();
+
+      expect(result.data.map(({ id, logo }) => [id, logo])).toEqual([
+        ['org-a', 'https://cdn/a-logo.png'],
+        ['org-b', 'https://auth/b'],
+        ['org-c', undefined],
+      ]);
     });
 
     it('should not count brands when the page is empty', async () => {

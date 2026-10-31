@@ -40,8 +40,12 @@ describe('value-swap iconography contract', () => {
   });
 
   it('uses the value-swap glyph on the multi-select trigger', () => {
-    const source = readUiSource(
-      'components/dropdowns/multiselect/DropdownMultiSelect.tsx',
+    const source = readFileSync(
+      join(
+        REPO_ROOT,
+        'apps/app/src/features/workflows/components/dropdowns/multiselect/DropdownMultiSelect.tsx',
+      ),
+      'utf8',
     );
 
     expect(source).toContain('ChevronsUpDown');

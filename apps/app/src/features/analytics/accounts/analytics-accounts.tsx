@@ -36,7 +36,6 @@ import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsM
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import SearchField from '@ui/content/search-field/SearchField';
 import Badge from '@ui/display/badge/Badge';
-import BrandAvatar from '@ui/display/brand-avatar/BrandAvatar';
 import Table from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -45,6 +44,7 @@ import { Input } from '@ui/primitives/input';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import BrandAvatar from '@/features/analytics/components/display/brand-avatar/BrandAvatar';
 import AccountCell from '@/features/brands/components/integrations/AccountCell';
 
 type HealthBadgeLabelKey =

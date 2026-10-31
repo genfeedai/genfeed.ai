@@ -2,7 +2,6 @@
 
 import { ButtonVariant, parsePlatform } from '@genfeedai/contracts';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
-import type { PlatformComparisonData } from '@props/analytics/analytics.props';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
@@ -10,11 +9,12 @@ import { Skeleton } from '@ui/primitives/skeleton';
 import { ArrowRight } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import type { PlatformComparisonData } from '@/features/analytics/props/analytics.props';
 
 const PlatformComparisonChart = dynamic(
   () =>
     import(
-      '@ui/analytics/charts/platform-comparison/platform-comparison-chart'
+      '@/features/analytics/components/analytics/charts/platform-comparison/platform-comparison-chart'
     ).then((mod) => mod.PlatformComparisonChart),
   {
     loading: () => <Skeleton className="h-chart w-full" />,
@@ -25,7 +25,7 @@ const PlatformComparisonChart = dynamic(
 const PlatformTimeSeriesChart = dynamic(
   () =>
     import(
-      '@ui/analytics/charts/platform-time-series/platform-time-series-chart'
+      '@/features/analytics/components/analytics/charts/platform-time-series/platform-time-series-chart'
     ).then((mod) => mod.PlatformTimeSeriesChart),
   {
     loading: () => <Skeleton className="h-chart w-full" />,

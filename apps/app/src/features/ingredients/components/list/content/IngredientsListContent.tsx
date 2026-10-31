@@ -24,7 +24,6 @@ import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
 import { useAuthorizedMediaPreview } from '@genfeedai/hooks/media/use-authorized-media-preview';
 import { useIntersectionObserver } from '@genfeedai/hooks/ui/use-intersection-observer/use-intersection-observer';
 import type { IngredientTimeGroupHeadingProps } from '@genfeedai/props/content/ingredient.props';
-import type { IngredientsListContentProps } from '@genfeedai/props/pages/ingredients-list.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import {
   getIngredientFailureReason,
@@ -58,8 +57,6 @@ import LibraryAssetTypeBadge from '@ui/ingredients/library-asset-type-badge';
 import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
 import IngredientTimeGroupHeading from '@ui/ingredients/list/media-grid/ingredient-time-group-heading';
 import { groupIngredientsByTime } from '@ui/ingredients/list/media-grid/ingredient-time-groups.util';
-import FailedIngredientsRecovery from '@ui/ingredients/list/recovery/FailedIngredientsRecovery';
-import IngredientSound from '@ui/ingredients/sound/IngredientSound';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Button } from '@ui/primitives/button';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
@@ -70,10 +67,16 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import FailedIngredientsRecovery from '@/features/ingredients/components/ingredients/list/recovery/FailedIngredientsRecovery';
+import IngredientSound from '@/features/ingredients/components/ingredients/sound/IngredientSound';
+import type { IngredientsListContentProps } from '@/features/ingredients/props/ingredients-list.props';
 
 // React Flow is heavier than the whole grid; only the canvas view pays for it.
 const LibraryCanvas = dynamic(
-  () => import('@ui/ingredients/canvas/LibraryCanvas'),
+  () =>
+    import(
+      '@/features/ingredients/components/ingredients/canvas/LibraryCanvas'
+    ),
   {
     loading: () => <LazyLoadingFallback variant="minimal" />,
     ssr: false,

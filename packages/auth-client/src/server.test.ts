@@ -9,6 +9,19 @@ import {
   resetBetterAuthServerTokenCache,
 } from './server';
 
+/** Settles after a macrotask so a second caller can join the pending request. */
+function settleLater(outcome: Error | Response): Promise<Response> {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      if (outcome instanceof Error) {
+        reject(outcome);
+        return;
+      }
+      resolve(outcome);
+    }, 20);
+  });
+}
+
 describe('getBetterAuthServerToken', () => {
   beforeEach(() => {
     resetBetterAuthServerTokenCache();
@@ -147,6 +160,38 @@ describe('getBetterAuthServerToken', () => {
         getBetterAuthServerToken('session=abc'),
       ]),
     ).resolves.toEqual(['jwt', 'jwt', 'jwt']);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks for itself when the shared request it joined failed on the network', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(() => settleLater(new TypeError('fetch failed')))
+      .mockImplementationOnce(() => settleLater(new TypeError('fetch failed')))
+      .mockImplementationOnce(async () => Response.json({ token: 'jwt' }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      Promise.all([
+        getBetterAuthServerToken('session=abc'),
+        getBetterAuthServerToken('session=abc'),
+      ]),
+    ).resolves.toEqual([null, 'jwt']);
+  });
+
+  it('does not ask again for a joined request that was refused', async () => {
+    const fetchMock = vi.fn(() =>
+      settleLater(new Response(null, { status: 401 })),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      Promise.all([
+        getBetterAuthServerToken('session=abc'),
+        getBetterAuthServerToken('session=abc'),
+      ]),
+    ).resolves.toEqual([null, null]);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });

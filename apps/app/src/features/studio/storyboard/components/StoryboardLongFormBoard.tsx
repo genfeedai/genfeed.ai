@@ -15,7 +15,6 @@ import {
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardStillQuote } from '@genfeedai/contracts/api-types/contracts/storyboard-still.contract';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { StoryboardLongFormBoardProps } from '@genfeedai/props/studio/storyboard.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
@@ -28,6 +27,7 @@ import { Textarea } from '@ui/primitives/textarea';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
+import type { StoryboardLongFormBoardProps } from '@/features/studio/props/storyboard.props';
 import { formatStoryboardTimecode } from '@/features/studio/storyboard/utils/storyboard-runtime';
 
 interface TrackProgress {

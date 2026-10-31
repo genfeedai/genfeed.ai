@@ -1,7 +1,7 @@
 'use client';
 
-import type { StoryboardAgentThreadProps } from '@genfeedai/props/studio/storyboard.props';
 import { useTranslations } from 'next-intl';
+import type { StoryboardAgentThreadProps } from '@/features/studio/props/storyboard.props';
 import StoryboardPromptBar from '@/features/studio/storyboard/components/StoryboardPromptBar';
 
 /**

@@ -6,7 +6,7 @@ import PromptBarContextRow from '@/features/studio/components/prompt-bars/compon
 const fitMocks = vi.hoisted(() => ({ isCompact: false }));
 
 vi.mock(
-  '@hooks/prompt-bar/use-prompt-bar-row-fit/use-prompt-bar-row-fit',
+  '@/features/studio/hooks/use-prompt-bar-row-fit/use-prompt-bar-row-fit',
   () => ({
     usePromptBarRowFit: () => ({ isCompact: fitMocks.isCompact }),
   }),

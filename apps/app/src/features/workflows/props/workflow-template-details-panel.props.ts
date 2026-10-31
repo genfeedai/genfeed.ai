@@ -1,4 +1,4 @@
-import type { WorkflowTemplateCardPreviewProps } from '@genfeedai/props/workflows/workflow-template-card-preview.props';
+import type { WorkflowTemplateCardPreviewProps } from '@/features/workflows/props/workflow-template-card-preview.props';
 
 export interface WorkflowTemplateDetailsPanelProps {
   actionLabel: string;

@@ -19,7 +19,6 @@ import type {
   IOrgLeaderboardItem,
 } from '@services/analytics/analytics.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
-import TopPostsSection from '@ui/analytics/top-posts/TopPostsSection';
 import Card from '@ui/card/Card';
 import AppTable from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
@@ -30,6 +29,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import AnalyticsBrandSummary from '@/features/analytics/brands-list/analytics-brand-summary';
+import TopPostsSection from '@/features/analytics/components/analytics/top-posts/TopPostsSection';
 import OverviewPlaceholderCard from './analytics-overview-placeholder-card';
 
 type AnalyticsOverviewLeaderboardsProps = {

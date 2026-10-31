@@ -15,10 +15,6 @@ import {
   type StoryboardShot,
   storyboardPlanSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
-import type {
-  StoryboardEditablePlan,
-  StoryboardPlanEditorProps,
-} from '@genfeedai/props/studio/storyboard.props';
 import { NotificationsService } from '@services/core/notifications.service';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Container from '@ui/layout/container/Container';
@@ -27,6 +23,10 @@ import { Skeleton } from '@ui/primitives/skeleton';
 import { Clapperboard, Plus, RotateCcw, Undo2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Fragment, useEffect, useImperativeHandle, useState } from 'react';
+import type {
+  StoryboardEditablePlan,
+  StoryboardPlanEditorProps,
+} from '@/features/studio/props/storyboard.props';
 import StoryboardAnimatic from '@/features/studio/storyboard/components/StoryboardAnimatic';
 import StoryboardCastPanel from '@/features/studio/storyboard/components/StoryboardCastPanel';
 import StoryboardDetailsPanel from '@/features/studio/storyboard/components/StoryboardDetailsPanel';

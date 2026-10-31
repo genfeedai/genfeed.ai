@@ -1,10 +1,10 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { StoryboardSaveIndicatorProps } from '@genfeedai/props/studio/storyboard.props';
 import { Button } from '@ui/primitives/button';
 import { Check, CircleAlert, LoaderCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { StoryboardSaveIndicatorProps } from '@/features/studio/props/storyboard.props';
 
 export default function StoryboardSaveIndicator({
   status,

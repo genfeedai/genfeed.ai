@@ -2,7 +2,6 @@
 
 import { TrendNotificationFrequency } from '@genfeedai/contracts';
 import type { ISetting } from '@genfeedai/contracts/interfaces';
-import type { TrendNotificationSettingsProps } from '@genfeedai/props/settings/notifications.props';
 import { Input } from '@ui/primitives/input';
 import FormRange from '@ui/primitives/range-field';
 import { SelectField } from '@ui/primitives/select';
@@ -10,6 +9,7 @@ import Spinner from '@ui/primitives/spinner';
 import { Switch } from '@ui/primitives/switch';
 import { Bell, Info } from 'lucide-react';
 import { useCallback, useState } from 'react';
+import type { TrendNotificationSettingsProps } from '@/features/settings/props/notifications.props';
 
 export type { TrendNotificationSettingsProps };
 

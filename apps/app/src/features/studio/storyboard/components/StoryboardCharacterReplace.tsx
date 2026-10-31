@@ -6,13 +6,13 @@ import type {
   StoryboardCharacterOperationReceipt,
   StoryboardCharacterReplacement,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-character-replace.contract';
-import type { StoryboardCharacterReplaceProps } from '@genfeedai/props/studio/storyboard.props';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Textarea } from '@ui/primitives/textarea';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
+import type { StoryboardCharacterReplaceProps } from '@/features/studio/props/storyboard.props';
 import { useStoryboardCharacterReplacements } from '@/features/studio/storyboard/hooks/use-storyboard-character-replacements';
 
 export default function StoryboardCharacterReplace({

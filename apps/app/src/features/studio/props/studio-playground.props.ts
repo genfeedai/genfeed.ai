@@ -18,7 +18,6 @@ import type {
 } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
 import type { CharacterMentionSubmitResult } from '@genfeedai/helpers/content/character-mention.util';
 import type { MasonryTransformActions } from '@genfeedai/props/content/masonry.props';
-import type { PromptBarContextGroup } from '@genfeedai/props/prompt-bars/prompt-bar-context-row.props';
 import type {
   PromptCommand,
   PromptCommandContext,
@@ -30,6 +29,7 @@ import type {
 } from '@genfeedai/props/studio/prompt-bar.props';
 import type { AnyExtension, JSONContent } from '@tiptap/core';
 import type { ReactElement, ReactNode } from 'react';
+import type { PromptBarContextGroup } from '@/features/studio/props/prompt-bar-context-row.props';
 
 /** Results-grid filter: one asset type, or every type at once. */
 export type StudioPlaygroundFilter = StudioPlaygroundType | 'all';

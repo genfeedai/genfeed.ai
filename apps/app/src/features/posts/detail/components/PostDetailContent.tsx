@@ -15,11 +15,11 @@ import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
 import { plainTextToHtml } from '@helpers/security/sanitize-html.helper';
 import type { PostsService } from '@services/content/posts.service';
 import type { NotificationsService } from '@services/core/notifications.service';
-import ThreadPreviewPanel from '@ui/posts/preview/thread-preview-panel/ThreadPreviewPanel';
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import PostComposerPromptBar from '@/features/posts/components/composer-prompt-bar/PostComposerPromptBar';
 import type { TweetTone } from '@/features/posts/components/composer-prompt-bar/PostComposerPromptBar.props';
+import ThreadPreviewPanel from '@/features/posts/components/posts/preview/thread-preview-panel/ThreadPreviewPanel';
 import PostDetailPostList from '@/features/posts/detail/components/PostDetailPostList';
 import PostDetailThreadFooter from '@/features/posts/detail/components/PostDetailThreadFooter';
 

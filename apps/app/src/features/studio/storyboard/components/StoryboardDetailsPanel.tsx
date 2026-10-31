@@ -1,10 +1,10 @@
 'use client';
 
-import type { StoryboardDetailsPanelProps } from '@genfeedai/props/studio/storyboard.props';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
+import type { StoryboardDetailsPanelProps } from '@/features/studio/props/storyboard.props';
 import StoryboardSelect from '@/features/studio/storyboard/components/StoryboardSelect';
 import { editStoryboardStyle } from '@/features/studio/storyboard/utils/storyboard-plan';
 

@@ -4,7 +4,7 @@ import type {
   StoryboardShot,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import type { StoryboardEditablePlan } from '@genfeedai/props/studio/storyboard.props';
+import type { StoryboardEditablePlan } from '@/features/studio/props/storyboard.props';
 import { getStoryboardAssetLabel } from '@/features/studio/storyboard/utils/storyboard-asset-label';
 
 /** The server repeats these checks; this keeps invalid edits out of the save queue. */

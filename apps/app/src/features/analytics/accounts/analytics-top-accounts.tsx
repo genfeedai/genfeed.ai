@@ -3,7 +3,6 @@
 import { AnalyticsMetric, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IAccountAnalytics } from '@genfeedai/contracts/interfaces';
-import type { AnalyticsTopAccountsProps } from '@genfeedai/props/analytics/analytics.props';
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -20,6 +19,7 @@ import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import type { AnalyticsTopAccountsProps } from '@/features/analytics/props/analytics.props';
 
 export default function AnalyticsTopAccounts({
   organizationId: organizationIdProp,

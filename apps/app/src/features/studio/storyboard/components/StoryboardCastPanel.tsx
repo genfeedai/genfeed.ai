@@ -7,7 +7,6 @@ import {
   IngredientCategory,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { StoryboardCastPanelProps } from '@genfeedai/props/studio/storyboard.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
@@ -15,6 +14,7 @@ import { Input } from '@ui/primitives/input';
 import { Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import type { StoryboardCastPanelProps } from '@/features/studio/props/storyboard.props';
 import StoryboardSelect from '@/features/studio/storyboard/components/StoryboardSelect';
 import { storyboardAssetLabel } from '@/features/studio/storyboard/utils/storyboard-plan';
 

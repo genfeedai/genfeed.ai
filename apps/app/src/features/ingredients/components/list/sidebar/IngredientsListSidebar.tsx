@@ -1,7 +1,7 @@
 'use client';
 
-import type { IngredientsListSidebarProps } from '@genfeedai/props/pages/ingredients-list.props';
-import FoldersSidebarPanel from '@ui/ingredients/list/folders-sidebar-panel/FoldersSidebarPanel';
+import FoldersSidebarPanel from '@/features/ingredients/components/ingredients/list/folders-sidebar-panel/FoldersSidebarPanel';
+import type { IngredientsListSidebarProps } from '@/features/ingredients/props/ingredients-list.props';
 
 export default function IngredientsListSidebar({
   scope,

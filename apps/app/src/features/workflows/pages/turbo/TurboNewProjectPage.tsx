@@ -13,7 +13,6 @@ import {
   getJsonApiErrorMember,
   getJsonApiErrorMessage,
 } from '@services/core/json-api-error-message';
-import SubscriptionRequiredState from '@ui/guards/subscription/SubscriptionRequiredState';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
@@ -30,6 +29,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import SubscriptionRequiredState from '@/features/workflows/components/guards/subscription/SubscriptionRequiredState';
 import {
   createWorkflowApiService,
   type WorkflowSummary,

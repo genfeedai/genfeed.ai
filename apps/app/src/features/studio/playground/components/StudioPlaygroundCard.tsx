@@ -23,7 +23,6 @@ import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import TileBadge from '@ui/display/badge/Badge';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
-import AssetHoverDetails from '@ui/ingredients/asset-hover-details';
 import BrandModeBadge from '@ui/ingredients/brand-mode-badge';
 import IngredientTileOverlays from '@ui/ingredients/ingredient-tile-overlays';
 import {
@@ -54,6 +53,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import AssetHoverDetails from '@/features/studio/components/ingredients/asset-hover-details';
 import StudioPlaygroundFailureDetailsDialog from '@/features/studio/playground/components/StudioPlaygroundFailureDetailsDialog';
 import StudioPlaygroundFailureNotice from '@/features/studio/playground/components/StudioPlaygroundFailureNotice';
 import { studioAssetAccessibleLabel } from '@/features/studio/playground/utils/studio-playground-recipe';

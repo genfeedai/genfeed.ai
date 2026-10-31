@@ -3,11 +3,11 @@
 import '@testing-library/jest-dom/vitest';
 import { PageScope, Platform, PostStatus } from '@genfeedai/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
-import type { UsePostDetailReturn } from '@hooks/pages/use-post-detail/use-post-detail';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PostDetail from '@/features/posts/detail/post-detail';
+import type { UsePostDetailReturn } from '@/features/posts/hooks/use-post-detail/use-post-detail';
 
 const mocks = vi.hoisted(() => ({
   hookData: null as UsePostDetailReturn | null,
@@ -21,7 +21,7 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-vi.mock('@hooks/pages/use-post-detail/use-post-detail', () => ({
+vi.mock('@/features/posts/hooks/use-post-detail/use-post-detail', () => ({
   usePostDetail: () => mocks.hookData,
 }));
 
@@ -54,13 +54,19 @@ vi.mock('@/features/posts/detail/components/PostDetailHeader', () => ({
   default: () => <header>Post header</header>,
 }));
 
-vi.mock('@ui/posts/post-detail-sidebar/PostDetailSidebar', () => ({
-  default: () => <section>Schedule and quality controls</section>,
-}));
+vi.mock(
+  '@/features/posts/components/posts/post-detail-sidebar/PostDetailSidebar',
+  () => ({
+    default: () => <section>Schedule and quality controls</section>,
+  }),
+);
 
-vi.mock('@ui/posts/engagement-preview/EngagementPreview', () => ({
-  default: () => <section>Engagement preview</section>,
-}));
+vi.mock(
+  '@/features/posts/components/posts/engagement-preview/EngagementPreview',
+  () => ({
+    default: () => <section>Engagement preview</section>,
+  }),
+);
 
 vi.mock('@ui/display/skeleton/skeleton', () => ({
   SkeletonCard: () => <div>Loading post details</div>,

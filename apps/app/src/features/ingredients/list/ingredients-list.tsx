@@ -23,17 +23,12 @@ import type {
   ILibraryTagUpdate,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useIngredientDeepLink } from '@hooks/data/ingredients/use-ingredient-deep-link/use-ingredient-deep-link';
-import { useIngredientsList } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-list';
 import { useIngredientSidebar } from '@hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
-import type { IngredientsListProps } from '@props/pages/ingredients-list.props';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Alert from '@ui/feedback/alert/Alert';
-import InfiniteScroll from '@ui/feedback/infinite-scroll/InfiniteScroll';
-import SelectionTagAction from '@ui/ingredients/list/selection-actions-bar/SelectionTagAction';
 import { LazyModalImageToVideo } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
 import {
@@ -43,10 +38,15 @@ import {
 import { format } from 'date-fns';
 import { useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import InfiniteScroll from '@/features/ingredients/components/feedback/infinite-scroll/InfiniteScroll';
+import SelectionTagAction from '@/features/ingredients/components/ingredients/list/selection-actions-bar/SelectionTagAction';
 import IngredientsListContent from '@/features/ingredients/components/list/content/IngredientsListContent';
 import IngredientsListFooter from '@/features/ingredients/components/list/footer/IngredientsListFooter';
 import IngredientsListHeader from '@/features/ingredients/components/list/header/IngredientsListHeader';
 import IngredientsListSidebar from '@/features/ingredients/components/list/sidebar/IngredientsListSidebar';
+import { useIngredientDeepLink } from '@/features/ingredients/hooks/use-ingredient-deep-link/use-ingredient-deep-link';
+import { useIngredientsList } from '@/features/ingredients/hooks/use-ingredients-list/use-ingredients-list';
+import type { IngredientsListProps } from '@/features/ingredients/props/ingredients-list.props';
 
 /**
  * Categories the merge action actually supports. Kept local to this file

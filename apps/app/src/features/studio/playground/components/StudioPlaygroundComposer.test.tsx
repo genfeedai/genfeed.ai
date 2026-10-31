@@ -9,12 +9,12 @@ import type {
   GenerationSetupValues,
 } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import type { PromptCommandContext } from '@genfeedai/props/prompt-bars/prompt-command.props';
+import type { DesktopRuntimeSnapshot } from '@genfeedai/services/core/desktop-runtime.service';
+import { getDefaultStudioPlaygroundSettings } from '@/features/studio/playground/utils/studio-playground-settings';
 import type {
   GenerationSetupFieldSetter,
   GenerationSetupImageEditingMode,
-} from '@genfeedai/props/ui/generation-setup/generation-setup.props';
-import type { DesktopRuntimeSnapshot } from '@genfeedai/services/core/desktop-runtime.service';
-import { getDefaultStudioPlaygroundSettings } from '@/features/studio/playground/utils/studio-playground-settings';
+} from '@/features/studio/props/generation-setup.props';
 
 const runtimeMocks = vi.hoisted(() => ({
   snapshot: { status: 'web', context: null } as DesktopRuntimeSnapshot,
@@ -172,30 +172,36 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 
 // The type bar and the Advanced chips hand their props to one object, so a test
 // reads the setup surface without caring which of the two owns a prop. Chips only mount in Advanced mode.
-vi.mock('@ui/dropdowns/generation-setup/GenerationSetupTypeBar', () => ({
-  default: (props: Record<string, unknown>) => {
-    Object.assign(setupBarMocks.props, props);
-    const setup = props.setup as { values: { type: string } };
-    const options = props.typeOptions as { label: string; value: string }[];
-    return (
-      <button type="button" aria-label="Setup">
-        {options.find((option) => option.value === setup.values.type)?.label}
-      </button>
-    );
-  },
-}));
+vi.mock(
+  '@/features/studio/components/dropdowns/generation-setup/GenerationSetupTypeBar',
+  () => ({
+    default: (props: Record<string, unknown>) => {
+      Object.assign(setupBarMocks.props, props);
+      const setup = props.setup as { values: { type: string } };
+      const options = props.typeOptions as { label: string; value: string }[];
+      return (
+        <button type="button" aria-label="Setup">
+          {options.find((option) => option.value === setup.values.type)?.label}
+        </button>
+      );
+    },
+  }),
+);
 
-vi.mock('@ui/dropdowns/generation-setup/GenerationSetupSectionChips', () => ({
-  default: (props: Record<string, unknown>) => {
-    Object.assign(setupBarMocks.props, props);
-    return (
-      <div data-testid="generation-setup-section-chips">
-        {props.afterModel as React.ReactNode}
-        {props.outputControls as React.ReactNode}
-      </div>
-    );
-  },
-}));
+vi.mock(
+  '@/features/studio/components/dropdowns/generation-setup/GenerationSetupSectionChips',
+  () => ({
+    default: (props: Record<string, unknown>) => {
+      Object.assign(setupBarMocks.props, props);
+      return (
+        <div data-testid="generation-setup-section-chips">
+          {props.afterModel as React.ReactNode}
+          {props.outputControls as React.ReactNode}
+        </div>
+      );
+    },
+  }),
+);
 
 const identityFieldsMocks = vi.hoisted(() => ({
   props: {} as Record<string, unknown>,
@@ -297,9 +303,12 @@ const recommendMocks = vi.hoisted(() => ({
   recommend: vi.fn(() => ({ reasons: {}, values: {} })),
 }));
 
-vi.mock('@ui/dropdowns/generation-setup/generation-setup.recommend', () => ({
-  recommendGenerationSetup: recommendMocks.recommend,
-}));
+vi.mock(
+  '@/features/studio/components/dropdowns/generation-setup/generation-setup.recommend',
+  () => ({
+    recommendGenerationSetup: recommendMocks.recommend,
+  }),
+);
 
 const promptEditorProps: { extraExtensions?: unknown; onSubmit?: () => void } =
   {};

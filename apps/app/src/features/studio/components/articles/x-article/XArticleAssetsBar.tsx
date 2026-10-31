@@ -1,11 +1,11 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { XArticleAssetsBarProps } from '@genfeedai/props/content/x-article.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Clipboard, Clock, Download, ImageIcon, Sparkles } from 'lucide-react';
 import Image from 'next/image';
+import type { XArticleAssetsBarProps } from '@/features/studio/props/x-article.props';
 
 export default function XArticleAssetsBar({
   article,

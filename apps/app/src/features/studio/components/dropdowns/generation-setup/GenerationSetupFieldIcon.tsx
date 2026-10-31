@@ -1,0 +1,117 @@
+'use client';
+
+import type { GenerationSetupFieldKey } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
+import {
+  Activity,
+  Aperture,
+  Camera,
+  Clapperboard,
+  Clock3,
+  Copy,
+  FileText,
+  Gauge,
+  Lightbulb,
+  type LucideIcon,
+  Megaphone,
+  Mic,
+  MicOff,
+  Move3d,
+  Palette,
+  Ratio,
+  ScanLine,
+  Shapes,
+  Smile,
+  Sparkles,
+  UserRound,
+  WandSparkles,
+} from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import type { GenerationSetupFieldIconProps } from '@/features/studio/props/generation-setup.props';
+
+const SOURCE_LABEL: Record<GenerationSetupFieldIconProps['source'], string> = {
+  agent: 'Set by the agent',
+  preset: 'Pinned from a preset',
+  user: 'Set by you',
+};
+
+const FIELD_ICON: Record<GenerationSetupFieldKey, LucideIcon> = {
+  action: Activity,
+  aspectRatio: Ratio,
+  brandingMode: Megaphone,
+  camera: Camera,
+  cameraMovement: Move3d,
+  duration: Clock3,
+  instrumental: MicOff,
+  isPromptEnhanceEnabled: WandSparkles,
+  lens: Aperture,
+  lighting: Lightbulb,
+  lyrics: Mic,
+  modelKey: Sparkles,
+  mood: Smile,
+  outputs: Copy,
+  prioritize: Gauge,
+  promptTemplate: FileText,
+  resolution: ScanLine,
+  scene: Clapperboard,
+  style: Palette,
+  subject: UserRound,
+  type: Shapes,
+};
+
+const FIELD_LABEL: Record<GenerationSetupFieldKey, string> = {
+  action: 'Action',
+  aspectRatio: 'Aspect ratio',
+  brandingMode: 'Brand voice',
+  camera: 'Camera',
+  cameraMovement: 'Camera movement',
+  duration: 'Duration',
+  instrumental: 'Instrumental',
+  isPromptEnhanceEnabled: 'Prompt enhance',
+  lens: 'Lens',
+  lighting: 'Lighting',
+  lyrics: 'Lyrics',
+  modelKey: 'Model',
+  mood: 'Mood',
+  outputs: 'Outputs',
+  prioritize: 'Routing priority',
+  promptTemplate: 'Prompt template',
+  resolution: 'Resolution',
+  scene: 'Scene',
+  style: 'Style',
+  subject: 'Subject',
+  type: 'Type',
+};
+
+export default function GenerationSetupFieldIcon({
+  fieldKey,
+  reason,
+  source,
+}: GenerationSetupFieldIconProps) {
+  const translate = useTranslations('agent.generationSetup');
+  const Icon = FIELD_ICON[fieldKey];
+  const sourceLabel = reason ?? SOURCE_LABEL[source];
+  const fieldLabel =
+    fieldKey === 'instrumental' || fieldKey === 'lyrics' || fieldKey === 'style'
+      ? translate(fieldKey)
+      : FIELD_LABEL[fieldKey];
+  const label = `${fieldLabel}: ${sourceLabel}`;
+
+  return (
+    <SimpleTooltip label={label} position="top">
+      <span
+        aria-label={label}
+        className={cn(
+          'inline-flex size-4 shrink-0 items-center justify-center',
+          source === 'agent' && 'text-primary',
+          source === 'preset' && 'text-foreground',
+          source === 'user' && 'text-muted-foreground',
+        )}
+        role="img"
+      >
+        <Icon aria-hidden="true" className="size-3.5" />
+      </span>
+    </SimpleTooltip>
+  );
+}

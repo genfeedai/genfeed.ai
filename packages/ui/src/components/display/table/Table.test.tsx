@@ -333,7 +333,7 @@ describe('Table', () => {
 
     const header = screen.getByRole('columnheader', { name: /name/i });
     expect(header).toHaveAttribute('aria-sort', 'ascending');
-    fireEvent.click(screen.getByRole('button', { name: 'Sort by Name' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Name' }));
     expect(onSortChange).toHaveBeenCalledWith('name', 'desc');
 
     rerender(
@@ -350,6 +350,143 @@ describe('Table', () => {
       'aria-sort',
       'descending',
     );
+  });
+
+  describe('default sorting', () => {
+    const rows = [
+      { id: 'b', name: 'Bravo', posts: 10 },
+      { id: 'a', name: 'alpha', posts: 2 },
+      { id: 'c', name: 'Charlie', posts: null },
+    ];
+    const getNames = () =>
+      screen
+        .getAllByRole('row')
+        .slice(1)
+        .map((row) => row.querySelector('td')?.textContent);
+
+    it('sorts rows by a clicked header: ascending, descending, then original order', async () => {
+      const user = userEvent.setup();
+      render(
+        <Table
+          items={rows}
+          columns={[
+            { header: 'Name', key: 'name' },
+            { header: 'Posts', key: 'posts' },
+          ]}
+          getRowKey={(item) => item.id}
+        />,
+      );
+
+      expect(getNames()).toEqual(['Bravo', 'alpha', 'Charlie']);
+
+      await user.click(screen.getByRole('button', { name: 'Name' }));
+      expect(getNames()).toEqual(['alpha', 'Bravo', 'Charlie']);
+      expect(
+        screen.getByRole('columnheader', { name: /name/i }),
+      ).toHaveAttribute('aria-sort', 'ascending');
+
+      await user.click(screen.getByRole('button', { name: 'Name' }));
+      expect(getNames()).toEqual(['Charlie', 'Bravo', 'alpha']);
+      expect(
+        screen.getByRole('columnheader', { name: /name/i }),
+      ).toHaveAttribute('aria-sort', 'descending');
+
+      await user.click(screen.getByRole('button', { name: 'Name' }));
+      expect(getNames()).toEqual(['Bravo', 'alpha', 'Charlie']);
+      expect(
+        screen.getByRole('columnheader', { name: /name/i }),
+      ).not.toHaveAttribute('aria-sort');
+    });
+
+    it('sorts numbers by value and keeps empty values last in both directions', async () => {
+      const user = userEvent.setup();
+      render(
+        <Table
+          items={rows}
+          columns={[
+            { header: 'Name', key: 'name' },
+            { header: 'Posts', key: 'posts' },
+          ]}
+          getRowKey={(item) => item.id}
+        />,
+      );
+
+      await user.click(screen.getByRole('button', { name: 'Posts' }));
+      expect(getNames()).toEqual(['alpha', 'Bravo', 'Charlie']);
+
+      await user.click(screen.getByRole('button', { name: 'Posts' }));
+      expect(getNames()).toEqual(['Bravo', 'alpha', 'Charlie']);
+    });
+
+    it('sorts by sortValue when the cell is rendered from computed data', async () => {
+      const user = userEvent.setup();
+      render(
+        <Table
+          items={rows}
+          columns={[
+            { header: 'Name', key: 'name' },
+            {
+              header: 'Share',
+              key: 'share',
+              render: (item) => `${item.posts ?? 0}%`,
+              sortValue: (item) => item.posts,
+            },
+          ]}
+          getRowKey={(item) => item.id}
+        />,
+      );
+
+      await user.click(screen.getByRole('button', { name: 'Share' }));
+      expect(getNames()).toEqual(['alpha', 'Bravo', 'Charlie']);
+    });
+
+    it('leaves out columns that opt out, have no sortable values or no text header', () => {
+      render(
+        <Table
+          items={rows}
+          columns={[
+            { header: 'Name', key: 'name', sortable: false },
+            { header: 'Owner', key: 'owner', render: () => 'x' },
+            { header: <span>Icon</span>, key: 'posts' },
+            { header: 'Posts', key: 'posts' },
+          ]}
+          getRowKey={(item) => item.id}
+        />,
+      );
+
+      expect(screen.getAllByRole('button')).toHaveLength(1);
+      expect(screen.getByRole('button', { name: 'Posts' })).toBeInTheDocument();
+    });
+
+    it('does not reorder grouped tables', () => {
+      render(
+        <Table
+          items={rows}
+          columns={[{ header: 'Name', key: 'name' }]}
+          getGroupHeading={() => null}
+          getRowKey={(item) => item.id}
+        />,
+      );
+
+      expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    });
+
+    it('only offers sorting on columns marked sortable when the parent sorts', () => {
+      render(
+        <Table
+          items={rows}
+          columns={[
+            { header: 'Name', key: 'name', sortable: true },
+            { header: 'Posts', key: 'posts' },
+          ]}
+          getRowKey={(item) => item.id}
+          onSortChange={vi.fn()}
+        />,
+      );
+
+      expect(screen.getAllByRole('button')).toHaveLength(1);
+      expect(getNames()).toEqual(['Bravo', 'alpha', 'Charlie']);
+    });
   });
 
   it('renders supporting text below a primary cell value', () => {

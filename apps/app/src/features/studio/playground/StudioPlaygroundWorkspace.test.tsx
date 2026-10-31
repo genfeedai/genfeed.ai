@@ -423,12 +423,15 @@ vi.mock(
   }),
 );
 
-vi.mock('@ui/prompt-editor/use-prompt-command-extension', () => ({
-  usePromptCommandExtension: () => ({
-    extraExtensions: mocks.promptCommandExtensions,
-    resolveSubmit: mocks.resolvePromptCommands,
+vi.mock(
+  '@/features/studio/components/prompt-editor/use-prompt-command-extension',
+  () => ({
+    usePromptCommandExtension: () => ({
+      extraExtensions: mocks.promptCommandExtensions,
+      resolveSubmit: mocks.resolvePromptCommands,
+    }),
   }),
-}));
+);
 
 vi.mock(
   '@/features/studio/playground/hooks/useStudioPlaygroundTransformActions',

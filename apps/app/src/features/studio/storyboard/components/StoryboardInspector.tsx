@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
-import type { StoryboardInspectorProps } from '@genfeedai/props/studio/storyboard.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
@@ -10,6 +9,7 @@ import { ImagePlus, TriangleAlert } from 'lucide-react';
 import NextImage from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import type { StoryboardInspectorProps } from '@/features/studio/props/storyboard.props';
 
 type InspectorTab = 'shots' | 'details' | 'references' | 'cast';
 
