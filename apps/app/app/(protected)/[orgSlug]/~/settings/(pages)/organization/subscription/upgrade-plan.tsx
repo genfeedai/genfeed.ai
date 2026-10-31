@@ -8,6 +8,7 @@ import {
 } from '@genfeedai/pricing';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSubscription } from '@hooks/data/subscription/use-subscription/use-subscription';
+import type { UpgradePlanProps } from '@props/settings/upgrade-plan.props';
 import { StripeService } from '@services/billing/stripe.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -18,15 +19,6 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
 import { getSubscriptionFailureView } from './subscription-failure.util';
-
-export interface UpgradePlanProps {
-  /**
-   * Self-serve plans on offer, cheapest first. Free/PAYG is never advertised
-   * here, and Enterprise is a conversation rather than a checkout button,
-   * hence the contact line under the offers.
-   */
-  tiers: readonly PlanTier[];
-}
 
 /** Features are already ordered strongest-first in the pricing package. */
 const FEATURES_SHOWN = 4;
