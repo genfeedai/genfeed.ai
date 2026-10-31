@@ -1026,13 +1026,9 @@ describe('ReviewQueueContent', () => {
     rerender(<ReviewQueueContent />);
 
     expect(screen.getByText('No items in this view')).toBeVisible();
-    // Action rail re-registers without Discard once nothing is reviewable.
-    // Scope to the latest portaled node — prior portal renders can still be
-    // mounted from earlier clicks in this test file/document.
-    const { container: rail } = render(latestFiltersNode());
-    expect(
-      within(rail).queryByRole('button', { name: 'Discard batch' }),
-    ).not.toBeInTheDocument();
+    // The action rail is cleared once nothing is reviewable, so Discard batch
+    // no longer shows (earlier calls hold the stale button).
+    expect(mocks.setFiltersNode.mock.calls.at(-1)?.[0]).toBeNull();
     expect(mocks.notificationSuccess).toHaveBeenCalledWith(
       'Review batch discarded',
     );
