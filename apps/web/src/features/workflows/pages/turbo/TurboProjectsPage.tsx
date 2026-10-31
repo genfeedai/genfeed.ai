@@ -21,6 +21,7 @@ import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { Fragment, useEffect, useState } from 'react';
+import SearchField from '@/components/content/search-field/SearchField';
 import SubscriptionRequiredState from '@/features/workflows/components/guards/subscription/SubscriptionRequiredState';
 import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import TurboPresetShelf from './TurboPresetShelf';
@@ -40,6 +41,7 @@ export default function TurboProjectsPage() {
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
   const [isSubscriptionRequired, setIsSubscriptionRequired] = useState(false);
   const { view, setView } = useCollectionViewPreference({
     surface: 'studio.turbo',
@@ -52,14 +54,14 @@ export default function TurboProjectsPage() {
     setLoadedPage(0);
     setError(null);
     setIsSubscriptionRequired(false);
-  }, [brandId]);
+  }, [brandId, search]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: refresh explicitly retries the current page after a failed load.
   useEffect(() => {
     if (!brandId) return;
     const controller = new AbortController();
     setLoading(true);
     void service()
-      .then((api) => api.list(brandId, page, controller.signal))
+      .then((api) => api.list(brandId, page, controller.signal, search))
       .then((items) => {
         if (controller.signal.aborted) return;
         setProjects((current) =>
@@ -90,7 +92,7 @@ export default function TurboProjectsPage() {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [brandId, page, service, t, refresh]);
+  }, [brandId, page, search, service, t, refresh]);
   async function remove(id: string) {
     try {
       await (await service()).remove(id);
@@ -145,6 +147,7 @@ export default function TurboProjectsPage() {
       />
     );
   }
+  const isSearching = search.trim() !== '';
   const recent = [...projects]
     .sort(
       (a, b) => Date.parse(b.updatedAt ?? '') - Date.parse(a.updatedAt ?? ''),
@@ -164,6 +167,14 @@ export default function TurboProjectsPage() {
   return (
     <Container
       label={t('title')}
+      leading={
+        <SearchField
+          ariaLabel={t('search')}
+          onSearch={setSearch}
+          placeholder={t('search')}
+          value={search}
+        />
+      }
       right={
         <div className="flex items-center gap-2">
           <CollectionViewToggle onViewChange={setView} view={view} />
@@ -175,8 +186,13 @@ export default function TurboProjectsPage() {
     >
       <div className="flex flex-col gap-8">
         {error && <p role="alert">{error}</p>}
-        {!loading && !projects.length && !error && <TurboProjectsOnboarding />}
-        {projects.length > 0 && <TurboPresetShelf />}
+        {!loading && !projects.length && !error && !isSearching && (
+          <TurboProjectsOnboarding />
+        )}
+        {(projects.length > 0 || isSearching) && <TurboPresetShelf />}
+        {isSearching && !loading && !projects.length && !error && (
+          <p>{t('emptySearch')}</p>
+        )}
         <CollectionSection title={t('recent')} itemCount={recent.length}>
           <CollectionList>
             {recent.map((project) => (

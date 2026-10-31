@@ -128,5 +128,7 @@
         "description": "Name a common misconception in your niche and correct it with proof."
       }
     }
-  }
+  },
+  "search": "Search Turbo projects",
+  "emptySearch": "No Turbo projects match your search."
 }

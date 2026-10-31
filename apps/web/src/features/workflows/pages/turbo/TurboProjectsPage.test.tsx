@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { ViewType } from '@genfeedai/contracts';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import TurboProjectsPage from './TurboProjectsPage';
@@ -44,12 +45,15 @@ vi.mock(
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
+    leading,
     right,
   }: {
     children: ReactNode;
+    leading?: ReactNode;
     right?: ReactNode;
   }) => (
     <main>
+      {leading}
       {right}
       {children}
     </main>
@@ -125,6 +129,7 @@ describe('TurboProjectsPage load recovery', () => {
         'brand-1',
         1,
         expect.any(AbortSignal),
+        '',
       );
     },
   );
@@ -141,5 +146,41 @@ describe('TurboProjectsPage load recovery', () => {
       ).toBeEnabled(),
     );
     expect(mocks.list).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks the server for the searched name and explains a search with no match', async () => {
+    const user = userEvent.setup();
+    mocks.list.mockResolvedValue([
+      {
+        id: 'project-1',
+        itemCounts: { total: 3 },
+        kind: 'image',
+        name: 'Spring launch',
+        status: 'draft',
+        updatedAt: '2026-10-01T10:00:00.000Z',
+      },
+    ]);
+
+    render(<TurboProjectsPage />);
+    expect(await screen.findAllByText('Spring launch')).not.toHaveLength(0);
+
+    mocks.list.mockResolvedValue([]);
+    await user.type(
+      screen.getByRole('textbox', { name: 'Search Turbo projects' }),
+      'nothing like this{Enter}',
+    );
+
+    expect(
+      await screen.findByText('No Turbo projects match your search.'),
+    ).toBeVisible();
+    expect(mocks.list).toHaveBeenLastCalledWith(
+      'brand-1',
+      1,
+      expect.any(AbortSignal),
+      'nothing like this',
+    );
+    expect(
+      screen.queryByText('Turn your brand into a week of content'),
+    ).not.toBeInTheDocument();
   });
 });

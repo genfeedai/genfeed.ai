@@ -20,6 +20,8 @@ import { Plus, Search, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
+import SearchField from '@/components/content/search-field/SearchField';
 import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import type {
   ClipperWorkspaceProps,
@@ -70,6 +72,8 @@ export default function ClipperWorkspace({ projectId }: ClipperWorkspaceProps) {
   } = useStudioClipperProjects({ isEnabled: !projectId });
   const clipperPage = useStudioClipperPage({ projectId });
   const searchParams = useSearchParams();
+  const { search, setSearch } = useAdminSearchParam();
+  const isSearching = search !== '';
   const isFirstPage = (Number(searchParams.get('page')) || 1) === 1;
 
   const { view, setView } = useCollectionViewPreference({
@@ -78,6 +82,8 @@ export default function ClipperWorkspace({ projectId }: ClipperWorkspaceProps) {
   });
 
   const hasProjects = projects.length > 0;
+  // A search that matches nothing keeps the toolbar, so it can be changed.
+  const hasToolbar = hasProjects || isSearching;
   const listHref = href(APP_ROUTES.STUDIO.CLIPPER);
   const newProjectHref = href(APP_ROUTES.STUDIO.CLIPPER_NEW);
   const topbarActions = projectId ? (
@@ -89,7 +95,7 @@ export default function ClipperWorkspace({ projectId }: ClipperWorkspaceProps) {
     >
       <Link href={listHref}>{t('allProjects')}</Link>
     </Button>
-  ) : hasProjects ? (
+  ) : hasToolbar ? (
     <div className="flex items-center gap-2">
       <CollectionViewToggle onViewChange={setView} view={view} />
       <Button
@@ -107,7 +113,21 @@ export default function ClipperWorkspace({ projectId }: ClipperWorkspaceProps) {
   ) : undefined;
 
   const workspace = (
-    <Container label="Clipper" titleVisibility="sr-only" right={topbarActions}>
+    <Container
+      label="Clipper"
+      leading={
+        !projectId && hasToolbar ? (
+          <SearchField
+            ariaLabel={t('search')}
+            onSearch={setSearch}
+            placeholder={t('search')}
+            value={search}
+          />
+        ) : undefined
+      }
+      right={topbarActions}
+      titleVisibility="sr-only"
+    >
       <div className="flex w-full flex-col gap-4">
         <p className="text-sm text-muted-foreground">{t('description')}</p>
 
@@ -120,19 +140,25 @@ export default function ClipperWorkspace({ projectId }: ClipperWorkspaceProps) {
                 {listError}
               </div>
             ) : null}
-            {!isListLoading && !hasProjects && !listError ? (
+            {!isListLoading && !hasProjects && !listError && !isSearching ? (
               <ClipperOnboarding />
             ) : (
               <>
-                {hasProjects ? <ClipperPresetShelf /> : null}
-                <ClipperProjectList
-                  isLoading={isListLoading}
-                  isRecentVisible={isFirstPage}
-                  projects={projects}
-                  view={view}
-                  onRename={renameProject}
-                  onDelete={deleteProject}
-                />
+                {hasToolbar ? <ClipperPresetShelf /> : null}
+                {isSearching && !isListLoading && !hasProjects && !listError ? (
+                  <p className="text-sm text-muted-foreground">
+                    {t('emptySearch')}
+                  </p>
+                ) : (
+                  <ClipperProjectList
+                    isLoading={isListLoading}
+                    isRecentVisible={isFirstPage}
+                    projects={projects}
+                    view={view}
+                    onRename={renameProject}
+                    onDelete={deleteProject}
+                  />
+                )}
                 {hasProjects && !isListLoading ? (
                   <AutoPagination showTotal totalLabel="projects" />
                 ) : null}

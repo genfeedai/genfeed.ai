@@ -55,6 +55,23 @@ describe('useStudioClipperProjects', () => {
     );
   });
 
+  it('asks the server for the q search term', async () => {
+    mocks.searchParams = new URLSearchParams('q=launch');
+
+    const { result } = renderHook(() => useStudioClipperProjects());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(mocks.listProjects).toHaveBeenCalledWith(
+      {
+        brandId: 'brand-1',
+        limit: ITEMS_PER_PAGE,
+        page: 1,
+        search: 'launch',
+      },
+      expect.any(AbortSignal),
+    );
+  });
+
   it('requests the page named in the URL and keeps the rows the API returned', async () => {
     mocks.searchParams = new URLSearchParams('page=3');
     mocks.listProjects.mockResolvedValue([

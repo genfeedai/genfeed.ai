@@ -14,6 +14,7 @@ export function useStudioClipperProjects(options?: { isEnabled?: boolean }) {
   const { selectedBrand } = useBrand();
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
+  const search = searchParams.get('q') ?? '';
   const brandId = selectedBrand?.id;
   const [projects, setProjects] = useState<ClipperProjectSummary[]>([]);
   const [isLoading, setIsLoading] = useState(isEnabled);
@@ -40,7 +41,12 @@ export function useStudioClipperProjects(options?: { isEnabled?: boolean }) {
 
     void clipsService
       .listProjects(
-        { brandId, limit: ITEMS_PER_PAGE, page: currentPage },
+        {
+          brandId,
+          limit: ITEMS_PER_PAGE,
+          page: currentPage,
+          ...(search ? { search } : {}),
+        },
         abortController.signal,
       )
       .then((items) => {
@@ -76,7 +82,7 @@ export function useStudioClipperProjects(options?: { isEnabled?: boolean }) {
       cancelled = true;
       abortController.abort();
     };
-  }, [brandId, clipsService, currentPage, isEnabled]);
+  }, [brandId, clipsService, currentPage, isEnabled, search]);
 
   const renameProject = useCallback(
     async (id: string, name: string): Promise<void> => {

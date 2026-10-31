@@ -40,6 +40,8 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
+import SearchField from '@/components/content/search-field/SearchField';
 import { LazyModalMember } from '@/components/lazy/modal/LazyModal';
 import type { MemberBrandAccessProps } from '@/features/settings/props/members-list.props';
 import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
@@ -86,6 +88,7 @@ function MembersListContent() {
   const { orgHref } = useOrgUrl();
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
+  const { search, setSearch } = useAdminSearchParam();
   const seatLimit = getSeatLimitForTier(settings?.subscriptionTier);
   const upgradeTier = getUpgradeTierForLimit(
     'seats',
@@ -276,6 +279,7 @@ function MembersListContent() {
         limit: ITEMS_PER_PAGE,
         organization: organizationId,
         page: currentPage,
+        ...(search ? { search } : {}),
       };
 
       const [memberData, invitationData] = await Promise.all([
@@ -298,6 +302,7 @@ function MembersListContent() {
     isTeamSubscriptionLocked,
     notificationsService,
     organizationId,
+    search,
   ]);
 
   const updateInvitation = useCallback(
@@ -373,6 +378,16 @@ function MembersListContent() {
       titleVisibility="sr-only"
       moduleChrome
       bodyClassName="space-y-4"
+      leading={
+        isTeamSubscriptionLocked ? undefined : (
+          <SearchField
+            ariaLabel={translate('search')}
+            onSearch={setSearch}
+            placeholder={translate('search')}
+            value={search}
+          />
+        )
+      }
       right={
         !isTeamSubscriptionLocked && canManageInvitations ? (
           <Button

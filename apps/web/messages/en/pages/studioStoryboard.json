@@ -318,6 +318,7 @@
   },
   "runs": {
     "all": "All storyboards",
+    "emptySearch": "No storyboards match your search.",
     "lastEdited": "Edited {time}",
     "more": "Load more",
     "needsYou": "Needs you",
@@ -337,6 +338,7 @@
     },
     "retryLoad": "Retry loading",
     "runtime": "{seconds}s",
+    "search": "Search storyboards",
     "shotCount": "{count, plural, one {# shot} other {# shots}}",
     "sourceKinds": {
       "brief": "Brief",

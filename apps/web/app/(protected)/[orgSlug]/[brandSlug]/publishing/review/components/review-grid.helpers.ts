@@ -121,6 +121,30 @@ export function getVisibleReviewItems(
   );
 }
 
+/** Keeps the drafts whose caption, prompt, platform, workflow or target match. */
+export function searchReviewItems(
+  items: ITurboRunItem[],
+  search: string,
+): ITurboRunItem[] {
+  const term = search.trim().toLowerCase();
+  if (!term) {
+    return items;
+  }
+
+  return items.filter((item) =>
+    [
+      item.caption,
+      item.prompt,
+      item.platform,
+      item.sourceWorkflowName,
+      item.targetAuthor,
+      item.targetPostContent,
+      item.assignee?.displayName,
+      item.assignee?.handle,
+    ].some((field) => field?.toLowerCase().includes(term)),
+  );
+}
+
 export function getNextActiveItemId(
   items: ITurboRunItem[],
   currentItemId: string | null,

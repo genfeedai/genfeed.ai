@@ -39,6 +39,7 @@ const mocks = vi.hoisted(() => ({
   openConfirm: vi.fn(),
   replace: vi.fn(),
   setFiltersNode: vi.fn(),
+  setLeadingNode: vi.fn(),
   setQueryData: vi.fn(),
   startRewrite: vi.fn(),
   useTurboRewriteJob: vi.fn(),
@@ -300,6 +301,10 @@ vi.mock('./components/review-grid.helpers', () => ({
 
     return items[currentIndex + 1]?.id ?? items[currentIndex - 1]?.id ?? null;
   },
+  searchReviewItems: (items: Array<{ caption?: string }>, search: string) =>
+    search.trim()
+      ? items.filter((item) => item.caption?.includes(search.trim()))
+      : items,
   parseReviewFilters: (value: string | null) => {
     if (value == null || value === '') {
       return null;
@@ -326,6 +331,7 @@ vi.mock('@contexts/posts/posts-layout-context', () => ({
     setExportNode: vi.fn(),
     setFiltersNode: mocks.setFiltersNode,
     setIsRefreshing: vi.fn(),
+    setLeadingNode: mocks.setLeadingNode,
     setRefresh: vi.fn(),
     setScheduleActionsNode: vi.fn(),
     setViewToggleNode: vi.fn(),
@@ -463,6 +469,14 @@ describe('ReviewQueueContent', () => {
 
   function latestFiltersNode(): ReactNode {
     const node = mocks.setFiltersNode.mock.calls
+      .filter(([candidate]) => candidate !== null)
+      .at(-1)?.[0] as ReactNode;
+    expect(node).toBeDefined();
+    return node;
+  }
+
+  function latestLeadingNode(): ReactNode {
+    const node = mocks.setLeadingNode.mock.calls
       .filter(([candidate]) => candidate !== null)
       .at(-1)?.[0] as ReactNode;
     expect(node).toBeDefined();
@@ -679,10 +693,10 @@ describe('ReviewQueueContent', () => {
     render(<ReviewQueueContent />);
 
     expect(await screen.findByText('Review Grid')).toBeInTheDocument();
-    // Batch picker + status filters live in the publish layout action rail
-    // (filtersNode), not the page body — render what was portaled to assert on it.
+    // Search + batch picker + status filters live in the publish layout subbar
+    // (leadingNode), not the page body — render what was portaled to assert on it.
     expect(screen.queryByText('Review Stats Header')).not.toBeInTheDocument();
-    render(latestFiltersNode());
+    render(latestLeadingNode());
     expect(screen.getByText('Ready count: 2')).toBeInTheDocument();
 
     await waitFor(() => {
@@ -706,6 +720,117 @@ describe('ReviewQueueContent', () => {
       `${APPROVALS_PATH}/batch-1/item-2?filter=all`,
       { scroll: false },
     );
+  });
+
+  it('narrows the drafts to the searched text and explains a search with no match', async () => {
+    const user = userEvent.setup();
+    mocks.getTurboRunsService.mockResolvedValue({ itemAction: vi.fn() });
+    mockReviewQueries({
+      activeTurboRun: {
+        id: 'batch-1',
+        items: [
+          {
+            caption: 'Spring launch teaser',
+            format: 'video',
+            id: 'item-1',
+            status: 'COMPLETED',
+          },
+          {
+            caption: 'Weekly recap',
+            format: 'image',
+            id: 'item-2',
+            status: 'COMPLETED',
+          },
+        ],
+        status: 'COMPLETED',
+        totalCount: 2,
+      },
+    });
+
+    render(<ReviewQueueContent />);
+    expect(
+      await screen.findByRole('button', { name: 'Select item-2' }),
+    ).toBeInTheDocument();
+
+    const { container: subbar } = render(latestLeadingNode());
+    await user.type(
+      within(subbar).getByRole('textbox', { name: 'Search the review queue' }),
+      'Spring{Enter}',
+    );
+
+    expect(
+      await screen.findByRole('button', { name: 'Select item-1' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Select item-2' }),
+    ).not.toBeInTheDocument();
+
+    // The field stays after a miss, so the search can be changed or cleared.
+    const { container: refreshedSubbar } = render(latestLeadingNode());
+    await user.clear(
+      within(refreshedSubbar).getByRole('textbox', {
+        name: 'Search the review queue',
+      }),
+    );
+    await user.type(
+      within(refreshedSubbar).getByRole('textbox', {
+        name: 'Search the review queue',
+      }),
+      'nothing like this{Enter}',
+    );
+
+    expect(
+      await screen.findByText('Nothing in the queue matches your search'),
+    ).toBeInTheDocument();
+  });
+
+  it('leaves drafts hidden by the search out of a bulk action', async () => {
+    const user = userEvent.setup();
+    const itemAction = vi.fn().mockResolvedValue({});
+    mocks.getTurboRunsService.mockResolvedValue({ itemAction });
+    mockReviewQueries({
+      activeTurboRun: {
+        id: 'batch-1',
+        items: [
+          {
+            caption: 'Spring launch teaser',
+            format: 'video',
+            id: 'item-1',
+            status: 'COMPLETED',
+          },
+          {
+            caption: 'Weekly recap',
+            format: 'image',
+            id: 'item-2',
+            status: 'COMPLETED',
+          },
+        ],
+        status: 'COMPLETED',
+        totalCount: 2,
+      },
+    });
+
+    render(<ReviewQueueContent />);
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Toggle item-2' }),
+    );
+    expect(screen.getByText('Selected count: 1')).toBeInTheDocument();
+
+    const { container: subbar } = render(latestLeadingNode());
+    await user.type(
+      within(subbar).getByRole('textbox', { name: 'Search the review queue' }),
+      'Spring{Enter}',
+    );
+    expect(await screen.findByText('Selected count: 0')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle item-1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Bulk Approve' }));
+    await waitFor(() => {
+      expect(itemAction).toHaveBeenCalledWith('batch-1', {
+        action: 'approve',
+        itemIds: ['item-1'],
+      });
+    });
   });
 
   it('explains automatic ready-filter broadening once across rerenders and refetches', async () => {
@@ -950,13 +1075,9 @@ describe('ReviewQueueContent', () => {
     rerender(<ReviewQueueContent />);
 
     expect(screen.getByText('No items in this view')).toBeVisible();
-    // Action rail re-registers without Discard once nothing is reviewable.
-    // Scope to the latest portaled node — prior portal renders can still be
-    // mounted from earlier clicks in this test file/document.
-    const { container: rail } = render(latestFiltersNode());
-    expect(
-      within(rail).queryByRole('button', { name: 'Discard batch' }),
-    ).not.toBeInTheDocument();
+    // The action rail is cleared once nothing is reviewable, so Discard batch
+    // no longer shows (earlier calls hold the stale button).
+    expect(mocks.setFiltersNode.mock.calls.at(-1)?.[0]).toBeNull();
     expect(mocks.notificationSuccess).toHaveBeenCalledWith(
       'Review batch discarded',
     );

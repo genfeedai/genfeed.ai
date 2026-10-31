@@ -25,9 +25,9 @@ export class TurboProjectsApi extends HTTPBaseService {
       token,
     );
   }
-  async list(brandId: string, page: number, signal?: AbortSignal) {
+  async list(brandId: string, page: number, signal?: AbortSignal, search = '') {
     const { data } = await this.instance.get<JsonApiResponseDocument>('', {
-      params: { brandId, page, limit: 50 },
+      params: { brandId, page, limit: 50, ...(search ? { search } : {}) },
       signal,
     });
     return deserializeCollection<ITurboProject>(data);

@@ -17,6 +17,7 @@ import {
   getVisibleReviewItems,
   parseReviewFilters,
   type ReviewStatusFilter,
+  searchReviewItems,
   serializeReviewFilters,
 } from './components/review-grid.helpers';
 import { isReadyToReview } from './components/review-state';
@@ -60,7 +61,7 @@ function buildReviewHref(input: {
   return query ? `${path}?${query}` : path;
 }
 
-export function useReviewQueueContent() {
+export function useReviewQueueContent(search = '') {
   const { openConfirm } = useConfirmModal();
   const notifications = useMemo(() => NotificationsService.getInstance(), []);
   const queryClient = useQueryClient();
@@ -206,8 +207,12 @@ export function useReviewQueueContent() {
   );
 
   const visibleItems = useMemo(
-    () => getVisibleReviewItems(activeTurboRun?.items ?? [], activeFilters),
-    [activeTurboRun?.items, activeFilters],
+    () =>
+      searchReviewItems(
+        getVisibleReviewItems(activeTurboRun?.items ?? [], activeFilters),
+        search,
+      ),
+    [activeTurboRun?.items, activeFilters, search],
   );
 
   const canDiscardTurboRun =
@@ -218,6 +223,13 @@ export function useReviewQueueContent() {
     () => visibleItems.find((item) => item.id === activeItemId) ?? null,
     [activeItemId, visibleItems],
   );
+
+  // Bulk actions only ever touch drafts the reviewer can see: a draft picked
+  // before a search or filter hid it stays selected but is left out.
+  const visibleSelectedIds = useMemo(() => {
+    const visibleIds = new Set(visibleItems.map((item) => item.id));
+    return new Set([...selectedIds].filter((id) => visibleIds.has(id)));
+  }, [selectedIds, visibleItems]);
 
   useEffect(() => {
     if (selectedTurboRunId || !requestedTurboRunId) {
@@ -360,27 +372,27 @@ export function useReviewQueueContent() {
 
   const handleFilterChange = useCallback(
     (filters: ReviewStatusFilter[]) => {
-      const nextVisibleItems = getVisibleReviewItems(
-        activeTurboRun?.items ?? [],
-        filters,
+      const nextVisibleItems = searchReviewItems(
+        getVisibleReviewItems(activeTurboRun?.items ?? [], filters),
+        search,
       );
       const nextItemId = getNextActiveItemId(nextVisibleItems, activeItemId);
 
       setActiveFilters(filters);
       setActiveItemId(nextItemId);
     },
-    [activeTurboRun?.items, activeItemId],
+    [activeTurboRun?.items, activeItemId, search],
   );
 
   const handleBulkAction = useCallback(
     async (action: 'approve' | 'reject') => {
-      if (selectedIds.size === 0 || !activeTurboRunId) {
+      if (visibleSelectedIds.size === 0 || !activeTurboRunId) {
         return;
       }
 
-      const selectedItemIds = Array.from(selectedIds);
+      const selectedItemIds = Array.from(visibleSelectedIds);
       const remainingItems = visibleItems.filter(
-        (item) => !selectedIds.has(item.id),
+        (item) => !visibleSelectedIds.has(item.id),
       );
 
       setIsActioning(true);
@@ -391,7 +403,11 @@ export function useReviewQueueContent() {
           itemIds: selectedItemIds,
         });
 
-        setSelectedIds(new Set());
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          for (const id of selectedItemIds) next.delete(id);
+          return next;
+        });
         await refreshTurboRun();
         const nextItemId = getNextActiveItemId(remainingItems, activeItemId);
         setActiveItemId(nextItemId);
@@ -416,18 +432,23 @@ export function useReviewQueueContent() {
       activeItemId,
       getTurboRunsService,
       refreshTurboRun,
-      selectedIds,
       visibleItems,
+      visibleSelectedIds,
     ],
   );
 
   // The rewrite runs in the background: the page stays usable while it does.
   const handleBulkRewrite = useCallback(async () => {
-    if (selectedIds.size === 0 || isActioning) return;
-    if (await startRewrite([...selectedIds])) {
-      setSelectedIds(new Set());
+    if (visibleSelectedIds.size === 0 || isActioning) return;
+    const rewriteIds = [...visibleSelectedIds];
+    if (await startRewrite(rewriteIds)) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        for (const id of rewriteIds) next.delete(id);
+        return next;
+      });
     }
-  }, [isActioning, selectedIds, startRewrite]);
+  }, [isActioning, startRewrite, visibleSelectedIds]);
 
   const updateTurboRunCaches = useCallback(
     (turboRun: ITurboRunSummary) => {
@@ -737,7 +758,7 @@ export function useReviewQueueContent() {
     isTurboRunLoading,
     isRefreshing: isTurboRunsFetching || isTurboRunFetching,
     refreshQueue,
-    selectedIds,
+    selectedIds: visibleSelectedIds,
     selectedPostId,
     visibleItems,
     handleApproveItem,

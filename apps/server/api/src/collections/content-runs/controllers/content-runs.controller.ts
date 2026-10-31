@@ -180,6 +180,7 @@ export class ContentRunsController {
   @Get('brands/:brandId/content-runs/remixes')
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'search', required: false, type: String })
   async listBrandRemixRuns(
     @Req() req: Request,
     @Param('brandId') brandId: string,

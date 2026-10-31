@@ -18,6 +18,7 @@ import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 import type { ReviewInboxApprovalsState } from '@/props/publishing/review-inbox-approvals.props';
+import { searchReviewInboxItems } from './components/review-inbox.helpers';
 
 /** Turbo run drafts are agent work, so they show for the Agent source. */
 export function isAgentSourceVisible(
@@ -39,7 +40,9 @@ export function filterReviewInboxItems(
  * Workflow review gates and MCP approvals for the review inbox (#7340). Each
  * decision goes to the API once; the owning service fences repeats.
  */
-export function useReviewInboxApprovals(): ReviewInboxApprovalsState {
+export function useReviewInboxApprovals(
+  search = '',
+): ReviewInboxApprovalsState {
   const translate = useTranslations('pages.publishing.review.inbox');
   const notifications = useMemo(() => NotificationsService.getInstance(), []);
   const getReviewInboxService = useAuthedService((token: string) =>
@@ -76,8 +79,12 @@ export function useReviewInboxApprovals(): ReviewInboxApprovalsState {
     [rawItems],
   );
   const items = useMemo(
-    () => filterReviewInboxItems(data, sourceFilters),
-    [data, sourceFilters],
+    () =>
+      searchReviewInboxItems(
+        filterReviewInboxItems(data, sourceFilters),
+        search,
+      ),
+    [data, search, sourceFilters],
   );
 
   const refresh = useCallback(async () => {

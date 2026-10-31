@@ -6,6 +6,7 @@ import {
   PRISMA_SERIALIZATION_FAILURE,
   RUN_SELECT,
 } from '@api/collections/content-runs/services/brand-remix-runs.types';
+import { contentRunTitleSearch } from '@api/collections/content-runs/services/content-run-title-search';
 import {
   type StoryboardStoredRunConfig,
   storyboardStoredRunConfigSchema,
@@ -273,6 +274,7 @@ export class StoryboardRunsService {
       where: scopedWhere(organizationId, {
         brandId,
         config: { path: ['contract'], equals: STORYBOARD_RUN_CONTRACT },
+        ...contentRunTitleSearch(['plan', 'title'], input.search),
       }),
     });
     return records.flatMap((record) => {

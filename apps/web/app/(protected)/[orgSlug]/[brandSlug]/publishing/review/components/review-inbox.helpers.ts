@@ -1,4 +1,7 @@
-import type { ReviewInboxItemSource } from '@genfeedai/contracts/interfaces';
+import type {
+  IReviewInboxItem,
+  ReviewInboxItemSource,
+} from '@genfeedai/contracts/interfaces';
 
 export const REVIEW_INBOX_SOURCES: readonly ReviewInboxItemSource[] = [
   'agent',
@@ -50,4 +53,21 @@ export function paginateReviewInboxItems<T>(
   );
   const start = (clampedPage - 1) * REVIEW_INBOX_PAGE_SIZE;
   return items.slice(start, start + REVIEW_INBOX_PAGE_SIZE);
+}
+
+/** Keeps the requests whose source, brand, action or tool contain the term. */
+export function searchReviewInboxItems(
+  items: readonly IReviewInboxItem[],
+  search: string,
+): IReviewInboxItem[] {
+  const term = search.trim().toLowerCase();
+  if (!term) {
+    return [...items];
+  }
+
+  return items.filter((item) =>
+    [item.sourceLabel, item.brandLabel, item.actionSummary, item.toolName].some(
+      (field) => field?.toLowerCase().includes(term),
+    ),
+  );
 }

@@ -529,7 +529,10 @@
       "noDetails": "No batch details are available",
       "noDetailsDescription": "Pick another batch or reload the queue.",
       "invalidResponse": "The review batches response was invalid or failed to load. Refresh the page and check the batches API.",
-      "batchLabel": "Batch"
+      "batchLabel": "Batch",
+      "search": "Search the review queue",
+      "emptySearchTitle": "Nothing in the queue matches your search",
+      "emptySearchDescription": "Try a different word, or clear the search to see everything waiting for review."
     },
     "filters": {
       "label": "Status",

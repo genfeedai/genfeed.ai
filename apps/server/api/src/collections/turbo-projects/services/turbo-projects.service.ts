@@ -22,6 +22,7 @@ import {
   turboProjectRetryKey,
   turboProjectStartKey,
 } from '@api/collections/turbo-projects/services/turbo-project-reconcile.service';
+import { turboProjectSearchWhere } from '@api/collections/turbo-projects/services/turbo-project-search.util';
 import {
   DEFAULT_IDEA_SETTINGS,
   mergeTurboProjectSettings,
@@ -30,7 +31,7 @@ import { countTurboProjectItems } from '@api/collections/turbo-projects/services
 import { BatchWorkflowExecutionService } from '@api/collections/workflows/services/batch-workflow-execution.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import type { SearchBaseQueryDto } from '@api/helpers/dto/search-base-query.dto';
 import { scopedWhere } from '@api/index';
 import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -98,12 +99,13 @@ export class TurboProjectsService {
 
   async list(
     scope: ITurboProjectScope,
-    query: BaseQueryDto,
+    query: SearchBaseQueryDto,
   ): Promise<AggregatePaginateResult<ITurboProject>> {
     const page = Math.max(1, query.page ?? 1);
     const limit = Math.min(100, Math.max(1, query.limit ?? 20));
     const where = scopedWhere(scope.organizationId, {
       ...(query.brandId ? { brandId: query.brandId } : {}),
+      ...turboProjectSearchWhere(query.search),
     });
     const readPage = () =>
       Promise.all([

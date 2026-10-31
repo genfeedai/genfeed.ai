@@ -242,4 +242,39 @@ describe('Storyboard run list', () => {
       }),
     );
   });
+
+  it('narrows the list to plan titles that match the search', async () => {
+    const findMany = vi.fn().mockResolvedValue([]);
+    const service = new StoryboardRunsService(
+      { contentRun: { findMany } } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      { warn: vi.fn() } as never,
+      {} as never,
+    );
+
+    await service.list('org-1', 'brand-1', { search: ' hook ' });
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: [
+            {
+              config: {
+                mode: 'insensitive',
+                path: ['plan', 'title'],
+                string_contains: 'hook',
+              },
+            },
+          ],
+          brandId: 'brand-1',
+          config: { equals: 'storyboard-run', path: ['contract'] },
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      }),
+    );
+  });
 });

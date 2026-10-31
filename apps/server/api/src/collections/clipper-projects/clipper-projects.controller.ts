@@ -11,7 +11,7 @@ import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { SearchBaseQueryDto } from '@api/helpers/dto/search-base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
@@ -22,6 +22,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type {
@@ -98,7 +99,7 @@ export class ClipperProjectsController {
   async findAll(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Query() query: BaseQueryDto,
+    @Query() query: SearchBaseQueryDto,
   ): Promise<JsonApiCollectionResponse> {
     const tenant = CollectionFilterUtil.resolveListOrganizationId(
       query,
@@ -120,6 +121,10 @@ export class ClipperProjectsController {
             ? // A brand's list also shows org-wide projects that have no brand.
               { OR: [{ brandId: null }, { brandId: query.brandId }] }
             : {}),
+        // A clip project's name and source link live in its config.
+        ...buildSearchWhere(query.search, {
+          json: { config: ['name', 'sourceVideoUrl'] },
+        }),
       },
       orderBy: query.sort
         ? handleQuerySort(query.sort)

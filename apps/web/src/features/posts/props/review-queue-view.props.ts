@@ -25,6 +25,8 @@ export interface ReviewQueueViewProps {
   isActioning: boolean;
   isTurboRunLoading: boolean;
   isRefreshing?: boolean;
+  /** The page's one search term; blank shows every draft and request. */
+  search: string;
   selectedIds: Set<string>;
   rewritingIds?: ReadonlySet<string>;
   isRewriteStarting?: boolean;
@@ -42,6 +44,7 @@ export interface ReviewQueueViewProps {
   onFilterChange: (filters: ReviewStatusFilter[]) => void;
   onRefresh: () => void | Promise<void>;
   onRequestChanges: (itemId: string, feedback?: string) => Promise<void>;
+  onSearchChange: (value: string) => void;
   onReject: (itemId: string, feedback?: string) => Promise<void>;
   onSelectItem: (itemId: string) => void;
   onToggleSelect: (itemId: string) => void;

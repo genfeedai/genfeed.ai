@@ -18,6 +18,7 @@ export default function ReviewFilterMenu({
   activeSources,
   activeTurboRunId,
   hasTurboControls,
+  isAttached,
   filterCounts,
   turboRunOptions,
   onFilterChange,
@@ -77,6 +78,7 @@ export default function ReviewFilterMenu({
   return (
     <FilterMenu
       facets={facets}
+      isAttached={isAttached}
       onClear={() => {
         onSourceChange([]);
         onFilterChange([]);

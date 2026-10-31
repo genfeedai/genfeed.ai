@@ -15,6 +15,8 @@ export interface ReviewFilterMenuProps {
   activeTurboRunId: string | null;
   /** Status and batch only apply while the batch queue is on screen. */
   hasTurboControls: boolean;
+  /** Sits inside a `SearchField`'s trailing edge: a compact trigger. */
+  isAttached?: boolean;
   filterCounts: ReviewFilterCounts;
   turboRunOptions: readonly ReviewFilterMenuBatchOption[];
   onFilterChange: (filters: ReviewStatusFilter[]) => void;

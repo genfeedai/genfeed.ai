@@ -69,6 +69,32 @@ describe('useStoryboardRuns', () => {
     );
   });
 
+  it('asks both run sources for the searched title and starts the list over', async () => {
+    mocks.listBrandRemixRuns.mockResolvedValue([summary('run-1')]);
+    const { rerender, result } = renderHook(
+      ({ search }) => useStoryboardRuns(search),
+      { initialProps: { search: '' } },
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    mocks.listBrandRemixRuns.mockResolvedValue([summary('run-2')]);
+    rerender({ search: 'recap' });
+
+    await waitFor(() =>
+      expect(result.current.runs.map((run) => run.id)).toEqual(['run-2']),
+    );
+    expect(mocks.listBrandRemixRuns).toHaveBeenLastCalledWith(
+      'brand-1',
+      { limit: STORYBOARD_RUNS_PAGE_SIZE, page: 1, search: 'recap' },
+      expect.any(AbortSignal),
+    );
+    expect(mocks.listStoryboardRuns).toHaveBeenLastCalledWith(
+      'brand-1',
+      { limit: STORYBOARD_RUNS_PAGE_SIZE, page: 1, search: 'recap' },
+      expect.any(AbortSignal),
+    );
+  });
+
   it('appends the next page without duplicating rows', async () => {
     mocks.listBrandRemixRuns
       .mockResolvedValueOnce(fullPage)
