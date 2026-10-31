@@ -492,7 +492,7 @@ describe('WorkflowExecutionsController', () => {
       expect(JSON.stringify(where.workflow)).not.toContain('voice.generate');
     });
 
-    it('narrows the failure feed to runs whose error, workflow or organization match the search', async () => {
+    it('narrows the failure feed to runs whose ID, error, workflow or organization match the search', async () => {
       mockService.findAll.mockResolvedValue({ docs: [] });
       await controller.findAdminFailures(
         mockRequest,
@@ -503,6 +503,7 @@ describe('WorkflowExecutionsController', () => {
       expect(mockService.findAll.mock.calls[0][0].where.AND).toEqual([
         {
           OR: [
+            { id: { contains: 'timeout', mode: 'insensitive' } },
             { error: { contains: 'timeout', mode: 'insensitive' } },
             {
               organization: {

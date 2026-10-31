@@ -232,7 +232,7 @@ export class WorkflowExecutionsController {
                 query.search,
                 {
                   columns: ['id', 'error'],
-                  relations: { organization: ['label'] },
+                  relations: { organization: ['label'], workflow: ['label'] },
                 },
               ),
               workflow: {
