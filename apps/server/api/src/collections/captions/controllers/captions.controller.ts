@@ -99,8 +99,18 @@ export class CaptionsController {
       }),
     );
 
+    // Captions that share a format or language need a unique tiebreaker, or
+    // consecutive pages can repeat or skip rows.
+    const requestedSort = handleAllowedQuerySort(
+      query.sort,
+      CAPTION_SORT_FIELDS,
+    );
     const aggregate = {
-      orderBy: handleAllowedQuerySort(query.sort, CAPTION_SORT_FIELDS),
+      orderBy: {
+        ...requestedSort,
+        ...(requestedSort.createdAt === undefined ? { createdAt: -1 } : {}),
+        id: -1,
+      },
       where: matchConditions,
     };
 

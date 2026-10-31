@@ -18,7 +18,7 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Button } from '@ui/primitives/button';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
 /** Columns the captions endpoint can order by. */
 const CAPTION_SORT_KEYS = ['format', 'createdAt'];
@@ -75,7 +75,12 @@ function CaptionsListContent() {
     kind: 'record',
   });
 
+  // Only the latest request may fill the list, so a slow response for an
+  // earlier sort or search cannot replace the current one.
+  const latestRequestRef = useRef(0);
+
   const findAllCaptions = useCallback(async () => {
+    const requestId = ++latestRequestRef.current;
     setCaptions(null);
     setLoadError(null);
 
@@ -89,10 +94,16 @@ function CaptionsListContent() {
       };
 
       const data = await service.findAll(query);
+      if (requestId !== latestRequestRef.current) {
+        return;
+      }
       setCaptions(data);
       setLoadError(null);
       logger.info('GET /captions success', data);
     } catch (error) {
+      if (requestId !== latestRequestRef.current) {
+        return;
+      }
       logger.error('GET /captions failed', error);
       notificationsService.error('Failed to load captions');
       setCaptions([]);

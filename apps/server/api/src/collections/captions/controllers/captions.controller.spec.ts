@@ -107,10 +107,11 @@ describe('CaptionsController', () => {
 
   describe('findAll sort', () => {
     it.each([
-      ['format: 1', { format: 1 }],
-      ['language: -1', { language: -1 }],
-      ['content: 1', { createdAt: -1 }],
-      [undefined, { createdAt: -1 }],
+      ['format: 1', { createdAt: -1, format: 1, id: -1 }],
+      ['language: -1', { createdAt: -1, id: -1, language: -1 }],
+      ['createdAt: 1', { createdAt: 1, id: -1 }],
+      ['content: 1', { createdAt: -1, id: -1 }],
+      [undefined, { createdAt: -1, id: -1 }],
     ])('orders captions by %s', async (sort, orderBy) => {
       deps.captionsService.findAll.mockResolvedValue({ docs: [] });
 

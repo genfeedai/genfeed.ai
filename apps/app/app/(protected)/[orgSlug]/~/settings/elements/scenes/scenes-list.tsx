@@ -17,7 +17,7 @@ import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
 /** Columns the scenes endpoint can order by. */
 const SCENE_SORT_KEYS = ['label', 'key'];
@@ -57,7 +57,12 @@ function ScenesListContent() {
 
   const rowSidebar = useElementRowSidebar<ElementScene>();
 
+  // Only the latest request may fill the list, so a slow response for an
+  // earlier sort or search cannot replace the current one.
+  const latestRequestRef = useRef(0);
+
   const findAllScenes = useCallback(async () => {
+    const requestId = ++latestRequestRef.current;
     setScenes(null);
 
     try {
@@ -70,9 +75,15 @@ function ScenesListContent() {
       };
 
       const data = await service.findAll(query);
+      if (requestId !== latestRequestRef.current) {
+        return;
+      }
       setScenes(data);
       logger.info('GET /scenes success', data);
     } catch (error) {
+      if (requestId !== latestRequestRef.current) {
+        return;
+      }
       logger.error('GET /scenes failed', error);
       notificationsService.error('Failed to load scenes');
       setScenes([]);
