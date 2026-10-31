@@ -342,10 +342,14 @@ describe('ClipperWorkspace chrome stability', () => {
     });
     rerender(<ClipperWorkspace />);
 
-    expect(screen.getByText('No clip projects match your search.')).toBeVisible();
+    expect(
+      screen.getByText('No clip projects match your search.'),
+    ).toBeVisible();
     expect(
       screen.getByRole('textbox', { name: 'Search clip projects' }),
     ).toHaveValue('launch');
-    expect(screen.queryByTestId('clipper-project-list')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('clipper-project-list'),
+    ).not.toBeInTheDocument();
   });
 });

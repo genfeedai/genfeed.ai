@@ -49,11 +49,7 @@ import type {
   ITurboProjectQuote,
   ITurboProjectScope,
 } from '@genfeedai/contracts/interfaces';
-import type {
-  Prisma,
-  TurboProject,
-  TurboProjectItem,
-} from '@genfeedai/prisma';
+import type { Prisma, TurboProject, TurboProjectItem } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

@@ -301,10 +301,7 @@ vi.mock('./components/review-grid.helpers', () => ({
 
     return items[currentIndex + 1]?.id ?? items[currentIndex - 1]?.id ?? null;
   },
-  searchReviewItems: (
-    items: Array<{ caption?: string }>,
-    search: string,
-  ) =>
+  searchReviewItems: (items: Array<{ caption?: string }>, search: string) =>
     search.trim()
       ? items.filter((item) => item.caption?.includes(search.trim()))
       : items,
