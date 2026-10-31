@@ -394,6 +394,10 @@ export default defineConfig({
         replacement: path.resolve(appRoot, './src/components/$1'),
       },
       {
+        find: /^@web-hooks\/(.*)$/,
+        replacement: path.resolve(appRoot, './src/hooks/$1'),
+      },
+      {
         find: /^@styles$/,
         replacement: path.resolve(__dirname, '../packages/styles'),
       },

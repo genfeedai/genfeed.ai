@@ -39,7 +39,7 @@ vi.mock('@web-components/PageLayout', () => ({
   ),
 }));
 
-vi.mock('@hooks/ui/use-marketing-entrance', () => ({
+vi.mock('@web-hooks/ui/use-marketing-entrance', () => ({
   useMarketingEntrance: () => ({ current: null }),
 }));
 

@@ -86,6 +86,7 @@
       ],
       "@utils/*": ["../../packages/utils/*"],
       "@web-components/*": ["./src/components/*"],
+      "@web-hooks/*": ["./src/hooks/*"],
       "@website/*": ["./app/*"]
     }
   },

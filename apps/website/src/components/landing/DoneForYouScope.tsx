@@ -1,7 +1,6 @@
 import { BOOKING_HREF } from '@data/booking.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import SectionHeader from '@ui/marketing/SectionHeader';
+import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
 import {
   NeuralGrid,
   NeuralGridItem,
@@ -11,6 +10,7 @@ import {
   DONE_FOR_YOU_FOCUS_LINKS,
   DONE_FOR_YOU_SCOPE_OPTIONS,
 } from '@web-components/landing/done-for-you-scope.data';
+import SectionHeader from '@web-components/marketing/SectionHeader';
 import { Check } from 'lucide-react';
 import Link from 'next/link';
 

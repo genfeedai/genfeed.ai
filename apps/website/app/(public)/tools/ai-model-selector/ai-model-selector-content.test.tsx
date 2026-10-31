@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import AiModelSelectorContent from './ai-model-selector-content';
 
-vi.mock('@ui/buttons/tracked/ButtonTracked', () => ({
+vi.mock('@web-components/buttons/tracked/ButtonTracked', () => ({
   default: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 

@@ -20,7 +20,6 @@ import {
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import { EnvironmentService } from '@services/core/environment.service';
-import SectionHeader from '@ui/marketing/SectionHeader';
 import { Button } from '@ui/primitives/button';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
 import FaqGrid from '@web-components/content/FaqGrid';
@@ -32,6 +31,7 @@ import {
 } from '@web-components/content/NeuralGrid';
 import { serviceOffering } from '@web-components/landing/service-offering.data';
 import MarketingEntrance from '@web-components/MarketingEntrance';
+import SectionHeader from '@web-components/marketing/SectionHeader';
 import PageLayout from '@web-components/PageLayout';
 import ProofTestimonials from '@web-components/proof/ProofTestimonials';
 import { CircleCheck } from 'lucide-react';

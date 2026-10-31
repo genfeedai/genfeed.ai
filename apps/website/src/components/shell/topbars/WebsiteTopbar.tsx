@@ -2,15 +2,15 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { useDeferredIsSignedIn } from '@genfeedai/hooks/auth/use-deferred-is-signed-in/use-deferred-is-signed-in';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
-import ConnectAgentButton from '@ui/buttons/connect-agent/ConnectAgentButton';
-import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import TopbarPublic from '@ui/topbars/public/TopbarPublic';
+import ConnectAgentButton from '@web-components/buttons/connect-agent/ConnectAgentButton';
+import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
+import TopbarPublic from '@web-components/topbars/public/TopbarPublic';
 import {
   HERO_CTA_PENDING_CLASS,
   useHeroCtaRevealed,
-} from '@ui/topbars/public/useHeroCtaRevealed';
+} from '@web-components/topbars/public/useHeroCtaRevealed';
+import { useDeferredIsSignedIn } from '@web-hooks/auth/use-deferred-is-signed-in/use-deferred-is-signed-in';
 import {
   Bot,
   Building2,

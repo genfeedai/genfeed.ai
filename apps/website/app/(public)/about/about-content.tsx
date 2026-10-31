@@ -2,7 +2,6 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { IMAGE_CREDIT_COSTS, PLAN_COPY } from '@genfeedai/pricing';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import { EnvironmentService } from '@services/core/environment.service';
-import SectionHeader from '@ui/marketing/SectionHeader';
 import { Button } from '@ui/primitives/button';
 import {
   DefinitionDetail,
@@ -18,6 +17,7 @@ import {
   WebSection,
 } from '@web-components/content/NeuralGrid';
 import MarketingEntrance from '@web-components/MarketingEntrance';
+import SectionHeader from '@web-components/marketing/SectionHeader';
 import PageLayout from '@web-components/PageLayout';
 import Link from 'next/link';
 import type { ComponentProps } from 'react';

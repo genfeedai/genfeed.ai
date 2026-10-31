@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import TopbarPublic from '@ui/topbars/public/TopbarPublic';
+import TopbarPublic from '@web-components/topbars/public/TopbarPublic';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next/navigation', () => ({

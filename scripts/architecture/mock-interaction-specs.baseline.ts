@@ -703,7 +703,7 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'packages/hooks/agent/use-agent-brand-create/use-agent-brand-create.test.ts',
   'packages/hooks/agent/use-agent-oauth-connect/use-agent-oauth-connect.test.ts',
   'packages/hooks/auth/use-authed-service/use-authed-service.test.ts',
-  'packages/hooks/auth/use-deferred-is-signed-in/use-deferred-is-signed-in.test.ts',
+  'apps/website/src/hooks/auth/use-deferred-is-signed-in/use-deferred-is-signed-in.test.ts',
   'packages/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect.test.ts',
   'packages/hooks/commands/use-agent-thread-commands/use-agent-thread-commands.test.ts',
   'packages/hooks/commands/use-default-commands-registration/use-default-commands-registration.test.ts',

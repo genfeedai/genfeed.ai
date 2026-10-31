@@ -11,7 +11,6 @@ import {
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AgentConnectDialogProps } from '@props/agent-client.props';
 import CommandBlock from '@public/agent-clients/agent-client-command-block';
-import { AGENT_CONNECT_EVENT } from '@ui/buttons/connect-agent/connect-agent.event';
 import {
   Accordion,
   AccordionContent,
@@ -28,6 +27,7 @@ import {
   DialogTitle,
 } from '@ui/primitives/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/primitives/tabs';
+import { AGENT_CONNECT_EVENT } from '@web-components/buttons/connect-agent/connect-agent.event';
 import AgentClientLogo from '@web-components/content/AgentClientLogo';
 import { ExternalLink } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';

@@ -3,8 +3,8 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AgentFirstActionsProps } from '@props/website/agent-first-actions.props';
 import { EnvironmentService } from '@services/core/environment.service';
-import ConnectAgentButton from '@ui/buttons/connect-agent/ConnectAgentButton';
-import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
+import ConnectAgentButton from '@web-components/buttons/connect-agent/ConnectAgentButton';
+import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
 
 /*
   The product pages sell one path: point the agent you already use at Genfeed,

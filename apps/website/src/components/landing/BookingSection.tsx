@@ -1,8 +1,8 @@
 import { BOOKING_HREF, BOOKING_SECTION_ID } from '@data/booking.data';
 import { ButtonSize } from '@genfeedai/contracts';
-import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import SectionHeader from '@ui/marketing/SectionHeader';
+import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
 import { WebSection } from '@web-components/content/NeuralGrid';
+import SectionHeader from '@web-components/marketing/SectionHeader';
 import { ArrowUpRight } from 'lucide-react';
 
 export default function BookingSection(): React.ReactElement {

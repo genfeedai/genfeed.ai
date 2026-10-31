@@ -1,4 +1,4 @@
-import type { UseMarketingEntranceOptions } from '@hooks/ui/use-marketing-entrance';
+import type { UseMarketingEntranceOptions } from '@web-hooks/ui/use-marketing-entrance';
 import type { ReactNode } from 'react';
 
 /**

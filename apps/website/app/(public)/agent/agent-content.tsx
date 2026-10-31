@@ -1,10 +1,10 @@
 import { AGENT_PROMPTS } from '@data/agent-prompts.data';
-import EditorialPoster from '@ui/marketing/EditorialPoster';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
+import EditorialPoster from '@web-components/marketing/EditorialPoster';
 import PageLayout from '@web-components/PageLayout';
 import { Blocks, BookOpen, Plug, Terminal } from 'lucide-react';
 import Link from 'next/link';

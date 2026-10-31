@@ -1125,7 +1125,6 @@
         "@tiptap/react": "3.32.0",
         "@tiptap/starter-kit": "3.32.0",
         "@tiptap/suggestion": "3.32.0",
-        "@xyflow/react": "12.12.0",
         "cmdk": "1.1.1",
         "date-fns": "4.4.0",
         "html-react-parser": "6.1.9",

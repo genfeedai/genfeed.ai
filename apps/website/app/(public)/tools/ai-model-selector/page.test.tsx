@@ -14,8 +14,8 @@ vi.mock('@public/models/models-loader', () => ({
 vi.mock('@public/benchmark/benchmark-loader', () => ({
   getBenchmarkData: vi.fn(async () => null),
 }));
-vi.mock('@ui/footers', () => ({ SiteFooter: () => null }));
-vi.mock('@ui/buttons/tracked/ButtonTracked', () => ({
+vi.mock('@web-components/footers', () => ({ SiteFooter: () => null }));
+vi.mock('@web-components/buttons/tracked/ButtonTracked', () => ({
   default: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 

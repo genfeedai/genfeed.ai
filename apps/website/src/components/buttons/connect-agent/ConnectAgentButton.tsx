@@ -1,9 +1,9 @@
 'use client';
 
 import { ButtonSize } from '@genfeedai/contracts';
-import type { ConnectAgentButtonProps } from '@genfeedai/props/website/connect-agent-button.props';
-import { AGENT_CONNECT_EVENT } from '@ui/buttons/connect-agent/connect-agent.event';
-import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
+import type { ConnectAgentButtonProps } from '@props/website/connect-agent-button.props';
+import { AGENT_CONNECT_EVENT } from '@web-components/buttons/connect-agent/connect-agent.event';
+import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
 
 export default function ConnectAgentButton({
   className,

@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
-import TopbarPublicDesktopDropdown from '@ui/topbars/public/TopbarPublicDesktopDropdown';
+import TopbarPublicDesktopDropdown from '@web-components/topbars/public/TopbarPublicDesktopDropdown';
 import { describe, expect, it } from 'vitest';
 
 const ungroupedDropdown = {

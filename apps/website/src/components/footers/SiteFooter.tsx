@@ -8,7 +8,7 @@ import {
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
-import CopyrightYear from '@ui/footers/CopyrightYear';
+import CopyrightYear from '@web-components/footers/CopyrightYear';
 import { Mail } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
