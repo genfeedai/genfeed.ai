@@ -105,7 +105,7 @@ vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
 
 // Mock providers
 vi.mock(
-  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
   () => ({
     useGalleryModal: () => ({
       openGallery: mockOpenGallery,

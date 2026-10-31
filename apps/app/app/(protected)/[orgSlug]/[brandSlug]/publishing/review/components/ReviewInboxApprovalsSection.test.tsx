@@ -6,7 +6,7 @@ import ReviewInboxApprovalsSection from './ReviewInboxApprovalsSection';
 
 const confirmMocks = vi.hoisted(() => ({ openConfirm: vi.fn() }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/contexts/providers/global-modals/global-modals.hooks', () => ({
   useConfirmModal: () => ({ openConfirm: confirmMocks.openConfirm }),
 }));
 

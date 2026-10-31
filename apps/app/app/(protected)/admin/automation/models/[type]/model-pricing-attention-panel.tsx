@@ -5,7 +5,7 @@ import type {
   AdminModelPricingRow,
   ModelPricingAttentionLevel,
 } from '@genfeedai/contracts/interfaces';
-import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
+import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { CircleAlert, TriangleAlert, Wrench } from 'lucide-react';

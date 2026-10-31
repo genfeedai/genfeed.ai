@@ -108,7 +108,7 @@ vi.mock('@/features/brands/sidebar-panel/BrandSidebarPanel', () => ({
   ),
 }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/contexts/providers/global-modals/global-modals.hooks', () => ({
   useBrandCreateModal: vi.fn(() => brandCreate),
   useConfirmModal: vi.fn(() => ({
     openConfirm: vi.fn(),

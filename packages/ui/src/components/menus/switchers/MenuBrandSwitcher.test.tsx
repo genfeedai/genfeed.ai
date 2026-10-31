@@ -45,7 +45,7 @@ vi.mock('@genfeedai/hooks/auth/use-auth-user/use-auth-user', () => ({
 }));
 
 vi.mock(
-  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
   () => ({
     useBrandCreateModal: () => ({
       openBrandCreateModal: mockOpenBrandCreateModal,

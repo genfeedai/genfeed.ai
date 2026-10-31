@@ -3,7 +3,7 @@
 import {
   useConfirmModal,
   useUploadModal,
-} from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+} from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { type AssetCategory, ModalEnum } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { IBrand, ILink } from '@genfeedai/contracts/interfaces';

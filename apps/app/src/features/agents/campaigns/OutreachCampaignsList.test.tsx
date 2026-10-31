@@ -76,7 +76,7 @@ vi.mock('next/navigation', () => ({
   })),
 }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/contexts/providers/global-modals/global-modals.hooks', () => ({
   useConfirmModal: vi.fn(() => ({
     openConfirm: vi.fn(),
   })),

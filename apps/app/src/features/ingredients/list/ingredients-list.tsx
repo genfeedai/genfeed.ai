@@ -26,7 +26,7 @@ import { useIngredientDeepLink } from '@hooks/data/ingredients/use-ingredient-de
 import { useIngredientsList } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-list';
 import { useIngredientSidebar } from '@hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
 import type { IngredientsListProps } from '@props/pages/ingredients-list.props';
-import { usePostModal } from '@providers/global-modals/global-modals.provider';
+import { usePostModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';

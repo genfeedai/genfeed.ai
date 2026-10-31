@@ -156,7 +156,7 @@ vi.mock('next-intl', async () => {
   };
 });
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/contexts/providers/global-modals/global-modals.hooks', () => ({
   useConfirmModal: () => ({
     closeConfirm: vi.fn(),
     openConfirm: openConfirmMock,

@@ -65,7 +65,7 @@ import { useFailedIngredientRecovery } from '@hooks/data/ingredients/use-ingredi
 import { usePromptBarResting } from '@hooks/prompt-bar/use-prompt-bar-resting/use-prompt-bar-resting';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
-import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
+import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { NotificationsService } from '@services/core/notifications.service';

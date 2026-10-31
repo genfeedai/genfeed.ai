@@ -30,7 +30,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/contexts/providers/global-modals/global-modals.hooks', () => ({
   useConfirmModal: () => ({ openConfirm: vi.fn() }),
 }));
 

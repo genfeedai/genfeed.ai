@@ -57,8 +57,8 @@ const ROOT = path.resolve(APP, '../..');
 const PROVIDER = path.join(APP, 'i18n/AppPageIntlProvider.tsx');
 const MODAL_HOST = path.join(APP, 'i18n/AppGlobalModalIntlBoundary.tsx');
 const MODALS = path.join(
-  ROOT,
-  'packages/contexts/providers/global-modals/GlobalModalsRenderer.tsx',
+  APP,
+  'src/providers/global-modals/GlobalModalsRenderer.tsx',
 );
 const OPTIONS = ts.parseJsonConfigFileContent(
   ts.readConfigFile(path.join(APP, 'tsconfig.json'), ts.sys.readFile).config,

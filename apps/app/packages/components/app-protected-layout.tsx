@@ -22,7 +22,7 @@ import { useAgentThreadCommands } from '@hooks/commands/use-agent-thread-command
 import type { LayoutProps } from '@props/layout/layout.props';
 import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.props';
 import type { TopbarProps } from '@props/navigation/topbar.props';
-import ProtectedProviders from '@providers/protected-providers/protected-providers';
+import ProtectedProviders from '@/providers/protected-providers/protected-providers';
 import { logger } from '@services/core/logger.service';
 import LowCreditsBanner from '@ui/banners/low-credits/LowCreditsBanner';
 import ProductionDataBanner from '@ui/banners/production-data/ProductionDataBanner';

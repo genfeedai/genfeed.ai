@@ -10,7 +10,7 @@ const { mockOpenGallery, mockOpenGenerateIllustration } = vi.hoisted(() => ({
 }));
 
 vi.mock(
-  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
   () => ({
     useGalleryModal: vi.fn(() => ({
       openGallery: mockOpenGallery,

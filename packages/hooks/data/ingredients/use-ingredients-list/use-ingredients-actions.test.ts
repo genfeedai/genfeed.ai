@@ -167,7 +167,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 }));
 
 vi.mock(
-  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
   () => ({
     useConfirmModal: vi.fn(() => ({ openConfirm: mockOpenConfirm })),
     usePostModal: vi.fn(() => ({

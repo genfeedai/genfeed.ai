@@ -10,7 +10,7 @@ import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { ElementCamera } from '@models/elements/camera.model';
 import type { TableColumn } from '@props/ui/display/table.props';
-import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
+import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { CamerasService } from '@services/elements/cameras.service';

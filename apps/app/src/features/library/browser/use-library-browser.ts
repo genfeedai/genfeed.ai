@@ -29,7 +29,7 @@ import type {
 } from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useUploadModal } from '@providers/global-modals/global-modals.provider';
+import { useUploadModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import type {

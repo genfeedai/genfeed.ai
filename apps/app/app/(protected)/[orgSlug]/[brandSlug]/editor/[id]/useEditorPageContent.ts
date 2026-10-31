@@ -20,7 +20,7 @@ import type {
 import {
   useConfirmModal,
   useGalleryModal,
-} from '@providers/global-modals/global-modals.provider';
+} from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';

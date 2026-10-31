@@ -59,7 +59,7 @@ vi.mock(
     }),
   }),
 );
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/contexts/providers/global-modals/global-modals.hooks', () => ({
   usePostModal: () => ({ openPostBatchModal: vi.fn() }),
 }));
 vi.mock('@services/content/ingredients.service', () => ({

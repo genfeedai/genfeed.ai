@@ -1,6 +1,6 @@
 'use client';
 
-import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {

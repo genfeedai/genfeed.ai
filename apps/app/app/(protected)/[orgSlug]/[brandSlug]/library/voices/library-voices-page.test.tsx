@@ -91,7 +91,7 @@ vi.mock('@/features/ingredients/layout/ingredients-layout', () => ({
   ),
 }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/contexts/providers/global-modals/global-modals.hooks', () => ({
   useUploadModal: vi.fn(() => ({
     closeUpload: mockCloseUpload,
     openUpload: mockOpenUpload,

@@ -33,7 +33,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrandId: () => mocks.brandId,
 }));
 vi.mock(
-  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
   () => ({
     useGalleryModal: () => ({ openGallery: mocks.openGallery }),
     useUploadModal: () => ({ openUpload: mocks.openUpload }),

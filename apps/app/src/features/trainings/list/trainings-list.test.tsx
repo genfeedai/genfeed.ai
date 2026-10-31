@@ -66,7 +66,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   }),
 }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/contexts/providers/global-modals/global-modals.hooks', () => ({
   useConfirmModal: () => ({ openConfirm: mockOpenConfirm }),
 }));
 

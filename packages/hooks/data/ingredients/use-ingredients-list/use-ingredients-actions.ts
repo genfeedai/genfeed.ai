@@ -4,7 +4,7 @@ import {
   useConfirmModal,
   usePostModal,
   useUploadModal,
-} from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+} from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import type { AssetScope } from '@genfeedai/contracts';
 import {
   IngredientCategory,

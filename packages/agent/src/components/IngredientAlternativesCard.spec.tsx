@@ -16,7 +16,7 @@ const { openPromptModal } = vi.hoisted(() => ({
 }));
 
 vi.mock(
-  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
   () => ({
     usePromptModal: () => ({ openPromptModal }),
   }),

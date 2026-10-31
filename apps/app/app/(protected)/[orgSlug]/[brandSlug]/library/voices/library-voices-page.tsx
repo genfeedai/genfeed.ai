@@ -19,7 +19,7 @@ import { useOrganization } from '@hooks/data/organization/use-organization/use-o
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Voice } from '@models/ingredients/voice.model';
-import { useUploadModal } from '@providers/global-modals/global-modals.provider';
+import { useUploadModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { VoiceCloneService } from '@services/ingredients/voice-clone.service';

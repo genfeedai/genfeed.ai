@@ -1,7 +1,7 @@
 'use client';
 
 import { AgentMediaArtifactPreview } from '@genfeedai/agent/components/AgentMediaArtifactPreview';
-import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import type {
   StoryboardARollChunk,

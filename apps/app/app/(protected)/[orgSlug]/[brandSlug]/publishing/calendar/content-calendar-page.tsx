@@ -17,7 +17,7 @@ import type { ReleaseCalendarFilters as ReleaseFilters } from '@props/publisher/
 import {
   useConfirmModal,
   usePostRepurposeModal,
-} from '@providers/global-modals/global-modals.provider';
+} from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { ArticlesService } from '@services/content/articles.service';
 import { NewslettersService } from '@services/content/newsletters.service';
 import { PostingCadencesService } from '@services/content/posting-cadences.service';

@@ -2,7 +2,7 @@
 
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
+import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { CampaignsService } from '@services/content/campaigns.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';

@@ -1,6 +1,6 @@
 'use client';
 
-import { useBrandCreateModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+import { useBrandCreateModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { getBrandOrganizationSlug } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { createBrandAppRoute } from '@genfeedai/contracts/constants';

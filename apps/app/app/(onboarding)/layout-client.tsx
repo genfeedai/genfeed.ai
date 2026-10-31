@@ -7,7 +7,7 @@ import { FeatureFlagProvider } from '@hooks/feature-flags/provider';
 import { useIsDesktopClient } from '@hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type { LayoutProps } from '@props/layout/layout.props';
 import ApiStatusProvider from '@providers/api-status/api-status.provider';
-import { ProtectedAuthGate } from '@providers/protected-providers/protected-providers';
+import { ProtectedAuthGate } from '@/providers/protected-providers/protected-providers';
 import ThemePreferenceSync from '@providers/theme-sync/theme-preference-sync';
 import { ErrorBoundary } from '@ui/display/error-boundary/ErrorBoundary';
 import { usePathname } from 'next/navigation';

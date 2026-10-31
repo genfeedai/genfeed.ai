@@ -29,7 +29,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/acme/main${path}` }),
 }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/contexts/providers/global-modals/global-modals.hooks', () => ({
   usePostRemixModal: () => ({
     openPostRemixModal: mocks.openPostRemixModal,
   }),

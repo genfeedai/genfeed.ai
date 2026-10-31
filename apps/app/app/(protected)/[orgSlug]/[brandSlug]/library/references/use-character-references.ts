@@ -1,4 +1,4 @@
-import { useGalleryModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+import { useGalleryModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { IngredientCategory } from '@genfeedai/contracts';
 import { MAX_CHARACTER_REFERENCES } from '@genfeedai/contracts/constants';
 import type { CharacterReferenceItem } from '@genfeedai/contracts/interfaces';

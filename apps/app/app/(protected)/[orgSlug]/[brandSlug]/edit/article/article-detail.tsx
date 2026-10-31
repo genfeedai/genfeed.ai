@@ -12,7 +12,7 @@ import { useArticleDetail } from '@hooks/pages/use-article-detail/use-article-de
 import { useXArticleCompose } from '@hooks/pages/use-x-article-compose/use-x-article-compose';
 import type { ArticleEditorProps } from '@props/content/article-editor.props';
 import type { ArticlePublishDestination } from '@props/edit/article-public-page.props';
-import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
+import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { PostsService } from '@services/content/posts.service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { EnvironmentService } from '@services/core/environment.service';

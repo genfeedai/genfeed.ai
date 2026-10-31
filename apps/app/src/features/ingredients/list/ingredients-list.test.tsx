@@ -47,7 +47,7 @@ vi.mock(
   }),
 );
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/contexts/providers/global-modals/global-modals.hooks', () => ({
   usePostModal: vi.fn(() => ({
     openPostBatchModal: mockOpenPostBatchModal,
   })),

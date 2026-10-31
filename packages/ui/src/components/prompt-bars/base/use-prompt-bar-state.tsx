@@ -3,7 +3,7 @@
 import {
   useGalleryModal,
   useUploadModal,
-} from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+} from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { useAssetSelection } from '@genfeedai/contexts/ui/asset-selection.context';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';

@@ -1,6 +1,6 @@
 'use client';
 
-import { useGalleryModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+import { useGalleryModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { ButtonVariant, IngredientCategory } from '@genfeedai/contracts';
 import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';

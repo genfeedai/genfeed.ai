@@ -57,7 +57,7 @@ vi.mock('@providers/api-status/api-status.provider', () => ({
   ),
 }));
 
-vi.mock('@providers/protected-providers/protected-providers', () => ({
+vi.mock('@/providers/protected-providers/protected-providers', () => ({
   ProtectedAuthGate: (props: { children: React.ReactNode }) =>
     protectedAuthGateMock(props),
 }));

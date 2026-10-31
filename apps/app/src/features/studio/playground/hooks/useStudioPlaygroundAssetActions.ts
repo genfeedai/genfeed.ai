@@ -16,7 +16,7 @@ import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboar
 import {
   useConfirmModal,
   usePostModal,
-} from '@providers/global-modals/global-modals.provider';
+} from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';

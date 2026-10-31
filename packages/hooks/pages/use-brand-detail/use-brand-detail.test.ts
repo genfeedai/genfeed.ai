@@ -65,7 +65,7 @@ vi.mock('@hooks/data/elements/use-elements/use-elements', () => {
 });
 
 vi.mock(
-  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
   () => {
     const confirmModal = {
       openConfirm: (...args: unknown[]) => mockOpenConfirm(...args),

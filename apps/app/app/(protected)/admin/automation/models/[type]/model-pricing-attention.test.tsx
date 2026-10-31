@@ -34,7 +34,7 @@ vi.mock('next-intl', async () => {
     useTranslations: (namespace: string) => translateFromCatalog(namespace),
   };
 });
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/contexts/providers/global-modals/global-modals.hooks', () => ({
   useConfirmModal: () => ({ openConfirm: fixture.openConfirm }),
 }));
 vi.mock('@services/core/notifications.service', () => ({

@@ -8,7 +8,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
+import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import {
   type CampaignLifecycleResult,
   CampaignsService,

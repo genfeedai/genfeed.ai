@@ -72,7 +72,7 @@ vi.mock('@tanstack/react-query', () => ({
   }),
 }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/contexts/providers/global-modals/global-modals.hooks', () => ({
   useConfirmModal: () => ({ openConfirm: mocks.openConfirm }),
 }));
 

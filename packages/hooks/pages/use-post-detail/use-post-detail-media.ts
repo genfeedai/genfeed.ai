@@ -3,7 +3,7 @@
 import {
   useGalleryModal,
   useGenerateIllustrationModal,
-} from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+} from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import {
   CredentialPlatform,
   IngredientCategory,

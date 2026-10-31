@@ -103,7 +103,7 @@ vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: { getInstance: () => notificationsService },
 }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/contexts/providers/global-modals/global-modals.hooks', () => ({
   useConfirmDeleteModal: () => ({ openConfirmDelete: mocks.openConfirmDelete }),
 }));
 

@@ -9,7 +9,7 @@ import {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Workflow } from '@models/automation/workflow.model';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
-import { useConfirmDeleteModal } from '@providers/global-modals/global-modals.provider';
+import { useConfirmDeleteModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { AdminFeaturedWorkflowsService } from '@services/admin/featured-workflows.service';
 import { WorkflowsService } from '@services/automation/workflows.service';
 import { logger } from '@services/core/logger.service';

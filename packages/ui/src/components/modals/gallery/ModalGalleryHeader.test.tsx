@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
 vi.mock(
-  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
   () => ({
     useUploadModal: () => ({
       openUpload: vi.fn(),

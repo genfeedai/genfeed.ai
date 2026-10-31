@@ -3,7 +3,7 @@
 import {
   useConfirmModal,
   useGalleryModal,
-} from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+} from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { useRegisterBreadcrumbLeaf } from '@genfeedai/contexts/ui/breadcrumb-leaf-context';
 import { ContextSidebarPanel } from '@genfeedai/contexts/ui/context-sidebar-context';
 import {

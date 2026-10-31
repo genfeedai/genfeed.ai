@@ -1,6 +1,6 @@
 'use client';
 
-import { useUploadModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+import { useUploadModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import {
   AlertCategory,
   ButtonSize,

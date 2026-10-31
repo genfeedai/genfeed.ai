@@ -28,7 +28,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => path }),
 }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/contexts/providers/global-modals/global-modals.hooks', () => ({
   usePostRemixModal: () => ({ openPostRemixModal: vi.fn() }),
   usePostRepurposeModal: () => ({ openPostRepurposeModal: vi.fn() }),
 }));
