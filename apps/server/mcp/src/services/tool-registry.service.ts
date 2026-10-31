@@ -68,10 +68,7 @@ import {
   accountToolText,
   dataToolResult,
 } from '@mcp/shared/utils/tool-result-text.util';
-import {
-  handleAccountManagementTool,
-  matchOrganization,
-} from '@mcp/tools/account-management.tool';
+import { handleAccountManagementTool } from '@mcp/tools/account-management.tool';
 import { handleAdsGatewayTool } from '@mcp/tools/ads-gateway.tool';
 import { handleAgentChatTool } from '@mcp/tools/agent-chat.tool';
 import {
@@ -96,6 +93,11 @@ import {
   resolveOnboardBrandCall,
 } from '@mcp/tools/onboarding.tool';
 import { handleRemixTool, REMIX_TOOL_NAMES } from '@mcp/tools/remix.tool';
+import {
+  mcpToolFailureResult,
+  readRequestedOrganization,
+  resolveRequestedOrganizationId,
+} from '@mcp/tools/requested-organization.util';
 import {
   handleSchedulerTool,
   SCHEDULER_TOOL_NAMES,
@@ -170,12 +172,6 @@ const WORKFLOW_CONTROL_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
  */
 const PRE_DISPATCH_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'resolve_approval',
-]);
-
-/** Tools whose own `organization` argument is not a per-call organization. */
-const ORGANIZATION_ARGUMENT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
-  'get_orgs',
-  'switch_org',
 ]);
 
 const ACCOUNT_MANAGEMENT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
@@ -368,63 +364,24 @@ export class ToolRegistryService implements OnModuleInit {
     return [...PUBLIC_MCP_RESOURCES];
   }
 
-  /**
-   * A connection the user authorized for all of their organizations may name
-   * one on any call (`organization`: name, slug or id from get_orgs). The call
-   * then acts in that organization alone; a connection limited to one
-   * organization is refused rather than silently answered from the wrong one.
-   */
+  /** A call may name its organization (see requested-organization.util). */
   async handleToolCall(params: ToolCallParams) {
-    const { organization, ...rest } = params.arguments ?? {};
-    if (
-      organization === undefined ||
-      ORGANIZATION_ARGUMENT_TOOL_NAMES.has(params.name)
-    ) {
-      return this.runToolCall(params);
-    }
+    const scoped = readRequestedOrganization(params.name, params.arguments);
+    if (!scoped) return this.runToolCall(params);
 
+    let organizationId: string;
     try {
-      const requested =
-        typeof organization === 'string' ? organization.trim() : '';
-      if (!requested) {
-        throw new Error(
-          'organization must be a name, slug or id from get_orgs.',
-        );
-      }
-      if (!(await this.clientService.canSwitchOrganizations())) {
-        throw new Error(
-          'This connection is limited to one organization. Reconnect and choose "All my organizations" to act in several.',
-        );
-      }
-      const target = matchOrganization(
-        await this.clientService.listOrganizations(),
-        requested,
-      );
-      return await this.clientService.runInOrganization(target.id, () =>
-        this.runToolCall({ ...params, arguments: rest }),
+      organizationId = await resolveRequestedOrganizationId(
+        this.clientService,
+        scoped.organization,
       );
     } catch (error: unknown) {
       this.logger.error(`Error scoping tool call ${params.name}:`, error);
-      const gated = toMcpToolErrorResult(error);
-      if (gated) return gated;
-      return {
-        content: [
-          {
-            text: `Error: ${(error as Error)?.message ?? String(error)}`,
-            type: 'text',
-          },
-        ],
-        structuredContent: {
-          failure: {
-            ...formatAgentError(
-              error instanceof Error ? error.message : String(error),
-            ),
-            detail: null,
-          },
-        },
-        isError: true,
-      };
+      return mcpToolFailureResult(error);
     }
+    return this.clientService.runInOrganization(organizationId, () =>
+      this.runToolCall({ ...params, arguments: scoped.rest }),
+    );
   }
 
   private async runToolCall(params: ToolCallParams) {
@@ -499,25 +456,7 @@ export class ToolRegistryService implements OnModuleInit {
       return await this.executeTool(name, args ?? {});
     } catch (error: unknown) {
       this.logger.error(`Error handling tool call ${name}:`, error);
-      const gated = toMcpToolErrorResult(error);
-      if (gated) return gated;
-      return {
-        content: [
-          {
-            text: `Error: ${(error as Error)?.message ?? String(error)}`,
-            type: 'text',
-          },
-        ],
-        structuredContent: {
-          failure: {
-            ...formatAgentError(
-              error instanceof Error ? error.message : String(error),
-            ),
-            detail: null,
-          },
-        },
-        isError: true,
-      };
+      return mcpToolFailureResult(error);
     }
   }
 
