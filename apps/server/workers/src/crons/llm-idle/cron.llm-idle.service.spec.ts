@@ -189,6 +189,27 @@ describe('CronLlmIdleService', () => {
       expect(mockEC2Send).toHaveBeenCalledTimes(1);
     });
 
+    it('should warn once and skip when the configured instance is not found in the region', async () => {
+      mockRedisPublisher.get.mockResolvedValue(null);
+      const notFound = Object.assign(
+        new Error("The instance ID 'i-1234567890abcdef0' does not exist"),
+        { name: 'InvalidInstanceID.NotFound' },
+      );
+      mockEC2Send.mockRejectedValue(notFound);
+
+      await service.shutdownIfIdle();
+      await service.shutdownIfIdle();
+
+      expect(mockEC2Send).toHaveBeenCalledTimes(2);
+      expect(mockLoggerService.error).not.toHaveBeenCalled();
+      expect(mockLoggerService.warn).toHaveBeenCalledTimes(1);
+      expect(mockLoggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'i-1234567890abcdef0 was not found in us-east-1',
+        ),
+      );
+    });
+
     it('should not stop instance when redis publisher is unavailable', async () => {
       mockRedisService.getPublisher.mockReturnValueOnce(null);
 
