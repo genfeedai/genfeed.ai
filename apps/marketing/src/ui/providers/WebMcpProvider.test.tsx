@@ -43,4 +43,15 @@ describe('WebMcpProvider', () => {
       name: 'navigate_genfeed',
     });
   });
+
+  it('tolerates a registerTool that returns nothing instead of a promise', async () => {
+    const registerTool = vi.fn().mockReturnValue(undefined);
+    Object.defineProperty(document, 'modelContext', {
+      configurable: true,
+      value: { registerTool },
+    });
+
+    expect(() => render(<WebMcpProvider />)).not.toThrow();
+    await waitFor(() => expect(registerTool).toHaveBeenCalledOnce());
+  });
 });

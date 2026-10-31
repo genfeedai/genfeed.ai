@@ -186,4 +186,20 @@ describe('HomeOutputCard', () => {
       screen.getByRole('heading', { name: ASSET.title }),
     ).toBeInTheDocument();
   });
+
+  it('keeps the card working when play() returns nothing instead of a promise', () => {
+    stubEnvironment();
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockReturnValue(
+      undefined as unknown as Promise<void>,
+    );
+    render(<HomeOutputCard asset={ASSET} isPreloaded={false} />);
+
+    act(() => intersect?.([{ isIntersecting: true }]));
+    expect(() =>
+      act(() => intersect?.([{ isIntersecting: true }])),
+    ).not.toThrow();
+    expect(
+      screen.getByTestId('home-hero-output-carousel-video'),
+    ).toBeInTheDocument();
+  });
 });
