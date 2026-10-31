@@ -88,7 +88,7 @@ describe('UpgradePlan', () => {
     render(<UpgradePlan tiers={['pro', 'scale']} />);
 
     expect(screen.getByText('$49/mo')).toBeInTheDocument();
-    expect(screen.getByText('5,900 credits / month')).toBeInTheDocument();
+    expect(screen.getByText('4,900 credits / month')).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /Upgrade to Pro/i }),
     ).toBeInTheDocument();
