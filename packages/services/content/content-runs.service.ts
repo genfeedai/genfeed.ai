@@ -542,7 +542,14 @@ export class ContentRunsService extends HTTPBaseService {
   ): Promise<BrandRemixRunSummary[]> {
     const response = await this.instance.get<JsonApiResponseDocument>(
       `/brands/${brandId}/content-runs/remixes`,
-      { params: { limit: query.limit, page: query.page }, signal },
+      {
+        params: {
+          limit: query.limit,
+          page: query.page,
+          ...(query.search ? { search: query.search } : {}),
+        },
+        signal,
+      },
     );
 
     return deserializeCollection<BrandRemixRunSummary>(response.data).map(

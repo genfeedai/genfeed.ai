@@ -7,13 +7,14 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { SearchBaseQueryDto } from '@api/helpers/dto/search-base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
+import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
 import {
   returnNotFound,
   serializeCollection,
@@ -65,7 +66,7 @@ export class MembersController {
   @Get()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAll(
-    @Query() query: BaseQueryDto,
+    @Query() query: SearchBaseQueryDto,
     @Req() request: Request,
     @CurrentUser() user: User,
   ): Promise<JsonApiCollectionResponse> {
@@ -110,7 +111,14 @@ export class MembersController {
           },
         },
         orderBy: handleQuerySort(query.sort),
-        where: scopedWhere(organizationId, { isDeleted }),
+        where: {
+          ...scopedWhere(organizationId, { isDeleted }),
+          ...buildSearchWhere(query.search, {
+            relations: {
+              user: ['email', 'firstName', 'handle', 'lastName'],
+            },
+          }),
+        },
       },
       options,
     );

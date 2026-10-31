@@ -523,7 +523,8 @@
         "brandSelectionHint": "No selection gives access to all brands.",
         "membersTitle": "Members",
         "inviteMember": "Invite Member"
-      }
+      },
+      "search": "Search members"
     },
     "organizationIdentity": {
       "editHandle": "Edit organization handle",

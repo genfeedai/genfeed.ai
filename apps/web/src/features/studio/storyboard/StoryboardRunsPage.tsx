@@ -22,24 +22,21 @@ import StoryboardRunsOnboarding from '@/features/studio/storyboard/components/St
 import { useStoryboardRuns } from '@/features/studio/storyboard/hooks/use-storyboard-runs';
 import { isStoryboardRunNeedingAttention } from '@/features/studio/storyboard/utils/storyboard-run-summary';
 import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
-import { filterBySearch } from '@/lib/search/filter-by-search';
 
 /** Studio → Storyboard landing: every saved storyboard run of the brand. */
 export default function StoryboardRunsPage(): ReactElement {
   const translate = useTranslations('pages.studioStoryboard.runs');
   const locale = useLocale();
   const { href } = useOrgUrl();
-  const { error, hasMore, isLoading, loadMore, runs } = useStoryboardRuns();
+  const [search, setSearch] = useState('');
+  const { error, hasMore, isLoading, loadMore, runs } =
+    useStoryboardRuns(search);
   const { view, setView } = useCollectionViewPreference({
     defaultView: ViewType.LIST,
     surface: 'studio.storyboard',
   });
-  const [search, setSearch] = useState('');
-  const visibleRuns = filterBySearch(runs, search, (run) => [
-    run.title,
-    'sourceLabel' in run ? run.sourceLabel : run.sourceKind,
-  ]);
-  const needsAttention = visibleRuns.filter(isStoryboardRunNeedingAttention);
+  const isSearching = search.trim() !== '';
+  const needsAttention = runs.filter(isStoryboardRunNeedingAttention);
 
   function runHref(run: StoryboardListRun): string {
     return href(
@@ -128,10 +125,10 @@ export default function StoryboardRunsPage(): ReactElement {
     >
       <div className="flex flex-col gap-8">
         {error ? <p role="alert">{error}</p> : null}
-        {!isLoading && runs.length === 0 && !error ? (
+        {!isLoading && runs.length === 0 && !error && !isSearching ? (
           <StoryboardRunsOnboarding />
         ) : null}
-        {runs.length > 0 ? <StoryboardPresetShelf /> : null}
+        {runs.length > 0 || isSearching ? <StoryboardPresetShelf /> : null}
         {needsAttention.length > 0 ? (
           <CollectionSection
             itemCount={needsAttention.length}
@@ -144,18 +141,18 @@ export default function StoryboardRunsPage(): ReactElement {
             </CollectionList>
           </CollectionSection>
         ) : null}
-        {runs.length > 0 && visibleRuns.length === 0 ? (
+        {isSearching && !isLoading && runs.length === 0 && !error ? (
           <p>{translate('emptySearch')}</p>
         ) : null}
         <CollectionSection
           isLoading={isLoading}
-          itemCount={visibleRuns.length}
+          itemCount={runs.length}
           title={translate('all')}
         >
           <CollectionView
             getItemKey={(run) => run.id}
             isLoading={isLoading && runs.length === 0}
-            items={visibleRuns}
+            items={runs}
             renderGridItem={(run) => (
               <Card label={run.title}>
                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">

@@ -169,6 +169,7 @@ interface RenderOptions {
   page?: string | null;
   pageCount: number;
   role?: MemberRole;
+  search?: string;
   tier: string | null;
 }
 
@@ -178,6 +179,7 @@ function renderMembers({
   page = null,
   pageCount,
   role = MemberRole.OWNER,
+  search,
   tier,
 }: RenderOptions) {
   mocks.useBrand.mockReturnValue({
@@ -185,7 +187,10 @@ function renderMembers({
     settings: { subscriptionTier: tier },
   });
   mocks.useSearchParams.mockReturnValue({
-    get: (key: string) => (key === 'page' ? page : null),
+    get: (key: string) => {
+      if (key === 'page') return page;
+      return key === 'q' ? (search ?? null) : null;
+    },
     toString: () => (page ? `page=${page}` : ''),
   });
 
@@ -254,6 +259,32 @@ describe('MembersList seat limit', () => {
     expect(inviteButton()).toBeEnabled();
     expect(screen.queryByText(/Unlock team members/i)).not.toBeInTheDocument();
     expect(mocks.findAll).toHaveBeenCalled();
+  });
+
+  it('asks the server for the searched member and searches by the q param', async () => {
+    renderMembers({ pageCount: 0, search: 'dana', tier: 'scale' });
+
+    await screen.findByText('No members found');
+    expect(mocks.findAll).toHaveBeenLastCalledWith(
+      expect.objectContaining({ page: 1, search: 'dana' }),
+    );
+
+    const field = screen.getByRole('textbox', { name: 'Search members' });
+    expect(field).toHaveValue('dana');
+    fireEvent.change(field, { target: { value: 'lee' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(mocks.replace).toHaveBeenCalledWith(
+      '/org-123/settings/organization/members?q=lee',
+      { scroll: false },
+    );
+  });
+
+  it('hides the search behind the upgrade state on solo plans', () => {
+    renderMembers({ pageCount: 1, tier: 'free' });
+
+    expect(
+      screen.queryByRole('textbox', { name: 'Search members' }),
+    ).not.toBeInTheDocument();
   });
 
   it('shows each member identity, role and the brands they can access', async () => {

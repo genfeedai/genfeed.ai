@@ -129,6 +129,7 @@ describe('TurboProjectsPage load recovery', () => {
         'brand-1',
         1,
         expect.any(AbortSignal),
+        '',
       );
     },
   );
@@ -147,35 +148,39 @@ describe('TurboProjectsPage load recovery', () => {
     expect(mocks.list).toHaveBeenCalledTimes(1);
   });
 
-  it('narrows the projects to the searched name and explains a search with no match', async () => {
+  it('asks the server for the searched name and explains a search with no match', async () => {
     const user = userEvent.setup();
-    const project = (id: string, name: string) => ({
-      id,
-      itemCounts: { total: 3 },
-      kind: 'image',
-      name,
-      status: 'draft',
-      updatedAt: '2026-10-01T10:00:00.000Z',
-    });
     mocks.list.mockResolvedValue([
-      project('project-1', 'Spring launch'),
-      project('project-2', 'Weekly recap'),
+      {
+        id: 'project-1',
+        itemCounts: { total: 3 },
+        kind: 'image',
+        name: 'Spring launch',
+        status: 'draft',
+        updatedAt: '2026-10-01T10:00:00.000Z',
+      },
     ]);
 
     render(<TurboProjectsPage />);
-    expect(await screen.findAllByText('Weekly recap')).not.toHaveLength(0);
+    expect(await screen.findAllByText('Spring launch')).not.toHaveLength(0);
 
-    const field = screen.getByRole('textbox', {
-      name: 'Search Turbo projects',
-    });
-    await user.type(field, 'spring{Enter}');
-    await waitFor(() => expect(screen.queryByText('Weekly recap')).toBeNull());
-    expect(screen.getAllByText('Spring launch')).not.toHaveLength(0);
+    mocks.list.mockResolvedValue([]);
+    await user.type(
+      screen.getByRole('textbox', { name: 'Search Turbo projects' }),
+      'nothing like this{Enter}',
+    );
 
-    await user.clear(field);
-    await user.type(field, 'nothing like this{Enter}');
     expect(
       await screen.findByText('No Turbo projects match your search.'),
     ).toBeVisible();
+    expect(mocks.list).toHaveBeenLastCalledWith(
+      'brand-1',
+      1,
+      expect.any(AbortSignal),
+      'nothing like this',
+    );
+    expect(
+      screen.queryByText('Turn your brand into a week of content'),
+    ).not.toBeInTheDocument();
   });
 });

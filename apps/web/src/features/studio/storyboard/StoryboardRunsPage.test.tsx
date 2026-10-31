@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   createError: null as string | null,
   loadMore: vi.fn(),
   push: vi.fn(),
+  searches: [] as string[],
   state: {
     error: null as string | null,
     hasMore: false,
@@ -25,7 +26,10 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/features/studio/storyboard/hooks/use-storyboard-runs', () => ({
-  useStoryboardRuns: () => ({ ...mocks.state, loadMore: mocks.loadMore }),
+  useStoryboardRuns: (search: string) => {
+    mocks.searches.push(search);
+    return { ...mocks.state, loadMore: mocks.loadMore };
+  },
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -85,6 +89,7 @@ describe('StoryboardRunsPage', () => {
     vi.clearAllMocks();
     mocks.brandId = 'brand-1';
     mocks.createError = null;
+    mocks.searches = [];
     mocks.state = { error: null, hasMore: false, isLoading: false, runs: [] };
   });
 
@@ -123,25 +128,23 @@ describe('StoryboardRunsPage', () => {
     expect(screen.getAllByText('Draft run')).toHaveLength(1);
   });
 
-  it('narrows the runs to the searched title and explains a search with no match', async () => {
+  it('asks for the searched title and explains a search with no match', async () => {
     const user = userEvent.setup();
-    mocks.state.runs = [
-      summary({ id: 'run-1', title: 'Proof-led hook' }),
-      summary({ id: 'run-2', title: 'Weekly recap' }),
-    ];
+    mocks.state.runs = [summary({ id: 'run-1', title: 'Proof-led hook' })];
 
-    render(<StoryboardRunsPage />);
-    const field = screen.getByRole('textbox', { name: 'Search storyboards' });
+    const { rerender } = render(<StoryboardRunsPage />);
+    expect(mocks.searches.at(-1)).toBe('');
 
-    await user.type(field, 'recap{Enter}');
-    expect(await screen.findByText('Weekly recap')).toBeVisible();
-    expect(screen.queryByText('Proof-led hook')).toBeNull();
+    await user.type(
+      screen.getByRole('textbox', { name: 'Search storyboards' }),
+      'recap{Enter}',
+    );
+    expect(mocks.searches.at(-1)).toBe('recap');
 
-    await user.clear(field);
-    await user.type(field, 'nothing like this{Enter}');
-    expect(
-      await screen.findByText('No storyboards match your search.'),
-    ).toBeVisible();
+    mocks.state.runs = [];
+    rerender(<StoryboardRunsPage />);
+    expect(screen.getByText('No storyboards match your search.')).toBeVisible();
+    expect(screen.queryByTestId('storyboard-onboarding')).toBeNull();
   });
 
   it('omits the runtime when the run has none and hides Needs you when nothing is waiting', () => {

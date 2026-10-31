@@ -455,6 +455,27 @@ describe('TurboProjectsService', () => {
       );
     });
 
+    it('narrows the page and the total to projects whose name matches the search', async () => {
+      prisma.turboProject.findMany.mockResolvedValue([]);
+      prisma.turboProject.count.mockResolvedValue(0);
+
+      await service.list(scope, {
+        limit: 20,
+        page: 1,
+        search: ' Spring ',
+      } as never);
+
+      const where = {
+        AND: [{ OR: [{ name: { contains: 'Spring', mode: 'insensitive' } }] }],
+        isDeleted: false,
+        organizationId: 'org-1',
+      };
+      expect(prisma.turboProject.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where }),
+      );
+      expect(prisma.turboProject.count).toHaveBeenCalledWith({ where });
+    });
+
     it('refreshes review decisions of projects in review before counting', async () => {
       prisma.turboProject.findMany.mockResolvedValue([
         { ...makeProject({ status: TurboProjectStatus.REVIEWING }), items: [] },

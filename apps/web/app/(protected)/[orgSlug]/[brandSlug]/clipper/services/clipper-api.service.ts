@@ -311,13 +311,19 @@ export class ClipperApiService implements ClipperApiClient {
    * totals for `<AutoPagination />`.
    */
   async listProjects(
-    query: { brandId?: string; limit?: number; page?: number } = {},
+    query: {
+      brandId?: string;
+      limit?: number;
+      page?: number;
+      search?: string;
+    } = {},
     signal?: AbortSignal,
   ): Promise<ClipperProjectSummary[]> {
     const params = new URLSearchParams({ sort: '-createdAt' });
     if (query.brandId) params.set('brandId', query.brandId);
     if (query.limit) params.set('limit', String(query.limit));
     if (query.page) params.set('page', String(query.page));
+    if (query.search) params.set('search', query.search);
 
     const data = await this.fetchJson<unknown>(
       `${this.apiEndpoint}/clipper-projects?${params.toString()}`,

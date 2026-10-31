@@ -9,6 +9,7 @@ import {
   PRISMA_SERIALIZATION_FAILURE,
   RUN_SELECT,
 } from '@api/collections/content-runs/services/brand-remix-runs.types';
+import { contentRunTitleSearch } from '@api/collections/content-runs/services/content-run-title-search';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -65,6 +66,7 @@ export class BrandRemixRunPersistenceService {
       where: scopedWhere(organizationId, {
         brandId,
         config: { equals: BRAND_REMIX_RUN_CONTRACT, path: ['contract'] },
+        ...contentRunTitleSearch(['sourceSnapshot', 'title'], query.search),
       }),
     });
   }

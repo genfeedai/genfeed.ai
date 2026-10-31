@@ -96,6 +96,36 @@ describe('BrandRemixRunPersistenceService', () => {
     });
   });
 
+  it('narrows the remix runs to titles that match the search', async () => {
+    contentRun.findMany.mockResolvedValue([]);
+
+    await persistence.listRuns('org-1', 'brand-1', {
+      limit: 20,
+      page: 1,
+      search: 'recap',
+    });
+
+    expect(contentRun.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: [
+            {
+              config: {
+                mode: 'insensitive',
+                path: ['sourceSnapshot', 'title'],
+                string_contains: 'recap',
+              },
+            },
+          ],
+          brandId: 'brand-1',
+          config: { equals: 'brand-remix-run', path: ['contract'] },
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      }),
+    );
+  });
+
   it('retries serializable reuse-or-create until the prefilled run settles', async () => {
     contentRun.findFirst.mockResolvedValue(null);
     contentRun.create
