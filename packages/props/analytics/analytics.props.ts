@@ -1,9 +1,5 @@
-import type { AnalyticsMetric, Timeframe } from '@genfeedai/contracts';
-import type {
-  IEngagementBreakdown,
-  IGrowthTrends,
-  ITimeSeriesDataPoint,
-} from '@genfeedai/contracts/interfaces';
+import type { AnalyticsMetric } from '@genfeedai/contracts';
+import type { IEngagementBreakdown } from '@genfeedai/contracts/interfaces';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type { PlatformBreakdownData } from '@genfeedai/services/analytics/analytics.service';
 
@@ -16,32 +12,8 @@ export interface AnalyticsTool {
   comingSoon?: boolean;
 }
 
-export interface PostAnalyticsDashboardProps {
-  publicationId?: string;
-  /** Brand that owns the publication; the API otherwise defaults to the session brand. */
-  brandId?: string;
-  className?: string;
-}
-
 export interface OrganizationAnalyticsDashboardProps {
   organizationId: string;
-}
-
-export interface PlatformAnalyticsBreakdownProps {
-  analytics: Array<{
-    id: string;
-    label: string;
-    platform: string;
-    summary: {
-      totalViews: number;
-      totalLikes: number;
-      totalComments: number;
-      totalShares: number;
-      avgEngagementRate: number;
-      publicationCount: number;
-    };
-  }>;
-  className?: string;
 }
 
 export interface PostsAnalyticsTableProps {
@@ -59,31 +31,6 @@ export interface PostsAnalyticsTableProps {
   }>;
   isLoading?: boolean;
   onViewDetails?: (publicationId: string) => void;
-  className?: string;
-}
-
-export interface AnalyticsOverviewProps {
-  analytics: Array<{
-    id?: string;
-    label?: string;
-    platform?: string;
-    summary: {
-      totalViews: number;
-      totalLikes: number;
-      totalComments: number;
-      totalShares: number;
-      avgEngagementRate: number;
-    };
-  }>;
-  isLoading?: boolean;
-  showPostsCount?: boolean;
-  className?: string;
-}
-
-export interface GrowthTrendsCardProps {
-  growthData: IGrowthTrends | null;
-  timeframe?: Timeframe.D7 | Timeframe.D30 | Timeframe.D90;
-  isLoading?: boolean;
   className?: string;
 }
 
@@ -105,21 +52,6 @@ export interface PlatformComparisonData {
 
 export interface PlatformComparisonChartProps {
   data: PlatformComparisonData[];
-  isLoading?: boolean;
-  height?: number;
-  className?: string;
-}
-
-export interface TimeSeriesChartProps {
-  data: ITimeSeriesDataPoint[];
-  metrics?: Array<
-    | AnalyticsMetric.VIEWS
-    | AnalyticsMetric.LIKES
-    | AnalyticsMetric.COMMENTS
-    | AnalyticsMetric.SHARES
-    | AnalyticsMetric.SAVES
-    | AnalyticsMetric.ENGAGEMENT_RATE
-  >;
   isLoading?: boolean;
   height?: number;
   className?: string;

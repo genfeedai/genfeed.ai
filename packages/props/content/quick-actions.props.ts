@@ -1,12 +1,5 @@
 import type { ComponentSize } from '@genfeedai/contracts';
 import type { IQuickAction } from '@genfeedai/contracts/interfaces/ui/quick-actions.interface';
-import type { ReactNode } from 'react';
-
-export interface QuickActionsContainerProps {
-  children: ReactNode;
-  position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
-  className?: string;
-}
 
 export interface QuickActionButtonProps {
   action: IQuickAction;

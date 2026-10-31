@@ -3,12 +3,6 @@ import userEvent from '@testing-library/user-event';
 import ModalTwitterThread from '@ui/modals/content/thread/ModalTwitterThread';
 import { describe, expect, it, vi } from 'vitest';
 
-type MockButtonProps = {
-  ariaLabel?: string;
-  label: string;
-  onClick?: () => void;
-};
-
 // Mock dependencies
 vi.mock('@genfeedai/services/core/clipboard.service', () => ({
   ClipboardService: {

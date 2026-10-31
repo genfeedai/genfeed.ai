@@ -25,12 +25,6 @@ export interface PromptBarSendButtonProps
   tooltip?: string;
 }
 
-export interface PromptBarCompactSelectOption {
-  isDisabled?: boolean;
-  label: string;
-  value: string;
-}
-
 export interface PromptBarCompactSelectProps {
   ariaLabel: string;
   isDisabled?: boolean;
