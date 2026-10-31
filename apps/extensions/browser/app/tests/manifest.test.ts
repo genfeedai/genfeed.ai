@@ -4,7 +4,11 @@ import { describe, expect, it } from 'vitest';
 
 const extensionPackage = JSON.parse(
   readFileSync(path.resolve(__dirname, '../package.json'), 'utf8'),
-) as { manifest: { key?: string; permissions: string[] } };
+) as {
+  description: string;
+  displayName: string;
+  manifest: { key?: string; permissions: string[] };
+};
 
 describe('extension manifest', () => {
   it('requests native messaging for the optional local bridge', () => {
@@ -16,5 +20,16 @@ describe('extension manifest', () => {
       /^[A-Za-z0-9+/]{300,}={0,2}$/,
     );
     expect(JSON.stringify(extensionPackage)).not.toContain('PRIVATE KEY');
+  });
+
+  it('uses the store name', () => {
+    expect(extensionPackage.displayName).toBe('genfeed.ai');
+  });
+
+  it('keeps the description short and free of platform-name lists', () => {
+    expect(extensionPackage.description.length).toBeLessThanOrEqual(132);
+    expect(extensionPackage.description).not.toMatch(
+      /LinkedIn|Reddit|Threads|Facebook|Instagram|TikTok|YouTube|Twitter/i,
+    );
   });
 });
