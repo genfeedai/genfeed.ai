@@ -9,6 +9,7 @@ import type {
   TableColumn,
   TableProps,
   TableRowLink,
+  TableSortDirection,
 } from '@genfeedai/props/ui/display/table.props';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
@@ -19,7 +20,8 @@ import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { Fragment, useCallback, useRef, useState } from 'react';
+import { Fragment, useCallback, useMemo, useRef, useState } from 'react';
+import { hasSortableValues, sortItemsByColumn } from './table-sort';
 
 const EMPTY_ARRAY: never[] = [];
 
@@ -290,15 +292,67 @@ export default function AppTable<T>({
     [],
   );
 
+  // Without `onSortChange` the table owns the sort and orders the rows it was
+  // given. With it the parent sorts (server-side paging) and the table only
+  // reports clicks.
+  const isSortControlled = onSortChange !== undefined;
+  const [localSort, setLocalSort] = useState<{
+    key: string;
+    direction: TableSortDirection;
+  } | null>(null);
+  // Grouped tables are ordered by their group; hidden headers have no control.
+  const canSort = !hideHeader && (isSortControlled || !getGroupHeading);
+  const activeSortKey = isSortControlled ? sortKey : localSort?.key;
+  const activeSortDirection = isSortControlled
+    ? sortDirection
+    : (localSort?.direction ?? 'asc');
+
+  const getSortLabel = useCallback(
+    (column: TableColumn<T>): string | undefined =>
+      column.sortLabel ??
+      (typeof column.header === 'string' ? column.header : undefined),
+    [],
+  );
+
+  const isColumnSortable = useCallback(
+    (column: TableColumn<T>): boolean => {
+      if (!canSort || getSortLabel(column) === undefined) {
+        return false;
+      }
+      if (isSortControlled) {
+        return column.sortable === true;
+      }
+      return column.sortable !== false && hasSortableValues(column, items);
+    },
+    [canSort, getSortLabel, isSortControlled, items],
+  );
+
+  const sortedItems = useMemo(() => {
+    const column = isSortControlled
+      ? undefined
+      : columns.find((candidate) => String(candidate.key) === localSort?.key);
+    return column && localSort
+      ? sortItemsByColumn(items, column, localSort.direction)
+      : items;
+  }, [columns, isSortControlled, items, localSort]);
+
   const handleSort = useCallback(
     (key: string) => {
-      if (!onSortChange) {
+      if (onSortChange) {
+        onSortChange(
+          key,
+          sortKey === key && sortDirection === 'asc' ? 'desc' : 'asc',
+        );
         return;
       }
 
-      onSortChange(
-        key,
-        sortKey === key && sortDirection === 'asc' ? 'desc' : 'asc',
+      // asc, then desc, then back to the order the rows arrived in.
+      setLocalSort((current) =>
+        current?.key !== key
+          ? { direction: 'asc', key }
+          : current.direction === 'asc'
+            ? { direction: 'desc', key }
+            : null,
       );
     },
     [onSortChange, sortDirection, sortKey],
@@ -475,9 +529,10 @@ export default function AppTable<T>({
                 )}
                 {columns.map((column) => {
                   const columnKey = String(column.key);
-                  const isActiveSort = sortKey === columnKey;
+                  const isColumnSortableNow = isColumnSortable(column);
+                  const isActiveSort = activeSortKey === columnKey;
                   const SortIcon = isActiveSort
-                    ? sortDirection === 'asc'
+                    ? activeSortDirection === 'asc'
                       ? ArrowUp
                       : ArrowDown
                     : ChevronsUpDown;
@@ -486,8 +541,8 @@ export default function AppTable<T>({
                     <th
                       key={columnKey}
                       aria-sort={
-                        column.sortable && isActiveSort
-                          ? sortDirection === 'asc'
+                        isColumnSortableNow && isActiveSort
+                          ? activeSortDirection === 'asc'
                             ? 'ascending'
                             : 'descending'
                           : undefined
@@ -498,9 +553,9 @@ export default function AppTable<T>({
                         column.className,
                       )}
                     >
-                      {column.sortable && onSortChange ? (
+                      {isColumnSortableNow ? (
                         <Button
-                          ariaLabel={`Sort by ${column.sortLabel ?? String(column.header)}`}
+                          ariaLabel={column.sortLabel}
                           className="group -ml-1 inline-flex items-center gap-1 rounded px-1 py-1 text-left text-2xs font-semibold uppercase tracking-[0.12em] text-muted-foreground hover:text-foreground"
                           onClick={() => handleSort(columnKey)}
                           textTransform="none"
@@ -538,7 +593,7 @@ export default function AppTable<T>({
             </thead>
 
             <tbody className="divide-y divide-border">
-              {items.map((item: T, index: number) => {
+              {sortedItems.map((item: T, index: number) => {
                 const itemId = getItemId ? getItemId(item) : '';
                 const isSelected = selectedIds.includes(itemId);
                 const rowLink = getRowLink?.(item);
@@ -554,7 +609,7 @@ export default function AppTable<T>({
                 const groupHeading = getGroupHeading?.(item) ?? null;
                 const previousGroupHeading =
                   index > 0
-                    ? (getGroupHeading?.(items[index - 1]) ?? null)
+                    ? (getGroupHeading?.(sortedItems[index - 1]) ?? null)
                     : null;
                 const showsGroupHeading =
                   groupHeading !== null &&
