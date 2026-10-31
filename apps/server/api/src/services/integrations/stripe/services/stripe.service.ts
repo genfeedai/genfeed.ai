@@ -785,6 +785,24 @@ export class StripeService {
       const isPayg =
         stripePriceId === this.configService.get('STRIPE_PRICE_PAYG');
 
+      const checkoutDefaults: StripeCheckoutSessionCreateParams = {
+        automatic_tax: {
+          enabled: true,
+        },
+        customer: customerId,
+        customer_update: {
+          address: 'auto',
+          name: 'auto',
+        },
+        allowed_payment_method_types: ['card'],
+        saved_payment_method_options: {
+          payment_method_remove: 'enabled',
+          payment_method_save: 'enabled',
+        },
+        tax_id_collection: {
+          enabled: true,
+        },
+      };
       let sessionConfig: StripeCheckoutSessionCreateParams;
 
       if (isSubscription) {
@@ -802,14 +820,7 @@ export class StripeService {
 
         // Monthly subscription
         sessionConfig = {
-          automatic_tax: {
-            enabled: true,
-          },
-          customer: customerId,
-          customer_update: {
-            address: 'auto',
-            name: 'auto',
-          },
+          ...checkoutDefaults,
           line_items: [
             {
               price: stripePriceId,
@@ -817,16 +828,8 @@ export class StripeService {
             },
           ],
           mode: 'subscription',
-          allowed_payment_method_types: ['card'],
-          saved_payment_method_options: {
-            payment_method_remove: 'enabled',
-            payment_method_save: 'enabled',
-          },
           subscription_data: {
             metadata: tierMetadata,
-          },
-          tax_id_collection: {
-            enabled: true,
           },
         };
 
@@ -839,14 +842,7 @@ export class StripeService {
 
         sessionConfig = {
           allow_promotion_codes: true,
-          automatic_tax: {
-            enabled: true,
-          },
-          customer: customerId,
-          customer_update: {
-            address: 'auto',
-            name: 'auto',
-          },
+          ...checkoutDefaults,
           line_items: [
             {
               price: stripePriceId,
@@ -858,14 +854,6 @@ export class StripeService {
             plan_type: 'payg',
           },
           mode: 'payment',
-          allowed_payment_method_types: ['card'],
-          saved_payment_method_options: {
-            payment_method_remove: 'enabled',
-            payment_method_save: 'enabled',
-          },
-          tax_id_collection: {
-            enabled: true,
-          },
         };
       } else {
         // Use the provided price ID directly (for custom prices)
@@ -874,14 +862,7 @@ export class StripeService {
 
         sessionConfig = {
           allow_promotion_codes: true,
-          automatic_tax: {
-            enabled: true,
-          },
-          customer: customerId,
-          customer_update: {
-            address: 'auto',
-            name: 'auto',
-          },
+          ...checkoutDefaults,
           line_items: [
             {
               price: stripePriceId,
@@ -889,14 +870,6 @@ export class StripeService {
             },
           ],
           mode: isRecurring ? 'subscription' : 'payment',
-          allowed_payment_method_types: ['card'],
-          saved_payment_method_options: {
-            payment_method_remove: 'enabled',
-            payment_method_save: 'enabled',
-          },
-          tax_id_collection: {
-            enabled: true,
-          },
         };
 
         if (isRecurring) {

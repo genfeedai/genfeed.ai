@@ -144,13 +144,13 @@
     "symbol": "AgentToolExecutorService.constructor"
   },
   {
-    "actual": 1115,
+    "actual": 1114,
     "file": "apps/server/api/src/services/integrations/stripe/services/stripe.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/integrations/stripe/services/stripe.service.ts"
   },
   {
-    "actual": 197,
+    "actual": 171,
     "file": "apps/server/api/src/services/integrations/stripe/services/stripe.service.ts",
     "metric": "method-lines",
     "symbol": "StripeService.createPaymentSession"
