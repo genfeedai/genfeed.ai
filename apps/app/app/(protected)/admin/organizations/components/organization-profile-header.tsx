@@ -2,9 +2,9 @@
 
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IOrgWithStats } from '@services/analytics/analytics.service';
+import { Skeleton } from '@ui/display/skeleton/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
-import { Skeleton } from '@ui/display/skeleton/skeleton';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -19,7 +19,10 @@ export default function OrganizationProfileHeader({
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-4" data-testid="org-profile-loading">
+      <div
+        className="flex items-center gap-4"
+        data-testid="org-profile-loading"
+      >
         <Skeleton className="size-14 rounded-full" />
         <Skeleton variant="text" height={20} className="w-48" />
       </div>

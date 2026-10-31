@@ -93,51 +93,51 @@ function OrganizationDetailPageContent() {
       }
     >
       <div className="flex flex-col gap-6">
-      <OrganizationProfileHeader
-        isLoading={isProfileLoading}
-        profile={profile}
-      />
-      {isSettingsTab ? (
-        error ? (
-          <Alert type={AlertCategory.ERROR}>
-            {translate('settingsLoadError')}
-          </Alert>
-        ) : (
-          <>
-            {settings ? (
-              <OrganizationReleaseGrants
-                hasOrganizationBilling={
-                  settings.hasOrganizationBilling !== false
-                }
-                isReleasePreviewEnabled={
-                  settings.isReleasePreviewEnabled === true
-                }
-                moduleOverrides={settings.moduleOverrides ?? {}}
-                releasedItemIds={(settings.releasedItemIds ?? []).filter(
-                  isReleaseItemId,
-                )}
-                onModuleOverridesChange={(moduleOverrides) =>
-                  updateSettings({ moduleOverrides })
-                }
-                onReleasedItemIdsChange={(releasedItemIds) =>
-                  updateSettings({ releasedItemIds })
-                }
-              />
-            ) : null}
-            <OrganizationSettingsTable
-              settings={settings}
-              isLoading={isLoading}
-              organizationId={organizationId}
-              onUpdate={refresh}
-            />
-          </>
-        )
-      ) : (
-        <AnalyticsOrganizationOverview
-          organizationId={organizationId}
-          basePath={APP_ROUTES.ADMIN.ROOT}
+        <OrganizationProfileHeader
+          isLoading={isProfileLoading}
+          profile={profile}
         />
-      )}
+        {isSettingsTab ? (
+          error ? (
+            <Alert type={AlertCategory.ERROR}>
+              {translate('settingsLoadError')}
+            </Alert>
+          ) : (
+            <>
+              {settings ? (
+                <OrganizationReleaseGrants
+                  hasOrganizationBilling={
+                    settings.hasOrganizationBilling !== false
+                  }
+                  isReleasePreviewEnabled={
+                    settings.isReleasePreviewEnabled === true
+                  }
+                  moduleOverrides={settings.moduleOverrides ?? {}}
+                  releasedItemIds={(settings.releasedItemIds ?? []).filter(
+                    isReleaseItemId,
+                  )}
+                  onModuleOverridesChange={(moduleOverrides) =>
+                    updateSettings({ moduleOverrides })
+                  }
+                  onReleasedItemIdsChange={(releasedItemIds) =>
+                    updateSettings({ releasedItemIds })
+                  }
+                />
+              ) : null}
+              <OrganizationSettingsTable
+                settings={settings}
+                isLoading={isLoading}
+                organizationId={organizationId}
+                onUpdate={refresh}
+              />
+            </>
+          )
+        ) : (
+          <AnalyticsOrganizationOverview
+            organizationId={organizationId}
+            basePath={APP_ROUTES.ADMIN.ROOT}
+          />
+        )}
       </div>
     </AdminPageShell>
   );
