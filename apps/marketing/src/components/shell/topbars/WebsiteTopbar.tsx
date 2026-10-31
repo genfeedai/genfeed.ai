@@ -322,40 +322,38 @@ export default function WebsiteTopbar() {
       rightContent={
         <div className="flex items-center gap-3 lg:gap-6">
           {!isSignedIn ? (
-            <>
+            <div
+              data-testid="topbar-actions"
+              className={cn(
+                'flex items-center gap-3 transition-[opacity,visibility] duration-200 lg:gap-6',
+                !isHeroCtaRevealed && HERO_CTA_PENDING_CLASS,
+              )}
+            >
               <a
                 href={`${EnvironmentService.apps.app}/login`}
                 className="hidden text-xs font-bold uppercase tracking-[0.1em] text-foreground/60 transition-colors hover:text-foreground lg:block"
               >
                 Log in
               </a>
-              <div
-                data-testid="topbar-actions"
-                className={cn(
-                  'flex items-center gap-3 transition-[opacity,visibility] duration-200 lg:gap-6',
-                  !isHeroCtaRevealed && HERO_CTA_PENDING_CLASS,
-                )}
+              <ConnectAgentButton
+                label="Connect your agent"
+                variant={ButtonVariant.SECONDARY}
+                className="hidden h-9 px-5 text-sm uppercase xl:inline-flex"
+                trackingAction="connect_agent_topbar"
+                trackingName="topbar_cta_click"
+              />
+              <ButtonTracked
+                asChild
+                size={ButtonSize.PUBLIC}
+                className="h-11 px-5 text-sm uppercase lg:h-9"
+                trackingData={{ action: 'start_free_topbar' }}
+                trackingName="topbar_cta_click"
               >
-                <ConnectAgentButton
-                  label="Connect your agent"
-                  variant={ButtonVariant.SECONDARY}
-                  className="hidden h-9 px-5 text-sm uppercase xl:inline-flex"
-                  trackingAction="connect_agent_topbar"
-                  trackingName="topbar_cta_click"
-                />
-                <ButtonTracked
-                  asChild
-                  size={ButtonSize.PUBLIC}
-                  className="h-11 px-5 text-sm uppercase lg:h-9"
-                  trackingData={{ action: 'start_free_topbar' }}
-                  trackingName="topbar_cta_click"
-                >
-                  <a href={`${EnvironmentService.apps.app}/sign-up`}>
-                    Start creating
-                  </a>
-                </ButtonTracked>
-              </div>
-            </>
+                <a href={`${EnvironmentService.apps.app}/sign-up`}>
+                  Start creating
+                </a>
+              </ButtonTracked>
+            </div>
           ) : (
             <a
               href={EnvironmentService.apps.app}
