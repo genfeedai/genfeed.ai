@@ -47,4 +47,12 @@ describe('Changelog', () => {
     expect(container.querySelector('a[href^="javascript:"]')).toBeNull();
     expect(screen.getByText('September 1, 2026')).toBeTruthy();
   });
+
+  it('says release notes are unavailable instead of rendering an empty list', () => {
+    render(<ChangelogContent isUnavailable releases={[]} />);
+    expect(screen.getByText(/temporarily unavailable/)).toBeTruthy();
+    expect(
+      screen.getByRole('link', { name: 'GitHub' }).getAttribute('href'),
+    ).toBe('https://github.com/genfeedai/genfeed.ai/releases');
+  });
 });

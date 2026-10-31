@@ -94,9 +94,10 @@ export default function WebMcpProvider() {
     ).modelContext;
 
     legacyContext?.provideContext?.({ tools: [tool] });
-    void currentContext
-      ?.registerTool?.(tool, { signal: abortController.signal })
-      .catch(() => undefined);
+    // A polyfill's registerTool may return nothing instead of a promise.
+    void Promise.resolve(
+      currentContext?.registerTool?.(tool, { signal: abortController.signal }),
+    ).catch(() => undefined);
 
     return () => abortController.abort();
   }, []);

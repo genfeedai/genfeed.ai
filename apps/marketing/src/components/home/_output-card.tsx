@@ -64,7 +64,9 @@ export default function HomeOutputCard({
           // it, and `autoPlay` starts it. On a later pass the element exists
           // and was paused on the way out, so it needs an explicit nudge.
           setIsClipWanted(true);
-          videoRef.current?.play().catch(() => {
+          // `play()` returns a promise in current browsers but `undefined` in
+          // older WebViews, so wrap it before attaching `catch`.
+          void Promise.resolve(videoRef.current?.play()).catch(() => {
             // Autoplay can still be refused (a background tab, a battery-saver
             // policy). The poster is already correct, so there is nothing to do.
           });

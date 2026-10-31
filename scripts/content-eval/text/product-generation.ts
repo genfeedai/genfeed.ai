@@ -39,8 +39,8 @@ export type ProductTextRoute =
 
 /**
  * Text kinds the product serves through a route above. Every other smoke text
- * kind (script, ad copy) is listed as "no product route yet" in the smoke
- * summary rather than faked.
+ * kind (script, ad copy) has no synchronous HTTP route, and the smoke summary
+ * lists it as such rather than faking one.
  */
 export const PRODUCT_TEXT_ROUTES: Readonly<Record<string, ProductTextRoute>> = {
   article: { kind: 'article', category: null },

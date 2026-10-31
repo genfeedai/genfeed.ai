@@ -16,6 +16,8 @@ import {
 
 type Release = ChangelogProps['releases'][number];
 
+const GITHUB_RELEASES_URL = 'https://github.com/genfeedai/genfeed.ai/releases';
+
 const codeBlockLabels = {
   copied: 'Copied',
   copy: 'Copy code',
@@ -114,18 +116,36 @@ function ReleaseEntry({ release }: { release: Release }) {
  * rows hydrate. As a client component this page shipped the markdown parser
  * (~40 KB gzip) to render text the server already had.
  */
-export default function ChangelogContent({ releases }: ChangelogProps) {
+export default function ChangelogContent({
+  isUnavailable = false,
+  releases,
+}: ChangelogProps) {
   return (
     <div className="mx-auto max-w-3xl px-6 py-20">
       <header className="space-y-3 pb-10">
         <h1 className="text-4xl font-semibold tracking-tight">Changelog</h1>
         <p className="text-muted-foreground">What's new in Genfeed.</p>
       </header>
-      <div className="border-t border-border">
-        {releases.map((release) => (
-          <ReleaseEntry key={release.tag} release={release} />
-        ))}
-      </div>
+      {isUnavailable ? (
+        <p className="border-t border-border py-8 text-muted-foreground">
+          Release notes are temporarily unavailable. Read them on{' '}
+          <Link
+            href={GITHUB_RELEASES_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-foreground underline underline-offset-4"
+          >
+            GitHub
+          </Link>{' '}
+          or check back in a few minutes.
+        </p>
+      ) : (
+        <div className="border-t border-border">
+          {releases.map((release) => (
+            <ReleaseEntry key={release.tag} release={release} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
