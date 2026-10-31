@@ -11,11 +11,13 @@ import { ConfigService } from '@workers/config/config.service';
 
 const LLM_LAST_REQUEST_KEY = 'llm-instance:last-request';
 const IDLE_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+const INSTANCE_NOT_FOUND_CODE = 'InvalidInstanceID.NotFound';
 
 @Injectable()
 export class CronLlmIdleService {
   private readonly constructorName = String(this.constructor.name);
   private readonly ec2Client: EC2Client;
+  private hasWarnedMissingInstance = false;
 
   constructor(
     private readonly configService: ConfigService,
@@ -89,11 +91,30 @@ export class CronLlmIdleService {
         response.Reservations?.[0]?.Instances?.[0]?.State?.Name ?? 'unknown'
       );
     } catch (error: unknown) {
+      if (this.isInstanceNotFound(error)) {
+        // A configured instance that no longer exists is a config problem, not
+        // a fault. Warn once instead of an error every cron tick.
+        if (!this.hasWarnedMissingInstance) {
+          this.hasWarnedMissingInstance = true;
+          this.loggerService.warn(
+            `${this.constructorName}: GPU_LLM_INSTANCE_ID ${instanceId} does not exist — idle shutdown skipped; update or unset GPU_LLM_INSTANCE_ID`,
+          );
+        }
+        return 'not-found';
+      }
       this.loggerService.error(
         `${this.constructorName}: Failed to describe EC2 instance`,
         { error: getErrorMessage(error), instanceId },
       );
       return 'unknown';
     }
+  }
+
+  private isInstanceNotFound(error: unknown): boolean {
+    return (
+      error instanceof Error &&
+      (error.name === INSTANCE_NOT_FOUND_CODE ||
+        (error as { Code?: string }).Code === INSTANCE_NOT_FOUND_CODE)
+    );
   }
 }
