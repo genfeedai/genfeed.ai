@@ -12,7 +12,8 @@ import AnalyticsOrganizationsList from './analytics-organizations-list';
 
 const mocks = vi.hoisted(() => ({
   getOrganizationsWithStats: vi.fn(),
-  setToolbarNode: vi.fn(),
+  publishSearch: vi.fn(),
+  setFilter: vi.fn(),
 }));
 
 vi.mock('next-intl', async () => {
@@ -26,9 +27,11 @@ vi.mock('@contexts/analytics/analytics-context', () => ({
       endDate: new Date('2026-04-14T00:00:00.000Z'),
       startDate: new Date('2026-04-08T00:00:00.000Z'),
     },
+    filters: {},
     refreshTrigger: 0,
-    setToolbarNode: mocks.setToolbarNode,
+    setFilter: mocks.setFilter,
   })),
+  useAnalyticsSearch: (node: ReactNode) => mocks.publishSearch(node),
 }));
 
 vi.mock('@contexts/ui/context-sidebar-context', () => ({
@@ -64,7 +67,7 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
     vi.clearAllMocks();
   });
 
-  it('renders the table skeleton and hands the sort control to the subbar while loading', () => {
+  it('renders the table skeleton and hands the search to the subbar while loading', () => {
     mocks.getOrganizationsWithStats.mockReturnValueOnce(
       new Promise(() => undefined),
     );
@@ -75,7 +78,24 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
       screen.queryByRole('heading', { name: /All Organizations/ }),
     ).not.toBeInTheDocument();
     expect(screen.getByTestId('skeleton-table')).toBeVisible();
-    expect(mocks.setToolbarNode).toHaveBeenCalledWith(expect.anything());
+    expect(mocks.publishSearch).toHaveBeenCalledWith(expect.anything());
+  });
+
+  it('publishes a search field that writes the typed query to the analytics filters', () => {
+    mocks.getOrganizationsWithStats.mockReturnValueOnce(
+      new Promise(() => undefined),
+    );
+
+    render(<AnalyticsOrganizationsList />);
+    const searchNode = mocks.publishSearch.mock.calls.at(-1)?.[0] as ReactNode;
+    render(<>{searchNode}</>);
+
+    fireEvent.change(
+      screen.getByRole('textbox', { name: 'Search organizations' }),
+      { target: { value: 'acme' } },
+    );
+
+    expect(mocks.setFilter).toHaveBeenCalledWith('query', 'acme');
   });
 
   it('renders the organizations table once loading resolves', async () => {
@@ -166,5 +186,47 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
         name: 'Open organization analytics',
       }),
     ).toHaveAttribute('href', '/admin/organizations/org-1');
+  });
+
+  it('shows each organization owner as a link to the user page', async () => {
+    mocks.getOrganizationsWithStats.mockResolvedValue({
+      data: [
+        {
+          avgEngagementRate: 0,
+          growth: 0,
+          id: 'org-1',
+          logo: 'https://cdn.test/acme.png',
+          name: 'Acme Inc',
+          owner: { id: 'user-9', name: 'Ada Lovelace' },
+          totalBrands: 1,
+          totalEngagement: 0,
+          totalMembers: 1,
+          totalPosts: 0,
+          totalViews: 0,
+        },
+        {
+          avgEngagementRate: 0,
+          growth: 0,
+          id: 'org-2',
+          name: 'Orphan',
+          totalBrands: 1,
+          totalEngagement: 0,
+          totalMembers: 0,
+          totalPosts: 0,
+          totalViews: 0,
+        },
+      ],
+      pagination: { limit: 10, page: 1, total: 2, totalPages: 1 },
+    });
+
+    render(<AnalyticsOrganizationsList />);
+
+    expect(
+      await screen.findByRole('columnheader', { name: 'Owner' }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('link', { name: 'Open user Ada Lovelace' }),
+    ).toHaveAttribute('href', '/admin/administration/users/user-9');
+    expect(screen.getAllByRole('link', { name: /Open user/ })).toHaveLength(1);
   });
 });

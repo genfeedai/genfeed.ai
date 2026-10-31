@@ -335,9 +335,10 @@ export class AnalyticsService extends HTTPBaseService {
    */
   public async getOrganizationsWithStats(
     params?: IAdminOrgsQueryParams,
+    signal?: AbortSignal,
   ): Promise<IPaginatedOrgsResponse> {
     return await this.instance
-      .get<JsonApiResponseDocument>('organizations', { params })
+      .get<JsonApiResponseDocument>('organizations', { params, signal })
       .then((res) => deserializeResource<IPaginatedOrgsResponse>(res.data));
   }
 

@@ -19,7 +19,7 @@ function getReleaseAccessHref(organizationId: string): string {
 
 function AdminOrganizationsLandingContent() {
   const translate = useTranslations('pages.adminOrganizations');
-  const { setDateRange, triggerRefresh, isRefreshing, toolbarNode } =
+  const { setDateRange, triggerRefresh, isRefreshing, searchNode } =
     useAnalyticsContext();
 
   return (
@@ -28,14 +28,9 @@ function AdminOrganizationsLandingContent() {
       icon={Building2}
       onRefresh={triggerRefresh}
       isRefreshing={isRefreshing}
+      search={searchNode}
       dropdowns={
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          {toolbarNode}
-          <DateRangePicker
-            onChange={setDateRange}
-            defaultPreset={Timeframe.D7}
-          />
-        </div>
+        <DateRangePicker onChange={setDateRange} defaultPreset={Timeframe.D7} />
       }
     >
       <AnalyticsOrganizationsList getReleaseAccessHref={getReleaseAccessHref} />
@@ -48,9 +43,9 @@ function AdminOrganizationsLandingContent() {
  * this analytics table; each row links to `/admin/organizations/:id`, where the
  * organization's analytics and settings are tabs.
  *
- * The list publishes its sort control to the subbar through `toolbarNode`, so
- * this route owns an `AdminPageShell` (without the analytics tab bar) that
- * renders it next to the date range and refresh.
+ * The list publishes its search (with the sort menu attached inside it) to the
+ * subbar through `searchNode`, so this route owns an `AdminPageShell` (without
+ * the analytics tab bar) that renders it beside the date range and refresh.
  */
 export default function AdminOrganizationsLanding() {
   return (

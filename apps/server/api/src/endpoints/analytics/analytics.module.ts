@@ -9,6 +9,7 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
+import { OrganizationLogoService } from '@api/collections/organizations/services/organization-logo.service';
 import { OutliersCoreModule } from '@api/collections/outliers/outliers-core.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { SubscriptionsModule } from '@api/collections/subscriptions/subscriptions.module';
@@ -33,6 +34,7 @@ import { StripeCoreModule } from '@api/services/integrations/stripe/stripe-core.
 import { TiktokModule } from '@api/services/integrations/tiktok/tiktok.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
+import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { Module } from '@nestjs/common';
 
 @Module({
@@ -52,6 +54,7 @@ import { Module } from '@nestjs/common';
     BrandsCoreModule,
     CreditsModule,
     IngredientsModule,
+    MediaUrlsModule,
     ModelsModule,
     OrganizationsCoreModule,
     OutliersCoreModule,
@@ -80,6 +83,9 @@ import { Module } from '@nestjs/common';
     AnalyticsExportService,
     BusinessAnalyticsService,
     EntityLeaderboardService,
+    // Org logos are Asset rows; the admin organizations list resolves them in
+    // one batched read per page.
+    OrganizationLogoService,
   ],
 })
 export class AnalyticsModule {}

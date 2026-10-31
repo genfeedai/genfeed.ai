@@ -49,6 +49,8 @@ export interface OrganizationDoc {
   name?: string;
   label?: string;
   authProviderLogoUrl?: string | null;
+  /** The owning user (`organizations.userId`). */
+  userId?: string | null;
   isDeleted?: boolean;
   createdAt?: Date;
 }

@@ -8,10 +8,20 @@ export interface IEntityAnalyticsStats {
   activePlatforms?: string[];
 }
 
+/** The user who owns an organization (`organizations.userId`). */
+export interface IOrganizationOwner {
+  id: string;
+  /** Display name, or the email/handle when no name was ever captured. */
+  name: string;
+  email?: string;
+  avatar?: string;
+}
+
 export interface IOrganizationWithStats {
   id: string;
   name: string;
   logo?: string;
+  owner?: IOrganizationOwner;
   totalPosts: number;
   totalViews: number;
   totalEngagement: number;

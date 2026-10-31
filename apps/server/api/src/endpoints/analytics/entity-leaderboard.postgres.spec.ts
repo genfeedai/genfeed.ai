@@ -74,6 +74,7 @@ describe.skipIf(!connectionString)(
         organizationsService as never,
         {} as never,
         {} as never,
+        {} as never,
       );
     });
 
