@@ -13,14 +13,14 @@ const AGENT_TYPE_DEFAULTS: Record<string, readonly string[]> = {
   [AgentType.AI_AVATAR]: ['clip-editor'],
   [AgentType.ARTICLE_WRITER]: ['blog-content-creator'],
   [AgentType.IMAGE_CREATOR]: ['image-prompt-engineer', 'model-selector'],
-  [AgentType.LINKEDIN_CONTENT]: ['linkedin-content-creator'],
-  [AgentType.SHORT_FORM_WRITER]: ['instagram-content-creator'],
+  [AgentType.LINKEDIN_CONTENT]: ['linkedin-post'],
+  [AgentType.SHORT_FORM_WRITER]: ['instagram-reel'],
   [AgentType.VIDEO_CREATOR]: [
     'model-selector',
     'image-prompt-engineer',
     'clip-editor',
   ],
-  [AgentType.X_CONTENT]: ['x-content-creator'],
+  [AgentType.X_CONTENT]: ['x-post', 'x-thread'],
   [AgentType.YOUTUBE_SCRIPT]: ['youtube-content-creator'],
 };
 

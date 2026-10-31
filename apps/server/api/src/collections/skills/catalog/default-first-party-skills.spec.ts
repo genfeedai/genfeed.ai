@@ -57,7 +57,7 @@ describe('resolveDefaultFirstPartySkillSlugs', () => {
         agentType: AgentType.X_CONTENT,
         channel: 'x',
       }),
-    ).toEqual(['x-content-creator']);
+    ).toEqual(['x-post', 'x-thread']);
   });
 
   it('unions agent-type and channel defaults without dumping the catalog', () => {

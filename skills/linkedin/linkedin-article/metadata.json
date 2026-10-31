@@ -1,0 +1,16 @@
+{
+  "name": "linkedin-article",
+  "version": "1.0.0",
+  "description": "Write a LinkedIn article or newsletter edition with a hook, sections, action steps and a promo post.",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "write a linkedin article",
+    "linkedin newsletter edition",
+    "turn this into a linkedin article",
+    "draft a linkedin newsletter"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": ["linkedin", "article", "newsletter", "long-form", "content-creation", "b2b"]
+}

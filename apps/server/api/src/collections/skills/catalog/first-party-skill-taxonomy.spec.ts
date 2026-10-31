@@ -3,9 +3,9 @@ import { ContentSkillCategory, SkillSurface } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 describe('inferFirstPartySkillTaxonomy', () => {
-  it('maps instagram-content-creator to instagram text creation', () => {
+  it('maps instagram-post to instagram text creation', () => {
     expect(
-      inferFirstPartySkillTaxonomy('instagram-content-creator', {
+      inferFirstPartySkillTaxonomy('instagram-post', {
         outputs: ['text'],
         tags: ['instagram', 'content-creation'],
       }),
@@ -49,7 +49,7 @@ describe('inferFirstPartySkillTaxonomy', () => {
 
   it('keeps a writing skill on the agent surface only', () => {
     expect(
-      inferFirstPartySkillTaxonomy('linkedin-content-creator', {
+      inferFirstPartySkillTaxonomy('linkedin-post', {
         outputs: ['text'],
         tags: ['linkedin', 'content-creation'],
       }).surfaces,

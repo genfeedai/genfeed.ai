@@ -1,0 +1,16 @@
+{
+  "name": "instagram-story",
+  "version": "1.0.0",
+  "description": "Write an Instagram Story sequence with stickers, a CTA and a weekly theme calendar.",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "instagram stories",
+    "story sequence",
+    "plan instagram stories",
+    "write story frames"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": ["instagram", "stories", "social-media", "content-creation", "engagement"]
+}

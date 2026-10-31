@@ -30,6 +30,8 @@ export interface PublicArticlePreviewRouteProps
 }
 
 export interface ArticleResource {
+  /** Module folder in genfeedai/skills that holds the skill. */
+  module: string;
   skill: string;
   label: string;
 }

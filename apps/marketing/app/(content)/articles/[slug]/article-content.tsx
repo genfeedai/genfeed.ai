@@ -190,7 +190,7 @@ export default function ArticleContent({
               className="shrink-0"
               href={
                 resource
-                  ? `https://github.com/genfeedai/skills/tree/master/${resource.skill}`
+                  ? `https://github.com/genfeedai/skills/tree/master/${resource.module}/${resource.skill}`
                   : applyHref
               }
               onClick={() => {

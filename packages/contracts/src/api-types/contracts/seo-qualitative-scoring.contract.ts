@@ -3,7 +3,7 @@
  *
  * The deterministic checks are computed in code; only these four rubric
  * dimensions and the suggestion prose come from a model. Each band matches the
- * matching check's `max` in `skills/content-seo-optimizer/SKILL.md`.
+ * matching check's `max` in `skills/content/content-seo-optimizer/SKILL.md`.
  */
 
 import { z } from 'zod';

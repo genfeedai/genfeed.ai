@@ -65,7 +65,8 @@ function buildLinkedInPlatformContribution(
 
 /**
  * Platform pack: contributes only when intent.platform is LinkedIn.
- * Short runtime form of the `linkedin-content-creator` product skill.
+ * Short runtime form of the `linkedin-post`, `linkedin-article` and
+ * `linkedin-carousel` product skills.
  */
 export const LINKEDIN_PLATFORM_HARNESS_PACK: ContentHarnessPack = {
   capabilities: ['platform-linkedin', 'evaluation-baseline'],

@@ -198,7 +198,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
                       Install one:
                     </span>{' '}
                     <Code className="text-foreground/50 bg-foreground/5">
-                      bunx skills add genfeedai/skills/x-content-creator
+                      bunx skills add genfeedai/skills/x/x-post
                     </Code>
                   </p>
                 </div>

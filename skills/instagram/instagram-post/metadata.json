@@ -1,0 +1,17 @@
+{
+  "name": "instagram-post",
+  "version": "1.0.0",
+  "description": "Write an Instagram feed post: caption, hashtags, alt text and the image brief.",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "write an instagram caption",
+    "instagram post",
+    "write ig caption",
+    "hashtag strategy",
+    "caption for this photo"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": ["instagram", "social-media", "content-creation", "captions", "hashtags"]
+}

@@ -17,6 +17,7 @@
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { basename, join, relative } from 'node:path';
+import { catalogSkillDirectories } from '../apps/server/api/src/collections/skills/catalog/skill-catalog-artifact';
 
 // helpers
 
@@ -241,11 +242,8 @@ const jsonMode = process.argv.includes('--json');
 // Audit skills
 const skillReports: SkillReport[] = [];
 if (existsSync(SKILLS_DIR)) {
-  for (const entry of readdirSync(SKILLS_DIR)) {
-    const full = join(SKILLS_DIR, entry);
-    if (statSync(full).isDirectory()) {
-      skillReports.push(auditSkill(full));
-    }
+  for (const { path } of catalogSkillDirectories(SKILLS_DIR)) {
+    skillReports.push(auditSkill(join(SKILLS_DIR, path)));
   }
 }
 

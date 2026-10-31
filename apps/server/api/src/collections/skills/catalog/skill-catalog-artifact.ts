@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 
 export const CATALOG_COMPILER_VERSION = 'legacy-v1-char-caps';
 export const SOURCE_REPOSITORY = 'https://github.com/genfeedai/skills';
@@ -18,16 +18,23 @@ export const UPSTREAM_SLUGS = [
   'content-strategist',
   'genfeed-brand-os',
   'image-prompt-engineer',
-  'instagram-content-creator',
+  'instagram-carousel',
+  'instagram-post',
+  'instagram-reel',
+  'instagram-story',
   'instagram-warmup',
   'launch-copy-creator',
-  'linkedin-content-creator',
+  'linkedin-article',
+  'linkedin-carousel',
+  'linkedin-post',
   'linkedin-warmup',
   'newsletter-creator',
   'prompt-generator',
   'tiktok-warmup',
   'visual-brand-kit',
-  'x-content-creator',
+  'x-article',
+  'x-post',
+  'x-thread',
   'x-warmup',
   'youtube-content-creator',
   'youtube-warmup',
@@ -67,7 +74,8 @@ export interface CatalogLock {
   sourceRepository: string;
   sourceCommit: string;
   sourceCommittedAt: string;
-  sourceSkillSlugs: string[];
+  /** `<module>/<slug>` of every skill the pinned source publishes. */
+  sourceSkillPaths: string[];
   skills: CatalogEntry[];
 }
 export function assertSafePath(path: string): void {
@@ -152,30 +160,59 @@ export function compileSkill(directory: string, files = inventory(directory)) {
     excludedReferences,
   };
 }
-export function catalogSlugs(directory: string): string[] {
-  const slugs: string[] = [];
+export const APPLICATION_MODULE = 'app';
+export interface CatalogSkillDirectory {
+  slug: string;
+  module: string;
+  /** `<module>/<slug>`, relative to the catalog directory. */
+  path: string;
+}
+/**
+ * Every skill folder of the catalog, laid out like the public skills
+ * repository: `<module>/<slug>/SKILL.md`. Application procedures live in the
+ * `app` module.
+ */
+export function catalogSkillDirectories(
+  directory: string,
+): CatalogSkillDirectory[] {
+  const skills: CatalogSkillDirectory[] = [];
   const seen = new Set<string>();
-  for (const slug of readdirSync(directory).sort()) {
-    const path = join(directory, slug);
-    if (lstatSync(path).isSymbolicLink())
-      throw new Error(`Catalog symlink rejected: ${path}`);
-    if (!lstatSync(path).isDirectory()) continue;
-    assertSafePath(slug);
-    if (seen.has(slug.toLowerCase()))
-      throw new Error(`Duplicate slug: ${slug}`);
-    seen.add(slug.toLowerCase());
-    if (!existsSync(join(path, 'SKILL.md')))
-      throw new Error(`Undeclared catalog directory: ${slug}`);
-    slugs.push(slug);
+  for (const module of readdirSync(directory).sort()) {
+    const modulePath = join(directory, module);
+    if (lstatSync(modulePath).isSymbolicLink())
+      throw new Error(`Catalog symlink rejected: ${modulePath}`);
+    if (!lstatSync(modulePath).isDirectory()) continue;
+    assertSafePath(module);
+    if (existsSync(join(modulePath, 'SKILL.md')))
+      throw new Error(`Catalog skill outside a module: ${module}`);
+    for (const slug of readdirSync(modulePath).sort()) {
+      const path = join(modulePath, slug);
+      if (lstatSync(path).isSymbolicLink())
+        throw new Error(`Catalog symlink rejected: ${path}`);
+      if (!lstatSync(path).isDirectory()) continue;
+      assertSafePath(slug);
+      if (seen.has(slug.toLowerCase()))
+        throw new Error(`Duplicate slug: ${slug}`);
+      seen.add(slug.toLowerCase());
+      if (!existsSync(join(path, 'SKILL.md')))
+        throw new Error(`Undeclared catalog directory: ${module}/${slug}`);
+      skills.push({ slug, module, path: `${module}/${slug}` });
+    }
   }
-  return slugs;
+  return skills.sort((a, b) =>
+    a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0,
+  );
 }
 export function createCatalogLock(
   directory: string,
   sourceCommit: string,
   sourceCommittedAt: string,
-  sourceSkillSlugs: string[],
+  sourceSkillPaths: string[],
 ): CatalogLock {
+  const sourcePathBySlug = new Map(
+    sourceSkillPaths.map((path) => [basename(path), path]),
+  );
+  const sourceSkillSlugs = [...sourcePathBySlug.keys()];
   // App procedures must not also ship as separately edited public copies.
   const published = sourceSkillSlugs.filter((slug) =>
     APPLICATION_PROCEDURES.has(slug),
@@ -195,15 +232,24 @@ export function createCatalogLock(
     sourceRepository: SOURCE_REPOSITORY,
     sourceCommit,
     sourceCommittedAt,
-    sourceSkillSlugs,
-    skills: catalogSlugs(directory).map((slug) => {
+    sourceSkillPaths,
+    skills: catalogSkillDirectories(directory).map(({ slug, module, path }) => {
       const upstream = UPSTREAM_SLUGS.includes(slug);
       // Free content skills come only from the pinned public source; only app procedures are authored here.
       if (!upstream && !APPLICATION_PROCEDURES.has(slug))
         throw new Error(
           `Unowned catalog skill: ${slug}; pin it from ${SOURCE_REPOSITORY} or declare it an application procedure`,
         );
-      const dir = join(directory, slug);
+      // The folder mirrors the module the pinned source keeps the skill in;
+      // application procedures sit in their own module.
+      const expectedModule = upstream
+        ? (sourcePathBySlug.get(slug) ?? '').split('/')[0]
+        : APPLICATION_MODULE;
+      if (module !== expectedModule)
+        throw new Error(
+          `Wrong catalog module for ${slug}: ${module}, expected ${expectedModule}`,
+        );
+      const dir = join(directory, path);
       const files = inventory(dir, upstream);
       const compiled = compileSkill(dir, files);
       const metadata = existsSync(join(dir, 'metadata.json'))
@@ -221,7 +267,9 @@ export function createCatalogLock(
         sourceRepository: upstream
           ? SOURCE_REPOSITORY
           : 'https://github.com/genfeedai/genfeed.ai',
-        sourcePath: upstream ? slug : `skills/${slug}`,
+        sourcePath: upstream
+          ? (sourcePathBySlug.get(slug) ?? path)
+          : `skills/${path}`,
         declaredVersion: metadata.version ?? version ?? '1.0.0',
         files,
         packageHash: sha256(
@@ -240,15 +288,17 @@ export function validateCatalogLock(directory: string): CatalogLock {
   if (
     !/^[a-f0-9]{40}$/.test(lock.sourceCommit) ||
     !Number.isFinite(Date.parse(lock.sourceCommittedAt)) ||
-    !Array.isArray(lock.sourceSkillSlugs) ||
-    lock.sourceSkillSlugs.some((slug) => typeof slug !== 'string')
+    !Array.isArray(lock.sourceSkillPaths) ||
+    lock.sourceSkillPaths.some(
+      (path) => typeof path !== 'string' || path.split('/').length !== 2,
+    )
   )
     throw new Error('Invalid catalog source pin');
   const expected = createCatalogLock(
     directory,
     lock.sourceCommit,
     lock.sourceCommittedAt,
-    lock.sourceSkillSlugs,
+    lock.sourceSkillPaths,
   );
   if (JSON.stringify(lock) !== JSON.stringify(expected))
     throw new Error(

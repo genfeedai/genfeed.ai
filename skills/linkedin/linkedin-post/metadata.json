@@ -1,0 +1,24 @@
+{
+  "name": "linkedin-post",
+  "version": "1.0.0",
+  "description": "Write a LinkedIn text post: story, insight, contrarian, listicle, celebration or objection-based thought leadership.",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "write a linkedin post",
+    "thought leadership post",
+    "professional post",
+    "linkedin update",
+    "compose linkedin post"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": [
+    "linkedin",
+    "social-media",
+    "content-creation",
+    "professional",
+    "b2b",
+    "thought-leadership"
+  ]
+}

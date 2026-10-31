@@ -28,16 +28,33 @@ function resolveProductSkillsDirectory(): string {
 
 const PRODUCT_SKILLS_DIRECTORY = resolveProductSkillsDirectory();
 
-export const PUBLISHED_AGENT_SKILL_NAMES = Object.freeze(
+/** `skills/<module>/<name>/SKILL.md`, the same layout as the skills repository. */
+const PUBLISHED_AGENT_SKILL_FILES: ReadonlyMap<string, string> = new Map(
   readdirSync(PRODUCT_SKILLS_DIRECTORY, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .filter((name) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name))
-    .filter((name) =>
-      existsSync(resolve(PRODUCT_SKILLS_DIRECTORY, name, 'SKILL.md')),
+    .filter((module) => module.isDirectory())
+    .flatMap((module) =>
+      readdirSync(resolve(PRODUCT_SKILLS_DIRECTORY, module.name), {
+        withFileTypes: true,
+      })
+        .filter((entry) => entry.isDirectory())
+        .filter((entry) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(entry.name))
+        .map((entry): [string, string] => [
+          entry.name,
+          resolve(
+            PRODUCT_SKILLS_DIRECTORY,
+            module.name,
+            entry.name,
+            'SKILL.md',
+          ),
+        ])
+        .filter(([, file]) => existsSync(file)),
     )
-    .sort(),
+    .sort(([left], [right]) => left.localeCompare(right)),
 );
+
+export const PUBLISHED_AGENT_SKILL_NAMES: readonly string[] = Object.freeze([
+  ...PUBLISHED_AGENT_SKILL_FILES.keys(),
+]);
 
 export interface PublishedAgentSkill {
   content: string;
@@ -62,7 +79,7 @@ export function getPublishedAgentSkill(
   }
 
   const content = readFileSync(
-    resolve(PRODUCT_SKILLS_DIRECTORY, name, 'SKILL.md'),
+    PUBLISHED_AGENT_SKILL_FILES.get(name) as string,
     'utf8',
   );
 

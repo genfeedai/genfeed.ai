@@ -1,8 +1,9 @@
 #!/usr/bin/env bun
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
+import { catalogSkillDirectories } from '../apps/server/api/src/collections/skills/catalog/skill-catalog-artifact';
 
 interface SkillRecord {
   description: string;
@@ -48,17 +49,9 @@ function loadSkills(): SkillRecord[] {
   }
 
   const skills: SkillRecord[] = [];
-  for (const entry of readdirSync(SKILLS_DIR)) {
-    const skillDir = join(SKILLS_DIR, entry);
-    if (!statSync(skillDir).isDirectory()) {
-      continue;
-    }
-
+  for (const { path } of catalogSkillDirectories(SKILLS_DIR)) {
+    const skillDir = join(SKILLS_DIR, path);
     const skillPath = join(skillDir, 'SKILL.md');
-    if (!existsSync(skillPath)) {
-      continue;
-    }
-
     const content = readFileSync(skillPath, 'utf-8');
     const frontmatter = parseFrontmatter(content);
     skills.push({

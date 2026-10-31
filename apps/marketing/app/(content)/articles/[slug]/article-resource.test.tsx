@@ -9,6 +9,7 @@ vi.mock('../../../../src/analytics/posthog-client', () => ({
   captureWebsiteAnalyticsEvent: vi.fn(),
 }));
 const resource = {
+  module: 'media',
   skill: 'cinematic-prompting',
   label: 'Build your visual brief',
 };

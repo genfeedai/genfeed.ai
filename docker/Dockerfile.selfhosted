@@ -304,7 +304,7 @@ COPY --from=builder --chown=appuser /app/apps/web/package.json apps/web/package.
 COPY --from=production-deps --chown=appuser /app/node_modules/ node_modules/
 COPY --from=production-deps --chown=appuser /app/package.json .
 
-# First-party product skills (`skills/*/SKILL.md`) are the in-app catalog seed.
+# First-party product skills (`skills/<module>/<skill>/SKILL.md`) are the in-app catalog seed.
 COPY --chown=appuser skills/ ./skills/
 
 RUN test -x "$(find /app -type f -name chrome-headless-shell -print -quit)"

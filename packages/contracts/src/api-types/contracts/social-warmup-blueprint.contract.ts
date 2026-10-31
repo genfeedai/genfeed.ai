@@ -316,7 +316,7 @@ export const TIKTOK_SOCIAL_WARMUP_BLUEPRINT = socialWarmupBlueprintSchema.parse(
       {
         id: 'tiktok-product-guidance',
         kind: 'product_guidance',
-        reference: 'skills/tiktok-warmup/SKILL.md',
+        reference: 'skills/tiktok/tiktok-warmup/SKILL.md',
         reviewedOn: '2026-08-11',
         title: 'Genfeed TikTok warm-up long-form guidance',
       },
@@ -761,7 +761,7 @@ export const TWITTER_SOCIAL_WARMUP_BLUEPRINT =
       {
         id: 'x-product-guidance',
         kind: 'product_guidance',
-        reference: 'skills/x-warmup/SKILL.md',
+        reference: 'skills/x/x-warmup/SKILL.md',
         reviewedOn: '2026-08-12',
         title: 'Genfeed X warm-up long-form guidance',
       },
@@ -1077,7 +1077,7 @@ export const INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT =
       {
         id: 'ig-product-guidance',
         kind: 'product_guidance',
-        reference: 'skills/instagram-warmup/SKILL.md',
+        reference: 'skills/instagram/instagram-warmup/SKILL.md',
         reviewedOn: '2026-08-12',
         title: 'Genfeed Instagram warm-up long-form guidance',
       },
@@ -1397,7 +1397,7 @@ export const YOUTUBE_SOCIAL_WARMUP_BLUEPRINT =
       {
         id: 'yt-product-guidance',
         kind: 'product_guidance',
-        reference: 'skills/youtube-warmup/SKILL.md',
+        reference: 'skills/youtube/youtube-warmup/SKILL.md',
         reviewedOn: '2026-08-24',
         title: 'Genfeed YouTube warm-up long-form guidance',
       },
@@ -1867,7 +1867,7 @@ export const LINKEDIN_SOCIAL_WARMUP_BLUEPRINT =
       {
         id: 'li-product-guidance',
         kind: 'product_guidance',
-        reference: 'skills/linkedin-warmup/SKILL.md',
+        reference: 'skills/linkedin/linkedin-warmup/SKILL.md',
         reviewedOn: '2026-08-24',
         title: 'Genfeed LinkedIn warm-up long-form guidance',
       },

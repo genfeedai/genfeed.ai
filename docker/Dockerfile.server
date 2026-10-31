@@ -271,7 +271,7 @@ RUN echo "Checking build outputs..." && \
       echo "✅ $svc bundle ($(( SIZE / 1024 ))KB)"; \
     done
 
-# First-party skills live on disk (`skills/*/SKILL.md`). Copy them into the
+# First-party skills live on disk (`skills/<module>/<skill>/SKILL.md`). Copy them into the
 # builder so `--validate-runtime` can load the catalog without a database.
 COPY skills/ ./skills/
 
@@ -356,7 +356,7 @@ COPY --from=builder /usr/src/app/apps/server/files/remotion-bundle ./apps/server
 COPY --from=builder /usr/src/app/apps/server/files/public/assets/fonts ./apps/server/files/public/assets/fonts
 COPY --from=production-deps /usr/src/app/node_modules ./node_modules
 
-# First-party product skills (`skills/*/SKILL.md`) are the in-app catalog seed.
+# First-party product skills (`skills/<module>/<skill>/SKILL.md`) are the in-app catalog seed.
 COPY skills/ ./skills/
 
 # Every production server entrypoint preloads this module. Keep the assertion in

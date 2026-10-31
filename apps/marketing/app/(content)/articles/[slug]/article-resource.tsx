@@ -44,7 +44,7 @@ export default function ArticleResource({
       <div className="flex flex-wrap items-center gap-3">
         <Button asChild variant={ButtonVariant.SECONDARY} withWrapper={false}>
           <a
-            href={`https://github.com/genfeedai/skills/tree/master/${resource.skill}`}
+            href={`https://github.com/genfeedai/skills/tree/master/${resource.module}/${resource.skill}`}
             onClick={() => track('skill')}
             rel="noopener noreferrer"
             target="_blank"

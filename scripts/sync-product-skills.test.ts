@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import {
   cpSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -21,6 +22,11 @@ import {
 import { syncProductSkills } from './sync-product-skills';
 
 const roots: string[] = [];
+const MODULES = ['alpha', 'beta', 'gamma'];
+// The skills repository keeps every skill at <module>/<slug>/SKILL.md.
+const moduleOf = (slug: string) =>
+  MODULES[UPSTREAM_SLUGS.indexOf(slug) % MODULES.length] ?? MODULES[0];
+const sourcePath = (slug: string) => `${moduleOf(slug)}/${slug}`;
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), 'catalog-fixture-'));
   roots.push(root);
@@ -33,17 +39,35 @@ function fixture() {
   git('config', 'user.name', 'Catalog Fixture');
   git('config', 'user.email', 'fixture@example.invalid');
   git('remote', 'add', 'origin', 'https://github.com/genfeedai/skills');
+  mkdirSync(join(source, 'scripts'));
+  writeFileSync(
+    join(source, 'scripts', 'modules.json'),
+    JSON.stringify({
+      modules: Object.fromEntries(MODULES.map((name) => [name, {}])),
+    }),
+  );
   for (const slug of UPSTREAM_SLUGS) {
-    mkdirSync(join(source, slug, 'references'), { recursive: true });
+    mkdirSync(join(source, sourcePath(slug), 'references'), {
+      recursive: true,
+    });
     writeFileSync(
-      join(source, slug, 'SKILL.md'),
+      join(source, sourcePath(slug), 'SKILL.md'),
       `---\nname: ${slug}\ndescription: Fixture\n---\n# Instructions`,
     );
-    writeFileSync(join(source, slug, 'references', 'small.md'), 'Reference');
+    writeFileSync(
+      join(source, sourcePath(slug), 'references', 'small.md'),
+      'Reference',
+    );
   }
   mkdirSync(join(app, 'skills'), { recursive: true });
   for (const slug of UPSTREAM_SLUGS)
-    cpSync(join(source, slug), join(app, 'skills', slug), { recursive: true });
+    cpSync(
+      join(source, sourcePath(slug)),
+      join(app, 'skills', sourcePath(slug)),
+      {
+        recursive: true,
+      },
+    );
   writeFileSync(
     join(app, 'skills', 'README.md'),
     '# Skills\n\n## Skills\n\nold\n\n## Adding a skill\n',
@@ -79,11 +103,14 @@ describe('pinned catalog import', () => {
       const f = fixture();
       f.write();
       const dir = join(f.app, 'skills');
-      const skill = join(dir, UPSTREAM_SLUGS[0], 'SKILL.md');
+      const skill = join(dir, sourcePath(UPSTREAM_SLUGS[0]), 'SKILL.md');
       if (mode === 'changed') writeFileSync(skill, 'tampered');
       if (mode === 'deleted') rmSync(skill);
       if (mode === 'added')
-        writeFileSync(join(dir, UPSTREAM_SLUGS[0], 'new.md'), 'new');
+        writeFileSync(
+          join(dir, sourcePath(UPSTREAM_SLUGS[0]), 'new.md'),
+          'new',
+        );
       if (mode === 'compiler') {
         const path = join(dir, 'catalog.lock.json');
         writeFileSync(
@@ -107,14 +134,17 @@ describe('pinned catalog import', () => {
         write: true,
       }),
     ).toThrow('revision');
-    writeFileSync(join(f.source, UPSTREAM_SLUGS[0], 'extra.md'), 'dirty');
+    writeFileSync(
+      join(f.source, sourcePath(UPSTREAM_SLUGS[0]), 'extra.md'),
+      'dirty',
+    );
     expect(f.write).toThrow('clean');
   });
   it('allows a deliberate new-pin instruction update after the initial locked import', () => {
     const f = fixture();
     f.write();
     writeFileSync(
-      join(f.source, UPSTREAM_SLUGS[0], 'SKILL.md'),
+      join(f.source, sourcePath(UPSTREAM_SLUGS[0]), 'SKILL.md'),
       `---\nname: ${UPSTREAM_SLUGS[0]}\ndescription: Updated\n---\n# Updated instructions`,
     );
     const sha = f.commit();
@@ -122,7 +152,8 @@ describe('pinned catalog import', () => {
     const lock = validateCatalogLock(join(f.app, 'skills'));
     expect(lock.sourceCommit).toBe(sha);
     expect(
-      compileSkill(join(f.app, 'skills', UPSTREAM_SLUGS[0])).instructions,
+      compileSkill(join(f.app, 'skills', sourcePath(UPSTREAM_SLUGS[0])))
+        .instructions,
     ).toContain('# Updated instructions');
     syncProductSkills(f.app, { sourceDir: f.source, checkSource: true });
   });
@@ -132,7 +163,10 @@ describe('pinned catalog import', () => {
     f.git('remote', 'set-url', 'origin', 'https://example.invalid/source');
     expect(f.write).toThrow('repository');
     f.git('remote', 'set-url', 'origin', 'https://github.com/genfeedai/skills');
-    writeFileSync(join(f.source, UPSTREAM_SLUGS[0], 'SKILL.md'), 'different');
+    writeFileSync(
+      join(f.source, sourcePath(UPSTREAM_SLUGS[0]), 'SKILL.md'),
+      'different',
+    );
     const sha = f.commit();
     const before = inventory(join(f.app, 'skills'));
     expect(() =>
@@ -150,7 +184,7 @@ describe('pinned catalog import', () => {
       const f = fixture();
       const path = join(
         f.source,
-        UPSTREAM_SLUGS[0],
+        sourcePath(UPSTREAM_SLUGS[0]),
         mode === 'invalid-json'
           ? 'invalid.json'
           : mode === 'invalid-utf8'
@@ -184,7 +218,7 @@ describe('pinned catalog import', () => {
     (mode) => {
       const f = fixture();
       f.write();
-      const directory = join(f.source, UPSTREAM_SLUGS[0]);
+      const directory = join(f.source, sourcePath(UPSTREAM_SLUGS[0]));
       if (mode === 'null-metadata')
         writeFileSync(join(directory, 'metadata.json'), 'null');
       else
@@ -221,7 +255,7 @@ describe('pinned catalog import', () => {
   });
   it('records character caps and nested exclusions while preserving legacy assembly', () => {
     const f = fixture();
-    const dir = join(f.app, 'skills', UPSTREAM_SLUGS[0]);
+    const dir = join(f.app, 'skills', sourcePath(UPSTREAM_SLUGS[0]));
     mkdirSync(join(dir, 'references', 'nested'));
     writeFileSync(join(dir, 'references', 'nested', 'other.md'), 'nested');
     writeFileSync(join(dir, 'references', 'large.md'), 'a'.repeat(8001));
@@ -248,8 +282,8 @@ describe('pinned catalog import', () => {
   it('rejects hand-authored free skills that are neither pinned nor app procedures', () => {
     const f = fixture();
     f.write();
-    const unowned = join(f.app, 'skills', 'unowned-content-skill');
-    mkdirSync(unowned);
+    const unowned = join(f.app, 'skills', 'app', 'unowned-content-skill');
+    mkdirSync(unowned, { recursive: true });
     writeFileSync(
       join(unowned, 'SKILL.md'),
       '---\nname: unowned-content-skill\ndescription: Fixture\n---\n# Copy',
@@ -264,9 +298,9 @@ describe('pinned catalog import', () => {
   it('rejects an application procedure that is also published upstream before mutation', () => {
     const f = fixture();
     f.write();
-    mkdirSync(join(f.source, 'workflow-creator'));
+    mkdirSync(join(f.source, 'alpha', 'workflow-creator'));
     writeFileSync(
-      join(f.source, 'workflow-creator', 'SKILL.md'),
+      join(f.source, 'alpha', 'workflow-creator', 'SKILL.md'),
       '---\nname: workflow-creator\ndescription: Copy\n---\n# Copy',
     );
     const sha = f.commit();
@@ -285,7 +319,10 @@ describe('pinned catalog import', () => {
     f.write();
     const path = join(f.app, 'skills', 'catalog.lock.json');
     const lock = JSON.parse(readFileSync(path, 'utf8'));
-    lock.sourceSkillSlugs = [...lock.sourceSkillSlugs, 'model-selector'].sort();
+    lock.sourceSkillPaths = [
+      ...lock.sourceSkillPaths,
+      'alpha/model-selector',
+    ].sort();
     writeFileSync(path, `${JSON.stringify(lock, null, 2)}\n`);
     expect(() => syncProductSkills(f.app, {})).toThrow(
       'Application procedures also published',
@@ -293,23 +330,120 @@ describe('pinned catalog import', () => {
   });
   it('rejects a recorded source inventory that differs from the pinned source', () => {
     const f = fixture();
-    mkdirSync(join(f.source, 'public-only-skill'));
+    mkdirSync(join(f.source, 'beta', 'public-only-skill'));
     writeFileSync(
-      join(f.source, 'public-only-skill', 'SKILL.md'),
+      join(f.source, 'beta', 'public-only-skill', 'SKILL.md'),
       '---\nname: public-only-skill\ndescription: Public\n---\n# Public',
     );
     const sha = f.commit();
     syncProductSkills(f.app, { sourceDir: f.source, commit: sha, write: true });
     const path = join(f.app, 'skills', 'catalog.lock.json');
     const lock = JSON.parse(readFileSync(path, 'utf8'));
-    expect(lock.sourceSkillSlugs).toContain('public-only-skill');
-    lock.sourceSkillSlugs = lock.sourceSkillSlugs.filter(
-      (slug: string) => slug !== 'public-only-skill',
+    expect(lock.sourceSkillPaths).toContain('beta/public-only-skill');
+    lock.sourceSkillPaths = lock.sourceSkillPaths.filter(
+      (path: string) => path !== 'beta/public-only-skill',
     );
     writeFileSync(path, `${JSON.stringify(lock, null, 2)}\n`);
     syncProductSkills(f.app, {});
     expect(() =>
       syncProductSkills(f.app, { sourceDir: f.source, checkSource: true }),
     ).toThrow('Source skill inventory mismatch');
+  });
+  it('records the module path of every pinned skill', () => {
+    const f = fixture();
+    f.write();
+    const lock = validateCatalogLock(join(f.app, 'skills'));
+    for (const slug of UPSTREAM_SLUGS)
+      expect(lock.skills.find((entry) => entry.slug === slug)?.sourcePath).toBe(
+        sourcePath(slug),
+      );
+    expect(lock.sourceSkillPaths).toContain(sourcePath(UPSTREAM_SLUGS[0]));
+  });
+  it('ignores skill folders outside the declared modules', () => {
+    const f = fixture();
+    mkdirSync(join(f.source, 'plugins', 'copy'), { recursive: true });
+    writeFileSync(
+      join(f.source, 'plugins', 'copy', 'SKILL.md'),
+      '---\nname: copy\ndescription: Plugin\n---\n# Plugin copy',
+    );
+    const sha = f.commit();
+    syncProductSkills(f.app, { sourceDir: f.source, commit: sha, write: true });
+    expect(
+      validateCatalogLock(join(f.app, 'skills')).sourceSkillPaths.some((path) =>
+        path.startsWith('plugins/'),
+      ),
+    ).toBe(false);
+  });
+  it('rejects one slug published in two modules before mutation', () => {
+    const f = fixture();
+    f.write();
+    const slug = UPSTREAM_SLUGS[0];
+    const other = MODULES.find((name) => name !== moduleOf(slug)) as string;
+    mkdirSync(join(f.source, other, slug), { recursive: true });
+    writeFileSync(
+      join(f.source, other, slug, 'SKILL.md'),
+      `---\nname: ${slug}\ndescription: Copy\n---\n# Copy`,
+    );
+    const sha = f.commit();
+    const before = inventory(join(f.app, 'skills'));
+    expect(() =>
+      syncProductSkills(f.app, {
+        sourceDir: f.source,
+        commit: sha,
+        write: true,
+      }),
+    ).toThrow('Duplicate source slug');
+    expect(inventory(join(f.app, 'skills'))).toEqual(before);
+  });
+  it('moves a skill to another module on a new pin', () => {
+    const f = fixture();
+    f.write();
+    const slug = UPSTREAM_SLUGS[0];
+    const from = sourcePath(slug);
+    const toModule = MODULES.find((name) => name !== moduleOf(slug)) as string;
+    mkdirSync(join(f.source, toModule), { recursive: true });
+    f.git('mv', from, `${toModule}/${slug}`);
+    const sha = f.commit();
+    syncProductSkills(f.app, { sourceDir: f.source, commit: sha, write: true });
+    expect(
+      validateCatalogLock(join(f.app, 'skills')).skills.find(
+        (entry) => entry.slug === slug,
+      )?.sourcePath,
+    ).toBe(`${toModule}/${slug}`);
+    expect(existsSync(join(f.app, 'skills', from))).toBe(false);
+    expect(existsSync(join(f.app, 'skills', toModule, slug, 'SKILL.md'))).toBe(
+      true,
+    );
+    syncProductSkills(f.app, { sourceDir: f.source, checkSource: true });
+  });
+  it('rejects a skill folder that sits outside a module or in the wrong one', () => {
+    const f = fixture();
+    f.write();
+    const slug = UPSTREAM_SLUGS[0];
+    const skills = join(f.app, 'skills');
+    const wrong = MODULES.find((name) => name !== moduleOf(slug)) as string;
+    cpSync(join(skills, sourcePath(slug)), join(skills, slug), {
+      recursive: true,
+    });
+    expect(() => syncProductSkills(f.app, {})).toThrow('outside a module');
+    rmSync(join(skills, slug), { recursive: true });
+    mkdirSync(join(skills, wrong), { recursive: true });
+    cpSync(join(skills, sourcePath(slug)), join(skills, wrong, slug), {
+      recursive: true,
+    });
+    rmSync(join(skills, sourcePath(slug)), { recursive: true });
+    expect(() => syncProductSkills(f.app, {})).toThrow('Wrong catalog module');
+  });
+  it('rejects a source without a module list', () => {
+    const f = fixture();
+    f.git('rm', '-q', '-f', 'scripts/modules.json');
+    const sha = f.commit();
+    expect(() =>
+      syncProductSkills(f.app, {
+        sourceDir: f.source,
+        commit: sha,
+        write: true,
+      }),
+    ).toThrow('modules.json');
   });
 });

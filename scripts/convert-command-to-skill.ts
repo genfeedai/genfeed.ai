@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Convert a .claude/commands/*.md file into a repo-local skills/<name>/SKILL.md
+ * Convert a .claude/commands/*.md file into a repo-local skills/app/<name>/SKILL.md
  *
  * Usage:
  *   bun scripts/convert-command-to-skill.ts <command-file> [--name override-name] [--delete]
@@ -21,6 +21,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { basename, join } from 'node:path';
+import { APPLICATION_MODULE } from '../apps/server/api/src/collections/skills/catalog/skill-catalog-artifact';
 
 const KEBAB_RE = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---/;
@@ -116,7 +117,7 @@ const lines = body.split('\n');
 const needsSplit = lines.length > MAX_BODY_LINES;
 
 const ROOT = process.cwd();
-const skillDir = join(ROOT, 'skills', skillName);
+const skillDir = join(ROOT, 'skills', APPLICATION_MODULE, skillName);
 mkdirSync(skillDir, { recursive: true });
 
 // Build description with trigger phrases

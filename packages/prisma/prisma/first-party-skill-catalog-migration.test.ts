@@ -46,14 +46,14 @@ function compactBuiltInSkillId(slug: string): string {
 }
 
 function listFirstPartySlugs(): string[] {
+  // skills/<module>/<slug>/SKILL.md, like the public skills repository.
   return readdirSync(skillsDir)
-    .filter((entry) => {
-      const skillDir = join(skillsDir, entry);
-      return (
-        statSync(skillDir).isDirectory() &&
-        existsSync(join(skillDir, 'SKILL.md'))
-      );
-    })
+    .filter((module) => statSync(join(skillsDir, module)).isDirectory())
+    .flatMap((module) =>
+      readdirSync(join(skillsDir, module)).filter((entry) =>
+        existsSync(join(skillsDir, module, entry, 'SKILL.md')),
+      ),
+    )
     .sort();
 }
 

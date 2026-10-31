@@ -1,0 +1,16 @@
+{
+  "name": "x-article",
+  "version": "1.0.0",
+  "description": "Write a long-form X Article and the promo post that sends the timeline to it.",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "write an X article",
+    "long-form post on X",
+    "turn this into an X article",
+    "X article about"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": ["x", "twitter", "article", "long-form", "content-creation"]
+}

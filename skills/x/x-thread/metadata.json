@@ -1,0 +1,17 @@
+{
+  "name": "x-thread",
+  "version": "1.0.0",
+  "description": "Write an X (Twitter) thread of 2 to 15 posts with a hook, a value chain and a closing CTA.",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "write a thread",
+    "create an X thread",
+    "turn this into a thread",
+    "write a twitter thread",
+    "thread on"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": ["x", "twitter", "threads", "social-media", "content-creation"]
+}
