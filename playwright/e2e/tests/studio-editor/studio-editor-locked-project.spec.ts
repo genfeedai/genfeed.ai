@@ -33,7 +33,7 @@ const COPY_ID = 'composition-project-1-copy';
 async function openInspector(page: Page) {
   const addText = page.getByRole('button', { exact: true, name: '+ Add Text' });
   if (!(await addText.isVisible())) {
-    await page.getByRole('button', { exact: true, name: 'Context' }).click();
+    await page.getByRole('tab', { exact: true, name: 'Context' }).click();
   }
   return addText;
 }
