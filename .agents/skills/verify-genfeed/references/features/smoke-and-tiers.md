@@ -23,7 +23,8 @@ viewport 1280×720, locale `en-US`, TZ `America/New_York`.
   PR does not prove the full lane.
 - `workers: 1` with `fullyParallel: true` masks races that appear once workers increase.
 - The Playwright browser cache has no restore-key, so cold CI runs are slow.
-- Release evidence needs an exact-SHA green full run, checked by
-  `scripts/ci/browser-suite-evidence.mjs`; a near-SHA run does not count.
+- Release evidence needs a green full run on the release SHA, or on a recent
+  earlier master commit when every later change is neutral for the suite
+  (`scripts/ci/browser-suite-evidence.mjs`, see `docs/e2e-tiers.md`).
 - Turbopack cache growth (~15 GB) causes ENOSPC; `scripts/dev/cleanup-playwright-cache.ts` and `cleanup.sh`
   remove `apps/app/.next/dev/cache`.
