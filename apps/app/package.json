@@ -87,5 +87,17 @@
     "dev:debug": "bun run dev:process",
     "dev:clean": "bun run ../../scripts/dev/prune-next-cache.ts"
   },
+  "sideEffects": [
+    "**/*.css",
+    "./*.ts",
+    "./app/**",
+    "./i18n/**",
+    "./packages/**",
+    "./src/features/**",
+    "./src/lib/**",
+    "./src/providers/**",
+    "./src/store/**",
+    "./src/types/**"
+  ],
   "version": "1.0.0"
 }
