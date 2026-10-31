@@ -10,7 +10,7 @@ function splitWords(value) {
 // Cold execution seconds observed on 2026-09-27; estimates schedule work only,
 // never decide coverage or represent a latency guarantee (see issue #5862).
 export const SPEC_WORKSPACE_WEIGHTS = {
-  app: 679,
+  web: 679,
   agent: 627,
   pages: 614,
   props: 605,

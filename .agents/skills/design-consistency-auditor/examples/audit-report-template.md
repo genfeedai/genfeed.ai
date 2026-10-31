@@ -40,7 +40,7 @@
 
 #### Minor
 
-- [ ] **apps/website/components/Hero.tsx:89**
+- [ ] **apps/marketing/components/Hero.tsx:89**
   - Issue: Using `bg-gray-100` instead of theme token
   - Impact: Minor visual inconsistency
   - Fix: Use `bg-base-100`
@@ -154,7 +154,7 @@
 
 #### Major
 
-- [ ] **apps/website/components/Pricing.tsx:56**
+- [ ] **apps/marketing/components/Pricing.tsx:56**
   - Issue: Fixed width `w-[800px]` without responsive variant
   - Impact: Breaks on mobile devices
   - Fix: Use `w-full max-w-3xl`
@@ -198,7 +198,7 @@
 ### Missing Theme Support
 
 - **3 components** hardcode colors that break dark mode
-  - `apps/website/components/Hero.tsx`
+  - `apps/marketing/components/Hero.tsx`
   - `apps/publisher/components/Editor.tsx`
   - `apps/studio/pages/projects.tsx`
 
@@ -284,8 +284,8 @@
 
 ### Website (12 files)
 
-- `apps/website/app/(public)/page.tsx`
-- `apps/website/components/home/_pricing.tsx`
+- `apps/marketing/app/(public)/page.tsx`
+- `apps/marketing/components/home/_pricing.tsx`
 - [... 10 more files]
 
 ### Manager App (10 files)

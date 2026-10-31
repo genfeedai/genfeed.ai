@@ -16,14 +16,14 @@ import { affectedFrontends } from './frontend-scope.mjs';
 
 const workspaces = [
   {
-    name: '@genfeedai/app',
-    directory: 'apps/app',
+    name: '@genfeedai/web',
+    directory: 'apps/web',
     dependencies: ['@genfeedai/ui'],
   },
   {
-    name: '@genfeedai/website',
-    directory: 'apps/website',
-    dependencies: ['@genfeedai/marketing'],
+    name: '@genfeedai/marketing',
+    directory: 'apps/marketing',
+    dependencies: ['@genfeedai/brand-copy'],
   },
   {
     name: '@genfeedai/ui',
@@ -36,8 +36,8 @@ const workspaces = [
     dependencies: ['@genfeedai/ui'],
   },
   {
-    name: '@genfeedai/marketing',
-    directory: 'packages/marketing',
+    name: '@genfeedai/brand-copy',
+    directory: 'packages/brand-copy',
     dependencies: [],
   },
   {
@@ -52,7 +52,7 @@ test('selects transitive consumers without rebuilding unrelated frontends', () =
     'app',
   ]);
   assert.deepEqual(
-    affectedFrontends(['packages/marketing/src/a.ts'], workspaces),
+    affectedFrontends(['packages/brand-copy/src/a.ts'], workspaces),
     ['website'],
   );
   assert.deepEqual(
@@ -97,7 +97,7 @@ test('missing manifests and duplicate workspace names fail rather than suppress 
     () =>
       affectedFrontends(
         [],
-        workspaces.filter((w) => w.name !== '@genfeedai/app'),
+        workspaces.filter((w) => w.name !== '@genfeedai/web'),
       ),
     /Missing frontend/,
   );
@@ -109,7 +109,7 @@ test('missing manifests and duplicate workspace names fail rather than suppress 
 
 test('multiple changed consumers and scoped build helpers retain both signals', () => {
   assert.deepEqual(
-    affectedFrontends(['apps/app/a.ts', 'apps/website/b.ts'], workspaces),
+    affectedFrontends(['apps/web/a.ts', 'apps/marketing/b.ts'], workspaces),
     ['app', 'website'],
   );
   assert.deepEqual(
@@ -119,7 +119,7 @@ test('multiple changed consumers and scoped build helpers retain both signals', 
 });
 
 for (const event of ['push', 'pull_request']) {
-  for (const destination of ['apps/website/moved.ts', 'apps/server/moved.ts']) {
+  for (const destination of ['apps/marketing/moved.ts', 'apps/server/moved.ts']) {
     test(`actual CLI retains the deleted frontend source for ${event} rename to ${destination}`, (t) => {
       const root = mkdtempSync(path.join(os.tmpdir(), 'frontend-rename-'));
       t.after(() => rmSync(root, { recursive: true, force: true }));
@@ -143,7 +143,7 @@ for (const event of ['push', 'pull_request']) {
         path.join(root, 'package.json'),
         JSON.stringify({ workspaces: ['apps/*'] }),
       );
-      for (const name of ['app', 'website', 'server']) {
+      for (const name of ['web', 'marketing', 'server']) {
         mkdirSync(path.join(root, 'apps', name), { recursive: true });
         writeFileSync(
           path.join(root, 'apps', name, 'package.json'),
@@ -151,21 +151,21 @@ for (const event of ['push', 'pull_request']) {
         );
       }
       writeFileSync(
-        path.join(root, 'apps/app/original.ts'),
+        path.join(root, 'apps/web/original.ts'),
         'export const unchangedPayload = "rename fixture";\n',
       );
       git('add', '.');
       git('commit', '--quiet', '-m', 'initial fixture');
       const base = git('rev-parse', 'HEAD');
       renameSync(
-        path.join(root, 'apps/app/original.ts'),
+        path.join(root, 'apps/web/original.ts'),
         path.join(root, destination),
       );
       git('add', '-A');
       git('commit', '--quiet', '-m', 'move identical source');
       assert.match(
         git('diff', '--name-status', '--find-renames=100%', `${base}..HEAD`),
-        /^R100\s+apps\/app\/original\.ts\s+/m,
+        /^R100\s+apps\/web\/original\.ts\s+/m,
       );
       const output = path.join(root, 'scope-output');
       execFileSync(
@@ -191,7 +191,7 @@ for (const event of ['push', 'pull_request']) {
             return [line.slice(0, separator), line.slice(separator + 1)];
           }),
       );
-      const website = destination.startsWith('apps/website/');
+      const website = destination.startsWith('apps/marketing/');
       assert.deepEqual(
         JSON.parse(lines.apps),
         website ? ['app', 'website'] : ['app'],

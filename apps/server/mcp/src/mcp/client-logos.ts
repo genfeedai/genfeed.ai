@@ -2,7 +2,7 @@
  * Official client marks for the setup page tabs, served from the MCP origin at
  * `/assets/clients/<id>.svg` so the page does not depend on third-party image
  * requests. The SVGs are unmodified copies of the first-party marks vendored in
- * `apps/website/public/agent-logos` (see its SOURCES.md for the source URLs and
+ * `apps/marketing/public/agent-logos` (see its SOURCES.md for the source URLs and
  * retrieval date). Grok uses the same two paths as its official `grok.svg`,
  * cropped to the mark. Trademarks remain the property of their owners.
  */

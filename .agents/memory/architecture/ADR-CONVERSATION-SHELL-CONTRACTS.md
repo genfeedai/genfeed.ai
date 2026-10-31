@@ -85,7 +85,7 @@ content. It also makes `/library/overview` the Library landing route.
 This decision was checked against the repository and live issue state on
 2026-07-13:
 
-- Protected routes are Next App Router pages under `apps/app/app/(protected)`.
+- Protected routes are Next App Router pages under `apps/web/app/(protected)`.
 - Canonical URLs already encode personal, organization (`/:org/~`), brand
   (`/:org/:brand`), resource, and admin scope.
 - The app rail exposes nine primary modules plus role-gated Admin. It does

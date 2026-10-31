@@ -98,21 +98,21 @@ export const ALLOWLIST = {
    * grandfathered; new files are not. Kept as a set for O(1) membership.
    */
   buttonBaselineFiles: new Set<string>([
-    'apps/app/app/(full-screen)/editor/page.tsx',
-    'apps/website/app/(public)/agencies/agencies-content.tsx',
-    'apps/website/app/(public)/articles/[slug]/article-detail.tsx',
-    'apps/website/app/(public)/influencers/ai-influencers-content.tsx',
-    'apps/website/src/components/NotFoundContent.tsx',
-    'apps/website/src/components/content/post-card/PostCard.tsx',
-    'apps/website/src/components/home/_marketplace-cta.tsx',
-    'apps/app/src/features/analytics/overview/analytics-overview.tsx',
-    'apps/app/src/features/analytics/trend-turnover/analytics-trend-turnover.tsx',
-    'apps/app/src/features/brands/components/latest-articles/BrandDetailLatestArticles.tsx',
-    'apps/app/src/features/brands/components/latest-images/BrandDetailLatestImages.tsx',
-    'apps/app/src/features/brands/components/latest-videos/BrandDetailLatestVideos.tsx',
-    'apps/app/src/features/brands/components/sidebar/BrandDetailExternalLinksCard.tsx',
-    'apps/app/src/features/ingredients/detail/ingredient-detail.tsx',
-    'apps/app/src/features/studio/page/StudioPageContent.tsx',
+    'apps/web/app/(full-screen)/editor/page.tsx',
+    'apps/marketing/app/(public)/agencies/agencies-content.tsx',
+    'apps/marketing/app/(public)/articles/[slug]/article-detail.tsx',
+    'apps/marketing/app/(public)/influencers/ai-influencers-content.tsx',
+    'apps/marketing/src/components/NotFoundContent.tsx',
+    'apps/marketing/src/components/content/post-card/PostCard.tsx',
+    'apps/marketing/src/components/home/_marketplace-cta.tsx',
+    'apps/web/src/features/analytics/overview/analytics-overview.tsx',
+    'apps/web/src/features/analytics/trend-turnover/analytics-trend-turnover.tsx',
+    'apps/web/src/features/brands/components/latest-articles/BrandDetailLatestArticles.tsx',
+    'apps/web/src/features/brands/components/latest-images/BrandDetailLatestImages.tsx',
+    'apps/web/src/features/brands/components/latest-videos/BrandDetailLatestVideos.tsx',
+    'apps/web/src/features/brands/components/sidebar/BrandDetailExternalLinksCard.tsx',
+    'apps/web/src/features/ingredients/detail/ingredient-detail.tsx',
+    'apps/web/src/features/studio/page/StudioPageContent.tsx',
   ]),
 
   /**
@@ -184,7 +184,7 @@ function lineOf(content: string, index: number): number {
 
 // Rule definitions
 
-const APP_PAGES_PREFIXES = ['apps/app/'] as const;
+const APP_PAGES_PREFIXES = ['apps/web/'] as const;
 const PRODUCT_UI_PREFIXES = [
   ...APP_PAGES_PREFIXES,
   'apps/server/mcp/src/ui/',
@@ -691,7 +691,7 @@ export function detectViolations(
 // Union of the bounded rule scopes — globbed in full so button-like anchors
 // (which carry no element tag for git-grep to key on) are never missed.
 const BOUNDED_GLOBS = [
-  'apps/app/**/*.{tsx,jsx}',
+  'apps/web/**/*.{tsx,jsx}',
   'packages/agent/src/**/*.{tsx,jsx}',
   'packages/ui/src/**/*.{tsx,jsx}',
   'packages/ui/src/components/workflow-builder/**/*.{tsx,jsx}',

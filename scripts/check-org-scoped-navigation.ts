@@ -19,7 +19,7 @@ const logger = {
     console.log(`[CheckOrgScopedNavigation] ${message}`),
 };
 
-const INCLUDE_GLOB = 'apps/app/app/(protected)/[orgSlug]/**/*.{ts,tsx}';
+const INCLUDE_GLOB = 'apps/web/app/(protected)/[orgSlug]/**/*.{ts,tsx}';
 
 const EXCLUDE_GLOBS = [
   '**/*.test.*',

@@ -20,7 +20,7 @@ describe('check-deterministic-locale', () => {
 
   it('rejects bare locale methods and Intl formatters', () => {
     writeFixture(
-      'apps/website/app/pricing/page.tsx',
+      'apps/marketing/app/pricing/page.tsx',
       [
         'export const values = [',
         '  (1000).toLocaleString(),',

@@ -39,7 +39,7 @@ describe('coverage workspaces', () => {
     const workflowWorkspaces = [
       ...new Set(
         workflow.match(
-          /\b(?:apps\/(?:app|server\/api)|packages\/[a-z0-9-]+)\b/g,
+          /\b(?:apps\/(?:web|server\/api)|packages\/[a-z0-9-]+)\b/g,
         ) ?? [],
       ),
     ].sort();

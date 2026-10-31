@@ -67,7 +67,7 @@ failed shard + gate carries the green shards forward. The old single `e2e-fronte
 
 ### 2.1 `e2e-route-coverage` — static route reference inventory
 - No app build or database. Run `bun run test:e2e:routes` locally.
-- Discovers `apps/app/app/**/page.tsx` and scans specs/page objects for exact
+- Discovers `apps/web/app/**/page.tsx` and scans specs/page objects for exact
   canonical route references. Parent/child prefixes receive no implicit credit.
 - Includes references in excluded specs; this is not proof of executed behavior.
 - Generated sweeps receive no unconditional coverage credit. Empty discovery
@@ -91,7 +91,7 @@ failed shard + gate carries the green shards forward. The old single `e2e-fronte
 
 ### 2.3 `e2e-frontend` — Playwright core
 - **Steps:** checkout → Node 22 → Bun → cache bun/turbo/playwright-browsers → `bun install` →
-  `npx playwright install --with-deps chromium` → `bunx turbo run build --filter=@genfeedai/app` →
+  `npx playwright install --with-deps chromium` → `bunx turbo run build --filter=@genfeedai/web` →
   `bun run test:e2e:core`.
 - **Build env:** auth test keys plus `NEXT_PUBLIC_API_URL=http://localhost:3010`.
 - **Run env:** `CI=true`, `APP_BASE_URL=http://localhost:3000`, auth test keys.
@@ -146,7 +146,7 @@ Primary config highlights:
 - **global-setup.ts** — lightweight: logs config, stamps `NODE_ENV=test` + `PLAYWRIGHT_TEST=true`,
   creates `playwright/artifacts/screenshots/`, wipes artifacts if `CLEAN_ARTIFACTS=true`.
   No real backend calls; `requiredEnvVars` is intentionally empty.
-- **global-teardown.ts** — deletes `apps/app/.next/dev/cache` (Turbopack persistent cache, observed at
+- **global-teardown.ts** — deletes `apps/web/.next/dev/cache` (Turbopack persistent cache, observed at
   ~15 GB → `ENOSPC`). Best-effort; never fails the suite. Respects `PLAYWRIGHT_WEB_APP_PATH`.
 - **auth.setup.ts** (`better-auth-setup` project) — hermetic by default: mints a fresh
   session against the job-local API (`sign-up/email` → session cookie → `/auth/token`

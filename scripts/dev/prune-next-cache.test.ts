@@ -12,7 +12,7 @@ const GIGABYTE = 1024 ** 3;
 function generation(name: string, modifiedAtMs: number): INextCacheGeneration {
   return {
     modifiedAtMs,
-    path: `/repo/apps/app/.next/dev/cache/turbopack/${name}`,
+    path: `/repo/apps/web/.next/dev/cache/turbopack/${name}`,
   };
 }
 
@@ -46,8 +46,8 @@ describe('prune-next-cache', () => {
       ]);
 
       expect(stale).toEqual([
-        '/repo/apps/app/.next/dev/cache/turbopack/v16.3.3-old',
-        '/repo/apps/app/.next/dev/cache/turbopack/v16.3.2-older',
+        '/repo/apps/web/.next/dev/cache/turbopack/v16.3.3-old',
+        '/repo/apps/web/.next/dev/cache/turbopack/v16.3.2-older',
       ]);
     });
   });

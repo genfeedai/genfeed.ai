@@ -258,7 +258,7 @@ export function runCheckMcpToolReferences(
       'bun',
       [
         '--tsconfig-override',
-        join(root, 'apps/desktop/app/tsconfig.json'),
+        join(root, 'apps/desktop/tsconfig.json'),
         adapter,
       ],
       { encoding: 'utf8', cwd: root },

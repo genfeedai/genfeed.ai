@@ -29,7 +29,7 @@ those suites.
 - With neither, the newest verdict on the nearest master commit before the
   release SHA from the last 48 hours decides. A green run there counts only if
   every file changed since is neutral for that suite: files the suite never
-  builds or runs, such as `apps/server/` for Playwright Full or `apps/app/` for
+  builds or runs, such as `apps/server/` for Playwright Full or `apps/web/` for
   Learning Runtime, docs, and other workflow files. The neutral lists live in
   `REQUIRED_BROWSER_SUITES`. Any other change needs a fresh dispatch on master,
   and the error names the files.
@@ -40,7 +40,7 @@ that suite, and is re-dispatched otherwise.
 ## Pull request smoke
 
 `playwright-pr-smoke.yml` runs Playwright `core` on one runner (no sharding) for
-pull requests that affect `@genfeedai/app` through the workspace graph. It is
+pull requests that affect `@genfeedai/web` through the workspace graph. It is
 advisory (`continue-on-error`, not a required check) and exists so a UI change
 that breaks a browser spec is red on the PR instead of on master. It never
 runs the `full` tier and is not a dependency of `full-suite.yml` or

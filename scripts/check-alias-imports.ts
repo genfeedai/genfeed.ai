@@ -20,8 +20,8 @@ const IGNORE_GLOBS = [
 ];
 
 const ALLOWED_RELATIVE_IMPORT_FILES = new Set([
-  'apps/app/instrumentation.ts',
-  'apps/website/instrumentation.ts',
+  'apps/web/instrumentation.ts',
+  'apps/marketing/instrumentation.ts',
 ]);
 
 function isAllowedRelativeImportFile(relativePath: string): boolean {

@@ -34,7 +34,7 @@ describe('check-stale-tests', () => {
 
   it('flags missing internal imports', () => {
     writeFixture(
-      'apps/app/demo.spec.tsx',
+      'apps/web/demo.spec.tsx',
       [
         "import { describe, expect, it } from 'vitest';",
         "import { missingThing } from './missing-thing';",
@@ -58,7 +58,7 @@ describe('check-stale-tests', () => {
 
   it('resolves aliased imports from the nearest tsconfig', () => {
     writeFixture(
-      'apps/app/tsconfig.test.json',
+      'apps/web/tsconfig.test.json',
       JSON.stringify(
         {
           compilerOptions: {
@@ -73,9 +73,9 @@ describe('check-stale-tests', () => {
         2,
       ),
     );
-    writeFixture('apps/app/src/demo.ts', 'export const value = 42;');
+    writeFixture('apps/web/src/demo.ts', 'export const value = 42;');
     writeFixture(
-      'apps/app/demo.spec.tsx',
+      'apps/web/demo.spec.tsx',
       [
         "import { describe, expect, it } from 'vitest';",
         "import { value } from '@app/demo';",

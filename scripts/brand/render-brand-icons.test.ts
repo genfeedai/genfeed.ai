@@ -3,7 +3,6 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   BRAND_RASTER_SPECS,
-  currentColorMarkSvg,
   extractMarkPath,
   loadCanonicalSvg,
   renderBrandRaster,
@@ -23,14 +22,6 @@ describe('renderBrandIcons', () => {
     expect(extractMarkPath(recolored)).toBe(extractMarkPath(source));
     expect(recolored).toContain('fill="#ffffff"');
     expect(recolored).not.toContain('fill="#000000"');
-  });
-
-  it('emits a currentColor IDE SVG from the same outline', () => {
-    const source = loadCanonicalSvg(REPO_ROOT);
-    const ide = currentColorMarkSvg(source);
-
-    expect(extractMarkPath(ide)).toBe(extractMarkPath(source));
-    expect(ide).toContain('fill="currentColor"');
   });
 
   it('rasterizes the app icon as a white G on opaque black', async () => {

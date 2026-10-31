@@ -7,7 +7,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
-import messages from '../../../../apps/app/messages/en/agent.json';
+import messages from '../../../../apps/web/messages/en/agent.json';
 import '../../tests/fixtures/thread-recovery.browser.css';
 
 // Keep the real page, hydration hook, store, API client and not-found view.

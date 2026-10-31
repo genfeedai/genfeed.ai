@@ -13,7 +13,7 @@ vi.mock('@genfeedai/contexts/ui/context-sidebar-context', () => ({
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
-    '../../../../../../apps/app/tests/next-intl.stub'
+    '../../../../../../apps/web/tests/next-intl.stub'
   );
   return { useTranslations: translateFromCatalog };
 });

@@ -86,7 +86,7 @@ export type SpecTypecheckScopeResult = {
  * Merges the file-based and turbo-based affected sets into the final scope.
  *
  * An affected app's own package dependency footprint isn't something this
- * step derives cheaply (`apps/app` alone pulls in most of the monorepo per
+ * step derives cheaply (`apps/web` alone pulls in most of the monorepo per
  * #5244's baseline): if ANY enrolled app ends up in scope — whether from its
  * own changed files or only because it depends on a changed package — the
  * "Build packages" step falls back to building every package rather than

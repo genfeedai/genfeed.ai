@@ -249,7 +249,7 @@ test('baseline downloads require the actual LCOV and matching summary, not only 
     assert.throws(() => readMergedEvidence(directory), /LCOV/);
     writeFileSync(
       path.join(directory, 'lcov.info'),
-      'SF:apps/app/example.ts\nDA:1,1\nend_of_record\n',
+      'SF:apps/web/example.ts\nDA:1,1\nend_of_record\n',
     );
     assert.equal(readMergedEvidence(directory).runId, 1);
     writeFileSync(

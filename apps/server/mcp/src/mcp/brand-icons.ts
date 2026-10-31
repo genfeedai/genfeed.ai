@@ -4,7 +4,7 @@
  * MCP 2025-11-25 asks clients to verify that `serverInfo.icons` URIs share the
  * server's origin, so CDN or app-domain URLs can be rejected and replaced by a
  * placeholder. The PNG tiles are the app's PWA icons
- * (`apps/app/public/assets/pwa/app/`); the SVG marks use the canonical
+ * (`apps/web/public/assets/pwa/app/`); the SVG marks use the canonical
  * BrandMark path. Do not hand-edit the base64: re-encode the source PNGs.
  */
 

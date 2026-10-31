@@ -47,7 +47,7 @@ describe('secretlint no-homedir rule', () => {
     // `@secretlint/secretlint-rule-no-homedir` matches the scanning process's
     // own `os.homedir()` as a literal string. Running as root makes that
     // `/root`, which then matches every `/root`-prefixed path segment in the
-    // repository: the `root-resolver-client` imports under apps/app, the
+    // repository: the `root-resolver-client` imports under apps/web, the
     // `/root/.cache` volume in docker/docker-compose.llm.yml, and the generated
     // path list in scripts/architecture/untranslated-strings.baseline.json.
     // That last one deadlocked contributors — the untranslated-string ratchet
@@ -56,7 +56,7 @@ describe('secretlint no-homedir rule', () => {
     const { output, status } = scan(
       'root-paths.json',
       JSON.stringify({
-        'apps/app/app/(protected)/root-resolver-client.tsx': 4,
+        'apps/web/app/(protected)/root-resolver-client.tsx': 4,
         volume: '/root/.cache/huggingface',
       }),
       '/root',

@@ -3,9 +3,9 @@ import path from 'node:path';
 import { globSync } from 'glob';
 
 const DEFAULT_INCLUDE_GLOBS = [
-  'apps/app/**/*.{ts,tsx}',
+  'apps/web/**/*.{ts,tsx}',
   'apps/desktop/**/*.{ts,tsx}',
-  'apps/extensions/**/*.{ts,tsx}',
+  'apps/extension/**/*.{ts,tsx}',
   'apps/mobile/**/*.{ts,tsx}',
   'apps/server/api/src/**/*.ts',
   'apps/server/discord/src/**/*.ts',
@@ -15,7 +15,7 @@ const DEFAULT_INCLUDE_GLOBS = [
   'apps/server/slack/src/**/*.ts',
   'apps/server/telegram/src/**/*.ts',
   'apps/server/workers/src/**/*.ts',
-  'apps/website/**/*.{ts,tsx}',
+  'apps/marketing/**/*.{ts,tsx}',
   'packages/actions/src/**/*.ts',
   'packages/agent/src/**/*.ts',
   'packages/cli/src/**/*.ts',

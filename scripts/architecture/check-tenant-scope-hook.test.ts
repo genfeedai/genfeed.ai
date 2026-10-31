@@ -48,7 +48,7 @@ describe('check-tenant-scope PostToolUse hook', () => {
   });
 
   it('skips edits outside the canonical tenant-scope scan surface', () => {
-    const result = runHook('apps/app/src/page.ts');
+    const result = runHook('apps/web/src/page.ts');
 
     expect(result.status).toBe(0);
     expect(readInvocationLog()).toBe('');

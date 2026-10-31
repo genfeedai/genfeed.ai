@@ -3,7 +3,7 @@
  *
  * Locale is carried by cookie, not by a URL segment: the studio routes are
  * `/:orgSlug/:brandSlug/...` and a `[locale]` segment would collide with the
- * brand-scoped matching in `apps/app/proxy.ts`. The static app shell uses
+ * brand-scoped matching in `apps/web/proxy.ts`. The static app shell uses
  * DEFAULT_LOCALE from its `i18n/request.ts` configuration.
  */
 

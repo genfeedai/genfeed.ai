@@ -18,7 +18,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 
-const ADMIN_PAGES_DIR = 'apps/app/app/(protected)/admin';
+const ADMIN_PAGES_DIR = 'apps/web/app/(protected)/admin';
 const ROUTES_FILE = 'packages/contracts/src/constants/routes.constant.ts';
 
 const ID_SEGMENT_PATTERN = /^\[(?:id|[A-Za-z]+Id)\]$/u;

@@ -1,6 +1,6 @@
 /**
  * Rasterize OS/store chrome from the canonical mark at
- * `apps/app/public/logo.svg` (byte-identical to CDN
+ * `apps/web/public/logo.svg` (byte-identical to CDN
  * `/assets/branding/logo.svg`). Runtime UI keeps reading the CDN; these files
  * exist because App Store, Play, Chromium, and VS Code read icons from the
  * binary, not the network.
@@ -14,8 +14,6 @@ import { fileURLToPath } from 'node:url';
 import {
   BRAND_RASTER_FILES,
   type BrandRasterId,
-  currentColorMarkSvg,
-  IDE_ACTIVITY_BAR_SVG,
   loadCanonicalSvg,
   renderBrandRaster,
 } from './render-brand-icons';
@@ -36,11 +34,6 @@ export async function generateBrandIcons(root: string): Promise<string[]> {
     writeFileSync(absolutePath, await renderBrandRaster(sourceSvg, id));
     written.push(relativePath);
   }
-
-  const idePath = path.join(root, IDE_ACTIVITY_BAR_SVG);
-  mkdirSync(path.dirname(idePath), { recursive: true });
-  writeFileSync(idePath, currentColorMarkSvg(sourceSvg));
-  written.push(IDE_ACTIVITY_BAR_SVG);
 
   return written;
 }

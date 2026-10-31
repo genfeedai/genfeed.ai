@@ -121,8 +121,8 @@ describe('import-cycle scanner', () => {
       'packages/example/src/b.test.tsx': "import './a.test';",
       'packages/example/src/a.d.ts': "import './b.d';",
       'packages/example/src/b.d.ts': "import './a.d';",
-      'apps/app/.next/src/a.ts': "import './b';",
-      'apps/app/.next/src/b.ts': "import './a';",
+      'apps/web/.next/src/a.ts': "import './b';",
+      'apps/web/.next/src/b.ts': "import './a';",
     });
     const result = scan(root);
     expect(result.error).toBeUndefined();

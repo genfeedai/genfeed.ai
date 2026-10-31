@@ -2,7 +2,7 @@
 
 Two complementary coverage signals back the Playwright suite:
 
-1. **Code coverage** — % of `apps/app` + `packages/` source executed in the
+1. **Code coverage** — % of `apps/web` + `packages/` source executed in the
    browser during the run (V8 coverage → monocart-reporter).
 2. **Route coverage** — % of Next.js App Router pages that have a dedicated spec
    navigating to them.
@@ -77,7 +77,7 @@ never edits policy, closes issues, or enables enforcement automatically.
 
 - Local `dev` mode (default) emits source maps automatically.
 - For a production (`next start`) coverage run, `E2E_COVERAGE=1` also turns on
-  `productionBrowserSourceMaps` in `apps/app/next.config.ts`.
+  `productionBrowserSourceMaps` in `apps/web/next.config.ts`.
 
 ---
 
@@ -88,7 +88,7 @@ bun run test:e2e:routes
 # = node scripts/e2e-route-coverage.mjs
 ```
 
-The reporter discovers `apps/app/app/**/page.tsx`, normalises tenant prefixes and
+The reporter discovers `apps/web/app/**/page.tsx`, normalises tenant prefixes and
 dynamic segments, then counts exact route references in specs and page objects.
 Parent and child routes receive no implicit credit. Dynamic references such as
 `/posts/${id}` match `/posts/*`; unresolved route-prefix variables are not evidence

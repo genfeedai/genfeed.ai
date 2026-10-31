@@ -25,7 +25,7 @@
       "@genfeedai/utils/*": ["../../../packages/utils/*"],
       "@props/*": ["../../../packages/props/*"],
       "@mcp/*": ["./src/*"],
-      "@preview-messages/ui": ["../../app/messages/en/ui.json"]
+      "@preview-messages/ui": ["../../web/messages/en/ui.json"]
     },
     "target": "ES2022"
   },

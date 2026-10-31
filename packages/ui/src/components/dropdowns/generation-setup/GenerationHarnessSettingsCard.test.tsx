@@ -3,7 +3,7 @@ import GenerationHarnessSettingsCard from '@ui/dropdowns/generation-setup/Genera
 import { NextIntlClientProvider } from 'next-intl';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import messages from '../../../../../../apps/app/messages/en/ui.json';
+import messages from '../../../../../../apps/web/messages/en/ui.json';
 
 function EnglishMessages({ children }: { children: ReactNode }) {
   return (

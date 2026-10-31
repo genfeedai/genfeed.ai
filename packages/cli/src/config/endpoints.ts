@@ -11,7 +11,7 @@
 export const SAAS_API_URL = 'https://api.genfeed.ai/v1';
 export const SAAS_APP_URL = 'https://app.genfeed.ai';
 
-/** Path served by `apps/app` for the CLI/desktop authorization page. */
+/** Path served by `apps/web` for the CLI/desktop authorization page. */
 export const CLI_OAUTH_PATH = '/oauth/cli';
 
 /** Local dev ports from the monorepo port table: api -> 3010, app -> 3000. */

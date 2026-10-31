@@ -14,7 +14,7 @@ describe('value-swap iconography contract', () => {
     const source = readFileSync(
       join(
         REPO_ROOT,
-        'apps/app/src/components/menus/switchers/MenuBrandSwitcher.tsx',
+        'apps/web/src/components/menus/switchers/MenuBrandSwitcher.tsx',
       ),
       'utf8',
     );
@@ -46,7 +46,7 @@ describe('value-swap iconography contract', () => {
     const source = readFileSync(
       join(
         REPO_ROOT,
-        'apps/app/src/features/workflows/components/dropdowns/multiselect/DropdownMultiSelect.tsx',
+        'apps/web/src/features/workflows/components/dropdowns/multiselect/DropdownMultiSelect.tsx',
       ),
       'utf8',
     );

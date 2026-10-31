@@ -21,8 +21,8 @@ const repositoryRoot = fileURLToPath(new URL('../..', import.meta.url));
 // scoping). This list must stay in sync with every `tsconfig.json` under
 // `apps/` and `packages/` that extends `../tsconfig/*.json`.
 const TSCONFIG_PACKAGE_DEPENDENTS = [
-  'apps/app',
-  'apps/website',
+  'apps/web',
+  'apps/marketing',
   'packages/agent',
   'packages/desktop-prisma',
   'packages/fonts',
@@ -52,13 +52,13 @@ function readJson(relativePath: string): Record<string, unknown> {
 // consumers.
 const ALL_WORKSPACES = [
   'api',
-  'app',
+  'web',
   'agent',
   'contracts',
   'tsconfig-consumer-a',
   'tsconfig-consumer-b',
 ];
-const APP_WORKSPACES = ['api', 'app'];
+const APP_WORKSPACES = ['api', 'web'];
 
 describe('resolveSpecTypecheckScope (#5315)', () => {
   it('package-only: an affected leaf package with no dependent app narrows scope and build filters to it', () => {
@@ -103,14 +103,14 @@ describe('resolveSpecTypecheckScope (#5315)', () => {
     // case the pre-#5315 `--filter='./packages/*'`-only query dropped.
     const result = resolveSpecTypecheckScope({
       affectedPackagesOnly: ['contracts'],
-      allAffectedNames: ['contracts', 'api', 'app'],
+      allAffectedNames: ['contracts', 'api', 'web'],
       allWorkspaces: ALL_WORKSPACES,
       appWorkspaces: APP_WORKSPACES,
       appsAffectedFromFiles: [],
     });
 
     expect(result.workspaces.slice().sort()).toEqual(
-      ['api', 'app', 'contracts'].sort(),
+      ['api', 'web', 'contracts'].sort(),
     );
     // An app is in scope purely through the package dependency: the build
     // step must fall back to building every package rather than guessing
@@ -122,14 +122,14 @@ describe('resolveSpecTypecheckScope (#5315)', () => {
   it('shared-tsconfig: a shared config change fans out to every declared consumer via the unfiltered graph', () => {
     const result = resolveSpecTypecheckScope({
       affectedPackagesOnly: ['tsconfig-consumer-a', 'tsconfig-consumer-b'],
-      allAffectedNames: ['tsconfig-consumer-a', 'tsconfig-consumer-b', 'app'],
+      allAffectedNames: ['tsconfig-consumer-a', 'tsconfig-consumer-b', 'web'],
       allWorkspaces: ALL_WORKSPACES,
       appWorkspaces: APP_WORKSPACES,
       appsAffectedFromFiles: [],
     });
 
     expect(result.workspaces.slice().sort()).toEqual(
-      ['app', 'tsconfig-consumer-a', 'tsconfig-consumer-b'].sort(),
+      ['web', 'tsconfig-consumer-a', 'tsconfig-consumer-b'].sort(),
     );
     expect(result.buildFilters).toEqual([]);
     expect(result.runAny).toBe(true);
@@ -153,13 +153,13 @@ describe('resolveSpecTypecheckScope (#5315)', () => {
       allAffectedNames: [],
       allWorkspaces: ALL_WORKSPACES,
       appWorkspaces: APP_WORKSPACES,
-      appsAffectedFromFiles: ['app'],
+      appsAffectedFromFiles: ['web'],
     });
 
     expect(result).toEqual({
       buildFilters: [],
       runAny: true,
-      workspaces: ['app'],
+      workspaces: ['web'],
     });
   });
 
@@ -223,7 +223,7 @@ describe('queryTurboAffectedScope (#5372 regression guard)', () => {
       const isPackagesOnly = args.includes('--filter=./packages/*');
       const packages = isPackagesOnly
         ? ['@genfeedai/contracts']
-        : ['@genfeedai/contracts', '@genfeedai/api', '@genfeedai/app'];
+        : ['@genfeedai/contracts', '@genfeedai/api', '@genfeedai/web'];
       return { status: 0, stdout: JSON.stringify({ packages }) };
     };
     return { calls, runProcess };
@@ -239,7 +239,7 @@ describe('queryTurboAffectedScope (#5372 regression guard)', () => {
     );
 
     expect(affectedPackagesOnly).toEqual(['contracts']);
-    expect(allAffectedNames).toEqual(['contracts', 'api', 'app']);
+    expect(allAffectedNames).toEqual(['contracts', 'api', 'web']);
     expect(calls).toHaveLength(2);
 
     // Packages-only call: exactly `--filter=./packages/*`.
@@ -286,7 +286,7 @@ describe('queryTurboAffectedScope (#5372 regression guard)', () => {
     });
 
     expect(result.workspaces.slice().sort()).toEqual(
-      ['api', 'app', 'contracts'].sort(),
+      ['api', 'web', 'contracts'].sort(),
     );
     expect(result.buildFilters).toEqual([]);
     expect(result.runAny).toBe(true);

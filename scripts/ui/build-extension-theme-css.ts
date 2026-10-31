@@ -5,7 +5,7 @@ import path from 'node:path';
 import tailwindcss from '@tailwindcss/postcss';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '../..');
-const EXTENSION_ROOT = path.join(REPO_ROOT, 'apps/extensions/browser/app');
+const EXTENSION_ROOT = path.join(REPO_ROOT, 'apps/extension');
 const INPUT_PATH = path.join(EXTENSION_ROOT, 'src/tailwind.css');
 const DEFAULT_OUTPUT_PATH = path.join(
   EXTENSION_ROOT,

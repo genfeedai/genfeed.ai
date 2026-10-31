@@ -36,7 +36,7 @@ jobs:
         run: node scripts/ci/delivery-readiness.mjs browser
 
       - name: Run extension tests
-        run: bunx turbo run test --filter=@genfeedai/extension-browser
+        run: bunx turbo run test --filter=@genfeedai/extension
 
   build:
     name: Build Extension
@@ -54,17 +54,17 @@ jobs:
           node-version: "26.x"
 
       - name: Build the extension
-        run: bunx turbo run build --force --filter=@genfeedai/extension-browser
+        run: bunx turbo run build --force --filter=@genfeedai/extension
 
       - name: Package the extension into a zip artifact
         run: bun run package
-        working-directory: apps/extensions/browser/app
+        working-directory: apps/extension
 
       # The Chrome Web Store rejects uploads whose manifest has a `key` field,
       # and reviewers flag unused hosts. Both stay in package.json so local
       # builds keep a stable extension ID and the development hosts.
       - name: Remove development-only manifest entries from the store package
-        working-directory: apps/extensions/browser/app/build
+        working-directory: apps/extension/build
         run: |
           mkdir unpacked
           unzip -q chrome-mv3-prod.zip -d unpacked
@@ -78,7 +78,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: browser-extension-build
-          path: apps/extensions/browser/app/build/chrome-mv3-prod.zip
+          path: apps/extension/build/chrome-mv3-prod.zip
           if-no-files-found: error
           retention-days: 14
 
@@ -108,7 +108,7 @@ jobs:
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: browser-extension-build
-          path: apps/extensions/browser/app/build
+          path: apps/extension/build
 
       - name: Browser Platform Publish
         env:
@@ -116,4 +116,4 @@ jobs:
         uses: PlasmoHQ/bpp@c15984c0a74f452851c605cab46f34d9fd6cb158
         with:
           keys: ${{ env.EXTENSION_SUBMIT_KEYS }}
-          artifact: apps/extensions/browser/app/build/chrome-mv3-prod.zip
+          artifact: apps/extension/build/chrome-mv3-prod.zip

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 
 /**
  * Public half of the key pinned in the extension manifest
- * (`apps/extensions/browser/app/package.json` -> `manifest.key`). Unpacked
+ * (`apps/extension/package.json` -> `manifest.key`). Unpacked
  * installs get a stable ID from it; the test suite asserts the two copies match.
  * The matching private key is not in the repository.
  */

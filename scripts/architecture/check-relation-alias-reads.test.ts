@@ -378,7 +378,7 @@ describe('check-relation-alias-reads', () => {
 
     it('flags a create payload that writes organization instead of organizationId', () => {
       writeFixture(
-        'apps/app/src/features/agents/library/useLivestreamChatBotPage.ts',
+        'apps/web/src/features/agents/library/useLivestreamChatBotPage.ts',
         [
           'export function payload(organizationId: string, brandId: string) {',
           '  return { brand: brandId, organization: organizationId };',

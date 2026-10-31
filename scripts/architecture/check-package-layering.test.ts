@@ -67,7 +67,7 @@ describe('check-package-layering', () => {
   it('rejects any package importing an app, by alias or relative path', () => {
     write(
       'packages/agent/posts/list.tsx',
-      "import { x } from '@app-components/x';\nimport { y } from '../../../apps/app/y';\n",
+      "import { x } from '@app-components/x';\nimport { y } from '../../../apps/web/y';\n",
     );
     const { violations } = runCheckPackageLayering({
       baseline: {},

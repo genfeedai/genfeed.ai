@@ -9,7 +9,7 @@ const entry = path.join(__dirname, 'src/ui/preview-client.tsx');
 const style = path.join(__dirname, 'src/ui/preview.css');
 const nextImage = path.join(__dirname, 'src/ui/next-image.tsx');
 const paths = {
-  '@preview-messages/ui': ['apps/app/messages/en/ui.json'],
+  '@preview-messages/ui': ['apps/web/messages/en/ui.json'],
   '@mcp/*': ['apps/server/mcp/src/*'],
   '@ui/*': ['packages/ui/src/*', 'packages/ui/src/components/*'],
   '@genfeedai/services/*': ['packages/services/*'],

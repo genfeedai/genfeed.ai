@@ -123,7 +123,7 @@ describe('checkTestIdLiterals', () => {
       'apps/api/src/thing.service.ts': `const id = '${HIGH_ENTROPY_CUID}';`,
       'apps/api/src/thing.service.spec.ts': `const id = '${HIGH_ENTROPY_CUID}';`,
       'apps/api/test/mocks/thing.ts': `const id = '${HIGH_ENTROPY_OBJECT_ID}';`,
-      'apps/app/e2e/flow.ts': `const id = '${HIGH_ENTROPY_CUID}';`,
+      'apps/web/e2e/flow.ts': `const id = '${HIGH_ENTROPY_CUID}';`,
       'node_modules/dep/index.test.ts': `const id = '${HIGH_ENTROPY_CUID}';`,
       'packages/thing/__tests__/thing.test.ts': `const id = '${HIGH_ENTROPY_ULID}';`,
       'packages/thing/dist/thing.test.js': `const id = '${HIGH_ENTROPY_CUID}';`,
@@ -135,7 +135,7 @@ describe('checkTestIdLiterals', () => {
     ).toEqual([
       'apps/api/src/thing.service.spec.ts',
       'apps/api/test/mocks/thing.ts',
-      'apps/app/e2e/flow.ts',
+      'apps/web/e2e/flow.ts',
       'packages/thing/__tests__/thing.test.ts',
       'playwright/e2e/tests/flow.spec.ts',
     ]);

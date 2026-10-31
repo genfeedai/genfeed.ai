@@ -269,7 +269,7 @@ vi.mock('*.webp', () => 'test-image.webp');
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
-    '../../../apps/app/tests/next-intl.stub'
+    '../../../apps/web/tests/next-intl.stub'
   );
   return {
     useTranslations: (namespace = 'common') => translateFromCatalog(namespace),

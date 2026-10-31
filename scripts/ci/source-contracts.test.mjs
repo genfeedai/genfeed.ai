@@ -88,7 +88,7 @@ test('fails closed when reading an eligible source fails', () => {
 test('follows conventional shared test helpers while leaving product dependencies to Vitest', () => {
   for (const file of [
     '/repo/apps/api/test/source.ts',
-    '/repo/apps/app/tests/helpers/reader.ts',
+    '/repo/apps/web/tests/helpers/reader.ts',
     '/repo/packages/helpers/src/testing/files.ts',
     '/repo/apps/api/src/collection/collection.test-utils.ts',
     '/repo/scripts/source-reader.mjs',
@@ -97,7 +97,7 @@ test('follows conventional shared test helpers while leaving product dependencie
   for (const file of [
     '/repo/apps/api/src/config/service.ts',
     '/repo/packages/libs/config/config.module.ts',
-    '/repo/apps/app/src/helpers/config.ts',
+    '/repo/apps/web/src/helpers/config.ts',
   ])
     assert.equal(isTestSupport(file), false, file);
 });

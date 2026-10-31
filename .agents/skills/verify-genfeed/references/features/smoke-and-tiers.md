@@ -27,4 +27,4 @@ viewport 1280×720, locale `en-US`, TZ `America/New_York`.
   earlier master commit when every later change is neutral for the suite
   (`scripts/ci/browser-suite-evidence.mjs`, see `docs/e2e-tiers.md`).
 - Turbopack cache growth (~15 GB) causes ENOSPC; `scripts/dev/cleanup-playwright-cache.ts` and `cleanup.sh`
-  remove `apps/app/.next/dev/cache`.
+  remove `apps/web/.next/dev/cache`.

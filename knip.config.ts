@@ -39,7 +39,7 @@ const config: KnipConfig = {
     // Playwright
     '@playwright/test',
     'playwright',
-    // Serwist compiles apps/app/app/sw.ts through esbuild at request time
+    // Serwist compiles apps/web/app/sw.ts through esbuild at request time
     // (`useNativeEsbuild: true`), so esbuild is never imported from source.
     'esbuild',
   ],
@@ -92,11 +92,11 @@ const config: KnipConfig = {
     },
 
     // Frontend apps — Next.js
-    'apps/app': {
+    'apps/web': {
       entry: ['app/**/*.{ts,tsx}', 'packages/**/*.{ts,tsx}'],
       ignore: ['dist/**', '.next/**', 'node_modules/**'],
     },
-    'apps/website': {
+    'apps/marketing': {
       entry: ['app/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}'],
       ignore: ['dist/**', '.next/**', 'node_modules/**'],
     },

@@ -263,10 +263,10 @@ test('runtime export removes machine-local agent inputs before validating runtim
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'mcp-auth-export-')));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const destination = join(root, 'export');
-  mkdirSync(join(destination, 'apps/app/.agents/skills'), { recursive: true });
+  mkdirSync(join(destination, 'apps/web/.agents/skills'), { recursive: true });
   symlinkSync(
     '/missing-machine-local-skill',
-    join(destination, 'apps/app/.agents/skills/local'),
+    join(destination, 'apps/web/.agents/skills/local'),
   );
   writeFileSync(join(destination, '.env.local'), 'LOCAL_INPUT=fixture');
   writeFileSync(
@@ -275,7 +275,7 @@ test('runtime export removes machine-local agent inputs before validating runtim
   );
   symlinkSync(join(destination, 'runtime.js'), join(destination, 'safe-link'));
   scrubRuntimeExport(destination);
-  assert.equal(existsSync(join(destination, 'apps/app/.agents')), false);
+  assert.equal(existsSync(join(destination, 'apps/web/.agents')), false);
   assert.equal(existsSync(join(destination, '.env.local')), false);
   assert.equal(existsSync(join(destination, 'safe-link')), true);
   const outside = join(root, 'outside.js');

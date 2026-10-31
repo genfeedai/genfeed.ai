@@ -4,7 +4,7 @@ description: Next.js 16 renamed middleware.ts to proxy.ts — never confuse this
 type: feedback
 ---
 
-In Next.js 16, the middleware file is `proxy.ts`, NOT `middleware.ts`. The file at `apps/app/proxy.ts` IS the middleware. Never question this, never suggest it needs to be renamed, never look for `middleware.ts`.
+In Next.js 16, the middleware file is `proxy.ts`, NOT `middleware.ts`. The file at `apps/web/proxy.ts` IS the middleware. Never question this, never suggest it needs to be renamed, never look for `middleware.ts`.
 
 **Why:** User has corrected this multiple times. It wastes time and is frustrating.
 

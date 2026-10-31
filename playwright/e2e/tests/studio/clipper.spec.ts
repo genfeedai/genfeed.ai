@@ -65,7 +65,7 @@ function jsonApiProject(
 
 /**
  * Mirrors the clipper-results poll interval in the progress-step effect of
- * `apps/app/app/(protected)/[orgSlug]/[brandSlug]/clipper/useStudioClipperPage.ts`.
+ * `apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/useStudioClipperPage.ts`.
  * Waits below are derived from it with headroom so a loaded CI runner cannot
  * turn "the app is a little slow" into a test failure.
  */

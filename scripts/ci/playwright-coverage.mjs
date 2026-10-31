@@ -241,7 +241,7 @@ export async function mergeCoverage(
     inputDir,
     outputDir,
     sourceFilter: (sourcePath) =>
-      /(?:apps\/app\/|packages\/)(?!.*node_modules)/.test(sourcePath) &&
+      /(?:apps\/web\/|packages\/)(?!.*node_modules)/.test(sourcePath) &&
       !sourcePath.includes('.next/'),
     reports: [['json-summary'], ['lcovonly', { file: 'lcov.info' }]],
   });

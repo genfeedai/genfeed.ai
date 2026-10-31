@@ -29,7 +29,7 @@ describe('single CLAUDE.md guard', () => {
   it('accepts the root CLAUDE.md and ignores dependencies and worktrees', () => {
     const rootDir = fixture([
       'CLAUDE.md',
-      'apps/app/AGENTS.md',
+      'apps/web/AGENTS.md',
       'node_modules/some-package/CLAUDE.md',
       '.worktrees/feature/CLAUDE.md',
     ]);
@@ -40,12 +40,12 @@ describe('single CLAUDE.md guard', () => {
   it('rejects CLAUDE.md files below the root', () => {
     const rootDir = fixture([
       'CLAUDE.md',
-      'apps/app/CLAUDE.md',
+      'apps/web/CLAUDE.md',
       'packages/ui/src/CLAUDE.md',
     ]);
 
     expect(findNestedClaudeMd({ rootDir })).toEqual([
-      'apps/app/CLAUDE.md',
+      'apps/web/CLAUDE.md',
       'packages/ui/src/CLAUDE.md',
     ]);
   });

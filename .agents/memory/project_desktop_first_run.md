@@ -1,6 +1,6 @@
 ---
 name: Desktop boots the canonical app with Genfeed Connect sign-in
-description: The Electron shell serves apps/app and signs in through system-browser PKCE plus a Better Auth session cookie on the shell origin
+description: The Electron shell serves apps/web and signs in through system-browser PKCE plus a Better Auth session cookie on the shell origin
 type: project
 status: active
 last_verified: 2026-09-25
@@ -8,7 +8,7 @@ topics: [desktop, auth, shell, sync, privacy]
 ---
 
 **Rule:** Genfeed Desktop is the canonical app in an Electron shell. The shell
-builds and serves `apps/app` as a standalone Next.js bundle on
+builds and serves `apps/web` as a standalone Next.js bundle on
 `http://127.0.0.1:3230`, and sign-in is **Genfeed Connect**: system-browser PKCE
 that returns both a main-process `gf_` API key and a Better Auth session cookie
 installed on the shell origin. SaaS = Desktop.
@@ -20,7 +20,7 @@ Electron — hence the system browser, not an in-window login.
 
 **How to apply:**
 
-- Point Desktop build/dev/copy scripts at `apps/app` (`scripts/dev.cjs`,
+- Point Desktop build/dev/copy scripts at `apps/web` (`scripts/dev.cjs`,
   `build-app-shell.cjs`, `copy-app-shell.cjs`). There is no desktop-local Next
   app, `pages/`, or `src/renderer/` tree.
 - Bake the embedded bundle's env at **build** time: `API_URL` = the real API
@@ -49,7 +49,7 @@ Electron — hence the system browser, not an in-window login.
 - The login surface offers Genfeed Connect and an explicit local workspace.
   Cloud startup does not construct PGlite. Selecting local mode starts the
   Electron-main PGlite/BYOK/workspace services and opens the canonical
-  `apps/app` local surface; switching back to Cloud relaunches without PGlite.
+  `apps/web` local surface; switching back to Cloud relaunches without PGlite.
 - Keep the local user/device IDs stable when a cloud account is connected.
 - Persist sync consent per cloud user; a different cloud account requires a new
   decision. Carry the initiating cloud user ID through sync mutation IPC and

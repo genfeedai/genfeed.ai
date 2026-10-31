@@ -6,12 +6,12 @@ Primary architecture references for planning/reporting.
 
 Canonical, verified inventory: `../context/project-structure.md`. Summary: `apps/server/{api,discord,files,mcp,notifications,slack,telegram,workers}`
 are the current backend workspaces (`clips`/`images`/`videos`/`voices` do not exist as directories or
-workspaces); frontend apps are `apps/app`, `apps/docs`, `apps/website`, `apps/desktop/app`, `apps/mobile/app`,
-`apps/extensions/{browser,ide}/app`; shared packages are `packages/*` (`@genfeedai/*` scope).
+workspaces); frontend apps are `apps/web`, `apps/docs`, `apps/marketing`, `apps/desktop`, `apps/mobile`,
+`apps/extension`; shared packages are `packages/*` (`@genfeedai/*` scope).
 
 ## Desktop Architecture Boundary
 
-- Desktop is an Electron native shell around the real `apps/app` Next.js
+- Desktop is an Electron native shell around the real `apps/web` Next.js
   frontend, not a second product frontend.
 - Desktop local/offline mode must not require a cloned/running NestJS API.
 - Framework-agnostic generation logic belongs in shared packages. The NestJS API
@@ -19,7 +19,7 @@ workspaces); frontend apps are `apps/app`, `apps/docs`, `apps/website`, `apps/de
   the same helpers for desktop IPC behavior.
 - Electron main owns local backend actions: PGlite storage, local identity,
   provider settings, generation jobs, files/workspaces, and native integration.
-- `apps/app` chooses REST or `window.genfeedDesktop` IPC at the runtime boundary.
+- `apps/web` chooses REST or `window.genfeedDesktop` IPC at the runtime boundary.
   It should not duplicate pages or backend business logic for desktop.
 
 ## Key References

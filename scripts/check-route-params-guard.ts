@@ -15,7 +15,7 @@ import {
  * `undefined`. A direct import brings the leak back.
  */
 
-const INCLUDE_GLOBS = ['apps/app/**/*.{ts,tsx}', 'packages/**/*.{ts,tsx}'];
+const INCLUDE_GLOBS = ['apps/web/**/*.{ts,tsx}', 'packages/**/*.{ts,tsx}'];
 
 const EXCLUDE_GLOBS = [
   '**/*.test.*',

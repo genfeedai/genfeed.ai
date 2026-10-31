@@ -1,7 +1,7 @@
 /**
  * Stamp the `desktop-v*` tag's version into the desktop package manifest.
  *
- * electron-builder reads the version from `apps/desktop/app/package.json`, and
+ * electron-builder reads the version from `apps/desktop/package.json`, and
  * that one field reaches four places at once:
  *
  *   1. the artifact filename  — `GenFeed-${version}-${arch}.dmg`
@@ -108,7 +108,7 @@ function main(): void {
   const repositoryRoot = fileURLToPath(new URL('../..', import.meta.url));
   const manifestPath = path.join(
     repositoryRoot,
-    'apps/desktop/app/package.json',
+    'apps/desktop/package.json',
   );
 
   const { isApplied, version } = applyDesktopReleaseVersion({

@@ -120,7 +120,7 @@ jobs:
 
   # ── App — sharded 4-way to keep Next/Vitest memory bounded ──
   coverage-app:
-    name: Coverage — apps/app (shard ${{ matrix.shard }}/4)
+    name: Coverage — apps/web (shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -139,11 +139,11 @@ jobs:
           install-command: "bun install --frozen-lockfile"
 
       - name: Build workspace
-        run: bunx turbo run build --filter='./apps/app...'
+        run: bunx turbo run build --filter='./apps/web...'
 
       - name: Run coverage
         id: coverage
-        run: cd apps/app && bun run test:cov:shard -- --reporter=blob --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-4.json --shard=${{ matrix.shard }}/4
+        run: cd apps/web && bun run test:cov:shard -- --reporter=blob --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-4.json --shard=${{ matrix.shard }}/4
         env:
           NODE_ENV: test
 
@@ -153,9 +153,9 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          reports=(apps/app/.vitest-reports/blob-*.json)
+          reports=(apps/web/.vitest-reports/blob-*.json)
           if [ "${#reports[@]}" -ne 1 ] || [ ! -s "${reports[0]:-}" ]; then
-            echo "::error::apps/app shard ${{ matrix.shard }}/4 tests passed but expected one non-empty Vitest blob report; found ${#reports[@]}"
+            echo "::error::apps/web shard ${{ matrix.shard }}/4 tests passed but expected one non-empty Vitest blob report; found ${#reports[@]}"
             exit 1
           fi
 
@@ -164,7 +164,7 @@ jobs:
         if: always()
         with:
           name: coverage-app-blob-${{ matrix.shard }}
-          path: apps/app/.vitest-reports/
+          path: apps/web/.vitest-reports/
           # .vitest-reports is a dotfolder. upload-artifact excludes hidden
           # files by default, which silently produced empty blob artifacts and
           # starved the merge job (ENOENT on .vitest-reports).
@@ -172,7 +172,7 @@ jobs:
           retention-days: 7
 
   coverage-app-merge:
-    name: Coverage — apps/app (merge)
+    name: Coverage — apps/web (merge)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: coverage-app
@@ -192,7 +192,7 @@ jobs:
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: coverage-app-blob-*
-          path: apps/app/.vitest-reports
+          path: apps/web/.vitest-reports
           merge-multiple: true
 
       - name: Assert all app blob reports exist
@@ -200,9 +200,9 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          reports=(apps/app/.vitest-reports/blob-*.json)
+          reports=(apps/web/.vitest-reports/blob-*.json)
           if [ "${#reports[@]}" -ne 4 ]; then
-            echo "::error::Expected four apps/app Vitest blob reports before merge; found ${#reports[@]}"
+            echo "::error::Expected four apps/web Vitest blob reports before merge; found ${#reports[@]}"
             exit 1
           fi
           for report in "${reports[@]}"; do
@@ -214,7 +214,7 @@ jobs:
 
       - name: Merge coverage reports
         id: merge
-        run: cd apps/app && bunx vitest --merge-reports .vitest-reports --coverage --config ./vitest.config.mts
+        run: cd apps/web && bunx vitest --merge-reports .vitest-reports --coverage --config ./vitest.config.mts
         env:
           NODE_ENV: test
 
@@ -223,12 +223,12 @@ jobs:
         if: always()
         with:
           name: coverage-app
-          path: apps/app/coverage/
+          path: apps/web/coverage/
           retention-days: 7
 
       - name: Assert app coverage report exists
         if: ${{ always() && steps.merge.outcome == 'success' }}
-        run: bash scripts/ci/assert-coverage-report.sh apps/app/coverage
+        run: bash scripts/ci/assert-coverage-report.sh apps/web/coverage
 
   # ── API — sharded 4-way; needs BETTER_AUTH_SECRET env ──
   coverage-api:
@@ -394,7 +394,7 @@ jobs:
   # weekly Mon 6am UTC) and runs the mocked app-core suite only. Each shard is an
   # isolated machine publishing its own lcov artifact (e2e-coverage-shard-N).
   coverage-e2e:
-    name: Coverage — apps/app E2E (shard ${{ matrix.shard }}/4)
+    name: Coverage — apps/web E2E (shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
@@ -438,12 +438,12 @@ jobs:
           set -euo pipefail
           report="playwright-report/coverage/lcov.info"
           if [ ! -s "$report" ]; then
-            echo "::error::apps/app E2E shard ${{ matrix.shard }}/4 tests passed but no non-empty LCOV report was generated at $report"
+            echo "::error::apps/web E2E shard ${{ matrix.shard }}/4 tests passed but no non-empty LCOV report was generated at $report"
             exit 1
           fi
 
   coverage-e2e-merge:
-    name: Coverage — apps/app E2E (merge)
+    name: Coverage — apps/web E2E (merge)
     needs: coverage-e2e
     if: ${{ needs.coverage-e2e.result == 'success' }}
     runs-on: ubuntu-latest

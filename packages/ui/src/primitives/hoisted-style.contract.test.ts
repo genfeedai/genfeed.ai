@@ -3,7 +3,7 @@ import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const REPO_ROOT = join(__dirname, '../../../..');
-const SCANNED_ROOTS = ['packages', 'apps/app'];
+const SCANNED_ROOTS = ['packages', 'apps/web'];
 const SKIPPED_DIRECTORIES = new Set([
   '.next',
   'coverage',

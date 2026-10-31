@@ -43,7 +43,7 @@ function orgPath(routePath: string): string {
  * Two capture sets, picked with `CAPTURE_SET`:
  * - `readme` (default): README frames into docs/assets/readme/.
  *   Run: `bun run readme:capture`
- * - `website`: one frame per app surface into apps/website/public/products/,
+ * - `website`: one frame per app surface into apps/marketing/public/products/,
  *   shown on the /products/<slug> marketing pages. Convert the PNGs to WebP
  *   with `bun run website:capture-products`.
  *
@@ -57,7 +57,7 @@ const CAPTURE_SET =
 const README_ASSETS_DIR = path.resolve(
   process.cwd(),
   CAPTURE_SET === 'website'
-    ? 'apps/website/public/products'
+    ? 'apps/marketing/public/products'
     : 'docs/assets/readme',
 );
 
@@ -187,7 +187,7 @@ const TURBO_PROJECT_ID = 'turbo-project-1';
 
 /**
  * One frame per app surface, named after its /products/<slug> page. The slugs
- * come from `apps/website/src/data/app-products.data.ts`, so a surface
+ * come from `apps/marketing/src/data/app-products.data.ts`, so a surface
  * added there needs a target here.
  */
 const WEBSITE_PRODUCT_TARGETS: CaptureTarget[] = [

@@ -11,7 +11,7 @@ import { useMemo } from 'react';
 /**
  * A single connected social account, projected from a brand-scoped credential.
  * Mirrors the `socialConnections` shape produced by
- * `apps/app/src/hooks/pages/use-brand-detail/use-brand-detail.ts`, trimmed to what
+ * `apps/web/src/hooks/pages/use-brand-detail/use-brand-detail.ts`, trimmed to what
  * the agent setup panel renders.
  */
 export interface AgentSetupConnection {

@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
-import messages from '../../../../apps/app/messages/en/agent.json';
+import messages from '../../../../apps/web/messages/en/agent.json';
 
 vi.mock('@genfeedai/helpers', async () => {
   const { cn } = await import('@genfeedai/helpers/formatting/cn/cn.util');

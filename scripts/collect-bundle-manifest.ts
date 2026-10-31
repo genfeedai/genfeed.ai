@@ -29,7 +29,7 @@
  *
  * Usage:
  *     bun run scripts/collect-bundle-manifest.ts \
- *       --app app --dist apps/app/.next --out bundle-head.json
+ *       --app app --dist apps/web/.next --out bundle-head.json
  */
 
 import type { Dirent } from 'node:fs';

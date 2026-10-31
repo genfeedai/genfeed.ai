@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { findAdminRouteContainmentViolations } from './check-hardcoded-app-routes';
 
 const ADMIN_FILE =
-  'apps/app/app/(protected)/admin/content/example/example-page.tsx';
+  'apps/web/app/(protected)/admin/content/example/example-page.tsx';
 
 describe('admin route containment guard', () => {
   it('accepts admin routes and central route constants', () => {

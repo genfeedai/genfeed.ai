@@ -51,16 +51,16 @@ CMD ["bun", "run", "start", "--filter=@genfeedai/web"]
 
 # ─── Website ────────────────────────────────────────────────────────
 FROM pruner AS website-pruned
-RUN turbo prune @genfeedai/website --docker
+RUN turbo prune @genfeedai/marketing --docker
 
 FROM base AS website
 WORKDIR /app
 COPY --chown=bun:bun --from=website-pruned /app/out/json/ .
 RUN bun install --frozen-lockfile
 COPY --chown=bun:bun --from=website-pruned /app/out/full/ .
-RUN bun run build --filter=@genfeedai/website
+RUN bun run build --filter=@genfeedai/marketing
 EXPOSE 3002
-CMD ["bun", "run", "start", "--filter=@genfeedai/website"]
+CMD ["bun", "run", "start", "--filter=@genfeedai/marketing"]
 
 # ─── Workers ────────────────────────────────────────────────────────
 FROM pruner AS workers-pruned
@@ -163,7 +163,7 @@ COPY --chown=bun:bun --from=mcp-pruned /app/out/json/ .
 RUN bun install --frozen-lockfile
 COPY --chown=bun:bun --from=mcp-pruned /app/out/full/ .
 # The UI host catalog is outside the pruned MCP workspace graph.
-COPY --chown=bun:bun --from=pruner /app/apps/app/messages/en/ui.json ./apps/app/messages/en/ui.json
+COPY --chown=bun:bun --from=pruner /app/apps/web/messages/en/ui.json ./apps/web/messages/en/ui.json
 RUN bun run build --filter=@genfeedai/mcp
 EXPOSE 3014
 CMD ["bun", "run", "apps/server/mcp/dist/main.js"]

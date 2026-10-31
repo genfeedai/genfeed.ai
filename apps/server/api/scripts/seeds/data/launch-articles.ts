@@ -8,7 +8,7 @@
  *
  * `content` is **sanitized HTML, not markdown** — the website renders it with
  * `createMarkup()` (`packages/helpers/src/security/sanitize-html.helper.ts`)
- * and there is no markdown pipeline in `apps/website`. Only tags on that
+ * and there is no markdown pipeline in `apps/marketing`. Only tags on that
  * helper's allowlist survive; author accordingly.
  *
  * Consumed by `scripts/seeds/articles.seed.ts`, which upserts on `slug`.

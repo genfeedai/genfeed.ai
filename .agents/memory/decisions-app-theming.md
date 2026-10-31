@@ -25,7 +25,7 @@ topics: [theme, appearance, architecture]
 - The public marketing website is invariant Dark. It does not follow the OS and does not persist or share the product theme cookie.
 - Unsigned-in product surfaces (app cookie, extension, mobile) use local persistence.
 - VS Code remains the IDE theme authority; Genfeed does not add a competing selector.
-- Electron native theme owns pre-hydration desktop chrome; `apps/app` owns the loaded desktop UI.
+- Electron native theme owns pre-hydration desktop chrome; `apps/web` owns the loaded desktop UI.
 - Shared semantic colors are the palette authority. Platform adapters may express them as CSS variables, React Native values, VS Code variables, or standalone-page CSS.
 - Media/cinema overlays may stay invariant dark when contrast depends on the media rather than the surrounding app theme.
 

@@ -37,11 +37,11 @@ describe('alias-aware type-check scope', () => {
       resolveTypecheckScope({
         changedFiles: ['packages/props/admin/analytics.props.ts'],
         hashGlobsByWorkspace: HASH_GLOBS,
-        turboAffected: ['@genfeedai/app', '@genfeedai/props'],
+        turboAffected: ['@genfeedai/web', '@genfeedai/props'],
       }),
     ).toEqual({
       added: [],
-      workspaces: ['@genfeedai/app', '@genfeedai/props'],
+      workspaces: ['@genfeedai/props', '@genfeedai/web'],
     });
   });
 
@@ -142,7 +142,7 @@ describe('alias-aware type-check scope', () => {
         '@genfeedai/services',
       ],
     ],
-    ['packages/fonts/fonts.ts', ['@genfeedai/app', '@genfeedai/website']],
+    ['packages/fonts/fonts.ts', ['@genfeedai/web', '@genfeedai/marketing']],
     [
       'apps/server/discord/src/app.module.ts',
       ['@genfeedai/api', '@genfeedai/workers'],

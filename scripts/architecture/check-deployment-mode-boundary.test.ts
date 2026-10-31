@@ -28,7 +28,7 @@ function fixture(files: Record<string, string>): string {
 describe('deployment mode boundary', () => {
   it('accepts canonical mode consumers', () => {
     const rootDir = fixture({
-      'apps/app/src/example.ts':
+      'apps/web/src/example.ts':
         "import { isSaaS } from '@genfeedai/config/deployment';\nexport const enabled = isSaaS();",
     });
 
@@ -37,7 +37,7 @@ describe('deployment mode boundary', () => {
 
   it('rejects raw mode env reads and legacy APIs', () => {
     const rootDir = fixture({
-      'apps/app/src/example.ts':
+      'apps/web/src/example.ts':
         'export const mode = process.env.NEXT_PUBLIC_GENFEED_CLOUD || process.env.BETTER_AUTH_ENABLED || process.env.GENFEED_LICENSE_KEY || IS_CLOUD_MODE;',
     });
 
@@ -51,7 +51,7 @@ describe('deployment mode boundary', () => {
 
   it('allows raw env access only in the canonical module and Next config', () => {
     const rootDir = fixture({
-      'apps/app/next.config.ts':
+      'apps/web/next.config.ts':
         'export const cloud = process.env.GENFEED_CLOUD;',
       'packages/config/src/deployment.ts':
         'export const desktop = process.env.NEXT_PUBLIC_DESKTOP_SHELL;',
@@ -68,7 +68,7 @@ describe('deployment mode boundary', () => {
 
   it('keeps allowlisted files checked on the axes they do not own', () => {
     const rootDir = fixture({
-      'apps/app/next.config.ts':
+      'apps/web/next.config.ts':
         'export const license = process.env.GENFEED_LICENSE_KEY;',
       'packages/auth-client/src/config.ts':
         'export const cloud = process.env.GENFEED_CLOUD;',
@@ -80,7 +80,7 @@ describe('deployment mode boundary', () => {
 
     expect(checkDeploymentModeBoundary({ rootDir })).toEqual([
       expect.objectContaining({
-        file: 'apps/app/next.config.ts',
+        file: 'apps/web/next.config.ts',
         reason: 'raw-license-env',
       }),
       expect.objectContaining({

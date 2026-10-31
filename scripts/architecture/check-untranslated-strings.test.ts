@@ -27,7 +27,7 @@ describe('findUntranslatedStrings', () => {
           );
         }
       `,
-      'apps/app/example.tsx',
+      'apps/web/example.tsx',
     );
 
     expect(occurrences.map((entry) => entry.text)).toEqual([
@@ -90,7 +90,7 @@ describe('findUntranslatedStrings', () => {
 
 describe('untranslated-string fix guidance', () => {
   it('points the correct fix at the host catalog instead of COPY consts', () => {
-    expect(UNTRANSLATED_STRING_FIX_HELP).toMatch(/apps\/app\/messages\/en/u);
+    expect(UNTRANSLATED_STRING_FIX_HELP).toMatch(/apps\/web\/messages\/en/u);
     expect(UNTRANSLATED_STRING_FIX_HELP).toMatch(/useTranslations/u);
     expect(UNTRANSLATED_STRING_FIX_HELP).toMatch(/getTranslations/u);
     expect(UNTRANSLATED_STRING_FIX_HELP).toMatch(/COPY const/u);
