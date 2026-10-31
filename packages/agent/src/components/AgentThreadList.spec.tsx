@@ -73,26 +73,6 @@ vi.mock('@helpers/formatting/cn/cn.util', () => ({
     classes.filter(Boolean).join(' '),
 }));
 
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: function MockButton(props: {
-    ariaLabel?: string;
-    children?: ReactNode;
-    className?: string;
-    onClick?: () => void | Promise<void>;
-  }) {
-    return (
-      <button
-        type="button"
-        aria-label={props.ariaLabel}
-        className={props.className}
-        onClick={props.onClick}
-      >
-        {props.children}
-      </button>
-    );
-  },
-}));
-
 interface AgentChatStoreState {
   activeThreadId: string | null;
   cacheConversation: ReturnType<typeof vi.fn>;

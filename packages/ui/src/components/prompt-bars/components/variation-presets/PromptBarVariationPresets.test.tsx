@@ -4,20 +4,6 @@ import PromptBarVariationPresets from '@ui/prompt-bars/components/variation-pres
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({
-    children,
-    onClick,
-    className,
-  }: import('react').ComponentProps<
-    typeof import('@ui/buttons/base/Button').default
-  >) => (
-    <button onClick={onClick} className={className}>
-      {children}
-    </button>
-  ),
-}));
-
 vi.mock('@genfeedai/contracts/constants', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@genfeedai/contracts/constants')>()),
   VARIATION_PROMPT_PRESETS: [

@@ -4,7 +4,6 @@ import type { AgentChatMessage as AgentChatMessageType } from '@genfeedai/agent/
 import type { KnowledgeReceipt } from '@genfeedai/contracts/interfaces';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { SCROLL_FOCUS_SURFACE_CLASS } from '@ui/styles/scroll-focus';
-import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -12,24 +11,6 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
     href: (path: string) => `/test-org/~${path}`,
     orgHref: (path: string) => `/test-org/~${path}`,
   }),
-}));
-
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: function MockButton(props: {
-    ariaLabel?: string;
-    children?: ReactNode;
-    onClick?: () => void | Promise<void>;
-  }) {
-    return (
-      <button
-        type="button"
-        aria-label={props.ariaLabel}
-        onClick={props.onClick}
-      >
-        {props.children}
-      </button>
-    );
-  },
 }));
 
 vi.mock('./AiTextActionCard', () => ({

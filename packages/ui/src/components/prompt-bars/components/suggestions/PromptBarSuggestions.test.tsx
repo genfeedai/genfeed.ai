@@ -3,31 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { TooltipProvider } from '@ui/primitives/tooltip';
 import PromptBarSuggestions from '@ui/prompt-bars/components/suggestions/PromptBarSuggestions';
-import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({
-    ariaLabel,
-    children,
-    disabled,
-    onClick,
-  }: {
-    ariaLabel?: string;
-    children?: ReactNode;
-    disabled?: boolean;
-    onClick?: () => void;
-  }) => (
-    <button
-      type="button"
-      aria-label={ariaLabel}
-      disabled={disabled}
-      onClick={onClick}
-    >
-      {children}
-    </button>
-  ),
-}));
 
 describe('PromptBarSuggestions', () => {
   const suggestions = [

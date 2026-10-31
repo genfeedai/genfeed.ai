@@ -4,21 +4,7 @@ import {
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { render, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: function MockButton(props: {
-    children?: ReactNode;
-    onClick?: () => void;
-  }) {
-    return (
-      <button type="button" onClick={props.onClick}>
-        {props.children}
-      </button>
-    );
-  },
-}));
 
 vi.mock('./ToolCallDetailPanel', () => ({
   ToolCallDetailPanel: () => <div>detail-panel</div>,

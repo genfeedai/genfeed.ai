@@ -10,14 +10,6 @@ type MockButtonProps = {
 };
 
 // Mock dependencies
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({ label, onClick, ariaLabel }: MockButtonProps) => (
-    <button type="button" onClick={onClick} aria-label={ariaLabel}>
-      {label}
-    </button>
-  ),
-}));
-
 vi.mock('@genfeedai/services/core/clipboard.service', () => ({
   ClipboardService: {
     copyToClipboard: vi.fn(),

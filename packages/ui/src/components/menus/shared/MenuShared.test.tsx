@@ -164,10 +164,6 @@ vi.mock('@ui/menus/sidebar-nested/SidebarNested', () => ({
   default: () => <div data-testid="sidebar-nested" />,
 }));
 
-vi.mock('@ui/buttons/credits/ButtonCredits', () => ({
-  default: () => <div data-testid="button-credits" />,
-}));
-
 vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
     LOGO_ALT: 'Genfeed',

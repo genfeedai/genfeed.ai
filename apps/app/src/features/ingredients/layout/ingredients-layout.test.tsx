@@ -11,14 +11,6 @@ const replaceSpy = vi.fn();
 let mockSearchParams = new URLSearchParams();
 let mockPathname = '/library/videos';
 
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({ onClick }: { onClick?: () => void }) => (
-    <button type="button" onClick={onClick}>
-      Upload
-    </button>
-  ),
-}));
-
 vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
   default: ({ onClick }: { onClick?: () => void }) => (
     <button type="button" onClick={onClick}>

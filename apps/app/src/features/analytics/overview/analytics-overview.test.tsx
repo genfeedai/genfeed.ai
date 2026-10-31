@@ -275,10 +275,6 @@ vi.mock('@ui/analytics/top-posts/TopPostsSection', () => ({
   default: () => <div data-testid="top-posts-section" />,
 }));
 
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: () => <button type="button" />,
-}));
-
 vi.mock('@ui/card/Card', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));

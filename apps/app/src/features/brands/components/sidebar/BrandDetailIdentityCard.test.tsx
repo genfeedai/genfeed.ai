@@ -99,21 +99,6 @@ vi.mock('@ui/card/Card', () => ({
   ),
 }));
 
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({
-    children,
-    onClick,
-    ...props
-  }: {
-    children: ReactNode;
-    onClick?: () => void;
-  }) => (
-    <button onClick={onClick} type="button" {...props}>
-      {children}
-    </button>
-  ),
-}));
-
 vi.mock('@ui/display/selected-avatar-preview/SelectedAvatarPreview', () => ({
   default: () => <div>Selected Avatar Preview</div>,
 }));

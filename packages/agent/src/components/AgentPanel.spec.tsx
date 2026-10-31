@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { resolveOAuthConnectPlatformCatalog } from '@ui/constants/oauth-connect-platforms';
-import type { ReactElement, ReactNode } from 'react';
+import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockPush = vi.fn();
@@ -131,26 +131,6 @@ vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
       threads: [],
       toggleOpen: mockToggleOpen,
     }),
-}));
-
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: function MockButton(props: {
-    ariaLabel?: string;
-    children?: ReactNode;
-    className?: string;
-    onClick?: () => void;
-  }) {
-    return (
-      <button
-        type="button"
-        aria-label={props.ariaLabel}
-        className={props.className}
-        onClick={props.onClick}
-      >
-        {props.children}
-      </button>
-    );
-  },
 }));
 
 vi.mock('@genfeedai/agent/components/AgentChatContainer', () => ({

@@ -20,15 +20,6 @@ vi.mock('@ui/modals/actions/ModalActions', () => ({
   >) => <div>{children}</div>,
 }));
 
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({
-    label,
-    onClick,
-  }: import('react').ComponentProps<
-    typeof import('@ui/buttons/base/Button').default
-  >) => <button onClick={onClick}>{label}</button>,
-}));
-
 const copyToClipboard = vi.fn();
 
 vi.mock('@genfeedai/services/core/clipboard.service', () => ({
