@@ -113,13 +113,17 @@ describe('product limits', () => {
 });
 
 describe('Pro tier', () => {
-  it('stays solo with one organization and the free API ceiling', () => {
+  it('stays solo with one organization and an API ceiling between PAYG and Scale', () => {
     expect(getSeatLimitForTier(SubscriptionTier.PRO)).toBe(FREE_SEAT_LIMIT);
     expect(getOrganizationLimitForTier(SubscriptionTier.PRO)).toBe(
       SINGLE_ORGANIZATION_LIMIT,
     );
-    expect(getApiRateLimitForTier(SubscriptionTier.PRO)).toBe(
+    expect(getApiRateLimitForTier(SubscriptionTier.PRO)).toBe(300);
+    expect(getApiRateLimitForTier(SubscriptionTier.PRO)).toBeGreaterThan(
       FREE_API_RATE_LIMIT,
+    );
+    expect(getApiRateLimitForTier(SubscriptionTier.PRO)).toBeLessThan(
+      SCALE_API_RATE_LIMIT,
     );
   });
 

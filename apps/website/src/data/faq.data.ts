@@ -74,7 +74,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
         question: 'What are the pricing tiers?',
       },
       {
-        answer: `Yes. API access is included on every plan at the same credit price. Generate in the studio or via code, drawing from the same credit balance. ${PLAN_COPY.payg.name} allows ${FREE_API_RATE_LIMIT} requests per minute, ${PLAN_COPY.scale.name} gets higher rate limits, and ${PLAN_COPY.enterprise.name} custom limits with an SLA.`,
+        answer: `Yes. API access is included on every plan at the same credit price. Generate in the studio or via code, drawing from the same credit balance. ${PLAN_COPY.payg.name} allows ${FREE_API_RATE_LIMIT} requests per minute, ${PLAN_COPY.pro.name} and ${PLAN_COPY.scale.name} get higher rate limits, and ${PLAN_COPY.enterprise.name} custom limits with an SLA.`,
         question: 'Is there an API?',
       },
       {
@@ -136,7 +136,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
         question: `What is included in ${PLAN_COPY.enterprise.name}?`,
       },
       {
-        answer: `API access is included on every plan: ${PLAN_COPY.payg.name} allows ${FREE_API_RATE_LIMIT} requests per minute. ${PLAN_COPY.scale.name} and ${PLAN_COPY.enterprise.name} get higher limits. Contact sales for production API terms.`,
+        answer: `API access is included on every plan: ${PLAN_COPY.payg.name} allows ${FREE_API_RATE_LIMIT} requests per minute. ${PLAN_COPY.pro.name}, ${PLAN_COPY.scale.name} and ${PLAN_COPY.enterprise.name} get higher limits. Contact sales for production API terms.`,
         question: 'Do you have an API?',
       },
     ],

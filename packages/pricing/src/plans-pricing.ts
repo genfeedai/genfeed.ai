@@ -434,6 +434,17 @@ export const IMAGE_CREDIT_COSTS = {
 } as const;
 
 /**
+ * Early-access discount on Pro. Stripe coupon `ne7XYr33` ($10 off, repeating
+ * for 12 months) behind the active promotion code below; checkout accepts
+ * promotion codes, so the customer enters it there.
+ */
+export const PRO_EARLY_ACCESS_DISCOUNT = {
+  amountOff: 10,
+  code: 'EARLYGENFEED',
+  durationMonths: 12,
+} as const;
+
+/**
  * Website pricing plans - displayed on public pricing page
  * Free-to-join PAYG credits, subscriptions with included credits, B2B cloud
  */

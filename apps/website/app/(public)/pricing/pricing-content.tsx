@@ -12,6 +12,7 @@ import {
   IMAGE_CREDIT_COSTS,
   INTERNAL_CREDIT_COSTS,
   PLAN_COPY,
+  PRO_EARLY_ACCESS_DISCOUNT,
   VIDEO_CREDIT_COSTS,
   WEBSITE_CREDIT_PACKS,
   type websitePlans,
@@ -71,7 +72,7 @@ const FAQ_ITEMS = [
     question: 'Do I choose the AI model?',
   },
   {
-    answer: `Yes, on every plan. ${PLAN_COPY.scale.name} has higher limits.`,
+    answer: `Yes, on every plan. ${PLAN_COPY.pro.name} and ${PLAN_COPY.scale.name} have higher limits.`,
     question: 'Is there an API?',
   },
 ];
@@ -179,8 +180,14 @@ export default function PricingContent() {
                     </span>
                   </div>
 
-                  <div className="mb-6 text-sm text-foreground/60">
+                  <div className="text-sm text-foreground/60">
                     {getPriceQualifier(plan)}
+                  </div>
+
+                  <div className="mb-6 min-h-5 text-sm font-medium text-foreground">
+                    {plan.tier === 'pro'
+                      ? `${formatPrice(PRO_EARLY_ACCESS_DISCOUNT.amountOff)} off for ${PRO_EARLY_ACCESS_DISCOUNT.durationMonths} months with code ${PRO_EARLY_ACCESS_DISCOUNT.code}`
+                      : null}
                   </div>
 
                   <ul className="mb-auto space-y-3">

@@ -62,7 +62,10 @@ describe('PricingContent', () => {
     expect(
       screen.getByRole('heading', { name: 'Pay As You Go' }),
     ).toBeInTheDocument();
-    expect(screen.queryByText('EARLYGENFEED')).not.toBeInTheDocument();
+    expect(cards[0]).toHaveTextContent(
+      'off for 12 months with code EARLYGENFEED',
+    );
+    expect(cards[1]).not.toHaveTextContent('EARLYGENFEED');
   });
 
   it('never prints the per-credit price', () => {
