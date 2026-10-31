@@ -7,31 +7,128 @@ import {
   APP_ROUTES,
   createBrandAppRoute,
 } from '@genfeedai/contracts/constants';
-import type { Page } from '@playwright/test';
+import type { Page, Request } from '@playwright/test';
 
 const SERVER_LATENCY_MS = 800;
-const PREFETCH_SETTLE_MS = 4000;
+const PREFETCH_QUIET_MS = 500;
+const PREFETCH_TIMEOUT_MS = 30_000;
 const INSTANT_BUDGET_MS = 400;
+const NAVIGATION_TIMING_KEY = '__instantNavigationTiming';
 
+interface NavigationTiming {
+  clickedAt?: number;
+  committedAt?: number;
+}
+
+function isPrefetchRequest(request: Request): boolean {
+  return (
+    request.url().includes('_rsc=') &&
+    request.headers()['next-router-prefetch'] !== undefined
+  );
+}
+
+// Next.js drains its prefetch queue newest-link-first with bounded
+// concurrency, so how long the rail link waits behind the page's other links
+// depends on CPU load and a fixed sleep after load races it. Track each
+// pathname's prefetch requests so the test can wait for the route it is about
+// to click: its page segment loaded and nothing for it still in flight.
+function trackPrefetches(page: Page): (pathname: string) => boolean {
+  const inFlightByPath = new Map<string, number>();
+  const lastActivityByPath = new Map<string, number>();
+  const pagePaths = new Set<string>();
+  const countInFlight = (request: Request, delta: number) => {
+    const { pathname } = new URL(request.url());
+    inFlightByPath.set(pathname, (inFlightByPath.get(pathname) ?? 0) + delta);
+    lastActivityByPath.set(pathname, Date.now());
+  };
+  page.on('request', (request) => {
+    if (isPrefetchRequest(request)) {
+      countInFlight(request, 1);
+    }
+  });
+  page.on('requestfinished', (request) => {
+    if (!isPrefetchRequest(request)) {
+      return;
+    }
+    countInFlight(request, -1);
+    if (
+      request.headers()['next-router-segment-prefetch']?.endsWith('/__PAGE__')
+    ) {
+      pagePaths.add(new URL(request.url()).pathname);
+    }
+  });
+  page.on('requestfailed', (request) => {
+    if (isPrefetchRequest(request)) {
+      countInFlight(request, -1);
+    }
+  });
+  return (pathname) =>
+    pagePaths.has(pathname) &&
+    (inFlightByPath.get(pathname) ?? 0) === 0 &&
+    Date.now() - (lastActivityByPath.get(pathname) ?? 0) >= PREFETCH_QUIET_MS;
+}
+
+// Delays only the renders a click waits for. Prefetches stay fast so a slow
+// server cannot stretch the prefetch queue the test is waiting on.
 async function delayServerRenders(page: Page): Promise<void> {
   await page.route(
     (url) =>
       url.searchParams.has('_rsc') || url.pathname.startsWith('/_next/data'),
     async (route) => {
-      await new Promise((resolve) => setTimeout(resolve, SERVER_LATENCY_MS));
+      if (!isPrefetchRequest(route.request())) {
+        await new Promise((resolve) => setTimeout(resolve, SERVER_LATENCY_MS));
+      }
       await route.fallback();
     },
   );
 }
 
+// The router pushes history once the destination tree has committed, so
+// click-to-pushState is the navigation time the user feels. Timing it in the
+// page keeps Playwright's own round trips and polling intervals, which grow
+// with CPU load, out of a budget that is about the app.
+async function recordNavigationTiming(page: Page): Promise<void> {
+  await page.evaluate((key) => {
+    const timing: NavigationTiming = {};
+    Object.assign(window, { [key]: timing });
+    document.addEventListener(
+      'click',
+      () => {
+        timing.clickedAt = performance.now();
+      },
+      { capture: true, once: true },
+    );
+    const pushState = history.pushState.bind(history);
+    history.pushState = (...args) => {
+      if (timing.clickedAt !== undefined) {
+        timing.committedAt ??= performance.now();
+      }
+      pushState(...args);
+    };
+  }, NAVIGATION_TIMING_KEY);
+}
+
+async function readClickToCommitMs(page: Page): Promise<number> {
+  return page.evaluate((key) => {
+    const { clickedAt, committedAt }: NavigationTiming = Reflect.get(
+      window,
+      key,
+    );
+    return clickedAt === undefined || committedAt === undefined
+      ? Number.POSITIVE_INFINITY
+      : Math.round(committedAt - clickedAt);
+  }, NAVIGATION_TIMING_KEY);
+}
+
 // A click on a rail destination must paint the destination without waiting for
 // a server render: the link is prefetched on viewport entry and the visited
 // route stays cached (#6227). The server render is delayed to make a missed
-// prefetch visible as click-to-paint time.
+// prefetch visible as click-to-commit time.
 test('rail navigation paints without waiting for a server render', async ({
   authenticatedPage: page,
 }, testInfo) => {
   const placeholderRequests: string[] = [];
+  const isPrefetched = trackPrefetches(page);
   page.on('request', (request) => {
     if (/%%drp:|%25%25drp/i.test(request.url())) {
       placeholderRequests.push(request.url());
@@ -46,20 +143,25 @@ test('rail navigation paints without waiting for a server render', async ({
     page.getByRole('heading', { name: 'All assets', exact: true }),
   ).toBeVisible();
 
-  await delayServerRenders(page);
-  await page.waitForTimeout(PREFETCH_SETTLE_MS);
-
   const target = page.getByTestId('app-rail-item-analytics');
   await expect(target).toBeVisible();
   const href = await target.getAttribute('href');
   expect(href).not.toContain('%%drp:');
 
-  const startedAt = Date.now();
+  await expect
+    .poll(() => isPrefetched(href ?? ''), {
+      message: 'rail destination is prefetched on viewport entry',
+      timeout: PREFETCH_TIMEOUT_MS,
+    })
+    .toBe(true);
+  await delayServerRenders(page);
+  await recordNavigationTiming(page);
+
   await target.click();
   await page.waitForURL((url) => url.pathname === href);
   await expect(page.locator('main').first()).toBeVisible();
   await expect(page.getByTestId('app-rail')).toBeVisible();
-  const elapsedMs = Date.now() - startedAt;
+  const elapsedMs = await readClickToCommitMs(page);
 
   testInfo.annotations.push({
     description: `${elapsedMs}ms (server render delayed ${SERVER_LATENCY_MS}ms)`,
