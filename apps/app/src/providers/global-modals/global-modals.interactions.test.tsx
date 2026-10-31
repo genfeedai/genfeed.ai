@@ -39,10 +39,11 @@ const loggerErrorMock = vi.hoisted(() => vi.fn());
 const loggerInfoMock = vi.hoisted(() => vi.fn());
 
 function makeStub(name: string): (props: Record<string, unknown>) => null {
-  return function Stub(props: Record<string, unknown>): null {
+  const stub = (props: Record<string, unknown>): null => {
     captured.record[name] = props;
     return null;
   };
+  return stub;
 }
 
 vi.mock('@genfeedai/hooks/auth/use-auth-user/use-auth-user', () => ({
