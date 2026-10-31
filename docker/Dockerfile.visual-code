@@ -1,4 +1,11 @@
-FROM node:26.12.1-slim AS toolchain
+# Node.js version comes from the repo-root `.node-version`, the single pin.
+# Docker cannot read a file before FROM, so every caller passes it:
+#   docker build --build-arg NODE_VERSION="$(cat .node-version)" ...
+# CI feeds it through .github/actions/node-version. Leaving it unset fails the
+# build on purpose instead of silently picking a second version.
+ARG NODE_VERSION
+
+FROM node:${NODE_VERSION}-slim AS toolchain
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates unzip \
     && curl -fsSL https://bun.sh/install | bash \
     && cp /root/.bun/bin/bun /usr/local/bin/bun \
@@ -7,7 +14,7 @@ WORKDIR /runtime
 COPY scripts/visual-code/package.json scripts/visual-code/bun.lock ./
 RUN bun install --frozen-lockfile --ignore-scripts
 
-FROM node:26.12.1-slim
+FROM node:${NODE_VERSION}-slim
 RUN apt-get update && apt-get install -y --no-install-recommends chromium ffmpeg fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /runtime

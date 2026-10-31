@@ -96,6 +96,10 @@ runs:
           org.opencontainers.image.description=Unified Genfeed server image (all services)
           org.opencontainers.image.vendor=GenFeedAI
 
+    - name: Read Node version
+      id: node
+      uses: ./.github/actions/node-version
+
     - name: Build and push image
       if: steps.existing.outputs.exists != 'true'
       id: build
@@ -103,6 +107,7 @@ runs:
       with:
         context: .
         file: docker/Dockerfile.server
+        build-args: NODE_VERSION=${{ steps.node.outputs.version }}
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}

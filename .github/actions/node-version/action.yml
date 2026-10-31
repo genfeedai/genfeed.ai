@@ -1,0 +1,26 @@
+name: Read Node version
+description: Output the Node.js version pinned in the repo-root .node-version file.
+
+# `.node-version` is the single Node.js pin. Docker cannot read a file before
+# FROM, so image builds pass this output as `--build-arg NODE_VERSION=...`.
+# Run it after the repository is checked out.
+
+outputs:
+  version:
+    description: Exact Node.js version, for example 26.12.1
+    value: ${{ steps.read.outputs.version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Read .node-version
+      id: read
+      shell: bash
+      run: |
+        set -euo pipefail
+        version="$(tr -d '[:space:]' < .node-version)"
+        if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+          echo "::error::.node-version must hold one exact x.y.z version, found '${version}'."
+          exit 1
+        fi
+        echo "version=${version}" >> "$GITHUB_OUTPUT"
