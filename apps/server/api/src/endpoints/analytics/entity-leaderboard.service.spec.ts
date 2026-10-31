@@ -742,9 +742,7 @@ describe('EntityLeaderboardService', () => {
 
       const result = await service.getOrganizationsWithStats();
 
-      expect(
-        result.data.map(({ id, owner }) => [id, owner]),
-      ).toEqual([
+      expect(result.data.map(({ id, owner }) => [id, owner])).toEqual([
         [
           'org-a',
           {

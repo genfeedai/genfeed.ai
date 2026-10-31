@@ -302,9 +302,7 @@ export default function AnalyticsOrganizationsList({
         columns={columns}
         getRowKey={(org) => org.id}
         emptyLabel={
-          searchTerm
-            ? translate('emptySearch')
-            : 'No organizations found'
+          searchTerm ? translate('emptySearch') : 'No organizations found'
         }
         rowSidebar={{
           getId: (org) => org.id,

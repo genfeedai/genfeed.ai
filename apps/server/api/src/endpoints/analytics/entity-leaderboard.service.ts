@@ -780,7 +780,9 @@ export class EntityLeaderboardService {
           id: entity.id,
           // The organization's own logo asset, then the auth provider's.
           logo:
-            logoUrlMap.get(entity.id) ?? entity.authProviderLogoUrl ?? undefined,
+            logoUrlMap.get(entity.id) ??
+            entity.authProviderLogoUrl ??
+            undefined,
           name: entity.label || entity.name || 'Unknown',
           owner: entity.userId ? ownerMap.get(entity.userId) : undefined,
           totalBrands: brandCountMap.get(entity.id) || 0,
