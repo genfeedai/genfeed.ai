@@ -3,6 +3,7 @@
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IQueryParams } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useTableSort } from '@hooks/ui/use-table-sort/use-table-sort';
 import type { ElementScene } from '@models/elements/scene.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
@@ -18,12 +19,18 @@ import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useState } from 'react';
 
+/** Columns the scenes endpoint can order by. */
+const SCENE_SORT_KEYS = ['label', 'key'];
+
 function ScenesListContent() {
   const notificationsService = NotificationsService.getInstance();
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
   const searchT = useTranslations('common.listSearch');
   const { search, setSearch } = useAdminSearchParam();
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: SCENE_SORT_KEYS,
+  });
 
   const getScenesService = useAuthedService(
     useCallback((token: string) => ScenesService.getInstance(token), []),
@@ -37,9 +44,15 @@ function ScenesListContent() {
     {
       header: 'Label',
       key: 'label',
+      sortable: true,
       subtext: (scene: ElementScene) => scene.description,
     },
-    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
+    {
+      className: 'font-mono text-sm',
+      header: 'Key',
+      key: 'key',
+      sortable: true,
+    },
   ];
 
   const rowSidebar = useElementRowSidebar<ElementScene>();
@@ -53,6 +66,7 @@ function ScenesListContent() {
         limit: ITEMS_PER_PAGE,
         page: currentPage,
         ...(search ? { search } : {}),
+        ...(sort ? { sort } : {}),
       };
 
       const data = await service.findAll(query);
@@ -63,7 +77,7 @@ function ScenesListContent() {
       notificationsService.error('Failed to load scenes');
       setScenes([]);
     }
-  }, [currentPage, getScenesService, notificationsService, search]);
+  }, [currentPage, getScenesService, notificationsService, search, sort]);
 
   useEffect(() => {
     findAllScenes();
@@ -87,6 +101,9 @@ function ScenesListContent() {
         actions={[]}
         isLoading={isLoading}
         getRowKey={(item) => item.id}
+        onSortChange={onSortChange}
+        sortDirection={sortDirection}
+        sortKey={sortKey}
         rowSidebar={rowSidebar}
         emptyLabel="No scenes found"
       />

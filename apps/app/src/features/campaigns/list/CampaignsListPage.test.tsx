@@ -21,11 +21,13 @@ const mockCampaigns = [
   },
 ];
 
-const mockUseCampaigns = vi.fn((_options?: { search?: string }) => ({
-  campaigns: mockCampaigns,
-  isLoading: false,
-  totalPages: 1,
-}));
+const mockUseCampaigns = vi.fn(
+  (_options?: { search?: string; sort?: string }) => ({
+    campaigns: mockCampaigns,
+    isLoading: false,
+    totalPages: 1,
+  }),
+);
 
 const mockPageScope = vi.hoisted(() => ({
   current: 'brand' as 'org' | 'brand',
@@ -35,7 +37,8 @@ const mockReplace = vi.hoisted(() => vi.fn());
 const mockSearchParams = vi.hoisted(() => ({ current: '' }));
 
 vi.mock('@/features/campaigns/hooks/use-campaigns', () => ({
-  useCampaigns: (options?: { search?: string }) => mockUseCampaigns(options),
+  useCampaigns: (options?: { search?: string; sort?: string }) =>
+    mockUseCampaigns(options),
 }));
 
 vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
@@ -103,6 +106,9 @@ interface MockTableProps {
   emptyLabel?: string;
   getRowLink?: (item: MockCampaign) => { href: string; label: string };
   items: MockCampaign[];
+  onSortChange?: (key: string, direction: 'asc' | 'desc') => void;
+  sortDirection?: 'asc' | 'desc';
+  sortKey?: string;
   rowSidebar?: {
     getTitle: (item: MockCampaign) => string;
     kind: string;
@@ -244,6 +250,29 @@ describe('CampaignsListPage', () => {
     );
     expect(screen.getByRole('textbox', { name: 'search' })).toHaveValue(
       'autumn',
+    );
+  });
+
+  it('asks the server for the order a column header set in the URL', () => {
+    mockSearchParams.current = 'sort=-name';
+    render(<CampaignsListPage />);
+
+    expect(mockUseCampaigns).toHaveBeenCalledWith(
+      expect.objectContaining({ sort: 'name: -1' }),
+    );
+    expect(tableProps.current?.sortKey).toBe('name');
+    expect(tableProps.current?.sortDirection).toBe('desc');
+  });
+
+  it('writes a clicked column sort to the URL and returns to the first page', () => {
+    mockSearchParams.current = 'page=3&q=autumn';
+    render(<CampaignsListPage />);
+
+    tableProps.current?.onSortChange?.('status', 'asc');
+
+    expect(mockReplace).toHaveBeenCalledWith(
+      '/acme/demo/publishing/campaigns?q=autumn&sort=status',
+      { scroll: false },
     );
   });
 

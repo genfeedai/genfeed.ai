@@ -13,6 +13,7 @@ import {
 import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useTableSort } from '@hooks/ui/use-table-sort/use-table-sort';
 import type { TableColumn, TableRowLink } from '@props/ui/display/table.props';
 import type { Campaign } from '@services/content/campaigns.service';
 import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
@@ -38,6 +39,9 @@ import CampaignCreateDialog from '@/features/campaigns/form/CampaignCreateDialog
 import { useCampaigns } from '@/features/campaigns/hooks/use-campaigns';
 import type { CampaignsListPageProps } from '@/features/campaigns/props/campaign-setup.props';
 
+/** Columns the campaigns endpoint can order by. */
+const CAMPAIGN_SORT_KEYS = ['name', 'objective', 'startDate', 'status'];
+
 function formatCampaignDate(value?: string | null): string {
   if (!value) {
     return '—';
@@ -60,10 +64,14 @@ export default function CampaignsListPage({
   const parsedPage = Number.parseInt(searchParams?.get('page') ?? '1', 10);
   const page = Number.isFinite(parsedPage) ? Math.max(1, parsedPage) : 1;
   const { search, setSearch } = useAdminSearchParam();
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: CAMPAIGN_SORT_KEYS,
+  });
   const { campaigns, isLoading, isError, refetch, total, totalPages } =
     useCampaigns({
       page,
       search,
+      sort,
       status,
     });
   const brandLabels = useMemo(() => {
@@ -75,6 +83,7 @@ export default function CampaignsListPage({
     const nameColumn: TableColumn<Campaign> = {
       header: translate('columns.name'),
       key: 'name',
+      sortable: true,
     };
     const brandColumn: TableColumn<Campaign> = {
       header: translate('columns.brand'),
@@ -87,11 +96,13 @@ export default function CampaignsListPage({
       {
         header: translate('columns.objective'),
         key: 'objective',
+        sortable: true,
         render: (campaign) => campaign.objective || '—',
       },
       {
         header: translate('columns.dates'),
         key: 'startDate',
+        sortable: true,
         render: (campaign) => {
           if (!campaign.startDate && !campaign.endDate) {
             return '—';
@@ -102,6 +113,7 @@ export default function CampaignsListPage({
       {
         header: translate('columns.status'),
         key: 'status',
+        sortable: true,
         render: (campaign) => (
           <Badge status={campaign.status}>
             {CAMPAIGN_STATUS_LABELS[campaign.status] ?? campaign.status}
@@ -262,6 +274,9 @@ export default function CampaignsListPage({
         getRowLink={getRowLink}
         isLoading={isLoading}
         items={campaigns}
+        onSortChange={onSortChange}
+        sortDirection={sortDirection}
+        sortKey={sortKey}
         rowSidebar={{
           getId: (campaign) => campaign.id,
           getSubtitle: (campaign) =>

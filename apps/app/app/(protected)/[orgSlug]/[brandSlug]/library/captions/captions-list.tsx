@@ -5,6 +5,7 @@ import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IQueryParams } from '@genfeedai/contracts/interfaces';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useTableSort } from '@hooks/ui/use-table-sort/use-table-sort';
 import type { Caption } from '@models/content/caption.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { CaptionsService } from '@services/content/captions.service';
@@ -19,6 +20,9 @@ import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useState } from 'react';
 
+/** Columns the captions endpoint can order by. */
+const CAPTION_SORT_KEYS = ['format', 'createdAt'];
+
 function CaptionsListContent() {
   const rowSidebarT = useTranslations('ui.rowSidebar');
   const fieldsT = useTranslations('ui.rowSidebar.fields');
@@ -26,6 +30,9 @@ function CaptionsListContent() {
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('q') ?? '';
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: CAPTION_SORT_KEYS,
+  });
 
   const getCaptionsService = useAuthedService(
     useCallback((token: string) => CaptionsService.getInstance(token), []),
@@ -39,11 +46,13 @@ function CaptionsListContent() {
     {
       header: 'Format',
       key: 'format',
+      sortable: true,
       render: (caption: Caption) => caption.format || '-',
     },
     {
       header: 'Created',
       key: 'createdAt',
+      sortable: true,
       render: (caption: Caption) =>
         caption.createdAt ? formatDate(caption.createdAt) : '-',
     },
@@ -76,6 +85,7 @@ function CaptionsListContent() {
         limit: ITEMS_PER_PAGE,
         page: currentPage,
         ...(search ? { search } : {}),
+        ...(sort ? { sort } : {}),
       };
 
       const data = await service.findAll(query);
@@ -88,7 +98,7 @@ function CaptionsListContent() {
       setCaptions([]);
       setLoadError('Captions could not be loaded.');
     }
-  }, [currentPage, getCaptionsService, notificationsService, search]);
+  }, [currentPage, getCaptionsService, notificationsService, search, sort]);
 
   useEffect(() => {
     findAllCaptions();
@@ -117,6 +127,9 @@ function CaptionsListContent() {
             actions={[]}
             isLoading={captions === null}
             getRowKey={(item) => item.id}
+            onSortChange={onSortChange}
+            sortDirection={sortDirection}
+            sortKey={sortKey}
             rowSidebar={rowSidebar}
             emptyLabel="No captions found"
           />
