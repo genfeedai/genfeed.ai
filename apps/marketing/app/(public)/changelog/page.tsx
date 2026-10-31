@@ -1,4 +1,5 @@
 import { getPublishedReleases } from '@data/releases.data';
+import { logger } from '@services/core/logger.service';
 import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 import ChangelogContent from './content';
 
@@ -9,5 +10,14 @@ export const generateMetadata = createPageMetadataWithCanonical(
   '/changelog',
 );
 export default async function Changelog() {
-  return <ChangelogContent releases={await getPublishedReleases()} />;
+  try {
+    return <ChangelogContent releases={await getPublishedReleases()} />;
+  } catch (error) {
+    // The releases API can reject us (403 rate limit) or time out. Show a
+    // recoverable state with a GitHub link instead of a 500 on a public page.
+    logger.warn('GET /changelog degraded: releases source unavailable', {
+      error,
+    });
+    return <ChangelogContent isUnavailable releases={[]} />;
+  }
 }
