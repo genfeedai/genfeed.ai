@@ -3,10 +3,10 @@ import {
   clearRequestOrganizationId,
   setRequestOrganizationId,
 } from '@genfeedai/services/core/interceptor.service';
-import { dispatchLibraryAssetsRefresh } from '@hooks/data/library/library-assets-refresh';
 import { renderHook, waitFor } from '@testing-library/react';
 import { act } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { dispatchLibraryAssetsRefresh } from '@/features/ingredients/hooks/library-assets-refresh';
 
 const getTokenMock = vi.fn();
 const fetchMock = vi.fn();

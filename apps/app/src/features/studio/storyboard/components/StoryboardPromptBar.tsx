@@ -2,11 +2,11 @@
 
 import { AgentChatInput } from '@genfeedai/agent/components/AgentChatInput';
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { StoryboardPromptBarProps } from '@genfeedai/props/studio/storyboard.props';
 import Alert from '@ui/feedback/alert/Alert';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
+import type { StoryboardPromptBarProps } from '@/features/studio/props/storyboard.props';
 
 /**
  * The Agent's own composer. Before the first draft it takes the brief; once

@@ -4,7 +4,6 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { POST_ENHANCEMENT_CREDITS } from '@genfeedai/contracts/constants';
 import type { PostQuickActionKey } from '@genfeedai/contracts/interfaces';
 import { stripHtmlToPlainText } from '@genfeedai/helpers/security/strip-html.helper';
-import { usePromptBarSubmission } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-submission/use-prompt-bar-submission';
 import type { PromptBarSuggestionItem } from '@genfeedai/props/prompt-bars/prompt-bar-suggestion-item.props';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import { Button } from '@ui/primitives/button';
@@ -30,6 +29,7 @@ import {
   THREAD_PRESETS,
   TONE_KEYS,
 } from '@/features/posts/components/composer-prompt-bar/post-composer-prompt-bar.helpers';
+import { usePromptBarSubmission } from '@/features/posts/hooks/use-prompt-bar-submission/use-prompt-bar-submission';
 
 interface RewriteProposal {
   label: string;

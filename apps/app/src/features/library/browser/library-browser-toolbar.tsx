@@ -9,7 +9,6 @@ import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag/use-featur
 import SearchField from '@ui/content/search-field/SearchField';
 import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Button } from '@ui/primitives/button';
-import LibraryTagManagerDialog from '@ui/tags/library-tag-picker/LibraryTagManagerDialog';
 import {
   SHELL_ICON_BUTTON_CLASS,
   SHELL_ICON_CLASS,
@@ -18,6 +17,7 @@ import { Frame, LayoutGrid, Rows3, Sparkles, Upload } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+import LibraryTagManagerDialog from '@/features/library/components/tags/library-tag-picker/LibraryTagManagerDialog';
 import type {
   LibraryBrowserSearchProps,
   LibraryBrowserToolbarProps,

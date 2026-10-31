@@ -1,11 +1,11 @@
 'use client';
 
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
-import type { StoryboardListRun } from '@genfeedai/props/studio/storyboard.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import { useCallback, useEffect, useState } from 'react';
+import type { StoryboardListRun } from '@/features/studio/props/storyboard.props';
 
 export const STORYBOARD_RUNS_PAGE_SIZE = 50;
 

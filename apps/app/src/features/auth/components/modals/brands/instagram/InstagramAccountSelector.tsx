@@ -4,7 +4,6 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import { InstagramIcon } from '@genfeedai/helpers/ui/icons/brands';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { CredentialInstagram } from '@genfeedai/models/auth/credential.model';
-import type { InstagramAccountSelectorProps } from '@genfeedai/props/auth/instagram-account-selector.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { ServicesService } from '@genfeedai/services/external/services.service';
 import { CredentialsService } from '@genfeedai/services/organization/credentials.service';
@@ -14,8 +13,9 @@ import { CircleCheck } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
+import type { InstagramAccountSelectorProps } from '@/features/auth/props/instagram-account-selector.props';
 
-export type { InstagramAccountSelectorProps } from '@genfeedai/props/auth/instagram-account-selector.props';
+export type { InstagramAccountSelectorProps } from '@/features/auth/props/instagram-account-selector.props';
 
 /**
  * Lets the operator resolve an ambiguous Instagram connection — several

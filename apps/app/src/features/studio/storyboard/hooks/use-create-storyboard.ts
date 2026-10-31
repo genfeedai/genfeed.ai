@@ -6,7 +6,6 @@ import {
   type CreateStoryboardRun,
   createStoryboardRunSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
-import type { StoryboardCreationIntent } from '@genfeedai/props/studio/storyboard.props';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { ContentRunsService } from '@services/content/content-runs.service';
@@ -17,6 +16,7 @@ import {
 } from '@services/core/json-api-error-message';
 import { normalizeOperationError } from '@services/core/operation-error';
 import { useEffect, useRef, useState } from 'react';
+import type { StoryboardCreationIntent } from '@/features/studio/props/storyboard.props';
 import { sessionActiveOrganizationId } from '@/features/studio/storyboard/utils/storyboard-session';
 
 const intents = new Map<string, StoryboardCreationIntent>();

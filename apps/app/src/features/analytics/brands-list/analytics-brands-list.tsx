@@ -27,12 +27,12 @@ import { logger } from '@services/core/logger.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
 import SearchField from '@ui/content/search-field/SearchField';
-import BrandAvatar from '@ui/display/brand-avatar/BrandAvatar';
 import Table from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import AnalyticsBrandSummary from '@/features/analytics/brands-list/analytics-brand-summary';
+import BrandAvatar from '@/features/analytics/components/display/brand-avatar/BrandAvatar';
 
 export interface AnalyticsBrandsListProps {
   basePath?: string;

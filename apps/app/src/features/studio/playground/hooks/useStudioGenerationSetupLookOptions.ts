@@ -1,11 +1,11 @@
 'use client';
 
-import type { GenerationSetupLookOptions } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
 import { useMemo } from 'react';
 import { PRESET_TO_TEMPLATE_MAP } from '@/features/studio/playground/utils/generation-payloads';
 import { getStudioResolutions } from '@/features/studio/playground/utils/studio-playground-settings';
 import { getStudioPlaygroundTypeConfig } from '@/features/studio/playground/utils/studio-playground-types';
+import type { GenerationSetupLookOptions } from '@/features/studio/props/generation-setup.props';
 import type { StudioPlaygroundType } from '../types';
 
 interface LookElement {

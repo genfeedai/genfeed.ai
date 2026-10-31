@@ -26,24 +26,27 @@ vi.mock('@services/content/posts.service', () => ({
 vi.mock('@ui/previews/TargetPreview', () => ({
   default: () => <div data-testid="target-preview" />,
 }));
-vi.mock('@ui/posts/preview/thread-preview-panel/ThreadPreviewPanel', () => ({
-  default: ({
-    parent,
-    replies,
-  }: {
-    parent: { content: string; status?: React.ReactNode };
-    replies: Array<{ content: string; status?: React.ReactNode }>;
-  }) => (
-    <div data-testid="thread-preview">
-      {[parent, ...replies].map((post) => (
-        <div key={post.content}>
-          {post.content}
-          {post.status}
-        </div>
-      ))}
-    </div>
-  ),
-}));
+vi.mock(
+  '@/features/posts/components/posts/preview/thread-preview-panel/ThreadPreviewPanel',
+  () => ({
+    default: ({
+      parent,
+      replies,
+    }: {
+      parent: { content: string; status?: React.ReactNode };
+      replies: Array<{ content: string; status?: React.ReactNode }>;
+    }) => (
+      <div data-testid="thread-preview">
+        {[parent, ...replies].map((post) => (
+          <div key={post.content}>
+            {post.content}
+            {post.status}
+          </div>
+        ))}
+      </div>
+    ),
+  }),
+);
 
 const release = { id: 'release-1' } as IReleaseGroup;
 

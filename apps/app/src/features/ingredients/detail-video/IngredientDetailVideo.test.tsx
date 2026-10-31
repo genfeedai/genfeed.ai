@@ -63,9 +63,12 @@ vi.mock('@/features/ingredients/tabs-posts/IngredientTabsPosts', () => ({
   default: () => <div data-testid="tabs-posts" />,
 }));
 
-vi.mock('@ui/ingredients/tabs/prompts/IngredientTabsPrompts', () => ({
-  default: () => <div data-testid="tabs-prompts" />,
-}));
+vi.mock(
+  '@/features/ingredients/components/ingredients/tabs/prompts/IngredientTabsPrompts',
+  () => ({
+    default: () => <div data-testid="tabs-prompts" />,
+  }),
+);
 
 vi.mock(
   '@/features/ingredients/components/tabs/sharing/IngredientTabsSharing',
@@ -81,9 +84,12 @@ vi.mock(
   }),
 );
 
-vi.mock('@ui/loading/overlay/LoadingOverlay', () => ({
-  default: () => <div data-testid="loading-overlay" />,
-}));
+vi.mock(
+  '@/features/ingredients/components/loading/overlay/LoadingOverlay',
+  () => ({
+    default: () => <div data-testid="loading-overlay" />,
+  }),
+);
 
 vi.mock('@ui/quick-actions/actions/IngredientQuickActions', () => ({
   default: () => <div data-testid="ingredient-quick-actions" />,
@@ -106,7 +112,7 @@ vi.mock('@genfeedai/hooks/ui/evaluation/use-evaluation/use-evaluation', () => ({
 }));
 
 vi.mock(
-  '@genfeedai/hooks/ui/ingredient/use-ingredient-metadata/use-ingredient-metadata',
+  '@/features/ingredients/hooks/use-ingredient-metadata/use-ingredient-metadata',
   () => ({
     useIngredientMetadata: () => ({
       isUpdating: false,
@@ -116,7 +122,7 @@ vi.mock(
 );
 
 vi.mock(
-  '@genfeedai/hooks/ui/ingredient/use-ingredient-sharing/use-ingredient-sharing',
+  '@/features/ingredients/hooks/use-ingredient-sharing/use-ingredient-sharing',
   () => ({
     useIngredientSharing: () => ({
       isUpdating: false,

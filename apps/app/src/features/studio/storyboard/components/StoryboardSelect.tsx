@@ -1,6 +1,5 @@
 'use client';
 
-import type { StoryboardSelectProps } from '@genfeedai/props/studio/storyboard.props';
 import {
   EMPTY_SELECT_ITEM_VALUE,
   Select,
@@ -10,6 +9,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import type { ReactElement } from 'react';
+import type { StoryboardSelectProps } from '@/features/studio/props/storyboard.props';
 
 /** Option select whose placeholder item clears the value (Radix rejects `''`). */
 export default function StoryboardSelect({

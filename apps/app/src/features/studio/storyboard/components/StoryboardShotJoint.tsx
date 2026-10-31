@@ -1,10 +1,10 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { StoryboardShotJointProps } from '@genfeedai/props/studio/storyboard.props';
 import { Button } from '@ui/primitives/button';
 import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { StoryboardShotJointProps } from '@/features/studio/props/storyboard.props';
 import StoryboardSelect from '@/features/studio/storyboard/components/StoryboardSelect';
 
 /** The seam between two shots: how they join, and where to insert another. */

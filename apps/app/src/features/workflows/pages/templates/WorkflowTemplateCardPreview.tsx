@@ -1,17 +1,17 @@
 'use client';
 
 import { MediaType } from '@genfeedai/contracts';
-import type {
-  WorkflowTemplateCardPreviewProps,
-  WorkflowTemplateExampleVideoProps,
-} from '@genfeedai/props/workflows/workflow-template-card-preview.props';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { useIntersectionObserver } from '@hooks/ui/use-intersection-observer/use-intersection-observer';
-import { usePrefersReducedMotion } from '@hooks/ui/use-prefers-reduced-motion/use-prefers-reduced-motion';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
+import { usePrefersReducedMotion } from '@/features/workflows/hooks/use-prefers-reduced-motion/use-prefers-reduced-motion';
+import type {
+  WorkflowTemplateCardPreviewProps,
+  WorkflowTemplateExampleVideoProps,
+} from '@/features/workflows/props/workflow-template-card-preview.props';
 import WorkflowCardPreview from '../library/WorkflowCardPreview';
 
 /** Card widths: the Featured carousel caps at 26rem, the grid at a third. */

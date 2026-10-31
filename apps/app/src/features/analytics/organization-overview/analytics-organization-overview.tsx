@@ -41,7 +41,7 @@ import AnalyticsBrandSummary from '@/features/analytics/brands-list/analytics-br
 const BrandPerformanceChart = dynamic(
   () =>
     import(
-      '@ui/analytics/charts/brand-performance/brand-performance-chart'
+      '@/features/analytics/components/analytics/charts/brand-performance/brand-performance-chart'
     ).then((mod) => mod.BrandPerformanceChart),
   {
     loading: () => <Skeleton className="h-chart w-full" />,
@@ -52,7 +52,7 @@ const BrandPerformanceChart = dynamic(
 const PlatformBreakdownChart = dynamic(
   () =>
     import(
-      '@ui/analytics/charts/platform-breakdown/platform-breakdown-chart'
+      '@/features/analytics/components/analytics/charts/platform-breakdown/platform-breakdown-chart'
     ).then((mod) => mod.PlatformBreakdownChart),
   {
     loading: () => <Skeleton className="h-chart w-full" />,

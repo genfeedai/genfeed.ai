@@ -46,18 +46,11 @@ import {
   buildStudioGenerationQuoteRequest,
   isAutoStudioModelKey,
 } from '@genfeedai/pricing';
-import type {
-  PromptBarContextGroup,
-  PromptBarContextItem,
-} from '@genfeedai/props/prompt-bars/prompt-bar-context-row.props';
 import type { PromptBarReferenceSource } from '@genfeedai/props/prompt-bars/prompt-bar-reference-source.props';
 import { canSubmitStudioGeneration } from '@genfeedai/services/core/desktop-runtime.service';
 import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
 import { usePromptBarContext } from '@providers/promptbar/promptbar.context';
 import { SHELL_ICON_CLASS } from '@ui/constants/shell-chrome.constant';
-import GenerationSetupSectionChips from '@ui/dropdowns/generation-setup/GenerationSetupSectionChips';
-import GenerationSetupTypeBar from '@ui/dropdowns/generation-setup/GenerationSetupTypeBar';
-import { recommendGenerationSetup } from '@ui/dropdowns/generation-setup/generation-setup.recommend';
 import {
   applyGenerationSetupPreset,
   applyGenerationSetupRecommendation,
@@ -92,6 +85,9 @@ import { Bookmark, ImageIcon, Video } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import GenerationSetupSectionChips from '@/features/studio/components/dropdowns/generation-setup/GenerationSetupSectionChips';
+import GenerationSetupTypeBar from '@/features/studio/components/dropdowns/generation-setup/GenerationSetupTypeBar';
+import { recommendGenerationSetup } from '@/features/studio/components/dropdowns/generation-setup/generation-setup.recommend';
 import PromptBarContextRow from '@/features/studio/components/prompt-bars/components/context-row/PromptBarContextRow';
 import { useAdvancedModePreference } from '@/features/studio/hooks/use-advanced-mode-preference/use-advanced-mode-preference';
 import StudioGenerationSummary from '@/features/studio/playground/components/StudioGenerationSummary';
@@ -130,6 +126,10 @@ import {
 } from '@/features/studio/playground/utils/studio-playground-types';
 import { buildStudioPresetCommands } from '@/features/studio/playground/utils/studio-prompt-commands';
 import { buildVideoDraftSettings } from '@/features/studio/playground/utils/studio-video-draft';
+import type {
+  PromptBarContextGroup,
+  PromptBarContextItem,
+} from '@/features/studio/props/prompt-bar-context-row.props';
 import type {
   StudioPlaygroundComposerProps,
   StudioSpendSource,

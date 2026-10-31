@@ -271,9 +271,12 @@ vi.mock('./analytics-overview-performance-dataset', () => ({
   default: () => <div data-testid="performance-dataset-section" />,
 }));
 
-vi.mock('@ui/analytics/top-posts/TopPostsSection', () => ({
-  default: () => <div data-testid="top-posts-section" />,
-}));
+vi.mock(
+  '@/features/analytics/components/analytics/top-posts/TopPostsSection',
+  () => ({
+    default: () => <div data-testid="top-posts-section" />,
+  }),
+);
 
 vi.mock('@ui/card/Card', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children}</div>,

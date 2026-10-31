@@ -10,8 +10,6 @@ import {
 import type { IVideo } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useEvaluation } from '@genfeedai/hooks/ui/evaluation/use-evaluation/use-evaluation';
-import { useIngredientMetadata } from '@genfeedai/hooks/ui/ingredient/use-ingredient-metadata/use-ingredient-metadata';
-import { useIngredientSharing } from '@genfeedai/hooks/ui/ingredient/use-ingredient-sharing/use-ingredient-sharing';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
 import type { IngredientDetailVideoProps } from '@genfeedai/props/content/ingredient.props';
 import type { TabItem } from '@genfeedai/props/ui/navigation/tabs.props';
@@ -20,6 +18,8 @@ import { NotificationsService } from '@genfeedai/services/core/notifications.ser
 import { VideosService } from '@genfeedai/services/ingredients/videos.service';
 import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';
 import { useCallback, useEffect, useState } from 'react';
+import { useIngredientMetadata } from '@/features/ingredients/hooks/use-ingredient-metadata/use-ingredient-metadata';
+import { useIngredientSharing } from '@/features/ingredients/hooks/use-ingredient-sharing/use-ingredient-sharing';
 import VideoDetailFirstColumn from './VideoDetailFirstColumn';
 import VideoDetailWorkspacePanel from './VideoDetailWorkspacePanel';
 

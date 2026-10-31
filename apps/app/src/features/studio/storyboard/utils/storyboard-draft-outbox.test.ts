@@ -2,8 +2,8 @@ import type {
   StoryboardNativeRunConfig,
   StoryboardRun,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
-import type { StoryboardDraftTransport } from '@genfeedai/props/studio/storyboard.props';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { StoryboardDraftTransport } from '@/features/studio/props/storyboard.props';
 import {
   StoryboardDraftOutbox,
   storyboardDraftKey,

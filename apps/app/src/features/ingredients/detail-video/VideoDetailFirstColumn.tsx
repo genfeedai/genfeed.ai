@@ -12,13 +12,13 @@ import type { IIngredient, IVideo } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
-import LoadingOverlay from '@ui/loading/overlay/LoadingOverlay';
 import { Button } from '@ui/primitives/button';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
 import { Film, Scissors } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactNode, RefObject } from 'react';
+import LoadingOverlay from '@/features/ingredients/components/loading/overlay/LoadingOverlay';
 
 type VideoDetailFirstColumnProps = {
   currentVideo: IVideo;

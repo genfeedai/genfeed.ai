@@ -13,12 +13,12 @@ import type {
 import { EmptyState } from '@ui/card/EmptyState';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalModel } from '@ui/lazy/modal/LazyModal';
-import ModelDetailPanel from '@ui/models/ModelDetailPanel';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { CircleCheck, CircleX, Cpu, Pencil, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
+import ModelDetailPanel from '@/features/models/components/models/ModelDetailPanel';
 import type { ModelsListProps } from '@/features/models/props/models.props';
 import AdminModelsToolbar from './components/AdminModelsToolbar';
 import type { ModelCategoryGroupKey } from './components/models-catalog-overview.helpers';

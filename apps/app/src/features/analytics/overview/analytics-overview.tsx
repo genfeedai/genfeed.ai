@@ -46,7 +46,7 @@ export interface AnalyticsOverviewProps {
 const PlatformTimeSeriesChart = dynamic(
   () =>
     import(
-      '@ui/analytics/charts/platform-time-series/platform-time-series-chart'
+      '@/features/analytics/components/analytics/charts/platform-time-series/platform-time-series-chart'
     ).then((mod) => mod.PlatformTimeSeriesChart),
   {
     loading: () => <Skeleton className="h-chart w-full" />,

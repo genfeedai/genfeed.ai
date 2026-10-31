@@ -9,11 +9,6 @@ import {
 } from '@genfeedai/contexts/ui/context-sidebar-context';
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardRunCapabilities } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
-import type {
-  StoryboardEditablePlan,
-  StoryboardPlanEditorProps,
-  StoryboardSelectProps,
-} from '@genfeedai/props/studio/storyboard.props';
 import {
   act,
   fireEvent,
@@ -26,6 +21,11 @@ import userEvent from '@testing-library/user-event';
 import { preloadButtonTooltip } from '@ui/primitives/button-tooltip';
 import type { ReactNode } from 'react';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import type {
+  StoryboardEditablePlan,
+  StoryboardPlanEditorProps,
+  StoryboardSelectProps,
+} from '@/features/studio/props/storyboard.props';
 import StoryboardPlanEditor from './StoryboardPlanEditor';
 
 vi.mock('next-intl', async () => {

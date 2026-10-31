@@ -3,11 +3,11 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
-import { useBrandIdentityPreview } from '@hooks/ui/generation-receipts/use-brand-identity-preview';
 import BrandIdentitySnapshotView from '@ui/components/generation-receipts/BrandIdentitySnapshotView';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
+import { useBrandIdentityPreview } from '@/features/brands/hooks/use-brand-identity-preview';
 import type { BrandOsIdentityPreviewProps } from '@/features/brands/props/brand-os-settings.props';
 
 export default function BrandOsIdentityPreview({

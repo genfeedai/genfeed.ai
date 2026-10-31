@@ -13,7 +13,6 @@ const THEME_AWARE_CHROME = [
   'primitives/calendar.tsx',
   'components/quick-actions/menu/QuickActionsMenu.tsx',
   'components/assets/ScopeSelector.tsx',
-  'components/analytics/charts/platform-time-series/platform-time-series-chart.tsx',
 ] as const;
 
 describe('shared Light/Dark semantic chrome contract', () => {
@@ -46,14 +45,5 @@ describe('shared Light/Dark semantic chrome contract', () => {
     expect(source).toContain('text-muted-foreground');
     expect(source).toContain('bg-primary text-primary-foreground');
     expect(source).toContain('focus:ring-ring');
-  });
-
-  it('uses semantic chart grid, axis, and tick colors', () => {
-    const source = readUiSource(
-      'components/analytics/charts/platform-time-series/platform-time-series-chart.tsx',
-    );
-
-    expect(source).toContain('stroke="hsl(var(--border))"');
-    expect(source).toContain("tick={{ fill: 'hsl(var(--muted-foreground))' }}");
   });
 });

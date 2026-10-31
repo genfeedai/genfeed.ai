@@ -2,7 +2,6 @@
 
 import { AlertCategory, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { StoryboardRunPageProps } from '@genfeedai/props/studio/storyboard.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Alert from '@ui/feedback/alert/Alert';
 import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
@@ -11,6 +10,7 @@ import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
+import type { StoryboardRunPageProps } from '@/features/studio/props/storyboard.props';
 import StoryboardRunPanel from '@/features/studio/storyboard/components/StoryboardRunPanel';
 import StoryboardRunRecipe from '@/features/studio/storyboard/components/StoryboardRunRecipe';
 import { useDurableStoryboardRun } from '@/features/studio/storyboard/hooks/use-durable-storyboard-run';

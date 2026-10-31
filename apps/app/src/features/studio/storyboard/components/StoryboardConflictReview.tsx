@@ -1,12 +1,12 @@
 'use client';
 import { ButtonVariant } from '@genfeedai/contracts';
-import type { StoryboardConflictReviewProps } from '@genfeedai/props/studio/storyboard.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Label } from '@ui/primitives/label';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import type { StoryboardConflictReviewProps } from '@/features/studio/props/storyboard.props';
 
 export default function StoryboardConflictReview({
   conflicts,

@@ -1,8 +1,8 @@
 'use client';
 
-import type { WorkflowCardPreviewProps } from '@genfeedai/props/workflows/workflow-card-preview.props';
 import { Workflow } from 'lucide-react';
 import { useId, useMemo } from 'react';
+import type { WorkflowCardPreviewProps } from '@/features/workflows/props/workflow-card-preview.props';
 import {
   buildWorkflowPreview,
   PREVIEW_NODE_HEIGHT,

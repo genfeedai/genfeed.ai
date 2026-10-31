@@ -2,12 +2,12 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { sanitizeHtml } from '@genfeedai/helpers';
-import type { XArticleSectionCardProps } from '@genfeedai/props/content/x-article.props';
 import { Blockquote } from '@genfeedai/ui';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import parse from 'html-react-parser';
 import { Clipboard } from 'lucide-react';
+import type { XArticleSectionCardProps } from '@/features/studio/props/x-article.props';
 
 export default function XArticleSectionCard({
   section,

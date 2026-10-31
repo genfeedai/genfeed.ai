@@ -1,10 +1,10 @@
 'use client';
 
-import type { WorkflowCardPreviewProps } from '@genfeedai/props/workflows/workflow-card-preview.props';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import Image from 'next/image';
 import { useState } from 'react';
+import type { WorkflowCardPreviewProps } from '@/features/workflows/props/workflow-card-preview.props';
 import WorkflowGraphPreview from './WorkflowGraphPreview';
 
 function isVideoUrl(url: string): boolean {

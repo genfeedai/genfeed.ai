@@ -8,7 +8,6 @@ import {
 } from '@genfeedai/contracts';
 import type { StoryboardRunRecipe as StoryboardRunRecipeValue } from '@genfeedai/contracts/interfaces';
 import type { GallerySelectItem } from '@genfeedai/props/modals/modal-gallery.props';
-import type { StoryboardRunRecipeProps } from '@genfeedai/props/studio/storyboard.props';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
@@ -18,6 +17,7 @@ import { ImagePlus, Sparkles, X } from 'lucide-react';
 import NextImage from 'next/image';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, useState } from 'react';
+import type { StoryboardRunRecipeProps } from '@/features/studio/props/storyboard.props';
 import StoryboardSelect from '@/features/studio/storyboard/components/StoryboardSelect';
 import { useStoryboardAssets } from '@/features/studio/storyboard/hooks/use-storyboard-assets';
 import { getStoryboardAssetLabel } from '@/features/studio/storyboard/utils/storyboard-asset-label';

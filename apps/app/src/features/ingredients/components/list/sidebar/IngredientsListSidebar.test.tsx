@@ -1,11 +1,11 @@
 import { PageScope } from '@genfeedai/contracts';
-import type { IngredientsListSidebarProps } from '@genfeedai/props/pages/ingredients-list.props';
 import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import IngredientsListSidebar from '@/features/ingredients/components/list/sidebar/IngredientsListSidebar';
+import type { IngredientsListSidebarProps } from '@/features/ingredients/props/ingredients-list.props';
 
 vi.mock(
-  '@ui/ingredients/list/folders-sidebar-panel/FoldersSidebarPanel',
+  '@/features/ingredients/components/ingredients/list/folders-sidebar-panel/FoldersSidebarPanel',
   () => ({
     default: () => <div data-testid="folders-sidebar-panel" />,
   }),

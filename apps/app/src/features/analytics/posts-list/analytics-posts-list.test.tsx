@@ -37,7 +37,7 @@ vi.mock('@hooks/data/analytics/use-top-posts/use-top-posts', () => ({
   useTopPosts: (...args: unknown[]) => useTopPostsMock(...args),
 }));
 
-vi.mock('@hooks/data/analytics/use-winner-posts/use-winner-posts', () => ({
+vi.mock('@/features/analytics/hooks/use-winner-posts/use-winner-posts', () => ({
   useWinnerPosts: (...args: unknown[]) => useWinnerPostsMock(...args),
 }));
 

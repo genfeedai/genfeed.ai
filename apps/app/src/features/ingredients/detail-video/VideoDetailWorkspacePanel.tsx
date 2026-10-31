@@ -10,8 +10,8 @@ import type {
 import type { TabItem } from '@genfeedai/props/ui/navigation/tabs.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import EvaluationCard from '@ui/evaluation/card/EvaluationCard';
-import IngredientTabsPrompts from '@ui/ingredients/tabs/prompts/IngredientTabsPrompts';
 import IngredientWorkspacePanel from '@/features/ingredients/components/detail/shared/IngredientWorkspacePanel';
+import IngredientTabsPrompts from '@/features/ingredients/components/ingredients/tabs/prompts/IngredientTabsPrompts';
 import IngredientTabsCaptions from '@/features/ingredients/components/tabs/captions/IngredientTabsCaptions';
 import IngredientTabsChildren from '@/features/ingredients/components/tabs/children/IngredientTabsChildren';
 import IngredientTabsInfo from '@/features/ingredients/components/tabs/info/IngredientTabsInfo';

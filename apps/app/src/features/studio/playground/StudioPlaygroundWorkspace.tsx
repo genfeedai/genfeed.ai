@@ -56,7 +56,6 @@ import {
 import { normalizeCrunVideoDraft } from '@genfeedai/helpers/crun-video-input.helper';
 import { isAutoStudioModelKey } from '@genfeedai/pricing';
 import type { BrandKnowledgeSelection } from '@genfeedai/props/content/knowledge-library.props';
-import type { PromptBarContextItem } from '@genfeedai/props/prompt-bars/prompt-bar-context-row.props';
 import type { PromptEditorDocumentSeed } from '@genfeedai/props/prompt-bars/prompt-editor.props';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import type { AttachmentItem } from '@genfeedai/props/ui/attachments.props';
@@ -86,7 +85,6 @@ import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Label } from '@ui/primitives/label';
-import { usePromptCommandExtension } from '@ui/prompt-editor/use-prompt-command-extension';
 import { SHELL_ICON_CLASS } from '@ui-constants/shell-chrome.constant';
 import {
   ImageIcon,
@@ -111,6 +109,7 @@ import {
 import KnowledgeReferenceSection, {
   countKnowledgeSelection,
 } from '@/features/library/knowledge/components/KnowledgeReferenceSection';
+import { usePromptCommandExtension } from '@/features/studio/components/prompt-editor/use-prompt-command-extension';
 import { useAdvancedModePreference } from '@/features/studio/hooks/use-advanced-mode-preference/use-advanced-mode-preference';
 import StudioPlaygroundAgentProposals from '@/features/studio/playground/components/StudioPlaygroundAgentProposals';
 import StudioPlaygroundComposer from '@/features/studio/playground/components/StudioPlaygroundComposer';
@@ -195,6 +194,7 @@ import {
   resolveStudioUploadReferenceRole,
   studioAudioReferenceIds,
 } from '@/features/studio/playground/utils/studio-reference-selection';
+import type { PromptBarContextItem } from '@/features/studio/props/prompt-bar-context-row.props';
 import type {
   StudioPlaygroundComposerProps,
   StudioPlaygroundFilter,

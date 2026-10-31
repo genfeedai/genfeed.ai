@@ -3,12 +3,12 @@
 import { AgentMediaArtifactPreview } from '@genfeedai/agent/components/AgentMediaArtifactPreview';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { StoryboardReferencesPanelProps } from '@genfeedai/props/studio/storyboard.props';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import type { StoryboardReferencesPanelProps } from '@/features/studio/props/storyboard.props';
 
 /** Only references selected for this storyboard, never fabricated media. Lives in the sidebar's References tab. */
 export default function StoryboardReferencesPanel({
