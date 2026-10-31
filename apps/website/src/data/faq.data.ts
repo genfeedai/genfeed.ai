@@ -32,7 +32,7 @@ const FAQ_ITEMS_GENERAL: FAQItem[] = [
     question: 'Who is Genfeed for?',
   },
   {
-    answer: `Sign up free and buy credits for the output you generate. Subscribe to ${PLAN_COPY.pro.name} (${PLAN_COPY.pro.priceLabel}, ${PLAN_COPY.pro.includedCredits} included) for every app on one brand, or ${PLAN_COPY.scale.name} (${PLAN_COPY.scale.priceLabel}, ${PLAN_COPY.scale.includedCredits} included) when you run content for multiple clients and need seats, shared approvals, and multi-organization workflows.`,
+    answer: `Sign up free and buy credits for the output you generate. Subscribe to ${PLAN_COPY.pro.name} (${PLAN_COPY.pro.priceLabel}, ${PLAN_COPY.pro.includedCredits} included) for every app in one workspace, or ${PLAN_COPY.scale.name} (${PLAN_COPY.scale.priceLabel}, ${PLAN_COPY.scale.includedCredits} included) when you run content for multiple clients and need seats, shared approvals, and multi-organization workflows.`,
     question: 'How do I get started?',
   },
 ];

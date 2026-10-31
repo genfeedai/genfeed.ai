@@ -57,7 +57,13 @@ const QUALITY_TIERS_BY_ACCESS: Map<QualityTier, SubscriptionTier> =
   }, new Map<QualityTier, SubscriptionTier>());
 
 function getRequiredTierForQuality(quality: QualityTier): SubscriptionTier {
-  return QUALITY_TIERS_BY_ACCESS.get(quality) ?? SubscriptionTier.SCALE;
+  const tier = QUALITY_TIERS_BY_ACCESS.get(quality) ?? SubscriptionTier.SCALE;
+
+  // Pro cannot be bought until its Stripe price is configured, so point at the
+  // next plan that can.
+  return tier === SubscriptionTier.PRO && !EnvironmentService.plans.pro
+    ? SubscriptionTier.SCALE
+    : tier;
 }
 
 function useAppNavigation() {

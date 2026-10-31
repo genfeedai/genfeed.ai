@@ -172,7 +172,8 @@ export function buildPlanSlugPriceIdMap(): Record<string, string | undefined> {
 
 /**
  * Resolve a `?plan=` handoff value into a Stripe price id when possible.
- * Returns `null` for empty input. Already-formed price ids and unknown slugs
+ * Returns `null` for empty input and for a known subscription slug whose
+ * price id is not configured. Already-formed price ids and unknown slugs
  * are returned untouched so existing behavior (e.g. the free `payg` handoff)
  * is preserved.
  */
@@ -192,8 +193,14 @@ export function resolveSelectedPlanParam(
     return trimmed;
   }
 
-  const resolved = planSlugPriceIds[trimmed.toLowerCase()];
-  return resolved ?? trimmed;
+  const slug = trimmed.toLowerCase();
+  if (Object.hasOwn(planSlugPriceIds, slug)) {
+    // A known subscription slug whose Stripe price is not configured has no
+    // valid checkout target; forwarding the slug would fail the checkout DTO.
+    return planSlugPriceIds[slug] || null;
+  }
+
+  return trimmed;
 }
 
 /**

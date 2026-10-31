@@ -63,7 +63,7 @@ const FAQ_ITEMS = [
   },
   {
     answer:
-      'One credit is $0.01. You see the price of every job before it runs.',
+      'You see the price of every job in credits before it runs. Credits come with your plan or from a pay-as-you-go top-up.',
     question: 'How do credits work?',
   },
   {
@@ -316,7 +316,12 @@ export default function PricingContent() {
             <TableBody>
               {buildPricingCompareRows().map((row) => (
                 <TableRow key={row.label}>
-                  <TableCell className="font-medium">{row.label}</TableCell>
+                  <TableHead
+                    scope="row"
+                    className="h-auto p-2 text-sm font-medium normal-case tracking-normal text-foreground"
+                  >
+                    {row.label}
+                  </TableHead>
                   {row.values.map((value, index) => (
                     <TableCell
                       key={`${row.label}-${getCompareColumnLabels()[index]}`}

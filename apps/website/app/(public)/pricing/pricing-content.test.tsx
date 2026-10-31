@@ -77,11 +77,17 @@ describe('PricingContent', () => {
     expect(
       table.getAllByRole('columnheader').map((header) => header.textContent),
     ).toEqual(['Feature', 'Pay As You Go', 'Pro', 'Scale', 'Enterprise']);
-    const modules = table
-      .getByRole('row', { name: /Automation, Messages, Discovery/ })
-      .querySelectorAll('td');
-    expect([...modules].map((cell) => cell.textContent)).toEqual([
-      'Automation, Messages, Discovery',
+    const row = table.getByRole('row', {
+      name: /Automation, Messages, Discovery/,
+    });
+    expect(
+      within(row).getByRole('rowheader', {
+        name: 'Automation, Messages, Discovery',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      [...row.querySelectorAll('td')].map((cell) => cell.textContent),
+    ).toEqual([
       '—',
       'Yes',
       'Yes',

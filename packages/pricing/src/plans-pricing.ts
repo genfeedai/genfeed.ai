@@ -480,7 +480,7 @@ export const websitePlans: WebsitePlanProps[] = [
     tier: 'pro',
     type: 'subscription',
     valueProposition:
-      'Every app, with credits included, for one brand and one seat.',
+      'Every app, with credits included, for one workspace and one seat.',
   },
 
   // Scale Tier - higher-entry team studio
