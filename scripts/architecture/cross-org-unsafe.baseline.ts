@@ -24,7 +24,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // Superadmin failure resolution; the write itself is scoped to the execution row's own tenant.
     {
       file: 'apps/server/api/src/collections/workflow-executions/controllers/workflow-executions.controller.ts',
-      line: 301,
+      line: 302,
     },
     // Platform-owned system workflow ids are read under the system principal.
     {
@@ -114,7 +114,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin-only cross-organization workflow failure feed.
     {
       file: 'apps/server/api/src/collections/workflow-executions/controllers/workflow-executions.controller.ts',
-      line: 202,
+      line: 203,
     },
     // #6120: marketplace lists public workflow templates published by every
     // organization.
@@ -319,7 +319,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // organizations.
     {
       file: 'apps/server/api/src/collections/referrals/services/referrals.service.ts',
-      line: 272,
+      line: 274,
     },
     // #6120: short codes are globally unique; public redirects resolve without
     // an organization.
@@ -330,13 +330,13 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin platform-wide announcement history.
     {
       file: 'apps/server/api/src/endpoints/admin/announcements/announcements.service.ts',
-      line: 160,
+      line: 162,
     },
     // #6120: runAsPlatformAdmin for the IP-whitelisted, superadmin-guarded
     // warm-up provisioning in the target customer organization.
     {
       file: 'apps/server/api/src/endpoints/admin/warmup-accounts/warmup-accounts.controller.ts',
-      line: 214,
+      line: 220,
     },
     // #6120: superadmin all-organizations analytics when no organization is
     // named.
@@ -353,12 +353,12 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin activity list not pinned to the active organization.
     {
       file: 'apps/server/api/src/collections/activities/controllers/activities.controller.ts',
-      line: 140,
+      line: 148,
     },
     // #6120: superadmin operates on a bot in any organization.
     {
       file: 'apps/server/api/src/collections/bots/controllers/bots.controller.ts',
-      line: 294,
+      line: 296,
     },
     // #6120: superadmin list of another organization's credentials.
     {
@@ -441,15 +441,15 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // families.
     {
       file: 'apps/server/api/src/collections/font-families/controllers/font-families.controller.ts',
-      line: 78,
+      line: 79,
     },
     {
       file: 'apps/server/api/src/collections/font-families/controllers/font-families.controller.ts',
-      line: 104,
+      line: 105,
     },
     {
       file: 'apps/server/api/src/collections/font-families/controllers/font-families.controller.ts',
-      line: 118,
+      line: 119,
     },
     // #6120: superadmin may read any organization's article (findOne,
     // createPreviewLink).
@@ -473,7 +473,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // and wallets.
     {
       file: 'apps/server/api/src/collections/subscriptions/controllers/subscriptions.controller.ts',
-      line: 306,
+      line: 311,
     },
     // #6120: a granted reference lives in the owning organization; used only
     // when grantedOwners.has(id).
