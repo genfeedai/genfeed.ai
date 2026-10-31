@@ -1,10 +1,10 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
-import type { StoryboardRuntimeRailProps } from '@genfeedai/props/studio/storyboard.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
+import type { StoryboardRuntimeRailProps } from '@/features/studio/props/storyboard.props';
 
 /** One-line runtime meter for the sub-topbar: seconds used, a shot-by-shot bar, shot count. */
 export default function StoryboardRuntimeRail({

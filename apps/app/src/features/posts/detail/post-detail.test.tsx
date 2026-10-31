@@ -20,7 +20,7 @@ vi.mock('next-intl', async () => {
 
 const mockUsePostDetail = vi.fn();
 
-vi.mock('@hooks/pages/use-post-detail/use-post-detail', () => ({
+vi.mock('@/features/posts/hooks/use-post-detail/use-post-detail', () => ({
   usePostDetail: (...args: unknown[]) => mockUsePostDetail(...args),
 }));
 
@@ -51,15 +51,21 @@ vi.mock('@/features/posts/detail/components/PostDetailContent', () => ({
   default: () => <div data-testid="post-content" />,
 }));
 
-vi.mock('@ui/posts/post-detail-sidebar/PostDetailSidebar', () => ({
-  default: ({ preview }: { preview?: ReactNode }) => (
-    <div data-testid="post-sidebar">{preview}</div>
-  ),
-}));
+vi.mock(
+  '@/features/posts/components/posts/post-detail-sidebar/PostDetailSidebar',
+  () => ({
+    default: ({ preview }: { preview?: ReactNode }) => (
+      <div data-testid="post-sidebar">{preview}</div>
+    ),
+  }),
+);
 
-vi.mock('@ui/posts/engagement-preview/EngagementPreview', () => ({
-  default: () => <div data-testid="engagement-preview" />,
-}));
+vi.mock(
+  '@/features/posts/components/posts/engagement-preview/EngagementPreview',
+  () => ({
+    default: () => <div data-testid="engagement-preview" />,
+  }),
+);
 
 vi.mock('@ui/previews/TargetPreview', () => ({
   default: ({ release }: TargetPreviewProps) => (

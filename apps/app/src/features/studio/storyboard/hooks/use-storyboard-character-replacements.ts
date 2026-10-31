@@ -5,10 +5,10 @@ import type {
   StoryboardCharacterReplacement,
   StoryboardCharacterReplacements,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-character-replace.contract';
-import type { StoryboardCharacterReplaceProps } from '@genfeedai/props/studio/storyboard.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { StoryboardCharacterReplaceProps } from '@/features/studio/props/storyboard.props';
 
 const empty: StoryboardCharacterReplacements = { operations: [] };
 

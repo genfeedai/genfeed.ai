@@ -5,7 +5,7 @@ import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import IngredientTabsTags from '@/features/ingredients/components/tabs/tags/IngredientTabsTags';
 
-vi.mock('@ui/tags/manager/TagsManager', () => ({
+vi.mock('@/features/ingredients/components/tags/manager/TagsManager', () => ({
   default: () => <div data-testid="tags-manager" />,
 }));
 

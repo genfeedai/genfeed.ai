@@ -2,7 +2,6 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
-import { GROK_FEEDBACK_QUESTIONS } from '@hooks/pages/use-post-detail/use-post-detail-state';
 import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
@@ -12,6 +11,7 @@ import { MessageSquarePlus, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type React from 'react';
 import { useState } from 'react';
+import { GROK_FEEDBACK_QUESTIONS } from '@/features/posts/hooks/use-post-detail/use-post-detail-state';
 
 export interface PostDetailThreadFooterProps {
   /** X: replies and the closing @grok question. */

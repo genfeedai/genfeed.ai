@@ -1,0 +1,232 @@
+'use client';
+
+import {
+  useGalleryModal,
+  useGenerateIllustrationModal,
+} from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
+import {
+  CredentialPlatform,
+  IngredientCategory,
+  type Platform,
+  PostCategory,
+} from '@genfeedai/contracts';
+import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
+import type { GallerySelectItem } from '@genfeedai/props/modals/modal-gallery.props';
+import type { PostsService } from '@genfeedai/services/content/posts.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import type { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { getCarouselLimits } from '@genfeedai/utils/carousel-validation';
+import { useCallback } from 'react';
+import { getFormatForPlatform } from '@/features/posts/hooks/use-post-detail/use-post-detail-state';
+
+export interface UsePostDetailMediaOptions {
+  post: IPost | null;
+  setPost: React.Dispatch<React.SetStateAction<IPost | null>>;
+  sortedChildren: IPost[];
+  getPostsService: () => Promise<PostsService>;
+  notificationsService: NotificationsService;
+  fetchPost: (isRefresh?: boolean) => Promise<void>;
+  handleUpdateChild: (childId: string, updates: Partial<IPost>) => void;
+  setSelectedIngredients: React.Dispatch<React.SetStateAction<IIngredient[]>>;
+  setIsSavingIngredients: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+export interface UsePostDetailMediaReturn {
+  handleSelectMedia: (
+    targetPostId: string,
+    currentIngredients: IIngredient[],
+  ) => void;
+  /** Attaches the media as given, in order: a reorder or a removal. */
+  handleChangeMedia: (
+    targetPostId: string,
+    ingredients: IIngredient[],
+  ) => Promise<void>;
+  handleGenerateIllustration: (
+    postId: string,
+    prompt: string,
+    platform?: Platform,
+  ) => void;
+}
+
+export function usePostDetailMedia({
+  post,
+  setPost,
+  sortedChildren,
+  getPostsService,
+  notificationsService,
+  fetchPost,
+  handleUpdateChild,
+  setSelectedIngredients,
+  setIsSavingIngredients,
+}: UsePostDetailMediaOptions): UsePostDetailMediaReturn {
+  const { openGallery } = useGalleryModal();
+  const { openGenerateIllustration } = useGenerateIllustrationModal();
+
+  // Attaches `selected` (in publishing order) to a post and syncs local state.
+  const persistMedia = useCallback(
+    async (targetPostId: string, selected: IIngredient[]) => {
+      const isParentPost = targetPostId === post?.id;
+      const targetPost = isParentPost
+        ? post
+        : sortedChildren.find((c) => c.id === targetPostId);
+      if (!targetPost) {
+        return;
+      }
+
+      const platform = targetPost.platform ?? targetPost.credential?.platform;
+      const isVideoPlatform =
+        platform === CredentialPlatform.TIKTOK ||
+        platform === CredentialPlatform.YOUTUBE;
+      const uniqueIngredients = selected.filter(
+        (ing, index, self) => index === self.findIndex((i) => i.id === ing.id),
+      );
+
+      setIsSavingIngredients(true);
+      try {
+        const service = await getPostsService();
+        await service.patch(targetPostId, {
+          ingredients: uniqueIngredients.map((ing) => ing.id),
+          ...(isVideoPlatform
+            ? {
+                category: uniqueIngredients.length
+                  ? PostCategory.VIDEO
+                  : PostCategory.TEXT,
+              }
+            : {}),
+        });
+
+        if (isParentPost) {
+          setSelectedIngredients(uniqueIngredients);
+          setPost((prevPost) => ({
+            ...(prevPost || (post as IPost)),
+            ingredients: uniqueIngredients,
+            ...(isVideoPlatform
+              ? {
+                  category: uniqueIngredients.length
+                    ? PostCategory.VIDEO
+                    : PostCategory.TEXT,
+                }
+              : {}),
+          }));
+        } else {
+          handleUpdateChild(targetPostId, {
+            ingredients: uniqueIngredients,
+          });
+        }
+        await fetchPost(true);
+      } finally {
+        setIsSavingIngredients(false);
+      }
+    },
+    [
+      post,
+      sortedChildren,
+      getPostsService,
+      fetchPost,
+      handleUpdateChild,
+      setPost,
+      setSelectedIngredients,
+      setIsSavingIngredients,
+    ],
+  );
+
+  // Media selection handler
+  const handleSelectMedia = useCallback(
+    (targetPostId: string, currentIngredients: IIngredient[] = []) => {
+      const isParentPost = targetPostId === post?.id;
+      const targetPost = isParentPost
+        ? post
+        : sortedChildren.find((c) => c.id === targetPostId);
+
+      if (!targetPost) {
+        return;
+      }
+
+      const platform = targetPost.platform ?? targetPost.credential?.platform;
+      const isVideoPlatform =
+        platform === CredentialPlatform.TIKTOK ||
+        platform === CredentialPlatform.YOUTUBE;
+      const ingredientCategory = isVideoPlatform
+        ? IngredientCategory.VIDEO
+        : currentIngredients[0]?.category || IngredientCategory.IMAGE;
+
+      const carouselLimits = platform ? getCarouselLimits(platform) : null;
+      const maxSelectableItems = isVideoPlatform
+        ? 1
+        : (carouselLimits?.max ?? 35);
+      const format = getFormatForPlatform(platform as Platform);
+      const selectedIds = currentIngredients.map((ing) => ing.id);
+
+      openGallery({
+        category: ingredientCategory,
+        format,
+        maxSelectableItems,
+        // An emptied selection arrives as `[]` and falls through the same path:
+        // it patches, sets, and propagates empty ingredients like any other size.
+        onSelect: async (selected: GallerySelectItem[]) => {
+          await persistMedia(targetPostId, selected);
+        },
+        selectedId: selectedIds.length === 1 ? selectedIds[0] : undefined,
+        selectedReferences: selectedIds.length > 1 ? selectedIds : undefined,
+        title: 'Select Media for Post',
+      });
+    },
+    [openGallery, persistMedia, post, sortedChildren],
+  );
+
+  // Generate illustration handler
+  const handleGenerateIllustration = useCallback(
+    (targetPostId: string, prompt: string, platform?: Platform) => {
+      openGenerateIllustration({
+        initialPrompt: prompt,
+        onConfirm: async (imageId: string) => {
+          setIsSavingIngredients(true);
+          try {
+            const service = await getPostsService();
+            await service.patch(targetPostId, {
+              ingredients: [imageId],
+            });
+
+            notificationsService.success(
+              'Illustration generated and attached!',
+            );
+
+            await fetchPost(true);
+          } catch (err) {
+            logger.error('Failed to attach illustration', err);
+            notificationsService.error('Failed to attach illustration to post');
+          } finally {
+            setIsSavingIngredients(false);
+          }
+        },
+        platform,
+        postId: targetPostId,
+      });
+    },
+    [
+      openGenerateIllustration,
+      getPostsService,
+      notificationsService,
+      fetchPost,
+      setIsSavingIngredients,
+    ],
+  );
+
+  const handleChangeMedia = useCallback(
+    async (targetPostId: string, ingredients: IIngredient[]) => {
+      try {
+        await persistMedia(targetPostId, ingredients);
+      } catch (err) {
+        logger.error('Failed to update post media', err);
+        notificationsService.error('Failed to update post media');
+      }
+    },
+    [persistMedia, notificationsService],
+  );
+
+  return {
+    handleChangeMedia,
+    handleGenerateIllustration,
+    handleSelectMedia,
+  };
+}

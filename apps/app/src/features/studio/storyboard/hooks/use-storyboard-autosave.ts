@@ -2,6 +2,7 @@
 
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardSourceSelector } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   StoryboardAutosaveBinding,
   StoryboardAutosaveOptions,
@@ -9,8 +10,7 @@ import type {
   StoryboardDraftValue,
   StoryboardEditablePlan,
   StoryboardSaveSnapshot,
-} from '@genfeedai/props/studio/storyboard.props';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+} from '@/features/studio/props/storyboard.props';
 import {
   getStoryboardDraftOutbox,
   storyboardDraftKey,

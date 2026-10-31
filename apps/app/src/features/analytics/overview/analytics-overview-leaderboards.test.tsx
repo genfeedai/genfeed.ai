@@ -24,9 +24,12 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/acme/moonrise${path}` }),
 }));
 
-vi.mock('@ui/analytics/top-posts/TopPostsSection', () => ({
-  default: () => <div />,
-}));
+vi.mock(
+  '@/features/analytics/components/analytics/top-posts/TopPostsSection',
+  () => ({
+    default: () => <div />,
+  }),
+);
 
 vi.mock('@contexts/ui/context-sidebar-context', () => ({
   ContextSidebarPanel: ({

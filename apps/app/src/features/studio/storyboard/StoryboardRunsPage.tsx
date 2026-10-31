@@ -2,7 +2,6 @@
 
 import { ButtonVariant, ViewType } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { StoryboardListRun } from '@genfeedai/props/studio/storyboard.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import Card from '@ui/card/Card';
@@ -17,6 +16,7 @@ import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { Fragment, type ReactElement } from 'react';
+import type { StoryboardListRun } from '@/features/studio/props/storyboard.props';
 import StoryboardPresetShelf from '@/features/studio/storyboard/components/StoryboardPresetShelf';
 import StoryboardRunsOnboarding from '@/features/studio/storyboard/components/StoryboardRunsOnboarding';
 import { useStoryboardRuns } from '@/features/studio/storyboard/hooks/use-storyboard-runs';

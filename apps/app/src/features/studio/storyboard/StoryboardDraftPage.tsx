@@ -2,12 +2,6 @@
 
 import { useAgentOutputHost } from '@contexts/ui/agent-output-host-context';
 import { ButtonVariant } from '@genfeedai/contracts';
-import type {
-  StoryboardAgentRequest,
-  StoryboardDraftPageProps,
-  StoryboardPlanEditorHandle,
-  StoryboardSaveIndicatorProps,
-} from '@genfeedai/props/studio/storyboard.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
 import { Button } from '@ui/primitives/button';
@@ -15,6 +9,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type MouseEvent, useEffect, useRef, useState } from 'react';
+import type {
+  StoryboardAgentRequest,
+  StoryboardDraftPageProps,
+  StoryboardPlanEditorHandle,
+  StoryboardSaveIndicatorProps,
+} from '@/features/studio/props/storyboard.props';
 import StoryboardAgentThread from '@/features/studio/storyboard/components/StoryboardAgentThread';
 import StoryboardConflictReview from '@/features/studio/storyboard/components/StoryboardConflictReview';
 import StoryboardPlanEditor from '@/features/studio/storyboard/components/StoryboardPlanEditor';

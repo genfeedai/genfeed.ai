@@ -5,13 +5,13 @@ import {
 } from '@genfeedai/contracts/api-types/contracts';
 import type { BrandRemixScenePipeline } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import type { StoryboardRunRecipe } from '@genfeedai/contracts/interfaces';
-import type {
-  StoryboardRunPanelProps,
-  StoryboardRunRecipeProps,
-} from '@genfeedai/props/studio/storyboard.props';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type {
+  StoryboardRunPanelProps,
+  StoryboardRunRecipeProps,
+} from '@/features/studio/props/storyboard.props';
 
 const mocks = vi.hoisted(() => ({
   panelProps: null as StoryboardRunPanelProps | null,

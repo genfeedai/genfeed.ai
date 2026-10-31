@@ -28,9 +28,12 @@ vi.mock('@hooks/feature-flags/use-feature-flag/use-feature-flag', () => ({
   useFeatureFlag,
 }));
 
-vi.mock('@ui/tags/library-tag-picker/LibraryTagManagerDialog', () => ({
-  default: () => <button type="button">Manage tags</button>,
-}));
+vi.mock(
+  '@/features/library/components/tags/library-tag-picker/LibraryTagManagerDialog',
+  () => ({
+    default: () => <button type="button">Manage tags</button>,
+  }),
+);
 
 vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
   default: () => <div data-testid="refresh-button" />,

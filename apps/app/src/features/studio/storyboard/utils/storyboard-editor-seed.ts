@@ -1,5 +1,5 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { StoryboardEditorSeedInput } from '@genfeedai/props/studio/storyboard.props';
+import type { StoryboardEditorSeedInput } from '@/features/studio/props/storyboard.props';
 
 export function getStoryboardEditorSeed(input: StoryboardEditorSeedInput) {
   if (!input.isReady)

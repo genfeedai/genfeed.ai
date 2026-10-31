@@ -2,15 +2,15 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type {
-  PromptBarContextChipProps,
-  PromptBarContextRowProps,
-} from '@genfeedai/props/prompt-bars/prompt-bar-context-row.props';
-import { usePromptBarRowFit } from '@hooks/prompt-bar/use-prompt-bar-row-fit/use-prompt-bar-row-fit';
 import { Button } from '@ui/primitives/button';
 import { X } from 'lucide-react';
 import Image from 'next/image';
 import { Fragment, type ReactElement, useRef } from 'react';
+import { usePromptBarRowFit } from '@/features/studio/hooks/use-prompt-bar-row-fit/use-prompt-bar-row-fit';
+import type {
+  PromptBarContextChipProps,
+  PromptBarContextRowProps,
+} from '@/features/studio/props/prompt-bar-context-row.props';
 
 const CHIP_CLASS =
   'inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-border bg-tertiary text-xs text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground';

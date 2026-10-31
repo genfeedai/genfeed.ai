@@ -41,7 +41,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock(
-  '@hooks/data/ingredients/use-ingredients-list/use-ingredients-list',
+  '@/features/ingredients/hooks/use-ingredients-list/use-ingredients-list',
   () => ({
     useIngredientsList: mockUseIngredientsList,
   }),
@@ -87,7 +87,7 @@ vi.mock(
 );
 
 vi.mock(
-  '@ui/ingredients/list/selection-actions-bar/SelectionTagAction',
+  '@/features/ingredients/components/ingredients/list/selection-actions-bar/SelectionTagAction',
   () => ({
     default: ({
       selectedIngredients,

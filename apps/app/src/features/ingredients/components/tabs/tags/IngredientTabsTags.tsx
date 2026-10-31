@@ -4,7 +4,6 @@ import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { ITag } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import type { ExtendedIngredientTabsTagsProps } from '@genfeedai/props/content/ingredient-tabs.props';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { TagsService } from '@genfeedai/services/content/tags.service';
 import { logger } from '@genfeedai/services/core/logger.service';
@@ -20,9 +19,10 @@ import { Label } from '@ui/primitives/label';
 import Spinner from '@ui/primitives/spinner';
 import { libraryTagStyle } from '@ui/tags/library-tag-picker/library-tag-colors.util';
 import { LIBRARY_TAGS_QUERY_KEY } from '@ui/tags/library-tag-picker/library-tags-query-key';
-import TagsManager from '@ui/tags/manager/TagsManager';
 import { Plus, Tag, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import TagsManager from '@/features/ingredients/components/tags/manager/TagsManager';
+import type { ExtendedIngredientTabsTagsProps } from '@/features/ingredients/props/ingredient-tabs.props';
 
 export default function IngredientTabsTags({
   ingredient,

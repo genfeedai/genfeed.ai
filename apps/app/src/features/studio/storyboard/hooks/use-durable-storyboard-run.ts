@@ -16,10 +16,6 @@ import type { StoryboardSourceSelector } from '@genfeedai/contracts/api-types/co
 import { storyboardSourceSelectorSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
 import type { StoryboardStillQuote } from '@genfeedai/contracts/api-types/contracts/storyboard-still.contract';
 import { parseScopedAppPath } from '@genfeedai/contracts/constants';
-import type {
-  StoryboardDraftTransport,
-  StoryboardEditablePlan,
-} from '@genfeedai/props/studio/storyboard.props';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -31,6 +27,10 @@ import {
   getJsonApiErrorMessage,
 } from '@services/core/json-api-error-message';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type {
+  StoryboardDraftTransport,
+  StoryboardEditablePlan,
+} from '@/features/studio/props/storyboard.props';
 import { eligibleStoryboardVoices } from '@/features/studio/storyboard/hooks/use-storyboard-voices';
 import { requiresStoryboardTimingCapabilities } from '@/features/studio/storyboard/utils/storyboard-capabilities';
 import { sessionActiveOrganizationId } from '@/features/studio/storyboard/utils/storyboard-session';

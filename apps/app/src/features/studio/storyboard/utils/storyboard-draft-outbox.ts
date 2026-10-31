@@ -4,19 +4,19 @@ import {
   storyboardIdSchema,
   storyboardSourceSelectorSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
-import type {
-  StoryboardDraftConflict,
-  StoryboardDraftScope,
-  StoryboardDraftTransport,
-  StoryboardDraftValue,
-  StoryboardSaveIndicatorProps,
-} from '@genfeedai/props/studio/storyboard.props';
 import {
   getJsonApiErrorMember,
   getJsonApiErrorMessage,
 } from '@services/core/json-api-error-message';
 import { normalizeOperationError } from '@services/core/operation-error';
 import { z } from 'zod';
+import type {
+  StoryboardDraftConflict,
+  StoryboardDraftScope,
+  StoryboardDraftTransport,
+  StoryboardDraftValue,
+  StoryboardSaveIndicatorProps,
+} from '@/features/studio/props/storyboard.props';
 import {
   editableStoryboard,
   reconcileStoryboardDraft,

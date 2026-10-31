@@ -4,7 +4,7 @@ import type {
   StoryboardDraftFieldMerge,
   StoryboardDraftValue,
   StoryboardEditablePlan,
-} from '@genfeedai/props/studio/storyboard.props';
+} from '@/features/studio/props/storyboard.props';
 
 export function editableStoryboard(
   value: StoryboardDraftValue,

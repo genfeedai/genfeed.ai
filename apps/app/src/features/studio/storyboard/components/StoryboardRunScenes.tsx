@@ -9,7 +9,6 @@ import {
 } from '@genfeedai/contracts';
 import type { BrandRemixStoryboardScene } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import type { Video } from '@genfeedai/models/ingredients/video.model';
-import type { StoryboardRunScenesProps } from '@genfeedai/props/studio/storyboard.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAvatarImages } from '@hooks/data/ingredients/use-avatar-images/use-avatar-images';
 import { VideosService } from '@services/ingredients/videos.service';
@@ -21,6 +20,7 @@ import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { useVoiceCatalog } from '@/features/library/voices/hooks/use-voice-catalog';
+import type { StoryboardRunScenesProps } from '@/features/studio/props/storyboard.props';
 import StoryboardAnimatic from '@/features/studio/storyboard/components/StoryboardAnimatic';
 import StoryboardSelect from '@/features/studio/storyboard/components/StoryboardSelect';
 import { useStoryboardAssets } from '@/features/studio/storyboard/hooks/use-storyboard-assets';

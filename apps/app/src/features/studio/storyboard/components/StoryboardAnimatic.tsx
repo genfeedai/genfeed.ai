@@ -1,12 +1,12 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { StoryboardAnimaticProps } from '@genfeedai/props/studio/storyboard.props';
 import { Button } from '@ui/primitives/button';
 import { Pause, Play, RotateCcw } from 'lucide-react';
 import NextImage from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { StoryboardAnimaticProps } from '@/features/studio/props/storyboard.props';
 import { formatStoryboardTimecode } from '@/features/studio/storyboard/utils/storyboard-runtime';
 
 function previewDuration(seconds: number | null): number {

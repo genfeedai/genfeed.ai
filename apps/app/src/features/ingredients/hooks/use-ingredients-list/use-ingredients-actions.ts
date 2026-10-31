@@ -1,0 +1,730 @@
+'use client';
+
+import {
+  useConfirmModal,
+  usePostModal,
+  useUploadModal,
+} from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
+import type { AssetScope } from '@genfeedai/contracts';
+import {
+  IngredientCategory,
+  ModalEnum,
+  PageScope,
+  WebSocketEventStatus,
+} from '@genfeedai/contracts';
+import type {
+  IFilters,
+  IFolder,
+  IImage,
+  IIngredient,
+  IMediaEventData,
+  IVideo,
+} from '@genfeedai/contracts/interfaces';
+import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import type { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { ImagesService } from '@genfeedai/services/ingredients/images.service';
+import { VideosService } from '@genfeedai/services/ingredients/videos.service';
+import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';
+import { openModal } from '@helpers/ui/modal/modal.helper';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useCharacterReferenceDeleteWarning } from '@hooks/data/personas/use-character-reference-delete-warning/use-character-reference-delete-warning';
+import type { VideoUpscaleSelection } from '@hooks/ui/ingredient/use-enhance-upscale/use-enhance-upscale';
+import useIngredientActions from '@hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
+import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
+import VideoUpscaleConfirmControls, {
+  getDefaultVideoUpscaleSelection,
+} from '@ui/modals/ingredients/VideoUpscaleConfirmControls';
+import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
+import type { Dispatch, RefObject, SetStateAction } from 'react';
+import { createElement, useCallback, useEffect, useRef, useState } from 'react';
+import { dispatchLibraryAssetsRefresh } from '@/features/ingredients/hooks/library-assets-refresh';
+
+function broadcastLibraryAssetsChanged(): void {
+  dispatchLibraryAssetsRefresh({ isListRefresh: false });
+}
+
+interface UseIngredientsActionsProps {
+  type: string;
+  scope: PageScope;
+  brandId?: string | null;
+  singularType: string;
+  formatFilter?: string;
+  query: IFilters;
+  searchParamsString: string;
+  pathname: string;
+  router: AppRouterInstance;
+  ingredients: IIngredient[];
+  setIngredients: Dispatch<SetStateAction<IIngredient[]>>;
+  selectedFolderId?: string;
+  setSelectedFolderId: Dispatch<SetStateAction<string | undefined>>;
+  setQuery: (query: IFilters) => void;
+  notificationsService: NotificationsService;
+  findAllIngredientsByCategory: (
+    isRefreshing?: boolean,
+    signal?: AbortSignal,
+  ) => Promise<void>;
+  findAllFolders: (signal?: AbortSignal) => Promise<void>;
+  getBulkIngredientsService: () => Promise<IngredientsService>;
+  socketSubscriptionsRef: RefObject<Array<() => void>>;
+  onConvertToVideo: (ingredient: IIngredient) => void;
+}
+
+export function useIngredientsActions({
+  type,
+  scope,
+  brandId,
+  singularType,
+  query,
+  searchParamsString,
+  pathname,
+  router,
+  setIngredients,
+  setSelectedFolderId,
+  setQuery,
+  notificationsService,
+  findAllIngredientsByCategory,
+  findAllFolders,
+  getBulkIngredientsService,
+  socketSubscriptionsRef,
+  onConvertToVideo,
+}: UseIngredientsActionsProps) {
+  const { isReady: isSocketReady, subscribe } = useSocketManager();
+
+  const { openConfirm } = useConfirmModal();
+  const { openUpload } = useUploadModal();
+  const getCharacterReferenceWarning = useCharacterReferenceDeleteWarning();
+
+  const getIngredientsService = useAuthedService((token) =>
+    IngredientsService.getInstance(type, token),
+  );
+
+  const getVideosService = useAuthedService((token: string) =>
+    VideosService.getInstance(token),
+  );
+
+  const getImagesService = useAuthedService((token: string) =>
+    ImagesService.getInstance(token),
+  );
+
+  const [isMerging, setIsMerging] = useState(false);
+  const [selectedIngredientIds, setSelectedIngredientIds] = useState<string[]>(
+    [],
+  );
+  const [selectedFolderForModal, setSelectedFolderForModal] =
+    useState<IFolder | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const videoUpscaleSelectionRef = useRef<VideoUpscaleSelection | undefined>(
+    undefined,
+  );
+  const pendingDeleteIdsRef = useRef(new Set<string>());
+
+  const confirmDeleteIngredient = useCallback(
+    async (ingredient: IIngredient) => {
+      if (pendingDeleteIdsRef.current.has(ingredient.id)) {
+        return;
+      }
+
+      pendingDeleteIdsRef.current.add(ingredient.id);
+      const url = `DELETE /ingredients/${ingredient.id}`;
+
+      try {
+        const service = await getIngredientsService();
+        await service.delete(ingredient.id);
+
+        logger.info(`${url} success`);
+        notificationsService.success('Ingredient deleted successfully');
+        findAllIngredientsByCategory(true);
+        broadcastLibraryAssetsChanged();
+      } catch (error) {
+        logger.error(`${url} failed`, error);
+        notificationsService.error('Failed to delete ingredient');
+      } finally {
+        pendingDeleteIdsRef.current.delete(ingredient.id);
+      }
+    },
+    [
+      findAllIngredientsByCategory,
+      getIngredientsService,
+      notificationsService.error,
+      notificationsService.success,
+    ],
+  );
+
+  const handleDeleteIngredient = useCallback(
+    async (ingredient: IIngredient) => {
+      const children = await getCharacterReferenceWarning([ingredient.id]);
+      if (children === null) {
+        return;
+      }
+
+      openConfirm({
+        children,
+        confirmLabel: 'Move to Trash',
+        isError: true,
+        label: 'Move to Trash',
+        message: 'Move this asset to Trash? You can restore it later.',
+        onConfirm: () => confirmDeleteIngredient(ingredient),
+      });
+    },
+    [confirmDeleteIngredient, getCharacterReferenceWarning, openConfirm],
+  );
+
+  const handleRepromptIngredient = useCallback(
+    async (ingredient: IIngredient) => {
+      const promptText =
+        ingredient.text?.trim() || ingredient.promptText?.trim();
+
+      if (!promptText) {
+        notificationsService.warning(
+          'No prompt available to reprompt this ingredient',
+        );
+        return;
+      }
+
+      const isImageCategory = ingredient.category === IngredientCategory.IMAGE;
+      const isVideoCategory = ingredient.category === IngredientCategory.VIDEO;
+
+      if (!isImageCategory && !isVideoCategory) {
+        notificationsService.warning(
+          'Reprompt is only available for images and videos',
+        );
+        return;
+      }
+
+      const format = ingredient.format ?? ingredient.ingredientFormat;
+      const width = ingredient.width ?? ingredient.metadataWidth;
+      const height = ingredient.height ?? ingredient.metadataHeight;
+      const model = ingredient.modelUsed ?? undefined;
+      const url = isImageCategory ? 'POST /images' : 'POST /videos';
+
+      try {
+        if (isImageCategory) {
+          const payload: Partial<IImage> = {
+            category: ingredient.category,
+            format,
+            height,
+            model,
+            text: promptText,
+            width,
+          };
+          const service = await getImagesService();
+          await service.post(payload);
+        } else {
+          const payload: Partial<IVideo> = {
+            category: ingredient.category,
+            format,
+            height,
+            model,
+            text: promptText,
+            width,
+          };
+          const service = await getVideosService();
+          await service.post(payload);
+        }
+
+        logger.info(`${url} success - reprompt`);
+        notificationsService.success('Reprompt started');
+        findAllIngredientsByCategory(true);
+      } catch (error) {
+        logger.error(`${url} failed`, error);
+        notificationsService.error('Failed to reprompt ingredient');
+      }
+    },
+    [
+      findAllIngredientsByCategory,
+      getImagesService,
+      getVideosService,
+      notificationsService,
+    ],
+  );
+
+  const {
+    handlers,
+    loadingStates,
+    upscaleConfirmData,
+    executeUpscale,
+    clearUpscaleConfirm,
+  } = useIngredientActions({
+    onConvertToVideo,
+    onDeleteIngredient: handleDeleteIngredient,
+    onPublishIngredient: (ingredient: IIngredient) =>
+      openIngredientModal(ModalEnum.POST_BATCH, ingredient),
+    onRefresh: () => findAllIngredientsByCategory(true),
+    onReprompt: handleRepromptIngredient,
+    onUpdateParent: async (
+      ingredient: IIngredient,
+      parentId: string | null,
+    ) => {
+      const isParentRelationshipUpdate = parentId !== ingredient.id;
+
+      if (isParentRelationshipUpdate) {
+        const url = `PATCH /ingredients/${ingredient.id}`;
+
+        try {
+          const service = await getBulkIngredientsService();
+          await service.patch(ingredient.id, {
+            parent: parentId || undefined,
+          });
+
+          logger.info(`${url} success - parent updated`);
+
+          setIngredients((prevIngredients) =>
+            prevIngredients.map((ing) =>
+              ing.id === ingredient.id
+                ? { ...ing, parent: parentId || undefined }
+                : ing,
+            ),
+          );
+
+          findAllIngredientsByCategory(true);
+        } catch (error) {
+          logger.error(`${url} failed`, error);
+          notificationsService.error('Failed to update ingredient parent');
+
+          setIngredients((prevIngredients) =>
+            prevIngredients.map((ing) =>
+              ing.id === ingredient.id
+                ? { ...ing, parent: ingredient.parent }
+                : ing,
+            ),
+          );
+        }
+      }
+    },
+  });
+
+  const { openPostBatchModal } = usePostModal({
+    onRefresh: () => findAllIngredientsByCategory(true),
+  });
+
+  useEffect(() => {
+    if (upscaleConfirmData) {
+      const modelOptions = upscaleConfirmData.videoModelOptions ?? [];
+      videoUpscaleSelectionRef.current =
+        getDefaultVideoUpscaleSelection(modelOptions);
+
+      openConfirm({
+        cancelLabel: 'Cancel',
+        confirmLabel: 'Upscale',
+        label: 'Confirm Upscale',
+        message:
+          'Choose the model, output resolution, and frame rate. The source video remains unchanged.',
+        children:
+          modelOptions.length > 0
+            ? createElement(VideoUpscaleConfirmControls, {
+                modelOptions,
+                onChange: (selection) => {
+                  videoUpscaleSelectionRef.current = selection;
+                },
+                videoId: upscaleConfirmData.ingredient?.id ?? '',
+              })
+            : undefined,
+        onClose: () => {
+          clearUpscaleConfirm();
+        },
+        onConfirm: async () => {
+          await executeUpscale(videoUpscaleSelectionRef.current);
+        },
+      });
+    }
+  }, [clearUpscaleConfirm, executeUpscale, openConfirm, upscaleConfirmData]);
+
+  const confirmBulkDelete = useCallback(async () => {
+    if (selectedIngredientIds.length === 0) {
+      return;
+    }
+
+    const url = 'POST /ingredients/bulk-delete';
+
+    try {
+      const service = await getBulkIngredientsService();
+      const data = await service.bulkDelete({
+        ids: selectedIngredientIds,
+        type: 'ingredients-delete',
+      });
+
+      logger.info(`${url} success`, data);
+
+      if (data.deleted && data.deleted.length > 0) {
+        notificationsService.success(
+          data.message ||
+            `Successfully deleted ${data.deleted.length} ingredient(s)`,
+        );
+
+        setSelectedIngredientIds([]);
+        findAllIngredientsByCategory(true);
+        broadcastLibraryAssetsChanged();
+      }
+
+      if (data.failed && data.failed.length > 0) {
+        notificationsService.error(
+          `Failed to delete ${data.failed.length} ingredient(s). You may not have permission to delete them.`,
+        );
+      }
+    } catch (error) {
+      logger.error(`${url} failed`, error);
+      notificationsService.error('Failed to delete selected ingredients');
+    }
+  }, [
+    findAllIngredientsByCategory,
+    getBulkIngredientsService,
+    notificationsService,
+    selectedIngredientIds,
+  ]);
+
+  const handleArchiveIngredient = useCallback(
+    async (ingredient: IIngredient) => {
+      await handlers.handleMarkArchived(ingredient);
+    },
+    [handlers],
+  );
+
+  const handleConvertToPortrait = useCallback(
+    async (ingredient: IIngredient) => {
+      await handlers.handlePortrait(ingredient);
+    },
+    [handlers],
+  );
+
+  const handleGenerateCaptions = useCallback(
+    async (ingredient: IIngredient) => {
+      await handlers.handleGenerateCaptions(ingredient);
+    },
+    [handlers],
+  );
+
+  const handleUpdateParent = useCallback(
+    async (ingredient: IIngredient, parentId: string | null) => {
+      await handlers.handleUpdateParent(ingredient, parentId);
+    },
+    [handlers],
+  );
+
+  const handleSelectFolder = useCallback(
+    (folder: IFolder | null) => {
+      const folderId = folder?.id;
+
+      setSelectedFolderId((prev) => {
+        if (folderId === prev) {
+          return prev;
+        }
+        return folderId;
+      });
+
+      setQuery({
+        ...query,
+        folder: folderId,
+      });
+
+      const params = new URLSearchParams(searchParamsString);
+
+      if (folderId) {
+        params.set('folder', folderId);
+      } else {
+        params.delete('folder');
+      }
+
+      const queryString = params.toString();
+      const newUrl = queryString ? `${pathname}?${queryString}` : pathname;
+      const currentSearch = window.location.search;
+      const expectedSearch = queryString ? `?${queryString}` : '';
+
+      if (currentSearch !== expectedSearch) {
+        router.replace(newUrl, { scroll: false });
+      }
+    },
+    [
+      pathname,
+      query,
+      router,
+      searchParamsString,
+      setQuery,
+      setSelectedFolderId,
+    ],
+  );
+
+  const handleFolderDrop = useCallback(
+    async (ingredient: IIngredient, folder: IFolder | null) => {
+      const url = `PATCH /ingredients/${ingredient.id}`;
+      const folderId = folder?.id ?? undefined;
+
+      setIngredients((prevIngredients) =>
+        prevIngredients.map((ing) =>
+          ing.id === ingredient.id ? { ...ing, folder: folderId } : ing,
+        ),
+      );
+
+      try {
+        const service = await getBulkIngredientsService();
+        await service.patch(ingredient.id, {
+          folderId,
+        });
+
+        logger.info(`${url} success - folder updated`);
+
+        findAllIngredientsByCategory(true);
+      } catch (error) {
+        logger.error(`${url} failed`, error);
+        notificationsService.error('Failed to move ingredient to folder');
+
+        setIngredients((prevIngredients) =>
+          prevIngredients.map((ing) =>
+            ing.id === ingredient.id
+              ? { ...ing, folder: ingredient.folder }
+              : ing,
+          ),
+        );
+      }
+    },
+    [
+      findAllIngredientsByCategory,
+      getBulkIngredientsService,
+      notificationsService,
+      setIngredients,
+    ],
+  );
+
+  const handleCreateFolder = useCallback(() => {
+    setSelectedFolderForModal(null);
+    openModal(ModalEnum.FOLDER);
+  }, []);
+
+  const handleFolderModalConfirm = useCallback(
+    (isRefreshing?: boolean) => {
+      setSelectedFolderForModal(null);
+      findAllFolders();
+      if (isRefreshing) {
+        findAllIngredientsByCategory(true);
+      }
+    },
+    [findAllFolders, findAllIngredientsByCategory],
+  );
+
+  const openIngredientModal = useCallback(
+    (modalId: ModalEnum, ingredient?: IIngredient) => {
+      if (modalId === ModalEnum.POST_BATCH && ingredient) {
+        return openPostBatchModal(ingredient);
+      }
+
+      if (modalId === ModalEnum.CONFIRM && ingredient) {
+        return handleDeleteIngredient(ingredient);
+      }
+
+      if (modalId === ModalEnum.UPLOAD) {
+        openUpload({
+          category: singularType,
+          onComplete: () => findAllIngredientsByCategory(true),
+          parentId:
+            scope === PageScope.SUPERADMIN ? undefined : (brandId ?? undefined),
+          parentModel: scope === PageScope.SUPERADMIN ? undefined : 'Brand',
+        });
+        return;
+      }
+
+      openModal(modalId);
+    },
+    [
+      brandId,
+      findAllIngredientsByCategory,
+      handleDeleteIngredient,
+      openPostBatchModal,
+      openUpload,
+      scope,
+      singularType,
+    ],
+  );
+
+  const handleMerge = useCallback(async () => {
+    if (selectedIngredientIds.length < 2) {
+      return logger.error('Cannot merge: need at least 2 ingredients selected');
+    }
+
+    setIsMerging(true);
+    const url = 'POST /ingredients/merge';
+
+    try {
+      const service = await getVideosService();
+
+      const media = await service.postMerge({
+        category: singularType,
+        ids: selectedIngredientIds,
+      });
+
+      logger.info(`${url} success`, media);
+
+      if (media?.id && isSocketReady) {
+        const mergeEventPath = WebSocketPaths.video(media.id);
+
+        let unsubscribe: (() => void) | null = null;
+
+        const handleMergeResult = (data: IMediaEventData) => {
+          logger.info('Merge result received:', data);
+
+          switch (data.status as WebSocketEventStatus) {
+            case WebSocketEventStatus.COMPLETED:
+              notificationsService.success('Videos merged successfully!');
+              findAllIngredientsByCategory(true);
+              setIsMerging(false);
+
+              if (unsubscribe) {
+                unsubscribe();
+                socketSubscriptionsRef.current =
+                  socketSubscriptionsRef.current.filter(
+                    (unsub) => unsub !== unsubscribe,
+                  );
+              }
+              break;
+            default:
+              notificationsService.error('Video merge failed');
+              setIsMerging(false);
+              if (unsubscribe) {
+                unsubscribe();
+                socketSubscriptionsRef.current =
+                  socketSubscriptionsRef.current.filter(
+                    (unsub) => unsub !== unsubscribe,
+                  );
+              }
+              break;
+          }
+        };
+
+        unsubscribe = subscribe(mergeEventPath, handleMergeResult);
+        if (unsubscribe) {
+          socketSubscriptionsRef.current.push(unsubscribe);
+        }
+      }
+
+      setSelectedIngredientIds([]);
+      findAllIngredientsByCategory(true);
+    } catch (error) {
+      logger.error(`${url} failed`, error);
+      notificationsService.error('Failed to merge videos');
+      setIsMerging(false);
+    }
+  }, [
+    findAllIngredientsByCategory,
+    getVideosService,
+    notificationsService,
+    selectedIngredientIds,
+    singularType,
+    isSocketReady,
+    subscribe,
+    socketSubscriptionsRef,
+  ]);
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedIngredientIds([]);
+  }, []);
+
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedIngredientIds.length === 0) {
+      return;
+    }
+
+    const count = selectedIngredientIds.length;
+    const assets = count === 1 ? 'asset' : 'assets';
+    const children = await getCharacterReferenceWarning(selectedIngredientIds);
+    if (children === null) {
+      return;
+    }
+
+    openConfirm({
+      children,
+      confirmLabel: 'Move to Trash',
+      isError: true,
+      label: `Move ${count} ${assets} to Trash`,
+      message: `Move ${count} selected ${assets} to Trash? You can restore them later.`,
+      onConfirm: confirmBulkDelete,
+    });
+  }, [
+    confirmBulkDelete,
+    getCharacterReferenceWarning,
+    openConfirm,
+    selectedIngredientIds,
+  ]);
+
+  const openLightboxForIngredient = useCallback(
+    (ingredient: IIngredient, mediaIngredients: IIngredient[]) => {
+      const index = mediaIngredients.findIndex(
+        (ing) => ing.id === ingredient.id,
+      );
+
+      if (index >= 0) {
+        setLightboxIndex(index);
+        setLightboxOpen(true);
+        return true;
+      }
+
+      return false;
+    },
+    [],
+  );
+
+  const closeLightbox = useCallback(() => {
+    setLightboxOpen(false);
+  }, []);
+
+  const handleScopeChange = useCallback(
+    async (newScope: AssetScope, updatedIngredient?: IIngredient) => {
+      if (!updatedIngredient) {
+        return await findAllIngredientsByCategory(true);
+      }
+
+      const nextIngredient: IIngredient = {
+        ...updatedIngredient,
+        scope: newScope,
+      };
+
+      setIngredients((prevIngredients) =>
+        prevIngredients.map((ingredient: IIngredient) =>
+          ingredient.id === nextIngredient.id ? nextIngredient : ingredient,
+        ),
+      );
+    },
+    [findAllIngredientsByCategory, setIngredients],
+  );
+
+  const handleRefresh = useCallback(
+    async (isRefreshing?: boolean) => {
+      await findAllIngredientsByCategory(Boolean(isRefreshing));
+      broadcastLibraryAssetsChanged();
+    },
+    [findAllIngredientsByCategory],
+  );
+
+  return {
+    closeLightbox,
+    handleArchiveIngredient,
+    handleBulkDelete,
+    handleClearSelection,
+    handleConvertToPortrait,
+    handleCopyPrompt: handlers.handleCopyPrompt,
+    handleCreateFolder,
+    handleDeleteIngredient,
+    handleFolderDrop,
+    handleFolderModalConfirm,
+    handleGenerateCaptions,
+    handleMerge,
+    handleMirror: handlers.handleMirror,
+    handleRefresh,
+    handleReprompt: handlers.handleReprompt,
+    handleReverse: handlers.handleReverse,
+    handleScopeChange,
+    handleSelectFolder,
+    handleUpdateParent,
+    isGeneratingCaptions: loadingStates.isGeneratingCaptions,
+    isMerging,
+    isMirroring: loadingStates.isMirroring,
+    isPortraiting: loadingStates.isPortraiting,
+    isReversing: loadingStates.isReversing,
+    lightboxIndex,
+    lightboxOpen,
+    openIngredientModal,
+    openLightboxForIngredient,
+    selectedFolderForModal,
+    selectedIngredientIds,
+    setSelectedIngredientIds,
+  };
+}

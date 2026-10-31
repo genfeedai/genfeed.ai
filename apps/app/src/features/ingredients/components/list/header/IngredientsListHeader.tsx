@@ -1,7 +1,7 @@
 'use client';
 
-import type { IngredientsListHeaderProps } from '@genfeedai/props/pages/ingredients-list.props';
-import SelectionActionsBar from '@ui/ingredients/list/selection-actions-bar/SelectionActionsBar';
+import SelectionActionsBar from '@/features/ingredients/components/ingredients/list/selection-actions-bar/SelectionActionsBar';
+import type { IngredientsListHeaderProps } from '@/features/ingredients/props/ingredients-list.props';
 
 export default function IngredientsListHeader({
   selectedCount,

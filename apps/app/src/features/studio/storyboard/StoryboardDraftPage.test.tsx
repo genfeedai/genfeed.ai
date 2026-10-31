@@ -1,9 +1,5 @@
 import { AgentOutputHostContext } from '@contexts/ui/agent-output-host-context';
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
-import type {
-  StoryboardPlanEditorProps,
-  StoryboardPromptBarProps,
-} from '@genfeedai/props/studio/storyboard.props';
 import {
   act,
   fireEvent,
@@ -13,6 +9,10 @@ import {
   within,
 } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type {
+  StoryboardPlanEditorProps,
+  StoryboardPromptBarProps,
+} from '@/features/studio/props/storyboard.props';
 import StoryboardDraftPage from './StoryboardDraftPage';
 
 vi.mock('next-intl', async () => {

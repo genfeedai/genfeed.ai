@@ -219,9 +219,12 @@ vi.mock('@app-components/streaks/StreakNotificationsBridge', () => ({
   default: () => <div data-testid="streak-notifications-bridge" />,
 }));
 
-vi.mock('@ui/topbars/shared/TopbarShared', () => ({
-  default: () => <div data-testid="topbar-shared" />,
-}));
+vi.mock(
+  '@/features/ingredients/components/topbars/shared/TopbarShared',
+  () => ({
+    default: () => <div data-testid="topbar-shared" />,
+  }),
+);
 
 vi.mock('@ui/menus/sidebar-search-trigger/SidebarSearchTrigger', () => ({
   default: () => (

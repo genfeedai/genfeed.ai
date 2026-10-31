@@ -6,7 +6,6 @@
   "packages/hooks/agent/use-agent-oauth-connect/use-agent-oauth-connect.ts": 1,
   "packages/hooks/auth/use-oauth-connect-platforms/use-oauth-connect-platforms.ts": 1,
   "packages/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect.ts": 1,
-  "packages/hooks/data/ingredients/use-ingredients-list/use-ingredients-actions.ts": 1,
   "packages/hooks/data/personas/use-character-reference-delete-warning/use-character-reference-delete-warning.ts": 1,
   "packages/hooks/pages/use-brand-detail/use-brand-detail.ts": 1,
   "packages/hooks/ui/use-quick-actions/use-quick-actions.ts": 1,

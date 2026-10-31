@@ -1,5 +1,5 @@
 import type { BrandRemixRunSummary } from '@genfeedai/contracts/api-types/contracts';
-import type { StoryboardListRun } from '@genfeedai/props/studio/storyboard.props';
+import type { StoryboardListRun } from '@/features/studio/props/storyboard.props';
 
 const ATTENTION_PHASES = new Set<BrandRemixRunSummary['phase']>([
   'failed',

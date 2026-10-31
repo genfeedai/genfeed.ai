@@ -1,6 +1,6 @@
 import { getActionDefinition } from '@genfeedai/actions';
-import type { WorkflowCardPreviewProps } from '@genfeedai/props/workflows/workflow-card-preview.props';
 import { getLayoutedNodes } from '@genfeedai/workflows/ui/lib';
+import type { WorkflowCardPreviewProps } from '@/features/workflows/props/workflow-card-preview.props';
 
 export const PREVIEW_NODE_WIDTH = 180;
 export const PREVIEW_NODE_HEIGHT = 64;

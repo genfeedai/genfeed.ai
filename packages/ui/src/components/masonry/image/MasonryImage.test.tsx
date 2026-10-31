@@ -84,10 +84,6 @@ vi.mock('@ui/dropdowns/status/DropdownStatus', () => ({
   default: () => <div data-testid="dropdown-status" />,
 }));
 
-vi.mock('@ui/loading/overlay/LoadingOverlay', () => ({
-  default: () => <div data-testid="loading-overlay" />,
-}));
-
 vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
     assetsEndpoint: 'https://assets.test.com',
