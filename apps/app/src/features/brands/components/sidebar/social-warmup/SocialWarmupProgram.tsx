@@ -9,13 +9,13 @@ import {
   getCurrentSocialWarmupBlueprint,
   resolveSocialWarmupBlueprint,
 } from '@genfeedai/contracts/api-types/contracts/social-warmup-blueprint.contract';
+import { resolveOAuthServicePath } from '@genfeedai/helpers/oauth/oauth-connect-platforms';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import type { SocialWarmupProgramProps } from '@props/social/social-warmup-program.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ServicesService } from '@services/external/services.service';
-import { resolveOAuthServicePath } from '@ui/constants/oauth-connect-platforms';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';

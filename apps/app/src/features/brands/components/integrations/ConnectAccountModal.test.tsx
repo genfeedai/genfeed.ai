@@ -1,11 +1,11 @@
 import { CredentialPlatform } from '@genfeedai/contracts';
-import type { BrandDetailSocialConnection } from '@props/pages/brand-detail.props';
-import type { ConnectAccountModalProps } from '@props/pages/brand-integrations.props';
-import { fireEvent, render, screen } from '@testing-library/react';
 import type {
   OAuthConnectPlatformGroup,
   ResolvedOAuthConnectPlatform,
-} from '@ui/components/constants/oauth-connect-platforms';
+} from '@genfeedai/helpers/oauth/oauth-connect-platforms';
+import type { BrandDetailSocialConnection } from '@props/pages/brand-detail.props';
+import type { ConnectAccountModalProps } from '@props/pages/brand-integrations.props';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import ConnectAccountModal from '@/features/brands/components/integrations/ConnectAccountModal';
 

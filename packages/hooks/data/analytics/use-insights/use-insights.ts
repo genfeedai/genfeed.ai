@@ -1,7 +1,7 @@
 'use client';
 
 import { useAnalyticsContext } from '@genfeedai/contexts/analytics/analytics-context';
-import type { Insight } from '@genfeedai/props/analytics/insights.props';
+import type { Insight } from '@genfeedai/contracts/interfaces/analytics/insight-summary.interface';
 import { InsightsService } from '@genfeedai/services/analytics/insights.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

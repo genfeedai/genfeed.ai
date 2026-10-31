@@ -29,7 +29,7 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-vi.mock('@genfeedai/hooks/ui/use-quick-actions/use-quick-actions', () => ({
+vi.mock('@ui/quick-actions/hooks/use-quick-actions/use-quick-actions', () => ({
   useQuickActions: vi.fn(
     (params: {
       handlers: {

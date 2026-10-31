@@ -5,7 +5,7 @@
 
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IInsightResponse } from '@genfeedai/contracts/interfaces';
-import type { Insight } from '@genfeedai/props/analytics/insights.props';
+import type { Insight } from '@genfeedai/contracts/interfaces/analytics/insight-summary.interface';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {

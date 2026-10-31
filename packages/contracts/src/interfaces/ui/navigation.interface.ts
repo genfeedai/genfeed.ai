@@ -41,3 +41,10 @@ export interface NavigationTab {
   isDisabled?: boolean;
   badge?: ReactNode;
 }
+
+/** A platform filter tab: the "All" entry or one publishing platform. */
+export interface IPlatformTab {
+  icon: IconComponent;
+  id: string;
+  label: string;
+}

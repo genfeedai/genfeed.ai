@@ -1,14 +1,14 @@
 'use client';
 
 import { type ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { useOAuthConnectPlatforms } from '@hooks/auth/use-oauth-connect-platforms/use-oauth-connect-platforms';
-import { OAuthBrandRequiredError } from '@hooks/auth/use-platform-oauth-connect/oauth-brand-required.error';
 import {
   groupOAuthConnectPlatforms,
   type ResolvedOAuthConnectPlatform,
   resolveOAuthServicePath,
-} from '@ui/constants/oauth-connect-platforms';
+} from '@genfeedai/helpers/oauth/oauth-connect-platforms';
+import { cn } from '@helpers/formatting/cn/cn.util';
+import { useOAuthConnectPlatforms } from '@hooks/auth/use-oauth-connect-platforms/use-oauth-connect-platforms';
+import { OAuthBrandRequiredError } from '@hooks/auth/use-platform-oauth-connect/oauth-brand-required.error';
 import { Button } from '@ui/primitives/button';
 import {
   Popover,

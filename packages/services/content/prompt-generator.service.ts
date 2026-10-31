@@ -1,7 +1,7 @@
 import type {
   GeneratedPrompt,
   GeneratePromptsRequest,
-} from '@genfeedai/props/studio/prompt-generator.props';
+} from '@genfeedai/contracts/interfaces/studio/prompt-generator.interface';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 

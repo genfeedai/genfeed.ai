@@ -1,4 +1,5 @@
 import { CredentialPlatform } from '@genfeedai/contracts';
+import { resolveOAuthConnectPlatformCatalog } from '@genfeedai/helpers/oauth/oauth-connect-platforms';
 import {
   fireEvent,
   render,
@@ -6,7 +7,6 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-import { resolveOAuthConnectPlatformCatalog } from '@ui/constants/oauth-connect-platforms';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandDetailSocialMediaCard from '@/features/brands/components/sidebar/BrandDetailSocialMediaCard';

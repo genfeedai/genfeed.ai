@@ -5,7 +5,7 @@ import type {
   ValidateChannelTargetSettingsInput,
 } from '@genfeedai/contracts/api-types/contracts';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
-import type { Schedule } from '@genfeedai/props/publisher/schedule.props';
+import type { Schedule } from '@genfeedai/contracts/interfaces/publisher/schedule.interface';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 
