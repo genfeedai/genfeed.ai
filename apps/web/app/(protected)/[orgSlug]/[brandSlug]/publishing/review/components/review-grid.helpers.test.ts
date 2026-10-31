@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   getVisibleReviewItems,
   parseReviewFilters,
+  searchReviewItems,
   serializeReviewFilters,
 } from './review-grid.helpers';
 
@@ -42,5 +43,37 @@ describe('review multi-status filters', () => {
     expect(
       getVisibleReviewItems(items as never, []).map((item) => item.id),
     ).toEqual(['ready', 'approved', 'failed']);
+  });
+});
+
+describe('review search', () => {
+  const items = [
+    {
+      assignee: { displayName: 'Dana Lee', handle: 'dana', id: 'u1' },
+      caption: 'Spring launch teaser',
+      id: 'a',
+      platform: 'instagram',
+    },
+    { id: 'b', platform: 'twitter', targetAuthor: '@acme' },
+    {
+      id: 'c',
+      prompt: 'Product demo walkthrough',
+      sourceWorkflowName: 'Demo',
+    },
+  ] as never;
+
+  it.each([
+    ['spring', ['a']],
+    ['TWITTER', ['b']],
+    ['@acme', ['b']],
+    ['dana', ['a']],
+    ['demo', ['c']],
+    ['zzz', []],
+  ])('matches %s', (term, ids) => {
+    expect(searchReviewItems(items, term).map((item) => item.id)).toEqual(ids);
+  });
+
+  it('returns every draft for a blank term', () => {
+    expect(searchReviewItems(items, '   ')).toHaveLength(3);
   });
 });

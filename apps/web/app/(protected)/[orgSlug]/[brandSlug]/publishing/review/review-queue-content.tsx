@@ -1,12 +1,13 @@
 'use client';
 
 import Loading from '@ui/loading/default/Loading';
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import ReviewQueueView from './components/ReviewQueueView';
 import { useReviewInboxApprovals } from './useReviewInboxApprovals';
 import { useReviewQueueContent } from './useReviewQueueContent';
 
 function ReviewQueueContentContent() {
+  const [search, setSearch] = useState('');
   const {
     activeFilters,
     activeItem,
@@ -42,8 +43,8 @@ function ReviewQueueContentContent() {
     handleToggleSelect,
     handleUnassignItem,
     setSelectedPostId,
-  } = useReviewQueueContent();
-  const approvals = useReviewInboxApprovals();
+  } = useReviewQueueContent(search);
+  const approvals = useReviewInboxApprovals(search);
 
   if (isTurboRunsLoading) {
     return <Loading />;
@@ -65,6 +66,7 @@ function ReviewQueueContentContent() {
       isActioning={isActioning}
       isTurboRunLoading={isTurboRunLoading}
       isRefreshing={isRefreshing}
+      search={search}
       selectedIds={selectedIds}
       selectedPostId={selectedPostId}
       visibleItems={visibleItems}
@@ -84,6 +86,7 @@ function ReviewQueueContentContent() {
         await Promise.all([refreshQueue(), approvals.refresh()]);
       }}
       onRequestChanges={handleRequestChanges}
+      onSearchChange={setSearch}
       onReject={handleRejectItem}
       onSelectItem={handleSelectItem}
       onToggleSelect={handleToggleSelect}

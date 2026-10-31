@@ -17,6 +17,7 @@ import {
   getVisibleReviewItems,
   parseReviewFilters,
   type ReviewStatusFilter,
+  searchReviewItems,
   serializeReviewFilters,
 } from './components/review-grid.helpers';
 import { isReadyToReview } from './components/review-state';
@@ -60,7 +61,7 @@ function buildReviewHref(input: {
   return query ? `${path}?${query}` : path;
 }
 
-export function useReviewQueueContent() {
+export function useReviewQueueContent(search = '') {
   const { openConfirm } = useConfirmModal();
   const notifications = useMemo(() => NotificationsService.getInstance(), []);
   const queryClient = useQueryClient();
@@ -206,8 +207,12 @@ export function useReviewQueueContent() {
   );
 
   const visibleItems = useMemo(
-    () => getVisibleReviewItems(activeTurboRun?.items ?? [], activeFilters),
-    [activeTurboRun?.items, activeFilters],
+    () =>
+      searchReviewItems(
+        getVisibleReviewItems(activeTurboRun?.items ?? [], activeFilters),
+        search,
+      ),
+    [activeTurboRun?.items, activeFilters, search],
   );
 
   const canDiscardTurboRun =
@@ -360,16 +365,16 @@ export function useReviewQueueContent() {
 
   const handleFilterChange = useCallback(
     (filters: ReviewStatusFilter[]) => {
-      const nextVisibleItems = getVisibleReviewItems(
-        activeTurboRun?.items ?? [],
-        filters,
+      const nextVisibleItems = searchReviewItems(
+        getVisibleReviewItems(activeTurboRun?.items ?? [], filters),
+        search,
       );
       const nextItemId = getNextActiveItemId(nextVisibleItems, activeItemId);
 
       setActiveFilters(filters);
       setActiveItemId(nextItemId);
     },
-    [activeTurboRun?.items, activeItemId],
+    [activeTurboRun?.items, activeItemId, search],
   );
 
   const handleBulkAction = useCallback(

@@ -5,6 +5,7 @@ import {
   isReviewInboxVideoUrl,
   paginateReviewInboxItems,
   REVIEW_INBOX_PAGE_SIZE,
+  searchReviewInboxItems,
 } from './review-inbox.helpers';
 
 const items = Array.from(
@@ -47,5 +48,41 @@ describe('isReviewInboxVideoUrl', () => {
       true,
     );
     expect(isReviewInboxVideoUrl('https://cdn.example.com/a.jpg')).toBe(false);
+  });
+});
+
+describe('review inbox search', () => {
+  const requests = [
+    {
+      actionSummary: 'Publish the spring launch reel',
+      brandLabel: 'Acme',
+      id: 'workflow:1',
+      sourceLabel: 'Launch workflow',
+      toolName: null,
+    },
+    {
+      actionSummary: 'Send a reply',
+      brandLabel: null,
+      id: 'mcp_approval:2',
+      sourceLabel: 'create_post',
+      toolName: 'create_post',
+    },
+  ] as never;
+
+  it('matches the action, source, brand or tool, ignoring case', () => {
+    expect(
+      searchReviewInboxItems(requests, 'SPRING').map((item) => item.id),
+    ).toEqual(['workflow:1']);
+    expect(
+      searchReviewInboxItems(requests, 'acme').map((item) => item.id),
+    ).toEqual(['workflow:1']);
+    expect(
+      searchReviewInboxItems(requests, 'create_post').map((item) => item.id),
+    ).toEqual(['mcp_approval:2']);
+  });
+
+  it('returns every request for a blank term and none for a miss', () => {
+    expect(searchReviewInboxItems(requests, '  ')).toHaveLength(2);
+    expect(searchReviewInboxItems(requests, 'nothing like this')).toEqual([]);
   });
 });

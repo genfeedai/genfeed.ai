@@ -14,6 +14,7 @@ import { Button } from '@ui/primitives/button';
 import { ClipboardCheck, Trash2, TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import SearchField from '@/components/content/search-field/SearchField';
 import PostDetailPanel from '@/features/posts/detail/PostDetailPanel';
 import type { ReviewQueueViewProps } from '@/features/posts/props/review-queue-view.props';
 import { isAgentSourceVisible } from '../useReviewInboxApprovals';
@@ -59,6 +60,7 @@ export default function ReviewQueueView({
   isActioning,
   isTurboRunLoading,
   isRefreshing = false,
+  search,
   selectedIds,
   isRewriteStarting,
   rewriteProgress,
@@ -77,11 +79,13 @@ export default function ReviewQueueView({
   onRefresh,
   onRequestChanges,
   onReject,
+  onSearchChange,
   onSelectItem,
   onToggleSelect,
   onUnassign,
 }: ReviewQueueViewProps) {
-  const { setFiltersNode, setIsRefreshing, setRefresh } = usePostsLayout();
+  const { setFiltersNode, setIsRefreshing, setLeadingNode, setRefresh } =
+    usePostsLayout();
   const translateReview = useTranslations('pages.publishing.review');
   const translateInbox = useTranslations('pages.publishing.review.inbox');
   // Rows the operator tapped, as opposed to the first item the queue picks
@@ -130,68 +134,93 @@ export default function ReviewQueueView({
 
   const isTurboQueueVisible = isAgentSourceVisible(approvals.sourceFilters);
   const hasTurboControls = isTurboQueueVisible && turboRunOptions.length > 0;
+  const isSearching = search.trim() !== '';
+  // A search that matches nothing must not take the Filters menu away.
   const hasSourceFilter =
     turboRunOptions.length > 0 ||
     approvals.items.length > 0 ||
-    approvals.sourceFilters.length > 0;
+    approvals.sourceFilters.length > 0 ||
+    isSearching;
   const { onSourceFilterChange, sourceFilters } = approvals;
 
+  // The page's one search, with the Filters menu (source, status, batch)
+  // attached inside it — no separate Filters button.
   useEffect(() => {
-    if (!hasSourceFilter) {
+    setLeadingNode(
+      <SearchField
+        ariaLabel={translateReview('queue.search')}
+        onSearch={onSearchChange}
+        placeholder={translateReview('queue.search')}
+        value={search}
+      >
+        {hasSourceFilter ? (
+          <ReviewFilterMenu
+            activeFilters={activeFilters}
+            activeSources={sourceFilters}
+            activeTurboRunId={activeTurboRunId}
+            filterCounts={filterCounts}
+            hasTurboControls={hasTurboControls}
+            isAttached
+            onFilterChange={onFilterChange}
+            onSourceChange={onSourceFilterChange}
+            onTurboRunChange={onTurboRunChange}
+            turboRunOptions={turboRunOptions}
+          />
+        ) : null}
+      </SearchField>,
+    );
+
+    return () => {
+      setLeadingNode(null);
+    };
+  }, [
+    activeFilters,
+    activeTurboRunId,
+    filterCounts,
+    hasSourceFilter,
+    hasTurboControls,
+    onFilterChange,
+    onSearchChange,
+    onSourceFilterChange,
+    onTurboRunChange,
+    search,
+    setLeadingNode,
+    sourceFilters,
+    translateReview,
+    turboRunOptions,
+  ]);
+
+  // Discard batch stays in the action rail beside New content / refresh.
+  const hasDiscardAction = hasTurboControls && canDiscardTurboRun;
+  useEffect(() => {
+    if (!hasDiscardAction) {
       setFiltersNode(null);
       return () => {
         setFiltersNode(null);
       };
     }
 
-    // Sub topbar action rail: source, then status + batch (+ discard) beside
-    // New content / refresh — same vertical level, no page-body orphan row.
     setFiltersNode(
-      <div className="flex min-w-0 items-center gap-2">
-        <ReviewFilterMenu
-          activeFilters={activeFilters}
-          activeSources={sourceFilters}
-          activeTurboRunId={activeTurboRunId}
-          filterCounts={filterCounts}
-          hasTurboControls={hasTurboControls}
-          onFilterChange={onFilterChange}
-          onSourceChange={onSourceFilterChange}
-          onTurboRunChange={onTurboRunChange}
-          turboRunOptions={turboRunOptions}
-        />
-        {hasTurboControls && canDiscardTurboRun ? (
-          <Button
-            className="h-8 shrink-0 gap-1.5 px-3 text-xs"
-            icon={<Trash2 className="size-3.5" />}
-            isDisabled={isActioning}
-            label={translateReview('queue.discardBatch')}
-            onClick={onDiscardTurboRun}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.DESTRUCTIVE}
-            withWrapper={false}
-          />
-        ) : null}
-      </div>,
+      <Button
+        className="h-8 shrink-0 gap-1.5 px-3 text-xs"
+        icon={<Trash2 className="size-3.5" />}
+        isDisabled={isActioning}
+        label={translateReview('queue.discardBatch')}
+        onClick={onDiscardTurboRun}
+        size={ButtonSize.SM}
+        variant={ButtonVariant.DESTRUCTIVE}
+        withWrapper={false}
+      />,
     );
 
     return () => {
       setFiltersNode(null);
     };
   }, [
-    activeTurboRunId,
-    activeFilters,
-    turboRunOptions,
-    canDiscardTurboRun,
-    filterCounts,
-    hasSourceFilter,
-    hasTurboControls,
+    hasDiscardAction,
     isActioning,
-    onSourceFilterChange,
-    onTurboRunChange,
     onDiscardTurboRun,
-    onFilterChange,
     setFiltersNode,
-    sourceFilters,
     translateReview,
   ]);
 
@@ -215,11 +244,23 @@ export default function ReviewQueueView({
     approvals.isHighlightedItemMissing ||
     approvals.error !== null;
 
+  const emptySearchCard = (
+    <CardEmpty
+      icon={ClipboardCheck}
+      label={translateReview('queue.emptySearchTitle')}
+      description={translateReview('queue.emptySearchDescription')}
+      className="max-w-xl mx-auto"
+    />
+  );
+
   if (!isTurboQueueVisible) {
     if (approvals.isLoading) {
       return <Loading />;
     }
     if (!hasApprovalsContent) {
+      if (isSearching) {
+        return emptySearchCard;
+      }
       return (
         <CardEmpty
           icon={ClipboardCheck}
@@ -256,6 +297,9 @@ export default function ReviewQueueView({
     if (hasApprovalsContent) {
       return approvalsSection;
     }
+    if (isSearching) {
+      return emptySearchCard;
+    }
     return (
       <CardEmpty
         icon={ClipboardCheck}
@@ -264,6 +308,15 @@ export default function ReviewQueueView({
         className="max-w-xl mx-auto"
       />
     );
+  }
+
+  if (
+    isSearching &&
+    visibleItems.length === 0 &&
+    !hasApprovalsContent &&
+    !isTurboRunLoading
+  ) {
+    return emptySearchCard;
   }
 
   const draftsGrid = (
