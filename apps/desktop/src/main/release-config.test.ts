@@ -143,10 +143,7 @@ describe('desktop release config', () => {
     const packageJson = readPackageJson();
     const desktopPrismaPackage = JSON.parse(
       fs.readFileSync(
-        path.resolve(
-          desktopRoot,
-          '../../packages/desktop-prisma/package.json',
-        ),
+        path.resolve(desktopRoot, '../../packages/desktop-prisma/package.json'),
         'utf8',
       ),
     ) as DesktopPackageJson;
