@@ -5,7 +5,7 @@ Craft optimized prompts for image and short video generation across major visual
 ## Installation
 
 ```bash
-bunx skills add genfeedai/skills/image-prompt-engineer
+bunx skills add genfeedai/skills --skill image-prompt-engineer
 ```
 
 ## Usage

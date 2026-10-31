@@ -446,4 +446,4 @@ If you have access to Genfeed tools, use them for enhanced results:
 - Use the `content-atomizer` skill for repurposing long-form content across platforms
 - Reference audience analytics to validate persona definitions
 - Use engagement data to determine optimal posting times per platform
-- Feed strategy outputs into platform-specific content creator skills (x-content-creator, linkedin-content-creator, instagram-content-creator)
+- Feed strategy outputs into platform-specific content creator skills (x-post, x-thread, x-article, linkedin-post, linkedin-article, linkedin-carousel, instagram-post, instagram-carousel, instagram-reel, instagram-story)

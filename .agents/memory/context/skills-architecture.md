@@ -1,6 +1,6 @@
 # Skills Architecture — Genfeed.ai
 
-**last_verified: 2026-09-26**
+**last_verified: 2026-10-31**
 
 Three directories, one constraint: **no external symlinks, no paths outside the monorepo.**
 Clone and go.
@@ -18,11 +18,13 @@ Clone and go.
 
 - `genfeedai/skills` is canonical for every free content-generation skill. The app holds a
   pinned, byte-verified snapshot recorded in `skills/catalog.lock.json`; never hand-edit those
-  directories. Change them upstream, then run a deliberate
+  directories. Upstream keeps each skill at `<module>/<slug>/SKILL.md` (modules are listed in
+  its `scripts/modules.json`); the app keeps them flat at `skills/<slug>/` and the lock records
+  each skill's `sourcePath` as `<module>/<slug>`. Change them upstream, then run a deliberate
   `bun run skills:sync --source-dir <clean checkout> --commit <sha> --write`.
 - Only app-usage procedures are authored in `skills/`: brand-interview, node-creator,
   workflow-creator, onboarding, model-selector, scope-validator, openclaw-integration
   (`APPLICATION_PROCEDURES` in `skill-catalog-artifact.ts`). Any other slug fails the lock,
-  and the lock's `sourceSkillSlugs` must not list an app procedure (no public duplicates).
+  and the lock's `sourceSkillPaths` must not list an app procedure (no public duplicates).
 - `bun run check:skills-catalog` (CI, offline) rejects drift in files, hashes, compiler, index
   or README; `--check-source` verifies the pin against a clean source checkout.

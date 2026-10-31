@@ -6,15 +6,15 @@ import {
   lstatSync,
   mkdirSync,
   mkdtempSync,
-  readdirSync,
   readFileSync,
   realpathSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import {
+  assertSafePath,
   catalogSlugs,
   compileSkill,
   createCatalogLock,
@@ -56,28 +56,64 @@ export function validateSource(source: string, commit: string): string {
     git(source, 'show', '-s', '--format=%cI', commit),
   ).toISOString();
 }
-export function sourceSkillSlugs(source: string): string[] {
-  return git(source, 'ls-files', '-z')
+const MODULES_FILE = 'scripts/modules.json';
+
+/**
+ * The skills repository groups every skill into a module folder
+ * (`<module>/<slug>/SKILL.md`). The module list lives in the source's own
+ * `scripts/modules.json`, so a new module needs no change here.
+ */
+function sourceModules(source: string): string[] {
+  const tracked = git(source, 'ls-files', '-z', '--', MODULES_FILE)
     .split('\0')
-    .map((path) => /^([^/]+)\/SKILL\.md$/.exec(path)?.[1])
-    .filter((slug): slug is string => Boolean(slug))
-    .sort();
+    .filter(Boolean);
+  if (tracked.length !== 1)
+    throw new Error(`Source is missing ${MODULES_FILE}`);
+  const parsed = JSON.parse(
+    readFileSync(join(source, MODULES_FILE), 'utf8'),
+  ) as {
+    modules?: Record<string, unknown>;
+  };
+  const modules = Object.keys(parsed.modules ?? {});
+  if (modules.length === 0) throw new Error(`${MODULES_FILE} lists no modules`);
+  for (const module of modules) assertSafePath(module);
+  return modules;
+}
+
+/** `<module>/<slug>` of every skill the pinned source publishes, by slug. */
+export function sourceSkillPaths(source: string): string[] {
+  const modules = new Set(sourceModules(source));
+  const bySlug = new Map<string, string>();
+  for (const path of git(source, 'ls-files', '-z').split('\0')) {
+    const match = /^([^/]+)\/([^/]+)\/SKILL\.md$/.exec(path);
+    if (!match || !modules.has(match[1])) continue;
+    const slug = match[2];
+    const existing = bySlug.get(slug.toLowerCase());
+    if (existing)
+      throw new Error(
+        `Duplicate source slug: ${slug} in ${existing} and ${match[1]}`,
+      );
+    bySlug.set(slug.toLowerCase(), `${match[1]}/${slug}`);
+  }
+  return [...bySlug.values()].sort((a, b) =>
+    basename(a) < basename(b) ? -1 : basename(a) > basename(b) ? 1 : 0,
+  );
 }
 function sourcePackages(source: string) {
   if (lstatSync(source).isSymbolicLink())
     throw new Error('Source symlink rejected');
-  const names = readdirSync(source);
-  for (const slug of UPSTREAM_SLUGS) {
-    if (names.filter((name) => name.toLowerCase() === slug).length !== 1)
-      throw new Error(`Missing or duplicate source slug: ${slug}`);
-  }
+  const paths = sourceSkillPaths(source);
   return UPSTREAM_SLUGS.map((slug) => {
-    const directory = join(source, slug);
+    const path = paths.find((candidate) => basename(candidate) === slug);
+    if (!path) throw new Error(`Missing source slug: ${slug}`);
+    if (lstatSync(join(source, path.split('/')[0])).isSymbolicLink())
+      throw new Error(`Source symlink rejected: ${path}`);
+    const directory = join(source, path);
     const files = inventory(directory, true);
-    const tracked = git(source, 'ls-files', '-z', '--', slug)
+    const tracked = git(source, 'ls-files', '-z', '--', path)
       .split('\0')
       .filter(Boolean)
-      .map((path) => path.slice(slug.length + 1))
+      .map((file) => file.slice(path.length + 1))
       .sort();
     if (
       JSON.stringify(tracked) !==
@@ -86,6 +122,7 @@ function sourcePackages(source: string) {
       throw new Error(`Undeclared source files: ${slug}`);
     return {
       slug,
+      path,
       directory,
       files,
       instructions: compileSkill(directory, files).instructions,
@@ -119,13 +156,16 @@ export function syncProductSkills(
       if (timestamp !== lock.sourceCommittedAt)
         throw new Error('Source date mismatch');
       if (
-        JSON.stringify(sourceSkillSlugs(options.sourceDir)) !==
-        JSON.stringify(lock.sourceSkillSlugs)
+        JSON.stringify(sourceSkillPaths(options.sourceDir)) !==
+        JSON.stringify(lock.sourceSkillPaths)
       )
         throw new Error('Source skill inventory mismatch');
       for (const pkg of sourcePackages(options.sourceDir)) {
         const entry = lock.skills.find((skill) => skill.slug === pkg.slug);
-        if (JSON.stringify(pkg.files) !== JSON.stringify(entry?.files))
+        if (
+          pkg.path !== entry?.sourcePath ||
+          JSON.stringify(pkg.files) !== JSON.stringify(entry?.files)
+        )
           throw new Error(`Source mismatch: ${pkg.slug}`);
       }
     }
@@ -134,14 +174,15 @@ export function syncProductSkills(
   if (!options.sourceDir || !options.commit)
     throw new Error('--source-dir and --commit are required for --write');
   const committedAt = validateSource(options.sourceDir, options.commit);
-  const publishedSlugs = sourceSkillSlugs(options.sourceDir);
+  const publishedPaths = sourceSkillPaths(options.sourceDir);
   const packages = sourcePackages(options.sourceDir);
   const initialImport = !existsSync(join(directory, 'catalog.lock.json'));
   const slugs = catalogSlugs(directory);
   // Validate every existing destination and every incoming package before the first write.
   for (const slug of slugs) inventory(join(directory, slug));
   for (const pkg of packages) {
-    if (!slugs.includes(pkg.slug))
+    // A new pin may add skills; only the very first import needs every folder.
+    if (initialImport && !slugs.includes(pkg.slug))
       throw new Error(`Missing destination: ${pkg.slug}`);
     if (
       initialImport &&
@@ -155,7 +196,7 @@ export function syncProductSkills(
     cpSync(directory, stagedDirectory, { recursive: true });
     for (const pkg of packages) {
       const target = join(stagedDirectory, pkg.slug);
-      rmSync(target, { recursive: true });
+      rmSync(target, { recursive: true, force: true });
       mkdirSync(target, { recursive: true });
       for (const file of pkg.files) {
         const path = join(target, file.path);
@@ -167,14 +208,14 @@ export function syncProductSkills(
       stagedDirectory,
       options.commit,
       committedAt,
-      publishedSlugs,
+      publishedPaths,
     );
     const index = renderSkillsIndex(stagingRoot, committedAt);
     const readme = renderSkillsReadme(stagingRoot);
     // No actual destination is changed until all compiler/artifact inputs validate.
     for (const pkg of packages) {
       const target = join(directory, pkg.slug);
-      rmSync(target, { recursive: true });
+      rmSync(target, { recursive: true, force: true });
       cpSync(join(stagedDirectory, pkg.slug), target, { recursive: true });
     }
     writeFileSync(

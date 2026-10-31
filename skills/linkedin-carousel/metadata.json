@@ -1,0 +1,16 @@
+{
+  "name": "linkedin-carousel",
+  "version": "1.0.0",
+  "description": "Plan and write a LinkedIn carousel (PDF document post) with slide copy, a design spec and a caption.",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "linkedin carousel",
+    "linkedin pdf post",
+    "turn this into slides for linkedin",
+    "document post for linkedin"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": ["linkedin", "carousel", "pdf", "social-media", "content-creation"]
+}

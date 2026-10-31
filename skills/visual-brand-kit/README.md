@@ -5,7 +5,7 @@ Create a visual identity system for AI-generated images, videos, graphics, and p
 ## Installation
 
 ```bash
-bunx skills add genfeedai/skills/visual-brand-kit
+bunx skills add genfeedai/skills --skill visual-brand-kit
 ```
 
 ## Usage

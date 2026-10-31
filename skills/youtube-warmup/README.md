@@ -5,7 +5,7 @@ Expert YouTube channel warmup guide — engagement plans, channel optimization, 
 ## Installation
 
 ```bash
-bunx skills add genfeedai/skills/youtube-warmup
+bunx skills add genfeedai/skills --skill youtube-warmup
 ```
 
 ## Usage

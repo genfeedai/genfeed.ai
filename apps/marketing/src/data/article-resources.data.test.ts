@@ -19,7 +19,7 @@ describe('article resource handoffs', () => {
       'content-strategist',
     );
     expect(getArticleResource('founder-led-linkedin-b2b-playbook')?.skill).toBe(
-      'linkedin-content-creator',
+      'linkedin-post',
     );
     expect(
       getArticleResource('turn-one-case-study-into-20-b2b-assets')?.skill,

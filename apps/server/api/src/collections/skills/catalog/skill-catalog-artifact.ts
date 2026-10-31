@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 
 export const CATALOG_COMPILER_VERSION = 'legacy-v1-char-caps';
 export const SOURCE_REPOSITORY = 'https://github.com/genfeedai/skills';
@@ -18,16 +18,23 @@ export const UPSTREAM_SLUGS = [
   'content-strategist',
   'genfeed-brand-os',
   'image-prompt-engineer',
-  'instagram-content-creator',
+  'instagram-carousel',
+  'instagram-post',
+  'instagram-reel',
+  'instagram-story',
   'instagram-warmup',
   'launch-copy-creator',
-  'linkedin-content-creator',
+  'linkedin-article',
+  'linkedin-carousel',
+  'linkedin-post',
   'linkedin-warmup',
   'newsletter-creator',
   'prompt-generator',
   'tiktok-warmup',
   'visual-brand-kit',
-  'x-content-creator',
+  'x-article',
+  'x-post',
+  'x-thread',
   'x-warmup',
   'youtube-content-creator',
   'youtube-warmup',
@@ -67,7 +74,8 @@ export interface CatalogLock {
   sourceRepository: string;
   sourceCommit: string;
   sourceCommittedAt: string;
-  sourceSkillSlugs: string[];
+  /** `<module>/<slug>` of every skill the pinned source publishes. */
+  sourceSkillPaths: string[];
   skills: CatalogEntry[];
 }
 export function assertSafePath(path: string): void {
@@ -174,8 +182,12 @@ export function createCatalogLock(
   directory: string,
   sourceCommit: string,
   sourceCommittedAt: string,
-  sourceSkillSlugs: string[],
+  sourceSkillPaths: string[],
 ): CatalogLock {
+  const sourcePathBySlug = new Map(
+    sourceSkillPaths.map((path) => [basename(path), path]),
+  );
+  const sourceSkillSlugs = [...sourcePathBySlug.keys()];
   // App procedures must not also ship as separately edited public copies.
   const published = sourceSkillSlugs.filter((slug) =>
     APPLICATION_PROCEDURES.has(slug),
@@ -195,7 +207,7 @@ export function createCatalogLock(
     sourceRepository: SOURCE_REPOSITORY,
     sourceCommit,
     sourceCommittedAt,
-    sourceSkillSlugs,
+    sourceSkillPaths,
     skills: catalogSlugs(directory).map((slug) => {
       const upstream = UPSTREAM_SLUGS.includes(slug);
       // Free content skills come only from the pinned public source; only app procedures are authored here.
@@ -221,7 +233,9 @@ export function createCatalogLock(
         sourceRepository: upstream
           ? SOURCE_REPOSITORY
           : 'https://github.com/genfeedai/genfeed.ai',
-        sourcePath: upstream ? slug : `skills/${slug}`,
+        sourcePath: upstream
+          ? (sourcePathBySlug.get(slug) ?? slug)
+          : `skills/${slug}`,
         declaredVersion: metadata.version ?? version ?? '1.0.0',
         files,
         packageHash: sha256(
@@ -240,15 +254,17 @@ export function validateCatalogLock(directory: string): CatalogLock {
   if (
     !/^[a-f0-9]{40}$/.test(lock.sourceCommit) ||
     !Number.isFinite(Date.parse(lock.sourceCommittedAt)) ||
-    !Array.isArray(lock.sourceSkillSlugs) ||
-    lock.sourceSkillSlugs.some((slug) => typeof slug !== 'string')
+    !Array.isArray(lock.sourceSkillPaths) ||
+    lock.sourceSkillPaths.some(
+      (path) => typeof path !== 'string' || path.split('/').length !== 2,
+    )
   )
     throw new Error('Invalid catalog source pin');
   const expected = createCatalogLock(
     directory,
     lock.sourceCommit,
     lock.sourceCommittedAt,
-    lock.sourceSkillSlugs,
+    lock.sourceSkillPaths,
   );
   if (JSON.stringify(lock) !== JSON.stringify(expected))
     throw new Error(

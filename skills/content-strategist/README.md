@@ -5,7 +5,7 @@ Build editorial strategy from audience and pillars through platform roles, caden
 ## Installation
 
 ```bash
-bunx skills add genfeedai/skills/content-strategist
+bunx skills add genfeedai/skills --skill content-strategist
 ```
 
 ## Usage

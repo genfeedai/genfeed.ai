@@ -5,7 +5,7 @@ Evidence-aware LinkedIn account warmup: profile completion, comment-first engage
 ## Installation
 
 ```bash
-bunx skills add genfeedai/skills/linkedin-warmup
+bunx skills add genfeedai/skills --skill linkedin-warmup
 ```
 
 ## Usage

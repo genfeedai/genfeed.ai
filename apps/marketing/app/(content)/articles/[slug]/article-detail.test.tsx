@@ -114,7 +114,7 @@ describe('Genfeed article resources', () => {
       screen.getByRole('link', { name: 'Get the free skill' }),
     ).toHaveAttribute(
       'href',
-      'https://github.com/genfeedai/skills/tree/master/cinematic-prompting',
+      'https://github.com/genfeedai/skills/tree/master/media/cinematic-prompting',
     );
     expect(
       screen.getByRole('link', { name: 'Explore Skills Pro' }),

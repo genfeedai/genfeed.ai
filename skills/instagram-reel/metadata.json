@@ -1,0 +1,16 @@
+{
+  "name": "instagram-reel",
+  "version": "1.0.0",
+  "description": "Write an Instagram Reel: hook, timed script with text overlays, caption and production handoff.",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "write a reel script",
+    "instagram reel idea",
+    "create reels content",
+    "short video script for instagram"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": ["instagram", "reels", "video", "social-media", "content-creation"]
+}

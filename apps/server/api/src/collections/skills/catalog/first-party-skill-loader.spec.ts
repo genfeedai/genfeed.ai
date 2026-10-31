@@ -66,12 +66,18 @@ describe('first-party skill loader', () => {
       readFileSync(join(directory, 'catalog.lock.json'), 'utf8'),
     ) as { sourceCommit: string };
     expect(sourceCommit).toMatch(/^[a-f0-9]{40}$/);
-    for (const slug of ['ad-copy-creator', 'content-reviewer', 'x-warmup'])
+    // The upstream repository keeps each skill at <module>/<slug>.
+    for (const [slug, sourcePath] of Object.entries({
+      'ad-copy-creator': 'ads/ad-copy-creator',
+      'content-reviewer': 'content/content-reviewer',
+      'x-post': 'x/x-post',
+      'x-warmup': 'x/x-warmup',
+    }))
       expect(definitions.find((skill) => skill.slug === slug)).toMatchObject({
         catalogOrigin: 'upstream',
         sourceRepository: 'https://github.com/genfeedai/skills',
         sourceCommit,
-        sourcePath: slug,
+        sourcePath,
         catalogCompilerVersion: 'legacy-v1-char-caps',
         sourcePackageHash: expect.stringMatching(/^[a-f0-9]{64}$/),
         instructionsHash: expect.stringMatching(/^[a-f0-9]{64}$/),

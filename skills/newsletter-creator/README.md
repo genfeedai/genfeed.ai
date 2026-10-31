@@ -5,7 +5,7 @@ Expert newsletter editor and email content strategist. Creates complete newslett
 ## Installation
 
 ```bash
-bunx skills add genfeedai/skills/newsletter-creator
+bunx skills add genfeedai/skills --skill newsletter-creator
 ```
 
 ## Usage

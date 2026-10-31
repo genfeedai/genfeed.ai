@@ -52,24 +52,72 @@ export const SKILL_CATEGORIES: SkillCategory[] = [
     skills: [
       {
         description:
-          'Posts, threads, and replies with viral hook formulas and algorithm optimization.',
+          'Single posts, quote posts, and replies with hook formulas and algorithm signals.',
         icon: XTwitterIcon,
-        name: 'X Content Creator',
-        slug: 'x-content-creator',
+        name: 'X Post',
+        slug: 'x-post',
       },
       {
         description:
-          'Captions, carousels, Reels scripts, and Story sequences with hashtag strategy.',
+          'Multi-post threads with a hook, a payoff per post, and a closing call to action.',
+        icon: XTwitterIcon,
+        name: 'X Thread',
+        slug: 'x-thread',
+      },
+      {
+        description:
+          'Long-form X Articles with a headline, structure, and a promotion plan.',
+        icon: XTwitterIcon,
+        name: 'X Article',
+        slug: 'x-article',
+      },
+      {
+        description:
+          'Feed posts with captions, hashtag strategy, and a first-line hook.',
         icon: InstagramIcon,
-        name: 'Instagram Creator',
-        slug: 'instagram-content-creator',
+        name: 'Instagram Post',
+        slug: 'instagram-post',
       },
       {
         description:
-          'Professional posts, articles, carousels, and newsletter editions.',
+          'Swipeable carousels with a slide-by-slide script and caption.',
+        icon: InstagramIcon,
+        name: 'Instagram Carousel',
+        slug: 'instagram-carousel',
+      },
+      {
+        description:
+          'Reels scripts with hooks, shot lists, on-screen text, and captions.',
+        icon: InstagramIcon,
+        name: 'Instagram Reel',
+        slug: 'instagram-reel',
+      },
+      {
+        description:
+          'Story sequences with stickers, polls, and a clear next tap.',
+        icon: InstagramIcon,
+        name: 'Instagram Story',
+        slug: 'instagram-story',
+      },
+      {
+        description:
+          'Professional posts with a strong first line and comment-worthy ending.',
         icon: LinkedinIcon,
-        name: 'LinkedIn Creator',
-        slug: 'linkedin-content-creator',
+        name: 'LinkedIn Post',
+        slug: 'linkedin-post',
+      },
+      {
+        description: 'Long-form LinkedIn articles and newsletter editions.',
+        icon: LinkedinIcon,
+        name: 'LinkedIn Article',
+        slug: 'linkedin-article',
+      },
+      {
+        description:
+          'Document carousels with a slide-by-slide script and caption.',
+        icon: LinkedinIcon,
+        name: 'LinkedIn Carousel',
+        slug: 'linkedin-carousel',
       },
       {
         description:
@@ -546,8 +594,8 @@ export const TERMINAL_COMMANDS = [
     command: `Installing ${FREE_SKILL_COUNT} skills from genfeedai/skills...`,
     prompt: '',
   },
-  { command: '\u2713 x-content-creator', prompt: '' },
-  { command: '\u2713 instagram-content-creator', prompt: '' },
+  { command: '\u2713 x-post', prompt: '' },
+  { command: '\u2713 instagram-reel', prompt: '' },
   { command: '\u2713 content-seo-optimizer', prompt: '' },
   { command: '\u2713 image-prompt-engineer', prompt: '' },
   { command: '\u2713 ad-copy-creator', prompt: '' },

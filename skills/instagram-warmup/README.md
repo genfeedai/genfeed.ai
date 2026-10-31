@@ -5,7 +5,7 @@ Expert Instagram account warmup guide — 14-day engagement plans, Stories trust
 ## Installation
 
 ```bash
-bunx skills add genfeedai/skills/instagram-warmup
+bunx skills add genfeedai/skills --skill instagram-warmup
 ```
 
 ## Usage

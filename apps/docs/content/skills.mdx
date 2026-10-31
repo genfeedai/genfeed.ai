@@ -49,10 +49,11 @@ convention.
 bunx skills add genfeedai/skills
 ```
 
-Install a single skill by appending its slug:
+Skills are grouped into modules, one folder per platform or discipline (`x`, `linkedin`, `instagram`, `youtube`, `tiktok`, `writing`, `content`, `media`, `ads`, `gtm`, `loop`). Install a whole module by its folder, or one skill by its path:
 
 ```bash
-bunx skills add genfeedai/skills/x-content-creator
+bunx skills add genfeedai/skills/x
+bunx skills add genfeedai/skills/x/x-post
 ```
 
 ### Pick your agents
@@ -156,7 +157,7 @@ same problem.
   posts, and read analytics from your own Genfeed instance.
 
 Used together, the agent plans with the skill and executes with the tools: the
-`x-content-creator` skill shapes the thread, then the MCP `create_post` tool
+`x-thread` skill shapes the thread, then the MCP `create_post` tool
 schedules it.
 
 Connect Claude Code to your instance's dedicated content connector, then open

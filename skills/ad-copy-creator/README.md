@@ -5,7 +5,7 @@ Create paid ad copy with direct-response frameworks, platform-specific constrain
 ## Installation
 
 ```bash
-bunx skills add genfeedai/skills/ad-copy-creator
+bunx skills add genfeedai/skills --skill ad-copy-creator
 ```
 
 ## Usage

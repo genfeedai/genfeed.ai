@@ -61,7 +61,8 @@ function buildInstagramPlatformContribution(
 
 /**
  * Platform pack: contributes only when intent.platform is Instagram or Reels.
- * Short runtime form of the `instagram-content-creator` product skill.
+ * Short runtime form of the `instagram-post`, `instagram-carousel`,
+ * `instagram-reel` and `instagram-story` product skills.
  */
 export const INSTAGRAM_PLATFORM_HARNESS_PACK: ContentHarnessPack = {
   capabilities: ['platform-instagram', 'evaluation-baseline'],

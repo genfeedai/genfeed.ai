@@ -7,7 +7,7 @@ Now includes a publish-readiness gate with a claim ledger, revision packet, and 
 ## Installation
 
 ```bash
-bunx skills add genfeedai/skills/content-reviewer
+bunx skills add genfeedai/skills --skill content-reviewer
 ```
 
 ## Usage

@@ -5,7 +5,7 @@ Audit competitors' content programs to find topic, format, channel, engagement, 
 ## Installation
 
 ```bash
-bunx skills add genfeedai/skills/competitor-analyzer
+bunx skills add genfeedai/skills --skill competitor-analyzer
 ```
 
 ## Usage

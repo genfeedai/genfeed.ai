@@ -6,7 +6,7 @@ Claude, Google AI Overviews, and retrieval-based assistants.
 ## Installation
 
 ```bash
-bunx skills add genfeedai/skills/content-geo-optimizer
+bunx skills add genfeedai/skills --skill content-geo-optimizer
 ```
 
 ## Usage

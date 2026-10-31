@@ -5,7 +5,7 @@ Rewrite naive image and video prompts with precise cinematography vocabulary so 
 ## Installation
 
 ```bash
-bunx skills add genfeedai/skills/cinematic-prompting
+bunx skills add genfeedai/skills --skill cinematic-prompting
 ```
 
 ## Usage

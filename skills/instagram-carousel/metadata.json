@@ -1,0 +1,16 @@
+{
+  "name": "instagram-carousel",
+  "version": "1.0.0",
+  "description": "Plan and write an Instagram carousel: slide copy, design spec, caption and handoff to a local renderer.",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "instagram carousel",
+    "carousel outline",
+    "draft a carousel",
+    "swipeable slides for instagram"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": ["instagram", "carousel", "social-media", "content-creation"]
+}

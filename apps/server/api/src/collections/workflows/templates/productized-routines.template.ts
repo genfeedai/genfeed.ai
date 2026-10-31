@@ -395,8 +395,8 @@ export const PRODUCTIZED_DAILY_ROUTINE_TEMPLATES = [
       parentIssue: 224,
       recommendedSkills: [
         'newsletter-creator',
-        'x-content-creator',
-        'linkedin-content-creator',
+        'x-post',
+        'linkedin-post',
         'content-seo-optimizer',
       ],
       requiredSkills: [
