@@ -32,25 +32,40 @@ function isPrefetchRequest(request: Request): boolean {
 // depends on CPU load and a fixed sleep after load races it. Track each
 // pathname's prefetch requests so the test can wait for the route it is about
 // to click: its page segment loaded and nothing for it still in flight.
+// Prefetches started by a document that is then replaced never report
+// finished or failed, and the new document's router cache does not hold their
+// result, so a main-frame navigation starts the tracking over.
 function trackPrefetches(page: Page): (pathname: string) => boolean {
-  const inFlightByPath = new Map<string, number>();
+  const inFlightByPath = new Map<string, Set<Request>>();
   const lastActivityByPath = new Map<string, number>();
   const pagePaths = new Set<string>();
-  const countInFlight = (request: Request, delta: number) => {
+  const settle = (request: Request) => {
     const { pathname } = new URL(request.url());
-    inFlightByPath.set(pathname, (inFlightByPath.get(pathname) ?? 0) + delta);
+    inFlightByPath.get(pathname)?.delete(request);
     lastActivityByPath.set(pathname, Date.now());
   };
-  page.on('request', (request) => {
-    if (isPrefetchRequest(request)) {
-      countInFlight(request, 1);
+  page.on('framenavigated', (frame) => {
+    if (frame === page.mainFrame()) {
+      inFlightByPath.clear();
+      lastActivityByPath.clear();
+      pagePaths.clear();
     }
+  });
+  page.on('request', (request) => {
+    if (!isPrefetchRequest(request)) {
+      return;
+    }
+    const { pathname } = new URL(request.url());
+    const inFlight = inFlightByPath.get(pathname) ?? new Set<Request>();
+    inFlight.add(request);
+    inFlightByPath.set(pathname, inFlight);
+    lastActivityByPath.set(pathname, Date.now());
   });
   page.on('requestfinished', (request) => {
     if (!isPrefetchRequest(request)) {
       return;
     }
-    countInFlight(request, -1);
+    settle(request);
     if (
       request.headers()['next-router-segment-prefetch']?.endsWith('/__PAGE__')
     ) {
@@ -59,12 +74,12 @@ function trackPrefetches(page: Page): (pathname: string) => boolean {
   });
   page.on('requestfailed', (request) => {
     if (isPrefetchRequest(request)) {
-      countInFlight(request, -1);
+      settle(request);
     }
   });
   return (pathname) =>
     pagePaths.has(pathname) &&
-    (inFlightByPath.get(pathname) ?? 0) === 0 &&
+    (inFlightByPath.get(pathname)?.size ?? 0) === 0 &&
     Date.now() - (lastActivityByPath.get(pathname) ?? 0) >= PREFETCH_QUIET_MS;
 }
 
