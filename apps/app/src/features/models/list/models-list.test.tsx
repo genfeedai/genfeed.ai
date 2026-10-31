@@ -353,7 +353,7 @@ describe('ModelsList', () => {
       );
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Sort by Label' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Label' }));
 
     await waitFor(() => {
       expect(mockFindAll).toHaveBeenLastCalledWith(
