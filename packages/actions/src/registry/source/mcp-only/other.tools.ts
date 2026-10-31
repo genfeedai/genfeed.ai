@@ -21,7 +21,7 @@ export const MCP_OTHER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'List every organization you belong to, which one this connection works inside, and the brands in it. get_account, get_brands and every other tool act only in the active organization. When the connection allows switching, use switch_org to change it; otherwise reconnect and choose another on the consent screen.',
+      'List every organization you belong to, which one this connection works inside, and the brands in it. Every other tool acts in the active organization unless the connection allows all organizations: then each listing includes its brand ids, and any tool accepts an optional organization (name, slug or id) to act in that one for a single call. switch_org changes the default; a connection limited to one organization must be reconnected to choose another.',
     name: 'get_orgs',
     parameters: {
       properties: {},
@@ -32,7 +32,7 @@ export const MCP_OTHER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Switch which organization this connection works inside, by its name, slug or id from get_orgs. Only available when the connection was approved with organization switching on. Your role in the organization is checked on every request.',
+      'Switch which organization this connection works inside, by its name, slug or id from get_orgs. Only available when the connection was approved for all organizations. Your role in the organization is checked on every request.',
     name: 'switch_org',
     parameters: {
       properties: {

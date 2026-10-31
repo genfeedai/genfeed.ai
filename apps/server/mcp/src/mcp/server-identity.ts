@@ -18,6 +18,7 @@ export const MCP_SERVER_INSTRUCTIONS = [
   'Genfeed is an AI content OS for brands.',
   'Call get_account first: if profile.isOnboardingCompleted is false, the user just signed up, so run onboard_brand with them before generating anything.',
   'Call get_brands and work inside the brand the user means.',
+  "When get_orgs lists several organizations with ids, the user connected all of them: pass organization (name, slug or id) with that organization's brandId on a call to act in it. A connection that lists one organization stays in it.",
   'Use generate_content for post copy and generate for images, video and audio; media generation is asynchronous, so poll get_job_status until the job finishes.',
   'Before generate.model or transform_media.model, call get_generation_options and pass a returned models key. Omit generate.model to let the router choose. Do not invent model aliases.',
   'create_post saves a draft for review. Never publish or schedule a post unless the user explicitly asks for it.',

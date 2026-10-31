@@ -68,7 +68,10 @@ import {
   accountToolText,
   dataToolResult,
 } from '@mcp/shared/utils/tool-result-text.util';
-import { handleAccountManagementTool } from '@mcp/tools/account-management.tool';
+import {
+  handleAccountManagementTool,
+  matchOrganization,
+} from '@mcp/tools/account-management.tool';
 import { handleAdsGatewayTool } from '@mcp/tools/ads-gateway.tool';
 import { handleAgentChatTool } from '@mcp/tools/agent-chat.tool';
 import {
@@ -167,6 +170,12 @@ const WORKFLOW_CONTROL_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
  */
 const PRE_DISPATCH_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'resolve_approval',
+]);
+
+/** Tools whose own `organization` argument is not a per-call organization. */
+const ORGANIZATION_ARGUMENT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
+  'get_orgs',
+  'switch_org',
 ]);
 
 const ACCOUNT_MANAGEMENT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
@@ -359,7 +368,66 @@ export class ToolRegistryService implements OnModuleInit {
     return [...PUBLIC_MCP_RESOURCES];
   }
 
+  /**
+   * A connection the user authorized for all of their organizations may name
+   * one on any call (`organization`: name, slug or id from get_orgs). The call
+   * then acts in that organization alone; a connection limited to one
+   * organization is refused rather than silently answered from the wrong one.
+   */
   async handleToolCall(params: ToolCallParams) {
+    const { organization, ...rest } = params.arguments ?? {};
+    if (
+      organization === undefined ||
+      ORGANIZATION_ARGUMENT_TOOL_NAMES.has(params.name)
+    ) {
+      return this.runToolCall(params);
+    }
+
+    try {
+      const requested =
+        typeof organization === 'string' ? organization.trim() : '';
+      if (!requested) {
+        throw new Error(
+          'organization must be a name, slug or id from get_orgs.',
+        );
+      }
+      if (!(await this.clientService.canSwitchOrganizations())) {
+        throw new Error(
+          'This connection is limited to one organization. Reconnect and choose "All my organizations" to act in several.',
+        );
+      }
+      const target = matchOrganization(
+        await this.clientService.listOrganizations(),
+        requested,
+      );
+      return await this.clientService.runInOrganization(target.id, () =>
+        this.runToolCall({ ...params, arguments: rest }),
+      );
+    } catch (error: unknown) {
+      this.logger.error(`Error scoping tool call ${params.name}:`, error);
+      const gated = toMcpToolErrorResult(error);
+      if (gated) return gated;
+      return {
+        content: [
+          {
+            text: `Error: ${(error as Error)?.message ?? String(error)}`,
+            type: 'text',
+          },
+        ],
+        structuredContent: {
+          failure: {
+            ...formatAgentError(
+              error instanceof Error ? error.message : String(error),
+            ),
+            detail: null,
+          },
+        },
+        isError: true,
+      };
+    }
+  }
+
+  private async runToolCall(params: ToolCallParams) {
     const requestedArgs = params.arguments ?? {};
     const brandCreation =
       params.name === 'onboard_brand' &&

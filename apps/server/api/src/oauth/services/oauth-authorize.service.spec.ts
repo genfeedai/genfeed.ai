@@ -131,6 +131,7 @@ function buildHarness() {
           ),
         });
         expect(args).toEqual({
+          orderBy: { createdAt: 'asc' },
           select: { id: true, members: membershipSelect },
           where: {
             isDeleted: false,
@@ -274,6 +275,7 @@ describe('OAuthAuthorizeService', () => {
       decision({ organizationId: 'org-2' }),
     );
     expect(prisma.organization.findMany).toHaveBeenCalledWith({
+      orderBy: { createdAt: 'asc' },
       select: { id: true, members: membershipSelect },
       where: {
         isDeleted: false,
@@ -942,6 +944,20 @@ describe('Organization switching grant', () => {
       }),
       'mcp',
     );
+  });
+
+  it('starts an all-organizations connection in the first organization without asking for one', async () => {
+    const { prisma } = await approve(2, {
+      allowOrganizationSwitching: true,
+      organizationId: undefined,
+    });
+
+    expect(prisma.mcpOAuthAuthCode.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        canSwitchOrganizations: true,
+        organizationId: 'org-1',
+      }),
+    });
   });
 
   it.each([

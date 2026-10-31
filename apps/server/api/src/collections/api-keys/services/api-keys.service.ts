@@ -35,6 +35,7 @@ import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { RedisService } from '@libs/redis/redis.service';
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
@@ -465,9 +466,38 @@ export class ApiKeysService extends BaseService<
    */
   async resolveEffectiveOrganizationId(
     apiKey: ApiKeyDocument,
+    requestedOrganizationId?: string,
   ): Promise<string> {
     if (!this.canSwitchOrganizations(apiKey)) {
+      if (
+        requestedOrganizationId &&
+        requestedOrganizationId !== apiKey.organizationId
+      ) {
+        throw new ForbiddenException(
+          'This connection is limited to one organization',
+        );
+      }
       return apiKey.organizationId;
+    }
+
+    // One call may name another organization without moving the connection.
+    // An organization the user cannot act in is an error, not a fallback: a
+    // generation must never land in a different organization than asked for.
+    if (requestedOrganizationId) {
+      if (requestedOrganizationId === apiKey.organizationId) {
+        return apiKey.organizationId;
+      }
+      if (
+        !(await this.hasActiveMembership(
+          apiKey.userId,
+          requestedOrganizationId,
+        ))
+      ) {
+        throw new ForbiddenException(
+          'You are not an active member of the requested organization',
+        );
+      }
+      return requestedOrganizationId;
     }
 
     const active = (apiKey.metadata as Record<string, unknown>)[

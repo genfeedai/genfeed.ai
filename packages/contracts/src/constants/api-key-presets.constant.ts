@@ -70,6 +70,12 @@ export const MCP_ACCESS_MODE_METADATA_KEY = 'mcpAccessMode';
 /** Session-key metadata: the user allowed organization switching at consent. */
 export const MCP_CAN_SWITCH_ORGANIZATIONS_METADATA_KEY =
   'canSwitchOrganizations';
+/**
+ * Request header an MCP session that may switch organizations sends to act in
+ * one of its user's other organizations for a single call, without moving the
+ * connection. Honoured only after a live membership check.
+ */
+export const MCP_ORGANIZATION_HEADER = 'x-genfeed-organization';
 /** Session-key metadata: the organization the connection is currently in. */
 export const MCP_ACTIVE_ORGANIZATION_METADATA_KEY = 'activeOrganizationId';
 export const MCP_CLAUDE_SCOPE_CEILING: readonly string[] =
