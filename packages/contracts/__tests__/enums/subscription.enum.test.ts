@@ -34,12 +34,18 @@ describe('subscription.enum', () => {
   });
 
   describe('SubscriptionTier', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(SubscriptionTier)).toHaveLength(3);
+    it('publishes the four supported subscription tiers', () => {
+      expect(Object.values(SubscriptionTier)).toEqual([
+        'free',
+        'pro',
+        'scale',
+        'enterprise',
+      ]);
     });
 
     it('should have correct values', () => {
       expect(SubscriptionTier.FREE).toBe('free');
+      expect(SubscriptionTier.PRO).toBe('pro');
       expect(SubscriptionTier.SCALE).toBe('scale');
       expect(SubscriptionTier.ENTERPRISE).toBe('enterprise');
     });
