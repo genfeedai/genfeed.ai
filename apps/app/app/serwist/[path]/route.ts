@@ -1,9 +1,9 @@
 import { serwist } from '@app/serwist/serwist-asset.core';
+import { readSerwistAsset } from '@app/serwist/serwist-asset.reader';
 import {
   isSerwistRouteFile,
   SERWIST_ROUTE_FILES,
 } from '@app/serwist/serwist-options';
-import { readSerwistAsset } from 'genfeed-serwist-asset-reader';
 import { notFound } from 'next/navigation';
 
 type SerwistRouteContext = Parameters<typeof serwist.GET>[1];
