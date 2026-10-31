@@ -42,12 +42,35 @@ export function describeMcpApprovalArguments(
     .join(' · ');
 }
 
+/** The media type a generation names, which the title carries instead of the settings. */
+function readGenerationType(
+  toolName: string,
+  args: Record<string, unknown>,
+): string | null {
+  if (toolName !== 'generate' || typeof args.type !== 'string') return null;
+  return args.type.trim().toLowerCase() || null;
+}
+
+/** The action's full name and its short public settings, for a row of its own. */
+export function describeMcpApprovalAction(
+  toolName: string,
+  args: Record<string, unknown>,
+): { details: string | null; title: string } {
+  const baseTitle = getToolByName(toolName)?.title ?? humanizeToken(toolName);
+  const type = readGenerationType(toolName, args);
+  // "Generate image" says what will be made, so the type leaves the settings.
+  const { type: _type, ...rest } = args;
+  return {
+    details: describeMcpApprovalArguments(type ? rest : args) || null,
+    title: type ? `${baseTitle} ${type}` : baseTitle,
+  };
+}
+
 /** One line naming what an approval would do: the tool title and its settings. */
 export function summarizeMcpApproval(
   toolName: string,
   args: Record<string, unknown>,
 ): string {
-  const title = getToolByName(toolName)?.title ?? humanizeToken(toolName);
-  const details = describeMcpApprovalArguments(args);
+  const { details, title } = describeMcpApprovalAction(toolName, args);
   return details ? `${title} · ${details}` : title;
 }

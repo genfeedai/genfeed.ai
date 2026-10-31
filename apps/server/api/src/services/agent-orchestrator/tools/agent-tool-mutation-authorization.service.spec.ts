@@ -935,11 +935,25 @@ describe('MCP draft-only policy selection', () => {
     { content: 'Draft', scheduledAt: '2030-01-01' },
     { content: 'Draft', unknown: true },
     { content: 'Draft', confirmed: true },
-  ])('retains consent for %j', async (args) => {
+  ])('executes %j: the handler keeps create_post draft-only', async (args) => {
     const { service, createPending } = fixture();
-    await runWithActionOrigin({ origin: ActionOrigin.MCP }, () =>
+    const result = await runWithActionOrigin({ origin: ActionOrigin.MCP }, () =>
       service.authorize('create_post', args, context, {} as never),
     );
+    expect(result).toEqual({ kind: 'execute' });
+    expect(createPending).not.toHaveBeenCalled();
+  });
+  it('still queues a scheduled release from MCP', async () => {
+    const { service, createPending } = fixture();
+    const result = await runWithActionOrigin({ origin: ActionOrigin.MCP }, () =>
+      service.authorize(
+        'create_scheduled_release',
+        { release: { scheduledDate: '2030-01-01T10:00:00.000Z', targets: [] } },
+        context,
+        {} as never,
+      ),
+    );
+    expect(result.kind).toBe('return');
     expect(createPending).toHaveBeenCalled();
   });
   it('never skips approved-id verification for a text draft', async () => {

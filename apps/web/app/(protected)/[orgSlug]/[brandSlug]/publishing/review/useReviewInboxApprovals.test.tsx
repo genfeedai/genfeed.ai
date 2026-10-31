@@ -64,10 +64,13 @@ vi.mock('@services/core/logger.service', () => ({
 
 function item(overrides: Partial<IReviewInboxItem>): IReviewInboxItem {
   return {
+    actionDetails: null,
     actionSummary: 'Publish post',
+    actionTitle: 'Publish post',
     approvalId: 'apr-1',
     brandId: null,
     brandLabel: null,
+    brandLogoUrl: null,
     estimatedCredits: null,
     executionId: null,
     expiresAt: null,
@@ -78,6 +81,7 @@ function item(overrides: Partial<IReviewInboxItem>): IReviewInboxItem {
     preview: { caption: null, mediaUrl: null },
     reasons: [],
     requestedAt: '2026-10-01T00:00:00.000Z',
+    requestedByLabel: null,
     source: 'mcp_client',
     sourceLabel: 'publish_post',
     status: 'pending',

@@ -8,6 +8,7 @@ import type {
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { MemberRole } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
+import type { ConfigService } from '@libs/config/config.service';
 import { ForbiddenException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -54,6 +55,7 @@ function gateExecution(overrides: {
 
 describe('ReviewInboxService', () => {
   const prisma = {
+    asset: { findMany: vi.fn() },
     brand: { findMany: vi.fn() },
     mcpApproval: { findMany: vi.fn() },
     workflowExecution: { findMany: vi.fn() },
@@ -65,12 +67,14 @@ describe('ReviewInboxService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     prisma.brand.findMany.mockResolvedValue([{ id: 'brand-1', label: 'Acme' }]);
+    prisma.asset.findMany.mockResolvedValue([]);
     prisma.mcpApproval.findMany.mockResolvedValue([]);
     prisma.workflowExecution.findMany.mockResolvedValue([]);
     service = new ReviewInboxService(
       prisma as unknown as PrismaService,
       brandAccess as unknown as BrandAccessService,
       rolesGuard as unknown as RolesGuard,
+      { cdnUrl: 'https://cdn.example.com/' } as unknown as ConfigService,
     );
   });
 
@@ -244,6 +248,18 @@ describe('ReviewInboxService', () => {
           id: 'apr-1',
           pricingQuote: null,
           toolName: 'publish_post',
+          user: {
+            email: 'vincent@example.com',
+            firstName: 'Vincent',
+            lastName: null,
+          },
+        },
+      ]);
+      prisma.asset.findMany.mockResolvedValue([
+        {
+          cloudObjectKey: 'logos/logo-1',
+          id: 'logo-1',
+          parentBrandId: 'brand-1',
         },
       ]);
 
@@ -257,9 +273,11 @@ describe('ReviewInboxService', () => {
         approvalId: 'apr-1',
         brandId: 'brand-1',
         brandLabel: 'Acme',
+        brandLogoUrl: 'https://cdn.example.com/logos/logo-1',
         id: 'mcp_approval:apr-1',
         kind: 'mcp_approval',
         preview: { caption: 'Hello world', mediaUrl: null },
+        requestedByLabel: 'Vincent',
         source: 'mcp_client',
         toolName: 'publish_post',
       });

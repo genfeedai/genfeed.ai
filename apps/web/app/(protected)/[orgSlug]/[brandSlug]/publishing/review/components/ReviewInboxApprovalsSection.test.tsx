@@ -21,10 +21,13 @@ vi.mock('next-intl', async () => {
 });
 
 const approval: IReviewInboxItem = {
+  actionDetails: 'Platform: instagram',
   actionSummary: 'Publish post · Platform: instagram',
+  actionTitle: 'Publish post',
   approvalId: 'apr-1',
   brandId: 'brand-1',
   brandLabel: 'Acme',
+  brandLogoUrl: null,
   estimatedCredits: 4,
   executionId: null,
   expiresAt: null,
@@ -35,6 +38,7 @@ const approval: IReviewInboxItem = {
   preview: { caption: 'Hello world', mediaUrl: null },
   reasons: [],
   requestedAt: '2026-10-01T00:00:00.000Z',
+  requestedByLabel: 'Vincent',
   source: 'mcp_client',
   sourceLabel: 'publish_post',
   status: 'pending',
@@ -63,7 +67,7 @@ function state(
 }
 
 describe('ReviewInboxApprovalsSection', () => {
-  it('shows source, brand and what the request wants to do', () => {
+  it('shows what will happen, for which brand, at what cost and who asked', () => {
     render(<ReviewInboxApprovalsSection approvals={state()} />);
 
     expect(screen.queryByText('Waiting on you')).not.toBeInTheDocument();
@@ -72,12 +76,13 @@ describe('ReviewInboxApprovalsSection', () => {
     ).not.toBeInTheDocument();
     expect(screen.getByText('MCP client')).toBeInTheDocument();
     expect(screen.getByText('Acme')).toBeInTheDocument();
-    expect(
-      screen.getByText('Publish post · Platform: instagram'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Publish post')).toBeInTheDocument();
+    expect(screen.getByText('Platform: instagram')).toBeInTheDocument();
+    expect(screen.getByText('By Vincent')).toBeInTheDocument();
     expect(screen.getByText('Hello world')).toBeInTheDocument();
-    expect(screen.getByText('Pending')).toBeInTheDocument();
     expect(screen.getByText('4 credits')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Approve' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reject' })).toBeInTheDocument();
   });
 
   it('heads the requests as a Needs you section only when given a title', () => {
@@ -96,9 +101,7 @@ describe('ReviewInboxApprovalsSection', () => {
     expect(
       screen.getByRole('heading', { name: 'Needs you' }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText('Publish post · Platform: instagram'),
-    ).toBeVisible();
+    expect(screen.getByText('Publish post')).toBeVisible();
   });
 
   it('previews the post caption and image on the row', () => {
@@ -142,6 +145,7 @@ describe('ReviewInboxApprovalsSection', () => {
     const items = Array.from({ length: 12 }, (_, index) => ({
       ...approval,
       actionSummary: `Request ${index + 1}`,
+      actionTitle: `Request ${index + 1}`,
       id: `mcp_approval:apr-${index + 1}`,
     }));
     render(<ReviewInboxApprovalsSection approvals={state({ items })} />);
@@ -161,6 +165,7 @@ describe('ReviewInboxApprovalsSection', () => {
     const items = Array.from({ length: 12 }, (_, index) => ({
       ...approval,
       actionSummary: `Request ${index + 1}`,
+      actionTitle: `Request ${index + 1}`,
       id: `mcp_approval:apr-${index + 1}`,
     }));
     render(
@@ -187,6 +192,28 @@ describe('ReviewInboxApprovalsSection', () => {
     expect(approvals.onDecide).toHaveBeenNthCalledWith(2, approval, 'reject');
   });
 
+  it('shows a request with no quoted cost and no requester plainly', () => {
+    render(
+      <ReviewInboxApprovalsSection
+        approvals={state({
+          items: [
+            {
+              ...approval,
+              brandId: null,
+              brandLabel: null,
+              estimatedCredits: null,
+              requestedByLabel: null,
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(screen.getByText('All brands')).toBeInTheDocument();
+    expect(screen.getByText('No charge quoted')).toBeInTheDocument();
+    expect(screen.queryByText(/^By /)).not.toBeInTheDocument();
+  });
+
   it('hides row actions the viewer cannot take', () => {
     render(
       <ReviewInboxApprovalsSection
@@ -197,6 +224,9 @@ describe('ReviewInboxApprovalsSection', () => {
     expect(
       screen.queryByRole('button', { name: 'Approve' }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Only an admin can decide this'),
+    ).toBeInTheDocument();
   });
 
   it('explains a deep link to a request that is no longer pending', () => {

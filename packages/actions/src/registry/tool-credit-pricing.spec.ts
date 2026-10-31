@@ -31,38 +31,91 @@ function pricingOf(name: string): ToolCreditPricing {
 }
 
 describe('tool credit pricing', () => {
-  it('gates default-profile spenders at the MCP approval boundary', () => {
-    const ungated = getToolsForToolsets(
+  it('gates default-profile media generation at the MCP approval boundary', () => {
+    const spenders = getToolsForToolsets(
       'mcp',
       DEFAULT_MCP_PROFILE_TOOLSETS,
     ).filter((tool) => {
       const pricing = tool.creditPricing;
-      const spends =
+      return (
         pricing !== undefined &&
-        isSpendingCreditPricing(pricing, tool.creditCost);
-      return spends && !requiresMcpApproval(tool);
+        isSpendingCreditPricing(pricing, tool.creditCost)
+      );
     });
-    expect(ungated.map((tool) => tool.name)).toEqual([]);
+    const ungated = spenders
+      .filter((tool) => !requiresMcpApproval(tool))
+      .map((tool) => tool.name)
+      .sort();
+    // Paid, but neither posting nor media generation: these run at once.
+    expect(ungated).toEqual([
+      'create_post',
+      'enhance_prompt',
+      'generate_content',
+      'repurpose_post',
+    ]);
+    expect(spenders.map((tool) => tool.name)).toContain('generate');
     expect(getToolByName('generate')?.mutationPolicy).toBe('direct');
     expect(requiresMcpApproval(getToolByName('generate'))).toBe(true);
   });
 
-  it('requires MCP approval for a declared approval or a spend', () => {
+  it('requires MCP approval only for posting and media generation', () => {
+    const pricing = fixedCreditPricing(0);
     expect(
       requiresMcpApproval({
         creditCost: 0,
-        creditPricing: fixedCreditPricing(0),
-        mutationPolicy: 'direct',
-      }),
-    ).toBe(false);
-    expect(
-      requiresMcpApproval({
-        creditCost: 0,
-        creditPricing: fixedCreditPricing(0),
+        creditPricing: pricing,
         mutationPolicy: 'approval-required',
+        name: 'create_scheduled_release',
       }),
     ).toBe(true);
+    expect(
+      requiresMcpApproval({
+        creditCost: 0,
+        creditPricing: pricing,
+        mutationPolicy: 'approval-required',
+        name: 'publish_article',
+      }),
+    ).toBe(true);
+    expect(
+      requiresMcpApproval({
+        creditCost: 0,
+        creditPricing: pricing,
+        mutationPolicy: 'direct',
+        name: 'generate',
+      }),
+    ).toBe(false);
     expect(requiresMcpApproval(undefined)).toBe(false);
+  });
+
+  it.each([
+    'create_post',
+    'create_article_draft',
+    'create_brand_from_url',
+    'enhance_prompt',
+    'fetch_x_posts',
+    'fetch_x_account_activity',
+    'generate_content',
+    'repurpose_post',
+    'import_source_post',
+    'start_brand_interview',
+  ])('runs %s without an MCP approval', (name) => {
+    expect(requiresMcpApproval(getToolByName(name))).toBe(false);
+  });
+
+  it.each([
+    'generate',
+    'transform_media',
+    'generate_turbo_content',
+    'run_clipper',
+    'start_remix_generation',
+    'create_scheduled_release',
+    'update_scheduled_release',
+    'control_scheduled_release',
+    'send_social_dm',
+    'post_social_reply',
+    'publish_article',
+  ])('asks for an MCP approval on %s', (name) => {
+    expect(requiresMcpApproval(getToolByName(name))).toBe(true);
   });
 
   it('does not mark a spending tool read-only', () => {
@@ -120,14 +173,12 @@ describe('tool credit pricing', () => {
     });
   });
 
-  it('keeps Enhance and X paid and confirmed while options stay free', () => {
+  it('keeps Enhance and X paid but unconfirmed while options stay free', () => {
     for (const name of ['enhance_prompt', 'fetch_x_posts']) {
       const tool = getToolByName(name);
       expect(tool?.creditCost).toBe(1);
-      expect(requiresMcpApproval(tool)).toBe(true);
-      expect(tool?.description).toContain(
-        'Costs 1 credit and requires confirmation',
-      );
+      expect(requiresMcpApproval(tool)).toBe(false);
+      expect(tool?.description).toContain('Costs 1 credit');
     }
     const options = getToolByName('get_generation_options');
     expect(options?.creditCost).toBe(0);

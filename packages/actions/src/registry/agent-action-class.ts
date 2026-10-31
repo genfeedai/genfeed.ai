@@ -176,6 +176,38 @@ const MCP_APPROVAL_NEVER_SKIPPED_TOOL_NAMES = new Set<string>([
 ]);
 
 /**
+ * Publishing tools the OUTBOUND class does not list: they put content in front
+ * of an audience, so an MCP call waits for a reviewer.
+ */
+const MCP_APPROVAL_POSTING_TOOL_NAMES = new Set<string>(['publish_article']);
+
+/**
+ * Media generation that is not in the CREDIT_SPENDING class: remix and
+ * clipper runs render new media, so an MCP call waits for a reviewer.
+ */
+const MCP_APPROVAL_GENERATION_TOOL_NAMES = new Set<string>([
+  'control_remix_generation',
+  'create_clipper_project_from_youtube',
+  'start_remix_generation',
+]);
+
+/**
+ * Whether an MCP call to this tool can ever wait in the approvals queue. Only
+ * posting and media generation do. Reads, drafts, brand setup and everything
+ * else run at once, whatever their credit cost; the API still checks the
+ * caller's role and credit balance.
+ */
+export function isMcpApprovalScopeTool(toolName: string): boolean {
+  const actionClass = getAgentActionClass(toolName);
+  return (
+    actionClass === AGENT_ACTION_CLASS.OUTBOUND ||
+    actionClass === AGENT_ACTION_CLASS.CREDIT_SPENDING ||
+    MCP_APPROVAL_POSTING_TOOL_NAMES.has(toolName) ||
+    MCP_APPROVAL_GENERATION_TOOL_NAMES.has(toolName)
+  );
+}
+
+/**
  * Whether the "Require approval for MCP requests" setting may waive the
  * approvals queue for this tool. Only plain credit spenders qualify (media and
  * content generation): the call still runs the credit balance check and quote.

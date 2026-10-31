@@ -230,26 +230,27 @@ describe('catalog REST handlers — video', () => {
 });
 
 describe('catalog REST handlers — articles', () => {
-  it.each(['create_article_draft', 'publish_article'])(
-    'queues %s before any CMS write',
-    async (name) => {
-      const { client, registry } = build();
-      const args =
-        name === 'publish_article'
-          ? { articleId: 'article-2' }
-          : {
-              label: 'Reviewed guide',
-              slug: 'reviewed-guide',
-              summary: 'Verified',
-              content: '<p>Full content</p>',
-            };
-      const result = await callTool(registry, name, args);
-      expect(client.createApproval).toHaveBeenCalledWith(name, args);
-      expect(client.createArticleDraft).not.toHaveBeenCalled();
-      expect(client.publishArticle).not.toHaveBeenCalled();
-      expect(result.content[0].text).toContain('requires approval');
-    },
-  );
+  it('saves an article draft at once and queues publishing', async () => {
+    const { client, registry } = build();
+    const draft = {
+      label: 'Reviewed guide',
+      slug: 'reviewed-guide',
+      summary: 'Verified',
+      content: '<p>Full content</p>',
+    };
+    await callTool(registry, 'create_article_draft', draft);
+    expect(client.createApproval).not.toHaveBeenCalled();
+    expect(client.createArticleDraft).toHaveBeenCalledWith(draft);
+
+    const result = await callTool(registry, 'publish_article', {
+      articleId: 'article-2',
+    });
+    expect(client.createApproval).toHaveBeenCalledWith('publish_article', {
+      articleId: 'article-2',
+    });
+    expect(client.publishArticle).not.toHaveBeenCalled();
+    expect(result.content[0].text).toContain('requires approval');
+  });
 
   it('saves full reviewed HTML when draft creation is approved', async () => {
     const { client, registry } = build();

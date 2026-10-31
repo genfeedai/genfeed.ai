@@ -33,8 +33,16 @@ export interface IReviewInboxItem {
   sourceLabel: string;
   brandId: string | null;
   brandLabel: string | null;
+  /** The brand's current logo, when it has one. */
+  brandLogoUrl: string | null;
   /** One line naming what the requester wants to do. */
   actionSummary: string;
+  /** The action's full name, such as "Generate image". Never truncated. */
+  actionTitle: string;
+  /** Short public settings of the call, such as "Aspect ratio: 16:9". */
+  actionDetails: string | null;
+  /** The member who made the request, when it came from one. */
+  requestedByLabel: string | null;
   preview: IReviewInboxItemPreview;
   requestedAt: string;
   /** When the gate resolves on its own (workflow review-gate timeout). */

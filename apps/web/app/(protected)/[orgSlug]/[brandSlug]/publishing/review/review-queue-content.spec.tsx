@@ -1168,10 +1168,13 @@ describe('ReviewQueueContent', () => {
 
   describe('workflow and MCP approvals (#7340)', () => {
     const gate = {
+      actionDetails: null,
       actionSummary: 'Continue Weekly posts with the output waiting',
+      actionTitle: 'Continue Weekly posts with the output waiting',
       approvalId: null,
       brandId: 'brand-1',
       brandLabel: 'Acme',
+      brandLogoUrl: null,
       estimatedCredits: null,
       executionId: 'exec-1',
       expiresAt: null,
@@ -1182,6 +1185,7 @@ describe('ReviewQueueContent', () => {
       preview: { caption: null, mediaUrl: null },
       reasons: [],
       requestedAt: '2026-10-01T00:00:00.000Z',
+      requestedByLabel: null,
       source: 'workflow',
       sourceLabel: 'Weekly posts',
       status: 'pending',
