@@ -123,13 +123,17 @@ test.describe('Workflow Editor', () => {
     await expect(workflowPage.canvasNode).toHaveCount(0);
   });
 
-  test('should display node library/sidebar', async ({ authenticatedPage }) => {
+  test('should open the node catalog from the Add node menu', async ({
+    authenticatedPage,
+  }) => {
     const workflowPage = new WorkflowPage(authenticatedPage);
 
     await workflowPage.gotoEditor();
 
-    // Sidebar should be visible with navigation
-    await expect(workflowPage.sidebar.first()).toBeVisible();
+    // The catalog lives behind the toolbar's Add node menu, not a fixed palette.
+    await expect(workflowPage.nodeCatalogSearch).toHaveCount(0);
+    await workflowPage.addNodeButton.click();
+    await expect(workflowPage.nodeCatalogSearch).toBeVisible();
   });
 
   test('should load existing workflow by ID', async ({ authenticatedPage }) => {

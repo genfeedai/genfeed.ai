@@ -65,17 +65,22 @@ test.describe('Workflows', () => {
       'workflow-editor-section-actions',
     );
     await expect(editorActions).toBeVisible();
-    // The workflow's context sidebar starts closed; the topbar opens it.
-    const toggle = authenticatedPage.getByTestId('topbar-context-toggle');
-    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    await toggle.click();
-    const contextSidebar = authenticatedPage.getByRole('complementary', {
-      name: 'Side panel',
-    });
-    await expect(contextSidebar).toBeVisible();
+    // The workflow's context lives in the output pane's Context tab, behind
+    // the canvas; the agent layout has no topbar toggle for it.
     await expect(
-      contextSidebar.getByText(workflow.name, { exact: true }),
+      authenticatedPage.getByTestId('topbar-context-toggle'),
+    ).toHaveCount(0);
+    const contextTab = authenticatedPage.getByRole('tab', { name: 'Context' });
+    await expect(contextTab).toHaveAttribute('aria-selected', 'false');
+    await contextTab.click();
+    const contextPanel = authenticatedPage.getByRole('tabpanel', {
+      name: 'Context',
+    });
+    await expect(contextPanel).toBeVisible();
+    await expect(
+      contextPanel.getByText(workflow.name, { exact: true }),
     ).toBeVisible();
+    await authenticatedPage.getByRole('tab', { name: 'Canvas' }).click();
     await expect(
       editorActions.getByRole('button', { name: 'Publish' }),
     ).toBeVisible();
