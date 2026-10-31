@@ -50,12 +50,12 @@ describe('auth callback URL helpers', () => {
     expect(
       getAuthCallbackURL(
         new URLSearchParams(
-          'plan=pro&credits=0500&brandDomain=https%3A%2F%2Fwww.acme.co%2Fproducts&brandName= Acme ',
+          'plan=price_pro123&credits=0500&brandDomain=https%3A%2F%2Fwww.acme.co%2Fproducts&brandName= Acme ',
         ),
         { includeOnboardingHandoffParams: true },
       ),
     ).toBe(
-      '/onboarding/post-signup?plan=pro&credits=500&brandDomain=acme.co&brandName=Acme',
+      '/onboarding/post-signup?plan=price_pro123&credits=500&brandDomain=acme.co&brandName=Acme',
     );
   });
 
@@ -99,12 +99,12 @@ describe('auth callback URL helpers', () => {
     expect(
       getAuthCallbackURL(
         new URLSearchParams(
-          'plan=pro&utm_source=ChatGPT&utm_term=private&signup_referrer=chatgpt.com&signup_landing=%2Fstudio%3Fx%3D1',
+          'plan=price_pro123&utm_source=ChatGPT&utm_term=private&signup_referrer=chatgpt.com&signup_landing=%2Fstudio%3Fx%3D1',
         ),
         { includeOnboardingHandoffParams: true },
       ),
     ).toBe(
-      '/onboarding/post-signup?plan=pro&signup_landing=%2Fstudio&signup_referrer=chatgpt.com&utm_source=chatgpt',
+      '/onboarding/post-signup?plan=price_pro123&signup_landing=%2Fstudio&signup_referrer=chatgpt.com&utm_source=chatgpt',
     );
   });
 
@@ -144,7 +144,7 @@ describe('auth callback URL helpers', () => {
     expect(
       getAuthCallbackURL(
         new URLSearchParams(
-          'callbackUrl=genfeedai-desktop%3A%2F%2Fauth&plan=pro',
+          'callbackUrl=genfeedai-desktop%3A%2F%2Fauth&plan=price_pro123',
         ),
         { includeOnboardingHandoffParams: true },
       ),

@@ -112,6 +112,36 @@ describe('product limits', () => {
   });
 });
 
+describe('Pro tier', () => {
+  it('stays solo with one organization and an API ceiling between PAYG and Scale', () => {
+    expect(getSeatLimitForTier(SubscriptionTier.PRO)).toBe(FREE_SEAT_LIMIT);
+    expect(getOrganizationLimitForTier(SubscriptionTier.PRO)).toBe(
+      SINGLE_ORGANIZATION_LIMIT,
+    );
+    expect(getApiRateLimitForTier(SubscriptionTier.PRO)).toBe(300);
+    expect(getApiRateLimitForTier(SubscriptionTier.PRO)).toBeGreaterThan(
+      FREE_API_RATE_LIMIT,
+    );
+    expect(getApiRateLimitForTier(SubscriptionTier.PRO)).toBeLessThan(
+      SCALE_API_RATE_LIMIT,
+    );
+  });
+
+  it('includes BYOK but keeps brand model training for Scale and above', () => {
+    expect(hasByokAccess(SubscriptionTier.PRO)).toBe(true);
+    expect(hasTrainingAccess(SubscriptionTier.PRO)).toBe(false);
+  });
+
+  it('points a capped Pro organization at Scale', () => {
+    expect(getUpgradeTierForLimit('seats', SubscriptionTier.PRO)).toBe(
+      SubscriptionTier.SCALE,
+    );
+    expect(getUpgradeTierForLimit('organizations', SubscriptionTier.PRO)).toBe(
+      SubscriptionTier.SCALE,
+    );
+  });
+});
+
 describe('hasTrainingAccess', () => {
   it('is denied on free tiers and unknown tiers', () => {
     expect(hasTrainingAccess(SubscriptionTier.FREE)).toBe(false);
@@ -132,7 +162,8 @@ describe('hasByokAccess', () => {
     expect(hasByokAccess(null)).toBe(false);
   });
 
-  it('is granted from Scale upward', () => {
+  it('is granted from Pro upward', () => {
+    expect(hasByokAccess(SubscriptionTier.PRO)).toBe(true);
     expect(hasByokAccess(SubscriptionTier.SCALE)).toBe(true);
     expect(hasByokAccess(SubscriptionTier.ENTERPRISE)).toBe(true);
   });

@@ -3,7 +3,7 @@ import {
   multiplyDecimalPricing,
   sumDecimalPricing,
 } from './decimal-pricing';
-import { FREE_API_RATE_LIMIT } from './tier-entitlements';
+import { FREE_API_RATE_LIMIT, PRO_API_RATE_LIMIT } from './tier-entitlements';
 /**
  * Genfeed.ai Pricing Configuration
  *
@@ -20,7 +20,7 @@ import { FREE_API_RATE_LIMIT } from './tier-entitlements';
  *   (Scale, Enterprise) has unlimited seats. Multi-organization workflows
  *   start at Scale. Brands and connected channels are unlimited so credits stay
  *   the only output meter (account-sharing can't dodge a usage meter).
- * - BYOK (bring your own provider keys) is a Scale+ subscription feature: BYOK
+ * - BYOK (bring your own provider keys) is a Pro+ subscription feature: BYOK
  *   generations draw no credits and carry no per-usage fee.
  * - Models are never user-selected: the Genfeed router picks the best model
  *   for each format, brief, and budget
@@ -53,7 +53,7 @@ interface PricingOutputsProps {
  * PLAN_LABELS. Nothing outside this file spells a plan name, so renaming a
  * plan is a one-line change here instead of a site-wide find-and-replace.
  */
-export type PlanTier = 'payg' | 'scale' | 'enterprise';
+export type PlanTier = 'payg' | 'pro' | 'scale' | 'enterprise';
 
 /**
  * Canonical display label per tier: the only place a plan name is written.
@@ -61,6 +61,7 @@ export type PlanTier = 'payg' | 'scale' | 'enterprise';
 export const PLAN_LABELS = {
   enterprise: 'Enterprise',
   payg: 'Pay As You Go',
+  pro: 'Pro',
   scale: 'Scale',
 } as const satisfies Record<PlanTier, string>;
 
@@ -104,6 +105,7 @@ export interface WebsitePlanProps extends PricingPlanProps {
 const STRIPE_PRICE_IDS = {
   enterprise:
     process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY,
+  pro: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY,
   scale: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY,
 } as const;
 
@@ -111,6 +113,7 @@ const STRIPE_PRICE_IDS = {
 const PLAN_PRICES = {
   enterprise: null,
   payg: 0,
+  pro: 49,
   scale: 499,
 } as const satisfies Record<PlanTier, number | null>;
 
@@ -125,16 +128,23 @@ const PLAN_PRICES = {
  * Each tier includes a credit bonus over the $0.01 PAYG rate.
  */
 export const TIER_INCLUDED_MONTHLY_CREDITS: Record<string, number> = {
+  pro: 5_900,
   scale: 60_000,
 };
 
-export type SubscriptionPriceTier = 'scale';
+export type SubscriptionPriceTier = 'pro' | 'scale';
 
 /**
  * Stable Stripe price contracts keyed by Genfeed tier, never by Stripe product
  * display name, so a renamed wrong price is never accepted.
  */
 export const SUBSCRIPTION_PRICE_CONTRACTS = {
+  pro: {
+    currency: 'usd',
+    includedMonthlyCredits: TIER_INCLUDED_MONTHLY_CREDITS.pro,
+    interval: 'month',
+    unitAmount: PLAN_PRICES.pro * 100,
+  },
   scale: {
     currency: 'usd',
     includedMonthlyCredits: TIER_INCLUDED_MONTHLY_CREDITS.scale,
@@ -424,6 +434,17 @@ export const IMAGE_CREDIT_COSTS = {
 } as const;
 
 /**
+ * Early-access discount on Pro. Stripe coupon `ne7XYr33` ($10 off, repeating
+ * for 12 months) behind the active promotion code below; checkout accepts
+ * promotion codes, so the customer enters it there.
+ */
+export const PRO_EARLY_ACCESS_DISCOUNT = {
+  amountOff: 10,
+  code: 'EARLYGENFEED',
+  durationMonths: 12,
+} as const;
+
+/**
  * Website pricing plans - displayed on public pricing page
  * Free-to-join PAYG credits, subscriptions with included credits, B2B cloud
  */
@@ -449,6 +470,31 @@ export const websitePlans: WebsitePlanProps[] = [
       'Try Genfeed on one brand. Pay only for what you generate.',
   },
 
+  // Pro Tier - one creator or brand, every app
+  {
+    cta: 'Start Pro',
+    ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=pro`,
+    description: 'Every app for one creator or brand',
+    features: [
+      'Automation, Messages, Discovery',
+      'Clean exports, any agent model',
+      'Bring your own provider keys, no usage fee',
+      'Unlimited brands and channels',
+      `API access (${PRO_API_RATE_LIMIT} requests/min)`,
+    ],
+    includedCredits: TIER_INCLUDED_MONTHLY_CREDITS.pro,
+    interval: 'month',
+    label: PLAN_LABELS.pro,
+    outputs: null,
+    price: PLAN_PRICES.pro,
+    stripePriceId: STRIPE_PRICE_IDS.pro,
+    target: 'Creators and single brands',
+    tier: 'pro',
+    type: 'subscription',
+    valueProposition:
+      'Every app, with credits included, for one workspace and one seat.',
+  },
+
   // Scale Tier - higher-entry team studio
   {
     cta: 'Start Scale',
@@ -456,10 +502,10 @@ export const websitePlans: WebsitePlanProps[] = [
     description: 'One studio for teams, organizations, and brands',
     features: [
       'Unlimited seats and client workspaces',
-      'Any model, Ultra quality',
+      'Everything in Pro',
+      'Ultra quality',
       'Brand model training',
-      'Automation, Messages, Discovery',
-      'Higher API limits and BYOK',
+      'Higher API limits',
     ],
     includedCredits: TIER_INCLUDED_MONTHLY_CREDITS.scale,
     interval: 'month',
@@ -675,6 +721,7 @@ function buildPlanCopy(tier: PlanTier): PlanCopyProps {
 export const PLAN_COPY = {
   enterprise: buildPlanCopy('enterprise'),
   payg: buildPlanCopy('payg'),
+  pro: buildPlanCopy('pro'),
   scale: buildPlanCopy('scale'),
 } satisfies Record<PlanTier, PlanCopyProps>;
 

@@ -163,6 +163,12 @@ describe('resolveSelectedPlanParam', () => {
     expect(resolveSelectedPlanParam('payg', PLAN_SLUG_PRICE_IDS)).toBe('payg');
   });
 
+  it('returns null for a known subscription slug whose price id is not configured', () => {
+    expect(
+      resolveSelectedPlanParam('pro', { pro: undefined, scale: 'price_scale' }),
+    ).toBeNull();
+  });
+
   it('returns null for empty or missing input', () => {
     expect(resolveSelectedPlanParam(null, PLAN_SLUG_PRICE_IDS)).toBeNull();
     expect(resolveSelectedPlanParam('   ', PLAN_SLUG_PRICE_IDS)).toBeNull();

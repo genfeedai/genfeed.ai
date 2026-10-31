@@ -51,14 +51,46 @@ vi.mock('@services/core/environment.service', () => ({
 }));
 
 describe('PricingContent', () => {
-  it('shows PAYG, Scale and Done for you side by side', () => {
+  it('shows Pro, Scale and Enterprise side by side, with PAYG in its own block', () => {
     render(<PricingContent />);
-    const payg = screen.getByText('$0.01');
-    expect(payg.parentElement).toHaveTextContent('$0.01/credit');
-    expect(screen.getByText('$499')).toBeInTheDocument();
-    expect(screen.getByText('$2,500')).toBeInTheDocument();
-    expect(screen.queryByText('Pro')).not.toBeInTheDocument();
-    expect(screen.queryByText('EARLYGENFEED')).not.toBeInTheDocument();
+    const cards = ['Pro', 'Scale', 'Enterprise'].map((name) =>
+      screen.getByLabelText(name),
+    );
+    expect(cards[0]).toHaveTextContent('$49');
+    expect(cards[1]).toHaveTextContent('$499');
+    expect(cards[2]).toHaveTextContent('$2,500');
+    expect(
+      screen.getByRole('heading', { name: 'Pay As You Go' }),
+    ).toBeInTheDocument();
+    expect(cards[0]).toHaveTextContent(
+      'off for 12 months with code EARLYGENFEED',
+    );
+    expect(cards[1]).not.toHaveTextContent('EARLYGENFEED');
+  });
+
+  it('never prints the per-credit price', () => {
+    render(<PricingContent />);
+    expect(screen.queryByText(/\$0\.01/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/\/credit/)).not.toBeInTheDocument();
+  });
+
+  it('compares the four plans in a table', () => {
+    render(<PricingContent />);
+    const table = within(screen.getByRole('table', { name: 'Compare plans' }));
+    expect(
+      table.getAllByRole('columnheader').map((header) => header.textContent),
+    ).toEqual(['Feature', 'Pay As You Go', 'Pro', 'Scale', 'Enterprise']);
+    const row = table.getByRole('row', {
+      name: /Automation, Messages, Discovery/,
+    });
+    expect(
+      within(row).getByRole('rowheader', {
+        name: 'Automation, Messages, Discovery',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      [...row.querySelectorAll('td')].map((cell) => cell.textContent),
+    ).toEqual(['—', '✓', '✓', '✓']);
   });
 
   it('promises free credits after onboarding', () => {
@@ -68,9 +100,9 @@ describe('PricingContent', () => {
     ).toBeGreaterThan(0);
   });
 
-  it('prices Done for you as a from price with a direct booking link', () => {
+  it('prices Enterprise, which includes our team making the content, as a from price with a direct booking link', () => {
     render(<PricingContent />);
-    const managed = within(screen.getByLabelText('Done for you'));
+    const managed = within(screen.getByLabelText('Enterprise'));
     expect(managed.getByText('From')).toBeInTheDocument();
     expect(managed.getByText('$2,500')).toBeInTheDocument();
     expect(
@@ -85,11 +117,20 @@ describe('PricingContent', () => {
     );
   });
 
+  it('lists every app on the Pro card', () => {
+    render(<PricingContent />);
+    const pro = within(screen.getByLabelText('Pro'));
+    expect(
+      pro.getByText('Automation, Messages, Discovery'),
+    ).toBeInTheDocument();
+    expect(pro.getByText('5,900 credits included')).toBeInTheDocument();
+  });
+
   it('lists the subscription features on the Scale card', () => {
     render(<PricingContent />);
     const scale = within(screen.getByLabelText('Scale'));
     expect(scale.getByText('Brand model training')).toBeInTheDocument();
-    expect(scale.getByText('Higher API limits and BYOK')).toBeInTheDocument();
+    expect(scale.getByText('Higher API limits')).toBeInTheDocument();
   });
 
   it('uses the tokenized dark card surface for the featured plan', () => {
@@ -114,6 +155,7 @@ describe('PricingContent', () => {
       expect(screen.getByText('$1,000')).toBeInTheDocument();
       expect(screen.getByText('100,000 credits')).toBeInTheDocument();
       expect(screen.getByText('60,000 credits included')).toBeInTheDocument();
+      expect(screen.getByText('5,900 credits included')).toBeInTheDocument();
     });
   });
 
@@ -150,7 +192,7 @@ describe('PricingContent', () => {
     expect(AVATAR_CREDIT_COSTS.avatar4s).toEqual({ maxCredits, minCredits });
     expect(row).toHaveTextContent(`${minCredits}–${maxCredits} credits`);
     // Photo animation to Avatar V: 52–160 credits, not the old 400.
-    expect(row).toHaveTextContent('52–160 credits≈ $0.52–$1.60');
+    expect(row).toHaveTextContent('52–160 credits');
     expect(row).not.toHaveTextContent('400 credits');
   });
 
@@ -162,7 +204,7 @@ describe('PricingContent', () => {
     expect(range).toHaveTextContent(
       `${IMAGE_CREDIT_COSTS.image1kTo2k.minCredits}–${IMAGE_CREDIT_COSTS.image1kTo2k.maxCredits} credits`,
     );
-    expect(range).toHaveTextContent('8–17 credits≈ $0.08–$0.17');
+    expect(range).toHaveTextContent('8–17 credits');
     expect(fourK).toHaveTextContent('102 credits');
     expect(screen.queryByText(/^50 credits/)).not.toBeInTheDocument();
   });

@@ -19,12 +19,14 @@ import { useEffect, useRef, useState } from 'react';
 
 import { getSubscriptionFailureView } from './subscription-failure.util';
 
-/**
- * Scale is the only self-serve plan. Free/PAYG is never advertised here, and
- * Enterprise is a conversation rather than a checkout button — hence the
- * contact line under the offer.
- */
-const UPGRADE_TIER: PlanTier = 'scale';
+export interface UpgradePlanProps {
+  /**
+   * Self-serve plans on offer, cheapest first. Free/PAYG is never advertised
+   * here, and Enterprise is a conversation rather than a checkout button,
+   * hence the contact line under the offers.
+   */
+  tiers: readonly PlanTier[];
+}
 
 /** Features are already ordered strongest-first in the pricing package. */
 const FEATURES_SHOWN = 4;
@@ -68,7 +70,7 @@ function describeProration(preview: SubscriptionChangePreview) {
  * Plan selection for the subscription settings page: Stripe Checkout for an
  * org that has never subscribed, a prorated in-place change for one that has.
  */
-export default function UpgradePlan() {
+export default function UpgradePlan({ tiers }: UpgradePlanProps) {
   const translate = useTranslations('common');
   const { subscription, previewPlanChange, changeSubscriptionPlan } =
     useSubscription();
@@ -278,58 +280,65 @@ export default function UpgradePlan() {
 
   const proration = preview ? describeProration(preview) : null;
 
-  const plan = getPlanByTier(UPGRADE_TIER);
-  const isUnavailable = !plan.stripePriceId;
-
   return (
-    <section
-      aria-label={translate('subscription.plans.upgradeTo', {
-        plan: plan.label,
-      })}
-      className="flex flex-col gap-4 border-t border-border pt-4"
-    >
-      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
-        <div className="flex flex-col gap-1">
-          <Text as="p" size="sm" weight="semibold">
-            {plan.label}
-          </Text>
-          <Text as="p" size="sm" color="muted">
-            {translate('subscription.plans.creditsPerMonth', {
-              credits: formatPlanIncludedCredits(UPGRADE_TIER),
+    <div className="flex flex-col gap-4 border-t border-border pt-4">
+      {tiers.map((tier) => {
+        const plan = getPlanByTier(tier);
+        const isUnavailable = !plan.stripePriceId;
+
+        return (
+          <section
+            key={tier}
+            aria-label={translate('subscription.plans.upgradeTo', {
+              plan: plan.label,
             })}
-          </Text>
-        </div>
-        <Text as="p" size="xl" weight="bold">
-          {formatPlanPriceLabel(UPGRADE_TIER)}
-        </Text>
-      </div>
+            className="flex flex-col gap-4"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
+              <div className="flex flex-col gap-1">
+                <Text as="p" size="sm" weight="semibold">
+                  {plan.label}
+                </Text>
+                <Text as="p" size="sm" color="muted">
+                  {translate('subscription.plans.creditsPerMonth', {
+                    credits: formatPlanIncludedCredits(tier),
+                  })}
+                </Text>
+              </div>
+              <Text as="p" size="xl" weight="bold">
+                {formatPlanPriceLabel(tier)}
+              </Text>
+            </div>
 
-      <ul className="grid gap-x-6 gap-y-1.5 sm:grid-cols-2">
-        {plan.features.slice(0, FEATURES_SHOWN).map((feature) => (
-          <li key={feature} className="flex items-start gap-2">
-            <Check className="mt-0.5 size-4 shrink-0 text-success" />
-            <Text size="sm" color="muted">
-              {feature}
-            </Text>
-          </li>
-        ))}
-      </ul>
+            <ul className="grid gap-x-6 gap-y-1.5 sm:grid-cols-2">
+              {plan.features.slice(0, FEATURES_SHOWN).map((feature) => (
+                <li key={feature} className="flex items-start gap-2">
+                  <Check className="mt-0.5 size-4 shrink-0 text-success" />
+                  <Text size="sm" color="muted">
+                    {feature}
+                  </Text>
+                </li>
+              ))}
+            </ul>
 
-      <Button
-        className="w-full sm:w-fit"
-        variant={ButtonVariant.DEFAULT}
-        isDisabled={isUnavailable || busyTier !== null}
-        isLoading={busyTier === UPGRADE_TIER}
-        onClick={() => handleSelectPlan(UPGRADE_TIER)}
-      >
-        {translate('subscription.plans.upgradeTo', { plan: plan.label })}
-      </Button>
+            <Button
+              className="w-full sm:w-fit"
+              variant={ButtonVariant.DEFAULT}
+              isDisabled={isUnavailable || busyTier !== null}
+              isLoading={busyTier === tier}
+              onClick={() => handleSelectPlan(tier)}
+            >
+              {translate('subscription.plans.upgradeTo', { plan: plan.label })}
+            </Button>
 
-      {isUnavailable ? (
-        <Text size="xs" color="muted">
-          {translate('subscription.plans.unavailable')}
-        </Text>
-      ) : null}
+            {isUnavailable ? (
+              <Text size="xs" color="muted">
+                {translate('subscription.plans.unavailable')}
+              </Text>
+            ) : null}
+          </section>
+        );
+      })}
 
       {pendingTier && proration ? (
         <div className="flex flex-col gap-3 rounded-lg border border-border p-4">
@@ -364,6 +373,6 @@ export default function UpgradePlan() {
       <Text as="p" size="xs" color="muted">
         {translate('subscription.plans.salesContact', { email: SALES_EMAIL })}
       </Text>
-    </section>
+    </div>
   );
 }

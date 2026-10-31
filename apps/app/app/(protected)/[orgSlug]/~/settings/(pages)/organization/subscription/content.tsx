@@ -8,7 +8,11 @@ import {
   SubscriptionTier,
 } from '@genfeedai/contracts';
 import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
-import { getPlanEntitlementForTier, getPlanLabel } from '@genfeedai/pricing';
+import {
+  getPlanEntitlementForTier,
+  getPlanLabel,
+  type PlanTier,
+} from '@genfeedai/pricing';
 import { useSubscription } from '@hooks/data/subscription/use-subscription/use-subscription';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
@@ -32,6 +36,7 @@ const SUBSCRIPTION_TIER_LABELS: Record<string, string> = {
   enterprise: getPlanLabel('enterprise'),
   free: 'Free',
   payg: getPlanLabel('payg'),
+  pro: getPlanLabel('pro'),
   scale: getPlanLabel('scale'),
 };
 
@@ -117,9 +122,13 @@ function SettingsSubscriptionContent() {
   const tierLabel = formatSubscriptionTierLabel(settings?.subscriptionTier);
   // Free and pay-as-you-go have no recurring period, and only Scale is sold,
   // so the upgrade offer and the renewal date follow the same split.
-  const isBelowScale =
+  const isBelowPro =
     tierLabel === SUBSCRIPTION_TIER_LABELS[SubscriptionTier.FREE] ||
     tierLabel === SUBSCRIPTION_TIER_LABELS.payg;
+  const isPro = tierLabel === SUBSCRIPTION_TIER_LABELS[SubscriptionTier.PRO];
+  const isBelowScale = isBelowPro || isPro;
+  // Free offers both subscriptions; Pro only offers the step up to Scale.
+  const upgradeTiers: PlanTier[] = isBelowPro ? ['pro', 'scale'] : ['scale'];
   const displayedStatus = isFreePlanActive
     ? SubscriptionStatus.ACTIVE
     : subscription?.status;
@@ -175,7 +184,7 @@ function SettingsSubscriptionContent() {
                 {formatEnumLabel(displayedStatus)}
               </Badge>
             </div>
-            {!isBelowScale && subscription?.currentPeriodEnd && (
+            {!isBelowPro && subscription?.currentPeriodEnd && (
               <Text as="p" size="sm" color="muted">
                 Current period ends{' '}
                 <span className="font-medium text-foreground">
@@ -209,7 +218,9 @@ function SettingsSubscriptionContent() {
           ))}
         </div>
 
-        {isBelowScale && !isPlanLoading ? <UpgradePlan /> : null}
+        {isBelowScale && !isPlanLoading ? (
+          <UpgradePlan tiers={upgradeTiers} />
+        ) : null}
 
         {billingAccount?.kind === 'account' ? (
           <div className="flex flex-col gap-4 border-t border-border pt-4">

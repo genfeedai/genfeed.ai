@@ -133,6 +133,22 @@ export class StripeService {
     }
 
     await this.validateSubscriptionPriceForTier(scalePriceId, 'scale');
+
+    // Pro is optional until its Stripe price exists; once configured it must
+    // match the published contract like Scale does.
+    const proPriceId = this.configService.get(
+      'STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY',
+    );
+    if (proPriceId) {
+      if (!this.isStripePriceId(proPriceId)) {
+        this.loggerService.error(
+          `${this.constructorName} production subscription price validation failed`,
+          { category: 'configuration', tier: 'pro' },
+        );
+        throw new StripeBillingConfigurationError();
+      }
+      await this.validateSubscriptionPriceForTier(proPriceId, 'pro');
+    }
   }
 
   public async validateSubscriptionPriceForTier(
@@ -206,6 +222,12 @@ export class StripeService {
       this.configService.get('STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY')
     ) {
       return 'scale';
+    }
+    const proPriceId = this.configService.get(
+      'STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY',
+    );
+    if (proPriceId && stripePriceId === proPriceId) {
+      return 'pro';
     }
     return null;
   }
@@ -709,6 +731,8 @@ export class StripeService {
     type: string;
   } {
     const priceToTier: Record<string, string> = {
+      [this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY') || '']:
+        'pro',
       [this.configService.get('STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY') || '']:
         'scale',
       [this.configService.get('STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY') ||
@@ -749,8 +773,9 @@ export class StripeService {
 
     try {
       // Determine if this is a subscription or one-time payment.
-      // Tier pricing: Scale ($499/mo), Enterprise (custom).
+      // Tier pricing: Pro ($49/mo), Scale ($499/mo), Enterprise (custom).
       const subscriptionPriceIds = [
+        this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY'),
         this.configService.get('STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY'),
         this.configService.get('STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY'),
       ].filter(Boolean);
@@ -977,6 +1002,7 @@ export class StripeService {
       );
 
       const subscriptionItem = requireSoftwareSubscriptionItem(subscription, [
+        this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY'),
         this.configService.get('STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY'),
         this.configService.get('STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY'),
       ]);

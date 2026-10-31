@@ -23,7 +23,7 @@ import { metadata } from '@helpers/media/metadata/metadata.helper';
 import type { PublicModelCatalogItem } from '@public/models/models-loader';
 
 const BASE_URL = 'https://genfeed.ai';
-const PRICING_SUMMARY = `${PLAN_COPY.payg.name} (free + PAYG output), ${PLAN_COPY.scale.name} (${PLAN_COPY.scale.priceLabel}), ${PLAN_COPY.enterprise.name} (custom). Free to join.`;
+const PRICING_SUMMARY = `${PLAN_COPY.payg.name} (free + PAYG output), ${PLAN_COPY.pro.name} (${PLAN_COPY.pro.priceLabel}), ${PLAN_COPY.scale.name} (${PLAN_COPY.scale.priceLabel}), ${PLAN_COPY.enterprise.name} (custom). Free to join.`;
 const PUBLIC_MODELS_API_URL = 'https://api.genfeed.ai/v1/public/models';
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -256,7 +256,7 @@ export function buildLlmsIndex(): string {
   lines.push('## Resources');
   lines.push('');
   lines.push(
-    `- [Pricing](${BASE_URL}/pricing): ${PLAN_COPY.payg.name} (free + PAYG output), ${PLAN_COPY.scale.name} (${PLAN_COPY.scale.priceLabel}), ${PLAN_COPY.enterprise.name} (custom)`,
+    `- [Pricing](${BASE_URL}/pricing): ${PLAN_COPY.payg.name} (free + PAYG output), ${PLAN_COPY.pro.name} (${PLAN_COPY.pro.priceLabel}), ${PLAN_COPY.scale.name} (${PLAN_COPY.scale.priceLabel}), ${PLAN_COPY.enterprise.name} (custom)`,
   );
   lines.push(
     `- [Brand OS for experts](${BASE_URL}/experts): Turn interviews, talks, and call notes into a scored positioning system and a reviewable content plan — nothing publishes without the expert's approval`,

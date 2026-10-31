@@ -26,18 +26,21 @@ import { useCallback, useState } from 'react';
 
 const TIER_LABELS: Record<SubscriptionTier, string> = {
   [SubscriptionTier.FREE]: 'Free',
+  [SubscriptionTier.PRO]: 'Pro',
   [SubscriptionTier.SCALE]: 'Scale',
   [SubscriptionTier.ENTERPRISE]: 'Enterprise',
 };
 
 const TIER_PRICES: Record<SubscriptionTier, string> = {
   [SubscriptionTier.FREE]: '$0',
+  [SubscriptionTier.PRO]: '$49',
   [SubscriptionTier.SCALE]: '$499',
   [SubscriptionTier.ENTERPRISE]: 'Custom',
 };
 
 const TIER_ORDER = [
   SubscriptionTier.FREE,
+  SubscriptionTier.PRO,
   SubscriptionTier.SCALE,
   SubscriptionTier.ENTERPRISE,
 ];
@@ -54,7 +57,13 @@ const QUALITY_TIERS_BY_ACCESS: Map<QualityTier, SubscriptionTier> =
   }, new Map<QualityTier, SubscriptionTier>());
 
 function getRequiredTierForQuality(quality: QualityTier): SubscriptionTier {
-  return QUALITY_TIERS_BY_ACCESS.get(quality) ?? SubscriptionTier.SCALE;
+  const tier = QUALITY_TIERS_BY_ACCESS.get(quality) ?? SubscriptionTier.SCALE;
+
+  // Pro cannot be bought until its Stripe price is configured, so point at the
+  // next plan that can.
+  return tier === SubscriptionTier.PRO && !EnvironmentService.plans.pro
+    ? SubscriptionTier.SCALE
+    : tier;
 }
 
 function useAppNavigation() {

@@ -18,7 +18,8 @@ export function selectSoftwareSubscriptionItem<T extends PricedItem>(
   const candidates = subscription.items.data.filter(
     (item) =>
       configuredPriceIds.some((id) => Boolean(id) && id === item.price.id) ||
-      (item.price.metadata?.genfeed_software_tier === 'scale' &&
+      ((item.price.metadata?.genfeed_software_tier === 'scale' ||
+        item.price.metadata?.genfeed_software_tier === 'pro') &&
         Number.isInteger(
           Number(item.price.metadata?.included_monthly_credits),
         ) &&
