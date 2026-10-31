@@ -16,21 +16,21 @@ import Alert from '@ui/feedback/alert/Alert';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import DateRangePicker from '@ui/primitives/date-range-picker';
 import { Building2 } from 'lucide-react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback } from 'react';
+import { Suspense } from 'react';
 import AnalyticsOrganizationOverview from '@/features/analytics/organization-overview/analytics-organization-overview';
 import { readRouteParam } from '@/lib/route-params';
 
-function OrganizationDetailPageContent() {
+interface OrganizationDetailPageProps {
+  activeTab: 'analytics' | 'settings';
+}
+
+function OrganizationDetailPageContent({
+  activeTab,
+}: OrganizationDetailPageProps) {
   const translate = useTranslations('pages.adminOrganizations');
   const params = useRouteParams<{ id?: string | string[] }>();
   const organizationId = readRouteParam(params?.id);
-  const pathname = usePathname();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const activeTab =
-    searchParams.get('tab') === 'settings' ? 'settings' : 'analytics';
 
   const { settings, isLoading, isRefreshing, error, refresh, updateSettings } =
     useOrganizationSettings(organizationId);
@@ -42,16 +42,6 @@ function OrganizationDetailPageContent() {
     toolbarNode,
     triggerRefresh,
   } = useAnalyticsContext();
-
-  // The tab is a query param, like every other filter on an admin page.
-  const handleTabChange = useCallback(
-    (tab: string) => {
-      router.replace(
-        tab === 'settings' ? `${pathname}?tab=settings` : pathname,
-      );
-    },
-    [pathname, router],
-  );
 
   // Every branch declares the same chrome mode so the topbar never flips
   // between the missing-id and loaded states.
@@ -70,12 +60,16 @@ function OrganizationDetailPageContent() {
       title={translate('detailTitle')}
       icon={Building2}
       tabs={{
-        activeTab,
         fullWidth: false,
-        onTabChange: handleTabChange,
         tabs: [
-          { id: 'analytics', label: translate('analyticsTab') },
-          { id: 'settings', label: translate('settingsTab') },
+          {
+            href: `${APP_ROUTES.ADMIN.ORGANIZATIONS}/${organizationId}`,
+            label: translate('analyticsTab'),
+          },
+          {
+            href: `${APP_ROUTES.ADMIN.ORGANIZATIONS}/${organizationId}/settings`,
+            label: translate('settingsTab'),
+          },
         ],
       }}
       onRefresh={isSettingsTab ? () => refresh() : triggerRefresh}
@@ -144,14 +138,17 @@ function OrganizationDetailPageContent() {
 }
 
 /**
- * `/admin/organizations/:id`: one organization, with its analytics and its
- * settings (release preview, released apps, per-organization settings) as tabs.
+ * One organization: its analytics at `/admin/organizations/:id` and its
+ * settings (release preview, released apps, per-organization settings) at
+ * `/admin/organizations/:id/settings`, as route tabs.
  */
-export default function OrganizationDetailPage() {
+export default function OrganizationDetailPage({
+  activeTab,
+}: OrganizationDetailPageProps) {
   return (
     <AnalyticsProvider>
       <Suspense fallback={null}>
-        <OrganizationDetailPageContent />
+        <OrganizationDetailPageContent activeTab={activeTab} />
       </Suspense>
     </AnalyticsProvider>
   );

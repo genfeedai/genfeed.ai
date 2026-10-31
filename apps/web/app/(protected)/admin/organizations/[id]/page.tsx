@@ -4,5 +4,5 @@ import OrganizationDetailPage from '@protected/organizations/[id]/organization-d
 export const generateMetadata = createPageMetadata('Organization');
 
 export default function AdminOrganizationDetailPage() {
-  return <OrganizationDetailPage />;
+  return <OrganizationDetailPage activeTab="analytics" />;
 }
