@@ -42,12 +42,10 @@ import {
   getToolByName,
   getVisualGenerationReviewType,
   isMcpApprovalSkippable,
+  requiresMcpApproval,
   resolveEffectiveMutationPolicy,
 } from '@genfeedai/actions';
-import {
-  buildLogicalWriteKey,
-  isMcpTextDraftCall,
-} from '@genfeedai/actions/server';
+import { buildLogicalWriteKey } from '@genfeedai/actions/server';
 import {
   ActionOrigin,
   AgentAutonomyMode,
@@ -165,13 +163,16 @@ export class AgentToolMutationAuthorizationService {
       context,
     );
     if (proactiveDraft) return proactiveDraft;
+    // MCP only waits on posting and media generation; any other tool runs at
+    // once, however it is declared or priced (the handler still checks role
+    // and credits, and create_post stays draft-only there).
     if (
-      toolName === 'create_post' &&
+      definition &&
       getActionOriginContext().origin === ActionOrigin.MCP &&
       !context.approvedApprovalId &&
       !context.isProactive &&
       (agentMode === undefined || agentMode === 'auto') &&
-      isMcpTextDraftCall(parameters)
+      !requiresMcpApproval(definition)
     )
       effectivePolicy = 'direct';
     // "Do not generate yet" and "show the cost first" hold a credit spender

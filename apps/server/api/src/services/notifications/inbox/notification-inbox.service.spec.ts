@@ -708,7 +708,7 @@ describe('NotificationInboxService', () => {
       expect(doc.sourceHref).toBe(
         '/acme/main/publishing/approvals?approval=mcp_approval%3Aapr-1',
       );
-      expect(doc.activity?.value).toMatch(/Type: image/);
+      expect(doc.activity?.value).toBe('Generate image');
       expect(doc.activity?.value).not.toBe('generate');
       expect(prisma.mcpApproval.findMany).toHaveBeenCalledWith(
         expect.objectContaining({

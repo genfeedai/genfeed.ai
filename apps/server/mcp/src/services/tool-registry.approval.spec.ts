@@ -21,7 +21,8 @@ const MOCK_TOOLS: Record<
   }
 > = {
   create_brand_from_url: {
-    mutationPolicy: 'approval-required',
+    creditCost: 1,
+    mutationPolicy: 'direct',
     name: 'create_brand_from_url',
     requiredRole: 'admin',
     surfaces: { mcp: true },
@@ -52,8 +53,14 @@ const MOCK_TOOLS: Record<
     surfaces: { mcp: true },
   },
   create_post: {
+    creditCost: 1,
     mutationPolicy: 'approval-required',
     name: 'create_post',
+    surfaces: { mcp: true },
+  },
+  generate_turbo_content: {
+    mutationPolicy: 'approval-required',
+    name: 'generate_turbo_content',
     surfaces: { mcp: true },
   },
   create_scheduled_release: {
@@ -115,7 +122,7 @@ function build() {
     createApproval: vi.fn().mockResolvedValue({
       id: 'apr-1',
       status: 'PENDING',
-      toolName: 'create_post',
+      toolName: 'generate_turbo_content',
     }),
     executeAgentTool: vi
       .fn()
@@ -132,7 +139,7 @@ function build() {
         arguments: { content: 'hello' },
         id: 'apr-1',
         status: McpApprovalStatus.APPROVED,
-        toolName: 'create_post',
+        toolName: 'generate_turbo_content',
       }),
     getJobStatus: vi
       .fn()
@@ -153,13 +160,9 @@ function build() {
 }
 
 describe('ToolRegistryService — approval queue', () => {
-  it('executes deterministic repurposing without approval and gates the paid rewrite', async () => {
+  it('runs repurposing without an approval, whatever the mode', async () => {
     const { client, registry } = build();
-    const args = {
-      postId: 'post-1',
-      platform: 'linkedin',
-      mode: 'deterministic',
-    };
+    const args = { postId: 'post-1', platform: 'linkedin', mode: 'agent' };
     await registry.handleToolCall({ name: 'repurpose_post', arguments: args });
     expect(client.createApproval).not.toHaveBeenCalled();
     expect(client.executeAgentTool).toHaveBeenCalledWith(
@@ -167,17 +170,9 @@ describe('ToolRegistryService — approval queue', () => {
       args,
       undefined,
     );
-    await registry.handleToolCall({
-      name: 'repurpose_post',
-      arguments: { ...args, mode: 'agent' },
-    });
-    expect(client.createApproval).toHaveBeenCalledWith('repurpose_post', {
-      ...args,
-      mode: 'agent',
-    });
-    expect(client.executeAgentTool).toHaveBeenCalledTimes(1);
   });
-  it('queues and executes URL brand creation with the same canonical identity', async () => {
+
+  it('creates a brand from a URL without an approval', async () => {
     const { client, registry } = build();
     const args = {
       url: 'https://example.com',
@@ -193,11 +188,17 @@ describe('ToolRegistryService — approval queue', () => {
         goals: ['do not forward'],
       },
     });
-    expect(client.createApproval).toHaveBeenCalledExactlyOnceWith(
+    expect(client.createApproval).not.toHaveBeenCalled();
+    expect(client.executeAgentTool).toHaveBeenCalledOnce();
+    expect(client.executeAgentTool.mock.calls[0]?.slice(0, 2)).toEqual([
       'create_brand_from_url',
       args,
-    );
-    expect(client.executeAgentTool).not.toHaveBeenCalled();
+    ]);
+  });
+
+  it('still redeems a brand creation queued before approvals narrowed', async () => {
+    const { client, registry } = build();
+    const args = { url: 'https://example.com', label: 'Example' };
     client.resolveApproval.mockResolvedValue({
       arguments: args,
       id: 'apr-1',
@@ -216,11 +217,6 @@ describe('ToolRegistryService — approval queue', () => {
   });
 
   it.each([
-    [
-      'import_source_post',
-      'importSourcePost',
-      { brandId: 'brand-1', url: 'https://x.com/example/status/1' },
-    ],
     [
       'start_remix_generation',
       'startRemixGeneration',
@@ -268,7 +264,7 @@ describe('ToolRegistryService — approval queue', () => {
     expect(client.startRemixGeneration).not.toHaveBeenCalled();
   });
 
-  it('executes a bounded free MCP draft without queueing paid consent', async () => {
+  it('executes an MCP post draft without queueing paid consent', async () => {
     const { client, registry } = build();
     const args = { content: 'A draft' };
     await registry.handleToolCall({ name: 'create_post', arguments: args });
@@ -284,14 +280,17 @@ describe('ToolRegistryService — approval queue', () => {
     const { client, registry } = build();
 
     const result = (await registry.handleToolCall({
-      arguments: { content: 'hello', scheduledAt: '2030-01-01' },
-      name: 'create_post',
+      arguments: { brandId: 'brand-1', text: 'hello' },
+      name: 'generate_turbo_content',
     })) as { isError?: boolean; content: { text: string }[] };
 
-    expect(client.createApproval).toHaveBeenCalledWith('create_post', {
-      content: 'hello',
-      scheduledAt: '2030-01-01',
-    });
+    expect(client.createApproval).toHaveBeenCalledWith(
+      'generate_turbo_content',
+      {
+        brandId: 'brand-1',
+        text: 'hello',
+      },
+    );
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toContain('requires approval');
     expect(result).toMatchObject({
@@ -308,7 +307,7 @@ describe('ToolRegistryService — approval queue', () => {
     });
   });
 
-  it('queues Instagram remix creation instead of executing it immediately', async () => {
+  it('runs Instagram remix creation without an approval', async () => {
     const { client, registry } = build();
 
     await registry.handleToolCall({
@@ -316,11 +315,8 @@ describe('ToolRegistryService — approval queue', () => {
       name: 'create_instagram_remix_workflow',
     });
 
-    expect(client.createApproval).toHaveBeenCalledWith(
-      'create_instagram_remix_workflow',
-      { shortcode: 'abc123', username: 'peer' },
-    );
-    expect(client.executeAgentTool).not.toHaveBeenCalled();
+    expect(client.createApproval).not.toHaveBeenCalled();
+    expect(client.executeAgentTool).toHaveBeenCalledOnce();
   });
 
   it.each([
@@ -422,7 +418,7 @@ describe('ToolRegistryService — approval queue', () => {
       arguments: { content: 'hello' },
       id: 'apr-1',
       status: 'APPROVED',
-      toolName: 'create_post',
+      toolName: 'generate_turbo_content',
     });
 
     await registry.handleToolCall({
@@ -435,7 +431,7 @@ describe('ToolRegistryService — approval queue', () => {
     expect(client.resolveApproval).toHaveBeenCalledWith('apr-1', 'approve');
     // The deferred tool actually ran...
     expect(client.executeAgentTool).toHaveBeenCalledWith(
-      'create_post',
+      'generate_turbo_content',
       { content: 'hello' },
       { approvedApprovalId: 'apr-1' },
     );
@@ -452,22 +448,30 @@ describe('ToolRegistryService — approval queue', () => {
     it('runs the approved agent-executor action once instead of re-queueing', async () => {
       const { client, registry } = build();
       client.createApproval.mockResolvedValue({
-        arguments: { content: 'hello', scheduledAt: '2030-01-01' },
+        arguments: {
+          brandId: 'brand-1',
+          content: 'hello',
+          scheduledAt: '2030-01-01',
+        },
         id: 'apr-1',
         result: null,
         status: McpApprovalStatus.APPROVED,
-        toolName: 'create_post',
+        toolName: 'generate_turbo_content',
       });
 
       const result = (await registry.handleToolCall({
-        arguments: { content: 'hello', scheduledAt: '2030-01-01' },
-        name: 'create_post',
+        arguments: {
+          brandId: 'brand-1',
+          content: 'hello',
+          scheduledAt: '2030-01-01',
+        },
+        name: 'generate_turbo_content',
       })) as { isError?: boolean };
 
       expect(result.isError).toBeFalsy();
       expect(client.executeAgentTool).toHaveBeenCalledWith(
-        'create_post',
-        { content: 'hello', scheduledAt: '2030-01-01' },
+        'generate_turbo_content',
+        { brandId: 'brand-1', content: 'hello', scheduledAt: '2030-01-01' },
         { approvedApprovalId: 'apr-1' },
       );
       expect(client.attachApprovalResult).toHaveBeenCalledWith(
@@ -480,8 +484,12 @@ describe('ToolRegistryService — approval queue', () => {
       const { client, registry } = build();
 
       const result = (await registry.handleToolCall({
-        arguments: { content: 'hello', scheduledAt: '2030-01-01' },
-        name: 'create_post',
+        arguments: {
+          brandId: 'brand-1',
+          content: 'hello',
+          scheduledAt: '2030-01-01',
+        },
+        name: 'generate_turbo_content',
       })) as { isError?: boolean; structuredContent?: { code?: string } };
 
       expect(result.structuredContent?.code).toBe('approval_pending');
@@ -511,7 +519,7 @@ describe('ToolRegistryService — approval queue', () => {
   });
 
   it('approving a queued gated tool executes it directly without re-queuing another approval', async () => {
-    // Regression guard: create_post is BOTH an approval-required tool and an
+    // Regression guard: generate_turbo_content is BOTH an approval-required tool and an
     // agent-executor tool. Approving its queued action must run it through
     // executeTool (which bypasses the approval gate) — NOT re-enter the gate
     // and queue a second approval, which would be an infinite loop.
@@ -520,7 +528,7 @@ describe('ToolRegistryService — approval queue', () => {
       arguments: { content: 'hello' },
       id: 'apr-1',
       status: 'APPROVED',
-      toolName: 'create_post',
+      toolName: 'generate_turbo_content',
     });
 
     const result = (await registry.handleToolCall({
@@ -529,7 +537,7 @@ describe('ToolRegistryService — approval queue', () => {
     })) as { isError?: boolean; content: { text: string }[] };
 
     expect(client.executeAgentTool).toHaveBeenCalledWith(
-      'create_post',
+      'generate_turbo_content',
       { content: 'hello' },
       { approvedApprovalId: 'apr-1' },
     );
@@ -557,7 +565,7 @@ describe('ToolRegistryService — approval queue', () => {
     expect(client.getJobStatus).not.toHaveBeenCalled();
   });
 
-  it('refuses to execute a non-approval-gated tool referenced by an approval', async () => {
+  it('refuses to execute a read-only tool tool referenced by an approval', async () => {
     // Defense-in-depth: a claimed approval whose toolName is not in the
     // approval-required set must not run via the admin resolve path.
     const { client, registry } = build();
@@ -574,7 +582,7 @@ describe('ToolRegistryService — approval queue', () => {
     })) as { isError?: boolean; content: { text: string }[] };
 
     expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain('non-approval-gated');
+    expect(result.content[0].text).toContain('read-only tool');
     expect(client.getJobStatus).not.toHaveBeenCalled();
     expect(client.executeAgentTool).not.toHaveBeenCalled();
     expect(client.attachApprovalResult).toHaveBeenCalledWith(
@@ -612,7 +620,7 @@ describe('ToolRegistryService — approval queue', () => {
       arguments: { content: 'hello' },
       id: 'apr-1',
       status: 'APPROVED',
-      toolName: 'create_post',
+      toolName: 'generate_turbo_content',
     };
 
     it('does not write a failed redemption onto an agent-executor approval', async () => {
@@ -667,7 +675,7 @@ describe('ToolRegistryService — approval queue', () => {
 
       expect(client.executeAgentTool).toHaveBeenCalledTimes(2);
       expect(client.executeAgentTool).toHaveBeenLastCalledWith(
-        'create_post',
+        'generate_turbo_content',
         { content: 'hello' },
         { approvedApprovalId: 'apr-1' },
       );

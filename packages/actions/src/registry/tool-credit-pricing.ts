@@ -16,6 +16,7 @@ import type {
   CanonicalToolDefinition,
   ToolCreditPricing,
 } from '../interfaces/tool-definition.interface';
+import { isMcpApprovalScopeTool } from './agent-action-class';
 import {
   getMediaGenerationCreditFloor,
   MEDIA_GENERATION_CREDIT_FLOORS,
@@ -146,18 +147,19 @@ export function isSpendingCreditPricing(
 }
 
 /**
- * `/mcp` confirms a spend even when the shared catalog leaves the tool
- * `direct`, so in-app auto and plan can still run that tool.
+ * `/mcp` confirms posting and media generation, even when the shared catalog
+ * leaves the tool `direct`, so in-app auto and plan can still run that tool.
+ * Every other tool runs without an approval, however it is declared or priced.
  */
 export function requiresMcpApproval(
   tool:
     | Pick<
         CanonicalToolDefinition,
-        'creditCost' | 'creditPricing' | 'mutationPolicy'
+        'creditCost' | 'creditPricing' | 'mutationPolicy' | 'name'
       >
     | undefined,
 ): boolean {
-  if (!tool) return false;
+  if (!tool || !isMcpApprovalScopeTool(tool.name)) return false;
   if (tool.mutationPolicy === 'approval-required') return true;
   const creditCost = tool.creditCost ?? 0;
   if (!tool.creditPricing) return creditCost > 0;

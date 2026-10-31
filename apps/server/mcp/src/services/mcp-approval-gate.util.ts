@@ -3,21 +3,18 @@ import {
   isMcpApprovalSkippable,
   requiresMcpApproval,
 } from '@genfeedai/actions';
-import { isMcpTextDraftCall } from '@genfeedai/actions/server';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import type { ClientService } from '@mcp/services/client.service';
 
 /**
- * Whether a tool call is approval-gated by its declaration alone: declared approvals and
- * credit spenders, minus the concrete calls that cannot spend credits or dispatch
+ * Whether a tool call is approval-gated by its declaration alone. Only posting and media
+ * generation can be (`requiresMcpApproval`), minus release drafts that cannot dispatch
  * publishing. The API still validates their arguments, actor, brand and key permissions.
  */
 export function isMcpApprovalGated(
   name: string,
   args?: Record<string, unknown>,
 ): boolean {
-  if (name === 'create_post' && args && isMcpTextDraftCall(args)) return false;
-  if (name === 'repurpose_post' && args?.mode === 'deterministic') return false;
   const release = args?.release;
   if (
     name === 'create_scheduled_release' &&
@@ -30,6 +27,20 @@ export function isMcpApprovalGated(
     return false;
   }
   return requiresMcpApproval(getToolByName(name));
+}
+
+/**
+ * Whether an already-queued approval may still be run. Calls queued before the
+ * approval scope narrowed to posting and media generation (brand creation, drafts,
+ * paid reads) stay redeemable; a read tool, which has neither a write policy nor a
+ * cost, never is.
+ */
+export function isMcpApprovalRedeemable(name: string): boolean {
+  const tool = getToolByName(name);
+  return (
+    tool !== undefined &&
+    (tool.mutationPolicy !== undefined || (tool.creditCost ?? 0) > 0)
+  );
 }
 
 /**
