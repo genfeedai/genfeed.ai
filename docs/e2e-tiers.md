@@ -19,11 +19,22 @@ Playwright `full` must never be `uses`/`needs` of `full-suite.yml` or
 
 `release.yml` additionally requires a green run of Playwright Full
 (`playwright-full-nightly.yml`) and Learning Runtime (`learning-runtime.yml`)
-on the exact release SHA, checked by `scripts/ci/browser-suite-evidence.mjs`
-in `validate-release`. This reads evidence only: it neither starts nor waits for
-those suites, so dispatch both on master before cutting a release and
-re-dispatch after any later merge. A newer green re-run clears an earlier red
-for the same SHA; a cancelled run is never a verdict.
+for the release SHA, checked by `scripts/ci/browser-suite-evidence.mjs` in
+`validate-release`. This reads evidence only: it neither starts nor waits for
+those suites.
+
+- A verdict on the exact release SHA decides. A newer green re-run clears an
+  earlier red for the same SHA; a cancelled run is never a verdict.
+- Without one, the newest verdict on the nearest master commit before the
+  release SHA from the last 48 hours decides. A green run there counts only if
+  every file changed since is neutral for that suite: files the suite never
+  builds or runs, such as `apps/server/` for Playwright Full or `apps/app/` for
+  Learning Runtime, docs, and other workflow files. The neutral lists live in
+  `REQUIRED_BROWSER_SUITES`. Any other change needs a fresh dispatch on master,
+  and the error names the files.
+
+So a nightly run carries over to a release whose later merges are all outside
+that suite, and is re-dispatched otherwise.
 
 ## Pull request smoke
 

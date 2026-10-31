@@ -578,9 +578,10 @@ jobs:
             echo "release_tag=${release_tag}"
           } >>"${GITHUB_OUTPUT}"
 
-      # Reuse exact-SHA qualified standalone Full Suite or prior successful
-      # normal Release evidence. Both require the latest final connected gate;
-      # routine push runs leave it disabled. Exclude this Release run, and wait
+      # Reuse exact-SHA qualified standalone Full Suite (manual or the nightly
+      # release rehearsal) or prior successful normal Release evidence. Both
+      # require the latest final connected gate; routine push runs leave it
+      # disabled. Exclude this Release run, and wait
       # for standalone in-flight evidence only within the bounded window;
       # missing or unqualified evidence requests the connected fallback below.
       # Hard-red evidence blocks release. Historical recovery uses its own proof.
@@ -595,8 +596,9 @@ jobs:
       # Full Suite does not run Playwright Full or Learning Runtime, and both
       # have caught regressions that shipped while Full Suite was green
       # (2026-10-19). They stay out of the `needs` graph (30-60 minutes, and
-      # dispatched on master), so require their green verdict for this exact
-      # SHA here and fail within a minute with the workflow to dispatch.
+      # dispatched on master), so require their green verdict here: on this
+      # SHA, or on a recent master ancestor when every later change is neutral
+      # for that suite. Fail within a minute with the workflow to dispatch.
       - name: Require browser suite evidence
         if: ${{ inputs.recovery_run_id == '' }}
         env:

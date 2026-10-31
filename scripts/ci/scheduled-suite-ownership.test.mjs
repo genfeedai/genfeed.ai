@@ -28,6 +28,10 @@ const SUITE_FAMILY_OWNERS = {
     workflow: 'learning-runtime.yml',
     job: 'learning-runtime',
   },
+  'release-rehearsal': {
+    workflow: 'full-suite.yml',
+    job: 'runtime-acceptance-gate',
+  },
   'dataset-scale': { workflow: 'dataset-scale.yml', job: 'scale' },
   'content-eval-smoke': {
     workflow: 'content-eval-smoke.yml',

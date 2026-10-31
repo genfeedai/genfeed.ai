@@ -1,9 +1,15 @@
 # Full Suite — the complete validation pipeline, and the caller for release
 # verification.
 #
-# On demand only: Actions → "Full Suite" → Run
-# workflow → pick the branch. release.yml also calls it (workflow_call) for the
-# exact release SHA when no green exact-SHA run exists to reuse.
+# On demand: Actions → "Full Suite" → Run workflow → pick the branch.
+# release.yml also calls it (workflow_call) for the exact release SHA when no
+# green exact-SHA run exists to reuse.
+#
+# Nightly release rehearsal: the schedule runs it on master with the final
+# connected acceptance batch, the same gates a release runs. Release-only
+# blockers (Serial Runtime Acceptance, pinned source hashes) then show up the
+# night before a cut, through the aggregate tracker below, and a release of
+# that SHA reuses the run instead of starting its own (full-suite-evidence.mjs).
 #
 # It does NOT run on a push to master. The complete heavy tier (full API/app
 # shards, full spec typecheck, workspace tests, build & boot, E2E, ~40 jobs)
@@ -40,6 +46,8 @@ on:
         type: boolean
         required: false
         default: false
+  schedule:
+    - cron: "37 1 * * *" # 01:37 UTC — before the E2E (02:17), Playwright full (02:47) and learning (03:23) nightlies
 
 concurrency:
   # Include the workflow name so a workflow_call invocation (where github.workflow
@@ -99,13 +107,13 @@ jobs:
       issues: write
     uses: ./.github/workflows/e2e.yml
     with:
-      run_api_full: ${{ inputs.run_runtime_acceptance == true }}
-      run_runtime_acceptance: ${{ inputs.run_runtime_acceptance == true }}
+      run_api_full: ${{ (inputs.run_runtime_acceptance == true || github.event_name == 'schedule') }}
+      run_runtime_acceptance: ${{ (inputs.run_runtime_acceptance == true || github.event_name == 'schedule') }}
     secrets: inherit
 
   visual-connected:
     name: Connected Visual Acceptance
-    if: inputs.run_runtime_acceptance == true
+    if: (inputs.run_runtime_acceptance == true || github.event_name == 'schedule')
     permissions:
       contents: read
     uses: ./.github/workflows/visual-code-isolation.yml
@@ -114,7 +122,7 @@ jobs:
 
   runtime-acceptance-gate:
     name: Final Connected Acceptance
-    if: always() && inputs.run_runtime_acceptance == true
+    if: always() && (inputs.run_runtime_acceptance == true || github.event_name == 'schedule')
     needs: [ci, build-verify, e2e, visual-connected]
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -160,7 +168,7 @@ jobs:
           E2E_RESULT: ${{ needs.e2e.result }}
           VISUAL_RESULT: ${{ needs.visual-connected.result }}
           CONNECTED_RESULT: ${{ needs.runtime-acceptance-gate.result }}
-          RUN_CONNECTED: ${{ inputs.run_runtime_acceptance == true }}
+          RUN_CONNECTED: ${{ (inputs.run_runtime_acceptance == true || github.event_name == 'schedule') }}
         run: |
           set -euo pipefail
           test "$CI_RESULT" = success
