@@ -6,9 +6,12 @@ import ReviewInboxApprovalsSection from './ReviewInboxApprovalsSection';
 
 const confirmMocks = vi.hoisted(() => ({ openConfirm: vi.fn() }));
 
-vi.mock('@genfeedai/contexts/providers/global-modals/global-modals.hooks', () => ({
-  useConfirmModal: () => ({ openConfirm: confirmMocks.openConfirm }),
-}));
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
+  () => ({
+    useConfirmModal: () => ({ openConfirm: confirmMocks.openConfirm }),
+  }),
+);
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');

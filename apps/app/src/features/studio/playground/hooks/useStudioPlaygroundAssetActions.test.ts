@@ -42,10 +42,13 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   }),
 }));
 
-vi.mock('@genfeedai/contexts/providers/global-modals/global-modals.hooks', () => ({
-  useConfirmModal: () => ({ openConfirm: mocks.openConfirm }),
-  usePostModal: () => ({ openPostBatchModal: mocks.openPostBatchModal }),
-}));
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
+  () => ({
+    useConfirmModal: () => ({ openConfirm: mocks.openConfirm }),
+    usePostModal: () => ({ openPostBatchModal: mocks.openPostBatchModal }),
+  }),
+);
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/default/default${path}` }),

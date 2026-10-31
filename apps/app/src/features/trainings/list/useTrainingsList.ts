@@ -1,3 +1,4 @@
+import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { ModalEnum, PageScope, TrainingStatus } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { ITraining } from '@genfeedai/contracts/interfaces';
@@ -8,7 +9,6 @@ import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-c
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { Training } from '@models/ai/training.model';
 import type { ContentProps } from '@props/layout/content.props';
-import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { TrainingsService } from '@services/ai/trainings.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';

@@ -1,16 +1,6 @@
 // @vitest-environment jsdom
 'use client';
 
-import type { IngredientCategory } from '@genfeedai/contracts';
-import type {
-  IAsset,
-  IIngredient,
-  IMetadata,
-  IPost,
-} from '@genfeedai/contracts/interfaces';
-import type { ModalExportProps } from '@genfeedai/props/modals/modal.props';
-import { act, render, renderHook } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   useBrandCreateModal,
   useConfirmDeleteModal,
@@ -24,6 +14,16 @@ import {
   usePromptModal,
   useUploadModal,
 } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
+import type { IngredientCategory } from '@genfeedai/contracts';
+import type {
+  IAsset,
+  IIngredient,
+  IMetadata,
+  IPost,
+} from '@genfeedai/contracts/interfaces';
+import type { ModalExportProps } from '@genfeedai/props/modals/modal.props';
+import { act, render, renderHook } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GlobalModalsProvider } from './global-modals.provider';
 
 const captured = vi.hoisted(() => ({

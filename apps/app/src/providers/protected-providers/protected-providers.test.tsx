@@ -2,9 +2,9 @@
 'use client';
 
 import type { GlobalModalsProviderProps } from '@genfeedai/props/modals/global-modals.props';
-import ProtectedProviders from '@/providers/protected-providers/protected-providers';
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import ProtectedProviders from '@/providers/protected-providers/protected-providers';
 
 const globalModalRendererMock = vi.fn();
 const useAuthMock = vi.fn();

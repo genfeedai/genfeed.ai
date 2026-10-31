@@ -1,7 +1,7 @@
+import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { GlobalModalsProvider } from './global-modals.provider';
 
 vi.mock('@genfeedai/auth-client/react', () => ({}));

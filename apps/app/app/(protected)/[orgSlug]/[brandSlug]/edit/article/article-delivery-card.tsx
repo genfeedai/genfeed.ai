@@ -1,4 +1,5 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import {
   ButtonSize,
   ButtonVariant,
@@ -12,7 +13,6 @@ import type { ICredential } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ArticleDeliveryCardProps } from '@props/edit/long-form-delivery.props';
-import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { ArticlesService } from '@services/content/articles.service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';

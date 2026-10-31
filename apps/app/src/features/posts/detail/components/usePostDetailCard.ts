@@ -1,12 +1,12 @@
 'use client';
 
+import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import {
   CredentialPlatform,
   PageScope,
   PostStatus,
 } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { logger } from '@services/core/logger.service';
 import { useEffect, useState } from 'react';
 import type { PostDetailCardProps } from '@/features/posts/props/post-detail-card.props';

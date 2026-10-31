@@ -18,11 +18,11 @@ import type { GlobalModalRenderer } from '@genfeedai/props/modals/global-modals.
 import { AccessStateProvider } from '@providers/access-state/access-state.provider';
 import ApiStatusProvider from '@providers/api-status/api-status.provider';
 import ElementsProvider from '@providers/elements/elements.provider';
-import { GlobalModalsProvider } from '@/providers/global-modals/global-modals.provider';
 import PromptBarProvider from '@providers/promptbar/promptbar.provider';
 import ThemePreferenceSync from '@providers/theme-sync/theme-preference-sync';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
+import { GlobalModalsProvider } from '@/providers/global-modals/global-modals.provider';
 
 export interface ProtectedProvidersProps extends LayoutProps {
   includeBrandProvider?: boolean;

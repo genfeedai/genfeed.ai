@@ -47,11 +47,14 @@ vi.mock(
   }),
 );
 
-vi.mock('@genfeedai/contexts/providers/global-modals/global-modals.hooks', () => ({
-  usePostModal: vi.fn(() => ({
-    openPostBatchModal: mockOpenPostBatchModal,
-  })),
-}));
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
+  () => ({
+    usePostModal: vi.fn(() => ({
+      openPostBatchModal: mockOpenPostBatchModal,
+    })),
+  }),
+);
 
 vi.mock(
   '@/features/ingredients/components/list/header/IngredientsListHeader',

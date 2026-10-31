@@ -55,11 +55,14 @@ vi.mock('next/navigation', () => ({
   })),
 }));
 
-vi.mock('@genfeedai/contexts/providers/global-modals/global-modals.hooks', () => ({
-  useConfirmModal: vi.fn(() => ({
-    openConfirm: vi.fn(),
-  })),
-}));
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
+  () => ({
+    useConfirmModal: vi.fn(() => ({
+      openConfirm: vi.fn(),
+    })),
+  }),
+);
 
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {

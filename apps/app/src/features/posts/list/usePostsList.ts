@@ -3,6 +3,11 @@
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
+  useConfirmDeleteModal,
+  usePostRemixModal,
+  usePostRepurposeModal,
+} from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
+import {
   ModelCategory,
   PageScope,
   type Platform,
@@ -43,11 +48,6 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useIngredientSidebar } from '@hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import type { ContentProps } from '@props/layout/content.props';
-import {
-  useConfirmDeleteModal,
-  usePostRemixModal,
-  usePostRepurposeModal,
-} from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { PostsService } from '@services/content/posts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';

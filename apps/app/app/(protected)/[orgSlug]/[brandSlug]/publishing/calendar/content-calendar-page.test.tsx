@@ -156,15 +156,18 @@ vi.mock('next-intl', async () => {
   };
 });
 
-vi.mock('@genfeedai/contexts/providers/global-modals/global-modals.hooks', () => ({
-  useConfirmModal: () => ({
-    closeConfirm: vi.fn(),
-    openConfirm: openConfirmMock,
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
+  () => ({
+    useConfirmModal: () => ({
+      closeConfirm: vi.fn(),
+      openConfirm: openConfirmMock,
+    }),
+    usePostRepurposeModal: () => ({
+      openPostRepurposeModal: openPostRepurposeModalMock,
+    }),
   }),
-  usePostRepurposeModal: () => ({
-    openPostRepurposeModal: openPostRepurposeModalMock,
-  }),
-}));
+);
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({

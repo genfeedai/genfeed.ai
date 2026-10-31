@@ -1,3 +1,4 @@
+import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { ModalEnum, PageScope } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IQueryParams, ISound } from '@genfeedai/contracts/interfaces';
@@ -5,7 +6,6 @@ import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/el
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Sound } from '@models/ingredients/sound.model';
-import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { SoundsService } from '@services/elements/sounds.service';

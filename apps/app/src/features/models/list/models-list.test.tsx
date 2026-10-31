@@ -50,9 +50,12 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
-vi.mock('@genfeedai/contexts/providers/global-modals/global-modals.hooks', () => ({
-  useConfirmModal: () => ({ openConfirm: mockOpenConfirm }),
-}));
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
+  () => ({
+    useConfirmModal: () => ({ openConfirm: mockOpenConfirm }),
+  }),
+);
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: <TService,>(factory: (token: string) => TService) =>

@@ -39,11 +39,14 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getMoodsService,
 }));
 
-vi.mock('@genfeedai/contexts/providers/global-modals/global-modals.hooks', () => ({
-  useConfirmModal: () => ({
-    openConfirm: mocks.openConfirm,
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
+  () => ({
+    useConfirmModal: () => ({
+      openConfirm: mocks.openConfirm,
+    }),
   }),
-}));
+);
 
 vi.mock('@services/core/logger.service', () => ({
   logger: {

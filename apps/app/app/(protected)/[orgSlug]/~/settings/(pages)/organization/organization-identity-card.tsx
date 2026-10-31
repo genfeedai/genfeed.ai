@@ -1,5 +1,6 @@
 'use client';
 
+import { useUploadModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { clearClientProtectedBootstrapCache } from '@genfeedai/contexts/providers/protected-bootstrap/client-protected-bootstrap';
 import { useRoutedOrganization } from '@genfeedai/contexts/user/organization-context/organization-context';
 import { AssetCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
@@ -10,7 +11,6 @@ import {
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useUploadModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';

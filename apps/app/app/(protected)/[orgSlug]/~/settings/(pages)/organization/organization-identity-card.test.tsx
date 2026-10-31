@@ -50,9 +50,12 @@ vi.mock(
   () => ({ useRoutedOrganization: () => routedOrganization() }),
 );
 
-vi.mock('@genfeedai/contexts/providers/global-modals/global-modals.hooks', () => ({
-  useUploadModal: () => ({ openUpload }),
-}));
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
+  () => ({
+    useUploadModal: () => ({ openUpload }),
+  }),
+);
 
 vi.mock('next/image', () => ({
   default: ({ alt, src }: { alt: string; src: string }) => (

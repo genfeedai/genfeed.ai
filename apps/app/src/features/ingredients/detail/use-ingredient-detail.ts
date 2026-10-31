@@ -1,4 +1,5 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { usePostModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { IngredientCategory } from '@genfeedai/contracts';
 import { createAdminIngredientRoute } from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
@@ -11,7 +12,6 @@ import { useIngredientServices } from '@hooks/data/ingredients/use-ingredient-se
 import useIngredientActions from '@hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import { useIngredientSidebar } from '@hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
 import type { IngredientDetailProps } from '@props/content/ingredient.props';
-import { usePostModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';

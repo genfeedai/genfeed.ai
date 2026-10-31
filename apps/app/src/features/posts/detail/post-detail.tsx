@@ -4,6 +4,7 @@ import {
   ContextSidebarPanel,
   useContextSidebar,
 } from '@contexts/ui/context-sidebar-context';
+import { usePostRepurposeModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import {
   ButtonSize,
   ButtonVariant,
@@ -20,7 +21,6 @@ import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { usePostDetail } from '@hooks/pages/use-post-detail/use-post-detail';
 import type { PostReviewSummary } from '@props/components/post-detail-sidebar.props';
-import { usePostRepurposeModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import Card from '@ui/card/Card';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import EngagementPreview from '@ui/posts/engagement-preview/EngagementPreview';

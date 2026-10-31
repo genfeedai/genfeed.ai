@@ -1,6 +1,6 @@
+import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import type { IReviewInboxItem } from '@genfeedai/contracts/interfaces';
 import type { ReviewInboxApprovalsSectionProps } from '@props/publishing/review-inbox-approvals.props';
-import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import CollectionSection from '@ui/collection/CollectionSection';
 import Pagination from '@ui/navigation/pagination/Pagination';
