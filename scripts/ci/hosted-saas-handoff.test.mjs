@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -714,4 +715,38 @@ test('notifies release watch when production deploy succeeds, before npm and pub
     notifyReleaseWorkflow,
     /echo "::warning::failed to notify \$name"/,
   );
+});
+
+test('caps pre-migration RDS snapshots before creating the next one', () => {
+  const snapshotStep = publicDeployCore.slice(
+    publicDeployCore.indexOf('Snapshot RDS before migrations'),
+    publicDeployCore.indexOf('Run DB migrations'),
+  );
+  assert.match(snapshotStep, /PRE_MIGRATE_SNAPSHOTS_KEEP: "15"/);
+  assert.ok(
+    snapshotStep.indexOf('aws rds delete-db-snapshot') <
+      snapshotStep.indexOf('aws rds create-db-snapshot'),
+    'old snapshots are pruned before the new one is created',
+  );
+
+  const filter = snapshotStep.match(
+    /jq -r --argjson keep "\$KEEP_BEFORE_NEW" \\\n\s+'([^']+)'/,
+  )?.[1];
+  assert.ok(filter, 'the prune jq filter is present');
+
+  const snapshots = [
+    ['pre-migrate-aaa-20260901000000', '2026-09-01T00:00:00Z'],
+    ['pre-migrate-bbb-20260902000000', '2026-09-02T00:00:00Z'],
+    ['pre-migrate-ccc-20260903000000', '2026-09-03T00:00:00Z'],
+    ['pre-migrate-console-0f0a1efff301-1', '2026-08-01T00:00:00Z'],
+    ['pre-purge-dead-accounts-20261014104706', '2026-08-02T00:00:00Z'],
+    ['post-content-reset-20260728-2144', '2026-08-03T00:00:00Z'],
+  ];
+  const result = spawnSync('jq', ['-r', '--argjson', 'keep', '2', filter], {
+    input: JSON.stringify(snapshots),
+    encoding: 'utf8',
+  });
+  if (result.error?.code === 'ENOENT') return;
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, 'pre-migrate-aaa-20260901000000\n');
 });
