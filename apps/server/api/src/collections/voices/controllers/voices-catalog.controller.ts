@@ -3,6 +3,7 @@ import { ImportVoicesDto } from '@api/collections/voices/dto/import-voices.dto';
 import { UpdateVoiceCatalogDto } from '@api/collections/voices/dto/update-voice-catalog.dto';
 import { VoiceCatalogQueryDto } from '@api/collections/voices/dto/voice-catalog-query.dto';
 import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
+import { buildVoiceCatalogOrderBy } from '@api/collections/voices/utils/voice-catalog-order.util';
 import {
   parseVoiceCatalogProvider,
   parseVoiceCatalogProviders,
@@ -63,6 +64,7 @@ export class VoicesCatalogController {
       const { docs: voices, totalDocs } =
         await this.externalVoiceCatalogService.findRange({
           includeInactive: true,
+          orderBy: buildVoiceCatalogOrderBy(query.sort),
           provider: parseVoiceCatalogProvider(query.provider),
           search: query.search,
           skip: (page - 1) * limit,

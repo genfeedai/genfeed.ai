@@ -302,6 +302,21 @@ describe('ModelsController', () => {
       });
     });
 
+    it.each([
+      ['label: 1', { createdAt: -1, id: -1, label: 1 }],
+      ['cost: -1', { cost: -1, createdAt: -1, id: -1 }],
+      ['reviewStatus: 1', { createdAt: -1, id: -1, reviewStatus: 1 }],
+      ['createdAt: 1', { createdAt: 1, id: -1 }],
+      ['password: 1', { createdAt: -1, key: 1, label: 1 }],
+      ['-label,key', { createdAt: -1, key: 1, label: 1 }],
+    ])('orders the model list by %j', (sort, expected) => {
+      const result = controller.buildFindAllQuery(mockRegularUser, {
+        sort,
+      } as ModelsQueryDto);
+
+      expect(result.orderBy).toEqual(expected);
+    });
+
     it('should build query with custom sort', () => {
       const query: ModelsQueryDto = {
         isDeleted: true,

@@ -26,6 +26,7 @@ export function buildTrainingsTableColumns({
     {
       header: 'Name',
       key: 'label',
+      sortable: true,
       render: (training) => (
         <div>
           <div className="font-semibold text-foreground">{training.label}</div>
@@ -47,6 +48,7 @@ export function buildTrainingsTableColumns({
     {
       header: 'Status',
       key: 'status',
+      sortable: true,
       render: (training: ITraining) => <Badge status={training.status} />,
     },
     {

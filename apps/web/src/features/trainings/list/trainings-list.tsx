@@ -58,6 +58,9 @@ export default function TrainingsList({
     isLoading,
     error,
     selectedTraining,
+    sortKey,
+    sortDirection,
+    onSortChange,
     handleRefresh,
     handleToggleActive,
     openTrainingModal,
@@ -179,6 +182,9 @@ export default function TrainingsList({
             : undefined
         }
         rowSidebar={rowSidebar}
+        sortKey={sortKey}
+        sortDirection={sortDirection}
+        onSortChange={onSortChange}
         isLoading={isLoading}
         emptyLabel="No trainings found"
         emptyState={

@@ -120,13 +120,29 @@ describe('WorkflowExecutionsController', () => {
         include: {
           workflow: { select: { description: true, id: true, label: true } },
         },
-        orderBy: { createdAt: -1 },
+        orderBy: { createdAt: -1, id: -1 },
         where: buildCustomerExecutionWhere(organizationId, query),
       });
       expect(options).toEqual(
         expect.objectContaining({ limit: expect.any(Number), offset: 0 }),
       );
       expect(result).toEqual([{ id: 'exec-1' }]);
+    });
+
+    it.each([
+      ['durationMs: 1', { createdAt: -1, durationMs: 1, id: -1 }],
+      ['status: -1', { createdAt: -1, id: -1, status: -1 }],
+      ['createdAt: 1', { createdAt: 1, id: -1 }],
+      ['label: 1', { createdAt: -1 }],
+    ])('orders the run history by %j', async (sort, orderBy) => {
+      mockService.findAll.mockResolvedValue({ docs: [], total: 0 });
+
+      await controller.findAll(mockRequest, mockUser, { sort } as never);
+
+      expect(mockService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({ orderBy }),
+        expect.anything(),
+      );
     });
 
     it('should use default limit and offset when not provided', async () => {
@@ -136,7 +152,7 @@ describe('WorkflowExecutionsController', () => {
 
       expect(mockService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
-          orderBy: { createdAt: -1 },
+          orderBy: { createdAt: -1, id: -1 },
           where: expect.objectContaining({
             isDeleted: false,
             organizationId: expect.any(String),

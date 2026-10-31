@@ -12,6 +12,7 @@ import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { handleStableAllowedQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
@@ -33,6 +34,13 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
+
+/** Columns the folders list can be ordered by. */
+export const FOLDER_SORT_FIELDS: readonly string[] = [
+  'createdAt',
+  'isActive',
+  'label',
+];
 
 @Controller('folders')
 @ApiTags('folders')
@@ -184,7 +192,13 @@ export class FoldersController extends BaseCRUDController<
         tenant.brandId ?? user.brandId,
       );
     }
-    return { where: matchStage, orderBy: { createdAt: -1, label: 1 } };
+    return {
+      orderBy: handleStableAllowedQuerySort(query.sort, FOLDER_SORT_FIELDS, {
+        createdAt: -1,
+        label: 1,
+      }),
+      where: matchStage,
+    };
   }
 
   public override enrichCreateDto(

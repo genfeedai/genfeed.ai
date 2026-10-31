@@ -23,7 +23,16 @@ import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 import EditMemoryDialog from './edit-memory-dialog';
+
+const MEMORY_SORT_KEYS = [
+  'summary',
+  'user',
+  'scope',
+  'promotedSkillId',
+  'createdAt',
+] as const;
 
 export default function SettingsOrganizationMemoryPage() {
   const translate = useTranslations('common.settings.memory');
@@ -31,6 +40,9 @@ export default function SettingsOrganizationMemoryPage() {
   const userRole = useUserRole();
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: MEMORY_SORT_KEYS,
+  });
   const { orgHref } = useOrgUrl();
   const isBillingEnabled = hasOrganizationBillingHint();
   const canGovern =
@@ -82,7 +94,11 @@ export default function SettingsOrganizationMemoryPage() {
           return;
         }
         const data = await service.listOrganization(
-          { limit: ITEMS_PER_PAGE, page: currentPage },
+          {
+            limit: ITEMS_PER_PAGE,
+            page: currentPage,
+            ...(sort ? { sort } : {}),
+          },
           signal,
         );
         if (signal?.aborted) {
@@ -104,6 +120,7 @@ export default function SettingsOrganizationMemoryPage() {
       getMemoriesService,
       isBillingEnabled,
       notificationsService,
+      sort,
       translate,
     ],
   );
@@ -144,16 +161,19 @@ export default function SettingsOrganizationMemoryPage() {
     {
       header: translate('columns.memory'),
       key: 'summary',
+      sortable: true,
       render: (entry) => entry.summary || entry.content || '-',
     },
     {
       header: translate('columns.author'),
       key: 'user',
+      sortable: true,
       render: authorLabel,
     },
     {
       header: translate('columns.scope'),
       key: 'scope',
+      sortable: true,
       render: (entry) => (
         <Badge variant="secondary">{scopeLabel(entry.scope)}</Badge>
       ),
@@ -161,6 +181,7 @@ export default function SettingsOrganizationMemoryPage() {
     {
       header: translate('columns.status'),
       key: 'promotedSkillId',
+      sortable: true,
       render: (entry) =>
         entry.promotedSkillId ? (
           <Badge variant="success">{translate('status.promoted')}</Badge>
@@ -171,6 +192,7 @@ export default function SettingsOrganizationMemoryPage() {
     {
       header: translate('columns.created'),
       key: 'createdAt',
+      sortable: true,
       render: (entry) => (entry.createdAt ? formatDate(entry.createdAt) : '-'),
     },
   ];
@@ -323,6 +345,9 @@ export default function SettingsOrganizationMemoryPage() {
         items={entries ?? []}
         label={translate('table')}
         rowSidebar={rowSidebar}
+        sortKey={sortKey}
+        sortDirection={sortDirection}
+        onSortChange={onSortChange}
       />
       <EditMemoryDialog
         entry={editingEntry}

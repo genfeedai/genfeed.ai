@@ -21,7 +21,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { handleStableAllowedQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { ModelLifecycle } from '@genfeedai/contracts';
 import type {
@@ -45,6 +45,20 @@ import { ModuleRef } from '@nestjs/core';
 import type { Request } from 'express';
 
 type MatchConditions = Record<string, unknown>;
+
+/**
+ * Columns the models table can be ordered by. A ranking is followed by newest
+ * first and id so rows that tie keep one order across pages.
+ */
+export const MODEL_SORT_FIELDS: readonly string[] = [
+  'cost',
+  'createdAt',
+  'isDefault',
+  'label',
+  'lifecycle',
+  'qualityTier',
+  'reviewStatus',
+];
 
 @AutoSwagger()
 @Controller('models')
@@ -177,9 +191,11 @@ export class ModelsController extends BaseCRUDController<
     // because it requires async database lookup
 
     return {
-      orderBy: query.sort
-        ? handleQuerySort(query.sort)
-        : ({ createdAt: -1, key: 1, label: 1 } as SortObject),
+      orderBy: handleStableAllowedQuerySort(query.sort, MODEL_SORT_FIELDS, {
+        createdAt: -1,
+        key: 1,
+        label: 1,
+      } as SortObject),
       where: matchConditions,
     };
   }

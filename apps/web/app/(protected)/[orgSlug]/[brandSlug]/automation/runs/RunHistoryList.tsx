@@ -25,6 +25,9 @@ export default function RunHistoryList({
   isLoading,
   isPaginated = false,
   onClearFilter,
+  onSortChange,
+  sortDirection,
+  sortKey,
 }: RunHistoryListProps) {
   const translate = useTranslations('common.automation.workflowExecutions');
   const translateExecutions = useTranslations(
@@ -64,6 +67,7 @@ export default function RunHistoryList({
         className: 'w-32',
         header: translate('columnStatus'),
         key: 'status',
+        sortable: true,
         render: (execution) => (
           <Badge
             status={execution.status.toLowerCase()}
@@ -92,13 +96,15 @@ export default function RunHistoryList({
       {
         className: 'w-24 text-right',
         header: translate('columnDuration'),
-        key: 'duration',
+        key: 'durationMs',
+        sortable: true,
         render: (execution) => formatExecutionDuration(execution.durationMs),
       },
       {
         className: 'w-28 text-right',
         header: translate('columnStarted'),
-        key: 'when',
+        key: 'createdAt',
+        sortable: true,
         render: (execution) =>
           formatExecutionRelativeTime(
             execution.completedAt ?? execution.startedAt ?? execution.createdAt,
@@ -183,6 +189,9 @@ export default function RunHistoryList({
         isLoading={isLoading && executions.length === 0}
         items={executions}
         label={translate('recentRuns')}
+        onSortChange={onSortChange}
+        sortDirection={sortDirection}
+        sortKey={sortKey}
         rowSidebar={{
           getId: (execution) => execution.id,
           getSubtitle: (execution) =>

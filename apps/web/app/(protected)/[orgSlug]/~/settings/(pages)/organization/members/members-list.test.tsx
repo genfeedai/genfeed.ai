@@ -170,6 +170,7 @@ interface RenderOptions {
   pageCount: number;
   role?: MemberRole;
   search?: string;
+  sort?: string;
   tier: string | null;
 }
 
@@ -180,6 +181,7 @@ function renderMembers({
   pageCount,
   role = MemberRole.OWNER,
   search,
+  sort,
   tier,
 }: RenderOptions) {
   mocks.useBrand.mockReturnValue({
@@ -189,12 +191,14 @@ function renderMembers({
   mocks.useSearchParams.mockReturnValue({
     get: (key: string) => {
       if (key === 'page') return page;
+      if (key === 'sort') return sort ?? null;
       return key === 'q' ? (search ?? null) : null;
     },
     toString: () => {
       const params = new URLSearchParams();
       if (page) params.set('page', page);
       if (search) params.set('q', search);
+      if (sort) params.set('sort', sort);
       return params.toString();
     },
   });
@@ -283,6 +287,34 @@ describe('MembersList seat limit', () => {
       { scroll: false },
     );
   });
+
+  it.each([
+    ['roleLabel', 'roleLabel: 1'],
+    ['-createdAt', 'createdAt: -1'],
+    ['userFullName', 'userFullName: 1'],
+  ])(
+    'asks the server to order members by the %s URL sort',
+    async (urlSort, apiSort) => {
+      renderMembers({ pageCount: 0, sort: urlSort, tier: 'scale' });
+
+      await screen.findByText('No members found');
+      expect(mocks.findAll).toHaveBeenLastCalledWith(
+        expect.objectContaining({ sort: apiSort }),
+      );
+    },
+  );
+
+  it.each(['brands', '-password', ''])(
+    'ignores the unsortable URL sort %j',
+    async (urlSort) => {
+      renderMembers({ pageCount: 0, sort: urlSort, tier: 'scale' });
+
+      await screen.findByText('No members found');
+      expect(mocks.findAll).toHaveBeenLastCalledWith(
+        expect.not.objectContaining({ sort: expect.anything() }),
+      );
+    },
+  );
 
   it('hides the search behind the upgrade state on solo plans', () => {
     renderMembers({ pageCount: 1, tier: 'free' });

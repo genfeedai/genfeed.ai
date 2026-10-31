@@ -39,7 +39,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { handleStableAllowedQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { resolveScopeId } from '@api/shared/controllers/base-crud/base-crud-scope.util';
@@ -71,6 +71,13 @@ import {
 } from '@nestjs/common';
 import { isUUID } from 'class-validator';
 import type { Request, Response } from 'express';
+
+/** Columns the brands list can be ordered by. */
+export const BRAND_SORT_FIELDS: readonly string[] = [
+  'createdAt',
+  'label',
+  'slug',
+];
 
 @AutoSwagger()
 @Controller('brands')
@@ -350,7 +357,9 @@ export class BrandsController extends BaseCRUDController<
 
     if (adminFilter) {
       return {
-        orderBy: handleQuerySort(query.sort),
+        orderBy: handleStableAllowedQuerySort(query.sort, BRAND_SORT_FIELDS, {
+          createdAt: -1,
+        }),
         where: { isDeleted, ...adminFilter },
       };
     }
@@ -367,7 +376,9 @@ export class BrandsController extends BaseCRUDController<
     }
 
     return {
-      orderBy: handleQuerySort(query.sort),
+      orderBy: handleStableAllowedQuerySort(query.sort, BRAND_SORT_FIELDS, {
+        createdAt: -1,
+      }),
       where: { isDeleted, organizationId },
     };
   }

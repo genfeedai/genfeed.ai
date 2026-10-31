@@ -9,13 +9,14 @@ import type {
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
 import { AgentMemoryCaptureService } from '@api/collections/agent-memories/services/agent-memory-capture.service';
 import { AgentMemoryRevisionsService } from '@api/collections/agent-memories/services/agent-memory-revisions.service';
+import { buildMemoryListOrderBy } from '@api/collections/agent-memories/utils/memory-list-order.util';
 import { resolveKnowledgeActor } from '@api/collections/contexts/utils/knowledge-actor.util';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
-  PaginationQueryDto,
   resolvePageWindow,
+  SortPaginationQueryDto,
 } from '@api/helpers/dto/pagination-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -153,7 +154,7 @@ export class AgentMemoriesController {
   })
   async listOrganization(
     @CurrentUser() user: User,
-    @Query() query?: PaginationQueryDto,
+    @Query() query?: SortPaginationQueryDto,
   ) {
     try {
       // The page envelope is returned as-is (not JSON:API): each entry carries
@@ -161,6 +162,7 @@ export class AgentMemoriesController {
       return await this.memoriesService.listForOrganization(
         resolveTenantReadScope(user).organizationId,
         resolvePageWindow(query),
+        buildMemoryListOrderBy(query?.sort),
       );
     } catch (error: unknown) {
       return ErrorResponse.handle(

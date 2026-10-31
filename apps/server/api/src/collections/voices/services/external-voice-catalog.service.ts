@@ -20,6 +20,7 @@ export interface ExternalVoiceFindRangeOptions
   extends ExternalVoiceFindAllOptions {
   skip: number;
   take: number;
+  orderBy?: Prisma.ExternalVoiceOrderByWithRelationInput[];
 }
 
 export interface ExternalVoiceRange {
@@ -81,11 +82,16 @@ export class ExternalVoiceCatalogService {
   async findRange(
     options: ExternalVoiceFindRangeOptions,
   ): Promise<ExternalVoiceRange> {
-    const { skip, take, ...filters } = options;
+    const {
+      orderBy = [{ name: 'asc' }, { id: 'asc' }],
+      skip,
+      take,
+      ...filters
+    } = options;
     const where = this.buildWhere(filters);
     const [docs, totalDocs] = await Promise.all([
       this.prisma.externalVoice.findMany({
-        orderBy: [{ name: 'asc' }, { id: 'asc' }],
+        orderBy,
         skip,
         take,
         where,

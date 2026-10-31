@@ -12,6 +12,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import FoldersList from './folders-list';
 
 const mocks = vi.hoisted(() => ({
+  urlSort: null as string | null,
   deleteFolder: vi.fn(),
   findAll: vi.fn(),
   loggerError: vi.fn(),
@@ -296,9 +297,11 @@ vi.mock('next/navigation', () => ({
       if (key === 'page') return '2';
       if (key === 'organization') return 'org-1';
       if (key === 'brand') return 'brand-1';
+      if (key === 'sort') return mocks.urlSort;
       return null;
     },
-    toString: () => 'organization=org-1&brand=brand-1&page=2',
+    toString: () =>
+      `organization=org-1&brand=brand-1&page=2${mocks.urlSort ? `&sort=${mocks.urlSort}` : ''}`,
   }),
 }));
 
@@ -336,6 +339,7 @@ function mockFolders(
 describe('FoldersList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.urlSort = null;
     mocks.deleteFolder.mockResolvedValue({ ok: true });
     mocks.findAll.mockResolvedValue([]);
     mocks.patch.mockResolvedValue({});
@@ -386,6 +390,24 @@ describe('FoldersList', () => {
       { scroll: false },
     );
   });
+
+  it.each([
+    ['isActive', 'isActive: 1'],
+    ['-label', 'label: -1'],
+  ])(
+    'orders folders by the %s header sort over the toolbar sort',
+    async (urlSort, apiSort) => {
+      mocks.urlSort = urlSort;
+
+      render(<FoldersList scope={PageScope.SUPERADMIN} />);
+
+      await waitFor(() => {
+        expect(mocks.findAll).toHaveBeenCalledWith(
+          expect.objectContaining({ sort: apiSort }),
+        );
+      });
+    },
+  );
 
   it('opens create/edit modals, toggles active state, and refreshes folders', async () => {
     render(<FoldersList scope={PageScope.BRAND} />);

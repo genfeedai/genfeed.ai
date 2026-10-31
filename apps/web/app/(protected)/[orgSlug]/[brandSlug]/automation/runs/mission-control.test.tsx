@@ -92,8 +92,22 @@ describe('MissionControl', () => {
       brandId: 'brand-1',
       limit: ITEMS_PER_PAGE,
       page: 4,
-      sort: '-createdAt',
+      sort: 'createdAt: -1',
     });
+  });
+  it.each([
+    ['status', 'status: 1'],
+    ['-durationMs', 'durationMs: -1'],
+    ['createdAt', 'createdAt: 1'],
+  ])('sorts the run history by ?sort=%s', (urlSort, apiSort) => {
+    state.searchParams = new URLSearchParams(`sort=${urlSort}`);
+    render(<MissionControl />);
+    expect(state.params[0]).toMatchObject({ sort: apiSort });
+  });
+  it('ignores a sort on a column the API cannot order by', () => {
+    state.searchParams = new URLSearchParams('sort=-credits');
+    render(<MissionControl />);
+    expect(state.params[0]).toMatchObject({ sort: 'createdAt: -1' });
   });
   it('keeps header tools available and offers retry without an empty-list message on failure', () => {
     state.isError = true;

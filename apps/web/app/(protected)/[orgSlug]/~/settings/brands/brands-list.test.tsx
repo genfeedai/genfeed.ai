@@ -119,6 +119,7 @@ vi.mock(
 );
 
 const pushMock = vi.fn();
+const searchState = vi.hoisted(() => ({ query: '' }));
 
 vi.mock('next/navigation', () => ({
   usePathname: vi.fn(() => '/brands'),
@@ -127,7 +128,7 @@ vi.mock('next/navigation', () => ({
   })),
   useSearchParams: vi.fn(() => ({
     get: vi.fn(() => null),
-    toString: vi.fn(() => ''),
+    toString: vi.fn(() => searchState.query),
   })),
 }));
 
@@ -153,6 +154,7 @@ describe('BrandsList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     accessState.isSuperAdmin = false;
+    searchState.query = '';
     userRole.value = 'member';
   });
 
@@ -224,6 +226,36 @@ describe('BrandsList', () => {
       limit: 20,
       organizationId: 'org-123',
       page: 1,
+    });
+  });
+
+  it.each([
+    ['label', 'label: 1'],
+    ['-slug', 'slug: -1'],
+    ['-createdAt', 'createdAt: -1'],
+  ])('sorts the request by ?sort=%s', async (urlSort, apiSort) => {
+    const { useQuery } = await import('@tanstack/react-query');
+    const { useAuthedService } = await import(
+      '@hooks/auth/use-authed-service/use-authed-service'
+    );
+    const findAll = vi.fn().mockResolvedValue([]);
+    vi.mocked(useAuthedService).mockReturnValue((async () => ({
+      findAll,
+    })) as never);
+    searchState.query = `sort=${urlSort}`;
+    render(<BrandsList />);
+
+    const [options] = vi.mocked(useQuery).mock.calls[0] as unknown as [
+      { queryFn: () => Promise<unknown>; queryKey: unknown[] },
+    ];
+    await options.queryFn();
+
+    expect(options.queryKey).toEqual(['brands', 'org-123', 1, apiSort]);
+    expect(findAll).toHaveBeenCalledWith({
+      limit: 20,
+      organizationId: 'org-123',
+      page: 1,
+      sort: apiSort,
     });
   });
 

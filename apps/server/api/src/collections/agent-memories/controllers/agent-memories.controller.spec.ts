@@ -267,11 +267,11 @@ describe('AgentMemoriesController', () => {
         page: 2,
       });
 
-      expect(memoriesService.listForOrganization).toHaveBeenCalledWith(ORG_ID, {
-        limit: 15,
-        page: 2,
-        skip: 15,
-      });
+      expect(memoriesService.listForOrganization).toHaveBeenCalledWith(
+        ORG_ID,
+        { limit: 15, page: 2, skip: 15 },
+        [{ createdAt: 'desc' }, { id: 'desc' }],
+      );
       expect(result).toEqual(mockEntries);
     });
   });

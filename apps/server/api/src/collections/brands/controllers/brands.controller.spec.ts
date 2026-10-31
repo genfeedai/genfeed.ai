@@ -703,7 +703,7 @@ describe('BrandsController', () => {
         isDeleted: false,
         organizationId,
       });
-      expect(result.orderBy).toEqual({ label: 1 });
+      expect(result.orderBy).toEqual({ createdAt: -1, id: -1, label: 1 });
     });
 
     it('scopes members to their session organization only', () => {
@@ -719,7 +719,20 @@ describe('BrandsController', () => {
       // Brands the caller created in another organization must not leak in.
       expect(result.where).toEqual({ isDeleted: false, organizationId });
       expect(result.where).not.toHaveProperty('OR');
-      expect(result.orderBy).toEqual({ label: 1 });
+      expect(result.orderBy).toEqual({ createdAt: -1, id: -1, label: 1 });
+    });
+
+    it.each([
+      ['slug: -1', { createdAt: -1, id: -1, slug: -1 }],
+      ['createdAt: 1', { createdAt: 1, id: -1 }],
+      ['organizationId: 1', { createdAt: -1 }],
+    ])('orders the brand list by %j', (sort, orderBy) => {
+      const result = controller.buildFindAllQuery(mockUser, {
+        isDeleted: false,
+        sort,
+      } as BaseQueryDto);
+
+      expect(result.orderBy).toEqual(orderBy);
     });
 
     it('falls back to the session organization when no filter is passed', () => {

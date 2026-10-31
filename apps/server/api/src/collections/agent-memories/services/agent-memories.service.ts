@@ -209,6 +209,10 @@ export class AgentMemoriesService extends BaseService<
   async listForOrganization(
     organizationId: string,
     window: PageWindow,
+    orderBy: Prisma.AgentMemoryOrderByWithRelationInput[] = [
+      { createdAt: 'desc' },
+      { id: 'desc' },
+    ],
   ): Promise<AggregatePaginateResult<AgentMemoryDocument>> {
     if (!hasOrganizationBilling()) {
       throw new ForbiddenException(
@@ -235,8 +239,7 @@ export class AgentMemoriesService extends BaseService<
             },
           },
         },
-        // `id` breaks createdAt ties so rows never repeat across pages.
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        orderBy,
         skip: window.skip,
         take: window.limit,
         where,

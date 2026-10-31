@@ -233,17 +233,17 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #7016: unchanged relocation preview, after extracting the async status controller; assertCanRelocate authorizes both tenants.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brands.controller.ts',
-      line: 317,
+      line: 324,
     },
     // #7016: unchanged superadmin brand list filtered across organizations; retained after extracting async status reads.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brands.controller.ts',
-      line: 393,
+      line: 404,
     },
     // #7016: unchanged relation hydration for already authorized brands, pinned to each row organization.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brands.controller.ts',
-      line: 419,
+      line: 430,
     },
     // #7016: relocation admission retains the original source-tenant receipt; discovery is bound to initiator/request id and assertCanRelocate authorizes both organizations before creation or response.
     {
@@ -435,7 +435,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin reads any organization's folder.
     {
       file: 'apps/server/api/src/collections/folders/controllers/folders.controller.ts',
-      line: 80,
+      line: 88,
     },
     // #6120: superadmin-only CRUD over platform (organization-less) font
     // families.

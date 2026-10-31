@@ -22,8 +22,14 @@ describe('organization memory settings content', () => {
 
   it('reads one server page from the URL and renders pagination', () => {
     expect(source).toContain("Number(searchParams.get('page')) || 1");
-    expect(source).toContain('limit: ITEMS_PER_PAGE, page: currentPage');
+    expect(source).toMatch(/limit: ITEMS_PER_PAGE,\s*page: currentPage/);
     expect(source).toContain('<AutoPagination');
+  });
+
+  it('orders the server page by the clicked header', () => {
+    expect(source).toContain('useTableSort');
+    expect(source).toMatch(/\.\.\.\(sort \? \{ sort \} : \{\}\)/);
+    expect(source).toContain('onSortChange={onSortChange}');
   });
 
   it('opens a memory entry in the right sidebar on row click', () => {

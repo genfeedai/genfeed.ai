@@ -45,6 +45,7 @@ import SearchField from '@/components/content/search-field/SearchField';
 import { LazyModalMember } from '@/components/lazy/modal/LazyModal';
 import type { MemberBrandAccessProps } from '@/features/settings/props/members-list.props';
 import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 import MemberDetails from './member-details';
 
 function formatInvitationStatus(status: IMemberInvitation['status']): string {
@@ -81,6 +82,13 @@ function canRetryInvitation(invitation: IMemberInvitation): boolean {
   return invitation.status !== 'accepted' && invitation.status !== 'revoked';
 }
 
+const MEMBER_SORT_KEYS = [
+  'userFullName',
+  'roleLabel',
+  'isActive',
+  'createdAt',
+] as const;
+
 function MembersListContent() {
   const notificationsService = NotificationsService.getInstance();
   const { organizationId, settings, brands } = useBrand();
@@ -89,6 +97,9 @@ function MembersListContent() {
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
   const { search, setSearch } = useAdminSearchParam();
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: MEMBER_SORT_KEYS,
+  });
   const seatLimit = getSeatLimitForTier(settings?.subscriptionTier);
   const upgradeTier = getUpgradeTierForLimit(
     'seats',
@@ -143,6 +154,7 @@ function MembersListContent() {
     {
       header: translate('columnMember'),
       key: 'userFullName',
+      sortable: true,
       render: (member: Member) => {
         const name = member.userFullName;
         const hasName = Boolean(name) && name !== '-';
@@ -172,6 +184,7 @@ function MembersListContent() {
     {
       header: 'Role',
       key: 'roleLabel',
+      sortable: true,
       render: (member: Member) => member.roleLabel || '-',
     },
     {
@@ -182,6 +195,7 @@ function MembersListContent() {
     {
       header: translate('inlineEdit.status'),
       key: 'isActive',
+      sortable: true,
       render: (member: Member) =>
         member.isActive
           ? translate('inlineEdit.active')
@@ -190,6 +204,7 @@ function MembersListContent() {
     {
       header: 'Joined',
       key: 'createdAt',
+      sortable: true,
       render: (member: Member) =>
         member.createdAt ? formatDate(member.createdAt) : '-',
     },
@@ -280,6 +295,7 @@ function MembersListContent() {
         organization: organizationId,
         page: currentPage,
         ...(search ? { search } : {}),
+        ...(sort ? { sort } : {}),
       };
 
       const [memberData, invitationData] = await Promise.all([
@@ -303,6 +319,7 @@ function MembersListContent() {
     notificationsService,
     organizationId,
     search,
+    sort,
   ]);
 
   const updateInvitation = useCallback(
@@ -420,6 +437,9 @@ function MembersListContent() {
             getRowKey={(item) => item.id}
             rowSidebar={memberSidebar}
             emptyLabel={EMPTY_STATES.MEMBERS_FOUND}
+            sortKey={sortKey}
+            sortDirection={sortDirection}
+            onSortChange={onSortChange}
           />
 
           {canManageInvitations ? (

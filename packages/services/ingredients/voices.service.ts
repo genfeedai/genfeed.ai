@@ -21,6 +21,7 @@ export interface CatalogSyncResult {
 export interface CatalogFindParams {
   provider?: VoiceProvider;
   search?: string;
+  sort?: string;
   page?: number;
   limit?: number;
 }
@@ -76,6 +77,9 @@ export class VoicesService extends IngredientsService<Voice> {
     }
     if (params.search) {
       query['search'] = params.search;
+    }
+    if (params.sort) {
+      query['sort'] = params.sort;
     }
     if (params.page) {
       query['page'] = params.page;

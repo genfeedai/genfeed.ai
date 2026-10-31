@@ -76,6 +76,7 @@ describe('VoicesCatalogController', () => {
 
     expect(service.findRange).toHaveBeenCalledWith({
       includeInactive: true,
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
       provider: DbVoiceProvider.ELEVENLABS,
       search: 'test',
       skip: 30,
