@@ -115,7 +115,9 @@ describe('Table', () => {
     );
 
     expect(screen.getAllByRole('columnheader')).toHaveLength(2);
-    expect(screen.getByText('Actions')).toHaveClass('sr-only');
+    expect(screen.getByRole('columnheader', { name: 'Actions' })).toHaveClass(
+      'w-0',
+    );
   });
 
   it('renders row-specific controls from renderRowActions in the same overlay', () => {

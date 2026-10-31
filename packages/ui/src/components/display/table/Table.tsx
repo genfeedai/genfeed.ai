@@ -527,9 +527,7 @@ export default function AppTable<T>({
                 })}
 
                 {hasRowActions && (
-                  <th className="w-0 p-0">
-                    <span className="sr-only">Actions</span>
-                  </th>
+                  <th aria-label="Actions" className="w-0 p-0" />
                 )}
               </tr>
             </thead>
