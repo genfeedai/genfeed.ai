@@ -14,13 +14,15 @@ import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
-import { Fragment, type ReactElement } from 'react';
+import { Fragment, type ReactElement, useState } from 'react';
+import SearchField from '@/components/content/search-field/SearchField';
 import type { StoryboardListRun } from '@/features/studio/props/storyboard.props';
 import StoryboardPresetShelf from '@/features/studio/storyboard/components/StoryboardPresetShelf';
 import StoryboardRunsOnboarding from '@/features/studio/storyboard/components/StoryboardRunsOnboarding';
 import { useStoryboardRuns } from '@/features/studio/storyboard/hooks/use-storyboard-runs';
 import { isStoryboardRunNeedingAttention } from '@/features/studio/storyboard/utils/storyboard-run-summary';
 import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
+import { filterBySearch } from '@/lib/search/filter-by-search';
 
 /** Studio → Storyboard landing: every saved storyboard run of the brand. */
 export default function StoryboardRunsPage(): ReactElement {
@@ -32,7 +34,12 @@ export default function StoryboardRunsPage(): ReactElement {
     defaultView: ViewType.LIST,
     surface: 'studio.storyboard',
   });
-  const needsAttention = runs.filter(isStoryboardRunNeedingAttention);
+  const [search, setSearch] = useState('');
+  const visibleRuns = filterBySearch(runs, search, (run) => [
+    run.title,
+    'sourceLabel' in run ? run.sourceLabel : run.sourceKind,
+  ]);
+  const needsAttention = visibleRuns.filter(isStoryboardRunNeedingAttention);
 
   function runHref(run: StoryboardListRun): string {
     return href(
@@ -100,6 +107,14 @@ export default function StoryboardRunsPage(): ReactElement {
   return (
     <Container
       label={translate('title')}
+      leading={
+        <SearchField
+          ariaLabel={translate('search')}
+          onSearch={setSearch}
+          placeholder={translate('search')}
+          value={search}
+        />
+      }
       right={
         <div className="flex items-center gap-2">
           <CollectionViewToggle onViewChange={setView} view={view} />
@@ -129,15 +144,18 @@ export default function StoryboardRunsPage(): ReactElement {
             </CollectionList>
           </CollectionSection>
         ) : null}
+        {runs.length > 0 && visibleRuns.length === 0 ? (
+          <p>{translate('emptySearch')}</p>
+        ) : null}
         <CollectionSection
           isLoading={isLoading}
-          itemCount={runs.length}
+          itemCount={visibleRuns.length}
           title={translate('all')}
         >
           <CollectionView
             getItemKey={(run) => run.id}
             isLoading={isLoading && runs.length === 0}
-            items={runs}
+            items={visibleRuns}
             renderGridItem={(run) => (
               <Card label={run.title}>
                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">

@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { ViewType } from '@genfeedai/contracts';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import TurboProjectsPage from './TurboProjectsPage';
@@ -44,12 +45,15 @@ vi.mock(
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
+    leading,
     right,
   }: {
     children: ReactNode;
+    leading?: ReactNode;
     right?: ReactNode;
   }) => (
     <main>
+      {leading}
       {right}
       {children}
     </main>
@@ -141,5 +145,37 @@ describe('TurboProjectsPage load recovery', () => {
       ).toBeEnabled(),
     );
     expect(mocks.list).toHaveBeenCalledTimes(1);
+  });
+
+  it('narrows the projects to the searched name and explains a search with no match', async () => {
+    const user = userEvent.setup();
+    const project = (id: string, name: string) => ({
+      id,
+      itemCounts: { total: 3 },
+      kind: 'image',
+      name,
+      status: 'draft',
+      updatedAt: '2026-10-01T10:00:00.000Z',
+    });
+    mocks.list.mockResolvedValue([
+      project('project-1', 'Spring launch'),
+      project('project-2', 'Weekly recap'),
+    ]);
+
+    render(<TurboProjectsPage />);
+    expect(await screen.findAllByText('Weekly recap')).not.toHaveLength(0);
+
+    const field = screen.getByRole('textbox', {
+      name: 'Search Turbo projects',
+    });
+    await user.type(field, 'spring{Enter}');
+    await waitFor(() => expect(screen.queryByText('Weekly recap')).toBeNull());
+    expect(screen.getAllByText('Spring launch')).not.toHaveLength(0);
+
+    await user.clear(field);
+    await user.type(field, 'nothing like this{Enter}');
+    expect(
+      await screen.findByText('No Turbo projects match your search.'),
+    ).toBeVisible();
   });
 });

@@ -6,6 +6,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -120,6 +121,27 @@ describe('StoryboardRunsPage', () => {
     expect(needsYou).toBeVisible();
     expect(screen.getAllByText('Stalled run')).toHaveLength(2);
     expect(screen.getAllByText('Draft run')).toHaveLength(1);
+  });
+
+  it('narrows the runs to the searched title and explains a search with no match', async () => {
+    const user = userEvent.setup();
+    mocks.state.runs = [
+      summary({ id: 'run-1', title: 'Proof-led hook' }),
+      summary({ id: 'run-2', title: 'Weekly recap' }),
+    ];
+
+    render(<StoryboardRunsPage />);
+    const field = screen.getByRole('textbox', { name: 'Search storyboards' });
+
+    await user.type(field, 'recap{Enter}');
+    expect(await screen.findByText('Weekly recap')).toBeVisible();
+    expect(screen.queryByText('Proof-led hook')).toBeNull();
+
+    await user.clear(field);
+    await user.type(field, 'nothing like this{Enter}');
+    expect(
+      await screen.findByText('No storyboards match your search.'),
+    ).toBeVisible();
   });
 
   it('omits the runtime when the run has none and hides Needs you when nothing is waiting', () => {

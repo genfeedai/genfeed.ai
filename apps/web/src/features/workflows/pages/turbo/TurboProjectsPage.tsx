@@ -21,8 +21,10 @@ import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { Fragment, useEffect, useState } from 'react';
+import SearchField from '@/components/content/search-field/SearchField';
 import SubscriptionRequiredState from '@/features/workflows/components/guards/subscription/SubscriptionRequiredState';
 import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
+import { filterBySearch } from '@/lib/search/filter-by-search';
 import TurboPresetShelf from './TurboPresetShelf';
 import TurboProjectsOnboarding from './TurboProjectsOnboarding';
 import { createTurboProjectsApi } from './turbo-projects-api';
@@ -40,6 +42,7 @@ export default function TurboProjectsPage() {
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
   const [isSubscriptionRequired, setIsSubscriptionRequired] = useState(false);
   const { view, setView } = useCollectionViewPreference({
     surface: 'studio.turbo',
@@ -145,7 +148,12 @@ export default function TurboProjectsPage() {
       />
     );
   }
-  const recent = [...projects]
+  const visibleProjects = filterBySearch(projects, search, (project) => [
+    project.name,
+    project.kind,
+    project.status,
+  ]);
+  const recent = [...visibleProjects]
     .sort(
       (a, b) => Date.parse(b.updatedAt ?? '') - Date.parse(a.updatedAt ?? ''),
     )
@@ -164,6 +172,14 @@ export default function TurboProjectsPage() {
   return (
     <Container
       label={t('title')}
+      leading={
+        <SearchField
+          ariaLabel={t('search')}
+          onSearch={setSearch}
+          placeholder={t('search')}
+          value={search}
+        />
+      }
       right={
         <div className="flex items-center gap-2">
           <CollectionViewToggle onViewChange={setView} view={view} />
@@ -177,6 +193,9 @@ export default function TurboProjectsPage() {
         {error && <p role="alert">{error}</p>}
         {!loading && !projects.length && !error && <TurboProjectsOnboarding />}
         {projects.length > 0 && <TurboPresetShelf />}
+        {projects.length > 0 && visibleProjects.length === 0 && (
+          <p>{t('emptySearch')}</p>
+        )}
         <CollectionSection title={t('recent')} itemCount={recent.length}>
           <CollectionList>
             {recent.map((project) => (
@@ -186,11 +205,11 @@ export default function TurboProjectsPage() {
         </CollectionSection>
         <CollectionSection
           title={t('all')}
-          itemCount={projects.length}
+          itemCount={visibleProjects.length}
           isLoading={loading}
         >
           <CollectionView
-            items={projects}
+            items={visibleProjects}
             view={view}
             isLoading={loading && !projects.length}
             getItemKey={(project) => project.id}
