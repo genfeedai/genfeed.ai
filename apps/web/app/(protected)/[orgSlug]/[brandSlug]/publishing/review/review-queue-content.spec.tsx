@@ -784,6 +784,55 @@ describe('ReviewQueueContent', () => {
     ).toBeInTheDocument();
   });
 
+  it('leaves drafts hidden by the search out of a bulk action', async () => {
+    const user = userEvent.setup();
+    const itemAction = vi.fn().mockResolvedValue({});
+    mocks.getTurboRunsService.mockResolvedValue({ itemAction });
+    mockReviewQueries({
+      activeTurboRun: {
+        id: 'batch-1',
+        items: [
+          {
+            caption: 'Spring launch teaser',
+            format: 'video',
+            id: 'item-1',
+            status: 'COMPLETED',
+          },
+          {
+            caption: 'Weekly recap',
+            format: 'image',
+            id: 'item-2',
+            status: 'COMPLETED',
+          },
+        ],
+        status: 'COMPLETED',
+        totalCount: 2,
+      },
+    });
+
+    render(<ReviewQueueContent />);
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Toggle item-2' }),
+    );
+    expect(screen.getByText('Selected count: 1')).toBeInTheDocument();
+
+    const { container: subbar } = render(latestLeadingNode());
+    await user.type(
+      within(subbar).getByRole('textbox', { name: 'Search the review queue' }),
+      'Spring{Enter}',
+    );
+    expect(await screen.findByText('Selected count: 0')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle item-1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Bulk Approve' }));
+    await waitFor(() => {
+      expect(itemAction).toHaveBeenCalledWith('batch-1', {
+        action: 'approve',
+        itemIds: ['item-1'],
+      });
+    });
+  });
+
   it('explains automatic ready-filter broadening once across rerenders and refetches', async () => {
     const { refetch } = mockReviewQueries({
       activeTurboRun: {

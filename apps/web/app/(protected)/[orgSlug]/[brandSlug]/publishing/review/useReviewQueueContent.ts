@@ -224,6 +224,13 @@ export function useReviewQueueContent(search = '') {
     [activeItemId, visibleItems],
   );
 
+  // Bulk actions only ever touch drafts the reviewer can see: a draft picked
+  // before a search or filter hid it stays selected but is left out.
+  const visibleSelectedIds = useMemo(() => {
+    const visibleIds = new Set(visibleItems.map((item) => item.id));
+    return new Set([...selectedIds].filter((id) => visibleIds.has(id)));
+  }, [selectedIds, visibleItems]);
+
   useEffect(() => {
     if (selectedTurboRunId || !requestedTurboRunId) {
       return;
@@ -379,13 +386,13 @@ export function useReviewQueueContent(search = '') {
 
   const handleBulkAction = useCallback(
     async (action: 'approve' | 'reject') => {
-      if (selectedIds.size === 0 || !activeTurboRunId) {
+      if (visibleSelectedIds.size === 0 || !activeTurboRunId) {
         return;
       }
 
-      const selectedItemIds = Array.from(selectedIds);
+      const selectedItemIds = Array.from(visibleSelectedIds);
       const remainingItems = visibleItems.filter(
-        (item) => !selectedIds.has(item.id),
+        (item) => !visibleSelectedIds.has(item.id),
       );
 
       setIsActioning(true);
@@ -396,7 +403,11 @@ export function useReviewQueueContent(search = '') {
           itemIds: selectedItemIds,
         });
 
-        setSelectedIds(new Set());
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          for (const id of selectedItemIds) next.delete(id);
+          return next;
+        });
         await refreshTurboRun();
         const nextItemId = getNextActiveItemId(remainingItems, activeItemId);
         setActiveItemId(nextItemId);
@@ -421,18 +432,23 @@ export function useReviewQueueContent(search = '') {
       activeItemId,
       getTurboRunsService,
       refreshTurboRun,
-      selectedIds,
       visibleItems,
+      visibleSelectedIds,
     ],
   );
 
   // The rewrite runs in the background: the page stays usable while it does.
   const handleBulkRewrite = useCallback(async () => {
-    if (selectedIds.size === 0 || isActioning) return;
-    if (await startRewrite([...selectedIds])) {
-      setSelectedIds(new Set());
+    if (visibleSelectedIds.size === 0 || isActioning) return;
+    const rewriteIds = [...visibleSelectedIds];
+    if (await startRewrite(rewriteIds)) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        for (const id of rewriteIds) next.delete(id);
+        return next;
+      });
     }
-  }, [isActioning, selectedIds, startRewrite]);
+  }, [isActioning, startRewrite, visibleSelectedIds]);
 
   const updateTurboRunCaches = useCallback(
     (turboRun: ITurboRunSummary) => {
@@ -742,7 +758,7 @@ export function useReviewQueueContent(search = '') {
     isTurboRunLoading,
     isRefreshing: isTurboRunsFetching || isTurboRunFetching,
     refreshQueue,
-    selectedIds,
+    selectedIds: visibleSelectedIds,
     selectedPostId,
     visibleItems,
     handleApproveItem,

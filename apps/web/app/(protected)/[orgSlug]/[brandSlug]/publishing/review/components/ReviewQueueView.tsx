@@ -314,7 +314,9 @@ export default function ReviewQueueView({
     isSearching &&
     visibleItems.length === 0 &&
     !hasApprovalsContent &&
-    !isTurboRunLoading
+    !isTurboRunLoading &&
+    !activeTurboRunError &&
+    activeTurboRun
   ) {
     return emptySearchCard;
   }
