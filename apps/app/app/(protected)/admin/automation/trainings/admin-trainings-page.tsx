@@ -2,6 +2,8 @@
 
 import { PageScope } from '@genfeedai/contracts';
 import AdminOrgBrandUrlFilter from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
+import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
+import SearchField from '@ui/content/search-field/SearchField';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { GraduationCap } from 'lucide-react';
 import { useCallback, useRef, useState } from 'react';
@@ -14,6 +16,7 @@ import TrainingsList from '@/features/trainings/list/trainings-list';
 export default function AdminTrainingsPage() {
   const refreshTrainingsRef = useRef<(() => Promise<void>) | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { search, setSearch } = useAdminSearchParam();
 
   const handleRefreshRegister = useCallback(
     (fn: (() => Promise<void>) | null) => {
@@ -39,6 +42,14 @@ export default function AdminTrainingsPage() {
     <AdminPageShell
       title="Trainings"
       icon={GraduationCap}
+      search={
+        <SearchField
+          ariaLabel="Search trainings"
+          onSearch={setSearch}
+          placeholder="Search trainings"
+          value={search}
+        />
+      }
       onRefresh={() => {
         void handleRefresh();
       }}

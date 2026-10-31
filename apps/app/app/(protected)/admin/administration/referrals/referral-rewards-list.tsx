@@ -9,6 +9,8 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import { ReferralsService } from '@services/billing/referrals.service';
 import { logger } from '@services/core/logger.service';
 import { useQuery } from '@tanstack/react-query';
+import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
+import SearchField from '@ui/content/search-field/SearchField';
 import Badge from '@ui/display/badge/Badge';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
@@ -42,16 +44,25 @@ export default function ReferralRewardsList() {
   const referralT = useTranslations('ui.rowSidebar.referral');
   const { orgId, sessionId, userId } = useAuthIdentity();
   const currentPage = Number(useSearchParams().get('page')) || 1;
+  const { search, setSearch } = useAdminSearchParam();
   const getReferralsService = useAuthedService((token: string) =>
     ReferralsService.getInstance(token),
   );
   const { data, isLoading, isFetching, error, refetch } = useQuery({
     enabled: Boolean(userId),
-    queryKey: ['admin-referral-rewards', userId, sessionId, orgId, currentPage],
+    queryKey: [
+      'admin-referral-rewards',
+      userId,
+      sessionId,
+      orgId,
+      currentPage,
+      search,
+    ],
     queryFn: async () =>
       (await getReferralsService()).getAdminRewards({
         limit: ITEMS_PER_PAGE,
         page: currentPage,
+        ...(search ? { search } : {}),
       }),
   });
 
@@ -174,6 +185,14 @@ export default function ReferralRewardsList() {
     <AdminPageShell
       title="Affiliate Rewards"
       icon={Gift}
+      search={
+        <SearchField
+          ariaLabel="Search rewards"
+          onSearch={setSearch}
+          placeholder="Search by account, checkout or reward ID"
+          value={search}
+        />
+      }
       onRefresh={() => refetch()}
       isRefreshing={isFetching && !isLoading}
     >

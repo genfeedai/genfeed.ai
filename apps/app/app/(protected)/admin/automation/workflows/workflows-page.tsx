@@ -16,6 +16,8 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
 import CollectionSection from '@ui/collection/CollectionSection';
+import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
+import SearchField from '@ui/content/search-field/SearchField';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
@@ -106,6 +108,7 @@ export default function WorkflowsPage() {
   const notificationsService = NotificationsService.getInstance();
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
+  const { search, setSearch } = useAdminSearchParam();
   const { openConfirmDelete } = useConfirmDeleteModal();
 
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
@@ -174,6 +177,7 @@ export default function WorkflowsPage() {
               includeSystem: true,
               limit: ITEMS_PER_PAGE,
               page: currentPage,
+              ...(search ? { search } : {}),
               sort: 'createdAt: -1',
             },
             signal,
@@ -205,6 +209,7 @@ export default function WorkflowsPage() {
       loadCatalog,
       loadPins,
       notificationsService,
+      search,
       translate,
     ],
   );
@@ -435,6 +440,14 @@ export default function WorkflowsPage() {
     <AdminPageShell
       title={translate('title')}
       icon={ClipboardList}
+      search={
+        <SearchField
+          ariaLabel={translate('search')}
+          onSearch={setSearch}
+          placeholder={translate('search')}
+          value={search}
+        />
+      }
       onRefresh={() => void loadWorkflows(true)}
       isRefreshing={isRefreshing}
     >

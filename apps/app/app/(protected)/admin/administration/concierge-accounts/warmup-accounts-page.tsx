@@ -12,6 +12,8 @@ import { AdminWarmupAccountsService } from '@services/admin/warmup-accounts.serv
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import CardEmpty from '@ui/card/empty/CardEmpty';
+import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
+import SearchField from '@ui/content/search-field/SearchField';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
@@ -252,6 +254,7 @@ export default function WarmupAccountsPage({
   } = state;
   const notificationsService = NotificationsService.getInstance();
   const currentPage = Number(useSearchParams().get('page')) || 1;
+  const { search, setSearch } = useAdminSearchParam();
 
   const getWarmupAccountsService = useAuthedService((token: string) =>
     AdminWarmupAccountsService.getInstance(token),
@@ -269,7 +272,11 @@ export default function WarmupAccountsPage({
       try {
         const service = await getWarmupAccountsService();
         const data = await service.getWarmupAccounts(
-          { limit: ITEMS_PER_PAGE, page: currentPage },
+          {
+            limit: ITEMS_PER_PAGE,
+            page: currentPage,
+            ...(search ? { search } : {}),
+          },
           signal,
         );
 
@@ -292,7 +299,7 @@ export default function WarmupAccountsPage({
         }
       }
     },
-    [currentPage, getWarmupAccountsService, translate],
+    [currentPage, getWarmupAccountsService, search, translate],
   );
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: loadTrigger is an intentional re-fire signal incremented on every accounts-tab selection, including re-selections of the already-active tab
@@ -481,6 +488,16 @@ export default function WarmupAccountsPage({
     <AdminPageShell
       title={translate('title')}
       icon={Rocket}
+      search={
+        activeTab === 'accounts' ? (
+          <SearchField
+            ariaLabel={translate('searchAccounts')}
+            onSearch={setSearch}
+            placeholder={translate('searchAccounts')}
+            value={search}
+          />
+        ) : undefined
+      }
       tabs={{
         activeTab,
         fullWidth: false,

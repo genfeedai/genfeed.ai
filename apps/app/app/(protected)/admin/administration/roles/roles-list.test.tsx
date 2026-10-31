@@ -52,6 +52,8 @@ vi.mock('@components/lazy/lazy-modal.admin', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/admin',
+  useRouter: () => ({ replace: vi.fn() }),
   useSearchParams: () => new URLSearchParams(),
 }));
 

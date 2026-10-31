@@ -1,16 +1,17 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { canModifyOrganizationElement } from '@api/collections/elements/shared/can-modify-organization-element.util';
 import { CreateFontFamilyDto } from '@api/collections/font-families/dto/create-font-family.dto';
+import { FontFamiliesQueryDto } from '@api/collections/font-families/dto/font-families-query.dto';
 import { UpdateFontFamilyDto } from '@api/collections/font-families/dto/update-font-family.dto';
 import { type FontFamilyDocument } from '@api/collections/font-families/schemas/font-family.schema';
 import { FontFamiliesService } from '@api/collections/font-families/services/font-families.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { FontFamilySerializer } from '@genfeedai/serializers';
@@ -41,7 +42,7 @@ export class FontFamiliesController extends BaseCRUDController<
   FontFamilyDocument,
   CreateFontFamilyDto,
   UpdateFontFamilyDto,
-  BaseQueryDto
+  FontFamiliesQueryDto
 > {
   constructor(
     public readonly fontFamiliesService: FontFamiliesService,
@@ -61,7 +62,7 @@ export class FontFamiliesController extends BaseCRUDController<
   override findAll(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Query() query: BaseQueryDto,
+    @Query() query: FontFamiliesQueryDto,
   ) {
     return super.findAll(request, user, query);
   }
@@ -135,7 +136,7 @@ export class FontFamiliesController extends BaseCRUDController<
    * Override the base pipeline to load font families
    * Load items with: (no org) OR (user's org)
    */
-  public buildFindAllQuery(user: User, query: BaseQueryDto) {
+  public buildFindAllQuery(user: User, query: FontFamiliesQueryDto) {
     const readScope = resolveTenantReadScope(user);
     // Build OR conditions: global items OR user's org items
     const orConditions: Record<string, unknown>[] = [{ organizationId: null }];
@@ -153,6 +154,9 @@ export class FontFamiliesController extends BaseCRUDController<
       where: {
         OR: orConditions,
         isDeleted: query.isDeleted ?? false,
+        ...buildSearchWhere(query.search, {
+          columns: ['label', 'key', 'description'],
+        }),
       },
     };
   }

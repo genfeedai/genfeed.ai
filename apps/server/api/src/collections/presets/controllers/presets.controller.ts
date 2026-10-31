@@ -11,6 +11,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { PresetFilterUtil } from '@api/helpers/utils/preset-filter/preset-filter.util';
+import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ScopedCRUDController } from '@api/shared/controllers/base-crud/scoped-crud.controller';
 import type { SortObject } from '@genfeedai/contracts/interfaces';
@@ -86,7 +87,12 @@ export class PresetsController extends ScopedCRUDController<
     );
 
     return {
-      where: matchStage,
+      where: {
+        ...matchStage,
+        ...buildSearchWhere(query.search, {
+          json: { config: ['label', 'key', 'description'] },
+        }),
+      },
       orderBy: query.sort
         ? handleQuerySort(query.sort)
         : ({ createdAt: -1 } as SortObject),

@@ -16,6 +16,8 @@ import { useQuery } from '@tanstack/react-query';
 import AdminOrgBrandUrlFilter, {
   useAdminOrgBrandParams,
 } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
+import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
+import SearchField from '@ui/content/search-field/SearchField';
 import Badge from '@ui/display/badge/Badge';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
@@ -53,6 +55,7 @@ function PresetsListContent({
   );
 
   const searchParams = useSearchParams();
+  const { search, setSearch } = useAdminSearchParam();
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
 
@@ -69,7 +72,7 @@ function PresetsListContent({
     error: presetsError,
     refetch: refreshPresets,
   } = useQuery({
-    queryKey: ['presets', currentPage, scope, adminOrg, adminBrand],
+    queryKey: ['presets', currentPage, scope, adminOrg, adminBrand, search],
     queryFn: async () => {
       const url = `GET /presets`;
       const service = await getPresetsService();
@@ -77,6 +80,7 @@ function PresetsListContent({
       const queryParams: Record<string, unknown> = {
         limit: ITEMS_PER_PAGE,
         page: currentPage,
+        ...(search ? { search } : {}),
       };
 
       if (scope === PageScope.SUPERADMIN) {
@@ -280,6 +284,14 @@ function PresetsListContent({
   return (
     <AdminPageShell
       title="Presets"
+      search={
+        <SearchField
+          ariaLabel="Search presets"
+          onSearch={setSearch}
+          placeholder="Search presets"
+          value={search}
+        />
+      }
       onRefresh={() => refreshPresets()}
       isRefreshing={isRefreshing}
       dropdowns={

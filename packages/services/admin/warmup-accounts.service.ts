@@ -51,7 +51,7 @@ export class AdminWarmupAccountsService extends HTTPBaseService {
   }
 
   async getWarmupAccounts(
-    query?: { limit?: number; page?: number },
+    query?: { limit?: number; page?: number; search?: string },
     signal?: AbortSignal,
   ): Promise<IWarmupAccount[]> {
     const response = await this.instance.get<JsonApiResponseDocument>('', {

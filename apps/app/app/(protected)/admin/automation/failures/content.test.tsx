@@ -23,6 +23,16 @@ vi.mock('next-intl', async () => {
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));
+vi.mock('@ui/content/admin-filters/useAdminSearchParam', async () => {
+  const { useState } = await import('react');
+  return {
+    // The real hook keeps the term in the URL; state is enough for the page.
+    useAdminSearchParam: () => {
+      const [search, setSearch] = useState('');
+      return { search, setSearch };
+    },
+  };
+});
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
@@ -81,6 +91,7 @@ describe('AgentFailuresPage', () => {
       0,
       expect.any(AbortSignal),
       'open',
+      '',
     );
     const signal = mocks.list.mock.calls[0][2];
     unmount();
@@ -128,6 +139,7 @@ describe('AgentFailuresPage', () => {
         20,
         expect.any(AbortSignal),
         'open',
+        '',
       ),
     );
     expect(
@@ -155,6 +167,40 @@ describe('AgentFailuresPage', () => {
         0,
         expect.any(AbortSignal),
         'open',
+        '',
+      ),
+    );
+  });
+
+  it('searches failures from the first page', async () => {
+    mocks.list.mockResolvedValueOnce(
+      Array.from({ length: 20 }, (_, index) => ({
+        id: `run-${index}`,
+        organizationId: 'org-1',
+        workflowId: 'workflow-1',
+        createdAt: '2026-09-01T12:00:00Z',
+      })),
+    );
+    const user = userEvent.setup();
+    render(<AgentFailuresPage />);
+    await screen.findByText('run-19');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByText('No agent failures found');
+
+    await user.type(
+      screen.getByRole('textbox', {
+        name: 'Search by error, organization or run ID',
+      }),
+      'timed out{Enter}',
+    );
+
+    await waitFor(() =>
+      expect(mocks.list).toHaveBeenLastCalledWith(
+        undefined,
+        0,
+        expect.any(AbortSignal),
+        'open',
+        'timed out',
       ),
     );
   });
@@ -271,6 +317,7 @@ describe('AgentFailuresPage', () => {
         0,
         expect.any(AbortSignal),
         'resolved',
+        '',
       ),
     );
   });

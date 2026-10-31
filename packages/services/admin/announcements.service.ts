@@ -32,7 +32,7 @@ export class AdminAnnouncementsService extends HTTPBaseService {
   }
 
   async getAnnouncements(
-    query?: { limit?: number; page?: number },
+    query?: { limit?: number; page?: number; search?: string },
     signal?: AbortSignal,
   ): Promise<IAnnouncement[]> {
     const response = await this.instance.get<JsonApiResponseDocument>('', {

@@ -27,6 +27,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
 import {
@@ -35,6 +36,7 @@ import {
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
 import { HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE } from '@genfeedai/contracts/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { WorkflowExecutionSerializer } from '@genfeedai/serializers';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
@@ -226,6 +228,13 @@ export class WorkflowExecutionsController {
                     }
                   : { failureReason: query.failureReason }
                 : {}),
+              ...buildSearchWhere<Prisma.WorkflowExecutionWhereInput>(
+                query.search,
+                {
+                  columns: ['id', 'error'],
+                  relations: { organization: ['label'] },
+                },
+              ),
               workflow: {
                 is: {
                   isDeleted: false,

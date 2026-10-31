@@ -18,6 +18,8 @@ import { FontFamiliesService } from '@services/elements/font-families.service';
 import AdminOrgBrandUrlFilter, {
   useAdminOrgBrandParams,
 } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
+import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
+import SearchField from '@ui/content/search-field/SearchField';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
@@ -62,6 +64,7 @@ function FontFamiliesListContent({
   const { openConfirm } = useConfirmModal();
 
   const searchParams = useSearchParams();
+  const { search, setSearch } = useAdminSearchParam();
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
 
@@ -145,6 +148,7 @@ function FontFamiliesListContent({
         const query: IQueryParams = {
           limit: ITEMS_PER_PAGE,
           page: currentPage,
+          ...(search ? { search } : {}),
         };
 
         if (scope === PageScope.SUPERADMIN) {
@@ -176,6 +180,7 @@ function FontFamiliesListContent({
       scope,
       adminOrg,
       adminBrand,
+      search,
     ],
   );
 
@@ -235,6 +240,14 @@ function FontFamiliesListContent({
   return (
     <AdminPageShell
       title="Font Families"
+      search={
+        <SearchField
+          ariaLabel="Search font families"
+          onSearch={setSearch}
+          placeholder="Search font families"
+          value={search}
+        />
+      }
       onRefresh={() => findAllFontFamilies(true)}
       isRefreshing={isRefreshing}
       dropdowns={

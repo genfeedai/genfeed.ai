@@ -14,6 +14,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAdminOrgBrandParams } from '@ui/content/admin-filters/AdminOrgBrandUrlFilter';
+import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
 import { getErrorMessage } from '@utils/error/error-handler.util';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -53,6 +54,8 @@ export function useTrainingsList({
 
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
+  // The search field sits in the page subbar and stores its term in the URL.
+  const { search } = useAdminSearchParam();
 
   // Track if component is mounted to avoid calling callbacks during initial render
   const isMountedRef = useRef(false);
@@ -68,8 +71,9 @@ export function useTrainingsList({
         adminOrg,
         adminBrand,
         currentPage,
+        search,
       ] as const,
-    [adminBrand, adminOrg, brandId, currentPage, scope],
+    [adminBrand, adminOrg, brandId, currentPage, scope, search],
   );
 
   const {
@@ -86,6 +90,7 @@ export function useTrainingsList({
       const query: Record<string, unknown> = {
         limit: ITEMS_PER_PAGE,
         page: currentPage,
+        ...(search ? { search } : {}),
       };
 
       if (scope === PageScope.BRAND && brandId) {

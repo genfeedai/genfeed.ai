@@ -73,6 +73,26 @@ describe('BotsPage shell-first loading', () => {
     ).toBeVisible();
   });
 
+  it('searches bots server-side with the term in the URL', async () => {
+    mocks.searchParams = new URLSearchParams('q=livestream');
+    mocks.findAll.mockResolvedValueOnce([]);
+
+    render(<BotsPage />);
+
+    await waitFor(() => {
+      expect(mocks.findAll).toHaveBeenCalledWith(
+        {
+          limit: ITEMS_PER_PAGE,
+          page: 1,
+          search: 'livestream',
+          sort: 'createdAt: -1',
+        },
+        expect.any(AbortSignal),
+      );
+    });
+    expect(await screen.findByText('No bots match your search')).toBeVisible();
+  });
+
   it('renders the container chrome and refresh action while bots are loading', async () => {
     let resolveBots: (value: unknown[]) => void = () => undefined;
     mocks.findAll.mockReturnValueOnce(

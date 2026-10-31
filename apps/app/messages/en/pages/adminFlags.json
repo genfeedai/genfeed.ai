@@ -162,5 +162,7 @@
   "needsParent": "Needs {parent}.",
   "loadErrorTitle": "Flags could not be loaded",
   "loadErrorFallback": "The platform settings API did not answer. Check your administrator access and allowed IP address, then reload.",
-  "saveError": "Failed to save the flag"
+  "saveError": "Failed to save the flag",
+  "search": "Search flags",
+  "searchEmpty": "No flags match your search"
 }

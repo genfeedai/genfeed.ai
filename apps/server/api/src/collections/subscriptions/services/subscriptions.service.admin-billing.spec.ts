@@ -115,6 +115,29 @@ describe('SubscriptionsService.findAdminBilling', () => {
     ]);
   });
 
+  it('narrows the page and the total to organizations matching the search', async () => {
+    await service.findAdminBilling({ limit: 15, page: 1, search: ' acme ' });
+
+    const expectedWhere = {
+      AND: [
+        {
+          OR: [
+            { label: { contains: 'acme', mode: 'insensitive' } },
+            { slug: { contains: 'acme', mode: 'insensitive' } },
+            { user: { email: { contains: 'acme', mode: 'insensitive' } } },
+          ],
+        },
+      ],
+      isDeleted: false,
+    };
+    expect(prisma.organization.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expectedWhere }),
+    );
+    expect(prisma.organization.count).toHaveBeenCalledWith({
+      where: expectedWhere,
+    });
+  });
+
   it('flags an organization that bought a PAYG pack even though it has no subscription', async () => {
     prisma.organization.findMany.mockResolvedValue([
       organization('org_payg'),

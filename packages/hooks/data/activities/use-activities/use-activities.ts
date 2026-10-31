@@ -72,6 +72,7 @@ export function useActivities({
   initialFilter = '',
   activeOnly = false,
   sort,
+  search,
   autoLoad = true,
   scope = PageScope.BRAND,
   page = 1,
@@ -126,6 +127,7 @@ export function useActivities({
       userId ?? null,
       activeOnly,
       sort,
+      search ?? null,
       target.kind,
       targetId,
       keyOrganizationId,
@@ -142,6 +144,7 @@ export function useActivities({
         page,
         ...(activeOnly ? { activeOnly } : {}),
         ...(sort ? { sort } : {}),
+        ...(search ? { search } : {}),
       };
 
       switch (target.kind) {

@@ -17,6 +17,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { ActivityKey } from '@genfeedai/contracts';
@@ -122,6 +123,13 @@ export class ActivitiesController {
         ),
       };
     }
+
+    Object.assign(
+      where,
+      buildSearchWhere(query.search, {
+        columns: ['action', 'entityModel', 'entityId'],
+      }),
+    );
 
     const aggregate = {
       where,

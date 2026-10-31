@@ -38,7 +38,10 @@ export class ReferralsService extends BaseService<ReferralProgram> {
   }
 
   public async getAdminRewards(
-    query: { limit: number; page: number } = { limit: 15, page: 1 },
+    query: { limit: number; page: number; search?: string } = {
+      limit: 15,
+      page: 1,
+    },
   ): Promise<IReferralAdminReward[]> {
     const response = await this.instance.get<JsonApiResponseDocument>(
       'admin/rewards',

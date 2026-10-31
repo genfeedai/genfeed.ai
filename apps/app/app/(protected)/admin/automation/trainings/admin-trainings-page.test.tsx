@@ -34,6 +34,10 @@ vi.mock('@/features/trainings/list/trainings-list', async () => {
   };
 });
 
+vi.mock('@ui/content/admin-filters/useAdminSearchParam', () => ({
+  useAdminSearchParam: () => ({ search: '', setSearch: vi.fn() }),
+}));
+
 vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
   default: ({ onClick }: { onClick: () => void }) => (
     <button type="button" onClick={onClick}>
