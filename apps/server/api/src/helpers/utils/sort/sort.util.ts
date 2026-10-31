@@ -72,3 +72,26 @@ export const handleAllowedQuerySort = (
 
   return Object.keys(allowed).length > 0 ? allowed : fallback;
 };
+
+/**
+ * {@link handleAllowedQuerySort} for a paginated list: a requested order is
+ * followed by `createdAt` and `id`, so rows that tie on the sorted column keep
+ * one stable order and pages never repeat or skip a row. When no allowed field
+ * is requested, `fallback` is returned unchanged.
+ */
+export const handleStableAllowedQuerySort = (
+  query: string | undefined | null,
+  allowedFields: readonly string[],
+  fallback: SortObject,
+): SortObject => {
+  const requested = handleAllowedQuerySort(query, allowedFields, {});
+  if (Object.keys(requested).length === 0) {
+    return fallback;
+  }
+
+  return {
+    ...requested,
+    ...(requested.createdAt === undefined ? { createdAt: -1 } : {}),
+    id: -1,
+  };
+};

@@ -12,7 +12,7 @@ import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenan
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { PresetFilterUtil } from '@api/helpers/utils/preset-filter/preset-filter.util';
 import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
-import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { handleStableAllowedQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ScopedCRUDController } from '@api/shared/controllers/base-crud/scoped-crud.controller';
 import type { SortObject } from '@genfeedai/contracts/interfaces';
 import { PresetSerializer } from '@genfeedai/serializers';
@@ -32,6 +32,16 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
+
+/**
+ * Columns the presets list can be ordered by. A preset's label and key live in
+ * its JSON `config`, which Prisma cannot order by.
+ */
+export const PRESET_SORT_FIELDS: readonly string[] = [
+  'category',
+  'createdAt',
+  'isActive',
+];
 
 @AutoSwagger()
 @ApiTags('presets')
@@ -96,7 +106,9 @@ export class PresetsController extends ScopedCRUDController<
     return {
       where,
       orderBy: query.sort
-        ? handleQuerySort(query.sort)
+        ? handleStableAllowedQuerySort(query.sort, PRESET_SORT_FIELDS, {
+            createdAt: -1,
+          })
         : ({ createdAt: -1 } as SortObject),
     };
   }

@@ -39,6 +39,7 @@ import SearchField from '@/components/content/search-field/SearchField';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
 import type { SystemWorkflowCatalogEntry } from '@/features/workflows/services/workflow-api.types';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 function getWorkflowStatusVariant(
   status: string,
@@ -96,6 +97,8 @@ function movePin(
   return ids;
 }
 
+const WORKFLOW_SORT_KEYS = ['label', 'status', 'trigger', 'createdAt'];
+
 export default function WorkflowsPage() {
   const translate = useTranslations('pages.adminWorkflows');
   const getWorkflowsService = useAuthedService((token: string) =>
@@ -109,6 +112,9 @@ export default function WorkflowsPage() {
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
   const { search, setSearch } = useAdminSearchParam();
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: WORKFLOW_SORT_KEYS,
+  });
   const { openConfirmDelete } = useConfirmDeleteModal();
 
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
@@ -178,7 +184,7 @@ export default function WorkflowsPage() {
               limit: ITEMS_PER_PAGE,
               page: currentPage,
               ...(search ? { search } : {}),
-              sort: 'createdAt: -1',
+              sort: sort ?? 'createdAt: -1',
             },
             signal,
           ),
@@ -210,6 +216,7 @@ export default function WorkflowsPage() {
       loadPins,
       notificationsService,
       search,
+      sort,
       translate,
     ],
   );
@@ -309,6 +316,7 @@ export default function WorkflowsPage() {
     {
       header: translate('columns.workflow'),
       key: 'label',
+      sortable: true,
       render: (workflow) => (
         <span className="font-medium">
           {workflow.label || translate('untitled')}
@@ -319,6 +327,7 @@ export default function WorkflowsPage() {
     {
       header: translate('columns.status'),
       key: 'status',
+      sortable: true,
       render: (workflow) => (
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={getWorkflowStatusVariant(workflow.status)}>
@@ -333,6 +342,7 @@ export default function WorkflowsPage() {
     {
       header: translate('columns.trigger'),
       key: 'trigger',
+      sortable: true,
       render: (workflow) =>
         workflow.trigger ? (
           <Badge variant="outline">{workflow.trigger}</Badge>
@@ -341,6 +351,7 @@ export default function WorkflowsPage() {
     {
       header: translate('columns.created'),
       key: 'createdAt',
+      sortable: true,
       render: (workflow) =>
         workflow.createdAt ? (
           <ClientFormattedDate format="date" value={workflow.createdAt} />
@@ -517,6 +528,9 @@ export default function WorkflowsPage() {
           columns={workflowColumns}
           actions={workflowActions}
           isLoading={isLoading}
+          onSortChange={onSortChange}
+          sortDirection={sortDirection}
+          sortKey={sortKey}
           getRowKey={(workflow) => workflow.id}
           emptyLabel={translate('empty')}
         />

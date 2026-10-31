@@ -12,6 +12,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import FontFamiliesList from './font-families-list';
 
 const mocks = vi.hoisted(() => ({
+  urlSort: null as string | null,
   deleteFontFamily: vi.fn(),
   findAll: vi.fn(),
   getFontFamiliesService: vi.fn(),
@@ -232,9 +233,13 @@ vi.mock('next/navigation', () => ({
       if (key === 'page') return '2';
       if (key === 'organization') return 'org-1';
       if (key === 'brand') return 'brand-1';
+      if (key === 'sort') return mocks.urlSort;
       return null;
     },
-    toString: () => 'organization=org-1&brand=brand-1&page=2',
+    toString: () =>
+      `organization=org-1&brand=brand-1&page=2${
+        mocks.urlSort ? `&sort=${mocks.urlSort}` : ''
+      }`,
   }),
 }));
 
@@ -257,6 +262,7 @@ function mockFontFamilies(
 describe('FontFamiliesList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.urlSort = null;
     mocks.deleteFontFamily.mockResolvedValue({ ok: true });
     mocks.getFontFamiliesService.mockResolvedValue({
       delete: mocks.deleteFontFamily,
@@ -292,6 +298,36 @@ describe('FontFamiliesList', () => {
     expect(mocks.replace).toHaveBeenCalledWith(
       '/admin/configuration/font-families?organization=org-1&brand=brand-2',
       { scroll: false },
+    );
+  });
+
+  it.each([
+    ['label', 'label: 1'],
+    ['-label', 'label: -1'],
+    ['-key', 'key: -1'],
+  ])(
+    'asks the API for the order named in the URL (sort=%s)',
+    async (urlSort, sort) => {
+      mocks.urlSort = urlSort;
+      render(<FontFamiliesList scope={PageScope.SUPERADMIN} />);
+
+      await waitFor(() => {
+        expect(mocks.findAll).toHaveBeenCalledWith(
+          expect.objectContaining({ page: 2, sort }),
+        );
+      });
+    },
+  );
+
+  it('ignores a URL sort on a column it cannot order by', async () => {
+    mocks.urlSort = '-password';
+    render(<FontFamiliesList scope={PageScope.SUPERADMIN} />);
+
+    await waitFor(() => {
+      expect(mocks.findAll).toHaveBeenCalled();
+    });
+    expect(mocks.findAll).not.toHaveBeenCalledWith(
+      expect.objectContaining({ sort: expect.anything() }),
     );
   });
 

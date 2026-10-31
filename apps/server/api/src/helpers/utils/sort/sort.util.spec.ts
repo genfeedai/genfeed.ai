@@ -1,6 +1,7 @@
 import {
   handleAllowedQuerySort,
   handleQuerySort,
+  handleStableAllowedQuerySort,
 } from '@api/helpers/utils/sort/sort.util';
 
 describe('handleQuerySort', () => {
@@ -88,4 +89,29 @@ describe('handleAllowedQuerySort', () => {
       createdAt: -1,
     });
   });
+});
+
+describe('handleStableAllowedQuerySort', () => {
+  const allowed = ['label', 'key', 'createdAt'];
+  const fallback = { createdAt: -1, label: 1 } as const;
+
+  it.each([
+    ['label: 1', { createdAt: -1, id: -1, label: 1 }],
+    ['key: -1', { createdAt: -1, id: -1, key: -1 }],
+    ['createdAt: 1', { createdAt: 1, id: -1 }],
+    ['label: -1, secret: 1', { createdAt: -1, id: -1, label: -1 }],
+  ])('orders by %j then by createdAt and id', (sort, expected) => {
+    expect(handleStableAllowedQuerySort(sort, allowed, fallback)).toEqual(
+      expected,
+    );
+  });
+
+  it.each([undefined, null, '', 'secret: 1', 'label'])(
+    'returns the fallback for %j when no allowed field is requested',
+    (sort) => {
+      expect(
+        handleStableAllowedQuerySort(sort, ['label'], { updatedAt: -1 }),
+      ).toEqual({ updatedAt: -1 });
+    },
+  );
 });

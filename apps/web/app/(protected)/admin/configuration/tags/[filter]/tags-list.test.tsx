@@ -375,6 +375,73 @@ describe('TagsList', () => {
     });
   });
 
+  it.each([
+    ['label', 'label: 1'],
+    ['-key', 'key: -1'],
+    ['-isActive', 'isActive: -1'],
+  ])(
+    'asks the API for the order named in the URL (sort=%s)',
+    async (urlSort, sort) => {
+      mocks.searchParams = new URLSearchParams(`page=2&sort=${urlSort}`);
+      render(<TagsList filter="all" scope={PageScope.SUPERADMIN} />);
+
+      await waitFor(() => {
+        expect(mocks.findAll).toHaveBeenCalledWith(
+          expect.objectContaining({ page: 2, sort }),
+        );
+      });
+    },
+  );
+
+  it('lets a clicked header win over the toolbar sort menu', async () => {
+    mocks.searchParams = new URLSearchParams('page=2&sort=-category');
+    render(
+      <TagsList
+        filter="all"
+        scope={PageScope.SUPERADMIN}
+        externalFilters={{
+          format: '',
+          model: '',
+          provider: '',
+          search: '',
+          sort: 'label: 1',
+          status: '',
+          type: '',
+        }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(mocks.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({ sort: 'category: -1' }),
+      );
+    });
+  });
+
+  it('sends the toolbar sort menu value as the API order', async () => {
+    render(
+      <TagsList
+        filter="all"
+        scope={PageScope.SUPERADMIN}
+        externalFilters={{
+          format: '',
+          model: '',
+          provider: '',
+          search: '',
+          sort: 'label: -1',
+          status: '',
+          type: '',
+        }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(mocks.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({ sort: 'label: -1' }),
+      );
+    });
+  });
+
   it('toggles tag active state and updates query cache optimistically', async () => {
     render(<TagsList filter="all" scope={PageScope.SUPERADMIN} />);
 

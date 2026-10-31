@@ -182,5 +182,19 @@ describe('FontFamiliesController', () => {
 
       expect(query.orderBy).toEqual({ createdAt: -1, label: 1 });
     });
+
+    it.each([
+      ['label: 1', { createdAt: -1, id: -1, label: 1 }],
+      ['key: -1', { createdAt: -1, id: -1, key: -1 }],
+      ['createdAt: 1', { createdAt: 1, id: -1 }],
+      ['description: 1', { createdAt: -1, label: 1 }],
+      ['password: -1', { createdAt: -1, label: 1 }],
+    ])('orders by %j with the allowed columns only', (sort, expected) => {
+      const query = controller.buildFindAllQuery(mockUser, {
+        sort,
+      } as never);
+
+      expect(query.orderBy).toEqual(expected);
+    });
   });
 });
