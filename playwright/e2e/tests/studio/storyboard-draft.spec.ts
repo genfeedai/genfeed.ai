@@ -47,38 +47,41 @@ async function previewResponse(file: string) {
 const base = '/test-org/brand-1/storyboard';
 
 /**
- * Plan fields live in the run's context sidebar. Below xl it is a drawer, and
- * its tab state resets whenever the page or the drawer remounts.
+ * The run page is an agent + output split. Plan fields live in the output
+ * pane's Context tab, which hides the board while it is showing; below xl the
+ * layout also shows one pane at a time and opens on the agent.
  */
+async function showOutputPane(page: Page) {
+  const views = page.getByRole('tablist', {
+    exact: true,
+    name: 'Agent or output',
+  });
+  if (await views.isVisible())
+    await views.getByRole('tab', { exact: true, name: 'Output' }).click();
+  return page.getByRole('tablist', { exact: true, name: 'Output' });
+}
 async function openStoryboardTab(
   page: Page,
   name: 'Shots' | 'Details' | 'References' | 'Cast',
 ) {
+  const output = await showOutputPane(page);
+  await output.getByRole('tab', { exact: true, name: 'Context' }).click();
   const tabs = page.getByRole('tablist', { name: 'Storyboard details' });
-  const toggle = page.getByTestId('topbar-context-toggle');
-  // Wait for the sidebar or the topbar toggle to mount. A collapsed desktop
-  // rail keeps its tabs rendered behind the content, so prefer the toggle
-  // whenever it reports the panel closed.
-  await expect(tabs.or(toggle).first()).toBeVisible();
-  // A selection can reveal the panel after the toggle mounts, so a click on a
-  // stale "closed" reading would close it again. Re-read until it reports open.
-  // Narrowing below xl with the panel open turns it into the Chat sheet, which
-  // covers the page; dismiss that before reaching for the Context toggle.
-  const sheet = page.getByRole('dialog', { name: 'Agent' });
-  await expect(async () => {
-    const isClosed = (await toggle.getAttribute('aria-expanded')) === 'false';
-    if (isClosed && (await sheet.isVisible()))
-      await sheet.getByRole('button', { name: 'Close panel' }).click();
-    if (isClosed) await toggle.click();
-    await expect(toggle).toHaveAttribute('aria-expanded', 'true', {
-      timeout: 2_000,
-    });
-  }).toPass({ timeout: 15_000 });
+  await expect(tabs).toBeVisible();
   await tabs.getByRole('tab', { name: new RegExp(`^${name}`) }).click();
 }
-async function closeStoryboardDrawer(page: Page) {
-  if ((page.viewportSize()?.width ?? 0) < 1280)
-    await page.keyboard.press('Escape');
+/** Brings the board back after a Context tab visit. */
+async function showStoryboardBoard(page: Page) {
+  const output = await showOutputPane(page);
+  await output.getByRole('tab', { exact: true, name: 'Shots' }).click();
+}
+async function fillStoryboardTitle(page: Page, value: string) {
+  await openStoryboardTab(page, 'Details');
+  await page.getByLabel('Title', { exact: true }).fill(value);
+}
+async function expectStoryboardSaved(page: Page) {
+  await showStoryboardBoard(page);
+  await expect(page.getByText('Saved', { exact: true }).first()).toBeVisible();
 }
 const time = '2026-09-30T00:00:00.000Z';
 const run: StoryboardRun = {
@@ -250,6 +253,7 @@ test('edits and approves a persisted draft through the actual route with loaded 
   await expect(page.getByLabel('Title', { exact: true })).toHaveValue(
     run.config.plan.title,
   );
+  await showStoryboardBoard(page);
   await expect(
     page.getByRole('button', { name: 'Approve storyboard', exact: true }),
   ).toBeEnabled();
@@ -262,6 +266,7 @@ test('edits and approves a persisted draft through the actual route with loaded 
       exact: true,
     }),
   ).toBeVisible();
+  await showStoryboardBoard(page);
   await page.locator('img').filter({ visible: true }).first().waitFor();
   async function captureMatrix(state: string) {
     for (const width of [1440, 768, 390]) {
@@ -286,7 +291,7 @@ test('edits and approves a persisted draft through the actual route with loaded 
         await expect(page.getByLabel('Title', { exact: true })).toHaveValue(
           current.config.plan.title,
         );
-        await closeStoryboardDrawer(page);
+        await showStoryboardBoard(page);
         await expect(page.locator('html')).toHaveAttribute(
           'data-theme',
           theme === 'light' ? 'light' : 'dark',
@@ -355,12 +360,13 @@ test('edits and approves a persisted draft through the actual route with loaded 
   await openStoryboardTab(page, 'Details');
   await page.getByLabel('Title', { exact: true }).fill('Coffee, then pause');
   await expect.poll(() => current.config.plan.title).toBe('Coffee, then pause');
-  await expect(page.getByText('Saved', { exact: true }).first()).toBeVisible();
+  await expectStoryboardSaved(page);
   await page.reload();
   await openStoryboardTab(page, 'Details');
   await expect(page.getByLabel('Title', { exact: true })).toHaveValue(
     'Coffee, then pause',
   );
+  await showStoryboardBoard(page);
   await page
     .getByRole('button', { name: 'Approve storyboard', exact: true })
     .click();
@@ -617,6 +623,7 @@ test('creates an unpaid brief draft and saves added shots through the real route
   await expect(page.getByLabel('Title', { exact: true })).toHaveValue(
     'A new coffee story',
   );
+  await showStoryboardBoard(page);
   await expect(
     page.getByRole('button', { name: 'Add shot', exact: true }),
   ).toBeEnabled();
@@ -775,14 +782,14 @@ test('recovers routed sidebar and Back edits, lost acknowledgements and explicit
   await openStoryboardTab(page, 'Details');
   const title = page.getByLabel('Title', { exact: true });
   await expect(title).toHaveValue(run.config.plan.title);
-  await expect(page.getByText('Saved', { exact: true }).first()).toBeVisible();
+  await expectStoryboardSaved(page);
   // Studio no longer has its own nav column (#6693); the app rail's Library
   // link is the routed sidebar navigation that leaves the storyboard page.
   const sidebar = page
     .getByRole('navigation', { name: 'Apps' })
     .getByRole('link', { name: 'Library' });
   await expect(sidebar).toBeVisible();
-  await title.fill('Saved through sidebar navigation');
+  await fillStoryboardTitle(page, 'Saved through sidebar navigation');
   await sidebar.click();
   await expect(page).toHaveURL(/\/library\/assets/);
   await expect
@@ -808,19 +815,20 @@ test('recovers routed sidebar and Back edits, lost acknowledgements and explicit
   await page.goBack();
   await openStoryboardTab(page, 'Details');
   await expect(title).toHaveValue('Latest edit while saving');
-  await expect(page.getByText('Saved', { exact: true }).first()).toBeVisible();
+  await expectStoryboardSaved(page);
 
   outcome = 'lost';
   const writesBeforeLost = mutations.length;
-  await title.fill('Committed with lost response');
+  await fillStoryboardTitle(page, 'Committed with lost response');
   await expect
     .poll(() => current.config.plan.title)
     .toBe('Committed with lost response');
-  await expect(page.getByText('Saved', { exact: true }).first()).toBeVisible();
+  await expectStoryboardSaved(page);
   expect(mutations.length).toBe(writesBeforeLost + 1);
 
   outcome = 'conflict';
-  await title.fill('My concurrent title');
+  await fillStoryboardTitle(page, 'My concurrent title');
+  await showStoryboardBoard(page);
   await expect(
     page.getByText('Review concurrent edits', { exact: true }),
   ).toBeVisible();
