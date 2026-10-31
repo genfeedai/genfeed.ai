@@ -1,6 +1,7 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { resolveOAuthServicePath } from '@genfeedai/helpers/oauth/oauth-connect-platforms';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { rememberOAuthConnectContext } from '@hooks/auth/use-platform-oauth-connect/oauth-connect-context';
@@ -10,7 +11,6 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ServicesService } from '@services/external/services.service';
 import Card from '@ui/card/Card';
-import { resolveOAuthServicePath } from '@ui/constants/oauth-connect-platforms';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';

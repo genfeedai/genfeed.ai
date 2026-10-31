@@ -2,20 +2,7 @@
  * Props and interfaces for insights analytics pages
  */
 
-import type { InsightCategory, InsightImpact } from '@genfeedai/contracts';
-
-export interface Insight {
-  id: string;
-  category: InsightCategory;
-  title: string;
-  description: string;
-  impact: InsightImpact;
-  confidence: number;
-  actionableSteps: string[];
-  relatedMetrics: string[];
-  isRead: boolean;
-  createdAt: Date;
-}
+import type { Insight } from '@genfeedai/contracts/interfaces/analytics/insight-summary.interface';
 
 export interface InsightListCardProps {
   insights: Insight[];

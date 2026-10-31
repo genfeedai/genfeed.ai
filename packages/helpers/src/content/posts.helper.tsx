@@ -8,6 +8,7 @@ import {
   APP_ROUTES,
   createPublishingPostsFilterRoute,
 } from '@genfeedai/contracts/constants';
+import type { IPlatformTab } from '@genfeedai/contracts/interfaces/ui/navigation.interface';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import * as formatHelper from '@helpers/formatting/format/format.helper';
 import {
@@ -33,7 +34,6 @@ import {
   XTwitterIcon,
   YoutubeIcon,
 } from '@helpers/ui/icons/brands';
-import type { TabItem } from '@props/ui/navigation/tabs.props';
 import { LayoutGrid, Newspaper, Star } from 'lucide-react';
 
 export const POST_PLATFORM_VALUES = [
@@ -315,8 +315,8 @@ export function getPostPlatformTabs(
     Platform.TWITTER,
     Platform.TIKTOK,
   ],
-): TabItem[] {
-  const allTab: TabItem = {
+): IPlatformTab[] {
+  const allTab: IPlatformTab = {
     icon: PLATFORM_ICON_MAP.all,
     id: 'all',
     label: 'All',

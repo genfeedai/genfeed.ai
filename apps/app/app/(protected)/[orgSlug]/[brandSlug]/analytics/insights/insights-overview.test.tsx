@@ -1,5 +1,5 @@
 import { InsightCategory, InsightImpact } from '@genfeedai/contracts';
-import type { Insight } from '@genfeedai/props/analytics/insights.props';
+import type { Insight } from '@genfeedai/contracts/interfaces/analytics/insight-summary.interface';
 import { useInsights } from '@hooks/data/analytics/use-insights/use-insights';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

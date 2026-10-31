@@ -1,6 +1,6 @@
+import { resolveOAuthConnectPlatformCatalog } from '@genfeedai/helpers/oauth/oauth-connect-platforms';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { resolveOAuthConnectPlatformCatalog } from '@ui/constants/oauth-connect-platforms';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

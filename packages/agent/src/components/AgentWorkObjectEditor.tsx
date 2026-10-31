@@ -1,9 +1,9 @@
 'use client';
 
+import type { AgentWorkObjectEditorProps } from '@genfeedai/agent/components/agent-work-objects.types';
 import { useAgentWorkObjectGateStore } from '@genfeedai/agent/stores/agent-work-object-gate.store';
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { AgentWorkObjectActionPayload } from '@genfeedai/contracts/interfaces';
-import type { AgentWorkObjectEditorProps } from '@genfeedai/props/ui/agent/agent-work-objects.props';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {

@@ -2,11 +2,11 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@contexts/user/brand-context/brand-context.helpers';
+import { resolveOAuthServicePath } from '@genfeedai/helpers/oauth/oauth-connect-platforms';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { logger } from '@services/core/logger.service';
 import { ServicesService } from '@services/external/services.service';
-import { resolveOAuthServicePath } from '@ui/constants/oauth-connect-platforms';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useCallback } from 'react';
 import { OAuthBrandRequiredError } from './oauth-brand-required.error';

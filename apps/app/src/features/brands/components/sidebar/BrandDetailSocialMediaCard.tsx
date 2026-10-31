@@ -7,6 +7,11 @@ import {
   type CredentialPlatform,
 } from '@genfeedai/contracts';
 import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
+import {
+  groupOAuthConnectPlatforms,
+  type ResolvedOAuthConnectPlatform,
+  resolveOAuthServicePath,
+} from '@genfeedai/helpers/oauth/oauth-connect-platforms';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useOAuthConnectPlatforms } from '@hooks/auth/use-oauth-connect-platforms/use-oauth-connect-platforms';
@@ -22,11 +27,6 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { ServicesService } from '@services/external/services.service';
 import { CredentialsService } from '@services/organization/credentials.service';
 import Card from '@ui/card/Card';
-import {
-  groupOAuthConnectPlatforms,
-  type ResolvedOAuthConnectPlatform,
-  resolveOAuthServicePath,
-} from '@ui/constants/oauth-connect-platforms';
 import { Badge, type BadgeProps } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {

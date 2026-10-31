@@ -33,7 +33,7 @@ vi.mock('@services/external/services.service', () => ({
     postConnect = mocks.postConnect;
   },
 }));
-vi.mock('@ui/constants/oauth-connect-platforms', () => ({
+vi.mock('@genfeedai/helpers/oauth/oauth-connect-platforms', () => ({
   resolveOAuthServicePath: () => 'twitter',
 }));
 vi.mock('next/navigation', () => ({

@@ -54,7 +54,6 @@ export const PACKAGE_LAYERS: Readonly<Record<string, number>> = {
   ui: 4,
   // 5: features and screens
   agent: 5,
-  pages: 5,
   workflows: 5,
   // 6: leaf tooling
   cli: 6,

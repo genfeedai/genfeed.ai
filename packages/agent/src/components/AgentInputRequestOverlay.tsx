@@ -1,5 +1,5 @@
+import type { AgentInputRequestOverlayProps } from '@genfeedai/agent/components/agent-input-request-overlay.types';
 import { ButtonVariant } from '@genfeedai/contracts';
-import type { AgentInputRequestOverlayProps } from '@genfeedai/props/ui/agent/agent-input-request-overlay.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';

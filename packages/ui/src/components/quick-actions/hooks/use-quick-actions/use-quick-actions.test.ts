@@ -132,7 +132,7 @@ vi.mock('@ui/quick-actions/config/quick-actions.config', () => ({
   ),
 }));
 
-import { useQuickActions } from '@hooks/ui/use-quick-actions/use-quick-actions';
+import { useQuickActions } from '@ui/quick-actions/hooks/use-quick-actions/use-quick-actions';
 
 const mockHandlers = {
   onAddTextOverlay: vi.fn(),

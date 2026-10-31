@@ -1,14 +1,13 @@
 'use client';
 
-import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
-
-import { Metadata } from '@genfeedai/models/content/metadata.model';
-import { Image as IngredientImage } from '@genfeedai/models/ingredients/image.model';
-import { Video } from '@genfeedai/models/ingredients/video.model';
 import type {
   AgentMediaArtifactPreviewProps,
   AgentMediaDimensions,
-} from '@genfeedai/props/ui/agent/agent-media-artifact-preview.props';
+} from '@genfeedai/agent/components/agent-media-artifact-preview.types';
+import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
+import { Metadata } from '@genfeedai/models/content/metadata.model';
+import { Image as IngredientImage } from '@genfeedai/models/ingredients/image.model';
+import { Video } from '@genfeedai/models/ingredients/video.model';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import MediaLightbox from '@ui/layouts/lightbox/MediaLightbox';
@@ -21,7 +20,7 @@ import { type ReactElement, useMemo, useState } from 'react';
 export type {
   AgentMediaArtifact,
   AgentMediaArtifactKind,
-} from '@genfeedai/props/ui/agent/agent-media-artifact-preview.props';
+} from '@genfeedai/agent/components/agent-media-artifact-preview.types';
 
 export function AgentMediaArtifactPreview({
   assets,

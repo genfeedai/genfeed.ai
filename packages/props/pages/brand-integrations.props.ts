@@ -66,7 +66,7 @@ export interface AccountsTableProps {
 
 /**
  * Readiness of a connect tile's OAuth route. Deliberately re-declared here
- * (rather than imported from `@ui/constants/oauth-connect-platforms`) —
+ * (rather than imported from `@genfeedai/helpers/oauth/oauth-connect-platforms`) —
  * `packages/ui` already depends on `packages/props` for component prop
  * types, so importing a `packages/ui` module back into a `packages/props`
  * file would form a package-level cycle even though this one import is
@@ -81,7 +81,7 @@ export type ConnectPlatformReadiness = 'available' | 'unavailable' | 'unknown';
  * `ConnectPlatformReadiness` for why this isn't imported directly.
  *
  * `category` is widened from `OAuthConnectPlatformCategoryId` to `string`
- * for the same reason: that type lives in `@ui/constants/oauth-connect-platforms`,
+ * for the same reason: that type lives in `@genfeedai/helpers/oauth/oauth-connect-platforms`,
  * and importing it here would form the same `packages/props` -> `packages/ui`
  * cycle. The real catalog only ever produces its known category ids, so a
  * mistyped literal at a call site still fails structurally against
