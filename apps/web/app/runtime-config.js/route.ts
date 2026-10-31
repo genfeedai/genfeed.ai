@@ -1,9 +1,9 @@
-import { getDeploymentFromRequestHeaders } from '@app-server/request-deployment.server';
 import { readBetterAuthEnabledFromEnv } from '@genfeedai/auth-client/server';
 import { connection } from 'next/server';
 import { readGoogleSignInAvailableFromEnv } from '@/lib/runtime-config/google-sign-in-availability';
 import { readMagicLinkAvailableFromEnv } from '@/lib/runtime-config/magic-link-availability';
 import { createRuntimeAuthConfigSource } from '@/lib/runtime-config/runtime-config-source';
+import { getDeploymentFromRequestHeaders } from '@/server/request-deployment.server';
 
 export async function GET(request: Request): Promise<Response> {
   await connection();

@@ -1,14 +1,14 @@
 import dynamic from 'next/dynamic';
 
 export const LazyModalRole = dynamic(
-  () => import('@components/modals/ModalRole'),
+  () => import('@/features/admin/modals/ModalRole'),
   {
     ssr: false,
   },
 );
 
 export const LazyModalSubscription = dynamic(
-  () => import('@components/modals/ModalSubscription'),
+  () => import('@/features/admin/modals/ModalSubscription'),
   {
     ssr: false,
   },

@@ -1,11 +1,6 @@
 import 'server-only';
 
 import {
-  getServerAuthToken,
-  hasUsableServerAuthToken,
-  loadProtectedBootstrap,
-} from '@app-server/protected-bootstrap.server';
-import {
   type CredentialPlatform,
   PageScope,
   type PostCategory,
@@ -20,6 +15,11 @@ import type {
   ReleasePostsPublicationState,
   ReleasePostsSort,
 } from '@/features/posts/list/release-posts-list-query';
+import {
+  getServerAuthToken,
+  hasUsableServerAuthToken,
+  loadProtectedBootstrap,
+} from '@/server/protected-bootstrap.server';
 
 export interface ReleasePostsPageData {
   brandId: string | null;

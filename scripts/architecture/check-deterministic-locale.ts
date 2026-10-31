@@ -145,7 +145,7 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     2,
   ),
   legacyUiAllowance(
-    'apps/web/packages/components/research/ads/ads-metric.helpers.ts',
+    'apps/web/src/features/research/ads/ads-metric.helpers.ts',
     'to-locale-string',
     1,
   ),

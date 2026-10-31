@@ -1,11 +1,11 @@
 import '@testing-library/jest-dom/vitest';
-import BrandTopVideosSection from '@app-components/analytics/top-videos/brand-top-videos-section';
-import { normalizeBrandVideo } from '@app-components/analytics/top-videos/use-brand-top-videos';
 import { Platform } from '@genfeedai/contracts';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { type ReactNode, StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import BrandTopVideosSection from '@/features/analytics/top-videos/brand-top-videos-section';
+import { normalizeBrandVideo } from '@/features/analytics/top-videos/use-brand-top-videos';
 import {
   evaluationVideoCache,
   evaluationVideosQueryKey,

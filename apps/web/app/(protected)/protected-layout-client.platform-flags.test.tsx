@@ -80,7 +80,7 @@ vi.mock('./platform-module-route-gate', () => ({
     return children;
   },
 }));
-vi.mock('@app-components/app-protected-layout', () => ({
+vi.mock('@/components/layouts/protected/app-protected-layout', () => ({
   default: ({ children }: { children: ReactNode }) => children,
 }));
 vi.mock('@ui/display/error-boundary/ErrorBoundary', () => ({

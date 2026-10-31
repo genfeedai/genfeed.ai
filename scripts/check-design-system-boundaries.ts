@@ -10,8 +10,8 @@ const logger = {
 };
 
 const BANNED_COMPONENT_GLOBS = [
-  'apps/web/packages/components/**/_menu.tsx',
-  'apps/web/packages/components/**/_topbar.tsx',
+  'apps/web/src/components/layouts/protected/**/_menu.tsx',
+  'apps/web/src/components/layouts/protected/**/_topbar.tsx',
 ];
 
 const GUARDED_IMPORT_GLOBS = [

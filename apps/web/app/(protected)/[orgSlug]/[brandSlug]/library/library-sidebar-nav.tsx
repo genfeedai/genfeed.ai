@@ -1,10 +1,6 @@
 'use client';
 
 import {
-  LIBRARY_ASSET_ROUTES,
-  LIBRARY_PLACE_MENU_ITEMS,
-} from '@app-config/library-menu-items.config';
-import {
   LIBRARY_SHELF_ORDER,
   ModalEnum,
   PageScope,
@@ -35,6 +31,10 @@ import { useMemo } from 'react';
 import FoldersSidebar from '@/components/folders/sidebar/FoldersSidebar';
 import { LazyModalFolder } from '@/components/lazy/modal/LazyModal';
 import MenuItem from '@/components/menus/item/MenuItem';
+import {
+  LIBRARY_ASSET_ROUTES,
+  LIBRARY_PLACE_MENU_ITEMS,
+} from '@/config/library-menu-items.config';
 
 import {
   normalizeProtectedPathname,

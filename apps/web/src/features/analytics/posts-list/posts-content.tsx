@@ -1,6 +1,5 @@
 'use client';
 
-import RemixBriefInspector from '@app-components/research/remix/RemixBriefInspector';
 import type { BrandRemixSourceSelector } from '@genfeedai/contracts/api-types/contracts';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef } from 'react';
@@ -9,6 +8,7 @@ import {
   DiscoveryRemixProvider,
   useDiscoveryRemix,
 } from '@/features/research/remix/DiscoveryRemixProvider';
+import RemixBriefInspector from '@/features/research/remix/RemixBriefInspector';
 
 const REMIX_POST_PARAM = 'remixPostId';
 const REMIX_SOURCE_POST_PARAM = 'remixSourcePostId';

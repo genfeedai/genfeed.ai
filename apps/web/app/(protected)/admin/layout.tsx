@@ -1,14 +1,14 @@
 import AppPageIntlProvider from '@app-i18n/AppPageIntlProvider';
 import messages from '@app-i18n/page-scopes/admin';
-import {
-  isPlaywrightAdminDenied,
-  isProtectedBootstrapBypassed,
-  loadServerSuperAdmin,
-} from '@app-server/protected-bootstrap.server';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { LayoutProps } from '@props/layout/layout.props';
 import { redirect } from 'next/navigation';
 import AdminContextSidebar from '@/components/workspace-shell/AdminContextSidebar';
+import {
+  isPlaywrightAdminDenied,
+  isProtectedBootstrapBypassed,
+  loadServerSuperAdmin,
+} from '@/server/protected-bootstrap.server';
 
 /**
  * Platform admin is gated on `platformRole = SUPERADMIN` only.

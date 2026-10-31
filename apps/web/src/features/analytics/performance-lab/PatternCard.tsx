@@ -1,12 +1,12 @@
 'use client';
 
-import UsePatternButton from '@app-components/performance-lab/UsePatternButton';
 import type {
   ICreativePattern,
   PatternType,
 } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Badge from '@ui/display/badge/Badge';
+import UsePatternButton from '@/features/analytics/performance-lab/UsePatternButton';
 import type {
   PatternCardProps,
   PatternTypeVariantMap,

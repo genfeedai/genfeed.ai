@@ -17,7 +17,7 @@ import { useTranslations } from 'next-intl';
 import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 
-import { getHelpResources } from '@app-config/help-resources.config';
+import { getHelpResources } from '@/config/help-resources.config';
 import type { HelpResourceCardProps } from '@/props/settings/help-content.props';
 import Card from '@ui/card/Card';
 import {

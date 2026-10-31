@@ -24,7 +24,7 @@ const metadata = vi.hoisted(() => ({
   releaseTag: null as string | null,
   version: '0.1.70',
 }));
-vi.mock('@app-config/build-metadata.config', () => ({
+vi.mock('@/config/build-metadata.config', () => ({
   BUILD_METADATA: metadata,
 }));
 vi.mock('@ui/card/Card', () => ({

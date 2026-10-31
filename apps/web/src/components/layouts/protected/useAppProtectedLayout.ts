@@ -1,27 +1,3 @@
-import {
-  ADMIN_MENU_ITEMS,
-  withCollapsibleAdminGroups,
-} from '@app-config/admin-menu-items.config';
-import { getAnalyticsMenuItemsForScope } from '@app-config/analytics-menu-items.config';
-import { AUTOMATION_MENU_ITEMS } from '@app-config/automation-menu-items.config';
-import { DISCOVERY_MENU_ITEMS } from '@app-config/discovery-menu-items.config';
-import { LIBRARY_MENU_ITEMS } from '@app-config/library-menu-items.config';
-import {
-  APP_MENU_ITEMS,
-  getAppSecondaryMenuItems,
-  PUBLISHING_INSERT_AFTER_LABEL,
-} from '@app-config/menu-items.config';
-import { MESSAGES_MENU_ITEMS } from '@app-config/messages-menu-items.config';
-import { ORG_MENU_ITEMS } from '@app-config/org-menu-items.config';
-import { PUBLISHING_MENU_ITEMS } from '@app-config/publishing-menu-items.config';
-import {
-  buildSettingsMenuItems,
-  type SettingsScope,
-} from '@app-config/settings-menu-items.config';
-import {
-  getStudioAppForPath,
-  STUDIO_APP_MENU_ITEMS,
-} from '@app-config/studio-menu-items.config';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AgentApiService,
@@ -55,6 +31,30 @@ import {
   getActiveAppId,
   isAppRailPathEnabled,
 } from '@/components/shell/app-rail/app-rail.registry';
+import {
+  ADMIN_MENU_ITEMS,
+  withCollapsibleAdminGroups,
+} from '@/config/admin-menu-items.config';
+import { getAnalyticsMenuItemsForScope } from '@/config/analytics-menu-items.config';
+import { AUTOMATION_MENU_ITEMS } from '@/config/automation-menu-items.config';
+import { DISCOVERY_MENU_ITEMS } from '@/config/discovery-menu-items.config';
+import { LIBRARY_MENU_ITEMS } from '@/config/library-menu-items.config';
+import {
+  APP_MENU_ITEMS,
+  getAppSecondaryMenuItems,
+  PUBLISHING_INSERT_AFTER_LABEL,
+} from '@/config/menu-items.config';
+import { MESSAGES_MENU_ITEMS } from '@/config/messages-menu-items.config';
+import { ORG_MENU_ITEMS } from '@/config/org-menu-items.config';
+import { PUBLISHING_MENU_ITEMS } from '@/config/publishing-menu-items.config';
+import {
+  buildSettingsMenuItems,
+  type SettingsScope,
+} from '@/config/settings-menu-items.config';
+import {
+  getStudioAppForPath,
+  STUDIO_APP_MENU_ITEMS,
+} from '@/config/studio-menu-items.config';
 import { useUserRole } from '@/hooks/auth/use-user-role';
 import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
 import { useFeatureFlag } from '@/hooks/feature-flags/use-feature-flag';

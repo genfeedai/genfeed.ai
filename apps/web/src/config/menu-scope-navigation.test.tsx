@@ -1,8 +1,8 @@
-import { getAnalyticsMenuItemsForScope } from '@app-config/analytics-menu-items.config';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useMenuShared } from '@/components/menus/shared/useMenuShared';
+import { getAnalyticsMenuItemsForScope } from '@/config/analytics-menu-items.config';
 
 const route = vi.hoisted(() => ({
   pathname: '/genfeed/genfeedai/analytics/overview',

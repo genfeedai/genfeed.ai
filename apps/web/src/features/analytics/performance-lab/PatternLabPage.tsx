@@ -1,6 +1,5 @@
 'use client';
 
-import PatternCard from '@app-components/performance-lab/PatternCard';
 import {
   useAnalyticsToolbar,
   useOptionalAnalyticsContext,
@@ -16,6 +15,7 @@ import { FlaskConical } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 import FilterMenu from '@/components/content/filter-menu/FilterMenu';
+import PatternCard from '@/features/analytics/performance-lab/PatternCard';
 import { usePatternContext } from '@/hooks/data/analytics/use-pattern-context/use-pattern-context';
 import type {
   PatternLabFilters,

@@ -1,6 +1,5 @@
 import EditorDetailSurface from '@app/(protected)/[orgSlug]/[brandSlug]/editor/[id]/editor-detail-surface';
 import PublishingContentEditorPage from '@app/(protected)/[orgSlug]/[brandSlug]/publishing/posts/[id]/PublishingContentEditorPage';
-import { loadProtectedBootstrap } from '@app-server/protected-bootstrap.server';
 import {
   getBrandEntityId,
   getBrandOrganizationSlug,
@@ -35,6 +34,7 @@ import LibraryOverview from '@/features/library/overview/library-overview';
 import PublishingDeskViewToggle from '@/features/posts/library/publishing-desk-view-toggle';
 import type { OrgRootAppPageProps } from '@/props/layout/org-root-app-page.props';
 import type { PostsListSearchParams } from '@/props/publishing/publishing-list-page.props';
+import { loadProtectedBootstrap } from '@/server/protected-bootstrap.server';
 import EditorProjectsPage from '../../../[brandSlug]/editor/editor-projects-page';
 import EditorNewPage from '../../../[brandSlug]/editor/new/page';
 import AssetDeepLink from '../../../[brandSlug]/library/assets/asset-deep-link';

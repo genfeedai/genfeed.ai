@@ -90,7 +90,7 @@ describe('loadProtectedBootstrap', () => {
 
   it('loads the protected shell through one auth bootstrap call', async () => {
     const { loadProtectedBootstrap } = await import(
-      '@app-server/protected-bootstrap.server'
+      '@/server/protected-bootstrap.server'
     );
 
     const result = await loadProtectedBootstrap();
@@ -117,7 +117,7 @@ describe('loadProtectedBootstrap', () => {
     getPlatformFlagsMock.mockRejectedValue(new Error('flags unavailable'));
 
     const { loadProtectedBootstrap } = await import(
-      '@app-server/protected-bootstrap.server'
+      '@/server/protected-bootstrap.server'
     );
 
     await expect(loadProtectedBootstrap()).resolves.toEqual(
@@ -134,7 +134,7 @@ describe('loadProtectedBootstrap', () => {
     delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
 
     const { getServerAuthToken, loadProtectedBootstrap } = await import(
-      '@app-server/protected-bootstrap.server'
+      '@/server/protected-bootstrap.server'
     );
 
     await expect(getServerAuthToken()).resolves.toBe('token_123');
@@ -160,7 +160,7 @@ describe('loadProtectedBootstrap', () => {
       getServerAuthToken,
       isProtectedBootstrapBypassed,
       loadProtectedBootstrap,
-    } = await import('@app-server/protected-bootstrap.server');
+    } = await import('@/server/protected-bootstrap.server');
 
     await expect(isProtectedBootstrapBypassed()).resolves.toBe(true);
     await expect(getServerAuthToken()).resolves.toBe('');
@@ -178,7 +178,7 @@ describe('loadProtectedBootstrap', () => {
     });
 
     const { isProtectedBootstrapBypassed, loadProtectedBootstrap } =
-      await import('@app-server/protected-bootstrap.server');
+      await import('@/server/protected-bootstrap.server');
 
     await expect(isProtectedBootstrapBypassed()).resolves.toBe(true);
     await expect(loadProtectedBootstrap()).resolves.toBeNull();
@@ -197,7 +197,7 @@ describe('loadProtectedBootstrap', () => {
       getServerAuthToken,
       isProtectedBootstrapBypassed,
       loadProtectedBootstrap,
-    } = await import('@app-server/protected-bootstrap.server');
+    } = await import('@/server/protected-bootstrap.server');
 
     await expect(isProtectedBootstrapBypassed()).resolves.toBe(false);
     await expect(getServerAuthToken()).resolves.toBe('token_123');
@@ -214,7 +214,7 @@ describe('loadProtectedBootstrap', () => {
     process.env.PLAYWRIGHT_TEST = 'true';
 
     const { isProtectedBootstrapBypassed, loadProtectedBootstrap } =
-      await import('@app-server/protected-bootstrap.server');
+      await import('@/server/protected-bootstrap.server');
 
     await expect(isProtectedBootstrapBypassed()).resolves.toBe(false);
     await expect(loadProtectedBootstrap()).resolves.toEqual(
@@ -228,7 +228,7 @@ describe('loadProtectedBootstrap', () => {
     delete process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST;
 
     const { isProtectedBootstrapBypassed, loadProtectedBootstrap } =
-      await import('@app-server/protected-bootstrap.server');
+      await import('@/server/protected-bootstrap.server');
 
     await expect(isProtectedBootstrapBypassed()).resolves.toBe(false);
     await expect(loadProtectedBootstrap()).resolves.toEqual(
@@ -246,7 +246,7 @@ describe('loadProtectedBootstrap', () => {
     }));
 
     const { getServerAuthToken, loadProtectedBootstrap } = await import(
-      '@app-server/protected-bootstrap.server'
+      '@/server/protected-bootstrap.server'
     );
 
     await expect(getServerAuthToken()).resolves.toBe('');
@@ -269,7 +269,7 @@ describe('loadProtectedBootstrap', () => {
     }));
 
     const { getServerAuthToken, loadProtectedBootstrap } = await import(
-      '@app-server/protected-bootstrap.server'
+      '@/server/protected-bootstrap.server'
     );
 
     await expect(getServerAuthToken()).resolves.toBe('');
@@ -282,7 +282,7 @@ describe('loadProtectedBootstrap', () => {
     getBetterAuthServerTokenMock.mockResolvedValue('');
 
     const { getServerAuthToken, loadProtectedBootstrap } = await import(
-      '@app-server/protected-bootstrap.server'
+      '@/server/protected-bootstrap.server'
     );
 
     await expect(getServerAuthToken()).resolves.toBe('');
@@ -297,7 +297,7 @@ describe('loadProtectedBootstrap', () => {
     getBetterAuthServerTokenMock.mockResolvedValue('');
 
     const { loadProtectedBootstrap } = await import(
-      '@app-server/protected-bootstrap.server'
+      '@/server/protected-bootstrap.server'
     );
 
     await expect(loadProtectedBootstrap()).resolves.toBeNull();
@@ -309,7 +309,7 @@ describe('loadProtectedBootstrap', () => {
     delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
 
     const { getServerAuthToken, loadProtectedBootstrap } = await import(
-      '@app-server/protected-bootstrap.server'
+      '@/server/protected-bootstrap.server'
     );
 
     await expect(getServerAuthToken()).resolves.toBe('');
@@ -359,7 +359,7 @@ describe('loadServerSuperAdmin', () => {
     getBetterAuthServerTokenMock.mockResolvedValue(adminToken);
 
     const { loadServerSuperAdmin } = await import(
-      '@app-server/protected-bootstrap.server'
+      '@/server/protected-bootstrap.server'
     );
 
     await expect(loadServerSuperAdmin()).resolves.toBe(true);
@@ -371,7 +371,7 @@ describe('loadServerSuperAdmin', () => {
     getBetterAuthServerTokenMock.mockResolvedValue('h.e30.s');
 
     const { loadServerSuperAdmin } = await import(
-      '@app-server/protected-bootstrap.server'
+      '@/server/protected-bootstrap.server'
     );
 
     await expect(loadServerSuperAdmin()).resolves.toBe(false);
@@ -381,7 +381,7 @@ describe('loadServerSuperAdmin', () => {
     getBetterAuthServerTokenMock.mockResolvedValue(null);
 
     const { loadServerSuperAdmin } = await import(
-      '@app-server/protected-bootstrap.server'
+      '@/server/protected-bootstrap.server'
     );
 
     await expect(loadServerSuperAdmin()).resolves.toBe(false);

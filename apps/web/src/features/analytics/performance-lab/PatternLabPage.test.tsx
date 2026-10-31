@@ -1,6 +1,6 @@
-import PatternLabPage from '@app-components/performance-lab/PatternLabPage';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import PatternLabPage from '@/features/analytics/performance-lab/PatternLabPage';
 
 const usePatternContextMock = vi.fn();
 const useAnalyticsToolbarMock = vi.fn();
@@ -25,7 +25,7 @@ vi.mock(
   }),
 );
 
-vi.mock('@app-components/performance-lab/PatternCard', () => ({
+vi.mock('@/features/analytics/performance-lab/PatternCard', () => ({
   default: ({ pattern }: { pattern: { label: string } }) => (
     <div data-testid="pattern-card">{pattern.label}</div>
   ),

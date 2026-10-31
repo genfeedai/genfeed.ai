@@ -1,6 +1,5 @@
 'use client';
 
-import { LazyModalRole } from '@components/lazy/lazy-modal.admin';
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
@@ -22,6 +21,7 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
+import { LazyModalRole } from '@/features/admin/lazy/lazy-modal.admin';
 
 export default function RolesList() {
   const fieldsT = useTranslations('ui.rowSidebar.fields');
