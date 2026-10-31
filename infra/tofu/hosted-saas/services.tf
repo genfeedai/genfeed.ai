@@ -51,7 +51,10 @@ module "service" {
   security_group_ids = [aws_security_group.ecs.id]
   namespace_id       = aws_service_discovery_private_dns_namespace.internal.id
 
-  secrets = contains(local.public_backend_service_names, each.key) ? local.public_backend_task_secrets[each.key] : local.service_task_secrets
+  secrets = concat(
+    contains(local.public_backend_service_names, each.key) ? local.public_backend_task_secrets[each.key] : local.service_task_secrets,
+    local.service_internal_caller_secrets[each.key],
+  )
   environment = concat(local.internal_env, [
     { name = "PORT", value = tostring(each.value.port) },
     { name = "SERVICE_NAME", value = each.key },
