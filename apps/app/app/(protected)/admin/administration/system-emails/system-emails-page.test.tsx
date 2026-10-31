@@ -20,6 +20,11 @@ const getSystemEmailsService = vi.hoisted(() =>
   })),
 );
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock(
   '@app/(protected)/admin/administration/system-emails/system-email-performance',
   () => ({

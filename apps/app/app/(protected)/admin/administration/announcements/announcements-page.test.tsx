@@ -8,6 +8,11 @@ const mocks = vi.hoisted(() => ({
   notifications: { error: vi.fn(), success: vi.fn() },
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('next/navigation', () => ({
   usePathname: () => '/admin',
   useRouter: () => ({ replace: vi.fn() }),

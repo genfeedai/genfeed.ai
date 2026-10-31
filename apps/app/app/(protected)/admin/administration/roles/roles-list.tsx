@@ -27,6 +27,7 @@ export default function RolesList() {
   const fieldsT = useTranslations('ui.rowSidebar.fields');
   const { openConfirm } = useConfirmModal();
   const currentPage = Number(useSearchParams().get('page')) || 1;
+  const searchT = useTranslations('common.adminSearch');
   const { search, setSearch } = useAdminSearchParam();
   const getRolesService = useAuthedService((token: string) =>
     RolesService.getInstance(token),
@@ -152,9 +153,9 @@ export default function RolesList() {
       icon={ShieldCheck}
       search={
         <SearchField
-          ariaLabel="Search roles"
+          ariaLabel={searchT('roles')}
           onSearch={setSearch}
-          placeholder="Search roles"
+          placeholder={searchT('roles')}
           value={search}
         />
       }

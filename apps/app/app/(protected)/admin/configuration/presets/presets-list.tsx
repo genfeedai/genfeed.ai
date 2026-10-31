@@ -55,6 +55,7 @@ function PresetsListContent({
   );
 
   const searchParams = useSearchParams();
+  const searchT = useTranslations('common.adminSearch');
   const { search, setSearch } = useAdminSearchParam();
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
@@ -286,9 +287,9 @@ function PresetsListContent({
       title="Presets"
       search={
         <SearchField
-          ariaLabel="Search presets"
+          ariaLabel={searchT('presets')}
           onSearch={setSearch}
-          placeholder="Search presets"
+          placeholder={searchT('presets')}
           value={search}
         />
       }

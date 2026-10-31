@@ -6,6 +6,7 @@ import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchPar
 import SearchField from '@ui/content/search-field/SearchField';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { GraduationCap } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback, useRef, useState } from 'react';
 import TrainingsList from '@/features/trainings/list/trainings-list';
 
@@ -16,6 +17,7 @@ import TrainingsList from '@/features/trainings/list/trainings-list';
 export default function AdminTrainingsPage() {
   const refreshTrainingsRef = useRef<(() => Promise<void>) | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const searchT = useTranslations('common.adminSearch');
   const { search, setSearch } = useAdminSearchParam();
 
   const handleRefreshRegister = useCallback(
@@ -44,9 +46,9 @@ export default function AdminTrainingsPage() {
       icon={GraduationCap}
       search={
         <SearchField
-          ariaLabel="Search trainings"
+          ariaLabel={searchT('trainings')}
           onSearch={setSearch}
-          placeholder="Search trainings"
+          placeholder={searchT('trainings')}
           value={search}
         />
       }

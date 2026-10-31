@@ -23,6 +23,7 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Bot as BotIcon } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 
 const BOT_SKELETON_KEYS = [
@@ -60,6 +61,7 @@ export default function BotsPage() {
 
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
+  const searchT = useTranslations('common.adminSearch');
   const { search, setSearch } = useAdminSearchParam();
 
   const [bots, setBots] = useState<Bot[]>([]);
@@ -114,9 +116,9 @@ export default function BotsPage() {
       icon={BotIcon}
       search={
         <SearchField
-          ariaLabel="Search bots"
+          ariaLabel={searchT('bots')}
           onSearch={setSearch}
-          placeholder="Search bots"
+          placeholder={searchT('bots')}
           value={search}
         />
       }

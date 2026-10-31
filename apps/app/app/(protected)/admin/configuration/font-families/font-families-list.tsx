@@ -64,6 +64,7 @@ function FontFamiliesListContent({
   const { openConfirm } = useConfirmModal();
 
   const searchParams = useSearchParams();
+  const searchT = useTranslations('common.adminSearch');
   const { search, setSearch } = useAdminSearchParam();
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
@@ -242,9 +243,9 @@ function FontFamiliesListContent({
       title="Font Families"
       search={
         <SearchField
-          ariaLabel="Search font families"
+          ariaLabel={searchT('fontFamilies')}
           onSearch={setSearch}
-          placeholder="Search font families"
+          placeholder={searchT('fontFamilies')}
           value={search}
         />
       }

@@ -44,6 +44,7 @@ export default function ReferralRewardsList() {
   const referralT = useTranslations('ui.rowSidebar.referral');
   const { orgId, sessionId, userId } = useAuthIdentity();
   const currentPage = Number(useSearchParams().get('page')) || 1;
+  const searchT = useTranslations('common.adminSearch');
   const { search, setSearch } = useAdminSearchParam();
   const getReferralsService = useAuthedService((token: string) =>
     ReferralsService.getInstance(token),
@@ -187,9 +188,9 @@ export default function ReferralRewardsList() {
       icon={Gift}
       search={
         <SearchField
-          ariaLabel="Search rewards"
+          ariaLabel={searchT('referralRewards')}
           onSearch={setSearch}
-          placeholder="Search by account, checkout or reward ID"
+          placeholder={searchT('referralRewardsPlaceholder')}
           value={search}
         />
       }

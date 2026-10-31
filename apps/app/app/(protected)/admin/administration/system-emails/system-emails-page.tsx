@@ -29,6 +29,7 @@ import {
   AccordionTrigger,
 } from '@ui/primitives/accordion';
 import { Mail } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 
 const SYSTEM_EMAIL_SKELETON_KEYS = [
@@ -56,6 +57,7 @@ function resolvePreviewAction(email: LifecycleSystemEmailDefinition): string {
 }
 
 export default function SystemEmailsPage() {
+  const searchT = useTranslations('common.adminSearch');
   const { search, setSearch } = useAdminSearchParam();
   const [emails, setEmails] = useState<LifecycleSystemEmailDefinition[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -122,9 +124,9 @@ export default function SystemEmailsPage() {
       icon={Mail}
       search={
         <SearchField
-          ariaLabel="Search system emails"
+          ariaLabel={searchT('systemEmails')}
           onSearch={setSearch}
-          placeholder="Search system emails"
+          placeholder={searchT('systemEmails')}
           value={search}
         />
       }

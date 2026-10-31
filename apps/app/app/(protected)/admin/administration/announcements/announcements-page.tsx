@@ -11,6 +11,7 @@ import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Megaphone } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useReducer } from 'react';
 import type {
   AnnouncementComposeFormState,
@@ -18,7 +19,6 @@ import type {
   AnnouncementsPageAction as PageAction,
   AnnouncementsPageState as PageState,
 } from '@/features/admin/props/announcements.props';
-
 import AnnouncementComposeForm from './announcement-compose-form';
 import AnnouncementHistoryList from './announcement-history-list';
 
@@ -83,6 +83,7 @@ export default function AnnouncementsPage({
   const { activeTab, form, isSubmitting, announcements, isLoadingHistory } =
     state;
   const currentPage = Number(useSearchParams().get('page')) || 1;
+  const searchT = useTranslations('common.adminSearch');
   const { search, setSearch } = useAdminSearchParam();
 
   const notificationsService = NotificationsService.getInstance();
@@ -206,9 +207,9 @@ export default function AnnouncementsPage({
       search={
         activeTab === 'history' ? (
           <SearchField
-            ariaLabel="Search announcements"
+            ariaLabel={searchT('announcements')}
             onSearch={setSearch}
-            placeholder="Search announcements"
+            placeholder={searchT('announcements')}
             value={search}
           />
         ) : undefined
