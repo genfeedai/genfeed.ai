@@ -166,14 +166,19 @@ export class OAuthAuthorizeService {
           where: { userId, isActive: true, isDeleted: false },
         },
       },
+      orderBy: { createdAt: 'asc' },
       where: {
         isDeleted: false,
         members: { some: { userId, isActive: true, isDeleted: false } },
       },
     });
+    // "All my organizations" needs no starting choice: the connection begins in
+    // the user's first organization and can name any other per call.
     const organizationId =
       dto.organizationId ??
-      (organizations.length === 1 ? organizations[0].id : undefined);
+      (organizations.length === 1 || dto.allowOrganizationSwitching === true
+        ? organizations[0]?.id
+        : undefined);
     const organization = organizations.find(
       (candidate) => candidate.id === organizationId,
     );
@@ -202,8 +207,9 @@ export class OAuthAuthorizeService {
       resource,
       organization.members.map((member) => member.role.key),
     );
-    // Switching only means something with a second organization to switch to,
-    // and the Claude connector tool set has no way to use it.
+    // "All my organizations": the connection may name any organization the
+    // user belongs to on each call. Only meaningful with a second organization
+    // to name, and the Claude connector tool set has no way to use it.
     const canSwitchOrganizations =
       dto.allowOrganizationSwitching === true &&
       organizations.length > 1 &&

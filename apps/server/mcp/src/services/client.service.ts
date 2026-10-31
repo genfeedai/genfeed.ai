@@ -189,6 +189,18 @@ export class ClientService {
     this.base.setBearerToken(token);
   }
 
+  /**
+   * Run `work` with every API call in it acting in `organizationId`, without
+   * moving the connection. The API allows it only for a connection the user
+   * authorized for all of their organizations.
+   */
+  runInOrganization<T>(
+    organizationId: string,
+    work: () => Promise<T>,
+  ): Promise<T> {
+    return this.base.runInOrganization(organizationId, work);
+  }
+
   // ── Skills Pro entitlements ──
 
   verifySkillsProEntitlement(receiptId: string): Promise<SkillsProEntitlement> {

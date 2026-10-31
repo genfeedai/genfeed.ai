@@ -900,8 +900,8 @@ function OrganizationSwitcher({
       )}
       {switcher.choices.length > 1 && !switcher.canSwitch && (
         <Text size="xs" color="muted">
-          Switching is off for this connection. Reconnect and turn on
-          &ldquo;Switch between my organizations&rdquo; to move between them.
+          This connection is limited to one organization. Reconnect and choose
+          &ldquo;All my organizations&rdquo; to move between them.
         </Text>
       )}
       {error && (

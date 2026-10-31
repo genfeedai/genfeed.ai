@@ -14,7 +14,6 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
-import { Checkbox } from '@ui/primitives/checkbox';
 import { SelectField } from '@ui/primitives/select';
 import { ArrowUpRight, Check, Lock } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
@@ -99,6 +98,9 @@ function getCallbackHost(
   }
 }
 
+/** Dropdown value for a connection that may act in every organization. */
+const ALL_ORGANIZATIONS = 'all';
+
 export default function OAuthConsentContent() {
   const translate = useTranslations('common.oauth.consent');
   const translateOrganization = useTranslations(
@@ -122,7 +124,6 @@ export default function OAuthConsentContent() {
   // Empty = no default brand: organization-wide reads only.
   const [selectedBrandId, setSelectedBrandId] = useState('');
   const [isLoadingBrands, setIsLoadingBrands] = useState(false);
-  const [isSwitchingAllowed, setIsSwitchingAllowed] = useState(false);
   const [isLoadingOrganizations, setIsLoadingOrganizations] = useState(true);
   const [organizationError, setOrganizationError] = useState<string | null>(
     null,
@@ -229,7 +230,10 @@ export default function OAuthConsentContent() {
   // already has selected there, so an MCP client can generate without being
   // told which brand to use.
   useEffect(() => {
-    if (!selectedOrganizationId) {
+    if (
+      !selectedOrganizationId ||
+      selectedOrganizationId === ALL_ORGANIZATIONS
+    ) {
       setBrands([]);
       setSelectedBrandId('');
       return;
@@ -296,16 +300,19 @@ export default function OAuthConsentContent() {
     return () => window.removeEventListener('pageshow', handlePageShow);
   }, []);
 
-  // Switching needs a second organization and a tool set that can use it.
-  const canSwitchOrganizations = !isClaude && organizations.length > 1;
+  // "All" needs a second organization and a tool set that can use it.
+  const canChooseAllOrganizations = !isClaude && organizations.length > 1;
+  const isAllOrganizations =
+    canChooseAllOrganizations && selectedOrganizationId === ALL_ORGANIZATIONS;
 
   async function submitDecision(approved: boolean): Promise<void> {
     if (
       approved &&
       (isLoadingOrganizations ||
-        !organizations.some(
-          (organization) => organization.id === selectedOrganizationId,
-        ))
+        (!isAllOrganizations &&
+          !organizations.some(
+            (organization) => organization.id === selectedOrganizationId,
+          )))
     ) {
       return;
     }
@@ -325,15 +332,19 @@ export default function OAuthConsentContent() {
         {
           body: JSON.stringify({
             allowOrganizationSwitching:
-              approved && canSwitchOrganizations
-                ? isSwitchingAllowed
-                : undefined,
+              approved && isAllOrganizations ? true : undefined,
             approved,
-            brandId: approved && selectedBrandId ? selectedBrandId : undefined,
+            brandId:
+              approved && !isAllOrganizations && selectedBrandId
+                ? selectedBrandId
+                : undefined,
             client_id: searchParams.get('client_id'),
             code_challenge: searchParams.get('code_challenge'),
             code_challenge_method: searchParams.get('code_challenge_method'),
-            organizationId: approved ? selectedOrganizationId : undefined,
+            organizationId:
+              approved && !isAllOrganizations
+                ? selectedOrganizationId
+                : undefined,
             redirect_uri: redirectUri,
             resource: searchParams.get('resource'),
             // Untouched, send the client's own request; a narrower level sends
@@ -498,7 +509,18 @@ export default function OAuthConsentContent() {
                         {organization.label}
                       </option>
                     ))}
+                    {canChooseAllOrganizations && (
+                      <option value={ALL_ORGANIZATIONS}>
+                        {translateOrganization('all.label')}
+                      </option>
+                    )}
                   </SelectField>
+                )}
+
+                {isAllOrganizations && (
+                  <p className="text-sm text-muted-foreground">
+                    {translateOrganization('all.description')}
+                  </p>
                 )}
 
                 {selectedOrganizationId && brands.length > 0 && (
@@ -534,27 +556,6 @@ export default function OAuthConsentContent() {
                       </option>
                     ))}
                   </SelectField>
-                )}
-
-                {canSwitchOrganizations && (
-                  <Checkbox
-                    isChecked={isSwitchingAllowed}
-                    isDisabled={consentState.isSubmitting}
-                    label={
-                      <span className="space-y-0.5">
-                        <span className="block text-sm font-medium">
-                          {translateOrganization('switching.label')}
-                        </span>
-                        <span className="block text-sm text-muted-foreground">
-                          {translateOrganization('switching.description')}
-                        </span>
-                      </span>
-                    }
-                    name="consent-organization-switching"
-                    onCheckedChange={(checked) =>
-                      setIsSwitchingAllowed(checked === true)
-                    }
-                  />
                 )}
               </div>
 

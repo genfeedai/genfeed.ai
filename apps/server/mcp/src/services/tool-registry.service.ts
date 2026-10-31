@@ -94,6 +94,11 @@ import {
 } from '@mcp/tools/onboarding.tool';
 import { handleRemixTool, REMIX_TOOL_NAMES } from '@mcp/tools/remix.tool';
 import {
+  mcpToolFailureResult,
+  readRequestedOrganization,
+  resolveRequestedOrganizationId,
+} from '@mcp/tools/requested-organization.util';
+import {
   handleSchedulerTool,
   SCHEDULER_TOOL_NAMES,
 } from '@mcp/tools/scheduler.tool';
@@ -359,7 +364,27 @@ export class ToolRegistryService implements OnModuleInit {
     return [...PUBLIC_MCP_RESOURCES];
   }
 
+  /** A call may name its organization (see requested-organization.util). */
   async handleToolCall(params: ToolCallParams) {
+    const scoped = readRequestedOrganization(params.name, params.arguments);
+    if (!scoped) return this.runToolCall(params);
+
+    let organizationId: string;
+    try {
+      organizationId = await resolveRequestedOrganizationId(
+        this.clientService,
+        scoped.organization,
+      );
+    } catch (error: unknown) {
+      this.logger.error(`Error scoping tool call ${params.name}:`, error);
+      return mcpToolFailureResult(error);
+    }
+    return this.clientService.runInOrganization(organizationId, () =>
+      this.runToolCall({ ...params, arguments: scoped.rest }),
+    );
+  }
+
+  private async runToolCall(params: ToolCallParams) {
     const requestedArgs = params.arguments ?? {};
     const brandCreation =
       params.name === 'onboard_brand' &&
@@ -431,25 +456,7 @@ export class ToolRegistryService implements OnModuleInit {
       return await this.executeTool(name, args ?? {});
     } catch (error: unknown) {
       this.logger.error(`Error handling tool call ${name}:`, error);
-      const gated = toMcpToolErrorResult(error);
-      if (gated) return gated;
-      return {
-        content: [
-          {
-            text: `Error: ${(error as Error)?.message ?? String(error)}`,
-            type: 'text',
-          },
-        ],
-        structuredContent: {
-          failure: {
-            ...formatAgentError(
-              error instanceof Error ? error.message : String(error),
-            ),
-            detail: null,
-          },
-        },
-        isError: true,
-      };
+      return mcpToolFailureResult(error);
     }
   }
 

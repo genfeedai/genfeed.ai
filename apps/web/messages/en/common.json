@@ -237,9 +237,9 @@
         "label": "Organization",
         "loading": "Loading organizations…",
         "placeholder": "Choose an organization",
-        "switching": {
-          "description": "Lets this client move between the organizations you belong to. Your role in each one is checked every time.",
-          "label": "Switch between my organizations"
+        "all": {
+          "description": "This client can see all of your organizations and brands, and choose which to act in on each request. Your role in each one is checked every time.",
+          "label": "All my organizations"
         }
       },
       "callbackHost": {

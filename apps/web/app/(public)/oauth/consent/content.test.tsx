@@ -211,45 +211,43 @@ describe('OAuthConsentPage', () => {
       mockDecisionResponse();
     });
 
-    async function chooseFirstOrganization() {
+    it('keeps the connection to one organization when a specific one is chosen', async () => {
       render(<OAuthConsentPage />);
       fireEvent.change(await screen.findByLabelText('Organization'), {
         target: { value: 'org-1' },
       });
-      return screen.getByRole('checkbox', {
-        name: /Switch between my organizations/,
-      });
-    }
-
-    it('keeps organization switching off unless the user ticks it', async () => {
-      const toggle = await chooseFirstOrganization();
-      expect(toggle).not.toBeChecked();
 
       fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
       await waitFor(() => expect(redirectMock).toHaveBeenCalled());
-      expect(lastDecisionBody()).toMatchObject({
-        allowOrganizationSwitching: false,
-      });
+      expect(lastDecisionBody()).toMatchObject({ organizationId: 'org-1' });
+      expect(lastDecisionBody()).not.toHaveProperty(
+        'allowOrganizationSwitching',
+      );
     });
 
-    it('sends the switching choice when the user allows it', async () => {
-      const toggle = await chooseFirstOrganization();
-      fireEvent.click(toggle);
-      expect(toggle).toBeChecked();
+    it('grants every organization when the user chooses all of them', async () => {
+      render(<OAuthConsentPage />);
+      fireEvent.change(await screen.findByLabelText('Organization'), {
+        target: { value: 'all' },
+      });
+      expect(screen.getByRole('button', { name: 'Authorize' })).toBeEnabled();
 
       fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
       await waitFor(() => expect(redirectMock).toHaveBeenCalled());
       expect(lastDecisionBody()).toMatchObject({
         allowOrganizationSwitching: true,
+        approved: true,
       });
+      expect(lastDecisionBody()).not.toHaveProperty('organizationId');
+      expect(lastDecisionBody()).not.toHaveProperty('brandId');
     });
   });
 
-  it('offers no switching with a single organization', async () => {
+  it('offers no all-organizations choice with a single organization', async () => {
     mockDecisionResponse();
     render(<OAuthConsentPage />);
     await screen.findByText('First workspace');
-    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(screen.queryByText('All my organizations')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
     await waitFor(() => expect(redirectMock).toHaveBeenCalled());
     expect(lastDecisionBody()).not.toHaveProperty('allowOrganizationSwitching');

@@ -37,6 +37,14 @@ function buildClient() {
         organization('org-b', 'Beta', false),
         organization('org-c', 'Gamma', false),
       ]),
+    // Stands in for "run this listing inside that organization".
+    runInOrganization: vi.fn(async (organizationId: string) => {
+      const brandsByOrganization: Record<string, unknown> = {
+        'org-a': [{ id: 'brand-a', label: 'Acme Main' }],
+        'org-b': [{ id: 'brand-b', label: 'Beta Studio' }],
+      };
+      return brandsByOrganization[organizationId] ?? [];
+    }),
     switchOrganization: vi.fn().mockResolvedValue(undefined),
   };
 }
@@ -97,7 +105,7 @@ describe('handleAccountManagementTool', () => {
     const result = await call(client, 'get_orgs', {});
 
     const text = textOf(result.content[0]);
-    expect(text).toContain('Use switch_org');
+    expect(text).toContain('switch_org');
     expect(text).not.toContain('reconnect');
     expect(result.structuredContent?.data).toMatchObject({
       canSwitchOrganizations: true,
@@ -135,12 +143,38 @@ describe('handleAccountManagementTool', () => {
     });
   });
 
+  it('lists every organization with its own brands when the connection may use them all', async () => {
+    const client = buildClient();
+    client.canSwitchOrganizations.mockResolvedValue(true);
+
+    const result = await call(client, 'get_orgs', {});
+
+    expect(result.structuredContent?.data).toMatchObject({
+      canSwitchOrganizations: true,
+      organizations: [
+        { brands: [{ id: 'brand-a', label: 'Acme Main' }], id: 'org-a' },
+        { brands: [{ id: 'brand-b', label: 'Beta Studio' }], id: 'org-b' },
+        { brands: [], id: 'org-c' },
+      ],
+    });
+    expect(textOf(result.content[0])).toContain('all of your organizations');
+  });
+
+  it('keeps a one-organization connection to its own brands', async () => {
+    const client = buildClient();
+
+    const result = await call(client, 'get_orgs', {});
+
+    expect(client.runInOrganization).not.toHaveBeenCalled();
+    expect(textOf(result.content[0])).not.toContain('brandId');
+  });
+
   it('refuses to switch when the connection was approved without switching', async () => {
     const client = buildClient();
 
     await expect(
       call(client, 'switch_org', { organization: 'org-b' }),
-    ).rejects.toThrow(/without organization switching/);
+    ).rejects.toThrow(/limited to one organization/);
     expect(client.switchOrganization).not.toHaveBeenCalled();
   });
 

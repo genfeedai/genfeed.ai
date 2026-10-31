@@ -216,6 +216,9 @@ describe('ToolRegistryService', () => {
     postSocialReply: ReturnType<typeof vi.fn>;
     rejectSocialDraft: ReturnType<typeof vi.fn>;
     sendSocialDm: ReturnType<typeof vi.fn>;
+    canSwitchOrganizations: ReturnType<typeof vi.fn>;
+    listOrganizations: ReturnType<typeof vi.fn>;
+    runInOrganization: ReturnType<typeof vi.fn>;
     setBearerToken: ReturnType<typeof vi.fn>;
     updateSocialTags: ReturnType<typeof vi.fn>;
   };
@@ -318,6 +321,14 @@ describe('ToolRegistryService', () => {
             sendSocialDm: vi
               .fn()
               .mockResolvedValue({ id: 'msg-dm', status: 'sent' }),
+            canSwitchOrganizations: vi.fn().mockResolvedValue(true),
+            listOrganizations: vi.fn().mockResolvedValue([
+              { id: 'org-a', isActive: true, label: 'Acme', slug: 'acme' },
+              { id: 'org-b', isActive: false, label: 'Beta', slug: 'beta' },
+            ]),
+            runInOrganization: vi.fn(
+              (_organizationId: string, work: () => Promise<unknown>) => work(),
+            ),
             setBearerToken: vi.fn(),
             updateSocialTags: vi
               .fn()
@@ -393,6 +404,79 @@ describe('ToolRegistryService', () => {
     expect(JSON.stringify(result)).toContain(
       'A model-specific credit quote is unavailable',
     );
+  });
+
+  describe('organization named on a call', () => {
+    // Records the organization a tool call ran in, and the arguments it got.
+    function recordToolCalls() {
+      let activeOrganization: string | null = null;
+      const calls: { args: unknown; organization: string | null }[] = [];
+      clientService.runInOrganization.mockImplementation(
+        async (organizationId: string, work: () => Promise<unknown>) => {
+          activeOrganization = organizationId;
+          try {
+            return await work();
+          } finally {
+            activeOrganization = null;
+          }
+        },
+      );
+      clientService.executeAgentTool.mockImplementation(
+        async (_name: string, args: unknown) => {
+          calls.push({ args, organization: activeOrganization });
+          return { creditsUsed: 0, data: { ok: true }, success: true };
+        },
+      );
+      return calls;
+    }
+
+    it('runs the call inside the named organization and keeps the argument out of the tool', async () => {
+      const calls = recordToolCalls();
+
+      await service.handleToolCall({
+        arguments: { organization: 'beta', topic: 'launch' },
+        name: 'get_account',
+      });
+
+      expect(calls).toEqual([
+        { args: { topic: 'launch' }, organization: 'org-b' },
+      ]);
+    });
+
+    it('refuses a connection limited to one organization instead of answering from the wrong one', async () => {
+      const calls = recordToolCalls();
+      clientService.canSwitchOrganizations.mockResolvedValue(false);
+
+      const result = await service.handleToolCall({
+        arguments: { organization: 'beta' },
+        name: 'get_account',
+      });
+
+      expect(result).toMatchObject({ isError: true });
+      expect(JSON.stringify(result)).toContain('limited to one organization');
+      expect(calls).toEqual([]);
+    });
+
+    it('refuses an organization the user does not have', async () => {
+      const calls = recordToolCalls();
+
+      const result = await service.handleToolCall({
+        arguments: { organization: 'Nowhere' },
+        name: 'get_account',
+      });
+
+      expect(result).toMatchObject({ isError: true });
+      expect(JSON.stringify(result)).toContain('No organization matches');
+      expect(calls).toEqual([]);
+    });
+
+    it('acts in the active organization when none is named', async () => {
+      const calls = recordToolCalls();
+
+      await service.handleToolCall({ arguments: {}, name: 'get_account' });
+
+      expect(calls).toEqual([{ args: {}, organization: null }]);
+    });
   });
 
   describe('brand names beside brand ids (#7138)', () => {
