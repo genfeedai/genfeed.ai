@@ -81,12 +81,12 @@ export const RAW_FETCH_ORG_HEADER_EXEMPTIONS: readonly RawFetchOrgHeaderExemptio
         'Bot integrations call the internal API with a service key, not a routed user session.',
     },
     {
-      glob: 'apps/app/proxy.ts',
+      glob: 'apps/web/proxy.ts',
       reason:
         'Server-side Next proxy: it resolves the workspace before any organization is routed.',
     },
     {
-      glob: 'apps/app/app/(public)/**',
+      glob: 'apps/web/app/(public)/**',
       reason:
         'Public OAuth consent, CLI and agent-claim pages run outside the organization shell; the grant is user-level.',
     },
@@ -111,12 +111,12 @@ export const RAW_FETCH_ORG_HEADER_EXEMPTIONS: readonly RawFetchOrgHeaderExemptio
         "No client-routed organization: requests act on the session's active organization.",
     },
     {
-      glob: 'apps/extensions/**',
+      glob: 'apps/extension/**',
       reason:
         "Browser and IDE extensions have no organization routing; requests act on the session's active organization.",
     },
     {
-      glob: 'apps/website/**',
+      glob: 'apps/marketing/**',
       reason:
         'Marketing site; its only bearer header is a GitHub releases token.',
     },

@@ -17,7 +17,7 @@ import {
   FRAMEWORK_ERROR_OVERLAY_SELECTOR,
 } from '../../utils/route-assertions';
 
-const appRoot = path.join(process.cwd(), 'apps/app/app');
+const appRoot = path.join(process.cwd(), 'apps/web/app');
 const routeFilter = process.env.GENFEED_E2E_ROUTE_FILTER;
 
 const dynamicValues: Record<string, string> = {

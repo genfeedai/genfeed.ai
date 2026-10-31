@@ -127,7 +127,7 @@ test('refuses to carry a green run past a file the suite covers', () => {
     SHA,
     {
       git: history({
-        [PARENT]: ['apps/server/api/src/main.ts', 'apps/app/src/page.tsx'],
+        [PARENT]: ['apps/server/api/src/main.ts', 'apps/web/src/page.tsx'],
       }),
       now: NOW,
     },
@@ -135,7 +135,7 @@ test('refuses to carry a green run past a file the suite covers', () => {
   assert.equal(result.ok, false);
   assert.match(
     result.reason,
-    /1 file\(s\) it covers changed since: apps\/app\/src\/page\.tsx\./,
+    /1 file\(s\) it covers changed since: apps\/web\/src\/page\.tsx\./,
   );
   assert.match(result.reason, /Dispatch playwright-full-nightly\.yml/);
 });
@@ -206,8 +206,8 @@ test('does not carry a run that is not an ancestor or is too old', () => {
 test('each suite has its own neutral paths', () => {
   assert.equal(isNeutralPath(SUITE, 'apps/server/api/src/main.ts'), true);
   assert.equal(isNeutralPath(LEARNING, 'apps/server/api/src/main.ts'), false);
-  assert.equal(isNeutralPath(SUITE, 'apps/app/src/page.tsx'), false);
-  assert.equal(isNeutralPath(LEARNING, 'apps/app/src/page.tsx'), true);
+  assert.equal(isNeutralPath(SUITE, 'apps/web/src/page.tsx'), false);
+  assert.equal(isNeutralPath(LEARNING, 'apps/web/src/page.tsx'), true);
   assert.equal(isNeutralPath(SUITE, 'scripts/ci/runtime-acceptance.mjs'), true);
   assert.equal(
     isNeutralPath(LEARNING, 'scripts/ci/runtime-acceptance.mjs'),

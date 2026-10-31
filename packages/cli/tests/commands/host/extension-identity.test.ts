@@ -14,7 +14,7 @@ const PINNED_EXTENSION_ID = 'djbmffnmdeekbejpfhammiijhdpjegcp';
 
 const EXTENSION_PACKAGE = path.resolve(
   __dirname,
-  '../../../../../apps/extensions/browser/app/package.json'
+  '../../../../../apps/extension/package.json'
 );
 
 describe('extension identity', () => {

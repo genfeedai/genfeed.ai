@@ -126,7 +126,7 @@
       }
     },
     {
-      "includes": ["apps/app/src/features/workflows/**"],
+      "includes": ["apps/web/src/features/workflows/**"],
       "linter": {
         "rules": {
           "a11y": {
@@ -212,15 +212,15 @@
     },
     {
       "includes": [
-        "apps/app/src/components/**",
-        "apps/app/src/features/**",
-        "!apps/app/src/features/analytics/work-surface/**",
-        "!apps/app/src/features/library-remix/**",
-        "!apps/app/src/features/research/work-surface/research-workspace-surface-adapter-context.tsx",
-        "!apps/app/src/features/settings/**",
-        "!apps/app/src/features/workflows/**",
-        "!apps/app/src/features/workspace-overview/**",
-        "apps/app/src/hooks/**",
+        "apps/web/src/components/**",
+        "apps/web/src/features/**",
+        "!apps/web/src/features/analytics/work-surface/**",
+        "!apps/web/src/features/library-remix/**",
+        "!apps/web/src/features/research/work-surface/research-workspace-surface-adapter-context.tsx",
+        "!apps/web/src/features/settings/**",
+        "!apps/web/src/features/workflows/**",
+        "!apps/web/src/features/workspace-overview/**",
+        "apps/web/src/hooks/**",
         "packages/agent/src/**",
         "packages/hooks/**",
         "packages/ui/src/components/**",

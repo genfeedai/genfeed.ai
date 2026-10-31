@@ -7,12 +7,12 @@ topics: [desktop, generation, byok, offline]
 ---
 
 **Rule:** Genfeed Desktop local/BYOK generation runs in the Electron **main process**,
-reached over the preload bridge from the canonical `apps/app` UI the shell serves. It needs
+reached over the preload bridge from the canonical `apps/web` UI the shell serves. It needs
 no local NestJS API clone.
 
 **Current split:**
-- The desktop shell serves `apps/app` (#2371). There is no desktop-local renderer, so every
-  BYOK surface is an `apps/app` surface calling the bridge — never a parallel desktop UI.
+- The desktop shell serves `apps/web` (#2371). There is no desktop-local renderer, so every
+  BYOK surface is an `apps/web` surface calling the bridge — never a parallel desktop UI.
 - Genfeed Connect sign-in (system-browser PKCE -> `gf_` API key + Better Auth session cookie)
   is what gates cloud features. BYOK provider keys are separate, stored locally by main.
 - Replicate and fal.ai BYOK image asset generation runs from Electron main, using the user's
@@ -38,7 +38,7 @@ no local NestJS API clone.
   `GENFEED_DESKTOP_*_URL` env vars only set the default server.
 
 **How to apply:**
-- Keep local/BYOK generation in Electron main; expose it to `apps/app` only through the
+- Keep local/BYOK generation in Electron main; expose it to `apps/web` only through the
   bridge methods that have a live main-process handler.
 - Keep generated desktop assets local unless the user explicitly syncs.
 - Never reintroduce a desktop-local Next.js renderer to host a BYOK screen.

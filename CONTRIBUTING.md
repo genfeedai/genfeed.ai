@@ -160,7 +160,7 @@ bun run dev:backend:min    # api + files + notifications behind Portless
 ```
 
 ```bash
-bun run dev:app            # web UI → https://app.genfeed.localhost/
+bun run dev:web            # web UI → https://app.genfeed.localhost/
 ```
 
 Open <https://app.genfeed.localhost/>.
@@ -169,7 +169,7 @@ Open <https://app.genfeed.localhost/>.
 | ----------------------------- | ----------------------------------------- |
 | `bun run dev:backend:min`     | api + files + notifications (app minimum) |
 | `bun run dev:backend`         | Full backend (+ mcp + workers)            |
-| `bun run dev:app`             | Product UI via Portless HTTPS             |
+| `bun run dev:web`             | Product UI via Portless HTTPS             |
 | `bun run dev:frontend`        | app + website                             |
 | `bun run dev:docs`            | Docs site                                 |
 | `bun run dev`                 | Everything                                |
@@ -191,7 +191,7 @@ Portless. They need no certificate trust or background service and use plain
 
 ```bash
 bun run dev:debug:backend:min      # api :3010, files :3012, notifications :3111
-bun run dev:debug:app              # web UI → http://genfeed.localhost:3000
+bun run dev:debug:web              # web UI → http://genfeed.localhost:3000
 ```
 
 Open <http://genfeed.localhost:3000>. `*.localhost` resolves to loopback on
@@ -375,9 +375,9 @@ are enforced by repository code and which remain GitHub administrator settings.
 - Preserve single-tenant Community behavior and organization guards in shared
   API code.
 - Match at least three existing examples before introducing a new code pattern.
-- New user-visible copy in `apps/app` or shared product packages
+- New user-visible copy in `apps/web` or shared product packages
   (`packages/ui`, `packages/agent`, `packages/contexts`) goes
-  through the host app message catalog (`apps/app/messages/en/<namespace>.json`
+  through the host app message catalog (`apps/web/messages/en/<namespace>.json`
   + `useTranslations` / `getTranslations`). Do not hoist strings into a
   module-level `COPY` const to satisfy `bun run check:untranslated-strings`.
 - Tests are colocated (`*.test.ts` / `*.spec.ts`); write the failing test

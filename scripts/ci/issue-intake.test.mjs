@@ -127,7 +127,7 @@ test('README and CONTRIBUTING make Portless the default contributor path', () =>
   ]) {
     assert.match(source, /bun run dev:setup/);
     assert.match(source, /bun run dev:backend:min/);
-    assert.match(source, /bun run dev:app/);
+    assert.match(source, /bun run dev:web/);
     assert.match(source, /https:\/\/app\.genfeed\.localhost\//);
     assert.match(
       source,

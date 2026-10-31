@@ -1,6 +1,6 @@
 {
   "apps": {
-    "apps/app": {
+    "apps/web": {
       "name": "app.genfeed",
       "script": "dev:process"
     },
@@ -24,7 +24,7 @@
       "name": "notifications.genfeed",
       "script": "dev:process"
     },
-    "apps/website": {
+    "apps/marketing": {
       "name": "website.genfeed",
       "script": "dev:process"
     }

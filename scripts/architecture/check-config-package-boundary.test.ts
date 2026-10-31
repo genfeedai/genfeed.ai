@@ -68,7 +68,7 @@ function fixture(
 describe('check-config-package-boundary', () => {
   it('accepts explicit public subpaths and owner-only internal imports', () => {
     const rootDir = fixture({
-      'apps/app/src/example.ts':
+      'apps/web/src/example.ts':
         "import { isEEEnabled } from '@genfeedai/config/license';\nexport const enabled = isEEEnabled();",
     });
 
@@ -149,7 +149,7 @@ describe('check-config-package-boundary', () => {
 
   it('flags every import shape that reaches internal license state', () => {
     const rootDir = fixture({
-      'apps/app/src/package-subpath.ts':
+      'apps/web/src/package-subpath.ts':
         "import { getLicenseVerificationVerdict } from '@genfeedai/config/license-state';\nexport const verdict = getLicenseVerificationVerdict();",
       'packages/config/src/services/alias.ts':
         "export { getLicenseVerificationVerdict } from '@config/license-state';",
@@ -162,7 +162,7 @@ describe('check-config-package-boundary', () => {
         (violation) => violation.file,
       ),
     ).toEqual([
-      'apps/app/src/package-subpath.ts',
+      'apps/web/src/package-subpath.ts',
       'packages/config/src/services/alias.ts',
       'packages/ui/src/relative.ts',
       'packages/ui/src/relative.ts',

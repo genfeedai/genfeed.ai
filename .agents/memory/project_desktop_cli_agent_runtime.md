@@ -8,7 +8,7 @@ topics: [desktop, agent, mcp, cli, runtime, billing]
 ---
 
 **Rule:** The external agent runtime is **CLI + Genfeed MCP + Desktop**. Electron
-main (`apps/desktop/app/src/main/cli-agent-runtime.service.ts`) spawns
+main (`apps/desktop/src/main/cli-agent-runtime.service.ts`) spawns
 `claude -p` or `codex exec` with only the Genfeed MCP server configured and
 only `mcp__genfeed` tools allowed (Claude: built-in tools removed via
 `--tools ""`; Codex: `--sandbox read-only`). The CLI reads brand context through

@@ -15,7 +15,7 @@
         "$TURBO_ROOT$/tsconfig.json",
         "$TURBO_ROOT$/tsconfig.server.decorators.json",
         "$TURBO_ROOT$/configs/**",
-        "$TURBO_ROOT$/apps/app/messages/en/ui.json"
+        "$TURBO_ROOT$/apps/web/messages/en/ui.json"
       ],
       "outputs": [
         "$TURBO_ROOT$/apps/server/dist/apps/mcp/**",
@@ -23,10 +23,10 @@
       ]
     },
     "type-check": {
-      "inputs": ["$TURBO_EXTENDS$", "$TURBO_ROOT$/apps/app/messages/en/ui.json"]
+      "inputs": ["$TURBO_EXTENDS$", "$TURBO_ROOT$/apps/web/messages/en/ui.json"]
     },
     "test": {
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/apps/app/messages/en/ui.json"]
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/apps/web/messages/en/ui.json"]
     }
   }
 }

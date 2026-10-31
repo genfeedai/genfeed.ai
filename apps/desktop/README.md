@@ -1,9 +1,9 @@
 # Desktop App
 
-`apps/desktop/app` is the Electron native shell for the macOS-first installed app release. It runs the real `apps/app` Next.js frontend and provides desktop-local backend actions through typed IPC.
+`apps/desktop` is the Electron native shell for the macOS-first installed app release. It runs the real `apps/web` Next.js frontend and provides desktop-local backend actions through typed IPC.
 
 There is no desktop-local React/Next.js renderer. Development and release builds
-run the canonical `apps/app` codebase, while Electron owns native lifecycle,
+run the canonical `apps/web` codebase, while Electron owns native lifecycle,
 the opt-in PGlite runtime, BYOK generation, sync services, terminal, tray, and
 updates.
 
@@ -30,7 +30,7 @@ never requires cloning this repository.
 ## Development
 
 ```bash
-cd apps/desktop/app
+cd apps/desktop
 bun install
 bun run dev
 ```
@@ -56,7 +56,7 @@ The `GENFEED_DESKTOP_*_URL` variables only set the **default** server. A
 server picked in-app (see [Server selection](#server-selection)) takes
 precedence.
 
-The hosted `apps/app` runtime accepts
+The hosted `apps/web` runtime accepts
 `GENFEED_DESKTOP_MINIMUM_VERSION` (default `0.1.0`). Desktop requests below
 that semantic version receive HTTP `426` before the app shell renders; ordinary
 web requests are unaffected.
@@ -68,8 +68,8 @@ bun run dev:desktop
 ```
 
 `bun run dev:desktop` builds the Electron main/preload bundle, starts the embedded
-`apps/app` Next.js shell, and launches Electron. It does not start the NestJS
-API. Browser API requests stay same-origin on the loopback shell: `apps/app`
+`apps/web` Next.js shell, and launches Electron. It does not start the NestJS
+API. Browser API requests stay same-origin on the loopback shell: `apps/web`
 calls `/v1`, and its baked Next.js rewrite proxies that path to the configured
 real API origin. This keeps the Better Auth cookie scoped to the shell origin.
 
@@ -78,12 +78,12 @@ through `genfeedai-desktop://auth`; Electron exchanges the code for a main-only
 `gf_` API key and an exact signed Better Auth session cookie. Electron stores
 both together using the small PGlite-independent encrypted session store and installs the
 HttpOnly cookie as a host-only cookie on the selected app origin. The API key is
-never exposed to `apps/app`; main only adds it to trusted shell requests as
+never exposed to `apps/web`; main only adds it to trusted shell requests as
 `x-genfeed-desktop-token`. Every trusted shell request also carries the app
 version so the hosted app can require a safe minimum version. Sign-out removes
 the cookie and key together.
 
-The first visible desktop paint is owned by Electron, not by `apps/app`: a black
+The first visible desktop paint is owned by Electron, not by `apps/web`: a black
 launch screen with an animated Genfeed mark is shown while the selected app
 shell boots. If neither shell can start, Electron keeps the same black surface
 and shows a short failure message instead of exposing an unstyled renderer.
@@ -92,7 +92,7 @@ Generation defaults to Genfeed Cloud after desktop sign-in. Users without
 Replicate, fal.ai, or other provider keys should buy/use Genfeed credits; the
 server owns provider credentials and billing. Offline or bring-your-own-key
 generation is optional. Electron stores local provider settings in its PGlite
-database and exposes generation actions to `apps/app` through
+database and exposes generation actions to `apps/web` through
 `window.genfeedDesktop`. The Electron main process calls an OpenAI-compatible
 `/chat/completions` endpoint directly. Supported first-class presets:
 
@@ -273,13 +273,13 @@ the repository.
 For offline desktop generation, do not add a second REST API and do not fork the
 frontend. Keep reusable generation logic in packages, keep cloud/self-hosted
 behavior behind the NestJS REST API, and keep desktop-only execution in Electron
-main-process services exposed to `apps/app` through IPC. That keeps the
+main-process services exposed to `apps/web` through IPC. That keeps the
 downloaded app useful without requiring Redis, BullMQ, or the server repo.
 
 ## Release
 
 ```bash
-cd apps/desktop/app
+cd apps/desktop
 bun run qa:release
 bun run release:mac
 ```
@@ -289,7 +289,7 @@ desktop lint, type-check, Bun tests, and the Electron smoke boot used by the
 `Desktop QA` workflow. Use the checklist in
 [`apps/desktop/RELEASE_QA.md`](./RELEASE_QA.md) for manual release evidence.
 
-`bun run release:mac` writes macOS artifacts into `apps/desktop/app/release/`
+`bun run release:mac` writes macOS artifacts into `apps/desktop/release/`
 and creates `genfeed-desktop-release.json` beside them. The manifest records the
 package version, commit, release channel, artifact names, file sizes, SHA-256
 digests, signing inputs, and notarization hook so downloaded artifacts can be
@@ -305,7 +305,7 @@ Optional signing and notarization environment variables:
 
 ## Current Scope
 
-- Electron desktop shell embedding the real `apps/app` frontend
+- Electron desktop shell embedding the real `apps/web` frontend
 - No parallel desktop-local renderer or desktop-local Next.js configuration
 - Active typed IPC for system-browser sign-in, explicit cloud/local mode switching, Genfeed server selection, local workspaces, local generation, local terminals, and the Claude Code / Codex agent runtime
 - PGlite-backed local state for workspaces, recents, provider settings, and sync/generation jobs; cloud session and selected mode live outside PGlite

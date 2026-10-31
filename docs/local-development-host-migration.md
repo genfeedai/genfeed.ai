@@ -48,7 +48,7 @@ environment files contain the clean HTTPS service origins and
 | `bun run dev:setup` / `dev:doctor` | Machine Portless HTTPS contract |
 | `bun run dev:backend:min` | api + files + notifications |
 | `bun run dev:backend` | Full backend |
-| `bun run dev:app` | App → `https://app.genfeed.localhost/` |
+| `bun run dev:web` | App → `https://app.genfeed.localhost/` |
 | `bun run dev` | Full stack |
 | `bun run dev:debug*` | Explicit fixed-port escape hatch |
 
@@ -72,7 +72,7 @@ Every branch-point occurrence was classified as follows:
 
 | Category | Files and occurrence counts | Migration action |
 | --- | --- | --- |
-| Environment/examples | `.env.example` (27), `apps/app/.env.example` (4), `apps/server/.env.example` (3), `apps/server/api/.env.example` (17), `apps/server/files/.env.example` (1), `apps/server/notifications/.env.example` (1), `apps/website/.env.example` (5) | Replaced active defaults; reconciled the canonical service ports. |
+| Environment/examples | `.env.example` (27), `apps/web/.env.example` (4), `apps/server/.env.example` (3), `apps/server/api/.env.example` (17), `apps/server/files/.env.example` (1), `apps/server/notifications/.env.example` (1), `apps/marketing/.env.example` (5) | Replaced active defaults; reconciled the canonical service ports. |
 | Active runtime defaults | browser-extension `background.ts` (1) and `environment.service.ts` (3), shared `environment.service.ts` (1), workflow execution config (1) | Moved host selection behind public env or injected config boundaries. |
 | Playwright/tooling defaults | Playwright config (2), API mock fixture (1), auth fixture (1), batch spec (1), task specs (2), API interceptor (2), OpenAPI smoke script (1) | Replaced defaults and centralized Playwright API endpoint resolution. |
 | Test fixtures | Better Auth config spec (2), localhost guard spec (2), API test env (1), generation-card spec (1), auth-client config spec (4), Redis adapter spec (1), CORS spec (2), shared environment spec (2), logger spec (2) | Replaced ordinary fixtures; retained only assertions that explicitly prove compatibility. |

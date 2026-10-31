@@ -37,7 +37,7 @@ function categoriesFor(relativePath: string): ControlGuardCategory[] {
 describe('control-guard detection', () => {
   it('reports the raw-media category and offending file through the CLI', () => {
     const file = write(
-      'apps/app/RawVideo.tsx',
+      'apps/web/RawVideo.tsx',
       'export default function RawVideo(){return <video src="/clip.mp4" />;}',
     );
     const result = spawnSync(
@@ -71,19 +71,19 @@ describe('control-guard detection', () => {
 
   it('flags raw <button> in app code as advisory', () => {
     const file = write(
-      'apps/app/page.tsx',
+      'apps/web/page.tsx',
       'export default function P(){return <button>Go</button>;}',
     );
     const violations = detectViolations([file], rootDir);
     const button = violations.find((v) => v.category === 'raw-button');
     expect(button).toBeDefined();
     expect(button?.severity).toBe('advisory');
-    expect(button?.file).toBe('apps/app/page.tsx');
+    expect(button?.file).toBe('apps/web/page.tsx');
   });
 
   it('flags button-like styled anchors as advisory', () => {
     const file = write(
-      'apps/app/link.tsx',
+      'apps/web/link.tsx',
       'export default function L(){return <a className="inline-flex items-center rounded border px-3 py-2 font-medium hover:bg-muted" href="/x">Go</a>;}',
     );
     expect(categoriesFor(file)).toContain('styled-anchor');
@@ -91,7 +91,7 @@ describe('control-guard detection', () => {
 
   it('does not flag plain text links', () => {
     const file = write(
-      'apps/app/plain.tsx',
+      'apps/web/plain.tsx',
       'export default function T(){return <a href="/terms">Terms</a>;}',
     );
     expect(categoriesFor(file)).not.toContain('styled-anchor');
@@ -99,7 +99,7 @@ describe('control-guard detection', () => {
 
   it('flags raw <input> and <select> as required', () => {
     const file = write(
-      'apps/app/form.tsx',
+      'apps/web/form.tsx',
       'export default function F(){return <div><input name="a" /><select name="b"></select></div>;}',
     );
     const violations = detectViolations([file], rootDir);
@@ -111,7 +111,7 @@ describe('control-guard detection', () => {
 
   it('allows native hidden and file inputs', () => {
     const file = write(
-      'apps/app/hidden.tsx',
+      'apps/web/hidden.tsx',
       'export default function H(){return <div><input type="hidden" name="a" /><input type="file" name="b" /></div>;}',
     );
     expect(categoriesFor(file)).not.toContain('raw-input');
@@ -119,11 +119,11 @@ describe('control-guard detection', () => {
 
   it('flags legacy @ui/inputs form imports as required', () => {
     const inputFile = write(
-      'apps/app/legacy.tsx',
+      'apps/web/legacy.tsx',
       'import { Input } from "@ui/inputs/input/Input";\nexport default function G(){return <div />;}',
     );
     const textareaFile = write(
-      'apps/app/legacy-textarea.tsx',
+      'apps/web/legacy-textarea.tsx',
       'import Textarea from "@ui/inputs/textarea/Textarea";\nexport default function T(){return <div />;}',
     );
     expect(
@@ -151,11 +151,11 @@ describe('control-guard detection', () => {
 
   it('requires production tabs to use the shared navigation component', () => {
     const primitiveFile = write(
-      'apps/app/primitive-tabs.tsx',
+      'apps/web/primitive-tabs.tsx',
       'import { Tabs } from "@ui/primitives/tabs";\nexport default Tabs;',
     );
     const radixFile = write(
-      'apps/app/src/features/radix-tabs.tsx',
+      'apps/web/src/features/radix-tabs.tsx',
       'import * as Tabs from "@radix-ui/react-tabs";\nexport default Tabs;',
     );
     const relativeFile = write(
@@ -207,7 +207,7 @@ describe('control-guard detection', () => {
 
   it('flags raw HTML primitives repo-wide via raw-html', () => {
     const file = write(
-      'apps/website/thing.tsx',
+      'apps/marketing/thing.tsx',
       'export default function W(){return <table><tr><td>x</td></tr></table>;}',
     );
     const violation = detectViolations([file], rootDir).find(
@@ -218,7 +218,7 @@ describe('control-guard detection', () => {
 
   it('ignores raw elements inside JSX comments', () => {
     const file = write(
-      'apps/website/commented.tsx',
+      'apps/marketing/commented.tsx',
       'export default function C(){return <div>{/* <table> was here */}</div>;}',
     );
     expect(categoriesFor(file)).not.toContain('raw-html');
@@ -226,7 +226,7 @@ describe('control-guard detection', () => {
 
   it('flags raw elements after a closed block comment on the same line', () => {
     const file = write(
-      'apps/app/after-comment.tsx',
+      'apps/web/after-comment.tsx',
       'export default function C(){return <div>{/* note */} <input /></div>}',
     );
     const categories = categoriesFor(file);
@@ -236,7 +236,7 @@ describe('control-guard detection', () => {
 
   it('ignores raw elements inside multi-line JSX block comments', () => {
     const file = write(
-      'apps/app/multiline-comment.tsx',
+      'apps/web/multiline-comment.tsx',
       [
         'export default function C(){return <div>{/*',
         '<input />',
@@ -249,7 +249,7 @@ describe('control-guard detection', () => {
 
   it('does not treat URL slashes in an attribute as a line comment', () => {
     const file = write(
-      'apps/app/url-before-input.tsx',
+      'apps/web/url-before-input.tsx',
       'export default function C(){return <div data-url="https://example.com"><input /></div>}',
     );
     const categories = categoriesFor(file);
@@ -259,7 +259,7 @@ describe('control-guard detection', () => {
 
   it('ignores raw <input> documented in JSDoc / block comments', () => {
     const file = write(
-      'apps/app/src/features/brands/kit.tsx',
+      'apps/web/src/features/brands/kit.tsx',
       [
         '/** Native `<input type="color">` requires `#rrggbb`. */',
         'export default function K(){return <div />;}',
@@ -271,7 +271,7 @@ describe('control-guard detection', () => {
 
   it('ignores raw elements on multi-line JSDoc body lines', () => {
     const file = write(
-      'apps/app/src/features/brands/docs.tsx',
+      'apps/web/src/features/brands/docs.tsx',
       [
         '/**',
         ' * Prefer ColorInput over raw <input type="color">.',
@@ -293,7 +293,7 @@ describe('control-guard detection', () => {
 
   it('skips test and spec files', () => {
     const testFile = write(
-      'apps/app/thing.test.tsx',
+      'apps/web/thing.test.tsx',
       'export default function T(){return <button>x</button>;}',
     );
     expect(categoriesFor(testFile)).toHaveLength(0);
@@ -313,7 +313,7 @@ describe('control-guard detection', () => {
 describe('control-guard allowlist', () => {
   it('honours the button baseline file allowlist', () => {
     const file = write(
-      'apps/app/src/features/studio/page/StudioPageContent.tsx',
+      'apps/web/src/features/studio/page/StudioPageContent.tsx',
       'export default function N(){return <button>Home</button>;}',
     );
     expect(categoriesFor(file)).not.toContain('raw-button');
@@ -321,7 +321,7 @@ describe('control-guard allowlist', () => {
 
   it('still flags a non-allowlisted sibling in the same tree', () => {
     const file = write(
-      'apps/app/src/features/studio/page/OtherPage.tsx',
+      'apps/web/src/features/studio/page/OtherPage.tsx',
       'export default function O(){return <button>Home</button>;}',
     );
     expect(categoriesFor(file)).toContain('raw-button');
@@ -341,20 +341,20 @@ describe('control-guard allowlist', () => {
 describe('control-guard run modes', () => {
   it('changed-files mode scans only the provided files', () => {
     const flagged = write(
-      'apps/app/a.tsx',
+      'apps/web/a.tsx',
       'export default function A(){return <select />;}',
     );
-    write('apps/app/b.tsx', 'export default function B(){return <select />;}');
+    write('apps/web/b.tsx', 'export default function B(){return <select />;}');
 
     const { violations } = runControlGuard({ files: [flagged], rootDir });
     const files = new Set(violations.map((v) => v.file));
-    expect(files.has('apps/app/a.tsx')).toBe(true);
-    expect(files.has('apps/app/b.tsx')).toBe(false);
+    expect(files.has('apps/web/a.tsx')).toBe(true);
+    expect(files.has('apps/web/b.tsx')).toBe(false);
   });
 
   it('changed-files mode accepts absolute paths', () => {
     const rel = write(
-      'apps/app/abs.tsx',
+      'apps/web/abs.tsx',
       'export default function A(){return <select />;}',
     );
     const abs = path.join(rootDir, rel);
@@ -363,24 +363,24 @@ describe('control-guard run modes', () => {
   });
 
   it('repo-wide mode discovers files without an explicit list', () => {
-    write('apps/app/deep/nested.tsx', 'export const X = () => <select />;');
+    write('apps/web/deep/nested.tsx', 'export const X = () => <select />;');
     process.chdir(rootDir);
     const { violations } = runControlGuard();
     expect(
       violations.some(
         (v) =>
-          v.file === 'apps/app/deep/nested.tsx' && v.category === 'raw-select',
+          v.file === 'apps/web/deep/nested.tsx' && v.category === 'raw-select',
       ),
     ).toBe(true);
   });
 
   it('is green on a clean tree', () => {
     write(
-      'apps/app/clean.tsx',
+      'apps/web/clean.tsx',
       'import { Button } from "@ui/primitives/button";\nexport default function C(){return <Button>ok</Button>;}',
     );
     const { violations } = runControlGuard({
-      files: ['apps/app/clean.tsx'],
+      files: ['apps/web/clean.tsx'],
       rootDir,
     });
     expect(violations).toHaveLength(0);
@@ -389,8 +389,8 @@ describe('control-guard run modes', () => {
 
 describe('shared media boundary', () => {
   it.each([
-    'apps/app/src/Preview.tsx',
-    'apps/app/src/features/studio/Card.tsx',
+    'apps/web/src/Preview.tsx',
+    'apps/web/src/features/studio/Card.tsx',
     'packages/agent/src/components/Card.tsx',
     'packages/workflows/src/ui/nodes/Preview.tsx',
     'packages/ui/src/components/workflow-builder/Preview.tsx',
@@ -430,7 +430,7 @@ describe('shared media boundary', () => {
 describe('control-guard form spacing', () => {
   it('bans a raw form element', () => {
     const file = write(
-      'apps/app/src/features/RawForm.tsx',
+      'apps/web/src/features/RawForm.tsx',
       'export function RawForm(){return <form onSubmit={() => undefined}><span /></form>;}',
     );
     expect(categoriesFor(file)).toContain('raw-html');
@@ -438,7 +438,7 @@ describe('control-guard form spacing', () => {
 
   it('flags stack classes that re-own the rhythm on Form', () => {
     const file = write(
-      'apps/app/src/features/StackedForm.tsx',
+      'apps/web/src/features/StackedForm.tsx',
       'export function StackedForm(){return <Form className="max-w-xl space-y-6"><span /></Form>;}',
     );
     expect(categoriesFor(file)).toEqual(['form-spacing']);
@@ -446,7 +446,7 @@ describe('control-guard form spacing', () => {
 
   it('allows layout classes on a spacing="none" form', () => {
     const file = write(
-      'apps/app/src/features/LayoutForm.tsx',
+      'apps/web/src/features/LayoutForm.tsx',
       'export function LayoutForm(){return <Form spacing="none" className="flex items-center gap-1"><span /></Form>;}',
     );
     expect(categoriesFor(file)).toEqual([]);
@@ -459,7 +459,7 @@ describe('control-guard form spacing', () => {
     ['Label', 'sm:mb-2'],
   ])('flags a vertical margin on %s', (tag, marginClass) => {
     const file = write(
-      `apps/app/src/features/Margin${tag}.tsx`,
+      `apps/web/src/features/Margin${tag}.tsx`,
       `export function Margin(){return <${tag} className={cn('flex', '${marginClass}')} />;}`,
     );
     expect(categoriesFor(file)).toEqual(['form-spacing']);
@@ -467,7 +467,7 @@ describe('control-guard form spacing', () => {
 
   it('accepts spacing="none" written as an expression', () => {
     const file = write(
-      'apps/app/src/features/ExpressionSpacing.tsx',
+      'apps/web/src/features/ExpressionSpacing.tsx',
       'export function ExpressionSpacing(){return <Form spacing={\'none\'} className="flex gap-1"><span /></Form>;}',
     );
     expect(categoriesFor(file)).toEqual([]);
@@ -475,7 +475,7 @@ describe('control-guard form spacing', () => {
 
   it('flags margins behind arbitrary variant prefixes', () => {
     const file = write(
-      'apps/app/src/features/VariantMargin.tsx',
+      'apps/web/src/features/VariantMargin.tsx',
       'export function VariantMargin(){return <DialogFooter className="data-[state=open]:mt-2" />;}',
     );
     expect(categoriesFor(file)).toEqual(['form-spacing']);
@@ -483,7 +483,7 @@ describe('control-guard form spacing', () => {
 
   it('flags a margin on a direct child of a stack owner, through conditionals', () => {
     const file = write(
-      'apps/app/src/features/ChildMargin.tsx',
+      'apps/web/src/features/ChildMargin.tsx',
       [
         'export function ChildMargin({ error }: { error?: string }){',
         '  return <Form>',
@@ -500,7 +500,7 @@ describe('control-guard form spacing', () => {
 
   it('treats DialogContent as a stack owner and DialogHeader as margin-free', () => {
     const file = write(
-      'apps/app/src/features/DialogMargins.tsx',
+      'apps/web/src/features/DialogMargins.tsx',
       [
         'export function DialogMargins(){',
         '  return <DialogContent>',
@@ -517,7 +517,7 @@ describe('control-guard form spacing', () => {
 
   it('covers the compound Modal footer', () => {
     const file = write(
-      'apps/app/src/features/CompoundFooter.tsx',
+      'apps/web/src/features/CompoundFooter.tsx',
       'export function CompoundFooter(){return <Modal.Content><Modal.Footer className="mt-2" /></Modal.Content>;}',
     );
     expect(categoriesFor(file)).toEqual(['form-spacing']);
@@ -525,7 +525,7 @@ describe('control-guard form spacing', () => {
 
   it('leaves margins inside a nested container alone', () => {
     const file = write(
-      'apps/app/src/features/NestedMargin.tsx',
+      'apps/web/src/features/NestedMargin.tsx',
       'export function NestedMargin(){return <Modal><div className="flex flex-col"><p className="mt-1">hint</p></div></Modal>;}',
     );
     expect(categoriesFor(file)).toEqual([]);
@@ -533,7 +533,7 @@ describe('control-guard form spacing', () => {
 
   it('allows padding and alignment on ModalActions', () => {
     const file = write(
-      'apps/app/src/features/PaddedActions.tsx',
+      'apps/web/src/features/PaddedActions.tsx',
       'export function PaddedActions(){return <ModalActions className="border-t pt-6 justify-between" />;}',
     );
     expect(categoriesFor(file)).toEqual([]);

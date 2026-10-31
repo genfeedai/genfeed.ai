@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { describe, expect, it, vi } from 'vitest';
-import agentMessages from '../../../../apps/app/messages/en/agent.json';
+import agentMessages from '../../../../apps/web/messages/en/agent.json';
 import { SafeMarkdown } from './SafeMarkdown';
 
 vi.unmock('next-intl');

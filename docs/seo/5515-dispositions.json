@@ -30,7 +30,7 @@
       "status": "source_correction",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "The indexable developer landing page is now an explicit weekly sitemap entry with priority 0.8; verify production sitemap membership.",
-      "source": "apps/website/app/sitemap.ts"
+      "source": "apps/marketing/app/sitemap.ts"
     },
     {
       "fingerprint": "6a847d54727d543ece8784b4f1d7260a48a71fc377e224d6a7938b13aefe7400",
@@ -59,7 +59,7 @@
       "status": "source_correction",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
-      "source": "apps/website/app/(public)/agent/page.tsx"
+      "source": "apps/marketing/app/(public)/agent/page.tsx"
     },
     {
       "fingerprint": "870f6329a3fe6ea07e94cb1c538d7d4ac887291c226bd8e878e6b6ee2a9d3c25",
@@ -706,7 +706,7 @@
       "status": "source_correction",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
-      "source": "apps/website/app/(public)/agent/page.tsx"
+      "source": "apps/marketing/app/(public)/agent/page.tsx"
     },
     {
       "fingerprint": "df16b14db85872de8912683af720b3adf1ca6feb1cab3a7fed36a5e3be3b98de",
@@ -720,7 +720,7 @@
       "status": "source_correction",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
-      "source": "apps/website/app/(public)/models/page.tsx"
+      "source": "apps/marketing/app/(public)/models/page.tsx"
     },
     {
       "fingerprint": "96e7dce44c03007ea80e48c57e8e2b2510fc9cde5c68a2bb5ad4d9c650e66a30",
@@ -734,7 +734,7 @@
       "status": "source_correction",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
-      "source": "apps/website/app/(public)/sitemap/page.tsx"
+      "source": "apps/marketing/app/(public)/sitemap/page.tsx"
     },
     {
       "fingerprint": "fa062750c867096ca261ea08cb742848b0c50b82bf270bc0f4415e152b86dd81",
@@ -748,7 +748,7 @@
       "status": "source_correction",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
-      "source": "apps/website/app/(public)/about/page.tsx"
+      "source": "apps/marketing/app/(public)/about/page.tsx"
     },
     {
       "fingerprint": "ddb8c4fc28f654dd3e71273fcf9658dc2cfb9eb6d631bf8441ea95c064029a69",
@@ -762,7 +762,7 @@
       "status": "source_correction",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
-      "source": "apps/website/app/(public)/agent/page.tsx"
+      "source": "apps/marketing/app/(public)/agent/page.tsx"
     },
     {
       "fingerprint": "32ca0293b67b48c80f6e32700a7667c59e280a177738b5e382794947bf121e36",
@@ -944,7 +944,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "HTML directory: its useful content is the linked route inventory. Additional prose would duplicate navigation rather than help visitors find pages.",
-      "source": "apps/website/app/"
+      "source": "apps/marketing/app/"
     },
     {
       "fingerprint": "0801b2ae6dfbcb909cc30e3a47efd1e4d68e93c2a7314bc97cb1d12119aff96c",
@@ -958,7 +958,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "The Instagram article keeps its descriptive editorial title and site suffix. The observed 63-character title exceeds the heuristic by only 3; truncation would remove useful subject context. This exception applies only to this exact title.",
-      "source": "apps/website/app/"
+      "source": "apps/marketing/app/"
     },
     {
       "fingerprint": "d8669083f09e09bdca18cdf1c5f78f7f80dc1732830cacc7d18353f2917df6a3",
@@ -972,7 +972,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "The Linkedin article keeps its descriptive editorial title and site suffix. The observed 62-character title exceeds the heuristic by only 2; truncation would remove useful subject context. This exception applies only to this exact title.",
-      "source": "apps/website/app/"
+      "source": "apps/marketing/app/"
     },
     {
       "fingerprint": "437595f8bc80eaa21a09141b25cb266d1a3569e8a72a5109cb4430faf3c1879f",
@@ -986,7 +986,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "The Youtube article keeps its descriptive editorial title and site suffix. The observed 61-character title exceeds the heuristic by only 1; truncation would remove useful subject context. This exception applies only to this exact title.",
-      "source": "apps/website/app/"
+      "source": "apps/marketing/app/"
     },
     {
       "fingerprint": "671d866baba670f0b81af8e6469ace16c021d8023938b4d6342c2672ab535d0f",
@@ -1000,7 +1000,7 @@
       "status": "source_correction",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
-      "source": "apps/website/app/(public)/benchmark/page.tsx"
+      "source": "apps/marketing/app/(public)/benchmark/page.tsx"
     },
     {
       "fingerprint": "e8879c0dc1bd95c7e9e0a6b778082235b62f2e994cf79448e1d5b061ec814f4b",
@@ -1014,7 +1014,7 @@
       "status": "source_correction",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
-      "source": "apps/website/app/(public)/changelog/page.tsx"
+      "source": "apps/marketing/app/(public)/changelog/page.tsx"
     },
     {
       "fingerprint": "cd526111d6e314464348b0c95b425cf5ee766cedc46d467616e5859798717b74",
@@ -1028,7 +1028,7 @@
       "status": "source_correction",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
-      "source": "apps/website/app/(public)/tools/youtube-clipper/page.tsx"
+      "source": "apps/marketing/app/(public)/tools/youtube-clipper/page.tsx"
     },
     {
       "fingerprint": "6dde02c21d87cab3f86ec81607e263ee3b172ba9af02fb57ea69777c39295b59",
@@ -1042,7 +1042,7 @@
       "status": "source_correction",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
-      "source": "apps/website/app/(public)/tools/youtube-long-form/page.tsx"
+      "source": "apps/marketing/app/(public)/tools/youtube-long-form/page.tsx"
     },
     {
       "fingerprint": "ecc2ffc32a86a3ee838d2919c9fb3bb5cd1a5b1632eb86f9247e05316de83214",
@@ -1056,7 +1056,7 @@
       "status": "source_correction",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
-      "source": "apps/website/app/(public)/changelog/page.tsx"
+      "source": "apps/marketing/app/(public)/changelog/page.tsx"
     },
     {
       "fingerprint": "078e6a557cd2718e1130ecaa1e98eddf29ae5d8d3c1c40bee11206c8965133aa",
@@ -1070,7 +1070,7 @@
       "status": "source_correction",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
-      "source": "apps/website/app/(public)/tools/page.tsx"
+      "source": "apps/marketing/app/(public)/tools/page.tsx"
     },
     {
       "fingerprint": "2311ce9b63848b41adf7a4ab4d7adc255da35cda1430bad1d87510cf00d967e0",
@@ -1081,7 +1081,7 @@
       "status": "source_correction",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "The demo route is absent from current website source and sitemap; remove its remaining generated llms.txt link. Verify a direct 404/410 and no current discovery references on deployment; do not add content or a redirect.",
-      "source": "apps/website/scripts/generate-llms-txt.ts"
+      "source": "apps/marketing/scripts/generate-llms-txt.ts"
     },
     {
       "fingerprint": "b6a07d34e9b2f5f88531ac93cd1737cc69363febe66ac512ffa894e6319812cd",
@@ -1092,7 +1092,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "This comparison page uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
-      "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
+      "source": "apps/marketing/app/(public)/vs/[slug]/comparison-page.tsx"
     },
     {
       "fingerprint": "ffd19cdefa091cba7f3b3fc8a35b19442da4857dda62f9f695a454c0b9e4c6d8",
@@ -1103,7 +1103,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "This comparison page uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
-      "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
+      "source": "apps/marketing/app/(public)/vs/[slug]/comparison-page.tsx"
     },
     {
       "fingerprint": "1f4b0a8d5eac79b796ececdc732482cddc49825d5d42d7e57800ae55e19fed72",
@@ -1114,7 +1114,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "This comparison page uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
-      "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
+      "source": "apps/marketing/app/(public)/vs/[slug]/comparison-page.tsx"
     },
     {
       "fingerprint": "9a9dcba2a9dc4a32bbd7a119806084421f8a682ad12d1d2f2bd1a3d9565e34fc",
@@ -1125,7 +1125,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Community interest poll with one action and an explicit no-promise statement. Do not turn a short poll into speculative token or investment content.",
-      "source": "apps/website/app/"
+      "source": "apps/marketing/app/"
     },
     {
       "fingerprint": "b18e5d039e9b4ab4670083edc7853114ba9e8bc152d9254019ef87b95aa81f26",
@@ -1136,7 +1136,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Visual gallery grouped by reusable generated ingredients; the server-rendered introduction explains reuse, provenance, and how to inspect results. Word count does not measure the media gallery.",
-      "source": "apps/website/app/"
+      "source": "apps/marketing/app/"
     },
     {
       "fingerprint": "2e01285452af89619d4208eb9229c6cc67472b02ce7648ef43299ed6bc5076c6",
@@ -1147,7 +1147,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Directory of two interactive tools with distinct inputs, outputs, and links. The individual tools contain their own workflow instructions.",
-      "source": "apps/website/app/"
+      "source": "apps/marketing/app/"
     },
     {
       "fingerprint": "dfb90ea00362a41dceb1a27563433eb6d2330b56eeab08241cd1514968ce19db",
@@ -1158,7 +1158,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Interactive transcript and clip-preview tool. The input form and generated timestamped results are the primary content; do not add static filler to a task UI.",
-      "source": "apps/website/app/"
+      "source": "apps/marketing/app/"
     },
     {
       "fingerprint": "aefb7c0eaadb6aa539912367fc115a7d2410e9b8d4f955a9b40865989d55a988",
@@ -1169,7 +1169,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Interactive conversion tool with article/newsletter format choices and generated output. Its concise instructions cover the required input and workflow.",
-      "source": "apps/website/app/"
+      "source": "apps/marketing/app/"
     },
     {
       "fingerprint": "033a903d855540e68d974a358a0b494424d13026e8fba94c81507b019d9cb6fa",
@@ -1180,7 +1180,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "This comparison page uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
-      "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
+      "source": "apps/marketing/app/(public)/vs/[slug]/comparison-page.tsx"
     },
     {
       "fingerprint": "02bb8e719dccc0b7af2b02255098d07dd185fd5b7792564ec64f0eee3b0ea489",
@@ -1191,7 +1191,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "This comparison page uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
-      "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
+      "source": "apps/marketing/app/(public)/vs/[slug]/comparison-page.tsx"
     },
     {
       "fingerprint": "c092889201431d30fb12bd25f423974373e4b6638674bb7b96f68988e99df568",
@@ -1202,7 +1202,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "This comparison page uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
-      "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
+      "source": "apps/marketing/app/(public)/vs/[slug]/comparison-page.tsx"
     },
     {
       "fingerprint": "47acaa9e7af7da3bf6e8ec0490595481a9e4d624ef3234c83f20312674c772b4",
@@ -1213,7 +1213,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "This comparison page uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
-      "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
+      "source": "apps/marketing/app/(public)/vs/[slug]/comparison-page.tsx"
     },
     {
       "fingerprint": "b931ddb36051f14768d4143759ab6416719c21d7e20ffa53816f98fefbde3e64",
@@ -1224,7 +1224,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "This comparison page uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
-      "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
+      "source": "apps/marketing/app/(public)/vs/[slug]/comparison-page.tsx"
     },
     {
       "fingerprint": "557d130ec9e2900e5d43592891096d240452737891bfc8ee682c524864f97693",
@@ -1235,7 +1235,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "This comparison page uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
-      "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
+      "source": "apps/marketing/app/(public)/vs/[slug]/comparison-page.tsx"
     },
     {
       "fingerprint": "577fa3d33decb13d387b58568c071441288c88275a866c2ba9c04b11f8cda998",
@@ -1246,7 +1246,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "This comparison page uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
-      "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
+      "source": "apps/marketing/app/(public)/vs/[slug]/comparison-page.tsx"
     },
     {
       "fingerprint": "7415792d24fce2cf5538b8b90facfe72ce2c8818bd607a7a977b168b7e5dbbb5",
@@ -1257,7 +1257,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "This comparison page uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
-      "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
+      "source": "apps/marketing/app/(public)/vs/[slug]/comparison-page.tsx"
     },
     {
       "fingerprint": "b232abebd1a59f6b8741bfefe3e01c5757c4124536058ae763dfaedefef97ebd",
@@ -1268,7 +1268,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "This comparison page uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
-      "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
+      "source": "apps/marketing/app/(public)/vs/[slug]/comparison-page.tsx"
     },
     {
       "fingerprint": "7f13cf82577a2b81bf711d35d87503b6349c6effaea391f75ef299391962d631",
@@ -1282,7 +1282,7 @@
       "status": "source_correction",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
-      "source": "apps/website/app/(dev-landing)/developers/page.tsx"
+      "source": "apps/marketing/app/(dev-landing)/developers/page.tsx"
     },
     {
       "fingerprint": "228d62d4815108bc4201d14219bffe741bb8eb8a4154378b0ca09874fe178c74",
@@ -1293,7 +1293,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Unauthenticated app entry renders the login surface; preserve noindex and minimal sign-in UI. Acceptance requires this URL to remain non-indexable in the fresh production crawl.",
-      "source": "apps/app/app/ and app robots/meta/header policy",
+      "source": "apps/web/app/ and app robots/meta/header policy",
       "requires_nonindexable": true
     },
     {
@@ -1305,7 +1305,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Password recovery form; extra indexable marketing copy does not help account recovery. Acceptance requires this URL to remain non-indexable in the fresh production crawl.",
-      "source": "apps/app/app/ and app robots/meta/header policy",
+      "source": "apps/web/app/ and app robots/meta/header policy",
       "requires_nonindexable": true
     },
     {
@@ -1317,7 +1317,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Authentication method entry page; concise controls serve sign-in, not search acquisition. Acceptance requires this URL to remain non-indexable in the fresh production crawl.",
-      "source": "apps/app/app/ and app robots/meta/header policy",
+      "source": "apps/web/app/ and app robots/meta/header policy",
       "requires_nonindexable": true
     },
     {
@@ -1329,7 +1329,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Email magic-link request form; preserve the noindex boundary and focused instructions. Acceptance requires this URL to remain non-indexable in the fresh production crawl.",
-      "source": "apps/app/app/ and app robots/meta/header policy",
+      "source": "apps/web/app/ and app robots/meta/header policy",
       "requires_nonindexable": true
     },
     {
@@ -1341,7 +1341,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Password sign-in form; noindex and minimal authentication content are intentional. Acceptance requires this URL to remain non-indexable in the fresh production crawl.",
-      "source": "apps/app/app/ and app robots/meta/header policy",
+      "source": "apps/web/app/ and app robots/meta/header policy",
       "requires_nonindexable": true
     },
     {
@@ -1353,7 +1353,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Registration method entry page; preserve noindex and concise account-creation UI. Acceptance requires this URL to remain non-indexable in the fresh production crawl.",
-      "source": "apps/app/app/ and app robots/meta/header policy",
+      "source": "apps/web/app/ and app robots/meta/header policy",
       "requires_nonindexable": true
     },
     {
@@ -1365,7 +1365,7 @@
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
       "reason": "Email registration form; preserve noindex and focused magic-link instructions. Acceptance requires this URL to remain non-indexable in the fresh production crawl.",
-      "source": "apps/app/app/ and app robots/meta/header policy",
+      "source": "apps/web/app/ and app robots/meta/header policy",
       "requires_nonindexable": true
     },
     {

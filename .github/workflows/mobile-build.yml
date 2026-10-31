@@ -59,7 +59,7 @@ jobs:
         run: bunx turbo run build --filter=@genfeedai/mobile^...
 
       - name: Run mobile tests
-        run: bun run --cwd apps/mobile/app test
+        run: bun run --cwd apps/mobile test
 
   build:
     if: github.event_name == 'push' || inputs.build
@@ -69,7 +69,7 @@ jobs:
     needs: [test]
     defaults:
       run:
-        working-directory: apps/mobile/app
+        working-directory: apps/mobile
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

@@ -99,7 +99,7 @@ jobs:
             done
 
             # Next.js build artifacts
-            test -d apps/app/.next || { echo "❌ Next.js .next build missing"; exit 1; }
+            test -d apps/web/.next || { echo "❌ Next.js .next build missing"; exit 1; }
             echo "  ✅ Next.js .next present"
 
             # Runtime binaries baked into the base stage

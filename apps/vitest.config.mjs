@@ -539,7 +539,7 @@ export default defineConfig({
       },
       {
         find: 'server-only',
-        replacement: path.resolve(__dirname, './app/tests/server-only.stub.ts'),
+        replacement: path.resolve(__dirname, './web/tests/server-only.stub.ts'),
       },
       {
         find: /^@\//,

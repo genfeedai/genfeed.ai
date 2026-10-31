@@ -14,7 +14,7 @@ import { CreditTransactionCategory } from './credit.enum';
  * ICU `select` selectors must be valid identifiers — FormatJS rejects hyphens
  * (`EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT`). `CreditTransactionCategory.BYOK_USAGE`
  * stays `byok-usage` on the wire (Postgres / Prisma); this maps only the
- * message-facing selector consumed by `apps/app/messages/*` and the
+ * message-facing selector consumed by `apps/web/messages/*` and the
  * `formatActivityMessage` fallback below.
  */
 const BYOK_USAGE_SELECTOR = 'byok_usage';

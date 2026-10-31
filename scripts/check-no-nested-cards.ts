@@ -10,7 +10,7 @@ const logger = {
 };
 
 const INCLUDE_GLOBS = [
-  'apps/app/**/*.{tsx,jsx}',
+  'apps/web/**/*.{tsx,jsx}',
   'packages/ui/src/**/*.{tsx,jsx}',
 ];
 

@@ -53,7 +53,7 @@ const MEDIA_ALIAS_FILES = [
 ] as const;
 
 const RETIRED_FLEET_CONTROL_PATHS = [
-  'apps/app/app/(protected)/admin/fleet',
+  'apps/web/app/(protected)/admin/fleet',
   'apps/server/api/src/endpoints/admin/fleet',
   'apps/server/api/src/services/integrations/fleet',
   'apps/server/api/src/services/integrations/fleet',
@@ -62,8 +62,8 @@ const RETIRED_FLEET_CONTROL_PATHS = [
 ] as const;
 
 const FLEET_CONTROL_REFERENCE_FILES = [
-  'apps/app/packages/config/admin-menu-items.config.ts',
-  'apps/app/src/lib/workspace-shell/workspace-shell-registry.ts',
+  'apps/web/packages/config/admin-menu-items.config.ts',
+  'apps/web/src/lib/workspace-shell/workspace-shell-registry.ts',
   'packages/contracts/src/constants/api.constant.ts',
   'packages/contracts/src/constants/routes.constant.ts',
   'playwright/e2e/fixtures/api-mocks.fixture.ts',

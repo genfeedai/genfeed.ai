@@ -30,7 +30,7 @@ function createFixture(
         remotion: filesVersion,
       },
     }),
-    'apps/app/package.json': JSON.stringify({
+    'apps/web/package.json': JSON.stringify({
       dependencies: {
         '@remotion/player': filesVersion,
         remotion: filesVersion,

@@ -6,7 +6,7 @@ Violations that break builds, lose data, or violate architecture. For positive c
 
 Read BOTH this file and the project's own critical doc before coding.
 
-- Frontend (`apps/app`): NEVER run unscoped full builds at repo root. Use scoped Bun/Turbo app builds (for example `bunx turbo build --filter=@genfeedai/app`). See: `.agents/memory/system/CRITICAL-NEVER-DO.md`
+- Frontend (`apps/web`): NEVER run unscoped full builds at repo root. Use scoped Bun/Turbo app builds (for example `bunx turbo build --filter=@genfeedai/web`). See: `.agents/memory/system/CRITICAL-NEVER-DO.md`
 - Backend (`apps/server`): Scoped tests allowed (single file/module). NEVER unscoped `bun test`. Enforce `isDeleted: false`. See: `.agents/memory/system/CRITICAL-NEVER-DO.md`
 
 ---
@@ -38,8 +38,8 @@ as a one-line index, not restated in full.
 
 - **Organization scoping + `isDeleted: false` on every tenant-scoped query** — enforced by
   `bun run check:tenant-scope` (`scripts/architecture/check-tenant-scope.ts`).
-- **No inline interfaces** (props -> `packages/props/` or the owning `apps/app/src/features/<feature>/props/`, state/helpers -> `packages/contracts/src/interfaces/`)
-  — enforced for `apps/app/app/**` by `bun run check:inline-types`.
+- **No inline interfaces** (props -> `packages/props/` or the owning `apps/web/src/features/<feature>/props/`, state/helpers -> `packages/contracts/src/interfaces/`)
+  — enforced for `apps/web/app/**` by `bun run check:inline-types`.
 - **Serializers live only in `packages/serializers/`, never in API modules; never return a raw DB record**
   — see `context/system-patterns.md` (Serializer triplet); cross-checked by `bun run check:serializer-drift`.
 - **Soft delete is `isDeleted: boolean`; there is no `deletedAt`.**

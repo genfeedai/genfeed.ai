@@ -149,7 +149,7 @@ Implemented by #3030.
 
 `docs/` has no privacy-facing contributor or product page. The public
 marketing legal page is application copy at
-`apps/website/app/(public)/privacy/` (https://genfeed.ai/privacy). This issue
+`apps/marketing/app/(public)/privacy/` (https://genfeed.ai/privacy). This issue
 does not edit application or marketing code. A later legal-copy update may
 add a one-line "we do not operate a first-party prompt-reading or
 conversation-review surface" statement there; this ADR is the canonical

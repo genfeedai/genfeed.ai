@@ -3,7 +3,7 @@ import path from 'node:path';
 
 const REMOTION_MANIFESTS = [
   'apps/server/files/package.json',
-  'apps/app/package.json',
+  'apps/web/package.json',
   'packages/props/package.json',
 ];
 const RENDERER_CONTRACT =

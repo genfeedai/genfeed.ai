@@ -5,7 +5,7 @@ export type CoverageWorkspaceExclusion = {
 };
 
 export const COVERAGE_WORKSPACES = [
-  'apps/app',
+  'apps/web',
   'apps/server/api',
   'packages/agent',
   'packages/client',
@@ -26,7 +26,7 @@ export const COVERAGE_WORKSPACES = [
 export const COVERAGE_WORKSPACE_EXCLUSIONS: CoverageWorkspaceExclusion[] = [];
 
 // Bun-runner surfaces stay out of this vitest inventory on purpose (#2687).
-// Measure them with `bun run test:cov` in apps/desktop/app and
-// apps/extensions/ide/app rather than migrating those suites to Vitest.
+// Measure them with `bun run test:cov` in apps/desktop rather than
+// migrating those suites to Vitest.
 
 export const COVERAGE_ROOT_SCRIPTS = ['test:e2e:coverage'] as const;

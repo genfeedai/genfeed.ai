@@ -9,8 +9,8 @@ import { NextIntlClientProvider } from 'next-intl';
 import { afterEach, expect, it, vi } from 'vitest';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
-import agentMessages from '../../../../apps/app/messages/en/agent.json';
-import uiMessages from '../../../../apps/app/messages/en/ui.json';
+import agentMessages from '../../../../apps/web/messages/en/agent.json';
+import uiMessages from '../../../../apps/web/messages/en/ui.json';
 
 vi.mock('@genfeedai/helpers', async () => {
   const { cn } = await import('@genfeedai/helpers/formatting/cn/cn.util');

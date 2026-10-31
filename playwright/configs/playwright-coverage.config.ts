@@ -27,8 +27,8 @@ import baseConfig from './playwright.config';
  * only) and only when E2E_COVERAGE=1, which the `test:e2e:coverage` script sets.
  *
  * Source maps: in local `dev` mode Next emits them by default. For a production
- * (`next start`) run set E2E_COVERAGE=1 so apps/app enables
- * productionBrowserSourceMaps (see apps/app/next.config.ts).
+ * (`next start`) run set E2E_COVERAGE=1 so apps/web enables
+ * productionBrowserSourceMaps (see apps/web/next.config.ts).
  */
 
 export default defineConfig({
@@ -53,7 +53,7 @@ export default defineConfig({
         coverage: {
           // Only consider first-party app + shared package source.
           sourceFilter: (sourcePath: string): boolean =>
-            /(?:apps\/app\/|packages\/)(?!.*node_modules)/.test(sourcePath) &&
+            /(?:apps\/web\/|packages\/)(?!.*node_modules)/.test(sourcePath) &&
             !sourcePath.includes('.next/'),
           // Drop framework/runtime bundles we don't author.
           entryFilter: (entry: { url: string }): boolean =>

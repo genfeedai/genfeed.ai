@@ -187,26 +187,11 @@ test('rejects a skipped job the plan marked applicable', () => {
   }
 });
 
-test('labels a paused surface as dormant rather than merely out of scope', () => {
-  const result = evaluate();
-
-  assert.equal(result.passed, true);
-  assert.equal(
-    classificationOf(result, 'IDE extension tests'),
-    'dormant (paused surface)',
-  );
-});
-
-test('names paused surfaces in the summary of an otherwise passing run', () => {
+test('reports an otherwise passing run as passed', () => {
   const result = runGateCli();
 
   assert.equal(result.status, 0);
   assert.match(result.stdout, /All applicable test and build jobs passed\./);
-  assert.match(
-    result.stdout,
-    /Not covered by this run — paused surfaces: IDE extension tests\./,
-  );
-  assert.match(result.stdout, /stay skipped even with the `full-suite` label/);
 });
 
 test('fails closed when an upstream result is missing', () => {
@@ -422,7 +407,7 @@ test('keeps the workflow contract stable', () => {
 test('browser-planned workspace failures, cancellations and skips fail the aggregate gate', () => {
   const plan = createPrTestPlan({
     base: 'base-sha',
-    changedFiles: ['apps/extensions/browser/app/package.json'],
+    changedFiles: ['apps/extension/package.json'],
   });
   assert.deepEqual(
     plan.workspaceMatrix.include.map(({ group }) => group),
@@ -438,7 +423,7 @@ test('browser-planned workspace failures, cancellations and skips fail the aggre
   }
 });
 
-test('unrelated inapplicable workspace skips remain distinct from IDE dormancy', () => {
+test('unrelated inapplicable workspace skips are not applicable', () => {
   const plan = createPrTestPlan({
     base: 'base-sha',
     changedFiles: ['docs/testing.md'],
@@ -449,10 +434,6 @@ test('unrelated inapplicable workspace skips remain distinct from IDE dormancy',
   });
   assert.equal(result.passed, true);
   assert.equal(classificationOf(result, 'Workspace tests'), 'not applicable');
-  assert.deepEqual(
-    result.rows.filter(({ dormant }) => dormant).map(({ name }) => name),
-    ['IDE extension tests'],
-  );
   assert.equal(classificationOf(result, 'Extension tests'), undefined);
 });
 

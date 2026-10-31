@@ -17,8 +17,8 @@ import {
  */
 
 const INCLUDE_GLOBS = [
-  'apps/app/app/**/*.tsx',
-  'apps/app/src/features/**/*.tsx',
+  'apps/web/app/**/*.tsx',
+  'apps/web/src/features/**/*.tsx',
 ];
 
 const EXCLUDE_GLOBS = [
@@ -29,8 +29,8 @@ const EXCLUDE_GLOBS = [
   '**/.next/**',
   // Feature folders that predate the move out of packages/pages (#8684) and
   // were never scanned; they join once their existing findings are fixed.
-  'apps/app/src/features/settings/**',
-  'apps/app/src/features/workflows/**',
+  'apps/web/src/features/settings/**',
+  'apps/web/src/features/workflows/**',
 ];
 
 const BAR_COMPONENTS = new Set([

@@ -43,15 +43,15 @@ test('uses one pool for light scope, dedupes, validates names and handles empty 
     buildSpecTypecheckMatrix({ workspaces: ['api', 'api'] }).include,
     [{ name: 'pool-1', workspaces: 'api' }],
   );
-  assert.deepEqual(buildSpecTypecheckMatrix({ workspaces: ['app'] }).include, [
-    { name: 'pool-1', workspaces: 'app' },
+  assert.deepEqual(buildSpecTypecheckMatrix({ workspaces: ['web'] }).include, [
+    { name: 'pool-1', workspaces: 'web' },
   ]);
   assert.throws(
     () => buildSpecTypecheckMatrix({ workspaces: ['api;exit'] }),
     /Invalid/,
   );
   const heavy = buildSpecTypecheckMatrix({
-    workspaces: ['future', 'app'],
+    workspaces: ['future', 'web'],
     soloWorkspaces: ['future'],
   });
   assert.equal(heavy.include.length, 2);

@@ -75,7 +75,7 @@ describe('hosted SaaS Vercel deployment contract', () => {
   });
 
   test('lets the Sentry build plugin see its token through turbo strict env mode', async () => {
-    for (const workspace of ['app', 'website']) {
+    for (const workspace of ['web', 'marketing']) {
       const turbo = await Bun.file(
         `../../../apps/${workspace}/turbo.json`,
       ).text();

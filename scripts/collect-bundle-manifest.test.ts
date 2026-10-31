@@ -32,16 +32,16 @@ describe('parseClientReferenceManifest', () => {
 globalThis.__RSC_MANIFEST["/(public)/about/page"] = ${JSON.stringify({
       clientModules: {},
       entryJSFiles: {
-        '[project]/apps/website/app/(public)/about/page': [
+        '[project]/apps/marketing/app/(public)/about/page': [
           'static/chunks/shared.js',
           'static/chunks/about.js',
         ],
-        '[project]/apps/website/app/global-error': [
+        '[project]/apps/marketing/app/global-error': [
           'static/chunks/shared.js',
           'static/chunks/global-error.js',
         ],
-        '[project]/apps/website/app/layout': ['static/chunks/shared.js'],
-        '[project]/apps/website/app/not-found': ['static/chunks/not-found.js'],
+        '[project]/apps/marketing/app/layout': ['static/chunks/shared.js'],
+        '[project]/apps/marketing/app/not-found': ['static/chunks/not-found.js'],
       },
     })};`;
 

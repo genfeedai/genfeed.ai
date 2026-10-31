@@ -24,7 +24,7 @@ bun run dev:setup                                       # once per machine (Port
 bunx turbo run build --filter=@genfeedai/serializers   # once per fresh checkout or worktree
 bun run env:check                                       # must print "Env check passed."
 bun run dev:backend:min                                 # api + files + notifications (background)
-bun run dev:app                                         # app (background)
+bun run dev:web                                         # app (background)
 ```
 
 - Postgres and Redis must already be running (`pg_isready`, `redis-cli ping` → `PONG`).

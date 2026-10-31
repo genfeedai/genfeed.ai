@@ -18,7 +18,7 @@ import { readRepo, readSourceOf } from './launch-path-source.util';
  */
 // Declarations may live in api or server after the shared-server extraction.
 const API_SRC = 'apps/server';
-const APP = 'apps/app';
+const APP = 'apps/web';
 const CONTRACTS_SRC = 'packages/contracts/src';
 const SERVER_SRC = 'apps/server/api/src';
 const WORKERS_SRC = 'apps/server/workers/src';
@@ -298,8 +298,8 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('does not map @genfeedai/contracts onto the enums file in Next turbopack', () => {
-    const appNext = readRepo('apps/app/next.config.ts');
-    const websiteNext = readRepo('apps/website/next.config.ts');
+    const appNext = readRepo('apps/web/next.config.ts');
+    const websiteNext = readRepo('apps/marketing/next.config.ts');
     expect(appNext).toContain(
       "'@genfeedai/contracts': '../../packages/contracts/src/index.ts'",
     );

@@ -8,8 +8,9 @@ full inventory; this file records only what `ls` cannot tell you.
 | path | what |
 |---|---|
 | `apps/server/*` | backend workspaces with a `package.json` (api, workers, files, mcp, notifications, discord, slack, telegram) |
-| `apps/mobile/app` | Expo workspace (v2). The parent `apps/mobile/` is not a workspace. |
-| `apps/extensions/{browser,ide}/app` | extension workspaces (v2). The parent `apps/extensions/` is not a workspace. |
+| `apps/web` | Next.js product app (`@genfeedai/web`, app.genfeed.ai) |
+| `apps/marketing` | Next.js marketing site (`@genfeedai/marketing`, genfeed.ai) |
+| `apps/desktop`, `apps/mobile`, `apps/extension` | Electron, Expo and browser-extension clients. Apps are named by client, not by subdomain. |
 | `.agents/` | agent memory, sessions, build skills |
 
 ## Non-obvious facts
@@ -36,8 +37,8 @@ full inventory; this file records only what `ls` cannot tell you.
 
 - API domain services `apps/server/api/src/services/{name}/` (30+); integrations at
   `.../integrations/{platform}/` (48+)
-- Admin routes live in `apps/app/app/(protected)/admin`
-- App-only feature code lives in `apps/app/src/features/<feature>/` (see system-patterns → Feature folders)
+- Admin routes live in `apps/web/app/(protected)/admin`
+- App-only feature code lives in `apps/web/src/features/<feature>/` (see system-patterns → Feature folders)
 - Packages export through `packages/{name}/src/index.ts`
 - Serializers: `packages/serializers/src/{attributes,configs,server}/{category}/`
 - Tests colocated as `*.test.ts` / `*.spec.ts`

@@ -93,14 +93,8 @@ export const STATIC_COLLECTORS = [
   },
   {
     id: 'desktop-bun-test',
-    root: 'apps/desktop/app',
+    root: 'apps/desktop',
     includes: ['src/**/*.test.ts'],
-  },
-  {
-    id: 'ide-extension-bun-test',
-    root: 'apps/extensions/ide/app',
-    includes: ['src/**/*.test.ts'],
-    excludes: ['src/**/*.e2e.test.ts'],
   },
 ];
 

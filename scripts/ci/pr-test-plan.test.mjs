@@ -33,7 +33,7 @@ test('classifies direct and shared pull-request surfaces conservatively', () => 
     forceFull: false,
   });
   assert.deepEqual(
-    classifyChangedFiles(['apps/app/src/components/example.tsx']),
+    classifyChangedFiles(['apps/web/src/components/example.tsx']),
     {
       api: false,
       app: true,
@@ -81,7 +81,7 @@ test('classifies docs, workflows, and CI scripts as out of the product test matr
 test('escalates only lockfile, turbo, vitest config, bun setup, and the planner', () => {
   for (const file of [
     '.github/actions/setup-bun-env/action.yml',
-    'apps/app/vitest.config.mts',
+    'apps/web/vitest.config.mts',
     'apps/server/api/vitest.config.ts',
     'bun.lock',
     'scripts/ci/pr-test-plan.mjs',
@@ -101,7 +101,7 @@ test('includes deleted paths in change classification input', async () => {
   const calls = [];
   const files = await readChangedFiles('base-sha', async (command, args) => {
     calls.push({ args, command });
-    return 'apps/app/deleted.test.ts\0packages/changed.ts\0';
+    return 'apps/web/deleted.test.ts\0packages/changed.ts\0';
   });
 
   assert.deepEqual(calls, [
@@ -117,7 +117,7 @@ test('includes deleted paths in change classification input', async () => {
       ],
     },
   ]);
-  assert.deepEqual(files, ['apps/app/deleted.test.ts', 'packages/changed.ts']);
+  assert.deepEqual(files, ['apps/web/deleted.test.ts', 'packages/changed.ts']);
 });
 
 test('selects bounded adaptive shard counts', () => {
@@ -197,13 +197,13 @@ test('deduplicates Vitest file manifests and rejects malformed output', () => {
   assert.deepEqual(
     parseVitestList(
       JSON.stringify([
-        { file: '/repo/apps/app/a.test.ts', projectName: 'app' },
-        { file: '/repo/apps/app/a.test.ts', projectName: 'app' },
-        { file: '/repo/apps/app/b.test.ts', projectName: 'app' },
+        { file: '/repo/apps/web/a.test.ts', projectName: 'app' },
+        { file: '/repo/apps/web/a.test.ts', projectName: 'app' },
+        { file: '/repo/apps/web/b.test.ts', projectName: 'app' },
       ]),
       '/repo',
     ),
-    ['apps/app/a.test.ts', 'apps/app/b.test.ts'],
+    ['apps/web/a.test.ts', 'apps/web/b.test.ts'],
   );
 
   assert.throws(
@@ -243,10 +243,9 @@ test('creates a fail-closed plan with explicit applicability', () => {
     apiTests: Array.from({ length: 251 }, (_, index) => `api-${index}.test.ts`),
     turboTasks: {
       'browser-extension': [],
-      'ide-extension': [],
       packages: ['@genfeedai/contracts#test'],
       server: [],
-      web: ['@genfeedai/website#test'],
+      web: ['@genfeedai/marketing#test'],
     },
   });
 
@@ -258,7 +257,6 @@ test('creates a fail-closed plan with explicit applicability', () => {
   assert.equal(plan.apiTests.shards, 4);
   assert.deepEqual(plan.workspaceGroups, {
     'browser-extension': false,
-    'ide-extension': false,
     packages: true,
     server: false,
     web: true,
@@ -280,20 +278,18 @@ test('an empty affected plan runs no workspace or test shards', () => {
   assert.deepEqual(plan.workspaceMatrix, { include: [] });
 });
 
-test('master-heavy plans activate browser tests and keep IDE dormant', () => {
+test('master-heavy plans activate browser tests', () => {
   const plan = createPrTestPlan({
     base: 'base-sha',
     changedFiles: [],
     forceAllSurfaces: true,
     runHeavy: true,
     turboTasks: {
-      'browser-extension': ['@genfeedai/extension-browser#test'],
-      'ide-extension': ['extension-ide#test'],
+      'browser-extension': ['@genfeedai/extension#test'],
     },
   });
 
   assert.equal(plan.workspaceGroups['browser-extension'], true);
-  assert.equal(plan.workspaceGroups['ide-extension'], false);
 });
 
 test('keeps the workflow wired to the planner matrices and outputs', () => {
@@ -364,9 +360,9 @@ test('keeps the workflow wired to the planner matrices and outputs', () => {
 
 test('direct browser source and config changes fail closed with an empty task graph', () => {
   for (const file of [
-    'apps/extensions/browser/app/components/sidebar.tsx',
-    'apps/extensions/browser/app/package.json',
-    'apps/extensions/browser/app/scripts/build-icon.mjs',
+    'apps/extension/components/sidebar.tsx',
+    'apps/extension/package.json',
+    'apps/extension/scripts/build-icon.mjs',
   ]) {
     const plan = createPrTestPlan({ base: 'base-sha', changedFiles: [file] });
     assert.deepEqual(plan.workspaceMatrix.include, [
@@ -374,10 +370,9 @@ test('direct browser source and config changes fail closed with an empty task gr
         group: 'browser-extension',
         name: 'browser-extension',
         ui_shard: '',
-        filters: '--filter=@genfeedai/extension-browser',
+        filters: '--filter=@genfeedai/extension',
       },
     ]);
-    assert.equal(plan.workspaceGroups['ide-extension'], false);
   }
 });
 
@@ -385,29 +380,25 @@ test('affected browser dependencies activate only the browser workspace leg', ()
   const plan = createPrTestPlan({
     base: 'base-sha',
     changedFiles: ['packages/contracts/src/interfaces/example.ts'],
-    turboTasks: { 'browser-extension': ['@genfeedai/extension-browser#test'] },
+    turboTasks: { 'browser-extension': ['@genfeedai/extension#test'] },
   });
   assert.deepEqual(plan.workspaceMatrix.include, [
     {
       group: 'browser-extension',
       name: 'browser-extension',
       ui_shard: '',
-      filters: '--filter=@genfeedai/extension-browser',
+      filters: '--filter=@genfeedai/extension',
     },
   ]);
 });
 
-test('IDE-only changes and unrelated docs do not activate extension tests', () => {
-  for (const file of ['apps/extensions/ide/package.json', 'docs/testing.md']) {
-    const plan = createPrTestPlan({
-      base: 'base-sha',
-      changedFiles: [file],
-      turboTasks: { 'ide-extension': ['extension-ide#test'] },
-    });
-    assert.deepEqual(plan.workspaceMatrix.include, []);
-    assert.equal(plan.workspaceGroups['browser-extension'], false);
-    assert.equal(plan.workspaceGroups['ide-extension'], false);
-  }
+test('unrelated docs do not activate extension tests', () => {
+  const plan = createPrTestPlan({
+    base: 'base-sha',
+    changedFiles: ['docs/testing.md'],
+  });
+  assert.deepEqual(plan.workspaceMatrix.include, []);
+  assert.equal(plan.workspaceGroups['browser-extension'], false);
 });
 
 test('existing workspace groups retain affected-task applicability and declared order', () => {
@@ -415,10 +406,10 @@ test('existing workspace groups retain affected-task applicability and declared 
     base: 'base-sha',
     changedFiles: ['docs/testing.md'],
     turboTasks: {
-      web: ['@genfeedai/website#test'],
+      web: ['@genfeedai/marketing#test'],
       server: ['@genfeedai/worker#test'],
       packages: ['@genfeedai/contracts#test'],
-      'browser-extension': ['@genfeedai/extension-browser#test'],
+      'browser-extension': ['@genfeedai/extension#test'],
     },
   });
   assert.deepEqual(
@@ -524,7 +515,7 @@ test('plans actual MCP authorization independently of unit-file discovery', () =
     'apps/server/mcp/src/main.ts',
     'apps/server/api/src/auth/auth.module.ts',
     'packages/prisma/prisma/schema.prisma',
-    'apps/app/app/oauth/consent/page.tsx',
+    'apps/web/app/oauth/consent/page.tsx',
     'scripts/ci/mcp-auth-runtime.mjs',
     '.github/workflows/ci.yml',
     '.github/actions/setup-bun-env/action.yml',

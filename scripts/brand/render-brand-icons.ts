@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
 
-export const CANONICAL_LOGO_PATH = 'apps/app/public/logo.svg';
+export const CANONICAL_LOGO_PATH = 'apps/web/public/logo.svg';
 
 export const OPAQUE_BLACK = { r: 0, g: 0, b: 0, alpha: 1 } as const;
 export const TRANSPARENT = { r: 0, g: 0, b: 0, alpha: 0 } as const;
@@ -11,20 +11,19 @@ export const MARK_SOURCE_FILES = [
   CANONICAL_LOGO_PATH,
   'packages/helpers/src/ui/icons/brands/genfeed-icon.ts',
   'packages/ui/src/primitives/brand-mark.tsx',
-  'apps/website/app/(content)/articles/[slug]/og/brand-mark.tsx',
-  'apps/desktop/app/src/main/boot-screen.ts',
-  'apps/extensions/ide/app/assets/icon.svg',
+  'apps/marketing/app/(content)/articles/[slug]/og/brand-mark.tsx',
+  'apps/desktop/src/main/boot-screen.ts',
 ] as const;
 
 /** Per-app public copies of the animated loader. BrandLoader is the shared one. */
 export const FORBIDDEN_PUBLIC_LOADER_FILES = [
-  'apps/app/public/loading.svg',
-  'apps/website/public/loading.svg',
+  'apps/web/public/loading.svg',
+  'apps/marketing/public/loading.svg',
 ] as const;
 
 /** Expo web reads `favicon.png`. The `.ico` was a leftover copy of the Next favicon. */
 export const FORBIDDEN_MOBILE_FAVICON_ICO =
-  'apps/mobile/app/assets/images/favicon.ico';
+  'apps/mobile/assets/images/favicon.ico';
 
 export type BrandRasterId =
   | 'mobileAppIcon'
@@ -116,23 +115,21 @@ export const BRAND_RASTER_SPECS: Record<BrandRasterId, BrandRasterSpec> = {
 };
 
 export const BRAND_RASTER_FILES: Record<BrandRasterId, string> = {
-  extensionToolbar: 'apps/extensions/browser/app/assets/icon.png',
-  mobileAdaptiveIcon: 'apps/mobile/app/assets/images/adaptive-icon.png',
-  mobileAppIcon: 'apps/mobile/app/assets/images/icon.png',
-  mobileFavicon: 'apps/mobile/app/assets/images/favicon.png',
-  mobileNotification: 'apps/mobile/app/assets/images/notification-icon.png',
-  mobileSplashDark: 'apps/mobile/app/assets/images/splash-icon-dark.png',
-  mobileSplashLight: 'apps/mobile/app/assets/images/splash-icon.png',
-  pwaMaskable192: 'apps/app/public/assets/pwa/app/icon-maskable-192x192.png',
-  pwaMaskable512: 'apps/app/public/assets/pwa/app/icon-maskable-512x512.png',
+  extensionToolbar: 'apps/extension/assets/icon.png',
+  mobileAdaptiveIcon: 'apps/mobile/assets/images/adaptive-icon.png',
+  mobileAppIcon: 'apps/mobile/assets/images/icon.png',
+  mobileFavicon: 'apps/mobile/assets/images/favicon.png',
+  mobileNotification: 'apps/mobile/assets/images/notification-icon.png',
+  mobileSplashDark: 'apps/mobile/assets/images/splash-icon-dark.png',
+  mobileSplashLight: 'apps/mobile/assets/images/splash-icon.png',
+  pwaMaskable192: 'apps/web/public/assets/pwa/app/icon-maskable-192x192.png',
+  pwaMaskable512: 'apps/web/public/assets/pwa/app/icon-maskable-512x512.png',
 };
 
 export const PWA_ANY_ICON_FILES = {
-  192: 'apps/app/public/assets/pwa/app/icon-192x192.png',
-  512: 'apps/app/public/assets/pwa/app/icon-512x512.png',
+  192: 'apps/web/public/assets/pwa/app/icon-192x192.png',
+  512: 'apps/web/public/assets/pwa/app/icon-512x512.png',
 } as const;
-
-export const IDE_ACTIVITY_BAR_SVG = 'apps/extensions/ide/app/assets/icon.svg';
 
 export function extractMarkPath(source: string): string {
   const match = source.match(/M2360 4944[^"']+/);
@@ -155,10 +152,6 @@ export function svgWithFill(svg: string, fill: string): string {
 
 export function svgAtSize(svg: string, px: number): string {
   return svg.replace('<svg ', `<svg width="${px}" height="${px}" `);
-}
-
-export function currentColorMarkSvg(sourceSvg: string): string {
-  return `${svgWithFill(sourceSvg, 'currentColor').trimEnd()}\n`;
 }
 
 export async function rasterizeMark(options: {

@@ -10,12 +10,12 @@ runs:
       env:
         GITHUB_TOKEN: ${{ github.token }}
       shell: bash
-      run: bunx turbo run build --filter=@genfeedai/website
+      run: bunx turbo run build --filter=@genfeedai/marketing
 
     - name: Start website
       shell: bash
       run: |
-        cd apps/website
+        cd apps/marketing
         PORT=3000 bun run start &
         echo "SERVER_PID=$!" >> "$GITHUB_ENV"
         for _ in $(seq 1 60); do
@@ -30,7 +30,7 @@ runs:
 
     - name: Check internal links + orphan pages
       shell: bash
-      run: cd apps/website && bun run check:orphans
+      run: cd apps/marketing && bun run check:orphans
       env:
         BASE_URL: http://localhost:3000
 
@@ -40,7 +40,7 @@ runs:
     # that, drop SEO_SOFT and the ratchet fails on any new error.
     - name: Audit on-page SEO
       shell: bash
-      run: cd apps/website && bun run check:seo
+      run: cd apps/marketing && bun run check:seo
       env:
         BASE_URL: http://localhost:3000
         SEO_SOFT: '1'

@@ -49,13 +49,13 @@ function runScript(
   temporaryDirectories.push(directory);
   const log = path.join(directory, 'calls.jsonl');
   if (isolated)
-    mkdirSync(path.join(directory, 'apps/app'), { recursive: true });
+    mkdirSync(path.join(directory, 'apps/web'), { recursive: true });
   const stub = `#!/usr/bin/env node
 const fs = require('node:fs');
 const path = require('node:path');
 const args = process.argv.slice(2);
 fs.appendFileSync(process.env.CALL_LOG, JSON.stringify({ bin: path.basename(process.argv[1]), args }) + '\\n');
-if (process.env.FAIL_UPSTREAM === '1' && args.includes('--filter=@genfeedai/app^...')) process.exit(17);
+if (process.env.FAIL_UPSTREAM === '1' && args.includes('--filter=@genfeedai/web^...')) process.exit(17);
 if (process.env.FAIL_INPUT === '1' && args.includes('--finalize-input')) { fs.writeFileSync(args[2], JSON.stringify({ status: 'failed' })); process.exit(29); }
 if (process.env.FAIL_RECEIPT === '1' && args.includes('packages/services/scripts/request-serializer-build-receipt.ts')) process.exit(19);
 if (process.env.ISOLATED === '1' && args.includes('packages/services/scripts/request-serializer-build-receipt.ts')) {
@@ -181,7 +181,7 @@ describe('pinned serializer bundle workflow', () => {
             'turbo',
             'run',
             'build',
-            '--filter=@genfeedai/app^...',
+            '--filter=@genfeedai/web^...',
             '--concurrency=1',
           ],
         },
@@ -193,7 +193,7 @@ describe('pinned serializer bundle workflow', () => {
             '.bundle-size/request-serializers-build.json',
           ],
         },
-        { bin: 'bun', args: ['run', '--cwd', 'apps/app', 'analyze'] },
+        { bin: 'bun', args: ['run', '--cwd', 'apps/web', 'analyze'] },
       ],
     });
   });
@@ -204,7 +204,7 @@ describe('pinned serializer bundle workflow', () => {
       calls: [
         {
           bin: 'bunx',
-          args: ['turbo', 'run', 'build', '--filter=@genfeedai/website'],
+          args: ['turbo', 'run', 'build', '--filter=@genfeedai/marketing'],
         },
       ],
     });
@@ -217,7 +217,7 @@ describe('pinned serializer bundle workflow', () => {
             'turbo',
             'run',
             'build',
-            '--filter=@genfeedai/app^...',
+            '--filter=@genfeedai/web^...',
             '--concurrency=1',
           ],
         },
@@ -392,13 +392,13 @@ describe('pinned serializer bundle workflow', () => {
 
   it('matches the exact package resource relative to the native app-project loader context', () => {
     const config = readFileSync(
-      path.join(root, 'apps/app/next.config.ts'),
+      path.join(root, 'apps/web/next.config.ts'),
       'utf8',
     );
     const rule = config.match(/'([^']*request-runtime\.bundle\.js)':/);
     expect(rule?.[1]).toBe(
       path.relative(
-        path.join(root, 'apps/app'),
+        path.join(root, 'apps/web'),
         path.join(root, 'packages/serializers/dist/request-runtime.bundle.js'),
       ),
     );
@@ -427,7 +427,7 @@ describe('pinned serializer bundle workflow', () => {
       'GENFEED_REQUEST_SERIALIZER_PROOF=1 NODE_OPTIONS=',
     );
     const config = readFileSync(
-      path.join(root, 'apps/app/next.config.ts'),
+      path.join(root, 'apps/web/next.config.ts'),
       'utf8',
     );
     const rule = config
@@ -458,7 +458,7 @@ describe('pinned serializer bundle workflow', () => {
     expect(result.calls).toHaveLength(2);
     expect(result.calls).not.toContainEqual({
       bin: 'bun',
-      args: ['run', '--cwd', 'apps/app', 'analyze'],
+      args: ['run', '--cwd', 'apps/web', 'analyze'],
     });
   });
 
@@ -486,7 +486,7 @@ describe('pinned serializer bundle workflow', () => {
             '--app',
             'app',
             '--dist',
-            'apps/app/.next',
+            'apps/web/.next',
             '--out',
             '.bundle-size/head.json',
             '--include-chunks',
@@ -505,7 +505,7 @@ describe('pinned serializer bundle workflow', () => {
             '--app',
             'website',
             '--dist',
-            'apps/website/.next',
+            'apps/marketing/.next',
             '--out',
             '.bundle-size/head.json',
           ],

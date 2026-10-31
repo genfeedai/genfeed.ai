@@ -77,11 +77,11 @@ export default defineConfig({
       {
         // The real Better Auth React client schedules a delayed nanostores
         // cleanup that touches `window` after jsdom teardown, so resolve it to
-        // the same timer-free stub as apps/app.
+        // the same timer-free stub as apps/web.
         find: /^better-auth\/react$/,
         replacement: path.resolve(
           __dirname,
-          '../../apps/app/tests/better-auth-react.stub.ts',
+          '../../apps/web/tests/better-auth-react.stub.ts',
         ),
       },
       {

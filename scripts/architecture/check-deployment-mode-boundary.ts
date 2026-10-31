@@ -57,7 +57,7 @@ const RAW_ENV_CHECKS: readonly (readonly [RegExp, RawEnvBoundaryReason])[] = [
  * other two, so `license-server.ts` cannot quietly grow a raw auth or mode read.
  */
 const RAW_ENV_ALLOWLIST = new Map<string, ReadonlySet<RawEnvBoundaryReason>>([
-  ['apps/app/next.config.ts', new Set(['raw-mode-env'])],
+  ['apps/web/next.config.ts', new Set(['raw-mode-env'])],
   ['packages/auth-client/src/config.ts', new Set(['raw-auth-env'])],
   ['packages/config/src/deployment.ts', new Set(['raw-mode-env'])],
   ['packages/config/src/license-server.ts', new Set(['raw-license-env'])],

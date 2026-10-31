@@ -9,7 +9,7 @@ location.
 ```
 Browser cookie (better-auth.session_token, httpOnly)
   │
-  ├─ apps/app/proxy.ts ── GET /v1/auth/token (cookie → short-lived JWT)
+  ├─ apps/web/proxy.ts ── GET /v1/auth/token (cookie → short-lived JWT)
   │                        └─ JWT `sub` = genfeed User.id
   │
   └─ API request with Bearer JWT
@@ -35,7 +35,7 @@ Two consumers of the result:
   validated active org.
 - **`/v1/auth/bootstrap`** (`auth/services/auth-bootstrap.service.ts`) returns
   `access { userId, organizationId, brandId, isSuperAdmin }` to the frontend;
-  `apps/app/packages/server/protected-bootstrap.server.ts` maps it into
+  `apps/web/packages/server/protected-bootstrap.server.ts` maps it into
   `accessState` for layouts (e.g. the `/admin` gate).
 
 Both paths resolve from the same tables. If they ever disagree, suspect a
@@ -50,7 +50,7 @@ org switch, membership changes).
 | `BetterAuthIdentityCacheService` | JWT `sub` (User.id) | `invalidateForUser` on org create/switch, membership writes |
 | `AccessBootstrapCacheService` | User.id | same call sites |
 | `RequestContextCacheService` | request identity | same call sites |
-| `gf_ws` cookie + in-memory map (`apps/app/proxy.ts`) | session cookie | 5-min TTL; HMAC-signed |
+| `gf_ws` cookie + in-memory map (`apps/web/proxy.ts`) | session cookie | 5-min TTL; HMAC-signed |
 
 When adding a write that changes who a user is or which org/brand they point
 at, invalidate **all three** API caches (see `createOrganization` in
@@ -81,7 +81,7 @@ Clerk-shaped `publicMetadata`.
   inline `{ organizationId, isDeleted: false }` filters (see #1093).
 - `isSuperAdmin` comes from `users.platformRole` and is **org-independent**:
   a superadmin keeps `/admin` access whatever org/brand the URL points at
-  (`apps/app/app/(protected)/admin/layout.tsx` gates on
+  (`apps/web/app/(protected)/admin/layout.tsx` gates on
   `accessState.isSuperAdmin`; the app rail shows the Admin item on the
   same flag).
 - Soft deletes are `isDeleted: boolean`; every tenant query filters it.

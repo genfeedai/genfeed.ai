@@ -11,7 +11,7 @@
  *
  * Turbo's `futureFlags.affectedUsingTaskInputs` does the same repo-wide, but
  * it also re-scopes lint/test/build selection, `turbo query` and `turbo
- * prune`, and drops `apps/app#build` (whose `dependsOn` has no `^build`) from
+ * prune`, and drops `apps/web#build` (whose `dependsOn` has no `^build`) from
  * the spec-typecheck scope query. This keeps the change to one task.
  */
 

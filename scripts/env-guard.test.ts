@@ -14,7 +14,7 @@ describe('isForbiddenEnvFile', () => {
     '.env.production',
     '.env.test',
     '.env.development',
-    'apps/app/.env.staging',
+    'apps/web/.env.staging',
     'apps/server/api/.env',
     'docker/.env',
   ])('rejects %s', (filePath) => {
@@ -24,7 +24,7 @@ describe('isForbiddenEnvFile', () => {
   it.each([
     '.env.example',
     'docker/.env.example',
-    'apps/app/ENV.md',
+    'apps/web/ENV.md',
     'apps/server/api/test/test.env',
     'scripts/env-check.ts',
   ])('allows %s', (filePath) => {

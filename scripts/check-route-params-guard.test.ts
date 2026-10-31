@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { findDirectUseParamsImports } from './check-route-params-guard';
 
-const FILE = 'apps/app/app/(protected)/example/Route.tsx';
+const FILE = 'apps/web/app/(protected)/example/Route.tsx';
 
 describe('findDirectUseParamsImports', () => {
   it('flags useParams imported from next/navigation', () => {

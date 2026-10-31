@@ -11,8 +11,8 @@ const SOURCE_ARTIFACT_EXTENSIONS = [
 ] as const;
 
 const DECLARATION_ALLOWLIST = [
-  /^apps\/app\/src\/types\/[^/]+\.d\.ts$/u,
-  /^apps\/desktop\/app\/src\/shared\/[^/]+\.d\.ts$/u,
+  /^apps\/web\/src\/types\/[^/]+\.d\.ts$/u,
+  /^apps\/desktop\/src\/shared\/[^/]+\.d\.ts$/u,
   /^apps\/server\/api\/src\/helpers\/test\/[^/]+\.d\.ts$/u,
   /^apps\/server\/api\/src\/types\/[^/]+\.d\.ts$/u,
   /^apps\/server\/mcp\/src\/ui\/preview-bundle\.d\.ts$/u,
@@ -50,9 +50,9 @@ function isSourceArtifactPath(filePath: string): boolean {
   }
 
   return (
-    /^apps\/app\/app\/.+\.js(?:\.map)?$/u.test(filePath) ||
-    /^apps\/app\/packages\/.+\.js(?:\.map)?$/u.test(filePath) ||
-    /^apps\/app\/src\/.+\.(?:js|js\.map|d\.ts|d\.ts\.map)$/u.test(filePath) ||
+    /^apps\/web\/app\/.+\.js(?:\.map)?$/u.test(filePath) ||
+    /^apps\/web\/packages\/.+\.js(?:\.map)?$/u.test(filePath) ||
+    /^apps\/web\/src\/.+\.(?:js|js\.map|d\.ts|d\.ts\.map)$/u.test(filePath) ||
     /^apps\/server\/[^/]+\/src\/.+\.(?:js|js\.map|d\.ts|d\.ts\.map)$/u.test(
       filePath,
     ) ||

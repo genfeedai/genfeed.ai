@@ -38,7 +38,7 @@ const logger = {
 };
 
 const INCLUDE_GLOBS = [
-  'apps/app/**/*.{ts,tsx}',
+  'apps/web/**/*.{ts,tsx}',
   'packages/ui/src/**/*.{ts,tsx}',
 ];
 
@@ -157,7 +157,7 @@ export type Violation = {
   path: string;
 };
 
-const ADMIN_SOURCE_PREFIX = 'apps/app/app/(protected)/admin/';
+const ADMIN_SOURCE_PREFIX = 'apps/web/app/(protected)/admin/';
 const ADMIN_ESCAPE_LITERAL = `(['"\`])(\\/(?!admin(?:[/?#]|$))[^'"\`\\n]*)\\1`;
 const ADMIN_ESCAPE_PATTERNS = [
   new RegExp(`\\b(?:href|to)=\\{?\\s*${ADMIN_ESCAPE_LITERAL}`, 'g'),

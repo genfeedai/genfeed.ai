@@ -55,13 +55,13 @@ describe('findInlineTypes', () => {
     const root = mkdtempSync(path.join(tmpdir(), 'inline-route-types-'));
     try {
       const files = [
-        'apps/app/app/(protected)/home/content.tsx',
-        'apps/app/app/(protected)/home/use-home.ts',
-        'apps/app/app/(protected)/home/home.test.ts',
-        'apps/app/app/(protected)/home/home.spec.tsx',
-        'apps/app/app/(protected)/home/global.d.ts',
-        'apps/app/app/(protected)/home/__fixtures__/home.ts',
-        'apps/app/app/(protected)/home/__tests__/home.tsx',
+        'apps/web/app/(protected)/home/content.tsx',
+        'apps/web/app/(protected)/home/use-home.ts',
+        'apps/web/app/(protected)/home/home.test.ts',
+        'apps/web/app/(protected)/home/home.spec.tsx',
+        'apps/web/app/(protected)/home/global.d.ts',
+        'apps/web/app/(protected)/home/__fixtures__/home.ts',
+        'apps/web/app/(protected)/home/__tests__/home.tsx',
         'packages/props/home/home.props.ts',
       ];
       for (const file of files) {

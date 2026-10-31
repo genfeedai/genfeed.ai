@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+APP_ICON_SOURCE="${ROOT_DIR}/assets/app-icon.jpg"
+TRAY_ICON_SOURCE="${ROOT_DIR}/../web/public/logo.svg"
+ICONSET_DIR="${ROOT_DIR}/build/icon.iconset"
+OUTPUT_ICON="${ROOT_DIR}/build/icon.icns"
+RASTER_SOURCE="${ROOT_DIR}/build/app-icon-1024.png"
+TRAY_RASTER_SOURCE="${ROOT_DIR}/build/tray-icon-32.png"
+TRAY_ICON="${ROOT_DIR}/assets/tray-icon.png"
+TRAY_ICON_RETINA="${ROOT_DIR}/assets/tray-icon@2x.png"
+
+for source_icon in "${APP_ICON_SOURCE}" "${TRAY_ICON_SOURCE}"; do
+  if [[ ! -f "${source_icon}" ]]; then
+    echo "Source icon not found: ${source_icon}" >&2
+    exit 1
+  fi
+done
+
+mkdir -p "${ROOT_DIR}/build"
+rm -rf "${ICONSET_DIR}"
+mkdir -p "${ICONSET_DIR}"
+
+if node -e "require.resolve('sharp')" >/dev/null 2>&1; then
+  node -e "const sharp = require('sharp'); Promise.all([sharp(process.argv[1]).resize(1024, 1024).png().toFile(process.argv[3]), sharp(process.argv[2]).resize(32, 32).png().toFile(process.argv[4])])" "${APP_ICON_SOURCE}" "${TRAY_ICON_SOURCE}" "${RASTER_SOURCE}" "${TRAY_RASTER_SOURCE}"
+elif command -v magick >/dev/null 2>&1; then
+  magick "${APP_ICON_SOURCE}" -resize 1024x1024 "${RASTER_SOURCE}"
+  magick -background none "${TRAY_ICON_SOURCE}" -resize 32x32 "${TRAY_RASTER_SOURCE}"
+else
+  echo "Cannot render desktop icons: install sharp or ImageMagick." >&2
+  exit 1
+fi
+
+sips -z 16 16 "${RASTER_SOURCE}" --out "${ICONSET_DIR}/icon_16x16.png" >/dev/null
+sips -z 32 32 "${RASTER_SOURCE}" --out "${ICONSET_DIR}/icon_16x16@2x.png" >/dev/null
+sips -z 32 32 "${RASTER_SOURCE}" --out "${ICONSET_DIR}/icon_32x32.png" >/dev/null
+sips -z 64 64 "${RASTER_SOURCE}" --out "${ICONSET_DIR}/icon_32x32@2x.png" >/dev/null
+sips -z 128 128 "${RASTER_SOURCE}" --out "${ICONSET_DIR}/icon_128x128.png" >/dev/null
+sips -z 256 256 "${RASTER_SOURCE}" --out "${ICONSET_DIR}/icon_128x128@2x.png" >/dev/null
+sips -z 256 256 "${RASTER_SOURCE}" --out "${ICONSET_DIR}/icon_256x256.png" >/dev/null
+sips -z 512 512 "${RASTER_SOURCE}" --out "${ICONSET_DIR}/icon_256x256@2x.png" >/dev/null
+sips -z 512 512 "${RASTER_SOURCE}" --out "${ICONSET_DIR}/icon_512x512.png" >/dev/null
+sips -z 1024 1024 "${RASTER_SOURCE}" --out "${ICONSET_DIR}/icon_512x512@2x.png" >/dev/null
+sips -z 16 16 "${TRAY_RASTER_SOURCE}" --out "${TRAY_ICON}" >/dev/null
+sips -z 32 32 "${TRAY_RASTER_SOURCE}" --out "${TRAY_ICON_RETINA}" >/dev/null
+
+iconutil -c icns "${ICONSET_DIR}" -o "${OUTPUT_ICON}"
+
+echo "Generated macOS icon at ${OUTPUT_ICON}"
+echo "Generated macOS tray icons at ${TRAY_ICON} and ${TRAY_ICON_RETINA}"

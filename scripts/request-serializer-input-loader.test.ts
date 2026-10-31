@@ -45,7 +45,7 @@ function fixture() {
   temporaryDirectories.push(root);
   mkdirSync(path.join(root, 'packages/serializers/dist'), { recursive: true });
   mkdirSync(path.join(root, '.bundle-size'));
-  mkdirSync(path.join(root, 'apps/app'), { recursive: true });
+  mkdirSync(path.join(root, 'apps/web'), { recursive: true });
   const input = Buffer.from('export const ExampleSerializer = {};\n');
   const sourceMap = Buffer.from(
     '{"version":3,"sources":["../src/request-runtime.ts"],"mappings":"AAAA"}',
@@ -91,7 +91,7 @@ function fixture() {
   const report = path.join(root, '.bundle-size/request-serializers-build.json');
   writeFileSync(report, `${JSON.stringify(receipt)}\n`);
   const context: LoaderContext = {
-    rootContext: path.join(root, 'apps/app'),
+    rootContext: path.join(root, 'apps/web'),
     resourcePath: path.join(root, resource),
     resourceQuery: '',
     target: 'web',
@@ -114,7 +114,7 @@ function fixture() {
 describe('actual browser compiler input receipt', () => {
   it('accepts the actual native app-project rootContext instead of the Turbopack filesystem root', () => {
     const f = fixture();
-    const app = path.join(f.root, 'apps/app');
+    const app = path.join(f.root, 'apps/web');
     mkdirSync(app, { recursive: true });
     expect(f.loader.call({ ...f.context, rootContext: app }, f.input)).toBe(
       f.input,
@@ -160,7 +160,7 @@ describe('actual browser compiler input receipt', () => {
     expect(() =>
       f.loader.call({ ...f.context, rootContext: f.root }, f.input),
     ).toThrow('compiler context');
-    const other = path.join(f.root, 'apps/website');
+    const other = path.join(f.root, 'apps/marketing');
     mkdirSync(other, { recursive: true });
     expect(() =>
       f.loader.call({ ...f.context, rootContext: other }, f.input),

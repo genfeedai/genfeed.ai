@@ -464,7 +464,7 @@ maps semantic roles onto it. Those two files generate
 targets. Nothing else may define a colour.
 
 Only resolved `light | dark` values are written to rendered theme attributes. The
-public marketing website (`apps/website`) is locked to Dark and does not follow the
+public marketing website (`apps/marketing`) is locked to Dark and does not follow the
 OS or expose an Appearance control.
 
 ### The ladder

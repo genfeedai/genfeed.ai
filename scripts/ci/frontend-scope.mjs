@@ -3,7 +3,13 @@ import { appendFileSync, globSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const FRONTENDS = ['app', 'website'];
+// CI labels for each frontend and the workspace package behind it. The labels
+// name job outputs and bundle-size reports, so they stay stable across renames.
+const FRONTEND_PACKAGES = {
+  app: '@genfeedai/web',
+  website: '@genfeedai/marketing',
+};
+const FRONTENDS = Object.keys(FRONTEND_PACKAGES);
 const GLOBAL_INPUTS = [
   /^(bun\.lock|package\.json|turbo\.json|\.bun-version|tsconfig[^/]*\.json)$/,
   /^(configs|patches)\//,
@@ -22,7 +28,7 @@ export function affectedFrontends(changedFiles, workspaces) {
     byName.set(workspace.name, workspace);
   }
   for (const app of FRONTENDS) {
-    if (!byName.has(`@genfeedai/${app}`))
+    if (!byName.has(FRONTEND_PACKAGES[app]))
       throw new Error(`Missing frontend ${app}`);
   }
   // A removed/unregistered workspace cannot be traversed in the current graph.
@@ -47,7 +53,7 @@ export function affectedFrontends(changedFiles, workspaces) {
   }
   return FRONTENDS.filter((app) => {
     const visited = new Set();
-    const pending = [`@genfeedai/${app}`];
+    const pending = [FRONTEND_PACKAGES[app]];
     while (pending.length) {
       const name = pending.pop();
       if (visited.has(name)) continue;

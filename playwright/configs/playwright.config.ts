@@ -4,10 +4,10 @@ import { defineConfig, devices } from '@playwright/test';
 import { playwrightApiEndpoint } from '../e2e/config/environment';
 
 /**
- * Local-only: hydrate the Playwright RUNNER process from `apps/app/.env.local`
+ * Local-only: hydrate the Playwright RUNNER process from `apps/web/.env.local`
  * when `E2E_AUTHED_LOCAL=1`.
  *
- * Why this exists: `next dev` auto-loads `apps/app/.env.local`, so the web
+ * Why this exists: `next dev` auto-loads `apps/web/.env.local`, so the web
  * server already sees local env. The runner that executes `auth.setup.ts` does
  * NOT — it runs from the repo root and only sees its own env.
  *
@@ -20,7 +20,7 @@ function loadDevEnvLocal(): void {
     return;
   }
 
-  const envPath = path.resolve(process.cwd(), 'apps/app/.env.local');
+  const envPath = path.resolve(process.cwd(), 'apps/web/.env.local');
   if (!fs.existsSync(envPath)) {
     console.warn(
       `[e2e] E2E_AUTHED_LOCAL=1 but ${envPath} not found — better-auth-setup may fail with a missing-key error.`,
@@ -56,7 +56,7 @@ function loadDevEnvLocal(): void {
 
   if (loaded.length > 0) {
     console.log(
-      `[e2e] Loaded ${loaded.length} keys from apps/app/.env.local: ${loaded.join(', ')}`,
+      `[e2e] Loaded ${loaded.length} keys from apps/web/.env.local: ${loaded.join(', ')}`,
     );
   }
 }
@@ -95,7 +95,7 @@ const artifactsRoot = path.join(playwrightRoot, 'artifacts');
 const e2eRoot = path.join(playwrightRoot, 'e2e');
 const appWebAppPath = path.resolve(
   process.cwd(),
-  process.env.PLAYWRIGHT_WEB_APP_PATH || 'apps/app',
+  process.env.PLAYWRIGHT_WEB_APP_PATH || 'apps/web',
 );
 const appPlaywrightWebServerEnv = {
   ...process.env,

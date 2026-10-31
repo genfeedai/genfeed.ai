@@ -45,7 +45,7 @@ describe('retired Batch product name guard (#5936)', () => {
 
   it('rejects Batch product identifiers, routes, tools and keys', () => {
     const names = findRetiredBatchNames(
-      'apps/app/example.ts',
+      'apps/web/example.ts',
       [
         'import { BatchProjectStatus } from "@genfeedai/contracts";',
         "const href = '/studio/batch/new';",

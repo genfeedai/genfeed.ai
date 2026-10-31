@@ -22,7 +22,7 @@ test('four real Monocart raw shards merge complementary hits before computing me
       });
       await reporter.add([
         {
-          url: 'http://localhost:3000/apps/app/coverage-example.js',
+          url: 'http://localhost:3000/apps/web/coverage-example.js',
           source,
           functions: [
             {

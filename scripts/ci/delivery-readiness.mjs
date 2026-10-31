@@ -106,7 +106,7 @@ if (
   try {
     if (process.argv[2] === 'browser') {
       validateBrowserRelease({
-        version: readJson('apps/extensions/browser/app/package.json').version,
+        version: readJson('apps/extension/package.json').version,
         ref: process.env.GITHUB_REF,
         submit: process.env.SUBMIT === 'true',
         keys: process.env.EXTENSION_SUBMIT_KEYS,
@@ -119,11 +119,11 @@ if (
         JSON.stringify(prepareBrowserStoreManifest(readJson(file))),
       );
     } else if (process.argv[2] === 'mobile') {
-      const file = 'apps/mobile/app/app.json';
+      const file = 'apps/mobile.json';
       const build = process.env.REMOTE_BUILD === 'true';
       const config = prepareMobileConfig({
         config: readJson(file),
-        version: readJson('apps/mobile/app/package.json').version,
+        version: readJson('apps/mobile/package.json').version,
         ref: process.env.GITHUB_REF,
         build,
         token: process.env.EXPO_TOKEN,

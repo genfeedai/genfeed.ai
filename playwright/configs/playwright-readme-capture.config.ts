@@ -11,7 +11,7 @@ const repoRoot = process.cwd();
 const captureWebServerCommand =
   // biome-ignore lint/suspicious/noUndeclaredEnvVars: not a turbo task
   process.env.PLAYWRIGHT_APP_COMMAND ||
-  'bun run --cwd apps/app dev:debug -- --hostname ::';
+  'bun run --cwd apps/web dev:debug -- --hostname ::';
 
 function withDebugAppCommand(
   webServer: typeof baseConfig.webServer,

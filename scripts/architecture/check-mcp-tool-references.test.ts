@@ -257,8 +257,8 @@ describe('literal MCP instruction contract', () => {
     mkdirSync(join(root, 'skills'));
     writeFileSync(join(root, 'skills', 'SKILL.md'), 'Call `rate_content`.');
     execFileSync('git', ['-C', root, 'add', 'skills']);
-    mkdirSync(join(root, 'apps/desktop/app'), { recursive: true });
-    writeFileSync(join(root, 'apps/desktop/app/tsconfig.json'), '{}');
+    mkdirSync(join(root, 'apps/desktop'), { recursive: true });
+    writeFileSync(join(root, 'apps/desktop/tsconfig.json'), '{}');
     mkdirSync(join(root, 'scripts/architecture'), { recursive: true });
     writeFileSync(
       join(root, 'scripts/architecture/desktop-mcp-prompt-adapter.ts'),
@@ -290,8 +290,8 @@ describe('literal MCP instruction contract', () => {
   ])(
     'rejects malformed adapter output at the adapter boundary: %s',
     (output) => {
-      mkdirSync(join(root, 'apps/desktop/app'), { recursive: true });
-      writeFileSync(join(root, 'apps/desktop/app/tsconfig.json'), '{}');
+      mkdirSync(join(root, 'apps/desktop'), { recursive: true });
+      writeFileSync(join(root, 'apps/desktop/tsconfig.json'), '{}');
       mkdirSync(join(root, 'scripts/architecture'), { recursive: true });
       writeFileSync(
         join(root, 'scripts/architecture/desktop-mcp-prompt-adapter.ts'),

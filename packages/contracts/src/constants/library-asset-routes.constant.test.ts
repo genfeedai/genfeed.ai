@@ -12,7 +12,7 @@ import { APP_ROUTES } from './routes.constant';
 
 /**
  * Route directories that exist under
- * `apps/app/app/(protected)/[orgSlug]/[brandSlug]/library`. A destination
+ * `apps/web/app/(protected)/[orgSlug]/[brandSlug]/library`. A destination
  * outside this set renders a 404, so every mapped route must be in it.
  */
 const EXISTING_LIBRARY_ROUTES = new Set<string>([

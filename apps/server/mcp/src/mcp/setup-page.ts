@@ -44,7 +44,7 @@ const DOCS_GUIDE_PATH = '/api-reference/mcp';
 const SETUP_PAGE_TITLE = 'Genfeed MCP Server — connect any AI agent';
 const SETUP_PAGE_DESCRIPTION =
   'Connect Claude, ChatGPT, Cursor, Gemini, Meta Muse, Grok Bot, and other AI agents to Genfeed over MCP with browser OAuth — no API key required.';
-// The website composes this card (apps/website marketing-og.data.ts); every
+// The website composes this card (apps/marketing marketing-og.data.ts); every
 // Genfeed surface shares its 1200x630 layout.
 const SETUP_PAGE_OG_IMAGE_PATH = '/og/mcp';
 

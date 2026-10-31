@@ -3,7 +3,7 @@
  *
  * CLAUDE.md: "No inline interfaces — use packages/props/ or
  * packages/contracts/src/interfaces/". This scans production .ts and .tsx
- * files under apps/app/app for top-level interfaces and type aliases containing
+ * files under apps/web/app for top-level interfaces and type aliases containing
  * object literals, including unions and wrappers. Move those declarations into
  * packages/props (props, state, action unions) or packages/contracts
  * (domain shapes) and import it back with `import type`.
@@ -20,7 +20,7 @@ import * as ts from 'typescript';
 import { parseSourceFile } from './parse-source-file';
 
 const ROOT = path.resolve(import.meta.dirname, '../..');
-const INCLUDE_GLOBS = ['apps/app/app/**/*.{ts,tsx}'];
+const INCLUDE_GLOBS = ['apps/web/app/**/*.{ts,tsx}'];
 const IGNORE_GLOBS = [
   '**/node_modules/**',
   '**/.next/**',

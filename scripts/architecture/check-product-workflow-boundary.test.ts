@@ -216,7 +216,7 @@ describe('check-product-workflow-boundary', () => {
       `,
     );
     writeFixture(
-      'apps/website/app/tools/youtube-long-form/action.ts',
+      'apps/marketing/app/tools/youtube-long-form/action.ts',
       `
         export async function run(runner): Promise<void> {
           await runner.runWorkflowDefinition({ nodes: [], edges: [] });
@@ -233,7 +233,7 @@ describe('check-product-workflow-boundary', () => {
           ruleId: 'serialized-system-workflow-definition',
         }),
         expect.objectContaining({
-          file: 'apps/website/app/tools/youtube-long-form/action.ts',
+          file: 'apps/marketing/app/tools/youtube-long-form/action.ts',
           ruleId: 'serialized-system-workflow-definition',
         }),
       ]),

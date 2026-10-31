@@ -10,14 +10,14 @@ packaged Electron shell.
   call the reusable `Desktop QA` workflow.
 - Command: `bunx turbo run qa:release --filter=@genfeedai/desktop`.
 - Coverage: desktop lint, type-check, Bun tests, native rebuild, canonical
-  `apps/app` standalone build, and Electron `--smoke-test` readiness. Smoke only
+  `apps/web` standalone build, and Electron `--smoke-test` readiness. Smoke only
   passes after `did-finish-load`, the `gf-desktop-shell` body marker renders,
   and the sandboxed preload exposes the desktop bridge.
 
 ## Manual Checklist
 
 - Fresh launch shows the Electron-owned boot screen before the app shell loads.
-- The loaded product surface is the canonical `apps/app`; no desktop-local
+- The loaded product surface is the canonical `apps/web`; no desktop-local
   renderer or credential form is packaged.
 - Browser sign-in uses system-browser PKCE and rejects invalid or replayed
   callbacks.
