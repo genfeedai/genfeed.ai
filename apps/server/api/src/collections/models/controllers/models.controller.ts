@@ -52,7 +52,6 @@ type MatchConditions = Record<string, unknown>;
  */
 export const MODEL_SORT_FIELDS: readonly string[] = [
   'cost',
-  'createdAt',
   'isDefault',
   'label',
   'lifecycle',

@@ -10,7 +10,7 @@ describe('buildTrainingOrderBy', () => {
     ['label: 1', { createdAt: -1, id: -1, label: 1 }],
     ['status: 1', { createdAt: -1, id: -1, stage: 1 }],
     ['status: -1', { createdAt: -1, id: -1, stage: -1 }],
-    ['createdAt: 1', { createdAt: 1, id: -1 }],
+    ['createdAt: 1', { createdAt: -1 }],
   ])('orders %j by %j', (sort, expected) => {
     expect(buildTrainingOrderBy(sort)).toEqual(expected);
   });

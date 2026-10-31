@@ -7,11 +7,7 @@ import type { SortObject } from '@genfeedai/contracts/interfaces';
  * config, and source and image totals are counted per row, so the database
  * cannot order by them.
  */
-export const TRAINING_SORT_FIELDS: readonly string[] = [
-  'createdAt',
-  'label',
-  'status',
-];
+export const TRAINING_SORT_FIELDS: readonly string[] = ['label', 'status'];
 
 /**
  * The `orderBy` for the trainings list: the requested column (stage for

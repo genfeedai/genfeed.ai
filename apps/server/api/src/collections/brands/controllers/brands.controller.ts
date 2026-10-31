@@ -18,6 +18,7 @@ import { BrandRelocationJobsService } from '@api/collections/brands/services/bra
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
 import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { buildBrandListOrderBy } from '@api/collections/brands/utils/brand-list-order.util';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { LinksService } from '@api/collections/links/services/links.service';
@@ -39,7 +40,6 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { handleStableAllowedQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { resolveScopeId } from '@api/shared/controllers/base-crud/base-crud-scope.util';
@@ -71,13 +71,6 @@ import {
 } from '@nestjs/common';
 import { isUUID } from 'class-validator';
 import type { Request, Response } from 'express';
-
-/** Columns the brands list can be ordered by. */
-export const BRAND_SORT_FIELDS: readonly string[] = [
-  'createdAt',
-  'label',
-  'slug',
-];
 
 @AutoSwagger()
 @Controller('brands')
@@ -357,9 +350,7 @@ export class BrandsController extends BaseCRUDController<
 
     if (adminFilter) {
       return {
-        orderBy: handleStableAllowedQuerySort(query.sort, BRAND_SORT_FIELDS, {
-          createdAt: -1,
-        }),
+        orderBy: buildBrandListOrderBy(query.sort),
         where: { isDeleted, ...adminFilter },
       };
     }
@@ -376,9 +367,7 @@ export class BrandsController extends BaseCRUDController<
     }
 
     return {
-      orderBy: handleStableAllowedQuerySort(query.sort, BRAND_SORT_FIELDS, {
-        createdAt: -1,
-      }),
+      orderBy: buildBrandListOrderBy(query.sort),
       where: { isDeleted, organizationId },
     };
   }
