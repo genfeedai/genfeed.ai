@@ -8,6 +8,8 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ScenesService } from '@services/elements/scenes.service';
+import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
+import SearchField from '@ui/content/search-field/SearchField';
 import { useElementRowSidebar } from '@ui/display/element-scope-badge/element-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
@@ -19,6 +21,7 @@ function ScenesListContent() {
   const notificationsService = NotificationsService.getInstance();
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
+  const { search, setSearch } = useAdminSearchParam();
 
   const getScenesService = useAuthedService(
     useCallback((token: string) => ScenesService.getInstance(token), []),
@@ -47,6 +50,7 @@ function ScenesListContent() {
       const query: IQueryParams = {
         limit: ITEMS_PER_PAGE,
         page: currentPage,
+        ...(search ? { search } : {}),
       };
 
       const data = await service.findAll(query);
@@ -57,14 +61,24 @@ function ScenesListContent() {
       notificationsService.error('Failed to load scenes');
       setScenes([]);
     }
-  }, [currentPage, getScenesService, notificationsService]);
+  }, [currentPage, getScenesService, notificationsService, search]);
 
   useEffect(() => {
     findAllScenes();
   }, [findAllScenes]);
 
   return (
-    <Container label="Scenes">
+    <Container
+      label="Scenes"
+      leading={
+        <SearchField
+          ariaLabel="Search scenes"
+          onSearch={setSearch}
+          placeholder="Search scenes"
+          value={search}
+        />
+      }
+    >
       <AppTable<ElementScene>
         items={scenes ?? []}
         columns={columns}
@@ -72,7 +86,7 @@ function ScenesListContent() {
         isLoading={isLoading}
         getRowKey={(item) => item.id}
         rowSidebar={rowSidebar}
-        emptyLabel="No scenes found"
+        emptyLabel={search ? 'No scenes match your search' : 'No scenes found'}
       />
 
       <div className="mt-4">
