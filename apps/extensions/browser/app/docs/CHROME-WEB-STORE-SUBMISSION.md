@@ -29,7 +29,7 @@ The store reads the item name and summary from the package manifest (`displayNam
 
 | Field | Value |
 | --- | --- |
-| Name | genfeed.ai |
+| Name | Genfeed |
 | Category | Productivity |
 | Language | English |
 | Summary (max 132 characters) | Write, rewrite and reply with content that sounds like your brand. Save sources from any page to reuse later. |
@@ -101,7 +101,7 @@ Reviewers need a working account. **Owner**: create a dedicated reviewer account
 
 ```
 1. Open https://app.genfeed.ai and sign in with the reviewer account below. Keep the tab open.
-2. Click the genfeed.ai toolbar icon. The popup should show the signed-in workspace.
+2. Click the Genfeed toolbar icon. The popup should show the signed-in workspace.
 3. Open https://x.com, open any post and click Reply. A small outline GenFeed logo button appears beside the Reply button. Click it for the menu.
 4. Choose "Generate reply". The reply box is filled. Nothing is posted.
 5. Right-click any page and choose "Save source to Genfeed". The side panel opens with the saved source.

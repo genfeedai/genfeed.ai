@@ -23,7 +23,7 @@ describe('extension manifest', () => {
   });
 
   it('uses the store name', () => {
-    expect(extensionPackage.displayName).toBe('genfeed.ai');
+    expect(extensionPackage.displayName).toBe('Genfeed');
   });
 
   it('keeps the description short and free of platform-name lists', () => {
