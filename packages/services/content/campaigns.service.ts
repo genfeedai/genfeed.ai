@@ -52,6 +52,7 @@ export interface CampaignListQuery {
   includeArchived?: boolean;
   limit?: number;
   page?: number;
+  search?: string;
   status?: ContentCampaignStatus | string;
 }
 

@@ -15,7 +15,9 @@ import {
   TasksService,
 } from '@services/management/tasks.service';
 import CardEmpty, { CardEmptyContent } from '@ui/card/empty/CardEmpty';
+import { useAdminSearchParam } from '@ui/content/admin-filters/useAdminSearchParam';
 import FilterMenu from '@ui/content/filter-menu/FilterMenu';
+import SearchField from '@ui/content/search-field/SearchField';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
@@ -190,6 +192,7 @@ export default function IssuesList() {
       ? ViewType.KANBAN
       : ViewType.LIST;
   const currentPage = Number(searchParams.get('page')) || 1;
+  const { search, setSearch } = useAdminSearchParam();
   const statusParam = searchParams.get('status');
   const statusFilter: TaskStatus | '' =
     statusParam && STATUS_ORDER.includes(statusParam as TaskStatus)
@@ -228,6 +231,7 @@ export default function IssuesList() {
       const service = await getTasksService();
       const result = await service.list({
         ...(statusFilter ? { status: statusFilter } : {}),
+        ...(search ? { search } : {}),
         // Brand selected → filter. Brand cleared on org Workspace → all brands.
         ...(brandId ? { brandId } : {}),
         limit: ITEMS_PER_PAGE,
@@ -246,7 +250,7 @@ export default function IssuesList() {
         dispatch({ type: 'SET_LOADING', payload: false });
       }
     }
-  }, [brandId, currentPage, getTasksService, statusFilter]);
+  }, [brandId, currentPage, getTasksService, search, statusFilter]);
 
   const handleCreateIssue = useCallback(async () => {
     if (!createTitle.trim() || isCreating) return;
@@ -373,7 +377,7 @@ export default function IssuesList() {
     {} as Record<TaskStatus, Task[]>,
   );
 
-  const isFiltered = statusFilter.length > 0;
+  const isFiltered = statusFilter.length > 0 || search.length > 0;
   const hasItems = issues.length > 0;
   const isEmpty = !isLoading && !hasItems;
   // Zero tasks and no status filter: start empty — no action bar, CTA in card.
@@ -387,9 +391,13 @@ export default function IssuesList() {
     dispatch({ type: 'SET_SHOW_CREATE_DIALOG', payload: true });
   }, []);
 
-  // Same Container header chrome as Inbox (mb-4 pb-3 under py-5).
-  const toolbar = showToolbar ? (
-    <div className="flex flex-wrap items-center justify-end gap-2.5">
+  const searchField = showToolbar ? (
+    <SearchField
+      ariaLabel={translate('search')}
+      onSearch={setSearch}
+      placeholder={translate('search')}
+      value={search}
+    >
       <FilterMenu
         facets={[
           {
@@ -409,8 +417,15 @@ export default function IssuesList() {
             value: statusFilter || 'all',
           },
         ]}
+        isAttached
         onClear={() => setUrlParam('status', null)}
       />
+    </SearchField>
+  ) : undefined;
+
+  // Same Container header chrome as Inbox (mb-4 pb-3 under py-5).
+  const toolbar = showToolbar ? (
+    <div className="flex flex-wrap items-center justify-end gap-2.5">
       {hasItems ? (
         <ViewMenu
           activeView={viewMode}
@@ -453,6 +468,7 @@ export default function IssuesList() {
     <Container
       fullWidth
       label={translate('title')}
+      leading={searchField}
       titleVisibility="sr-only"
       right={toolbar}
     >

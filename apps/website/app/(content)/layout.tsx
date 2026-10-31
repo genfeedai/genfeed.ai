@@ -1,7 +1,7 @@
 import type { LayoutProps } from '@props/layout/layout.props';
 import PublicShell from '@ui/shell/PublicShell';
-import WebsiteTopbar from '@ui/shell/topbars/WebsiteTopbar';
 import HomeFooter from '@web-components/home/_footer';
+import WebsiteTopbar from '@web-components/shell/topbars/WebsiteTopbar';
 
 const TOPBAR = <WebsiteTopbar />;
 

@@ -56,6 +56,7 @@ jobs:
               - 'docker/Dockerfile.server'
               - '.dockerignore'
               - '.bun-version'
+              - '.node-version'
               - 'configs/**'
               - 'patches/**'
               - 'webpack.base.config.js'
@@ -65,6 +66,7 @@ jobs:
               - 'package.json'
               - '.github/workflows/ci.yml'
               - '.github/actions/build-pr-server-image/**'
+              - '.github/actions/node-version/**'
 
       - name: Validate image scope detection
         if: ${{ !cancelled() }}

@@ -2,11 +2,9 @@ import { BOOKING_HREF, BOOKING_PAGE_SLUG } from '@data/booking.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ServiceLandingActionsProps } from '@props/website/service-landing.props';
 import { EnvironmentService } from '@services/core/environment.service';
-import ConnectAgentButton from '@ui/buttons/connect-agent/ConnectAgentButton';
-import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import SectionHeader from '@ui/marketing/SectionHeader';
 import PublicShell from '@ui/shell/PublicShell';
-import LandingTopbar from '@ui/shell/topbars/LandingTopbar';
+import ConnectAgentButton from '@web-components/buttons/connect-agent/ConnectAgentButton';
+import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
 import FaqGrid from '@web-components/content/FaqGrid';
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import {
@@ -24,7 +22,9 @@ import {
   serviceLandingConfigBySlug,
 } from '@web-components/landing/service-landings.data';
 import MarketingEntrance from '@web-components/MarketingEntrance';
+import SectionHeader from '@web-components/marketing/SectionHeader';
 import PageLayout from '@web-components/PageLayout';
+import LandingTopbar from '@web-components/shell/topbars/LandingTopbar';
 import { BadgeCheck, CalendarRange } from 'lucide-react';
 import Link from 'next/link';
 

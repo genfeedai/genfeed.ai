@@ -1,11 +1,12 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import type { EditorProjectsQueryDto } from '@api/collections/editor-projects/dto/editor-projects-query.dto';
 import type { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
+import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import type { SortObject } from '@genfeedai/contracts/interfaces';
 
 export function buildEditorProjectListAggregate(
-  query: BaseQueryDto,
+  query: EditorProjectsQueryDto,
   user: User,
   tenant: ReturnType<typeof CollectionFilterUtil.resolveListOrganizationId>,
 ) {
@@ -20,6 +21,7 @@ export function buildEditorProjectListAggregate(
         : {}),
       isDeleted: false,
       organizationId: tenant.organizationId,
+      ...buildSearchWhere(query.search, { json: { config: ['name'] } }),
     },
     orderBy: query.sort
       ? handleQuerySort(query.sort)

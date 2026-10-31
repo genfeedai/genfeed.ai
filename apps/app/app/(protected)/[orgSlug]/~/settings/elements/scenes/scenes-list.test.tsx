@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ScenesList from './scenes-list';
 import '@testing-library/jest-dom/vitest';
@@ -18,7 +18,7 @@ vi.mock('next/navigation', () => ({
     replace: vi.fn(),
   })),
   useSearchParams: vi.fn(() => ({
-    get: vi.fn(() => '1'),
+    get: vi.fn((key: string) => (key === 'page' ? '1' : null)),
     toString: vi.fn(() => 'page=1'),
   })),
 }));
@@ -40,5 +40,12 @@ describe('ScenesList', () => {
   it('should render without crashing', () => {
     const { container } = render(<ScenesList />);
     expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('offers the shared search field', () => {
+    render(<ScenesList />);
+    expect(
+      screen.getByRole('textbox', { name: 'Search scenes' }),
+    ).toBeInTheDocument();
   });
 });

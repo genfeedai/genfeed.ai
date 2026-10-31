@@ -103,6 +103,10 @@ jobs:
             org.opencontainers.image.version=${{ inputs.image_tag }}
             org.opencontainers.image.revision=${{ inputs.checkout_ref }}
 
+      - name: Read Node version
+        id: node
+        uses: ./.github/actions/node-version
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
@@ -112,6 +116,7 @@ jobs:
           context: .
           file: docker/Dockerfile.selfhosted
           build-args: |
+            NODE_VERSION=${{ steps.node.outputs.version }}
             RELEASE_TAG=${{ inputs.release_tag }}
             BUILD_ID=${{ inputs.checkout_ref }}
           push: true

@@ -1,8 +1,8 @@
 import { AGENT_PROMPTS } from '@data/agent-prompts.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
 import Link from 'next/link';
 
 /**

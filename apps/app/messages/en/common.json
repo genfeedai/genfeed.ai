@@ -121,6 +121,10 @@
     },
     "view": "View"
   },
+  "listSearch": {
+    "captions": "Search captions",
+    "scenes": "Search scenes"
+  },
   "adminDashboard": {
     "loadFailed": "Could not load the platform stats. Try again."
   },

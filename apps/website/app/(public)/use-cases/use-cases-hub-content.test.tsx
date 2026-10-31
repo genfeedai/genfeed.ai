@@ -4,7 +4,7 @@ import type { ComponentProps, ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import UseCasesHubContent from './use-cases-hub-content';
 
-vi.mock('@hooks/ui/use-marketing-entrance', () => ({
+vi.mock('@web-hooks/ui/use-marketing-entrance', () => ({
   useMarketingEntrance: () => ({ current: null }),
 }));
 

@@ -1,10 +1,10 @@
 import type { UseCase } from '@data/use-cases.data';
 import { getPlanLabel } from '@genfeedai/pricing';
-import HeroProofRail from '@ui/marketing/HeroProofRail';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
+import HeroProofRail from '@web-components/marketing/HeroProofRail';
 import PageLayout from '@web-components/PageLayout';
 import { Check, X } from 'lucide-react';
 import Link from 'next/link';

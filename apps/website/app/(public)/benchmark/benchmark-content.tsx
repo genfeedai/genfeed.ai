@@ -6,7 +6,6 @@ import type {
 } from '@public/benchmark/benchmark-loader';
 import { BENCHMARK_REPO_URL } from '@public/benchmark/benchmark-loader';
 import { EnvironmentService } from '@services/core/environment.service';
-import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import { Badge } from '@ui/primitives/badge';
 import {
   Table,
@@ -18,6 +17,7 @@ import {
 } from '@ui/primitives/table';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';

@@ -7,7 +7,6 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import AgentClientInstallAction from '@public/agent-clients/agent-client-install-action';
 import AgentClientSetup from '@public/agent-clients/agent-client-setup';
 import AgentClientVisual from '@public/agent-clients/agent-client-visual';
-import SectionHeader from '@ui/marketing/SectionHeader';
 import { Button } from '@ui/primitives/button';
 import FaqGrid from '@web-components/content/FaqGrid';
 import {
@@ -17,6 +16,7 @@ import {
   WebSection,
 } from '@web-components/content/NeuralGrid';
 import MarketingEntrance from '@web-components/MarketingEntrance';
+import SectionHeader from '@web-components/marketing/SectionHeader';
 import PageLayout from '@web-components/PageLayout';
 import Link from 'next/link';
 

@@ -18,4 +18,13 @@ export class CaptionsQueryDto extends BaseQueryDto {
   @IsOptional()
   @IsString()
   format?: string;
+
+  @ApiProperty({
+    description:
+      'Case-insensitive search over the caption text, language and format',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  search?: string;
 }

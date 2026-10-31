@@ -1,5 +1,5 @@
 import { SafeMarkdown } from '@genfeedai/agent/components/SafeMarkdown';
-import type { ChangelogProps } from '@genfeedai/props/pages/changelog.props';
+import type { ChangelogProps } from '@props/pages/changelog.props';
 import {
   Collapsible,
   CollapsibleContent,

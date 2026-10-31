@@ -49,8 +49,8 @@ requests.
 
 ## Toolchain and supported operating systems
 
-- Node.js 26 (the version in `.node-version`; CI and the Docker images pin it). The
-  workspace `engines` floor is `>=24` with no ceiling.
+- Node.js at the version in `.node-version` (the single pin: CI and the Docker
+  images read it). The workspace `engines` floor is `>=24` with no ceiling.
 - Bun latest stable (resolved from `.bun-version`; the exact `packageManager`
   value is Turborepo compatibility metadata, not the installer selector)
 - Docker Engine with Docker Compose v2, or Docker Desktop, for PostgreSQL and

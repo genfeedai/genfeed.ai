@@ -9,20 +9,14 @@ const UI_PRIMITIVES_SRC = path.resolve(UI_SRC, './primitives');
 const UI_CORE_SRC = path.resolve(UI_SRC, './core');
 const UI_DASHBOARD_SRC = path.resolve(UI_SRC, './dashboard');
 const UI_CHARTS_SRC = path.resolve(UI_SRC, './charts.ts');
-const UI_FLOWS_SRC = path.resolve(UI_SRC, './flows.ts');
 const UI_GENERATORS_SRC = path.resolve(UI_SRC, './generators');
 const UI_SEMANTIC_SRC = path.resolve(UI_SRC, './semantic');
 const UI_TOKENS_SRC = path.resolve(UI_SRC, './tokens');
 const UI_STYLES_SRC = path.resolve(UI_SRC, './styles');
-const XYFLOW_REACT_MOCK = path.resolve(
-  __dirname,
-  './tests/__mocks__/xyflow-react.tsx',
-);
 const BETTER_AUTH_REACT_MOCK = path.resolve(
   __dirname,
   './tests/__mocks__/better-auth-react.ts',
 );
-const EMPTY_STYLE_MOCK = path.resolve(__dirname, './tests/__mocks__/style.ts');
 const API_TYPES_SRC = path.resolve(__dirname, '../contracts/src/api-types');
 const AUTH_CLIENT_SRC = path.resolve(__dirname, '../auth-client/src');
 const CONSTANTS_SRC = path.resolve(__dirname, '../contracts/src/constants');
@@ -297,10 +291,6 @@ export default defineConfig({
         replacement: path.resolve(UI_COMPONENTS_SRC, '$1'),
       },
       {
-        find: '@ui/flows',
-        replacement: UI_FLOWS_SRC,
-      },
-      {
         find: /^@ui\/generators\/(.*)$/,
         replacement: path.resolve(UI_GENERATORS_SRC, '$1'),
       },
@@ -355,18 +345,6 @@ export default defineConfig({
       {
         find: '@ui',
         replacement: UI_COMPONENTS_SRC,
-      },
-      {
-        find: '@xyflow/react/dist/style.css',
-        replacement: EMPTY_STYLE_MOCK,
-      },
-      {
-        find: /^.*\/src\/flows\/flows\.css$/,
-        replacement: EMPTY_STYLE_MOCK,
-      },
-      {
-        find: '@xyflow/react',
-        replacement: XYFLOW_REACT_MOCK,
       },
       {
         find: '@contexts',

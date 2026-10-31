@@ -1,10 +1,10 @@
 import { getApprovedTestimonials } from '@data/testimonials.data';
-import SectionHeader from '@ui/marketing/SectionHeader';
 import {
   NeuralGrid,
   NeuralGridItem,
   WebSection,
 } from '@web-components/content/NeuralGrid';
+import SectionHeader from '@web-components/marketing/SectionHeader';
 
 interface ProofTestimonialsProps {
   className?: string;

@@ -394,6 +394,10 @@ export default defineConfig({
         replacement: path.resolve(appRoot, './src/components/$1'),
       },
       {
+        find: /^@web-hooks\/(.*)$/,
+        replacement: path.resolve(appRoot, './src/hooks/$1'),
+      },
+      {
         find: /^@styles$/,
         replacement: path.resolve(__dirname, '../packages/styles'),
       },
@@ -554,6 +558,10 @@ export default defineConfig({
       {
         find: /^@ui\/utils\/(.*)$/,
         replacement: path.resolve(repoRoot, './packages/ui/src/utils/$1'),
+      },
+      {
+        find: /^@ui\/lib\/(.*)$/,
+        replacement: path.resolve(repoRoot, './packages/ui/src/lib/$1'),
       },
       {
         find: /^@ui\/styles$/,
