@@ -12,7 +12,10 @@ import {
 /** Computed independently with openssl: sha256 of the DER public key, first 16 bytes, hex mapped 0-f to a-p. */
 const PINNED_EXTENSION_ID = 'djbmffnmdeekbejpfhammiijhdpjegcp';
 
-const EXTENSION_PACKAGE = path.resolve(__dirname, '../../../../../apps/extension/package.json');
+const EXTENSION_PACKAGE = path.resolve(
+  __dirname,
+  '../../../../../apps/extension/package.json'
+);
 
 describe('extension identity', () => {
   it('derives the pinned extension ID from the public key', () => {

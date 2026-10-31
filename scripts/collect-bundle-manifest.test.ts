@@ -41,9 +41,7 @@ globalThis.__RSC_MANIFEST["/(public)/about/page"] = ${JSON.stringify({
           'static/chunks/global-error.js',
         ],
         '[project]/apps/marketing/app/layout': ['static/chunks/shared.js'],
-        '[project]/apps/marketing/app/not-found': [
-          'static/chunks/not-found.js',
-        ],
+        '[project]/apps/marketing/app/not-found': ['static/chunks/not-found.js'],
       },
     })};`;
 

@@ -73,7 +73,9 @@ describe('browser extension theme CSS contract', () => {
     expect(runtimeStyles).toContain('@import "./style.generated.css"');
     expect(styles).toMatch(/@import ['"]tailwindcss['"] source\(none\)/);
     expect(styles).toContain('@source "./"');
-    expect(styles).toContain('@source "../../../packages/ui/src/primitives"');
+    expect(styles).toContain(
+      '@source "../../../packages/ui/src/primitives"',
+    );
     expect(styles).not.toContain('@shipshitdev/ui');
     expect(styles).toContain('--color-background: hsl(var(--background))');
     expect(styles).toContain('--color-foreground: hsl(var(--foreground))');

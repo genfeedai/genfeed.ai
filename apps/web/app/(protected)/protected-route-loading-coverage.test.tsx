@@ -3,9 +3,7 @@ import { dirname, join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const appRouterDirs = ['apps/web/app', 'apps/marketing/app'] as const;
-const routeLoadingShells = [
-  'apps/marketing/app/(content)/loading.tsx',
-] as const;
+const routeLoadingShells = ['apps/marketing/app/(content)/loading.tsx'] as const;
 
 function findRepoRoot(startDirectory: string): string {
   let currentDirectory = startDirectory;

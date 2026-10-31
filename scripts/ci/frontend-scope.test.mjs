@@ -119,10 +119,7 @@ test('multiple changed consumers and scoped build helpers retain both signals', 
 });
 
 for (const event of ['push', 'pull_request']) {
-  for (const destination of [
-    'apps/marketing/moved.ts',
-    'apps/server/moved.ts',
-  ]) {
+  for (const destination of ['apps/marketing/moved.ts', 'apps/server/moved.ts']) {
     test(`actual CLI retains the deleted frontend source for ${event} rename to ${destination}`, (t) => {
       const root = mkdtempSync(path.join(os.tmpdir(), 'frontend-rename-'));
       t.after(() => rmSync(root, { recursive: true, force: true }));
