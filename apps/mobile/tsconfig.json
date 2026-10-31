@@ -5,9 +5,7 @@
       "@genfeedai/contracts/api-types/*": [
         "../../packages/contracts/src/api-types/*"
       ],
-      "@genfeedai/contracts/types/*": [
-        "../../packages/contracts/src/types/*"
-      ],
+      "@genfeedai/contracts/types/*": ["../../packages/contracts/src/types/*"],
       "@genfeedai/agent": ["../../packages/agent/src/index.ts"],
       "@genfeedai/agent/*": ["../../packages/agent/src/*"],
       "@genfeedai/contracts/constants": [
