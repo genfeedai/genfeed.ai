@@ -303,6 +303,7 @@ describe('AgentFailuresPage', () => {
         0,
         expect.any(AbortSignal),
         'resolved',
+        undefined,
       ),
     );
   });
