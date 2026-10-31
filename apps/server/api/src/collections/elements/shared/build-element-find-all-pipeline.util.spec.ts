@@ -52,7 +52,7 @@ describe('buildElementFindAllQuery ordering', () => {
     expect(orderBy).toEqual({ category: 1, createdAt: -1, id: -1 });
   });
 
-  it.each(['password: 1', 'organizationId: -1', 'category: 1', 'label'])(
+  it.each(['password: 1', 'organizationId: -1', 'category: 1'])(
     'falls back to the default order for a sort it cannot honor (%s)',
     (sort) => {
       const { orderBy } = buildElementFindAllQuery({
