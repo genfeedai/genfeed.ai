@@ -6,14 +6,9 @@
  *   bun run scripts/check-skills-readme-drift.ts
  *   bun run scripts/check-skills-readme-drift.ts --write
  */
-import {
-  existsSync,
-  readdirSync,
-  readFileSync,
-  statSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative } from 'node:path';
+import { catalogSkillDirectories } from '../apps/server/api/src/collections/skills/catalog/skill-catalog-artifact';
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---/;
 const ROOT = process.cwd();
@@ -88,18 +83,8 @@ function loadProductSkills(root: string = ROOT): ProductSkill[] {
   }
 
   const skills: ProductSkill[] = [];
-  for (const entry of readdirSync(SKILLS_DIR)) {
-    const skillDir = join(SKILLS_DIR, entry);
-    if (!statSync(skillDir).isDirectory()) {
-      continue;
-    }
-
-    const skillPath = join(skillDir, 'SKILL.md');
-    if (!existsSync(skillPath)) {
-      continue;
-    }
-
-    skills.push(parseFrontmatter(skillPath));
+  for (const { path } of catalogSkillDirectories(SKILLS_DIR)) {
+    skills.push(parseFrontmatter(join(SKILLS_DIR, path, 'SKILL.md')));
   }
 
   return skills.sort((a, b) => a.name.localeCompare(b.name));
@@ -111,7 +96,7 @@ function escapeTableCell(value: string): string {
 
 function renderSkillsSection(skills: ProductSkill[]): string {
   const lines = [
-    'Generated from `skills/*/SKILL.md` frontmatter. Run `bun run scripts/check-skills-readme-drift.ts --write` after adding or changing a root product skill.',
+    'Generated from `skills/<module>/<skill>/SKILL.md` frontmatter. Run `bun run scripts/check-skills-readme-drift.ts --write` after adding or changing a product skill.',
     '',
     '| Skill | Description |',
     '| --- | --- |',
@@ -156,7 +141,7 @@ function main(): void {
 
   if (nextReadme === readme) {
     console.log(
-      `skills/README.md is in sync with ${skills.length} root product skills.`,
+      `skills/README.md is in sync with ${skills.length} product skills.`,
     );
     return;
   }
@@ -164,7 +149,7 @@ function main(): void {
   if (shouldWrite) {
     writeFileSync(README_PATH, nextReadme);
     console.log(
-      `Updated skills/README.md from ${skills.length} root product skills.`,
+      `Updated skills/README.md from ${skills.length} product skills.`,
     );
     return;
   }
@@ -179,7 +164,9 @@ function main(): void {
   const missing = expectedNames.filter((name) => !currentNames.includes(name));
   const extra = currentNames.filter((name) => !expectedNames.includes(name));
 
-  console.error('skills/README.md has drifted from skills/*/SKILL.md.');
+  console.error(
+    'skills/README.md has drifted from skills/<module>/<skill>/SKILL.md.',
+  );
   if (missing.length > 0) {
     console.error(`Missing from README: ${missing.join(', ')}`);
   }

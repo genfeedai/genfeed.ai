@@ -42,7 +42,7 @@ const MAX_LLM_CONTENT_CHARS = 12000;
  * Canonical SEO scorer (#758).
  *
  * Scores a piece of long-form content (article / post) against the 7-dimension
- * rubric in `skills/content-seo-optimizer/SKILL.md`. Deterministic checks are
+ * rubric in `skills/content/content-seo-optimizer/SKILL.md`. Deterministic checks are
  * computed in code (reproducible: same input → same number); the LLM only
  * refines the qualitative dimensions. Results are persisted on the entity.
  */

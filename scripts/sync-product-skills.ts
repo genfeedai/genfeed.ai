@@ -6,6 +6,7 @@ import {
   lstatSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   realpathSync,
   rmSync,
@@ -15,7 +16,7 @@ import { tmpdir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
 import {
   assertSafePath,
-  catalogSlugs,
+  catalogSkillDirectories,
   compileSkill,
   createCatalogLock,
   inventory,
@@ -177,25 +178,45 @@ export function syncProductSkills(
   const publishedPaths = sourceSkillPaths(options.sourceDir);
   const packages = sourcePackages(options.sourceDir);
   const initialImport = !existsSync(join(directory, 'catalog.lock.json'));
-  const slugs = catalogSlugs(directory);
+  const existing = catalogSkillDirectories(directory);
   // Validate every existing destination and every incoming package before the first write.
-  for (const slug of slugs) inventory(join(directory, slug));
+  for (const skill of existing) inventory(join(directory, skill.path));
   for (const pkg of packages) {
+    const current = existing.find((skill) => skill.slug === pkg.slug);
     // A new pin may add skills; only the very first import needs every folder.
-    if (initialImport && !slugs.includes(pkg.slug))
+    if (initialImport && !current)
       throw new Error(`Missing destination: ${pkg.slug}`);
     if (
       initialImport &&
-      compileSkill(join(directory, pkg.slug)).instructions !== pkg.instructions
+      current &&
+      compileSkill(join(directory, current.path)).instructions !==
+        pkg.instructions
     )
       throw new Error(`Instruction output would change: ${pkg.slug}`);
   }
+  // A skill the source moved to another module leaves its old folder behind.
+  const movedAway = (root: string) => {
+    for (const pkg of packages) {
+      const current = existing.find((skill) => skill.slug === pkg.slug);
+      if (current && current.path !== pkg.path)
+        rmSync(join(root, current.path), { recursive: true });
+    }
+  };
+  const dropEmptyModules = (root: string) => {
+    for (const name of readdirSync(root))
+      if (
+        lstatSync(join(root, name)).isDirectory() &&
+        readdirSync(join(root, name)).length === 0
+      )
+        rmSync(join(root, name), { recursive: true });
+  };
   const stagingRoot = mkdtempSync(join(tmpdir(), 'product-catalog-import-'));
   try {
     const stagedDirectory = join(stagingRoot, 'skills');
     cpSync(directory, stagedDirectory, { recursive: true });
+    movedAway(stagedDirectory);
     for (const pkg of packages) {
-      const target = join(stagedDirectory, pkg.slug);
+      const target = join(stagedDirectory, pkg.path);
       rmSync(target, { recursive: true, force: true });
       mkdirSync(target, { recursive: true });
       for (const file of pkg.files) {
@@ -213,11 +234,14 @@ export function syncProductSkills(
     const index = renderSkillsIndex(stagingRoot, committedAt);
     const readme = renderSkillsReadme(stagingRoot);
     // No actual destination is changed until all compiler/artifact inputs validate.
+    movedAway(directory);
     for (const pkg of packages) {
-      const target = join(directory, pkg.slug);
+      const target = join(directory, pkg.path);
       rmSync(target, { recursive: true, force: true });
-      cpSync(join(stagedDirectory, pkg.slug), target, { recursive: true });
+      mkdirSync(resolve(target, '..'), { recursive: true });
+      cpSync(join(stagedDirectory, pkg.path), target, { recursive: true });
     }
+    dropEmptyModules(directory);
     writeFileSync(
       join(directory, 'catalog.lock.json'),
       `${JSON.stringify(lock, null, 2)}\n`,

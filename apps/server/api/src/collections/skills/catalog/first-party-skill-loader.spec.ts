@@ -45,7 +45,7 @@ describe('first-party skill loader', () => {
           writeFileSync(join(fixture, 'catalog.lock.json'), '{invalid');
         else
           writeFileSync(
-            join(fixture, 'ad-copy-creator', 'undeclared.md'),
+            join(fixture, 'ads', 'ad-copy-creator', 'undeclared.md'),
             'unverified',
           );
         expect(() => loadFirstPartySkillDefinitions(fixture)).toThrow();
@@ -87,12 +87,15 @@ describe('first-party skill loader', () => {
     ).toMatchObject({
       catalogOrigin: 'application',
       sourceRepository: 'https://github.com/genfeedai/genfeed.ai',
-      sourcePath: 'skills/workflow-creator',
+      sourcePath: 'skills/app/workflow-creator',
     });
     const fixture = mkdtempSync(join(tmpdir(), 'catalog-loader-'));
     try {
       cpSync(directory, fixture, { recursive: true });
-      writeFileSync(join(fixture, 'ad-copy-creator', 'SKILL.md'), 'tampered');
+      writeFileSync(
+        join(fixture, 'ads', 'ad-copy-creator', 'SKILL.md'),
+        'tampered',
+      );
       expect(() => loadFirstPartySkillDefinitions(fixture)).toThrow(
         'integrity',
       );
@@ -107,18 +110,18 @@ describe('first-party skill loader', () => {
     }
   });
 
-  it('loads every skills/*/SKILL.md directory as a catalog definition', () => {
+  it('loads every skills/<module>/<skill>/SKILL.md directory as a catalog definition', () => {
     const skillsDir = resolveProductSkillsDirectory();
     expect(skillsDir).toBeTruthy();
 
     const diskSlugs = readdirSync(skillsDir as string)
-      .filter((entry) => {
-        const skillDir = join(skillsDir as string, entry);
-        return (
-          statSync(skillDir).isDirectory() &&
-          existsSync(join(skillDir, 'SKILL.md'))
-        );
-      })
+      .flatMap((module) =>
+        statSync(join(skillsDir as string, module)).isDirectory()
+          ? readdirSync(join(skillsDir as string, module)).filter((entry) =>
+              existsSync(join(skillsDir as string, module, entry, 'SKILL.md')),
+            )
+          : [],
+      )
       .sort();
 
     const definitions = loadFirstPartySkillDefinitions(skillsDir);
@@ -157,6 +160,7 @@ describe('first-party skill loader', () => {
     );
     const referencePath = join(
       skillsDir as string,
+      'gtm',
       'brand-os-architect',
       'references',
       'source-pack.md',

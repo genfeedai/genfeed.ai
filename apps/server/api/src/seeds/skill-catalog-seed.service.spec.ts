@@ -97,7 +97,7 @@ describe('SkillCatalogSeedService', () => {
           writeFileSync(join(fixture, 'catalog.lock.json'), '{invalid');
         else
           writeFileSync(
-            join(fixture, 'ad-copy-creator', 'undeclared.md'),
+            join(fixture, 'ads', 'ad-copy-creator', 'undeclared.md'),
             'unverified',
           );
         loaderSpy = vi

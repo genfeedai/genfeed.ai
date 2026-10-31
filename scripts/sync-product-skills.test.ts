@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import {
   cpSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -60,9 +61,13 @@ function fixture() {
   }
   mkdirSync(join(app, 'skills'), { recursive: true });
   for (const slug of UPSTREAM_SLUGS)
-    cpSync(join(source, sourcePath(slug)), join(app, 'skills', slug), {
-      recursive: true,
-    });
+    cpSync(
+      join(source, sourcePath(slug)),
+      join(app, 'skills', sourcePath(slug)),
+      {
+        recursive: true,
+      },
+    );
   writeFileSync(
     join(app, 'skills', 'README.md'),
     '# Skills\n\n## Skills\n\nold\n\n## Adding a skill\n',
@@ -98,11 +103,14 @@ describe('pinned catalog import', () => {
       const f = fixture();
       f.write();
       const dir = join(f.app, 'skills');
-      const skill = join(dir, UPSTREAM_SLUGS[0], 'SKILL.md');
+      const skill = join(dir, sourcePath(UPSTREAM_SLUGS[0]), 'SKILL.md');
       if (mode === 'changed') writeFileSync(skill, 'tampered');
       if (mode === 'deleted') rmSync(skill);
       if (mode === 'added')
-        writeFileSync(join(dir, UPSTREAM_SLUGS[0], 'new.md'), 'new');
+        writeFileSync(
+          join(dir, sourcePath(UPSTREAM_SLUGS[0]), 'new.md'),
+          'new',
+        );
       if (mode === 'compiler') {
         const path = join(dir, 'catalog.lock.json');
         writeFileSync(
@@ -144,7 +152,8 @@ describe('pinned catalog import', () => {
     const lock = validateCatalogLock(join(f.app, 'skills'));
     expect(lock.sourceCommit).toBe(sha);
     expect(
-      compileSkill(join(f.app, 'skills', UPSTREAM_SLUGS[0])).instructions,
+      compileSkill(join(f.app, 'skills', sourcePath(UPSTREAM_SLUGS[0])))
+        .instructions,
     ).toContain('# Updated instructions');
     syncProductSkills(f.app, { sourceDir: f.source, checkSource: true });
   });
@@ -246,7 +255,7 @@ describe('pinned catalog import', () => {
   });
   it('records character caps and nested exclusions while preserving legacy assembly', () => {
     const f = fixture();
-    const dir = join(f.app, 'skills', UPSTREAM_SLUGS[0]);
+    const dir = join(f.app, 'skills', sourcePath(UPSTREAM_SLUGS[0]));
     mkdirSync(join(dir, 'references', 'nested'));
     writeFileSync(join(dir, 'references', 'nested', 'other.md'), 'nested');
     writeFileSync(join(dir, 'references', 'large.md'), 'a'.repeat(8001));
@@ -273,8 +282,8 @@ describe('pinned catalog import', () => {
   it('rejects hand-authored free skills that are neither pinned nor app procedures', () => {
     const f = fixture();
     f.write();
-    const unowned = join(f.app, 'skills', 'unowned-content-skill');
-    mkdirSync(unowned);
+    const unowned = join(f.app, 'skills', 'app', 'unowned-content-skill');
+    mkdirSync(unowned, { recursive: true });
     writeFileSync(
       join(unowned, 'SKILL.md'),
       '---\nname: unowned-content-skill\ndescription: Fixture\n---\n# Copy',
@@ -401,7 +410,29 @@ describe('pinned catalog import', () => {
         (entry) => entry.slug === slug,
       )?.sourcePath,
     ).toBe(`${toModule}/${slug}`);
+    expect(existsSync(join(f.app, 'skills', from))).toBe(false);
+    expect(existsSync(join(f.app, 'skills', toModule, slug, 'SKILL.md'))).toBe(
+      true,
+    );
     syncProductSkills(f.app, { sourceDir: f.source, checkSource: true });
+  });
+  it('rejects a skill folder that sits outside a module or in the wrong one', () => {
+    const f = fixture();
+    f.write();
+    const slug = UPSTREAM_SLUGS[0];
+    const skills = join(f.app, 'skills');
+    const wrong = MODULES.find((name) => name !== moduleOf(slug)) as string;
+    cpSync(join(skills, sourcePath(slug)), join(skills, slug), {
+      recursive: true,
+    });
+    expect(() => syncProductSkills(f.app, {})).toThrow('outside a module');
+    rmSync(join(skills, slug), { recursive: true });
+    mkdirSync(join(skills, wrong), { recursive: true });
+    cpSync(join(skills, sourcePath(slug)), join(skills, wrong, slug), {
+      recursive: true,
+    });
+    rmSync(join(skills, sourcePath(slug)), { recursive: true });
+    expect(() => syncProductSkills(f.app, {})).toThrow('Wrong catalog module');
   });
   it('rejects a source without a module list', () => {
     const f = fixture();

@@ -2,7 +2,7 @@
  * Canonical SEO scorer contract (#758).
  *
  * Mirrors the 7-dimension, 100-point rubric defined in
- * `skills/content-seo-optimizer/SKILL.md`. The scorer mixes deterministic
+ * `skills/content/content-seo-optimizer/SKILL.md`. The scorer mixes deterministic
  * checks (computed in code, fully reproducible) with LLM qualitative
  * sub-scores for the criteria that cannot be derived from the content alone.
  */

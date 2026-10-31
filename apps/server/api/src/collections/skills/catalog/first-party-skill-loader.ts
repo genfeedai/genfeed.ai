@@ -1,5 +1,5 @@
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { basename, dirname, join } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { builtInSkillIdentityForSlug } from '@api/collections/skills/constants/skill-catalog-identity';
@@ -9,10 +9,14 @@ import type {
   FirstPartySkillMetadata,
 } from './first-party-skill.types';
 import { inferFirstPartySkillTaxonomy } from './first-party-skill-taxonomy';
-import { compileSkill, validateCatalogLock } from './skill-catalog-artifact';
+import {
+  catalogSkillDirectories,
+  compileSkill,
+  validateCatalogLock,
+} from './skill-catalog-artifact';
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---/;
-const SKILLS_SENTINEL = join('image-prompt-engineer', 'SKILL.md');
+const SKILLS_SENTINEL = join('media', 'image-prompt-engineer', 'SKILL.md');
 
 function titleizeSkillSlug(slug: string): string {
   return slug
@@ -170,21 +174,12 @@ export function loadFirstPartySkillDefinitions(
     : validateCatalogLock(skillsDir);
   const definitions: FirstPartySkillDefinition[] = [];
 
-  for (const entry of readdirSync(skillsDir)) {
-    const skillDir = join(skillsDir, entry);
-    if (!statSync(skillDir).isDirectory()) {
-      continue;
-    }
-
+  for (const { slug, path } of catalogSkillDirectories(skillsDir)) {
+    const skillDir = join(skillsDir, path);
     const skillPath = join(skillDir, 'SKILL.md');
-    if (!existsSync(skillPath)) {
-      continue;
-    }
-
     const content = readFileSync(skillPath, 'utf-8');
     const frontmatter = parseFrontmatter(content);
     const metadata = parseMetadataJson(skillDir);
-    const slug = basename(skillDir);
     const identity = builtInSkillIdentityForSlug(slug);
     const taxonomy = inferFirstPartySkillTaxonomy(slug, metadata);
     const { instructions } = compileSkill(skillDir);

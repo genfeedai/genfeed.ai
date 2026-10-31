@@ -1,13 +1,8 @@
 #!/usr/bin/env bun
 
-import {
-  existsSync,
-  readdirSync,
-  readFileSync,
-  statSync,
-  writeFileSync,
-} from 'node:fs';
-import { basename, join, relative } from 'node:path';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, relative } from 'node:path';
+import { catalogSkillDirectories } from '../apps/server/api/src/collections/skills/catalog/skill-catalog-artifact';
 
 interface SkillFrontmatter {
   description: string;
@@ -73,23 +68,15 @@ function loadSkills(root: string): SkillIndexEntry[] {
   }
 
   const skills: SkillIndexEntry[] = [];
-  for (const entry of readdirSync(SKILLS_DIR)) {
-    const skillDir = join(SKILLS_DIR, entry);
-    if (!statSync(skillDir).isDirectory()) {
-      continue;
-    }
-
+  for (const { slug, path } of catalogSkillDirectories(SKILLS_DIR)) {
+    const skillDir = join(SKILLS_DIR, path);
     const skillPath = join(skillDir, 'SKILL.md');
-    if (!existsSync(skillPath)) {
-      continue;
-    }
-
     const content = readFileSync(skillPath, 'utf-8');
     const frontmatter = parseFrontmatter(content);
     skills.push({
       description: frontmatter?.description ?? '',
       path: relative(ROOT, skillPath),
-      slug: frontmatter?.name ?? basename(skillDir),
+      slug: frontmatter?.name ?? slug,
     });
   }
 

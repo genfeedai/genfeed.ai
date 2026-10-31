@@ -19,8 +19,8 @@ Clone and go.
 - `genfeedai/skills` is canonical for every free content-generation skill. The app holds a
   pinned, byte-verified snapshot recorded in `skills/catalog.lock.json`; never hand-edit those
   directories. Upstream keeps each skill at `<module>/<slug>/SKILL.md` (modules are listed in
-  its `scripts/modules.json`); the app keeps them flat at `skills/<slug>/` and the lock records
-  each skill's `sourcePath` as `<module>/<slug>`. Change them upstream, then run a deliberate
+  its `scripts/modules.json`); the app mirrors that at `skills/<module>/<slug>/` (application procedures in
+  `skills/app/`) and the lock records each upstream skill's `sourcePath` as `<module>/<slug>`. Change them upstream, then run a deliberate
   `bun run skills:sync --source-dir <clean checkout> --commit <sha> --write`.
 - Only app-usage procedures are authored in `skills/`: brand-interview, node-creator,
   workflow-creator, onboarding, model-selector, scope-validator, openclaw-integration

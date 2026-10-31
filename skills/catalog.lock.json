@@ -170,7 +170,7 @@
       "ownership": "application",
       "reason": "Application procedure retained",
       "sourceRepository": "https://github.com/genfeedai/genfeed.ai",
-      "sourcePath": "skills/brand-interview",
+      "sourcePath": "skills/app/brand-interview",
       "declaredVersion": "1.0.0",
       "files": [
         {
@@ -249,7 +249,7 @@
       "ownership": "application",
       "reason": "Application procedure retained",
       "sourceRepository": "https://github.com/genfeedai/genfeed.ai",
-      "sourcePath": "skills/clip-editor",
+      "sourcePath": "skills/app/clip-editor",
       "declaredVersion": "1.0.0",
       "files": [
         {
@@ -737,7 +737,7 @@
       "ownership": "application",
       "reason": "Application procedure retained",
       "sourceRepository": "https://github.com/genfeedai/genfeed.ai",
-      "sourcePath": "skills/model-selector",
+      "sourcePath": "skills/app/model-selector",
       "declaredVersion": "1.0.0",
       "files": [
         {
@@ -787,7 +787,7 @@
       "ownership": "application",
       "reason": "Application procedure retained",
       "sourceRepository": "https://github.com/genfeedai/genfeed.ai",
-      "sourcePath": "skills/node-creator",
+      "sourcePath": "skills/app/node-creator",
       "declaredVersion": "1.0.0",
       "files": [
         {
@@ -812,7 +812,7 @@
       "ownership": "application",
       "reason": "Application procedure retained",
       "sourceRepository": "https://github.com/genfeedai/genfeed.ai",
-      "sourcePath": "skills/onboarding",
+      "sourcePath": "skills/app/onboarding",
       "declaredVersion": "1.0.0",
       "files": [
         {
@@ -837,7 +837,7 @@
       "ownership": "application",
       "reason": "Application procedure retained",
       "sourceRepository": "https://github.com/genfeedai/genfeed.ai",
-      "sourcePath": "skills/openclaw-integration",
+      "sourcePath": "skills/app/openclaw-integration",
       "declaredVersion": "1.0.0",
       "files": [
         {
@@ -887,7 +887,7 @@
       "ownership": "application",
       "reason": "Application procedure retained",
       "sourceRepository": "https://github.com/genfeedai/genfeed.ai",
-      "sourcePath": "skills/scope-validator",
+      "sourcePath": "skills/app/scope-validator",
       "declaredVersion": "1.0.0",
       "files": [
         {
@@ -962,7 +962,7 @@
       "ownership": "application",
       "reason": "Application procedure retained",
       "sourceRepository": "https://github.com/genfeedai/genfeed.ai",
-      "sourcePath": "skills/workflow-creator",
+      "sourcePath": "skills/app/workflow-creator",
       "declaredVersion": "1.0.0",
       "files": [
         {

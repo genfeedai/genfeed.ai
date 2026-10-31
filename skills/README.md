@@ -4,7 +4,7 @@ Genfeed.ai content and product skills — used by the application itself to powe
 
 ## Skills
 
-Generated from `skills/*/SKILL.md` frontmatter. Run `bun run scripts/check-skills-readme-drift.ts --write` after adding or changing a root product skill.
+Generated from `skills/<module>/<skill>/SKILL.md` frontmatter. Run `bun run scripts/check-skills-readme-drift.ts --write` after adding or changing a product skill.
 
 | Skill | Description |
 | --- | --- |
@@ -55,7 +55,8 @@ Generated from `skills/*/SKILL.md` frontmatter. Run `bun run scripts/check-skill
 `catalog.lock.json` records the public source pin, every package file hash, the
 legacy compiler version, instruction hashes, and excluded references. The
 `upstream` packages are generated snapshots of the public `genfeedai/skills`
-module packages (`<module>/<slug>`, copied flat into `skills/<slug>`). Their JSON formatting is preserved byte-for-byte by a narrow Biome
+module packages and keep the same `skills/<module>/<slug>` layout. Application
+procedures live in `skills/app/`. Their JSON formatting is preserved byte-for-byte by a narrow Biome
 formatter exception; parsing, lint, and catalog integrity checks remain active.
 Edit those packages in their source repository. Other packages remain
 application-owned with an explicit application-procedure or deferred-reconciliation
